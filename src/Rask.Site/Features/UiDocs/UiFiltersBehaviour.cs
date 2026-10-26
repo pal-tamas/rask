@@ -36,6 +36,10 @@ internal sealed partial class UiFiltersBehaviour : Component
             + "Clear filters name that table in `aria-controls` — its own id, or one the set gives it — so a filter press "
             + "turns the rows on screen into skeleton rows at once, as the table's own pager and sortable headings do, and "
             + "the filtered rows take their place when the query answers.",
+            "A filter change — a pick, a badge's cross, Clear all — takes the list back to its first page, with no code "
+            + "at the call site, and the sort stays: a pager of links has the key its `Href` keeps the page under taken "
+            + "out in the same move of the address, and a pager of buttons is told `OnPage(1)`. Turning the pager "
+            + "itself keeps the filters.",
             "Place the button where an action goes and the badges between the header and the table: the example above is "
             + "Flux's full-bleed table, with the Filters button where Flux puts \"Add customer\".",
         ]);

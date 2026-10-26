@@ -14,9 +14,9 @@ public abstract partial class UiDatePickerControl<T> : IUiFilterField
     }
 
     /// <inheritdoc />
-    void IUiFilterField.Take()
+    void IUiFilterField.Take(UiFilters set)
     {
-        var cell = UiFilterCell<T>.Over(Bind, "Ui.DatePicker");
+        var cell = UiFilterCell<T>.Over(Bind, "Ui.DatePicker").In(set);
         if (cell.IsNot(Bind))
         {
             Id ??= UiFieldId.Derive(null, Bind, Label);
