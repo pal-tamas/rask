@@ -61,8 +61,9 @@ public sealed class RaskAppOptions
     /// for why a freshly scaffolded app must not start with that gate closed.
     /// </para>
     /// <para>
-    /// Turning it off leaves the account tables mapped, like every other database-backed battery, so
-    /// flipping this line back on does not produce a destructive migration.
+    /// Like every database-backed battery, its tables are mapped while it is on: switching it on in an app that
+    /// had it off is a migration (<c>rask db add</c>). Switching it off never drops them — an app whose migrations
+    /// already made them keeps them, left out of every later migration.
     /// </para>
     /// </remarks>
     public Battery<AuthOptions> Auth { get; } = new();
@@ -93,8 +94,8 @@ public sealed class RaskAppOptions
     /// </summary>
     /// <remarks>
     /// Where the bytes go is configuration — <c>Rask__Storage__Provider</c> and the keys beside it — so moving from the
-    /// deploy volume to a bucket changes no code. Turning it off leaves the table mapped, like every other
-    /// database-backed battery.
+    /// deploy volume to a bucket changes no code. Its table is mapped while it is on, like every
+    /// database-backed battery's.
     /// </remarks>
     public Battery<StorageOptions> Storage { get; } = new();
 

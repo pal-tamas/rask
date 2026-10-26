@@ -1753,6 +1753,56 @@ mapped by convention. An index declared here is kept exactly as written — on a
 The method is matched by signature, so a near miss (an instance method, a private one, the wrong
 builder type) is reported as [RASK072](diagnostics.md#rask072) rather than silently not called.
 
+### App-wide model rules: one `IRaskModel`
+
+What holds for every table — a string length, a decimal's precision, how a constraint is named, what a delete does —
+goes in **one class** implementing `IRaskModel`, the way Rails puts it in `ApplicationRecord`. The source generator
+finds it; there is nothing to register:
+
+```csharp
+public sealed class AppModel : IRaskModel
+{
+    public static void Conventions(ModelConfigurationBuilder c)
+    {
+        c.Properties<string>().HaveMaxLength(1000);
+        c.Properties<decimal>().HaveColumnType("decimal(32, 16)");
+        c.Conventions.Remove(typeof(ForeignKeyIndexConvention));
+        c.ConstraintNames(n => n.Kind switch
+        {
+            ConstraintKind.PrimaryKey => $"{n.Table}_pkey",
+            ConstraintKind.ForeignKey => $"{n.Table}_{n.Columns[0]}_fkey",
+            ConstraintKind.Unique     => $"{n.Table}_{n.Joined}_key",
+            ConstraintKind.Index      => $"{n.Table}_{n.Joined}_idx",
+            ConstraintKind.Default    => $"{n.Table}_{n.Columns[0]}_df",
+        });
+        c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction);
+    }
+
+    public static void Model(ModelBuilder m) => m.HasDefaultSchema("dbo");
+}
+```
+
+- **`Conventions`** is EF Core's `ConfigureConventions` for the whole app; **`Model`** runs on the model after Rask's
+  conventions and **before** each entity's own `Configure`. Both are optional. They reach `RaskAppDbContext`, an
+  app's own context deriving from `RaskDbContext`, every battery's tables, and the read faces' context.
+- **`ConstraintNames`** names every primary key, foreign key, unique index or alternate key, index and — on SQL
+  Server — column default the model did not name itself. `n.Table`, `n.Columns` (as the database names them) and
+  `n.Joined` (`Name_TenantId`) describe it; return `null` to keep EF Core's name. A name longer than the database
+  allows is cut to its limit: 128 characters on SQL Server, 63 on PostgreSQL.
+- **`DeleteBehavior(children:, others:)`** says what a delete does: `children` for an aggregate's
+  [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
+  the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
+  usually has.
+- Both are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
+  a `HasDatabaseName`, `HasConstraintName` or `OnDelete` written there is kept as written. A unique index's
+  [message](#what-a-unique-indexs-violation-says) and a [referenced delete's sentence](#what-deleting-a-referenced-row-says)
+  find their index or key under the name the rule gave it.
+- A battery states the length of every text column it owns (a job's payload, a mail's body are unbounded), so an
+  app-wide `HaveMaxLength` never cuts one off.
+
+One per app: a second class implementing `IRaskModel` in the same project is [RASK110](diagnostics.md#rask110), and
+two assemblies each bringing one refuse the start, naming both.
+
 ### What a unique index's violation says
 
 A unique index is a rule, and the database is the only place that can enforce it without a race. Say what

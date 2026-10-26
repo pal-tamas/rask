@@ -143,9 +143,10 @@ WASM templates differ mainly in `Program.cs`):
   local `app.db` at `Rask:ConnectionStrings:App` — that every one of those sources overrides. See
   [Configuration](configuration.md).
 
-- **No database context to write.** `RaskAppDbContext` maps every aggregate you declare plus every
-  battery's tables; code that needs the context itself injects `IDbContextFactory<RaskAppDbContext>`
-  ([Rask.Data](data.md)).
+- **No database context to write.** `RaskAppDbContext` maps every aggregate you declare plus the tables of
+  the batteries that are on — turning one on later is a migration (`rask db add`), turning one off never drops
+  its tables ([Configuration](configuration.md#battery-tables)); code that needs the context itself injects
+  `IDbContextFactory<RaskAppDbContext>` ([Rask.Data](data.md)).
 
 - **`Features/Shared/App.cs`** — the **root component** `App`: it renders straight into
   `<body>` — Rask builds the document around it — and drops a `Router` where the current page appears.

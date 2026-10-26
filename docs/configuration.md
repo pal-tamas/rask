@@ -183,6 +183,24 @@ Configuration carries values. Anything that is behaviour stays on the callback:
 read — anything in its bundle is readable by every visitor anyway — so its options come from the callbacks
 alone.
 
+## Battery tables
+
+`RaskAppDbContext` maps a battery's tables **while the battery is on** — the jobs table while `c.Jobs` is on, the
+mail queue while `c.Mail` is, and so on for accounts, cache, file storage, Web Push and (on PostgreSQL or SQL Server)
+the log. A new app's first migration carries what it uses and nothing else, the way a Laravel app has no jobs table
+until it runs `queue:table`. The outbox follows the database, so its table is always there.
+
+- **Switching a battery on is a migration.** `app.Configure(c => c.Jobs.On())` in an app that had it off, then
+  `rask db add AddJobs`, and the app applies it on its next start.
+- **Switching one off never drops anything.** An app whose migrations already created the battery's tables keeps
+  them in the model, excluded from migrations, so the next `rask db add` neither drops them nor touches them — the
+  rows stay where they were for the day the switch goes back on. Rask reads that from the app's own model snapshot,
+  the one the next migration is diffed against. Dropping them is a migration you write yourself.
+- **Two apps in one process get two models.** EF Core caches a model per context type; `RaskAppDbContext` keys its
+  cache on the switches, so a test suite whose apps turn different batteries off never shares one built for another.
+
+An app with a context of its own maps the batteries it wants itself (`modelBuilder.AddRaskJobs()`, …).
+
 ## `RaskApp`'s development defaults
 
 An app built with `RaskApp` (in `Rask.Server`) turns every battery on, and a few of them cannot start

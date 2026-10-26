@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK109, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK110, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -133,6 +133,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK107](#rask107) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASK109](#rask109) | Warning | A call to an `[Authorize]` component method cannot be checked where it is written |
+| [RASK110](#rask110) | Error | More than one class implements `IRaskModel` |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3139,3 +3140,24 @@ and no quick-fix.
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net10.0-browser`. |
 | `RASKDOM001` | Contributors only: the MDN snapshot could not be turned into element types. | The message names the member that collides. |
 | `RASKDOM002` | Contributors only: an event name has a part the emitter cannot split into words. | Add the word to `DomEventEmitter.Words`. |
+
+## RASK110
+
+**More than one class implements `IRaskModel`** · Error
+
+An app's model-wide rules — a string length, constraint names, what a delete does — live in
+[one class implementing `IRaskModel`](data.md#app-wide-model-rules-one-iraskmodel), which the source generator finds
+and names to the model registry. With two in one project there is no telling which rules the schema is built under,
+so neither is applied and the build stops.
+
+```csharp
+public sealed class AppModel : IRaskModel { … }
+public sealed class LegacyModel : IRaskModel { … }   // ✗ RASK110
+```
+
+```text
+'global::Shop.AppModel' and 'global::Shop.LegacyModel' both implement IRaskModel, so Rask cannot tell which rules this app's model is built under; keep one and move the other's rules into it
+```
+
+**Fix:** move the rules of one into the other and delete it. Two assemblies that each bring one are refused at start,
+naming both.
