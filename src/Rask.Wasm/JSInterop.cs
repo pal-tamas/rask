@@ -212,9 +212,12 @@ internal static partial class JSInterop
     [JSImport("pushHistory", ModuleName)]
     public static partial void PushHistory(string url, bool replace);
 
-    /// <summary>Loads a page of this site the app does not render (<c>Go.Out</c>), leaving the app.</summary>
+    /// <summary>
+    ///     Loads a page of this site the app does not render (<c>Go.Out</c>), leaving the app — in place of the page's
+    ///     own history entry when <paramref name="replace" />.
+    /// </summary>
     [JSImport("leaveTo", ModuleName)]
-    public static partial void LeaveTo(string url);
+    public static partial void LeaveTo(string url, bool replace);
 
     // The chunk crosses as the Uint8Array it is, which a promise can only hand over as `any`: declared
     // Task<string>, the first read of any file stopped the runtime ("Value is not a String", #1200).
@@ -300,7 +303,12 @@ internal static partial class JSInterop
     /// <summary>The last address <c>Go.Out</c> sent the page to, so the non-browser tests can assert it.</summary>
     public static string? LastLeftTo { get; private set; }
 
-    public static void LeaveTo(string url) => LastLeftTo = url;
+    /// <summary>Whether that address took the place of the page's own history entry.</summary>
+    public static bool LastLeftReplacing { get; private set; }
+
+    public static void LeaveTo(string url, bool replace) => (LastLeftTo, LastLeftReplacing) = (url, replace);
+
+    internal static void ResetLeftTo() => (LastLeftTo, LastLeftReplacing) = (null, false);
 
     /// <summary>Counts the indicator calls so the non-browser tests can assert the bridge fired.</summary>
     public static int HotReloadAppliedCount { get; private set; }

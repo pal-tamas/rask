@@ -21,6 +21,7 @@ internal sealed partial class RedirectStubApp(RouteState route) : Component
             new Route(typeof(RedirectStubLate), "late"),
             new Route(typeof(RedirectStubGated), "gated"),
             new Route(typeof(RedirectStubOut), "out"),
+            new Route(typeof(RedirectStubGatedOut), "gated-out"),
         ]),
     ];
 
@@ -188,4 +189,23 @@ internal sealed partial class RedirectStubOut : Component
     }
 
     protected override Component? Render() => P["out-content"];
+}
+
+// Loads until the test says, then sends the reader to a page of the site this app does not render.
+internal sealed partial class RedirectStubGatedOut : Component
+{
+    protected override async Task OnMount()
+    {
+        await RedirectStubGated.Opened.Task;
+        try
+        {
+            Go.Out("/tenants");
+        }
+        finally
+        {
+            RedirectStubGated.Asked.TrySetResult();
+        }
+    }
+
+    protected override Component? Render() => P["gated-out-content"];
 }
