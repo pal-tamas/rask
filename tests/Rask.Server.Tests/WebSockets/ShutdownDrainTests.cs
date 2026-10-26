@@ -281,8 +281,23 @@ public class ShutdownDrainTests
         // Probed through the real pipeline, not by constructing the check: the health-check
         // infrastructure activates checks through ActivatorUtilities, which only sees public
         // constructors. A direct-construction test passes happily while every actual probe throws.
+        //
+        // The capacity check's memory reading is pinned, as in the test above: it is the MACHINE's, and a runner
+        // already past DegradedMemoryLoad answered "Degraded" before the drain began (#732). Pinned through the
+        // registration's own factory, so the probe still goes through the real pipeline.
         using var host = RaskTestHost.Create<TestApp>(
-            configureServices: s => s.AddHealthChecks().AddRaskLiveSessions(),
+            configureServices: s =>
+            {
+                s.AddHealthChecks().AddRaskLiveSessions();
+                s.Configure<HealthCheckServiceOptions>(options =>
+                {
+                    var capacity = options.Registrations.Single(r => r.Name == "rask_live_sessions");
+                    capacity.Factory = sp => new RaskLiveHealthCheck(sp.GetRequiredService<LiveSessionStore>())
+                    {
+                        MemoryLoadReader = () => 0.0,
+                    };
+                });
+            },
             configureMiddleware: app => app.UseHealthChecks("/health"));
 
         var before = await host.Http.GetAsync("/health", TestContext.Current.CancellationToken);
