@@ -111,6 +111,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A runaway page is slowed and named however slowly it renders.** The second of quiet that ends a row of renders
+  was measured from one render's end to the next one's end, so on a loaded machine, where a render can take longer
+  than that, every render started a new row: the page was never slowed or named, and
+  `FollowedSourceRenderTests` waited 30 s for the warning. The quiet now runs from one render's end to the next
+  one's start, on the session's `TimeProvider`.
 - **A scoped script's callback no longer runs beside a render on the Server host.** It was queued behind the
   handlers but did not take the session's lock, so it could write while a render's `OnRendered` read: `Ui.Editor`,
   typed into fast on a loaded server, could be handed back the text one keystroke behind ("Still he" for "Still

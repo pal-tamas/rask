@@ -16,9 +16,14 @@ namespace Rask.Core.Live;
 ///         <see cref="Pause" /> first. The page stays current, the session's lock is free between them for the
 ///         reader's events, and the server does not spin.
 ///     </para>
-///     <para>A row ends when <see cref="Quiet" /> passes without one.</para>
+///     <para>
+///         A row ends when <see cref="Quiet" /> passes between one render's end and the next one's start. The time a
+///         render itself takes is not quiet: on a loaded machine one can take longer than that, and a row measured
+///         end to end never reached its streak — a runaway that was never slowed or named.
+///     </para>
 /// </remarks>
-internal sealed class RenderPace
+/// <param name="clock">The session's clock.</param>
+internal sealed class RenderPace(TimeProvider clock)
 {
     /// <summary>How many renders in a row may each be asked for during the one before, at full speed.</summary>
     internal const int Streak = 10;
@@ -51,9 +56,19 @@ internal sealed class RenderPace
     private readonly Lock _gate = new();
     private readonly HashSet<Type> _askers = [];
     private long _lastAt;
+    private long _began;
     private int _inARow;
     private bool _pausing;
     private volatile bool _listening;
+
+    /// <summary>A pace on the system clock.</summary>
+    internal RenderPace()
+        : this(TimeProvider.System)
+    {
+    }
+
+    /// <summary>A scope begins: a render, a dispatch or an event, whose end may leave a request behind.</summary>
+    internal void Began() => Volatile.Write(ref _began, clock.GetTimestamp());
 
     /// <summary>Says when the render for a request a scope left behind is made.</summary>
     /// <param name="sessionId">The session, as its report names it. Null where a process has only one.</param>
@@ -67,8 +82,11 @@ internal sealed class RenderPace
         Turn turn;
         lock (_gate)
         {
-            var now = Environment.TickCount64;
-            if (now - _lastAt > (long)Quiet.TotalMilliseconds)
+            // Quiet runs from the last one's end to the start of the scope that ended now — or to now, when no scope
+            // has said it began since.
+            var now = clock.GetTimestamp();
+            var began = Volatile.Read(ref _began);
+            if (_lastAt == 0 || clock.GetElapsedTime(_lastAt, began >= _lastAt ? began : now) > Quiet)
             {
                 _inARow = 0;
                 _askers.Clear();
@@ -112,7 +130,7 @@ internal sealed class RenderPace
             _pausing = false;
 
             // The pause is part of the row, not the quiet that ends it.
-            _lastAt = Environment.TickCount64;
+            _lastAt = clock.GetTimestamp();
         }
     }
 

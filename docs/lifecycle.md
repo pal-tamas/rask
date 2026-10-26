@@ -594,7 +594,8 @@ for a component handler (above) when the reaction reads data or needs the user. 
 - **A runaway is slowed and named, never spun.** A component that asks for a render from every `Render()` would
   otherwise never stop. After ten renders in a row that were each asked for while the one before was being made,
   each further one waits 250 ms, and a warning on `Rask.Live` names the component types that asked. The page stays
-  current and the reader's events are answered in between.
+  current and the reader's events are answered in between. The row ends after a second with no render; the time a
+  slow render takes does not count toward that second, and the session's `TimeProvider` keeps the time.
 
 Subscribe on mount and unsubscribe on unmount, mutate the state **before** the call, and do not call
 `StateHasChanged()` from `Render()` itself.

@@ -161,6 +161,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         DiffMode = diffMode;
         view.RenderHandle = this;
         _workScope = services.GetService<ISessionWorkScope>();
+        _clock = services.GetService<TimeProvider>() ?? TimeProvider.System;
+        _pace = new RenderPace(_clock);
 
         // Only when an app actually configured cultures — otherwise this costs nothing and the whole
         // subsystem stays inert (see RaskCulture.IsEnabled).
@@ -444,13 +446,16 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         set
         {
             _inHandlerScope = value;
+            if (value)
+            {
+                // Where the scope starts: the quiet that ends a row of renders is measured up to here (RenderPace).
+                _pace.Began();
+                return;
+            }
 
             // Every host clears it as the event that set it ends, after its last render: that is where the
             // event's scope goes.
-            if (!value)
-            {
-                EndEvent();
-            }
+            EndEvent();
         }
     }
 
@@ -490,13 +495,15 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         };
     }
 
-    // How the renders made after a scope, for requests it left undrawn, are spaced once they come without end.
-    private readonly RenderPace _pace = new();
+    // How the renders made after a scope, for requests it left undrawn, are spaced once they come without end, on
+    // the session's clock.
+    private readonly RenderPace _pace;
+    private readonly TimeProvider _clock;
 
     private async Task RenderAfterAPauseAsync()
     {
         // Ended early by the page's teardown, after which the request below finds nobody to render for.
-        await Task.Delay(RenderPace.Pause, View.LifetimeTokenInternal).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        await Task.Delay(RenderPace.Pause, _clock, View.LifetimeTokenInternal).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
 
         // Before the render: whatever asks from here on is drawn by a render of its own.
         _pace.PauseOver();
