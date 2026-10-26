@@ -68,7 +68,11 @@ export function handlerClick(e: MouseEvent): Element | null {
     // An INVOKER COMMAND (`command` + `commandfor`, the HTML invoker API) is the same case again: its
     // default action is the command, so a C# handler on a button that also shows a modal must not
     // cancel the showing.
-    const invoker = closestFrom(e.target, "[popovertarget], [commandfor]");
+    //
+    // A handler INSIDE the invoker is a control of its own on it — a picker's ×, written in its trigger as Flux
+    // writes it — and its press is not the invoker's: the popover stays shut.
+    const outer = closestFrom(e.target, "[popovertarget], [commandfor]");
+    const invoker = outer && (outer === t || !outer.contains(t)) ? outer : null;
     // A second press on a control still visibly waiting on its first is the double submit a spinner
     // exists to prevent (rask-loading.ts). Before the spinner shows — a fast double-click on a fast
     // handler — it goes through, which keeps a rapid stepper working.

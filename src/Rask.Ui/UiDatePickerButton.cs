@@ -76,9 +76,10 @@ public sealed partial class UiDatePickerButton : Component
             Div.Class(UiDatePickerLook.Selected).Attributes(UiCalendarHook.Named("text"))[
                 scope.Text is { } text ? Span[text] : Span.Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]
             ],
+            scope.ClearInside(Clearable, locked),
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
-        return scope.Cleared(button, Clearable, height, locked);
+        return button;
     }
 }

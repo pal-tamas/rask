@@ -318,14 +318,21 @@ public sealed class RuntimeHookCalendarTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
-    public async Task The_clear_button_empties_the_picker_and_its_button_says_the_placeholder_again()
+    public async Task The_cross_in_the_button_empties_the_picker_without_opening_it_and_Tab_passes_it_by()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
+        await page.FocusAsync("#arrival");
+        await page.Keyboard.PressAsync("Tab");
+        var tabbed = await page.EvaluateAsync<string?>("document.activeElement?.getAttribute('aria-label')");
 
-        await page.ClickAsync("#arrival-box [aria-label='Clear']");
+        await page.ClickAsync("#arrival [aria-label='Clear']");
 
+        Assert.NotEqual("Clear", tabbed);
+        Assert.False(await page.IsVisibleAsync("#arrival-box [popover]"));
         await Expect(page.Locator("#arrival")).ToContainTextAsync("Select a date");
+        await Expect(page.Locator("#arrival [aria-label='Clear']")).ToBeHiddenAsync();
+        Assert.Equal("BODY", await page.EvaluateAsync<string>("document.activeElement.tagName"));
         await Expect(page.Locator("#arrival-value")).ToHaveTextAsync("0001-01-01");
         await page.ClickAsync("#arrival");
         Assert.Equal(0, await page.Locator("#arrival-box td[aria-selected='true']").CountAsync());

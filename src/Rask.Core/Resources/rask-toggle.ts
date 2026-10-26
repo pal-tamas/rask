@@ -105,8 +105,9 @@ if (page) {
         if (!invoker || !panel || (e.target instanceof Node && panel.contains(e.target))) {
             return;
         }
-        // A field inside the toggle (not the toggle itself) takes the press for its caret.
-        const field = near(e.target, FIELD);
+        // A field inside the toggle (not the toggle itself) takes the press for its caret, and a control with a
+        // press of its own (a picker's ×) takes it for that.
+        const field = near(e.target, FIELD + ", [data-rask-on-click]");
         if (field && field !== invoker && invoker.contains(field)) {
             return;
         }

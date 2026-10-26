@@ -113,11 +113,12 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
                     Whole(scope, slot)
                 ],
             Span.Class(UiDatePickerLook.Spacer),
+            scope.ClearInside(Clearable, locked),
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
-        // Beside the field, not in it: everything in the field but its parts opens the calendar.
-        return field.Wrap(scope.Cleared(group, Clearable, height, locked));
+        // Everything in the field but its parts and its × opens the calendar.
+        return field.Wrap(group);
     }
 
     // The one field the parts are read and written through: the whole date, or nothing.

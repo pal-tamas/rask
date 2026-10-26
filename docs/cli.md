@@ -360,6 +360,13 @@ together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` 
 peer, so npm will not install both. A Preact component can also be rendered by `ReactComponent` if the
 app aliases `react` to `preact/compat`.
 
+The npm versions are chosen when you run `rask new`: the newest releases that install together, written as
+`^x.y.z`. Offline, or when the registry does not answer within 20 seconds, `rask new` uses the releases the CLI
+shipped with, written as `^x.y.z` too, and prints one warning line that names the day those releases were
+recorded. Run `npm update` once you are back online. It never writes a bare `latest`. The same applies to
+`--template react|preact|vue|angular|solid|svelte|lit` — see
+[Which versions a new app gets](spa.md#which-versions-a-new-app-gets).
+
 `blazor` is the one kind with no npm side at all: the Razor SDK compiles the `.razor` and Rask renders
 it server-side into the first response, so a Blazor-only island project gets no `package.json` and
 never probes for Node.

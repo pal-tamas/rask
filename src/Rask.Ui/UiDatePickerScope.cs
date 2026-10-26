@@ -61,9 +61,9 @@ internal sealed class UiDatePickerScope
     internal int Claim() => Math.Min(_claimed++, Dates.Count - 1);
 
     /// <summary>
-    ///     <paramref name="trigger" /> with the clear button over its end, where the trigger or the picker asked
-    ///     for one: shown while a date is chosen and the trigger is not <paramref name="locked" />.
+    ///     The × a trigger writes before its chevron, where the trigger or the picker asked for one: shown while a
+    ///     date is chosen and the trigger is not <paramref name="locked" />, and by the runtime as one is picked.
     /// </summary>
-    internal Rask.Core.Component Cleared(Rask.Core.Component trigger, bool? asked, string height, bool locked) =>
-        asked ?? Clearable ? UiPickerClear.Over(trigger, height, Clear, shown: Dates[0] is not null && !locked, part: UiCalendarHook.Named("clear")) : trigger;
+    internal Rask.Core.Component? ClearInside(bool? asked, bool locked) =>
+        asked ?? Clearable ? UiPickerClear.Inside(Clear, Dates[0] is not null && !locked, marks: UiCalendarHook.Named("clear")) : null;
 }

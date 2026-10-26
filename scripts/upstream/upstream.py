@@ -25,11 +25,13 @@ def fixture_name(url):
     return re.sub(r"[^A-Za-z0-9.-]+", "_", url.split("://", 1)[-1])
 
 
-def fetch(url):
+def fetch(url, accept=None):
     saved = os.environ.get("RASK_UPSTREAM_FIXTURES")
     if saved:
         return (Path(saved) / fixture_name(url)).read_bytes()
     headers = {"User-Agent": "rask-upstream"}
+    if accept:
+        headers["Accept"] = accept
     token = os.environ.get("GH_TOKEN")
     if token and url.startswith("https://api.github.com/"):
         headers["Authorization"] = "Bearer " + token
@@ -37,8 +39,8 @@ def fetch(url):
         return response.read()
 
 
-def fetch_json(url):
-    return json.loads(fetch(url))
+def fetch_json(url, accept=None):
+    return json.loads(fetch(url, accept))
 
 
 def numbers(version):

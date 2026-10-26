@@ -379,6 +379,103 @@ public sealed class ApiClientGeneratorTests
         Assert.False(run.HasGeneratedSource("__RaskApiClients"));
     }
 
+    /// <summary>ASP.NET's exclusion conventions, stubbed generic so a group stays a group.</summary>
+    private const string Exclusion = """
+        namespace Microsoft.AspNetCore.Http
+        {
+            public interface IResult { }
+            public sealed class ExcludeFromDescriptionAttribute : System.Attribute { }
+            public static class OpenApiRouteHandlerBuilderExtensions
+            {
+                public static TBuilder ExcludeFromDescription<TBuilder>(this TBuilder builder) => builder;
+                public static TBuilder WithMetadata<TBuilder>(this TBuilder builder, params object[] items) => builder;
+            }
+        }
+        """;
+
+    private static GeneratorRun RunEndpoints(string body) =>
+        Run($$"""
+            using Microsoft.AspNetCore.Builder;
+            using Microsoft.AspNetCore.Http;
+            using Microsoft.AspNetCore.Routing;
+
+            public static class Endpoints
+            {
+                private static readonly RouteGroupBuilder Hidden = Make().ExcludeFromDescription();
+
+                private static RouteGroupBuilder Make() => null!;
+
+                public static void Map(IEndpointRouteBuilder app, RouteGroupBuilder given)
+                {
+            {{body}}
+                }
+            }
+            """ + Routing + Exclusion);
+
+    [Theory]
+    [InlineData("""
+        var site = app.MapGroup("").ExcludeFromDescription();
+        site.MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        app.MapGroup("").ExcludeFromDescription().MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        var site = app.MapGroup("");
+        site.ExcludeFromDescription();
+        site.MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        var site = app.MapGroup("").WithMetadata(new ExcludeFromDescriptionAttribute());
+        site.MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        var site = app.MapGroup("").ExcludeFromDescription();
+        var admin = site.MapGroup("/admin");
+        admin.MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        Hidden.MapGet("/version", (int id) => (IResult)null!);
+        """)]
+    [InlineData("""
+        app.MapGroup("/api").MapGet("/version", (int id) => (IResult)null!).ExcludeFromDescription();
+        """)]
+    public void An_endpoint_on_a_group_excluded_from_the_description_is_left_out_without_a_warning(string body)
+    {
+        // ASP.NET flows a group's conventions to its endpoints, so the group's exclusion already keeps
+        // them out of OpenAPI — the client follows it rather than warning once per endpoint.
+
+        var run = RunEndpoints(body);
+
+        Assert.False(Reported(run, "RASK068"));
+        Assert.False(Reported(run, "RASK070"));
+        Assert.False(run.HasGeneratedSource("__RaskApiClients"));
+    }
+
+    [Fact]
+    public void An_endpoint_on_a_group_passed_in_as_a_parameter_is_still_refused()
+    {
+        // Where the group came from is not visible here, so whether it was excluded is not either.
+
+        var run = RunEndpoints("""
+            given.MapGet("/version", (int id) => id);
+            """);
+
+        Assert.True(Reported(run, "RASK068"));
+    }
+
+    [Fact]
+    public void An_exclusion_on_a_sibling_group_does_not_hide_this_one()
+    {
+        var run = RunEndpoints("""
+            var site = app.MapGroup("").ExcludeFromDescription();
+            var api = app.MapGroup("/api");
+            api.MapGet("/version", (int id) => id);
+            """);
+
+        Assert.True(Reported(run, "RASK068"));
+    }
+
     [Fact]
     public void A_route_token_this_generator_does_not_substitute_is_refused()
     {

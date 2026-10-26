@@ -8,11 +8,11 @@ namespace Rask;
 /// </summary>
 internal static class UiTimePickerLook
 {
-    /// <summary>The picker itself: as wide as it is given, and never under 240px.</summary>
-    internal const string Root = "block min-w-60";
+    /// <summary>The picker itself; how wide is <see cref="UiPickerWidth" />'s.</summary>
+    internal const string Root = "block";
 
-    /// <summary>The room a clear button is placed in.</summary>
-    internal const string RootClearable = "relative block min-w-60";
+    /// <summary>A picker of several times grows no wider than its least width: the list of them is cut off.</summary>
+    internal const string RootSeveral = "[:where(&)]:max-w-[12rem] sm:[:where(&)]:max-w-[240px]";
 
     /// <summary>The button that shows the choice: white, zinc-200 with a darker bottom edge, <c>shadow-xs</c>.</summary>
     internal const string Button =
@@ -129,13 +129,6 @@ internal static class UiTimePickerLook
         _ => "h-10 py-2 text-base sm:text-sm rounded-lg",
     };
 
-    /// <summary>How tall the trigger is, button or typed, for what is laid over it.</summary>
-    internal static string Height(Ui.TimePickerSize size) => size switch
-    {
-        Ui.TimePickerSize.Sm => "h-8",
-        Ui.TimePickerSize.Xs => "h-6",
-        _ => "h-10",
-    };
 
     /// <summary>The input's own sizes, for the typed trigger.</summary>
     internal static string BoxSize(Ui.TimePickerSize size) => UiInputLook.Size(size switch

@@ -1406,7 +1406,8 @@ expressed as a method signature. The message says which:
 
 - its route has a **catch-all** segment (`{*rest}`), which no single parameter can fill;
 - its route names a token **no parameter supplies**, so the client would build a URL with a hole in it;
-- it would take a **second request body**, and a request has one.
+- it would take a **second request body**, and a request has one;
+- it is mapped on a **`MapGroup`**, whose prefix this call site cannot see.
 
 ```csharp
 [HttpGet("files/{*path}")]                    // ⚠ RASK068 — catch-all
@@ -1421,7 +1422,17 @@ rather than skipped in silence for the opposite reason: a method simply missing 
 as a broken generator, and the author has no way to find out why.
 
 **Fix:** give the route a normal parameter segment, add the parameter it names, or accept that this
-endpoint is called by hand.
+endpoint is called by hand. An endpoint that is not part of the app's API at all is taken out with
+`.ExcludeFromDescription()` — on the endpoint, or once on its group (a group's conventions reach every
+endpoint in it, nested groups included), and neither RASK068 nor RASK070 fires for it:
+
+```csharp
+var site = app.MapGroup("").ExcludeFromDescription();
+site.MapGet("/version", () => Results.Ok(Version));   // no client method, no warning
+```
+
+The group is followed through a fluent chain, a local or field it was stored in, and calls on that local
+in the same file; a group handed in as a parameter cannot be traced, so its endpoints still report.
 
 ---
 
@@ -1466,8 +1477,8 @@ public IActionResult Get(int id) => ...;               // typed client method
 
 An action that answers **nothing** does not need either: return `Task` or `void` and the client method
 returns a bare `Task`. An endpoint that is not part of the app's API — plumbing its own pages call — is
-taken out of the client with `.ExcludeFromDescription()`, the same call that keeps it out of OpenAPI, and
-this diagnostic does not fire for it.
+taken out of the client with `.ExcludeFromDescription()`, the same call that keeps it out of OpenAPI —
+on the endpoint or on the `MapGroup` it is mapped on — and this diagnostic does not fire for it.
 
 ---
 ## RASK071
