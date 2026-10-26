@@ -11,7 +11,7 @@ public sealed partial class UiTimePicker<T>
     // The three fields are typed as ONE: the runtime (`data-rask-segments`) takes the digits, moves on from a
     // part that can take no more, steps a part on the vertical arrows and sets AM or PM on `a` and `p`, as
     // Flux's fields do. A whole time arrives through the one hidden field, as 24-hour `HH:mm`.
-    private Component TypedTrigger(UiWithField field, ExpressionAccessor.Accessor? accessor, EditContext? context, List<TimeOnly> chosen)
+    private Component TypedTrigger(UiWithField field, ExpressionAccessor.Accessor? accessor, EditContext? context, List<TimeOnly> chosen, bool? clears)
     {
         var twelve = UiTimePickerLook.TwelveHour(Format, Culture);
         var opens = Dropdown != false && Disabled != true;
@@ -36,6 +36,7 @@ public sealed partial class UiTimePicker<T>
                 Whole(chosen)
             ],
             Span.Class("grow"),
+            clears is { } shown ? UiPickerClear.Inside(ClearAsync, shown) : null,
             Dropdown != false ? Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.InputChevron) : null
         ];
     }
