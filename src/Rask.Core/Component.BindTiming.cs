@@ -41,7 +41,9 @@ public abstract partial class Component
 
             // The render that answers what the field was sent with says what that was: a field that still holds it
             // takes the value rendered here, focused or not — a submit that empties it empties it (HeardValues).
-            if (ctx.Handle?.HeardValues?.Told(commit, secret) is { } heard)
+            // Not while what it was sent could not be read: the model still holds the value before, and the field
+            // keeps what was typed for the reader to correct (UnreadValue).
+            if (bindCtx?.IsUnread(acc.Field) is not true && ctx.Handle?.HeardValues?.Told(commit, secret) is { } heard)
             {
                 AppendAttr(sb, "data-rask-heard", heard);
             }

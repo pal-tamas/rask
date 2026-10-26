@@ -196,8 +196,9 @@ export function raskAdoptHeard(el: Element): void {
     // An input's rendered value is its `value` attribute, a textarea's its text: both read as defaultValue.
     const rendered = field.defaultValue;
     if (at < 0) {
-        // A secret: the page said the count and nothing else. Only "the page renders it empty" is acted on.
-        if (rendered !== "") return;
+        // A secret: the page said the count and nothing else. Only "the page renders it empty" is acted on — for an
+        // input that is a written value="" (SecretField): a secret the page holds leaves the attribute out entirely.
+        if (el.tagName === "INPUT" ? el.getAttribute("value") !== "" : rendered !== "") return;
         _raskHeardCounts.set(el, count);
         _raskPendingValues().delete(el);
         if (field.value !== "") field.value = "";

@@ -485,7 +485,7 @@ private async Task Save()
 - **To keep the rows the reader already sees**, keep them in the component instead of emptying them: a page
   that stays mounted (a pager or a sort that only changes the query string) and assigns the new rows when they
   are back keeps the old ones on screen, dimmed by the pager's mark
-  ([a slow page change dims the rows](ui-kit.md#a-slow-page-change-dims-the-rows), the `data-rask-loading`
+  ([a slow page change keeps the rows and dims them](ui-kit.md#tables), the `data-rask-loading`
   hook). A `Rask.Query` page keeps them with `KeepPreviousData`
   ([queries](query.md#a-key-that-a-handler-moves)), and a query already in the session's cache — a list
   visited before — is shown at once with its rows and no fetch; one that is merely old is shown as it is and
