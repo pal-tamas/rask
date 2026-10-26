@@ -14,7 +14,8 @@ export interface TimeConfig {
     input: boolean;          // typed times (`time="input"`)
     pattern: string;         // the .NET pattern the times are written in: "h:mm tt", "HH:mm"…
     am: string; pm: string;
-    at: string;              // the word between a moment's date and its time, spaced: " at "
+    join: string;            // between a moment's date and its time: a word, spaced (" at "), or the whole
+                             // moment's pattern, {1} the date and {0} the time ("{1}, {0}") — CLDR's, by locale
     atClass: string;         // and the class it is drawn in
     wordsClass: string;      // the class of what the button says
     emptyClass: string;      // and of its placeholder

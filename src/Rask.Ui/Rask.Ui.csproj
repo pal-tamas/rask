@@ -280,6 +280,15 @@
   </ItemGroup>
 
   <!--
+    UNICODE CLDR: UiDatetimePickerJoins.g.cs is derived from CLDR's date-time patterns (Unicode License v3),
+    written by scripts/upstream/cldr.mjs with the release's licence beside it. It is compiled into the assembly,
+    so its notice travels at the package's root.
+  -->
+  <ItemGroup>
+    <None Include="Resources\cldr.LICENSE.txt" Pack="true" PackagePath="rask-ui-cldr.LICENSE.txt" Visible="false"/>
+  </ItemGroup>
+
+  <!--
     UI.FLAG'S DRAWINGS: Flags/*.svg, country-flag-icons' 3:2 set (MIT), vendored by scripts/flux/flags.mjs.
     Packed beside the targets and NOT embedded, for the editor engine's reason: a browser-WASM app downloads
     this assembly whole, and 172 KB of flags is too much for an app that shows three. An app that sets

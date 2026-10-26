@@ -6,7 +6,8 @@ name: upstream
 #            with it, Node's Active LTS line, the Docker images the code names, Litestream, the
 #            compilers a build downloads (esbuild, tsgo, typescript 6.x, Tailwind) with their digests,
 #            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, and the npm
-#            releases `rask new` falls back on offline (ShippedFrontEndVersionsE2ETests proves them in the gates).
+#            releases `rask new` falls back on offline (ShippedFrontEndVersionsE2ETests proves them in the gates),
+#            and Unicode CLDR's date-time joins (scripts/upstream/cldr.mjs).
 #            Nothing moved: the run ends here, green. Dependabot keeps the rest (.github/dependabot.yml).
 #   gates    the same gates a push to main is held to (gates.yml), on the commit about to land.
 #   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
@@ -87,6 +88,7 @@ jobs:
           git diff --cached --quiet -- tests/Rask.External.Tests || moved="${moved:+$moved, }adapter fixtures"
           git diff --cached --quiet -- src/Rask.Cli/Scaffolding/npm.snapshot.json || moved="${moved:+$moved, }front-end releases"
           git diff --cached --quiet -- src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs || moved="${moved:+$moved, }scaffolded actions"
+          git diff --cached --quiet -- src/Rask.Ui/UiDatetimePickerJoins.g.cs || moved="${moved:+$moved, }CLDR"
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

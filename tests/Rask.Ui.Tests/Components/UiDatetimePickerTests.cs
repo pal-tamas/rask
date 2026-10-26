@@ -68,7 +68,7 @@ public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup
         var french = Ui.DatetimePicker.Value(moment).Locale("fr-FR").On(Today).ToHtml();
 
         Assert.Contains(">Jan 23, 2026<span class=\"text-zinc-400\"> at </span>18:30</div>", twentyFour, StringComparison.Ordinal);
-        Assert.Contains(">23 janv. 2026<span class=\"text-zinc-400\"> at </span>18:30</div>", french, StringComparison.Ordinal);
+        Assert.Contains(">23 janv. 2026<span class=\"text-zinc-400\"> &#xE0; </span>18:30</div>", french, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup
         var hungarianPicker = KitCulture.In("en-US", () => Ui.DatetimePicker.Value(moment).Locale("hu-HU").On(Today).ToHtml());
         var englishPicker = KitCulture.In("hu-HU", () => Ui.DatetimePicker.Value(moment).Locale("en-US").On(Today).ToHtml());
 
-        Assert.Contains(">2026. okt. 27.<span class=\"text-zinc-400\"> </span>10:30</div>", hungarianPicker, StringComparison.Ordinal);
+        Assert.Contains(">2026. okt. 27. 10:30</div>", hungarianPicker, StringComparison.Ordinal);
         Assert.Contains(">Oct 27, 2026<span class=\"text-zinc-400\"> at </span>10:30 AM</div>", englishPicker, StringComparison.Ordinal);
     }
 

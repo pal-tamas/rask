@@ -83,7 +83,7 @@ public sealed partial class UiDatetimePickerButton : Component
         return button;
     }
 
-    // The date, a grey "at" and the time; a range's two ends and the dash between them; or the placeholder.
+    // The date, a grey "at" and the time (or the moment alone); a range's two ends and the dash between them; or the placeholder.
     private static Component Words(UiDatetimePickerScope scope, string placeholder)
     {
         if (scope.Text is not var (before, between, after))
@@ -92,6 +92,6 @@ public sealed partial class UiDatetimePickerButton : Component
             return Span.Key("placeholder").Class(UiDatetimePickerLook.Placeholder).Data(PlaceholderMark)[placeholder];
         }
 
-        return Div.Key("chosen").Class(UiDatetimePickerLook.Words).Attributes(("dir", "auto"))[before, Span.Class(UiDatetimePickerLook.At)[between], after];
+        return Div.Key("chosen").Class(UiDatetimePickerLook.Words).Attributes(("dir", "auto"))[before, between.Length == 0 ? null : Span.Class(UiDatetimePickerLook.At)[between], after];
     }
 }

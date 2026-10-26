@@ -11,6 +11,7 @@
 #   fixtures   the adapter tests' frameworks: preact, react, vue, solid, svelte, angular, happy-dom (fixtures.py)
 #   actions    the majors a scaffolded deploy workflow uses (actions.py)
 #   front ends the npm releases `rask new` chooses from when the registry does not answer (front-ends.py)
+#   CLDR       what Ui.DatetimePicker's button writes between a date and a time, by locale (cldr.mjs)
 #
 # Dependabot keeps what it can read (.github/dependabot.yml): NuGet, the npm lockfiles, base images, actions.
 # It commits nothing: `git status` afterwards is the report. .github/workflows/upstream.yml runs this
@@ -40,3 +41,4 @@ scripts/upstream/tools.py
 scripts/upstream/fixtures.py
 scripts/upstream/actions.py
 scripts/upstream/front-ends.py
+node scripts/upstream/cldr.mjs

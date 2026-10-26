@@ -408,3 +408,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96070
 rask-hooks.js,115478
+#
+# 2026-10-26, the datetime picker's button joins its date and time by CLDR's join for its locale (rask-calendar.ts,
+# hooks only: drawMoments writes " word " in grey or the whole moment as one text from the `join` it is handed):
+# rask-hooks.js +110, the runtimes unchanged. Measured locally (Release, the benchmarks job's recipe) on main
+# 2c4a51356, on top of the 115,478 above.
+bundle,bytes
+rask.js,110100
+rask.wasm.js,96070
+rask-hooks.js,115588
