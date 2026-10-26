@@ -1,5 +1,6 @@
 using Rask.Core.Diagnostics;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 using Rask.Core.Messaging;
 
 namespace Rask.Core;
@@ -16,6 +17,7 @@ public partial class Component
         }
 
         using var dispatchScope = DispatchServicesScope.Push(services);
+        using var owner = EventServices.Dispatching(services, this);
         using var cultureScope = Globalization.RaskCultureScope.PushFrom(services);
         using var ambientServices = Ambient.Enter(services);
         using var ambientToken = Ambient.Enter(LifetimeToken);
