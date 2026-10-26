@@ -33,7 +33,7 @@ public sealed partial class UiFilter : Component, IUiFilterField
 
     // What it holds is the page's to bind: nothing to hand over.
     /// <inheritdoc />
-    void IUiFilterField.Take()
+    void IUiFilterField.Take(UiFilters set)
     {
     }
 

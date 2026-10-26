@@ -11,9 +11,9 @@ public sealed partial class UiSwitch : IUiFilterField
     }
 
     /// <inheritdoc />
-    void IUiFilterField.Take()
+    void IUiFilterField.Take(UiFilters set)
     {
-        var cell = UiFilterCell<bool>.Over(Bind, "Ui.Switch");
+        var cell = UiFilterCell<bool>.Over(Bind, "Ui.Switch").In(set);
         if (cell.IsNot(Bind))
         {
             Id ??= UiFieldId.Derive(null, Bind, Label);

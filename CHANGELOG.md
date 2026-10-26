@@ -111,6 +111,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A filter change takes the list `Ui.Filters` drives back to its first page; the sort stays.** Before: on
+  `/orders?page=3&sort=name`, picking a driver landed on `?page=3&sort=name&driver=ada` — page 3 of the narrowed list,
+  often empty — and a badge's cross and Clear all kept `page` too. After: `?sort=name&driver=ada`, the list starting at
+  page 1, with no code at the call site (Livewire's `resetPage()` in `updatingSearch`, a Pagy/Kaminari filter form
+  submitting without `page`). The set finds the key from the table's own pager: with `.Href(page => …)` it is the key
+  `Href(1)` and `Href(2)` disagree on, taken out (or set as page one writes it) in the same move of the address, one
+  history entry; with `.OnPage(…)` alone the pager is told `OnPage(1)`. Turning the pager keeps the filters.
+
 - **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
   on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
   `shadow-none`, and a disabled day keeps the hover rule while `pointer-events: none` keeps it from ever lighting. A
@@ -149,6 +157,17 @@ them until tagged releases begin.
   `.Data("rask-secret")` kept its text out of `data-rask-heard` but still got its value written. After: a credential
   token anywhere in `autocomplete`, in any case, or the `data-rask-secret` mark, makes the field a secret for both,
   and the mark is written once.
+- **A dialog shut over a list still open inside it lets the page go.** The page lock (`data-rask-lock`) counted a
+  popover left open in a dialog that had shut: still `:popover-open`, shown nowhere, it kept the page from scrolling
+  and — for a list's lock — from taking a single press, until something closed the invisible list. A lock now holds
+  the page only while it is on screen. Locks inside locks were checked every way they let go — inner first, outer
+  first, both at once: the page stays put, and only the last one lets it go.
+- **An endpoint on a group excluded from the API description no longer warns RASK068/RASK070.**
+  `var site = app.MapGroup("").ExcludeFromDescription(); site.MapGet("/version", …)` reported "mapped on a
+  MapGroup" once per endpoint, although the group's exclusion already keeps them out of OpenAPI and the client.
+  The generator now follows the group — fluent chain, local, field, a later `site.ExcludeFromDescription();`,
+  `WithMetadata(new ExcludeFromDescriptionAttribute())`, nested groups — and a per-endpoint
+  `.ExcludeFromDescription()` on a grouped endpoint is honoured too. A group passed in as a parameter still reports.
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to

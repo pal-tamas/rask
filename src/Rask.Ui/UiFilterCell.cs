@@ -17,6 +17,9 @@ internal sealed class UiFilterCell<T>
 {
     private readonly ExpressionAccessor.Accessor _member;
 
+    // The set the control is drawn in: a change goes through it, which takes the list back to its first page.
+    private UiFilters? _set;
+
     private UiFilterCell(ExpressionAccessor.Accessor member, string key)
     {
         _member = member;
@@ -34,7 +37,26 @@ internal sealed class UiFilterCell<T>
     public T? Value
     {
         get => _member.Getter() is T value ? value : default;
-        set => Go.With(Key, UiFilterAddress.Write(value));
+        set
+        {
+            KeyValuePair<string, string?> filter = new(Key, UiFilterAddress.Write(value));
+            if (_set is null)
+            {
+                Go.With(filter.Key, filter.Value);
+                return;
+            }
+
+            // A setter cannot wait: a pager of buttons told it is on page one goes on as a press on it would.
+            _ = _set.Narrow(filter);
+        }
+    }
+
+    /// <summary>The cell, its changes made through <paramref name="set" />.</summary>
+    /// <param name="set">The set the control is drawn in.</param>
+    internal UiFilterCell<T> In(UiFilters set)
+    {
+        _set = set;
+        return this;
     }
 
     /// <summary>The cell a control is bound through: the one it already has, or a new one over the page's member.</summary>
