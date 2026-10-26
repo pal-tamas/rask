@@ -111,6 +111,59 @@ public sealed class RuntimeHookLockTests(PlaywrightFixture playwright) : IClassF
         Assert.Equal(before, Step.Parse(await page.EvaluateAsync<string>(Place)));
     }
 
+    // Each way two nested locks let go: the inner first, the outer first, and both in one task. With the scrollbars
+    // hidden it runs everywhere; shown, only where one takes room (not under macOS's overlay scrollbars).
+    [Theory]
+    [InlineData(false, "inner.hidePopover()", "modal.close()")]
+    [InlineData(true, "inner.hidePopover()", "modal.close()")]
+    [InlineData(false, "modal.close()", "inner.hidePopover()")]
+    [InlineData(true, "modal.close()", "inner.hidePopover()")]
+    [InlineData(false, "inner.hidePopover(); modal.close()", "")]
+    [InlineData(true, "inner.hidePopover(); modal.close()", "")]
+    public async Task A_lock_inside_a_lock_lets_the_page_go_only_with_the_last_one_on_screen(bool scrollbars, string first, string then)
+    {
+        await using var browser = scrollbars
+            ? await playwright.Playwright.Chromium.LaunchAsync(
+                new BrowserTypeLaunchOptions { Headless = true, IgnoreDefaultArgs = ["--hide-scrollbars"] })
+            : null;
+        await using var session = await HookSession.OpenAsync<LockHookPage>(playwright, Viewport(1000, 700), browser: browser);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.EvaluateAsync("() => document.getElementById('open').scrollIntoView({ block: 'center' })");
+        Assert.SkipWhen(
+            scrollbars && await page.EvaluateAsync<int>("() => innerWidth - document.documentElement.clientWidth") == 0,
+            "This browser draws its scrollbars over the page (macOS overlay scrollbars): none takes room.");
+        var gutter = scrollbars ? "stable" : "auto";
+        var dialogStillOpen = then.Length > 0 && first.StartsWith("inner", StringComparison.Ordinal);
+
+        async Task<Step> AfterAsync(string script)
+        {
+            if (script.Length > 0)
+            {
+                await page.EvaluateAsync(
+                    "() => { const modal = document.getElementById('modal'), inner = document.getElementById('inner'); " + script + "; }");
+            }
+
+            await page.WaitForTimeoutAsync(60);
+            return Step.Parse(await page.EvaluateAsync<string>(Place));
+        }
+
+        var before = await AfterAsync("");
+        var outer = await AfterAsync("modal.showModal()");
+        var both = await AfterAsync("inner.showPopover()");
+        var one = await AfterAsync(first);
+        var none = await AfterAsync(then);
+
+        Assert.True(before.ScrollY > 1000, "the page is not scrolled to its middle");
+        Assert.Equal("hidden|auto|" + gutter, outer.Html);
+        Assert.Equal("hidden|none|" + gutter, both.Html);
+        // The inner one let go: the dialog still holds the page. The dialog shut: nothing left on screen holds it,
+        // though the panel inside is still open — it shows nowhere.
+        Assert.Equal(dialogStillOpen ? "hidden|auto|" + gutter : before.Html, one.Html);
+        Assert.Equal(before, none);
+        Assert.All([outer, both, one], step => Assert.Equal(before.Where, step.Where));
+    }
+
     private static BrowserNewContextOptions Viewport(int width, int height) =>
         new() { ViewportSize = new() { Width = width, Height = height } };
 

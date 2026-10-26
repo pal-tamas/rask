@@ -383,12 +383,19 @@ rask.js,110064
 rask.wasm.js,96034
 rask-hooks.js,108286
 #
+# 2026-10-26, a page lock holds the page only while its overlay is on screen (rask-lock.ts, hooks only: a list left
+# open in a dialog that shut no longer keeps the page locked): rask-hooks.js +62, the runtimes unchanged. Measured
+# with the build's own esbuild 0.28.2 command (--minify) on the branch merged with main fd9b6ca62: 115,415 without
+# the change, 115,477 with it — the 7,129 above the block before are main's own drift, not this change's.
+bundle,bytes
+rask-hooks.js,115477
+#
 # 2026-10-26, a picker's × drawn inside its trigger, as Flux draws it: a handler inside a popover invoker keeps
 # the invoker's press from opening the popover (rask-clicks.ts, both runtimes), and a press on one inside a
 # data-rask-toggle is not the toggle's (rask-toggle.ts, a hook): rask.js +36, rask.wasm.js +36, rask-hooks.js +25.
 # Measured locally (Release, the benchmarks job's recipe) with main fd9b6ca62 merged in; without this change 110,064 / 96,034 /
-# 115,415. The hooks row carries the datetime picker's +7,129 main had not recorded yet.
+# 115,415. Landed after the page-lock row above, so the hooks row is its 115,477 + 25.
 bundle,bytes
 rask.js,110100
 rask.wasm.js,96070
-rask-hooks.js,115440
+rask-hooks.js,115502

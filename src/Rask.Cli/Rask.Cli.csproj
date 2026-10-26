@@ -85,6 +85,12 @@
     </EmbeddedResource>
   </ItemGroup>
 
+  <!-- The npm releases `rask new` chooses front-end versions from when the registry does not answer
+       (NpmSnapshot), refreshed daily by scripts/upstream/front-ends.py. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Scaffolding\npm.snapshot.json" LogicalName="RaskNpmSnapshot" />
+  </ItemGroup>
+
   <!-- The dev-session conventions, source-linked from the one place the hosts that act on them also read:
        what marks a dev-session build and the line an editor-launched app logs (both carried by the scaffolded
        .vscode/ files), and the https://<name>.test layout — the hostname, where its certificate lives, the

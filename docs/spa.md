@@ -168,8 +168,21 @@ So when Vite ships a major its React plugin does not accept yet, a new app gets 
 plugin does; once the plugin catches up, the next app gets both. The only ranges the templates keep are
 `tailwindcss` / `@tailwindcss/*`, which must match the Tailwind binary the host downloads,
 `@types/node`, which follows the Node LTS major, and the Vue client's `typescript`, held on 6.x because
-`vue-tsc` drives TypeScript's JavaScript API, which TypeScript 7 no longer ships. Offline, `rask new`
-leaves `latest` in place with one warning line, and npm resolves it on the first build.
+`vue-tsc` drives TypeScript's JavaScript API, which TypeScript 7 no longer ships.
+
+When the registry does not answer within 20 seconds — offline, or behind a proxy that blocks
+`registry.npmjs.org` — `rask new` chooses from the releases the CLI shipped with instead, the same way, and
+writes them as `^x.y.z` too. One warning line names the day those releases were recorded:
+
+```text
+The npm registry did not answer for typescript: the client's package.json takes the newest versions known on
+2026-10-26 to install together. Run rask new online, or `npm update` in the client, for anything newer.
+```
+
+It never writes a bare `latest`: npm can refuse one. With `"typescript": "latest"`, npm read TypeScript as
+free to drop to 6.x under an optional `typescript <7` peer deep in the toolchain, and a Solid or Lit app failed
+its first build with `ERESOLVE`. The shipped releases are refreshed every day, and the template gates prove that
+they resolve before they ship.
 
 The Vite+ toolchain is three entries that move as one: `vite-plus`, written as an **exact** version, and
 `vite` aliased to the core that release ships (`npm:@voidzero-dev/vite-plus-core@x.y.z`), in

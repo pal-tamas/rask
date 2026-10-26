@@ -44,6 +44,14 @@ internal static class MinimalApi
             return null;
         }
 
+        // An endpoint the app took out of its API description is not part of its API: no client method,
+        // and no RASK068/RASK070 for an endpoint it never meant a client to call. This is the same switch
+        // OpenAPI honours, so one call answers both readers — on the endpoint or on the group it is in.
+        if (DescriptionExclusion.IsExcluded(model, invocation))
+        {
+            return null;
+        }
+
         // A Map* whose receiver is a MapGroup result carries a prefix this call site cannot see: the
         // group's pattern lives on the RouteGroupBuilder, and the emitted client would call "/{id}"
         // where the server answers "/api/widgets/{id}". That is the "almost right URL" this generator
@@ -52,14 +60,6 @@ internal static class MinimalApi
         {
             return new MinimalApiRegistration(
                 target.Name, GroupedMarker, NullHandler, null, invocation.GetLocation());
-        }
-
-        // An endpoint the app took out of its API description is not part of its API: no client method,
-        // and no RASK070 for an IResult it never meant a client to call. This is the same switch OpenAPI
-        // honours, so one call answers both readers.
-        if (IsExcludedFromDescription(invocation))
-        {
-            return null;
         }
 
         var verb = VerbOf(target.Name);
@@ -139,23 +139,6 @@ internal static class MinimalApi
                     ?? model.GetSymbolInfo(expression).CandidateSymbols.OfType<IMethodSymbol>()
                         .FirstOrDefault();
         }
-    }
-
-    // .ExcludeFromDescription() anywhere in the chain hanging off this call.
-    private static bool IsExcludedFromDescription(InvocationExpressionSyntax invocation)
-    {
-        for (SyntaxNode? node = invocation.Parent; node is InvocationExpressionSyntax or MemberAccessExpressionSyntax; node = node.Parent)
-        {
-            if (node is InvocationExpressionSyntax
-                {
-                    Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "ExcludeFromDescription" },
-                })
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     // .WithName("…") anywhere in the chain hanging off this call.
