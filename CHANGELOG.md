@@ -146,6 +146,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A `Ui.Checkbox` in `Ui.Filters` bound to a `bool?` draws no dash while its key is absent.** Before: an absent key
+  (`[QueryParam("ibc")] bool? Ibc` on `/vehicles`) drew the box indeterminate; after: unticked, as the filter set
+  writes `false` as no key.
 
 - **A class on `Ui.DatePicker` / `Ui.TimePicker` sizes it, as it does Flux's.** Both pickers kept a 240px minimum
   under every class, so `Ui.TimePicker.Class("w-40")` stayed 240px wide and the docs' "Separate date and time" row

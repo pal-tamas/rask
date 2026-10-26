@@ -26,6 +26,9 @@ namespace Rask;
 public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBind
 {
     private UiCheckboxScope? _group;
+
+    // In a Ui.Filters, an absent key is the box left unticked (the set writes false as no key), never "unanswered".
+    private bool _filtered;
     private string? _ownId;
 
     /// <summary>The words beside the box — or on the card, pill or button a group draws it as.</summary>
@@ -152,7 +155,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
 
         var accessor = ExpressionAccessor.Parse(bind);
         var value = accessor.Getter();
-        var unanswered = value is null && Nullable.GetUnderlyingType(accessor.PropertyType) is not null;
+        var unanswered = value is null && !_filtered && Nullable.GetUnderlyingType(accessor.PropertyType) is not null;
         return (value is true, Indeterminate == true || unanswered);
     }
 
