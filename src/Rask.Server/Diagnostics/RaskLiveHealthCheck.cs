@@ -131,8 +131,10 @@ public sealed class RaskLiveHealthCheck(LiveSessionStore store) : IHealthCheck
     private static double MemoryLoad()
     {
         var info = GC.GetGCMemoryInfo();
-        return info.TotalAvailableMemoryBytes <= 0
-            ? 0
-            : (double)info.MemoryLoadBytes / info.TotalAvailableMemoryBytes;
+        return MemoryLoad(info.MemoryLoadBytes, info.TotalAvailableMemoryBytes);
     }
+
+    /// <summary>The fraction of <paramref name="availableBytes" /> in use, or <c>0</c> when no limit is known.</summary>
+    internal static double MemoryLoad(long loadBytes, long availableBytes) =>
+        availableBytes <= 0 ? 0 : (double)loadBytes / availableBytes;
 }

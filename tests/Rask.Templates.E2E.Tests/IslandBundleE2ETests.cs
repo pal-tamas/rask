@@ -40,7 +40,7 @@ public sealed class IslandBundleE2ETests
 
         try
         {
-            var result = TemplateBuildE2ETests.Scaffold("server", projectDirectory, name, version, [runtime]);
+            var result = await TemplateBuildE2ETests.ScaffoldWithChosenVersions("server", projectDirectory, name, version, [runtime]);
             TemplateBuildE2ETests.Write(result, projectDirectory, feed);
 
             var (exit, output) = await CliBuildE2E.RunDotnet(

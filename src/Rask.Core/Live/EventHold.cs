@@ -36,7 +36,7 @@ internal sealed class EventHold(EventServices services, EventLife life)
         Release();
     }
 
-    private void Release()
+    internal void Release()
     {
         if (Interlocked.Exchange(ref _released, 1) != 0)
         {
