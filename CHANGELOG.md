@@ -141,6 +141,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A dialog shut over a list still open inside it lets the page go.** The page lock (`data-rask-lock`) counted a
+  popover left open in a dialog that had shut: still `:popover-open`, shown nowhere, it kept the page from scrolling
+  and — for a list's lock — from taking a single press, until something closed the invisible list. A lock now holds
+  the page only while it is on screen. Locks inside locks were checked every way they let go — inner first, outer
+  first, both at once: the page stays put, and only the last one lets it go.
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to

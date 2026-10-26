@@ -16,8 +16,9 @@
 //
 // COUNTED by asking, not by keeping score: every time something that could change the answer happens — a
 // toggle or close event, or a node leaving the page while locked — the open [data-rask-lock] elements are
-// counted again. A render that removes an open panel, a navigation that replaces the page and two menus
-// open at once therefore all end in the right state, and nothing can leave the page locked for good.
+// counted again. A render that removes an open panel, a navigation that replaces the page, two menus open at
+// once and a lock inside a lock — let go inner first, outer first or both at once — therefore all end in the
+// right state, and nothing can leave the page locked for good.
 //
 // The lock is one attribute on <html>, data-rask-locked, and one constructed stylesheet: a stylesheet made in
 // script is not an inline style, so a strict Content-Security-Policy has nothing to object to, and a render
@@ -39,9 +40,11 @@ const RULES = "html[" + LOCKED + "]{overflow:hidden}"
 let sheet = false;
 let locked = "";
 
-// A <dialog popover> shown as a popover is open and its `open` is false: both are asked.
+// A <dialog popover> shown as a popover is open and its `open` is false: both are asked. And it is on screen: a
+// list left open in a dialog that shut is still :popover-open, and shows nowhere — it holds nothing.
 function isOpen(el: Element): boolean {
-    return (el instanceof HTMLDialogElement && el.open) || isShown(el);
+    return ((el instanceof HTMLDialogElement && el.open) || isShown(el))
+        && (typeof el.checkVisibility !== "function" || el.checkVisibility());
 }
 
 function mark(root: Element, name: string, value: string | null): void {
