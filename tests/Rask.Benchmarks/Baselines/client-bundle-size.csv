@@ -399,3 +399,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96070
 rask-hooks.js,115502
+#
+# 2026-10-26, a range's last-row end rounded as Flux rounds it and the chosen date written in a div (rask-calendar.ts,
+# hooks only: paintDay's corner rule, drawText writes a fresh div or span instead of reusing one): rask-hooks.js -24,
+# the runtimes unchanged. Measured locally (Release, the benchmarks job's recipe) with main 1fca88e61 merged in, on
+# top of the 115,502 above.
+bundle,bytes
+rask.js,110100
+rask.wasm.js,96070
+rask-hooks.js,115478
