@@ -30,7 +30,7 @@ public sealed class GoOutTests
     }
 
     [Fact]
-    public async Task A_page_that_loads_and_then_goes_out_leaves_once_it_has_loaded()
+    public async Task A_page_that_loads_and_then_goes_out_leaves_once_it_has_loaded_in_place_of_its_own_entry()
     {
         await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
 
@@ -38,16 +38,17 @@ public sealed class GoOutTests
         var leaving = await redirects.Ws.ReceiveUntilAsync(
             f => f.Contains("\"location\"", StringComparison.Ordinal), "the frame that sends the browser out of the app");
 
-        AssertLeavesFor(leaving, "/tenants");
+        AssertLeavesFor(leaving, "/tenants", replace: true);
     }
 
-    private static void AssertLeavesFor(string frame, string url)
+    // replace: the page was shown, and sends the reader on from where it stands — Back does not return to it.
+    private static void AssertLeavesFor(string frame, string url, bool replace = false)
     {
         using var doc = JsonDocument.Parse(frame);
         Assert.Equal("location", doc.RootElement.GetProperty("type").GetString());
         Assert.Equal(url, doc.RootElement.GetProperty("url").GetString());
         Assert.True(doc.RootElement.GetProperty("outside").GetBoolean());
-        Assert.False(doc.RootElement.GetProperty("replace").GetBoolean());
+        Assert.Equal(replace, doc.RootElement.GetProperty("replace").GetBoolean());
     }
 }
 

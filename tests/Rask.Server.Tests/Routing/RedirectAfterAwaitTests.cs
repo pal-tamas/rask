@@ -169,6 +169,126 @@ public sealed class RedirectAfterAwaitTests
         Assert.DoesNotContain("work-content", landing);
     }
 
+    // "Signed in already? Then not the sign-in page": the check reads the store, and the read outlasts the first
+    // response. The page is shown; the connection, whenever it opens, takes the reader on and replaces its address.
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_that_goes_to_another_after_the_first_response_is_out_lands_there_once_its_connection_opens(
+        LiveTransportKind transport)
+    {
+        RedirectGate.Reset();
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Brief);
+        var (html, sessionId) = await FirstResponse(host, "/redirect/gated");
+        var route = host.Store.Get(sessionId)!.Services.GetRequiredService<RouteState>();
+
+        RedirectGate.Open();
+        await WaitFor.True(() => route.Path == Home, "the session's route to move to the destination");
+        await using var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
+        var landing = await connection.ReceiveUntilAsync(
+            static f => LiveFrames.HistoryUrl(f) == Home, "the frame that moves the reader to the destination");
+
+        Assert.Contains("gated-content", html);
+        Assert.Equal("replace", HistoryAction(landing));
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_that_goes_to_another_after_its_connection_opened_lands_there(LiveTransportKind transport)
+    {
+        RedirectGate.Reset();
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Brief);
+        var (_, sessionId) = await FirstResponse(host, "/redirect/gated");
+        await using var connection = await Attached(host, transport, sessionId);
+
+        RedirectGate.Open();
+        var landing = await connection.ReceiveUntilAsync(
+            static f => LiveFrames.HistoryUrl(f) == Home, "the frame that moves the reader to the destination");
+
+        Assert.Equal("replace", HistoryAction(landing));
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_that_goes_out_after_the_first_response_is_out_loads_that_page_once_its_connection_opens(
+        LiveTransportKind transport)
+    {
+        RedirectGate.Reset();
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Brief);
+        var (html, sessionId) = await FirstResponse(host, "/redirect/gated-out");
+        var session = host.Store.Get(sessionId)!;
+
+        RedirectGate.Open();
+        await RedirectGate.HasAsked;
+        await WaitFor.True(() => session.LastHandlerTask.IsCompleted, "the session to have taken the navigation");
+        await using var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
+        var leaving = await connection.ReceiveUntilAsync(IsLocation, "the frame that loads the page outside the app");
+
+        Assert.Contains("gated-out-content", html);
+        AssertLeavesFor("/tenants", leaving);
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_that_goes_out_after_its_connection_opened_loads_that_page(LiveTransportKind transport)
+    {
+        RedirectGate.Reset();
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Brief);
+        var (_, sessionId) = await FirstResponse(host, "/redirect/gated-out");
+        await using var connection = await Attached(host, transport, sessionId);
+
+        RedirectGate.Open();
+        var leaving = await connection.ReceiveUntilAsync(IsLocation, "the frame that loads the page outside the app");
+
+        AssertLeavesFor("/tenants", leaving);
+    }
+
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_that_loads_after_the_first_response_and_stays_is_not_sent_anywhere(LiveTransportKind transport)
+    {
+        RedirectGate.Reset();
+        using var host = RedirectingSession.Host(LiveDiffMode.Auto, quiescence: Brief);
+        var (html, sessionId) = await FirstResponse(host, "/redirect/gated-stay");
+        var route = host.Store.Get(sessionId)!.Services.GetRequiredService<RouteState>();
+        await using var connection = await Attached(host, transport, sessionId);
+
+        RedirectGate.Open();
+        await RedirectGate.HasAsked;
+        var frames = await connection.SettledAsync();
+
+        Assert.Contains("stay-loading", html);
+        Assert.DoesNotContain(frames, static f => LiveFrames.HistoryUrl(f) is not null || IsLocation(f));
+        Assert.Equal("/redirect/gated-stay", route.Path);
+    }
+
+    private static async Task<(string Html, string SessionId)> FirstResponse(RaskTestHost host, string path)
+    {
+        var html = await (await host.Http.GetAsync(path, TestContext.Current.CancellationToken)).Content
+            .ReadAsStringAsync(TestContext.Current.CancellationToken);
+        return (html, MarkupAssert.SessionId(html));
+    }
+
+    private static async Task<ILiveTestConnection> Attached(RaskTestHost host, LiveTransportKind transport, string sessionId)
+    {
+        var connection = await LiveTestConnection.OpenAsync(host, transport, sessionId);
+        var session = host.Store.Get(sessionId)!;
+        await WaitFor.True(() => session.HasOpenTransport, "the connection to attach");
+        await connection.SettledAsync();
+        return connection;
+    }
+
+    private static bool IsLocation(string frame) =>
+        frame.StartsWith("{\"type\":\"location\"", StringComparison.Ordinal);
+
+    // Loaded as a page, in place of the one that sent the reader there: Back does not return to it.
+    private static void AssertLeavesFor(string url, string frame)
+    {
+        using var doc = JsonDocument.Parse(frame);
+        Assert.Equal(url, doc.RootElement.GetProperty("url").GetString());
+        Assert.True(doc.RootElement.GetProperty("outside").GetBoolean());
+        Assert.True(doc.RootElement.GetProperty("replace").GetBoolean());
+    }
+
     private static string? Resume(string frame)
     {
         using var doc = JsonDocument.Parse(frame);

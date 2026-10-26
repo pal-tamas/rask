@@ -186,6 +186,14 @@ them until tagged releases begin.
   `rask-ui-cldr.LICENSE.txt`), refreshed daily by `scripts/upstream/cldr.mjs`; the words of the popup (Time,
   Cancel, Select) stay the app's language.
 
+- **A page that calls `Go.Out(…)` after an `await` that outlasts the first response now leaves the app.** A
+  sign-in page that sends a signed-in reader on once the store has said so
+  (`if (await _revalidator.Revalidate(user) is not null) Go.Out(Where());`) was answered with the page, and the
+  `Go.Out` was dropped: no connection was open to tell. The live connection now loads it as the first thing it
+  does when it opens, over the socket or the HTTP stream, or at once when it is already open — as `Go.To(…)`
+  already was. After an `await` the page is shown and the destination **replaces** its address, for `Go.Out` as
+  for `Go.To`, on both hosts; on a first page in WebAssembly too. See
+  [Redirecting from a lifecycle hook](docs/routing.md#redirecting-from-a-lifecycle-hook).
 - **A `Ui.Checkbox` in `Ui.Filters` bound to a `bool?` draws no dash while its key is absent.** Before: an absent key
   (`[QueryParam("ibc")] bool? Ibc` on `/vehicles`) drew the box indeterminate; after: unticked, as the filter set
   writes `false` as no key.

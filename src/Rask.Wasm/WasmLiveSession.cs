@@ -324,9 +324,10 @@ internal sealed class WasmLiveSession : LiveSessionBase
             navigate();
             if (!navigator.TryConsumeHistory(out var url, out _))
             {
+                // Like an address the hook moved to, it takes the place of the page that asked.
                 if (navigator.TryConsumeExit(out var exit))
                 {
-                    JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+                    JSInterop.LeaveTo(LocalUrl.Sanitize(exit), replace: true);
                 }
 
                 return;
@@ -804,10 +805,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         _navigator ??= Services.GetRequiredService<Navigator>();
 
-        // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows.
+        // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows. From the
+        // first page, as the address of a redirect would, it takes that page's entry; from a link, the link's.
         if (_navigator.TryConsumeExit(out var exit))
         {
-            JSInterop.LeaveTo(LocalUrl.Sanitize(exit));
+            JSInterop.LeaveTo(LocalUrl.Sanitize(exit), replace);
         }
 
         if (!_navigator.TryConsumeRedirect(out var url, out var redirectReplace))

@@ -367,3 +367,41 @@ public sealed partial class RedirectLateOutPage : Component
 
     protected override Component? Render() => P["late-out-content"];
 }
+
+// Loads for as long as the test says, then sends the reader to a page of the site the app does not render.
+[Route("gated-out")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectGatedOutPage : Component
+{
+    protected override async Task OnMount()
+    {
+        await RedirectGate.Opened;
+        try
+        {
+            Go.Out("/tenants");
+        }
+        finally
+        {
+            RedirectGate.Asked();
+        }
+    }
+
+    protected override Component? Render() => P["gated-out-content"];
+}
+
+// Loads for as long as the test says, finds what it looked for, and stays.
+[Route("gated-stay")]
+[ParentRoute(typeof(RedirectLayout))]
+public sealed partial class RedirectGatedStayPage : Component
+{
+    private bool _loaded;
+
+    protected override async Task OnMount()
+    {
+        await RedirectGate.Opened;
+        _loaded = true;
+        RedirectGate.Asked();
+    }
+
+    protected override Component? Render() => P[_loaded ? "stay-loaded" : "stay-loading"];
+}
