@@ -490,10 +490,28 @@ public static class ModelBuilderExtensions
                 }
 
                 foreignKey.IsRequired = required;
-                foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
+
+                // Below an explicit OnDelete, so the entity's own Configure — and an app-wide DeleteBehavior(children: …)
+                // rule, which runs as the model is finalized — can still say otherwise. A context that said so BEFORE
+                // this ran (an app's own, calling ApplyRaskConventions last) is overruled, as it always was.
+                var conventionKey = (IConventionForeignKey)foreignKey;
+                if (conventionKey.GetDeleteBehaviorConfigurationSource() == ConfigurationSource.Explicit)
+                {
+                    foreignKey.DeleteBehavior = DeleteBehavior.Cascade;
+                }
+                else
+                {
+                    conventionKey.SetDeleteBehavior(DeleteBehavior.Cascade, fromDataAnnotation: true);
+                }
             }
         }
     }
+
+    /// <summary>Whether <paramref name="key" /> holds a child to its aggregate: the rule above, read off one key.</summary>
+    internal static bool IsChildKey(IReadOnlyForeignKey key) =>
+        key.PrincipalToDependent is { IsCollection: true } &&
+        typeof(IEntity).IsAssignableFrom(key.DeclaringEntityType.ClrType) &&
+        !typeof(IAggregate).IsAssignableFrom(key.DeclaringEntityType.ClrType);
 
     /// <summary>How many parents hold <paramref name="child" /> in a collection: one foreign key each.</summary>
     internal static int ParentKeysOf(IReadOnlyEntityType child) =>

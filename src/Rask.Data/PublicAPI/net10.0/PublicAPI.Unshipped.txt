@@ -356,3 +356,21 @@ static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFra
 static Rask.Data.ValueObjectColumn.Map<TValueObject, TValue>(Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder! property, System.Linq.Expressions.Expression<System.Func<TValueObject, TValue>!>! value) -> Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Data.RaskDataServiceCollectionExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Data.Constraint
+Rask.Data.Constraint.Columns.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Data.Constraint.Joined.get -> string!
+Rask.Data.Constraint.Kind.get -> Rask.Data.ConstraintKind
+Rask.Data.Constraint.Table.get -> string!
+Rask.Data.ConstraintKind
+Rask.Data.ConstraintKind.Default = 4 -> Rask.Data.ConstraintKind
+Rask.Data.ConstraintKind.ForeignKey = 1 -> Rask.Data.ConstraintKind
+Rask.Data.ConstraintKind.Index = 3 -> Rask.Data.ConstraintKind
+Rask.Data.ConstraintKind.PrimaryKey = 0 -> Rask.Data.ConstraintKind
+Rask.Data.ConstraintKind.Unique = 2 -> Rask.Data.ConstraintKind
+Rask.Data.IRaskModel
+Rask.Data.ModelConfigurationBuilderExtensions
+Rask.Data.IRaskModel.Conventions(Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder) -> void
+Rask.Data.IRaskModel.Model(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
+static Rask.Data.ModelConfigurationBuilderExtensions.ConstraintNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.Constraint!, string?>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelConfigurationBuilderExtensions.DeleteBehavior(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, Microsoft.EntityFrameworkCore.DeleteBehavior children, Microsoft.EntityFrameworkCore.DeleteBehavior others) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
+static Rask.Data.ModelRegistry.UseModel<TModel>() -> void

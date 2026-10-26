@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.ComponentModel;
 using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data;
@@ -26,6 +27,8 @@ namespace Rask.Data;
 public static class ModelRegistry
 {
     private static readonly ConcurrentDictionary<Type, Contribution> Contributions = new();
+
+    private static AppModel? _appModel;
 
     /// <summary>Whether any assembly has contributed entities.</summary>
     /// <remarks>
@@ -61,6 +64,35 @@ public static class ModelRegistry
         Contributions[group] = new Contribution(mapEntities, applyConfigurations, configureConventions);
     }
 
+    /// <summary>
+    ///     Names the app's <see cref="IRaskModel" />, whose rules then reach every model built through this registry.
+    ///     Called by generated code.
+    /// </summary>
+    /// <typeparam name="TModel">The app's one model class.</typeparam>
+    /// <exception cref="InvalidOperationException">Another assembly already named a different one.</exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public static void UseModel<TModel>()
+        where TModel : IRaskModel =>
+        UseModel(typeof(TModel), TModel.Conventions, TModel.Model);
+
+    /// <summary>The app's model rules, as delegates: what <see cref="UseModel{TModel}" /> records.</summary>
+    internal static void UseModel(Type type, Action<ModelConfigurationBuilder> conventions, Action<ModelBuilder> model)
+    {
+        // Two assemblies loading the same type (a hot reload, a test host) is one model; two different types is two
+        // sets of rules for one database, and picking either would quietly change the schema.
+        if (_appModel is { } current && !string.Equals(current.Type.FullName, type.FullName, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Both {current.Type.FullName} and {type.FullName} implement IRaskModel. An app has one: move the rules "
+                + "of one into the other and delete it.");
+        }
+
+        _appModel = new AppModel(type, conventions, model);
+    }
+
+    /// <summary>Forgets the app's model rules — for a test that named some.</summary>
+    internal static void ForgetModel() => _appModel = null;
+
     /// <summary>Registers every assembly's strongly-typed id conversions.</summary>
     /// <remarks>
     ///     Separate from <see cref="Apply(Microsoft.EntityFrameworkCore.ModelBuilder)" /> because EF Core asks for conventions before it builds the
@@ -76,12 +108,15 @@ public static class ModelRegistry
             contribution.ConfigureConventions(configurationBuilder);
         }
 
+        // The app's own rules last, so they can say otherwise about anything above.
+        _appModel?.Conventions(configurationBuilder);
+
         return configurationBuilder;
     }
 
     /// <summary>
-    ///     Builds the model: every entity is mapped, then Rask's conventions are applied, then each
-    ///     entity's own <c>Configure</c> runs.
+    ///     Builds the model: every entity is mapped, then Rask's conventions are applied, then the app's
+    ///     <see cref="IRaskModel" />, then each entity's own <c>Configure</c> runs.
     /// </summary>
     /// <remarks>
     ///     The order is the point. Conventions land on entities that exist, and an entity's own
@@ -115,6 +150,9 @@ public static class ModelRegistry
             modelBuilder.ApplyRaskConventions(context);
         }
 
+        // The app-wide rules before any entity's own, which is the one thing that comes after them.
+        _appModel?.Model(modelBuilder);
+
         foreach (var contribution in Contributions.Values)
         {
             contribution.ApplyConfigurations(modelBuilder);
@@ -126,6 +164,11 @@ public static class ModelRegistry
 
         return modelBuilder;
     }
+
+    private sealed record AppModel(
+        Type Type,
+        Action<ModelConfigurationBuilder> Conventions,
+        Action<ModelBuilder> Model);
 
     private sealed record Contribution(
         Action<ModelBuilder> MapEntities,
