@@ -28,7 +28,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["listbox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Listbox[Options()], PickOption),
         ["listbox, live"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Listbox.Live()[Options()], PickOption),
         ["listbox the page holds"] = (typeof(UiSelect<>), a => Ui.Select.Value(a.One).OnChange(one => a.One = one).Listbox[Options()], PickOption),
-        ["listbox, cleared"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.Picked).Listbox.Clearable()[Options()], page => page.On("button[aria-label=\"Clear selected\"]").Click()),
+        ["listbox, cleared"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.Picked).Listbox.Clearable()[Options()], page => page.On("[aria-label=\"Clear selected\"]").Click()),
         ["combobox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Combobox[Options()], PickOption),
         ["multiple listbox"] = (typeof(UiSelectMultiple<>), a => Ui.Select.Bind(() => a.Many).Listbox.Multiple()[Options()], PickOption),
         ["pillbox"] = (typeof(UiPillbox<>), a => Ui.Pillbox.Bind(() => a.Many)[Words.Select(word => Ui.PillboxOption.Key(word)[word])], page => First(page, "[data-ui-listbox-option]", "click")),

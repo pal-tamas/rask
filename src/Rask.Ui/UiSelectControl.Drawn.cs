@@ -9,20 +9,16 @@ public abstract partial class UiSelectControl<T>
     {
         var view = Read(field, parts);
 
-        // Every child is keyed: the clear slot comes and goes between the trigger and the list, and the posted
-        // values change in number. Keyed, each of those is an insert or a removal the live diff ships. By
-        // position the slot would be patched into the list and the pick answered with the whole page.
+        // Every child is keyed: the posted values change in number. Keyed, each is an insert or a removal the
+        // live diff ships.
         List<Component?> children =
         [
             Trigger(view),
             Popup(view),
-            // After the list, where it is laid over the button's end all the same: its handler is then numbered
-            // after the rows', and a pick that brings the button in leaves every row wired as it was.
-            Clears(view) && !IsCombobox && Pills is null ? Div.Key("clear").Class(UiClass.Compose(UiSelectLook.ClearSlot, ButtonHeight(view)))[ClearButton()] : null,
             .. PostedValues(view),
         ];
 
-        return Div.Class(UiClass.Compose(UiSelectLook.Root, Clears(view) ? "relative" : null, Class)).Attributes(RootMarks())[children];
+        return Div.Class(UiClass.Compose(UiSelectLook.Root, Class)).Attributes(RootMarks())[children];
     }
 
     private Component Trigger(View view)
@@ -83,13 +79,10 @@ public abstract partial class UiSelectControl<T>
 
     private bool IsOff(Parts parts) => Disabled == true || parts.Button?.Disabled == true;
 
-    private bool Clears(View view) =>
-        (Clearable == true || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true)
-        && view.Picked.Count > 0 && !IsOff(view.Parts);
+    private bool Clears(View view) => AsksToClear(view) && view.Picked.Count > 0 && !IsOff(view.Parts);
 
-    // How tall the listbox's button is, for the clear button laid over its end.
-    private string ButtonHeight(View view) =>
-        UiSelectLook.ClearHeight(view.Parts.Button?.Size ?? Height);
+    private bool AsksToClear(View view) =>
+        Clearable == true || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true;
 
     // ----- Listbox: the button -------------------------------------------------------------------------
 
@@ -108,6 +101,11 @@ public abstract partial class UiSelectControl<T>
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
             Div.Class(UiSelectLook.Selected)[PickedContent(view, slot?.Placeholder ?? Placeholder)],
+            // Drawn whenever it is asked for, out of sight while there is nothing to clear: its handler is numbered
+            // before the rows', and a pick that shows it leaves every row wired as it was.
+            AsksToClear(view)
+                ? UiPickerClear.Inside(ClearAsync, Clears(view), RaskStrings.Get(RaskString.SelectClear, "Clear selected"), UiDraws.Pairs(("click", CommitDraws)))
+                : null,
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiSelectLook.Chevron)
         ];
     }

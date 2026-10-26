@@ -364,7 +364,7 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_clearable_picker_shows_its_button_only_while_a_time_is_chosen()
+    public async Task A_clearable_picker_shows_its_cross_only_while_a_time_is_chosen()
     {
         var model = new Booking { At = new TimeOnly(9, 30) };
         var page = Acting.Render(() => Ui.TimePicker.Bind(() => model.At).Clearable());
@@ -373,20 +373,48 @@ public partial class UiTimePickerTests : global::Rask.Core.RaskMarkup
         await page.On("[aria-label=\"Clear\"]").Click();
         await Acting.Act(page);
 
-        Assert.Contains("aria-label=\"Clear\"", before, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative flex items-center", UiDatePickerTests.Cross(before), StringComparison.Ordinal);
         Assert.Null(model.At);
-        Assert.DoesNotContain("aria-label=\"Clear\"", page.Html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative hidden items-center", UiDatePickerTests.Cross(page.Html), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_clear_button_sits_in_a_slot_as_tall_as_the_trigger_placed_against_the_picker()
+    public void The_cross_is_Fluxs_a_div_in_the_button_before_the_chevron_that_tab_passes_by()
     {
-        var picker = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Clearable().Sm;
+        var button = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Clearable().Sm;
+        var typed = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Type(Ui.TimePickerType.Input).Clearable();
 
-        var html = picker.ToHtml();
+        var html = button.ToHtml();
+        var field = typed.ToHtml();
 
-        Assert.Contains("class=\"relative block min-w-60\"", html, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-8\" data-rask-key=\"clear\"><button class=\"relative ", html, StringComparison.Ordinal);
+        Assert.Equal("block min-w-[12rem] sm:min-w-[240px]", UiDatePickerTests.RootClass(html, "time-picker"));
+        Assert.True(UiDatePickerTests.BeforeChevron(html, "data-ui-time-picker-button"), "the × is not in the button, before its chevron.");
+        Assert.True(UiDatePickerTests.BeforeChevron(field, "data-rask-toggle"), "the × is not in the typed field, before its chevron.");
+        Assert.Contains("tabindex=\"-1\"", UiDatePickerTests.Cross(html), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_picker_is_never_narrower_than_Fluxs_until_a_class_of_the_call_site_sizes_it()
+    {
+        var unsized = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30));
+        var narrowed = Ui.TimePicker.Value((TimeOnly?)new TimeOnly(9, 30)).Class("w-40");
+
+        var least = UiDatePickerTests.RootClass(unsized.ToHtml(), "time-picker");
+        var sized = UiDatePickerTests.RootClass(narrowed.ToHtml(), "time-picker");
+
+        Assert.Equal("block min-w-[12rem] sm:min-w-[240px]", least);
+        Assert.Equal("block [:where(&)]:min-w-0 w-40", sized);
+    }
+
+    [Fact]
+    public void A_picker_of_several_times_grows_no_wider_than_its_least_width_and_cuts_the_list_off()
+    {
+        var several = Ui.TimePicker.Value(new List<TimeOnly> { new(9, 0), new(10, 30), new(13, 0), new(15, 30) }).Locale("en-US");
+
+        var html = several.ToHtml();
+
+        Assert.Equal("block min-w-[12rem] sm:min-w-[240px] [:where(&)]:max-w-[12rem] sm:[:where(&)]:max-w-[240px]", UiDatePickerTests.RootClass(html, "time-picker"));
+        Assert.Matches("<div class=\"overflow-hidden\"[^>]*>9:00 AM, 10:30 AM, 1:00 PM, 3:30 PM</div>", html);
     }
 
     [Fact]

@@ -40,7 +40,7 @@ const read = () => {
   const shown = el => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
   return [...document.querySelectorAll('[data-clear-case]')].map(host => {
     const name = `${host.dataset.control} · ${host.dataset.clearCase}`;
-    const clear = [...host.querySelectorAll('button[aria-label^="Clear"]')].filter(shown).at(-1);
+    const clear = [...host.querySelectorAll('[aria-label^="Clear"]')].filter(shown).at(-1);
     if (!clear) return { name, missing: true };
     // A press is asked of the viewport, so the button is brought into it first.
     clear.scrollIntoView({ block: 'center', behavior: 'instant' });
@@ -48,7 +48,8 @@ const read = () => {
     const trigger = [...control.querySelectorAll('[data-ui-group-target], [data-flux-group-target]')].find(shown) ?? control;
     const c = box(clear);
     const hit = document.elementFromPoint(c.x + c.w / 2, c.y + c.h / 2);
-    return { name, control: host.dataset.control, where: host.dataset.clearCase, clear: c, trigger: box(trigger), hit: clear.contains(hit), position: getComputedStyle(clear).position };
+    return { name, control: host.dataset.control, where: host.dataset.clearCase, clear: c, trigger: box(trigger), hit: clear.contains(hit), position: getComputedStyle(clear).position,
+      inTrigger: trigger !== clear && trigger.contains(clear), tab: clear.tabIndex };
   });
 };
 
@@ -58,6 +59,13 @@ const near = (a, b) => Math.abs(a - b) <= 0.51;
 // grid cell stretches that room, Flux's own clear button drifts down with it (measured: 40px beside a 120px
 // neighbour). The kit's does the same, so there the input is held to a press and to its distance from the end.
 const STRETCHED = ['beside a labelled date picker', 'grown in a row', 'in a grid cell'];
+
+// Flux's pickers draw their × INSIDE the trigger, between the choice and the chevron, out of the Tab order
+// (measured on the datetime picker, 2026-10-26: a 32px div, 29px from the trigger's end). The kit's pickers and its
+// listbox are held to that; Flux shows no clearable date picker, time picker or listbox, so its datetime picker's
+// place is theirs (a typed field ends the same way).
+const IN_TRIGGER = ['date-picker', 'date-picker-typed', 'date-picker-range', 'time-picker', 'time-picker-typed', 'select'];
+const FLUX_END = 29;
 const asFlux = one => one.control === 'input' && STRETCHED.includes(one.where);
 
 function judge(found) {
@@ -70,6 +78,11 @@ function judge(found) {
     if (asFlux(one)) { /* drifts as Flux's does */ } else if (!inside) wrong.push(`${one.name}: the button is outside its trigger — ${Math.round(c.y - t.y)}px from its top, ${Math.round(t.right - c.right)}px from its end (trigger ${Math.round(t.w)}×${Math.round(t.h)})`);
     else if (!near(c.y + c.h / 2, t.y + t.h / 2)) wrong.push(`${one.name}: the button is ${(c.y + c.h / 2 - t.y - t.h / 2).toFixed(1)}px off the trigger's middle`);
     if (!one.hit) wrong.push(`${one.name}: a press at the button's centre lands on something else`);
+    if (IN_TRIGGER.includes(one.control)) {
+      if (!one.inTrigger) wrong.push(`${one.name}: the × is not inside its trigger`);
+      if (one.tab !== -1) wrong.push(`${one.name}: the × is in the Tab order (tabIndex ${one.tab})`);
+      if (!near(t.right - c.right, FLUX_END)) wrong.push(`${one.name}: the × is ${(t.right - c.right).toFixed(1)}px from the trigger's end, Flux's ${FLUX_END}`);
+    }
     const end = +(t.right - c.right).toFixed(2);
     if (!ends.has(one.control)) ends.set(one.control, { end, name: one.name });
     else if (!near(ends.get(one.control).end, end)) wrong.push(`${one.name}: ${end}px from the trigger's end, ${ends.get(one.control).end}px in "${ends.get(one.control).name}"`);

@@ -73,13 +73,14 @@ public sealed partial class UiDatetimePickerButton : Component
             Div.Class(UiDatePickerLook.Selected).Attributes(UiCalendarHook.Named("text"))[
                 Words(scope, placeholder)
             ],
+            Clearable ?? scope.Clearable
+                ? UiPickerClear.Inside(scope.Clear, scope.Text is not null && !scope.Disabled,
+                    RaskStrings.Get(RaskString.DatetimePickerClear, "Clear date and time"), UiCalendarHook.Named("clear"))
+                : null,
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
-        return Clearable ?? scope.Clearable
-            ? UiPickerClear.Over(button, height, scope.Clear, shown: scope.Text is not null && !scope.Disabled, UiCalendarHook.Named("clear"),
-                RaskStrings.Get(RaskString.DatetimePickerClear, "Clear date and time"))
-            : button;
+        return button;
     }
 
     // The date, a grey "at" and the time; a range's two ends and the dash between them; or the placeholder.

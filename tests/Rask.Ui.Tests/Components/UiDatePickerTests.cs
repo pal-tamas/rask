@@ -321,7 +321,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_clearable_picker_draws_its_button_out_of_sight_until_a_day_is_chosen()
+    public void A_clearable_picker_draws_its_cross_out_of_sight_until_a_day_is_chosen()
     {
         var plain = Single(Jan(20)).ToHtml();
 
@@ -330,46 +330,50 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         var disabled = Single(Jan(20)).Clearable().Disabled().ToHtml();
 
         Assert.DoesNotContain("aria-label=\"Clear\"", plain, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-10\" data-rask-calendar-part=\"clear\"><button", chosen, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"absolute top-0 end-9 hidden items-center h-10\" data-rask-calendar-part=\"clear\"><button", unset, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"absolute top-0 end-9 hidden items-center h-10\" data-rask-calendar-part=\"clear\"><button", disabled, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative flex items-center", Cross(chosen), StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative hidden items-center", Cross(unset), StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative hidden items-center", Cross(disabled), StringComparison.Ordinal);
+        Assert.Contains("data-rask-calendar-part=\"clear\"", Cross(chosen), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void The_clear_button_is_placed_against_a_box_that_holds_the_trigger_and_nothing_else()
+    public void The_cross_is_Fluxs_a_div_in_the_button_before_the_chevron_that_tab_passes_by()
     {
         var picker = Single(Jan(20)).Clearable();
 
         var html = picker.ToHtml();
 
-        Assert.Matches("<div class=\"relative\"><button id=[^>]*data-ui-date-picker-button", html);
-        Assert.Matches("</button><div class=\"absolute top-0 end-9 flex items-center h-10\" data-rask-calendar-part=\"clear\"><button class=\"relative ", html);
+        var cross = Cross(html);
+        Assert.Contains("size-8 ms-2 -me-2 rounded-md cursor-pointer", cross, StringComparison.Ordinal);
+        Assert.Contains("tabindex=\"-1\"", cross, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"Clear\"", cross, StringComparison.Ordinal);
+        Assert.True(BeforeChevron(html, "data-ui-date-picker-button"), "the × is not in the button, before its chevron.");
     }
 
     [Fact]
-    public void The_clear_button_stands_beside_a_typed_field_and_not_inside_what_opens_the_calendar()
+    public void The_cross_of_a_typed_field_stands_in_the_field_before_its_chevron()
     {
         var picker = Single(Jan(20)).Type(Ui.DatePickerType.Input).Clearable();
 
         var html = picker.ToHtml();
 
-        Assert.Matches("<div class=\"relative\"><div id=[^>]*data-rask-toggle", html);
-        Assert.Contains("</svg></div><div class=\"absolute top-0 end-9 flex items-center h-10\" data-rask-calendar-part=\"clear\"><button", html, StringComparison.Ordinal);
+        Assert.True(BeforeChevron(html, "data-rask-toggle"), "the × is not in the typed field, before its chevron.");
+        Assert.DoesNotContain("end-9", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_trigger_in_the_slot_asks_for_the_button_itself_at_its_own_height()
+    public void A_trigger_in_the_slot_draws_the_cross_itself()
     {
         var picker = Single(Jan(20)).Trigger(Ui.DatePickerButton.Size(Ui.DatePickerButtonSize.Sm).Clearable());
 
         var html = picker.ToHtml();
 
-        Assert.Contains("<div class=\"absolute top-0 end-9 flex items-center h-8\" data-rask-calendar-part=\"clear\"><button", html, StringComparison.Ordinal);
+        Assert.True(BeforeChevron(html, "data-ui-date-picker-button"), "the × is not in the button, before its chevron.");
         Assert.Contains("aria-label=\"Clear\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task The_clear_button_takes_a_day_that_may_be_unset_back_to_null()
+    public async Task The_cross_takes_a_day_that_may_be_unset_back_to_null()
     {
         var model = new Trip { Departure = Jan(20) };
         var page = Acting.Render(() => Ui.DatePicker.Bind(() => model.Departure).Clearable().Locale("en-US").On(Today));
@@ -379,8 +383,19 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
         Assert.Null(model.Departure);
         Assert.Contains(">Select a date</span>", page.Html, StringComparison.Ordinal);
-        Assert.Contains("end-9 hidden items-center", page.Html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative hidden items-center", Cross(page.Html), StringComparison.Ordinal);
     }
+
+    // The ×'s opening tag, as a picker or a select draws it in its trigger.
+    internal static string Cross(string html) =>
+        Regex.Match(html, "<div class=\"relative (?:flex|hidden) items-center justify-center gap-2 size-8[^>]*>").Value;
+
+    // Whether the × stands in the trigger marked so, right before the trigger's chevron.
+    internal static bool BeforeChevron(string html, string trigger) =>
+        Regex.IsMatch(
+            html,
+            trigger + "[^>]*>.*?<div class=\"relative (?:flex|hidden) items-center justify-center gap-2 size-8[^>]*><svg[^>]*>(?:(?!</svg>).)*</svg></div><svg[^>]*class=\"[^\"]*ms-2 -me-1",
+            RegexOptions.Singleline);
 
     [Fact]
     public async Task The_clear_button_takes_a_day_that_cannot_be_null_back_to_its_unset_value()
@@ -421,6 +436,22 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(3, Regex.Matches(page.Html, "<input[^>]*type=\"hidden\"[^>]*value=\"\"|<input[^>]*value=\"\"[^>]*type=\"hidden\"").Count);
         Assert.DoesNotContain("value=\"2026-", page.Html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_picker_is_never_narrower_than_Fluxs_until_a_class_of_the_call_site_sizes_it()
+    {
+        var unsized = Single(Jan(4));
+        var grown = Single(Jan(4)).Class("flex-1");
+
+        var least = RootClass(unsized.ToHtml(), "date-picker");
+        var sized = RootClass(grown.ToHtml(), "date-picker");
+
+        Assert.Equal("min-w-[12rem] sm:min-w-[240px]", least);
+        Assert.Equal("[:where(&)]:min-w-0 flex-1", sized);
+    }
+
+    internal static string RootClass(string html, string part) =>
+        System.Net.WebUtility.HtmlDecode(Regex.Match(html, "<div class=\"([^\"]*)\"[^>]*\\bdata-ui-" + part + "(?=[ >=])").Groups[1].Value);
 
     private static string[] Segments(string html) =>
         [.. Regex.Matches(html, "<input[^>]*aria-label=\"(Month|Day|Year)\"").Select(m => m.Groups[1].Value)];

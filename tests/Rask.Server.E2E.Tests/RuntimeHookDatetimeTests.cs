@@ -163,14 +163,17 @@ public sealed class RuntimeHookDatetimeTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
-    public async Task The_clear_button_empties_the_picker_and_its_button_says_the_placeholder_again()
+    public async Task The_cross_in_the_button_empties_the_picker_without_opening_it()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
 
-        await page.ClickAsync("#chosen-box [aria-label='Clear date and time']");
+        await page.ClickAsync("#chosen [aria-label='Clear date and time']");
 
+        Assert.False(await page.IsVisibleAsync("#chosen-box dialog"));
         await Expect(page.Locator("#chosen")).ToContainTextAsync("Select a date and time");
+        await Expect(page.Locator("#chosen [aria-label='Clear date and time']")).ToBeHiddenAsync();
+        Assert.Equal("BODY", await page.EvaluateAsync<string>("document.activeElement.tagName"));
         await Expect(page.Locator("#chosen-value")).ToHaveTextAsync(string.Empty);
     }
 

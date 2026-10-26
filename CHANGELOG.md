@@ -118,6 +118,12 @@ them until tagged releases begin.
   submitting without `page`). The set finds the key from the table's own pager: with `.Href(page => …)` it is the key
   `Href(1)` and `Href(2)` disagree on, taken out (or set as page one writes it) in the same move of the address, one
   history entry; with `.OnPage(…)` alone the pager is told `OnPage(1)`. Turning the pager keeps the filters.
+- **A clearable picker's × is Flux's: inside the trigger, before the chevron, and out of the Tab order.**
+  `Ui.DatePicker`, `Ui.DatetimePicker`, `Ui.TimePicker` (button and typed) and `Ui.Select.Listbox` with `.Clearable()`
+  drew a separate `<button>` laid over the trigger's end, so the words ran under it and the picker was 32px narrower
+  than Flux's. Now the × is a 32px `div` in the trigger's row, as Flux draws it: the picker is as wide as Flux's, a
+  press on the × empties it without opening the popup, and the focus falls back to the page. As in Flux, Tab no
+  longer stops on it (the owner's choice, 2026-10-26). Call sites do not change.
 
 - **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
   on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
@@ -140,6 +146,14 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+
+- **A class on `Ui.DatePicker` / `Ui.TimePicker` sizes it, as it does Flux's.** Both pickers kept a 240px minimum
+  under every class, so `Ui.TimePicker.Class("w-40")` stayed 240px wide and the docs' "Separate date and time" row
+  ran wider than Flux's. Measured on fluxui.dev: the pickers are never narrower than 12rem (15rem from `sm` up) until
+  the call site gives them a class of their own; then the class alone decides. The kit now does the same, and the
+  time picker's minimum is 12rem on a phone too (it was 240px at every width). `Ui.TimePicker` of several times
+  grows no wider than that minimum and cuts its list off, as Flux's `multiple` does. Before:
+  `Ui.TimePicker.Bind(() => m.At).Class("w-40")` → 240px. After: 160px.
 
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a

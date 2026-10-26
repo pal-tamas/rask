@@ -268,6 +268,37 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task A_separate_date_and_time_sit_side_by_side_sized_by_their_classes_and_stack_on_a_phone() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("datetime-picker", "Datetime picker");
+        var example = Page.Locator("[data-testid='ui-datetime-picker-separate']");
+        var date = example.Locator("[data-ui-date-picker]").First;
+        var time = example.Locator("[data-ui-time-picker]").First;
+        await date.ScrollIntoViewIfNeededAsync();
+
+        var wideDate = await date.BoundingBoxAsync();
+        var wideTime = await time.BoundingBoxAsync();
+        await Page.SetViewportSizeAsync(390, 844);
+        try
+        {
+            await Expect(time).ToHaveCSSAsync("width", new Regex("^(?!160px$)"), new LocatorAssertionsToHaveCSSOptions { Timeout = 15_000 });
+            var phoneDate = await date.BoundingBoxAsync();
+            var phoneTime = await time.BoundingBoxAsync();
+
+            Assert.Equal(160, wideTime!.Width);
+            Assert.Equal(wideDate!.Y, wideTime.Y);
+            Assert.True(wideDate.Width + 8 + wideTime.Width <= 384, $"the row is {wideDate.Width + 8 + wideTime.Width}px wide.");
+            Assert.Equal(phoneDate!.Width, phoneTime!.Width);
+            Assert.True(phoneTime.Y >= phoneDate.Y + phoneDate.Height, "the time picker is not under the date picker.");
+            Assert.True(phoneDate.Width <= 256, $"the date picker is {phoneDate.Width}px wide.");
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Fact]
     public Task A_preset_writes_its_range_and_closes_the_picker() => RunAsync(async () =>
     {
         await OpenUiPageAsync("date-picker", "Date picker");

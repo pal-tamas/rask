@@ -133,10 +133,12 @@ public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup
                 Industries.Select(name => Ui.SelectOption.Key(name)[name])
             ]);
 
+        var inButton = UiDatePickerTests.BeforeChevron(page.Html, "data-ui-select-button");
         await page.On("[aria-label=\"Clear selected\"]").Click();
 
+        Assert.True(inButton, "the × is not in the button, before its chevron.");
         Assert.Null(_picked);
-        Assert.False(page.Exists("[aria-label=\"Clear selected\"]"));
+        Assert.StartsWith("<div class=\"relative hidden items-center", UiDatePickerTests.Cross(page.Html), StringComparison.Ordinal);
     }
 
     [Fact]

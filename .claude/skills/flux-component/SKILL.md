@@ -588,14 +588,23 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `<dialog popover>` would otherwise hand it to its first control). Unmeasured, no example on Flux's pages:
   calendar sizes `Lg` / `Xxl`, every date-picker size but the default, `with-inputs`, `clearable` on the date
   picker, the SHOWN confirmation footer, the time picker's `Sm` / `Xs` / invalid / disabled / clearable looks.
-  `Clearable` on both pickers is BUILT all the same (2026-10-12), from the reference and the time picker's ✕
-  (`UiPickerClear`: 32px, 30px from the trigger's end; a date picker's is always drawn and `hidden` while nothing
-  is chosen, beside the trigger in a `relative` box of its own — a button in the typed field would open the
-  calendar). **A place and a look never share an element**: `absolute …` joined to a look that begins `relative`
-  is decided by Tailwind's print order (`relative` wins) — `OnePositionPerElementTests` reads every parity page
-  for it. The pickers' and the listbox's slot hangs from `top-0` with the TRIGGER's height, never `bottom-0`: a
-  flex row or a grid cell stretches the control's root to its tallest neighbour. `Ui.Input`'s slots keep
+  `Clearable` on both pickers is BUILT all the same (2026-10-12). **The × is Flux's, exactly** (the owner,
+  2026-10-26, "Pontosan a Flux"; measured on the datetime picker, Flux's one live clearable picker): a `div`
+  (`UiPickerClear.Inside`, `tabindex="-1"`, 32px, `ms-2 -me-2`, Heroicons' micro ×) INSIDE the trigger between the
+  choice and the chevron, taking its room in the row (29px from the trigger's end), named by the kit's string
+  ("Clear", "Clear date and time", "Clear selected"; Hungarian too). It is NOT reachable by Tab — as in Flux, an
+  accepted step back for keyboard users (Backspace / the list reach the same end). Its press is not the trigger's:
+  `rask-clicks.ts` cancels a popover invoker's press made on a handler inside it, `rask-toggle.ts` leaves one to it.
+  Pressed, it takes the focus; once it has cleared it hides and the focus falls to `<body>`, as Flux's. The date,
+  time and datetime pickers and the listbox draw it whenever `Clearable` asks (hidden while nothing is chosen), so
+  its handler is numbered before the list's rows and a pick that shows it rewires none. Flux shows no clearable
+  date picker, time picker, typed field or listbox: they take the datetime picker's shape. **A place and a look
+  never share an element**: `absolute …` joined to a look that begins `relative` is decided by Tailwind's print
+  order (`relative` wins) — `OnePositionPerElementTests` reads every parity page for it. `Ui.Input`'s slots keep
   `top-0 bottom-0` — the owner, 2026-10-12: Flux's own input drifts 40px there, and the input stays Flux's.
+  Width (measured 2026-10-26): both pickers are never under 12rem, 15rem from `sm` — until the call site passes a
+  class, which takes the minimum away (`flex-1`, `sm:w-40` → `min-width: 0`); `UiPickerWidth` is that one rule. A time
+  picker of several times also keeps a maximum of the same size (Flux's `multiple`, no class of the page's).
   `node scripts/flux/clear-placement.mjs` holds every clear button to its trigger on the pseudo-page
   `clear-placement` (`ClearPlacementParity`: alone, labelled, in a row, grown, in a grid cell; 1920 and 390).
   The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
@@ -608,8 +617,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   field under it (the phone's, typed times' and a range's two) built from the time picker's parts (`UiTimeParts`,
   `UiTimePickerLook`, `rask-time-list.ts`), all drawn in the browser by `rask-calendar.ts` (`time` in its JSON,
   helpers in `rask-datetime.ts`). Measured rules are in that module's header; `parity-date.mjs datetime-picker`
-  holds loaded, open and phone. Known and not matching: the clear button is the kit's slot beside the trigger
-  (Flux puts a `div` inside the button); the word between date and time follows the picker's `Locale`, as Flux's does, from the kit's own table
+  holds loaded, open and phone. Known and not matching: the word between date and time follows the picker's `Locale`, as Flux's does, from the kit's own table
   (`UiDatetimePickerText.Joins`: CLDR's "at" in English, nothing in Hungarian, English for the rest — so fr
   writes "at" where Flux's browser writes "à"); the static open page has no runtime, so a popup Flux
   holds to the room under it is taller there (`rask-place.ts` holds it on a live page). `Min`/`Max` are
@@ -630,7 +638,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   write nothing — and leave the calendar's own mark, so the sheet opens again with that day lit and "Select
   date" still writes it (a quirk, kept). The range's button reads "Select range". The standalone calendar
   changes the same way (it has no footer). The TIME picker does not: same popover and rows under 640 px, only
-  its trigger is 12rem and 16px there (the kit's is 240px and 14px at every width — measured, not built).
+  its trigger is 12rem and 16px there, as the kit's.
   How the kit does it: ONE markup, `sm:` / `max-sm:` utilities, the popup still a `popover` (the kit's
   translation of Flux's dialog at every width, so no focus trap — Tab leaves and closes it, as on a desktop).
   The anchor rules moved from the dialog's `style` into `sm:` classes (only `position-anchor` stays inline,

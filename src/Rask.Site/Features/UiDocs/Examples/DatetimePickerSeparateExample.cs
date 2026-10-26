@@ -12,8 +12,8 @@ public sealed partial class DatetimePickerSeparateExample : Component
     }
 
     protected override Component? Render() =>
-        Div.Class("flex gap-2 max-w-md")[
+        Div.Class("flex max-sm:flex-col gap-2 w-full max-w-64 sm:max-w-96")[
             Ui.DatePicker.Bind(() => _meeting.Day).Class("flex-1"),
-            Ui.TimePicker.Bind(() => _meeting.At).Class("w-40")
+            Ui.TimePicker.Bind(() => _meeting.At).Class("sm:w-40")
         ];
 }

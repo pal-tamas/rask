@@ -382,3 +382,13 @@ bundle,bytes
 rask.js,110064
 rask.wasm.js,96034
 rask-hooks.js,108286
+#
+# 2026-10-26, a picker's × drawn inside its trigger, as Flux draws it: a handler inside a popover invoker keeps
+# the invoker's press from opening the popover (rask-clicks.ts, both runtimes), and a press on one inside a
+# data-rask-toggle is not the toggle's (rask-toggle.ts, a hook): rask.js +36, rask.wasm.js +36, rask-hooks.js +25.
+# Measured locally (Release, the benchmarks job's recipe) with main fd9b6ca62 merged in; without this change 110,064 / 96,034 /
+# 115,415. The hooks row carries the datetime picker's +7,129 main had not recorded yet.
+bundle,bytes
+rask.js,110100
+rask.wasm.js,96070
+rask-hooks.js,115440
