@@ -34,7 +34,7 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
 
         await Click(session, html, "use");
 
-        Assert.True(services.GetRequiredService<WasmScopeLog>().Seen[0].Disposed);
+        await WaitFor.True(() => services.GetRequiredService<WasmScopeLog>().Seen[0].Disposed, "the event's scope to be disposed");
         Assert.Null(session.OpenedEventScope);
     }
 
@@ -51,7 +51,7 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         Assert.Equal(4, seen.Count);
         Assert.Same(seen[0], seen[1]);
         Assert.NotSame(seen[1], seen[2]);
-        Assert.All(seen, probe => Assert.True(probe.Disposed));
+        await WaitFor.True(() => seen.TrueForAll(static probe => probe.Disposed), "each event's scope to be disposed");
     }
 
     [Fact]
@@ -76,6 +76,24 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         await WaitFor.True(() => gate.Seen[0].Disposed, "the hook's scope to go once it is done");
     }
 
+    [Fact]
+    public async Task A_read_a_hook_detaches_keeps_its_event_s_scope_until_it_is_back_on_the_page()
+    {
+        var (session, services) = NewScopedSession();
+        var html = Html(await session.InitialRenderAsync());
+        var gate = services.GetRequiredService<WasmDetachedGate>();
+
+        await Click(session, html, "detach");
+        await WaitFor.True(() => gate.Probe is not null, "the detached read to take its service");
+        await Click(session, html, "use");
+        var whileReading = gate.Probe!.Disposed;
+        gate.Read.SetResult();
+        await WaitFor.True(() => gate.Back, "the detached read to come back to the page");
+
+        Assert.False(whileReading);
+        await WaitFor.True(() => gate.Probe.Disposed, "the scope to go once the read is back");
+    }
+
     private static (WasmLiveSession Session, IServiceProvider Services) NewScopedSession() =>
         NewSession<WasmScopeApp>(configure: s =>
         {
@@ -83,6 +101,7 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
             s.AddSingleton<WasmScopeLog>();
             s.AddScoped<WasmScopeProbe>();
             s.AddSingleton<WasmHookGate>();
+            s.AddSingleton<WasmDetachedGate>();
         });
 
     private static string Html(byte[] frame)
@@ -142,14 +161,54 @@ public sealed partial class WasmHookChild : Component
     protected override Component? Render() => P["child"];
 }
 
+// What a detached read waits on, held by the test.
+public sealed class WasmDetachedGate
+{
+    public TaskCompletionSource Read { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public WasmScopeProbe? Probe { get; set; }
+
+    public bool Back { get; set; }
+}
+
+// The hook goes out at once and its read follows: it takes the provider and reads through it on a task of its own.
+public sealed partial class WasmDetachedChild : Component
+{
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+
+        // Detached on purpose: the read comes back to the page by itself.
+        _ = Load();
+    }
+
+    protected override Component? Render() => P["detached"];
+
+    private static async Task Load()
+    {
+        var services = Current.Service<IServiceProvider>();
+        var gate = services.GetRequiredService<WasmDetachedGate>();
+        await Task.Run(async () =>
+        {
+            gate.Probe = services.GetRequiredService<WasmScopeProbe>();
+            await gate.Read.Task;
+            gate.Probe.Use();
+        });
+        gate.Back = true;
+    }
+}
+
 public sealed partial class WasmScopeApp : Component
 {
     private bool _show;
+    private bool _detach;
 
     protected override Component? Render() =>
         Div[
             Button.Id("show").OnClick(() => _show = true)["show"],
             _show ? WasmHookChild : null,
+            Button.Id("detach").OnClick(() => _detach = true)["detach"],
+            _detach ? WasmDetachedChild : null,
             Button.Id("use").OnClick(static () => Ambient.Services!.GetRequiredService<WasmScopeProbe>().Use())["use"],
             Button.Id("current").OnClick(static async () =>
             {

@@ -69,7 +69,7 @@ public sealed class EventListenerTests : ResettingTestBase, IDisposable
         await WaitFor(() => log.Scoped.Count == 2);
 
         Assert.NotSame(log.Scoped[0], log.Scoped[1]);
-        Assert.True(log.Scoped[0].Disposed);
+        await WaitFor(() => log.Scoped[0].Disposed);
     }
 
     private static (WasmLiveSession Session, IServiceProvider Services) NewListeningSession() =>

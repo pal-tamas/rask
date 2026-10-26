@@ -46,6 +46,18 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     // hook is an await.
     internal bool PostFired { get; private set; }
 
+    /// <summary>
+    ///     Whether the hook itself has finished: a continuation through this context from then on is work it detached,
+    ///     coming back (<see cref="HookLeases" />). A bool beside the two above, so the context is no bigger for it.
+    /// </summary>
+    internal bool HookDone
+    {
+        get => Volatile.Read(ref _hookDone);
+        set => Volatile.Write(ref _hookDone, value);
+    }
+
+    private bool _hookDone;
+
     /// <summary>Whether the hook is one that loads — <c>OnMount</c>, <c>OnUpdated</c> — which a recovered boundary runs again.</summary>
     internal bool IsLoad { get; init; }
 
@@ -107,6 +119,9 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     private void RunContinuation(
         SendOrPostCallback d, object? state, QuiescenceScope? quiescence, TaskCompletionSource? rendered)
     {
+        // Taken as it starts: once the hook itself is done, this is the work it detached coming back, and what it was
+        // lent of the event's services goes when it has run — not what it takes now, which is for its own next return.
+        var returning = HookLeases.Returning(this);
         try
         {
             // Restore ONLY the quiescence scope, never the whole ExecutionContext: the
@@ -126,6 +141,7 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
             // render waiting on a gate nothing will ever open. The fault is already routed to
             // the nearest ErrorBoundary by the caller.
             rendered?.TrySetResult();
+            returning?.ForEach(static hold => hold.Release());
         }
     }
 
