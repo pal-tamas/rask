@@ -355,7 +355,9 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
         foreach (var trigger in new[] { "[data-ui-date-picker-button]", "[data-ui-time-picker-button]" })
         {
             var box = (await row.Locator(trigger).BoundingBoxAsync())!;
-            var clear = row.Locator(trigger).Locator("xpath=ancestor::*[@data-ui-control][1]").GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Clear", Exact = true });
+            // Flux's ×: a div inside the trigger, named by its label, out of the Tab order.
+            var clear = row.Locator(trigger).Locator("[aria-label='Clear']");
+            await Expect(clear).ToHaveAttributeAsync("tabindex", "-1");
             var button = (await clear.BoundingBoxAsync())!;
 
             // Inside the trigger, centred on it, before its chevron: not under the row.
@@ -367,7 +369,7 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         await Expect(state).ToHaveTextAsync("No day, no time", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
         await Expect(row.Locator("[data-ui-date-picker-button]")).ToContainTextAsync("Select a date");
-        await Expect(row.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Clear", Exact = true })).ToHaveCountAsync(0);
+        await Expect(row.Locator("[aria-label='Clear']:visible")).ToHaveCountAsync(0);
     });
 
     [Fact]
