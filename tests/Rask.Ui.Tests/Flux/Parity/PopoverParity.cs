@@ -39,6 +39,8 @@ public sealed partial class PopoverParity : FluxParity
         + ".pp-labels>[data-ui-field]>[data-ui-label]{color:var(--color-zinc-500)}"
         + ":where(.dark) .pp-labels>[data-ui-field]>[data-ui-label]{color:var(--color-zinc-400)}"
         + ".pp-clear:where(.dark,.dark *){background-color:transparent!important}"
+        // `data-open:flex`: laid out by the mark the runtime writes on the open panel.
+        + ".pp-open-flex[data-open]{display:flex}"
         // What the live example adds for its dark panel and the markdown leaves out: the trigger's bar, and
         // the avatars ringed in the panel's own zinc-700.
         + ".pp-bar{background-color:var(--color-zinc-800)}:where(.dark) .pp-bar{background-color:var(--color-zinc-200)}"
@@ -196,7 +198,7 @@ public sealed partial class PopoverParity : FluxParity
                 Div.Class("pp-bar").Style("align-self:stretch;width:2px;border-radius:calc(infinity * 1px)"),
                 Div[Ui.Heading["Team sync"], Ui.Text.Class("mt-1")["10:00 AM"]]
             ],
-            Ui.Popover.Class("w-80 p-0 data-open:flex flex-col")[
+            Ui.Popover.Class("w-80 p-0 pp-open-flex flex-col")[
                 Div.Style("padding:16px")[
                     Ui.Heading["Team sync"],
                     Ui.Text.Class("mt-2")["Let's review the progress made last week and define the priorities for the next"],
