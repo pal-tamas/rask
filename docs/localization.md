@@ -378,7 +378,8 @@ So an app that lists `hu` in `SupportedCultures` gets a Hungarian pager, select,
 and data grid with no catalog of its own, and a language switch repaints them like any other text. The kit's
 translations apply only to the languages your app says it ships — an app with no `SupportedCultures` keeps
 the English whatever the server's or the browser's language is. Month and weekday names, dates and numbers
-are not in any catalog: they come from the culture.
+are not in any catalog: they come from the culture. So does the word a `Ui.DatetimePicker` writes between its
+date and its time — " at ", " à ", " um ", or none in Japanese — from Unicode CLDR in the picker's `.Locale(…)`.
 
 ### Adding a language, or changing a word
 

@@ -672,7 +672,7 @@ function drawText(root: Element, state: State): void {
     }
 }
 
-// A datetime picker's button: "Oct 27, 2026 at 10:30 AM", or a range's ends — the year dropped while both are in
+// A datetime picker's button: "Oct 27, 2026 at 10:30 AM" (ja "2026年10月29日 14:00", one text), or a range's ends — the year dropped while both are in
 // this one, and one day's range written once, the period too: "Oct 22, 2:00 – 4:30 PM".
 function drawMoments(root: Element, state: State, words: HTMLElement, t: TimeConfig): void {
     const c = state.config, v = state.value, times = v.times || [];
@@ -693,9 +693,11 @@ function drawMoments(root: Element, state: State, words: HTMLElement, t: TimeCon
     const time = function (m: number, pattern: string = t.pattern): string { return formatTime(m, pattern, t.am, t.pm); };
     let before: string, between: string, after: string;
     if (c.mode !== "range") {
-        before = formatDay(v.days[0], c.culture.medium, c.culture);
-        between = t.at;
-        after = time(times[0]!);
+        const date = formatDay(v.days[0], c.culture.medium, c.culture), at = time(times[0]!);
+        const whole = t.join.indexOf("{0}") >= 0;
+        before = whole ? t.join.split("{1}").join(date).split("{0}").join(at) : date;
+        between = whole ? "" : t.join;
+        after = whole ? "" : at;
     } else {
         const [s, e] = v.days, [a, b] = [times[0]!, times[1]!];
         const year = parts(dayOf(c.today)).y;
@@ -708,11 +710,13 @@ function drawMoments(root: Element, state: State, words: HTMLElement, t: TimeCon
     }
     const box = el("div", t.wordsClass);
     box.setAttribute("dir", "auto");
-    const middle = el("span", t.atClass);
-    middle.textContent = between;
     box.appendChild(page!.createTextNode(before));
-    box.appendChild(middle);
-    box.appendChild(page!.createTextNode(after));
+    if (between) {
+        const middle = el("span", t.atClass);
+        middle.textContent = between;
+        box.appendChild(middle);
+        box.appendChild(page!.createTextNode(after));
+    }
     words.replaceWith(box);
 }
 

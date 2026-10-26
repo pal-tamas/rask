@@ -68,7 +68,7 @@ internal static class UiDatetimePickerLook
 
     internal const string Error = "sm:flex-1 text-sm font-medium text-red-500 dark:text-red-400";
 
-    // "at" between the date and the time on the button, in the placeholder's grey.
+    // The word between the date and the time on the button ("at", "à"), in the placeholder's grey.
     internal const string At = "text-zinc-400";
 
     // What the button says, cut off with an ellipsis on a narrow screen.

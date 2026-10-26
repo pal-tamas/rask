@@ -177,6 +177,24 @@ public sealed class RuntimeHookDatetimeTests(PlaywrightFixture playwright) : ICl
         await Expect(page.Locator("#chosen-value")).ToHaveTextAsync(string.Empty);
     }
 
+    [Theory]
+    [InlineData("french", "20 janv. 2026 à 10:00", " à ")]
+    [InlineData("japanese", "2026年1月20日 10:00", null)]
+    public async Task The_browser_joins_a_picked_date_and_time_as_the_pickers_locale_does(string name, string written, string? word)
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        var box = "#" + name + "-box";
+        await page.ClickAsync("#" + name);
+
+        await page.ClickAsync(Day(box, "2026-01-20"));
+        await page.ClickAsync(Time(box, "10:00"));
+
+        await Expect(page.Locator("#" + name)).ToHaveTextAsync(written);
+        var grey = await page.Locator("#" + name + " [dir=auto] span").AllTextContentsAsync();
+        Assert.Equal(word is null ? [] : [word], grey);
+    }
+
     [Fact]
     public async Task On_a_phone_the_time_is_a_field_under_the_months_and_Select_writes_the_choice()
     {
@@ -237,7 +255,10 @@ public sealed partial class DatetimeHookPage : Component
             Said("typed", Moment(_typed)),
             Box("confirmed", Ui.DatetimePicker.Value(_confirmed).Id("confirmed").Locale("en-US").WithConfirmation().OpenTo(Jan15.ToDateTime(TimeOnly.MinValue))
                 .OnChange(d => Heard("confirmed", () => _confirmed = d))),
-            Said("confirmed", Moment(_confirmed))
+            Said("confirmed", Moment(_confirmed)),
+            // No handler: what the button says after a pick is the browser's alone.
+            Box("french", Ui.DatetimePicker.Value(default(DateTime)).Id("french").Locale("fr").OpenTo(Jan15.ToDateTime(TimeOnly.MinValue))),
+            Box("japanese", Ui.DatetimePicker.Value(default(DateTime)).Id("japanese").Locale("ja").OpenTo(Jan15.ToDateTime(TimeOnly.MinValue)))
         ];
 
     private static Component Box(string name, Component picker) => Div.Id(name + "-box").Style("width:320px;margin-bottom:8px")[picker];

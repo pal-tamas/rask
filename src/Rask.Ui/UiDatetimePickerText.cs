@@ -7,8 +7,9 @@ namespace Rask;
 ///     (<c>rask-calendar.ts</c> writes the same from the patterns the page hands it).
 /// </summary>
 /// <remarks>
-///     Measured on Flux's: one moment is the medium date, the word "at" in grey and the time —
-///     <c>Oct 27, 2026 at 10:30 AM</c>. A range drops the year while both ends are in this year
+///     Measured on Flux's: one moment is the medium date, the locale's word in grey and the time —
+///     <c>Oct 27, 2026 at 10:30 AM</c>, <c>29 oct. 2026 à 14:00</c> — or, in a locale that joins them with no one
+///     word, the moment as one text: <c>2026年10月29日 14:00</c> (<see cref="UiDatetimePickerJoins" />). A range drops the year while both ends are in this year
 ///     (<c>Oct 27, 9:00 AM – Nov 1, 5:00 PM</c>), and one day's range writes the day once and the period once:
 ///     <c>Oct 22, 2:00 – 4:30 PM</c>.
 /// </remarks>
@@ -41,24 +42,14 @@ internal static class UiDatetimePickerText
         // ICU separates the period with a narrow no-break space; Flux's list has a plain one.
         time.ToString(pattern, culture).Replace(' ', ' ');
 
-    // The word CLDR joins a date and a time with, by the language of the picker's Locale — as Flux's button, which
-    // the browser formats in `locale`, writes it — not the app's own language. English for a language not here.
-    private static readonly Dictionary<string, string> Joins = new(StringComparer.OrdinalIgnoreCase)
+    /// <summary>One moment: the date, the word between and the time — or the whole moment first and nothing between.</summary>
+    internal static (string Before, string Between, string After) Moment(DateTime moment, string pattern, CultureInfo culture)
     {
-        ["en"] = "at",
-        ["hu"] = "",
-    };
-
-    /// <summary>The word between a moment's date and its time in <paramref name="culture" />, spaced as the button writes it.</summary>
-    internal static string At(CultureInfo culture)
-    {
-        var at = Joins.GetValueOrDefault(culture.TwoLetterISOLanguageName, Joins["en"]);
-        return at.Length == 0 ? " " : " " + at + " ";
+        var date = UiDatePickerText.Medium(DateOnly.FromDateTime(moment), culture);
+        var time = Time(TimeOnly.FromDateTime(moment), pattern, culture);
+        var join = UiDatetimePickerJoins.Of(culture);
+        return UiDatetimePickerJoins.IsPattern(join) ? (UiDatetimePickerJoins.Fill(join, date, time), "", "") : (date, join, time);
     }
-
-    /// <summary>One moment, as its three pieces: the date, the word between, the time.</summary>
-    internal static (string Date, string At, string Time) Moment(DateTime moment, string pattern, CultureInfo culture) =>
-        (UiDatePickerText.Medium(DateOnly.FromDateTime(moment), culture), At(culture), Time(TimeOnly.FromDateTime(moment), pattern, culture));
 
     /// <summary>A range, as what comes before the separator and what comes after it.</summary>
     internal static (string Start, string End) Range(UiDateTimeRange range, string pattern, CultureInfo culture, DateOnly today)

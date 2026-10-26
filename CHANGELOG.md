@@ -167,6 +167,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **`Ui.DatetimePicker`'s button joins the date and the time in the picker's `Locale`, from Unicode CLDR, as Flux's
+  does.** Before: a hand table — " at " for English, a space for Hungarian, English for every other language
+  (`.Locale("fr")` read `29 oct. 2026 at 14:00`). After: `29 oct. 2026 à 14:00`, `29. Okt. 2026 um 14:00`, and where
+  CLDR has no one word between them the moment is one text, as Flux writes it: `2026年10月29日 14:00`,
+  `29 oct 2026, 14:00` (es). The server's first paint and the browser's redraw after a pick agree; the browser is
+  handed the one join of its picker. The data is CLDR's (`cldr-dates-full` 49.0.0, Unicode License v3, packed as
+  `rask-ui-cldr.LICENSE.txt`), refreshed daily by `scripts/upstream/cldr.mjs`; the words of the popup (Time,
+  Cancel, Select) stay the app's language.
+
 - **A `Ui.Checkbox` in `Ui.Filters` bound to a `bool?` draws no dash while its key is absent.** Before: an absent key
   (`[QueryParam("ibc")] bool? Ibc` on `/vehicles`) drew the box indeterminate; after: unticked, as the filter set
   writes `false` as no key.
