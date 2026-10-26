@@ -194,7 +194,10 @@ function collect(wrapper, { STYLES, index, layout }) {
   // A month of a calendar that is ITSELF not displayed: under 640 px Flux's script draws one month whatever
   // `months` says, and the kit's stylesheet hides the others until the page has heard how wide it is.
   const folded = el => { const month = el.closest('[data-month]'); return month && getComputedStyle(month).display === 'none'; };
-  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden') || folded(el);
+  // And the empty box the kit adds for the runtime to read a width from (parity.mjs's EXTRA): Flux has no node
+  // there, so counting it would end the kit's 500 one node early wherever an example runs past them.
+  const probe = el => el.childElementCount === 0 && (el.hasAttribute('data-ui-calendar-narrow') || el.hasAttribute('data-ui-color-picker-sheet'));
+  const undrawn = el => el.closest('template') || (el.localName === 'input' && el.type === 'hidden') || folded(el) || probe(el);
   const elements = [wrapper, ...wrapper.querySelectorAll('*')].filter(el => !undrawn(el)).slice(0, 500);
   elements.forEach((el, i) => {
     const id = `${index}-${i}`;

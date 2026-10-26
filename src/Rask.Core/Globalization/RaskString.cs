@@ -605,4 +605,28 @@ public enum RaskString
 
     /// <summary>The accessible name of a filter badge's remove button. <c>{0}</c> is the filter's label.</summary>
     FilterRemove,
+
+    /// <summary>What a datetime picker says while no date and time is chosen.</summary>
+    DatetimePickerPlaceholder,
+
+    /// <summary>What a range datetime picker says while no range is chosen.</summary>
+    DatetimePickerRangePlaceholder,
+
+    /// <summary>The accessible name of the button that empties a datetime picker.</summary>
+    DatetimePickerClear,
+
+    /// <summary>The heading over a datetime picker's times, and the label beside its time field.</summary>
+    DatetimePickerTime,
+
+    /// <summary>The label beside a range datetime picker's start time.</summary>
+    DatetimePickerStart,
+
+    /// <summary>The label beside a range datetime picker's end time.</summary>
+    DatetimePickerEnd,
+
+    /// <summary>What a range datetime picker says while its end is not after its start.</summary>
+    DatetimePickerEndBeforeStart,
+
+    /// <summary>The button that confirms a datetime picker's waiting choice.</summary>
+    DatetimePickerSelect,
 }

@@ -226,10 +226,10 @@ Never key on `[data-ui-card]` from another component.
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
+calendar date-picker datetime-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
 `parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
 `parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-command.mjs` (the page `command-open`, brought to its states by
-`parity.mjs --prepare scripts/flux/command-open.mjs` on both pages alike, then five walks), `parity-color-picker.mjs`, `parity-carousel.mjs`, `parity-phone.mjs` and `parity-date.mjs date-picker|time-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+`parity.mjs --prepare scripts/flux/command-open.mjs` on both pages alike, then five walks), `parity-color-picker.mjs`, `parity-carousel.mjs`, `parity-phone.mjs` and `parity-date.mjs date-picker|time-picker|datetime-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
 - **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
   `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
@@ -602,6 +602,20 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   ja-JP: Flux's button reads `2026年10月20日`, which is what the kit writes (measured; the earlier note of a
   `2026/01/20` difference did not reproduce). A typed part is EMPTY in server-rendered markup until the hooks
   run and fill it from the hidden field.
+
+- Datetime picker (2026-10-22): `Ui.DatetimePicker` (a wall-clock `DateTime`) and `Ui.DatetimePicker.Range`
+  (`UiDateTimeRange`), the date picker's calendar (`UiCalendarGrid`) with Flux's column of times beside it, a time
+  field under it (the phone's, typed times' and a range's two) built from the time picker's parts (`UiTimeParts`,
+  `UiTimePickerLook`, `rask-time-list.ts`), all drawn in the browser by `rask-calendar.ts` (`time` in its JSON,
+  helpers in `rask-datetime.ts`). Measured rules are in that module's header; `parity-date.mjs datetime-picker`
+  holds loaded, open and phone. Known and not matching: the clear button is the kit's slot beside the trigger
+  (Flux puts a `div` inside the button); the word between date and time follows the picker's `Locale`, as Flux's does, from the kit's own table
+  (`UiDatetimePickerText.Joins`: CLDR's "at" in English, nothing in Hungarian, English for the rest — so fr
+  writes "at" where Flux's browser writes "à"); the static open page has no runtime, so a popup Flux
+  holds to the room under it is taller there (`rask-place.ts` holds it on a live page). `Min`/`Max` are
+  `DateTime`s of the server's clock (`min="now"` is NotTranslated, as the time picker's). Found through it and
+  fixed kit-wide: a disabled button is 50% with no shadow, a disabled day takes no pointer (and keeps the hover
+  rule), a range's day at the end of its month's last row is not rounded, time-list rows are 14px at every width.
 
 - The date picker and the calendar ON A PHONE (2026-10-13, the owner: what Flux's is there). Measured at 390 × 844,
   and the switch at 639 / 640: Flux's dialog is `showModal()`ed at EVERY width and its look is CSS alone — under

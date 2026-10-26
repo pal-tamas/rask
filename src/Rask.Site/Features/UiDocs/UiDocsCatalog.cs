@@ -376,6 +376,13 @@ internal static class UiDocsCatalog
         + "clear button and a sheet on a phone.",
         "date-picker");
 
+    public static UiDocsEntry DatetimePicker { get; } = new(
+        Routes.UiDatetimePickerPage(), "Datetime picker", Components,
+        "Date and time picker in C#: Ui.DatetimePicker",
+        "Flux UI's datetime picker in C#: a date and a time, or a range, from one field: a calendar beside a list of "
+        + "times, typed times, limits and unavailable slots.",
+        "datetime-picker");
+
     public static UiDocsEntry Editor { get; } = new(
         Routes.UiEditorPage(), "Rich text editor", Components,
         "Rich text editor in C#: Ui.Editor",
@@ -424,7 +431,7 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
+        ColorPicker, Command, Context, Composer, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
         Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];

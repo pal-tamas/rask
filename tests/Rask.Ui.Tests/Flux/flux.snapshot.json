@@ -2445,6 +2445,209 @@
     },
     {
       "kind": "components",
+      "slug": "datetime-picker",
+      "title": "Datetime picker",
+      "parts": [
+        {
+          "name": "flux:datetime-picker",
+          "props": [
+            {
+              "name": "wire:model"
+            },
+            {
+              "name": "value"
+            },
+            {
+              "name": "name"
+            },
+            {
+              "name": "mode",
+              "options": [
+                "single",
+                "range"
+              ],
+              "default": "single"
+            },
+            {
+              "name": "placeholder",
+              "default": "Select a date and time"
+            },
+            {
+              "name": "size",
+              "options": [
+                "xs",
+                "sm",
+                "lg",
+                "xl",
+                "2xl"
+              ]
+            },
+            {
+              "name": "time",
+              "options": [
+                "list",
+                "input"
+              ],
+              "default": "list"
+            },
+            {
+              "name": "interval",
+              "default": "30"
+            },
+            {
+              "name": "time-format",
+              "options": [
+                "auto",
+                "12-hour",
+                "24-hour"
+              ],
+              "default": "auto"
+            },
+            {
+              "name": "min"
+            },
+            {
+              "name": "max"
+            },
+            {
+              "name": "min-time"
+            },
+            {
+              "name": "max-time"
+            },
+            {
+              "name": "unavailable"
+            },
+            {
+              "name": "default-time"
+            },
+            {
+              "name": "min-range"
+            },
+            {
+              "name": "max-range"
+            },
+            {
+              "name": "months",
+              "default": "1"
+            },
+            {
+              "name": "with-confirmation"
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "with-today"
+            },
+            {
+              "name": "selectable-header"
+            },
+            {
+              "name": "week-numbers"
+            },
+            {
+              "name": "start-day",
+              "options": [
+                "0",
+                "6"
+              ]
+            },
+            {
+              "name": "fixed-weeks"
+            },
+            {
+              "name": "open-to"
+            },
+            {
+              "name": "locale"
+            },
+            {
+              "name": "label"
+            },
+            {
+              "name": "description"
+            },
+            {
+              "name": "description:trailing"
+            },
+            {
+              "name": "badge"
+            },
+            {
+              "name": "disabled"
+            },
+            {
+              "name": "invalid"
+            }
+          ],
+          "slots": [
+            {
+              "name": "trigger"
+            }
+          ],
+          "events": [
+            {
+              "name": "open"
+            },
+            {
+              "name": "close"
+            },
+            {
+              "name": "clear"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data-flux-datetime-picker"
+            },
+            {
+              "name": "data-open"
+            }
+          ]
+        },
+        {
+          "name": "flux:datetime-picker.button",
+          "props": [
+            {
+              "name": "placeholder"
+            },
+            {
+              "name": "size",
+              "options": [
+                "sm",
+                "xs"
+              ]
+            },
+            {
+              "name": "clearable"
+            },
+            {
+              "name": "invalid"
+            }
+          ]
+        },
+        {
+          "name": "DateTimeRange Object",
+          "methods": [
+            {
+              "name": "$range->start()"
+            },
+            {
+              "name": "$range->end()"
+            },
+            {
+              "name": "$range->hasStart()"
+            },
+            {
+              "name": "$range->hasEnd()"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "components",
       "slug": "dropdown",
       "title": "Dropdown",
       "parts": [

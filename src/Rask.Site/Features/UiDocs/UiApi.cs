@@ -843,7 +843,7 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, DatePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
+            Checkbox, ColorPicker, Command, Context, Composer, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
             Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,

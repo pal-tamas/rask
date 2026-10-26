@@ -518,6 +518,14 @@ they say when you set nothing.
 | `TimePickerMeridiem` | Time picker | `AM/PM` |
 | `TimePickerHourPlaceholder` | Time picker | `hh` |
 | `TimePickerMinutePlaceholder` | Time picker | `mm` |
+| `DatetimePickerPlaceholder` | Datetime picker | `Select a date and time` |
+| `DatetimePickerRangePlaceholder` | Datetime picker | `Select a date and time range` |
+| `DatetimePickerClear` | Datetime picker | `Clear date and time` |
+| `DatetimePickerTime` | Datetime picker | `Time` |
+| `DatetimePickerStart` | Datetime picker | `Start` |
+| `DatetimePickerEnd` | Datetime picker | `End` |
+| `DatetimePickerEndBeforeStart` | Datetime picker | `End must be after start` |
+| `DatetimePickerSelect` | Datetime picker | `Select` |
 | `EditorLabel` | Editor | `Rich text editor` |
 | `EditorToolbar` | Editor | `Formatting` |
 | `EditorBold` | Editor | `Bold` |

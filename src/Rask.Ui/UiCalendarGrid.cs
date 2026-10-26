@@ -224,15 +224,15 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                     ]
                 ],
                 Tbody[
-                    Weeks(options, month).Select((week, at) =>
+                    Weeks(options, month) is var weeks ? weeks.Select((week, at) =>
                         Tr.Key(week[0].DayNumber).Class(at == 0 ? UiCalendarLook.Row : UiCalendarLook.RowBelow)[
                             options.WeekNumbers
                                 ? Td.Key("week").Class(UiClass.Compose("p-0 relative", UiCalendarLook.WeekNumber, cell))[
                                     WeekOf(week).ToString(options.Culture)
                                 ]
                                 : null,
-                            week.Select((day, slot) => Day(options, picks, month, day, slot, stop))
-                        ])
+                            week.Select((day, slot) => Day(options, picks, month, day, slot, stop, at == weeks.Count - 1))
+                        ]) : null
                 ]
             ]
         ];
@@ -264,7 +264,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
     // ---- one day ----------------------------------------------------------------------------------
 
     private static global::Rask.Core.Component Day(
-        UiCalendarOptions options, UiCalendarPicks picks, DateOnly month, DateOnly day, int slot, DateOnly? stop)
+        UiCalendarOptions options, UiCalendarPicks picks, DateOnly month, DateOnly day, int slot, DateOnly? stop, bool lastRow)
     {
         var marks = picks.Marks(day);
         var outside = day.Month != month.Month;
@@ -278,7 +278,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             .Key(day.DayNumber)
             .Role("gridcell")
             .Class(UiClass.Compose(
-                UiCalendarLook.Td(slot == 0 && !options.WeekNumbers, slot == 6, outside && !options.Static, unavailable, marks), cell))
+                UiCalendarLook.Td(slot == 0 && !options.WeekNumbers, Last(slot, lastRow, marks), outside && !options.Static, unavailable, marks), cell))
             .Data(States(day, outside, today, unavailable, marks))
             .Aria(CellAria(options, picks, marks, name, blocked));
 
@@ -311,6 +311,10 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
             ]
         ];
     }
+
+    // A week's last day is rounded at its end — except, measured on Flux's, a day the range runs on past in the
+    // month's last row: the range goes on into the next month.
+    private static bool Last(int slot, bool lastRow, UiCalendarMarks marks) => slot == 6 && !(lastRow && marks.InRange);
 
     // Only what is so: a null value would be written as a bare attribute.
     private static Dictionary<string, string?> CellAria(

@@ -60,7 +60,7 @@ internal static class UiTimePickerLook
     ///     then on the runtime lights it (<c>data-active</c>, rask-time-list.ts).
     /// </summary>
     internal const string Option =
-        "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-base sm:text-sm tabular-nums cursor-default "
+        "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-sm tabular-nums cursor-default "
         + "text-zinc-800 dark:text-white disabled:text-zinc-400 dark:disabled:text-zinc-400 "
         + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600 "
         // The list opens scrolled to where it starts — the chosen time, or OpenTo — brought just into view, with
