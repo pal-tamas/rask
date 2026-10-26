@@ -301,7 +301,9 @@ itself has finished). Work that never comes back keeps it until its component ha
 at most) or the session ends — so a tab closed mid-read, or a first response whose page never connects, lets it go
 with its session. A scope is never disposed on the thread of a response or an event: a `DbContext` that waits, as
 it is disposed, for a query still running on it holds nobody up. A `Current.Service<T>()` made inside the detached
-work itself, without the provider, is not covered — it reaches whichever event is in progress then.
+work itself, without the provider, is not covered — it reaches whichever event is in progress then. A hook that
+awaits its work instead needs no provider: `Current.Service<T>()` in it is the event's until the hook is done, and
+taking the provider there keeps the scope while the page is open.
 
 ### `Current.Service<T>()` — the event's own, with nothing injected
 
