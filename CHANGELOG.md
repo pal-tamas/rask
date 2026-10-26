@@ -163,6 +163,22 @@ them until tagged releases begin.
   time picker's minimum is 12rem on a phone too (it was 240px at every width). `Ui.TimePicker` of several times
   grows no wider than that minimum and cuts its list off, as Flux's `multiple` does. Before:
   `Ui.TimePicker.Bind(() => m.At).Class("w-40")` → 240px. After: 160px.
+- **A runaway page is slowed and named however slowly it renders.** The second of quiet that ends a row of renders
+  was measured from one render's end to the next one's end, so on a loaded machine, where a render can take longer
+  than that, every render started a new row: the page was never slowed or named, and
+  `FollowedSourceRenderTests` waited 30 s for the warning. The quiet now runs from one render's end to the next
+  one's start, on the session's `TimeProvider`.
+- **A scoped script's callback no longer runs beside a render on the Server host.** It was queued behind the
+  handlers but did not take the session's lock, so it could write while a render's `OnRendered` read: `Ui.Editor`,
+  typed into fast on a loaded server, could be handed back the text one keystroke behind ("Still he" for "Still
+  here"). Its synchronous part now runs under the lock, as a handler's does; what follows its first await runs as a
+  lifecycle hook's continuation does.
+- **One rule decides which field holds a secret, for its value and for what the page heard.** Before: the value
+  rule matched `autocomplete` only when it was exactly `current-password`/`new-password`/`one-time-code`, so
+  `autocomplete="username current-password"` wrote the password back, and a field the app marked
+  `.Data("rask-secret")` kept its text out of `data-rask-heard` but still got its value written. After: a credential
+  token anywhere in `autocomplete`, in any case, or the `data-rask-secret` mark, makes the field a secret for both,
+  and the mark is written once.
 - **A dialog shut over a list still open inside it lets the page go.** The page lock (`data-rask-lock`) counted a
   popover left open in a dialog that had shut: still `:popover-open`, shown nowhere, it kept the page from scrolling
   and — for a list's lock — from taking a single press, until something closed the invisible list. A lock now holds

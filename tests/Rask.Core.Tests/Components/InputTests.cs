@@ -98,6 +98,31 @@ public partial class InputTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-rask-secret", html, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("username current-password")]
+    [InlineData("section-login NEW-PASSWORD")]
+    [InlineData("One-Time-Code webauthn")]
+    public void A_credential_token_among_others_and_in_any_case_is_a_secret(string autocomplete)
+    {
+        var model = new SecretModel { Password = "hunter2" };
+
+        var html = Input.Bind(() => model.Password).Autocomplete(autocomplete).ToHtml();
+
+        Assert.DoesNotContain("hunter2", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-secret", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_field_the_app_marks_secret_keeps_its_text_and_is_marked_once()
+    {
+        var model = new SecretModel { Password = "hunter2" };
+
+        var html = Input.Bind(() => model.Password).Data("rask-secret", "").ToHtml();
+
+        Assert.DoesNotContain("hunter2", html, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "data-rask-secret"));
+    }
+
     [Fact]
     public void A_text_field_still_writes_its_value()
     {

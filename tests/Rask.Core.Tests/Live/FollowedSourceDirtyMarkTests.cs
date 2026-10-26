@@ -125,6 +125,53 @@ public sealed partial class FollowedSourceDirtyMarkTests : global::Rask.Core.Ras
         Assert.Contains("Asked by: Follower, FollowerHost.", said.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Renders_that_each_take_longer_than_the_quiet_are_still_a_row_and_are_slowed()
+    {
+        // A loaded machine: every render takes two seconds, and the next starts the moment the last one ends.
+        var clock = new ManualClock();
+        var pace = new RenderPace(clock);
+
+        var turns = Enumerable.Range(1, RenderPace.Streak).Select(_ =>
+        {
+            pace.Began();
+            clock.Advance(TimeSpan.FromSeconds(2));
+            return pace.Next(null, chained: true);
+        }).ToArray();
+
+        Assert.All(turns[..^1], static turn => Assert.Equal(RenderPace.Turn.Now, turn));
+        Assert.Equal(RenderPace.Turn.AfterAPause, turns[^1]);
+    }
+
+    [Fact]
+    public void A_quiet_between_one_render_and_the_next_ends_the_row()
+    {
+        var clock = new ManualClock();
+        var pace = new RenderPace(clock);
+        for (var render = 1; render < RenderPace.Streak; render++)
+        {
+            pace.Began();
+            pace.Next(null, chained: true);
+        }
+
+        clock.Advance(RenderPace.Quiet + TimeSpan.FromMilliseconds(1));
+        pace.Began();
+        var afterTheQuiet = pace.Next(null, chained: true);
+
+        Assert.Equal(RenderPace.Turn.Now, afterTheQuiet);
+    }
+
+    private sealed class ManualClock : TimeProvider
+    {
+        private long _now = 1;
+
+        public override long TimestampFrequency => TimeSpan.TicksPerSecond;
+
+        public override long GetTimestamp() => Volatile.Read(ref _now);
+
+        public void Advance(TimeSpan by) => Interlocked.Add(ref _now, by.Ticks);
+    }
+
     private static List<RaskDiagnosticEvent> Reported(Action act)
     {
         var captured = new List<RaskDiagnosticEvent>();

@@ -235,7 +235,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         }
 
         // A secret's value is the browser's: the server writes a clear and never the text (SecretField).
-        var secret = SecretField.Is(resolvedType, Autocomplete);
+        var secret = SecretField.Is(resolvedType, Autocomplete, Data);
         if (secret)
         {
             valueString = SecretField.Writable(valueString);
@@ -256,7 +256,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
             AppendAttr(sb, "value", valueString);
         }
 
-        if (secret)
+        if (secret && !SecretField.MarkedByApp(Data))
         {
             AppendAttr(sb, SecretField.Marker, null);
         }
@@ -296,7 +296,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         {
             WriteTypedBind(
                 sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)), Money,
-                HeardValues.IsSecret(ResolveType(acc), Autocomplete, Data));
+                SecretField.Is(ResolveType(acc), Autocomplete, Data));
             return;
         }
 

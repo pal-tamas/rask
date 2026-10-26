@@ -76,20 +76,4 @@ internal sealed class HeardValues
                 : string.Create(CultureInfo.InvariantCulture, $"{told.Count}:{told.Text}");
         }
     }
-
-    /// <summary>
-    ///     Whether a field holds a secret, whose text is never written back into a page: a password, a hidden
-    ///     field, one the browser fills as a credential or a code, or one the app marks <c>data-rask-secret</c>.
-    /// </summary>
-    /// <param name="type">The field's resolved <c>type</c>.</param>
-    /// <param name="autocomplete">Its <c>autocomplete</c> tokens.</param>
-    /// <param name="data">Its <c>data-*</c> bag.</param>
-    public static bool IsSecret(string? type, string? autocomplete, IReadOnlyDictionary<string, string?>? data) =>
-        string.Equals(type, "password", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(type, "hidden", StringComparison.OrdinalIgnoreCase)
-        || (autocomplete is not null
-            && (autocomplete.Contains("current-password", StringComparison.OrdinalIgnoreCase)
-                || autocomplete.Contains("new-password", StringComparison.OrdinalIgnoreCase)
-                || autocomplete.Contains("one-time-code", StringComparison.OrdinalIgnoreCase)))
-        || (data is not null && data.ContainsKey("rask-secret"));
 }
