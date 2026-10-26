@@ -368,7 +368,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
         json.WriteString("pattern", times.Pattern);
         json.WriteString("am", UiTimePickerLook.Period(false, culture));
         json.WriteString("pm", UiTimePickerLook.Period(true, culture));
-        json.WriteString("at", UiDatetimePickerText.At());
+        json.WriteString("at", UiDatetimePickerText.At(culture));
         json.WriteString("atClass", UiDatetimePickerLook.At);
         json.WriteString("wordsClass", UiDatetimePickerLook.Words);
         json.WriteString("emptyClass", UiDatetimePickerLook.Placeholder);

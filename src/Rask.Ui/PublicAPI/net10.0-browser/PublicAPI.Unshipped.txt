@@ -1801,6 +1801,7 @@ Rask.UiDatetimePickerModes.extension(Rask.RaskSeed_UiDatetimePicker).Range.get -
 Rask.UiDatetimePickerModes.extension(Rask.RaskSeed_UiDatetimePicker).Single.get -> Rask.RaskSeed_UiDatetimePicker
 Rask.UiDatetimePickerRange
 Rask.UiDatetimePickerRange.UiDatetimePickerRange() -> void
+Rask.UiDatetimePickerSteps
 Rask.UiDateTimeRange
 Rask.UiDateTimeRange.Contains(System.DateTime moment) -> bool
 Rask.UiDateTimeRange.Deconstruct(out System.DateTime Start, out System.DateTime End) -> void
@@ -3986,6 +3987,8 @@ static Rask.UiDateRange.TryParse(string? s, System.IFormatProvider? provider, ou
 static Rask.UiDatetimePickerModes.get_Range(Rask.RaskSeed_UiDatetimePicker picker) -> Rask.RaskSeed_UiDatetimePickerRange
 static Rask.UiDatetimePickerModes.get_Single(Rask.RaskSeed_UiDatetimePicker picker) -> Rask.RaskSeed_UiDatetimePicker
 static Rask.UiDatetimePickerModes.Mode(this Rask.RaskSeed_UiDatetimePicker picker, Rask.Ui.DatetimePickerMode mode) -> Rask.UiDatetimePickerModeEntry
+static Rask.UiDatetimePickerSteps.Unavailable(this Rask.UiDatetimePicker! picker, System.Collections.Generic.IEnumerable<System.DateTime>! moments) -> Rask.UiDatetimePicker!
+static Rask.UiDatetimePickerSteps.Unavailable(this Rask.UiDatetimePickerRange! picker, System.Collections.Generic.IEnumerable<System.DateTime>! moments) -> Rask.UiDatetimePickerRange!
 static Rask.UiDateTimeRange.operator !=(Rask.UiDateTimeRange left, Rask.UiDateTimeRange right) -> bool
 static Rask.UiDateTimeRange.operator ==(Rask.UiDateTimeRange left, Rask.UiDateTimeRange right) -> bool
 static Rask.UiDateTimeRange.Parse(string! s, System.IFormatProvider? provider) -> Rask.UiDateTimeRange

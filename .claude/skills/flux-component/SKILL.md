@@ -609,8 +609,9 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `UiTimePickerLook`, `rask-time-list.ts`), all drawn in the browser by `rask-calendar.ts` (`time` in its JSON,
   helpers in `rask-datetime.ts`). Measured rules are in that module's header; `parity-date.mjs datetime-picker`
   holds loaded, open and phone. Known and not matching: the clear button is the kit's slot beside the trigger
-  (Flux puts a `div` inside the button); the word between date and time follows the app's language (RaskStrings
-  `DatetimePickerAt`) where Flux's follows `locale` (fr: "à"); the static open page has no runtime, so a popup Flux
+  (Flux puts a `div` inside the button); the word between date and time follows the picker's `Locale`, as Flux's does, from the kit's own table
+  (`UiDatetimePickerText.Joins`: CLDR's "at" in English, nothing in Hungarian, English for the rest — so fr
+  writes "at" where Flux's browser writes "à"); the static open page has no runtime, so a popup Flux
   holds to the room under it is taller there (`rask-place.ts` holds it on a live page). `Min`/`Max` are
   `DateTime`s of the server's clock (`min="now"` is NotTranslated, as the time picker's). Found through it and
   fixed kit-wide: a disabled button is 50% with no shadow, a disabled day takes no pointer (and keeps the hover

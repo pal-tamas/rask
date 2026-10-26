@@ -3927,7 +3927,6 @@ Rask.Core.Globalization.RaskString.ConnectionRetry = 171 -> Rask.Core.Globalizat
 Rask.Core.Globalization.RaskString.ConnectionSessionTimedOut = 175 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CommandClear = 176 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.CommandClose = 177 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.DatetimePickerAt = 198 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatetimePickerClear = 192 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatetimePickerEnd = 195 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.DatetimePickerEndBeforeStart = 196 -> Rask.Core.Globalization.RaskString

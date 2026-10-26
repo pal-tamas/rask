@@ -242,7 +242,6 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("DatetimePickerEnd", 0),
         ("DatetimePickerEndBeforeStart", 0),
         ("DatetimePickerSelect", 0),
-        ("DatetimePickerAt", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

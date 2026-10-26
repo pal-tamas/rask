@@ -41,16 +41,24 @@ internal static class UiDatetimePickerText
         // ICU separates the period with a narrow no-break space; Flux's list has a plain one.
         time.ToString(pattern, culture).Replace(' ', ' ');
 
-    /// <summary>The word between a moment's date and its time, spaced as the button writes it.</summary>
-    internal static string At()
+    // The word CLDR joins a date and a time with, by the language of the picker's Locale — as Flux's button, which
+    // the browser formats in `locale`, writes it — not the app's own language. English for a language not here.
+    private static readonly Dictionary<string, string> Joins = new(StringComparer.OrdinalIgnoreCase)
     {
-        var at = RaskStrings.Get(RaskString.DatetimePickerAt, "at");
+        ["en"] = "at",
+        ["hu"] = "",
+    };
+
+    /// <summary>The word between a moment's date and its time in <paramref name="culture" />, spaced as the button writes it.</summary>
+    internal static string At(CultureInfo culture)
+    {
+        var at = Joins.GetValueOrDefault(culture.TwoLetterISOLanguageName, Joins["en"]);
         return at.Length == 0 ? " " : " " + at + " ";
     }
 
     /// <summary>One moment, as its three pieces: the date, the word between, the time.</summary>
     internal static (string Date, string At, string Time) Moment(DateTime moment, string pattern, CultureInfo culture) =>
-        (UiDatePickerText.Medium(DateOnly.FromDateTime(moment), culture), At(), Time(TimeOnly.FromDateTime(moment), pattern, culture));
+        (UiDatePickerText.Medium(DateOnly.FromDateTime(moment), culture), At(culture), Time(TimeOnly.FromDateTime(moment), pattern, culture));
 
     /// <summary>A range, as what comes before the separator and what comes after it.</summary>
     internal static (string Start, string End) Range(UiDateTimeRange range, string pattern, CultureInfo culture, DateOnly today)

@@ -526,7 +526,6 @@ they say when you set nothing.
 | `DatetimePickerEnd` | Datetime picker | `End` |
 | `DatetimePickerEndBeforeStart` | Datetime picker | `End must be after start` |
 | `DatetimePickerSelect` | Datetime picker | `Select` |
-| `DatetimePickerAt` | Datetime picker | `at` |
 | `EditorLabel` | Editor | `Rich text editor` |
 | `EditorToolbar` | Editor | `Formatting` |
 | `EditorBold` | Editor | `Bold` |

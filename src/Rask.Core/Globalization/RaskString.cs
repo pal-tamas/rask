@@ -629,7 +629,4 @@ public enum RaskString
 
     /// <summary>The button that confirms a datetime picker's waiting choice.</summary>
     DatetimePickerSelect,
-
-    /// <summary>The word a datetime picker's button writes between the date and the time: "Oct 27, 2026 at 10:30 AM".</summary>
-    DatetimePickerAt,
 }

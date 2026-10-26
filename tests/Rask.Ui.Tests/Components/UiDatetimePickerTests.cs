@@ -71,6 +71,29 @@ public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup
         Assert.Contains(">23 janv. 2026<span class=\"text-zinc-400\"> at </span>18:30</div>", french, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_word_between_the_date_and_the_time_follows_the_pickers_locale_and_not_the_apps_language()
+    {
+        var moment = new DateTime(2026, 10, 27, 10, 30, 0);
+
+        var hungarianPicker = KitCulture.In("en-US", () => Ui.DatetimePicker.Value(moment).Locale("hu-HU").On(Today).ToHtml());
+        var englishPicker = KitCulture.In("hu-HU", () => Ui.DatetimePicker.Value(moment).Locale("en-US").On(Today).ToHtml());
+
+        Assert.Contains(">2026. okt. 27.<span class=\"text-zinc-400\"> </span>10:30</div>", hungarianPicker, StringComparison.Ordinal);
+        Assert.Contains(">Oct 27, 2026<span class=\"text-zinc-400\"> at </span>10:30 AM</div>", englishPicker, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Moments_taken_straight_from_a_query_are_unavailable_slots_of_one_minute()
+    {
+        var bookings = new[] { (StartsAt: Jan(16, 10, 0), Room: "A"), (StartsAt: Jan(16, 11, 30), Room: "B") };
+
+        var html = One(Jan(16, 9, 0)).Unavailable(bookings.Select(b => b.StartsAt)).ToHtml();
+        var column = Regex.Match(html, "data-ui-datetime-picker-times[^>]*>(.*?)</div></div></div>", RegexOptions.Singleline).Groups[1].Value;
+
+        Assert.Equal(["10:00", "11:30"], Regex.Matches(column, "data-time=\"([^\"]+)\"[^>]*disabled").Select(m => m.Groups[1].Value));
+    }
+
     [Theory]
     [InlineData(27, 9, 0, 32, 17, 0, "Jan 27, 9:00 AM", "Feb 1, 5:00 PM")]
     [InlineData(22, 14, 0, 22, 16, 30, "Jan 22, 2:00", "4:30 PM")]
