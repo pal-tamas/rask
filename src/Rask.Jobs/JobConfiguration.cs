@@ -16,6 +16,14 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Payload).IsRequired();
+
+        // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
+        // that states none, and would otherwise cut these off.
+        foreach (var text in new[] { nameof(Job.Payload), nameof(Job.Error), nameof(Job.UserClaims) })
+        {
+            builder.Property(text).Metadata.SetMaxLength(null);
+        }
+
         // Drives the "due, oldest first" claim query. ClaimedUntil is deliberately NOT in the index: in a
         // healthy queue almost every candidate row is unclaimed, so it costs nothing as a residual filter,
         // and a filtered index would need provider-specific SQL. The claim's read-back rides the primary

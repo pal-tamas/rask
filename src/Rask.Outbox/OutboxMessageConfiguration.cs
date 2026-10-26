@@ -16,6 +16,14 @@ public sealed class OutboxMessageConfiguration : IEntityTypeConfiguration<Outbox
         builder.Property(x => x.Type).IsRequired().HasMaxLength(512);
         builder.Property(x => x.Handler).HasMaxLength(1024);
         builder.Property(x => x.Payload).IsRequired();
+
+        // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
+        // that states none, and would otherwise cut these off.
+        foreach (var text in new[] { nameof(OutboxMessage.Payload), nameof(OutboxMessage.Error) })
+        {
+            builder.Property(text).Metadata.SetMaxLength(null);
+        }
+
         // Drives the "oldest unprocessed first" poll query. ClaimedUntil stays out of it: in a healthy
         // outbox almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a
         // filtered index would need provider-specific SQL.
