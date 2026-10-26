@@ -34,18 +34,19 @@ internal abstract partial class UiPickerClear : global::Rask.Core.RaskMarkup
     /// <param name="clear">Empties the picker.</param>
     /// <param name="shown">Whether there is something to empty.</param>
     /// <param name="part">What a runtime that draws the picker calls the slot, or nothing.</param>
+    /// <param name="label">The button's accessible name; "Clear" unless given.</param>
     internal static global::Rask.Core.Component Over(
-        global::Rask.Core.Component trigger, string height, Func<Task> clear, bool shown, (string, string?)? part = null) =>
+        global::Rask.Core.Component trigger, string height, Func<Task> clear, bool shown, (string, string?)? part = null, string? label = null) =>
         Div.Class("relative")[
             trigger,
-            Div.Class(UiClass.Compose(shown ? Slot : SlotHidden, height)).Attributes(part is { } p ? [p] : [])[Press(clear)]
+            Div.Class(UiClass.Compose(shown ? Slot : SlotHidden, height)).Attributes(part is { } p ? [p] : [])[Press(clear, label)]
         ];
 
-    private static global::Rask.Core.Component Press(Func<Task> clear) =>
+    private static global::Rask.Core.Component Press(Func<Task> clear, string? label = null) =>
         Button
             .Type(ButtonType.Button)
             .Class(UiInputLook.Action)
-            .Aria("label", RaskStrings.Get(RaskString.PickerClear, "Clear"))
+            .Aria("label", label ?? RaskStrings.Get(RaskString.PickerClear, "Clear"))
             .Data("ui-button", null)
             .OnClick(clear)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini

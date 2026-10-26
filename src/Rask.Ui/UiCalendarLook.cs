@@ -72,10 +72,12 @@ internal static class UiCalendarLook
 
     internal const string TooltipHost = "inline-flex";
 
+    // A day that cannot be picked takes no pointer, so it is never lit under one — and keeps the hover rule, as
+    // Flux's does (measured on the datetime picker's min/max: a disabled day held in :hover is tinted).
     internal const string Day =
         "flex flex-col items-center justify-center rounded-lg text-sm font-medium cursor-default "
         + "text-zinc-800 dark:text-white hover:bg-zinc-800/5 dark:hover:bg-white/5 "
-        + "disabled:text-zinc-400 dark:disabled:text-zinc-400 disabled:hover:bg-transparent";
+        + "disabled:text-zinc-400 dark:disabled:text-zinc-400 disabled:pointer-events-none";
 
     internal const string DaySelected =
         "flex flex-col items-center justify-center rounded-lg text-sm font-medium cursor-default "

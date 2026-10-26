@@ -35,8 +35,10 @@ public sealed partial class UiDarkModePage : Component
             .Blurb("Each button sets the reader's appearance in the browser. There is no C# handler, so it works on a "
                    + "prerendered page before the app has booted."),
         UiDocsSection.Key("script").Heading("Before the first paint")[
-            Ui.Text["Put ", Code["Ui.AppearanceScript"], " in the root component's head assets, before the stylesheets, "
-                    + "so a dark page starts dark:"],
+            Ui.Text[Code["RaskApp"], " and the WebAssembly host write ", Code["Ui.AppearanceScript"], " at the top of every "
+                    + "page's head, as Flux's layout writes @fluxAppearance. A hand-wired host (AddRask and MapRask) writes its "
+                    + "own document: put it in the root component's head assets, before the stylesheets, so a dark page "
+                    + "starts dark:"],
             CodeBlock.Source(ScriptSnippet).Language("csharp"),
             Ui.Text["The reader's appearance is light, dark or system. System is the default: it follows ",
                     Code["prefers-color-scheme"], " while the page is open, and is stored as nothing at all. The other two "

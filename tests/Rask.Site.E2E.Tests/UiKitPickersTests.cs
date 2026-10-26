@@ -21,6 +21,7 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
     [Theory]
     [InlineData("calendar", "Calendar", "ui-calendar|ui-calendar-bound|ui-calendar-multiple|ui-calendar-range|ui-calendar-range-limits|ui-calendar-size|ui-calendar-static|ui-calendar-max|ui-calendar-unavailable|ui-calendar-today|ui-calendar-header|ui-calendar-inputs|ui-calendar-fixed|ui-calendar-start|ui-calendar-open|ui-calendar-force|ui-calendar-weeks|ui-calendar-locale")]
     [InlineData("date-picker", "Date picker", "ui-date-picker|ui-date-picker-bound|ui-date-picker-input|ui-date-picker-range|ui-date-picker-limits|ui-date-picker-range-inputs|ui-date-picker-with-inputs|ui-date-picker-native|ui-date-picker-presets|ui-date-picker-preset-list|ui-date-picker-unavailable|ui-date-picker-today|ui-date-picker-header|ui-date-picker-fixed|ui-date-picker-start|ui-date-picker-open|ui-date-picker-weeks|ui-date-picker-locale|ui-date-picker-clearable")]
+    [InlineData("datetime-picker", "Datetime picker", "ui-datetime-picker|ui-datetime-picker-bound|ui-datetime-picker-range|ui-datetime-picker-limits|ui-datetime-picker-input|ui-datetime-picker-interval|ui-datetime-picker-default|ui-datetime-picker-min-max|ui-datetime-picker-min-max-times|ui-datetime-picker-unavailable|ui-datetime-picker-format|ui-datetime-picker-clearable|ui-datetime-picker-confirmation|ui-datetime-picker-trigger|ui-datetime-picker-calendar|ui-datetime-picker-open|ui-datetime-picker-locale|ui-datetime-picker-separate")]
     [InlineData("time-picker", "Time picker", "ui-time-picker|ui-time-picker-bound|ui-time-picker-input|ui-time-picker-typed|ui-time-picker-multiple|ui-time-picker-format|ui-time-picker-interval|ui-time-picker-min-max|ui-time-picker-unavailable|ui-time-picker-open|ui-time-picker-locale")]
     public Task Every_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
@@ -35,6 +36,47 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
             Assert.NotNull(box);
             Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
         }
+    });
+
+    [Fact]
+    public Task A_datetime_pickers_day_and_time_make_its_value_and_the_time_closes_it() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("datetime-picker", "Datetime picker");
+
+        var picker = Page.Locator("[data-testid='ui-datetime-picker-confirmation'] [data-ui-datetime-picker]").First;
+        var range = Page.Locator("[data-testid='ui-datetime-picker-range'] [data-ui-datetime-picker]").First;
+        var state = Page.Locator("[data-testid='ui-datetime-picker-range-state']");
+        await range.ScrollIntoViewIfNeededAsync();
+        await range.Locator("[data-ui-datetime-picker-button]").ClickAsync();
+        var days = range.Locator("dialog td[data-date]:not([data-outside]) button:not([disabled])");
+        await days.Nth(3).ClickAsync();
+        await days.Nth(5).ClickAsync();
+        await range.Locator("[data-ui-datetime-picker-time=start] button[role=combobox]").ClickAsync();
+        await range.Locator("[data-ui-datetime-picker-time=start] [data-time='09:00']").ClickAsync();
+        await range.Locator("[data-ui-datetime-picker-time=end] button[role=combobox]").ClickAsync();
+        await range.Locator("[data-ui-datetime-picker-time=end] [data-time='17:00']").ClickAsync();
+        await range.Locator("[data-ui-datetime-picker-select]").ClickAsync();
+
+        await Expect(state).ToContainTextAsync("T09:00 to ", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(state).ToContainTextAsync("T17:00");
+        await Expect(picker.Locator("[data-ui-datetime-picker-select]")).ToBeDisabledAsync();
+    });
+
+    [Fact]
+    public Task A_datetime_pickers_time_picked_beside_a_day_closes_it_with_the_moment_on_the_button() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("datetime-picker", "Datetime picker");
+
+        var picker = Page.Locator("[data-testid='ui-datetime-picker'] [data-ui-datetime-picker]").First;
+        var state = Page.Locator("[data-testid='ui-datetime-picker-state']");
+        await picker.ScrollIntoViewIfNeededAsync();
+        await picker.Locator("[data-ui-datetime-picker-button]").ClickAsync();
+        await picker.Locator("dialog td[data-date]:not([data-outside]) button:not([disabled])").Nth(10).ClickAsync();
+        await picker.Locator("[data-rask-calendar-part=times] [data-time='14:30']").ClickAsync();
+
+        await Expect(state).ToContainTextAsync("T14:30", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+        await Expect(picker.Locator("dialog")).Not.ToBeVisibleAsync();
+        await Expect(picker.Locator("[data-ui-datetime-picker-button]")).ToContainTextAsync("at 2:30 PM");
     });
 
     [Fact]

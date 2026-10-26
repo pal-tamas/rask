@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.DatetimePicker` — Flux UI's new datetime picker: a date and a time from one field.** The date picker's calendar
+  with a column of times beside it (or `.Time(Ui.DatetimePickerTime.Input)` to type the time), over a wall-clock
+  `DateTime` — `2026-10-14T10:30`, as a `datetime-local` field holds it, nothing converted between time zones — or a
+  start and an end over the new `UiDateTimeRange` (`Ui.DatetimePicker.Range`, Flux's `DateTimeRange`). Before: a
+  `Ui.DatePicker` and a `Ui.TimePicker` side by side, joined by hand into one `DateTime`. After:
+  `Ui.DatetimePicker.Bind(() => m.StartsAt).Min(DateTime.Now).MinTime(new(9, 0)).MaxTime(new(17, 0))` and
+  `Ui.DatetimePicker.Range.Bind(() => m.Window).MaxRange(7)`. Every Flux prop: `Interval`, `TimeFormat`, `MinTime` /
+  `MaxTime` (times outside are not listed), `Unavailable` days, stretches of every day and times of one day
+  (`UiDatetimeSlot`, which a `DateOnly`, `TimeOnly`, `UiTimeRange` and `DateTime` each convert to), `DefaultTime`,
+  `WithConfirmation()`, `Clearable()`, `OpenTo`, a trigger of your own (`Ui.Button`, `Ui.DatetimePickerButton`) and
+  the date picker's calendar options. Measured on Flux: a time picked beside a day writes the value and closes; a day
+  changed beside a chosen time writes it at once; a range, typed times, a confirmation and a phone wait for Select; a
+  range whose end is not after its start says so. Everything drawn in the popup is the browser's (`rask-calendar.ts`),
+  so opening, paging and walking the times send the server nothing. English and Hungarian strings. On rask.sh:
+  `/ui/datetime-picker/`.
+
 - **`Ui.Navbar.Scrollable()` and `Ui.NavbarItem.Label("Search")` — Flux's `scrollable` and `label`, which its layout
   pages write.** Measured on Flux's demos: a scrollable navbar is `overflow-x: auto; overflow-y: hidden` and nothing
   else (its items keep their width, no fade, no hidden scrollbar), so at 390 px the secondary header's tabs scroll
@@ -95,6 +111,12 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
+  on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
+  `shadow-none`, and a disabled day keeps the hover rule while `pointer-events: none` keeps it from ever lighting. A
+  range running on into the next month leaves the last day of its month's last week unrounded, as Flux draws it.
+  `Ui.TimePicker`'s list rows are 14px at every width, as Flux's are.
+
 - **rask.sh is drawn in Flux's own colours.** The site and the notes demo wrote the kit's transitional `ui-*` tokens
   (`text-ui-muted`, `bg-ui-well`, `border-ui-line`), which were daisyUI's palette under another name. They write
   Flux's zinc scale and accent now, light and dark: `text-ui-muted` → `text-zinc-500 dark:text-white/70`,
@@ -137,6 +159,14 @@ them until tagged releases begin.
   navigations in a row each keep their own. A hook whose component has left the page keeps it ten seconds more at
   most, and the session's end disposes every one — a hook that never ends cannot hold a scope for good. Both hosts;
   an event that resolves nothing and starts no hook still opens no scope and allocates nothing.
+- **A first request whose hook detaches its slow read is answered at once, and the rows follow.** A report page's
+  `OnUpdated` took `Current.Service<IServiceProvider>()` and read its rows in a `Task.Run` it did not await; the
+  scope that read used was disposed as the response ended, on the response's own thread, and a `DbContext` waits
+  as it is disposed for the query still running on it — so `GET /reports/{id}/view` was not answered until the whole
+  report had been read (and a navigation held its session as long). A scope is now never disposed on the thread of
+  a response or an event, and the provider a hook takes is its event's wherever it is used: it keeps the scope until
+  the detached work comes back to the page, then lets it go. Work that never comes back keeps it until its component
+  has left the page (ten seconds more at most) or the session ends.
 - **`rask deploy` no longer waits forever on a stalled step.** A deploy sat 42 minutes in its build — the last
   line apt's download of `libllvm20` inside the image build, then nothing — holding the app's lock the whole
   time, because no docker call had a deadline. Now the build may run 45 minutes and go 15 minutes without a
@@ -217,7 +247,9 @@ them until tagged releases begin.
     `Ui.AppearanceScript` at the top of every page's head**, as Flux's layout writes `@fluxAppearance` — so a
     scaffolded app follows the reader's system appearance (its buttons were dark-on-dark before). An App that
     writes its own `Ui.AppearanceScript` gets exactly one, its own (with its `StorageKey`), deduplicated by the
-    script's `data-rask-appearance` marker; delete the line when convenient. `Rask.DevTools` writes it too.
+    script's `data-rask-appearance` marker; such an app may delete the line. A **hand-wired host** (`AddRask` +
+    `MapRask<App>()`) writes its own document, so its App must KEEP `Ui.AppearanceScript` in `HeadAssets`, or dark
+    mode silently stays off. `Rask.DevTools` writes it too.
   - The kit's Tailwind sources in `Styles/vendor/` are three files (no `daisyui.mjs`); the build sweeps a stale
     one away, and the layer order is `properties, theme, base, components, rask, utilities`.
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now

@@ -35,6 +35,7 @@ own ("blazor", "react"). Map every new page to one:
 | checkbox group with select all, radio cards / segmented control, toggle switch, range slider, one-time code (OTP) input in C# | `/ui/checkbox/`, `/ui/radio/`, `/ui/switch/`, `/ui/slider/`, `/ui/otp-input/` |
 | color picker component in C#, hex / rgb / hsl color input with swatches for ASP.NET Core or WebAssembly | `/ui/color-picker/` |
 | date picker / date range picker / calendar / time picker component in C# for ASP.NET Core or WebAssembly, booking calendar with presets | `/ui/date-picker/`, `/ui/calendar/`, `/ui/time-picker/` |
+| datetime picker / date and time picker / appointment or booking time slot picker / datetime range picker in C# for Blazor alternatives, ASP.NET Core or WebAssembly | `/ui/datetime-picker/` |
 | autocomplete input, multi-select tags / pillbox, international phone number input with country flags, in C# | `/ui/autocomplete/`, `/ui/pillbox/`, `/ui/phone/` |
 | app layout / dashboard shell with sidebar navigation, collapsible sidebar, top navigation header in C# for ASP.NET Core or WebAssembly | `/ui/sidebar/`, `/ui/header/` |
 | file upload with drag and drop, rich text editor (Tiptap) bound to HTML, chat message composer / AI prompt box, toggle button, in C# | `/ui/file-upload/`, `/ui/editor/`, `/ui/composer/`, `/ui/toggle/` |

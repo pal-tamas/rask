@@ -17,6 +17,8 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["date-picker-input: typing a part of the date"] = (2, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20"),
         ["date-picker-input: typing a whole date"] = (3, "the value each time the parts make a new one, as Flux's field says it: 02/15, 02/20, then 2027 once its fourth digit is in"),
         ["date-picker: pick a day"] = (1, "the value, and the popup closes in the browser"),
+        ["datetime-picker: pick a day"] = (1, "the value: a day picked beside a chosen time is the value at once, the popup open, as Flux's"),
+        ["datetime-picker: pick a time"] = (1, "the value, and the popup closes in the browser"),
         ["input-clearable: clear"] = (1, "the value, emptied"),
         ["input: typing, then leaving the field"] = (1, "the value, on change"),
         ["composer: send by Ctrl+Enter"] = (1, "the page's OnSubmit, with what was typed"),

@@ -60,6 +60,15 @@
   "SelectClear": "Kiválasztás törlése",
   "SelectSelectedSuffix": "kiválasztva",
 
+  "DatetimePickerPlaceholder": "Válasszon dátumot és időpontot",
+  "DatetimePickerRangePlaceholder": "Válasszon kezdő és záró időpontot",
+  "DatetimePickerClear": "Dátum és időpont törlése",
+  "DatetimePickerTime": "Időpont",
+  "DatetimePickerStart": "Kezdet",
+  "DatetimePickerEnd": "Vége",
+  "DatetimePickerEndBeforeStart": "A végének a kezdet utánra kell esnie",
+  "DatetimePickerSelect": "Kiválasztás",
+
   "TimePickerPlaceholder": "Válasszon időpontot",
   "TimePickerMeridiem": "de./du.",
   "TimePickerHourPlaceholder": "óó",

@@ -276,6 +276,35 @@ keeps the scope for **ten seconds** more at most — a loop over a stream that n
 `DbContext` for the rest of the session — and when the session ends, every scope is disposed, whatever is still
 running.
 
+**Work a hook detaches.** A page that should go out before its slow read is back can detach the read and return —
+the first response and the navigation never wait for it. Take the provider in the hook and resolve **inside** the
+detached work, from that provider:
+
+```csharp
+protected override async Task OnUpdated()
+{
+    _definition = await Reports.Definition(Id);   // the page goes out with this
+    _ = LoadRows(++_turn);                        // the rows follow over the socket
+}
+
+private async Task LoadRows(int turn)
+{
+    var services = Current.Service<IServiceProvider>();   // the event's, lent to the work below
+    var rows = await Task.Run(() => services.GetRequiredService<ShopDb>().Rows.ToList());
+    if (turn == _turn) _rows = rows;                      // painted when it is back
+}
+```
+
+The provider a hook takes is its event's, wherever it is used — another thread included — and it keeps that
+event's scope until the detached work **comes back to the page** (the first await that resumes there once the hook
+itself has finished). Work that never comes back keeps it until its component has left the page (ten seconds more
+at most) or the session ends — so a tab closed mid-read, or a first response whose page never connects, lets it go
+with its session. A scope is never disposed on the thread of a response or an event: a `DbContext` that waits, as
+it is disposed, for a query still running on it holds nobody up. A `Current.Service<T>()` made inside the detached
+work itself, without the provider, is not covered — it reaches whichever event is in progress then. A hook that
+awaits its work instead needs no provider: `Current.Service<T>()` in it is the event's until the hook is done, and
+taking the provider there keeps the scope while the page is open.
+
 ### `Current.Service<T>()` — the event's own, with nothing injected
 
 ```csharp

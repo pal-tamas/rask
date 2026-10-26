@@ -53,7 +53,7 @@ public class EventScopeTests
 
         await page.ClickAsync();
 
-        Assert.True(page.Log.Seen[0].Probe.Disposed);
+        await WaitFor.True(() => page.Log.Seen[0].Probe.Disposed, "the event's scope to be disposed");
         Assert.Null(page.Session.OpenedEventScope);
     }
 

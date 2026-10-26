@@ -32,8 +32,23 @@
 //     popup is the phone's sheet, where the choice is held until the button; Cancel, Escape and a press outside
 //     drop it on a desktop and keep it on a phone (the sheet opens again with it marked, a quirk kept);
 //   * the closed button opens the popup on ArrowDown and ArrowUp.
+//
+// A DATETIME PICKER is this calendar with times (`time` in the JSON, rask-datetime.ts): its value is
+// `yyyy-mm-ddTHH:mm`, a range's two of them joined by a slash. Parts: times (the column of times beside the
+// months, `[role=option]` rows with `data-time`), time (an end's time field, `data-rask-calendar-slot` 0 or 1: a
+// button with its time-text, or typed parts), time-list (that field's list of rows), confirm (Select), error (a
+// range's message). Measured on Flux's (2026-10-22):
+//   * a day picked keeps the time chosen (or takes `default-time`) and, with a time, writes the value at once and
+//     stays open; the chosen day picked again is no day; a time picked with a day writes the value and closes;
+//     either one alone is held, and Select stays disabled until both are there;
+//   * a range, typed times, `with-confirmation` and a phone hold everything for Select; a range whose end is not
+//     after its start says so and cannot be selected; Cancel, Escape and a press outside drop what was held — on
+//     a phone too;
+//   * the column's rows walk on the vertical arrows (focus, over disabled rows, stopping at the ends) and to its
+//     ends on Home / End; Enter and Space press a row; the tab stop is the row the column opened on.
 
 import {announce, bind, boundOf} from "./rask-bound.js";
+import {formatTime, hhmm, minutesOf, nowMinutes, startMinute, TimeConfig, timeOff, twelveHour, unperiod} from "./rask-datetime.js";
 import {isShown, listen, near, own, page, setShown} from "./rask-owned.js";
 import {partsValue, refillParts} from "./rask-segments.js";
 
@@ -43,6 +58,9 @@ const TYPED = "[data-rask-segments], input[data-rask-date]";
 // The calendar's own inputs over its months (`with-inputs`), which the reader types the choice into.
 const INPUTS = "[data-rask-calendar-part=inputs]";
 const PART = "data-rask-calendar-part";
+// A datetime picker's time field, and which end it is.
+const TIME = "[data-rask-calendar-part=time]";
+const SLOT = "data-rask-calendar-slot";
 const DAY_MS = 86400000;
 
 interface Look {
@@ -67,11 +85,13 @@ interface Config {
     selectableHeader?: boolean; picker?: boolean; confirms?: boolean;
     culture: Culture; look: Look;
     placeholder?: string; previous: string; next: string; separator?: string;
+    time?: TimeConfig;
 }
 
 interface Value {
     days: number[];          // a day or several, sorted; a range's start and end
     preset: string;          // a range's preset key, or ""
+    times?: (number | null)[];   // a datetime picker's: each end's time, in minutes
 }
 
 interface State {
@@ -191,8 +211,9 @@ export function formatDay(day: number, pattern: string, c: Culture): string {
 
 // ----- What the page holds ------------------------------------------------------------------------------
 
-function readValue(text: string): Value {
+function readValue(text: string, config?: Config): Value {
     const t = text.trim();
+    if (config && config.time) return readMoments(t);
     if (!t) return {days: [], preset: ""};
     if (t.indexOf("/") >= 0) {
         const [s, e, preset] = t.split("/");
@@ -204,7 +225,34 @@ function readValue(text: string): Value {
     return {days, preset: ""};
 }
 
+// A datetime picker's value: `yyyy-mm-ddTHH:mm`, a range's two joined by a slash; nothing while one is half there.
+function readMoments(text: string): Value {
+    const days: number[] = [], times: (number | null)[] = [];
+    for (const part of text ? text.split("/") : []) {
+        const [day, time] = part.split("T");
+        const d = dayOf(day), m = minutesOf(time || "");
+        if (isNaN(d) || isNaN(m)) return {days: [], preset: "", times: []};
+        days.push(d);
+        times.push(m);
+    }
+    return {days, preset: "", times};
+}
+
+function writeMoments(config: Config, v: Value): string {
+    const count = config.mode === "range" ? 2 : 1;
+    const times = v.times || [];
+    if (v.days.length !== count) return "";
+    const out: string[] = [];
+    for (let i = 0; i < count; i++) {
+        const m = times[i];
+        if (m === null || m === undefined) return "";
+        out.push(isoOf(v.days[i]) + "T" + hhmm(m));
+    }
+    return out.join("/");
+}
+
 function writeValue(config: Config, v: Value): string {
+    if (config.time) return writeMoments(config, v);
     if (!v.days.length) return "";
     if (config.mode === "range") return isoOf(v.days[0]) + "/" + isoOf(v.days[1]) + (v.preset ? "/" + v.preset : "");
     return v.days.map(isoOf).join(",");
@@ -224,7 +272,7 @@ function stateOf(root: Element): State | null {
         const config = configOf(root);
         if (!config) return null;
         const bound = boundOf(root);
-        const value = readValue(bound ? bound.getAttribute("value") || "" : "");
+        const value = readValue(bound ? bound.getAttribute("value") || "" : "", config);
         states.set(root, state = {config, value, pending: null, view: null, cursor: null, anchor: null, hover: null, dropped: false});
     }
     return state;
@@ -267,8 +315,11 @@ function inputFields(root: Element): Element[] {
     return ownFields(root).filter(function (g) { return !!g.closest(INPUTS); });
 }
 
+// A datetime picker's typed times are no typed date.
 function ownFields(root: Element): Element[] {
-    return Array.prototype.filter.call(root.querySelectorAll(TYPED), function (g: Element) { return g.closest(ROOT) === root; });
+    return Array.prototype.filter.call(root.querySelectorAll(TYPED), function (g: Element) {
+        return g.closest(ROOT) === root && !g.closest(TIME);
+    });
 }
 
 // What a typed field says: "yyyy-mm-dd", or "" while it holds no whole date.
@@ -391,7 +442,8 @@ function set(e: Element, name: string, value: string | null): void {
 }
 
 // One day's cell and button, for a new grid and again whenever the marks change.
-function paintDay(state: State, td: HTMLElement, month: number, day: number, slot: number, stop: number | null): void {
+// `lastRow`: the month's last week, whose last day a range running on into the next month leaves unrounded.
+function paintDay(state: State, td: HTMLElement, month: number, day: number, slot: number, stop: number | null, lastRow: boolean): void {
     const c = state.config, look = c.look;
     const marks = marksOf(state, day);
     const outside = parts(day).m !== parts(month).m;
@@ -399,7 +451,7 @@ function paintDay(state: State, td: HTMLElement, month: number, day: number, slo
     const isBlocked = blocked(state, day);
     const today = day === dayOf(c.today);
     td.className = join(look.td, (slot === 0 && !c.weekNumbers) || marks.start ? look.first : "",
-        slot === 6 || marks.end || marks.endPreview ? look.last : "", marks.inRange && look.inRange,
+        (slot === 6 && !(marks.inRange && lastRow)) || marks.end || marks.endPreview ? look.last : "", marks.inRange && look.inRange,
         outside && !c.static && look.outside, off && look.unavailable, look.cell);
     const data: [string, boolean][] = [["outside", outside], ["today", today], ["unavailable", off], ["selected", marks.selected],
         ["start", marks.start], ["end", marks.end], ["in-range", marks.inRange], ["end-preview", marks.endPreview]];
@@ -429,7 +481,7 @@ function dotOf(td: Element): HTMLElement | null {
     return holder ? holder.firstElementChild as HTMLElement | null : null;
 }
 
-function dayCell(state: State, month: number, day: number, slot: number, stop: number | null): HTMLElement {
+function dayCell(state: State, month: number, day: number, slot: number, stop: number | null, lastRow: boolean): HTMLElement {
     const c = state.config, look = c.look;
     const td = el("td");
     td.setAttribute("role", "gridcell");
@@ -461,7 +513,7 @@ function dayCell(state: State, month: number, day: number, slot: number, stop: n
         host.appendChild(button);
         td.appendChild(host);
     }
-    paintDay(state, td, month, day, slot, stop);
+    paintDay(state, td, month, day, slot, stop, lastRow);
     return td;
 }
 
@@ -479,14 +531,15 @@ function monthGrid(root: Element, state: State, month: number, folded: boolean, 
     const table = el("table");
     if (head) table.appendChild(head.cloneNode(true));
     const body = el("tbody");
-    weeksOf(month, c.startDay, !!c.fixedWeeks).forEach(function (week, at) {
+    const weeks = weeksOf(month, c.startDay, !!c.fixedWeeks);
+    weeks.forEach(function (week, at) {
         const tr = el("tr", at === 0 ? look.row : look.rowBelow);
         if (c.weekNumbers) {
             const wn = el("td", join("p-0 relative", look.weekNumber, look.cell));
             wn.textContent = String(isoWeek(week));
             tr.appendChild(wn);
         }
-        week.forEach(function (day, slot) { tr.appendChild(dayCell(state, month, day, slot, stop)); });
+        week.forEach(function (day, slot) { tr.appendChild(dayCell(state, month, day, slot, stop, at === weeks.length - 1)); });
         body.appendChild(tr);
     });
     table.appendChild(body);
@@ -532,7 +585,7 @@ function draw(root: Element, focus: boolean = false): void {
             g.querySelectorAll<HTMLElement>("td[data-date]").forEach(function (td) {
                 const day = dayOf(td.getAttribute("data-date") || "");
                 const slot = Array.prototype.indexOf.call(td.parentElement!.querySelectorAll("td[data-date]"), td);
-                paintDay(state, td, months[i], day, slot, months[i] === host ? stop : null);
+                paintDay(state, td, months[i], day, slot, months[i] === host ? stop : null, !td.parentElement!.nextElementSibling);
             });
         });
     } else {
@@ -542,6 +595,7 @@ function draw(root: Element, focus: boolean = false): void {
     }
     drawHeader(root, state, months);
     drawInputs(root, state);
+    drawTimes(root, state);
     if (focus) {
         const button = grids.querySelector<HTMLElement>("button[tabindex='0']");
         if (button) button.focus();
@@ -589,6 +643,10 @@ function drawText(root: Element, state: State): void {
     const words = text ? text.firstElementChild as HTMLElement | null : null;
     if (!words) return;
     const c = state.config, v = state.value;
+    if (c.time) {
+        drawMoments(root, state, words, c.time);
+        return;
+    }
     let said = "";
     if (v.days.length) {
         if (c.mode === "range" && v.preset && v.preset !== "custom") {
@@ -614,6 +672,50 @@ function drawText(root: Element, state: State): void {
         clear.classList.toggle("hidden", !v.days.length);
         clear.classList.toggle("flex", !!v.days.length);
     }
+}
+
+// A datetime picker's button: "Oct 27, 2026 at 10:30 AM", or a range's ends — the year dropped while both are in
+// this one, and one day's range written once, the period too: "Oct 22, 2:00 – 4:30 PM".
+function drawMoments(root: Element, state: State, words: HTMLElement, t: TimeConfig): void {
+    const c = state.config, v = state.value, times = v.times || [];
+    const written = writeValue(c, v) !== "";
+    const clear = part(root, "clear");
+    if (clear) {
+        own(clear, "class");
+        clear.classList.toggle("hidden", !written);
+        clear.classList.toggle("flex", written);
+    }
+    if (!written) {
+        const placeholder = el("span", t.emptyClass);
+        placeholder.setAttribute("data-ui-datetime-picker-placeholder", "");
+        placeholder.textContent = c.placeholder || "";
+        words.replaceWith(placeholder);
+        return;
+    }
+    const time = function (m: number, pattern: string = t.pattern): string { return formatTime(m, pattern, t.am, t.pm); };
+    let before: string, between: string, after: string;
+    if (c.mode !== "range") {
+        before = formatDay(v.days[0], c.culture.medium, c.culture);
+        between = t.at;
+        after = time(times[0]!);
+    } else {
+        const [s, e] = v.days, [a, b] = [times[0]!, times[1]!];
+        const year = parts(dayOf(c.today)).y;
+        const pattern = parts(s).y === year && parts(e).y === year ? t.monthDay : c.culture.medium;
+        const day = function (d: number): string { return formatDay(d, pattern, c.culture); };
+        const samePeriod = twelveHour(t.pattern) && (a < 720) === (b < 720);
+        before = day(s) + t.comma + (s === e && samePeriod ? time(a, unperiod(t.pattern)) : time(a));
+        between = c.separator || " – ";
+        after = (s === e ? "" : day(e) + t.comma) + time(b);
+    }
+    const box = el("div", t.wordsClass);
+    box.setAttribute("dir", "auto");
+    const middle = el("span", t.atClass);
+    middle.textContent = between;
+    box.appendChild(page!.createTextNode(before));
+    box.appendChild(middle);
+    box.appendChild(page!.createTextNode(after));
+    words.replaceWith(box);
 }
 
 function presetRow(root: Element, key: string): HTMLElement | null {
@@ -683,7 +785,15 @@ function pick(root: Element, state: State, day: number): void {
     state.cursor = day;
     const v = shown(state);
     const mode = state.config.mode;
-    if (mode === "single") {
+    const time = state.config.time;
+    if (time && mode === "single") {
+        pickMomentDay(root, state, v, day, time);
+    } else if (time && state.anchor !== null && day >= state.anchor) {
+        // A range's last day: its times are kept, or the defaults, and the whole waits for Select range.
+        const start = state.anchor;
+        state.anchor = state.hover = null;
+        choose(root, state, {days: [start, day], preset: "", times: endTimes(v, time)}, true);
+    } else if (mode === "single") {
         const again = v.days[0] === day;
         choose(root, state, {days: again ? [] : [day], preset: ""}, !again);
     } else if (mode === "multiple") {
@@ -700,6 +810,161 @@ function pick(root: Element, state: State, day: number): void {
         const start = state.anchor;
         state.anchor = state.hover = null;
         choose(root, state, {days: [start, day], preset: ""}, true);
+    }
+}
+
+// ----- A datetime picker's times ------------------------------------------------------------------------
+
+function endTimes(v: Value, time: TimeConfig): (number | null)[] {
+    const times = v.times || [], defaults = time.defaults || [];
+    return [0, 1].map(function (i) {
+        const kept = times[i];
+        return kept !== null && kept !== undefined ? kept : defaults[i] !== undefined ? defaults[i] : null;
+    });
+}
+
+// A moment's day: with a time it is the value at once, and the popup stays; the chosen day again is no day.
+function pickMomentDay(root: Element, state: State, v: Value, day: number, time: TimeConfig): void {
+    if (v.days[0] === day) {
+        state.pending = {days: [], preset: "", times: (v.times || []).slice()};
+        draw(root);
+        return;
+    }
+    const next: Value = {days: [day], preset: "", times: [endTimes(v, time)[0]]};
+    if (!holds(root, state) && next.times![0] !== null) {
+        commit(root, state, next);
+        draw(root);
+    } else {
+        state.pending = next;
+        draw(root);
+    }
+}
+
+// A time picked for one end: with the day there, a moment's is the value at once and closes the popup.
+function pickTime(root: Element, state: State, slot: number, minute: number | null): void {
+    const v = shown(state);
+    const times = (v.times || []).slice();
+    times[slot] = minute;
+    const next: Value = {days: v.days.slice(), preset: "", times};
+    if (state.config.mode !== "range" && !holds(root, state) && next.days.length && minute !== null) {
+        commit(root, state, next);
+        setShown(popupOf(root), false);
+    } else {
+        state.pending = next;
+    }
+    draw(root);
+}
+
+// Each end's day and time, when the picker holds a whole value with its end after its start.
+function whole(state: State): boolean {
+    const v = shown(state), t = state.config.time!;
+    if (state.anchor !== null || writeValue(state.config, v) === "") return false;
+    const times = v.times || [];
+    const off = v.days.some(function (d, i) { return timeOff(t, d, times[i]!, isoOf); });
+    return !off && !endsTooSoon(state);
+}
+
+// A range whose end is not after its start.
+function endsTooSoon(state: State): boolean {
+    const v = shown(state), times = v.times || [];
+    if (state.config.mode !== "range" || state.anchor !== null || v.days.length !== 2) return false;
+    const [a, b] = [times[0], times[1]];
+    return a !== null && a !== undefined && b !== null && b !== undefined && v.days[1] * 1440 + b <= v.days[0] * 1440 + a;
+}
+
+function rowsOf(host: Element | null): HTMLElement[] {
+    return host ? Array.prototype.slice.call(host.querySelectorAll("[role=option][data-time]")) : [];
+}
+
+function slotOf(el: Element): number {
+    return Number(el.getAttribute(SLOT) || "0");
+}
+
+// The column, the time fields and their lists, Select and a range's message, for what is chosen now.
+function drawTimes(root: Element, state: State): void {
+    const t = state.config.time;
+    if (!t) return;
+    const v = shown(state), times = v.times || [];
+    root.querySelectorAll<HTMLElement>("[" + PART + "=times], [" + PART + "=time-list]").forEach(function (list) {
+        const slot = slotOf(list);
+        const day = state.anchor !== null ? null : v.days[slot] !== undefined ? v.days[slot] : null;
+        const chosen = times[slot] !== undefined ? times[slot]! : null;
+        const rows = rowsOf(list);
+        const listed = rows.map(function (r) { return minutesOf(r.getAttribute("data-time") || ""); });
+        const start = startMinute(listed, chosen, t.openTo, nowMinutes(), function (m) { return timeOff(t, day, m, isoOf); });
+        const column = list.getAttribute(PART) === "times";
+        rows.forEach(function (row, i) {
+            const m = listed[i];
+            const on = m === chosen;
+            (row as HTMLButtonElement).disabled = timeOff(t, day, m, isoOf);
+            set(row, "aria-selected", on ? "true" : "false");
+            set(row, "data-selected", on ? "" : null);
+            set(row, "data-rask-time-start", m === start ? "" : null);
+            if (column) {
+                set(row, "tabindex", m === start ? "0" : "-1");
+            } else {
+                const check = row.querySelector("[data-checked] svg");
+                if (check) check.classList.toggle("hidden", !on);
+            }
+        });
+    });
+    root.querySelectorAll<HTMLElement>(TIME).forEach(function (field) {
+        const slot = slotOf(field), chosen = times[slot];
+        const words = field.querySelector<HTMLElement>("[" + PART + "=time-text]");
+        if (words) drawTimeWords(words, chosen === undefined ? null : chosen, t);
+        const group = field.querySelector("[data-rask-segments]");
+        if (group && !group.contains(root.ownerDocument.activeElement)) {
+            refillParts(group, chosen === null || chosen === undefined ? "" : hhmm(chosen));
+        }
+    });
+    const confirm = part(root, "confirm") as HTMLButtonElement | null;
+    if (confirm) confirm.disabled = !whole(state);
+    const error = part(root, "error");
+    if (error) error.hidden = !endsTooSoon(state);
+}
+
+// A time field's button says its time, or "Time".
+function drawTimeWords(words: HTMLElement, chosen: number | null, t: TimeConfig): void {
+    const shownWords = words.firstElementChild as HTMLElement | null;
+    if (!shownWords) return;
+    if (chosen === null) {
+        if (shownWords.hasAttribute("data-ui-time-picker-placeholder")) return;
+        const placeholder = el("span", t.placeholderClass);
+        placeholder.setAttribute("data-ui-time-picker-placeholder", "");
+        placeholder.textContent = t.placeholder;
+        shownWords.replaceWith(placeholder);
+        return;
+    }
+    const text = formatTime(chosen, t.pattern, t.am, t.pm);
+    if (shownWords.hasAttribute("data-ui-time-picker-placeholder")) {
+        const box = el("div");
+        box.setAttribute("dir", "auto");
+        box.textContent = text;
+        shownWords.replaceWith(box);
+    } else if (shownWords.textContent !== text) {
+        shownWords.textContent = text;
+    }
+}
+
+// The column opens with its start row two rows down from its top, as Flux scrolls it.
+function scrollTimes(root: Element): void {
+    const list = part(root, "times");
+    const row = list ? list.querySelector<HTMLElement>("[data-rask-time-start]") : null;
+    if (list && row) list.scrollTop = Math.max(0, row.offsetTop - 2 * row.offsetHeight);
+}
+
+// The column's arrows, Home and End: the focus walks the rows that can be picked and stops at either end.
+function walkTimes(e: KeyboardEvent): void {
+    const row = near(e.target, "[" + PART + "=times] [role=option]");
+    const list = row ? near(row, "[" + PART + "=times]") : null;
+    if (!row || !list) return;
+    const rows = rowsOf(list).filter(function (r) { return !(r as HTMLButtonElement).disabled; });
+    const at = rows.indexOf(row);
+    const to = e.key === "ArrowDown" ? rows[at + 1] : e.key === "ArrowUp" ? rows[at - 1]
+        : e.key === "Home" ? rows[0] : e.key === "End" ? rows[rows.length - 1] : undefined;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Home" || e.key === "End") {
+        e.preventDefault();
+        if (to) to.focus();
     }
 }
 
@@ -755,7 +1020,7 @@ bind(ROOT, function (root) {
     // The page wrote a value of its own: the clear button, a typed date, its own code. Another value shows its month.
     const state = stateOf(root);
     if (!state) return;
-    const value = readValue(rendered);
+    const value = readValue(rendered, state.config);
     if (writeValue(state.config, value) !== writeValue(state.config, state.value)) state.view = null;
     state.value = value;
     state.pending = null;
@@ -801,9 +1066,27 @@ if (page) {
                 choose(root, state, {days: range.days, preset: row.getAttribute("value") || ""}, true);
             }
         } else if (name === "confirm") {
-            if (state.pending) commit(root, state, state.pending);
+            if (state.pending && (!state.config.time || whole(state))) commit(root, state, state.pending);
+        } else if ((name === "times" || name === "time-list") && at) {
+            const row = near(e.target, "[role=option][data-time]") as HTMLButtonElement | null;
+            if (row && !row.disabled) pickTime(root, state, slotOf(at), minutesOf(row.getAttribute("data-time") || ""));
         }
     }, true);
+
+    // A time typed into a datetime picker's field: whole, it is that end's time; half typed, the end has none.
+    const typedTime = function (e: Event): void {
+        const root = rootOf(e.target);
+        const state = root ? stateOf(root) : null;
+        const field = near(e.target, TIME);
+        const group = near(e.target, "[data-rask-segments]");
+        if (!root || !state || !field || !group || !state.config.time) return;
+        const minute = minutesOf(partsValue(group));
+        const chosen = (shown(state).times || [])[slotOf(field)];
+        const next = isNaN(minute) ? null : minute;
+        if (next !== (chosen === undefined ? null : chosen)) pickTime(root, state, slotOf(field), next);
+    };
+    listen("input", typedTime, true);
+    listen("change", typedTime, true);
 
     listen("change", function (e) {
         const root = rootOf(e.target);
@@ -854,6 +1137,8 @@ if (page) {
         const at = partOf(e.target);
         if (at && at.getAttribute(PART) === "months" && near(e.target, "td[data-date] button")) {
             key(root, state, e);
+        } else if (at && at.getAttribute(PART) === "times") {
+            walkTimes(e);
         } else if ((e.key === "ArrowDown" || e.key === "ArrowUp") && near(e.target, "[popovertarget]")) {
             // The closed button opens the popup on the vertical arrows.
             const popup = popupOf(root);
@@ -894,7 +1179,9 @@ if (page) {
             // Drawn before it shows as well, so it is placed (rask-place.ts) at the height it opens at.
             draw(root);
         } else {
-            if (!narrow(root)) state.pending = null;
+            // A datetime picker drops what was held on a phone too.
+            if (!narrow(root) || state.config.time) state.pending = null;
+            state.anchor = state.hover = null;
             draw(root);
         }
     }, true);
@@ -905,5 +1192,6 @@ if (page) {
         if (!root || !state || popupOf(root) !== popup || (e as ToggleEvent).newState !== "open") return;
         draw(root);
         drawPresets(root, state);
+        scrollTimes(root);
     }, true);
 }
