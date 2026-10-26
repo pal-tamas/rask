@@ -338,6 +338,40 @@ public sealed class RuntimeHookCalendarTests(PlaywrightFixture playwright) : ICl
         Assert.Equal(0, await page.Locator("#arrival-box td[aria-selected='true']").CountAsync());
     }
 
+    [Fact]
+    public async Task The_button_writes_the_chosen_day_in_a_div_and_the_placeholder_in_a_span_as_flux_does()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        const string text = "#arrival [data-rask-calendar-part='text'] > ";
+
+        await page.ClickAsync("#arrival");
+        await page.ClickAsync(Day("#arrival-box", "2026-01-20"));
+        await Expect(page.Locator(text + "div[dir='auto']")).ToHaveTextAsync("Jan 20, 2026");
+        await page.ClickAsync("#arrival [aria-label='Clear']");
+
+        await Expect(page.Locator(text + "span[data-ui-date-picker-placeholder]")).ToHaveTextAsync("Select a date");
+        await Expect(page.Locator(text + "*")).ToHaveCountAsync(1);
+    }
+
+    [Fact]
+    public async Task The_last_day_of_the_months_last_row_is_rounded_at_its_end_only_once_the_range_ends_there()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        const string lastDay = "#range td[data-date='2026-01-31']";
+
+        await page.ClickAsync(Day("#range", "2026-01-28"));
+        await page.HoverAsync(Day("#range", "2026-01-31"));
+        await Expect(page.Locator(lastDay)).ToHaveAttributeAsync("data-end-preview", string.Empty);
+        var previewed = await page.GetAttributeAsync(lastDay, "class");
+        await page.ClickAsync(Day("#range", "2026-01-31"));
+
+        Assert.DoesNotContain("rounded-e-lg", previewed, StringComparison.Ordinal);
+        await Expect(page.Locator(lastDay)).ToHaveAttributeAsync("data-end", string.Empty);
+        await Expect(page.Locator(lastDay)).ToHaveClassAsync(new System.Text.RegularExpressions.Regex(@"\brounded-e-lg\b"));
+    }
+
     private async Task<HookSession> OpenAsync(BrowserNewContextOptions? options = null)
     {
         var session = await HookSession.OpenAsync<CalendarHookPage>(playwright, options);

@@ -442,7 +442,8 @@ function set(e: Element, name: string, value: string | null): void {
 }
 
 // One day's cell and button, for a new grid and again whenever the marks change.
-// `lastRow`: the month's last week, whose last day a range running on into the next month leaves unrounded.
+// `lastRow`: the month's last week, whose last day a range running on into the next month leaves unrounded
+// unless it starts or ends there (UiCalendarGrid.Last).
 function paintDay(state: State, td: HTMLElement, month: number, day: number, slot: number, stop: number | null, lastRow: boolean): void {
     const c = state.config, look = c.look;
     const marks = marksOf(state, day);
@@ -451,7 +452,8 @@ function paintDay(state: State, td: HTMLElement, month: number, day: number, slo
     const isBlocked = blocked(state, day);
     const today = day === dayOf(c.today);
     td.className = join(look.td, (slot === 0 && !c.weekNumbers) || marks.start ? look.first : "",
-        (slot === 6 && !(marks.inRange && lastRow)) || marks.end || marks.endPreview ? look.last : "", marks.inRange && look.inRange,
+        !(slot === 6 && lastRow && marks.inRange && !marks.start && !marks.end) && (slot === 6 || marks.end || marks.endPreview)
+            ? look.last : "", marks.inRange && look.inRange,
         outside && !c.static && look.outside, off && look.unavailable, look.cell);
     const data: [string, boolean][] = [["outside", outside], ["today", today], ["unavailable", off], ["selected", marks.selected],
         ["start", marks.start], ["end", marks.end], ["in-range", marks.inRange], ["end-preview", marks.endPreview]];
@@ -656,16 +658,12 @@ function drawText(root: Element, state: State): void {
             said = v.days.map(function (d) { return formatDay(d, c.culture.medium, c.culture); }).join(c.separator || " – ");
         }
     }
-    if (said) {
-        words.className = "";
-        words.removeAttribute("class");
-        words.removeAttribute("data-ui-date-picker-placeholder");
-        words.textContent = said;
-    } else {
-        words.className = c.look.placeholder;
-        words.setAttribute("data-ui-date-picker-placeholder", "");
-        words.textContent = c.placeholder || "";
-    }
+    // Flux's: the date in a div, the placeholder in a span (UiDatePickerButton writes the same).
+    const shownText = said ? el("div") : el("span", c.look.placeholder);
+    if (said) shownText.setAttribute("dir", "auto");
+    else shownText.setAttribute("data-ui-date-picker-placeholder", "");
+    shownText.textContent = said || c.placeholder || "";
+    words.replaceWith(shownText);
     const clear = part(root, "clear");
     if (clear) {
         own(clear, "class");

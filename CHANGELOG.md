@@ -147,6 +147,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A range that starts or ends on the last day of a month's last row is rounded there, as on Flux.** The
+  calendar left that day square whenever it was in a range; measured on fluxui.dev, it is square only inside a
+  range it neither starts nor ends (an end the pointer only hovers included), and rounded when the range starts or
+  ends on it. Server render and the browser's redraw agree (`Ui.Calendar`, `Ui.DatePicker`, `Ui.DatetimePicker`).
+- **`Ui.DatePicker`'s button writes the chosen date in a `<div dir="auto">`, as Flux does** (the placeholder stays a
+  `<span>`); it was a `<span>` for both. Look unchanged.
 - **A class on `Ui.DatePicker` / `Ui.TimePicker` sizes it, as it does Flux's.** Both pickers kept a 240px minimum
   under every class, so `Ui.TimePicker.Class("w-40")` stayed 240px wide and the docs' "Separate date and time" row
   ran wider than Flux's. Measured on fluxui.dev: the pickers are never narrower than 12rem (15rem from `sm` up) until

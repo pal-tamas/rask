@@ -165,6 +165,38 @@ public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
         Assert.Equal(2, Regex.Count(html, "role=\"grid\""));
     }
 
+    // A day's cell class, by its date, in the month that owns it (the first cell of that date drawn).
+    private static string CellClass(string html, DateOnly day) =>
+        Regex.Match(html, "<td class=\"([^\"]*)\" data-date=\"" + day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) + "\"").Groups[1].Value;
+
+    private static UiDateRange October(int start, int endMonth, int end) => new(new DateOnly(2026, 10, start), new DateOnly(2026, endMonth, end));
+
+    [Fact]
+    public void The_last_day_of_a_months_last_row_inside_a_range_running_on_is_not_rounded_at_its_end()
+    {
+        // October 2026's last row ends on Saturday the 31st, and the range runs on into November.
+        var html = Ranged(October(28, 11, 3)).ToHtml();
+
+        var lastDay = CellClass(html, new DateOnly(2026, 10, 31));
+        var rowAbove = CellClass(Ranged(October(10, 10, 20)).ToHtml(), new DateOnly(2026, 10, 17));
+
+        Assert.Contains("bg-zinc-100", lastDay, StringComparison.Ordinal);
+        Assert.DoesNotContain("rounded-e-lg", lastDay, StringComparison.Ordinal);
+        Assert.Contains("rounded-e-lg", rowAbove, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_last_day_of_a_months_last_row_that_starts_or_ends_a_range_is_rounded_at_its_end()
+    {
+        var starts = Ranged(October(31, 11, 5)).ToHtml();
+
+        var ends = Ranged(October(28, 10, 31)).ToHtml();
+
+        Assert.Contains("rounded-s-lg rounded-e-lg", CellClass(starts, new DateOnly(2026, 10, 31)), StringComparison.Ordinal);
+        Assert.Contains("rounded-e-lg", CellClass(ends, new DateOnly(2026, 10, 31)), StringComparison.Ordinal);
+        Assert.Contains("rounded-s-lg", CellClass(starts, new DateOnly(2026, 11, 1)), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void One_day_is_in_the_tab_order_the_chosen_one_then_today_then_the_first()
     {

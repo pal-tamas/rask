@@ -312,9 +312,11 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         ];
     }
 
-    // A week's last day is rounded at its end — except, measured on Flux's, a day the range runs on past in the
-    // month's last row: the range goes on into the next month.
-    private static bool Last(int slot, bool lastRow, UiCalendarMarks marks) => slot == 6 && !(lastRow && marks.InRange);
+    // A week's last day and a range's end are rounded at their end — except, measured on Flux's, the last day of a
+    // month's last row inside a range it neither starts nor ends (an end only hovered included): the range goes on
+    // into the next month.
+    private static bool Last(int slot, bool lastRow, UiCalendarMarks marks) =>
+        !(slot == 6 && lastRow && marks.InRange && !marks.Start && !marks.End) && (slot == 6 || marks.End || marks.EndPreview);
 
     // Only what is so: a null value would be written as a bare attribute.
     private static Dictionary<string, string?> CellAria(

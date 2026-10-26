@@ -47,8 +47,19 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
         var html = picker.ToHtml();
 
-        Assert.Contains(">Jan 20, 2026</span>", html, StringComparison.Ordinal);
+        Assert.Contains(">Jan 20, 2026</div>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-ui-date-picker-placeholder", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_chosen_day_is_written_in_a_div_and_the_placeholder_in_a_span_as_flux_writes_them()
+    {
+        var chosen = Single(Jan(20)).ToHtml();
+
+        var unset = Single(default).ToHtml();
+
+        Assert.Matches("data-rask-calendar-part=\"text\"><div[^>]* dir=\"auto\"[^>]*>Jan 20, 2026</div></div>", chosen);
+        Assert.Matches("data-rask-calendar-part=\"text\"><span[^>]* class=\"text-zinc-400\" data-ui-date-picker-placeholder[^>]*>Select a date</span></div>", unset);
     }
 
     [Fact]
@@ -78,7 +89,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("action", waits);
         Assert.Equal(Jan(20), model.Arrival);
-        Assert.Contains(">Jan 20, 2026</span>", page.Html, StringComparison.Ordinal);
+        Assert.Contains(">Jan 20, 2026</div>", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("popovertargetaction", page.Html, StringComparison.Ordinal);
     }
 
@@ -90,7 +101,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         var set = Ui.DatePicker.Bind(() => model.Departure).Locale("en-US").On(Today).ToHtml();
         var unset = Ui.DatePicker.Bind(() => model.Return).Locale("en-US").On(Today).ToHtml();
 
-        Assert.Contains(">Jan 9, 2026</span>", set, StringComparison.Ordinal);
+        Assert.Contains(">Jan 9, 2026</div>", set, StringComparison.Ordinal);
         Assert.Contains(">Select a date</span>", unset, StringComparison.Ordinal);
     }
 
@@ -108,7 +119,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(default, half);
         Assert.Equal(new UiDateRange(Jan(4), Jan(6)), model.Stay);
-        Assert.Matches(">Jan 4, 2026 [^<]+ Jan 6, 2026</span>", page.Html);
+        Assert.Matches(">Jan 4, 2026 [^<]+ Jan 6, 2026</div>", page.Html);
     }
 
     [Fact]
@@ -173,7 +184,7 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
         Assert.Equal(Jan(9), model.Stay.Start);
         Assert.Equal(Jan(15), model.Stay.End);
         Assert.Equal(Ui.DateRangePreset.Last7Days, model.Stay.Preset);
-        Assert.Contains(">Last 7 Days</span>", page.Html, StringComparison.Ordinal);
+        Assert.Contains(">Last 7 Days</div>", page.Html, StringComparison.Ordinal);
     }
 
     [Theory]

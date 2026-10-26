@@ -74,7 +74,11 @@ public sealed partial class UiDatePickerButton : Component
             .Attributes(("popovertarget", scope.PopoverId), ("data-rask-contain-keys", "ArrowUp ArrowDown"))[
             Ui.Icon.Name(Ui.IconName.Calendar).Mini.Class(UiDatePickerLook.Leading),
             Div.Class(UiDatePickerLook.Selected).Attributes(UiCalendarHook.Named("text"))[
-                scope.Text is { } text ? Span[text] : Span.Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]
+                // Flux's: the date in a div, the placeholder in a span, each under its own key (a span against a
+                // div is no change the live diff can patch).
+                scope.Text is { } text
+                    ? Div.Key("chosen").Attributes(("dir", "auto"))[text]
+                    : Span.Key("placeholder").Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]
             ],
             scope.ClearInside(Clearable, locked),
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)

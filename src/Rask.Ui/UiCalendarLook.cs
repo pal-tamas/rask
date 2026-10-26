@@ -139,12 +139,12 @@ internal static class UiCalendarLook
 
     internal const string TdUnavailable = "line-through";
 
-    /// <summary>A day's cell: rounded where a row or a range starts and ends, tinted inside a range.</summary>
+    /// <summary>A day's cell: rounded where a row or a range starts and at <paramref name="last"/>, tinted inside a range.</summary>
     internal static string Td(bool first, bool last, bool outside, bool unavailable, UiCalendarMarks marks) =>
         UiClass.Compose(
             TdBase,
             first || marks.Start ? TdFirst : null,
-            last || marks.End || marks.EndPreview ? TdLast : null,
+            last ? TdLast : null,
             marks.InRange ? TdInRange : null,
             outside ? TdOutside : null,
             unavailable ? TdUnavailable : null);
