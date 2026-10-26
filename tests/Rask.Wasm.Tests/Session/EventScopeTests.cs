@@ -34,7 +34,7 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
 
         await Click(session, html, "use");
 
-        Assert.True(services.GetRequiredService<WasmScopeLog>().Seen[0].Disposed);
+        await WaitFor.True(() => services.GetRequiredService<WasmScopeLog>().Seen[0].Disposed, "the event's scope to be disposed");
         Assert.Null(session.OpenedEventScope);
     }
 
@@ -51,7 +51,7 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         Assert.Equal(4, seen.Count);
         Assert.Same(seen[0], seen[1]);
         Assert.NotSame(seen[1], seen[2]);
-        Assert.All(seen, probe => Assert.True(probe.Disposed));
+        await WaitFor.True(() => seen.TrueForAll(static probe => probe.Disposed), "each event's scope to be disposed");
     }
 
     [Fact]
