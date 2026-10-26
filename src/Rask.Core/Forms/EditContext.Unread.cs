@@ -25,7 +25,7 @@ public sealed partial class EditContext
     /// <summary>A value arrived for <paramref name="field" /> that could be read.</summary>
     private void ForgetUnread(FieldIdentifier field) => _unread?.Remove(field);
 
-    private bool IsUnread(FieldIdentifier field) => _unread is { Count: > 0 } unread && unread.ContainsKey(field);
+    internal bool IsUnread(FieldIdentifier field) => _unread is { Count: > 0 } unread && unread.ContainsKey(field);
 
     // What validating one field comes to while it is unread: its sentence, and no rule asked.
     private bool SayUnread(FieldIdentifier field)

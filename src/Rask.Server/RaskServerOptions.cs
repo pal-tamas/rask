@@ -82,21 +82,6 @@ public sealed class RaskServerOptions
     public TimeSpan QuiescenceTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
-    ///     How long a page reached in place — a link, a handler's <c>Go()</c>, a redirect, a sign-in's return —
-    ///     is waited for before it is sent. <see cref="TimeSpan.Zero" /> disables the wait. Default
-    ///     150&#160;milliseconds.
-    /// </summary>
-    /// <remarks>
-    ///     The reader keeps the page they are on until the next one has the data its <c>OnMount</c> and
-    ///     <c>OnUpdated</c> read, and gets it as one frame: no heading without its table, no "not found"
-    ///     before the record. Spending the budget is not an error and cancels nothing: the page is sent as it
-    ///     stands and the rest follows when it arrives. A page with nothing to wait for is sent at once, and a
-    ///     second link pressed meanwhile ends the wait for the first. Bound from
-    ///     <c>Rask:Server:NavigationQuiescenceTimeout</c>.
-    /// </remarks>
-    public TimeSpan NavigationQuiescenceTimeout { get; set; } = TimeSpan.FromMilliseconds(150);
-
-    /// <summary>
     ///     How long a handler's work is waited for before the page is sent. <see cref="TimeSpan.Zero" /> disables
     ///     the wait. Default 150&#160;milliseconds.
     /// </summary>
@@ -286,9 +271,6 @@ public sealed class RaskServerOptions
         Require(HandlerTimeout >= TimeSpan.Zero, "HandlerTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
         Require(MaxPendingHandlerBytes >= 0, "MaxPendingHandlerBytes must be >= 0 (0 disables the cap).");
         Require(SendTimeout >= TimeSpan.Zero, "SendTimeout must be >= TimeSpan.Zero (Zero disables the timeout).");
-        Require(
-            NavigationQuiescenceTimeout >= TimeSpan.Zero && NavigationQuiescenceTimeout.TotalMilliseconds <= int.MaxValue,
-            $"NavigationQuiescenceTimeout must be between TimeSpan.Zero (which disables the wait) and {TimeSpan.FromMilliseconds(int.MaxValue)}.");
         Require(
             HandlerQuiescenceTimeout >= TimeSpan.Zero && HandlerQuiescenceTimeout.TotalMilliseconds <= int.MaxValue,
             $"HandlerQuiescenceTimeout must be between TimeSpan.Zero (which disables the wait) and {TimeSpan.FromMilliseconds(int.MaxValue)}.");

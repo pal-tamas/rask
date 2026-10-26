@@ -102,8 +102,7 @@ public class HookEventScopeTests
             {
                 services.AddSingleton<HookScopeGates>();
                 services.AddScoped<HookScopeDb>();
-            },
-            configureServer: o => o.NavigationQuiescenceTimeout = TimeSpan.Zero);
+            });
         var html = await host.Http.GetStringAsync("/hook-scope", TestContext.Current.CancellationToken);
         var session = host.Store.Peek(MarkupAssert.SessionId(html))!;
         var settled = session.AttachesSettled;

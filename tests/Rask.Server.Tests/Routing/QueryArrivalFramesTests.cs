@@ -11,74 +11,52 @@ using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Routing;
 
-// A page that reads through Rask.Query where it renders, reached in place: the query's first fetch is work the
-// navigation waits for, exactly as an awaited OnUpdated is, so the page arrives once with its rows. What is
-// already in the session's cache is shown at once, and a query a save has just made out of date is waited for
-// like one that has nothing to show — the reader who saved does not land on the rows from before their save.
+// A page that reads through Rask.Query where it renders, reached in place: the page is sent at once with its
+// address — the query's spinner while its first fetch runs — and the rows follow when the fetch is back. What is
+// already in the session's cache is shown at once with no fetch, and a query a save has just made out of date is
+// refetched, so the reader who saved ends on what they saved.
 public sealed class QueryArrivalFramesTests(ITestOutputHelper output)
 {
     private const string Fresh = "order v1-3";
 
-    // Longer than any wait here may last: a page is sent because its fetch came back, never because time ran out.
-    private static void Patient(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromMinutes(5);
-
-    // Over while the test still holds the fetch.
-    private static void Brief(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
-
     [Fact]
-    public async Task A_list_that_reads_through_a_query_reached_by_a_link_arrives_once_with_its_rows_and_no_spinner()
+    public async Task A_list_that_reads_through_a_query_reached_by_a_link_shows_its_spinner_at_once_and_then_its_rows()
     {
-        await using var arrival = await Arrival.Open(output, Patient);
+        await using var arrival = await Arrival.Open(output);
         arrival.Store.Hold();
 
         await arrival.Navigate("/q/list");
-        await arrival.Store.ReadStarted();
-        arrival.Store.Release();
-        var frame = Assert.Single(await arrival.Settled());
-
-        Assert.Contains(Fresh, frame, StringComparison.Ordinal);
-        Assert.DoesNotContain("spinner", frame, StringComparison.Ordinal);
-        Assert.Equal("/q/list", LiveFrames.HistoryUrl(frame));
-    }
-
-    [Fact]
-    public async Task A_list_that_reads_through_a_query_reached_by_Go_from_a_handler_arrives_once_with_its_rows()
-    {
-        await using var arrival = await Arrival.Open(output, Patient);
-        arrival.Store.Hold();
-
-        await arrival.Press("go");
-        await arrival.Store.ReadStarted();
-        arrival.Store.Release();
-        var frame = Assert.Single(await arrival.Settled());
-
-        Assert.Contains(Fresh, frame, StringComparison.Ordinal);
-        Assert.DoesNotContain("spinner", frame, StringComparison.Ordinal);
-        Assert.Equal("/q/list", LiveFrames.HistoryUrl(frame));
-    }
-
-    [Fact]
-    public async Task A_query_whose_fetch_outlasts_the_budget_shows_its_spinner_at_the_budget_and_then_its_rows()
-    {
-        await using var arrival = await Arrival.Open(output, Brief);
-        arrival.Store.Hold();
-
-        await arrival.Navigate("/q/list");
-        var atTheBudget = await arrival.Next();
+        var atOnce = await arrival.Next();
         arrival.Store.Release();
         var rows = await arrival.Until(Fresh);
 
-        Assert.Contains("spinner", atTheBudget, StringComparison.Ordinal);
-        Assert.Equal("/q/list", LiveFrames.HistoryUrl(atTheBudget));
+        Assert.Contains("spinner", atOnce, StringComparison.Ordinal);
+        Assert.Equal("/q/list", LiveFrames.HistoryUrl(atOnce));
         Assert.Null(LiveFrames.HistoryUrl(rows));
     }
 
     [Fact]
-    public async Task A_second_visit_to_a_list_whose_query_is_cached_is_one_frame_with_no_fetch_and_no_wait()
+    public async Task A_list_that_reads_through_a_query_reached_by_Go_from_a_handler_shows_its_spinner_at_once_and_then_its_rows()
     {
-        await using var arrival = await Arrival.Open(output, Patient);
+        await using var arrival = await Arrival.Open(output);
+        arrival.Store.Hold();
+
+        await arrival.Press("go");
+        var atOnce = await arrival.Next();
+        arrival.Store.Release();
+        var rows = await arrival.Until(Fresh);
+
+        Assert.Contains("spinner", atOnce, StringComparison.Ordinal);
+        Assert.Equal("/q/list", LiveFrames.HistoryUrl(atOnce));
+        Assert.Null(LiveFrames.HistoryUrl(rows));
+    }
+
+    [Fact]
+    public async Task A_second_visit_to_a_list_whose_query_is_cached_is_one_frame_with_its_rows_and_no_fetch()
+    {
+        await using var arrival = await Arrival.Open(output);
         await arrival.Navigate("/q/list");
-        await arrival.Settled();
+        await arrival.Until(Fresh);
         await arrival.Navigate("/q/home");
         await arrival.Settled();
         var readsBefore = arrival.Store.Reads;
@@ -87,30 +65,29 @@ public sealed class QueryArrivalFramesTests(ITestOutputHelper output)
         await arrival.Navigate("/q/list");
         var frame = Assert.Single(await arrival.Settled());
 
-        // The fetch is held, so a visit that fetched would wait out a budget longer than this test may run.
+        // The fetch is held, so a visit that fetched would show its spinner.
         Assert.Contains(Fresh, frame, StringComparison.Ordinal);
         Assert.Equal(readsBefore, arrival.Store.Reads);
     }
 
     [Fact]
-    public async Task A_save_that_makes_a_cached_list_out_of_date_and_goes_to_it_lands_on_the_fresh_rows_in_one_frame()
+    public async Task A_save_that_makes_a_cached_list_out_of_date_and_goes_to_it_ends_on_the_fresh_rows()
     {
-        await using var arrival = await Arrival.Open(output, Patient);
+        await using var arrival = await Arrival.Open(output);
         await arrival.Navigate("/q/list");
-        await arrival.Settled();
+        await arrival.Until(Fresh);
         await arrival.Navigate("/q/home");
         await arrival.Settled();
         arrival.Store.Hold();
 
         await arrival.Press("save");
-        await arrival.Store.ReadStarted();
+        var atOnce = await arrival.Next();
         arrival.Store.Release();
-        var frame = Assert.Single(await arrival.Settled());
+        var fresh = await arrival.Until("order v2-3");
 
-        // Not the rows from before the save, shown first and replaced: the reader saved, and sees what they saved.
-        Assert.Contains("order v2-3", frame, StringComparison.Ordinal);
-        Assert.DoesNotContain("order v1-", frame, StringComparison.Ordinal);
-        Assert.Equal("/q/list", LiveFrames.HistoryUrl(frame));
+        Assert.Equal("/q/list", LiveFrames.HistoryUrl(atOnce));
+        Assert.DoesNotContain("order v2-", atOnce, StringComparison.Ordinal);
+        Assert.DoesNotContain("order v1-", fresh, StringComparison.Ordinal);
     }
 
     // Every frame is a whole page here, so the page a frame shows — and the handlers on it — can be read from it.
@@ -120,7 +97,7 @@ public sealed class QueryArrivalFramesTests(ITestOutputHelper output)
 
         public QueryArrivalStore Store => host.Server.Services.GetRequiredService<QueryArrivalStore>();
 
-        public static async Task<Arrival> Open(ITestOutputHelper output, Action<RaskServerOptions> configure)
+        public static async Task<Arrival> Open(ITestOutputHelper output)
         {
             var host = RaskTestHost.Create<QueryArrivalApp>(
                 configureServices: services =>
@@ -129,7 +106,6 @@ public sealed class QueryArrivalFramesTests(ITestOutputHelper output)
                     services.AddRaskQuery();
                     services.AddSingleton<QueryArrivalStore>();
                 },
-                configureServer: configure,
                 diffMode: LiveDiffMode.DisabledFull);
             var html = await host.Http.GetStringAsync("/q/home");
             var sessionId = MarkupAssert.SessionId(html);

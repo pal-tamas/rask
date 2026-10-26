@@ -448,69 +448,62 @@ Two things to know:
 
 - **A title loaded after a real `await` arrives with the data.** The initial `GET` waits for it (see
   [the first response](render-modes.md#the-initial-get-waits-for-your-data)), so the served document is complete.
-  A *navigation* in an open page waits for it too — see [the page is sent when its first reads are
-  back](#the-page-is-sent-when-its-first-reads-are-back) — so the page above never shows "No such relation" for
-  a relation that exists, and the crumb, the tab title and the form arrive in one frame. Only a read that
-  outlasts the navigation budget is painted before it is back, and during that time the title is `null`:
-  declare a fallback (`_relation?.Name ?? "Relation"`) where an empty crumb would be wrong.
+  A *navigation* in an open page sends the page at once ([a page reached in place is sent at
+  once](#a-page-reached-in-place-is-sent-at-once)), so until the record is back the title is `null` and the
+  page shows its loading state; the crumb, the tab title and the form then arrive in one frame. Declare a
+  fallback (`_relation?.Name ?? "Relation"`) where an empty crumb would be wrong, and say "No such relation"
+  only once the read has answered.
 - **The page keeps its place.** A layout that renders a breadcrumb only once there is a title changes shape
   around its `Outlet` when the title arrives. The page is remembered by its place in the route, not by the
   outlet that shows it, so it is not created again and what it loaded stays loaded. Nothing else about a routed
   page's life changed: it is constructed and mounted where the layout places the `Outlet` and only there, so a
   layout that withholds it (`Authorize.Role("admin")[Outlet]`) keeps the page's hooks from running.
 
-### The page is sent when its first reads are back
+### A page reached in place is sent at once
 
 A page reached **in place** — a `NavLink`, Back, `Go()` from a handler, a redirect, the page a sign-in returns
-to — is not sent the moment it is mounted. Rask renders it, waits for what its `OnMount` and `OnUpdated`
-started, renders it again with what they read, and sends it **once**: the list with its rows, the edit page
-with its record and its title. It is the first request's wait
-([the initial `GET` waits for your data](render-modes.md#the-initial-get-waits-for-your-data)), for a page
-that is already open, on the Server host and in WebAssembly.
+to — is sent the moment it is mounted, with its address: the reader sees the page switch at once, and what its
+`OnMount` and `OnUpdated` read follows in a frame of its own when it is back. Nothing is waited for and nothing
+is cancelled. Only the first request waits for the page's reads
+([the initial `GET` waits for your data](render-modes.md#the-initial-get-waits-for-your-data)), because its HTML
+is the whole document a crawler sees.
 
 ```csharp
-protected override async Task OnUpdated() => (_rows, _total) = await Relation.Page(Page);   // waited for
+protected override async Task OnUpdated() => (_rows, _total) = await Relation.Page(Page);   // follows the page
 
 private async Task Save()
 {
     await _relation.Save();
-    Routes.RelationListPage().Go();     // one frame: the list, its rows and its address
+    Routes.RelationListPage().Go();     // the list and its address at once, its rows a frame later
 }
 ```
 
-- **Meanwhile the reader keeps the page they are on.** Nothing of the next page is painted until it is whole.
-  The control they pressed is marked busy after 200 ms (`data-loading`, `aria-busy`, for a button) and the
-  progress bar runs across the top after 300 ms — both as before, and both gone when the page arrives.
-- **The budget is 150 ms.** A page whose reads are back within it is never seen without them. One whose reads
-  take longer is sent as it stands when the budget is spent — its heading, its placeholder — and the rest
-  follows when it arrives, exactly as before. Nothing is cancelled. So a page still says what it shows while
-  it loads; it is only seen when the load is slow.
-- **A page with nothing to wait for is sent at once.** The wait is for work the render started; with none
-  pending there is no delay at all, not even a timer.
-- **A second link ends the wait for the first.** The reader who presses another link while a page is still
-  loading gets that page; nothing of the first is sent.
-- **A page that sends the reader on is never shown**, whether it calls `Go()` before its first `await` or after
-  it: the wait reaches the redirect, and the destination arrives in its place.
+- **So a page says what it shows while it loads.** A list whose rows are not back yet renders its loading
+  state — a placeholder, a skeleton, `orders.IsLoading ? Spinner() : …` — and then its rows; an edit page
+  renders a loading state until its record is there, and says "No such relation" only once the read has
+  answered that there is none (`_loaded && _relation is null`), never before.
+- **To keep the rows the reader already sees**, keep them in the component instead of emptying them: a page
+  that stays mounted (a pager or a sort that only changes the query string) and assigns the new rows when they
+  are back keeps the old ones on screen, dimmed by the pager's mark
+  ([a slow page change keeps the rows and dims them](ui-kit.md#tables), the `data-rask-loading`
+  hook). A `Rask.Query` page keeps them with `KeepPreviousData`
+  ([queries](query.md#a-key-that-a-handler-moves)), and a query already in the session's cache — a list
+  visited before — is shown at once with its rows and no fetch; one that is merely old is shown as it is and
+  refreshed behind it.
+- **A second link before the first has begun** is the only page sent: a navigation that a newer one is
+  already queued behind is skipped.
+- **A page that sends the reader on before its first `await` is never shown**: its destination is sent in its
+  place. One that calls `Go()` after an `await` is shown while it loads, and its destination then replaces its
+  address ([redirects](#redirecting-from-a-lifecycle-hook)).
 - **The page's `autofocus` field has focus when it arrives**, as it has when the address is loaded: the first
   one on screen, in place of the move to the page's `<main>`, with the route announced all the same
   ([accessibility](accessibility.md#autofocus-on-a-page-reached-in-place)). A page with none is focused as before.
 - **A save's own repaint waits for the address.** A handler that has called `Go()` is not repainted while it is
   still running, so the destination never appears before the address bar says it.
-- **A page that reads through `Rask.Query` is waited for the same way.** A query read while the page renders
-  (`orders.IsLoading ? Spinner() : Table(orders.Data)`) is waited for when it has nothing to show, and when a
-  save has just invalidated it — so `await Save(); Routes.OrderListPage().Go()` lands on the fresh rows, not
-  on the ones from before the save. A query already in the session's cache is shown at once, with no wait and
-  no fetch; one that is merely old is shown as it is and refreshed behind it.
-- **Work blocked on JavaScript is not waited for**, and neither is work you detach (`_ = Poll()`): the same two
-  exceptions as the first request.
 
-```jsonc
-{ "Rask": { "Server": { "NavigationQuiescenceTimeout": "00:00:00.150" } } }   // default; "00:00:00" sends at once
-```
-
-In a WebAssembly app it is `host.Configure(o => o.NavigationQuiescenceTimeout = 150.Milliseconds)`. Raise it
-for an app whose pages read from a slow store and would rather wait than flash; set it to zero to send every
-page the moment it is mounted.
+There is no setting: `NavigationQuiescenceTimeout`, which once held the page back for up to 150 ms so it
+arrived in one frame with its reads, was removed. Measured in production, holding the page back showed the
+reader nothing for 250–480 ms per click; sent at once, the new page is on screen in 110–160 ms.
 
 ### A handler's work reaches the screen once
 
@@ -536,7 +529,7 @@ Query<Page<Order>> Orders => field ??= QueryClient.Query(() => new GetOrders(_pa
   before a read that is back in time is never seen: the reader keeps the rows they have, and gets the new
   ones. A handler that finishes within the budget is one frame, its last.
 - **The render after the handler waits for the reads its change started** — a child's `OnUpdated`, a
-  `Rask.Query` fetch whose key moved or that a save invalidated — exactly as a navigation waits for its page.
+  `Rask.Query` fetch whose key moved or that a save invalidated — as the first request waits for its page.
 - **The budget is 150 ms**: for the handler, counted from when it starts, and then again for the reads the
   render after it started. Spending it cancels nothing: the page is sent as it stands at that moment, and the
   rest follows when it arrives. So a slow page change shows the
@@ -748,11 +741,10 @@ the page a sign-in returns to, a session rebuilt after a deploy — on the Serve
   reader sees nothing of the page that redirected. A first request is answered with a real `302`, which a
   crawler and a cache understand; in an open session they get one frame, the destination's, with its address
   and its title.
-- **After an `await`** it is the same for as long as the page is still being waited for: a first request
-  (`Rask:Server:QuiescenceTimeout`) is answered with the `302`, and a navigation in an open session
-  (`NavigationQuiescenceTimeout`, [above](#the-page-is-sent-when-its-first-reads-are-back)) is one frame, the
-  destination's, under the address and the history step of the navigation that led there. Only a load that
-  outlasts the wait had its placeholder on screen; the destination then takes its place and its address.
+- **After an `await`** a first request is still answered with the `302` while it waits for the page
+  (`Rask:Server:QuiescenceTimeout`). In an open session the page was sent at once
+  ([above](#a-page-reached-in-place-is-sent-at-once)), so its placeholder is on screen while it loads; the
+  destination then takes its place and its address.
 - **Back never returns to the page that redirected.** It takes no place in the history — the destination
   replaces it — so Back is the page the reader was on before.
 - **The destination is guarded.** Its `[Authorize]` runs before it is built, exactly as for a link.

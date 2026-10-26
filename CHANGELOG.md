@@ -164,6 +164,20 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING (behaviour): `NavigationQuiescenceTimeout` — a navigation sends its page at once; its loads follow
+  in a later frame.** `RaskServerOptions.NavigationQuiescenceTimeout` and `RaskWasmOptions.NavigationQuiescenceTimeout`
+  are gone, and a `Rask:Server:NavigationQuiescenceTimeout` key left in appsettings is ignored. A link, Back, a
+  handler's `Go()`, a redirect, a sign-in's return page — and the first page a WebAssembly app renders — show the
+  new page with its address as soon as it is mounted, and what its `OnMount` / `OnUpdated` read arrives in the
+  frame that follows. Measured in production at the old 150 ms default, every menu click showed nothing for
+  250–480 ms (peaks 1.2 s); sent at once, the new page is on screen in 110–160 ms. What an app sees: a list
+  shows its loading state and then its rows, so give a page a placeholder and say "no such record" only once
+  the read has answered; keep the rows the reader already sees by keeping them in the component (the pager's
+  dim, `data-rask-loading`) or with `KeepPreviousData`, and a `Rask.Query` query already cached is shown at once.
+  A page that calls `Go()` after an `await` is now shown while it loads, and its destination replaces its
+  address. The first `GET` (`QuiescenceTimeout`) and a handler's wait (`HandlerQuiescenceTimeout`) are
+  unchanged. See [a page reached in place is sent at once](docs/routing.md#a-page-reached-in-place-is-sent-at-once).
+
 - **BREAKING: daisyUI is gone from Rask; the kit's theme is Flux UI's alone, under Flux's names.** The vendored
   plugin, its theme scope, its 36 palettes and the `ui-*` tokens over them are deleted; nothing in the kit wrote a
   daisy class any more, so a page drawn with `Ui.*` looks the same. What an app changes:
@@ -1075,6 +1089,12 @@ them until tagged releases begin.
   kit), written once, with the first response, as `<script type="application/json" id="rask-texts">` in the page's culture (not in the live tree, so no update builds it). And `<html>` carries
   `data-rask-offline` while the browser reports itself offline or the Server's socket is down, on both hosts, so a
   page can write `Div.Class("hidden in-data-rask-offline:block")["Offline"]`. `docs/configuration.md#reconnect-ux`.
+- **`Lazy` — a component mounted when it is scrolled into view, Livewire's `#[Lazy]`.** Before: a widget below the
+  fold mounted with the page, its reads holding the first response. After: `Lazy.Placeholder(Ui.Skeleton)[SalesWidget]`
+  renders the placeholder (an empty `div` for `Lazy[SalesWidget]`) and mounts the widget — `OnMount`, its reads —
+  only once any of the placeholder is in the viewport: one frame, nobody's action, on both hosts
+  (`data-rask-lazy`, a behaviour hook).
+
 - **A daily gate builds every front-end template on the newest npm packages.** `upstream.yml`'s `front-ends`
   matrix scaffolds each template on the set `rask new` would choose today, then installs, builds, lints and serves
   it (`scripts/run-template-e2e.sh --front-end=<key>`). A red run opens an issue, or updates the open one. It
@@ -1590,6 +1610,21 @@ them until tagged releases begin.
   the declared column's name, type, length and conversion, so the filter binds the text the column holds. A
   tenant of the three native types is unchanged. Written up in `docs/multi-tenancy.md#tenants-kept-as-text`.
 - A render that draws the tree the browser already holds, with two attributes written in the other order, is no longer answered with the whole page on either host: it followed the first change of a `.Live()` control that shows and hides other fields after a refused save, when the form's own timer asked for a render, and landed on whatever the reader had typed since.
+
+- **A polling query waits while the reader's tab is hidden.** Before: `QueryOptions.RefetchInterval` went on asking
+  the server in a background tab for as long as the page was open. After: no tick is taken while the tab is out of
+  sight, and the one that fell due meanwhile is taken the moment the reader comes back — the browser says so with a
+  `visibility` frame, on both hosts. docs/lifecycle.md no longer shows a detached `_ = Poll()` loop: data is kept
+  fresh with `RefetchInterval` ([Polling](docs/query.md#polling)).
+- **A field the submit empties is empty in the browser (#1245).** Before: a bound field that waits for the next
+  action and is set to `""` by the handler of the submit it went with kept the typed text — the last render had it
+  empty too, so the diff said nothing — and a chat box could not clear itself. After: the page writes what it last
+  heard beside the field (`data-rask-heard="<count>:<text>"`, counted per change so a message sent twice is a new
+  word), and a field that still holds exactly that, once the page renders another value, takes the rendered
+  value, focused or not, as Livewire's does. A field typed on since keeps what was typed, and a render
+  that answers something else still leaves it alone. A secret field (a password, a hidden field, `autocomplete`
+  `current-password` / `new-password` / `one-time-code`, or `data-rask-secret`) gets the count alone and the browser
+  only ever clears it — no typed text is written into a page for it. Server and WASM.
 - A row picked in a `Ui.Select` whose `Ui.SelectSearch` waits for a pause (`.Debounce(…)`) is picked even when the page's `OnChange` goes elsewhere (`Go.To(…)`, a filter kept in the address). The pick emptied the search field by waiting on the browser after the page had navigated, and a handler that navigated sends nothing until it ends: the pick and the navigation waited for an answer that never came. The field is now emptied with the frame the pick sends. The same for a combobox's pick and the search field's clear button.
 - **A word in a `Rask.Ui` comment no longer becomes a rule in every app's stylesheet** (#1214). The kit's sheet,
   and the class list an app's Tailwind build compiles from, came from a scan that read the kit's comments too,

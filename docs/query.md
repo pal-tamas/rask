@@ -351,6 +351,20 @@ before it.
 **One process, for now.** Like every subscription, this reaches the process it was published in. Behind a load
 balancer a page on the other server still catches up on its next refetch rather than the moment the write lands.
 
+### Polling
+
+Data that changes where no save announces it — a feed, a price, a job's progress — is polled, and the interval is an
+option of the query, not a loop of the component's:
+
+```csharp
+var sales = QueryClient.Query(new GetSales(), new QueryOptions { RefetchInterval = TimeSpan.FromSeconds(30) });
+```
+
+It refetches every thirty seconds for as long as a component renders it, and stops when the query is disposed or the
+last component reading it has gone. **Not in a tab the reader cannot see**: while the tab is hidden no tick is taken,
+and the one that fell due meanwhile is taken the moment the reader comes back, on both hosts. Livewire's `wire:poll`
+cuts a background tab's polls by 95%; a query takes none, as TanStack Query's does by default.
+
 ## Subscriptions
 
 A query asks; a subscription is told. `QueryClient.Subscribe<T>()` is declared where a query is and read the same way, and

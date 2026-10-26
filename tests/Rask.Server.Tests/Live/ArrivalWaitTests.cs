@@ -7,8 +7,8 @@ using Rask.Server.Transport;
 namespace Rask.Server.Tests.Live;
 
 /// <summary>
-///     What the wait for a page reached in place, and for a handler's page, costs a page that has nothing to
-///     wait for: nothing.
+///     A page reached in place is sent at once, whatever it is still reading; a handler's page waits for its
+///     reads within the handler budget, and costs a page that has nothing to wait for nothing.
 /// </summary>
 /// <remarks>
 ///     Driven at the session, over a connection that takes a frame without yielding, so the answer is exact:
@@ -20,7 +20,7 @@ public sealed class ArrivalWaitTests
     private static readonly TimeSpan LongerThanATestMayRun = TimeSpan.FromMinutes(5);
 
     [Fact]
-    public void A_page_with_nothing_pending_is_sent_before_the_call_returns_under_a_budget_of_minutes()
+    public void A_page_with_nothing_pending_is_sent_before_the_call_returns()
     {
         var (session, transport) = Attached(new Still(), LongerThanATestMayRun);
 
@@ -31,35 +31,17 @@ public sealed class ArrivalWaitTests
     }
 
     [Fact]
-    public async Task A_page_whose_mount_is_still_reading_is_held_back_until_the_read_returns()
+    public void A_page_whose_mount_is_still_reading_is_sent_at_once_under_a_handler_budget_of_minutes()
     {
         var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var (session, transport) = Attached(new Reading(read.Task), LongerThanATestMayRun);
         session.InHandlerScope = true;
 
         var sending = session.RenderAndSendAsync("/reading", replace: false, arriving: true);
-        var sentWhileReading = transport.Sent.Count;
-        read.SetResult();
-        await sending;
 
-        Assert.Equal(0, sentWhileReading);
-        Assert.Contains("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_navigation_read_while_a_page_is_awaited_ends_the_wait_and_that_page_is_not_sent()
-    {
-        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var (session, transport) = Attached(new Reading(read.Task), LongerThanATestMayRun);
-        session.InHandlerScope = true;
-
-        var sending = session.RenderAndSendAsync("/reading", replace: false, arriving: true);
-        session.NavigationRead();
-        var sent = await sending;
-
-        Assert.False(sent);
-        Assert.True(session.ArrivalSuperseded);
-        Assert.Empty(transport.Sent);
+        Assert.True(sending.IsCompletedSuccessfully);
+        Assert.Contains("reading", Assert.Single(transport.Sent), StringComparison.Ordinal);
+        Assert.DoesNotContain("rows:3", transport.Sent[0], StringComparison.Ordinal);
     }
 
     [Fact]
@@ -76,19 +58,6 @@ public sealed class ArrivalWaitTests
         Assert.True(started);
         Assert.True(sent);
         Assert.Single(transport.Sent);
-    }
-
-    [Fact]
-    public void A_budget_of_zero_sends_a_page_at_once_though_its_mount_is_still_reading()
-    {
-        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var (session, transport) = Attached(new Reading(read.Task), TimeSpan.Zero);
-        session.InHandlerScope = true;
-
-        var sending = session.RenderAndSendAsync("/reading", replace: false, arriving: true);
-
-        Assert.True(sending.IsCompletedSuccessfully);
-        Assert.DoesNotContain("rows:3", Assert.Single(transport.Sent), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -168,7 +137,7 @@ public sealed class ArrivalWaitTests
     private static (LiveSession Session, Sink Transport) Attached(Component view, TimeSpan budget)
     {
         var services = new ServiceCollection();
-        services.AddSingleton(new RaskServerLimits { NavigationQuiescenceTimeout = budget, HandlerQuiescenceTimeout = budget });
+        services.AddSingleton(new RaskServerLimits { HandlerQuiescenceTimeout = budget });
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
         var provider = services.BuildServiceProvider();

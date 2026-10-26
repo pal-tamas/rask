@@ -104,10 +104,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // so the render path records without resolving anything.
     private readonly RaskMetrics? _metrics;
 
-    // How long a frame that carries a navigation waits for the page it goes to. Zero for a store built without
-    // the host's limits, which sends at once, as every frame did before.
-    private readonly TimeSpan _navigationBudget;
-
     public LiveSession(
         string id, Component view, IServiceScope scope, LiveDiffMode diffMode, RaskMetrics? metrics = null)
         : base(view, scope.ServiceProvider, diffMode)
@@ -116,7 +112,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         Scope = scope;
         var limits = scope.ServiceProvider.GetService<RaskServerLimits>();
         _sendTimeout = limits?.SendTimeout ?? TimeSpan.Zero;
-        _navigationBudget = limits?.NavigationQuiescenceTimeout ?? TimeSpan.Zero;
         HandlerBudget = limits?.HandlerQuiescenceTimeout ?? TimeSpan.Zero;
         _metrics = metrics;
         _clock = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
@@ -727,11 +722,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // mounted on a reconnect. Queued like a link the reader clicked, so it runs behind what they did before it.
     protected override bool TryNavigateCore(Action navigate)
     {
-        if (HandToTheArrival(navigate))
-        {
-            return true;
-        }
-
         EnqueueOnHandlerChain(async previous =>
         {
             // Never inline: the hook asking may be inside the very render this navigation has to wait for.
@@ -778,7 +768,6 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         _renderCache?.Dispose();
         _sendCts?.Dispose();
         _sendCts = null;
-        _arrivals.Dispose();
     }
 
     private void ReleaseFileStores()
@@ -1250,101 +1239,22 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     /// </summary>
     private bool RedirectPending => (_navigator ??= Services.GetRequiredService<Navigator>()).RedirectPending;
 
-    // The navigate frames read and not yet started, and the wait a newer one ends. While one is queued,
-    // nothing else of this session is sent.
+    // The navigate frames read and not yet started. While one is queued, nothing else of this session is sent.
     private readonly NavigationArrivals _arrivals = new();
-
-    // Guards the hand-over below against the wait ending on another thread.
-    private readonly Lock _arrivalGate = new();
-    private bool _arriving;
-    private Action? _handedOver;
 
     /// <summary>
     ///     Whether the last frame that carried a navigation was dropped for a newer one: the reader pressed
-    ///     another link while its page was still loading, so nothing of it is sent and nothing follows it.
+    ///     another link before its page was sent, so nothing of it is sent and nothing follows it.
     /// </summary>
     internal bool ArrivalSuperseded { get; private set; }
 
-    // A hook of the page being waited for sent the reader on: that page is not shown.
-    private bool NavigationHandedOver => Volatile.Read(ref _handedOver) is not null;
-
-    /// <summary>A navigate frame was read. Whatever is waiting for an earlier navigation's page stops waiting.</summary>
+    /// <summary>A navigate frame was read, and waits its turn on the handler chain.</summary>
     internal void NavigationRead() => _arrivals.Read();
 
     /// <summary>The navigation read earliest takes its turn. False when a newer one is already waiting behind it.</summary>
     internal bool NavigationStarts() => _arrivals.Starts();
 
-    /// <summary>
-    ///     Takes the navigation a hook made while its page was being waited for, for the dispatch to make in
-    ///     that page's place.
-    /// </summary>
-    internal Action? TakeHandedNavigation() => Interlocked.Exchange(ref _handedOver, null);
-
-    // A hook past its await sent the reader on while the dispatch that mounted its page is still waiting for
-    // that page: the dispatch makes the navigation itself, so the page that asked is never sent.
-    private bool HandToTheArrival(Action navigate)
-    {
-        lock (_arrivalGate)
-        {
-            if (!_arriving)
-            {
-                return false;
-            }
-
-            _handedOver ??= navigate;
-            return true;
-        }
-    }
-
-    /// <summary>
-    ///     Renders the page a navigation goes to, and renders it again as the lifecycle work that render
-    ///     started comes back, until none is pending or the navigation budget is spent. Null when a newer
-    ///     navigation ended the wait.
-    /// </summary>
-    /// <remarks>
-    ///     The first request's waves (<see cref="RenderInitialRootAsync" />), for a page reached in place: the
-    ///     reader keeps the page they are on until the next one has its first reads, and gets it once. Spending
-    ///     the budget cancels nothing — the page goes out as it stands and the rest follows as frames of its own.
-    ///     The render lock is held throughout, so the frame sent is the last wave's and nothing is sent between.
-    ///     The waves themselves are <see cref="LiveSessionBase.RenderInWavesAsync" />, which a handler's render
-    ///     runs too. What a navigation adds is here: a newer one ends the wait, and a hook may hand its own over.
-    /// </remarks>
-    private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderArrivedAsync(bool publishOnly)
-    {
-        // Token first, count second: a frame read between the two cancels the token just taken.
-        var superseded = _arrivals.Superseded;
-        if (_arrivals.AnyQueued)
-        {
-            ArrivalSuperseded = true;
-            return null;
-        }
-
-        lock (_arrivalGate)
-        {
-            _arriving = true;
-            _handedOver = null;
-        }
-
-        try
-        {
-            return await RenderInWavesAsync(publishOnly, _navigationBudget, arriving: true, superseded)
-                .ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (superseded.IsCancellationRequested)
-        {
-            ArrivalSuperseded = true;
-            return null;
-        }
-        finally
-        {
-            lock (_arrivalGate)
-            {
-                _arriving = false;
-            }
-        }
-    }
-
-    protected override bool LeavingThePage(bool arriving) => RedirectPending || (arriving && NavigationHandedOver);
+    protected override bool LeavingThePage() => RedirectPending;
 
     // midFlight: the repaint of a page whose handler is still working. That handler navigates on its own thread,
     // so the walk takes its turn with the navigation: made first, the page is the dispatch's to render and
@@ -1367,22 +1277,17 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // The render a dispatch ends with, waiting for the reads the handler's change started: a child that loads
     // again in OnUpdated, a query whose key moved. One that started none is rendered once and sent at once.
     private async ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderSettledAsync(bool publishOnly) =>
-        await RenderInWavesAsync(publishOnly, HandlerBudget, arriving: false, _socketCt).ConfigureAwait(false);
+        await RenderInWavesAsync(publishOnly, HandlerBudget, _socketCt).ConfigureAwait(false);
 
-    // One render, of the kind its frame calls for. Null when a newer navigation replaced the one it carries.
+    // One render, of the kind its frame calls for. A navigation's page is sent at once; its loads follow.
     private ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)?> RenderForAsync(
-        bool publishOnly, bool arriving, bool settling, bool midFlight)
+        bool publishOnly, bool settling, bool midFlight)
     {
         // A render that waited out the teardown has the render lock and no page: the tree is disposed and its
         // buffers are back in the pool, another session's by now.
         if (_disposed)
         {
             return default;
-        }
-
-        if (arriving && _navigationBudget > TimeSpan.Zero)
-        {
-            return RenderArrivedAsync(publishOnly);
         }
 
         return settling && HandlerBudget > TimeSpan.Zero
@@ -1418,7 +1323,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     // Answers whether a frame went out: false when it was withheld, repeated the last one, or had no one to go to.
-    // arriving: the frame carries a navigation, so it waits for the page it goes to (RenderArrivedAsync).
+    // arriving: the frame carries a navigation, which a newer one queued behind it replaces.
     // settling: the frame ends a handler's dispatch, so it waits for the reads the handler started (RenderSettledAsync).
     // midFlight: the handler behind this repaint is still working, and may navigate beside it (RenderOnce).
     internal async Task<bool> RenderAndSendAsync(string? historyUrl, bool replace, AuthInstruction? auth = null,
@@ -1437,9 +1342,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             ConsumeForcedResend();
 
             // Render + decide diff-vs-full + write the frame — shared with the WASM host (LiveSessionBase).
-            var rendered = await RenderForAsync(publishOnly, arriving, settling, midFlight).ConfigureAwait(false);
-            if (rendered is not var (html, frameWriter)
-                || (auth is null && (RedirectPending || (arriving && NavigationHandedOver))))
+            var rendered = await RenderForAsync(publishOnly, settling, midFlight).ConfigureAwait(false);
+            if (rendered is not var (html, frameWriter) || (auth is null && RedirectPending))
             {
                 return false;
             }
@@ -1575,7 +1479,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         var addressed = await RenderAndSendAsync(
             historyUrl, replace, auth, arriving: arriving, settling: settle && auth is null && !arriving)
             .ConfigureAwait(false);
-        if (auth is null && (RedirectPending || (arriving && (NavigationHandedOver || ArrivalSuperseded))))
+        if (auth is null && (RedirectPending || (arriving && ArrivalSuperseded)))
         {
             // The route moving asked for a render of its own; the caller's render of the destination is it.
             _pendingRenderInScope = false;

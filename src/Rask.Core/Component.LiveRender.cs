@@ -330,6 +330,12 @@ public abstract partial class Component
     // no-op — RaiseLifecycleBeforeRender(false) on an initialized component does nothing at all.
     private void CommitEntry()
     {
+        // Built for a Lazy that is not in view yet: mounted by the walk that first draws it, not here.
+        if (GetLifecycleFlag(FlagHeldBack))
+        {
+            return;
+        }
+
         // No LiveState means the child never reached GetOrCreate (nothing to notify) — the same
         // no-context case in which the factory skips NotifyParameters too.
         var propsChanged = GetLifecycleFlag(FlagEntryPropsChanged);
