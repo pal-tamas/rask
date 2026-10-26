@@ -85,6 +85,7 @@ public partial class HookBundleContractTests
         ["data-rask-color-refuses"] = "on a data-rask-color",
         ["data-rask-calendar-part"] = "inside a data-rask-calendar",
         ["data-rask-calendar-range"] = "on a preset row inside a data-rask-calendar",
+        ["data-rask-calendar-slot"] = "on a datetime picker's time part inside a data-rask-calendar",
         ["data-rask-loading"] = "the runtime's own loading mark (rask-loading.ts); the skeleton hook reads it on a control by a data-rask-skeleton",
     };
 

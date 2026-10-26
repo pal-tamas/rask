@@ -20,10 +20,11 @@ internal static class UiButtonClasses
         IconBoth,
     }
 
-    // Disabled is not on Flux's page: dimmed and inert, as the browser already makes it.
+    // Disabled is not on the button's page; measured on the datetime picker's (its Select waits disabled): half
+    // opacity, no shadow, inert.
     internal const string Base =
         "relative inline-flex items-center font-medium whitespace-nowrap "
-        + "disabled:opacity-75 disabled:pointer-events-none data-loading:pointer-events-none";
+        + "disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-loading:pointer-events-none";
 
     // 12px on an icon's side and 16px on the other; nothing at all around a square's glyph. Flux's page shows
     // an icon beside text at base and sm; xs follows the same step down.

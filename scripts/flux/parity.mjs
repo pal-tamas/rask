@@ -167,6 +167,8 @@ const NATIVE = {
   'ui-date-picker-select': 'div',
   // The time picker: the list of times is a popover the browser opens.
   'ui-time-picker': 'div', 'ui-time-picker-trigger': 'div', 'ui-selected-time': 'div', 'ui-time-picker-options': 'div',
+  // The datetime picker: the date picker's popup with the time picker's fields in it.
+  'ui-datetime-picker': 'div', 'ui-selected-datetime': 'div',
   // The color picker: a modal <dialog> the runtime shows, and the box Flux scripts its Select button through.
   'ui-color-picker': 'div', 'ui-color-picker-select': 'div',
   // The slider and the one-time code: a box around native inputs.

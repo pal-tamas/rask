@@ -229,32 +229,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
     private Component Option(TimeOnly time, int index, bool selected, bool start)
     {
         var off = Off(time);
-        var data = new Dictionary<string, string?>(StringComparer.Ordinal)
-        {
-            ["time"] = time.ToString("HH:mm", CultureInfo.InvariantCulture),
-        };
-        if (selected)
-        {
-            data["selected"] = null;
-        }
-
-        if (start)
-        {
-            // Where the list opens, lit: the runtime lights it again at every opening, and brings it into view.
-            data["active"] = null;
-            data["rask-time-start"] = null;
-        }
-
-        var option = Button
-            .Key(index)
-            .Id(UiSelectNav.OptId(ListId, index))
-            .Type(ButtonType.Button)
-            .Role("option")
-            .TabIndex(-1)
-            .Class(UiTimePickerLook.Option)
-            .Disabled(off)
-            .Data(data)
-            .Aria("selected", selected ? "true" : "false");
+        var option = UiTimeParts.Row(ListId, index, time, selected, start, off);
 
         if (!off)
         {
@@ -266,12 +241,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
                 : option.Attributes([("popovertarget", ListId), ("popovertargetaction", "hide"), .. UiDraws.Pairs(("click", PickDraws))]);
         }
 
-        return option[
-            Div.Class(UiTimePickerLook.Check).Data("checked", null)[
-                Ui.Icon.Name(Ui.IconName.Check).Mini.Class(selected ? null : "hidden")
-            ],
-            Div.Attributes(("dir", "ltr"))[Written(time)]
-        ];
+        return option[UiTimeParts.RowContent(Written(time), selected)];
     }
 
     private string Written(TimeOnly time) => UiTimePickerLook.Format(time, Format, Culture);

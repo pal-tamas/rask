@@ -31,29 +31,13 @@ public sealed partial class UiTimePicker<T>
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),
             Div.Class(UiTimePickerLook.Segments).Data(UiTimePickerLook.SegmentsMark)
                 .Attributes([("dir", "ltr"), .. UiFormCommit.FirstEdit(accessor, context)])[
-                Segment("hour", hour, RaskStrings.Get(RaskString.TimePickerHourPlaceholder, "hh")).Id(field.ControlId).Aria(Named(field, hour)).Attributes(UiTimePickerLook.Numeric),
-                ":",
-                Segment("minute", RaskStrings.Get(RaskString.PickerMinute, "Minute"), RaskStrings.Get(RaskString.TimePickerMinutePlaceholder, "mm")).Attributes(UiTimePickerLook.Numeric),
-                twelve ? " " : null,
-                twelve ? Segment("meridiem", RaskStrings.Get(RaskString.TimePickerMeridiem, "AM/PM"), UiTimePickerLook.Period(false, Culture)) : null,
+                // Flux keeps a space's width between the minute and AM/PM (measured 2026-10-22).
+                UiTimeParts.Of(twelve, Culture, Disabled == true, first => first.Id(field.ControlId).Aria(Named(field, hour)), space: " "),
                 Whole(chosen)
             ],
             Span.Class("grow"),
             Dropdown != false ? Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiTimePickerLook.InputChevron) : null
         ];
-    }
-
-    // A part is the browser's own: no value and no handler, so a render never writes over what is being typed.
-    private HTMLInputElement<string> Segment(string kind, string label, string placeholder)
-    {
-        return Input.Of<string>()
-            .Key(kind)
-            .Type(InputType.Text)
-            .Placeholder(placeholder)
-            .Disabled(Disabled == true)
-            .Class(UiTimePickerLook.Segment)
-            .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["ui-" + kind + "-input"] = null, ["rask-segment"] = kind })
-            .Aria("label", label);
     }
 
     // The hour, which the label points at, also says what the field says about the control.

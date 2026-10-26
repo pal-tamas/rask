@@ -36,14 +36,15 @@ import { landings } from './placement.mjs';
 
 const args = process.argv.slice(2);
 const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
-const slug = args.find(a => a === 'date-picker' || a === 'time-picker');
+const slug = args.find(a => a === 'date-picker' || a === 'time-picker' || a === 'datetime-picker');
 if (!slug) {
-  console.error('usage: node scripts/flux/parity-date.mjs <date-picker|time-picker> [--refresh] [--section <id>] [--all] [--live <url> [--picker <css>] [--wait <ms>]]');
+  console.error('usage: node scripts/flux/parity-date.mjs <date-picker|time-picker|datetime-picker> [--refresh] [--section <id>] [--all] [--live <url> [--picker <css>] [--wait <ms>]]');
   process.exit(1);
 }
 
 const PHONE = [390, 844];
-const dated = slug === 'date-picker';
+// The datetime picker's popup is the date picker's dialog, a sheet on a phone as well.
+const dated = slug !== 'time-picker';
 const refresh = args.includes('--refresh');
 // The desktop every page is measured at, and a phone for the picker that is another control there.
 const views = dated ? [undefined, PHONE] : [undefined];
@@ -72,7 +73,7 @@ const astray = await landings(edges, {
 });
 console.log(astray ? `\nflux parity: the ${slug}'s popup lands elsewhere for ${astray} picker(s).\n` : `\nflux parity: the ${slug}'s popup lands where Flux's does.\n`);
 
-const strayed = option('live') ? await walk(edges, option('live')) : 0;
+const strayed = option('live') && slug === 'date-picker' ? await walk(edges, option('live')) : 0;
 await edges.close();
 
 const passed = args.filter((a, i) => a === '--all' || a === '--section' || args[i - 1] === '--section');

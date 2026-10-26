@@ -14,6 +14,8 @@ public sealed partial class KitPickerFramePage : KitFramePage
     private TimeOnly? _time = new TimeOnly(9, 30);
     private TimeOnly? _typedTime = new TimeOnly(9, 30);
     private string _color = "#ef4444";
+    private DateTime _when = new(2026, 1, 15, 9, 30, 0);
+    private UiDateTimeRange _window;
 
     protected override Component? Render() =>
         Div.Id("stage")[
@@ -23,7 +25,9 @@ public sealed partial class KitPickerFramePage : KitFramePage
             Part("date-picker-input", Ui.DatePicker.Value(_typed).Key("typed").Id("typed").Type(Ui.DatePickerType.Input).OnChange(d => _typed = d)),
             Part("time-picker", Ui.TimePicker.Value(_time).Key("time").Id("time").OnChange(t => _time = t)),
             Part("time-picker-input", Ui.TimePicker.Value(_typedTime).Key("typed-time").Id("typed-time").Type(Ui.TimePickerType.Input).OnChange(t => _typedTime = t)),
-            Part("color-picker", Ui.ColorPicker.Value(_color).Id("color").OnChange(c => _color = c))
+            Part("color-picker", Ui.ColorPicker.Value(_color).Id("color").OnChange(c => _color = c)),
+            Part("datetime-picker", Ui.DatetimePicker.Value(_when).Key("when").Id("when").Locale("en-US").OnChange(d => _when = d)),
+            Part("datetime-picker-range", Ui.DatetimePicker.Range.Value(_window).Key("window").Id("window").Locale("en-US").OnChange(r => _window = r))
         ];
 }
 

@@ -15,6 +15,9 @@ internal static class UiCalendarHook
     /// <summary>The attribute that names a part.</summary>
     internal const string Part = "data-rask-calendar-part";
 
+    /// <summary>Which end a datetime picker's time part belongs to: 0 for a moment or a range's start, 1 for its end.</summary>
+    internal const string Slot = "data-rask-calendar-slot";
+
     /// <summary>A bound field whose value waits for the reader's next action, and goes ahead of it.</summary>
     internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
 
@@ -25,7 +28,8 @@ internal static class UiCalendarHook
     /// <param name="options">The calendar's props, resolved.</param>
     /// <param name="mode">The picks' mode.</param>
     /// <param name="picker">The date picker it sits in, or <c>null</c> for a calendar on its own.</param>
-    internal static string Config(UiCalendarOptions options, string mode, Picker? picker = null)
+    /// <param name="more">What a picker built on the calendar adds: a datetime picker's times.</param>
+    internal static string Config(UiCalendarOptions options, string mode, Picker? picker = null, Action<Utf8JsonWriter>? more = null)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var json = new Utf8JsonWriter(buffer))
@@ -70,6 +74,7 @@ internal static class UiCalendarHook
                 json.WriteString("separator", UiDatePickerText.Separator);
             }
 
+            more?.Invoke(json);
             Culture(json, options.Culture);
             Look(json, options);
             json.WriteEndObject();

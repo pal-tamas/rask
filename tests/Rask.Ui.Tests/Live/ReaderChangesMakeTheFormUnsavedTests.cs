@@ -36,6 +36,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["calendar"] = (typeof(UiCalendar), a => Ui.Calendar.Bind(() => a.Day).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20")),
         ["calendar, multiple"] = (typeof(UiCalendarMultiple), a => Ui.Calendar.Multiple.Bind(() => a.Days).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20")),
         ["date picker"] = (typeof(UiDatePicker), a => Ui.DatePicker.Bind(() => a.Day).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20")),
+        ["datetime picker"] = (typeof(UiDatetimePicker), a => Ui.DatetimePicker.Bind(() => a.Moment).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20T09:30")),
         ["time picker"] = (typeof(UiTimePicker<>), a => Ui.TimePicker.Bind(() => a.At), page => First(page, "button[role=\"option\"]", "click")),
         ["colour picker"] = (typeof(UiColorPicker), a => Ui.ColorPicker.Bind(() => a.Text), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "#22c55e")),
         ["slider"] = (typeof(UiSlider<>), a => Ui.Slider.Bind(() => a.Volume), page => First(page, "input[type=\"range\"]", "input", "40")),
@@ -60,6 +61,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         [typeof(UiMenuRadio)] = "a part of UiMenuRadioGroup, which commits",
         [typeof(UiCalendarRange)] = "UiCalendarControl's one commit, as the calendar rows show",
         [typeof(UiDatePickerRange)] = "UiDatePickerControl's one commit, as the date picker row shows",
+        [typeof(UiDatetimePickerRange)] = "UiDatetimePickerControl's one commit, as the datetime picker row shows",
         [typeof(UiEditor)] = "needs the browser's editor: EditorOnServerTests leaves a form it typed into",
         [typeof(UiTabs)] = "the open tab is the page's drawing, not the form's data",
         [typeof(UiTab)] = "a part of UiTabs",
@@ -222,6 +224,8 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         public List<DateOnly> Days { get; set; } = [];
 
         public TimeOnly? At { get; set; }
+
+        public DateTime Moment { get; set; }
 
         public int Volume { get; set; }
     }

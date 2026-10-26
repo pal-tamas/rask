@@ -194,6 +194,8 @@ public sealed class FluxConformanceTests
         ["flux:date-picker.input"] = typeof(UiDatePickerInput),
         ["flux:date-picker.button"] = typeof(UiDatePickerButton),
         ["flux:time-picker"] = typeof(UiTimePicker<>),
+        ["flux:datetime-picker"] = typeof(UiDatetimePickerControl<>),
+        ["flux:datetime-picker.button"] = typeof(UiDatetimePickerButton),
         ["flux:color-picker"] = typeof(UiColorPicker),
         ["flux:color-picker.area"] = typeof(UiColorPickerArea),
         ["flux:color-picker.slider"] = typeof(UiColorPickerSlider),
@@ -294,6 +296,8 @@ public sealed class FluxConformanceTests
         [typeof(UiCalendarRange)] = "flux:calendar, a range",
         [typeof(UiDatePicker)] = "flux:date-picker, one day",
         [typeof(UiDatePickerRange)] = "flux:date-picker, a range",
+        [typeof(UiDatetimePicker)] = "flux:datetime-picker, one moment",
+        [typeof(UiDatetimePickerRange)] = "flux:datetime-picker, a range",
         [typeof(UiAppearanceScript)] = "the dark-mode script a page's head carries",
         [typeof(UiSidebarScript)] = "the sidebar's script a page's head carries",
     };
@@ -344,6 +348,12 @@ public sealed class FluxConformanceTests
         ["flux:time-picker/time-format=24-hour"] = "an identifier cannot start with a digit: Ui.TimePickerTimeFormat.TwentyFourHour",
         ["flux:time-picker/min=now"] = "A shorthand the browser's clock answers. Min and Max take a TimeOnly; the page passes TimeOnly.FromDateTime(...) from the clock it trusts.",
         ["flux:time-picker/max=now"] = "As min=now.",
+        ["flux:datetime-picker/start-day=0"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Sunday).",
+        ["flux:datetime-picker/start-day=6"] = "A number in Flux; a DayOfWeek here: StartDay(DayOfWeek.Saturday).",
+        ["flux:datetime-picker/size=2xl"] = "an identifier cannot start with a digit: Ui.DatetimePickerSize.Xxl",
+        ["flux:datetime-picker/time-format=12-hour"] = "an identifier cannot start with a digit: Ui.DatetimePickerTimeFormat.TwelveHour",
+        ["flux:datetime-picker/time-format=24-hour"] = "an identifier cannot start with a digit: Ui.DatetimePickerTimeFormat.TwentyFourHour",
+        ["flux:datetime-picker/name"] = "The hidden inputs of a native form post. A Rask picker is bound to its model (Bind), and its one hidden field is the runtime's, not the form's data.",
         ["flux:otp/submit"] = "submit=\"auto\" calls requestSubmit() on the enclosing <form> the moment the last cell is filled (measured: a `submit` event with no submitter). The runtime's otp hook does not submit; it needs `data-rask-otp-submit` on the group: after a commit that leaves every cell filled, `group.closest('form')?.requestSubmit()`. Until then Ui.Otp raises OnComplete with the full code, in a form or out of one.",
         ["flux:otp.input/\u2014"] = "The reference's empty row: the part takes no props.",
         ["flux:otp.separator/\u2014"] = "The reference's empty row: the part takes no props.",
@@ -475,6 +485,7 @@ public sealed class FluxConformanceTests
         ["flux:calendar/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:date-picker/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:time-picker/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
+        ["flux:datetime-picker/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:color-picker/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:slider/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
         ["flux:otp/Live"] = "`wire:model.live`: the property is written as soon as it is chosen",
@@ -674,6 +685,20 @@ public sealed class FluxConformanceTests
         ["flux:time-picker/TimeFormat=TwelveHour"] = "`12-hour`: an identifier cannot start with a digit",
         ["flux:time-picker/TimeFormat=TwentyFourHour"] = "`24-hour`: an identifier cannot start with a digit",
         ["flux:time-picker/Dropdown"] = "`:dropdown='false'`: in the time picker page's 'Without dropdown' example, missing from its reference",
+        ["flux:datetime-picker/Size=Xxl"] = "`2xl`: an identifier cannot start with a digit",
+        ["flux:datetime-picker/StartDay=Monday"] = "`start-day=\"1\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/StartDay=Tuesday"] = "`start-day=\"2\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/StartDay=Wednesday"] = "`start-day=\"3\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/StartDay=Thursday"] = "`start-day=\"4\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/StartDay=Friday"] = "`start-day=\"5\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/StartDay=Saturday"] = "`start-day=\"6\"`: a DayOfWeek where Flux takes its number",
+        ["flux:datetime-picker/TimeFormat=TwelveHour"] = "`12-hour`: an identifier cannot start with a digit",
+        ["flux:datetime-picker/TimeFormat=TwentyFourHour"] = "`24-hour`: an identifier cannot start with a digit",
+        ["flux:datetime-picker/Bind"] = "`wire:model`, two-way",
+        ["flux:datetime-picker/OnChange"] = "`wire:model`'s write, handed to the parent",
+        ["flux:datetime-picker/Validate"] = "the Livewire component's rule for the `wire:model` property",
+        ["flux:datetime-picker/AfterBind"] = "Livewire's `updated…` hook of the `wire:model` property",
+        ["flux:datetime-picker/ShowValidation"] = "whether the shorthand field draws its `flux:error`: false is Flux's control written inside a `flux:field` of your own",
         ["flux:time-picker/Bind"] = "`wire:model`, two-way",
         ["flux:time-picker/OnChange"] = "`wire:model`'s write, handed to the parent",
         ["flux:time-picker/Validate"] = "the Livewire component's rule for the `wire:model` property",
@@ -691,7 +716,7 @@ public sealed class FluxConformanceTests
     {
         var parts = Parts().Select(part => part.Name).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(53, Snapshot.RootElement.GetProperty("pages").GetArrayLength());
+        Assert.Equal(54, Snapshot.RootElement.GetProperty("pages").GetArrayLength());
         Assert.All(Built.Keys, part => Assert.Contains(part, parts));
     }
 

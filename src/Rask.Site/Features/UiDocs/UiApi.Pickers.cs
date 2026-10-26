@@ -11,6 +11,8 @@ internal static partial class UiApi
 
     private const string Days = "DateOnly days: [today.AddDays(1)]";
 
+    private const string Moment = "a DateTime";
+
     public static IReadOnlyList<UiApiPart> Calendar { get; } =
     [
         new("Ui.Calendar", typeof(UiCalendar), "flux:calendar",
@@ -106,6 +108,60 @@ internal static partial class UiApi
             new("Size", typeof(Ui.DatePickerButtonSize?), "How tall it is."),
             new("Clearable", typeof(bool?), "A button that empties the picker, while a date is chosen. The picker's own when unset."),
             new("Disabled", typeof(bool?), "A button that cannot open the picker."),
+            new("Invalid", typeof(bool?), "Draws the button as holding an error."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> DatetimePicker { get; } =
+    [
+        new("Ui.DatetimePicker", typeof(UiDatetimePicker), "flux:datetime-picker",
+            "A field-shaped button over a calendar and a list of times in a popup. Ui.DatetimePicker picks a moment, Ui.DatetimePicker.Range a start and an end.",
+        [
+            new("Bind", typeof(Expression<Func<DateTime>>), "The member it reads and writes: () => m.StartsAt, or a UiDateTimeRange. Or Value with OnChange.", "() => a DateTime, or a UiDateTimeRange"),
+            new("Value", typeof(DateTime), "What it holds, for a page that holds it itself.", "a DateTime, or a UiDateTimeRange"),
+            new("OnChange", typeof(Callback<DateTime>), "Runs with the new value when it is chosen.", Picked),
+            new("AfterBind", typeof(Callback<DateTime>), "Runs after Bind has written the model.", Picked),
+            new("Validate", typeof(Validator<DateTime>?), "A rule the value is checked by when it is written.", Validates),
+            new("Live", typeof(bool?), "Writes the model as soon as it is chosen, not with the next action."),
+            new("Mode", typeof(Ui.DatetimePickerMode?), "What is picked, as a value. The opening step says it; this has to agree with what is bound."),
+            new("Time", typeof(Ui.DatetimePickerTime?), "How times are chosen: from a list, or typed (Ui.DatetimePickerTime.Input). The list when unset."),
+            new("Interval", typeof(int?), "Minutes between the times in the list. 30 when unset."),
+            new("TimeFormat", typeof(Ui.DatetimePickerTimeFormat?), "12-hour or 24-hour. The locale's own when unset."),
+            new("Min", typeof(DateTime?), "The earliest moment that can be picked: earlier days are off, and so are the earlier times of its day.", Moment),
+            new("Max", typeof(DateTime?), "The latest moment that can be picked.", Moment),
+            new("MinTime", typeof(TimeOnly?), "The earliest time of day listed, on every day.", "a TimeOnly"),
+            new("MaxTime", typeof(TimeOnly?), "The latest time of day listed, on every day.", "a TimeOnly"),
+            new("Unavailable", typeof(IReadOnlyList<UiDatetimeSlot>), "Days, stretches of every day, and times of one day that cannot be picked.", "UiDatetimeSlot values: [day, new UiTimeRange(from, to), moment]"),
+            new("DefaultTime", typeof(UiTimeRange?), "The time filled in as soon as a day is picked; for a range, the start's and the end's.", "a TimeOnly, or a UiTimeRange"),
+            new("MinRange", typeof(int?), "The fewest days a range may span, its ends included."),
+            new("MaxRange", typeof(int?), "The most days a range may span, its ends included."),
+            new("OpenTo", typeof(UiDatetimeSlot?), "Where it opens while nothing is chosen: a moment, a day, or a time of today.", "a DateTime, a DateOnly or a TimeOnly"),
+            new("Months", typeof(int?), "How many months are shown side by side. One, or two for a range, when unset."),
+            new("Size", typeof(Ui.DatetimePickerSize?), "How large the trigger and the calendar's day cells are."),
+            new("StartDay", typeof(DayOfWeek?), "The day the week starts on. The locale's own when unset."),
+            new("WeekNumbers", typeof(bool?), "Shows each week's number."),
+            new("SelectableHeader", typeof(bool?), "Makes the month and the year in the header selects."),
+            new("WithToday", typeof(bool?), "A button that comes back to this month, and picks today once there."),
+            new("FixedWeeks", typeof(bool?), "Always six weeks, so paging never changes the height."),
+            new("WithConfirmation", typeof(bool?), "Holds the choice until the reader presses Select. Always so for a range and typed times."),
+            new("Clearable", typeof(bool?), "A button in the trigger that empties the picker, while something is chosen."),
+            new("Trigger", typeof(Component), "A trigger of your own: a Ui.Button, or a Ui.DatetimePickerButton."),
+            new("Label", typeof(string), "Draws a field around it, with this label and the error."),
+            new("Description", typeof(string), "Help text between the label and the picker."),
+            new("DescriptionTrailing", typeof(string), "Help text under the picker."),
+            new("Badge", typeof(string), "A word beside the label: \"Optional\"."),
+            new("Placeholder", typeof(string), "What the button shows while nothing is chosen. By mode when unset."),
+            new("Disabled", typeof(bool?), "A picker that cannot be opened."),
+            new("Invalid", typeof(bool?), "Error styling the form did not ask for."),
+            new("Locale", typeof(string), "The locale the names, the week, the dates and the clock follow. The app's culture when unset."),
+            new("ShowValidation", typeof(bool?), "False leaves the member's message to a Ui.Error placed elsewhere."),
+        ]),
+        new("Ui.DatetimePickerButton", typeof(UiDatetimePickerButton), "flux:datetime-picker.button",
+            "The field-shaped button in a picker's Trigger, for what the picker's own steps do not reach.",
+        [
+            new("Placeholder", typeof(string), "What it shows while nothing is chosen. The picker's own when unset."),
+            new("Size", typeof(Ui.DatetimePickerButtonSize?), "How tall it is."),
+            new("Clearable", typeof(bool?), "A button that empties the picker, while something is chosen. The picker's own when unset."),
             new("Invalid", typeof(bool?), "Draws the button as holding an error."),
         ]),
     ];

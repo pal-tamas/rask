@@ -187,6 +187,33 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker-input"] = On<KitPickerFramePage>("time-picker-input",
             Typing("[data-c='time-picker-input'] [data-rask-segment=hour]", "10", "typing a part of the time"),
             Typing("[data-c='time-picker-input'] [data-rask-segment=hour]", "1045a", "typing a whole time")),
+        ["datetime-picker"] = On<KitPickerFramePage>("datetime-picker",
+        [
+            .. Popup("#when", "[data-c='datetime-picker'] dialog"),
+            Twice("page the month", "[data-c='datetime-picker']" + NextMonth, "[data-c='datetime-picker']" + PreviousMonth, Pressing("#when")),
+            Keys("walk the times", async page =>
+            {
+                await Pressing("#when")(page);
+                await Focusing("[data-c='datetime-picker'] [data-rask-calendar-part=times] [tabindex='0']")(page);
+            },"ArrowDown", "ArrowDown", "ArrowUp", "End", "Home"),
+            Pointer("[data-c='datetime-picker'] [data-rask-calendar-part=times]", Pressing("#when"), "pointer over the times"),
+            Press("pick a day", "[data-c='datetime-picker']" + ADay, Pressing("#when")),
+            Press("pick a time", "[data-c='datetime-picker'] [data-rask-calendar-part=times] [data-time='11:00']", Pressing("#when")),
+        ]),
+        ["datetime-picker-range"] = On<KitPickerFramePage>("datetime-picker-range",
+        [
+            .. Popup("#window", "[data-c='datetime-picker-range'] dialog"),
+            Press("pick a range's days", "[data-c='datetime-picker-range'] [role=gridcell] button >> nth=22", async page =>
+            {
+                await page.Locator("#window").ClickAsync();
+                await page.Locator("[data-c='datetime-picker-range'] [role=gridcell] button >> nth=20").ClickAsync();
+            }),
+            Press("pick an end's time", "[data-c='datetime-picker-range'] [data-rask-calendar-part=time-list] [data-time='09:00'] >> nth=0", async page =>
+            {
+                await page.Locator("#window").ClickAsync();
+                await page.Locator("[data-c='datetime-picker-range'] [data-ui-datetime-picker-time=start] button[role=combobox]").ClickAsync();
+            }),
+        ]),
         ["color-picker"] = On<KitPickerFramePage>("color-picker",
         [
             .. Popup(ColorButton, "[data-c='color-picker'] dialog"),

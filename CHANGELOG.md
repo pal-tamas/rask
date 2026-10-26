@@ -9,6 +9,22 @@ them until tagged releases begin.
 
 ### Added
 
+- **`Ui.DatetimePicker` — Flux UI's new datetime picker: a date and a time from one field.** The date picker's calendar
+  with a column of times beside it (or `.Time(Ui.DatetimePickerTime.Input)` to type the time), over a wall-clock
+  `DateTime` — `2026-10-14T10:30`, as a `datetime-local` field holds it, nothing converted between time zones — or a
+  start and an end over the new `UiDateTimeRange` (`Ui.DatetimePicker.Range`, Flux's `DateTimeRange`). Before: a
+  `Ui.DatePicker` and a `Ui.TimePicker` side by side, joined by hand into one `DateTime`. After:
+  `Ui.DatetimePicker.Bind(() => m.StartsAt).Min(DateTime.Now).MinTime(new(9, 0)).MaxTime(new(17, 0))` and
+  `Ui.DatetimePicker.Range.Bind(() => m.Window).MaxRange(7)`. Every Flux prop: `Interval`, `TimeFormat`, `MinTime` /
+  `MaxTime` (times outside are not listed), `Unavailable` days, stretches of every day and times of one day
+  (`UiDatetimeSlot`, which a `DateOnly`, `TimeOnly`, `UiTimeRange` and `DateTime` each convert to), `DefaultTime`,
+  `WithConfirmation()`, `Clearable()`, `OpenTo`, a trigger of your own (`Ui.Button`, `Ui.DatetimePickerButton`) and
+  the date picker's calendar options. Measured on Flux: a time picked beside a day writes the value and closes; a day
+  changed beside a chosen time writes it at once; a range, typed times, a confirmation and a phone wait for Select; a
+  range whose end is not after its start says so. Everything drawn in the popup is the browser's (`rask-calendar.ts`),
+  so opening, paging and walking the times send the server nothing. English and Hungarian strings. On rask.sh:
+  `/ui/datetime-picker/`.
+
 - **`Ui.Navbar.Scrollable()` and `Ui.NavbarItem.Label("Search")` — Flux's `scrollable` and `label`, which its layout
   pages write.** Measured on Flux's demos: a scrollable navbar is `overflow-x: auto; overflow-y: hidden` and nothing
   else (its items keep their width, no fade, no hidden scrollbar), so at 390 px the secondary header's tabs scroll
@@ -94,6 +110,12 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+
+- **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
+  on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
+  `shadow-none`, and a disabled day keeps the hover rule while `pointer-events: none` keeps it from ever lighting. A
+  range running on into the next month leaves the last day of its month's last week unrounded, as Flux draws it.
+  `Ui.TimePicker`'s list rows are 14px at every width, as Flux's are.
 
 - **rask.sh is drawn in Flux's own colours.** The site and the notes demo wrote the kit's transitional `ui-*` tokens
   (`text-ui-muted`, `bg-ui-well`, `border-ui-line`), which were daisyUI's palette under another name. They write
