@@ -184,6 +184,11 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
+  emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
+  box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a
+  phone's short plot the box covers part of it); unseen, it still says the row it last read; and it moves in whole
+  pixels.
 - **A composer's box is as tall as its text from the first paint, as Flux's is.** Before: it took its rows and
   grew only once something was typed, so a placeholder that wraps on a phone was cut to its first line. After:
   the box is fitted as it arrives — on the page's load and when a render adds it — and an `inline` composer

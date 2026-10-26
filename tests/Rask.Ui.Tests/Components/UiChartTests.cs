@@ -258,7 +258,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
 
         Assert.StartsWith("<div class=\"relative block\" data-ui-chart data-rask-plot=\"\">", html, StringComparison.Ordinal);
         Assert.Equal(1, tooltips);
-        Assert.Matches("<div class=\"pointer-events-none absolute flex [^\"]* opacity-0 [^\"]*data-active:opacity-100[^\"]*\" data-rask-plot-tooltip=\"15\">", html);
+        Assert.Matches("<div class=\"absolute flex [^\"]* opacity-0 [^\"]*data-active:opacity-100[^\"]*\" data-rask-plot-tooltip=\"15\">", html);
         Assert.Contains("<path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-dasharray=\"4,4\" class=\"text-zinc-500 dark:text-zinc-300\" opacity=\"0\">", html, StringComparison.Ordinal);
     }
 

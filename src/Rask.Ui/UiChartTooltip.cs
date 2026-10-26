@@ -6,7 +6,9 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 /// One box for every row. It rests in the document unseen; under the pointer the runtime's plot hook moves it
-/// beside the row, 15px off, to whichever side keeps it inside the chart, and its parts read that row.
+/// beside the row, 15px off, to whichever side keeps it inside the chart, and its parts read that row. As Flux's,
+/// it stays where it was last shown, still saying that row, and takes the pointer there: over it the pointer is
+/// off the plot.
 /// </remarks>
 public sealed partial class UiChartTooltip : Component, IUiChartField
 {
@@ -19,7 +21,7 @@ public sealed partial class UiChartTooltip : Component, IUiChartField
     public string? Class { get; set; }
 
     private const string Box =
-        "pointer-events-none absolute flex flex-col overflow-hidden rounded-lg border border-zinc-200 "
+        "absolute flex flex-col overflow-hidden rounded-lg border border-zinc-200 "
         + "bg-white opacity-0 shadow-lg data-active:opacity-100 dark:border-zinc-500 dark:bg-zinc-700";
 
     // How far from the row and from the pointer Flux keeps it.

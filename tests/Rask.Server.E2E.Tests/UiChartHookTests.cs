@@ -93,17 +93,45 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
         var before = Volatile.Read(ref sent);
 
         // The chart is at (20, 20), 400 by 133.33; its plot runs from 8 to 392 across and its three rows sit at 8, 200 and 392.
-        await page.Mouse.MoveAsync(40, 60);
+        // Below the corner where the tooltip rests unseen, which takes the pointer (the next test).
+        await page.Mouse.MoveAsync(40, 110);
         var first = await page.EvaluateAsync<string>(read);
         await page.Mouse.MoveAsync(230, 70);
         var middle = await page.EvaluateAsync<string>(read);
         await page.Mouse.MoveAsync(230, 160);
         var below = await page.EvaluateAsync<string>(read);
 
-        Assert.Equal("on | Mon 10 | 23,55 | 10 | 0 | A..", first);
+        Assert.Equal("on | Mon 10 | 23,105 | 10 | 0 | A..", first);
         Assert.Equal("on | Tue 30 | 215,65 | 30 | 0.5 | .A.", middle);
         Assert.StartsWith("off | - | 215,65 | 20 | ", below, StringComparison.Ordinal);
         Assert.Equal(before, Volatile.Read(ref sent));
+    }
+
+    [Fact]
+    public async Task Over_the_tooltip_resting_unseen_the_pointer_is_off_the_plot_as_on_Flux()
+    {
+        await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright);
+        var page = session.Page;
+        await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
+        await session.HooksLoadedAsync();
+        const string read = "() => { const c = document.querySelector('#fluid [data-ui-chart]'), t = c.querySelector('[data-rask-plot-tooltip]'), b = t.getBoundingClientRect(); return [c.hasAttribute('data-active') ? 'on' : 'off', t.hasAttribute('data-active') ? 'shown' : 'unseen', Math.round(b.left) + ',' + Math.round(b.top)].join(' | '); }";
+
+        // Shown beside a row, then left where it was when the pointer went: unseen there, it still takes the pointer.
+        await page.Mouse.MoveAsync(230, 110);
+        var shown = await page.EvaluateAsync<string>(read);
+        await page.Mouse.MoveAsync(700, 400);
+        const string tooltip = "document.querySelector('#fluid [data-rask-plot-tooltip]')";
+        var box = await page.EvaluateAsync<double[]>($"() => {{ const b = {tooltip}.getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }}");
+        var says = await page.EvaluateAsync<string>($"() => {tooltip}.innerText.replace(/\\s+/g, ' ').trim()");
+        await page.Mouse.MoveAsync((float)box[0], (float)box[1]);
+        var resting = await page.EvaluateAsync<string>(read);
+        await page.Mouse.MoveAsync(100, 110);
+        var back = await page.EvaluateAsync<string>(read);
+
+        Assert.StartsWith("on | shown | ", shown, StringComparison.Ordinal);
+        Assert.Equal("Tue 30", says);
+        Assert.Equal($"off | unseen | {shown.Split(" | ")[2]}", resting);
+        Assert.StartsWith("on | shown | ", back, StringComparison.Ordinal);
     }
 
     [Fact]

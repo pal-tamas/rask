@@ -22,8 +22,9 @@
 // corner; the row nearest along the axis — the switch is at the midpoint between two rows — has `data-active`
 // on each of its elements; and the tooltip has `data-active` and `transform: translate(x, y)`, snapped to the
 // row along the axis and following the pointer across it, each flipped to the other side when the box would
-// pass the frame's right or bottom edge. Outside, the marks come off, each text goes back to what was rendered, and everything else
-// is left where it was.
+// pass the frame's right or bottom edge. Outside — and over the tooltip, which takes the pointer as Flux's does —
+// the marks come off, each text but the tooltip's goes back to what was rendered, and everything else is left
+// where it was.
 //
 // A root with NO area is a plot of shapes (a pie): the active row is the `data-rask-plot-row` element under
 // the pointer, every other row's elements carry `data-inactive` meanwhile, and the tooltip follows the
@@ -97,10 +98,14 @@ const rest = new WeakMap<Element, string>();
 const wrote = new WeakMap<Element, string>();
 
 /** Every text of the plot shows row `row`'s line; -1 puts back what was rendered. */
-function write(root: Element, row: number): void {
+// `kept`: what keeps the row it last read when the rest go back (the tooltip, as Flux's: unseen, it still says it).
+function write(root: Element, row: number, kept?: Element | null): void {
     const texts = root.querySelectorAll("[data-rask-plot-text]");
     for (let i = 0; i < texts.length; i++) {
         const el = texts[i];
+        if (row < 0 && kept && kept.contains(el)) {
+            continue;
+        }
         const shown = el.textContent || "";
         if (!rest.has(el) || shown !== wrote.get(el)) {
             rest.set(el, shown);
@@ -152,8 +157,8 @@ if (page) {
         }
         mark(over, false);
         light(over, -1, false);
-        write(over, -1);
         const tooltip = over.querySelector("[data-rask-plot-tooltip]");
+        write(over, -1, tooltip);
         if (tooltip) mark(tooltip, false);
         over = null;
         lit = -1;
@@ -162,6 +167,12 @@ if (page) {
     listen("pointermove", function (e) {
         const root = near(e.target, PLOT) || over;
         if (!root) {
+            return;
+        }
+        // The tooltip takes the pointer, shown or not, as Flux's does: over it the pointer has left the drawing and
+        // is off the plot (measured on a phone, whose short plot the box covers in part).
+        if (near(e.target, "[data-rask-plot-tooltip]")) {
+            leave();
             return;
         }
         const area = root.querySelector("[data-rask-plot-area]");
@@ -218,14 +229,15 @@ if (page) {
             write(root, row);
         }
         if (tooltip && size) {
-            // From wherever the box rests: its own place in the root is taken back out of the move.
+            // From wherever the box rests: its own place in the root is taken back out of the move. In whole
+            // pixels, as Flux moves it: a box that takes the pointer is then where Flux's is to the pixel.
             const gap = Number(tooltip.getAttribute("data-rask-plot-tooltip")) || 0;
             const within = root.querySelector("[data-rask-plot-frame]");
             const edge = within ? within.getBoundingClientRect() : frame;
             own(tooltip, "style");
             tooltip.style.transform = "translate("
-                + (beside(x, size.width, gap, edge.right - frame.left) - tooltip.offsetLeft) + "px, "
-                + (beside(y, size.height, gap, edge.bottom - frame.top) - tooltip.offsetTop) + "px)";
+                + Math.round(beside(x, size.width, gap, edge.right - frame.left) - tooltip.offsetLeft) + "px, "
+                + Math.round(beside(y, size.height, gap, edge.bottom - frame.top) - tooltip.offsetTop) + "px)";
             mark(tooltip, true);
         }
     }, {capture: true, passive: true});

@@ -426,3 +426,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96099
 rask-hooks.js,115927
+#
+# 2026-10-26, a chart's tooltip takes the pointer as Flux's does (rask-plot.ts, hooks only: over the box the
+# pointer is off the plot, the box keeps the row it last read when the pointer goes, and it moves in whole
+# pixels): rask-hooks.js +116 (115,927 -> 116,043), the runtimes unchanged. Measured locally (Release, the
+# benchmarks job's recipe) on main 4e7435732.
+bundle,bytes
+rask.js,110100
+rask.wasm.js,96099
+rask-hooks.js,116043
