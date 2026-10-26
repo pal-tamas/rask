@@ -741,10 +741,26 @@ the page a sign-in returns to, a session rebuilt after a deploy — on the Serve
   reader sees nothing of the page that redirected. A first request is answered with a real `302`, which a
   crawler and a cache understand; in an open session they get one frame, the destination's, with its address
   and its title.
-- **After an `await`** a first request is still answered with the `302` while it waits for the page
-  (`Rask:Server:QuiescenceTimeout`). In an open session the page was sent at once
+- **After an `await`** the page is shown, and its destination then **replaces** its address. A first request
+  is still answered with the `302` when the page decides within the time the response waits for it
+  (`Rask:Server:QuiescenceTimeout`). A load that outlasts it — or that waits on the browser, as a passkey
+  check does — is answered with the page; the `Go()` is kept for the live connection, which carries the reader
+  on as the first thing it does when it opens (over the socket or the HTTP stream alike), or at once if it is
+  already open. In an open session the page was sent at once
   ([above](#a-page-reached-in-place-is-sent-at-once)), so its placeholder is on screen while it loads; the
-  destination then takes its place and its address.
+  destination then takes its place and its address. In WebAssembly the first page is rendered in the browser,
+  so it is the same as an open session.
+
+```csharp
+// /login: a reader already signed in is sent on — after the store has said so.
+protected override async Task OnMount()
+{
+    if (_users.Current.Identity?.IsAuthenticated == true && await _revalidator.Revalidate(_users.Current) is not null)
+    {
+        Go.Out(Where());                       // shown as /login while it checks, then replaced by Where()
+    }
+}
+```
 - **Back never returns to the page that redirected.** It takes no place in the history — the destination
   replaces it — so Back is the page the reader was on before.
 - **The destination is guarded.** Its `[Authorize]` runs before it is built, exactly as for a link.
@@ -774,7 +790,9 @@ protected override Task OnMount()
 
 The address is used as written, and the browser loads it as a page: a `302` on a first request, a full-page
 navigation from a handler or a lifecycle hook (before or after an `await`, as
-[above](#redirecting-from-a-lifecycle-hook)), on the Server host and in WebAssembly. The app sent the reader
+[above](#redirecting-from-a-lifecycle-hook)), on the Server host and in WebAssembly. From a hook it takes the
+place of the page that asked — after an `await`, or on a first page in WebAssembly — so Back does not return
+to it; from a handler or a link it is a new entry. The app sent the reader
 there, as a handler's `Go.To` does, so a form with [`ConfirmLeave`](forms.md) is not asked about.
 
 **Only a path on this site.** `Go.Out` takes what the app wrote: one `/` and then the path. Another site, a
