@@ -201,7 +201,9 @@ them until tagged releases begin.
     `Ui.AppearanceScript` at the top of every page's head**, as Flux's layout writes `@fluxAppearance` — so a
     scaffolded app follows the reader's system appearance (its buttons were dark-on-dark before). An App that
     writes its own `Ui.AppearanceScript` gets exactly one, its own (with its `StorageKey`), deduplicated by the
-    script's `data-rask-appearance` marker; delete the line when convenient. `Rask.DevTools` writes it too.
+    script's `data-rask-appearance` marker; such an app may delete the line. A **hand-wired host** (`AddRask` +
+    `MapRask<App>()`) writes its own document, so its App must KEEP `Ui.AppearanceScript` in `HeadAssets`, or dark
+    mode silently stays off. `Rask.DevTools` writes it too.
   - The kit's Tailwind sources in `Styles/vendor/` are three files (no `daisyui.mjs`); the build sweeps a stale
     one away, and the layer order is `properties, theme, base, components, rask, utilities`.
 - **BREAKING: the kit's data grid, tree and last non-Flux pieces are gone, and `RASK076` is retired.** Rask.Ui now
