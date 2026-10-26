@@ -21,6 +21,7 @@ public sealed partial class UiCheckbox : IUiFilterField
         }
 
         Live ??= true;
+        _filtered = true;
 
         BuilderRuntime.MarkChanged(this);
     }

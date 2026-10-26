@@ -146,6 +146,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A `Ui.Checkbox` in `Ui.Filters` bound to a `bool?` draws no dash while its key is absent.** Before: an absent key
+  (`[QueryParam("ibc")] bool? Ibc` on `/vehicles`) drew the box indeterminate; after: unticked, as the filter set
+  writes `false` as no key.
 
 - **A range that starts or ends on the last day of a month's last row is rounded there, as on Flux.** The
   calendar left that day square whenever it was in a range; measured on fluxui.dev, it is square only inside a

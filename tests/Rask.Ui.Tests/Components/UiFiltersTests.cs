@@ -51,6 +51,17 @@ public sealed partial class FilteredOrdersPage(RouteState route) : Component
     }
 }
 
+/// <summary>A filter box over a <c>bool?</c> member: an absent key is the box left unticked.</summary>
+[Route("/ui-filters-tests/nullable-box")]
+public sealed partial class NullableBoxPage : Component
+{
+    [QueryParam("ibc")] public bool? Ibc { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Main[Ui.Filters[Ui.Checkbox.Bind(() => Ibc).Label("IBC only")], FilteredOrders.Table("boxes")];
+}
+
 /// <summary>A filtered list whose table has no id of its own: the set gives it one.</summary>
 [Route("/ui-filters-tests/unnamed")]
 public sealed partial class UnnamedTablePage : Component
@@ -122,8 +133,12 @@ public sealed partial class UnkeptFilterPage : Component
 /// <summary>
 ///     <c>Ui.Filters</c>: each control bound to the address, a badge for each filter in force, and a count of them.
 /// </summary>
+[Collection(FilteredOrdersCollection.Name)]
 public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
 {
+    // Each test starts with no escape-hatch tag: a test that set one and failed must not leave it to the next.
+    public UiFiltersTests() => FilteredOrders.Tag = null;
+
     private const string Orders = "/ui-filters-tests/orders";
 
     private static IReadOnlyList<string> Badges(Page page) =>
@@ -166,6 +181,16 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
         Assert.Equal("0", active);
         Assert.False(page.Exists("[data-ui-filters-badges]"));
         Assert.False(page.Exists("[data-ui-filters] [data-ui-badge]"));
+    }
+
+    [Fact]
+    public void A_filter_box_over_a_nullable_member_is_unticked_while_its_key_is_absent()
+    {
+        var page = Page.Visit("/ui-filters-tests/nullable-box");
+
+        var dashed = page.Exists("[data-ui-filters] [data-indeterminate]");
+
+        Assert.False(dashed);
     }
 
     [Fact]

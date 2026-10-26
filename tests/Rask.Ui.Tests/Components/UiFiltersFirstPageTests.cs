@@ -69,8 +69,12 @@ public sealed partial class TurnedOrdersPage(RouteState route) : Component
 }
 
 /// <summary>A filter change takes the list back to its first page, and the sort stays.</summary>
+[Collection(FilteredOrdersCollection.Name)]
 public partial class UiFiltersFirstPageTests : global::Rask.Core.RaskMarkup
 {
+    // Each test starts with no escape-hatch tag: a test that set one and failed must not leave it to the next.
+    public UiFiltersFirstPageTests() => FilteredOrders.Tag = null;
+
     private static Task Open(Page page) => page.On("dialog > input[data-rask-modal-shown]").Change("true");
 
     [Fact]
