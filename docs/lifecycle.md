@@ -254,6 +254,29 @@ tenant its resolver named. A service made for the event that takes one of those 
 a scoped service of yours can inject `IToaster` or `IUserProvider` as it always could. The scope is opened only
 when something asks for a per-event service, so an event that asks for none costs nothing.
 
+**Each component's part of an event is its own.** As a Livewire component's action is a request of its own, every
+component a live event runs code for — the one whose handler was clicked, each one whose `OnMount`/`OnUpdated` the
+event's render started — gets its own scope. A page whose notices, progress bar and file list each load in their own
+hook loads them **at once, each through its own `DbContext`**, where one shared context would throw EF Core's "a
+second operation was started on this context instance":
+
+```csharp
+public sealed partial class LoadNotices : Component
+{
+    protected override async Task OnMount()
+    {
+        var db = Current.Service<ShopDb>();             // this component's, in this event
+        _notices = await db.Notices.ToListAsync();      // runs beside LoadProgress's read, never on its context
+    }
+}
+```
+
+Within one component the event's instance is one: its handler, its hooks and what they call — a command handler the
+click dispatches, a helper that takes nothing — all get the same `ShopDb`. Code that runs for no component (a
+`Render()`, a read a render started) gets the event's own. Each component's scope lives by the rules below on its
+own: it goes when the event has ended and *that component's* hooks are done, whatever its neighbours are still
+reading.
+
 Two rules follow:
 
 - **A component's constructor is the session's.** A component outlives every event, so what it takes in its
@@ -320,7 +343,7 @@ It answers from whatever work is in flight, as its constructor would have been h
 
 | Where it is called | What it returns |
 | --- | --- |
-| A live event (handler, navigation, pushed render, the hooks they run) — both hosts | The event's own scoped instance: one per event, the same across `await`s, disposed when the event ends. The session's services (route, navigator, `IJSRuntime`, `IUserProvider`, toaster, language, query cache, tenant) are the session's. |
+| A live event (handler, navigation, pushed render, the hooks they run) — both hosts | The scoped instance of the event's part for the component running it: one per component per event, the same across `await`s, disposed when the event and that component's hooks are done. The session's services (route, navigator, `IJSRuntime`, `IUserProvider`, toaster, language, query cache, tenant) are the session's. |
 | An HTTP request (minimal API, controller) | The request's `RequestServices`. |
 | A background job, a CQRS handler's scope | That scope. |
 | Nowhere — a constructor, a hosted service's own loop | An `InvalidOperationException` naming what to inject instead. Never the root provider. |

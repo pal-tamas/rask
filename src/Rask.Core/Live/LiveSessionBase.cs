@@ -420,14 +420,14 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     protected void EndEvents() => _eventServices?.EndAll();
 
     /// <summary>
-    ///     Keeps the event in progress, and the scope it has or will open, until <paramref name="hook" /> — started
-    ///     for <paramref name="owner" /> by <paramref name="render" /> — is done.
+    ///     Keeps <paramref name="owner" />'s part of the event in progress, and the scope it has or will open, until
+    ///     <paramref name="hook" /> — started by <paramref name="render" /> under <paramref name="context" /> — is done.
     /// </summary>
-    internal void HoldEvent(Task hook, Component owner, LiveRenderContext render)
+    internal void HoldEvent(Task hook, Component owner, LiveRenderContext render, LifecycleSyncContext context)
     {
         if (EventServices is EventServices events)
         {
-            events.Hold(hook, owner, render);
+            events.Hold(hook, owner, render, context);
         }
     }
 

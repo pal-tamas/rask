@@ -257,10 +257,17 @@ public abstract partial class Component
         // and the Track below, which used to do its own.
         var quiescence = QuiescenceScope.Current;
         var ctx = new LifecycleSyncContext(this, quiescence) { IsLoad = isLoad };
+        var carried = EventServices.Carried;
         SynchronizationContext.SetSynchronizationContext(ctx);
         Task task;
         try { task = invoke(); }
-        finally { SynchronizationContext.SetSynchronizationContext(prev); }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(prev);
+
+            // A hook that is not async keeps no flow of its own: what it resolved is its component's, not the walk's.
+            EventServices.Restore(carried);
+        }
 
         if (task.IsCompleted)
         {
@@ -298,7 +305,7 @@ public abstract partial class Component
         // done — a navigation has long been sent by the time a slow read comes back.
         if (LiveRenderContext.CurrentSync is { Handle: LiveSessionBase session } render)
         {
-            session.HoldEvent(painted, this, render);
+            session.HoldEvent(painted, this, render, ctx);
         }
     }
 

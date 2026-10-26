@@ -111,6 +111,16 @@ them until tagged releases begin.
 
 ### Changed
 
+- **Each component's part of a live event gets its own scoped services, as a Livewire component's action is a request
+  of its own.** Before: a page whose `LoadNotices`, `LoadProgress` and file list each load in `OnMount` with
+  `var db = Current.Service<ApplicationDbContext>();` handed all three the event's one `DbContext`, read it at once and
+  failed with EF Core's "A second operation was started on this context instance" — the first GET never rendered.
+  After: the same code, each component reading through a `DbContext` of its own, all three at once. Within one
+  component nothing changes (its handler, hooks and what they call share one instance across `await`s); a component's
+  scope goes when the event and its own hooks are done. Behaviour change: two components in one event no longer share
+  a scoped instance — state handed between them through a scoped service belongs on a parameter, a callback or
+  `Context.Provide<T>`. An event that resolves nothing still opens nothing and allocates nothing.
+  ([docs](docs/lifecycle.md#each-event-gets-its-own-scoped-services))
 - **A filter change takes the list `Ui.Filters` drives back to its first page; the sort stays.** Before: on
   `/orders?page=3&sort=name`, picking a driver landed on `?page=3&sort=name&driver=ada` — page 3 of the narrowed list,
   often empty — and a badge's cross and Clear all kept `page` too. After: `?sort=name&driver=ada`, the list starting at
