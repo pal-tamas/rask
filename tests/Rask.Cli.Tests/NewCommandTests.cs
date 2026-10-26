@@ -664,6 +664,27 @@ public sealed class NewCommandTests
         Assert.DoesNotContain(runner.Invocations, call => call.FileName is "npm" or "npx");
     }
 
+    // Offline, a root "typescript": "latest" let npm step TypeScript down under @volar/typescript's `<7` peer and
+    // refuse the Solid set (ERESOLVE): the shipped snapshot's carets are written instead, and the scaffold says so.
+    [Fact]
+    public async Task An_offline_scaffold_writes_the_shipped_versions_and_warns_they_were_not_refreshed()
+    {
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        var command = new NewCommand(console, fs, new FakeProcessRunner(), WorkingDirectory)
+        {
+            Npm = new NpmRegistry((_, _) => Task.FromResult<IReadOnlyList<NpmRelease>?>(null)),
+        };
+
+        var exit = await command.ExecuteAsync(["Shop", "--islands", "solid", "--no-git"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var manifest = fs.Files.Single(f => f.Key.Replace('\\', '/').EndsWith("Shop/package.json", StringComparison.Ordinal)).Value;
+        Assert.DoesNotContain("latest", manifest, StringComparison.Ordinal);
+        Assert.Matches("\"typescript\": \"\\^\\d+\\.\\d+\\.\\d+\"", manifest);
+        Assert.Contains("The npm registry did not answer", console.ErrorText, StringComparison.Ordinal);
+    }
+
     // #1083: the next-steps text is written before restore, build and migration run, and it used to announce the
     // first migration as applied — under a restore that had just failed and a migration that never ran.
     [Fact]
