@@ -184,6 +184,12 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A handler that awaits a browser call just after its budget's repaint no longer waits for good.** Before: the
+  150 ms budget was timed by a timer and the end of the withheld repaints by `Stopwatch`, and the timer can fire a
+  fraction of a millisecond first. A continuation that came back in that gap (the browser answering the budget's
+  frame at once) had both of its repaints withheld, so the call it queued was never sent and the handler held its
+  session for as long as the connection lasted. After: the budget's repaint opens the repaints itself, and every
+  continuation from then on is repainted.
 - **A composer's box is as tall as its text from the first paint, as Flux's is.** Before: it took its rows and
   grew only once something was typed, so a placeholder that wraps on a phone was cut to its first line. After:
   the box is fitted as it arrives — on the page's load and when a render adds it — and an `inline` composer
