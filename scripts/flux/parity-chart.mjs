@@ -12,13 +12,16 @@
 //   - each chart's data is written to tests/Rask.Ui.Tests/Flux/Parity/ChartParity.data.json, which
 //     ChartParity.cs draws from (data, not code);
 //   - the measurement lands where parity.mjs caches it, so `parity.mjs chart` (WITHOUT --refresh, which
-//     would roll new numbers) compares styles against the very same load.
+//     would roll new numbers) compares styles against the very same load;
+//   - all of it on a desktop and on a phone (VIEWS), from that one document, and each drawing's box with it:
+//     ChartParity draws every chart at the box Flux gave it there, and writes a page per view.
 //
 // Usage:  node scripts/flux/parity-chart.mjs --measure     # pin a load of Flux's page (rarely)
+//         node scripts/flux/parity-chart.mjs --remeasure   # measure the pinned load again, no new numbers
 //         dotnet test tests/Rask.Ui.Tests --filter FluxParityPages
-//         node scripts/flux/parity.mjs chart                # boxes and styles
-//         node scripts/flux/parity-chart.mjs [--all]        # geometry; exit code 1 over the tolerance
-//         node scripts/flux/parity-chart.mjs --pointer      # what follows the pointer, on the same pin
+//         node scripts/flux/parity.mjs chart [--view 390x844]          # boxes and styles
+//         node scripts/flux/parity-chart.mjs [--view 390x844] [--all]  # geometry; exit code 1 over the tolerance
+//         node scripts/flux/parity-chart.mjs --pointer [--view 390x844] # what follows the pointer, on the same pin
 //
 // `--pointer` walks a real pointer over every chart of the pinned load and of the Rask page (given the
 // runtime's hooks, runtime.mjs) and compares, step by step, what each shows: where the tooltip is and what it
@@ -42,11 +45,17 @@ const ACROSS = [[0.03, 0.5], [0.2, 0.5], [0.35, 0.5], [0.5, 0.5], [0.65, 0.5], [
 const ROUND = [[0.6, 0.3], [0.3, 0.7], [0.75, 0.6], [0.5, 0.5], [0.03, 0.03]];
 const NEAR = 1;   // px: a tooltip's box depends on its text's width, which the two pages round apart
 const limit = args.includes('--all') ? Infinity : 8;
+// The viewports a load is measured in: parity.mjs's desktop, and its phone (`--view 390x844`).
+const VIEWS = [[1280, 900], [390, 844]];
+const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
+const view = option('view')?.split('x').map(Number) ?? VIEWS[0];
+// parity.mjs's name for a viewport of its own: nothing on a desktop, `@390x844` beside it.
+const sized = ([width, height]) => (width === VIEWS[0][0] && height === VIEWS[0][1] ? '' : `@${width}x${height}`);
 
 const browser = await chromium().launch();
-if (args.includes('--measure')) await measureFlux();
-const flux = JSON.parse(await readFile(join(fluxDir, 'geometry.json'), 'utf8'));
-const raskPage = join(out, 'rask', 'chart.html');
+if (args.includes('--measure') || args.includes('--remeasure')) await measureFlux(args.includes('--remeasure'));
+const flux = JSON.parse(await readFile(join(fluxDir, `geometry${sized(view)}.json`), 'utf8'));
+const raskPage = join(out, 'rask', `chart${sized(view)}.html`);
 if (!existsSync(raskPage)) {
   console.error(`flux chart parity: ${raskPage} is missing — run: dotnet test tests/Rask.Ui.Tests --filter FluxParityPages`);
   await browser.close();
@@ -61,9 +70,9 @@ if (args.includes('--pointer')) {
 }
 
 const rask = {};
-await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', 'chart'), async (page, scheme) => {
+await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', `chart${sized(view)}`), async (page, scheme) => {
   rask[scheme] = await page.evaluate(geometry, '[data-ui-chart]');
-});
+}, view);
 await browser.close();
 
 let failures = 0;
@@ -82,9 +91,10 @@ for (const scheme of ['light', 'dark']) {
 console.log(failures ? `\nflux chart parity: geometry differs in ${failures} example(s).` : '\nflux chart parity: geometry matches Flux.');
 process.exit(failures ? 1 : 0);
 
-async function measureFlux() {
+// `again`: the pinned document is measured once more (a new view, a new measurement), and no new numbers are rolled.
+async function measureFlux(again) {
   await mkdir(fluxDir, { recursive: true });
-  const document = await (await fetch(URL)).text();
+  const document = again ? await readFile(join(fluxDir, 'document.html'), 'utf8') : await (await fetch(URL)).text();
   await writeFile(join(fluxDir, 'document.html'), document);
   // One document for both schemes: measurePage opens a context per scheme, and each is handed the same page.
   const replaying = {
@@ -94,22 +104,32 @@ async function measureFlux() {
       return context;
     },
   };
-  const found = {};
-  const schemes = await measurePage(replaying, URL, fluxDir, async (page, scheme) => {
-    // Flux sizes a chart's gutters by measuring its tick labels when it first draws, and that can be before
-    // Inter has loaded: the same chart then comes out 2.5px narrower in whichever scheme lost the race. It
-    // draws again when its box changes, so the box is changed and put back once the fonts are in.
-    await page.setViewportSize({ width: 1180, height: 900 });
-    await page.waitForTimeout(400);
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.waitForTimeout(400);
-    found[scheme] = await page.evaluate(geometry, 'ui-chart');
-  });
-  await writeFile(join(fluxDir, 'measurements.json'), JSON.stringify(schemes));
-  await writeFile(join(fluxDir, 'geometry.json'), JSON.stringify(found));
-  const data = found.light.map(example => ({ section: example.section, charts: example.charts.map(chart => chart.value) }));
+  const boxes = [];
+  for (const [width, height] of VIEWS) {
+    const found = {};
+    const schemes = await measurePage(replaying, URL, fluxDir + sized([width, height]), async (page, scheme) => {
+      // Flux sizes a chart's gutters by measuring its tick labels when it first draws, and that can be before
+      // Inter has loaded: the same chart then comes out 2.5px narrower in whichever scheme lost the race. It
+      // draws again when its box changes, so the box is changed and put back once the fonts are in.
+      await page.setViewportSize({ width: width - 100, height });
+      await page.waitForTimeout(400);
+      await page.setViewportSize({ width, height });
+      await page.waitForTimeout(400);
+      found[scheme] = await page.evaluate(geometry, 'ui-chart');
+    }, [width, height]);
+    await writeFile(join(fluxDir, `measurements${sized([width, height])}.json`), JSON.stringify(schemes));
+    await writeFile(join(fluxDir, `geometry${sized([width, height])}.json`), JSON.stringify(found));
+    boxes.push(found.light);
+  }
+
+  // Each example's rows, and the box each of its drawings was given in each view (`1280x900`, `390x844`).
+  const data = boxes[0].map((example, index) => ({
+    section: example.section,
+    charts: example.charts.map(chart => chart.value),
+    boxes: Object.fromEntries(VIEWS.map(([width, height], v) => [`${width}x${height}`, boxes[v][index].charts.map(chart => chart.box)])),
+  }));
   await writeFile(dataFile, JSON.stringify(data, null, 1) + '\n');
-  console.log(`flux chart parity: pinned ${found.light.length} examples -> ${fluxDir}, data -> ${dataFile}`);
+  console.log(`flux chart parity: pinned ${data.length} examples -> ${fluxDir} (${VIEWS.map(v => v.join('x')).join(', ')}), data -> ${dataFile}`);
 }
 
 // Runs in the page. Every chart of every example: its data (Flux's element exposes it) and the geometry of
@@ -123,6 +143,7 @@ function geometry(selector) {
       ?? headings.filter(h => h.compareDocumentPosition(wrapper) & Node.DOCUMENT_POSITION_FOLLOWING).pop()?.id ?? '',
     charts: [...wrapper.querySelectorAll(selector)].map(chart => ({
       value: chart.value ?? null,
+      box: (({ width, height }) => [width, height])([...chart.querySelectorAll('svg')].find(svg => !svg.closest('template')).getBoundingClientRect()),
       nodes: [...chart.querySelectorAll('svg, svg *')]
         .filter(node => !node.closest('template'))
         .map(node => {
@@ -192,19 +213,21 @@ function numbers(value) {
 
 async function pointerWalk() {
   const document = await readFile(join(fluxDir, 'document.html'), 'utf8');
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const [width, height] = view;
+  const context = await browser.newContext({ viewport: { width, height } });
   await context.route(URL, route => route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: document }));
   const theirs = await context.newPage();
   await theirs.goto(URL, { waitUntil: 'networkidle', timeout: 90000 });
   await theirs.evaluate(() => document.fonts.ready);
   // Drawn again once the fonts are in, as --measure does.
-  await theirs.setViewportSize({ width: 1180, height: 900 });
+  await theirs.setViewportSize({ width: width - 100, height });
   await theirs.waitForTimeout(400);
-  await theirs.setViewportSize({ width: 1280, height: 900 });
+  await theirs.setViewportSize({ width, height });
   await theirs.waitForTimeout(400);
   const ours = await context.newPage();
   await ours.goto(pathToFileURL(raskPage).href, { waitUntil: 'networkidle' });
   await ours.evaluate(() => document.fonts.ready);
+  if (sized(view)) await framed(ours);
   await withRuntime(ours, 'rask-hooks.ts');
 
   const count = await theirs.evaluate(() => document.querySelectorAll('[data-preview-wrapper] ui-chart').length);
@@ -225,6 +248,23 @@ async function pointerWalk() {
 
   await context.close();
   return failed;
+}
+
+// In a viewport of its own each Rask example is given the room its Flux twin was given, as parity.mjs gives it:
+// the twin's width and padding, from the measurement of the pinned load in that view.
+async function framed(page) {
+  const examples = JSON.parse(await readFile(join(fluxDir, `measurements${sized(view)}.json`), 'utf8')).light;
+  await page.evaluate(examples => {
+    const seen = {};
+    for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
+      const section = wrapper.dataset.section ?? '';
+      const ordinal = seen[section] = (seen[section] ?? -1) + 1;
+      const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
+      if (!theirs) continue;
+      for (const key of ['boxSizing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']) wrapper.style[key] = theirs.nodes[0].style[key];
+      wrapper.style.width = `${theirs.size[0]}px`;
+    }
+  }, examples);
 }
 
 // Moves the pointer to a share of chart `index`'s drawing — in two moves, as a hand arrives — and reads the chart.

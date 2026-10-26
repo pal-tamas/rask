@@ -335,8 +335,11 @@ out around tick labels measured before Inter may have loaded. So **never `parity
 `node scripts/flux/parity-chart.mjs --measure` pins one load (the document is replayed for both schemes, the
 charts are redrawn once the fonts are in), writes the rows each chart drew to
 `tests/Rask.Ui.Tests/Flux/Parity/ChartParity.data.json` (commit it with the change) and the measurement where
-`parity.mjs chart` caches it. Then `parity.mjs chart` for boxes and styles and `parity-chart.mjs` for geometry:
-every number of every `d`, `x1…y2`, `cx/cy/r` and `translate()`, to 0.05px. Flux's rules were found by handing
+`parity.mjs chart` caches it — on a desktop AND at 390x844, from the same document, with the box each drawing
+got in each view (`--remeasure` measures the pinned document again, no new numbers). Then `parity.mjs chart` for
+boxes and styles and `parity-chart.mjs` for geometry: every number of every `d`, `x1…y2`, `cx/cy/r` and
+`translate()`, to 0.05px; each takes `--view 390x844`, against `ChartPhoneParity`'s page (`chart@390x844.html`,
+every chart drawn at Flux's phone box — a static page has no server to draw it again). Flux's rules were found by handing
 its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
 new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
 The pin itself lives under `artifacts/` (ignored), so a checkout that did not make it has only the committed

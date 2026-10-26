@@ -53,7 +53,11 @@ const out = join(root, 'artifacts', 'flux-parity');
 // and each is measured whole — at desktop and phone widths, with the sidebar as it loads, narrowed to its rail
 // and slid over the page — against artifacts/flux-parity/rask/<slug>/<demo>.html.
 const layout = path.startsWith('layouts/');
-const raskPage = join(out, 'rask', layout ? slug : `${slug}.html`);
+// A viewport of its own is a measurement of its own, kept beside the desktop's.
+const sized = view ? `@${view.join('x')}` : '';
+// …and a page of its own where the kit's page has to be drawn for that width (ChartPhoneParity: `chart@390x844.html`).
+const raskPage = join(out, 'rask', layout ? slug
+  : existsSync(join(out, 'rask', `${slug}${sized}.html`)) ? `${slug}${sized}.html` : `${slug}.html`);
 if (!existsSync(raskPage)) {
   console.error(`flux parity: ${raskPage} is missing — run: dotnet test tests/Rask.Ui.Tests --filter FluxParityPages`);
   process.exit(1);
@@ -61,8 +65,6 @@ if (!existsSync(raskPage)) {
 
 // …and how the browser is started for it (parity-modal.mjs's reason: a reader's shows its scrollbars).
 const browser = await chromium().launch(prepared?.launch);
-// A viewport of its own is a measurement of its own, kept beside the desktop's.
-const sized = view ? `@${view.join('x')}` : '';
 const fluxFile = join(out, 'flux', slug, `measurements${sized}.json`);
 let flux;
 if (existsSync(fluxFile) && !flag('refresh')) {
