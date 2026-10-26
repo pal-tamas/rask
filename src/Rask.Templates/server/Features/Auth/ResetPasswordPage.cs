@@ -13,6 +13,7 @@ public sealed class ResetPasswordModel
 // Reached from an emailed link carrying userId and token. No session is issued on success: a reset link gets
 // forwarded, and reading the email must not be enough to be signed in. Every session the account had ends.
 [AllowAnonymous]
+[Guest]
 [Route("/reset-password")]
 public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
 {

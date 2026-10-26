@@ -115,7 +115,7 @@ internal sealed class RedirectingSession(RaskTestHost host, WebSocket ws, string
         return ws.SendJsonAsync(new { id = handler.Groups[1].Value, type = "click" });
     }
 
-    private static async Task<string> SignIn(RaskTestHost host, string name)
+    public static async Task<string> SignIn(RaskTestHost host, string name)
     {
         var principal = new ClaimsPrincipal(new ClaimsIdentity(
             [new Claim(ClaimTypes.Name, name), new Claim(ClaimTypes.NameIdentifier, name)], "TestCookie"));

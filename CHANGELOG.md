@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`[Guest]` — a page only for readers who are not signed in.** A signed-in reader is sent to `Then` (`"/"` by
+  default; `[Guest(Then = "/app")]`) before the page is built: a `302` on the first request, and in an open
+  session the destination in place of the page, its address replaced — on the Server host and in WebAssembly.
+  The reader asked about is the one `[Authorize]` sees, so an ended sign-in is a guest again; `Then` is a page
+  of the app (path base respected) and anything that could lead off the site throws. `rask new` marks
+  the sign-in, registration, forgotten-password and reset-password pages with it, as Laravel Breeze does. See
+  [A page only for guests](docs/authentication.md#a-page-only-for-guests).
 
 - **App-wide model rules in one class: `IRaskModel`, found by the generator like Rails' `ApplicationRecord`.** A string
   length, a decimal's precision, a convention removed, how constraints are named and what a delete does, stated once
@@ -190,6 +197,9 @@ them until tagged releases begin.
   `rask-ui-cldr.LICENSE.txt`), refreshed daily by `scripts/upstream/cldr.mjs`; the words of the popup (Time,
   Cancel, Select) stay the app's language.
 
+- **A link in WebAssembly to a page its route guard turns away now carries the guard's address.** When the page
+  asked for a render as it was replaced, the rebuild sent the link's own address with the guard's page; it now
+  sends the guard's, replacing the entry (the sign-in page, or a `[Guest]` page's `Then`).
 - **A page that calls `Go.Out(…)` after an `await` that outlasts the first response now leaves the app.** A
   sign-in page that sends a signed-in reader on once the store has said so
   (`if (await _revalidator.Revalidate(user) is not null) Go.Out(Where());`) was answered with the page, and the

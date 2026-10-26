@@ -138,6 +138,7 @@ public partial class Page
         {
             RouteAuthorizationOutcome.Challenge => (RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(url), null),
             RouteAuthorizationOutcome.Forbid => (url, result.FailedOnPage),
+            RouteAuthorizationOutcome.Redirect => (LocalUrl.Sanitize(result.RedirectTo), null),
             _ => (url, null),
         };
     }

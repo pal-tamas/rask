@@ -642,7 +642,7 @@ public static partial class RaskEndpointExtensions
         var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
 
         var (proceeds, forbidden) = matched
-            ? await AuthorizeRouteAsync(httpContext, chain, user).ConfigureAwait(false)
+            ? await AuthorizeRouteAsync(httpContext, chain, user, pathBaseNormalized).ConfigureAwait(false)
             : (true, null);
         if (!proceeds)
         {
@@ -728,11 +728,11 @@ public static partial class RaskEndpointExtensions
         return true;
     }
 
-    // Asks the route's authorization; Proceeds is false when the request was answered with a challenge. A signed-in
-    // person the route forbids is still answered with the app: its layouts, and the forbidden sentence in place of
-    // the page they may not open (Forbidden), as a 403.
+    // Asks the route's authorization; Proceeds is false when the request was answered with a challenge, or with the
+    // 302 a [Guest] page answers a signed-in reader. A signed-in person the route forbids is still answered with the
+    // app: its layouts, and the forbidden sentence in place of the page they may not open (Forbidden), as a 403.
     private static async Task<(bool Proceeds, Type? Forbidden)> AuthorizeRouteAsync(
-        HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user)
+        HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user, string pathBase)
     {
         var authResult = await RouteAuthorizationGuard
             .Evaluate(httpContext.RequestServices, chain, user)
@@ -745,6 +745,11 @@ public static partial class RaskEndpointExtensions
                 return (false, null);
             case RouteAuthorizationOutcome.Forbid:
                 return (true, authResult.FailedOnPage);
+            case RouteAuthorizationOutcome.Redirect:
+                httpContext.Response.StatusCode = StatusCodes.Status302Found;
+                httpContext.Response.Headers.Location = pathBase + LocalUrl.Sanitize(authResult.RedirectTo);
+                httpContext.Response.Headers.CacheControl = "no-store";
+                return (false, null);
             default:
                 return (true, null);
         }
@@ -3751,6 +3756,7 @@ public static partial class RaskEndpointExtensions
         {
             RouteAuthorizationOutcome.Allow => (null, null),
             RouteAuthorizationOutcome.Forbid => (null, result.FailedOnPage),
+            RouteAuthorizationOutcome.Redirect => (GuardRedirect.To(LocalUrl.Sanitize(result.RedirectTo)), null),
             _ => (new GuardRedirect(
                 RouteAuthorizationGuard.ChallengePath,
                 "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))), null),
@@ -3762,6 +3768,10 @@ public static partial class RaskEndpointExtensions
     private readonly record struct GuardRedirect(string Path, string Query, bool AsPage = false, bool Outside = false)
     {
         public string Url => Path + Query;
+
+        /// <summary>A page of this app, written as one address.</summary>
+        public static GuardRedirect To(string url) =>
+            url.IndexOf('?', StringComparison.Ordinal) is var at and >= 0 ? new(url[..at], url[at..]) : new(url, "");
 
         public void ApplyTo(RouteState routeState)
         {

@@ -803,6 +803,9 @@ passing it through `LocalUrl.Sanitize` first. A plain link out needs none of thi
 plain `<a>` and already leaves.
 
 **Route-level authorization.** Put `[Authorize]` (optionally `[Authorize(Roles = "admin")]`) or `[AllowAnonymous]` on
-a page component; the `RouteAuthorizationGuard` enforces it before the page renders. The session is a cookie and
+a page component; the `RouteAuthorizationGuard` enforces it before the page renders. `[Guest]` (or
+`[Guest(Then = "/app")]`) is its opposite for a sign-in page: a reader already signed in is sent to `Then` — a
+`302`, or in place of the page in an open session — and never sees it
+([guests](authentication.md#a-page-only-for-guests)). The session is a cookie and
 `Rask.Auth` owns that scheme; roles and policies are ASP.NET's own `AddAuthorization`. Full flows on Server and
 WASM are in [authentication.md](authentication.md).
