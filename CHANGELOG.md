@@ -139,6 +139,10 @@ them until tagged releases begin.
   keeps them in the model, excluded from migrations, so the next `rask db add` neither drops nor touches them (read
   off the app's own model snapshot). The model is cached per set of switches, so apps in one process (a test suite)
   with different batteries off no longer share one. See [docs/configuration.md](docs/configuration.md#battery-tables).
+  The batteries now state their own unbounded text columns (`Job.Payload`/`Error`/`UserClaims`, the outbox's, the
+  mail queue's, the log's), so an app with its own string-length convention has pending model changes until it adds
+  a migration: run `rask db add` once (on SQL Server it alters those columns to `nvarchar(max)`); until then EF's
+  pending-changes check stops the app at start.
 - **Each component's part of a live event gets its own scoped services, as a Livewire component's action is a request
   of its own.** Before: a page whose `LoadNotices`, `LoadProgress` and file list each load in `OnMount` with
   `var db = Current.Service<ApplicationDbContext>();` handed all three the event's one `DbContext`, read it at once and
@@ -189,6 +193,12 @@ them until tagged releases begin.
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a
   phone's short plot the box covers part of it); unseen, it still says the row it last read; and it moves in whole
   pixels.
+- **A handler that awaits a browser call just after its budget's repaint no longer waits for good.** Before: the
+  150 ms budget was timed by a timer and the end of the withheld repaints by `Stopwatch`, and the timer can fire a
+  fraction of a millisecond first. A continuation that came back in that gap (the browser answering the budget's
+  frame at once) had both of its repaints withheld, so the call it queued was never sent and the handler held its
+  session for as long as the connection lasted. After: the budget's repaint opens the repaints itself, and every
+  continuation from then on is repainted.
 - **A composer's box is as tall as its text from the first paint, as Flux's is.** Before: it took its rows and
   grew only once something was typed, so a placeholder that wraps on a phone was cut to its first line. After:
   the box is fitted as it arrives — on the page's load and when a render adds it — and an `inline` composer

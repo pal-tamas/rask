@@ -650,6 +650,9 @@ public abstract partial class Component
                     // save shows its "Saving…" then, and each continuation after it repaints as it lands.
                     if (!withheld || !await FinishedWithin(userTask, budget).ConfigureAwait(false))
                     {
+                        // Before the repaint: a continuation that ends before it has its call drained by it, and
+                        // one that ends after it is repainted itself — never neither (HandlerSyncContext.OpenRepaints).
+                        ctx.OpenRepaints();
                         await handle.RenderInScopeAsync().ConfigureAwait(false);
                     }
                 }

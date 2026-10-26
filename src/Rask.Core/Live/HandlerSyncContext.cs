@@ -11,6 +11,9 @@ internal sealed class HandlerSyncContext : SynchronizationContext
     // The moment (Stopwatch ticks) the handler's repaints stop being withheld. Zero when none are.
     private readonly long _repaintsFrom;
 
+    // Shared with every copy, as the moment is.
+    private readonly Opening _opening;
+
     /// <summary>A context whose continuations are each repainted before and after they run.</summary>
     /// <param name="render">The repaint.</param>
     /// <param name="repaintsFrom">
@@ -18,14 +21,32 @@ internal sealed class HandlerSyncContext : SynchronizationContext
     ///     that finishes before it shows one frame, its last. Zero repaints from the start.
     /// </param>
     public HandlerSyncContext(Func<Task> render, long repaintsFrom = 0)
+        : this(render, repaintsFrom, new Opening())
+    {
+    }
+
+    private HandlerSyncContext(Func<Task> render, long repaintsFrom, Opening opening)
     {
         _render = render;
         _repaintsFrom = repaintsFrom;
+        _opening = opening;
     }
 
-    public override SynchronizationContext CreateCopy() => new HandlerSyncContext(_render, _repaintsFrom);
+    public override SynchronizationContext CreateCopy() => new HandlerSyncContext(_render, _repaintsFrom, _opening);
 
-    private bool Withheld => _repaintsFrom != 0 && Stopwatch.GetTimestamp() < _repaintsFrom;
+    /// <summary>
+    ///     The budget is spent and its repaint is being made: from here every continuation is repainted, whatever
+    ///     the clock says.
+    /// </summary>
+    /// <remarks>
+    ///     The budget is timed by a timer, the moment by <see cref="Stopwatch" />, and the timer can fire a
+    ///     fraction of a millisecond before the moment. A continuation that came back in that gap — the browser
+    ///     answering the budget's frame at once — had both its repaints withheld: the call it went on to queue
+    ///     never left, and the handler waited on it for good.
+    /// </remarks>
+    public void OpenRepaints() => _opening.Open = true;
+
+    private bool Withheld => _repaintsFrom != 0 && !_opening.Open && Stopwatch.GetTimestamp() < _repaintsFrom;
 
     private Task Repaint() => Withheld ? Task.CompletedTask : _render();
 
@@ -97,5 +118,17 @@ internal sealed class HandlerSyncContext : SynchronizationContext
 
         await Repaint().ConfigureAwait(false);
         failed?.Throw();
+    }
+
+    // Written by the handler's thread, read by its continuations'.
+    private sealed class Opening
+    {
+        private volatile bool _open;
+
+        public bool Open
+        {
+            get => _open;
+            set => _open = value;
+        }
     }
 }
