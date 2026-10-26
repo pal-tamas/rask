@@ -133,6 +133,12 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An endpoint on a group excluded from the API description no longer warns RASK068/RASK070.**
+  `var site = app.MapGroup("").ExcludeFromDescription(); site.MapGet("/version", …)` reported "mapped on a
+  MapGroup" once per endpoint, although the group's exclusion already keeps them out of OpenAPI and the client.
+  The generator now follows the group — fluent chain, local, field, a later `site.ExcludeFromDescription();`,
+  `WithMetadata(new ExcludeFromDescriptionAttribute())`, nested groups — and a per-endpoint
+  `.ExcludeFromDescription()` on a grouped endpoint is honoured too. A group passed in as a parameter still reports.
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
