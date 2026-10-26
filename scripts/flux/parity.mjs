@@ -79,20 +79,27 @@ if (existsSync(fluxFile) && !flag('refresh')) {
 // example sits in the prose. A component inherits those, so each Rask example is given what its Flux
 // twin was given before anything is measured — the same surroundings, and only the component differs.
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
+// In a viewport of its own the docs page's frame is narrower than this page's, so there each example is also
+// given its twin's width and padding: the room the component is laid out in.
+const FRAME = ['boxSizing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'];
 const inherit = (document, scheme) =>
-  document.evaluate(({ examples, INHERITED }) => {
+  document.evaluate(({ examples, INHERITED, FRAME, framed }) => {
     const seen = {};
     for (const wrapper of document.querySelectorAll('[data-preview-wrapper]')) {
       const section = wrapper.dataset.section ?? '';
       const ordinal = seen[section] = (seen[section] ?? -1) + 1;
       const theirs = examples.find(example => example.section === section && example.ordinal === ordinal);
       for (const key of theirs ? INHERITED : []) wrapper.style[key] = theirs.nodes[0].style[key];
+      if (theirs && framed) {
+        for (const key of FRAME) wrapper.style[key] = theirs.nodes[0].style[key];
+        wrapper.style.width = `${theirs.size[0]}px`;
+      }
       // The docs page's line height is a RATIO, so a node that sets its own font size and no line height
       // (a 9px number in an icon) gets that ratio of it. Copied as pixels it would get the wrapper's 24px.
       const { fontSize, lineHeight } = theirs?.nodes[0].style ?? {};
       if (lineHeight?.endsWith('px')) wrapper.style.lineHeight = String(parseFloat(lineHeight) / parseFloat(fontSize));
     }
-  }, { examples: flux[scheme], INHERITED });
+  }, { examples: flux[scheme], INHERITED, FRAME, framed: Boolean(view) });
 // A demo is told apart by the section it was measured under: `<h2 id>@<width>`, or its own name for the first.
 const demos = () => [...new Map(flux.light.map(example => example.section.split('@')[0]).map(key => [key, { name: key, section: key }])).values()];
 const rask = layout
