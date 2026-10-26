@@ -96,33 +96,49 @@ forecasts rather than the placeholder — which is what a crawler, a cache and t
 all see. If the fetch outlives the budget the placeholder is what is served, and the page finishes loading
 over the socket. See [Live pages](render-modes.md#the-initial-get-waits-for-your-data).
 
-**A page reached in place is waited for too**, on both hosts: a link, Back, `Go()` from a handler or a
-redirect sends the new page once its `OnMount` and `OnUpdated` are back, within a navigation budget of 150 ms
-(`Rask:Server:NavigationQuiescenceTimeout`; `RaskWasmOptions.NavigationQuiescenceTimeout` in the browser).
-Until then the reader keeps the page they are on, under the usual busy marks. A fetch that takes longer is
-painted as the placeholder at the budget and as the data when it lands, so the placeholder is still worth
-writing — it is what a slow load looks like. See
-[the page is sent when its first reads are back](routing.md#the-page-is-sent-when-its-first-reads-are-back).
+**A page reached in place is sent at once**, on both hosts — in WebAssembly the first page the app renders
+too: a link, Back, `Go()` from a handler or a redirect shows the new page as soon as it is mounted, its
+placeholder where the data will be, and the data in the frame that follows when the fetch lands. So the
+placeholder is worth writing: it is what every navigation shows until its data are back. To keep the rows the
+reader already sees, keep them in the component (or use `KeepPreviousData` on a query) instead of emptying
+them. See [a page reached in place is sent at once](routing.md#a-page-reached-in-place-is-sent-at-once).
 
 An edit page is the same page with a form where the table was: read the record in the page's hook, draw the
 form once it is there, and let a form component of your own read its model prop in `Render` — a copy taken in
 its `OnMount` is taken once, before the read is back. See
 [an edit page that reads its record](forms.md#an-edit-page-that-reads-its-record).
 
-Work you deliberately detach from the hook is **not** waited on. A poll loop started with
-`_ = Poll()` returns from `OnMount` immediately, so the response goes out and the loop
-keeps pushing over the live connection:
+Data that has to stay fresh after the first render is not a loop in a hook. Poll it with the query that reads it —
+`RefetchInterval` refetches on that interval while the component renders it, stops when it unmounts, and waits while
+the reader's tab is hidden ([Polling](query.md#polling)):
 
 ```csharp
-protected override async Task OnMount()
+protected override Component? Render()
 {
-    await Read();    // awaited: the GET waits for this
-    _ = Poll();      // detached: it must not hold the response open
+    var sales = QueryClient.Query(new GetSales(), new QueryOptions { RefetchInterval = TimeSpan.FromSeconds(30) });
+    return sales.Data is { } data ? P[$"{data.Total} sold"] : P["Loading..."];
 }
 ```
 
-Neither call passes a cancellation token: both run inside the component's own work and are cancelled when it
-unmounts.
+## Load when in view
+
+A widget far down a page need not cost the first response anything. Wrap it in `Lazy`, and it is not mounted —
+no `OnMount`, none of its reads — until the reader scrolls to it; what stands in its place until then is the
+placeholder:
+
+```csharp
+protected override Component? Render() =>
+[
+    Ui.Heading["Dashboard"],
+    Lazy.Placeholder(Ui.Skeleton)[SalesWidget],   // mounted once the skeleton is scrolled into view
+];
+```
+
+The first `GET` carries the placeholder. The moment any of it is in the viewport the browser says so, once, and
+the page answers with the widget in its place — on both hosts. `Lazy[SalesWidget]` puts an empty `div` there, as
+Livewire does. Each lazy is a frame of its own, so a slow one holds no other back, and a lazy inside a loaded one
+waits for its own turn. It is Livewire's `#[Lazy]`; Livewire's `defer` — load right after the page, wherever it
+is — has no Rask spelling yet.
 
 ### When `OnUpdated` refires
 
@@ -151,8 +167,8 @@ Splitting the loop does not rescue it either. Letting the hook return before the
 widget, and starting the loop detached lets it outlive the render pass and re-render against a session scope
 that has already been disposed.
 
-Put ongoing work in a **service with its own lifetime** and have the component subscribe to it — which is what
-[Background service](#background-service) below shows. The component's own hooks then do what they are for:
+Data to keep fresh is a polling query, above. Any other ongoing work goes in a **service with its own lifetime**
+that the component subscribes to — which is what [Background service](#background-service) below shows. The component's own hooks then do what they are for:
 subscribe on mount, unsubscribe on unmount.
 
 ## Async rules
@@ -249,7 +265,16 @@ Two rules follow:
   scoped "unit of work" collecting changes over several clicks) now gets a fresh one per event — keep such state
   on the component, or in a singleton keyed by the user.
 
-A read the page went out without (its budget ran out) keeps the event's scope until it is back.
+**An event's scope lives as long as the work the event started.** A lifecycle hook — `OnMount`, `OnUpdated`,
+`OnRendered` — belongs to the event whose render started it, and so does every `Current.Service<T>()` it makes,
+before an await or after one, itself or through a helper it calls. A navigation is sent at once and its pages'
+hooks load on behind it; their reads keep that event's scope (one `DbContext`, the same instance throughout) while
+other events come and go, and it is disposed when the event has ended **and** the last hook it started — and the
+last read its page went out without — is done. Two navigations in a row each keep their own. Two limits keep this
+from leaking: when a hook's component leaves the page, its token (`Current.Cancellation`) is cancelled and the hook
+keeps the scope for **ten seconds** more at most — a loop over a stream that never ends does not keep its
+`DbContext` for the rest of the session — and when the session ends, every scope is disposed, whatever is still
+running.
 
 ### `Current.Service<T>()` — the event's own, with nothing injected
 
@@ -328,8 +353,8 @@ What the reader gets, on both hosts:
 
 | The hook faults | The reader sees | The first `GET` answers |
 |---|---|---|
-| before the page is sent — on the first request, or within the [navigation's wait](routing.md#the-page-is-sent-when-its-first-reads-are-back) | the error page, never the placeholder | **500** |
-| after the page was painted on its placeholder (a read that outlasted the wait, an `OnRendered`) | the placeholder, then the error page in the frame that follows | 200 — it was already sent |
+| before the page is sent — on the first request, or before the first `await` of a page reached in place | the error page, never the placeholder | **500** |
+| after the page was painted on its placeholder (an `await` of a page [reached in place](routing.md#a-page-reached-in-place-is-sent-at-once), a first request's read that outlasted its wait, an `OnRendered`) | the placeholder, then the error page in the frame that follows | 200 — it was already sent |
 | inside an `ErrorBoundary` you wrote | your fallback, the rest of the page as it was | 200 |
 | after its component left the page | nothing: leaving cancels the load, and what that throws is recorded at Information | — |
 

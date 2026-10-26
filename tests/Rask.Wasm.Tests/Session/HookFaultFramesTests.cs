@@ -14,16 +14,13 @@ public sealed class HookFaultFramesTests() : ResettingTestBase(LiveDiffMode.Disa
 {
     private const string Heading = "Something went wrong";
 
-    private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
-    private static readonly TimeSpan Brief = TimeSpan.FromMilliseconds(40);
-
     [Theory]
     [InlineData("/mount")]
     [InlineData("/deep")]
     public async Task A_first_render_whose_hook_faults_before_its_first_await_is_the_error_page(string path)
     {
         HookFaultStubApp.Release();
-        var (session, services) = NewSession<HookFaultStubApp>(diffMode: DiffMode, navigationBudget: Patient);
+        var (session, services) = NewSession<HookFaultStubApp>(diffMode: DiffMode);
         services.GetRequiredService<RouteState>().Path = path;
 
         var first = Encoding.UTF8.GetString(await session.InitialRenderAsync());
@@ -35,45 +32,32 @@ public sealed class HookFaultFramesTests() : ResettingTestBase(LiveDiffMode.Disa
     }
 
     [Fact]
-    public async Task A_first_render_whose_hook_faults_after_an_await_is_the_error_page()
+    public async Task A_first_render_whose_hook_faults_after_an_await_is_repainted_as_the_error_page()
     {
         HookFaultStubApp.Hold();
-        var (session, services) = NewSession<HookFaultStubApp>(diffMode: DiffMode, navigationBudget: Patient);
+        var (session, services) = NewSession<HookFaultStubApp>(diffMode: DiffMode);
         services.GetRequiredService<RouteState>().Path = "/mount";
 
-        var rendering = session.InitialRenderAsync();
-        await HookFaultStubApp.ReadStarted();
+        var first = Encoding.UTF8.GetString(await session.InitialRenderAsync());
         HookFaultStubApp.Release();
-        var first = Encoding.UTF8.GetString(await rendering);
+        await ShowsTheErrorPage(session);
+        var after = Encoding.UTF8.GetString(session.LastSentFrame);
 
-        Assert.Contains(Heading, first, StringComparison.Ordinal);
-        Assert.DoesNotContain("loading", first, StringComparison.Ordinal);
-        Assert.DoesNotContain("hunter2", first, StringComparison.Ordinal);
+        Assert.Contains("loading", first, StringComparison.Ordinal);
+        Assert.DoesNotContain("loading", after, StringComparison.Ordinal);
+        Assert.DoesNotContain("hunter2", after, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("/mount", false)]
-    [InlineData("/mount", true)]
-    [InlineData("/deep", false)]
-    [InlineData("/deep", true)]
-    public async Task A_page_reached_by_a_link_whose_hook_faults_within_the_wait_arrives_as_the_error_page(string path, bool afterAnAwait)
+    [InlineData("/mount")]
+    [InlineData("/deep")]
+    public async Task A_page_reached_by_a_link_whose_hook_faults_before_its_first_await_arrives_as_the_error_page(string path)
     {
         HookFaultStubApp.Release();
-        var (session, _) = NewSession<HookFaultStubApp>(diffMode: DiffMode, navigationBudget: Patient);
+        var (session, _) = NewSession<HookFaultStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
-        if (afterAnAwait)
-        {
-            HookFaultStubApp.Hold();
-        }
 
-        var navigating = session.DispatchAsync(Navigate(path));
-        if (afterAnAwait)
-        {
-            await HookFaultStubApp.ReadStarted();
-            HookFaultStubApp.Release();
-        }
-
-        var frame = Encoding.UTF8.GetString(await navigating);
+        var frame = Encoding.UTF8.GetString(await session.DispatchAsync(Navigate(path)));
 
         Assert.Contains(Heading, frame, StringComparison.Ordinal);
         Assert.Contains($"\"url\":\"{path}\"", frame, StringComparison.Ordinal);
@@ -85,21 +69,24 @@ public sealed class HookFaultFramesTests() : ResettingTestBase(LiveDiffMode.Disa
     public async Task A_page_painted_on_its_placeholder_whose_hook_then_faults_is_repainted_as_the_error_page()
     {
         HookFaultStubApp.Hold();
-        var (session, _) = NewSession<HookFaultStubApp>(diffMode: DiffMode, navigationBudget: Brief);
+        var (session, _) = NewSession<HookFaultStubApp>(diffMode: DiffMode);
         await session.InitialRenderAsync();
 
-        var atTheBudget = Encoding.UTF8.GetString(await session.DispatchAsync(Navigate("/mount")));
+        var atOnce = Encoding.UTF8.GetString(await session.DispatchAsync(Navigate("/mount")));
         HookFaultStubApp.Release();
-        await WaitFor.True(
-            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains(Heading, StringComparison.Ordinal),
-            "the error page in a second frame");
+        await ShowsTheErrorPage(session);
         var after = Encoding.UTF8.GetString(session.LastSentFrame);
 
-        Assert.Contains("loading", atTheBudget, StringComparison.Ordinal);
-        Assert.DoesNotContain(Heading, atTheBudget, StringComparison.Ordinal);
+        Assert.Contains("loading", atOnce, StringComparison.Ordinal);
+        Assert.DoesNotContain(Heading, atOnce, StringComparison.Ordinal);
         Assert.DoesNotContain("loading", after, StringComparison.Ordinal);
         Assert.DoesNotContain("hunter2", after, StringComparison.Ordinal);
     }
+
+    private static Task ShowsTheErrorPage(WasmLiveSession session) =>
+        WaitFor.True(
+            () => Encoding.UTF8.GetString(session.LastSentFrame).Contains(Heading, StringComparison.Ordinal),
+            "the error page in a second frame");
 
     private static byte[] Navigate(string path) =>
         Encoding.UTF8.GetBytes($$"""{"type":"navigate","path":"{{path}}","query":""}""");

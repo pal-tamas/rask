@@ -52,6 +52,7 @@ import {
     type LiveConnection,
 } from "./rask-http-transport.js";
 import { createAuthWatch } from "./rask-auth-watch.js";
+import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
@@ -405,6 +406,8 @@ import {
             for (const payload of pendingConverge) send(payload);
         });
         pendingConverge.length = 0;
+        // A page opened, or reconnected, in a background tab: what it polls waits until the reader looks.
+        tellIfHidden();
         // Auth reconnect completed — restore the default message for any future drop.
         if (authInProgress) {
             authInProgress = false;

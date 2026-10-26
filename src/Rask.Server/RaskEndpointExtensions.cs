@@ -324,6 +324,7 @@ public static partial class RaskEndpointExtensions
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
         services.AddScoped<RouteState>();
         services.AddScoped<Navigator>();
+        services.AddScoped<PageVisibility>();
         services.AddScoped<ServerPageResponse>();
         services.AddScoped<IPageResponse>(sp => sp.GetRequiredService<ServerPageResponse>());
         // The declared state bag (docs/lifecycle.md). Scoped = one per live session, like RouteState. A
@@ -2274,7 +2275,8 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        return false;
+        // The tab went out of sight or came back: what polls waits for it (PageVisibility). No render needed.
+        return PageVisibility.Heard(root, session.Services);
     }
 
     // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
@@ -2451,7 +2453,7 @@ public static partial class RaskEndpointExtensions
 
         // Apply a deferred sign-in/out navigation now that the principal is re-seeded, so the destination
         // page mounts fresh under the new identity (its Mount runs against the redeemed principal). It is
-        // rendered as a page reached in place: sent when its first reads are back, and a destination another
+        // rendered as a page reached in place: sent at once, its loads following, and a destination another
         // application owns loads as a page instead (#1094). See LiveSession.PendingAuthNavigation.
         if (session.PendingAuthNavigation is not null)
         {
@@ -2500,7 +2502,7 @@ public static partial class RaskEndpointExtensions
     }
 
     // Renders the page a connection attached to — a sign-in's return page, or one rebuilt from a resume
-    // record — as a page reached in place: it waits for its first reads and is sent once.
+    // record — as a page reached in place: it is sent at once, and its loads follow.
     //
     // The route moves inside the handler scope, because moving it asks for a render of its own: outside one,
     // that render mounts the page first, with no dispatch to take a navigation its mount makes.
@@ -2577,8 +2579,8 @@ public static partial class RaskEndpointExtensions
             // The record names a URL and a user, not what that user may see today: a role removed since the
             // record was sealed must not get the page back by resuming it. Nothing is mounted yet, so moving
             // the route here asks nobody for a render.
-            // The page is then rendered as one reached in place, behind that same guard: it waits for its first
-            // reads, so the frame that replaces what the reader was looking at carries them.
+            // The page is then rendered as one reached in place, behind that same guard: sent at once, its
+            // loads following as frames of their own.
             // Nothing of a session built a moment ago runs, so there is nothing to wait behind.
             Adopt(session, user, await AnswerForAsync(session, user, ct).ConfigureAwait(false));
             await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
@@ -3623,8 +3625,8 @@ public static partial class RaskEndpointExtensions
             }
         }
 
-        // A frame that carries a navigation waits for the page it goes to, and is sent once (LiveSession.
-        // RenderArrivedAsync). A sign-in's frame does not: its page mounts on the reconnect.
+        // A frame that carries a navigation sends its page at once, and its loads follow as frames of their own.
+        // A sign-in's frame carries none: its page mounts on the reconnect.
         arriving = auth is null && (arriving || historyUrl is not null);
         await session.RenderAndSendCoalescingAsync(historyUrl, replace, auth, arriving, settle).ConfigureAwait(false);
 
@@ -3636,8 +3638,8 @@ public static partial class RaskEndpointExtensions
 
     // What the page just rendered asked for in place of being shown. One that navigated as it mounted had its
     // frame withheld: its destination is rendered instead, under that route's own guard, and is the address the
-    // reader gets — the live form of the first request's 302. So had one whose hook navigated after an await,
-    // while the dispatch was still waiting for it. And a navigation a newer one replaced is followed by nothing.
+    // reader gets — the live form of the first request's 302. A navigation a newer one replaced is followed by
+    // nothing.
     private static async Task FollowThePageAsync(
         LiveSession session, Navigator navigator, string? historyUrl, bool replace, bool arriving)
     {
@@ -3659,24 +3661,6 @@ public static partial class RaskEndpointExtensions
             // sign-in's return page, one rebuilt from a resume record — so where it sends on replaces it.
             await EnforceAuthAndRenderAsync(session, redirectUrl, historyUrl is null ? redirectReplace || arriving : replace)
                 .ConfigureAwait(false);
-            return;
-        }
-
-        if (session.TakeHandedNavigation() is not { } navigate)
-        {
-            return;
-        }
-
-        navigate();
-        if (navigator.TryConsumeHistory(out var url, out _))
-        {
-            // The page that asked was never an address the reader held: the one they came by is kept or
-            // replaced as their own navigation said.
-            await EnforceAuthAndRenderAsync(session, url, historyUrl is null || replace).ConfigureAwait(false);
-        }
-        else
-        {
-            await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false);
         }
     }
 

@@ -58,6 +58,7 @@ public abstract partial class KitDrawsWithoutAskingTests
         ["time-picker-input: typing a whole time"] = (3, "the value each time the parts make a new one, as Flux's field says it: 10:30, 10:04, 10:45"),
         ["toast: raise one from the page's handler"] = (1, "the page's OnClick"),
         ["toast: dismiss it by its button"] = (1, "the toast leaves the queue the server keeps"),
+        ["lazy: scroll it into view"] = (1, "the browser says the placeholder is in view, and the page mounts what it stands for"),
     };
 
     /// <summary>

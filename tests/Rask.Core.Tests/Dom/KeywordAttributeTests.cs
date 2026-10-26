@@ -110,7 +110,9 @@ public partial class KeywordAttributeTests : RaskMarkup
     [Fact]
     public void A_keyword_enum_offers_no_chain_step_per_member()
     {
-        var names = new[] { "get_Lazy", "get_Eager", "get_Rtl", "get_Numeric", "get_PlaintextOnly", "get_NoReferrer" };
+        // Not "get_Lazy": Lazy is also a component (a chain entry of its own, Components/Lazy.cs). The member that was
+        // never a step is Loading.Lazy, which is qualified, and which Lazy the component does not hide.
+        var names = new[] { "get_Eager", "get_Rtl", "get_Numeric", "get_PlaintextOnly", "get_NoReferrer" };
 
         var steps = typeof(Element).Assembly.GetTypes()
             .SelectMany(t => t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly))

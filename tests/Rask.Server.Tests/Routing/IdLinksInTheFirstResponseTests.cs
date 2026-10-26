@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Server.Tests.Infrastructure;
 using Rask.TestSupport;
@@ -102,8 +103,9 @@ public sealed class IdLinksInTheFirstResponseTests(ITestOutputHelper output)
         await ws.AttachedAsync(host, MarkupAssert.SessionId(first));
         await ws.SettledAsync();
 
+        // The page is sent at once and its rows follow when its read is back: every frame up to the last link.
         await ws.SendJsonAsync(new { type = "navigate", path = "/id-links/rows", query = "" }, TestContext.Current.CancellationToken);
-        var arrived = Markup(await ws.SettledAsync());
+        var arrived = Markup(await Through(ws, Rows * IdLinkRowsPage.DescribedPerRow));
         await ws.SendJsonAsync(new { type = "navigate", path = "/id-links/rows", query = "again=1" }, TestContext.Current.CancellationToken);
         var again = Markup(await ws.SettledAsync());
 
@@ -159,6 +161,17 @@ public sealed class IdLinksInTheFirstResponseTests(ITestOutputHelper output)
         Assert.True(IdLinks.Difference(pages) is not { } difference, IdLinks.Difference(pages));
 
     // The markup the frames carry, as the browser reads it out of their JSON.
+    private static async Task<List<string>> Through(WebSocket ws, int described)
+    {
+        var frames = new List<string>();
+        while (IdLinks.Count(Markup(frames), "aria-describedby", "ui-tooltip-") < described)
+        {
+            frames.Add(await ws.ReceiveTextAsync());
+        }
+
+        return frames;
+    }
+
     private static string Markup(List<string> frames) => string.Concat(frames).Replace("\\\"", "\"", StringComparison.Ordinal);
 
     private static RaskTestHost Host(IdLinkStore store) =>

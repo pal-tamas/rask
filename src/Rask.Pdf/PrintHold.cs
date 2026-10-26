@@ -20,12 +20,12 @@ internal static class PrintHold
     private const string Sheet = "<style id=\"" + Id + "\">@layer " + Id + " { :root { display: none !important; } }</style>";
 
     /// <summary>
-    /// Removes the hold, lays the document out (so a web font or image the layout asks for is asked for now), and
-    /// waits for its web fonts. Evaluated by the protocol: the page's own scripts stay off.
+    /// Removes the hold, lays the document out (so a web font or image the layout asks for is asked for now), waits
+    /// for its web fonts, and answers how wide the document came out. Evaluated by the protocol: the page's own scripts stay off.
     /// </summary>
     internal const string Release =
         "document.getElementById('" + Id + "')?.remove(); document.documentElement.getBoundingClientRect(); "
-        + "document.fonts.ready.then(() => true)";
+        + "document.fonts.ready.then(() => document.documentElement.scrollWidth)";
 
     /// <summary>
     /// <paramref name="html"/> as UTF-8, with the hold as its first element: after the doctype, which must stay first

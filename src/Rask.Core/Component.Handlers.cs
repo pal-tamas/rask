@@ -283,6 +283,9 @@ public abstract partial class Component
             return false;
         }
 
+        // What the browser sent is written back beside the field by the render that answers it (HeardValues).
+        RenderHandle?.HeardValues?.Hear(id, payload);
+
         using var __dispatchScope = DispatchServicesScope.Push(services);
 
         // A handler runs outside any render walk, so there is no LiveRenderContext to read the culture

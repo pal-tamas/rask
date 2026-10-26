@@ -8,30 +8,31 @@ using Rask.TestSupport;
 
 namespace Rask.Server.Tests.Routing;
 
-// "Record not found, back to the list": a page that loads and THEN calls Go(). Reached in place, the navigation
-// waits for it, so the reader never sees it: its destination arrives in its place, under the address and the
-// history step of the navigation that led there. Where its load outlasts the wait — the first response, or the
-// navigation budget — its placeholder was on screen, and the destination replaces it.
+// "Record not found, back to the list": a page that loads and THEN calls Go(). Reached in place, it is sent at
+// once, so the reader sees it while it loads; its destination then REPLACES its address, so Back never returns to
+// a page that sends the reader on again. The first response waits for its load, and answers with a 302.
 public sealed class RedirectAfterAwaitTests
 {
     private const string Home = "/redirect/home";
 
-    // Longer than a test may run: the page is waited for until it has sent the reader on.
+    // Longer than a test may run: the first response is waited for until it has sent the reader on.
     private static readonly TimeSpan Patient = TimeSpan.FromMinutes(5);
 
     // Over while the test still holds the page's load.
     private static readonly TimeSpan Brief = TimeSpan.FromMilliseconds(1);
 
     [Fact]
-    public async Task A_link_to_a_page_that_loads_and_then_redirects_lands_on_its_destination_and_that_page_is_never_sent()
+    public async Task A_link_to_a_page_that_loads_and_then_redirects_shows_it_and_then_replaces_it_with_its_destination()
     {
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
 
-        var landing = Assert.Single(await redirects.Navigate("/redirect/late"));
+        await redirects.Send(new { type = "navigate", path = "/redirect/late", query = "" });
+        var frames = await redirects.Through(Home);
 
-        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
-        Assert.Equal("push", HistoryAction(landing));
+        var landing = frames[^1];
+        Assert.Equal("/redirect/late", LiveFrames.HistoryUrl(frames[0]));
+        Assert.Equal("push", HistoryAction(frames[0]));
+        Assert.Equal("replace", HistoryAction(landing));
         Assert.DoesNotContain("late-content", landing);
         Assert.Contains("home-content", landing);
         Assert.Contains(">Home</title>", Html(landing));
@@ -43,33 +44,33 @@ public sealed class RedirectAfterAwaitTests
     [InlineData("save-then-late")]
     public async Task A_handler_that_goes_to_a_page_that_loads_and_then_redirects_lands_on_its_destination(string button)
     {
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
 
-        var landing = Assert.Single(await redirects.Click(button));
+        await redirects.Press(button);
+        var frames = await redirects.Through(Home);
 
-        // One step in the history, as the handler's own Go() asked: the page in between never had an address.
-        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
-        Assert.Equal("push", HistoryAction(landing));
+        // One step in the history, as the handler's own Go() asked: the destination replaces the page in between.
+        var landing = frames[^1];
+        Assert.Single(frames, static f => LiveFrames.HistoryUrl(f) is not null && HistoryAction(f) == "push");
+        Assert.Equal("replace", HistoryAction(landing));
         Assert.Contains("home-content", landing);
         Assert.DoesNotContain("late-content", landing);
     }
 
     // The handler's await ends on a thread of its own, beside the repaint its page gets for the wait. Whichever
-    // comes first, the destination is not mounted by that repaint: only the navigation's own render waits for it.
+    // comes first, the destination is not mounted by that repaint: only the navigation's own render mounts it.
     [Fact]
     public async Task A_handler_that_navigates_while_its_page_is_being_repainted_still_lands_once_on_the_destination()
     {
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
 
-        var frames = await redirects.Click("late-under-repaint");
+        await redirects.Press("late-under-repaint");
+        var frames = await redirects.Through(Home);
 
-        var landing = Assert.Single(frames, f => LiveFrames.HistoryUrl(f) is not null);
-        Assert.Equal(Home, LiveFrames.HistoryUrl(landing));
-        Assert.Equal("push", HistoryAction(landing));
+        var landing = Assert.Single(frames, static f => LiveFrames.HistoryUrl(f) == Home);
+        Assert.Equal("replace", HistoryAction(landing));
         Assert.Contains("home-content", landing);
-        Assert.DoesNotContain(frames, f => f.Contains("late-content", StringComparison.Ordinal));
+        Assert.Single(frames, static f => LiveFrames.HistoryUrl(f) is not null && HistoryAction(f) == "push");
     }
 
     [Fact]
@@ -119,8 +120,7 @@ public sealed class RedirectAfterAwaitTests
     public async Task A_page_the_reader_has_left_by_the_time_its_load_ends_sends_them_nowhere()
     {
         RedirectGate.Reset();
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Brief);
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
         var route = redirects.Session.Services.GetRequiredService<RouteState>();
         await redirects.Navigate("/redirect/gated");
         await redirects.Navigate("/redirect/start");
@@ -136,8 +136,7 @@ public sealed class RedirectAfterAwaitTests
     [Fact]
     public async Task A_page_that_loads_and_then_redirects_into_a_guarded_layout_sends_an_anonymous_reader_to_sign_in()
     {
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: Patient);
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
         var constructedBefore = RedirectVaultPage.Constructed;
 
         await redirects.Send(new { type = "navigate", path = "/redirect/late-vault", query = "" });

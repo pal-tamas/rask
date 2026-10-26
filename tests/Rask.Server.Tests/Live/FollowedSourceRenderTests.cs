@@ -18,9 +18,6 @@ namespace Rask.Server.Tests.Live;
 [Collection("HostEnvironment")]
 public sealed class FollowedSourceRenderTests
 {
-    // Over before the test lets the held read go: the page is sent without its rows.
-    private static void Brief(RaskServerOptions o) => o.NavigationQuiescenceTimeout = TimeSpan.FromMilliseconds(40);
-
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
@@ -50,7 +47,7 @@ public sealed class FollowedSourceRenderTests
     public async Task A_read_that_comes_back_inside_the_dispatchs_last_render_is_on_the_page_without_another_event()
     {
         var board = new PumpBoard();
-        await using var page = await Page.Open(board, Brief);
+        await using var page = await Page.Open(board);
         board.Hold();
         board.Arm(walk =>
         {

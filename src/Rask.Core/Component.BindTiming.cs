@@ -14,7 +14,8 @@ public abstract partial class Component
     // message is about a value already being corrected.
     private protected static void WriteTypedBind(
         StringBuilder sb, LiveRenderContext ctx, BindTiming timing, ExpressionAccessor.Accessor acc,
-        EditContext? bindCtx, Func<Task>? afterBind, bool text, MoneyMarks? money = null)
+        EditContext? bindCtx, Func<Task>? afterBind, bool text, MoneyMarks? money = null,
+        bool secret = false)
     {
         if (timing.AtEveryKey && text)
         {
@@ -37,6 +38,15 @@ public abstract partial class Component
         {
             AppendAttr(sb, "data-rask-on-change", commit);
             AppendAttr(sb, "data-rask-bind-on", timing.WaitsForAction ? "action" : "blur");
+
+            // The render that answers what the field was sent with says what that was: a field that still holds it
+            // takes the value rendered here, focused or not — a submit that empties it empties it (HeardValues).
+            // Not while what it was sent could not be read: the model still holds the value before, and the field
+            // keeps what was typed for the reader to correct (UnreadValue).
+            if (bindCtx?.IsUnread(acc.Field) is not true && ctx.Handle?.HeardValues?.Told(commit, secret) is { } heard)
+            {
+                AppendAttr(sb, "data-rask-heard", heard);
+            }
         }
 
         if (BindingHelpers.ClearOnEditHandler(bindCtx, acc.Field) is { } clear)

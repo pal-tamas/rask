@@ -86,10 +86,20 @@ internal sealed class DeployLock
     internal async Task ReleaseAsync(string host, HeldLock held)
     {
         await held.StopHeartbeatAsync().ConfigureAwait(false);
-        var released = await Capture(BuildUnlockArguments(host, held.Id), CancellationToken.None).ConfigureAwait(false);
-        if (released.ExitCode != 0)
+        string? failed;
+        try
         {
-            _console.WriteErrorLine($"Releasing the deploy lock {_container} failed ({FirstLine(released.StandardError)}) — it frees itself when its lease runs out.", ConsoleStyle.Warning);
+            var released = await Capture(BuildUnlockArguments(host, held.Id), CancellationToken.None).ConfigureAwait(false);
+            failed = released.ExitCode == 0 ? null : FirstLine(released.StandardError);
+        }
+        catch (TimeoutException stalled)
+        {
+            failed = stalled.Message;
+        }
+
+        if (failed is not null)
+        {
+            _console.WriteErrorLine($"Releasing the deploy lock {_container} failed ({failed}) — it frees itself when its lease runs out.", ConsoleStyle.Warning);
         }
     }
 
@@ -104,7 +114,8 @@ internal sealed class DeployLock
         return new HeldLock(id, stop, BeatAsync(host, id, stop.Token));
     }
 
-    // Renew the lease until released. A missed beat is only a warning: the lease outlasts several of them.
+    // Renew the lease until released, from this process: the lock outlives its holder by one lease and no longer, since
+    // nothing on the box renews it. A missed beat is only a warning: the lease outlasts several of them.
     private async Task BeatAsync(string host, string id, CancellationToken stop)
     {
         try
@@ -112,16 +123,29 @@ internal sealed class DeployLock
             while (true)
             {
                 await Task.Delay(_timing.Heartbeat, stop).ConfigureAwait(false);
-                var beat = await Capture(BuildLockHeartbeatArguments(host, id), stop).ConfigureAwait(false);
-                if (beat.ExitCode != 0)
+                var failed = await BeatOnceAsync(host, id, stop).ConfigureAwait(false);
+                if (failed is not null)
                 {
-                    _console.WriteErrorLine($"  ! Renewing the deploy lock {_container} failed ({FirstLine(beat.StandardError)}).", ConsoleStyle.Warning);
+                    _console.WriteErrorLine($"  ! Renewing the deploy lock {_container} failed ({failed}).", ConsoleStyle.Warning);
                 }
             }
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested)
         {
             // Released.
+        }
+    }
+
+    private async Task<string?> BeatOnceAsync(string host, string id, CancellationToken stop)
+    {
+        try
+        {
+            var beat = await Capture(BuildLockHeartbeatArguments(host, id), stop).ConfigureAwait(false);
+            return beat.ExitCode == 0 ? null : FirstLine(beat.StandardError);
+        }
+        catch (TimeoutException stalled)
+        {
+            return stalled.Message;
         }
     }
 

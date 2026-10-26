@@ -50,6 +50,15 @@ Dockerfile below (override with `--dockerfile`).
   [job](jobs.md#shutdown), but the ones it is running run to the end — the deploy waits for it to exit, up to
   the app's `"stopTimeout"` in `.rask/deploy.json` (default `30m`), and prints what it is waiting for. See
   [the shutdown ladder](#the-shutdown-ladder).
+- **No step waits forever.** The build may run 45 minutes in all and go 15 minutes without printing a line;
+  past either it is stopped, the deploy says which and shows the build's last line, and the previous version
+  keeps serving. While a build is quiet the deploy says so once a minute
+  (`… still building — 12m in, nothing printed for 3m (stops after 15m of silence)`). Every other docker call —
+  a tag, a start, an inspect, the health probe, the proxy reload — has five minutes, and the old colour's
+  `docker stop` has its `"stopTimeout"` on top. A call that runs out is killed with its ssh session, a new colour
+  that was starting is taken back out, and the deploy fails naming the step (`` `docker inspect` did not finish
+  within 5m``). A build that legitimately needs longer, or has a step silent that long by design, says so in
+  `.rask/deploy.json`: `"buildTimeout": "1h30m"`, `"buildIdleTimeout": "30m"`.
 - **Durable SQLite database.** Every deploy runs a fresh container, so the database can't live inside it.
   `rask deploy` mounts a per-app named volume and points the app at it (`Rask:ConnectionStrings:App` →
   `Data Source=/data/app.db`), so your data persists across redeploys; the old container is stopped
@@ -191,10 +200,12 @@ is read again under the lock — never the one taken before the build.
 **One app, one deploy at a time.** Two deploys of the *same* app (two CI runs, say) would pick the same new
 colour, so each deploy and each `rask deploy rollback` also holds that app's own lock,
 `rask-deploy-lock-<app>`, from before it moves the image tags until the old colour is retired. A second deploy
-of the app says who holds it and waits — up to 45 minutes, then it stops and prints the `rm -f` that frees it.
-Deploys of different apps never wait on each other's app lock. A build has no upper bound, so this lock has no
-fixed lifetime: the deploy holding it renews it every minute, and it removes itself five minutes after the
-last renewal — a deploy that was killed frees it within five minutes.
+of the app says who holds it and waits — as long as a deploy may take (`"buildTimeout"` plus `"stopTimeout"`),
+then it stops and prints the `rm -f` that frees it. Deploys of different apps never wait on each other's app
+lock. The lock has no fixed lifetime: the deploy process holding it renews it every minute from the machine it
+runs on — nothing on the box renews it — and it removes itself five minutes after the last renewal. A deploy that
+fails, hits a deadline or is cancelled releases it on the way out; one that was killed outright (a cancelled CI
+job) stops renewing it, and it is gone within five minutes.
 
 **The check through the proxy.** `caddy reload` only proves the config parses. After it, the deploy asks
 Caddy's admin API (`GET /config/`, from inside the proxy's network namespace) which upstream it runs for the

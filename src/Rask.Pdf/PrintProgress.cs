@@ -17,6 +17,9 @@ internal sealed class PrintProgress
     /// <summary>The steps taken so far, each with when it began, from the print's start.</summary>
     public IReadOnlyCollection<(string Step, TimeSpan At)> Steps => _steps;
 
+    /// <summary>How many long tables were cut into a table per page (<see cref="PrintTables"/>).</summary>
+    public int TablesCut { get; set; }
+
     /// <summary>How long the print has run.</summary>
     public TimeSpan Elapsed => Stopwatch.GetElapsedTime(_started);
 

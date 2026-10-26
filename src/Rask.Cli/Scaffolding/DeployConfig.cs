@@ -87,6 +87,18 @@ internal sealed class DeployConfig
     /// </summary>
     public string? StopTimeout { get; set; }
 
+    /// <summary>
+    /// How long the image build may run in all (default <c>45m</c>) before the deploy stops it and the previous version
+    /// keeps serving. Absent unless an app needs more.
+    /// </summary>
+    public string? BuildTimeout { get; set; }
+
+    /// <summary>
+    /// How long the build may print nothing (default <c>15m</c>) — a download stalled inside it, or a dead connection.
+    /// Raise it only for a step that is silent that long by design.
+    /// </summary>
+    public string? BuildIdleTimeout { get; set; }
+
     /// <summary>The <c>.rask/deploy.json</c> path under <paramref name="workingDirectory"/>.</summary>
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");

@@ -41,19 +41,24 @@ public sealed class RedirectLoopTests
     [Fact]
     public async Task Two_pages_that_each_load_and_then_redirect_to_the_other_are_stopped_with_an_error_the_reader_sees()
     {
-        await using var redirects = await RedirectingSession.Open(
-            "/redirect/start", LiveDiffMode.DisabledFull, navigation: TimeSpan.FromMinutes(5));
+        await using var redirects = await RedirectingSession.Open("/redirect/start", LiveDiffMode.DisabledFull);
 
         await redirects.Send(new { type = "navigate", path = "/redirect/slow-ping", query = "" });
-        var stopped = await redirects.Ws.ReceiveUntilAsync(
-            f => f.Contains("rask-error-boundary", StringComparison.Ordinal), "the frame that shows the loop was refused");
+        var hops = new List<string>();
+        while (hops.Count == 0 || !hops[^1].Contains("rask-error-boundary", StringComparison.Ordinal))
+        {
+            hops.Add(await redirects.Ws.ReceiveTextAsync());
+        }
+
         var after = await redirects.Ws.SettledAsync();
 
-        // The navigation waited through every hop, so the page the loop stopped on is the first one sent, with
-        // its own address.
-        // The reader is told that it failed, never why: the sentence is the log's, like any exception's.
-        Assert.Matches("^/redirect/slow-p[io]ng$", LiveFrames.HistoryUrl(stopped));
-        Assert.DoesNotContain("Too many redirects", stopped, StringComparison.Ordinal);
+        // Each page is shown as it is reached and the next one replaces it, so the loop costs the reader one
+        // history entry. The reader is told that it failed, never why: the sentence is the log's.
+        Assert.Single(hops, static f => LiveFrames.HistoryUrl(f) is not null && f.Contains("\"push\"", StringComparison.Ordinal));
+        Assert.All(
+            hops.Where(static f => LiveFrames.HistoryUrl(f) is not null),
+            static f => Assert.Matches("^/redirect/slow-p[io]ng$", LiveFrames.HistoryUrl(f)));
+        Assert.DoesNotContain("Too many redirects", hops[^1], StringComparison.Ordinal);
         Assert.DoesNotContain(after, f => LiveFrames.HistoryUrl(f) is not null);
     }
 

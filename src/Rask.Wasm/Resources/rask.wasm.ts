@@ -51,6 +51,7 @@ import {
     invokeJs,
 } from "../../Rask.Core/Resources/rask-js-invoke.js";
 import "./rask-wasm-api.js";
+import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 let dotnetExports: RaskWasmExports | null = null;
 let root: HTMLElement | null = null;
@@ -190,6 +191,8 @@ export function setExports(exports: RaskWasmExports): void {
     // index.html (and any subsequent applyRender will re-sweep so morph-added
     // assets get picked up too — see applyDom in handle()).
     invokeGate.scanHeadAssets(true);
+    // An app booted in a background tab: what it polls waits until the reader looks (rask-visibility.ts).
+    tellIfHidden();
 
     // Let registered IHostedServices drain when the page really goes away — the browser's nearest
     // thing to SIGTERM. `pagehide` rather than `beforeunload` because it also fires on mobile, where

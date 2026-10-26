@@ -277,6 +277,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     Forms.PendingBinds? IRenderHandle.PendingBinds => _pendingBinds ??= new Forms.PendingBinds(View);
 
+    // What the browser last sent for this session's fields (Forms/HeardValues).
+    private Forms.HeardValues? _heard;
+
+    Forms.HeardValues? IRenderHandle.HeardValues => _heard ??= new Forms.HeardValues();
+
     /// <summary>
     ///     Whether the last render actually mounted <paramref name="pageType" />.
     /// </summary>
@@ -399,12 +404,30 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         await RequestRender().ConfigureAwait(false);
     }
 
-    /// <summary>Ends the event in progress: the scope it opened is disposed, after the reads its page left behind.</summary>
+    /// <summary>
+    ///     Ends the event in progress: the scope it opened is disposed once the hooks it started and the reads its page
+    ///     left behind are done.
+    /// </summary>
     internal void EndEvent()
     {
         if (_eventServices is { } events)
         {
             events.Close(Interlocked.Exchange(ref _readsStillRunning, null));
+        }
+    }
+
+    /// <summary>The session has ended: every event's scope is disposed, whatever its hooks are still doing.</summary>
+    protected void EndEvents() => _eventServices?.EndAll();
+
+    /// <summary>
+    ///     Keeps the event in progress, and the scope it has or will open, until <paramref name="hook" /> — started
+    ///     for <paramref name="owner" /> by <paramref name="render" /> — is done.
+    /// </summary>
+    internal void HoldEvent(Task hook, Component owner, LiveRenderContext render)
+    {
+        if (EventServices is EventServices events)
+        {
+            events.Hold(hook, owner, render);
         }
     }
 
@@ -696,7 +719,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     internal void ForgetUnsettledReads() => Volatile.Write(ref _unsettledReads, null);
 
     /// <summary>Whether the page just rendered has sent the reader on, so it is neither waited for nor rendered again.</summary>
-    protected virtual bool LeavingThePage(bool arriving) => false;
+    protected virtual bool LeavingThePage() => false;
 
     /// <summary>
     ///     Renders, and renders again as the lifecycle work and the queries that render started come back, until
@@ -713,10 +736,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     /// </remarks>
     /// <param name="publishOnly">Whether the first render is a publish render. Every later one is.</param>
     /// <param name="budget">One deadline for all the waves.</param>
-    /// <param name="arriving">Whether the render carries a navigation, for <see cref="LeavingThePage" />.</param>
     /// <param name="cancellationToken">Ends the wait with <see cref="OperationCanceledException" />.</param>
     protected ValueTask<(ReadOnlyMemory<char> Html, FrameWriter? Frames)> RenderInWavesAsync(
-        bool publishOnly, TimeSpan budget, bool arriving, CancellationToken cancellationToken)
+        bool publishOnly, TimeSpan budget, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -728,7 +750,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
 
         return _reads.Take() is { } started
-            ? FollowTheReadsAsync(started, html, frames, budget, arriving, cancellationToken)
+            ? FollowTheReadsAsync(started, html, frames, budget, cancellationToken)
             : new ValueTask<(ReadOnlyMemory<char>, FrameWriter?)>((html, frames));
     }
 
@@ -737,7 +759,6 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         ReadOnlyMemory<char> html,
         FrameWriter? frames,
         TimeSpan budget,
-        bool arriving,
         CancellationToken cancellationToken)
     {
         try
@@ -748,7 +769,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
                 _ =>
                 {
                     // A page that has sent the reader on is not rendered again: its destination is next.
-                    if (!LeavingThePage(arriving))
+                    if (!LeavingThePage())
                     {
                         using (QuiescenceScope.Enter(started))
                         {
@@ -761,7 +782,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
                 budget,
                 // Work waiting on the browser cannot finish before a frame reaches it, and a page that
                 // redirected is not waited for at all.
-                isBlocked: () => JsInvokes.HasPending || LeavingThePage(arriving),
+                isBlocked: () => JsInvokes.HasPending || LeavingThePage(),
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch

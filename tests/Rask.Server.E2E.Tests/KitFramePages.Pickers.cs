@@ -125,7 +125,9 @@ public sealed partial class KitOwnFramePage : KitFramePage
     protected override Component? Render() =>
         Div.Id("stage")[
             Part("toggle-heard", Ui.Toggle.Icon(Ui.IconName.SpeakerWave).Label("Mute").Checked(_muted).OnChange(v => _muted = v)),
-            Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]])
+            Part("carousel", Ui.Carousel[Div.Class("carousel-item")["One"], Div.Class("carousel-item")["Two"]]),
+            // Below the fold, so nothing loads it but the reader coming to it.
+            Part("lazy", Div.Style("height:2400px"), Lazy.Placeholder(Div.Id("lazy-placeholder")[Ui.Skeleton])[Ui.Card[Ui.Heading["Sales"]]])
         ];
 }
 
