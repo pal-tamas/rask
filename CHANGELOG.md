@@ -111,6 +111,11 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **A scoped script's callback no longer runs beside a render on the Server host.** It was queued behind the
+  handlers but did not take the session's lock, so it could write while a render's `OnRendered` read: `Ui.Editor`,
+  typed into fast on a loaded server, could be handed back the text one keystroke behind ("Still he" for "Still
+  here"). Its synchronous part now runs under the lock, as a handler's does; what follows its first await runs as a
+  lifecycle hook's continuation does.
 - **One rule decides which field holds a secret, for its value and for what the page heard.** Before: the value
   rule matched `autocomplete` only when it was exactly `current-password`/`new-password`/`one-time-code`, so
   `autocomplete="username current-password"` wrote the password back, and a field the app marked

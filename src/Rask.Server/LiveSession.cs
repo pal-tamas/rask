@@ -711,11 +711,28 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // A scoped script's callback arrives on the socket reader like a dotNetInvoke, not as an event, so it is queued
     // behind the handlers already on the chain rather than run beside them on whatever thread read it. Its faults
     // are reported by the component that ran it; the chain is for ordering only.
+    //
+    // Its synchronous part runs under the session's lock, as a handler's does: a render — and the OnRendered hooks it
+    // fires — may be under way when it arrives, and reads what the callback writes. An editor's callback that set its
+    // "shown" text beside a render's OnRendered reading the model one keystroke behind put the older text back in the
+    // editor. What the callback does after its first await runs as a lifecycle hook's continuation does.
     protected override void RunInOrderCore(Func<Task> work) =>
         EnqueueOnHandlerChain(async previous =>
         {
             await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-            await Started(work).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            // Not the socket's token: a callback the reader sent is not dropped when the connection is replaced.
+            await Lock.WaitAsync(CancellationToken.None).ConfigureAwait(false);
+            Task running;
+            try
+            {
+                running = Started(work);
+            }
+            finally
+            {
+                Lock.Release();
+            }
+
+            await running.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
         });
 
     // A navigation a lifecycle hook asked for with no dispatch waiting for it — after an await, or as its page

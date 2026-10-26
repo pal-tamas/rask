@@ -117,6 +117,28 @@ public class LiveSessionDirectTests
     }
 
     [Fact]
+    public async Task A_script_callback_waits_for_the_render_that_holds_the_session()
+    {
+        // A render and the OnRendered hooks it fires read what the callback writes: an editor's callback beside one
+        // put the text one keystroke behind back in the editor.
+        using var session = NewSession(new BasicComponent());
+        await session.Lock.WaitAsync(TestContext.Current.CancellationToken);
+        var ran = false;
+
+        ((IRenderHandle)session).RunInOrder(() =>
+        {
+            ran = true;
+            return Task.CompletedTask;
+        });
+        var ranDuringTheRender = Volatile.Read(ref ran);
+        session.Lock.Release();
+        await session.LastHandlerTask;
+
+        Assert.False(ranDuringTheRender);
+        Assert.True(ran);
+    }
+
+    [Fact]
     public async Task A_callback_the_browser_awaits_runs_while_the_handler_awaiting_the_browser_still_is()
     {
         // A lock's callback: the handler that asked for the lock awaits the browser, which awaits the callback, so
