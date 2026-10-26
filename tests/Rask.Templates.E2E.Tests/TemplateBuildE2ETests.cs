@@ -91,6 +91,24 @@ public sealed class TemplateBuildE2ETests
     }
 
     /// <summary>
+    ///     <see cref="Scaffold"/> with its <c>"latest"</c> versions chosen from the live registry, as <c>rask new</c> writes it.
+    /// </summary>
+    /// <remarks>
+    ///     Every gate that runs npm installs THIS, never the raw template: a bare <c>"latest"</c> is only the offline
+    ///     fallback, and npm can refuse it where the chosen set installs — @volar/typescript 2.4.29 put an optional
+    ///     <c>typescript &lt;7</c> peer under the toolchain, and npm reads a root <c>"latest"</c> as able to step down to
+    ///     6 and fails ERESOLVE, while the <c>^7.0.2</c> that <c>rask new</c> writes installs.
+    /// </remarks>
+    internal static async Task<ScaffoldResult> ScaffoldWithChosenVersions(
+        string key, string projectDirectory, string name, string version, IReadOnlyList<string> islands)
+    {
+        var (scaffold, unchosen) = await FrontEndVersions.PinAsync(
+            Scaffold(key, projectDirectory, name, version, islands), NpmRegistry.Public, CancellationToken.None);
+        Assert.True(unchosen is null, $"--template {key}: {unchosen}");
+        return scaffold;
+    }
+
+    /// <summary>
     ///     Writes a scaffold to disk and points it at the local feed.
     /// </summary>
     /// <remarks>

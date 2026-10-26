@@ -97,7 +97,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         // Without its WebAssembly client. These journeys run the host as `dotnet run` does and never publish a client,
         // so a server scaffold WITH one answered every request 503 from MapRaskSpa's missing-bundle page, and the
         // server journey could not reach the component it asserts on (#1105).
-        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version, islands: []);
+        var result = await TemplateBuildE2ETests.ScaffoldWithChosenVersions(key, projectDirectory, name, version, islands: []);
         TemplateBuildE2ETests.Write(result, projectDirectory, feed);
 
         var projectFile = Path.Combine(projectDirectory, name + ".csproj");
