@@ -9,6 +9,20 @@ them until tagged releases begin.
 
 ### Added
 
+- **App-wide model rules in one class: `IRaskModel`, found by the generator like Rails' `ApplicationRecord`.** A string
+  length, a decimal's precision, a convention removed, how constraints are named and what a delete does, stated once
+  for every table — the app's entities and every battery's — in `RaskAppDbContext` and in an app's own context
+  deriving from `RaskDbContext`. Before: an app with an existing schema (a Prisma database) wrote its own context to
+  get `ConfigureConventions` and named every index by hand. After:
+  `public sealed class AppModel : IRaskModel { public static void Conventions(ModelConfigurationBuilder c) { c.Properties<string>().HaveMaxLength(1000); c.ConstraintNames(n => n.Kind switch { ConstraintKind.PrimaryKey => $"{n.Table}_pkey", ConstraintKind.Unique => $"{n.Table}_{n.Joined}_key", _ => null }); c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction); } public static void Model(ModelBuilder m) => m.HasDefaultSchema("dbo"); }`.
+  `ConstraintNames` names primary keys, foreign keys, unique indexes and alternate keys, indexes and (SQL Server)
+  defaults, cut to the provider's identifier limit (128 on SQL Server, 63 on PostgreSQL); `DeleteBehavior` sets an
+  aggregate's children and every other key apart. Both run as the model is finalized, so an entity's own
+  `Configure` (`HasDatabaseName`, `HasConstraintName`, `OnDelete`) still wins, and a unique index's message or a
+  referenced delete's sentence finds its index under the new name. A second `IRaskModel` in one project is the new
+  error **RASK110**. The batteries now state every unbounded text column (a job's payload, a mail's body, a log
+  line), so an app-wide string length never cuts one off. See [docs/data.md](docs/data.md#app-wide-model-rules-one-iraskmodel).
+
 - **`Ui.DatetimePicker` — Flux UI's new datetime picker: a date and a time from one field.** The date picker's calendar
   with a column of times beside it (or `.Time(Ui.DatetimePickerTime.Input)` to type the time), over a wall-clock
   `DateTime` — `2026-10-14T10:30`, as a `datetime-local` field holds it, nothing converted between time zones — or a
@@ -111,6 +125,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
+  carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
+  battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
+  `rask db add AddJobs`. Switching one OFF never drops anything: an app whose migrations already created the tables
+  keeps them in the model, excluded from migrations, so the next `rask db add` neither drops nor touches them (read
+  off the app's own model snapshot). The model is cached per set of switches, so apps in one process (a test suite)
+  with different batteries off no longer share one. See [docs/configuration.md](docs/configuration.md#battery-tables).
 - **A filter change takes the list `Ui.Filters` drives back to its first page; the sort stays.** Before: on
   `/orders?page=3&sort=name`, picking a driver landed on `?page=3&sort=name&driver=ada` — page 3 of the narrowed list,
   often empty — and a badge's cross and Clear all kept `page` too. After: `?sort=name&driver=ada`, the list starting at

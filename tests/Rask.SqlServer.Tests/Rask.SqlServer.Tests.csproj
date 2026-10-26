@@ -31,6 +31,9 @@
     <!-- Only for the cache-key convention: the package matches CacheEntry by name, and these tests pin that name
          against the real type. The package itself takes no Rask.Cache dependency. -->
     <ProjectReference Include="..\..\src\Rask.Cache\Rask.Cache.csproj"/>
+    <!-- Rask's own context, whose battery tables and app-wide model rules are checked here on SQL Server's types and
+         identifier limit: model building is offline, and a process of its own keeps EF Core's internal services apart. -->
+    <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
   </ItemGroup>
 
 </Project>

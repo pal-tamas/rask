@@ -17,6 +17,14 @@ public sealed class QueuedMailConfiguration : IEntityTypeConfiguration<QueuedMai
         builder.Property(x => x.From).IsRequired();
         builder.Property(x => x.To).IsRequired();
         builder.Property(x => x.Subject).IsRequired();
+
+        // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
+        // that states none, and would otherwise cut these off.
+        foreach (var text in new[] { nameof(QueuedMail.From), nameof(QueuedMail.To), nameof(QueuedMail.Cc), nameof(QueuedMail.Bcc), nameof(QueuedMail.ReplyTo), nameof(QueuedMail.Subject), nameof(QueuedMail.TextBody), nameof(QueuedMail.HtmlBody), nameof(QueuedMail.Attachments), nameof(QueuedMail.Error) })
+        {
+            builder.Property(text).Metadata.SetMaxLength(null);
+        }
+
         // Drives the "due, oldest first" claim query. ClaimedUntil stays out of it: in a healthy queue
         // almost every candidate row is unclaimed, so it costs nothing as a residual filter, and a
         // filtered index would need provider-specific SQL.

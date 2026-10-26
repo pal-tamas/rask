@@ -16,6 +16,14 @@ internal sealed class LogEntryConfiguration : IEntityTypeConfiguration<LogEntry>
         entity.Property(e => e.Category).HasMaxLength(LogEntry.CategoryMaxLength).IsRequired();
         entity.Property(e => e.Message).IsRequired();
 
+        // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
+        // that states none, and would otherwise cut these off.
+        foreach (var text in new[] { nameof(LogEntry.Message), nameof(LogEntry.Exception), nameof(LogEntry.Scopes) })
+        {
+            entity.Property(text).Metadata.SetMaxLength(null);
+        }
+
+
         // Retention's cutoff, and the time-range filter.
         entity.HasIndex(e => e.Timestamp);
 

@@ -143,6 +143,7 @@ Rask.RaskAppOptions.Snapshots.get -> Rask.Battery<Rask.SQLite.Snapshots.SqliteSn
 Rask.RaskAppOptions.Storage.get -> Rask.Battery<Rask.Storage.StorageOptions!>!
 Rask.RaskAppOptions.Validation.get -> Rask.Battery!
 Rask.RaskDatabaseDbContextOptionsExtensions
+override Rask.RaskAppDbContext.OnConfiguring(Microsoft.EntityFrameworkCore.DbContextOptionsBuilder! optionsBuilder) -> void
 override Rask.RaskAppDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> void
 static Rask.RaskApiValidation.AddRaskApiValidation(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.RaskApiValidation.RequireRaskValidation<TBuilder>(this TBuilder builder) -> TBuilder
