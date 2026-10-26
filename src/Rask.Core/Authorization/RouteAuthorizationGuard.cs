@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authentication;
 
 namespace Rask.Core.Authorization;
 
@@ -24,6 +25,12 @@ public static class RouteAuthorizationGuard
         if (chain.Count == 0)
         {
             return RouteAuthorizationResult.Allow();
+        }
+
+        // [Guest]: a page for readers who are not signed in, which a signed-in one never sees.
+        if (GuestsOnlyThen(chain) is { } then && PrincipalRights.IsSignedIn(user))
+        {
+            return RouteAuthorizationResult.Redirect(then);
         }
 
         var (authzData, failingPage) = CollectAuthorizeData(chain);
@@ -88,6 +95,20 @@ public static class RouteAuthorizationGuard
             if (!await AllowsAsync(services, asked, user).ConfigureAwait(false))
             {
                 return type;
+            }
+        }
+
+        return null;
+    }
+
+    // The innermost [Guest] along the chain: a page's own says where its readers go, over its layout's.
+    private static string? GuestsOnlyThen(IReadOnlyList<Type> chain)
+    {
+        for (var i = chain.Count - 1; i >= 0; i--)
+        {
+            if (PageAuthorizeData.Of(chain[i]).GuestsOnlyThen is { } then)
+            {
+                return then;
             }
         }
 

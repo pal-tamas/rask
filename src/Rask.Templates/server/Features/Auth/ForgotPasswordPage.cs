@@ -11,6 +11,7 @@ public sealed class ForgotPasswordModel
 // The answer is the same whether or not the address has an account here. Anything else would let anybody walk
 // a list of addresses through this form to learn who is registered.
 [AllowAnonymous]
+[Guest]
 [Route("/forgot-password")]
 public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
 {

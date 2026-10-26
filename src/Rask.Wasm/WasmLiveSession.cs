@@ -770,6 +770,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         // updates the body. We commit the final render once, after the loop. Each rebuild
         // overwrites _htmlBuffers.Current, so it holds the final render when the loop settles.
         _pendingRenderInScope = false;
+        _guardedTo = null;
         var budget = 2;
         FollowRedirect(ref historyUrl, ref replace, ref budget);
         if (!await BuildPayloadAsync(historyUrl, replace, publishOnly, false, settle && !arriving)
@@ -805,6 +806,15 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         _navigator ??= Services.GetRequiredService<Navigator>();
 
+        // The route guard moved the last build to another page: a rebuild carries that page's address, not the one
+        // the build was asked for.
+        if (_guardedTo is { } guarded)
+        {
+            _guardedTo = null;
+            historyUrl = guarded;
+            replace = true;
+        }
+
         // Go.Out: the reader leaves for a page of this site the app does not render, and nothing follows. From the
         // first page, as the address of a redirect would, it takes that page's entry; from a link, the link's.
         if (_navigator.TryConsumeExit(out var exit))
@@ -824,6 +834,9 @@ internal sealed class WasmLiveSession : LiveSessionBase
     }
 
     private Navigator? _navigator;
+
+    // Where the route guard last sent a build instead of the page it was asked for, for the rebuilds that follow it.
+    private string? _guardedTo;
 
     // The navigate calls made and not yet started.
     private readonly NavigationArrivals _arrivals = new();
@@ -897,6 +910,16 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return null;
         }
 
+        // [Guest]: a signed-in reader is sent to the page the attribute names, before this one is built.
+        if (authResult.Outcome == RouteAuthorizationOutcome.Redirect)
+        {
+            var then = LocalUrl.Sanitize(authResult.RedirectTo);
+            var at = then.IndexOf('?', StringComparison.Ordinal);
+            routeState.Path = at < 0 ? then : then[..at];
+            routeState.Query = at < 0 ? QueryCollection.Empty : QueryString.Parse(then[at..]);
+            return then;
+        }
+
         var returnUrl = "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(routeState.Path, routeState.Query));
         routeState.Path = RouteAuthorizationGuard.ChallengePath;
         routeState.Query = QueryString.Parse(returnUrl);
@@ -928,6 +951,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
         {
             historyUrl = guardUrl;
             replace = true;
+            _guardedTo = guardUrl;
         }
 
         // Render + decide diff-vs-full + write the frame — shared with the Server host

@@ -93,6 +93,33 @@ public sealed class ServerBatteryScaffoldTests
         Assert.Contains("global using Rask.Core.Browser;", files["GlobalUsings.cs"], StringComparison.Ordinal);
     }
 
+    public static TheoryData<string> GuestPages =>
+        ["LoginPage.cs", "RegisterPage.cs", "ForgotPasswordPage.cs", "ResetPasswordPage.cs"];
+
+    // As a starter kit marks them guest-only: a reader already signed in is sent home, not shown the form.
+    [Theory]
+    [MemberData(nameof(GuestPages))]
+    public void The_pages_for_getting_in_send_a_reader_already_signed_in_home(string page)
+    {
+        var files = Generate("data");
+
+        var source = files["Features/Auth/" + page];
+
+        Assert.Contains("[Guest]", source, StringComparison.Ordinal);
+        Assert.Contains("global using Rask.Core.Routing;", files["GlobalUsings.cs"], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("LogoutPage.cs")]
+    [InlineData("ConfirmEmailPage.cs")]
+    [InlineData("DevicesPage.cs")]
+    public void The_pages_a_signed_in_reader_uses_are_not_guest_only(string page)
+    {
+        var source = Generate("data")["Features/Auth/" + page];
+
+        Assert.DoesNotContain("[Guest", source, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_register_page_sets_the_users_own_columns_while_registering()
     {
