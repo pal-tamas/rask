@@ -184,6 +184,10 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A composer's box is as tall as its text from the first paint, as Flux's is.** Before: it took its rows and
+  grew only once something was typed, so a placeholder that wraps on a phone was cut to its first line. After:
+  the box is fitted as it arrives — on the page's load and when a render adds it — and an `inline` composer
+  with a long placeholder shows it whole on a phone (two lines at 390px wide, one on a desktop).
 - **`Ui.Command`'s search and `Ui.Pillbox`'s trigger are set in 16px on a phone, as Flux's are.** Before: 14px/20px at
   every width. After: `text-base` below `sm`, `text-sm` from it, like the kit's other fields; a small pillbox stays
   14px.

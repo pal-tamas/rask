@@ -417,3 +417,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96070
 rask-hooks.js,115588
+#
+# 2026-10-26, a box that grows with its text is fitted as it arrives too (rask-grow.ts, hooks only: the page's
+# first boxes and those a render adds, so a placeholder that wraps on a phone is shown whole): rask-hooks.js
+# +339 (115,588 -> 115,927). rask.wasm.js reads 96,099 on main without this change (+29 since its last row, inside
+# the tolerance); recorded as measured. Measured locally (Release, the benchmarks job's recipe) on main f5bdac184.
+bundle,bytes
+rask.js,110100
+rask.wasm.js,96099
+rask-hooks.js,115927

@@ -49,4 +49,22 @@ if (page) {
             fit(t);
         }
     });
+
+    // A box is fitted as it arrives too, the page's first or one a render adds: its text, or the placeholder that
+    // wraps on a narrow screen, can be taller than its rows (Flux's, measured: 60px at 390 wide, 32px on a desktop).
+    const scan = function (node: Node): void {
+        if (node instanceof HTMLTextAreaElement && node.hasAttribute(GROW)) {
+            fit(node);
+        } else if (node instanceof Element) {
+            node.querySelectorAll<HTMLTextAreaElement>("textarea[" + GROW + "]").forEach(fit);
+        }
+    };
+    if (typeof MutationObserver === "function") {
+        new MutationObserver(function (records) {
+            for (const record of records) {
+                record.addedNodes.forEach(scan);
+            }
+        }).observe(page.documentElement, {childList: true, subtree: true});
+    }
+    scan(page.documentElement);
 }

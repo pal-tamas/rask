@@ -86,6 +86,30 @@ public sealed class UiComposerHookTests(PlaywrightFixture playwright) : IClassFi
         Assert.Equal([$"{rest} hidden", $"{grown} hidden", $"{grown} auto", $"{grown} auto"], heights);
         Assert.Equal(string.Empty, await page.EvaluateAsync<string>(Sent));
     }
+
+    [Fact]
+    public async Task A_placeholder_that_wraps_on_a_phone_makes_the_box_as_tall_as_it_from_the_first_paint()
+    {
+        const string Height = "() => document.getElementById('f-note').offsetHeight";
+        await using var desktop = await HookSession.OpenAsync<ComposerHookPage>(playwright);
+        await using var phone = await HookSession.OpenAsync<ComposerHookPage>(
+            playwright, new() { ViewportSize = new() { Width = 390, Height = 844 } });
+
+        // Fitted once the hooks have loaded: the box then says its height.
+        const string Fitted = "() => document.getElementById('f-note').style.height !== ''";
+        await desktop.Page.WaitForFunctionAsync(Fitted, null, new() { Timeout = 5_000 });
+        await phone.Page.WaitForFunctionAsync(Fitted, null, new() { Timeout = 5_000 });
+
+        const string Line = "() => parseFloat(getComputedStyle(document.getElementById('f-note')).lineHeight)";
+        var wide = await desktop.Page.EvaluateAsync<int>(Height);
+        var wideLine = await desktop.Page.EvaluateAsync<int>(Line);
+        var narrow = await phone.Page.EvaluateAsync<int>(Height);
+        var narrowLine = await phone.Page.EvaluateAsync<int>(Line);
+
+        // One row on a desktop; on a phone the placeholder takes a second line, and so does the box — the same
+        // padding and border around both.
+        Assert.Equal(wide - wideLine, narrow - (2 * narrowLine));
+    }
 }
 
 /// <summary>Two composers in their forms: Ctrl/Cmd + Enter, three lines at most; and Enter.</summary>
@@ -106,6 +130,10 @@ public sealed partial class ComposerHookPage : Component
         Form.Model(_chat).OnSubmit(_ => _sent = _chat.Quick)[
             Ui.Composer.Bind(() => _chat.Quick).Label("Quick").Enter
         ],
+        Form.Model(_chat)[
+            Ui.Composer.Bind(() => _chat.Note).Label("Note").Inline().Rows(1)
+                .Placeholder("Write a note for the whole team to read before tomorrow")
+        ],
         P.Id("sent").Style("white-space:pre")[_sent]
     ];
 
@@ -114,5 +142,7 @@ public sealed partial class ComposerHookPage : Component
         public string Prompt { get; set; } = string.Empty;
 
         public string Quick { get; set; } = string.Empty;
+
+        public string Note { get; set; } = string.Empty;
     }
 }
