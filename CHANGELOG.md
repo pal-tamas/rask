@@ -139,6 +139,10 @@ them until tagged releases begin.
   keeps them in the model, excluded from migrations, so the next `rask db add` neither drops nor touches them (read
   off the app's own model snapshot). The model is cached per set of switches, so apps in one process (a test suite)
   with different batteries off no longer share one. See [docs/configuration.md](docs/configuration.md#battery-tables).
+  The batteries now state their own unbounded text columns (`Job.Payload`/`Error`/`UserClaims`, the outbox's, the
+  mail queue's, the log's), so an app with its own string-length convention has pending model changes until it adds
+  a migration: run `rask db add` once (on SQL Server it alters those columns to `nvarchar(max)`); until then EF's
+  pending-changes check stops the app at start.
 - **Each component's part of a live event gets its own scoped services, as a Livewire component's action is a request
   of its own.** Before: a page whose `LoadNotices`, `LoadProgress` and file list each load in `OnMount` with
   `var db = Current.Service<ApplicationDbContext>();` handed all three the event's one `DbContext`, read it at once and
