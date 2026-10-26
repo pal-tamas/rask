@@ -12,8 +12,9 @@ public sealed class SignInModel
     public bool Remember { get; set; }
 }
 
-// /login is where the route guard sends a visitor who is not signed in.
+// /login is where the route guard sends a visitor who is not signed in; one who is, [Guest] sends home.
 [AllowAnonymous]
+[Guest]
 [Route("/login")]
 public sealed partial class LoginPage(IAuth auth, IWebAuthn webAuthn) : AuthPage
 {

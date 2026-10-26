@@ -19363,3 +19363,10 @@ static RaskBuilderSettersRask_Core.Live<T>(this Rask.Core.HTMLTextAreaElement<T>
 Rask.Core.Authorization.HandlerAccess
 static Rask.Core.Authorization.HandlerAccess.Demand(System.Reflection.MethodInfo! handler) -> System.Threading.Tasks.ValueTask
 static Rask.Core.Authorization.HandlerAccess.DemandNow(System.Reflection.MethodInfo! handler) -> void
+Rask.Core.Authorization.RouteAuthorizationOutcome.Redirect = 3 -> Rask.Core.Authorization.RouteAuthorizationOutcome
+Rask.Core.Authorization.RouteAuthorizationResult.RedirectTo.get -> string?
+Rask.Core.Routing.GuestAttribute
+Rask.Core.Routing.GuestAttribute.GuestAttribute() -> void
+Rask.Core.Routing.GuestAttribute.Then.get -> string!
+Rask.Core.Routing.GuestAttribute.Then.set -> void
+static Rask.Core.Authorization.RouteAuthorizationResult.Redirect(string! url) -> Rask.Core.Authorization.RouteAuthorizationResult!

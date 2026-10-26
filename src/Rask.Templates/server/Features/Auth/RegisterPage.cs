@@ -18,6 +18,7 @@ public sealed class RegisterModel
 
 // The first-run token field appears only while the app is unclaimed, which is the only time it is asked for.
 [AllowAnonymous]
+[Guest]
 [Route("/register")]
 public sealed partial class RegisterPage(IAuth auth, FirstRunToken firstRun) : AuthPage
 {

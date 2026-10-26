@@ -368,6 +368,19 @@ public sealed partial class RedirectLateOutPage : Component
     protected override Component? Render() => P["late-out-content"];
 }
 
+// A sign-in page: a reader already signed in is sent home before it is built.
+[Route("guest")]
+[ParentRoute(typeof(RedirectLayout))]
+[Guest(Then = "/redirect/home")]
+public sealed partial class RedirectGuestPage : Component
+{
+    public static int Constructed;
+
+    public RedirectGuestPage() => Interlocked.Increment(ref Constructed);
+
+    protected override Component? Render() => P["guest-content"];
+}
+
 // Loads for as long as the test says, then sends the reader to a page of the site the app does not render.
 [Route("gated-out")]
 [ParentRoute(typeof(RedirectLayout))]

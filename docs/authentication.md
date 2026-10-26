@@ -144,6 +144,7 @@ choice between, not a layering.
 - [Declarative gating — the `Authorize` component](#declarative-gating)
 - [`[Authorize]` on an event handler](#authorize-on-an-event-handler)
 - [A page the user may not open](#a-page-the-user-may-not-open)
+- [A page only for guests — `[Guest]`](#a-page-only-for-guests)
 - [Cookie authentication](authentication-cookie.md) — cookie login/session on Server and WASM.
 - [Keycloak / OpenID Connect](authentication-providers.md#keycloak--openid-connect)
 - [Other OIDC providers — Auth0, AWS Cognito, Duende IdentityServer](authentication-providers.md#other-oidc-providers)
@@ -832,6 +833,38 @@ public sealed partial class UsersPage : Component { … }   // a signed-in non-a
 
 The sentence stands in for the first page of the chain that refuses the user, so a layout that itself refuses
 them is replaced too.
+
+## A page only for guests
+
+The pages for getting in — sign in, register, forgotten password, reset password — are no use to someone who
+is already in. Mark them `[Guest]`, and a **signed-in** reader is sent on instead, before the page is built:
+
+```csharp
+[AllowAnonymous]
+[Guest]                                    // signed in already: to "/"
+[Route("/login")]
+public sealed partial class LoginPage : AuthPage { … }
+
+[Guest(Then = "/app")]                     // or to a page of your choosing
+[Route("/register")]
+public sealed partial class RegisterPage : AuthPage { … }
+```
+
+- **Never shown.** It is asked where `[Authorize]` is: the first request is answered with a real `302` to
+  `Then`, and a link, Back or `Go()` in an open session lands on `Then` in place of the page, replacing its
+  address — Back does not return to the sign-in page. On the Server host and in WebAssembly alike.
+- **The same reader `[Authorize]` sees**: the request's user on a first request, the session's user as last
+  revalidated in an open one — so a sign-in that has ended is a guest again and sees the page.
+- **`Then` is a page of this app**, written from its root as `Go.To` takes one (`"/"` by default, Laravel's
+  `HOME`); under a path base it is that app's page. Anything that could lead off the site — another site, a
+  scheme, `//host` — throws `InvalidOperationException` naming the page, the rule of `LocalUrl.Sanitize`.
+- **On a layout** it covers every page under it; a page's own `[Guest(Then = …)]` says where instead.
+- Keep `[AllowAnonymous]` beside it where a fallback policy asks every page for a user: `[Guest]` says who is
+  sent away, not who is let in.
+
+`rask new` writes it on the sign-in, registration, forgotten-password and reset-password pages, as
+Laravel Breeze's `guest` middleware covers them; the email-confirmation, sign-out and devices pages stay open
+to a signed-in reader.
 
 ---
 
