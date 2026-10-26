@@ -73,6 +73,44 @@ public class HandlerSyncContextTests
     }
 
     [Fact]
+    public async Task A_post_made_once_the_repaints_are_opened_renders_though_the_moment_has_not_come()
+    {
+        var renderCount = 0;
+        var ctx = new HandlerSyncContext(
+            () =>
+            {
+                Interlocked.Increment(ref renderCount);
+                return Task.CompletedTask;
+            },
+            repaintsFrom: Stopwatch.GetTimestamp() + (5 * 60 * Stopwatch.Frequency));
+
+        ctx.OpenRepaints();
+        ctx.Post(static _ => { }, null);
+        await ctx.DrainAsync();
+
+        Assert.Equal(2, renderCount);
+    }
+
+    [Fact]
+    public void A_copy_is_opened_with_the_context_it_was_copied_from()
+    {
+        var renderCount = 0;
+        var ctx = new HandlerSyncContext(
+            () =>
+            {
+                renderCount++;
+                return Task.CompletedTask;
+            },
+            repaintsFrom: Stopwatch.GetTimestamp() + (5 * 60 * Stopwatch.Frequency));
+        var copy = ctx.CreateCopy();
+
+        ctx.OpenRepaints();
+        copy.Send(static _ => { }, null);
+
+        Assert.Equal(2, renderCount);
+    }
+
+    [Fact]
     public void A_copy_withholds_its_repaints_until_the_same_moment()
     {
         var renderCount = 0;
