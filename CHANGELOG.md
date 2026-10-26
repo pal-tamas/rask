@@ -133,6 +133,16 @@ them until tagged releases begin.
 
 ### Fixed
 
+- **An offline `rask new` writes npm versions that install together, never a bare `latest`.** When the registry did
+  not answer, every floating package kept `"latest"`. After @volar/typescript 2.4.29 added an optional
+  `typescript <7` peer under the Vite+ toolchain, npm read a root `"typescript": "latest"` as free to drop to 6.x,
+  and `rask new --islands solid|lit` (and the Solid and Lit front ends) failed the first build with `ERESOLVE`. Now
+  `rask new` falls back on the npm releases the CLI shipped with (`npm.snapshot.json`) and chooses from them the same
+  way as from the registry, writing `^x.y.z`. It does the same when the newest releases do not install together, or
+  when a lookup is still pending after 20 seconds. One warning line names the day the snapshot was recorded. The
+  daily upstream run refreshes the snapshot (`scripts/upstream/front-ends.py`). The template gate resolves it with
+  npm for every front end and island runtime before it lands.
+
 - **A lifecycle hook that outlives its navigation keeps its event's `DbContext` until it is done.** A navigation is
   sent at once and its page's `OnUpdated` loads on behind it; a `Current.Service<AppDbContext>()` the hook (or a
   helper it awaits) made after its first await opened a fresh scope in the session's one slot, and the next event to
