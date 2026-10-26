@@ -37,5 +37,5 @@ public sealed partial class PaginationParity : FluxParity
     }
 
     // The width of a preview on Flux's page: the pager fills it, and reads its own width to pick its form.
-    private static Component Preview(Component pager) => Div.Style("width:606px")[pager];
+    private static Component Preview(Component pager) => Div[pager];
 }

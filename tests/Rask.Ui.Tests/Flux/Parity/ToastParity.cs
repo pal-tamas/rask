@@ -29,7 +29,11 @@ public sealed partial class ToastParity : FluxParity
         yield return ("with-heading", Div[Trigger("Save changes")]);
 
         // variant: 'success' | 'warning' | 'danger'                    → Toast.Success / Toast.Warning / Toast.Error
-        yield return ("variants", Row(Trigger("Success"), Trigger("Warning"), Trigger("Danger")));
+        // A column below lg on Flux's page, each button as wide as the widest; a row from lg up.
+        yield return ("variants", DocsColumn(Div[
+            Raw.Value("<style>.parity-variants{display:flex;flex-direction:column;gap:16px}@media (width >= 64rem){.parity-variants{flex-direction:row}}</style>"),
+            Div.Class("parity-variants")[Trigger("Success"), Trigger("Warning"), Trigger("Danger")]
+        ]));
 
         // <flux:toast invert />                                        → Ui.Toast.Invert()
         yield return ("inverted", Div[Trigger("Save changes")]);

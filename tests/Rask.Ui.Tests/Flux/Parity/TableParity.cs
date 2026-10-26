@@ -221,7 +221,7 @@ public sealed partial class TableParity : FluxParity
 
     // The width Flux's page gives the example.
     private static Component Frame(int width, Component example) =>
-        Div.Style($"width:{width}px;margin:0 auto")[Style[Raw.Value(AppUtilities)], example];
+        Div.Style($"max-width:{width}px;margin:0 auto")[Style[Raw.Value(AppUtilities)], example];
 
     // <flux:avatar size="xs" src="…">: whose face it is comes from the docs page's own data.
     private static Component Avatar() => Ui.Avatar.Xs.Src(NavigationStandIns.Caleb);

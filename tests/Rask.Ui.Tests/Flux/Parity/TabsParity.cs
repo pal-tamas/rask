@@ -19,7 +19,9 @@ public sealed partial class TabsParity : FluxParity
 {
     private const string AppUtilities =
         "<style>.parity-px-4{padding-inline:1rem}.parity-px-2{padding-inline:.5rem}.parity-w-full{width:100%}"
-        + ".parity-pt-0{padding-top:0}.parity-pt-6{padding-top:1.5rem}.parity-mt-2{margin-top:.5rem}</style>";
+        + ".parity-pt-0{padding-top:0}.parity-pt-6{padding-top:1.5rem}.parity-mt-2{margin-top:.5rem}"
+        // The demos that step in 48px a side from lg up, and fill the column below it.
+        + "@media (width >= 64rem){.parity-lg-px-12{padding-inline:3rem}}</style>";
 
     private static readonly string[] Seven =
         ["Profile", "Account", "Billing", "Security", "Notifications", "Integrations", "API"];
@@ -41,7 +43,7 @@ public sealed partial class TabsParity : FluxParity
                 Bare("billing")
             ]));
 
-        yield return ("findable-tabs", Div.Style("width:510px;margin:0 auto")[
+        yield return ("findable-tabs", Div.Class("parity-lg-px-12")[
             Ui.TabGroup.Findable()[
                 Ui.Tabs[
                     Ui.Tab.Name("profile").Selected()["Profile"],
@@ -78,22 +80,22 @@ public sealed partial class TabsParity : FluxParity
                 Bare("billing")
             ]));
 
-        yield return ("scrollable-tabs", Div.Style("width:384px;margin:0 auto")[
+        yield return ("scrollable-tabs", Div.Style("max-width:384px;margin:0 auto")[
             Ui.TabGroup[
                 Ui.Tabs.Scrollable()[Seven.Select(Named)],
                 Seven.Select(name => Bare(name.ToLowerInvariant()))
             ]
         ]);
 
-        yield return ("scrollable-tabs", Div.Style("width:384px;margin:0 auto")[
+        yield return ("scrollable-tabs", Div.Style("max-width:384px;margin:0 auto")[
             Ui.TabGroup[
                 Ui.Tabs.Scrollable().ScrollableFade()[Seven.Select(Named)],
                 Seven.Select(name => Bare(name.ToLowerInvariant()))
             ]
         ]);
 
-        // Flux's demo stretches this one across its column, less the column's own 48px of padding a side.
-        yield return ("segmented-tabs", Div.Style("width:288px;margin:0 auto")[
+        // Flux's demo stretches this one across its column, less 48px a side from lg up.
+        yield return ("segmented-tabs", Div.Class("parity-lg-px-12").Style("max-width:384px;margin:0 auto")[
             Ui.Tabs.Segmented.Class("parity-w-full")[
                 Ui.Tab["List"],
                 Ui.Tab["Board"],

@@ -23,7 +23,7 @@ public sealed partial class SwitchParity : FluxParity
             ]
         ]);
 
-        yield return ("fieldset", Div.Style("width:384px;margin:0 auto")[
+        yield return ("fieldset", Div.Style("max-width:384px;margin:0 auto")[
             Ui.Fieldset[
                 Ui.Legend["Email notifications"],
                 SpaceY(4,
@@ -37,7 +37,7 @@ public sealed partial class SwitchParity : FluxParity
             ]
         ]);
 
-        yield return ("left-align", Div.Style("width:384px;margin:0 auto")[
+        yield return ("left-align", Div.Style("max-width:384px;margin:0 auto")[
             Ui.Fieldset[
                 Ui.Legend["Email notifications"],
                 SpaceY(3,

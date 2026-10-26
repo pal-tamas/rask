@@ -53,11 +53,14 @@ public sealed partial class ProfileParity : FluxParity
         ]));
 
         yield return ("examples", Row(Div[
-            Div.Class("stand-in-side").Style("height:298px").Attributes(("data-ui-sidebar", null))[
+            // The navlist's items are 40px tall below lg, 32px from it: the sidebar and the stand-in grow on a phone.
+            Raw.Value("<style>.parity-side{height:298px}.parity-nav{height:136px}"
+                + "@media (width < 64rem){.parity-side{height:330px}.parity-nav{height:168px}}</style>"),
+            Div.Class("stand-in-side parity-side").Attributes(("data-ui-sidebar", null))[
                 Brand().Class("px-2"),
                 // The docs page's own decor: a navlist drawn the way Flux's sidebar draws its items, by a
                 // `variant` no page documents. It is a box here, and Ui.SidebarNav is what draws that look.
-                NavigationStandIns.Skipped("navlist", "height:136px"),
+                Div.Class("parity-nav").Attributes(("data-ui-navlist", null), ("data-parity-skip", null)),
                 Div.Style("flex:1 1 0%").Attributes(("data-ui-spacer", null)),
                 Ui.Dropdown.Top.Start[
                     Ui.Profile.Name("Caleb Porzio").Avatar(NavigationStandIns.Caleb).Class("w-full"),

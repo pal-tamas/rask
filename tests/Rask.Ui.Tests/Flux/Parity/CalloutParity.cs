@@ -22,14 +22,20 @@ public sealed partial class CalloutParity : FluxParity
     // What an app's own Tailwind build emits for the classes these examples hand to Class, and the two
     // things Flux's page styles by hand.
     private const string AppUtilities =
-        "<style>.mb-6{margin-bottom:24px}.mt-6{margin-top:24px}"
+        "<style>.mb-6{margin-bottom:24px}.mt-6{margin-top:24px}@media (width >= 80rem){.parity-wide{padding:0 32px}}"
+        // `@max-md:hidden` and `@max-md:flex-col` on Flux's page: the callout's own width decides them.
+        + "@container (width < 28rem){.parity-cq-hidden{display:none}.parity-cq-col{flex-direction:column}}"
+        // The colours' actions, `@max-md:hidden` on their slot there.
+        + "@container (width < 28rem){.parity-cq-no-actions [data-slot=actions]{display:none}}"
         + ".parity-strong{font-weight:500;color:oklch(27.4% .006 286.033)}.dark .parity-strong{color:#fff}"
-        + ".parity-full-height [data-slot=actions]{height:100%;margin:0!important}</style>";
+        // `@md:h-full m-0!` on the upsell's actions slot there.
+        + ".parity-full-height [data-slot=actions]{margin:0!important}@container (width >= 28rem){.parity-full-height [data-slot=actions]{height:100%}}</style>";
 
     // Flux's page is 654px wide where an example sits, less its 24px of padding either side.
     private const string Narrow = "width:100%;max-width:448px";
 
-    private const string Wide = "width:100%;padding:0 32px";
+    // Flux's holder of a wide example: the whole column, stepped in 32px each side from xl up.
+    private const string Wide = "width:100%";
 
     private const string HeadingRow = "display:flex;gap:8px;align-items:flex-start";
 
@@ -56,8 +62,8 @@ public sealed partial class CalloutParity : FluxParity
             Ui.Callout.Icon(Ui.IconName.Clock)[
                 Ui.CalloutHeading["Upcoming maintenance"],
                 Ui.CalloutText[
-                    "Our servers will be undergoing scheduled maintenance this Sunday ",
-                    Span["from 2 AM - 5 AM UTC. Some services may be temporarily unavailable"],
+                    "Our servers will be undergoing scheduled maintenance this Sunday",
+                    Span.Class("parity-max-sm-hidden")[" from 2 AM - 5 AM UTC. Some services may be temporarily unavailable"],
                     ". ",
                     Ui.CalloutLink.Href("#")["Learn more"]
                 ]
@@ -80,7 +86,7 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("inline-actions", Frame(
             Wide,
             Ui.Callout.Icon(Ui.IconName.Cube).Secondary.Inline().Class("mb-6")
-                .Actions([Ui.Button["Track order ->"], Ui.Button.Ghost["Reschedule"]])[
+                .Actions([Ui.Button["Track order ->"], Ui.Button.Ghost.Class("parity-cq-hidden")["Reschedule"]])[
                 Ui.CalloutHeading["Your package is delayed"]
             ],
             Ui.Callout.Icon(Ui.IconName.ExclamationTriangle).Secondary.Inline().Actions(Ui.Button["Update billing"])[
@@ -92,13 +98,13 @@ public sealed partial class CalloutParity : FluxParity
             Wide,
             Div[
                 Ui.Callout.Icon(Ui.IconName.Bell).Secondary.Inline().Controls(Ui.Button.Ghost.Icon(Ui.IconName.XMark))[
-                    Div.Style(HeadingRow)[Ui.CalloutHeading["Upcoming meeting"], Ui.CalloutText["10:00 AM"]]
+                    Div.Class("parity-cq-col").Style(HeadingRow)[Ui.CalloutHeading["Upcoming meeting"], Ui.CalloutText["10:00 AM"]]
                 ]
             ],
             // The two wrapping divs carry Alpine's collapse and fade on Flux's page; they take no room.
             Div[Div[
                 Ui.Callout.Icon(Ui.IconName.FingerPrint).Secondary.Class("mt-6")
-                    .Actions([Ui.Button["Change password"], Ui.Button.Ghost["Review activity"]])
+                    .Actions([Ui.Button["Change password"], Ui.Button.Ghost.Class("parity-cq-hidden")["Review activity"]])
                     .Controls(Ui.Button.Ghost.Icon(Ui.IconName.XMark))[
                     Ui.CalloutHeading["Unusual login attempt"],
                     Ui.CalloutText[
@@ -158,8 +164,8 @@ public sealed partial class CalloutParity : FluxParity
         yield return ("examples", Frame(
             Wide,
             Ui.Callout.Secondary.Icon(Ui.IconName.UserGroup)
-                .Actions([Ui.Button["Invite member"], Ui.Button.Ghost["Manage team"]])[
-                Div.Style(HeadingRow)[
+                .Actions([Ui.Button["Invite member"], Ui.Button.Ghost.Class("parity-cq-hidden")["Manage team"]])[
+                Div.Class("parity-cq-col").Style(HeadingRow)[
                     Ui.CalloutHeading["Team collaboration"],
                     Ui.Badge.Sm.Color(Ui.Color.Purple).Inset(Ui.Inset.Top | Ui.Inset.Bottom)["Available with Pro"]
                 ],
@@ -168,10 +174,12 @@ public sealed partial class CalloutParity : FluxParity
     }
 
     private static Component Message(Ui.Color color) =>
-        Ui.Callout.Color(color).Icon(Ui.IconName.ExclamationCircle).Inline().Heading("You've received a new message.")
+        Ui.Callout.Color(color).Icon(Ui.IconName.ExclamationCircle).Inline().Class("parity-cq-no-actions").Heading("You've received a new message.")
             .Actions(Ui.Button["View message"]);
 
-    // The 606px an example has on Flux's page, with what holds the callout centred in it.
+    // The column an example has on Flux's page, with what holds the callout centred in it.
     private static Component Frame(string holder, params Component[] items) =>
-        Div.Style("width:606px;display:flex;justify-content:center")[Div.Style(holder)[items]];
+        Div.Style("display:flex;justify-content:center")[
+            (holder == Wide ? Div.Class("parity-wide") : Div).Style(holder)[items]
+        ];
 }

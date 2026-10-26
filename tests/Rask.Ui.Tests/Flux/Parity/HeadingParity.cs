@@ -12,13 +12,12 @@ public sealed partial class HeadingParity : FluxParity
 
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
-        yield return ("", Div.Style("width:320px")[
+        yield return ("", DocsColumn(320,
             Ui.Heading["User profile"],
-            Ui.Text.Style(Below)["This information will be displayed publicly."]
-        ]);
+            Ui.Text.Style(Below)["This information will be displayed publicly."]));
 
         // The live page captions each size, and the longest caption is what sets the column's width.
-        yield return ("sizes", Div.Style("width:fit-content;display:flex;flex-direction:column;gap:24px")[
+        yield return ("sizes", DocsColumn(320, Div.Style("display:flex;flex-direction:column;gap:24px")[
             Div[
                 Ui.Heading["Default"],
                 Ui.Text.Style(Below)["14px · Use liberally—think input and toast labels."]
@@ -35,21 +34,20 @@ public sealed partial class HeadingParity : FluxParity
                 Ui.Heading.Xxl["Extra extra large"],
                 Ui.Text.Style(Below)["36px · Use for prominent page titles and hero text."]
             ]
-        ]);
+        ]));
 
-        yield return ("heading-level", Div.Style("width:320px")[
+        yield return ("heading-level", DocsColumn(320,
             Ui.Heading.Level(3)["User profile"],
-            Ui.Text.Style(Below)["This information will be displayed publicly."]
-        ]);
+            Ui.Text.Style(Below)["This information will be displayed publicly."]));
 
-        yield return ("examples", Div.Style("width:240px")[
+        yield return ("examples", DocsColumn(240, Div[
             Ui.Text["Year to date"],
             Ui.Heading.Xl.Style("margin-bottom:4px")["$7,532.16"],
             Div.Class("parity-up").Style("display:flex;align-items:center;gap:8px")[
                 TrendingUp(),
                 Span.Style("font-size:14px;line-height:20px")["15.2%"]
             ]
-        ]);
+        ]));
     }
 
     // `flux:icon.arrow-trending-up variant="micro"`, in the green an app's own Tailwind build would emit for

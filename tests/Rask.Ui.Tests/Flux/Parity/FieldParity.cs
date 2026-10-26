@@ -49,7 +49,7 @@ public sealed partial class FieldParity : FluxParity
             Ui.Input.Of<string>().Label("Last name").Placeholder("Porzio")
         ]);
 
-        yield return ("fieldset", Div.Style("width:542px;margin:0 auto")[
+        yield return ("fieldset", Div.Style("max-width:542px;margin:0 auto")[
             Ui.Fieldset[
                 Ui.Legend["Shipping address"],
                 SpaceY(6,

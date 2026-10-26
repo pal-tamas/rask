@@ -101,7 +101,7 @@ public sealed class SkeletonParity : FluxParity
         ];
 
     private static Component Column(int width, params Component[] items) =>
-        Div.Style(string.Create(CultureInfo.InvariantCulture, $"width:{width}px;margin:0 auto"))[
+        Div.Style(string.Create(CultureInfo.InvariantCulture, $"max-width:{width}px;margin:0 auto"))[
             items
         ];
 }

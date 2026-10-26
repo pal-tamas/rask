@@ -48,16 +48,16 @@ public sealed partial class ButtonParity : FluxParity
             Ui.Button.Sm["Small"],
             Ui.Button.Xs["Extra small"]));
 
-        yield return ("icons", Row(
+        yield return ("icons", DocsColumn(Row(
             Ui.Button.Icon(Ui.IconName.EllipsisHorizontal),
             Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"],
             Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"],
-            Ui.Button.Subtle.Icon(Ui.IconName.XMark)));
+            Ui.Button.Subtle.Icon(Ui.IconName.XMark))));
 
         // `wire:click="save"`, which Flux's docs hold in its loading state.
         yield return ("loading", Div[Ui.Button.Loading(true)["Save changes"]]);
 
-        yield return ("full-width", Div.Style("width:384px")[Ui.Button.Primary.Class("parity-full")["Send invite"]]);
+        yield return ("full-width", Div.Style("max-width:384px")[Ui.Button.Primary.Class("parity-full")["Send invite"]]);
 
         // Each group in a block of its own, as on Flux's page: a flex item computes another min-width.
         yield return ("button-groups", Row(Div[Ui.ButtonGroup[

@@ -323,9 +323,9 @@ public sealed partial class ChartParity : FluxParity
         ]);
     }
 
-    // The 606px column Flux's page sets every example in, and the heading it puts over seven of them.
+    // The column Flux's page sets every example in, 640px at most, and the heading it puts over seven of them.
     private static Component Framed(int index, Component example) =>
-        Div.Style("width:606px;margin:0 auto")[
+        Div.Style("max-width:640px;margin:0 auto")[
             Titles.TryGetValue(index, out var title) ? Ui.Heading.Style("margin-bottom:24px")[title] : null,
             example
         ];

@@ -33,6 +33,26 @@ public abstract partial class FluxParity : global::Rask.Core.RaskMarkup
     protected static Component Row(params Component[] items) =>
         Div.Style("display:flex;gap:16px;align-items:flex-end;justify-content:center")[items];
 
+    /// <summary>
+    ///     The column Flux's docs page centres most examples in: 384px at most, and on a phone as wide as what it holds
+    ///     needs, past the screen's edge if it must. An example that fills it says so itself (<c>width:100%</c>).
+    /// </summary>
+    protected static Component DocsColumn(params Component[] items) => Div.Data("docs-column", "")[items];
+
+    /// <summary>
+    ///     An example in <see cref="DocsColumn(Component[])" /> at its own width, but never narrower than
+    ///     <paramref name="smMinWidth" /> from <c>sm</c> up (Tailwind's <c>sm:min-w-*</c> on Flux's page).
+    /// </summary>
+    protected static Component DocsColumn(int smMinWidth, params Component[] items) =>
+        DocsColumn(Div.Data("sm-min-width", "").Style(FormattableString.Invariant($"--sm-min-width:{smMinWidth}px"))[items]);
+
+    /// <summary>
+    ///     The 384px column less 48px a side from <c>lg</c> up, as Flux's page holds some examples (288px on a
+    ///     desktop); a phone gives them the whole column.
+    /// </summary>
+    protected static Component DocsInset(params Component[] items) =>
+        Div.Data("lg-inset", "").Style("max-width:384px;margin:0 auto")[items];
+
     /// <summary>One above the other.</summary>
     protected static Component Stack(params Component[] items) =>
         Div.Style("display:flex;flex-direction:column;gap:16px;align-items:stretch")[items];

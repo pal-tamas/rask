@@ -271,7 +271,7 @@ public sealed partial class PopoverParity : FluxParity
     private static Component Grid(int width, params Component[] dropdowns) =>
         Div[
             Raw.Value(AppUtilities),
-            Div.Style(FormattableString.Invariant($"display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;width:{width}px;margin:0 auto"))[dropdowns]
+            Div.Style(FormattableString.Invariant($"display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:{width}px;margin:0 auto"))[dropdowns]
         ];
 
     // Marks what the measurer presses — or hovers — to open this dropdown.

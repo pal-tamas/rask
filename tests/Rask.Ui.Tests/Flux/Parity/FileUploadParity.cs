@@ -37,7 +37,8 @@ public sealed partial class FileUploadParity : FluxParity
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
         yield return ("", Div.Style(Column)[
-            Div.Style("min-width:320px")[
+            // `sm:min-w-80` on Flux's page: a phone lets it be as narrow as what it holds.
+            Div.Data("sm-min-width", "").Style("--sm-min-width:320px")[
                 Ui.FileUpload.Label("Upload files")[
                     Ui.FileUploadDropzone.Heading("Drop files here or click to browse").Text("JPG, PNG, GIF up to 10MB")
                 ],

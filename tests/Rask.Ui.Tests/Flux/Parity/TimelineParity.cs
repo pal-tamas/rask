@@ -28,6 +28,8 @@ public sealed partial class TimelineParity : FluxParity
         + ".parity-reply{padding:.75rem;background-color:#fff}"
         + ".parity-reply:where(.dark,.dark *){background-color:oklch(21% .006 285.885)}"
         + ".parity-below{margin-bottom:.25rem}"
+        // The composer stand-in: its lines are 24px on a phone, where the composer sets its text in 16px.
+        + "@media (width < 40rem){.parity-composer{height:110px!important}}"
         + ".\\[--ui-timeline-item-gap\\:1\\.5rem\\]{--ui-timeline-item-gap:1.5rem}"
         + ".\\[--ui-timeline-item-gap\\:3rem\\]{--ui-timeline-item-gap:3rem}"
         + ".\\[--ui-timeline-content-gap\\:1rem\\]{--ui-timeline-content-gap:1rem}"
@@ -99,7 +101,7 @@ public sealed partial class TimelineParity : FluxParity
                 Ui.TimelineBlock.Class("parity-thread")[
                     Ui.TimelineSubgrid.Class("parity-said")[Words("width:24px;height:24px"), Comment()],
                     Div.Class("parity-rule"),
-                    Ui.TimelineSubgrid.Class("parity-reply")[Words("width:24px;height:24px"), Words("height:102px")]
+                    Ui.TimelineSubgrid.Class("parity-reply")[Words("width:24px;height:24px"), Words("height:102px").Class("parity-composer")]
                 ]
             ],
             Tagged(),

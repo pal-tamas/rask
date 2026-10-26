@@ -22,7 +22,8 @@ public sealed partial class InputParity : FluxParity
 
     // What an app's own Tailwind build emits for the classes these examples hand to Class: the kit's sheet
     // holds only what the kit writes.
-    private const string AppUtilities = "<style>.mb-6{margin-bottom:1.5rem}.min-w-\\[180px\\]{min-width:180px}</style>";
+    private const string AppUtilities = "<style>.mb-6{margin-bottom:1.5rem}.min-w-\\[180px\\]{min-width:180px}"
+        + "@media (width < 40rem){.parity-currency{width:89px!important}}</style>";
 
     public override string Page => "input";
 
@@ -99,7 +100,8 @@ public sealed partial class InputParity : FluxParity
                 Ui.Button.Icon(Ui.IconName.Plus)["New post"]
             ],
             Ui.InputGroup[
-                StandIn("width:85px"),
+                // The select of currencies: its words are 16px on a phone, so it is wider there.
+                StandIn("width:85px").Class("parity-currency"),
                 Ui.Input.Of<string>().Placeholder("$99.99")
             ]
         ]);
@@ -134,7 +136,7 @@ public sealed partial class InputParity : FluxParity
     };
 
     // Flux's button or native select beside an input in a group: the room it takes, nothing more.
-    private static Component StandIn(string width) =>
+    private static HTMLDivElement StandIn(string width) =>
         Div.Attributes(StandInMarks).Style("height:40px;flex:none;" + width);
 
     // <flux:button size="sm" variant="subtle" icon="x-mark" class="-mr-1" /> in the input's trailing slot.

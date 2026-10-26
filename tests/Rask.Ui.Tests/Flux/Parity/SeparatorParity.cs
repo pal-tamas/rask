@@ -16,9 +16,9 @@ public sealed partial class SeparatorParity : FluxParity
         yield return ("subtle", Bar(Ui.Separator.Vertical().Subtle));
     }
 
-    // Flux's docs page gives an example a column this wide, and a horizontal separator fills it.
+    // Flux's docs page gives an example a column at most this wide, and a horizontal separator fills it.
     private static Component Column(Component separator) =>
-        Div.Style("width:384px;margin:0 auto")[separator];
+        Div.Style("max-width:384px;margin:0 auto")[separator];
 
     // Flux's row is its theme button, the separator and a "Log in" button. The theme button is a subtle
     // square whose resting ink the docs page sets to zinc-300 with a class of its own — an APP's utility,

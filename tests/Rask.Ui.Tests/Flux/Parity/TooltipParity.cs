@@ -43,12 +43,13 @@ public sealed partial class TooltipParity : FluxParity
             ]
         ]));
 
-        yield return ("position", Div.Style("display:grid;grid-template-columns:repeat(4,max-content);gap:64px;justify-content:center")[
+        // Four equal columns, as narrow as the phone makes them: the buttons in them narrow too.
+        yield return ("position", DocsColumn(Div[Div.Style("display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:64px")[
             Ui.Tooltip.Content("Settings").Top[Settings()],
             Ui.Tooltip.Content("Settings").Right[Settings()],
             Ui.Tooltip.Content("Settings").Bottom[Settings()],
             Ui.Tooltip.Content("Settings").Left[Settings()]
-        ]);
+        ]]));
     }
 
     /// <summary><c>&lt;flux:button icon="cog-6-tooth" icon:variant="outline" /&gt;</c>.</summary>

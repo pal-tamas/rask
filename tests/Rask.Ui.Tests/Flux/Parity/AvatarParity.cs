@@ -24,11 +24,21 @@ public sealed partial class AvatarParity : FluxParity
     private static Component Assignee(string src, string name) =>
         Li.Style("display:flex;align-items:center;gap:8px")[Ui.Avatar.Xs.Src(src), Ui.Heading[name]];
 
+    // What the stand-ins measure on a phone: the members table, its emails `max-sm:hidden`, is shorter; the
+    // select, set in 16px there, is wider.
+    private const string PhoneSizes =
+        "<style>.parity-members{height:218px}.parity-select{width:224px}"
+        + "@media (width < 40rem){.parity-members{height:170px}.parity-select{width:228px}}</style>";
+
+    // NavigationStandIns.Skipped, with the class that sizes it.
+    private static Component StandIn(string component, string size, string style, params Component[] children) =>
+        Div.Class(size).Style(style).Attributes(("data-ui-" + component, null), ("data-parity-skip", null))[children];
+
     public override string Page => "avatar";
 
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
-        yield return ("", Row(Raw.Value(NavigationStandIns.Sheet), Div[Ui.Avatar.Src(NavigationStandIns.Caleb)]));
+        yield return ("", Row(Raw.Value(NavigationStandIns.Sheet), Raw.Value(PhoneSizes), Div[Ui.Avatar.Src(NavigationStandIns.Caleb)]));
 
         yield return ("tooltip", Row(Ui.Avatar.Tooltip("Caleb Porzio").Src(NavigationStandIns.Caleb)));
 
@@ -58,9 +68,10 @@ public sealed partial class AvatarParity : FluxParity
             Ui.Avatar.Initials("MJ").ColorAuto(),
             Ui.Avatar.Initials("KC").ColorAuto(),
             Ui.Avatar.Initials("KN").ColorAuto(),
-            Ui.Avatar.Initials("KS").ColorAuto(),
-            Ui.Avatar.Initials("BP").ColorAuto(),
-            Ui.Avatar.Initials("AB").ColorAuto()));
+            // The last three are `max-sm:hidden` on Flux's page: a phone shows four.
+            Ui.Avatar.Initials("KS").ColorAuto().Class("parity-max-sm-hidden"),
+            Ui.Avatar.Initials("BP").ColorAuto().Class("parity-max-sm-hidden"),
+            Ui.Avatar.Initials("AB").ColorAuto().Class("parity-max-sm-hidden")));
 
         yield return ("circle", Row(Div[Ui.Avatar.Circle().Src(NavigationStandIns.Caleb)]));
 
@@ -102,7 +113,7 @@ public sealed partial class AvatarParity : FluxParity
         ]));
 
         // Members table.
-        yield return ("examples", Row(NavigationStandIns.Skipped("table", "width:542px;height:218px;display:flex;flex-direction:column;gap:25px",
+        yield return ("examples", Row(StandIn("table", "parity-members", "width:100%;max-width:542px;display:flex;flex-direction:column;gap:25px",
             Ui.Avatar.Circle().Lg.Src(NavigationStandIns.Caleb),
             Ui.Avatar.Circle().Lg.Src(NavigationStandIns.Hugo),
             Ui.Avatar.Circle().Lg.Src(NavigationStandIns.Josh))));
@@ -123,7 +134,7 @@ public sealed partial class AvatarParity : FluxParity
         ]]));
 
         // Select options.
-        yield return ("examples", Row(NavigationStandIns.Skipped("field", "width:224px;height:76px",
+        yield return ("examples", Row(StandIn("field", "parity-select", "height:76px",
             Ui.Avatar.Circle().Xs.Src(NavigationStandIns.Caleb))));
 
         // User popover.

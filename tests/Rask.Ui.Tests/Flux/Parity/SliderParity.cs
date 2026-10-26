@@ -15,9 +15,9 @@ namespace Rask.UiTests.Flux.Parity;
 /// </remarks>
 public sealed partial class SliderParity : FluxParity
 {
-    private const string Narrow = "width:256px;margin:0 auto";
+    private const string Narrow = "max-width:256px;margin:0 auto";
 
-    private const string Wide = "width:384px;margin:0 auto";
+    private const string Wide = "max-width:384px;margin:0 auto";
 
     // What an app's own Tailwind build emits for the classes these examples hand to the slider and the input
     // beside it: the kit's sheet holds only what the kit writes.

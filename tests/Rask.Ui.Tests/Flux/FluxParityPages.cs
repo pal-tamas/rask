@@ -24,11 +24,22 @@ public sealed class FluxParityPages
         + "a{color:inherit;text-decoration:inherit}svg,img{display:block;vertical-align:middle}img{max-width:100%;height:auto}"
         + "h1,h2,h3,h4,h5,h6{font-size:inherit;font-weight:inherit}ol,ul,menu{list-style:none}"
         + "table{text-indent:0;border-color:inherit;border-collapse:collapse}"
-        + "div[data-preview-wrapper]{padding:64px 24px}"
+        // The frame Flux's docs page gives every example on a desktop: 654px wide with 24px a side, so an example
+        // that fills it fills 606px, centred in the window as Flux's is (313px in from 1280, 25px in from 390), so a
+        // popup flips where Flux's does. parity.mjs narrows it to the twin's under --view.
+        + "div[data-preview-wrapper]{padding:64px 24px}div[data-section]{width:654px;margin-inline:auto}"
+        // FluxParity.DocsColumn: the docs page's column, narrowed to the screen on a phone and never below its content.
+        + "[data-docs-column]{display:flex;justify-content:center;max-width:24rem;margin-inline:auto}"
+        + "@media (width < 40rem){[data-docs-column]{max-width:100%;min-width:fit-content}}"
+        + "@media (width >= 40rem){[data-sm-min-width]{min-width:var(--sm-min-width)}}"
+        + "@media (width >= 64rem){[data-lg-inset]{padding-inline:3rem}}"
         // FluxParity.SpaceY: Tailwind's space-y-*, which the examples on Flux's pages are stacked with.
         + "[data-space-y='2']>:not(:last-child){margin-bottom:8px}[data-space-y='3']>:not(:last-child){margin-bottom:12px}"
         + "[data-space-y='4']>:not(:last-child){margin-bottom:16px}[data-space-y='6']>:not(:last-child){margin-bottom:24px}"
-        + "[data-space-y='8']>:not(:last-child){margin-bottom:32px}}";
+        + "[data-space-y='8']>:not(:last-child){margin-bottom:32px}}"
+        // Tailwind's `max-sm:hidden` on an example of Flux's page — the APP's utility there, so it is no class of the kit's.
+        // Unlayered, as it beats the kit's `flex` on a component it hides.
+        + "@media (width < 40rem){.parity-max-sm-hidden{display:none}}";
 
     public static string Directory { get; } = Path.Combine(RepoRoot.FullPath, "artifacts", "flux-parity", "rask");
 

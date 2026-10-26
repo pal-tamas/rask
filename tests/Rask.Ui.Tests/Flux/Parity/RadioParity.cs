@@ -30,18 +30,19 @@ public sealed partial class RadioParity : FluxParity
                 Ui.RadioGroup.Value("administrator").Id("fieldset")[Roles()]
             ]));
 
-        yield return ("segmented", Wide(288,
+        yield return ("segmented", DocsInset(
             Ui.RadioGroup.Value("administrator").Id("segmented").Label("Role").Segmented[Segments()]));
 
-        yield return ("segmented", Wide(288,
+        yield return ("segmented", DocsInset(
             Ui.RadioGroup.Value("administrator").Id("segmented-sm").Label("Role").Segmented.Sm[Segments()]));
 
-        yield return ("segmented-with-icons", Wide(384,
+        // The column's width up to 480px, and on a phone the width of its three segments, past the screen's edge.
+        yield return ("segmented-with-icons", DocsColumn(Div.Style("width:100%;max-width:480px")[
             Ui.RadioGroup.Value("administrator").Id("segmented-icons").Label("Role").Segmented[
                 Ui.Radio.Value("administrator").Label("Admin").Icon(Ui.IconName.Wrench),
                 Ui.Radio.Value("editor").Label("Editor").Icon(Ui.IconName.PencilSquare),
                 Ui.Radio.Value("viewer").Label("Viewer").Icon(Ui.IconName.Eye)
-            ]));
+            ]]));
 
         yield return ("radio-cards", Wide(542,
             Shipping("cards").Class("max-sm:flex-col")[Cards(icons: false)]));
@@ -62,7 +63,7 @@ public sealed partial class RadioParity : FluxParity
                 Custom("next-day", "Next day", "1 business day")
             ]));
 
-        yield return ("pills", Wide(288,
+        yield return ("pills", DocsInset(
             Ui.RadioGroup.Value("medium").Id("priority").Label("Priority").Pills[
                 Ui.Radio.Value("low").Label("Low"),
                 Ui.Radio.Value("medium").Label("Medium"),
@@ -119,5 +120,5 @@ public sealed partial class RadioParity : FluxParity
         Div.Style("display:flex;justify-content:center")[Div[example]];
 
     private static Component Wide(int width, Component example) =>
-        Div.Style(FormattableString.Invariant($"width:{width}px;margin:0 auto"))[example];
+        Div.Style(FormattableString.Invariant($"max-width:{width}px;margin:0 auto"))[example];
 }

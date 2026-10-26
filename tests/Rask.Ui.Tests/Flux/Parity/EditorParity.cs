@@ -42,10 +42,11 @@ public sealed partial class EditorParity : FluxParity
 
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
-        yield return ("", Div.Class("parity-accent").Style("width:560px;margin:0 auto")[
+        // 560px in the column's flex row, which a phone narrows it from down to what its toolbar needs.
+        yield return ("", Div.Style("display:flex;justify-content:center")[Div.Class("parity-accent").Style("width:560px")[
             Raw.Value(AppClasses),
             Ui.Editor.Label("Release notes").Description("Explain what's new in this release.").Value(ReleaseNotes)
-        ]);
+        ]]);
 
         yield return ("configuring-items", Narrow(
             Ui.Editor.Toolbar("heading | bold italic underline | align ~ undo redo").Placeholder("Write something...").Class("parity-short")));

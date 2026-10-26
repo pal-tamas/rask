@@ -45,7 +45,7 @@ public sealed partial class KanbanParity : FluxParity
     // sideways. The 192px at the end is the page's, not the board's: room for the last column to scroll out
     // from under the fade the page draws over that edge.
     private static Component Board() =>
-        Div.Style("width:606px;margin:0 auto;overflow:auto")[
+        Div.Style("overflow:auto")[
             Ui.Kanban[
                 Stage("Planned", "Update privacy policy in app", "Search bar suggestions broken", "Improve loading spinner visuals",
                     "Date picker keyboard input fails", "Admin panel permissions broken", "Broken image links in gallery"),

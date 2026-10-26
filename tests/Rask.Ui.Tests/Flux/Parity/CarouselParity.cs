@@ -19,7 +19,7 @@ public sealed partial class CarouselParity : FluxParity
 
     // What an app's own Tailwind build emits for the classes these examples hand to Class.
     private const string AppUtilities =
-        "<style>.parity-full{width:100%}.parity-third{width:33.3333%}.parity-below{margin-bottom:24px}.parity-above{margin-top:8px}"
+        "<style>.parity-full{width:100%}.parity-third{width:80%}@media (width >= 40rem){.parity-third{width:50%}}@media (width >= 48rem){.parity-third{width:33.3333%}}.parity-below{margin-bottom:24px}.parity-above{margin-top:8px}"
         // `rounded-lg overflow-hidden` on a track rounds it and no more: the track's own overflow-x wins.
         + ".parity-round{border-radius:8px}"
         + ".parity-photo{aspect-ratio:16/9;border-radius:8px;object-fit:cover}"
@@ -34,7 +34,7 @@ public sealed partial class CarouselParity : FluxParity
         + ".parity-box{display:flex;align-items:center;justify-content:center;font-weight:500;background:oklch(96.7% .001 286.375)}"
         + ".dark .parity-box{background:color-mix(in oklab,#fff 10%,transparent)}.dark .parity-label{color:color-mix(in oklab,#fff 50%,transparent)}"
         + ".dark .parity-number{color:color-mix(in oklab,#fff 40%,transparent)}"
-        + ".parity-label{height:160px;width:100%;font-size:14px;line-height:20px;color:oklch(55.2% .016 285.938)}"
+        + ".parity-label{aspect-ratio:2/1;width:100%;font-size:14px;line-height:20px;color:oklch(55.2% .016 285.938)}"
         + ".parity-number{aspect-ratio:2/1;border-radius:8px;font-size:24px;line-height:32px;color:oklch(70.5% .015 286.067)}</style>";
 
     private static readonly (string Face, string Said, string Name, string Role)[] Quotes =
@@ -57,12 +57,12 @@ public sealed partial class CarouselParity : FluxParity
     public override IEnumerable<(string Section, Component Example)> Examples()
     {
         yield return ("", Frame(
-            "width:384px",
+            "width:100%;max-width:384px",
             Raw.Value(AppUtilities),
             Ui.Carousel.TrackClass("parity-round")[Photos()]));
 
         yield return ("indicators", Frame(
-            "width:384px",
+            "width:100%;max-width:384px",
             Ui.Carousel.Class("parity-full").Indicators().Arrows(false)[
                 Quotes.Select(quote =>
                     Ui.CarouselSlide.Key(quote.Name).Class("parity-full")[
@@ -75,11 +75,11 @@ public sealed partial class CarouselParity : FluxParity
             ]));
 
         yield return ("autoplay", Frame(
-            "width:384px",
+            "width:100%;max-width:384px",
             Ui.Carousel.Autoplay().AutoplayInterval(3500).Indicators().TrackClass("parity-round")[Photos()]));
 
         yield return ("external-controls", Frame(
-            "width:606px",
+            "width:100%",
             Div.Style("display:flex;justify-content:space-between;align-items:center;margin-bottom:16px")[
                 Div[Ui.Heading.Lg["Popular stays"], Ui.Text["Handpicked homes in beautiful places"]],
                 Div[Ui.CarouselControls.Name("popular-stays")]
@@ -100,15 +100,15 @@ public sealed partial class CarouselParity : FluxParity
             ]));
 
         yield return ("arrow-position", Frame(
-            "width:384px",
+            "width:100%;max-width:384px",
             Div.Style("max-width:320px;margin:0 auto")[
                 Ui.Carousel.Class("parity-below").TrackClass("parity-round")[Labelled("Inside")],
                 Ui.Carousel.Overlap.TrackClass("parity-round")[Labelled("Overlap")]
             ]));
 
-        yield return ("fade", Frame("width:606px", Ui.Carousel.Fade().Bleed()[Numbered(5)]));
+        yield return ("fade", Frame("width:100%", Ui.Carousel.Fade().Bleed()[Numbered(5)]));
 
-        yield return ("page-advance", Frame("width:606px", Ui.Carousel.Page.Bleed()[Numbered(10)]));
+        yield return ("page-advance", Frame("width:100%", Ui.Carousel.Page.Bleed()[Numbered(10)]));
     }
 
     private static IEnumerable<Component> Photos() =>
@@ -125,7 +125,7 @@ public sealed partial class CarouselParity : FluxParity
                 Div.Class("parity-box parity-number")[number.ToString(CultureInfo.InvariantCulture)]
             ]);
 
-    // The 606px an example has on Flux's page, with what holds the carousel centred in it.
+    // The column an example has on Flux's page, with what holds the carousel centred in it.
     private static Component Frame(string holder, params Component[] items) =>
-        Div.Style("width:606px;display:flex;justify-content:center")[Div.Style(holder)[items]];
+        Div.Style("display:flex;justify-content:center")[Div.Style(holder)[items]];
 }

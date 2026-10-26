@@ -94,7 +94,7 @@ public sealed partial class FlagParity : FluxParity
         ]));
 
         yield return ("examples", Centred(
-            "width:384px;display:block",
+            "width:100%;max-width:384px;display:block",
             Raw.Value(AppUtilities),
             Ui.Card.Soft[
                 Div.Style("display:flex;align-items:baseline;justify-content:space-between;gap:16px")[
@@ -115,7 +115,7 @@ public sealed partial class FlagParity : FluxParity
     }
 
     private static Component Centred(string row, params Component[] items) =>
-        Div.Style("width:606px;display:flex;justify-content:center")[
+        Div.Style("display:flex;justify-content:center")[
             Div.Style("display:flex;align-items:center;" + row)[items]
         ];
 }

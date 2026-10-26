@@ -89,7 +89,7 @@ public sealed partial class CheckboxParity : FluxParity
                 Custom("invitations", "Event invitations", "Invitatations to exclusive events.")
             ]));
 
-        yield return ("pills", Wide(288,
+        yield return ("pills", DocsInset(
             Ui.CheckboxGroup.Values(["fantasy", "science-fiction", "thriller"]).Id("categories").Label("Categories")
                 .Variant(Ui.CheckboxGroupVariant.Pills)[
                 Ui.Checkbox.Value("fantasy").Label("Fantasy"),
@@ -176,5 +176,5 @@ public sealed partial class CheckboxParity : FluxParity
         Div.Style("display:flex;justify-content:center")[Div[example]];
 
     private static Component Wide(int width, Component example) =>
-        Div.Style(FormattableString.Invariant($"width:{width}px;margin:0 auto"))[example];
+        Div.Style(FormattableString.Invariant($"max-width:{width}px;margin:0 auto"))[example];
 }

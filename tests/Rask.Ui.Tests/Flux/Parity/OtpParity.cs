@@ -30,7 +30,7 @@ public sealed partial class OtpParity : FluxParity
     {
         yield return ("", Centered(Ui.Otp.Value("").Length(6).Class("mx-auto")));
 
-        yield return ("example-usage", Div.Style("width:384px;margin:0 auto")[
+        yield return ("example-usage", Div.Style("max-width:384px;margin:0 auto")[
             Raw.Value(AppUtilities),
             Ui.Card[
                 Form.Model(new object())[
@@ -47,7 +47,7 @@ public sealed partial class OtpParity : FluxParity
         ]);
 
         // submit="auto" there submits the form; here the full code arrives at OnComplete.
-        yield return ("autosubmit", Div.Style("width:384px;margin:0 auto")[
+        yield return ("autosubmit", Div.Style("max-width:384px;margin:0 auto")[
             Raw.Value(AppUtilities),
             Form.Model(new object())[
                 Div.Style(Intro)[Heading(), Words()],
