@@ -9,7 +9,7 @@ internal static class UiPillboxLook
 {
     /// <summary>The trigger: the input's box, as tall as its pills need.</summary>
     internal const string Trigger =
-        "group/pillbox-trigger flex items-center w-full overflow-hidden border text-sm leading-5 "
+        "group/pillbox-trigger flex items-center w-full overflow-hidden border "
         + "bg-white dark:bg-white/10 shadow-xs data-invalid:shadow-none "
         + "border-zinc-200 border-b-zinc-300/80 dark:border-white/10 dark:border-b-white/10 "
         + "data-invalid:border-red-500 dark:data-invalid:border-red-500 "
@@ -44,7 +44,7 @@ internal static class UiPillboxLook
 
     /// <summary>The input among the pills: no box of its own, and never narrower than three rem.</summary>
     internal const string Input =
-        "flex-1 min-w-12 ms-1 bg-transparent outline-none text-sm leading-5 text-zinc-700 dark:text-zinc-300 "
+        "flex-1 min-w-12 ms-1 bg-transparent outline-none text-zinc-700 dark:text-zinc-300 "
         + "placeholder:text-zinc-400 dark:placeholder:text-zinc-400";
 
     /// <summary>The button at the end of a trigger that holds an input.</summary>
@@ -86,7 +86,7 @@ internal static class UiPillboxLook
     /// <summary>The padding and corners of the trigger at each size.</summary>
     /// <param name="small">Flux's <c>size="sm"</c>.</param>
     internal static string TriggerSize(bool small) =>
-        small ? "min-h-6 py-1 ps-1 pe-2 rounded-md" : "min-h-10 py-[7px] ps-[7px] pe-3 rounded-lg";
+        small ? "min-h-6 py-1 ps-1 pe-2 rounded-md text-sm" : "min-h-10 py-[7px] ps-[7px] pe-3 rounded-lg text-base sm:text-sm";
 
     /// <summary>The trigger that holds an input: a text cursor, and the browser's own ring while the input has focus.</summary>
     internal const string TriggerWithInput = "cursor-text focus-within:[outline:-webkit-focus-ring-color_auto]";

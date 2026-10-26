@@ -51,7 +51,7 @@ internal static class UiColorPickerLook
     /// <summary>The popover: a panel under the trigger on a pointer, a centred sheet on a phone.</summary>
     internal const string Dialog =
         "m-auto p-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-700 shadow-2xs "
-        + "backdrop:bg-transparent max-sm:backdrop:bg-black/10 max-sm:max-h-full max-sm:border-0 max-sm:shadow-xl";
+        + "backdrop:bg-transparent max-sm:fixed max-sm:backdrop:bg-black/10 max-sm:max-h-full max-sm:border-0 max-sm:shadow-xl";
 
     /// <summary>Flux parks the dialog's initial focus on a node that is not there once it is open.</summary>
     internal const string FocusPlaceholder = "[[open]>&]:hidden";

@@ -143,9 +143,9 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
     // In the default list a row keeps 12px from the next, 16px when it carries a description.
     private static string Look(Ui.CheckboxGroupVariant variant) => variant switch
     {
-        Ui.CheckboxGroupVariant.Cards => "flex gap-3",
+        Ui.CheckboxGroupVariant.Cards => "flex max-sm:flex-col gap-3",
         Ui.CheckboxGroupVariant.Pills => "flex flex-wrap gap-3",
-        Ui.CheckboxGroupVariant.Buttons => "flex gap-2",
+        Ui.CheckboxGroupVariant.Buttons => "flex flex-wrap gap-2",
         _ => "[&>[data-ui-field]:not(:last-child)]:mb-3 "
              + "[&>[data-ui-field]:has(>[data-ui-description]):not(:last-child)]:mb-4",
     };

@@ -136,7 +136,7 @@ public partial class UiComposerTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("<textarea", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-editor", html, StringComparison.Ordinal);
-        Assert.Contains("min-height:76px;max-height:216px", html, StringComparison.Ordinal);
+        Assert.Contains("min-height:calc(3lh &#x2B; 16px);max-height:calc(10lh &#x2B; 16px)", html, StringComparison.Ordinal);
         Assert.Contains("rounded-lg bg-zinc-100", html, StringComparison.Ordinal);
         Assert.DoesNotContain("shadow-xs dark:border-white/10 dark:bg-white/10 aria-disabled", html, StringComparison.Ordinal);
         Assert.Contains(">Hello</div>", html, StringComparison.Ordinal);

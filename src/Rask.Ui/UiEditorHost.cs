@@ -19,8 +19,11 @@ internal sealed record UiEditorHost(
     int MaxRows,
     bool Disabled)
 {
-    /// <summary>The content's height between its lines, as Flux writes it: 20px a line and the 8px padding twice.</summary>
+    /// <summary>
+    ///     The content's height between its lines, as Flux sizes it: a line of the content's own text each (24px on a
+    ///     phone, 20px from sm up) and the 8px padding twice.
+    /// </summary>
     internal string Height => string.Create(
         System.Globalization.CultureInfo.InvariantCulture,
-        $"min-height:{Rows * 20 + 16}px;max-height:{MaxRows * 20 + 16}px");
+        $"min-height:calc({Rows}lh + 16px);max-height:calc({MaxRows}lh + 16px)");
 }

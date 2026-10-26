@@ -184,6 +184,21 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **`Ui.Command`'s search and `Ui.Pillbox`'s trigger are set in 16px on a phone, as Flux's are.** Before: 14px/20px at
+  every width. After: `text-base` below `sm`, `text-sm` from it, like the kit's other fields; a small pillbox stays
+  14px.
+- **`Ui.Editor`'s document grows with its text on a phone.** Before: 14px text and headings, margins and indents in
+  rem. After: 16px below `sm` (the link field too), and Flux's headings, margins and indents in ems of it (an h3
+  20.57px, a paragraph 18.29px apart). A composer's editor is `rows` lines of its own text tall (`calc(3lh + 16px)`:
+  88px on a phone, 76px from `sm`), where it was 20px a line.
+- **`Ui.NavlistItem` and a navlist group's heading are 40px tall below `lg`, as Flux's are.** Before: 32px at every width.
+- **`Ui.ColorPicker`'s dialog is `fixed` below `sm`, where it is Flux's sheet.** Before: `absolute`, the closed dialog's
+  default.
+- **`Ui.FileUpload` on a phone.** The dropzone is padded 20px/24px (stacked) and 16px 24px 16px 16px (inline) below
+  `sm`, where it kept the desktop's 40px/64px and 20px/32px; a `Ui.FileItem` sets its text in 16px below `sm`, its
+  name staying 14px.
+- **`Ui.CheckboxGroup` and `Ui.RadioGroup` on a phone.** Buttons wrap onto another line, where they ran off the
+  edge; cards stack below `sm`, where they stayed side by side.
 - **A one-time code typed faster than the page answers reaches the next action whole.** Each character the page
   hears is a render of the cells, so the last one arrives from an older page — and the bound field's handler,
   made of one render's view, was a different one every render: it ran nothing, and a Resend pressed straight after

@@ -14,12 +14,12 @@ namespace Rask;
 public sealed partial class UiEditorContent : Component
 {
     private const string Look =
-        "min-h-[200px] max-h-[500px] overflow-y-auto p-4 text-sm whitespace-pre-wrap text-zinc-700 "
+        "min-h-[200px] max-h-[500px] overflow-y-auto p-4 text-base sm:text-sm whitespace-pre-wrap text-zinc-700 "
         + "dark:text-zinc-300 in-aria-disabled:text-zinc-500 dark:in-aria-disabled:text-zinc-400";
 
     // In a composer: 8px around, and as tall as the composer's lines say (the style).
     private const string InComposer =
-        "overflow-y-auto p-2 text-sm whitespace-pre-wrap text-zinc-700 "
+        "overflow-y-auto p-2 text-base sm:text-sm whitespace-pre-wrap text-zinc-700 "
         + "dark:text-zinc-300 in-aria-disabled:text-zinc-500 dark:in-aria-disabled:text-zinc-400";
 
     /// <inheritdoc />

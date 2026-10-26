@@ -40,7 +40,7 @@ public sealed partial class UiEditorLink : Component
             Div.Id(panelId).Class(PanelClass).TabIndex(-1).Attributes(("popover", "manual"))[
                 Div.Class("flex justify-between gap-2 ps-2 pe-1").Data(Panel.With(null))[
                     Input.Value(string.Empty)
-                        .Class("h-8 flex-1 text-sm outline-none")
+                        .Class("h-8 flex-1 text-base sm:text-sm outline-none")
                         .Data("editor", "link:url")
                         .Attributes(("type", "text"), ("placeholder", "https://..."), ("autofocus", "")),
                     Div.Class("flex items-center gap-2")[

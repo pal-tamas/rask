@@ -130,9 +130,9 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
         (Ui.RadioGroupVariant.Segmented, Ui.RadioGroupSize.Sm) =>
             "flex -my-px rounded-lg p-[3px] bg-zinc-800/5 dark:bg-white/10",
         (Ui.RadioGroupVariant.Segmented, _) => "flex rounded-lg p-1 bg-zinc-800/5 dark:bg-white/10",
-        (Ui.RadioGroupVariant.Cards, _) => "flex gap-3",
+        (Ui.RadioGroupVariant.Cards, _) => "flex max-sm:flex-col gap-3",
         (Ui.RadioGroupVariant.Pills, _) => "flex flex-wrap gap-3",
-        (Ui.RadioGroupVariant.Buttons, _) => "flex gap-2",
+        (Ui.RadioGroupVariant.Buttons, _) => "flex flex-wrap gap-2",
         _ => "[&>[data-ui-field]:not(:last-child)]:mb-3 "
              + "[&>[data-ui-field]:has(>[data-ui-description]):not(:last-child)]:mb-4",
     };

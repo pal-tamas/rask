@@ -1075,16 +1075,28 @@
 
   What is in there is the user's HTML, written by ProseMirror: no class of the kit's reaches a node of it,
   so its typography is the one thing of the editor a utility cannot say. Measured node by node on
-  fluxui.dev/components/editor (scripts/flux/parity-editor.mjs keeps it there): headings on Tailwind's
-  type scale, a quote indented in ems of the area's 14px, and Flux's own inline code, code block, quote
-  bar and list markers. The first and last node sit flush with the area's padding.
+  fluxui.dev/components/editor (scripts/flux/parity-editor.mjs keeps it there): headings, margins and
+  indents in proportion to the area's text, so the whole document grows with it on a phone (16px there,
+  14px from sm up), and Flux's own inline code, code block, quote bar and list markers. The first and last
+  node sit flush with the area's padding.
+
+  The proportions are Flux's numbers at 14px over 14 (an h3 is 18/14 of the text): --ui-editor-text is that
+  text as a length, registered so a heading's own margin reads the area's size and not its own. A ratio
+  written as an em would be cut to six digits by the sheet's minifier, and 18px come out 17.9999px.
 
   The placeholder is ProseMirror's convention: the engine marks the empty paragraph and names the text in
   `data-placeholder`, and the sheet draws it. The kit renders that same paragraph before the engine has
   loaded, so the first paint already shows it.
 */
+@property --ui-editor-text {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 14px;
+}
+
 @layer rask {
   [data-ui-editor] [data-slot="content"] {
+    --ui-editor-text: 1em;
     outline: none;
     overflow-wrap: break-word;
   }
@@ -1121,31 +1133,31 @@
 
   [data-ui-editor] [data-slot="content"] h1 {
     margin-top: 0;
-    margin-bottom: 1.5rem;
-    font-size: 1.875rem;
+    margin-bottom: calc(var(--ui-editor-text) * 24 / 14);
+    font-size: calc(var(--ui-editor-text) * 30 / 14);
     font-weight: 800;
-    line-height: 2.25rem;
+    line-height: calc(var(--ui-editor-text) * 36 / 14);
   }
 
   [data-ui-editor] [data-slot="content"] h2 {
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    font-size: 1.25rem;
+    margin-top: calc(var(--ui-editor-text) * 32 / 14);
+    margin-bottom: calc(var(--ui-editor-text) * 16 / 14);
+    font-size: calc(var(--ui-editor-text) * 20 / 14);
     font-weight: 700;
-    line-height: 1.75rem;
+    line-height: calc(var(--ui-editor-text) * 28 / 14);
   }
 
   [data-ui-editor] [data-slot="content"] h3 {
-    margin-top: 1.75rem;
-    margin-bottom: 0.5rem;
-    font-size: 1.125rem;
+    margin-top: calc(var(--ui-editor-text) * 28 / 14);
+    margin-bottom: calc(var(--ui-editor-text) * 8 / 14);
+    font-size: calc(var(--ui-editor-text) * 18 / 14);
     font-weight: 600;
-    line-height: 1.75rem;
+    line-height: calc(var(--ui-editor-text) * 28 / 14);
   }
 
   [data-ui-editor] [data-slot="content"] p {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
+    margin-top: calc(var(--ui-editor-text) * 16 / 14);
+    margin-bottom: calc(var(--ui-editor-text) * 16 / 14);
   }
 
   [data-ui-editor] [data-slot="content"] strong {
@@ -1188,16 +1200,16 @@
 
   [data-ui-editor] [data-slot="content"] ul,
   [data-ui-editor] [data-slot="content"] ol {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-    padding-left: 22px;
+    margin-top: calc(var(--ui-editor-text) * 16 / 14);
+    margin-bottom: calc(var(--ui-editor-text) * 16 / 14);
+    padding-left: calc(var(--ui-editor-text) * 22 / 14);
     list-style: none;
   }
 
   [data-ui-editor] [data-slot="content"] li {
-    margin-top: 0.25rem;
-    margin-bottom: 0.25rem;
-    padding-left: 0.375rem;
+    margin-top: calc(var(--ui-editor-text) * 4 / 14);
+    margin-bottom: calc(var(--ui-editor-text) * 4 / 14);
+    padding-left: calc(var(--ui-editor-text) * 6 / 14);
   }
 
   [data-ui-editor] [data-slot="content"] ul > li {
@@ -1223,10 +1235,9 @@
 
   [data-ui-editor] [data-slot="content"] blockquote {
     position: relative;
-    /* 18.6667px and 15.5556px on Flux: in rem, because the sheet's minifier keeps six digits of an em. */
-    margin-top: 1.16667rem;
-    margin-bottom: 1.16667rem;
-    padding-left: 0.972222rem;
+    margin-top: calc(var(--ui-editor-text) * 4 / 3);
+    margin-bottom: calc(var(--ui-editor-text) * 4 / 3);
+    padding-left: calc(var(--ui-editor-text) * 10 / 9);
     font-style: italic;
   }
 

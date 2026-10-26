@@ -17,7 +17,7 @@ public sealed partial class UiCommandInput : Component
     private static readonly UiPartMarker Marker = new("ui-command-input");
 
     private const string Field =
-        "flex h-12 w-full items-center border-b border-zinc-200 bg-white py-2 ps-11 pe-11 text-sm font-medium text-zinc-800 "
+        "flex h-12 w-full items-center border-b border-zinc-200 bg-white py-2 ps-11 pe-11 text-base sm:text-sm font-medium text-zinc-800 "
         + "outline-none peer focus:ring-0 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
 
     private const string Leading =

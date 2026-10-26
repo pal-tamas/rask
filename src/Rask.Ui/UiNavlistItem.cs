@@ -14,7 +14,7 @@ namespace Rask;
 public sealed partial class UiNavlistItem : Component
 {
     private const string Base =
-        "relative my-px flex h-8 items-center gap-3 rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/[4%] "
+        "relative my-px flex h-10 lg:h-8 items-center gap-3 rounded-lg px-3 text-zinc-500 hover:bg-zinc-800/[4%] "
         + "hover:text-zinc-800 dark:text-white/80 dark:hover:bg-white/[7%] dark:hover:text-white "
         + "aria-[current=page]:bg-zinc-800/[4%] dark:aria-[current=page]:bg-white/[7%]";
 

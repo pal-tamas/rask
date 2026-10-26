@@ -56,7 +56,7 @@ public sealed partial class UiNavlistGroup : Component
 
         return details.Attributes(("data-ui-navlist-group", null))[
             Summary.Class(
-                "mb-[2px] flex h-8 w-full cursor-default list-none items-center rounded-lg text-center text-zinc-500 "
+                "mb-[2px] flex h-10 lg:h-8 w-full cursor-default list-none items-center rounded-lg text-center text-zinc-500 "
                 + "hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-white/80 dark:hover:bg-white/[7%] "
                 + "dark:hover:text-white [&::-webkit-details-marker]:hidden")[
                 Div.Class("ps-3 pe-4")[

@@ -169,7 +169,7 @@ public partial class UiFileUploadTests : global::Rask.Core.RaskMarkup
 
         var html = dropzone.ToHtml();
 
-        Assert.Contains("items-center border py-4 ps-5 pe-8", html, StringComparison.Ordinal);
+        Assert.Contains("items-center border py-4 ps-4 pe-6 sm:ps-5 sm:pe-8", html, StringComparison.Ordinal);
         Assert.Contains("relative me-4", html, StringComparison.Ordinal);
         Assert.DoesNotContain("flex-col items-center justify-center", html, StringComparison.Ordinal);
     }

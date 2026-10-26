@@ -11,12 +11,12 @@ public sealed partial class UiFileItem : Component
 {
     private const string Frame =
         "flex min-h-10 cursor-default items-start overflow-hidden rounded-lg border border-zinc-200 "
-        + "border-b-zinc-300/80 bg-white text-sm shadow-xs dark:border-white/10 dark:bg-white/10";
+        + "border-b-zinc-300/80 bg-white text-base sm:text-sm shadow-xs dark:border-white/10 dark:bg-white/10";
 
     // No example on Flux's page draws an invalid item, so this is its invalid input's border, not a measurement.
     private const string InvalidFrame =
         "flex min-h-10 cursor-default items-start overflow-hidden rounded-lg border border-red-500 "
-        + "bg-white text-sm shadow-xs dark:border-red-400 dark:bg-white/10";
+        + "bg-white text-base sm:text-sm shadow-xs dark:border-red-400 dark:bg-white/10";
 
     private const string Preview =
         "relative me-1 size-11 overflow-hidden rounded-sm after:absolute after:inset-0 after:rounded-sm "
@@ -62,7 +62,7 @@ public sealed partial class UiFileItem : Component
         return Div.Class(UiClass.Compose(Invalid == true ? InvalidFrame : Frame, Class)).Data(Marker.With(null))[
             Lead(detail is not null),
             Div.Class("me-3 flex grow flex-col justify-center gap-1 overflow-hidden py-[9px]").Data(ContentSlot.With(null))[
-                Div.Class("truncate font-medium text-zinc-500 dark:text-white/80")[Heading],
+                Div.Class("truncate text-sm font-medium text-zinc-500 dark:text-white/80")[Heading],
                 detail is null ? null : Div.Class("text-xs text-zinc-500")[detail]
             ],
             Actions is null
