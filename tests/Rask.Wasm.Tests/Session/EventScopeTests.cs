@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -94,6 +95,26 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         await WaitFor.True(() => gate.Probe.Disposed, "the scope to go once the read is back");
     }
 
+    // As a Livewire component's action is a request of its own: three components loading at once never share one.
+    [Fact]
+    public async Task Three_components_loading_at_once_in_one_event_each_read_through_their_own_scope()
+    {
+        var (session, services) = NewScopedSession();
+        var html = Html(await session.InitialRenderAsync());
+        var loads = services.GetRequiredService<WasmLoads>();
+
+        await Click(session, html, "three");
+        await WaitFor.True(() => loads.Reached == 3 || loads.Failure is not null, "every component's hook to hold its read");
+        loads.Gate.SetResult();
+        await WaitFor.True(() => loads.Done == 3, "every component's hook to finish");
+
+        var reads = loads.Reads.ToArray();
+        Assert.Null(loads.Failure);
+        Assert.All(reads, static read => Assert.Same(read.First, read.Again));
+        Assert.Equal(3, reads.Select(static read => read.First).Distinct().Count());
+        await WaitFor.True(() => Array.TrueForAll(reads, static read => read.First.Disposed), "each component's scope to go once its hook is done");
+    }
+
     private static (WasmLiveSession Session, IServiceProvider Services) NewScopedSession() =>
         NewSession<WasmScopeApp>(configure: s =>
         {
@@ -102,6 +123,8 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
             s.AddScoped<WasmScopeProbe>();
             s.AddSingleton<WasmHookGate>();
             s.AddSingleton<WasmDetachedGate>();
+            s.AddSingleton<WasmLoads>();
+            s.AddScoped<WasmBusyDb>();
         });
 
     private static string Html(byte[] frame)
@@ -198,10 +221,79 @@ public sealed partial class WasmDetachedChild : Component
     }
 }
 
+// What three loaders read, held by the test at one gate.
+public sealed class WasmLoads
+{
+    public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private int _reached;
+    private int _done;
+
+    public ConcurrentQueue<(WasmBusyDb First, WasmBusyDb Again)> Reads { get; } = new();
+
+    public int Reached => Volatile.Read(ref _reached);
+
+    public int Done => Volatile.Read(ref _done);
+
+    public Exception? Failure { get; set; }
+
+    public void Reach() => Interlocked.Increment(ref _reached);
+
+    public void Finish() => Interlocked.Increment(ref _done);
+}
+
+// A DbContext as EF Core has it: one operation at a time.
+public sealed class WasmBusyDb : IDisposable
+{
+    private int _busy;
+
+    public bool Disposed { get; private set; }
+
+    public void BeginRead()
+    {
+        if (Interlocked.Exchange(ref _busy, 1) != 0)
+        {
+            throw new InvalidOperationException("A second operation was started on this context instance before a previous operation completed.");
+        }
+    }
+
+    public void EndRead() => Volatile.Write(ref _busy, 0);
+
+    public void Dispose() => Disposed = true;
+}
+
+public sealed partial class WasmLoader : Component
+{
+    protected override async Task OnMount()
+    {
+        var loads = Current.Service<WasmLoads>();
+        try
+        {
+            var db = Current.Service<WasmBusyDb>();
+            db.BeginRead();
+            loads.Reach();
+            await loads.Gate.Task;
+            db.EndRead();
+            loads.Reads.Enqueue((db, Current.Service<WasmBusyDb>()));
+        }
+        catch (Exception ex)
+        {
+            loads.Failure = ex;
+        }
+        finally
+        {
+            loads.Finish();
+        }
+    }
+
+    protected override Component? Render() => P["loader"];
+}
+
 public sealed partial class WasmScopeApp : Component
 {
     private bool _show;
     private bool _detach;
+    private bool _three;
 
     protected override Component? Render() =>
         Div[
@@ -209,6 +301,8 @@ public sealed partial class WasmScopeApp : Component
             _show ? WasmHookChild : null,
             Button.Id("detach").OnClick(() => _detach = true)["detach"],
             _detach ? WasmDetachedChild : null,
+            Button.Id("three").OnClick(() => _three = true)["three"],
+            _three ? Div[WasmLoader, WasmLoader, WasmLoader] : null,
             Button.Id("use").OnClick(static () => Ambient.Services!.GetRequiredService<WasmScopeProbe>().Use())["use"],
             Button.Id("current").OnClick(static async () =>
             {

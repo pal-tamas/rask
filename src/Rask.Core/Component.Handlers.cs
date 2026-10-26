@@ -287,6 +287,7 @@ public abstract partial class Component
         RenderHandle?.HeardValues?.Hear(id, payload);
 
         using var __dispatchScope = DispatchServicesScope.Push(services);
+        using var __owner = EventServices.Dispatching(services, owner); // what it resolves is its component's
 
         // A handler runs outside any render walk, so there is no LiveRenderContext to read the culture
         // from — push it here, from the same service provider, so code the handler calls formats and
