@@ -278,12 +278,26 @@ internal static partial class JSInterop
     // Non-browser stub of the JSExport.
     public static Task ReadsSettled() => _session?.ReadsSettledAsync() ?? Task.CompletedTask;
 
-    /// <summary>Where a test collects the frames a session pushed; nothing is kept while it is null.</summary>
+    /// <summary>
+    ///     Where a test collects the frames a session pushed; nothing is kept while it is null. Added to under a lock
+    ///     on the list, which a reader takes too: off a browser two sessions can paint at once.
+    /// </summary>
     internal static List<string>? AppliedFrames { get; set; }
 
     // No page to apply the frame to.
-    public static void ApplyRender(Span<byte> payload) =>
-        AppliedFrames?.Add(System.Text.Encoding.UTF8.GetString(payload));
+    public static void ApplyRender(Span<byte> payload)
+    {
+        if (AppliedFrames is not { } frames)
+        {
+            return;
+        }
+
+        var frame = System.Text.Encoding.UTF8.GetString(payload);
+        lock (frames)
+        {
+            frames.Add(frame);
+        }
+    }
 
 #pragma warning disable S3400 // each stub mirrors a browser [JSImport] method, which a constant cannot stand in for
     public static string GetLocation() => "/";

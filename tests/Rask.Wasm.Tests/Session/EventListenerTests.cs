@@ -11,16 +11,28 @@ namespace Rask.Wasm.Tests.Session;
 
 // In the browser: an event published inside the tab reaches its page's listening component, as an event of the page's
 // own — after a click in flight, with that event's services, and rendered.
+//
+// Every listening page in the process hears a published event, so each test closes its page at its end: one the test
+// before left open drew its own frame beside this one's, into the same list.
 [Collection("WasmSession")]
 public sealed class EventListenerTests : ResettingTestBase, IDisposable
 {
     private readonly List<string> _frames = [];
+    private readonly List<WasmLiveSession> _sessions = [];
 
     public EventListenerTests()
         : base(LiveDiffMode.DisabledFull) =>
         JSInterop.AppliedFrames = _frames;
 
-    public void Dispose() => JSInterop.AppliedFrames = null;
+    public void Dispose()
+    {
+        foreach (var session in _sessions)
+        {
+            session.Dispose();
+        }
+
+        JSInterop.AppliedFrames = null;
+    }
 
     [Fact]
     public async Task An_event_published_in_the_tab_reaches_its_page_s_listener_and_is_drawn()
@@ -30,7 +42,7 @@ public sealed class EventListenerTests : ResettingTestBase, IDisposable
         var log = services.GetRequiredService<TabLog>();
 
         await services.GetRequiredService<IDispatcher>().Publish(new TabNotice(1), TestContext.Current.CancellationToken);
-        await WaitFor(() => _frames.Exists(static f => f.Contains("notices=1", StringComparison.Ordinal)));
+        await WaitFor.True(() => Painted("notices=1"));
 
         Assert.Equal([1], log.Heard);
     }
@@ -49,7 +61,7 @@ public sealed class EventListenerTests : ResettingTestBase, IDisposable
         var heardWhileHeld = log.Heard.Count;
         log.Open.TrySetResult();
         await click;
-        await WaitFor(() => log.Heard.Count == 1);
+        await WaitFor.True(() => log.Heard.Count == 1);
 
         Assert.Equal(0, heardWhileHeld);
         Assert.Equal(["click done", "heard"], log.Order);
@@ -64,28 +76,33 @@ public sealed class EventListenerTests : ResettingTestBase, IDisposable
         var dispatcher = services.GetRequiredService<IDispatcher>();
 
         await dispatcher.Publish(new TabNotice(1), TestContext.Current.CancellationToken);
-        await WaitFor(() => log.Scoped.Count == 1);
+        await WaitFor.True(() => log.Scoped.Count == 1);
         await dispatcher.Publish(new TabNotice(2), TestContext.Current.CancellationToken);
-        await WaitFor(() => log.Scoped.Count == 2);
+        await WaitFor.True(() => log.Scoped.Count == 2);
 
         Assert.NotSame(log.Scoped[0], log.Scoped[1]);
-        await WaitFor(() => log.Scoped[0].Disposed);
+        await WaitFor.True(() => log.Scoped[0].Disposed);
     }
 
-    private static (WasmLiveSession Session, IServiceProvider Services) NewListeningSession() =>
-        NewSession<TabApp>(configure: s =>
+    private (WasmLiveSession Session, IServiceProvider Services) NewListeningSession()
+    {
+        var (session, services) = NewSession<TabApp>(configure: s =>
         {
             EventScopeCatalog.Add(s);
             s.AddRaskCqrs();
             s.AddSingleton<TabLog>();
             s.AddScoped<TabScoped>();
         });
+        _sessions.Add(session);
+        return (session, services);
+    }
 
-    private static async Task WaitFor(Func<bool> condition)
+    // Under the lock the frames are added under (JSInterop.ApplyRender).
+    private bool Painted(string text)
     {
-        for (var deadline = DateTime.UtcNow.AddSeconds(10); !condition(); await Task.Delay(10))
+        lock (_frames)
         {
-            Assert.True(DateTime.UtcNow < deadline, "timed out");
+            return _frames.Exists(frame => frame.Contains(text, StringComparison.Ordinal));
         }
     }
 
