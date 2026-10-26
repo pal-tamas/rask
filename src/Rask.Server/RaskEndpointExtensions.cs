@@ -2436,6 +2436,12 @@ public static partial class RaskEndpointExtensions
     // What a re-attached session owes its new connection: the deferred sign-in navigation, then a render.
     private static async Task RenderAttachedAsync(LiveSession session, CancellationToken ct)
     {
+        // A page outside the app a hook sent the reader to before this connection opened: nothing else is shown.
+        if (await LeaveIfOwedAsync(session).ConfigureAwait(false))
+        {
+            return;
+        }
+
         var routeState = session.Services.GetRequiredService<RouteState>();
         var destination = session.PendingAuthNavigation is { } url
             ? SplitUrl(url)
@@ -3278,17 +3284,41 @@ public static partial class RaskEndpointExtensions
     }
 
     // Sends the browser to a page of this site the app does not render (Go.Out): the address as written, loaded
-    // as a page. Nothing more is rendered for this one — the reader is on their way out of it.
-    private static async Task<bool> LeaveTheApplicationAsync(LiveSession session, Navigator navigator)
+    // as a page. Nothing more is rendered for this one — the reader is on their way out of it. replace: a hook asked,
+    // so the page that asked is not a place to go back to.
+    private static async Task<bool> LeaveTheApplicationAsync(LiveSession session, Navigator navigator, bool replace = false)
     {
         if (!navigator.TryConsumeExit(out var exit))
         {
             return false;
         }
 
-        await session.SendOutOfBandAsync(LocationFrame(LocalUrl.Sanitize(exit), replace: false, outside: true))
-            .ConfigureAwait(false);
+        session.LeaveOnAttach(new LeavingFor(LocalUrl.Sanitize(exit), replace));
+        await LeaveIfOwedAsync(session).ConfigureAwait(false);
         session.DiscardPendingRender();
+        return true;
+    }
+
+    // Tells the open connection to load the page outside the app the session owes it. With none open — the hook went
+    // out after the first response and before the hello — it stays owed, and the attach tells it first.
+    private static async Task<bool> LeaveIfOwedAsync(LiveSession session)
+    {
+        if (session.TakeUndeliveredExit() is not { } exit)
+        {
+            return false;
+        }
+
+        if (!await session.SendOutOfBandAsync(LocationFrame(exit.Url, exit.Replace, outside: true)).ConfigureAwait(false))
+        {
+            session.GiveBackUndeliveredExit(exit);
+
+            // A connection that attached in between has already looked, and will not look again.
+            if (session.HasOpenTransport)
+            {
+                return await LeaveIfOwedAsync(session).ConfigureAwait(false);
+            }
+        }
+
         return true;
     }
 
@@ -3548,7 +3578,7 @@ public static partial class RaskEndpointExtensions
             }
             else
             {
-                await LeaveTheApplicationAsync(session, navigator).ConfigureAwait(false);
+                await LeaveTheApplicationAsync(session, navigator, replace: true).ConfigureAwait(false);
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException && !session.IsDisposed)

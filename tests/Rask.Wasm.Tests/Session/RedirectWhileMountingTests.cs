@@ -204,10 +204,63 @@ public sealed class RedirectWhileMountingTests : ResettingTestBase, IDisposable
     public async Task A_link_to_a_page_that_goes_out_as_it_mounts_asks_the_browser_for_a_full_page_navigation()
     {
         var session = await OpenAt("/rs/start");
+        JSInterop.ResetLeftTo();
 
         await Navigate(session, "/rs/out");
 
         Assert.Equal("/old/partners", JSInterop.LastLeftTo);
+        Assert.False(JSInterop.LastLeftReplacing);
+    }
+
+    [Fact]
+    public async Task A_first_load_of_a_page_that_goes_out_as_it_mounts_leaves_in_place_of_its_entry()
+    {
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/out";
+        JSInterop.ResetLeftTo();
+
+        await session.InitialRenderAsync();
+
+        Assert.Equal("/old/partners", JSInterop.LastLeftTo);
+        Assert.True(JSInterop.LastLeftReplacing);
+    }
+
+    // "Signed in already? Then not the sign-in page": the boot render shows the page, and the check that outlasts
+    // it sends the reader on, in place of the page's entry.
+    [Fact]
+    public async Task A_first_load_of_a_page_that_goes_to_another_after_a_held_load_lands_there_replacing_its_address()
+    {
+        RedirectStubGated.Opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        RedirectStubGated.Asked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/gated";
+        var first = await session.InitialRenderAsync();
+
+        RedirectStubGated.Opened.SetResult();
+        var landed = await Landed();
+
+        Assert.Contains("gated-content", Html(first), StringComparison.Ordinal);
+        Assert.Equal(("/rs/home", "replace"), History(landed));
+    }
+
+    [Fact]
+    public async Task A_first_load_of_a_page_that_goes_out_after_a_held_load_leaves_in_place_of_its_entry()
+    {
+        RedirectStubGated.Opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        RedirectStubGated.Asked = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var (session, services) = NewSession<RedirectStubApp>(diffMode: DiffMode);
+        services.GetRequiredService<RouteState>().Path = "/rs/gated-out";
+        JSInterop.ResetLeftTo();
+        var first = await session.InitialRenderAsync();
+
+        RedirectStubGated.Opened.SetResult();
+        await RedirectStubGated.Asked.Task;
+        await WaitFor.True(() => JSInterop.LastLeftTo is not null, "the page to leave the app");
+
+        Assert.Contains("gated-out-content", Html(first), StringComparison.Ordinal);
+        Assert.Equal("/tenants", JSInterop.LastLeftTo);
+        Assert.True(JSInterop.LastLeftReplacing);
+        Assert.Equal("/rs/gated-out", services.GetRequiredService<RouteState>().Path);
     }
 
     // The first frame pushed to the page that shows the destination and says where the reader now is.

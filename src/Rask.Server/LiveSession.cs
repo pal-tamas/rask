@@ -1072,11 +1072,12 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     <see cref="JSInterop.RaskJSRuntime.EndInvokeDotNet" />. Single-writer-at-a-time via
     ///     the render lock so we don't interleave with an in-flight SendAsync.
     /// </summary>
-    internal async Task SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
+    /// <returns><c>false</c> when no connection was open to send it to.</returns>
+    internal async Task<bool> SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
     {
         if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
-            return;
+            return false;
         }
 
         await _renderLock.WaitAsync(_socketCt).ConfigureAwait(false);
@@ -1084,10 +1085,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         {
             if (Volatile.Read(ref _transport) is not { IsOpen: true })
             {
-                return;
+                return false;
             }
 
             await SendGuardedAsync(payload).ConfigureAwait(false);
+            return true;
         }
         finally
         {
@@ -1245,6 +1247,19 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         return true;
     }
+
+    // The page outside the app (Go.Out) a hook sent the reader to while no connection was attached — a sign-in page
+    // whose check outlasted the first response. The next connection loads it before anything else.
+    private LeavingFor? _undeliveredExit;
+
+    /// <summary>Keeps a page outside the app for the next connection to load: none is open to tell now.</summary>
+    internal void LeaveOnAttach(LeavingFor exit) => Volatile.Write(ref _undeliveredExit, exit);
+
+    /// <summary>The page outside the app no connection has been told to load yet, taken by the one that tells it.</summary>
+    internal LeavingFor? TakeUndeliveredExit() => Interlocked.Exchange(ref _undeliveredExit, null);
+
+    /// <summary>Puts back an exit taken and not told, unless a newer one has been kept since.</summary>
+    internal void GiveBackUndeliveredExit(LeavingFor exit) => Interlocked.CompareExchange(ref _undeliveredExit, exit, null);
 
     // The address of a navigation made while no connection was attached — a page whose load outlasted the first
     // response and then sent the reader on. Only the session's own dispatches write it, one at a time.
