@@ -195,5 +195,33 @@ check "a newer major moves the scaffolded workflow"    1 "$(count 'actions/check
 workflow=src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
 check "an older one leaves it" "$(grep -o 'setup-dotnet@v[0-9]*' "$root/$workflow")" "$(grep -o 'setup-dotnet@v[0-9]*' "$tmp/tree/$workflow")"
 
+echo "==> upstream front-end releases"
+# A tree of its own: one template, so the packages it floats are the only ones asked for.
+rm -rf "$tmp/tree" "$tmp/saved"
+mkdir -p "$tmp/saved" "$tmp/tree/scripts/upstream" "$tmp/tree/src/Rask.Templates/lit/client" "$tmp/tree/src/Rask.Cli/Scaffolding"
+cp "$root/scripts/upstream/upstream.py" "$root/scripts/upstream/front-ends.py" "$tmp/tree/scripts/upstream/"
+cat > "$tmp/tree/src/Rask.Templates/lit/client/package.json" <<'JSON'
+{ "dependencies": { "lit": "latest" },
+  "devDependencies": { "typescript": "~6.0.3", "vite": "npm:@voidzero-dev/vite-plus-core@latest", "vite-plus": "latest" } }
+JSON
+answer "https://registry.npmjs.org/lit" '{"versions":{
+  "3.3.3":{"peerDependencies":{"vite":"^8.0.0","left-pad":"*"},"engines":{"node":">=20"}},
+  "3.3.2":{},"3.2.1":{},"3.4.0-beta.1":{},"3.1.0":{"deprecated":"broken"},"2.8.0":{},"2.7.0":{},"1.0.0":{},"0.5.0":{}}}'
+answer "https://registry.npmjs.org/vite-plus" '{"versions":{"1.4.0":{"peerDependencies":{"lit":"^3"}}}}'
+answer "https://registry.npmjs.org/@voidzero-dev%2fvite-plus-core/1.4.0" '{"bundledVersions":{"vite":"8.3.5"}}'
+snapshot="$tmp/tree/src/Rask.Cli/Scaffolding/npm.snapshot.json"
+read_snapshot() { python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(eval(sys.argv[2]))' "$snapshot" "$1"; }
+run front-ends.py
+check "only what a template floats is followed, not a hold" "['lit', 'vite-plus']" "$(read_snapshot 'sorted(d["packages"])')"
+check "every minor of the newest major, the newest of two before it, no prerelease or deprecated" \
+  "['3.3.3', '3.2.1', '2.8.0', '1.0.0']" "$(read_snapshot 'list(d["packages"]["lit"]["versions"])')"
+check "a peer on vite or another floating package is kept, any other dropped" \
+  "{'vite': '^8.0.0'}" "$(read_snapshot 'd["packages"]["lit"]["versions"]["3.3.3"]["peerDependencies"]')"
+check "...and so is engines.node"                       ">=20" "$(read_snapshot 'd["packages"]["lit"]["versions"]["3.3.3"]["engines"]["node"]')"
+check "the toolchain records the vite its core bundles" "8.3.5" "$(read_snapshot 'd["packages"]["vite-plus"]["versions"]["1.4.0"]["bundledVersions"]["vite"]')"
+sed -i.bak 's/"followed": "[0-9-]*"/"followed": "2000-01-01"/' "$snapshot"
+run front-ends.py
+check "a day with nothing new writes nothing"           "2000-01-01" "$(read_snapshot 'd["followed"]')"
+
 [ "$failures" -eq 0 ] || { echo "upstream followers: $failures failed" >&2; exit 1; }
 echo "upstream followers: ok"

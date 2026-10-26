@@ -20,6 +20,9 @@ internal sealed class NpmRegistry(
 
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
 
+    /// <summary>How long one scaffold waits for every lookup it needs before it treats the registry as unanswered.</summary>
+    internal TimeSpan Budget { get; init; } = TimeSpan.FromSeconds(20);
+
     internal Task<IReadOnlyList<NpmRelease>?> ReleasesAsync(string package, CancellationToken cancellationToken) =>
         releasesOf(package, cancellationToken);
 

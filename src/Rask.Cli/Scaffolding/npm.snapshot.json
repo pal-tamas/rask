@@ -1,0 +1,2515 @@
+{
+  "followed": "2026-10-26",
+  "packages": {
+    "@analogjs/vite-plugin-angular": {
+      "versions": {
+        "2.9.2": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          }
+        },
+        "2.8.1": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          }
+        },
+        "2.7.5": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          }
+        },
+        "2.6.4": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0 || ^22.0.0",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          }
+        },
+        "2.5.3": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          }
+        },
+        "2.4.10": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0"
+          }
+        },
+        "2.3.1": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0"
+          }
+        },
+        "2.2.3": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0"
+          }
+        },
+        "2.1.3": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0 || ^21.0.0"
+          }
+        },
+        "2.0.5": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0"
+          }
+        },
+        "1.22.5": {
+          "peerDependencies": {
+            "@angular/build": "^18.0.0 || ^19.0.0 || ^20.0.0"
+          }
+        },
+        "0.2.45": {}
+      }
+    },
+    "@angular/build": {
+      "versions": {
+        "22.2.4": {
+          "peerDependencies": {
+            "@angular/compiler": "^22.0.0",
+            "@angular/compiler-cli": "^22.0.0",
+            "@angular/core": "^22.0.0",
+            "@angular/platform-browser": "^22.0.0",
+            "tslib": "^2.3.0",
+            "typescript": ">=6.0 <6.1",
+            "vitest": "^4.0.8 || ^5.0.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.9": {
+          "peerDependencies": {
+            "@angular/compiler": "^22.0.0",
+            "@angular/compiler-cli": "^22.0.0",
+            "@angular/core": "^22.0.0",
+            "@angular/platform-browser": "^22.0.0",
+            "tslib": "^2.3.0",
+            "typescript": ">=6.0 <6.1",
+            "vitest": "^4.0.8"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.9": {
+          "peerDependencies": {
+            "@angular/compiler": "^22.0.0",
+            "@angular/compiler-cli": "^22.0.0",
+            "@angular/core": "^22.0.0",
+            "@angular/platform-browser": "^22.0.0",
+            "tslib": "^2.3.0",
+            "typescript": ">=6.0 <6.1",
+            "vitest": "^4.0.8"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.28": {
+          "peerDependencies": {
+            "@angular/compiler": "^21.0.0",
+            "@angular/compiler-cli": "^21.0.0",
+            "@angular/core": "^21.0.0",
+            "@angular/platform-browser": "^21.0.0",
+            "tslib": "^2.3.0",
+            "typescript": ">=5.9 <6.0",
+            "vitest": "^4.0.8"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.41": {
+          "peerDependencies": {
+            "@angular/compiler": "^20.0.0",
+            "@angular/compiler-cli": "^20.0.0",
+            "@angular/core": "^20.0.0",
+            "@angular/platform-browser": "^20.0.0",
+            "tslib": "^2.3.0",
+            "typescript": ">=5.8 <6.0",
+            "vitest": "^3.1.1"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/cli": {
+      "versions": {
+        "22.2.4": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.9": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.9": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.28": {
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.41": {
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/common": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/core": "22.2.3",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/core": "22.1.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/core": "22.0.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/core": "21.2.25",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/core": "20.3.34",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/compiler": {
+      "versions": {
+        "22.2.3": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/compiler-cli": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/compiler": "22.2.3",
+            "typescript": ">=6.0 <6.1"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/compiler": "22.1.8",
+            "typescript": ">=6.0 <6.1"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/compiler": "22.0.8",
+            "typescript": ">=6.0 <6.1"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/compiler": "21.2.25",
+            "typescript": ">=5.9 <6.1"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/compiler": "20.3.34",
+            "typescript": ">=5.8 <6.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/core": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/compiler": "22.2.3",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/compiler": "22.1.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/compiler": "22.0.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/compiler": "21.2.25",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/compiler": "20.3.34",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/forms": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/common": "22.2.3",
+            "@angular/core": "22.2.3",
+            "@angular/platform-browser": "22.2.3",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/common": "22.1.8",
+            "@angular/core": "22.1.8",
+            "@angular/platform-browser": "22.1.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/common": "22.0.8",
+            "@angular/core": "22.0.8",
+            "@angular/platform-browser": "22.0.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/common": "21.2.25",
+            "@angular/core": "21.2.25",
+            "@angular/platform-browser": "21.2.25",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/common": "20.3.34",
+            "@angular/core": "20.3.34",
+            "@angular/platform-browser": "20.3.34",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/platform-browser": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/common": "22.2.3",
+            "@angular/core": "22.2.3"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/common": "22.1.8",
+            "@angular/core": "22.1.8"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/common": "22.0.8",
+            "@angular/core": "22.0.8"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/common": "21.2.25",
+            "@angular/core": "21.2.25"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/common": "20.3.34",
+            "@angular/core": "20.3.34"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@angular/router": {
+      "versions": {
+        "22.2.3": {
+          "peerDependencies": {
+            "@angular/common": "22.2.3",
+            "@angular/core": "22.2.3",
+            "@angular/platform-browser": "22.2.3",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.1.8": {
+          "peerDependencies": {
+            "@angular/common": "22.1.8",
+            "@angular/core": "22.1.8",
+            "@angular/platform-browser": "22.1.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "22.0.8": {
+          "peerDependencies": {
+            "@angular/common": "22.0.8",
+            "@angular/core": "22.0.8",
+            "@angular/platform-browser": "22.0.8",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "21.2.25": {
+          "peerDependencies": {
+            "@angular/common": "21.2.25",
+            "@angular/core": "21.2.25",
+            "@angular/platform-browser": "21.2.25",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        },
+        "20.3.34": {
+          "peerDependencies": {
+            "@angular/common": "20.3.34",
+            "@angular/core": "20.3.34",
+            "@angular/platform-browser": "20.3.34",
+            "rxjs": "^6.5.3 || ^7.4.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "@eslint/js": {
+      "versions": {
+        "10.0.1": {
+          "peerDependencies": {
+            "eslint": "^10.0.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "9.39.5": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.57.1": {
+          "engines": {
+            "node": "^12.22.0 || ^14.17.0 || >=16.0.0"
+          }
+        }
+      }
+    },
+    "@preact/preset-vite": {
+      "versions": {
+        "2.10.6": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x || 5.x || 6.x || 7.x || 8.x"
+          }
+        },
+        "2.9.4": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x || 5.x || 6.x"
+          }
+        },
+        "2.8.3": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x || 5.x"
+          }
+        },
+        "2.7.0": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x || 5.x"
+          }
+        },
+        "2.6.0": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x"
+          }
+        },
+        "2.5.0": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x || 4.x"
+          }
+        },
+        "2.4.0": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x"
+          }
+        },
+        "2.3.1": {
+          "peerDependencies": {
+            "vite": "2.x || 3.x"
+          }
+        },
+        "2.2.0": {
+          "peerDependencies": {
+            "vite": "2.x"
+          }
+        },
+        "2.1.7": {
+          "peerDependencies": {
+            "vite": "2.x"
+          }
+        },
+        "2.0.1": {
+          "peerDependencies": {
+            "vite": "2.x"
+          }
+        },
+        "1.0.1": {
+          "peerDependencies": {
+            "vite": "2.x"
+          }
+        }
+      }
+    },
+    "@sveltejs/vite-plugin-svelte": {
+      "versions": {
+        "7.3.1": {
+          "peerDependencies": {
+            "svelte": "^5.46.4",
+            "vite": "^8.0.0-beta.7 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19 || ^22.12 || >=24"
+          }
+        },
+        "7.2.0": {
+          "peerDependencies": {
+            "svelte": "^5.46.4",
+            "vite": "^8.0.0-beta.7 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19 || ^22.12 || >=24"
+          }
+        },
+        "7.1.4": {
+          "peerDependencies": {
+            "svelte": "^5.46.4",
+            "vite": "^8.0.0-beta.7 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19 || ^22.12 || >=24"
+          }
+        },
+        "7.0.0": {
+          "peerDependencies": {
+            "svelte": "^5.46.4",
+            "vite": "^8.0.0-beta.7 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19 || ^22.12 || >=24"
+          }
+        },
+        "6.2.4": {
+          "peerDependencies": {
+            "svelte": "^5.0.0",
+            "vite": "^6.3.0 || ^7.0.0"
+          },
+          "engines": {
+            "node": "^20.19 || ^22.12 || >=24"
+          }
+        },
+        "5.1.1": {
+          "peerDependencies": {
+            "svelte": "^5.0.0",
+            "vite": "^6.0.0"
+          },
+          "engines": {
+            "node": "^18.0.0 || ^20.0.0 || >=22"
+          }
+        }
+      }
+    },
+    "@tsconfig/svelte": {
+      "versions": {
+        "5.0.8": {},
+        "4.0.1": {},
+        "3.0.0": {}
+      }
+    },
+    "@types/react": {
+      "versions": {
+        "19.3.0": {},
+        "19.2.18": {},
+        "19.1.17": {},
+        "19.0.14": {},
+        "18.3.31": {},
+        "17.0.93": {}
+      }
+    },
+    "@types/react-dom": {
+      "versions": {
+        "19.3.0": {
+          "peerDependencies": {
+            "@types/react": "^19.3.0"
+          }
+        },
+        "19.2.7": {
+          "peerDependencies": {
+            "@types/react": "^19.2.0"
+          }
+        },
+        "19.1.11": {
+          "peerDependencies": {
+            "@types/react": "^19.0.0"
+          }
+        },
+        "19.0.6": {
+          "peerDependencies": {
+            "@types/react": "^19.0.0"
+          }
+        },
+        "18.3.7": {
+          "peerDependencies": {
+            "@types/react": "^18.0.0"
+          }
+        },
+        "17.0.26": {
+          "peerDependencies": {
+            "@types/react": "^17.0.0"
+          }
+        }
+      }
+    },
+    "@vitejs/plugin-react": {
+      "versions": {
+        "6.1.2": {
+          "peerDependencies": {
+            "vite": "^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || >=22.12.0"
+          }
+        },
+        "6.0.5": {
+          "peerDependencies": {
+            "vite": "^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || >=22.12.0"
+          }
+        },
+        "5.2.0": {
+          "peerDependencies": {
+            "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.19.0 || >=22.12.0"
+          }
+        },
+        "4.7.0": {
+          "peerDependencies": {
+            "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0"
+          },
+          "engines": {
+            "node": "^14.18.0 || >=16.0.0"
+          }
+        }
+      }
+    },
+    "@vitejs/plugin-vue": {
+      "versions": {
+        "6.0.10": {
+          "peerDependencies": {
+            "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0",
+            "vue": "^3.2.25 || ^3.6.0-rc.10"
+          },
+          "engines": {
+            "node": "^20.19.0 || >=22.12.0"
+          }
+        },
+        "5.2.4": {
+          "peerDependencies": {
+            "vite": "^5.0.0 || ^6.0.0",
+            "vue": "^3.2.25"
+          },
+          "engines": {
+            "node": "^18.0.0 || >=20.0.0"
+          }
+        },
+        "4.6.2": {
+          "peerDependencies": {
+            "vite": "^4.0.0 || ^5.0.0",
+            "vue": "^3.2.25"
+          },
+          "engines": {
+            "node": "^14.18.0 || >=16.0.0"
+          }
+        }
+      }
+    },
+    "@vue/tsconfig": {
+      "versions": {
+        "0.9.1": {
+          "peerDependencies": {
+            "typescript": ">= 5.8",
+            "vue": "^3.4.0"
+          }
+        },
+        "0.8.1": {
+          "peerDependencies": {
+            "typescript": "5.x",
+            "vue": "^3.4.0"
+          }
+        },
+        "0.7.0": {
+          "peerDependencies": {
+            "typescript": "5.x",
+            "vue": "^3.4.0"
+          }
+        }
+      }
+    },
+    "eslint": {
+      "versions": {
+        "10.13.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.12.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.11.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.10.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.9.1": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.8.1": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.7.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.6.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.5.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.4.1": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.3.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.2.1": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.1.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        },
+        "10.0.3": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24"
+          }
+        }
+      }
+    },
+    "eslint-config-prettier": {
+      "versions": {
+        "10.1.8": {
+          "peerDependencies": {
+            "eslint": ">=7.0.0"
+          }
+        },
+        "10.0.3": {
+          "peerDependencies": {
+            "eslint": ">=7.0.0"
+          }
+        },
+        "9.1.2": {
+          "peerDependencies": {
+            "eslint": ">=7.0.0"
+          }
+        },
+        "8.10.2": {
+          "peerDependencies": {
+            "eslint": ">=7.0.0"
+          }
+        }
+      }
+    },
+    "eslint-plugin-lit": {
+      "versions": {
+        "2.3.1": {
+          "peerDependencies": {
+            "eslint": ">= 8"
+          },
+          "engines": {
+            "node": ">= 18"
+          }
+        },
+        "2.2.1": {
+          "peerDependencies": {
+            "eslint": ">= 8"
+          },
+          "engines": {
+            "node": ">= 18"
+          }
+        },
+        "2.1.1": {
+          "peerDependencies": {
+            "eslint": ">= 8"
+          },
+          "engines": {
+            "node": ">= 18"
+          }
+        },
+        "2.0.0": {
+          "peerDependencies": {
+            "eslint": ">= 8"
+          },
+          "engines": {
+            "node": ">= 18"
+          }
+        },
+        "1.15.0": {
+          "peerDependencies": {
+            "eslint": ">= 5"
+          },
+          "engines": {
+            "node": ">= 12"
+          }
+        },
+        "0.6.0": {
+          "peerDependencies": {
+            "eslint": ">= 5"
+          }
+        }
+      }
+    },
+    "eslint-plugin-solid": {
+      "versions": {
+        "0.18.1": {
+          "peerDependencies": {
+            "eslint": "^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4"
+          },
+          "engines": {
+            "node": ">=22.0.0"
+          }
+        },
+        "0.17.1": {
+          "peerDependencies": {
+            "eslint": "^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4"
+          },
+          "engines": {
+            "node": ">=22.0.0"
+          }
+        },
+        "0.16.1": {
+          "peerDependencies": {
+            "eslint": "^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4"
+          },
+          "engines": {
+            "node": ">=22.0.0"
+          }
+        }
+      }
+    },
+    "globals": {
+      "versions": {
+        "17.13.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.12.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.11.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.10.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.9.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.8.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.7.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.6.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.5.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.4.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.3.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.2.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.1.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "17.0.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "16.5.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "15.15.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        }
+      }
+    },
+    "jsdom": {
+      "versions": {
+        "30.1.3": {
+          "engines": {
+            "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "30.0.1": {
+          "engines": {
+            "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        "29.1.1": {
+          "engines": {
+            "node": "^20.19.0 || ^22.13.0 || >=24.0.0"
+          }
+        },
+        "28.1.0": {
+          "engines": {
+            "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
+          }
+        }
+      }
+    },
+    "lit": {
+      "versions": {
+        "3.3.3": {},
+        "3.2.1": {},
+        "3.1.4": {},
+        "3.0.2": {},
+        "2.8.0": {},
+        "1.0.1": {
+          "engines": {
+            "node": "*"
+          }
+        }
+      }
+    },
+    "preact": {
+      "versions": {
+        "11.0.2": {},
+        "10.29.8": {},
+        "8.5.3": {}
+      }
+    },
+    "prettier": {
+      "versions": {
+        "3.9.10": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.8.5": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.7.4": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.6.2": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.5.3": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.4.2": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.3.3": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.2.5": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.1.1": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "3.0.3": {
+          "engines": {
+            "node": ">=14"
+          }
+        },
+        "2.8.8": {
+          "engines": {
+            "node": ">=10.13.0"
+          }
+        },
+        "1.19.1": {
+          "engines": {
+            "node": ">=4"
+          }
+        }
+      }
+    },
+    "react": {
+      "versions": {
+        "19.3.1": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        },
+        "19.2.9": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        },
+        "19.1.10": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        },
+        "19.0.9": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        },
+        "18.3.1": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        },
+        "17.0.2": {
+          "engines": {
+            "node": ">=0.10.0"
+          }
+        }
+      }
+    },
+    "react-dom": {
+      "versions": {
+        "19.3.1": {
+          "peerDependencies": {
+            "react": "^19.3.1"
+          }
+        },
+        "19.2.9": {
+          "peerDependencies": {
+            "react": "^19.2.9"
+          }
+        },
+        "19.1.10": {
+          "peerDependencies": {
+            "react": "^19.1.10"
+          }
+        },
+        "19.0.9": {
+          "peerDependencies": {
+            "react": "^19.0.9"
+          }
+        },
+        "18.3.1": {
+          "peerDependencies": {
+            "react": "^18.3.1"
+          }
+        },
+        "17.0.2": {
+          "peerDependencies": {
+            "react": "17.0.2"
+          }
+        }
+      }
+    },
+    "rxjs": {
+      "versions": {
+        "7.8.2": {},
+        "7.7.0": {},
+        "7.6.0": {},
+        "7.5.7": {},
+        "7.4.0": {},
+        "7.3.1": {},
+        "7.2.0": {},
+        "7.1.0": {},
+        "7.0.1": {},
+        "6.6.7": {},
+        "5.5.12": {}
+      }
+    },
+    "solid-js": {
+      "versions": {
+        "1.9.17": {},
+        "1.8.23": {},
+        "1.7.12": {},
+        "1.6.16": {},
+        "1.5.9": {},
+        "1.4.8": {},
+        "1.3.17": {},
+        "1.2.6": {},
+        "1.1.7": {},
+        "1.0.7": {},
+        "0.26.5": {},
+        "0.25.1": {}
+      }
+    },
+    "svelte": {
+      "versions": {
+        "5.57.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.56.10": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.55.10": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.54.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.53.13": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.52.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.51.5": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.50.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.49.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.48.5": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.47.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.46.4": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.45.10": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.44.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.43.15": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.42.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.41.4": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.40.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.39.13": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.38.10": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.37.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.36.17": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.35.7": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.34.9": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.33.19": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.32.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.31.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.30.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.29.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.28.7": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.27.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.26.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.25.12": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.24.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.23.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.22.6": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.21.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.20.5": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.19.10": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.18.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.17.5": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.16.6": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.15.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.14.6": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.13.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.12.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.11.3": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.10.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.9.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.8.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.7.1": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.6.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.5.4": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.4.0": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.3.2": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.2.12": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.1.17": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "5.0.5": {
+          "engines": {
+            "node": ">=18"
+          }
+        },
+        "4.2.20": {
+          "engines": {
+            "node": ">=16"
+          }
+        },
+        "3.59.2": {
+          "engines": {
+            "node": ">= 8"
+          }
+        }
+      }
+    },
+    "svelte-check": {
+      "versions": {
+        "4.7.7": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": "^5.0.0 || ^6.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.6.0": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.5.0": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.4.8": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.3.6": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.2.2": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.1.7": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "4.0.9": {
+          "peerDependencies": {
+            "svelte": "^4.0.0 || ^5.0.0-next.0",
+            "typescript": ">=5.0.0"
+          },
+          "engines": {
+            "node": ">= 18.0.0"
+          }
+        },
+        "3.8.6": {
+          "peerDependencies": {
+            "svelte": "^3.55.0 || ^4.0.0-next.0 || ^4.0.0 || ^5.0.0-next.0"
+          }
+        },
+        "2.10.3": {
+          "peerDependencies": {
+            "svelte": "^3.24.0"
+          }
+        }
+      }
+    },
+    "tslib": {
+      "versions": {
+        "2.8.1": {},
+        "2.7.0": {},
+        "2.6.3": {},
+        "2.5.3": {},
+        "2.4.1": {},
+        "2.3.1": {},
+        "2.2.0": {},
+        "2.1.0": {},
+        "2.0.3": {},
+        "1.14.1": {}
+      }
+    },
+    "typescript": {
+      "versions": {
+        "7.0.2": {
+          "engines": {
+            "node": ">=16.20.0"
+          }
+        },
+        "6.0.3": {
+          "engines": {
+            "node": ">=14.17"
+          }
+        },
+        "5.9.3": {
+          "engines": {
+            "node": ">=14.17"
+          }
+        }
+      }
+    },
+    "typescript-eslint": {
+      "versions": {
+        "8.72.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.71.2": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.70.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.69.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.68.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.67.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.66.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.65.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.64.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.63.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.62.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.61.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.60.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.59.4": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.58.2": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.1.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.57.2": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.56.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0 || ^10.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.55.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.54.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.53.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.52.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.51.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.50.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.49.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.48.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.47.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.46.4": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.45.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.44.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.43.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.42.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.41.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.40.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.39.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <6.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.38.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.37.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.36.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.35.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.34.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.33.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.32.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.31.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.30.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.29.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.28.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.27.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.26.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.9.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.25.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.24.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.23.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.22.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.21.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.20.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.19.1": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.18.2": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0",
+            "typescript": ">=4.8.4 <5.8.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.17.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.16.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.15.0": {
+          "peerDependencies": {
+            "eslint": "^8.57.0 || ^9.0.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.14.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.13.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.12.2": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.11.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.10.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.9.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.8.1": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.7.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.6.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.5.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.4.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.3.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.2.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.1.0": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "8.0.1": {
+          "engines": {
+            "node": "^18.18.0 || ^20.9.0 || >=21.1.0"
+          }
+        },
+        "7.18.0": {
+          "peerDependencies": {
+            "eslint": "^8.56.0"
+          },
+          "engines": {
+            "node": "^18.18.0 || >=20.0.0"
+          }
+        }
+      }
+    },
+    "vite-plugin-solid": {
+      "versions": {
+        "2.11.14": {
+          "peerDependencies": {
+            "solid-js": "^1.7.2",
+            "vite": "^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0 || ^9.0.0"
+          }
+        },
+        "2.10.2": {
+          "peerDependencies": {
+            "solid-js": "^1.7.2",
+            "vite": "^3.0.0 || ^4.0.0 || ^5.0.0"
+          }
+        },
+        "2.9.1": {
+          "peerDependencies": {
+            "solid-js": "^1.7.2",
+            "vite": "^3.0.0 || ^4.0.0 || ^5.0.0"
+          }
+        },
+        "2.8.3": {
+          "peerDependencies": {
+            "solid-js": "^1.7.2",
+            "vite": "^3.0.0 || ^4.0.0 || ^5.0.0"
+          }
+        },
+        "2.7.2": {
+          "peerDependencies": {
+            "solid-js": "^1.7.2",
+            "vite": "^3.0.0 || ^4.0.0"
+          }
+        },
+        "2.6.1": {
+          "peerDependencies": {
+            "solid-js": "^1.3.17 || ^1.4.0 || ^1.5.0 || ^1.6.0",
+            "vite": "^3.0.0 || ^4.0.0"
+          }
+        },
+        "2.5.0": {
+          "peerDependencies": {
+            "solid-js": "^1.3.17 || ^1.4.0 || ^1.5.0 || ^1.6.0",
+            "vite": "^3.0.0 || ^4.0.0"
+          }
+        },
+        "2.4.0": {
+          "peerDependencies": {
+            "solid-js": "^1.3.17",
+            "vite": "^3.0.0"
+          }
+        },
+        "2.3.11": {
+          "peerDependencies": {
+            "solid-js": "^1.3.17",
+            "vite": "^3.0.0"
+          }
+        },
+        "2.2.6": {},
+        "2.1.4": {},
+        "2.0.3": {},
+        "1.9.0": {},
+        "0.9.1": {
+          "peerDependencies": {
+            "solid-js": "^0.24",
+            "vite": "^2.0.0-beta.68"
+          }
+        }
+      }
+    },
+    "vite-plus": {
+      "versions": {
+        "1.4.0": {
+          "engines": {
+            "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.5"
+          }
+        },
+        "1.3.0": {
+          "engines": {
+            "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.4"
+          }
+        },
+        "1.2.0": {
+          "engines": {
+            "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.4"
+          }
+        },
+        "1.1.0": {
+          "engines": {
+            "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.3"
+          }
+        },
+        "1.0.0": {
+          "engines": {
+            "node": "^22.18.0 || ^24.11.0 || >=26.0.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.1"
+          }
+        },
+        "0.3.3": {
+          "engines": {
+            "node": "^20.19.0 || ^22.18.0 || >=24.11.0"
+          },
+          "bundledVersions": {
+            "vite": "8.3.0"
+          }
+        },
+        "0.2.9": {
+          "engines": {
+            "node": "^20.19.0 || ^22.18.0 || >=24.11.0"
+          },
+          "bundledVersions": {
+            "vite": "8.2.1"
+          }
+        }
+      }
+    },
+    "vitest": {
+      "versions": {
+        "5.0.5": {
+          "peerDependencies": {
+            "jsdom": "*",
+            "vite": "^6.4.0 || ^7.0.0 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+          }
+        },
+        "4.1.12": {
+          "peerDependencies": {
+            "jsdom": "*",
+            "vite": "^6.0.0 || ^7.0.0 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^20.0.0 || ^22.0.0 || >=24.0.0"
+          }
+        },
+        "3.2.7": {
+          "peerDependencies": {
+            "jsdom": "*"
+          },
+          "engines": {
+            "node": "^18.0.0 || ^20.0.0 || >=22.0.0"
+          }
+        }
+      }
+    },
+    "vue": {
+      "versions": {
+        "3.5.44": {
+          "peerDependencies": {
+            "typescript": "*"
+          }
+        },
+        "3.4.38": {
+          "peerDependencies": {
+            "typescript": "*"
+          }
+        },
+        "3.3.13": {
+          "peerDependencies": {
+            "typescript": "*"
+          }
+        },
+        "3.2.47": {},
+        "3.1.5": {},
+        "3.0.11": {},
+        "1.0.28": {},
+        "0.12.16": {}
+      }
+    },
+    "vue-tsc": {
+      "versions": {
+        "3.3.13": {
+          "peerDependencies": {
+            "typescript": ">=5.0.0"
+          }
+        },
+        "3.2.9": {
+          "peerDependencies": {
+            "typescript": ">=5.0.0"
+          }
+        },
+        "3.1.8": {
+          "peerDependencies": {
+            "typescript": ">=5.0.0"
+          }
+        },
+        "3.0.11": {
+          "peerDependencies": {
+            "typescript": ">=5.0.0"
+          }
+        },
+        "2.2.12": {
+          "peerDependencies": {
+            "typescript": ">=5.0.0"
+          }
+        },
+        "1.8.27": {
+          "peerDependencies": {
+            "typescript": "*"
+          }
+        }
+      }
+    }
+  }
+}

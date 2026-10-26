@@ -35,16 +35,64 @@ public sealed class FrontEndVersionsTests
         Assert.Contains("\"tailwindcss\": \"^4.3.0\"", manifest, StringComparison.Ordinal);
     }
 
+    // Offline, behind a filtering proxy: the releases the CLI shipped with, as carets, never a bare "latest".
     [Fact]
-    public async Task A_registry_that_does_not_answer_leaves_latest_and_says_so()
+    public async Task A_registry_that_does_not_answer_gives_way_to_the_shipped_snapshot_and_says_so()
     {
         var registry = new NpmRegistry((_, _) => Task.FromResult<IReadOnlyList<NpmRelease>?>(null));
 
-        var (result, warning) = await FrontEndVersions.PinAsync(Scaffold(), registry, CancellationToken.None);
+        var (result, warning) = await FrontEndVersions.PinAsync(Scaffold(), registry, Snapshot(), Followed, CancellationToken.None);
 
-        Assert.NotNull(warning);
-        Assert.Contains("\"vite\": \"latest\"", result.Files[0].Content, StringComparison.Ordinal);
+        Assert.Contains("\"vite\": \"^8.4.1\"", result.Files[0].Content, StringComparison.Ordinal);
+        Assert.Contains("\"@vitejs/plugin-react\": \"^6.2.0\"", result.Files[0].Content, StringComparison.Ordinal);
         Assert.Equal(Scaffold().Files[1], result.Files[1]);
+        Assert.StartsWith("The npm registry did not answer for ", warning, StringComparison.Ordinal);
+        Assert.Contains("known on 2026-10-24", warning, StringComparison.Ordinal);
+    }
+
+    // A registry that hangs is cut off by its budget, not waited on for the length of an HTTP timeout.
+    [Fact]
+    public async Task A_registry_that_never_answers_is_given_up_on_within_its_budget()
+    {
+        var registry = new NpmRegistry(async (_, token) =>
+        {
+            await Task.Delay(Timeout.Infinite, token);
+            return null;
+        })
+        {
+            Budget = TimeSpan.FromMilliseconds(50),
+        };
+
+        var (result, warning) = await FrontEndVersions.PinAsync(Scaffold(), registry, Snapshot(), Followed, TestContext.Current.CancellationToken);
+
+        Assert.Contains("\"vite\": \"^8.4.1\"", result.Files[0].Content, StringComparison.Ordinal);
+        Assert.StartsWith("The npm registry did not answer in time", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Newest_releases_that_do_not_install_together_give_way_to_the_snapshot()
+    {
+        var registry = Registry(new()
+        {
+            ["vite"] = [NpmCompatibleVersionsTests.Release("9.0.0")],
+            ["@vitejs/plugin-react"] = [NpmCompatibleVersionsTests.Release("6.2.0", ("vite", "^8.0.0"))],
+        });
+
+        var (result, warning) = await FrontEndVersions.PinAsync(Scaffold(), registry, Snapshot(), Followed, CancellationToken.None);
+
+        Assert.Contains("\"vite\": \"^8.4.1\"", result.Files[0].Content, StringComparison.Ordinal);
+        Assert.StartsWith("The newest front-end packages do not install together yet", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Only_when_the_snapshot_cannot_answer_either_is_latest_left_for_npm()
+    {
+        var registry = new NpmRegistry((_, _) => Task.FromResult<IReadOnlyList<NpmRelease>?>(null));
+
+        var (result, warning) = await FrontEndVersions.PinAsync(Scaffold(), registry, registry, Followed, CancellationToken.None);
+
+        Assert.Contains("\"vite\": \"latest\"", result.Files[0].Content, StringComparison.Ordinal);
+        Assert.Contains("keeps \"latest\"", warning, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -142,6 +190,14 @@ public sealed class FrontEndVersionsTests
         new ScaffoldFile("/apps/Shop/client/package.json", Manifest),
         new ScaffoldFile("/apps/Shop/client/README.json", """{"vite": "latest"}"""),
     ]);
+
+    private static readonly DateOnly Followed = new(2026, 10, 24);
+
+    private static NpmRegistry Snapshot() => Registry(new()
+    {
+        ["vite"] = [NpmCompatibleVersionsTests.Release("8.4.1")],
+        ["@vitejs/plugin-react"] = [NpmCompatibleVersionsTests.Release("6.2.0", ("vite", "^8.0.0"))],
+    });
 
     private static NpmRegistry Registry(Dictionary<string, IReadOnlyList<NpmRelease>> releases, string? bundledVite = null) =>
         new(
