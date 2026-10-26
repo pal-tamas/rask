@@ -111,6 +111,13 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A clearable picker's × is Flux's: inside the trigger, before the chevron, and out of the Tab order.**
+  `Ui.DatePicker`, `Ui.DatetimePicker`, `Ui.TimePicker` (button and typed) and `Ui.Select.Listbox` with `.Clearable()`
+  drew a separate `<button>` laid over the trigger's end, so the words ran under it and the picker was 32px narrower
+  than Flux's. Now the × is a 32px `div` in the trigger's row, as Flux draws it: the picker is as wide as Flux's, a
+  press on the × empties it without opening the popup, and the focus falls back to the page. As in Flux, Tab no
+  longer stops on it (the owner's choice, 2026-10-26). Call sites do not change.
+
 - **A disabled `Ui.Button` is half opaque with no shadow, and a calendar's disabled day takes no pointer** — measured
   on Flux's datetime picker, whose Select waits disabled and whose limits disable days: `opacity: .5` (was .75) and
   `shadow-none`, and a disabled day keeps the hover rule while `pointer-events: none` keeps it from ever lighting. A

@@ -171,8 +171,9 @@ public sealed class RuntimeHookDatetimeTests(PlaywrightFixture playwright) : ICl
         await page.ClickAsync("#chosen [aria-label='Clear date and time']");
 
         Assert.False(await page.IsVisibleAsync("#chosen-box dialog"));
-        Assert.Equal("BODY", await page.EvaluateAsync<string>("document.activeElement.tagName"));
         await Expect(page.Locator("#chosen")).ToContainTextAsync("Select a date and time");
+        await Expect(page.Locator("#chosen [aria-label='Clear date and time']")).ToBeHiddenAsync();
+        Assert.Equal("BODY", await page.EvaluateAsync<string>("document.activeElement.tagName"));
         await Expect(page.Locator("#chosen-value")).ToHaveTextAsync(string.Empty);
     }
 
