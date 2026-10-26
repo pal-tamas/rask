@@ -1,4 +1,6 @@
+using System.Data.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,6 +10,10 @@ namespace Rask.Data.Tests;
 
 public sealed class Payroll : Aggregate<Guid>
 {
+    public const string CodeTaken = "That code is already a payroll's.";
+    public const string ReferenceTaken = "That reference is already a payroll's.";
+    public const string PayeeInUse = "The payee is still on a payroll.";
+
     private readonly List<Payslip> _payslips = [];
 
     public string Title { get; private set; } = "";
@@ -24,12 +30,19 @@ public sealed class Payroll : Aggregate<Guid>
 
     public IReadOnlyCollection<Payslip> Payslips => _payslips;
 
+    public static Payroll For(string code, string reference, Payee payee) =>
+        new() { Id = Guid.CreateVersion7(), Code = code, Reference = reference, PayeeId = payee.Id };
+
     public static void Configure(EntityTypeBuilder<Payroll> builder)
     {
-        builder.HasIndex(p => p.Code).IsUnique();
+        // Named only by the app's rule, which runs after this: the message must still find it.
+        builder.HasIndex(p => p.Code).IsUnique(CodeTaken);
         builder.HasIndex(p => p.Title);
-        builder.HasIndex(p => p.Reference).HasDatabaseName("payroll_reference_as_written");
-        builder.HasOne<Payee>().WithMany().HasForeignKey(p => p.PayeeId);
+        builder.HasIndex(p => p.Reference).HasDatabaseName("payroll_reference_as_written").IsUnique(ReferenceTaken);
+
+        // The sentence without an OnDelete, so what a delete does is left to the app's rule.
+        builder.HasOne<Payee>().WithMany().HasForeignKey(p => p.PayeeId)
+            .Metadata.SetAnnotation(ReferencedDelete.RelationshipAnnotation, PayeeInUse);
         builder.HasOne<Payee>().WithMany().HasForeignKey(p => p.AuditorId)
             .OnDelete(DeleteBehavior.SetNull)
             .HasConstraintName("payroll_auditor_as_written");
@@ -44,6 +57,8 @@ public sealed class Payslip : Entity<Guid>
 public sealed class Payee : Aggregate<Guid>
 {
     public string Name { get; private set; } = "";
+
+    public static Payee Named(string name) => new() { Id = Guid.CreateVersion7(), Name = name };
 }
 
 /// <summary>The rules TA's app states once for its whole model — written here exactly as it writes them.</summary>
@@ -84,9 +99,10 @@ public sealed class PayrollModelFixture
         ModelRegistry.UseModel(typeof(PayrollRules), PayrollRules.Conventions, PayrollRules.Model);
         try
         {
-            using var context = new PayrollContext(
-                new DbContextOptionsBuilder<PayrollContext>().UseSqlite("Data Source=:memory:").Options);
+            // Both models, while the rules are named: EF caches each on first use.
+            using var context = Open("Data Source=:memory:");
             Model = context.GetService<IDesignTimeModel>().Model;
+            _ = context.Model;
         }
         finally
         {
@@ -95,6 +111,13 @@ public sealed class PayrollModelFixture
     }
 
     public IModel Model { get; }
+
+    /// <summary>A context over <paramref name="connection" />, translating violations as AddRaskData's does.</summary>
+    public static PayrollContext Open(string connection) =>
+        new(new DbContextOptionsBuilder<PayrollContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(new ViolationMessageInterceptor())
+            .Options);
 }
 
 /// <summary>Alone, after every parallel class: while the rules are named, every model built anywhere gets them.</summary>
@@ -133,7 +156,7 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
         var childKey = Payslip.GetForeignKeys().Single();
 
         Assert.Equal($"{table}_pkey", Payroll.FindPrimaryKey()!.GetName());
-        Assert.Equal($"{table}_Code_key", Payroll.GetIndexes().Single(i => i.IsUnique).GetDatabaseName());
+        Assert.Equal($"{table}_Code_key", IndexOn(nameof(Rask.Data.Tests.Payroll.Code)).GetDatabaseName());
         Assert.Equal($"{table}_Title_idx", IndexOn(nameof(Rask.Data.Tests.Payroll.Title)).GetDatabaseName());
         Assert.Equal($"{table}_PayeeId_fkey", KeyOn(nameof(Rask.Data.Tests.Payroll.PayeeId)).GetConstraintName());
         Assert.Equal($"{payslips}_{childKey.Properties[0].GetColumnName()}_fkey", childKey.GetConstraintName());
@@ -202,9 +225,82 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
         }
     }
 
+    [Fact]
+    public void A_unique_message_is_found_under_the_name_the_app_s_rule_gave_the_index()
+    {
+        using var context = PayrollModelFixture.Open("Data Source=:memory:");
+        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_Code_key";
+        var refusal = SqlServer(2601, $"Cannot insert duplicate key row in object 'dbo.Payroll' with unique index '{name}'.");
+
+        var translated = UniqueViolation.Translate(context, new DbUpdateException("The save failed.", refusal));
+
+        Assert.Equal(Rask.Data.Tests.Payroll.CodeTaken, Assert.Single(translated!.Failures).Message);
+    }
+
+    [Fact]
+    public void A_unique_message_is_found_under_the_name_the_entity_stated()
+    {
+        using var context = PayrollModelFixture.Open("Data Source=:memory:");
+        var refusal = new Refusal("23505: duplicate key value violates unique constraint", "23505");
+        refusal.Data["ConstraintName"] = "payroll_reference_as_written";
+
+        var translated = UniqueViolation.Translate(context, new DbUpdateException("The save failed.", refusal));
+
+        Assert.Equal(Rask.Data.Tests.Payroll.ReferenceTaken, Assert.Single(translated!.Failures).Message);
+    }
+
+    [Fact]
+    public void A_referenced_delete_sentence_is_found_under_the_name_the_app_s_rule_gave_the_key()
+    {
+        using var context = PayrollModelFixture.Open("Data Source=:memory:");
+        var payee = Payee.Named("Ann");
+        context.Entry(payee).State = EntityState.Deleted;
+        var name = $"{context.Model.FindEntityType(typeof(Payroll))!.GetTableName()}_PayeeId_fkey";
+        var refusal = SqlServer(547, $"The DELETE statement conflicted with the REFERENCE constraint \"{name}\".");
+
+        var translated = ReferencedDelete.Translate(
+            new DbUpdateException("The save failed.", refusal, [context.Entry(payee)]));
+
+        Assert.Equal(Rask.Data.Tests.Payroll.PayeeInUse, Assert.Single(translated!.Failures).Message);
+    }
+
+    [Fact]
+    public async Task A_duplicate_saved_on_SQLite_is_refused_with_the_message_of_the_renamed_index()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"rask-payroll-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var context = PayrollModelFixture.Open($"Data Source={path};Pooling=False");
+            await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+            var payee = Payee.Named("Ann");
+            context.AddRange(payee, Rask.Data.Tests.Payroll.For("P-1", "R-1", payee), Rask.Data.Tests.Payroll.For("P-1", "R-2", payee));
+
+            var refused = await Assert.ThrowsAsync<RaskValidationException>(
+                () => context.SaveChangesAsync(TestContext.Current.CancellationToken));
+
+            Assert.Equal(Rask.Data.Tests.Payroll.CodeTaken, Assert.Single(refused.Failures).Message);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    private static Refusal SqlServer(int number, string message)
+    {
+        var refusal = new Refusal(message);
+        refusal.Data["HelpLink.EvtID"] = number.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return refusal;
+    }
+
     private IIndex IndexOn(string property) =>
         Payroll.GetIndexes().Single(i => i.Properties.Count == 1 && i.Properties[0].Name == property);
 
     private IForeignKey KeyOn(string property) =>
         Payroll.GetForeignKeys().Single(k => k.Properties[0].Name == property);
+
+    private sealed class Refusal(string message, string? sqlState = null) : DbException(message)
+    {
+        public override string? SqlState { get; } = sqlState;
+    }
 }

@@ -46,12 +46,16 @@ public static class RaskDatabaseDbContextOptionsExtensions
         ArgumentNullException.ThrowIfNull(optionsBuilder);
         ArgumentNullException.ThrowIfNull(services);
 
-        return RaskDatabase.Provider(services.GetService<IConfiguration>()) switch
+        // Which batteries are on rides on every context this builds, Rask's own or not, so they all keep sharing one
+        // set of EF Core's internal services: an extension only some of them carried would split it in two.
+        var tables = services.GetService<BatteryTablesExtension>()?.Tables ?? BatteryTables.All;
+
+        return (RaskDatabase.Provider(services.GetService<IConfiguration>()) switch
         {
             RaskDatabaseProvider.Postgres => optionsBuilder.UseRaskPostgres(services),
             RaskDatabaseProvider.SqlServer => optionsBuilder.UseRaskSqlServer(services),
             _ => optionsBuilder.UseRaskSqlite(services),
-        };
+        }).WithBatteryTables(tables);
     }
 
     /// <summary>

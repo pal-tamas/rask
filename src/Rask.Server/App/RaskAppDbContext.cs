@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -63,14 +62,20 @@ public class RaskAppDbContext : RaskDbContext
     internal (BatteryTables Tables, string? MigrationsAssembly) ModelShape => (_tables, _migrationsAssembly);
 
     /// <inheritdoc />
-    // ReplaceService<,> activates the key factory through EF Core's internal container by reflection.
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskAppModelCacheKeyFactory))]
+    /// <remarks>
+    /// Every instance carries the battery switches — every battery on, when it was built without them — because they
+    /// are what registers the model cache key that tells one set of switches from another. Through the options rather
+    /// than <c>ReplaceService</c>, so a context built with them shares EF Core's internal services with every other.
+    /// </remarks>
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
 
         base.OnConfiguring(optionsBuilder);
-        optionsBuilder.ReplaceService<IModelCacheKeyFactory, RaskAppModelCacheKeyFactory>();
+        if (optionsBuilder.Options.FindExtension<BatteryTablesExtension>() is null)
+        {
+            optionsBuilder.WithBatteryTables(_tables);
+        }
     }
 
     /// <inheritdoc />

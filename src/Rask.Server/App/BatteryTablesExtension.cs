@@ -17,9 +17,9 @@ internal sealed class BatteryTablesExtension(BatteryTables tables) : IDbContextO
     internal static BatteryTables Of(DbContextOptions options) =>
         options.FindExtension<BatteryTablesExtension>()?.Tables ?? BatteryTables.All;
 
-    public void ApplyServices(IServiceCollection services)
-    {
-    }
+    // Added, not tried: the provider registers EF Core's own key factory first, and the last registration wins.
+    public void ApplyServices(IServiceCollection services) =>
+        services.AddSingleton<IModelCacheKeyFactory, RaskAppModelCacheKeyFactory>();
 
     public void Validate(IDbContextOptions options)
     {
@@ -31,8 +31,8 @@ internal sealed class BatteryTablesExtension(BatteryTables tables) : IDbContextO
 
         public override string LogFragment => $"with battery tables {extension.Tables} ";
 
-        // It registers no service, so every switch shares one internal service provider; the model is told apart by
-        // RaskAppModelCacheKeyFactory instead.
+        // What it registers is the same for every switch, so they all share one internal service provider; the model is
+        // told apart by RaskAppModelCacheKeyFactory instead.
         public override int GetServiceProviderHashCode() => 0;
 
         public override bool ShouldUseSameServiceProvider(DbContextOptionsExtensionInfo other) => other is ExtensionInfo;

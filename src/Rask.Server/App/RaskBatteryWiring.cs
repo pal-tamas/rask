@@ -314,13 +314,12 @@ internal static class RaskBatteryWiring
             // Its migrations live in the APP: this context's assembly is Rask itself, where EF would otherwise
             // look for them and find none, on every `rask db update` and at every start.
             //
-            // It maps the tables of the batteries that are on, and no others.
+            // It maps the tables of the batteries that are on, and no others: UseRaskDatabase reads them from here.
             var app = options.AppAssembly;
-            var tables = BatteryTablesDbContextOptionsExtensions.BatteryTablesFor(options, provider);
+            services.AddSingleton(new BatteryTablesExtension(BatteryTablesDbContextOptionsExtensions.BatteryTablesFor(options, provider)));
             services.AddDbContextFactory<RaskAppDbContext>((sp, o) => o
                 .UseRaskDatabase(sp)
                 .MigrationsIn(app)
-                .WithBatteryTables(tables)
                 .AddInterceptors(sp.GetServices<ISaveChangesInterceptor>()));
 
             WireContextBatteries(services, options, typeof(RaskAppDbContext), provider, migrate);
