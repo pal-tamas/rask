@@ -2079,6 +2079,11 @@ public static partial class RaskEndpointExtensions
     private static async Task EndSocketAsync(
         WebSocket ws, LiveSession? session, WebSocketTransport transport, LiveSessionStore store, RaskServerLimits limits)
     {
+        // A loop that ended with nothing noted: the browser's close the socket's state shows, or the request going.
+        transport.Record.Ended(ClosedBy.Client, ws.CloseStatus is { } status
+            ? string.Create(CultureInfo.InvariantCulture, $"close status {(int)status}")
+            : "the request was aborted");
+
         // Only when this loop's socket is still the attached one. A tab that reconnected before the
         // server noticed this socket die has attached a new one already: detaching, counting the
         // disconnect or arming removal here would do all three to the live connection (#1076).
