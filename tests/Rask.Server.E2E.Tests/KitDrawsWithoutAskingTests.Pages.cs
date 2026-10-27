@@ -142,6 +142,18 @@ public sealed class KitFrameBudgetTests
     }
 
     [Fact]
+    public void Every_component_of_Fluxs_catalogue_is_put_through_its_gestures_or_has_none()
+    {
+        var snapshot = Path.Combine(Repository.Root, "tests", "Rask.Ui.Tests", "Flux", "flux.snapshot.json");
+        using var catalogue = System.Text.Json.JsonDocument.Parse(File.ReadAllText(snapshot));
+
+        var unwalked = KitDrawsWithoutAskingTests.Unwalked(
+            catalogue.RootElement.GetProperty("pages").EnumerateArray().Select(page => page.GetProperty("slug").GetString()!));
+
+        Assert.Empty(unwalked);
+    }
+
+    [Fact]
     public void Every_page_of_components_has_a_class_that_walks_it()
     {
         var pages = KitDrawsWithoutAskingTests.Pages();

@@ -72,7 +72,14 @@
   <ItemGroup>
     <!-- One browser install and launch story for every browser suite. -->
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\Repository.cs" Link="Infrastructure\Repository.cs"/>
     <Compile Include="..\Rask.Ui.Tests\Live\ReportColumnsDraft.cs" Link="ReportColumnsDraft.cs"/>
+  </ItemGroup>
+
+  <!-- What a test reads from disk outside this project (the scoped gates run these tests when it changes):
+       KitFrameBudgetTests holds the frame budget to Flux's catalogue. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\Rask.Ui.Tests\Flux\flux.snapshot.json" />
   </ItemGroup>
 
 </Project>
