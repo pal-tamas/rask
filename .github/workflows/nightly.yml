@@ -1,9 +1,10 @@
 name: nightly
 
-# Nightly prerelease on every change to main. MinVer derives a prerelease version
-# (e.g. 0.10.1-alpha.0.N after the v0.10.0 tag) for untagged commits, so packs are naturally
-# prerelease on nuget.org. Stable releases (no -prerelease suffix) still come only from tagging
-# via release.yml.
+# Nightly prerelease on every change to main: 0.10.1-alpha.0.N after the v0.10.0 tag, so packs are
+# naturally prerelease on nuget.org. N is NOT MinVer's height -- scripts/lib/nightly_version.py counts
+# every commit the tag does not reach, which no two commits of main share (MinVer's gave a merge and the
+# commit under it the same 0.23.1-alpha.0.526, 2026-10-26). Stable releases (no -prerelease suffix)
+# still come only from tagging via release.yml.
 #
 # Runs AFTER full.yml — the whole push set — and packs the newest commit it has passed on main, once.
 # Own work lands on main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
@@ -47,7 +48,10 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           sha=""
-          if [ "$EVENT" = "workflow_dispatch" ]; then
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            # Run by hand from another branch -- a ci/** one, say -- it would publish that branch's head.
+            say="Nothing published: a nightly is packed from main only, and this run was dispatched on \`$GITHUB_REF\`."
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
             sha="$GITHUB_SHA"
             say="Publishing \`$sha\` by hand: no whole run was asked about it."
           else
@@ -92,11 +96,26 @@ jobs:
       - name: Restore
         run: dotnet restore Rask.slnx
 
+      # The version, from main's script (this workflow's commit) read out of the history the checkout
+      # already holds, so nothing lands in the tree being packed. MinVer's own height can repeat across a
+      # merge that lands a worktree branch; this one is distinct for every commit of main, and only grows.
+      # A re-run packs the same commit, so it is the same version, and the publish resumes.
+      - name: Version
+        id: version
+        run: |
+          git show "$GITHUB_SHA:scripts/lib/nightly_version.py" > "$RUNNER_TEMP/nightly_version.py"
+          version="$(python3 -I "$RUNNER_TEMP/nightly_version.py" . --commit "$SHA")"
+          echo "Packing \`$SHA\` as **$version**." | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
       # ONE pack, for the whole solution -- see release.yml for why the hand-written list went.
       # Keeping the two in step by hand is what let 16 projects reach nightly and never reach a stable
       # release (#1044); neither has a list now, so neither can drift from the other.
+      # MinVerVersionOverride stamps the package AND assembly versions, as MinVer would have.
       - name: Pack (prerelease)
-        run: dotnet pack Rask.slnx -c Release -o ./artifacts
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: dotnet pack Rask.slnx -c Release -o ./artifacts -p:MinVerVersionOverride="$VERSION"
 
       # Before the push, so a publish that fails still leaves the packages it was pushing on the run.
       - name: Upload packages as workflow artifact
@@ -115,7 +134,9 @@ jobs:
       # Dependencies first, and a package only once nuget.org SERVES what it depends on -- so whatever
       # stops this step, nothing is listed ahead of its dependencies (2026-10-12: Rask.Server was, for
       # every app floating `0.*-*`). Each push is retried; a re-run of this job packs the same commit,
-      # so MinVer gives the same version and --skip-duplicate picks up where it stopped.
+      # so it gets the same version and --skip-duplicate picks up where it stopped.
+      # Before the first push, a version nuget.org already serves from ANOTHER commit is refused (exit 3),
+      # and each gate refuses one that turns up mid-publish: a version is one commit's.
       # The gate is the slow part: nuget.org validates for minutes and the set is eight levels deep.
       # Drop --gate-index to push without waiting, at the price of a package being served before a
       # dependency of it for as long as validation happens to take.
@@ -131,8 +152,9 @@ jobs:
           --projects src
           --commit "$SHA"
 
-      # Not done until every package of the version can be restored. The summary on the run page names
-      # the version and the commit it was packed from: the run list shows main's head, not that.
+      # Not done until every package of the version can be restored, and every one served is THIS commit's
+      # (its nuspec's <repository commit>) -- listed alone passed .526 with packages from two commits.
+      # The summary on the run page names the version and the commit: the run list shows main's head.
       - name: Wait until nuget.org serves the whole version
         run: python3 .publisher/scripts/lib/publish_packages.py verify ./artifacts
 
