@@ -217,7 +217,7 @@ internal sealed class RaskDrainService : IHostedService, IDisposable
         {
             foreach (var id in _store.SessionIds())
             {
-                await SwallowAsync(_store.RemoveAsync(id).WaitAsync(teardown.Token)).ConfigureAwait(false);
+                await SwallowAsync(_store.RemoveAsync(id, SessionRemoval.Shutdown).WaitAsync(teardown.Token)).ConfigureAwait(false);
             }
         }
     }

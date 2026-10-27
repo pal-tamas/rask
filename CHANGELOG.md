@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
+  or HTTP stream opens, attaches (first connection, reconnect, replacement or resume-record rebuild; how long it
+  waited; the catch-up it was sent: none, a diff or the whole page, in bytes) and closes (closed by the client,
+  the server, a timeout, an error or the shutdown; the reason; how long it was open; the grace the session then
+  waits), and when each session is made and removed (why, its age, how long it had no connection, the limit that
+  applied). A close the server made for a safety cap or timeout, and a page refused at `MaxSessions`, are
+  `Information`; the refused-attach line now says when and why this host removed the session a returning tab
+  asked for. Sessions are named by a fingerprint, never their id. Before, nothing explained why a tab
+  reconnected or reloaded; turn it on with `Logging__LogLevel__Rask.Live=Debug`. See
+  [The session lifecycle](docs/observability.md#the-session-lifecycle).
+
 - **`[Guest]` — a page only for readers who are not signed in.** A signed-in reader is sent to `Then` (`"/"` by
   default; `[Guest(Then = "/app")]`) before the page is built: a `302` on the first request, and in an open
   session the destination in place of the page, its address replaced — on the Server host and in WebAssembly.

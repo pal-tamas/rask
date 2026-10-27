@@ -10,12 +10,14 @@ namespace Rask.Server.Transport;
 ///     machine, so naming the seam costs the WebSocket path nothing. <see cref="Socket" /> is exposed for
 ///     the receive loop, which owns reading and the close handshake.
 /// </remarks>
-internal sealed class WebSocketTransport(WebSocket socket) : ILiveTransport
+internal sealed class WebSocketTransport(WebSocket socket, ConnectionRecord? record = null) : ILiveTransport
 {
     /// <summary>The socket this carries frames over, for the loop that reads from it.</summary>
     internal WebSocket Socket { get; } = socket;
 
     public bool IsOpen => Socket.State == WebSocketState.Open;
+
+    public ConnectionRecord Record { get; } = record ?? new ConnectionRecord(0, "WebSocket", 0);
 
     public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct) =>
         Socket.SendAsync(frame, WebSocketMessageType.Text, true, ct);
@@ -25,8 +27,11 @@ internal sealed class WebSocketTransport(WebSocket socket) : ILiveTransport
     ///     browser's echo as an ordinary close message and unwind the loop. <c>CloseAsync</c> would send
     ///     AND receive, which is a second concurrent receive and throws.
     /// </summary>
-    public Task CloseAsync(LiveTransportClose reason, string description, CancellationToken ct) =>
-        Socket.CloseOutputAsync(Status(reason), description, ct);
+    public Task CloseAsync(LiveTransportClose reason, string description, CancellationToken ct)
+    {
+        Record.Ended(reason, description);
+        return Socket.CloseOutputAsync(Status(reason), description, ct);
+    }
 
     public void Abort()
     {
