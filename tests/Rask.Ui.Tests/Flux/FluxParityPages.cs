@@ -26,8 +26,10 @@ public sealed class FluxParityPages
         + "table{text-indent:0;border-color:inherit;border-collapse:collapse}"
         // The frame Flux's docs page gives every example on a desktop: 654px wide with 24px a side, so an example
         // that fills it fills 606px, centred in the window as Flux's is (313px in from 1280, 25px in from 390), so a
-        // popup flips where Flux's does. parity.mjs narrows it to the twin's under --view.
-        + "div[data-preview-wrapper]{padding:64px 24px}div[data-section]{width:654px;margin-inline:auto}"
+        // popup flips where Flux's does. parity.mjs narrows it to the twin's under --view. An example wider than it
+        // scrolls inside it, as Flux's does (`overflow-x-auto`): on a phone the editor's 480px examples would
+        // otherwise widen the whole layout to 529px.
+        + "div[data-preview-wrapper]{padding:64px 24px;overflow-x:auto}div[data-section]{width:654px;margin-inline:auto}"
         // On a phone it is the screen less 25px a side (340px at 390): wider, a phone would widen its whole layout
         // to fit it, and a sheet or a dialog placed against the screen would be placed against 654px.
         + "@media (width < 40rem){div[data-section]{width:auto;margin-inline:25px}}"

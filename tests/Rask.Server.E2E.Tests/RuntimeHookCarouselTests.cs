@@ -15,7 +15,9 @@ namespace Rask.Server.E2E.Tests;
 ///     Measured on Flux UI's live carousel page on 2026-10-07: the root and both arrow wrappers carry
 ///     <c>data-at-start</c> at rest and "previous" is disabled; the first slide has <c>data-selected</c>; the
 ///     autoplay example (interval 3500 ms) did not move for 7 s under the pointer and moved 3.5 s after it left,
-///     rewound from the end, and with <c>prefers-reduced-motion: reduce</c> did not move in 16 s.
+///     rewound from the end, and with <c>prefers-reduced-motion: reduce</c> did not move in 16 s. On 2026-10-27, at
+///     390px with touch and with a mouse alike: after a press on a slide, or on an arrow by the pointer or by a key,
+///     it never moved again.
 /// </remarks>
 public sealed class RuntimeHookCarouselTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -131,6 +133,37 @@ public sealed class RuntimeHookCarouselTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
+    public async Task A_press_on_the_track_ends_autoplay_for_good()
+    {
+        await using var session = await HookSession.OpenAsync<CarouselHookPage>(playwright);
+        var page = session.Page;
+
+        await Settle(page, "auto", 200, 3_000);
+        await page.ClickAsync("#auto [data-rask-carousel-track]");
+        var pressed = await page.EvaluateAsync<int>("() => Math.round(document.querySelector('#auto [data-rask-carousel-track]').scrollLeft)");
+        await page.Mouse.MoveAsync(900, 650);
+        await page.WaitForTimeoutAsync(2_000);
+
+        Assert.Equal(pressed, await page.EvaluateAsync<int>("() => Math.round(document.querySelector('#auto [data-rask-carousel-track]').scrollLeft)"));
+    }
+
+    [Fact]
+    public async Task A_press_on_an_arrow_moves_once_and_ends_autoplay_for_good()
+    {
+        await using var session = await HookSession.OpenAsync<CarouselHookPage>(playwright);
+        var page = session.Page;
+
+        await Settle(page, "auto", 200, 3_000);
+        await page.FocusAsync("#auto-next");
+        await page.Keyboard.PressAsync("Enter");
+        await Settle(page, "auto", 400);
+        await page.EvaluateAsync("() => document.activeElement.blur()");
+        await page.WaitForTimeoutAsync(2_000);
+
+        Assert.Equal(400, await page.EvaluateAsync<int>("() => Math.round(document.querySelector('#auto [data-rask-carousel-track]').scrollLeft)"));
+    }
+
+    [Fact]
     public async Task A_padded_track_rests_on_its_end_when_a_slide_starts_within_a_padding_of_it_and_marks_the_slide_nearest()
     {
         // Flux's bleed: the track is padded and scroll-padded by the gutter. Four 90px slides in 160px of room:
@@ -204,6 +237,7 @@ public sealed partial class CarouselHookPage : Component
         <div id="auto" data-rask-carousel data-autoplay="700" data-scroll="instant">
           <div data-rask-carousel-track><div>1</div><div>2</div><div>3</div></div>
           <button id="auto-inside" type="button">inside</button>
+          <span data-direction="next"><button id="auto-next" type="button">›</button></span>
         </div>
         <div id="off" data-rask-carousel>
           <div data-rask-carousel-track><div>1</div><div>2</div><div>3</div></div>

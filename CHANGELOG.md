@@ -211,6 +211,15 @@ them until tagged releases begin.
   Measured on fluxui.dev at 390 × 844; held by `scripts/flux/parity-menu.mjs dropdown|context --view 390x844`.
 - **Following a `Ui.NavmenuItem` link closes its dropdown**, clicked or tapped, and focus goes back to the trigger,
   as Flux UI's does. Before: the dropdown stayed open over the page the link led to.
+- **`Ui.Carousel`'s autoplay stops for good once the reader takes over, as Flux's does.** Before: a press on a slide
+  or on an arrow paused it only while the pointer or focus stayed, and on a phone a tap paused nothing (the touch
+  left at once). After: a press on the track (a click, a tap, a finger that swipes from it) or on an arrow (by the
+  pointer or a key) ends it for the page's life; the hover that holds it is the mouse's, so a swipe that starts on an
+  arrow holds nothing. Measured on fluxui.dev at 390px with touch and on a desktop.
+- **`Ui.Editor`'s toolbar popovers stay on a phone's screen, as Flux's do.** Before: the 360px link panel ran off a
+  390px screen (from 120 to 480), and the align list ran 16px past its button's end. After: a list that runs off
+  the right ends under its button's end instead, and whatever still runs off is shifted along to stay 5px inside
+  the screen (the link panel at 25), as Flux places them.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

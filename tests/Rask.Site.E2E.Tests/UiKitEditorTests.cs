@@ -101,6 +101,24 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task On_a_phone_the_link_panel_is_shifted_along_to_stay_5px_inside_the_screen() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        await OpenAsync();
+        var editor = Editors.First;
+        var panel = editor.Locator("[data-editor='link'] > [popover]");
+
+        await editor.Locator("[data-slot='content']").ClickAsync();
+        await editor.Locator("[data-editor='link'] button:not([data-editor])").ClickAsync();
+        await Expect(panel).ToBeVisibleAsync();
+        var box = await panel.BoundingBoxAsync();
+        var screen = await Page.EvaluateAsync<double>("() => document.documentElement.clientWidth");
+
+        Assert.NotNull(box);
+        Assert.Equal(screen - 5, box.X + box.Width, 0.5);
+    });
+
+    [Fact]
     public Task A_button_of_the_apps_own_runs_csharp_and_the_render_it_causes_leaves_the_typing_alone() => RunAsync(async () =>
     {
         await OpenAsync();

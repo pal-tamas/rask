@@ -441,7 +441,12 @@ rask-hooks.js,116043
 # never closes its flyout, a tap on the row that had focus lights nothing, and a link followed in a `<nav popover>`
 # closes it (rask-menu.ts, rask-menu-keys.ts: rask-hooks.js +163, 116,043 -> 116,206). Measured locally with the
 # build's esbuild flags (--minify) on 76b174b87, whose bundles measured 110,100 / 96,099 / 116,043 the same way.
+#
+# 2026-10-27, a carousel's autoplay ends for good once the reader presses its track or an arrow, and the hover
+# that holds it is the mouse's (rask-carousel.ts, hooks only: Flux measured at 390px with touch and on a desktop):
+# rask-hooks.js +200 (116,043 -> 116,243), the runtimes unchanged. Measured locally (Release, the benchmarks
+# job's recipe) on main 76b174b87.
 bundle,bytes
-rask.js,110125
-rask.wasm.js,96124
-rask-hooks.js,116206
+rask.js,110100
+rask.wasm.js,96099
+rask-hooks.js,116243
