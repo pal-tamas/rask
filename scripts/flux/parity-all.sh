@@ -48,6 +48,8 @@ parity-date.mjs datetime-picker --refresh
 parity-editor.mjs
 parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh
+parity-menu.mjs dropdown --refresh --view 390x844
+parity-menu.mjs context --refresh --view 390x844
 parity-modal.mjs --refresh
 parity-phone.mjs --refresh
 parity-pillbox.mjs --refresh

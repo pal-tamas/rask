@@ -26,6 +26,14 @@
 //   * WHERE IT LANDS with no room: every menu opened with its trigger — or the pointer — held at the edges of
 //     a phone and of a desktop, and with more rows than fit (placement.mjs).
 //
+// ON A PHONE (`--view 390x844`) the same walk is taken with a finger, as Flux's page answers one: a tap on a
+// dropdown's trigger, a LONG PRESS on a context menu's target (the browser's `contextmenu`, as a right-click's;
+// a tap opens nothing), and every row TAPPED in a menu opened afresh: open or closed after it, lit rows, focus,
+// a flyout. A submenu's flyout is opened by a tap on its row, and that row is tapped again. A finger has no
+// pointer to rest on a row, so the hover, the pointer's walk, the diagonal and the pointer with the keys are
+// not taken there; the keys are, for a phone with a keyboard. The page behind and the landings are the
+// desktop run's: both measure a phone already.
+//
 // A Rask parity page is static HTML: the kit's sheet, and the runtime's behaviour hooks added as one script
 // (runtime.mjs) — the cursor, the pointer's lit row, the open flyout, the safe area and the page lock are
 // theirs, by attribute, and none of it is C#'s. Everything else above is the platform's — `popovertarget`, the
@@ -35,6 +43,7 @@
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-menu.mjs dropdown
 //         node scripts/flux/parity-menu.mjs context --refresh --all     # re-measure Flux, every difference
+//         node scripts/flux/parity-menu.mjs dropdown --view 390x844      # on a phone
 //
 // Exit code 1 on any difference.
 
@@ -42,7 +51,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, root, STYLES } from './lib.mjs';
+import { chromium, press, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -50,7 +59,7 @@ const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
 const slug = args.find(a => !a.startsWith('--'));
 if (!slug) {
-  console.error('usage: node scripts/flux/parity-menu.mjs <dropdown|context> [--refresh] [--all]');
+  console.error('usage: node scripts/flux/parity-menu.mjs <dropdown|context> [--refresh] [--all] [--view 390x844]');
   process.exit(1);
 }
 
@@ -78,14 +87,15 @@ const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight'
 const LOCK = ['overflowY', 'pointerEvents'];
 const VIEWPORTS = { '1920x1080': { width: 1920, height: 1080 }, '390x844': { width: 390, height: 844 } };
 
+const view = viewOf(args);
 const browser = await chromium().launch();
-const fluxFile = join(out, 'flux', slug, 'open.json');
+const fluxFile = join(out, 'flux', slug, `open${view.sized}.json`);
 let flux;
 if (existsSync(fluxFile) && !flag('refresh')) {
   flux = JSON.parse(await readFile(fluxFile, 'utf8'));
 } else {
   flux = await measureOpen(`https://fluxui.dev/components/${slug}`, 'data-flux-');
-  flux.behind = await measureBehind(`https://fluxui.dev/components/${slug}`, 'data-flux-');
+  flux.behind = view.sized ? {} : await measureBehind(`https://fluxui.dev/components/${slug}`, 'data-flux-');
   await mkdir(join(out, 'flux', slug), { recursive: true });
   await writeFile(fluxFile, JSON.stringify(flux));
 }
@@ -96,8 +106,8 @@ if (!flux.behind) {
 }
 
 const rask = await measureOpen(pathToFileURL(raskPage).href, 'data-ui-', flux);
-rask.behind = await measureBehind(pathToFileURL(raskPage).href, 'data-ui-');
-const astray = await landings(browser, {
+rask.behind = view.sized ? {} : await measureBehind(pathToFileURL(raskPage).href, 'data-ui-');
+const astray = view.sized ? 0 : await landings(browser, {
   name: slug, refresh: flag('refresh'), all: flag('all'),
   flux: { url: `https://fluxui.dev/components/${slug}`, host: `[data-preview-wrapper] [data-flux-${slug}]`, panel: '[popover]' },
   rask: { url: pathToFileURL(raskPage).href, host: `[data-preview-wrapper] [data-ui-${slug}]`, panel: '[popover]', open: slug === 'context' ? atPointer : undefined },
@@ -113,7 +123,7 @@ let failures = 0;
 for (const scheme of ['light', 'dark']) {
   for (const [index, theirs] of flux[scheme].entries()) {
     const mine = rask[scheme][index];
-    const label = `${scheme} ${theirs.section || 'intro'}#${index}`;
+    const label = `${scheme}${view.sized} ${theirs.section || 'intro'}#${index}`;
     const diffs = mine ? compareExample(theirs, mine) : ['Rask has no such example'];
     failures += diffs.length ? 1 : 0;
     console.log(`${diffs.length ? 'FAIL' : 'ok  '} ${label}${diffs.length ? ` — ${diffs.length} difference(s)` : ` — ${theirs.rows.length} rows${theirs.flyout ? ', flyout' : ''}`}`);
@@ -135,8 +145,8 @@ for (const [size, theirs] of Object.entries(flux.behind)) {
   for (const d of diffs) console.log(`       ${d}`);
 }
 
-console.log(failures ? `\nflux parity (open): ${slug} differs in ${failures} example(s).` : `\nflux parity (open): ${slug} matches Flux.`);
-console.log(astray ? `flux parity (open): ${slug} lands elsewhere for ${astray} menu(s).` : `flux parity (open): ${slug} lands where Flux's does.`);
+console.log(failures ? `\nflux parity (open): ${slug}${view.sized} differs in ${failures} example(s).` : `\nflux parity (open): ${slug}${view.sized} matches Flux.`);
+if (!view.sized) console.log(astray ? `flux parity (open): ${slug} lands elsewhere for ${astray} menu(s).` : `flux parity (open): ${slug} lands where Flux's does.`);
 process.exit(failures || astray ? 1 : 0);
 
 // The hosts of Flux's page that hold a menu, by their place among all of them.
@@ -163,12 +173,19 @@ async function atPointer(page, point) {
   }, point);
 }
 
+// A finger held on the screen: Chromium makes a `contextmenu` of it, as a phone's browser does.
+async function longPress(page, x, y) {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Input.synthesizeTapGesture', { x, y, duration: 1000, tapCount: 1, gestureSourceType: 'touch' });
+  await cdp.detach();
+}
+
 // ---- measuring ------------------------------------------------------------------------------------
 
 async function measureOpen(url, prefix, like) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    const context = await browser.newContext({ ...view.screen, colorScheme: scheme });
     const page = await context.newPage();
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     // Every declared face, not only those the closed page uses (as parity-tooltip.mjs): the medium a row is
@@ -211,8 +228,8 @@ async function measureExample(page, cdp, index, prefix) {
   const wrapper = page.locator('[data-preview-wrapper]').nth(index);
   const rest = async () => {
     await page.keyboard.press('Escape');
-    await page.mouse.move(3, 3);
-    await page.mouse.click(3, 3);
+    if (!view.phone) await page.mouse.move(3, 3);
+    await press(page, 3, 3, view.phone);
     await page.waitForTimeout(120);
   };
   await rest();
@@ -227,7 +244,9 @@ async function measureExample(page, cdp, index, prefix) {
   const open = async () => {
     const box = await page.locator('[data-pm="trigger"]').boundingBox();
     const point = [Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2)];
-    await page.mouse.click(point[0], point[1], { button: parts.kind === 'context' ? 'right' : 'left' });
+    if (parts.kind === 'context' && view.phone) await longPress(page, point[0], point[1]);
+    else if (view.phone) await press(page, point[0], point[1], true);
+    else await page.mouse.click(point[0], point[1], { button: parts.kind === 'context' ? 'right' : 'left' });
     if (parts.kind === 'context' && prefix === 'data-ui-') {
       // The right-click hook is the runtime's (rask-dom.ts, "Context menus"), which a static parity page does
       // not load. This is what it does: the pointer's position on <html>, then the popover the area names.
@@ -250,12 +269,15 @@ async function measureExample(page, cdp, index, prefix) {
     return example;
   }
 
-  // Each row under a real pointer, then pressed.
+  // Each row under a real pointer (a finger has none), then pressed.
   for (const row of example.rows) {
-    const box = await page.locator(`[data-pm-n="${row}"]`).boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.waitForTimeout(60);
-    example.states.push({ row, state: 'hover', changed: await page.evaluate(diff, { STYLES }) });
+    if (!view.phone) {
+      const box = await page.locator(`[data-pm-n="${row}"]`).boundingBox();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.waitForTimeout(60);
+      example.states.push({ row, state: 'hover', changed: await page.evaluate(diff, { STYLES }) });
+    }
+
     const { root: doc } = await cdp.send('DOM.getDocument', { depth: 0 });
     const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: doc.nodeId, selector: `[data-pm-n="${row}"]` });
     await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover', 'active'] });
@@ -264,8 +286,8 @@ async function measureExample(page, cdp, index, prefix) {
   }
 
   // The pointer's own walk: what is lit, and where focus is, with the pointer on each row and after it left.
-  example.pointer = [];
-  for (const row of example.rows) {
+  example.pointer = view.phone ? undefined : [];
+  for (const row of view.phone ? [] : example.rows) {
     const box = await page.locator(`[data-pm-n="${row}"]`).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
     await page.waitForTimeout(60);
@@ -273,9 +295,12 @@ async function measureExample(page, cdp, index, prefix) {
   }
 
   // The keyboard cursor, a row at a time from the top.
-  await page.mouse.move(3, 3, { steps: 3 });
-  await page.waitForTimeout(60);
-  example.pointer.push(await page.evaluate(lit, example.rows));
+  if (!view.phone) {
+    await page.mouse.move(3, 3, { steps: 3 });
+    await page.waitForTimeout(60);
+    example.pointer.push(await page.evaluate(lit, example.rows));
+  }
+
   example.walk = [];
   for (let step = 0; step < example.rows.length; step++) {
     // The same key on both sides: the kit's cursor is the runtime's (data-rask-menu-cursor), in the browser, as
@@ -293,7 +318,7 @@ async function measureExample(page, cdp, index, prefix) {
   // The pointer and the keys together, on a menu that takes focus and has rows to spare: the pointer lights the
   // second row and the first arrow lands ON it; the next goes on; the pointer lights the first row while focus
   // stays, and the arrow after that counts from the lit row; the pointer leaves and the keyboard's row stays lit.
-  if (parts.kind === 'dropdown' && example.focus === 'menu' && example.rows.length >= 3) {
+  if (!view.phone && parts.kind === 'dropdown' && example.focus === 'menu' && example.rows.length >= 3) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(150);
     await open();
@@ -315,8 +340,39 @@ async function measureExample(page, cdp, index, prefix) {
     await open();
   }
 
-  // The first submenu, opened the way a pointer opens it.
-  if (example.submenu !== null) {
+  // On a phone, every row tapped in a menu opened afresh.
+  if (view.phone) {
+    example.taps = [];
+    for (const row of example.rows) {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(150);
+      await open();
+      const box = await page.locator(`[data-pm-n="${row}"]`).boundingBox();
+      if (!box) {
+        example.taps.push('not on screen');
+        continue;
+      }
+
+      await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
+      await page.waitForTimeout(300);
+      example.taps.push(await page.evaluate(tapped, example.rows));
+    }
+
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    await open();
+  }
+
+  // The first submenu, opened the way a pointer opens it; on a phone by a tap on its row, then tapped again.
+  if (example.submenu !== null && view.phone) {
+    const box = await page.locator(`[data-pm-n="${example.submenu}"]`).boundingBox();
+    await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
+    await page.waitForTimeout(400);
+    example.flyout = await page.evaluate(collectFlyout, { STYLES, row: example.submenu });
+    await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
+    await page.waitForTimeout(400);
+    example.again = await page.evaluate(tapped, example.rows);
+  } else if (example.submenu !== null) {
     const box = await page.locator(`[data-pm-n="${example.submenu}"]`).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(400);
@@ -341,8 +397,8 @@ async function measureExample(page, cdp, index, prefix) {
   await page.waitForTimeout(150);
   example.escape = await page.evaluate(closed);
   await open();
-  await page.mouse.move(3, 3);
-  await page.mouse.click(3, 3);
+  if (!view.phone) await page.mouse.move(3, 3);
+  await press(page, 3, 3, view.phone);
   await page.waitForTimeout(150);
   example.outside = await page.evaluate(closed);
   await page.evaluate(unmark);
@@ -454,6 +510,23 @@ function where(rows) {
   return {
     lit: rows.map((row, i) => (document.querySelector(`[data-pm-n="${row}"]`).hasAttribute('data-active') ? i : -1)).filter(i => i >= 0),
     focus: at(document.activeElement),
+  };
+}
+
+// Runs in the page. After a tap: is the popup open, which of its own rows are lit, where focus is (a row by its
+// position), and how many flyouts are showing.
+function tapped(rows) {
+  const panel = document.querySelector('[data-pm="panel"]');
+  const active = document.activeElement;
+  const at = rows.findIndex(row => document.querySelector(`[data-pm-n="${row}"]`) === active);
+  const where = active === panel ? 'menu' : active === document.querySelector('[data-pm="trigger"]') ? 'trigger' : active === document.body ? 'body' : 'elsewhere';
+  const open = panel.matches(':popover-open');
+  // A closed menu's lit row is seen by nobody: Flux leaves the tapped one lit, the kit does not.
+  return {
+    open,
+    lit: !open ? [] : rows.map((row, i) => (document.querySelector(`[data-pm-n="${row}"]`).hasAttribute('data-active') ? i : -1)).filter(i => i >= 0),
+    focus: at >= 0 ? at : where,
+    flyouts: [...panel.querySelectorAll('[role=menu]')].filter(menu => menu.getClientRects().length > 0).length,
   };
 }
 
@@ -591,6 +664,8 @@ function compareExample(theirs, mine) {
   say('the pointer lights', lights(theirs), lights(mine));
   say('the diagonal to the flyout', theirs.diagonal, mine.diagonal);
   say('the pointer and the keys together', theirs.together, mine.together);
+  say('a tap on each row', theirs.taps, mine.taps);
+  say('the submenu\'s row tapped again', theirs.again, mine.again);
   say('rows', theirs.rows.length, mine.rows.length);
   say('Escape', theirs.escape, mine.escape);
   // Only that it closed. Flux then puts focus back on the trigger from script; the browser's own light dismiss
