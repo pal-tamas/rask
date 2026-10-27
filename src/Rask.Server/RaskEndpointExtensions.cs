@@ -1262,7 +1262,8 @@ public static partial class RaskEndpointExtensions
         root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
     private static long NumberProperty(JsonElement root, string name, long missing) =>
-        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var n)
+        root.ValueKind == JsonValueKind.Object && root.TryGetProperty(name, out var value)
+        && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var n)
             ? n
             : missing;
 

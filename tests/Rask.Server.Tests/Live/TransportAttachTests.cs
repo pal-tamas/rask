@@ -200,7 +200,7 @@ public sealed class TransportAttachTests
 
         var services = host.Services;
         await Assert.ThrowsAsync<System.Net.WebSockets.WebSocketException>(() => RaskEndpointExtensions.AttachAsync(
-            sessionId, resumeToken: null, new FailingTransport(), host.Store,
+            sessionId, resumeToken: null, sentBefore: 0, new FailingTransport(), host.Store,
             services.GetRequiredService<RaskServerLimits>(),
             new System.Security.Claims.ClaimsPrincipal(),
             services.GetRequiredService<SessionResumeSupport>(),

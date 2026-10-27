@@ -627,22 +627,19 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             return;
         }
 
-        if (InHandlerScope)
+        // Defer to the dispatch's final RenderAndSendCoalescingAsync so a single
+        // coalesced payload (carrying the captured historyUrl/replace/auth) reaches
+        // the wire — multiple in-handler StateHasChanged calls would otherwise emit
+        // intermediate payloads, double-morphing <head> and momentarily orphaning
+        // the scoped-css <link> during navigation. publishOnly intentionally
+        // dissolves into the dispatch's outer render flags, matching WASM
+        // (Rask.Wasm/WasmLiveSession.cs:79-87).
+        // A dispatch that finished its coalescing loop and cleared the scope in between will not look at the flag
+        // again, so this request then renders itself instead of being dropped.
+        if (InHandlerScope && LeaveRenderToTheScope())
         {
-            // Defer to the dispatch's final RenderAndSendCoalescingAsync so a single
-            // coalesced payload (carrying the captured historyUrl/replace/auth) reaches
-            // the wire — multiple in-handler StateHasChanged calls would otherwise emit
-            // intermediate payloads, double-morphing <head> and momentarily orphaning
-            // the scoped-css <link> during navigation. publishOnly intentionally
-            // dissolves into the dispatch's outer render flags, matching WASM
-            // (Rask.Wasm/WasmLiveSession.cs:79-87).
-            // A dispatch that finished its coalescing loop and cleared the scope in between will not look at the flag
-            // again, so this request then renders itself instead of being dropped.
-            if (LeaveRenderToTheScope())
-            {
-                await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
-                return;
-            }
+            await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
+            return;
         }
 
         await Lock.WaitAsync(_socketCt).ConfigureAwait(false);
