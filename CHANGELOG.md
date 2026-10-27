@@ -188,6 +188,13 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A nightly version is one commit's.** Before: MinVer's height follows a merge's first parent, so the merge that
+  lands a worktree branch on `main` could share the version of the commit under it, and `0.23.1-alpha.0.526` was
+  published from two commits — the second nightly's pushes passed as duplicates and its verify only asked that every
+  package was listed. After: a nightly's height counts every commit since the tag (`scripts/lib/nightly_version.py`,
+  distinct and increasing along `main`; the next nightly jumps from `.5xx` to `.22xx`), the publisher refuses before
+  its first push when nuget.org serves the version from another commit and verifies every package's commit
+  afterwards (exit 3, **MIXED VERSION**), and `nightly` dispatched on a branch other than `main` publishes nothing.
 - **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
   emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a
