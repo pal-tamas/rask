@@ -194,6 +194,13 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **On a touch screen, a tooltip and a toast answer a finger as Flux UI's do.** Measured on fluxui.dev at 390×844.
+  Before: the runtime ignored a touch, so `Ui.Tooltip` never showed under a finger; and a toast or a toast group
+  was held only for the moment a tap lasted, its countdown running on under the finger. After: a finger resting on
+  a tooltip's trigger shows it and lifting it hides it (an instant tap leaves it shown, a second tap or a tap
+  elsewhere hides it), and once a finger has shown one no finger shows a tooltip again until a mouse moves —
+  Flux's own rule. A tap on a toast or its group holds every countdown until a tap elsewhere, as the browser leaves
+  its mouse where the tap was.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

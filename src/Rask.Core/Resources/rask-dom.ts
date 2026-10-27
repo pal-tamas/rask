@@ -1131,14 +1131,15 @@ export function applyFrameInvokes(
 
         // Runs on only when nothing is holding it any more: the pointer may still be over the toast when focus
         // leaves it, or over the [data-rask-dismiss-scope] around it (rask-toast.ts), which holds every toast
-        // inside and says so with rask-hold / rask-release.
+        // inside and says so with rask-hold / rask-release. The mouse's enter and leave, a tap's too: the browser
+        // leaves its mouse where a finger tapped, so a tap holds it until a tap elsewhere, as on Flux UI's phone.
         const resume = function () {
             if (!el.matches(":hover") && !el.closest("[data-rask-dismiss-scope]:hover")) {
                 start();
             }
         };
-        el.addEventListener("pointerenter", pause);
-        el.addEventListener("pointerleave", resume);
+        el.addEventListener("mouseenter", pause);
+        el.addEventListener("mouseleave", resume);
         // data-rask-dismiss-hold="pointer": only the pointer holds the countdown, focus inside does not —
         // Flux UI's toast runs out with its close button focused.
         el.addEventListener("focusin", function () {

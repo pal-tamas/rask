@@ -6,7 +6,9 @@
 //     inside it is held, and they all run on from where they stopped when it leaves. Flux UI's toast group
 //     does this (three toasts, hovered for 6.7 s, all three still there; each then ran out its own remainder).
 //     Each toast is told with a `rask-hold` / `rask-release` event, which is the whole interface between the
-//     two modules.
+//     two modules. It is the MOUSE's over and out, because a finger's is Flux's too: on a phone (2026-10-27) a
+//     tap on the stack held it until a tap elsewhere — the browser leaves its mouse where a tap was — while
+//     the finger's own pointerout, a moment after the tap, let nothing go.
 //   * data-rask-stack on the element whose children are the stacked toasts: each child gets, in its style,
 //     --rask-stack-index (0 for the front one — the last child — counting back), --rask-stack-height (its own
 //     NATURAL height), --rask-stack-offset (the natural heights of everything in front of it, added up) and
@@ -59,17 +61,17 @@ function measure(stack: Element): void {
 if (page) {
     const doc = page;
 
-    listen("pointerover", function (e) {
+    listen("mouseover", function (e) {
         const scope = near(e.target, SCOPE);
-        const from = (e as PointerEvent).relatedTarget;
+        const from = (e as MouseEvent).relatedTarget;
         if (scope && !(from instanceof Node && scope.contains(from))) {
             tell(scope, "rask-hold");
         }
     }, {capture: true, passive: true});
 
-    listen("pointerout", function (e) {
+    listen("mouseout", function (e) {
         const scope = near(e.target, SCOPE);
-        const to = (e as PointerEvent).relatedTarget;
+        const to = (e as MouseEvent).relatedTarget;
         if (scope && !(to instanceof Node && scope.contains(to))) {
             tell(scope, "rask-release");
         }
