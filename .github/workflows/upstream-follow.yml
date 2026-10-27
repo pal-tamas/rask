@@ -1,0 +1,189 @@
+name: upstream-follow
+
+# ONE source upstream.yml follows, from its regeneration to main. Each follower is a call of its own, so a
+# release one gate refuses holds back that source and nothing else.
+#
+#   follow   scripts/upstream/follow.sh <follower>; nothing moved ends the call here, green. What moved is
+#            one commit on upstream/<follower>/<run>, replacing whatever an earlier run left there.
+#   gates    the gates that commit can reach (gates.yml, scope affected) — what ci.yml holds a push to.
+#   land     that commit onto main.
+#   report   the follower's own issue: closed when it lands (or has nothing to land), opened when it cannot.
+#            A gate main is already red on is NOT upstream's (scripts/upstream/main-already-red.sh): the
+#            commit waits on upstream-waits/<follower>, and upstream.yml follows it again when full.yml
+#            passes on main.
+on:
+  workflow_call:
+    inputs:
+      follower:
+        description: A name from scripts/upstream/follow.sh --list
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  follow:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # push the branch the gates run on
+    env:
+      FOLLOWER: ${{ inputs.follower }}
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+      base: ${{ steps.commit.outputs.base }}
+      branch: ${{ steps.commit.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the commit is rebased onto main before it is pushed
+
+      # Only MDN builds: the public surface is recorded from a build of the new snapshot.
+      - uses: ./.github/actions/setup
+        if: inputs.follower == 'mdn'
+        with:
+          workloads: wasm-tools
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+
+      - name: Follow ${{ inputs.follower }}
+        env:
+          GH_TOKEN: ${{ github.token }}   # GitHub's release API allows an anonymous caller 60 requests an hour
+        run: scripts/upstream/follow.sh "$FOLLOWER"
+
+      - name: Commit what moved
+        id: commit
+        env:
+          BRANCH: upstream/${{ inputs.follower }}/${{ github.run_id }}
+        run: |
+          set -eu
+          # What an earlier run left waiting is superseded by this regeneration, or by nothing to land.
+          git ls-remote --heads origin "refs/heads/upstream/$FOLLOWER/*" "refs/heads/upstream-waits/$FOLLOWER" \
+            | awk '{ sub("refs/heads/", "", $2); print $2 }' \
+            | while read -r stale; do git push -q origin --delete "$stale"; done
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing moved upstream of $FOLLOWER."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "chore: follow upstream ($FOLLOWER)" -m "$(git diff --cached --stat)"
+
+          # Onto main as it is NOW: a branch whose workflows differ from main's is a workflow change to
+          # GitHub, which this token may not push — and main moves while the regeneration builds.
+          git fetch -q origin main
+          git rebase -q origin/main
+          git push -q origin "HEAD:refs/heads/$BRANCH"
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "base=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+
+  gates:
+    needs: follow
+    if: needs.follow.outputs.sha != ''
+    uses: ./.github/workflows/gates.yml
+    with:
+      set: push
+      ref: ${{ needs.follow.outputs.sha }}
+      scope: affected
+      base: ${{ needs.follow.outputs.base }}
+      parallel: 10   # several followers can be gating at once; a push's own ci run is the one waited for
+
+  land:
+    needs: [follow, gates]
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # main, and removing the branch
+      actions: write    # start the workflows a push from here cannot start
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BRANCH: ${{ needs.follow.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.follow.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Land on main
+        run: |
+          set -eu
+          gated="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # main moved while the gates ran — another follower may have landed a minute ago: carry the one
+          # commit over it. A conflict stops here and tomorrow's run starts from the new main.
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git rebase -q origin/main
+            git push -q origin HEAD:main && break
+            [ "$attempt" -lt 3 ] || exit 1
+          done
+          git push -q origin --delete "$BRANCH"
+
+          # A push made with the workflow's own token starts no workflow. The commit the gates passed
+          # goes straight to publishing; a rebased one is a commit nothing has gated, so ci goes first
+          # and publishing follows it as usual.
+          if [ "$(git rev-parse HEAD)" = "$gated" ]; then
+            gh workflow run nightly.yml --ref main
+            gh workflow run pages.yml --ref main
+          else
+            gh workflow run ci.yml --ref main
+          fi
+
+  report:
+    needs: [follow, gates, land]
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write   # the upstream-waits/ marker
+      actions: read     # the jobs of this run and of full.yml
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FOLLOWER: ${{ inputs.follower }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      SHA: ${{ needs.follow.outputs.sha }}
+      BRANCH: ${{ needs.follow.outputs.branch }}
+      FOLLOWED: ${{ needs.follow.result }}
+      GATED: ${{ needs.gates.result }}
+      LANDED: ${{ needs.land.result }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Report ${{ inputs.follower }}
+        run: |
+          set -eu
+          title="Upstream: $FOLLOWER could not be followed"
+          ok() { [ "$1" = success ] || [ "$1" = skipped ]; }
+
+          if [ "$FOLLOWED" = success ] && ok "$GATED" && ok "$LANDED"; then
+            scripts/upstream/issue.sh --close "$title" "Followed: $RUN"
+            exit 0
+          fi
+
+          if [ "$GATED" = failure ] && scripts/upstream/main-already-red.sh "$GITHUB_RUN_ID" "$FOLLOWER / "; then
+            git push -q origin "$SHA:refs/heads/upstream-waits/$FOLLOWER"
+            echo "::notice::$FOLLOWER waits for main: every gate it failed is red on main too. upstream.yml follows it again when full.yml passes."
+            exit 0
+          fi
+
+          {
+            echo "What moved upstream of \`$FOLLOWER\` could not land: $RUN"
+            echo
+            if [ -n "$BRANCH" ]; then
+              echo "The regenerated tree is on \`$BRANCH\`. The red job names the gate script to run against it;"
+              echo "fix forward on main (or the follower), and the next run lands a fresh regeneration."
+            else
+              echo "It failed before there was anything to gate: \`scripts/upstream/follow.sh $FOLLOWER\` reproduces it."
+            fi
+            echo
+            echo "<sub>Opened by \`.github/workflows/upstream-follow.yml\`, which updates this issue rather than opening another, and closes it when $FOLLOWER lands.</sub>"
+          } > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "$title" "$RUNNER_TEMP/body.md"
