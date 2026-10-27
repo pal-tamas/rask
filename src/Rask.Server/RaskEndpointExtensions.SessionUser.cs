@@ -102,7 +102,7 @@ public static partial class RaskEndpointExtensions
         }
 
         var held = users.Current;
-        var asked = revalidator.Revalidate(held, ct);
+        var asked = Ask(revalidator, held, ct);
         if (!asked.IsCompletedSuccessfully)
         {
             return TakeLaterAsync(asked, session, held);
@@ -110,6 +110,33 @@ public static partial class RaskEndpointExtensions
 
         TakeAnswer(session, held, asked.Result);
         return default;
+    }
+
+    // The revalidator's answer, a cancellation it disguised made one again (CancelledCallback): an attach or an event
+    // whose client went away ends quietly, and only a real failure is refused and reported.
+    private static ValueTask<ClaimsPrincipal?> Ask(ISessionRevalidator revalidator, ClaimsPrincipal user, CancellationToken ct)
+    {
+        try
+        {
+            var asked = revalidator.Revalidate(user, ct);
+            return asked.IsCompletedSuccessfully ? asked : AskedLaterAsync(asked, ct);
+        }
+        catch (Exception ex) when (CancelledCallback.IsDisguised(ex, ct))
+        {
+            throw CancelledCallback.AsCancellation(ex, ct);
+        }
+    }
+
+    private static async ValueTask<ClaimsPrincipal?> AskedLaterAsync(ValueTask<ClaimsPrincipal?> asked, CancellationToken ct)
+    {
+        try
+        {
+            return await asked.ConfigureAwait(false);
+        }
+        catch (Exception ex) when (CancelledCallback.IsDisguised(ex, ct))
+        {
+            throw CancelledCallback.AsCancellation(ex, ct);
+        }
     }
 
     private static async ValueTask TakeLaterAsync(ValueTask<ClaimsPrincipal?> asked, LiveSession session, ClaimsPrincipal held) =>
@@ -233,7 +260,7 @@ public static partial class RaskEndpointExtensions
     // sign-in has ended. Asked about nobody, and by an app with no revalidator, it is the principal itself.
     private static async ValueTask<ClaimsPrincipal?> AnswerForAsync(LiveSession session, ClaimsPrincipal user, CancellationToken ct) =>
         PrincipalRights.IsSignedIn(user) && session.Revalidator is { } revalidator
-            ? AnswerAbout(user, await revalidator.Revalidate(user, ct).ConfigureAwait(false))
+            ? AnswerAbout(user, await Ask(revalidator, user, ct).ConfigureAwait(false))
             : user;
 
     // The held credential's link on the handler chain: behind the dispatch that was running as it arrived, and

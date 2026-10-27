@@ -306,6 +306,17 @@ public abstract partial class Component
         // dirty. Set BEFORE running so intermediate renders inside an async handler
         // (via InvokeWithRenderingAsync) already see the owner as dirty.
         owner.Live.StateDirty = true;
+        return await DispatchAnsweringFaultsAsync(handler, payload, owner, dispatchToken).ConfigureAwait(false);
+    }
+
+    // Runs the handler, and answers what it throws: a left component's cancellation is recorded, a refusal is
+    // told, and a fault goes to its boundary. What the host cancelled — its timeout, or the connection closing —
+    // goes back to it as a cancellation, even when the handler's provider said so as a failure of its own (EF
+    // over SQL Server: an InvalidOperationException, #1256). Pooled: it runs once per event, as its caller does.
+    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder<>))]
+    private async ValueTask<bool> DispatchAnsweringFaultsAsync(
+        Delegate handler, JsonElement payload, Component owner, CancellationToken dispatchToken)
+    {
         try
         {
             return await DispatchAfterPicksAsync(handler, payload, owner).ConfigureAwait(false);
@@ -318,6 +329,10 @@ public abstract partial class Component
         catch (Exception ex) when (Refused(owner, ex))
         {
             return true;
+        }
+        catch (Exception ex) when (CancelledCallback.IsDisguised(ex, dispatchToken))
+        {
+            throw CancelledCallback.AsCancellation(ex, dispatchToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException && ResolveHandlerBoundary(owner) is { } boundary)
         {

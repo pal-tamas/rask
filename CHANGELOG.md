@@ -188,6 +188,13 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
+  Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
+  socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event
+  logged an error. After: whatever the revalidator throws once its token is cancelled is that cancellation — nothing
+  attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
+  closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
+  refuses, as before.
 - **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
   label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
   siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its
