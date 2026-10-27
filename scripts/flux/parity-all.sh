@@ -92,6 +92,21 @@ checks | xargs -P "$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)" -L1 bash 
 
 total=$(wc -l < "$out/summary.txt" | tr -d ' ')
 failed=$(grep -cv '^0 ' "$out/summary.txt")
+
+# A check that ended badly WITHOUT naming one difference did not run — fluxui.dev down, a page that never went
+# idle, a crash. That is no news about Flux, so the run says it could not tell (exit 1), never that Flux moved.
+broken=$(grep -v '^0 ' "$out/summary.txt" | while read -r _ check; do
+  grep -q '^FAIL' "$out/$(echo "$check" | tr ' /' '__').log" || echo "$check"
+done)
+if [ -n "$broken" ]; then
+  echo "parity-all: could not run every check, so nothing is said about Flux. These ended without a difference:"
+  while read -r check; do
+    echo
+    echo "== $check"
+    tail -8 "$out/$(echo "$check" | tr ' /' '__').log"
+  done <<< "$broken"
+  exit 1
+fi
 if [ "$failed" -eq 0 ]; then
   echo "parity-all: all $total checks match Flux."
   exit 0
