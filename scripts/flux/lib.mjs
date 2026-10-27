@@ -135,9 +135,9 @@ async function open(page, wrapper, opener) {
   const box = await opener.boundingBox();
   const at = [box.x + box.width / 2, box.y + box.height / 2];
   const phone = page.viewportSize().width < 640;
-  // A reader's finger has been on the page before it reaches the example (FIRST_TOUCH in parity-popover.mjs).
+  // A hover popover is tapped by a finger that has been on the page before (FIRST_TOUCH in parity-popover.mjs).
   if (phone) {
-    await page.touchscreen.tap(4, at[1]);
+    if (await opener.getAttribute('data-parity-open') === 'hover') await page.touchscreen.tap(4, at[1]);
     await page.touchscreen.tap(...at);
   }
   else if (await opener.getAttribute('data-parity-open') === 'hover') {
