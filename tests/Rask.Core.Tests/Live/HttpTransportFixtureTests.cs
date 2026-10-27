@@ -194,6 +194,11 @@ public sealed class HttpTransportFixtureTests
             new[] { "1006:stream-open-timeout:false" },
             deadlines.GetProperty("neverOpened").EnumerateArray().Select(e => e.GetString()).ToArray());
 
+        // Answered, and then a render longer than the open deadline before the stream names its session: still
+        // waited for. Given up on, the attach was cancelled and every retry built a session the tab never reached.
+        Assert.Empty(deadlines.GetProperty("stillAttaching").EnumerateArray());
+        Assert.Equal(["open"], deadlines.GetProperty("attachedLate").EnumerateArray().Select(static e => e.GetString()));
+
         // Opened, then nothing — not even a heartbeat: a half-open connection, ended as a dropped link.
         Assert.Equal(
             new[] { "open", "1006:stream-silent:true" },

@@ -181,7 +181,11 @@ export interface ChoiceStorage {
 
 export const TRANSPORT_STORAGE_KEY = "rask:transport";
 
-/** How long a WebSocket gets to open before the tab tries HTTP instead — and an HTTP stream before it is given up on. */
+/**
+ * How long a WebSocket gets to open before the tab tries HTTP instead — and an HTTP stream's request to be answered
+ * with its headers before it is given up on. Neither covers the attach that follows: a socket's hello and a stream's
+ * first frame wait on the server's render, which a loaded host may take longer than this to make.
+ */
 export const OPEN_TIMEOUT_MS = 5000;
 
 /**
@@ -348,8 +352,12 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     const stopOpenTimer = pageTimeout(() => end(1006, "stream-open-timeout"), options.openTimeoutMs ?? OPEN_TIMEOUT_MS);
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // From the response's headers on, what ends a stream that has stopped arriving is its silence, not the open
+    // deadline: the server has the request, and is attaching — which for a page rebuilt from its record is a whole
+    // render, longer than the deadline on a loaded host. Given up on then, the attach was cancelled, the tab asked
+    // again, and every attempt built another session it never reached.
     function heard(): void {
-        if (!open || closed) return;
+        if (closed) return;
         if (silenceTimer !== null) clearTimeout(silenceTimer);
         silenceTimer = setTimeout(() => end(1006, "stream-silent"), options.silenceMs ?? STREAM_SILENCE_MS);
     }
@@ -428,6 +436,9 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
                 end(1006, "stream-" + response.status);
                 return;
             }
+
+            stopOpenTimer();
+            heard();
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();

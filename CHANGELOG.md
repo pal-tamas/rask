@@ -15,7 +15,8 @@ them until tagged releases begin.
   reloaded, dropping what the reader did meanwhile (#1258). After: the late connection rebuilds the page where it
   stands. The record opens only for a connection naming that session and never for another user. The runtime's
   5 s connection-open deadline also counts only the time the page could run, so a starved tab is no longer pushed
-  onto the HTTP fallback for being busy. See
+  onto the HTTP fallback for being busy, and an HTTP stream whose request was answered waits for its attach (a
+  rebuild's render) rather than giving up at 5 s and making the host build the page again on every retry. See
   [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
 
 - **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every

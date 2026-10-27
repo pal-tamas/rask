@@ -256,11 +256,17 @@ results.packing = {
     multibyte: framesThatFit(['"é"', '"é"'], 9),
 };
 
-// Deadlines: a stream that never opens, and one that opens and then goes silent.
+// Deadlines: a stream whose request is never answered, one answered whose attach outlasts the open deadline (a
+// rebuild's render on a loaded host), and one that opens and then goes silent.
 async function deadlines(): Promise<Result> {
     const realFetch = globalThis.fetch;
     let push: (text: string) => void = () => {};
-    globalThis.fetch = (async () => {
+    let answer = true;
+    globalThis.fetch = (async (_input: string, init: RequestInit = {}) => {
+        if (!answer) {
+            return new Promise<Response>((_resolve, reject) =>
+                init.signal?.addEventListener("abort", () => reject(new Error("aborted"))));
+        }
         const body = new ReadableStream<Uint8Array>({
             start(controller) {
                 push = (text) => controller.enqueue(new TextEncoder().encode(text));
@@ -281,9 +287,20 @@ async function deadlines(): Promise<Result> {
     };
 
     try {
+        answer = false;
         openHttpConnection({...options, openTimeoutMs: 20, silenceMs: 10_000});
         await new Promise((resolve) => setTimeout(resolve, 60));
         const neverOpened = events.splice(0);
+        answer = true;
+
+        const slowAttach = openHttpConnection({...options, openTimeoutMs: 20, silenceMs: 10_000});
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        const stillAttaching = events.splice(0);
+        push('data: {"type":"stream","generation":1}\n\n');
+        await tick();
+        const attachedLate = events.splice(0);
+        slowAttach.close(1000, "done");
+        events.splice(0);
 
         openHttpConnection({...options, openTimeoutMs: 10_000, silenceMs: 30});
         await tick();
@@ -291,7 +308,7 @@ async function deadlines(): Promise<Result> {
         await new Promise((resolve) => setTimeout(resolve, 80));
         const wentSilent = events.splice(0);
 
-        return {neverOpened, wentSilent};
+        return {neverOpened, stillAttaching, attachedLate, wentSilent};
     } finally {
         globalThis.fetch = realFetch;
     }
