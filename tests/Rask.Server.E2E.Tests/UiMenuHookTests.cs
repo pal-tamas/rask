@@ -196,13 +196,17 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         var phone = new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true };
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, phone);
         var page = session.Page;
+        // The hooks load on demand: a press before they have is heard by nobody (a slow runner got there first).
+        await session.HooksLoadedAsync();
         var area = (await page.Locator("#area").BoundingBoxAsync())!;
         var cdp = await page.Context.NewCDPSessionAsync(page);
 
+        // The gesture's answer comes once the finger has lifted; the menu is then waited for, and still there after.
         await cdp.SendAsync("Input.synthesizeTapGesture", new Dictionary<string, object>
         {
             ["x"] = area.X + (area.Width / 2), ["y"] = area.Y + (area.Height / 2), ["duration"] = 1000, ["gestureSourceType"] = "touch",
         });
+        await page.WaitForFunctionAsync("() => document.querySelector(\"[data-testid='context'] [popover]\").matches(':popover-open')", null, new() { Timeout = 5_000 });
         await page.WaitForTimeoutAsync(300);
 
         Assert.True(await session.ShownAsync("[data-testid='context'] [popover]"));
