@@ -204,6 +204,13 @@ them until tagged releases begin.
   finger held on a phone field's country lit the row; now only the mouse lights one (`rask-phone.ts`). A pillbox's
   pills were 14px on a phone where Flux sets them in the trigger's 16px (`text-base sm:text-sm`; a small pillbox's
   stay 14px).
+- **Menus on a touch screen behave as Flux UI's.** Before: a `Ui.Context` opened by a long press closed again as the
+  finger lifted; a second tap on a submenu's row closed its flyout and left the row lit. After: the long press opens
+  the menu once the finger is up, and it stays; a tap opens a flyout and another tap leaves it open (another row, or
+  the menu closing, shuts it); a tap on the row that had focus already lights nothing, a checkbox row's too.
+  Measured on fluxui.dev at 390 × 844; held by `scripts/flux/parity-menu.mjs dropdown|context --view 390x844`.
+- **Following a `Ui.NavmenuItem` link closes its dropdown**, clicked or tapped, and focus goes back to the trigger,
+  as Flux UI's does. Before: the dropdown stayed open over the page the link led to.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

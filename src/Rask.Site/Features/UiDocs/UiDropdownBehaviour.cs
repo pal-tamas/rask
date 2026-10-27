@@ -53,7 +53,8 @@ internal sealed partial class UiDropdownBehaviour : Component
             "The first child of a dropdown is the trigger: a `Button`, a `Ui.Button`, any element that is a button. "
             + "The second is what it opens: a `Ui.Menu` of actions, a `Ui.Navmenu` of links, or a `Ui.Popover`.",
             "A `Ui.NavmenuItem` is a link, with no menu roles and no cursor. Without an `Href` it is a `<button>` "
-            + "with `OnClick`; a string `Href` is a plain `<a>`, and a generated route navigates in the app.",
+            + "with `OnClick`; a string `Href` is a plain `<a>`, and a generated route navigates in the app. "
+            + "Following a link closes the dropdown and hands focus back to its trigger, as Flux's does.",
             "`Key` can go anywhere in a row's chain, `Ui.MenuCheckbox.Value(x).Key(\"k\")`, and a generic row such "
             + "as `Ui.MenuRadioGroup` takes one too.",
             "Style the rows from `data-active` and `data-checked`, and from `data-open` on the dropdown, its "
@@ -95,7 +96,7 @@ internal sealed partial class UiDropdownBehaviour : Component
             + "still counts as the row (`data-rask-safe-area`, Flux's safe area). It stays after the pointer has left "
             + "the menu altogether, and closes when another row is entered.",
             "While the arrows are inside a flyout its submenu's row stays lit with the row they are on. A tap opens a "
-            + "submenu on a touch screen, and the next one closes it. An open flyout is `data-open` on the submenu, "
+            + "submenu on a touch screen and another tap leaves it open, as on Flux; another row closes it. An open flyout is `data-open` on the submenu, "
             + "written by the runtime like the rest.",
         ]);
 }
