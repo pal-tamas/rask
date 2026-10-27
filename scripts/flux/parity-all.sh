@@ -40,12 +40,14 @@ checks() {
   cat <<'EOF'
 parity-autocomplete.mjs --refresh
 parity-carousel.mjs
+parity-carousel.mjs --view 390x844
 parity-color-picker.mjs --refresh
 parity-command.mjs --refresh
 parity-date.mjs date-picker --refresh
 parity-date.mjs time-picker --refresh
 parity-date.mjs datetime-picker --refresh
 parity-editor.mjs
+parity-editor.mjs --view 390x844
 parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh
 parity-modal.mjs --refresh

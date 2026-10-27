@@ -15,17 +15,23 @@
 //         node scripts/flux/parity-carousel.mjs
 //         node scripts/flux/parity-carousel.mjs --live http://localhost:5000/ui/carousel/
 //         node scripts/flux/parity-carousel.mjs --record                # Flux alone, every line printed
+//         node scripts/flux/parity-carousel.mjs --view 390x844          # on a phone: taps and a swipe
+//
+// On a phone there is no pointer to hover with and no keyboard for a button: a press is a tap, the drag is a
+// swipe (a native scroller scrolls under a finger on both sides), and the hover that holds autoplay is a tap
+// on the slide. The key steps, the tab stops and the focus that holds autoplay are a desktop's and are skipped.
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, root } from './lib.mjs';
+import { chromium, press as pressAt, root, viewOf } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
 const record = args.includes('--record');
 const live = option('live');
+const { screen, phone } = viewOf(args);
 
 const FLUX = {
   url: 'https://fluxui.dev/components/carousel',
@@ -64,7 +70,7 @@ console.log(record
 process.exit(failed ? 1 : 0);
 
 async function walk(side) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext(screen);
   const page = await context.newPage();
   await page.goto(side.url, { waitUntil: 'networkidle' });
   if (side === RASK && !live) await withRuntime(page, 'rask-carousel.ts');
@@ -134,13 +140,16 @@ async function walk(side) {
     await settle(index);
     lines.push(`#${index} ${name.padEnd(34)} ${await state(index, side)}`);
   };
+  // A click, or a tap on a phone.
+  const hit = (target, options) => (phone ? target.tap(options) : target.click(options));
   // An arrow with nowhere to go is disabled, or lets the pointer through: the press is made and nothing follows.
   const press = async (index, direction) => {
     const button = await arrow(index, direction);
     if (await button.isDisabled()) return;
-    await moving(index, () => button.click({ timeout: 2000 }).catch(() => {}));
+    await moving(index, () => hit(button, { timeout: 2000 }).catch(() => {}));
   };
-  const park = () => page.mouse.move(2, 2);
+  // A phone has no pointer to park.
+  const park = () => (phone ? undefined : page.mouse.move(2, 2));
 
   // The plain carousel: both arrows, each end, the keyboard on an arrow, a scroll by hand and a drag over the track.
   await carousel(BASIC).scrollIntoViewIfNeeded();
@@ -149,14 +158,16 @@ async function walk(side) {
   await step(BASIC, 'next', () => press(BASIC, 'next'));
   await step(BASIC, 'next again (the end)', () => press(BASIC, 'next'));
   await step(BASIC, 'previous', () => press(BASIC, 'previous'));
-  await step(BASIC, 'Enter on next', async () => { await (await arrow(BASIC, 'next')).focus(); await moving(BASIC, () => page.keyboard.press('Enter')); });
+  if (!phone) await step(BASIC, 'Enter on next', async () => { await (await arrow(BASIC, 'next')).focus(); await moving(BASIC, () => page.keyboard.press('Enter')); });
   await step(BASIC, 'previous to the start', async () => { await press(BASIC, 'previous'); await settle(BASIC); await press(BASIC, 'previous'); });
-  await step(BASIC, 'Space on next', async () => { await (await arrow(BASIC, 'next')).focus(); await moving(BASIC, () => page.keyboard.press('Space')); });
-  await step(BASIC, 'ArrowRight on next', () => page.keyboard.press('ArrowRight'));
-  await step(BASIC, 'ArrowLeft on next', () => page.keyboard.press('ArrowLeft'));
-  await step(BASIC, 'End on next', () => page.keyboard.press('End'));
-  await step(BASIC, 'Home on next', () => page.keyboard.press('Home'));
-  lines.push(`#${BASIC} focus after the keys              ${await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.tagName)}`);
+  if (!phone) {
+    await step(BASIC, 'Space on next', async () => { await (await arrow(BASIC, 'next')).focus(); await moving(BASIC, () => page.keyboard.press('Space')); });
+    await step(BASIC, 'ArrowRight on next', () => page.keyboard.press('ArrowRight'));
+    await step(BASIC, 'ArrowLeft on next', () => page.keyboard.press('ArrowLeft'));
+    await step(BASIC, 'End on next', () => page.keyboard.press('End'));
+    await step(BASIC, 'Home on next', () => page.keyboard.press('Home'));
+    lines.push(`#${BASIC} focus after the keys              ${await page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.tagName)}`);
+  }
   // A wheel and a swipe are the browser's own scrolling of a native scroller on both sides, and a headless
   // wheel lands differently from one run to the next: the track is scrolled by hand instead, which is what
   // either ends in, and the step holds what follows a scroll nobody pressed a button for.
@@ -164,23 +175,25 @@ async function walk(side) {
     carousel(BASIC).locator(side.track).evaluate(t => t.scrollTo({ left: t.scrollWidth, behavior: 'instant' }))));
   await step(BASIC, 'scrolled to the start by hand', () => moving(BASIC, () =>
     carousel(BASIC).locator(side.track).evaluate(t => t.scrollTo({ left: 0, behavior: 'instant' }))));
-  await step(BASIC, 'a pointer drag across the track', async () => {
+  await step(BASIC, phone ? 'a swipe across the track' : 'a pointer drag across the track', async () => {
     const box = await carousel(BASIC).locator(side.track).boundingBox();
-    await page.mouse.move(box.x + box.width * 0.8, box.y + box.height / 2);
+    const [from, to, y] = [box.x + box.width * 0.8, box.x + box.width * 0.2, box.y + box.height / 2];
+    if (phone) return moving(BASIC, () => swipe(page, from, to, y));
+    await page.mouse.move(from, y);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width * 0.2, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.move(to, y, { steps: 8 });
     await page.mouse.up();
   });
-  lines.push(`#${BASIC} tab stops inside                  ${await tabStops(page, carousel(BASIC))}`);
+  if (!phone) lines.push(`#${BASIC} tab stops inside                  ${await tabStops(page, carousel(BASIC))}`);
 
   // Indicators: each goes to its slide, and follows a move made any other way.
   await carousel(DOTS).scrollIntoViewIfNeeded();
   await park();
   const dot = n => carousel(DOTS).locator(`${side.dots} button`).nth(n);
   await step(DOTS, 'at rest');
-  await step(DOTS, 'third indicator', () => moving(DOTS, () => dot(2).click()));
-  await step(DOTS, 'first indicator', () => moving(DOTS, () => dot(0).click()));
-  await step(DOTS, 'second indicator by Enter', async () => { await dot(1).focus(); await moving(DOTS, () => page.keyboard.press('Enter')); });
+  await step(DOTS, 'third indicator', () => moving(DOTS, () => hit(dot(2))));
+  await step(DOTS, 'first indicator', () => moving(DOTS, () => hit(dot(0))));
+  if (!phone) await step(DOTS, 'second indicator by Enter', async () => { await dot(1).focus(); await moving(DOTS, () => page.keyboard.press('Enter')); });
   await step(DOTS, 'scrolled to the end by hand', () => carousel(DOTS).locator(side.track).evaluate(t => t.scrollTo({ left: t.scrollWidth, behavior: 'instant' })));
 
   // External controls: they dim instead of leaving, and move the carousel that carries their name.
@@ -232,20 +245,30 @@ async function walk(side) {
   lines.push(`#${AUTO} autoplay: the next move            ${await move(12000)}`);
   lines.push(`#${AUTO} autoplay: and the one after       ${await move(12000)}`);
   lines.push(`#${AUTO} autoplay: and the one after that  ${await move(12000)}`);
+  // A phone's tap stands in for the hover: the browser makes a mouse that stays where the finger was.
   const box = await carousel(AUTO).locator(side.track).boundingBox();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  lines.push(`#${AUTO} autoplay: under the pointer, 7s    ${await move(7000)}`);
-  await park();
+  if (phone) await pressAt(page, box.x + box.width / 2, box.y + box.height / 2, phone);
+  else await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  lines.push(`#${AUTO} autoplay: ${phone ? 'after a tap on it, 7s ' : 'under the pointer, 7s'}    ${await move(7000)}`);
+  if (phone) await pressAt(page, 2, 2, phone);
+  else await park();
   moved = Date.now();
-  lines.push(`#${AUTO} autoplay: after the pointer left  ${await move(12000)}`);
-  await (await arrow(AUTO, 'previous')).focus();
-  lines.push(`#${AUTO} autoplay: focus on an arrow, 7s    ${await move(7000)}`);
-  await page.evaluate(() => document.activeElement?.blur());
-  moved = Date.now();
-  lines.push(`#${AUTO} autoplay: after focus left        ${await move(12000)}`);
+  lines.push(`#${AUTO} autoplay: ${phone ? 'after a tap outside ' : 'after the pointer left'}  ${await move(12000)}`);
+  if (!phone) {
+    await (await arrow(AUTO, 'previous')).focus();
+    lines.push(`#${AUTO} autoplay: focus on an arrow, 7s    ${await move(7000)}`);
+    await page.evaluate(() => document.activeElement?.blur());
+    moved = Date.now();
+    lines.push(`#${AUTO} autoplay: after focus left        ${await move(12000)}`);
+    // A press on a slide ends it for good, as the tap above does on a phone.
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await park();
+    moved = Date.now();
+    lines.push(`#${AUTO} autoplay: pressed, then left, 7s  ${await move(7000)}`);
+  }
   await context.close();
 
-  const calm = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: 'reduce' });
+  const calm = await browser.newContext({ ...screen, reducedMotion: 'reduce' });
   const still = await calm.newPage();
   await still.goto(side.url, { waitUntil: 'networkidle' });
   if (side === RASK && !live) await withRuntime(still, 'rask-carousel.ts');
@@ -255,6 +278,22 @@ async function walk(side) {
   lines.push(`#${AUTO} autoplay: reduced motion, 8s      slide ${await still.locator(side.root).nth(AUTO).evaluate((el, s) => [...el.querySelectorAll(s)].findIndex(x => x.hasAttribute('data-selected')) + 1, side.slide)}`);
   await calm.close();
   return lines;
+}
+
+// A finger drawn slowly across a track from one x to another, and held still before it lifts, so the browser
+// flings nothing: where the track ends is where its snapping puts it. Playwright's touchscreen only taps.
+async function swipe(page, from, to, y) {
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, x) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: x === undefined ? [] : [{ x, y }] });
+  await touch('touchStart', from);
+  for (let i = 1; i <= 10; i++) {
+    await touch('touchMove', from + (to - from) * i / 10);
+    await page.waitForTimeout(16);
+  }
+
+  await page.waitForTimeout(100);
+  await touch('touchEnd');
+  await cdp.detach();
 }
 
 // What Tab reaches inside a carousel, in order: each stop by its tag and its name.
