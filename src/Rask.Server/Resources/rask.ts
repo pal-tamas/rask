@@ -233,6 +233,10 @@ import {
     // What left on a connection and no ack has answered yet: the next connection sends it first.
     const unacked = createUnacked();
     let open = false;
+    // Whether a connection has opened before, and so whether the whole page the server sends a new one is a
+    // catch-up: what the browser has is no longer known, and the page repeats every field it did not change.
+    let openedBefore = false;
+    let catchUpOwed = false;
     let attempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let suppressEvents = false;
@@ -402,6 +406,8 @@ import {
     // an HTTP stream names its session in the request that opened it, so there is no hello to send.
     function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
         open = true;
+        catchUpOwed = openedBefore;
+        openedBefore = true;
         connectionIs(false);
         attempt = 0;
         suppressEvents = false;
@@ -1610,6 +1616,7 @@ import {
             const devtools = window.__raskDevtoolsHook;
             const startedAt = devtools ? performance.now() : 0;
             pageApplied(data);
+            catchUpOwed = false;
             applyDiff((data.ops ?? []) as DiffOp[], Array.isArray(data.names) ? data.names : undefined);
             if (devtools) devtools.commit(data, startedAt);
             if (data.history && typeof data.history.url === "string") {
@@ -1663,7 +1670,8 @@ import {
                 const devtools = window.__raskDevtoolsHook;
                 const startedAt = devtools ? performance.now() : 0;
                 pageApplied(data);
-                morph(document.documentElement, freshHtml);
+                morph(document.documentElement, freshHtml, catchUpOwed);
+                catchUpOwed = false;
                 if (devtools) devtools.commit(data, startedAt);
                 root = document.querySelector("[data-rask-root]") || root;
                 // Every full frame re-stamps data-rask-root, so this is where a rebuilt session's NEW
