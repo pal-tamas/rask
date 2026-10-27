@@ -23,7 +23,8 @@ public sealed partial class ComposerParity : FluxParity
         + ".parity-corner{position:absolute;top:0;right:0;padding:4px}"
         + ".parity-close{display:flex;justify-content:center;align-items:center;padding:2px;border-radius:calc(infinity * 1px);"
         + "background:color-mix(in oklab,oklch(0.21 0.006 285.885) 50%,transparent)}"
-        + ".parity-close:hover{background:color-mix(in oklab,oklch(0.21 0.006 285.885) 70%,transparent)}"
+        // `hover:` as Tailwind writes it: only where there is a pointer to hover (a phone has none).
+        + "@media (hover:hover){.parity-close:hover{background:color-mix(in oklab,oklch(0.21 0.006 285.885) 70%,transparent)}}"
         + ".parity-white{color:#fff}"
         + ".parity-fields>*{margin-bottom:24px}"
         + ".parity-send{display:flex;justify-content:flex-end}.parity-send>*{width:100%}</style>";

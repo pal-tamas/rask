@@ -26,7 +26,8 @@ public sealed partial class SeparatorParity : FluxParity
     // tooltip that names it: the one place a page measures a button's own tooltip.
     private static Component Bar(Component separator) =>
         Div.Style("display:flex;gap:24px;align-items:center;justify-content:center")[
-            Raw.Value("<style>.parity-moon:not(:hover){color:var(--color-zinc-300)}</style>"),
+            // zinc-300 at rest, the button's own ink under a pointer — `hover:` only where there is one, as Tailwind's.
+            Raw.Value("<style>.parity-moon{color:var(--color-zinc-300)}@media (hover:hover){.parity-moon:hover{color:revert-layer}}</style>"),
             Ui.Button.Subtle.Icon(Ui.IconName.Moon).Class("parity-moon").Tooltip("Switch to dark theme"),
             separator,
             Ui.Button["Log in"]

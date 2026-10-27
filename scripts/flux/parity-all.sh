@@ -34,8 +34,10 @@ checks() {
     for (const p of pages) {
       const page = p.kind === "layouts" ? `layouts/${p.slug}` : p.slug;
       if (page === "chart") continue;
-      console.log(`parity.mjs ${page} --refresh`);
-      if (p.kind !== "layouts") console.log(`parity.mjs ${page} --refresh --view 390x844`);
+      // The composer is fitted to its text by the runtime as it arrives, so its page is given the hooks.
+      const given = page === "composer" ? " --prepare scripts/flux/composer-grown.mjs" : "";
+      console.log(`parity.mjs ${page} --refresh${given}`);
+      if (p.kind !== "layouts") console.log(`parity.mjs ${page} --refresh --view 390x844${given}`);
     }'
   cat <<'EOF'
 parity-autocomplete.mjs --refresh
