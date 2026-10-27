@@ -521,6 +521,11 @@
   The diagonal toward the flyout, across the rows below, is Flux's safe area and the runtime's too
   (`data-rask-safe-area` on the row): a triangle that follows the pointer.
 */
+@position-try --ui-menu-submenu-inside {
+  inset-inline-start: 5px;
+  inset-block-start: anchor(start);
+}
+
 @layer rask {
   [data-indent] {
     display: none;
@@ -555,7 +560,9 @@
     inset: auto;
     inset-block-start: anchor(start);
     inset-inline-start: calc(anchor(end) - 0.3125rem);
-    position-try-fallbacks: flip-inline;
+    /* With room on neither side — a phone — it slides back to 5px inside the screen, over the menu, at its row:
+       where Flux's lands (measured at 390). */
+    position-try-fallbacks: flip-inline, --ui-menu-submenu-inside;
   }
 
   [data-ui-menu-submenu][data-open] > [data-ui-menu] {

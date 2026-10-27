@@ -274,6 +274,10 @@ them until tagged releases begin.
   attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
   closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
   refuses, as before.
+- **A submenu's flyout with room on neither side stays on the screen, as Flux's does.** Before: on a phone it was
+  turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
+  `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
+  menu — where Flux's lands.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it
