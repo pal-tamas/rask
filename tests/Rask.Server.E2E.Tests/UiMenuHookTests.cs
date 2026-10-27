@@ -201,7 +201,10 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
 
         await cdp.SendAsync("Input.synthesizeTapGesture", new Dictionary<string, object>
         {
-            ["x"] = area.X + (area.Width / 2), ["y"] = area.Y + (area.Height / 2), ["duration"] = 1000, ["gestureSourceType"] = "touch",
+            ["x"] = area.X + (area.Width / 2),
+            ["y"] = area.Y + (area.Height / 2),
+            ["duration"] = 1000,
+            ["gestureSourceType"] = "touch",
         });
         await page.WaitForTimeoutAsync(300);
 
