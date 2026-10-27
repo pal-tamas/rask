@@ -4,7 +4,7 @@ namespace Rask.Site.E2E.Tests.Infrastructure;
 
 internal static class TestArtifacts
 {
-    private static readonly string Root = Path.Combine(LocateRepoRoot(), "TestResults", "E2E");
+    private static readonly string Root = Path.Combine((Repository.Find() ?? AppContext.BaseDirectory), "TestResults", "E2E");
 
     /// <summary>Where a failing test's artifacts for <paramref name="testName" /> are written.</summary>
     public static string DirectoryFor(string fixtureName, string testName)
@@ -48,21 +48,5 @@ internal static class TestArtifacts
         }
 
         await File.WriteAllTextAsync(Path.Combine(dir, "server.log"), serverLog);
-    }
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        return AppContext.BaseDirectory;
     }
 }
