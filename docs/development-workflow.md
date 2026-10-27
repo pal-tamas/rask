@@ -294,11 +294,15 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
   MDN snapshot to the latest stable data, records the public surface that moved with it
   (`scripts/public-api/record.py`), moves the stated Node line to the Active LTS, and moves every pin
   Dependabot cannot read to its newest stable release (the followers listed under *What updates
-  itself*); the result is gated and THEN landed on `main`, with nobody watching. Its `front-ends` matrix scaffolds every
+  itself*). Each follower is a job of its own (`upstream-follow.yml`, `follow.sh <follower>`): its
+  commit is gated by what it can reach and THEN landed on `main`, with nobody watching — so a release
+  the gates refuse holds back that source only. A refusal for a gate `main` is already red on
+  (`scripts/upstream/main-already-red.sh`) is not upstream's: the commit waits on
+  `upstream-waits/<follower>` and is followed again when `full` next passes. Its `front-ends` matrix scaffolds every
   front-end template on the newest npm set `rask new` chooses and runs
-  `scripts/run-template-e2e.sh --front-end=<key>` on it. It opens an issue only when it needs a
-  person: the gates refused what upstream shipped, a template no longer builds on the newest npm
-  packages, or Flux UI moved. The Flux lock
+  `scripts/run-template-e2e.sh --front-end=<key>` on it. Every source keeps ONE issue, opened only
+  when it needs a person — the gates refused what it shipped, a template no longer builds on the
+  newest npm packages, or Flux UI moved — and closed by its next green run. The Flux lock
   (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
   `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not

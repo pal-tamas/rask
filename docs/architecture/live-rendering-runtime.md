@@ -192,3 +192,15 @@ overlay. It is driven by an **opt-in ack protocol**:
 seq-less client gets byte-for-byte the prior frame contract (the render envelope is
 unchanged — the ack is a separate tiny frame, not a payload field). See
 `tests/Rask.Server.Tests/WebSockets/PendingAckTests.cs`.
+
+**Events across a reconnect.** The ack is also what tells the client an event arrived. Every
+frame carrying a seq that no ack has answered is kept (`rask-resend.ts`, at most 64) and sent
+first on the next connection, in order, over either transport — so a click sent into a socket as
+it died is not lost. The session takes an event as run when its handler enters the session lock
+(`EnterSessionAsync` → `LiveSession.FirstSight`), not when it is read: one read just before its
+connection died waits on that connection's token and is dropped with it, and the resend runs
+instead; one that ran is answered with an ack and nothing else. The `hello` (the HTTP stream's
+`Rask-Sent` header) names the newest seq that left on earlier connections, and a page rebuilt from
+its resume record takes all of them as run — the lost host may have run them, and twice is worse
+than never. A sign-in drops what is kept, as the server drops what follows it. See
+`ResentEventTests`, `ResendFixtureTests` and `EventsAcrossReconnectTests` (E2E).

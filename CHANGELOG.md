@@ -14,6 +14,17 @@ them until tagged releases begin.
   longer matches Flux UI", naming each check — when they part. A phone is measured as a phone (touch, overlay
   scrollbars), so Flux's headless-only `scrollbar-gutter` room no longer reads as the kit's dialogs being off
   centre.
+- **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
+  or HTTP stream opens, attaches (first connection, reconnect, replacement or resume-record rebuild; how long it
+  waited; the catch-up it was sent: none, a diff or the whole page, in bytes) and closes (closed by the client,
+  the server, a timeout, an error or the shutdown; the reason; how long it was open; the grace the session then
+  waits), and when each session is made and removed (why, its age, how long it had no connection, the limit that
+  applied). A close the server made for a safety cap or timeout, and a page refused at `MaxSessions`, are
+  `Information`; the refused-attach line now says when and why this host removed the session a returning tab
+  asked for. Sessions are named by a fingerprint, never their id. Before, nothing explained why a tab
+  reconnected or reloaded; turn it on with `Logging__LogLevel__Rask.Live=Debug`. See
+  [The session lifecycle](docs/observability.md#the-session-lifecycle).
+
 - **`[Guest]` — a page only for readers who are not signed in.** A signed-in reader is sent to `Then` (`"/"` by
   default; `[Guest(Then = "/app")]`) before the page is built: a `302` on the first request, and in an open
   session the destination in place of the page, its address replaced — on the Server host and in WebAssembly.
@@ -138,6 +149,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
+  its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and
+  landed by itself, so one release the gates refuse no longer holds back MDN, Node, CLDR and the rest. A red that
+  `main` already has is no longer reported as upstream's: the follower waits and runs again when `full` passes.
+  Every source — each follower, Flux UI, each front-end template — keeps one issue, closed by its next green run.
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
@@ -227,6 +243,27 @@ them until tagged releases begin.
   elsewhere hides it), and once a finger has shown one no finger shows a tooltip again until a mouse moves —
   Flux's own rule. A tap on a toast or its group holds every countdown until a tap elsewhere, as the browser leaves
   its mouse where the tap was.
+- **A frame whose connection goes while it is being made is sent to the next connection, never thrown at the
+  handler (#1258).** Before: a render checked the connection before its walk and read it again to send; a reconnect's
+  cleanup clearing it in between threw a `NullReferenceException` out of `SendGuardedAsync` into the handler
+  (`Rask Live handler 'h…' threw`), and what the click changed never reached the page. After: the connection is read
+  once, and a frame it can no longer carry — gone, or closed — is made again for the connection that attaches next,
+  with the browser calls and the address it carried.
+- **A connection that replaces one is sent the whole page, so nothing a lost frame carried stays missing (#1258).**
+  Before: the diff baseline moved when a frame was written, not when it reached the browser. A frame lost with its
+  connection — the send above, an event stream that had ended and dropped it silently — left the next connection's
+  catch-up a diff against a page the browser never had, and once anything else changed (a source the page follows
+  ticking) the lost change never came: a toast, a value read again, a list's first rows. After: the catch-up after a
+  reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
+  does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
+  one host at once, with the host's cores kept busy, and every answer reaches every page.
+- **A click sent into a connection as it dies is sent again on the next one, and runs once (#1258).** Before: the
+  Server runtime let go of an event the moment it handed it to the socket (or the HTTP transport's POST), so one the
+  server never read was simply gone. After: every event no ack has answered is kept and sent first on the next
+  connection, in order, over either transport; the session takes an event as run when its handler starts, so one that
+  did arrive is only answered again, and a page rebuilt from its resume record on another host runs none of them (the
+  `hello` names the newest it sent). A render asked for from another thread as an event's scope ended could be lost:
+  the two sides' write-then-read now has a full fence between, not just `volatile`.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

@@ -6,6 +6,7 @@ using Rask.Core.Live;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
 using Rask.Server.JSInterop;
+using Rask.Server.Transport;
 
 namespace Rask.Server;
 
@@ -180,7 +181,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         CancelAllPending();
         foreach (var key in _sessions.Keys.ToArray())
         {
-            if (Detach(key) is { } session)
+            if (Detach(key, SessionRemoval.Shutdown, TimeSpan.Zero) is { } session)
             {
                 await session.DisposeAsync().ConfigureAwait(false);
             }
@@ -191,12 +192,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // atomically take the session out of the map, drop the live-count reservation, and record the
     // eviction metric exactly once. Returns the detached session for the caller to dispose (sync or
     // async), or null if another thread already removed it.
-    private LiveSession? Detach(string id)
+    private LiveSession? Detach(string id, SessionRemoval why, TimeSpan limit)
     {
         if (_sessions.TryRemove(id, out var session))
         {
             Interlocked.Decrement(ref _liveCount);
             _metrics?.SessionEvicted();
+            RecentRemovals.Add(id, why, limit, Clock.GetTimestamp());
+            Lifecycle.Removed(session, why, limit, _sessions.Count);
             return session;
         }
 
@@ -320,6 +323,12 @@ public sealed class LiveSessionStore : IAsyncDisposable
         {
             Interlocked.Decrement(ref _liveCount);
             _metrics?.SessionRejected();
+            // A flood at capacity is refused every time; its line is written a handful of times a window.
+            if (RefusedSessionLines.Admit())
+            {
+                Lifecycle.RefusedAtCapacity(MaxSessions);
+            }
+
             return false;
         }
 
@@ -330,8 +339,10 @@ public sealed class LiveSessionStore : IAsyncDisposable
     // detached can be admitted later without re-running the cap logic.
     private void Publish(LiveSession session)
     {
+        session.CreatedAt = Clock.GetTimestamp();
         _sessions[session.Id] = session;
         _metrics?.SessionCreated();
+        Lifecycle.Created(session, _sessions.Count, MaxSessions);
     }
 
     internal LiveSession? Get(string id)
@@ -350,16 +361,18 @@ public sealed class LiveSessionStore : IAsyncDisposable
     /// <summary>Whether the session is on its removal clock: detached, and gone when its grace period ends.</summary>
     internal bool HasPendingRemoval(string id) => _pendingRemovals.ContainsKey(id);
 
-    internal void Remove(string id)
+    internal void Remove(string id, SessionRemoval why = SessionRemoval.Ended)
     {
         CancelPendingRemoval(id);
-        Detach(id)?.Dispose();
+        Detach(id, why, TimeSpan.Zero)?.Dispose();
     }
 
-    internal async Task RemoveAsync(string id)
+    internal Task RemoveAsync(string id, SessionRemoval why = SessionRemoval.Ended) => RemoveAsync(id, why, TimeSpan.Zero);
+
+    private async Task RemoveAsync(string id, SessionRemoval why, TimeSpan limit)
     {
         CancelPendingRemoval(id);
-        if (Detach(id) is { } session)
+        if (Detach(id, why, limit) is { } session)
         {
             await session.DisposeAsync().ConfigureAwait(false);
         }
@@ -373,7 +386,47 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
     private RefusedAttachLines? _refusedAttachLines;
 
-    internal void ScheduleRemoval(string id, TimeSpan delay)
+    // The same allowance for the capacity refusal's line, which a flood can ask for as often as the refused attach's.
+    private RefusedAttachLines RefusedSessionLines => field ??= new RefusedAttachLines(() => Clock);
+
+    /// <summary>
+    ///     Where the session lifecycle is logged (<c>Rask.Live</c>): set by <c>AddRask()</c>; a store built directly
+    ///     writes nothing.
+    /// </summary>
+    internal SessionLifecycleLog Lifecycle { get; set; } = SessionLifecycleLog.None;
+
+    /// <summary>The sessions this host removed lately, so a tab that comes back to one can be told why it is gone.</summary>
+    internal RecentRemovals RecentRemovals { get; } = new();
+
+    private long _connections;
+
+    /// <summary>Numbers a connection that has just opened and logs it, so its attach and close lines can be paired.</summary>
+    internal ConnectionRecord OpenConnection(string transport)
+    {
+        var connection = new ConnectionRecord(Interlocked.Increment(ref _connections), transport, Clock.GetTimestamp());
+        Lifecycle.Opened(connection);
+        return connection;
+    }
+
+    /// <summary>
+    ///     A connection that was the session's has gone: uncounts it, starts the session's removal clock — at once for a
+    ///     tab that left — and logs why it went.
+    /// </summary>
+    internal void Disconnected(LiveSession session, ILiveTransport transport, TimeSpan grace)
+    {
+        session.DetachedAt = Clock.GetTimestamp();
+        SocketDetached();
+        Lifecycle.Detached(transport.Record, session, grace);
+        if (session.Leaving)
+        {
+            ScheduleRemoval(session.Id, TimeSpan.Zero, SessionRemoval.Left);
+            return;
+        }
+
+        ScheduleRemoval(session.Id, grace, SessionRemoval.Detached);
+    }
+
+    internal void ScheduleRemoval(string id, TimeSpan delay, SessionRemoval why = SessionRemoval.Detached)
     {
         // Draining: the drain owns teardown and disposes every session awaited, inside the shutdown
         // window. Doing anything here would be worse than nothing — this used to fire off an unawaited
@@ -385,7 +438,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
 
         if (_stopping.IsCancellationRequested)
         {
-            _ = RemoveAsync(id);
+            _ = RemoveAsync(id, SessionRemoval.Shutdown);
             return;
         }
 
@@ -403,7 +456,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
         // then throws ObjectDisposedException, which the OperationCanceledException catch below
         // would miss, surfacing as an unobserved task exception.
         var token = cts.Token;
-        _ = Task.Run(() => RemoveAfterAsync(id, cts, delay, token), CancellationToken.None);
+        _ = Task.Run(() => RemoveAfterAsync(id, cts, delay, why, token), CancellationToken.None);
     }
 
     // Install the new CTS, retiring any prior pending removal for this id. A CTS must
@@ -434,7 +487,8 @@ public sealed class LiveSessionStore : IAsyncDisposable
         }
     }
 
-    private async Task RemoveAfterAsync(string id, CancellationTokenSource cts, TimeSpan delay, CancellationToken token)
+    private async Task RemoveAfterAsync(
+        string id, CancellationTokenSource cts, TimeSpan delay, SessionRemoval why, CancellationToken token)
     {
         try
         {
@@ -468,7 +522,7 @@ public sealed class LiveSessionStore : IAsyncDisposable
             return;
         }
 
-        await RemoveAsync(id).ConfigureAwait(false);
+        await RemoveAsync(id, why, delay).ConfigureAwait(false);
     }
 
     internal void CancelPendingRemoval(string id)

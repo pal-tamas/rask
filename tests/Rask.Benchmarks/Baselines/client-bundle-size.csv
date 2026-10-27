@@ -436,6 +436,11 @@ rask.js,110100
 rask.wasm.js,96099
 rask-hooks.js,116043
 #
+# 2026-10-27, an event sent into a dying connection is sent again on the next one (rask-resend.ts, Server runtime
+# only: every frame carrying a seq no ack has answered is kept and leaves first on the next connection, and the
+# hello names the newest seq that left): rask.js +700 (110,100 -> 110,800), the others unchanged. Measured locally
+# (Release, the benchmarks job's recipe).
+#
 # 2026-10-27, menus on a touch screen as Flux's: a context menu's long press waits for the finger to lift before
 # it opens (rask-dom.ts, both runtimes +25: 110,100 -> 110,125 and 96,099 -> 96,124); a tap on a submenu's row
 # never closes its flyout, a tap on the row that had focus lights nothing, and a link followed in a `<nav popover>`
@@ -458,7 +463,10 @@ rask-hooks.js,116043
 # button of a searchable list; rask-phone.ts: a finger lights no row). All four of these 2026-10-27 changes together,
 # measured locally (Release, the benchmarks job's recipe) on their merge: rask.js 110,100 -> 110,121, rask.wasm.js
 # 96,099 -> 96,120, rask-hooks.js 116,043 -> 117,568.
+#
+# 2026-10-27, the two sides above merged: the resend (rask.js) and the touch changes together, measured
+# locally (Release, the benchmarks job's recipe) on the merge.
 bundle,bytes
-rask.js,110121
+rask.js,110821
 rask.wasm.js,96120
 rask-hooks.js,117568

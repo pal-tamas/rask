@@ -2,15 +2,14 @@ name: upstream
 
 # Follows everything Rask is generated from, every day, with nobody watching.
 #
-#   follow   scripts/upstream/follow.sh — MDN's latest stable data and the public surface that moves
-#            with it, Node's Active LTS line, the Docker images the code names, Litestream, the
-#            compilers a build downloads (esbuild, tsgo, typescript 6.x, Tailwind) with their digests,
-#            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, and the npm
-#            releases `rask new` falls back on offline (ShippedFrontEndVersionsE2ETests proves them in the gates),
-#            and Unicode CLDR's date-time joins (scripts/upstream/cldr.mjs).
-#            Nothing moved: the run ends here, green. Dependabot keeps the rest (.github/dependabot.yml).
-#   gates    the same gates a push to main is held to (gates.yml), on the commit about to land.
-#   land     that commit onto main. Publishing follows, as it does for any commit ci passed.
+#   follow   a job per follower (scripts/upstream/follow.sh --list), each a call of upstream-follow.yml:
+#            regenerate, gate what that commit can reach, land it, and keep that source's own issue — so
+#            one release the gates refuse holds back its source only. The followers: MDN's latest stable
+#            data and the public surface that moves with it, Node's Active LTS line, the Docker images the
+#            code names, Litestream, Chrome for Testing, the compilers a build downloads with their digests,
+#            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, the npm
+#            releases `rask new` falls back on offline, and Unicode CLDR's date-time joins.
+#            Nothing moved: that job ends green. Dependabot keeps the rest (.github/dependabot.yml).
 #   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
 #            platform, or taken by measuring code that has changed since) re-measures every look and
@@ -21,15 +20,20 @@ name: upstream
 #   front-ends  every front-end template scaffolded on the newest npm set `rask new` chooses, installed,
 #            built, linted and served — the templates pin nothing, so this is where a release that breaks
 #            a starter is caught.
-#   report   an issue, only when a person is needed: the gates refused what upstream shipped, Flux
-#            moved, or Rask.Ui no longer matches it (a look is matched by rewriting a component, which no
-#            script does).
+#
+# Every source keeps ONE issue, opened only when a person is needed and closed by its next green run.
+# A follower the gates refused for a red main already has waits instead (upstream-waits/<follower>): when
+# full.yml next passes on main, this workflow runs again for the waiting followers alone.
 #
 # Unlike a hand push, this is gated BEFORE it lands: a red main waits for whoever pushed it, and
 # nobody pushed this.
 on:
   schedule:
     - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
+  workflow_run:
+    workflows: [full]
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       relock:
@@ -45,123 +49,55 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  follow:
+  # Daily, every follower. After a green full.yml, only those waiting for main — usually none, and the
+  # run ends here.
+  followers:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-26.04
-    permissions:
-      contents: write   # push the branch the gates run on
     outputs:
-      sha: ${{ steps.commit.outputs.sha }}
-      branch: ${{ steps.commit.outputs.branch }}
+      names: ${{ steps.list.outputs.names }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0   # the commit is rebased onto main before it is pushed
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: wasm-tools
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: lts/*
-
-      - name: Follow upstream
+      - id: list
         env:
-          GH_TOKEN: ${{ github.token }}   # GitHub's release API allows an anonymous caller 60 requests an hour
-        run: scripts/upstream/follow.sh
-
-      - name: Commit what moved
-        id: commit
-        env:
-          BRANCH: upstream/${{ github.run_id }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -eu
-          git add -A
-          if git diff --cached --quiet; then
-            echo "Nothing moved upstream."
-            exit 0
-          fi
-
-          # What moved, read off the paths: the subject says it and the stat is the body.
-          moved=""
-          git diff --cached --quiet -- src/Rask.Core/Dom/mdn.snapshot.json || moved="MDN"
-          git diff --cached --quiet -- src/Rask.Cli/NodeRequirement.cs || moved="${moved:+$moved, }Node LTS"
-          git diff --cached --quiet -- src/Rask.Cli/Commands scripts/*.sh || moved="${moved:+$moved, }images"
-          git diff --cached --quiet -- src/Rask.SQLite.Litestream || moved="${moved:+$moved, }Litestream"
-          git diff --cached --quiet -- src/Rask.TypeScript.Tasks src/Rask.Tailwind.Tasks || moved="${moved:+$moved, }compilers"
-          git diff --cached --quiet -- tests/Rask.External.Tests || moved="${moved:+$moved, }adapter fixtures"
-          git diff --cached --quiet -- src/Rask.Cli/Scaffolding/npm.snapshot.json || moved="${moved:+$moved, }front-end releases"
-          git diff --cached --quiet -- src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs || moved="${moved:+$moved, }scaffolded actions"
-          git diff --cached --quiet -- src/Rask.Ui/UiDatetimePickerJoins.g.cs || moved="${moved:+$moved, }CLDR"
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -q -m "chore: follow upstream (${moved:-generated sources})" -m "$(git diff --cached --stat)"
-
-          # Onto main as it is NOW: a branch whose workflows differ from main's is a workflow change to
-          # GitHub, which this token may not push — and main moves while the regeneration builds.
-          git fetch -q origin main
-          git rebase -q origin/main
-          git push -q origin "HEAD:refs/heads/$BRANCH"
-
-          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
-
-  gates:
-    needs: follow
-    if: needs.follow.outputs.sha != ''
-    uses: ./.github/workflows/gates.yml
-    with:
-      set: push
-      ref: ${{ needs.follow.outputs.sha }}
-
-  land:
-    needs: [follow, gates]
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: write   # main, and removing the branch
-      actions: write    # start the workflows a push from here cannot start
-    env:
-      GH_TOKEN: ${{ github.token }}
-      BRANCH: ${{ needs.follow.outputs.branch }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.follow.outputs.sha }}
-          fetch-depth: 0
-
-      - name: Land on main
-        run: |
-          set -eu
-          gated="$(git rev-parse HEAD)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # main moved while the gates ran: carry the one commit over it. A conflict stops here and
-          # tomorrow's run starts from the new main.
-          git fetch -q origin main
-          git rebase -q origin/main
-          git push -q origin HEAD:main
-          git push -q origin --delete "$BRANCH"
-
-          # A push made with the workflow's own token starts no workflow. The commit the gates passed
-          # goes straight to publishing; a rebased one is a commit nothing has gated, so ci goes first
-          # and publishing follows it as usual.
-          if [ "$(git rev-parse HEAD)" = "$gated" ]; then
-            gh workflow run nightly.yml --ref main
-            gh workflow run pages.yml --ref main
+          if [ "$EVENT" = workflow_run ]; then
+            names="$(git ls-remote --heads origin 'refs/heads/upstream-waits/*' | sed 's|.*refs/heads/upstream-waits/||')"
           else
-            gh workflow run ci.yml --ref main
+            names="$(scripts/upstream/follow.sh --list)"
           fi
+          echo "names=$(printf '%s' "$names" | jq -Rnc '[inputs | select(length > 0)]')" >> "$GITHUB_OUTPUT"
+
+  follow:
+    needs: followers
+    if: needs.followers.outputs.names != '[]'
+    name: ${{ matrix.follower }}
+    strategy:
+      fail-fast: false   # one source the gates refuse says nothing about the others
+      max-parallel: 4
+      matrix:
+        follower: ${{ fromJSON(needs.followers.outputs.names) }}
+    permissions:
+      contents: write
+      actions: write
+      issues: write
+    uses: ./.github/workflows/upstream-follow.yml
+    with:
+      follower: ${{ matrix.follower }}
 
   flux:
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, for the lock a baseline measured
+      issues: write
     env:
       LOCK: tests/Rask.Ui.Tests/Flux/flux.lock.json
-    outputs:
-      moved: ${{ steps.sync.outputs.moved }}
+      GH_TOKEN: ${{ github.token }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: Flux UI moved past the Rask.Ui that matches it
     steps:
       - uses: actions/checkout@v7
 
@@ -222,20 +158,56 @@ jobs:
           git rebase -q origin/main
           git push -q origin HEAD:main
 
-      - uses: actions/upload-artifact@v7
-        if: steps.sync.outputs.moved == 'true'
-        with:
-          name: flux
-          path: ${{ runner.temp }}/flux.log
+      - name: Flux UI moved
+        if: steps.sync.outputs.moved == 'true' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          {
+            echo "Flux UI is no longer where Rask.Ui last matched it ($RUN):"
+            echo
+            echo '```'
+            sed -n '/flux sync: Flux moved/,$p' "$RUNNER_TEMP/flux.log"
+            echo '```'
+            echo
+            echo "Match the components named above (\`flux-component\` skill: \`FluxConformanceTests\` names the"
+            echo "props, \`parity.mjs <slug>\` the pixels), then \`gh workflow run upstream.yml -f relock=true\`."
+            echo "The lock is measured on the runner, so a local \`sync.mjs\` measures but does not compare."
+            echo
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another, and closes it when Flux and Rask.Ui match again.</sub>"
+          } > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "$TITLE" "$RUNNER_TEMP/body.md"
+
+      - name: Flux UI matches
+        if: steps.sync.outputs.moved == 'false' && github.ref == 'refs/heads/main'
+        run: |
+          scripts/upstream/issue.sh --close "$TITLE" "Rask.Ui matches Flux UI again: $RUN"
+
+      - name: Flux UI could not be measured
+        if: failure() && github.ref == 'refs/heads/main'
+        run: |
+          printf '%s\n\n%s\n' "The Flux job could not tell whether Flux UI moved: $RUN" \
+            "<sub>Opened by \`.github/workflows/upstream.yml\`, and closed by its next run that can tell.</sub>" > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "Upstream: flux could not be followed" "$RUNNER_TEMP/body.md"
+
+      - name: Flux UI measured
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          scripts/upstream/issue.sh --close "Upstream: flux could not be followed" "Measured again: $RUN"
 
   # Rask.Ui beside Flux UI's live docs, every page and every walk, on a desktop and a phone. The `flux` job above
   # sees Flux move against a lock taken on this platform; this one sees Rask.Ui stop matching, which is the
   # question a person acts on — and it needs no lock, because both pages are measured here, now.
   flux-parity:
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-26.04
     timeout-minutes: 120
-    outputs:
-      drifted: ${{ steps.parity.outputs.drifted }}
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: Rask.Ui no longer matches Flux UI
     steps:
       - uses: actions/checkout@v7
 
@@ -257,6 +229,7 @@ jobs:
           npx playwright install --with-deps chromium
           echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
 
+      # 0 matches, 2 differs (a person is needed), 1 could not tell — fluxui.dev down, a crash: no news about Flux.
       - name: Does Rask.Ui still match Flux UI?
         id: parity
         run: |
@@ -276,10 +249,47 @@ jobs:
             ${{ runner.temp }}/parity.log
             artifacts/flux-parity
 
+      - name: Rask.Ui no longer matches Flux UI
+        if: steps.parity.outputs.drifted == 'true' && github.ref == 'refs/heads/main'
+        run: |
+          set -eu
+          {
+            echo "Rask.Ui and Flux UI's live docs, measured side by side on the runner, now differ ($RUN):"
+            echo
+            echo '```'
+            sed -n '/parity-all: /,$p' "$RUNNER_TEMP/parity.log" | head -200
+            echo '```'
+            echo
+            echo "Every check is one script of \`scripts/flux/\` — run the one named above with \`--refresh --all\` to see"
+            echo "each difference, and match the component the Flux way (\`flux-component\` skill). The measurements of both"
+            echo "pages are in the run's \`flux-parity\` artifact."
+            echo
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another, and closes it when Rask.Ui matches Flux UI again.</sub>"
+          } > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "$TITLE" "$RUNNER_TEMP/body.md"
+
+      - name: Rask.Ui matches Flux UI
+        if: steps.parity.outputs.drifted == 'false' && github.ref == 'refs/heads/main'
+        run: |
+          scripts/upstream/issue.sh --close "$TITLE" "Rask.Ui matches Flux UI again: $RUN"
+
+      - name: Rask.Ui could not be held to Flux UI
+        if: failure() && github.ref == 'refs/heads/main'
+        run: |
+          printf '%s\n\n%s\n' "The flux-parity job could not tell whether Rask.Ui still matches Flux UI: $RUN" \
+            "<sub>Opened by \`.github/workflows/upstream.yml\`, and closed by its next run that can tell.</sub>" > "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "Upstream: flux-parity could not be followed" "$RUNNER_TEMP/body.md"
+
+      - name: Rask.Ui held to Flux UI
+        if: success() && github.ref == 'refs/heads/main'
+        run: |
+          scripts/upstream/issue.sh --close "Upstream: flux-parity could not be followed" "Measured again: $RUN"
+
   # The templates name no version: `rask new` chooses the newest set that installs together, so what npm
   # released overnight is what the next scaffold gets. This proves that set, on main as it is, every day —
   # scaffolded, installed from the live registry, built, linted and served — rather than when a template changes.
   front-end-keys:
+    if: github.event_name != 'workflow_run'
     runs-on: ubuntu-26.04
     outputs:
       keys: ${{ steps.list.outputs.keys }}
@@ -293,10 +303,17 @@ jobs:
     name: front end ${{ matrix.key }} (newest npm)
     runs-on: ubuntu-26.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: write
     strategy:
       fail-fast: false   # one template that no longer installs says nothing about the others
       matrix:
         key: ${{ fromJSON(needs.front-end-keys.outputs.keys) }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      TITLE: "Upstream: front end ${{ matrix.key }} no longer builds on the newest npm"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -311,92 +328,24 @@ jobs:
           RASK_BUILD_SLOTS: 4
         run: scripts/run-template-e2e.sh --front-end=${{ matrix.key }}
 
-  report:
-    needs: [follow, gates, land, flux, flux-parity, front-ends]
-    if: always() && (contains(needs.*.result, 'failure') || needs.flux.outputs.moved == 'true' || needs.flux-parity.outputs.drifted == 'true')
-    runs-on: ubuntu-26.04
-    permissions:
-      contents: read
-      issues: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      BRANCH: ${{ needs.follow.outputs.branch }}
-      FRONT_ENDS: ${{ needs.front-ends.result }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/download-artifact@v8
-        if: needs.flux.outputs.moved == 'true'
-        with:
-          name: flux
-          path: ${{ runner.temp }}
-
-      - uses: actions/download-artifact@v8
-        if: needs.flux-parity.outputs.drifted == 'true'
-        with:
-          name: flux-parity
-          path: ${{ runner.temp }}/flux-parity
-
-      - name: Upstream could not be followed
-        if: contains(needs.*.result, 'failure')
+      - name: The starter broke
+        if: failure() && github.ref == 'refs/heads/main'
+        env:
+          KEY: ${{ matrix.key }}
         run: |
           set -eu
           {
-            echo "The daily upstream run could not land what moved: $RUN"
+            echo "The \`$KEY\` template no longer builds on the newest npm packages \`rask new\` chooses: $RUN"
             echo
-            if [ "$FRONT_ENDS" = "failure" ]; then
-              echo "A front-end template no longer builds on the newest npm packages \`rask new\` chooses: a release"
-              echo "upstream broke the starter, and every scaffold from today gets it. Fix the starter for the new"
-              echo "release, or — only when that cannot be done yet — hold the package with a range in its template"
-              echo "(and in TemplateNodePinTests' holds), with the reason beside it."
-              echo
-            fi
-            if [ -n "$BRANCH" ]; then
-              echo "The regenerated tree is on \`$BRANCH\`. The red job names the gate script to run against it;"
-              echo "fix forward on main, and the next run lands a fresh regeneration."
-            else
-              echo "It failed before there was anything to gate — see the \`follow\` or \`flux\` job."
-            fi
+            echo "A release upstream broke the starter, and every scaffold from today gets it. Fix the starter for"
+            echo "the new release, or — only when that cannot be done yet — hold the package with a range in its"
+            echo "template (and in TemplateNodePinTests' holds), with the reason beside it."
             echo
-            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once a run is green.</sub>"
+            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another, and closes it when the template builds again.</sub>"
           } > "$RUNNER_TEMP/body.md"
-          scripts/upstream/issue.sh "Upstream moved and Rask could not follow" "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh "$TITLE" "$RUNNER_TEMP/body.md"
 
-      - name: Flux UI moved
-        if: needs.flux.outputs.moved == 'true'
+      - name: The starter builds
+        if: success() && github.ref == 'refs/heads/main'
         run: |
-          set -eu
-          {
-            echo "Flux UI is no longer where Rask.Ui last matched it ($RUN):"
-            echo
-            echo '```'
-            sed -n '/flux sync: Flux moved/,$p' "$RUNNER_TEMP/flux.log"
-            echo '```'
-            echo
-            echo "Match the components named above (\`flux-component\` skill: \`FluxConformanceTests\` names the"
-            echo "props, \`parity.mjs <slug>\` the pixels), then \`gh workflow run upstream.yml -f relock=true\`."
-            echo "The lock is measured on the runner, so a local \`sync.mjs\` measures but does not compare."
-            echo
-            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once that run is green.</sub>"
-          } > "$RUNNER_TEMP/body.md"
-          scripts/upstream/issue.sh "Flux UI moved past the Rask.Ui that matches it" "$RUNNER_TEMP/body.md"
-
-      - name: Rask.Ui no longer matches Flux UI
-        if: needs.flux-parity.outputs.drifted == 'true'
-        run: |
-          set -eu
-          {
-            echo "Rask.Ui and Flux UI's live docs, measured side by side on the runner, now differ ($RUN):"
-            echo
-            echo '```'
-            sed -n '/parity-all: /,$p' "$RUNNER_TEMP/flux-parity/parity.log" | head -200
-            echo '```'
-            echo
-            echo "Every check is one script of \`scripts/flux/\` — run the one named above with \`--refresh --all\` to see"
-            echo "each difference, and match the component the Flux way (\`flux-component\` skill). The measurements of both"
-            echo "pages are in the run's \`flux-parity\` artifact."
-            echo
-            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another. Close it once a run is green.</sub>"
-          } > "$RUNNER_TEMP/body.md"
-          scripts/upstream/issue.sh "Rask.Ui no longer matches Flux UI" "$RUNNER_TEMP/body.md"
+          scripts/upstream/issue.sh --close "$TITLE" "Builds again on the newest npm: $RUN"

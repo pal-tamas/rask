@@ -352,6 +352,42 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // The newest event seq this session has run. The browser numbers its events in the order it sends them and
+    // sends again, on its next connection, every one no ack answered — some of which arrived before the old one died.
+    private long _eventsSeen;
+
+    /// <summary>
+    ///     Whether an event numbered <paramref name="seq" /> is new here, and takes it as run; one already run is a
+    ///     resend. An event with no seq (a client that numbers none) is always new.
+    /// </summary>
+    internal bool FirstSight(long seq)
+    {
+        if (seq <= 0)
+        {
+            return true;
+        }
+
+        var seen = Volatile.Read(ref _eventsSeen);
+        while (seq > seen)
+        {
+            var was = Interlocked.CompareExchange(ref _eventsSeen, seq, seen);
+            if (was == seen)
+            {
+                return true;
+            }
+
+            seen = was;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Takes every event up to <paramref name="seq" /> as seen: a page rebuilt from its resume record cannot know
+    ///     which of them its lost host ran, and running one twice is worse than its being lost.
+    /// </summary>
+    internal void SeenUpTo(long seq) => FirstSight(seq);
+
     // The events batch frames carried in the current one-second window. A batch is ONE frame to the transport's
     // rate cap, so its events are counted here against the same number. Written by whichever request is reading
     // this session's frames — one at a time for a socket, and for a browser's POSTs, which it sends one at a time.
@@ -591,24 +627,19 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             return;
         }
 
-        if (InHandlerScope)
+        // Defer to the dispatch's final RenderAndSendCoalescingAsync so a single
+        // coalesced payload (carrying the captured historyUrl/replace/auth) reaches
+        // the wire — multiple in-handler StateHasChanged calls would otherwise emit
+        // intermediate payloads, double-morphing <head> and momentarily orphaning
+        // the scoped-css <link> during navigation. publishOnly intentionally
+        // dissolves into the dispatch's outer render flags, matching WASM
+        // (Rask.Wasm/WasmLiveSession.cs:79-87).
+        // A dispatch that finished its coalescing loop and cleared the scope in between will not look at the flag
+        // again, so this request then renders itself instead of being dropped.
+        if (InHandlerScope && LeaveRenderToTheScope())
         {
-            // Defer to the dispatch's final RenderAndSendCoalescingAsync so a single
-            // coalesced payload (carrying the captured historyUrl/replace/auth) reaches
-            // the wire — multiple in-handler StateHasChanged calls would otherwise emit
-            // intermediate payloads, double-morphing <head> and momentarily orphaning
-            // the scoped-css <link> during navigation. publishOnly intentionally
-            // dissolves into the dispatch's outer render flags, matching WASM
-            // (Rask.Wasm/WasmLiveSession.cs:79-87).
-            _pendingRenderInScope = true;
-
-            // Re-read after the write: a dispatch that finished its coalescing loop and cleared the scope in between
-            // will not look at the flag again, so this request renders itself instead of being dropped.
-            if (InHandlerScope)
-            {
-                await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
-                return;
-            }
+            await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
+            return;
         }
 
         await Lock.WaitAsync(_socketCt).ConfigureAwait(false);
@@ -981,9 +1012,30 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // ordering holds on weak memory models too (see the _transport field note).
             Volatile.Write(ref _transport, transport);
             _hasAttachedBefore = true;
+            Connections++;
             return wasDetached;
         }
     }
+
+    /// <summary>How many connections have attached to this session, the one attached now included.</summary>
+    internal int Connections { get; private set; }
+
+    /// <summary>When the store published this session, on the store's clock.</summary>
+    internal long CreatedAt { get; set; }
+
+    /// <summary>When its last connection detached, on the store's clock; zero while none has.</summary>
+    internal long DetachedAt { get; set; }
+
+    /// <summary>What the log calls this session — a fingerprint of the id, made the first time a line names it.</summary>
+    internal string Fingerprint => _fingerprint ??= SessionFingerprint.Of(Id);
+
+    private string? _fingerprint;
+
+    /// <summary>Every byte of every frame this session has sent, so an attach can say what its catch-up cost.</summary>
+    internal long BytesSent { get; private set; }
+
+    /// <summary>Whether the last frame sent was a diff rather than the whole page.</summary>
+    internal bool LastFrameWasDiff { get; private set; }
 
     /// <summary>Whether a connection is attached and still open — the one state a session must never be removed in.</summary>
     internal bool HasOpenTransport => Volatile.Read(ref _transport)?.IsOpen == true;
@@ -1091,6 +1143,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await SendGuardedAsync(payload).ConfigureAwait(false);
             return true;
         }
+        catch (Exception ex) when (ConnectionWentUnder(ex))
+        {
+            // It went between the look and the send.
+            return false;
+        }
         finally
         {
             _renderLock.Release();
@@ -1185,7 +1242,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     private async ValueTask SendGuardedAsync(ReadOnlyMemory<byte> payload)
     {
-        var transport = Volatile.Read(ref _transport)!;
+        // Read once: a connection's cleanup clears it on its own thread, at any point of a render that checked it
+        // before the walk. Gone by now, the frame is the next connection's (RenderAndSendAsync), never a
+        // NullReferenceException in the handler that asked for it (#1258).
+        if (Volatile.Read(ref _transport) is not { IsOpen: true } transport)
+        {
+            throw new WebSocketException(WebSocketError.InvalidState, "The connection went while its frame was made.");
+        }
 
         if (_sendTimeout <= TimeSpan.Zero)
         {
@@ -1208,6 +1271,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
                 RaskLogLevel.Warning, "Rask.Live",
                 $"Aborting a socket whose send did not complete within {_sendTimeout}. The client stopped "
                 + "reading; its session is kept for the reconnect grace period.");
+            transport.Record.Ended(ClosedBy.Timeout, "send timeout");
             transport.Abort();
 
             throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.", timedOut);
@@ -1390,22 +1454,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
             var renderStarted = Stopwatch.GetTimestamp();
             var force = WriteFrame(html, frameWriter, download, jsInvokes, historyUrl, replace, auth, out var payloadBytes);
-            bool sent;
-            try
-            {
-                sent = await TryEmitFrameAsync(force).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (jsInvokes is not null)
-            {
-                // The queue was already drained at line ~225, so any taskIds in this batch
-                // would otherwise hang their awaiting Task<T> forever — the JS side never
-                // received the request, so no jsResult is coming back. Fail them locally
-                // with the send error before letting the exception propagate so callers see
-                // a meaningful JSException instead of an infinite await.
-                FailPendingJsInvokes(jsInvokes, ex);
-                throw;
-            }
-
+            var sent = await EmitAsync(force, jsInvokes, historyUrl).ConfigureAwait(false);
             if (sent)
             {
                 RecordSent(renderStarted, payloadBytes);
@@ -1419,6 +1468,51 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
+    // Sends the frame just written. One the connection went under is kept for the next connection; any other failure
+    // fails the calls it carried, which nothing would otherwise answer, and is the caller's.
+    private async ValueTask<bool> EmitAsync(bool force, PendingJsInvoke[]? jsInvokes, string? historyUrl)
+    {
+        try
+        {
+            return await TryEmitFrameAsync(force).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ConnectionWentUnder(ex))
+        {
+            KeepForTheNextConnection(jsInvokes, historyUrl);
+            return false;
+        }
+        catch (Exception ex) when (jsInvokes is not null)
+        {
+            // The queue was already drained, so any taskIds in this batch would otherwise hang their awaiting
+            // Task<T> forever — the JS side never received the request, so no jsResult is coming back. Fail them
+            // locally with the send error before letting the exception propagate so callers see a meaningful
+            // JSException instead of an infinite await.
+            FailPendingJsInvokes(jsInvokes, ex);
+            throw;
+        }
+    }
+
+    // The send failed because the connection went or closed under the render: what the reader has not been sent is
+    // the next connection's to send, not an error of the handler that asked for it.
+    private bool ConnectionWentUnder(Exception ex) =>
+        ex is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException
+        && !_disposed
+        && Volatile.Read(ref _transport) is not { IsOpen: true };
+
+    // A frame that could not be sent is made again for the connection that attaches next, with the calls it carried
+    // and the address it moved to: the reader is shown it then, as a render asked for while detached would be.
+    private void KeepForTheNextConnection(PendingJsInvoke[]? jsInvokes, string? historyUrl)
+    {
+        if (jsInvokes is not null)
+        {
+            JsInvokes.PutBack(jsInvokes);
+        }
+
+        _undeliveredAddress = historyUrl ?? _undeliveredAddress;
+        _renderRequestedWhileDetached = true;
+        _forceResend = true;
+    }
+
     // Consume a reconnect's resend request inside the lock that owns the dedup
     // baselines, so AttachSocket never has to touch them from another thread. Clearing
     // both forces this render past the HTML dedup (below) and the buffer dedup (line
@@ -1428,8 +1522,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         if (_forceResend)
         {
             _forceResend = false;
-            _lastSentBuffer = null;
-            _htmlBuffers.Invalidate();
+            ForgetWhatTheBrowserHas();
         }
     }
 
@@ -1478,6 +1571,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private void RecordSent(long renderStarted, int payloadBytes)
     {
         _htmlBuffers.Commit();
+        BytesSent += payloadBytes;
+        LastFrameWasDiff = WroteDiff;
 
         // Only when a frame actually went out. Recording a deduped render — one whose bytes
         // matched the last frame and was suppressed — would put a zero-byte sample in the payload

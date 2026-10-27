@@ -52,6 +52,7 @@ import {
     type LiveConnection,
 } from "./rask-http-transport.js";
 import { createAuthWatch } from "./rask-auth-watch.js";
+import { createUnacked, newestSeq } from "./rask-resend.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
@@ -217,7 +218,10 @@ import {
     // Set for closes the runtime asks for itself (a sign-in, an expired session). Those are never evidence that
     // the network is dropping sockets.
     let deliberateClose = false;
-    const queue: string[] = [];
+    // What waits for a connection, with the newest event seq each carries (rask-resend.ts).
+    const queue: { message: string; seq: number }[] = [];
+    // What left on a connection and no ack has answered yet: the next connection sends it first.
+    const unacked = createUnacked();
     let open = false;
     let attempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -362,8 +366,13 @@ import {
     // What waited — for a connection, or for an answer about who the browser is now — leaves in the order it came.
     function flushQueue(): void {
         if (!open || !conn || !conn.isOpen) return;
-        for (const m of queue) conn.send(m);
+        for (const m of queue) put(m.message, m.seq);
         queue.length = 0;
+    }
+
+    function put(message: string, seq: number): void {
+        conn!.send(message);
+        unacked.sent(message, seq);
     }
 
     // The browser's credential is not the one this connection opened with. Open it again, so the upgrade carries
@@ -390,13 +399,16 @@ import {
             // The resume record rides along so a server that doesn't know this session can rebuild the page
             // instead of telling us to reload. A server that DOES know it ignores the field entirely — the intact
             // session is always the better outcome, and is what a normal reconnect within the grace period gets.
-            const hello: { type: string; session: string | null; resume?: string } =
+            const hello: { type: string; session: string | null; resume?: string; sent?: number } =
                 {type: "hello", session: sessionId};
             if (resumeToken) hello.resume = resumeToken;
+            if (unacked.newest > 0) hello.sent = unacked.newest;
             sendHello(JSON.stringify(hello));
         }
         // The upgrade has just carried the browser's cookie as it is now, so nothing is owed an answer.
         authWatch.opened();
+        // What the last connection carried and nobody answered goes first: it happened before anything waiting.
+        for (const message of unacked.again()) conn!.send(message);
         flushQueue();
         // Values the field restore put back into the DOM at boot, pushed to the server now that there is a
         // connection to push them over — so the model ends up holding what the page shows rather than the
@@ -491,6 +503,7 @@ import {
             sessionId: sessionId ?? "",
             url: (kind, session) => prependBase("/_rask/" + kind + "/" + encodeURIComponent(session)),
             resumeToken,
+            sent: unacked.newest,
             onOpen: (session) => {
                 // The session the server attached: a rebuilt one has a new id, and the next reconnect must ask for
                 // the session the tab now has. The full frame that follows re-stamps the document with it too.
@@ -588,6 +601,7 @@ import {
         // bar up after the round-trip has actually completed.
         if (data.type === "ack") {
             satisfySeq(data.seq);
+            if (typeof data.seq === "number") unacked.acked(data.seq);
             // What the reader opened or shut is the render's again once the answer to it is on the page — and
             // that render is in the queue ahead of this, not necessarily applied (rask-owned.ts).
             const seq = data.seq;
@@ -1728,8 +1742,9 @@ import {
         const devtools = window.__raskDevtoolsHook;
         if (devtools) devtools.send(frame, new TextEncoder().encode(msg).length);
         // Nothing leaves while it is in doubt who the browser is now (rask-auth-watch.ts).
-        if (open && conn && conn.isOpen && !authWatch.holds()) conn.send(msg);
-        else queue.push(msg);
+        const seq = newestSeq(frame);
+        if (open && conn && conn.isOpen && !authWatch.holds()) put(msg, seq);
+        else queue.push({message: msg, seq});
     }
 
     // Rask.External is a separate, opt-in module, so it cannot see `send` in this scope — but it must
@@ -1746,6 +1761,8 @@ import {
 
     function redeemAuthTicket(auth: { ticket?: string; url?: string }): void {
         suppressEvents = true;
+        // The server drops what follows a sign-in, and so does the next connection.
+        unacked.forget();
         // The imminent socket close + reconnect is an auth step — show "Authenticating…" up front
         // so the user never sees "Reconnecting…" for a deliberate sign-in/out.
         authInProgress = true;

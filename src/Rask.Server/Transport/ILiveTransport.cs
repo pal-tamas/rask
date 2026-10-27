@@ -24,6 +24,9 @@ internal interface ILiveTransport
     /// </summary>
     bool IsOpen { get; }
 
+    /// <summary>The connection as the log tells it: its number, when it opened, and why it ended.</summary>
+    ConnectionRecord Record { get; }
+
     /// <summary>Writes one complete frame.</summary>
     /// <remarks>
     ///     Completing means the frame reached the transport, never that the client read it — which is why

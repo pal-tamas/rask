@@ -24,7 +24,8 @@ namespace Rask.Server.Transport;
 ///     </para>
 /// </remarks>
 #pragma warning disable CA1001 // _write only ever WaitAsync/Release — no wait handle to free — and a send can outlive the request
-internal sealed class SseTransport(PipeWriter writer, int generation, CancellationToken lifetime = default)
+internal sealed class SseTransport(
+    PipeWriter writer, int generation, ConnectionRecord? record = null, CancellationToken lifetime = default)
     : ILiveTransport
 #pragma warning restore CA1001
 {
@@ -48,6 +49,8 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
 
     public bool IsOpen => !_closed;
 
+    public ConnectionRecord Record { get; } = record ?? new ConnectionRecord(0, "HTTP stream", 0);
+
     /// <summary>
     ///     Cancelled when the stream's own request ends. What a POST's frames are dispatched under: the POST's
     ///     request token belongs to a request that has already been answered by the time a queued handler runs,
@@ -61,20 +64,15 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
     /// </summary>
     public Task Completed => _completed.Task;
 
+    // A frame for a stream that has ended is not sent, and says so, as a closed socket's send does: the session keeps
+    // it for the next connection rather than counting it as the browser's.
     public async ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct)
     {
-        if (_closed)
-        {
-            return;
-        }
-
+        ThrowIfEnded();
         await _write.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_closed)
-            {
-                return;
-            }
+            ThrowIfEnded();
 
             WriteData(frame.Span);
             await writer.FlushAsync(ct).ConfigureAwait(false);
@@ -126,6 +124,7 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
             return;
         }
 
+        Record.Ended(reason, description);
         await _write.WaitAsync(ct).ConfigureAwait(false);
         try
         {
@@ -162,6 +161,14 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
         if (await _write.WaitAsync(timeout, CancellationToken.None).ConfigureAwait(false))
         {
             _write.Release();
+        }
+    }
+
+    private void ThrowIfEnded()
+    {
+        if (_closed)
+        {
+            throw new IOException("The event stream has ended.");
         }
     }
 
