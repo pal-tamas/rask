@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
@@ -234,6 +235,28 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
         Assert.True(afterPress, "the trigger's own popovertarget toggled the hover-opened panel shut");
         Assert.False(onFocus);
         Assert.True(await session.ShownAsync("#panel"));
+    }
+
+    // Measured on Flux UI's popover page at 390 × 844 on a touch screen (2026-10-27): each tap on a hover trigger toggles
+    // its panel, as a press on any popover's button does, and so does Enter on the button a tap opened it from. A
+    // finger never hovers, so nothing opened it before the tap.
+    [Fact]
+    public async Task On_a_touch_screen_each_tap_on_a_hover_trigger_toggles_its_panel_and_so_does_Enter()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright,
+            new BrowserNewContextOptions { ViewportSize = new() { Width = 1000, Height = 700 }, HasTouch = true });
+        var page = session.Page;
+
+        await page.TapAsync("#hover-trigger");
+        var first = await session.ShownAsync("#panel");
+        await page.TapAsync("#hover-trigger");
+        var second = await session.ShownAsync("#panel");
+        await page.TapAsync("#hover-trigger");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.True(first, "a tap did not open the hover panel");
+        Assert.False(second, "a second tap kept the hover panel open, as a mouse press over it does");
+        Assert.False(await session.ShownAsync("#panel"), "Enter kept a panel a tap opened, as it keeps one the pointer opened");
     }
 
     [Fact]

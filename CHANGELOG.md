@@ -194,6 +194,16 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **On a phone, Rask.Ui's popovers, selects, pillboxes and phone fields answer a finger as Flux UI's do** (measured on
+  fluxui.dev at 390 × 844 on a touch screen). A second tap on the button of an open popover shut it and opened it
+  again at once — the tap's click came after the page lock let go and pressed the button under it; now that tap
+  presses nothing, as Flux's lands on the page (`rask-lock.ts`). A tap on a hover popover's button kept it open
+  however often it was tapped; now each tap toggles it, and so does Enter after a tap opened it (`rask-hover.ts`). A
+  tap that opens a searchable list left focus in its search field, which raises a phone's keyboard over the list;
+  now focus stays on the button, as on Flux, and a click or a key still hands it to the field (`rask-overlay.ts`). A
+  finger held on a phone field's country lit the row; now only the mouse lights one (`rask-phone.ts`). A pillbox's
+  pills were 14px on a phone where Flux sets them in the trigger's 16px (`text-base sm:text-sm`; a small pillbox's
+  stay 14px).
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

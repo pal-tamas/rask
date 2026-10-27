@@ -73,7 +73,13 @@ function crosses(root: Element, e: Event): boolean {
 // document.activeElement stays where it was (measured on its sidebar demo, 2026-10-09). A popover carrying
 // `autofocus` — a menu does, so that a press or the keyboard hands it the arrow keys — would take it as it
 // shows, so for the length of that one call it does not carry it.
+// The panels the pointer opened, until they close: only such a panel is kept by a press on its button.
+const hovered = new WeakSet<Element>();
+
 function showUnfocused(panel: HTMLElement | null): void {
+    if (panel && !isShown(panel)) {
+        hovered.add(panel);
+    }
     const takes = !!panel && panel.hasAttribute("autofocus");
     if (takes) {
         panel!.removeAttribute("autofocus");
@@ -211,15 +217,26 @@ if (page) {
 
     // A hover-opened panel is already open when its own button is pressed, and the button's popovertarget
     // would toggle it shut under the pointer that is still on it. So that press is not a toggle: the panel
-    // stays. From the keyboard nothing has opened it, and Enter opens it the platform's way.
+    // stays. From the keyboard nothing has opened it, and Enter opens it the platform's way. Nor has a finger
+    // (a touch never hovers): on a phone each tap on the button toggles it, and so does Enter after a tap
+    // opened it, as on Flux UI's popover page (2026-10-27).
+    listen("toggle", function (e) {
+        if ((e as ToggleEvent).newState === "closed" && e.target instanceof Element) {
+            hovered.delete(e.target);
+        }
+    }, true);
+
     listen("click", function (e) {
+        if ((e as PointerEvent).pointerType === "touch") {
+            return;
+        }
         const invoker = near(e.target, "[popovertarget]");
         const hover = invoker ? invoker.closest("[" + HOVER + "]") : null;
         if (!invoker || !hover || !hoverable(hover)) {
             return;
         }
         const panel = named(hover, HOVER);
-        if (panel && panel.id === invoker.getAttribute("popovertarget") && isShown(panel) && hover.matches(":hover")) {
+        if (panel && panel.id === invoker.getAttribute("popovertarget") && isShown(panel) && hovered.has(panel) && hover.matches(":hover")) {
             e.preventDefault();
         }
     }, true);

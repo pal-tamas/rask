@@ -127,6 +127,26 @@ if (page) {
         window.setTimeout(function () { recount(doc); }, 0);
     }, true);
 
+    // A TAP outside lands on <html> as a press does, and closes the overlay there — but a phone makes the
+    // tap's mouse events and click only once the finger is up, when the lock has let go, and hit-tests them
+    // again: on the trigger the tap closed it from, that click opened it again. Flux's tap presses nothing
+    // (measured on its popover page, 2026-10-27: every event of the second tap on the trigger goes to <html>).
+    // So the rest of a tap that began on the locked page is not handed to what is under it.
+    let swallowed = false;
+    listen("pointerdown", function (e) {
+        swallowed = (e as PointerEvent).pointerType === "touch" && locked === "all" && e.target === doc.documentElement;
+    }, true);
+    const swallow = function (e: Event): void {
+        if (swallowed) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            swallowed = e.type !== "click";
+        }
+    };
+    listen("mousedown", swallow, true);
+    listen("mouseup", swallow, true);
+    listen("click", swallow, true);
+
     if (typeof MutationObserver === "function") {
         // Only while locked does a node leaving the page matter, and only then is anything looked at.
         new MutationObserver(function (records) {

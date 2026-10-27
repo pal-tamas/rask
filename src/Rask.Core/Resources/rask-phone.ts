@@ -83,6 +83,12 @@ if (page) {
     listen("beforetoggle", heard, true);
     listen("keydown", heard, true);
     listen("input", heard, true);
-    listen("pointerover", heard, true);
+    // A finger lights no row as it lands: measured on Flux UI's phone page (2026-10-27), a row held under a
+    // finger is not lit, as a row of every other list is lit only by the mouse's events (rask-list.ts).
+    listen("pointerover", function (e) {
+        if ((e as PointerEvent).pointerType !== "touch") {
+            heard(e);
+        }
+    }, true);
     listen("click", heard, true);
 }

@@ -73,6 +73,27 @@ public sealed class RuntimeHookOverlayTests(PlaywrightFixture playwright) : ICla
         await Expect(page.Locator("#pop-open")).ToBeFocusedAsync();
     }
 
+    // Measured on Flux UI's select page (2026-10-27): a tap opens a searchable list with focus on its button, so no
+    // keyboard rises over the list on a phone; a click or a key opens it with focus in the search field.
+    [Fact]
+    public async Task A_tap_opens_a_popover_with_focus_left_on_its_button_where_a_click_hands_it_to_the_field()
+    {
+        await using var session = await HookSession.OpenAsync<OverlayHookPage>(playwright,
+            new Microsoft.Playwright.BrowserNewContextOptions { HasTouch = true });
+        var page = session.Page;
+
+        await page.TapAsync("#search-open");
+        // The popover's toggle event, which hands focus back, is a task after the tap's.
+        await page.EvaluateAsync("() => new Promise(done => requestAnimationFrame(() => setTimeout(done)))");
+        var tapped = await session.FocusAsync();
+        await page.Keyboard.PressAsync("Escape");
+        await page.ClickAsync("#search-open");
+        await page.EvaluateAsync("() => new Promise(done => requestAnimationFrame(() => setTimeout(done)))");
+
+        Assert.Equal("search-open", tapped);
+        Assert.Equal("search-field", await session.FocusAsync());
+    }
+
     [Fact]
     public async Task A_manual_popover_is_left_open_when_focus_leaves_it()
     {
@@ -260,6 +281,8 @@ public sealed partial class OverlayHookPage : Component
         <dialog id="lock-scroll" data-rask-lock="scroll">Modal</dialog>
         <button id="lock-dialog-open" type="button" popovertarget="lock-dialog">Lock</button>
         <dialog id="lock-dialog" popover data-rask-lock style="position:fixed;left:20px;top:300px;margin:0">Calendar</dialog>
+        <button id="search-open" type="button" popovertarget="search" style="position:fixed;left:300px;top:200px">Country</button>
+        <div id="search" popover style="position:fixed;left:300px;top:240px;margin:0"><input id="search-field" autofocus></div>
         """;
 
     private bool _open;

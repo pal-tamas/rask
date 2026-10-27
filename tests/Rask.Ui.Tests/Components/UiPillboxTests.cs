@@ -175,6 +175,19 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(slotted.Find("[data-ui-pillbox-trigger][data-invalid]"));
     }
 
+    // Measured on Flux's pillbox page at 390 × 844: a pill is 16px there, the trigger's size, and 14px from sm up.
+    [Fact]
+    public void A_pill_is_set_in_the_triggers_size_on_a_phone_and_a_small_one_always_in_14px()
+    {
+        _picked = ["Design"];
+
+        var (plain, small) = (Page.Render(Pillbox), Page.Render(() => Ui.Pillbox.Values(_picked).Sm[Ui.PillboxOption.Key("Design")["Design"]]));
+
+        Assert.Contains("text-base sm:text-sm", plain.Find("[data-ui-pillbox-trigger] [data-value]").Attribute("class"), StringComparison.Ordinal);
+        Assert.Contains(" text-sm", small.Find("[data-ui-pillbox-trigger] [data-value]").Attribute("class"), StringComparison.Ordinal);
+        Assert.DoesNotContain("text-base", small.Find("[data-ui-pillbox-trigger] [data-value]").Attribute("class"), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_bound_pillbox_writes_its_field_and_reads_the_collection()
     {
