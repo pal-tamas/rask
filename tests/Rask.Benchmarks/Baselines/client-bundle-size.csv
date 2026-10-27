@@ -479,3 +479,11 @@ bundle,bytes
 rask.js,111091
 rask.wasm.js,96120
 rask-hooks.js,117568
+#
+# 2026-10-27, an HTTP stream that was answered waits out its attach instead of the open deadline (rask-http-
+# transport.ts, Server runtime only): rask.js 111,091 -> 111,095, the others unchanged. Measured locally (Release)
+# on the tree merged with main 2cfce9fc3.
+bundle,bytes
+rask.js,111095
+rask.wasm.js,96120
+rask-hooks.js,117568
