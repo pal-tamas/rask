@@ -577,11 +577,19 @@ export function _raskDiscardFrameworkHeadMutations() {
 // left alone.
 _raskEnsureHeadObserver();
 
-export function morph(fromNode: Node, toNode: Node): void {
+// Whether the page being morphed in is a catch-up: the whole page sent to a connection that replaced one, because
+// the server no longer knows which of its frames the browser has. It is no news about a field whose rendered value
+// it repeats — the frames before it would have sent nothing for that field either — so it leaves what the reader
+// typed or ticked there, focused or not (the value sync in morphNode).
+let catchingUp = false;
+
+export function morph(fromNode: Node, toNode: Node, catchUp = false): void {
     beginPatch();
+    catchingUp = catchUp;
     try {
         morphNode(fromNode, toNode);
     } finally {
+        catchingUp = false;
         endPatch();
     }
 }
@@ -610,6 +618,7 @@ function morphNode(fromNode: Node, toNode: Node): void {
     // A textarea's is its text, as the sync reads the new one.
     const valueBefore = from.tagName === "INPUT" ? from.getAttribute("value")
         : from.tagName === "TEXTAREA" ? from.getAttribute("value") ?? from.textContent : null;
+    const checkedBefore = from.tagName === "INPUT" && from.hasAttribute("checked");
 
     // A submitting form's controls stay disabled and readonly until it is done; what this render says of them
     // is what they get then (rask-submitting.ts).
@@ -669,7 +678,9 @@ function morphNode(fromNode: Node, toNode: Node): void {
             // that value back wipes the digits being typed. It also leaves the field holding what it held when
             // it was entered, so leaving it raises no `change`: nothing is ever sent. A value the server DID
             // change (newVal !== valueBefore) still wins, as before.
-            const untold = document.activeElement === from && newVal === valueBefore;
+            //
+            // A catch-up knows nothing newer than the reader about ANY field it renders as before, focused or not.
+            const untold = (catchingUp || document.activeElement === from) && newVal === valueBefore;
             // A secret has no echo to tell a lagging frame by: a value the server did not just change is not a clear.
             const stale = newVal !== null
                 && (from.hasAttribute("data-rask-secret") ? newVal === valueBefore : raskShouldSuppressValue(from, newVal));
@@ -687,7 +698,7 @@ function morphNode(fromNode: Node, toNode: Node): void {
                 // A checkbox whose state is the reader's, kept in storage (data-rask-persist), is not the
                 // render's to reset: the server never knew which way it was left.
                 if (!raskShouldSuppressChecked(from, checked) && fromInput.checked !== checked
-                    && !ownsChecked(from)) {
+                    && !ownsChecked(from) && !(catchingUp && checked === checkedBefore)) {
                     fromInput.checked = checked;
                 }
             }
