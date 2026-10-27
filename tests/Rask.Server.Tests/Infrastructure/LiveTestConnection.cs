@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
@@ -74,11 +75,11 @@ internal static class LiveTestConnection
     ///     or a stream that names the session in its URL and the resume record in a header.
     /// </summary>
     public static async Task<ILiveTestConnection> OpenAsync(
-        RaskTestHost host, LiveTransportKind kind, string sessionId, string? resume = null) =>
+        RaskTestHost host, LiveTransportKind kind, string sessionId, string? resume = null, long sent = 0) =>
         kind switch
         {
-            LiveTransportKind.WebSocket => await WebSocketConnection.OpenAsync(host, sessionId, resume),
-            LiveTransportKind.Http => await HttpConnection.OpenAsync(host, sessionId, resume),
+            LiveTransportKind.WebSocket => await WebSocketConnection.OpenAsync(host, sessionId, resume, sent),
+            LiveTransportKind.Http => await HttpConnection.OpenAsync(host, sessionId, resume, sent),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
@@ -101,16 +102,16 @@ internal static class LiveTestConnection
             _pump = PumpAsync();
         }
 
-        public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume)
+        public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume, long sent)
         {
             var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
             if (resume is null)
             {
-                await ws.SendJsonAsync(new { type = "hello", session = sessionId });
+                await ws.SendJsonAsync(new { type = "hello", session = sessionId, sent });
             }
             else
             {
-                await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume });
+                await ws.SendJsonAsync(new { type = "hello", session = sessionId, resume, sent });
             }
 
             return new WebSocketConnection(ws);
@@ -239,13 +240,18 @@ internal static class LiveTestConnection
             _pump = PumpAsync(body);
         }
 
-        public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume)
+        public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume, long sent)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{Uri.EscapeDataString(sessionId)}");
             request.Headers.Accept.ParseAdd("text/event-stream");
             if (resume is not null)
             {
                 request.Headers.Add("Rask-Resume", resume);
+            }
+
+            if (sent > 0)
+            {
+                request.Headers.Add("Rask-Sent", sent.ToString(CultureInfo.InvariantCulture));
             }
 
             var response = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);

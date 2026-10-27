@@ -352,6 +352,42 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // The newest event seq this session has run. The browser numbers its events in the order it sends them and
+    // sends again, on its next connection, every one no ack answered — some of which arrived before the old one died.
+    private long _eventsSeen;
+
+    /// <summary>
+    ///     Whether an event numbered <paramref name="seq" /> is new here, and takes it as run; one already run is a
+    ///     resend. An event with no seq (a client that numbers none) is always new.
+    /// </summary>
+    internal bool FirstSight(long seq)
+    {
+        if (seq <= 0)
+        {
+            return true;
+        }
+
+        var seen = Volatile.Read(ref _eventsSeen);
+        while (seq > seen)
+        {
+            var was = Interlocked.CompareExchange(ref _eventsSeen, seq, seen);
+            if (was == seen)
+            {
+                return true;
+            }
+
+            seen = was;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Takes every event up to <paramref name="seq" /> as seen: a page rebuilt from its resume record cannot know
+    ///     which of them its lost host ran, and running one twice is worse than its being lost.
+    /// </summary>
+    internal void SeenUpTo(long seq) => FirstSight(seq);
+
     // The events batch frames carried in the current one-second window. A batch is ONE frame to the transport's
     // rate cap, so its events are counted here against the same number. Written by whichever request is reading
     // this session's frames — one at a time for a socket, and for a browser's POSTs, which it sends one at a time.
@@ -600,11 +636,9 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // the scoped-css <link> during navigation. publishOnly intentionally
             // dissolves into the dispatch's outer render flags, matching WASM
             // (Rask.Wasm/WasmLiveSession.cs:79-87).
-            _pendingRenderInScope = true;
-
-            // Re-read after the write: a dispatch that finished its coalescing loop and cleared the scope in between
-            // will not look at the flag again, so this request renders itself instead of being dropped.
-            if (InHandlerScope)
+            // A dispatch that finished its coalescing loop and cleared the scope in between will not look at the flag
+            // again, so this request then renders itself instead of being dropped.
+            if (LeaveRenderToTheScope())
             {
                 await SendWhatTheHandlerWaitsOnAsync().ConfigureAwait(false);
                 return;

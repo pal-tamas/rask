@@ -1261,6 +1261,14 @@ public static partial class RaskEndpointExtensions
     private static string? StringProperty(JsonElement root, string name) =>
         root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
 
+    private static long NumberProperty(JsonElement root, string name, long missing) =>
+        root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var n)
+            ? n
+            : missing;
+
+    // The newest event the tab sent on the connections before this one (rask.ts, `sentBefore`).
+    private static long SentBefore(JsonElement root) => NumberProperty(root, "sent", 0);
+
     /// <summary>Holds the response open and writes the session's frames to it as events.</summary>
     private static async Task StreamAsync(HttpContext ctx, RaskRootSelector selector)
     {
@@ -1292,9 +1300,10 @@ public static partial class RaskEndpointExtensions
         // structure. The resume record travels in a header rather than the query string, because a token in a URL
         // ends up in proxy logs and browser history — and this one rebuilds a page.
         var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
+        _ = long.TryParse(ctx.Request.Headers["Rask-Sent"].ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out var sent);
         var attach = await AttachAsync(
-            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, transport, store, limits, UserOf(ctx),
-            resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
+            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, sent, transport, store, limits,
+            UserOf(ctx), resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
 
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
@@ -2003,7 +2012,7 @@ public static partial class RaskEndpointExtensions
         }
 
         var attach = await AttachAsync(
-            StringProperty(root, "session"), StringProperty(root, "resume"), transport, store, limits,
+            StringProperty(root, "session"), StringProperty(root, "resume"), SentBefore(root), transport, store, limits,
             wsUser, resume, selector, store.Metrics, resumeCulture, ct).ConfigureAwait(false);
 
         if (attach.Status == AttachStatus.Unknown)
@@ -2258,6 +2267,18 @@ public static partial class RaskEndpointExtensions
         return new FrameOutcome(FrameStatus.Handled, null);
     }
 
+    // A batch's events are numbered in the order they happened, and it is sent again whole or not at all.
+    private static long NewestSeq(JsonElement events)
+    {
+        long newest = -1;
+        foreach (var e in events.EnumerateArray())
+        {
+            newest = Math.Max(newest, SeqOf(e));
+        }
+
+        return newest;
+    }
+
     // The frames answered on the reader itself, without a render.
     private static bool HandledInline(LiveSession session, JsonElement root, JsonElement type)
     {
@@ -2341,6 +2362,7 @@ public static partial class RaskEndpointExtensions
     internal static async Task<AttachOutcome> AttachAsync(
         string? sessionId,
         string? resumeToken,
+        long sentBefore,
         ILiveTransport transport,
         LiveSessionStore store,
         RaskServerLimits limits,
@@ -2368,6 +2390,9 @@ public static partial class RaskEndpointExtensions
                 resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
             ReportRefusedAttach(store, sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
+
+            // The events the tab sends again may have run on the host that lost it: none of them runs here.
+            rebuilt.Session?.SeenUpTo(sentBefore);
             return rebuilt;
         }
 
@@ -2735,9 +2760,12 @@ public static partial class RaskEndpointExtensions
         CancellationToken ct)
     {
         long acked = -1;
-        if (!await EnterSessionAsync(session, ct).ConfigureAwait(false))
+        switch (await EnterSessionAsync(session, NewestSeq(events), ct).ConfigureAwait(false))
         {
-            return acked;
+            case Entry.Gone:
+                return acked;
+            case Entry.Resent:
+                return NewestSeq(events);
         }
 
         var submits = EventBatch.AnnounceSubmits(session.View, events);
@@ -2804,6 +2832,7 @@ public static partial class RaskEndpointExtensions
             handlerTimeout,
             lockHeld: true,
             deferRender: !last,
+            seq: -1,
             ct).ConfigureAwait(false);
 
         // The last handler ran nothing, or threw: what the ones before it changed is still to be shown.
@@ -2813,10 +2842,7 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    private static long SeqOf(JsonElement e) =>
-        e.TryGetProperty("seq", out var seqEl) && seqEl.ValueKind == JsonValueKind.Number && seqEl.TryGetInt64(out var seq)
-            ? seq
-            : -1;
+    private static long SeqOf(JsonElement e) => NumberProperty(e, "seq", -1);
 
     // The render a batch owes, made on its own: between two of its events, or after a last one that rendered
     // nothing. A fault in it is reported like a handler's, and the batch goes on.
@@ -2914,6 +2940,7 @@ public static partial class RaskEndpointExtensions
             handlerTimeout,
             lockHeld: false,
             deferRender: false,
+            SeqOf(root),
             ct);
 
     /// <summary>
@@ -2930,10 +2957,11 @@ public static partial class RaskEndpointExtensions
         TimeSpan handlerTimeout,
         bool lockHeld,
         bool deferRender,
+        long seq,
         CancellationToken ct)
     {
         // A batch holds the lock and the handler scope across all of its events (DispatchBatchAsync).
-        if (!lockHeld && !await EnterSessionAsync(session, ct).ConfigureAwait(false))
+        if (!lockHeld && await EnterSessionAsync(session, seq, ct).ConfigureAwait(false) != Entry.Entered)
         {
             return;
         }
@@ -2986,12 +3014,26 @@ public static partial class RaskEndpointExtensions
         }
     }
 
-    // Takes the session's lock and opens the handler scope; false when the session is gone or the wait was cancelled.
-    private static async ValueTask<bool> EnterSessionAsync(LiveSession session, CancellationToken ct)
+    private enum Entry
+    {
+        Entered,
+
+        // The session is gone, or the wait was cancelled with the connection that sent the event.
+        Gone,
+
+        // The browser sent the event again on a new connection, and it has run here already (rask-resend.ts).
+        Resent,
+    }
+
+    // Takes the session's lock and opens the handler scope for the event numbered seq.
+    //
+    // An event is taken as run HERE, under the lock, rather than when it is read: one read just before its connection
+    // died waits on that connection's token and is dropped with it, and the browser's resend is then the one to run.
+    private static async ValueTask<Entry> EnterSessionAsync(LiveSession session, long seq, CancellationToken ct)
     {
         if (session.IsDisposed)
         {
-            return false;
+            return Entry.Gone;
         }
 
         try
@@ -3000,18 +3042,24 @@ public static partial class RaskEndpointExtensions
         }
         catch (OperationCanceledException)
         {
-            return false;
+            return Entry.Gone;
         }
 
         // Disposed while this waited behind the handler before it: there is no page left to run a handler of.
         if (session.IsDisposed)
         {
             session.Lock.Release();
-            return false;
+            return Entry.Gone;
+        }
+
+        if (!session.FirstSight(seq))
+        {
+            session.Lock.Release();
+            return Entry.Resent;
         }
 
         session.InHandlerScope = true;
-        return true;
+        return Entry.Entered;
     }
 
     // A session disposed under the handler that holds this lock keeps the lock itself (LiveSession.Dispose), so

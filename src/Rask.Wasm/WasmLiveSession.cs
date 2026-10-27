@@ -207,13 +207,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
     // every test of this session — does.
     private bool LeftToTheDispatch()
     {
-        if (!InHandlerScope)
-        {
-            return false;
-        }
-
-        _pendingRenderInScope = true;
-        return InHandlerScope;
+        return InHandlerScope && LeaveRenderToTheScope();
     }
 
     protected override async Task RequestRenderInternalAsync(bool publishOnly)

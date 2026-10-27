@@ -129,9 +129,10 @@ public class EventBatchTests
         await batchedWs.SendJsonAsync(Batch(Event(batchedPage, "hit0"), Event(batchedPage, "boom"), Event(batchedPage, "bump", seq: 1)));
         var together = (await ReadUntilAckAsync(batchedWs)).Renders;
         var apart = new List<string>();
+        var seq = 0;
         foreach (var name in new[] { "hit0", "boom", "bump" })
         {
-            await singleWs.SendJsonAsync(Event(singlePage, name, seq: 1));
+            await singleWs.SendJsonAsync(Event(singlePage, name, seq: ++seq));
             apart.AddRange((await ReadUntilAckAsync(singleWs)).Renders);
         }
 
