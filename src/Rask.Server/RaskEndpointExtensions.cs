@@ -1279,6 +1279,12 @@ public static partial class RaskEndpointExtensions
     // The newest event the tab sent on the connections before this one (rask.ts, `sentBefore`).
     private static long SentBefore(JsonElement root) => NumberProperty(root, "sent", 0);
 
+    // The same, as an HTTP stream's request says it.
+    private static long SentBefore(HttpRequest request) =>
+        long.TryParse(request.Headers["Rask-Sent"].ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out var sent)
+            ? sent
+            : 0;
+
     /// <summary>Holds the response open and writes the session's frames to it as events.</summary>
     private static async Task StreamAsync(HttpContext ctx, RaskRootSelector selector)
     {
@@ -1309,10 +1315,9 @@ public static partial class RaskEndpointExtensions
         // structure. The resume record travels in a header rather than the query string, because a token in a URL
         // ends up in proxy logs and browser history — and this one rebuilds a page.
         var resumeToken = ctx.Request.Headers["Rask-Resume"].ToString();
-        _ = long.TryParse(ctx.Request.Headers["Rask-Sent"].ToString(), NumberStyles.None, CultureInfo.InvariantCulture, out var sent);
         var attach = await AttachAsync(
-            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, sent, transport, store, limits,
-            UserOf(ctx), resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
+            sessionId, string.IsNullOrEmpty(resumeToken) ? null : resumeToken, SentBefore(ctx.Request), transport, store,
+            limits, UserOf(ctx), resume, selector, store.Metrics, culture, ct).ConfigureAwait(false);
 
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
