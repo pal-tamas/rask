@@ -981,9 +981,30 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             // ordering holds on weak memory models too (see the _transport field note).
             Volatile.Write(ref _transport, transport);
             _hasAttachedBefore = true;
+            Connections++;
             return wasDetached;
         }
     }
+
+    /// <summary>How many connections have attached to this session, the one attached now included.</summary>
+    internal int Connections { get; private set; }
+
+    /// <summary>When the store published this session, on the store's clock.</summary>
+    internal long CreatedAt { get; set; }
+
+    /// <summary>When its last connection detached, on the store's clock; zero while none has.</summary>
+    internal long DetachedAt { get; set; }
+
+    /// <summary>What the log calls this session — a fingerprint of the id, made the first time a line names it.</summary>
+    internal string Fingerprint => _fingerprint ??= SessionFingerprint.Of(Id);
+
+    private string? _fingerprint;
+
+    /// <summary>Every byte of every frame this session has sent, so an attach can say what its catch-up cost.</summary>
+    internal long BytesSent { get; private set; }
+
+    /// <summary>Whether the last frame sent was a diff rather than the whole page.</summary>
+    internal bool LastFrameWasDiff { get; private set; }
 
     /// <summary>Whether a connection is attached and still open — the one state a session must never be removed in.</summary>
     internal bool HasOpenTransport => Volatile.Read(ref _transport)?.IsOpen == true;
@@ -1219,6 +1240,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
                 RaskLogLevel.Warning, "Rask.Live",
                 $"Aborting a socket whose send did not complete within {_sendTimeout}. The client stopped "
                 + "reading; its session is kept for the reconnect grace period.");
+            transport.Record.Ended(ClosedBy.Timeout, "send timeout");
             transport.Abort();
 
             throw new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "Send timed out.", timedOut);
@@ -1518,6 +1540,8 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     private void RecordSent(long renderStarted, int payloadBytes)
     {
         _htmlBuffers.Commit();
+        BytesSent += payloadBytes;
+        LastFrameWasDiff = WroteDiff;
 
         // Only when a frame actually went out. Recording a deduped render — one whose bytes
         // matched the last frame and was suppressed — would put a zero-byte sample in the payload

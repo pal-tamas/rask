@@ -152,6 +152,8 @@ public sealed class ArrivalWaitTests
     {
         public bool IsOpen => true;
 
+        public ConnectionRecord Record { get; } = new(0, "test", 0);
+
         public List<string> Sent { get; } = [];
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct)

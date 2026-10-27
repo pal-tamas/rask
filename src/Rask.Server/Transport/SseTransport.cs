@@ -24,7 +24,8 @@ namespace Rask.Server.Transport;
 ///     </para>
 /// </remarks>
 #pragma warning disable CA1001 // _write only ever WaitAsync/Release — no wait handle to free — and a send can outlive the request
-internal sealed class SseTransport(PipeWriter writer, int generation, CancellationToken lifetime = default)
+internal sealed class SseTransport(
+    PipeWriter writer, int generation, ConnectionRecord? record = null, CancellationToken lifetime = default)
     : ILiveTransport
 #pragma warning restore CA1001
 {
@@ -47,6 +48,8 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
     public int Generation { get; } = generation;
 
     public bool IsOpen => !_closed;
+
+    public ConnectionRecord Record { get; } = record ?? new ConnectionRecord(0, "HTTP stream", 0);
 
     /// <summary>
     ///     Cancelled when the stream's own request ends. What a POST's frames are dispatched under: the POST's
@@ -121,6 +124,7 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
             return;
         }
 
+        Record.Ended(reason, description);
         await _write.WaitAsync(ct).ConfigureAwait(false);
         try
         {

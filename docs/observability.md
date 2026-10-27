@@ -29,7 +29,7 @@ original exception attached:
 | `Rask.Errors` | Every exception an `ErrorBoundary` took — a render, a handler, a lifecycle hook — once, at Error, with the exception and the reference the visitor's [error page](lifecycle.md#what-a-visitor-sees-when-something-throws) shows |
 | `Rask.Lifecycle` | Faulting lifecycle hooks / disposes with no ancestor `ErrorBoundary` |
 | `Rask.Diff` | Duplicate sibling `Key` (keyed reconciliation silently disabled) |
-| `Rask.Live` | Handler / navigate / JS-invoke faults, malformed frames, a session asked for renders without end (which components asked) |
+| `Rask.Live` | Handler / navigate / JS-invoke faults, malformed frames, a session asked for renders without end (which components asked), and — at `Debug` — [the session lifecycle](#the-session-lifecycle) |
 | `Rask.JsInvoke` | Failures surfacing a JS-invoke fault back to the caller |
 | `Rask.HotReload` | Dev-time hot-reload failures: a registry refresh that threw, a repaint that faulted, or an undeliverable applied-notification |
 
@@ -61,6 +61,34 @@ var host = WasmHostBuilder.CreateDefault();
 host.Services.AddSingleton<ILoggerProvider, MyTelemetryLoggerProvider>(); // replaces the console default
 await host.Run<App>();
 ```
+
+### The session lifecycle
+
+Why did a tab show "Reconnecting…", or reload and lose what was on it? Turn `Rask.Live` up to `Debug` and the
+server says, one line per step — `Logging__LogLevel__Rask.Live=Debug` in the environment, or:
+
+```jsonc
+{ "Logging": { "LogLevel": { "Rask.Live": "Debug" } } }
+```
+
+| Event | Level | What it says |
+| --- | --- | --- |
+| A connection opens (`/rask/ws` upgrade or HTTP stream) | Debug | `WebSocket connection 12 opened.` — the number pairs it with its attach and close |
+| A connection attaches | Debug | the session, whether it is the first connection (and how long after the page was served), a reconnect (and how long it was detached), one replacing a connection still open, or a page rebuilt from its resume record; the session's age, how many connections it has had, and the catch-up it was sent: `none`, `diff` or `whole page`, in bytes |
+| A connection closes | Debug; **Information** when the server closed it (a safety cap, a send or idle timeout) | who closed it — `client` (with the close status: 1001 is a tab going away), `server`, `timeout`, `error` or `shutdown` — the reason, how long it was open, and what the session does next: kept for `SessionGracePeriod`, gone at once because the tab left, or already taken by a newer connection |
+| A session is made | Debug | how many this host holds, and `MaxSessions` |
+| A session is removed | Debug | why — no connection within `UnconnectedSessionGracePeriod`, its connection not back within `SessionGracePeriod`, the tab left, its page redirected, shutdown — its age, its connections, how long it had none, and the limit that applied |
+| A page refused at capacity | **Information** | the `MaxSessions` limit it hit, answered `503` (a handful of lines per ten seconds, however many are refused) |
+
+A session is named by a fingerprint of its id (`#3f9a1c07`), never the id — that is what a holder drives it with —
+and no line carries a cookie, a claim or a value. The Information line for a tab that comes back to a session
+this host no longer has now says what happened to it, when this host removed it recently:
+
+```text
+info: Rask.Live[0] Rask Live: refused to attach a connection to session #3f9a1c07: no session has that id: it was removed 4.2 s ago, after 10 s — no connection attached within the unconnected grace period (Rask:Server:UnconnectedSessionGracePeriod). The tab reloads.
+```
+
+With the level off, each step costs one `IsEnabled` check: no fingerprint, no clock read, no string.
 
 ### Keeping the log
 

@@ -629,6 +629,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     // Whether the write buffer holds a diff rather than a page.
     private bool _writeIsDiff;
+
+    /// <summary>Whether the last frame written was a diff rather than the whole page.</summary>
+    private protected bool WroteDiff => _writeIsDiff;
     private int _lastSentVersionBytes;
 
     private bool RepeatsLastSent() =>
