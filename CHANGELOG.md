@@ -234,9 +234,18 @@ them until tagged releases begin.
   attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
   closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
   refuses, as before.
-- **A select's and a calendar's chevron no longer stay dark after a tap on a phone, as Flux's do not.** Before: the
-  kit's own chevron rules darkened under a bare `:hover`, which a touch screen keeps after a tap. After: they are
-  `@variant hover`, as Flux's `hover:` utilities are — only where there is a pointer to hover.
+- **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
+  Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
+  the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it
+  (`[[data-ui-select-button]:hover_&]`, `group-[:hover]/row`) — a phone keeps it on what was tapped — and the list
+  open holds it light only where there is a pointer, which Flux takes away then.
+- **An editor's pressed toolbar button is filled only under the pointer, as Flux's.** Before: `aria-pressed` filled
+  it (zinc-200), so Bold stayed grey after the pointer left and after a tap on a phone. After: the fill is `hover:`'s
+  alone; the ink still says what the caret is in.
+- **A calendar's month and year chevrons no longer stay dark after a tap on a phone, as Flux's do not.** Before: they
+  darkened under a bare `:hover`, which a touch screen keeps after a tap. After: `@variant hover`, as Flux's `hover:`
+  is — only where there is a pointer to hover. (A native select's chevron does darken after a tap on Flux, measured,
+  and keeps its plain `:hover`.)
 - **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
   label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
   siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its

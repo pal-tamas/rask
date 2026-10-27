@@ -70,10 +70,11 @@ internal static class UiPhoneLook
     ///     The button's chevron: the select's, but a disabled one in dark is white at 40%, not 20%, on Flux's phone.
     /// </summary>
     internal const string Chevron =
-        "ms-2 -me-1 text-zinc-400/75 group-hover/select-button:text-zinc-800 "
-        + "dark:text-white/60 dark:group-hover/select-button:text-white "
+        "ms-2 -me-1 text-zinc-400/75 [[data-ui-select-button]:hover_&]:text-zinc-800 "
+        + "dark:text-white/60 dark:[[data-ui-select-button]:hover_&]:text-white "
         + "group-disabled/select-button:text-zinc-200! dark:group-disabled/select-button:text-white/40! "
-        + "[[data-ui-select]:has(:popover-open)_&]:text-zinc-400/75! dark:[[data-ui-select]:has(:popover-open)_&]:text-white/60!";
+        + "[@media(hover:hover)]:[[data-ui-select]:has(:popover-open)_&]:text-zinc-400/75! "
+        + "dark:[@media(hover:hover)]:[[data-ui-select]:has(:popover-open)_&]:text-white/60!";
 
     /// <summary>The number's input: the kit's input, square where it meets the button and with no line there.</summary>
     internal static string Input(Ui.PhoneSize size, Ui.PhoneVariant variant) => UiClass.Compose(

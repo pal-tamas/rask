@@ -20,11 +20,12 @@ internal static class UiEditorMarkup
         + "dark:hover:text-white dark:hover:bg-white/10 dark:focus:text-white "
         + "disabled:opacity-75 " + ButtonStates;
 
-    // Measured in use: an open control and one whose formatting the caret is in are inked, and only a pressed
-    // toggle is filled — the link button matches without being pressed, the blockquote button says neither.
+    // Measured in use: an open control and one whose formatting the caret is in are inked — the link button matches
+    // without being pressed, the blockquote button says neither. A fill is the pointer's alone (`hover:`): a pressed
+    // toggle the pointer has left is clear on Flux, and so is one tapped on a phone.
     private const string ButtonStates =
-        "data-open:bg-transparent data-open:text-zinc-800 data-match:text-zinc-800 aria-pressed:bg-zinc-200 "
-        + "dark:data-open:bg-transparent dark:data-open:text-white dark:data-match:text-white dark:aria-pressed:bg-white/10";
+        "data-open:bg-transparent data-open:text-zinc-800 data-match:text-zinc-800 "
+        + "dark:data-open:bg-transparent dark:data-open:text-white dark:data-match:text-white";
 
     private const string OptionsClass =
         "fixed min-w-[160px] p-[5px] rounded-lg shadow-xs overflow-y-auto border border-zinc-200 bg-white "
