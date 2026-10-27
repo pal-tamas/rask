@@ -213,6 +213,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **`rask new` no longer fails on a busy machine with a regex timeout.** The template-marker scan gave each line a
+  one-second wall-clock budget, which a starved thread could spend without matching anything; it now runs on .NET's
+  linear-time engine, which needs no timeout (`TemplateMarkers`).
 - **On a phone, Rask.Ui's popovers, selects, pillboxes and phone fields answer a finger as Flux UI's do** (measured on
   fluxui.dev at 390 × 844 on a touch screen). A second tap on the button of an open popover shut it and opened it
   again at once — the tap's click came after the page lock let go and pressed the button under it; now that tap

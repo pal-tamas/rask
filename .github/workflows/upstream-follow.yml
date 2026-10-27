@@ -169,7 +169,10 @@ jobs:
           fi
 
           if [ "$GATED" = failure ] && scripts/upstream/main-already-red.sh "$GITHUB_RUN_ID" "$FOLLOWER / "; then
-            git push -q origin "$SHA:refs/heads/upstream-waits/$FOLLOWER"
+            # Through the API: this checkout is main's tip alone, and has no object for the follower's commit.
+            refs="repos/$GITHUB_REPOSITORY/git/refs"
+            gh api -X POST "$refs" -f ref="refs/heads/upstream-waits/$FOLLOWER" -f sha="$SHA" >/dev/null 2>&1 ||
+              gh api -X PATCH "$refs/heads/upstream-waits/$FOLLOWER" -f sha="$SHA" -F force=true >/dev/null
             echo "::notice::$FOLLOWER waits for main: every gate it failed is red on main too. upstream.yml follows it again when full.yml passes."
             exit 0
           fi
