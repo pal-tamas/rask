@@ -218,6 +218,13 @@ them until tagged releases begin.
   reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
   does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
   one host at once, with the host's cores kept busy, and every answer reaches every page.
+- **A click sent into a connection as it dies is sent again on the next one, and runs once (#1258).** Before: the
+  Server runtime let go of an event the moment it handed it to the socket (or the HTTP transport's POST), so one the
+  server never read was simply gone. After: every event no ack has answered is kept and sent first on the next
+  connection, in order, over either transport; the session takes an event as run when its handler starts, so one that
+  did arrive is only answered again, and a page rebuilt from its resume record on another host runs none of them (the
+  `hello` names the newest it sent). A render asked for from another thread as an event's scope ended could be lost:
+  the two sides' write-then-read now has a full fence between, not just `volatile`.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

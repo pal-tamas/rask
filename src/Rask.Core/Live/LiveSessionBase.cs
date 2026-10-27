@@ -56,11 +56,24 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // Set when an in-handler StateHasChanged lands mid-dispatch (InHandlerScope=true); the coalescing
     // loop reads and clears it to rebuild the payload before releasing the dispatch lock.
     //
-    // Volatile, with InHandlerScope: a server session's background request (a timer, a query or subscription value landing)
-    // reads the scope on one thread while the dispatch clears it on another. The request sets this flag and re-reads
-    // the scope; the dispatch clears the scope and re-reads this flag. Each write-then-read is only sound when both
-    // reads see the other side's write, which is what volatile guarantees.
+    // With InHandlerScope, a handoff between two threads: a server session's background request (a timer, a query or
+    // subscription value landing) sets this flag and re-reads the scope (LeaveRenderToTheScope); the dispatch clears
+    // the scope and re-reads this flag (DrainRenderRequestedAfterScope). The render is lost only if BOTH reads miss the
+    // other side's write. Volatile does not rule that out: it orders loads after loads and stores after stores, but a
+    // store followed by a load of another field may still be reordered (on x86 too, through the store buffer). So each
+    // side puts a full fence between its write and its read, and then at least one of them sees the other's write.
     protected volatile bool _pendingRenderInScope;
+
+    /// <summary>
+    ///     Leaves a render to the scope that holds the session, and says whether one still does. False: the scope
+    ///     ended in between and will not look at the flag again, so the caller renders itself.
+    /// </summary>
+    protected bool LeaveRenderToTheScope()
+    {
+        _pendingRenderInScope = true;
+        Interlocked.MemoryBarrier();
+        return InHandlerScope;
+    }
 
     // The wire-payload shape for THIS session, snapshotted from the host's RaskLiveOptions at
     // construction and read on the render hot path (RenderTreeToHtml / WritePayload) instead of the
@@ -481,6 +494,8 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // what RenderPace counts a row of.
     internal Task DrainRenderRequestedAfterScope(bool afterRequestedRender = false)
     {
+        // Between the scope's clearing and this read: the other half of the handoff at _pendingRenderInScope.
+        Interlocked.MemoryBarrier();
         if (!_pendingRenderInScope)
         {
             return Task.CompletedTask;

@@ -435,3 +435,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96099
 rask-hooks.js,116043
+#
+# 2026-10-27, an event sent into a dying connection is sent again on the next one (rask-resend.ts, Server runtime
+# only: every frame carrying a seq no ack has answered is kept and leaves first on the next connection, and the
+# hello names the newest seq that left): rask.js +700 (110,100 -> 110,800), the others unchanged. Measured locally
+# (Release, the benchmarks job's recipe).
+bundle,bytes
+rask.js,110800
+rask.wasm.js,96099
+rask-hooks.js,116043

@@ -158,10 +158,10 @@ internal sealed class DevToolsPanelSession : LiveSessionBase
             return;
         }
 
-        if (InHandlerScope)
+        // Inside a build already: fold into it rather than queue behind the lock this caller's own render holds — unless
+        // that build ended in between, when this renders itself.
+        if (InHandlerScope && LeaveRenderToTheScope())
         {
-            // Inside a build already: fold into it rather than queue behind the lock this caller's own render holds.
-            _pendingRenderInScope = true;
             return;
         }
 

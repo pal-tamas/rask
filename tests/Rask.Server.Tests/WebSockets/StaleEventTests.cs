@@ -162,6 +162,30 @@ public class StaleEventTests
         Assert.Contains("removing=2;", HtmlOf(after));
     }
 
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_page_rebuilt_from_its_resume_record_runs_none_of_the_events_sent_before_it(LiveTransportKind transport)
+    {
+        using var host = RaskTestHost.Create<LedgerApp>(diffMode: LiveDiffMode.DisabledFull);
+        var (page, first) = await OpenAsync(host, LiveTransportKind.WebSocket);
+        var asking = await ClickAsync(first, Id(page, "bin1"), version: 0, seq: 1);
+        var token = ResumeOf(asking) ?? ResumeOf(await ClickAsync(first, Id(HtmlOf(asking), "no"), VersionOf(asking), seq: 2));
+        await first.DisposeAsync();
+        var sessionId = MarkupAssert.SessionId(page);
+        await host.Store.RemoveAsync(sessionId);
+
+        // The host that lost the session may have run seq 3; the browser sends it again, and the rebuilt page skips it.
+        await using var ws = await LiveTestConnection.OpenAsync(host, transport, sessionId, token, sent: 3);
+        var rebuilt = await ws.ReceiveUntilAsync(frame => frame.Contains("\"html\"", StringComparison.Ordinal), "the rebuilt page");
+        await ws.SendJsonAsync(Click(Id(HtmlOf(rebuilt), "bin2"), VersionOf(rebuilt), seq: 3));
+        var (skipped, acked) = await ReadUntilAckAsync(ws);
+        var after = await ClickAsync(ws, Id(HtmlOf(rebuilt), "bin2"), VersionOf(rebuilt), seq: 4);
+
+        Assert.Empty(skipped);
+        Assert.Equal(3, acked);
+        Assert.Contains("removing=2;", HtmlOf(after));
+    }
+
     private static async Task<(string Page, ILiveTestConnection Ws)> OpenAsync(RaskTestHost host, LiveTransportKind transport)
     {
         var page = await (await host.Http.GetAsync("/start")).Content.ReadAsStringAsync();

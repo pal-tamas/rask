@@ -285,6 +285,8 @@ export interface HttpConnectionOptions {
     url(kind: "stream" | "send" | "leave", session: string): string;
     /** The resume record, sent as a header so it never lands in a URL. */
     resumeToken: string | null;
+    /** The newest event the connections before this one carried: a page rebuilt from the record runs none of them. */
+    sent: number;
     /** `session` is the one the server attached — a new id when a resume record rebuilt a lost session. */
     onOpen(session: string): void;
     onFrame(text: string): void;
@@ -391,6 +393,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
 
     const headers: Record<string, string> = {accept: "text/event-stream"};
     if (options.resumeToken) headers["rask-resume"] = options.resumeToken;
+    if (options.sent > 0) headers["rask-sent"] = String(options.sent);
 
     fetch(options.url("stream", options.sessionId), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
         .then(async (response) => {
