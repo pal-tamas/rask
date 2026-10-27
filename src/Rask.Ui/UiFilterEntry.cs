@@ -10,6 +10,9 @@ internal sealed record UiFilterEntry(string Label, string? Shown, bool Active, s
     /// <summary>What a <see cref="UiFilter" /> runs when its badge is taken off.</summary>
     internal Callback OnRemove { get; init; }
 
+    /// <summary>What tells its badge apart where it has no address key: a <see cref="UiFilter" />'s own key.</summary>
+    internal object? Identity { get; init; }
+
     /// <summary>The badge's words: "Driver: Ada", or the label alone.</summary>
     internal string Words => string.IsNullOrEmpty(Shown) ? Label : Label + ": " + Shown;
 }

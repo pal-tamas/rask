@@ -29,7 +29,7 @@ public sealed partial class UiFilter : Component, IUiFilterField
     public Callback OnRemove { get; set; }
 
     /// <inheritdoc />
-    UiFilterEntry IUiFilterField.Filter() => new(Label, Shown, Shown is not null, null) { OnRemove = OnRemove };
+    UiFilterEntry IUiFilterField.Filter() => new(Label, Shown, Shown is not null, null) { OnRemove = OnRemove, Identity = Key };
 
     // What it holds is the page's to bind: nothing to hand over.
     /// <inheritdoc />

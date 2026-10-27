@@ -295,7 +295,9 @@ It is handed the principal the session holds and answers one of three ways:
 
 One that throws refuses the event: nothing runs, the failure is logged on `Rask.Live`, and the reader's next
 action asks again. A connection that cannot be asked about is closed with nothing adopted from it, and the tab's
-reconnect asks again. An answer that arrives after the session has taken another principal — a connection
+reconnect asks again. One whose client went away while it was asked — its token cancelled — ends as that
+cancellation, logs nothing, and attaches nothing, whatever it threw: EF over SQL Server reports a cancelled query as
+an `InvalidOperationException`, which is not a failure. An answer that arrives after the session has taken another principal — a connection
 attached meanwhile — is about somebody it no longer acts for, and changes nothing.
 
 **A sliding sign-in is kept alive by its user, not by its page.** `Rask.Auth` moves a session's expiry when a

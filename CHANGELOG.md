@@ -202,6 +202,25 @@ them until tagged releases begin.
   reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
   does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
   one host at once, with the host's cores kept busy, and every answer reaches every page.
+- **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
+  Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
+  socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event
+  logged an error. After: whatever the revalidator throws once its token is cancelled is that cancellation — nothing
+  attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
+  closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
+  refuses, as before.
+- **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
+  label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
+  siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its
+  address key, else its `Ui.Filter`'s own `.Key(…)`, else its label — and a second keyless one of the same label by
+  its place among the badges.
+- **A nightly version is one commit's.** Before: MinVer's height follows a merge's first parent, so the merge that
+  lands a worktree branch on `main` could share the version of the commit under it, and `0.23.1-alpha.0.526` was
+  published from two commits — the second nightly's pushes passed as duplicates and its verify only asked that every
+  package was listed. After: a nightly's height counts every commit since the tag (`scripts/lib/nightly_version.py`,
+  distinct and increasing along `main`; the next nightly jumps from `.5xx` to `.22xx`), the publisher refuses before
+  its first push when nuget.org serves the version from another commit and verifies every package's commit
+  afterwards (exit 3, **MIXED VERSION**), and `nightly` dispatched on a branch other than `main` publishes nothing.
 - **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
   emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a

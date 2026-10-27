@@ -16,8 +16,17 @@ What `push` does about it:
           Accepted is not served: nuget.org validates for minutes, in no particular order.
   retry   one package per push command, retried with backoff; a duplicate is success, so a re-run
           resumes where the last one stopped.
+  commit  a version is one commit's. Before anything is pushed, every package the feed already serves at
+          the version must have been packed from THIS commit (its nuspec's <repository commit>); the gate
+          and `verify` ask the same of every package they wait for.
 
-Exit status: 0 done, 1 a push or a wait failed, 2 the packed set itself is wrong.
+Why the commit (2026-10-26): two nightlies, of 1ecef2685 and of the merge cc68a07dd on top of it, packed
+the same 0.23.1-alpha.0.526. The second's pushes were "duplicates" of the first's, which counted as
+success, and `verify` saw every id listed -- so nuget.org served one version from two commits and the run
+was green. scripts/lib/nightly_version.py now keeps the versions apart; this keeps a repeat from passing.
+
+Exit status: 0 done, 1 a push or a wait failed, 2 the packed set itself is wrong,
+             3 the feed holds the version from another commit.
 """
 
 from __future__ import annotations
@@ -49,6 +58,10 @@ REFUSED = {400, 401, 403, 413}   # a second try gets the same answer
 
 class SetError(Exception):
     """The packed set cannot be published as it is."""
+
+
+class MixedVersion(Exception):
+    """The feed serves this version, or part of it, packed from another commit."""
 
 
 @dataclass
@@ -249,27 +262,60 @@ def push_all(files: list[Path], args: argparse.Namespace, key: str) -> list[str]
     return [path.name for path, ok in zip(files, results) if not ok]
 
 
-# ------------------------------------------------------------------ is it served yet
+# ------------------------------------------------------------------ is it served yet, and from which commit
 
-def is_served(package: Package, index: str) -> bool:
-    url = INDEXES.get(index, index).format(id=package.key)
+def fetch(url: str) -> bytes:
+    request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
+    with urllib.request.urlopen(request, timeout=20) as response:
+        return response.read()
+
+
+def served_commit(package: Package, index: str) -> str | None:
+    """The commit the feed's copy of this version was packed from; None while the feed does not serve it.
+
+    "" is a served nuspec that names no commit -- which proves nothing, so it is never taken for ours.
+    """
+    listing = INDEXES.get(index, index)
+    version = package.version.lower().partition("+")[0]
     try:
-        request = urllib.request.Request(url, headers={"Cache-Control": "no-cache"})
-        with urllib.request.urlopen(request, timeout=20) as response:
-            versions = json.load(response).get("versions", [])
-    except (urllib.error.URLError, OSError, ValueError):
-        return False   # 404 is a package id the feed has never served; anything else is asked again
-    return package.version.lower().partition("+")[0] in (v.lower() for v in versions)
+        versions = json.loads(fetch(listing.format(id=package.key))).get("versions", [])
+        if version not in (v.lower() for v in versions):
+            return None
+        # The flat container's layout: {id}/index.json lists, {id}/{version}/{id}.nuspec describes.
+        nuspec = fetch(listing.rpartition("index.json")[0].format(id=package.key) + f"{version}/{package.key}.nuspec")
+        root = ET.fromstring(nuspec)
+    except (urllib.error.URLError, OSError, ValueError, ET.ParseError):
+        return None   # 404 is a package id the feed has never served; anything else is asked again
+    repository = next((n for n in root.iter() if n.tag.rpartition("}")[2] == "repository"), None)
+    return repository.get("commit", "") if repository is not None else ""
 
 
-def wait_until_served(packages: list[Package], index: str, wait: float, poll: float, why: str) -> list[Package]:
-    """Poll until every package is served or `wait` seconds pass; the ones still missing."""
+def refuse_mixed(packages: list[Package], commits: list[str | None], expected: str, when: str) -> None:
+    """Raise, naming every package the feed serves from a commit other than `expected`."""
+    foreign = [(p, c) for p, c in zip(packages, commits) if c is not None and c != expected]
+    if foreign:
+        raise MixedVersion(f"{when}: the feed serves {packages[0].version} from another commit than `{expected}` -- "
+                           + ", ".join(f"`{p.id}` from `{c or 'no commit'}`" for p, c in foreign)
+                           + ". A version is one commit's; this one cannot be completed from this commit")
+
+
+def served_commits(packages: list[Package], index: str) -> list[str | None]:
+    with ThreadPoolExecutor(max_workers=8) as pool:   # a GET or two each, independent
+        return list(pool.map(lambda p: served_commit(p, index), packages))
+
+
+def wait_until_served(packages: list[Package], index: str, wait: float, poll: float, why: str,
+                      expected: str) -> list[Package]:
+    """Poll until every package is served or `wait` seconds pass; the ones still missing.
+
+    One served from a commit other than `expected` ends the wait at once: no amount of waiting fixes it.
+    """
     missing = list(packages)
     deadline = time.monotonic() + wait
     while True:
-        with ThreadPoolExecutor(max_workers=8) as pool:   # one GET each, independent
-            served = list(pool.map(lambda p: is_served(p, index), missing))
-        missing = [p for p, ok in zip(missing, served) if not ok]
+        commits = served_commits(missing, index)
+        refuse_mixed(missing, commits, expected, why)
+        missing = [p for p, c in zip(missing, commits) if c is None]
         if not missing or time.monotonic() >= deadline:
             return missing
         print(f"    {why}: waiting for {len(missing)} -- {', '.join(p.id for p in missing[:6])}"
@@ -299,11 +345,23 @@ def cmd_plan(args: argparse.Namespace) -> int:
     return 0
 
 
+def commit_of(packages: list[Package]) -> str:
+    """The commit the set was packed from -- required wherever the feed's copy is compared with it."""
+    if not packages[0].commit:
+        raise SetError("the set names no repository commit, so it cannot be told apart from another commit's")
+    return packages[0].commit
+
+
 def cmd_push(args: argparse.Namespace) -> int:
     packages = load_set(args.directory)
     check_against_projects(packages, args.projects)
     if args.commit and packages[0].commit and packages[0].commit != args.commit:
         raise SetError(f"packed from {packages[0].commit}, but asked to publish {args.commit}")
+    if args.gate_index:
+        # Before the first push: a version already served from another commit is refused whole, and loudly.
+        # Served from this one, it is a re-run finishing what an earlier attempt started.
+        expected = commit_of(packages)
+        refuse_mixed(packages, served_commits(packages, args.gate_index), expected, "before pushing")
     key = os.environ.get(args.api_key_env, "") if args.api_key_env else ""
     if args.api_key_env and not key:
         raise SetError(f"${args.api_key_env} is empty")
@@ -319,7 +377,7 @@ def cmd_push(args: argparse.Namespace) -> int:
     for number, level in enumerate(levels_of(packages)):
         if args.gate_index and number > 0:
             needed = [p for p in packages if p.key not in served and any(p.key in q.depends_on for q in level)]
-            missing = wait_until_served(needed, args.gate_index, args.wait, args.poll, f"level {number}")
+            missing = wait_until_served(needed, args.gate_index, args.wait, args.poll, f"level {number}", expected)
             if missing:
                 summary(f"**Stopped before level {number}**: after {args.wait:g} s the feed still does not serve "
                         + ", ".join(f"`{p.id}`" for p in missing)
@@ -340,12 +398,12 @@ def cmd_push(args: argparse.Namespace) -> int:
 
 def cmd_verify(args: argparse.Namespace) -> int:
     packages = load_set(args.directory)
-    missing = wait_until_served(packages, args.index, args.wait, args.poll, "verify")
+    missing = wait_until_served(packages, args.index, args.wait, args.poll, "verify", commit_of(packages))
     if missing:
         summary(f"**Incomplete**: {describe(packages)} -- after {args.wait:g} s `{args.index}` still does not serve "
                 + ", ".join(f"`{p.id}`" for p in missing) + ".")
         return 1
-    summary(f"Complete: `{args.index}` serves {describe(packages)}.")
+    summary(f"Complete: `{args.index}` serves {describe(packages)}, every package from that commit.")
     return 0
 
 
@@ -388,6 +446,9 @@ def main() -> int:
     except SetError as problem:
         summary(f"**Not published**: {problem}.")
         return 2
+    except MixedVersion as problem:
+        summary(f"**MIXED VERSION**: {problem}.")
+        return 3
 
 
 if __name__ == "__main__":

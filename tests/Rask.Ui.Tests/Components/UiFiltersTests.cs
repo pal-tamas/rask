@@ -51,6 +51,24 @@ public sealed partial class FilteredOrdersPage(RouteState route) : Component
     }
 }
 
+/// <summary>Filters of one label in force together, as TA's fuelings page has them (#1257): two keyed, two not.</summary>
+[Route("/ui-filters-tests/same-label")]
+public sealed partial class SameLabelFiltersPage : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[
+            Ui.Filter.Key("filter-7").Label("Vehicles").Shown("ABC-123"),
+            Ui.Filter.Key("filter-8").Label("Vehicles").Shown("active only"),
+            Ui.Filter.Label("Driver").Shown("Ada"),
+            Ui.Filter.Label("Driver").Shown("Bob")
+        ];
+
+        return Main[filters, filters.Badges];
+    }
+}
+
 /// <summary>A filter box over a <c>bool?</c> member: an absent key is the box left unticked.</summary>
 [Route("/ui-filters-tests/nullable-box")]
 public sealed partial class NullableBoxPage : Component
@@ -328,6 +346,16 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(controls);
         Assert.EndsWith("-table", controls, StringComparison.Ordinal);
         Assert.True(page.Exists("table#" + controls));
+    }
+
+    [Fact]
+    public void Badges_of_one_label_are_told_apart_by_their_filters_keys_or_their_places()
+    {
+        var page = Page.Visit("/ui-filters-tests/same-label");
+
+        var keys = page.FindAll("[data-ui-filters-badges] > [data-ui-badge]").Select(badge => badge.Attribute("data-rask-key")).ToList();
+
+        Assert.Equal(["filter-7", "filter-8", "Driver", "Driver#3"], keys);
     }
 
     [Fact]
