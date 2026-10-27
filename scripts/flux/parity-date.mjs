@@ -31,7 +31,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, measurePage, root } from './lib.mjs';
+import { chromium, measurePage, root, screen } from './lib.mjs';
 import { landings } from './placement.mjs';
 
 const args = process.argv.slice(2);
@@ -113,7 +113,7 @@ async function walk(browser, live) {
   ];
   const transcripts = [];
   for (const side of sides) {
-    const context = await browser.newContext({ viewport: { width: PHONE[0], height: PHONE[1] } });
+    const context = await browser.newContext(screen(PHONE[0], PHONE[1]));
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     const page = await context.newPage();
     await page.goto(side.url, { waitUntil: 'networkidle', timeout: 120000 });

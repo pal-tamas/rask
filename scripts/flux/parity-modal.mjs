@@ -34,7 +34,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, stateTargets, STYLES } from './lib.mjs';
+import { chromium, measurePage, root, screen, stateTargets, STYLES } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -341,7 +341,7 @@ function withoutNode(example, drop) {
 
 // One light page of a given width, with its fonts in: a phone's is where a modal meets the viewport's edges.
 async function sized(url, width) {
-  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: 'light' });
+  const context = await browser.newContext({ ...screen(width, 900), colorScheme: 'light' });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   await page.evaluate(() => document.fonts.ready);
@@ -450,6 +450,14 @@ function openFacts({ i, LAYER }) {
   const backdrop = getComputedStyle(dialog, '::backdrop');
   const html = getComputedStyle(document.documentElement);
   const active = document.activeElement;
+  // A gutter is kept where a scrollbar takes room. Where none does — macOS draws its scrollbars over the page
+  // even when asked to show them — Flux's `scrollbar-gutter: stable` holds nothing and the kit does not write
+  // it (rask-lock.ts), so there the lock is compared without it, as parity-menu.mjs compares it.
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;top:0;width:100px;height:100px;overflow:scroll;visibility:hidden';
+  document.body.append(probe);
+  const room = probe.offsetWidth - probe.clientWidth;
+  probe.remove();
   return {
     'dialog open': dialog.open,
     'dialog :modal (top layer)': dialog.matches(':modal'),
@@ -458,7 +466,7 @@ function openFacts({ i, LAYER }) {
     'dialog names itself': dialog.getAttribute('data-modal') !== null,
     'dialog transition': `${own.transitionProperty} ${own.transitionDuration} ${own.transitionTimingFunction} ${own.transitionBehavior}`,
     ...Object.fromEntries(LAYER.map(key => [`::backdrop ${key}`, backdrop[key]])),
-    'page lock (overflow | pointer-events | scrollbar-gutter)': `${html.overflowY} | ${html.pointerEvents} | ${html.scrollbarGutter}`,
+    'page lock (overflow | pointer-events | scrollbar-gutter)': `${html.overflowY} | ${html.pointerEvents} | ${room ? html.scrollbarGutter : 'no scrollbar takes room'}`,
     'focus rests on': active === document.body ? 'nothing (body)' : dialog.contains(active) ? `<${active.tagName.toLowerCase()}> in the dialog` : 'the page behind',
   };
 }

@@ -219,6 +219,12 @@ Never key on `[data-ui-card]` from another component.
    (`ModalConfirmParity`) to it at 1280 and 390 — the width, the close button against its corner, how near the
    heading's first line comes to it — and `Ui.ConfirmLeave` to Flux's corner. It waits on state (open, no transition running,
    the same box for three frames). A component that is only itself once opened needs the same; start from it.
+   Every page is held on a PHONE too: `parity.mjs <slug> --view 390x844`. Below 640px `lib.mjs`'s `screen()`
+   opens the page as a phone (touch, overlay scrollbars) — a desktop browser that narrow is no phone, and there
+   Flux's `scrollbar-gutter: stable` reserves 15px for a scrollbar nobody draws. Before landing, the whole suite:
+   `scripts/flux/parity-all.sh` (every page on both widths, every behaviour script, the chart's pinned load —
+   concurrent, `exit 2` names what differs). The daily `upstream.yml` runs it as `flux-parity` and opens an issue
+   when Rask.Ui stops matching Flux; a new behaviour script goes in its list.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
 

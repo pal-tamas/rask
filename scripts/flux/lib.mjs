@@ -35,13 +35,21 @@ export const STYLES = [
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
 ];
 
+// A browser context's screen: below Tailwind's `sm` (640px) a PHONE's — touch, and the overlay scrollbars a phone
+// has. A desktop browser 390px wide is no phone: there Flux's `scrollbar-gutter: stable` reserves 15px of a
+// scrollbar nobody draws and sets its date dialog 7.5px off centre, which no reader ever sees (measured on its
+// date picker: 25.5px from the left as a desktop, 33px as a phone, where the kit's is too).
+export function screen(width, height) {
+  return width < 640 ? { viewport: { width, height }, isMobile: true, hasTouch: true } : { viewport: { width, height } };
+}
+
 // Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
 // the loaded page before anything is measured. `view` is the viewport, for a page that is another thing on a
 // phone (`[390, 844]`); a desktop's unless given.
 export async function measurePage(browser, url, shots, prepare, view = [1280, 900]) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ viewport: { width: view[0], height: view[1] }, colorScheme: scheme });
+    const context = await browser.newContext({ ...screen(view[0], view[1]), colorScheme: scheme });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
@@ -311,7 +319,7 @@ export async function measureLayouts(browser, demos, locate, shots, { prepare, o
         for (const state of view.states) {
           const section = `${demo.section || demo.name}@${view.width}${state && `-${state}`}`;
           if (only && !only.has(section)) continue;
-          const context = await browser.newContext({ viewport: { width: view.width, height: 900 }, colorScheme: scheme });
+          const context = await browser.newContext({ ...screen(view.width, 900), colorScheme: scheme });
           // Motion at rest, as measurePage has it: the sidebar's slide is measured where it ends.
           await context.addInitScript(`window.__fluxRest = ${rest}`);
           const page = await context.newPage();
