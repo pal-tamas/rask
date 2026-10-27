@@ -43,6 +43,21 @@ export function screen(width, height) {
   return width < 640 ? { viewport: { width, height }, isMobile: true, hasTouch: true } : { viewport: { width, height } };
 }
 
+// A behaviour script's `--view <w>x<h>`: the viewport it walks in, a desktop's unless given. `sized` names what it
+// measures of Flux in that view (`@390x844`, nothing on a desktop), as parity.mjs keeps it; `phone` is screen()'s.
+export function viewOf(args, desktop = [1280, 900]) {
+  const asked = args.includes('--view') ? args[args.indexOf('--view') + 1].split('x').map(Number) : null;
+  const size = asked ?? desktop;
+  return { size, sized: asked ? `@${asked.join('x')}` : '', phone: size[0] < 640, screen: screen(size[0], size[1]) };
+}
+
+// A press as the screen makes it: a TAP on a phone (the touch, then the mouse events a browser makes of it), a
+// click of the mouse elsewhere. A phone has no pointer to hover with, so a walk drops its hover steps there.
+export async function press(page, x, y, phone) {
+  if (phone) await page.touchscreen.tap(x, y);
+  else await page.mouse.click(x, y);
+}
+
 // Every `[data-preview-wrapper]` on `url`, measured in light and in dark. `prepare(page, scheme)` runs on
 // the loaded page before anything is measured. `view` is the viewport, for a page that is another thing on a
 // phone (`[390, 844]`); a desktop's unless given.
