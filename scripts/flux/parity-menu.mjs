@@ -193,6 +193,9 @@ async function measureOpen(url, prefix, like) {
     await page.evaluate(async () => {
       await Promise.all([...document.fonts].map(face => face.load().catch(() => {})));
       await document.fonts.ready;
+      // A link a tap follows takes Flux's page away (it loads again, scrolled to the top). Stopped last, on the
+      // window, once both menus have heard the press: the walk stays on the page.
+      addEventListener('click', e => { if (e.target.closest?.('[popover] a[href]')) e.preventDefault(); });
     });
     if (like) {
       // What Flux does in script the kit asks the runtime for: the lit row, the safe area, the page lock.
