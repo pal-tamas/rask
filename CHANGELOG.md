@@ -194,6 +194,11 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **`Ui.Carousel`'s autoplay stops for good once the reader takes over, as Flux's does.** Before: a press on a slide
+  or on an arrow paused it only while the pointer or focus stayed, and on a phone a tap paused nothing (the touch
+  left at once). After: a press on the track (a click, a tap, a finger that swipes from it) or on an arrow (by the
+  pointer or a key) ends it for the page's life; the hover that holds it is the mouse's, so a swipe that starts on an
+  arrow holds nothing. Measured on fluxui.dev at 390px with touch and on a desktop.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event
