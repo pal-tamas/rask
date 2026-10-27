@@ -275,24 +275,7 @@ public static partial class RaskEndpointExtensions
         services.AddSingleton<RaskDrainCoordinator>();
         // Which Server-Sent Events stream each session is on, for the HTTP transport. Per host, never static.
         services.AddSingleton<StreamRegistry>();
-        services.AddSingleton(static sp =>
-        {
-            // Session cap and diff mode are per-store instance values (not statics) so concurrent hosts and
-            // tests don't clobber each other through global state.
-            var live = sp.GetRequiredService<RaskLiveOptions>();
-            return new LiveSessionStore(
-                sp.GetRequiredService<IServiceScopeFactory>(),
-                sp.GetService<IHostApplicationLifetime>(),
-                sp.GetService<RaskMetrics>())
-            {
-                MaxSessions = live.MaxSessions,
-                DiffMode = live.DiffMode,
-                // Assigned rather than passed: LiveSessionStore's constructor is public and
-                // RaskDrainCoordinator is internal, and every directly-constructed test store keeps working
-                // (it simply never drains).
-                Drain = sp.GetRequiredService<RaskDrainCoordinator>(),
-            };
-        });
+        services.AddSingleton(CreateSessionStore);
         // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
         // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
         services.AddHostedService<RaskDrainService>();
@@ -301,6 +284,32 @@ public static partial class RaskEndpointExtensions
         // under a debugger there is no `rask dev`. Registered only for a dev-session build; whether it acts is
         // decided at startup (Development, and not under dotnet watch).
         Dev.IslandDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
+    }
+
+    private static LiveSessionStore CreateSessionStore(IServiceProvider sp)
+    {
+        // Session cap and diff mode are per-store instance values (not statics) so concurrent hosts and
+        // tests don't clobber each other through global state.
+        var live = sp.GetRequiredService<RaskLiveOptions>();
+        var store = new LiveSessionStore(
+            sp.GetRequiredService<IServiceScopeFactory>(),
+            sp.GetService<IHostApplicationLifetime>(),
+            sp.GetService<RaskMetrics>())
+        {
+            MaxSessions = live.MaxSessions,
+            DiffMode = live.DiffMode,
+            // Assigned rather than passed: LiveSessionStore's constructor is public and
+            // RaskDrainCoordinator is internal, and every directly-constructed test store keeps working
+            // (it simply never drains).
+            Drain = sp.GetRequiredService<RaskDrainCoordinator>(),
+        };
+        if (sp.GetService<ILoggerFactory>() is { } loggers)
+        {
+            store.Lifecycle = new SessionLifecycleLog(
+                loggers.CreateLogger(SessionLifecycleLog.Category), () => store.Clock);
+        }
+
+        return store;
     }
 
     // The session's JS runtime is disposable, so an event's scope hands out a view of it that is not.
@@ -711,7 +720,7 @@ public static partial class RaskEndpointExtensions
         // that never sends `hello` is almost certainly a probe / abandoned load and should
         // not pin a DI scope + tree for the full 30s reconnect window. A real hello cancels
         // this removal (LiveSessionStore.Get) and DetachSocket later re-arms the full grace.
-        store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod);
+        store.ScheduleRemoval(session.Id, limits.UnconnectedSessionGracePeriod, SessionRemoval.Unconnected);
     }
 
     // The devtools' own pages decide per request who may open them: Development, this machine, the token the
@@ -801,7 +810,7 @@ public static partial class RaskEndpointExtensions
     private static void Redirect(
         HttpContext httpContext, LiveSessionStore store, LiveSession session, Prerender.PageRenderResult render)
     {
-        store.Remove(session.Id);
+        store.Remove(session.Id, SessionRemoval.Redirected);
         httpContext.Response.StatusCode = StatusCodes.Status302Found;
         httpContext.Response.Headers.Location = render.RedirectLocation;
         // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
@@ -1288,13 +1297,12 @@ public static partial class RaskEndpointExtensions
         using var scope = drain.TrackSocket();
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ctx.RequestAborted, drain.HardStopping);
         var ct = linked.Token;
-
         ServerCultureNegotiation.TryNegotiate(ctx.Request, ctx.RequestServices, out var culture);
 
         await OpenEventStreamAsync(ctx.Response, ct).ConfigureAwait(false);
 
         var generation = registry.NextGeneration();
-        var transport = new SseTransport(ctx.Response.BodyWriter, generation, ct);
+        var transport = new SseTransport(ctx.Response.BodyWriter, generation, store.OpenConnection("HTTP stream"), ct);
 
         // Handed over as values, never spliced into a JSON document: both come straight from the request, and a
         // session id or a resume token carrying a quote would otherwise have been read as the hello's own
@@ -1309,6 +1317,7 @@ public static partial class RaskEndpointExtensions
         if (attach.Status != AttachStatus.Attached || attach.Session is null)
         {
             await RefuseUnknownSessionAsync(transport, generation, limits, ct).ConfigureAwait(false);
+            store.Lifecycle.Unattached(transport.Record);
             return;
         }
 
@@ -1330,8 +1339,20 @@ public static partial class RaskEndpointExtensions
         }
         finally
         {
+            NoteStreamEnd(transport.Record, drain.HardStopping);
             await EndStreamAsync(registry, store, session, transport, limits.SessionGracePeriod).ConfigureAwait(false);
         }
+    }
+
+    // A stream nothing of ours closed ended with the browser's request, or with the drain's deadline.
+    private static void NoteStreamEnd(ConnectionRecord connection, CancellationToken hardStopping)
+    {
+        if (hardStopping.IsCancellationRequested)
+        {
+            connection.Ended(ClosedBy.Shutdown, "the drain's deadline passed");
+        }
+
+        connection.Ended(ClosedBy.Client, "the browser closed the stream");
     }
 
     // The session id the stream names, or null — having answered the request — when it may not open one.
@@ -1366,8 +1387,11 @@ public static partial class RaskEndpointExtensions
         if (session.DetachTransport(transport))
         {
             session.LastStreamGeneration = transport.Generation;
-            store.SocketDetached();
-            store.ScheduleRemoval(session.Id, session.Leaving ? TimeSpan.Zero : grace);
+            store.Disconnected(session, transport, grace);
+        }
+        else
+        {
+            store.Lifecycle.Superseded(transport.Record, session);
         }
     }
 
@@ -1679,9 +1703,10 @@ public static partial class RaskEndpointExtensions
         // would otherwise close the page its successor is driving. An ordinary ending, not a violation — and the
         // stream's cleanup frees the session at once rather than after the grace period.
         var generation = ctx.Request.Headers["Rask-Stream"].ToString();
-        if (registry.IsCurrent(session.Id, generation))
+        if (registry.Current(session.Id, generation) is { } current)
         {
             session.Leaving = true;
+            current.Transport.Record.Ended(ClosedBy.Client, "the tab left");
             registry.Close(session.Id, LiveTransportClose.Normal, "leave");
         }
         else if (!session.HasOpenTransport
@@ -1691,7 +1716,7 @@ public static partial class RaskEndpointExtensions
             // A closing tab tears its stream down while this request is on its way, so the stream's cleanup
             // often runs first and has already armed the grace period. The generation still names the last
             // stream this session had, and nothing has attached since: it is the same tab, and it has gone.
-            store.ScheduleRemoval(session.Id, TimeSpan.Zero);
+            store.ScheduleRemoval(session.Id, TimeSpan.Zero, SessionRemoval.Left);
         }
 
         ctx.Response.StatusCode = StatusCodes.Status204NoContent;
@@ -1707,9 +1732,9 @@ public static partial class RaskEndpointExtensions
 
         // One transport for this connection: what the session sends through, and the identity the detach
         // below compares against.
-        var transport = new WebSocketTransport(ws);
+        var transport = new WebSocketTransport(ws, store.OpenConnection("WebSocket"));
         LiveSession? session = null;
-        using var reader = new SocketReader(ws, limits, metrics, ct);
+        using var reader = new SocketReader(ws, transport.Record, limits, metrics, ct);
 
         try
         {
@@ -1746,7 +1771,7 @@ public static partial class RaskEndpointExtensions
                     && await ProcessFrameAsync(session, root, hasType, t, payload.Length, store, limits, metrics, ct)
                         .ConfigureAwait(false) is { Status: FrameStatus.Refused } refused)
                 {
-                    await ClosePolicyViolationAsync(ws, refused.Reason!).ConfigureAwait(false);
+                    await ClosePolicyViolationAsync(ws, transport.Record, refused.Reason!).ConfigureAwait(false);
                     break;
                 }
             }
@@ -1755,10 +1780,33 @@ public static partial class RaskEndpointExtensions
         {
             // The host is stopping or the idle timeout fired, or the client dropped the connection mid-frame: the
             // loop ends, finally detaches, and the session waits out its grace period.
+            NoteSocketFault(transport.Record, ex, stopping);
         }
         finally
         {
             await EndSocketAsync(ws, session, transport, store, limits).ConfigureAwait(false);
+        }
+    }
+
+    // Why a socket's loop ended in a fault: the host's deadline, the request going, or the connection failing. A
+    // close without its handshake is how a browser that was killed or lost its network leaves.
+    private static void NoteSocketFault(ConnectionRecord connection, Exception ex, CancellationToken stopping)
+    {
+        if (stopping.IsCancellationRequested)
+        {
+            connection.Ended(ClosedBy.Shutdown, "the drain's deadline passed");
+        }
+        else if (ex is WebSocketException { WebSocketErrorCode: WebSocketError.ConnectionClosedPrematurely })
+        {
+            connection.Ended(ClosedBy.Client, "closed without the close handshake");
+        }
+        else if (ex is WebSocketException socket)
+        {
+            connection.Ended(ClosedBy.Error, socket.WebSocketErrorCode.ToString());
+        }
+        else
+        {
+            connection.Ended(ClosedBy.Client, "the request was aborted");
         }
     }
 
@@ -1767,7 +1815,8 @@ public static partial class RaskEndpointExtensions
     ///     once per connection so that reading a message allocates nothing.
     /// </summary>
     private sealed class SocketReader(
-        WebSocket ws, RaskServerLimits limits, RaskMetrics? metrics, CancellationToken ct) : IDisposable
+        WebSocket ws, ConnectionRecord connection, RaskServerLimits limits, RaskMetrics? metrics, CancellationToken ct)
+        : IDisposable
     {
         // Rented, and handed back when the socket closes: a reconnect storm reuses the arrays instead of
         // allocating 16 KB per connection.
@@ -1818,7 +1867,7 @@ public static partial class RaskEndpointExtensions
             if (OverFrameRate())
             {
                 metrics?.FrameRejected("rate");
-                await ClosePolicyViolationAsync(ws, "frame rate").ConfigureAwait(false);
+                await ClosePolicyViolationAsync(ws, connection, "frame rate").ConfigureAwait(false);
                 return null;
             }
 
@@ -1845,6 +1894,7 @@ public static partial class RaskEndpointExtensions
                 var result = await ws.ReceiveAsync(_buffer, receiveToken).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    NoteClientClose();
                     return null;
                 }
 
@@ -1858,6 +1908,7 @@ public static partial class RaskEndpointExtensions
                 when (_idleCts is not null && _idleCts.IsCancellationRequested && !ct.IsCancellationRequested)
             {
                 metrics?.FrameRejected("idle");
+                connection.Ended(ClosedBy.Timeout, "idle timeout");
                 await ClosePolicyViolationAsync(ws, "idle timeout").ConfigureAwait(false);
                 return null;
             }
@@ -1885,6 +1936,7 @@ public static partial class RaskEndpointExtensions
                 result = await ws.ReceiveAsync(_buffer, receiveToken).ConfigureAwait(false);
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    NoteClientClose();
                     return null;
                 }
 
@@ -1898,6 +1950,7 @@ public static partial class RaskEndpointExtensions
                 if (message.WrittenCount > limits.MaxInboundFrameBytes)
                 {
                     metrics?.FrameRejected("size");
+                    connection.Ended(ClosedBy.Server, "frame size");
                     try { ws.Abort(); }
                     catch { /* already gone: the frame is refused either way */ }
 
@@ -1907,6 +1960,11 @@ public static partial class RaskEndpointExtensions
 
             return message.WrittenMemory;
         }
+
+        // The browser's close frame: its status says whether the tab went (1001), closed on purpose (1000) or another.
+        private void NoteClientClose() =>
+            connection.Ended(ClosedBy.Client, string.Create(CultureInfo.InvariantCulture,
+                $"close status {(int?)ws.CloseStatus ?? 1005}"));
 
         // Inbound frame-rate cap: count every completed receive over a sliding one-second
         // window and close the socket on a flood, before the per-frame parse. Bounds
@@ -2008,7 +2066,7 @@ public static partial class RaskEndpointExtensions
         if (session is not null)
         {
             store.Metrics?.FrameRejected("hello");
-            await ClosePolicyViolationAsync(ws, "hello").ConfigureAwait(false);
+            await ClosePolicyViolationAsync(ws, transport.Record, "hello").ConfigureAwait(false);
             return (true, session);
         }
 
@@ -2019,6 +2077,7 @@ public static partial class RaskEndpointExtensions
         if (attach.Status == AttachStatus.Unknown)
         {
             // Nothing to attach to, and nothing that says whether the id ever existed.
+            transport.Record.Ended(ClosedBy.Server, "session unknown");
             await SendSessionUnknownAsync(ws, ct).ConfigureAwait(false);
             return (true, null);
         }
@@ -2030,13 +2089,25 @@ public static partial class RaskEndpointExtensions
     private static async Task EndSocketAsync(
         WebSocket ws, LiveSession? session, WebSocketTransport transport, LiveSessionStore store, RaskServerLimits limits)
     {
+        // A loop that ended with nothing noted: the browser's close the socket's state shows, or the request going.
+        transport.Record.Ended(ClosedBy.Client, ws.CloseStatus is { } status
+            ? string.Create(CultureInfo.InvariantCulture, $"close status {(int)status}")
+            : "the request was aborted");
+
         // Only when this loop's socket is still the attached one. A tab that reconnected before the
         // server noticed this socket die has attached a new one already: detaching, counting the
         // disconnect or arming removal here would do all three to the live connection (#1076).
-        if (session is not null && session.DetachTransport(transport))
+        if (session is null)
         {
-            store.SocketDetached();
-            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+            store.Lifecycle.Unattached(transport.Record);
+        }
+        else if (session.DetachTransport(transport))
+        {
+            store.Disconnected(session, transport, limits.SessionGracePeriod);
+        }
+        else
+        {
+            store.Lifecycle.Superseded(transport.Record, session);
         }
 
         if (ws.State == WebSocketState.Open || ws.State == WebSocketState.CloseReceived)
@@ -2397,6 +2468,9 @@ public static partial class RaskEndpointExtensions
             return rebuilt;
         }
 
+        var (kind, waitedSince) = HowItAttaches(session, transport);
+        var bytesBefore = session.BytesSent;
+
         // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
         // reason to know a store exists. A connection that replaces one still attached is not counted again;
         // that one's cleanup will not count its detach.
@@ -2428,7 +2502,22 @@ public static partial class RaskEndpointExtensions
             session.AttachSettled();
         }
 
+        store.Lifecycle.Attached(transport.Record, session, kind, waitedSince, bytesBefore);
         return new AttachOutcome(AttachStatus.Attached, session);
+    }
+
+    // What the attach line says of a connection about to attach, and the moment it counts the wait from: the page being
+    // served for a first connection, the last one going for a reconnect.
+    private static (AttachKind Kind, long Since) HowItAttaches(LiveSession session, ILiveTransport transport)
+    {
+        if (session.Connections == 0)
+        {
+            return (AttachKind.New, session.CreatedAt);
+        }
+
+        return session.HasOpenTransport
+            ? (AttachKind.Replace, transport.Record.OpenedAt)
+            : (AttachKind.Resume, session.DetachedAt);
     }
 
     // The wire gives every refusal the same answer, so this line is where an operator learns which it was. It names
@@ -2445,6 +2534,7 @@ public static partial class RaskEndpointExtensions
 
         var reason = (existing, user.Identity?.IsAuthenticated) switch
         {
+            (null, _) when store.RecentRemovals.Find(sessionId) is { } removed => RemovedLately(store, removed),
             (null, _) => "no session has that id",
             (_, true) => "it belongs to another user",
             _ => "it has a user and the connection is anonymous",
@@ -2456,13 +2546,19 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        var fingerprint = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
+        var fingerprint = SessionFingerprint.Of(sessionId);
 
         RaskDiagnostics.Report(
             RaskLogLevel.Information, "Rask.Live",
             $"Rask Live: refused to attach a connection to session #{fingerprint}: {reason}."
             + (rebuilt ? " The connection's own page was rebuilt from its resume record." : " The tab reloads."));
     }
+
+    // A session this host had and removed: how long ago, and why — a tab that comes back to one has usually been away,
+    // or slow, for longer than the limit that removed it.
+    private static string RemovedLately(LiveSessionStore store, RecentRemovals.Entry removed) =>
+        string.Create(CultureInfo.InvariantCulture,
+            $"no session has that id: it was removed {store.Clock.GetElapsedTime(removed.At).TotalSeconds:0.0} s ago, after {removed.Limit.TotalSeconds:0.#} s — {SessionLifecycleLog.Describe(removed.Why)}");
 
     // What a re-attached session owes its new connection: the deferred sign-in navigation, then a render.
     private static async Task RenderAttachedAsync(LiveSession session, CancellationToken ct)
@@ -2598,6 +2694,7 @@ public static partial class RaskEndpointExtensions
         // data-rask-root — see LiveSessionBase's full-payload path. Counted like any other attach: the
         // cleanup counts the detach, so an uncounted attach here drove ConnectedCount negative after every
         // deploy (#1059).
+        var bytesBefore = session.BytesSent;
         if (session.AttachTransport(transport, ct))
         {
             store.SocketAttached();
@@ -2632,6 +2729,7 @@ public static partial class RaskEndpointExtensions
             session.AttachSettled();
         }
 
+        store.Lifecycle.Attached(transport.Record, session, AttachKind.Rebuilt, transport.Record.OpenedAt, bytesBefore);
         return new AttachOutcome(AttachStatus.Attached, session);
     }
 
@@ -2641,11 +2739,17 @@ public static partial class RaskEndpointExtensions
     private static void AbandonAttach(
         LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits)
     {
+        transport.Record.Ended(ClosedBy.Error, "the attach's render failed");
         if (session.DetachTransport(transport))
         {
-            store.SocketDetached();
-            store.ScheduleRemoval(session.Id, limits.SessionGracePeriod);
+            store.Disconnected(session, transport, limits.SessionGracePeriod);
         }
+    }
+
+    private static Task ClosePolicyViolationAsync(WebSocket ws, ConnectionRecord connection, string reason)
+    {
+        connection.Ended(ClosedBy.Server, reason);
+        return ClosePolicyViolationAsync(ws, reason);
     }
 
     // Best-effort PolicyViolation close shared by the rate / backlog / idle breakers: the client

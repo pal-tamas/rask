@@ -36,6 +36,8 @@ public sealed class TransportAttachTests
     {
         public bool IsOpen { get; set; } = true;
 
+        public ConnectionRecord Record { get; } = new(0, "test", 0);
+
         public List<string> Sent { get; } = [];
 
         public int Aborts { get; private set; }
@@ -168,6 +170,8 @@ public sealed class TransportAttachTests
     private sealed class FailingTransport : ILiveTransport
     {
         public bool IsOpen => true;
+
+        public ConnectionRecord Record { get; } = new(0, "test", 0);
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct) =>
             ValueTask.FromException(new System.Net.WebSockets.WebSocketException("the client went away"));

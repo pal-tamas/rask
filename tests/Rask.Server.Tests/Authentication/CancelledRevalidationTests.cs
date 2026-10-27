@@ -174,6 +174,8 @@ public sealed class CancelledRevalidationTests
     {
         public bool IsOpen { get; private set; } = true;
 
+        public ConnectionRecord Record { get; } = new(0, "test", 0);
+
         public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct) => ValueTask.CompletedTask;
 
         public Task CloseAsync(LiveTransportClose reason, string description, CancellationToken ct)

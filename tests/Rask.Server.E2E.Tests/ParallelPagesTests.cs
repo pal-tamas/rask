@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Core.Routing;
@@ -20,8 +21,10 @@ namespace Rask.Server.E2E.Tests;
 ///     Every answer reaches every page (#1258).
 /// </summary>
 /// <remarks>
-///     <c>RASK_E2E_PARALLEL_PAGES</c>, <c>RASK_E2E_PARALLEL_ROUNDS</c> and <c>RASK_E2E_PARALLEL_STRESS</c> (threads
-///     kept busy in the host's process) size a heavier run; unset, it is small enough for every push.
+///     <c>RASK_E2E_PARALLEL_PAGES</c>, <c>RASK_E2E_PARALLEL_ROUNDS</c>, <c>RASK_E2E_PARALLEL_STRESS</c> (threads
+///     kept busy in the host's process) and <c>RASK_E2E_PARALLEL_CPU_THROTTLE</c> (each page's scripts that many times
+///     slower) size a heavier run; unset, it is small enough for every push. The host's session lifecycle is counted
+///     and printed, and a tab that comes back to a session the host removed under it fails the run.
 /// </remarks>
 public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -30,6 +33,7 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
     private static readonly int Pages = Setting("RASK_E2E_PARALLEL_PAGES", 12);
     private static readonly int Rounds = Setting("RASK_E2E_PARALLEL_ROUNDS", 3);
     private static readonly int Stress = Setting("RASK_E2E_PARALLEL_STRESS", 0);
+    private static readonly int Throttle = Setting("RASK_E2E_PARALLEL_CPU_THROTTLE", 1);
 
     private int _checked;
 
@@ -37,45 +41,79 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
     public async Task Every_page_open_beside_the_others_is_shown_what_its_actions_bring_back()
     {
         var board = new DeskBoard();
+        var lifecycle = new LifecycleCounts();
         await using var host = await LiveServerHost.StartAsync<BusyDeskPage>(
             blockWebSockets: false,
-            services: services => services.AddRaskCqrs().AddSingleton<DeskLedger>().AddSingleton(board));
+            services: services => services.AddRaskCqrs().AddSingleton<DeskLedger>().AddSingleton(board)
+                .AddLogging(logging => logging.AddProvider(lifecycle).AddFilter("Rask.Live", LogLevel.Debug)));
         using var stress = new BusyThreads(Stress);
         using var ticks = board.TickEvery(TimeSpan.FromMilliseconds(15));
         var lost = new ConcurrentQueue<string>();
 
-        await Task.WhenAll(Enumerable.Range(0, Pages).Select(reader => ReadAsync(host.BaseUrl, reader, lost)));
+        try
+        {
+            await Task.WhenAll(Enumerable.Range(0, Pages).Select(reader => ReadAsync(host.BaseUrl, reader, lost)));
+        }
+        finally
+        {
+            TestContext.Current.TestOutputHelper?.WriteLine(lifecycle.ToString());
+        }
 
         Assert.Equal(Pages * Rounds * ChecksPerRound, Volatile.Read(ref _checked));
-        Assert.True(lost.IsEmpty, $"{lost.Count} answers never reached their page:{Environment.NewLine}{string.Join(Environment.NewLine, lost)}");
+        Assert.True(lost.IsEmpty, $"{lost.Count} answers never reached their page:{Environment.NewLine}{string.Join(Environment.NewLine, lost)}"
+                                  + $"{Environment.NewLine}{lifecycle}");
+        // A tab that came back to a session this host had removed under it is told so, and reloads.
+        Assert.True(lifecycle.Refused.IsEmpty, $"a tab came back to a removed session:{Environment.NewLine}"
+                                               + $"{string.Join(Environment.NewLine, lifecycle.Refused)}{Environment.NewLine}{lifecycle}");
     }
 
     private async Task ReadAsync(string baseUrl, int reader, ConcurrentQueue<string> lost)
     {
         await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = 1000, Height = 700 } });
         var page = await context.NewPageAsync();
+        if (Throttle > 1)
+        {
+            // A starved browser: every page's scripts run this many times slower, as on a loaded CI runner.
+            var cdp = await context.NewCDPSessionAsync(page);
+            await cdp.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = Throttle });
+        }
+
         for (var round = 1; round <= Rounds; round++)
         {
             var at = $"reader {reader}, round {round}";
-            await page.GotoAsync(baseUrl + "/");
-            await Seen(page.Locator("#rows"), "row 1, row 2, row 3", $"{at}: first rows", lost);
-
-            for (var save = 1; save <= 2; save++)
+            try
             {
-                await page.ClickAsync("#save");
-                await Seen(page.Locator("#value"), $"value={save}", $"{at}: value read again after save {save}", lost);
-                await Seen(page.Locator("[data-ui-toast]").GetByText($"Saved {save}."), null, $"{at}: toast of save {save}", lost);
+                await RoundAsync(page, baseUrl, at, lost);
             }
-
-            await page.ClickAsync("#run");
-            await Seen(page.Locator("#job"), "job=1", $"{at}: job heard", lost);
-            await Seen(page.Locator("[data-ui-toast]").GetByText("Job 1 done."), null, $"{at}: toast of the job", lost);
-
-            await page.ClickAsync("#to-list");
-            await Seen(page.Locator("#list"), "listed 3", $"{at}: a list reached by a link", lost);
-            await page.ClickAsync("#to-desk");
-            await Seen(page.Locator("#rows"), "row 1, row 2, row 3", $"{at}: back at the desk", lost);
+            catch (TimeoutException ex)
+            {
+                // A control that never appeared: the page is not the one the round expects. Noted, and the next round
+                // starts from a fresh load.
+                lost.Enqueue($"{at}: {ex.Message.Split('\n')[0]} {ex.Message.Split('\n').ElementAtOrDefault(2)}");
+            }
         }
+    }
+
+    private async Task RoundAsync(IPage page, string baseUrl, string at, ConcurrentQueue<string> lost)
+    {
+        await page.GotoAsync(baseUrl + "/", new() { Timeout = 60_000 });
+        await Seen(page.Locator("#rows"), "row 1, row 2, row 3", $"{at}: first rows", lost);
+
+        for (var save = 1; save <= 2; save++)
+        {
+            await page.ClickAsync("#save");
+            await Seen(page.Locator("#value"), $"value={save}", $"{at}: value read again after save {save}", lost);
+            await Seen(page.Locator("[data-ui-toast]").GetByText($"Saved {save}."), null, $"{at}: toast of save {save}", lost);
+        }
+
+        await page.ClickAsync("#run");
+        await Seen(page.Locator("#job"), "job=1", $"{at}: job heard", lost);
+        await Seen(page.Locator("[data-ui-toast]").GetByText("Job 1 done."), null, $"{at}: toast of the job", lost);
+
+        await page.ClickAsync("#to-list");
+        await Seen(page.Locator("#list"), "listed 3", $"{at}: a list reached by a link", lost);
+        await page.ClickAsync("#to-desk");
+        await Seen(page.Locator("#rows"), "row 1, row 2, row 3", $"{at}: back at the desk", lost);
     }
 
     // Waits for what an action brings back, noting it when it never comes rather than ending the reader's walk.
@@ -105,6 +143,54 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
         int.TryParse(Environment.GetEnvironmentVariable(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
             ? value
             : otherwise;
+
+    /// <summary>
+    ///     The host's session lifecycle (<c>Rask.Live</c> at Debug), counted by what each line names — who closed a
+    ///     connection and why, how a connection attached, why a session went — and every refused attach kept whole.
+    /// </summary>
+    private sealed class LifecycleCounts : ILoggerProvider, ILogger
+    {
+        private static readonly string[] Named = ["ClosedBy", "Reason", "Attach", "CatchUp", "Why"];
+
+        private readonly ConcurrentDictionary<string, int> _counts = new(StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<string, double> _longestWait = new(StringComparer.Ordinal);
+
+        public ConcurrentQueue<string> Refused { get; } = new();
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (eventId.Id is > 1100 and < 1200 && state is IReadOnlyList<KeyValuePair<string, object?>> fields)
+            {
+                var kind = string.Join(" / ", fields.Where(static f => Named.Contains(f.Key)).Select(static f => f.Value));
+                _counts.AddOrUpdate($"{eventId.Id} {kind}", 1, static (_, n) => n + 1);
+                if (fields.FirstOrDefault(static f => f.Key == "Waited").Value is double waited)
+                {
+                    _longestWait.AddOrUpdate(kind, waited, (_, longest) => Math.Max(longest, waited));
+                }
+            }
+            else if (formatter(state, exception) is var line && line.Contains("refused to attach", StringComparison.Ordinal))
+            {
+                Refused.Enqueue(line);
+            }
+        }
+
+        public override string ToString() =>
+            "lifecycle:" + string.Concat(_counts.OrderBy(static c => c.Key, StringComparer.Ordinal)
+                .Select(static c => $"{Environment.NewLine}  {c.Value,5} × {c.Key}"))
+            + string.Concat(_longestWait.Select(static w => $"{Environment.NewLine}  longest wait {w.Value:0.000} s: {w.Key}"));
+
+        public void Dispose()
+        {
+        }
+    }
 
     /// <summary>Threads that keep the host's cores busy for as long as the journey runs: a loaded machine.</summary>
     private sealed class BusyThreads : IDisposable
