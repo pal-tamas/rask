@@ -66,6 +66,27 @@ public sealed class ToastDismissTests(PlaywrightFixture playwright) : IClassFixt
     }
 
     [Fact]
+    public async Task On_a_phone_a_tap_on_a_toast_holds_its_countdown_until_a_tap_elsewhere()
+    {
+        await using var host = await LiveServerHost.StartAsync<ToastPage>(blockWebSockets: false);
+        await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true });
+        var page = await context.NewPageAsync();
+        await page.GotoAsync(host.BaseUrl + "/");
+        await page.Locator("#show").TapAsync();
+        var toast = page.Locator("[role=\"status\"] span");
+        await Expect(toast).ToBeVisibleAsync(new() { Timeout = 5_000 });
+
+        // Flux UI's toast on a phone: the tap is a mouse over it, which the browser leaves there until the next tap.
+        await toast.TapAsync();
+        await page.WaitForTimeoutAsync(2_500);
+        var held = await page.Locator("#dismissed").TextContentAsync();
+        await page.Touchscreen.TapAsync(300, 600);
+
+        Assert.Equal("dismissed=0", held);
+        await Expect(page.Locator("#dismissed")).ToHaveTextAsync("dismissed=1", new() { Timeout = 10_000 });
+    }
+
+    [Fact]
     public async Task Toasts_whose_countdowns_end_in_the_same_frame_all_leave()
     {
         await using var host = await LiveServerHost.StartAsync<ToastPage>(blockWebSockets: false);

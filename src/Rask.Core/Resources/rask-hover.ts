@@ -22,7 +22,14 @@
 //
 // Delegated: pointerover / pointerout on the document, with the relatedTarget boundary test that turns them
 // into enter / leave (the pair that does not bubble). Nothing is attached per element, so a page with no
-// such root pays two closest() calls per pointer crossing and nothing else. A touch never hovers.
+// such root pays two closest() calls per pointer crossing and nothing else. A touch opens no hover panel.
+//
+// A touch DOES show a tooltip. Measured on Flux UI's tooltip page on a phone (2026-10-27): the finger's
+// pointerenter shows it and its pointerleave, a moment later, hides nothing. Lifting the finger is a press
+// (the mousedown the browser makes of the tap), which hides a tooltip shown before the frame it lands in —
+// so an instant tap leaves it shown and a finger that rested hides it again. A second tap hides it, as does a
+// tap elsewhere. And once a finger has shown one, Flux shows no tooltip of the page to a finger again — not
+// even another one — until a mouse moves.
 
 import {disown, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
@@ -33,6 +40,10 @@ const HOVER = "data-rask-hover";
 // pointer has left and come back. Without it the bubble would reopen under the finger that just clicked.
 const dismissed = new WeakSet<Element>();
 const showing = new Set<Element>();
+
+// The tooltip a finger showed, until a mouse moves; and whether that was in the frame still running.
+let touched: Element | null = null;
+let touchedNow = false;
 
 function focusVisibleIn(root: Element): boolean {
     const active = page!.activeElement;
@@ -139,12 +150,18 @@ function hoverable(root: Element): boolean {
 
 if (page) {
     listen("pointerover", function (e) {
-        if ((e as PointerEvent).pointerType === "touch") {
-            return;
-        }
+        const touch = (e as PointerEvent).pointerType === "touch";
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        if (tooltip && crosses(tooltip, e) && !dismissed.has(tooltip)) {
+        if (tooltip && crosses(tooltip, e) && !dismissed.has(tooltip) && !(touch && touched)) {
             tip(tooltip, true);
+            if (touch) {
+                touched = tooltip;
+                touchedNow = true;
+                requestAnimationFrame(function () { touchedNow = false; });
+            }
+        }
+        if (touch) {
+            return;
         }
         const hover = near(e.target, "[" + HOVER + "]");
         if (hover && crosses(hover, e) && hoverable(hover)) {
@@ -154,6 +171,9 @@ if (page) {
     }, {capture: true, passive: true});
 
     listen("pointermove", function (e) {
+        if ((e as PointerEvent).pointerType !== "touch") {
+            touched = null;
+        }
         if (watched.size) {
             look(e as PointerEvent);
         }
@@ -161,7 +181,8 @@ if (page) {
 
     listen("pointerout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        if (tooltip && crosses(tooltip, e)) {
+        // A lifted finger leaves nothing.
+        if (tooltip && crosses(tooltip, e) && (e as PointerEvent).pointerType !== "touch") {
             dismissed.delete(tooltip);
             // Keyboard focus keeps it: a reader who tabbed here and nudged the mouse still needs the label.
             if (!focusVisibleIn(tooltip)) {
@@ -199,8 +220,17 @@ if (page) {
             }
         }
         // A press inside the bubble itself (a link in an interactive tooltip) is using it, not dismissing it.
-        if (tooltip && !near(e.target, "[popover]")) {
+        // A finger's press is not yet one: it is the mousedown it ends in (below).
+        if (tooltip && !near(e.target, "[popover]") && (e as PointerEvent).pointerType !== "touch") {
             dismissed.add(tooltip);
+            tip(tooltip, false);
+        }
+    }, {capture: true, passive: true});
+
+    // The press a tap ends in, on the tooltip a finger showed: it hides it, unless that was this frame.
+    listen("mousedown", function (e) {
+        const tooltip = near(e.target, "[" + TOOLTIP + "]");
+        if (tooltip && tooltip === touched && !touchedNow && !near(e.target, "[popover]")) {
             tip(tooltip, false);
         }
     }, {capture: true, passive: true});

@@ -66,7 +66,9 @@ parity-popover.mjs --refresh --view 390x844
 parity-select.mjs --refresh
 parity-select.mjs --refresh --view 390x844
 parity-toast.mjs
+parity-toast.mjs --view 390x844
 parity-tooltip.mjs --refresh
+parity-tooltip.mjs --refresh --view 390x844
 chart
 EOF
 }
