@@ -188,6 +188,12 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A frame whose connection goes while it is being made is sent to the next connection, never thrown at the
+  handler (#1258).** Before: a render checked the connection before its walk and read it again to send; a reconnect's
+  cleanup clearing it in between threw a `NullReferenceException` out of `SendGuardedAsync` into the handler
+  (`Rask Live handler 'h…' threw`), and what the click changed never reached the page. After: the connection is read
+  once, and a frame it can no longer carry — gone, or closed — is made again for the connection that attaches next,
+  with the browser calls and the address it carried.
 - **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
   emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a

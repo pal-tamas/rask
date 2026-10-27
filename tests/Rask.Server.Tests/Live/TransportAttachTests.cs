@@ -44,6 +44,12 @@ public sealed class TransportAttachTests
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct)
         {
+            if (!IsOpen)
+            {
+                // As a closed WebSocket does.
+                return ValueTask.FromException(new System.Net.WebSockets.WebSocketException("closed"));
+            }
+
             Sent.Add(System.Text.Encoding.UTF8.GetString(frame.Span));
             return ValueTask.CompletedTask;
         }
@@ -66,6 +72,8 @@ public sealed class TransportAttachTests
     {
         var services = new ServiceCollection();
         services.AddSingleton(new RaskServerLimits());
+        services.AddScoped<Rask.Core.Routing.RouteState>();
+        services.AddScoped<Rask.Core.Routing.Navigator>();
         var sp = services.BuildServiceProvider();
         return new LiveSessionStore(sp.GetRequiredService<IServiceScopeFactory>());
     }
@@ -210,6 +218,76 @@ public sealed class TransportAttachTests
         }
 
         Assert.Null(host.Store.Peek(sessionId));
+    }
+
+    /// <summary>A page whose render runs <see cref="During" /> first: where a connection can go under a render.</summary>
+    private sealed class Watched : Component
+    {
+        internal Action? During;
+
+        internal int Count;
+
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render()
+        {
+            During?.Invoke();
+            return Markup.H1[$"count {Count}"];
+        }
+    }
+
+    /// <summary>
+    ///     A connection that goes while a handler's render is being made: the render was checked against it before
+    ///     the walk, and sent after. The send read it again, found none and threw a NullReferenceException into the
+    ///     handler, and the frame was lost (#1258).
+    /// </summary>
+    [Fact]
+    public async Task A_frame_whose_connection_goes_during_its_render_is_sent_to_the_next_one()
+    {
+        Watched? page = null;
+        var session = NewStore().Create(_ => page = new Watched());
+        var first = new FakeTransport();
+        var second = new FakeTransport();
+        session.AttachTransport(first, CancellationToken.None);
+        page!.Count = 1;
+        page.During = () =>
+        {
+            page.During = null;
+            session.DetachTransport(first);
+        };
+
+        var sent = await session.RenderAndSendAsync(null, false);
+        session.AttachTransport(second, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+
+        Assert.False(sent, "nobody was left to send it to");
+        Assert.Empty(first.Sent);
+        Assert.Contains(second.Sent, frame => frame.Contains("count 1", StringComparison.Ordinal));
+    }
+
+    /// <summary>The same, when the connection is still attached but closed by the time its frame is sent.</summary>
+    [Fact]
+    public async Task A_frame_whose_connection_closes_during_its_render_is_sent_to_the_next_one()
+    {
+        Watched? page = null;
+        var session = NewStore().Create(_ => page = new Watched());
+        var first = new FakeTransport();
+        var second = new FakeTransport();
+        session.AttachTransport(first, CancellationToken.None);
+        page!.Count = 2;
+        page.During = () =>
+        {
+            page.During = null;
+            first.IsOpen = false;
+        };
+
+        var sent = await session.RenderAndSendAsync(null, false);
+        session.AttachTransport(second, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+
+        Assert.False(sent, "nobody was left to send it to");
+        Assert.Empty(first.Sent);
+        Assert.Contains(second.Sent, frame => frame.Contains("count 2", StringComparison.Ordinal));
     }
 
     /// <summary>

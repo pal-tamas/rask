@@ -52,6 +52,15 @@ internal sealed class LiveJsInvokeQueue
         }
     }
 
+    /// <summary>Puts calls drained for a frame that was never sent back in front of any queued since.</summary>
+    public void PutBack(PendingJsInvoke[] invokes)
+    {
+        lock (_pending)
+        {
+            _pending.InsertRange(0, invokes);
+        }
+    }
+
     /// <summary>
     ///     Complete the awaiting <see cref="ValueTask{T}" />s with a failure when the frame carrying
     ///     these invokes never reached the client (e.g. the WebSocket send threw). Without this the
