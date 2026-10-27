@@ -68,6 +68,8 @@ jobs:
       # Dependencies first, and a package only once nuget.org SERVES what it depends on, each push retried
       # (scripts/lib/publish_packages.py -- nightly.yml publishes through the same script). A re-run packs
       # the same tag, so the same version, and --skip-duplicate picks up where the first attempt stopped.
+      # The tag names the version, so no other commit packs it -- and should one be served all the same,
+      # the push refuses before its first package and verify fails: a version is one commit's.
       #
       # push.log is for the verify step below: only the push's own answer can tell "never pushed" from
       # "accepted, still in nuget.org's validation" (#1125).
@@ -80,6 +82,7 @@ jobs:
           --api-key-env NUGET_API_KEY
           --gate-index nuget.org
           --projects src
+          --commit "$GITHUB_SHA"
           --log push.log
 
       # Idempotent, so a re-run of a release that failed further down gets past this step instead of

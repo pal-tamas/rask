@@ -62,7 +62,9 @@ the_set() {
 }
 
 # The stand-in for `dotnet nuget push`. $FAKE/fail/<file> holds "<times> <what to print>"; every
-# attempt lands in attempts.log, every accepted push in pushed.log and, with $FAKE/feed, on "the feed".
+# attempt lands in attempts.log, every accepted push in pushed.log and, with $FAKE/feed, on "the feed":
+# a flat container, index.json beside {version}/{id}.nuspec. $FAKE/foreign/<id> holds a commit the feed
+# serves instead of the pushed one's -- what a "duplicate" of an earlier run's push looks like.
 cat > "$work/push" <<'SH'
 #!/usr/bin/env bash
 file="$(basename "$1")"
@@ -82,8 +84,12 @@ echo "$file" >> "$FAKE/pushed.log"
 id="${file%."$FAKE_VERSION".*}"
 if [ -d "$FAKE/feed" ] && [ ! -e "$FAKE/unserved/$id" ]; then
   lower="$(echo "$id" | tr '[:upper:]' '[:lower:]')"
-  mkdir -p "$FAKE/feed/$lower"
+  mkdir -p "$FAKE/feed/$lower/$FAKE_VERSION"
   echo "{\"versions\":[\"0.1.0\",\"$FAKE_VERSION\"]}" > "$FAKE/feed/$lower/index.json"
+  unzip -p "$1" '*.nuspec' > "$FAKE/feed/$lower/$FAKE_VERSION/$lower.nuspec"
+  if [ -f "$FAKE/foreign/$id" ]; then
+    sed -i.bak "s/commit=\"[^\"]*\"/commit=\"$(cat "$FAKE/foreign/$id")\"/" "$FAKE/feed/$lower/$FAKE_VERSION/$lower.nuspec"
+  fi
 fi
 SH
 chmod +x "$work/push"
@@ -91,7 +97,7 @@ chmod +x "$work/push"
 # fresh <name>   a new set and a new fake feed; sets $dir and $FAKE
 fresh() {
   dir="$work/$1/artifacts"; FAKE="$work/$1/fake"
-  the_set "$dir"; mkdir -p "$FAKE/fail" "$FAKE/unserved"; : > "$FAKE/attempts.log"; : > "$FAKE/pushed.log"
+  the_set "$dir"; mkdir -p "$FAKE/fail" "$FAKE/unserved" "$FAKE/foreign"; : > "$FAKE/attempts.log"; : > "$FAKE/pushed.log"
   export FAKE
 }
 # push <args...>   the script against the stand-in, waits scaled down to nothing; output in $out
@@ -225,12 +231,56 @@ check "and the missing ones are listed" grep -q "Incomplete.*still does not serv
 
 # The feed catches up while the job is waiting.
 ( sleep 0.5; rm "$FAKE/unserved/Rask.Ui"; export FAKE_VERSION="$version"
-  for id in Rask.Ui Rask.Server Rask.Dashboard Rask.Postgres; do "$work/push" "$id.$version.nupkg" >/dev/null; done ) &
+  for id in Rask.Ui Rask.Server Rask.Dashboard Rask.Postgres; do "$work/push" "$dir/$id.$version.nupkg" >/dev/null; done ) &
 verify --wait 60; status=$?
 wait
 same "it waits for the feed to catch up" "$status" "0"
 check "the run page says which version" grep -q "Complete.*$version" "$work/summary.md"
 check "and which commit it was packed from" grep -q "Complete.*$commit" "$work/summary.md"
+
+echo "==> publish_packages: a version is one commit's (2026-10-26: .526 was served from two)"
+
+other="2222222222222222222222222222222222222222"
+# served <id> <commit>   the feed already serves this version of <id>, packed from <commit>
+served() {
+  local lower; lower="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+  mkdir -p "$FAKE/feed/$lower/$version"
+  echo "{\"versions\":[\"$version\"]}" > "$FAKE/feed/$lower/index.json"
+  unzip -p "$dir/$1.$version.nupkg" '*.nuspec' | sed "s/commit=\"[^\"]*\"/commit=\"$2\"/" > "$FAKE/feed/$lower/$version/$lower.nuspec"
+}
+
+fresh mixed
+mkdir -p "$FAKE/feed"; served Rask "$commit"; served Rask.Ui "$other"; served Rask.Data "$other"
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5 --commit "$commit"; status=$?
+same "the version already served from another commit is refused before anything is pushed" \
+  "$status:$(wc -l < "$FAKE/attempts.log" | xargs)" "3:0"
+check "loudly, naming each package and the commit it is served from" \
+  grep -q "MIXED VERSION.*before pushing.*Rask.Data. from .$other.*Rask.Ui. from .$other" <<< "$out"
+
+fresh resumed
+mkdir -p "$FAKE/feed"; served Rask "$commit"; served Rask.Ui "$commit"
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5 --commit "$commit"; status=$?
+same "served from this very commit, it is a re-run finishing the version" "$status:$(sort -u "$FAKE/pushed.log" | wc -l | xargs)" "0:7"
+
+fresh nocommit
+mkdir -p "$FAKE/feed"; served Rask.Cli ""
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5; status=$?
+same "a served nuspec that names no commit is not taken for ours" "$status:$(wc -l < "$FAKE/attempts.log" | xargs)" "3:0"
+
+fresh duplicated
+mkdir -p "$FAKE/feed"; echo "$other" > "$FAKE/foreign/Rask.Ui"   # accepted as a duplicate of another run's
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5; status=$?
+same "a duplicate from another commit stops the publish at the next gate" \
+  "$status:$(grep -cE "^Rask\.(Server|Dashboard|Postgres)\." "$FAKE/attempts.log")" "3:0"
+check "and is named" grep -q "MIXED VERSION.*level 2.*Rask.Ui. from .$other" <<< "$out"
+
+fresh twocommits
+mkdir -p "$FAKE/feed"; push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5
+# The 0.23.1-alpha.0.526 shape: every id listed, three of them from the earlier commit.
+served Rask "$other"; served Rask.Cli "$other"; served Rask.Data "$other"
+verify --wait 5; status=$?
+same "a whole set from two commits is not complete" "$status" "3"
+check "and says so, naming the strays" grep -q "MIXED VERSION.*verify.*Rask. from .$other.*Rask.Cli. from .$other.*Rask.Data. from .$other" <<< "$out"
 
 echo
 if [ "$failures" -gt 0 ]; then

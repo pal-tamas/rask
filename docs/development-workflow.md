@@ -84,9 +84,11 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
   push — `release.yml` runs every gate, the release-only ones included, and only then packs the
   NuGets and publishes to nuget.org + a GitHub release (the `cut-release` skill). Try those gates
   ahead of the tag on a `ci/release/**` branch.
-- **Nightly:** `nightly.yml` runs when `full` (the whole run) ends, and takes the newest commit it has passed on `main` — it packs the MinVer
-  prerelease versions and publishes them to nuget.org (prerelease) and GitHub Packages. A commit
-  `full` did not pass publishes nothing.
+- **Nightly:** `nightly.yml` runs when `full` (the whole run) ends, and takes the newest commit it has passed on `main` — it packs
+  `X.Y.(Z+1)-alpha.0.N` and publishes it to nuget.org (prerelease) and GitHub Packages. A commit
+  `full` did not pass publishes nothing, and neither does a run dispatched by hand on any branch but `main`.
+  `N` is [`scripts/lib/nightly_version.py`](../scripts/lib/nightly_version.py)'s, handed to the pack as
+  `MinVerVersionOverride` — see [One version, one commit](#one-version-one-commit).
 - **Both publish through one script, dependencies first** —
   [`scripts/lib/publish_packages.py`](../scripts/lib/publish_packages.py); see
   [How a version reaches nuget.org](#how-a-version-reaches-nugetorg).
@@ -201,7 +203,7 @@ exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A
 ```bash
 python3 scripts/lib/publish_packages.py plan   ./artifacts --projects src   # level, id, version — pushes nothing
 python3 scripts/lib/publish_packages.py push   ./artifacts --source … --api-key-env NUGET_API_KEY --gate-index nuget.org
-python3 scripts/lib/publish_packages.py verify ./artifacts                  # waits until every package is served
+python3 scripts/lib/publish_packages.py verify ./artifacts                  # waits until every package is served, from this commit
 ```
 
 - **The set is checked first.** One version, one commit, every dependency of ours packed, and
@@ -221,13 +223,17 @@ python3 scripts/lib/publish_packages.py verify ./artifacts                  # wa
 - **Verify.** The job is green only when the flat container — what restore reads to resolve a version
   and to download; search and registration lag it — lists every package at the new version. Otherwise
   it fails and names what is missing.
+- **One commit.** Before the first push, every package nuget.org already serves at the version must
+  have been packed from this commit — its nuspec's `<repository commit="…">` — and the gate and verify
+  ask the same of every package they wait for. One from another commit stops the run at once (exit 3,
+  **MIXED VERSION** on the run page, naming each package and its commit).
 - **A failed publish is finished by running it again.** *Re-run failed jobs* packs the same commit, so
-  MinVer gives the same version, and `--skip-duplicate` passes over what is already there. Whatever
+  it gets the same version, and `--skip-duplicate` passes over what is already there. Whatever
   stopped it, nothing above the failure was pushed, so the half that exists restores. A nightly that
   is left unfinished is not waited for: the rolling `nightly` release moves only after the verify
   step, so the next run publishes the newest green commit, whole.
 
-**Which commit is version X?** A nightly's number is the commit height since the last tag, which no run
+**Which commit is version X?** A nightly's number counts the commits since the last tag, which no run
 list shows — and a `nightly` run is listed under `main`'s head, not under the commit it packed. Three
 places say it:
 
@@ -239,8 +245,18 @@ gh run view <run-id>                                    # the run's summary: ver
 ```
 
 And the other way round — does a nightly hold commit X: take that version's commit from its nuspec and
-ask git, `git merge-base --is-ancestor X <commit> && echo yes`. The number alone does not say: MinVer's
-height is not what `git describe` counts.
+ask git, `git merge-base --is-ancestor X <commit> && echo yes`. The number alone does not say which
+commit, only which came later.
+
+#### One version, one commit
+
+`0.23.1-alpha.0.526` is on nuget.org from two commits: `Rask`, `Rask.Cqrs` and `Rask.Api` from
+`1ecef2685`, the rest from `cc68a07dd`, the merge on top of it. Both nightlies were green.
+
+| Cause | What prevents it now |
+|---|---|
+| MinVer's height is the depth at which its first-parent-first walk meets the tag. Landing on `main` ends in a merge whose FIRST parent is the worktree branch, so the walk goes down the branch — and `cc68a07dd` came out at `1ecef2685`'s height, 526. (Counting the first-parent chain ties too: 529 for both.) | The nightly's `N` is `git rev-list --count <tag>..<commit>`, every commit the tag does not reach. A commit counts all its ancestors, and `main`'s next head descends from the last, so `N` is distinct and only grows: 2236 and 2238 for those two. |
+| The second run's pushes were "duplicates", and a duplicate is success; verify asked only that every id was listed. | The served nuspec's commit is compared with the set's, before the first push and at every wait; a stranger fails the run. |
 
 #### 2026-10-12: a nightly that left `Rask.Server` ahead of `Rask`
 
