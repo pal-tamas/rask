@@ -29,6 +29,9 @@ const TRIGGER = '[data-flux-modal-trigger] button, [data-ui-modal-trigger] butto
 const settle = page => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 250)))));
 
 export async function prepare(page, scheme, side) {
+  // On a phone (parity.mjs --view 390x844) a press is a tap.
+  const phone = page.viewportSize().width < 640;
+  const press = async el => (phone ? el.tap() : el.click());
   if (side === 'flux') {
     await page.evaluate(sections => {
       const [inline, modal] = document.querySelectorAll('[data-preview-wrapper]');
@@ -47,16 +50,16 @@ export async function prepare(page, scheme, side) {
   if (side === 'rask') await page.evaluate(() => { document.body.style.paddingBottom = '100vh'; });
   const wrappers = await page.$$('[data-preview-wrapper]');
   for (const [nth, text] of [[0, 'ch'], [1, 'zz']]) {
-    await (await wrappers[nth].$(BOX)).click();
+    await press(await wrappers[nth].$(BOX));
     await page.keyboard.type(text, { delay: 40 });
     await page.evaluate(() => document.activeElement?.blur());
     await settle(page);
   }
 
-  await (await wrappers[2].$(TRIGGER)).click();
+  await press(await wrappers[2].$(TRIGGER));
   await settle(page);
-  await page.click(`dialog[open] ${BOX.split(', ').join(', dialog[open] ')}`);
+  await press(await page.$(`dialog[open] ${BOX.split(', ').join(', dialog[open] ')}`));
   await page.keyboard.press('ArrowDown');
-  await page.mouse.move(1, 1);
+  if (!phone) await page.mouse.move(1, 1);
   await settle(page);
 }

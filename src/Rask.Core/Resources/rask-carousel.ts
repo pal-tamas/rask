@@ -13,12 +13,15 @@
 //     "instant"; at the end, data-wrap="rewind" goes back to the first slide, keeps "next" enabled and says no
 //     data-at-end anywhere, so an arrow that hides at its end stays;
 //   * a press on the Nth indicator scrolls to the Nth slide;
-//   * data-autoplay="<ms>" advances on that interval and rewinds at the end. The pointer over the carousel
-//     stops it, and so does focus inside it; the interval starts afresh when both are gone. Under
+//   * data-autoplay="<ms>" advances on that interval and rewinds at the end. The mouse over the carousel
+//     stops it, and so does focus inside it; the interval starts afresh when both are gone. A press on the
+//     track, or on one of its arrows, ends it for good: the reader has taken over. Under
 //     prefers-reduced-motion it never starts.
 //     (Flux UI's carousel, measured: 3500 ms between moves, nothing for 7 s under the pointer, the next move
-//     3.5 s after it left; the same with focus on one of its arrows — put there by a key or by a press — and
-//     3.5 s after that focus left; no move at all in 16 s with reduced motion.)
+//     3.5 s after it left; the same with focus put on one of its arrows, and 3.5 s after that focus left; no
+//     move again after a press on a slide — a click, a tap, a finger that swipes from it — or on an arrow, by
+//     the pointer or by a key; a touch is no mouse over it, so a swipe that starts on an arrow holds nothing;
+//     no move at all in 16 s with reduced motion.)
 //
 // Wrappers and indicators may sit outside the root, in a [data-rask-carousel-controls] whose data-name is the
 // root's. A root whose buttons were all rendered disabled is left exactly as rendered.
@@ -207,16 +210,22 @@ function rootOf(doc: Document, part: Element): Element | null {
 // ----- Autoplay --------------------------------------------------------------------------------------
 
 const timers = new WeakMap<Element, number>();
+const ended = new WeakSet<Element>();
 
 function stop(root: Element): void {
     window.clearTimeout(timers.get(root));
     timers.delete(root);
 }
 
+function end(root: Element): void {
+    ended.add(root);
+    stop(root);
+}
+
 function play(root: Element): void {
     const ms = Number(root.getAttribute("data-autoplay"));
     stop(root);
-    if (!(ms > 0) || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
+    if (!(ms > 0) || ended.has(root) || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches)) {
         return;
     }
     timers.set(root, window.setTimeout(function () {
@@ -283,6 +292,7 @@ if (page) {
             return;
         }
         if (wrapper) {
+            if (root.hasAttribute("data-autoplay")) end(root);
             move(root, wrapper.getAttribute("data-direction") === "next");
             return;
         }
@@ -294,15 +304,21 @@ if (page) {
         }
     });
 
-    listen("pointerover", function (e) {
+    listen("pointerdown", function (e) {
+        const root = near(near(e.target, TRACK), ROOT + "[data-autoplay]");
+        if (root) {
+            end(root);
+        }
+    }, {capture: true, passive: true});
+    listen("mouseover", function (e) {
         const root = near(e.target, ROOT + "[data-autoplay]");
         if (root) {
             stop(root);
         }
     }, {capture: true, passive: true});
-    listen("pointerout", function (e) {
+    listen("mouseout", function (e) {
         const root = near(e.target, ROOT + "[data-autoplay]");
-        const to = (e as PointerEvent).relatedTarget;
+        const to = e.relatedTarget;
         if (root && !(to instanceof Node && root.contains(to)) && !root.contains(doc.activeElement)) {
             play(root);
         }

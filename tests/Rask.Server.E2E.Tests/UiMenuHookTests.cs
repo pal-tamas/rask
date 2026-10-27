@@ -154,6 +154,61 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
+    public async Task A_tap_opens_a_submenu_and_a_second_tap_leaves_it_open_with_its_row_dark()
+    {
+        // Flux UI's dropdown on a phone, 2026-10-27: the first tap lights the row and opens its flyout; the next
+        // one leaves the flyout open and the row, which had focus already, dark.
+        var phone = new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true };
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, phone);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await TapAsync(page, page.Locator("#options"));
+        await TapAsync(page, Row(page, "Sort by"));
+        await SeeAsync(page, "Sort by | Sort by | Sort by");
+
+        await TapAsync(page, Row(page, "Sort by"));
+
+        await SeeAsync(page, " | Sort by | Sort by");
+    }
+
+    [Fact]
+    public async Task Following_a_navigation_menus_link_closes_the_dropdown_and_hands_focus_back_to_its_trigger()
+    {
+        // Flux UI's dropdown, 2026-10-27, clicked and tapped alike.
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#account");
+        Assert.True(await session.ShownAsync("[data-testid='nav'] [popover]"));
+
+        await page.ClickAsync("[data-testid='nav'] a");
+        await page.WaitForTimeoutAsync(200);
+
+        Assert.False(await session.ShownAsync("[data-testid='nav'] [popover]"));
+        Assert.Equal("account", await session.FocusAsync());
+    }
+
+    [Fact]
+    public async Task A_long_press_opens_a_context_menu_that_stays_open_when_the_finger_lifts()
+    {
+        // Flux UI's context menu on a phone, 2026-10-27: the browser's contextmenu comes with the finger still
+        // down, and the menu is still open after the lift.
+        var phone = new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true };
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, phone);
+        var page = session.Page;
+        var area = (await page.Locator("#area").BoundingBoxAsync())!;
+        var cdp = await page.Context.NewCDPSessionAsync(page);
+
+        await cdp.SendAsync("Input.synthesizeTapGesture", new Dictionary<string, object>
+        {
+            ["x"] = area.X + (area.Width / 2), ["y"] = area.Y + (area.Height / 2), ["duration"] = 1000, ["gestureSourceType"] = "touch",
+        });
+        await page.WaitForTimeoutAsync(300);
+
+        Assert.True(await session.ShownAsync("[data-testid='context'] [popover]"));
+    }
+
+    [Fact]
     public async Task ArrowRight_goes_into_a_flyout_with_its_row_still_lit_and_ArrowLeft_comes_back_out()
     {
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);
@@ -283,6 +338,13 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2), new MouseMoveOptions { Steps = 4 });
     }
 
+    // A finger on the middle of the element.
+    private static async Task TapAsync(IPage page, ILocator target)
+    {
+        var box = (await target.BoundingBoxAsync())!;
+        await page.Touchscreen.TapAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
+    }
+
     // The hook answers at once and the page's own cursor a round trip later: this is where they agree.
     private static async Task SeeAsync(IPage page, string expected)
     {
@@ -342,6 +404,9 @@ public sealed partial class MenuHookPage : Component
         ],
         Div.Data("testid", "hover")[
             Ui.Dropdown.Hover()[Button.Id("hovered")["Hover"], Ui.Menu[Ui.MenuItem["One"], Ui.MenuItem["Two"]]]
+        ],
+        Div.Data("testid", "nav")[
+            Ui.Dropdown[Button.Id("account")["Account"], Ui.Navmenu[Ui.NavmenuItem.Href("#profile")["Profile"]]]
         ],
         Div.Data("testid", "context")[
             Ui.Context[Div.Id("area").Style("width:200px;height:80px")["Right click"], Ui.Menu[Ui.MenuItem["Copy"], Ui.MenuItem["Paste"]]]

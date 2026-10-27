@@ -15,6 +15,8 @@
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-command.mjs [--refresh] [--all]     # --all prints every step of every walk
 //         node scripts/flux/parity-command.mjs --record                # Flux's walks alone, every step
+//         node scripts/flux/parity-command.mjs --view 390x844          # the same on a phone: taps, and no pointer
+//                                                                      # to rest on a command or take away
 //
 // Exit code 1 on any difference.
 
@@ -22,12 +24,13 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, root } from './lib.mjs';
+import { chromium, root, viewOf } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const record = args.includes('--record');
 const every = args.includes('--all') || record;
+const view = viewOf(args);
 const here = fileURLToPath(new URL('.', import.meta.url));
 const raskPage = join(root, 'artifacts', 'flux-parity', 'rask', 'command.html');
 if (!existsSync(raskPage)) {
@@ -63,13 +66,15 @@ const WALKS = [
 ];
 
 const look = spawnSync(process.execPath,
-  [join(here, 'parity.mjs'), 'command-open', '--prepare', join(here, 'command-open.mjs'), ...args.filter(a => a === '--refresh' || a === '--all')],
+  [join(here, 'parity.mjs'), 'command-open', '--prepare', join(here, 'command-open.mjs'), ...args.filter(a => a === '--refresh' || a === '--all'),
+    ...(view.sized ? ['--view', view.size.join('x')] : [])],
   { stdio: 'inherit' });
 
 const browser = await chromium().launch();
 let differs = 0;
 console.log('\nwalks (Flux | Rask)');
-for (const walk of WALKS) {
+for (const asked of WALKS) {
+  const walk = view.phone ? { ...asked, steps: asked.steps.filter(step => !/^(hover|leave)\b/.test(step)) } : asked;
   const theirs = await walkOne('https://fluxui.dev/components/command', walk, false);
   const mine = record ? theirs : await walkOne(pathToFileURL(raskPage).href, walk, true);
   const off = walk.steps.filter((_, i) => theirs[i] !== mine[i]);
@@ -87,7 +92,7 @@ console.log(differs ? `\nflux parity: the command palette walks differently in $
 process.exit(look.status || differs ? 1 : 0);
 
 async function walkOne(url, walk, rask) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext(view.screen);
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);
@@ -102,14 +107,16 @@ async function walkOne(url, walk, rask) {
   // The palette a step acts on: the open modal's, else the example's.
   const current = async () => (await page.$(`dialog[open] :is(${palette})`)) ?? scope.$(palette);
   const shownRows = async () => (await current()).$$(':is([data-flux-command-item], [data-ui-command-item]):not([data-hidden])');
+  // A press is a tap on a phone.
+  const press = async el => (view.phone ? el.tap() : el.click());
   const lines = [];
   for (const step of walk.steps) {
     const [verb, arg] = step.split(':');
-    if (verb === 'box') await (await (await current()).$('input')).click();
-    else if (verb === 'trigger') await (await scope.$('[data-flux-modal-trigger] button, [data-ui-modal-trigger] button')).click();
-    else if (verb === 'row') await (await shownRows())[Number(arg)].click();
+    if (verb === 'box') await press(await (await current()).$('input'));
+    else if (verb === 'trigger') await press(await scope.$('[data-flux-modal-trigger] button, [data-ui-modal-trigger] button'));
+    else if (verb === 'row') await press((await shownRows())[Number(arg)]);
     else if (verb === 'hover') await (await shownRows())[Number(arg)].hover();
-    else if (verb === 'clear' || verb === 'close') await (await (await current()).$(`button[aria-label^="${verb === 'clear' ? 'Clear' : 'Close'}"]`)).click();
+    else if (verb === 'clear' || verb === 'close') await press(await (await current()).$(`button[aria-label^="${verb === 'clear' ? 'Clear' : 'Close'}"]`));
     else if (verb === 'leave') await page.mouse.move(2, 2);
     else if (verb === 'type') await page.keyboard.type(arg, { delay: 60 });
     else await page.keyboard.press(verb);

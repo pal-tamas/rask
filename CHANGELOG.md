@@ -18,6 +18,15 @@ them until tagged releases begin.
   onto the HTTP fallback for being busy. See
   [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
 
+- **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every
+  docs page beside its Rask page at both widths and takes every behaviour walk (open, keys, pointer) against
+  fluxui.dev as it is that day; the daily `upstream.yml` runs it as `flux-parity` and opens one issue — "Rask.Ui no
+  longer matches Flux UI", naming each check — when they part. A phone is measured as a phone (touch, overlay
+  scrollbars), so Flux's headless-only `scrollbar-gutter` room no longer reads as the kit's dialogs being off
+  centre.
+- **A menu item asks before it acts.** `Ui.MenuItem.Danger.OnClick(() => Delete(row)).Confirm("Delete the
+  partner?", heading: "Delete partner")` asks as `.Confirm(…)` does on an element (in `Ui.Confirm` where the layout
+  placed one), and a no sends nothing. `UiMenuItem` is a component, so the element's own step could not reach it.
 - **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
   or HTTP stream opens, attaches (first connection, reconnect, replacement or resume-record rebuild; how long it
   waited; the catch-up it was sent: none, a diff or the whole page, in bytes) and closes (closed by the client,
@@ -220,6 +229,39 @@ them until tagged releases begin.
   `/_rask/leave` and names its session in the `Rask-Session` header. The old paths still answer, so a tab open across
   the deploy keeps its session; a reverse-proxy rule that matched `/_rask/stream/` should match `/_rask/stream` too.
 
+- **On a phone, Rask.Ui's popovers, selects, pillboxes and phone fields answer a finger as Flux UI's do** (measured on
+  fluxui.dev at 390 × 844 on a touch screen). A second tap on the button of an open popover shut it and opened it
+  again at once — the tap's click came after the page lock let go and pressed the button under it; now that tap
+  presses nothing, as Flux's lands on the page (`rask-lock.ts`). A tap on a hover popover's button kept it open
+  however often it was tapped; now each tap toggles it, and so does Enter after a tap opened it (`rask-hover.ts`). A
+  tap that opens a searchable list left focus in its search field, which raises a phone's keyboard over the list;
+  now focus stays on the button, as on Flux, and a click or a key still hands it to the field (`rask-overlay.ts`). A
+  finger held on a phone field's country lit the row; now only the mouse lights one (`rask-phone.ts`). A pillbox's
+  pills were 14px on a phone where Flux sets them in the trigger's 16px (`text-base sm:text-sm`; a small pillbox's
+  stay 14px).
+- **Menus on a touch screen behave as Flux UI's.** Before: a `Ui.Context` opened by a long press closed again as the
+  finger lifted; a second tap on a submenu's row closed its flyout and left the row lit. After: the long press opens
+  the menu once the finger is up, and it stays; a tap opens a flyout and another tap leaves it open (another row, or
+  the menu closing, shuts it); a tap on the row that had focus already lights nothing, a checkbox row's too.
+  Measured on fluxui.dev at 390 × 844; held by `scripts/flux/parity-menu.mjs dropdown|context --view 390x844`.
+- **Following a `Ui.NavmenuItem` link closes its dropdown**, clicked or tapped, and focus goes back to the trigger,
+  as Flux UI's does. Before: the dropdown stayed open over the page the link led to.
+- **`Ui.Carousel`'s autoplay stops for good once the reader takes over, as Flux's does.** Before: a press on a slide
+  or on an arrow paused it only while the pointer or focus stayed, and on a phone a tap paused nothing (the touch
+  left at once). After: a press on the track (a click, a tap, a finger that swipes from it) or on an arrow (by the
+  pointer or a key) ends it for the page's life; the hover that holds it is the mouse's, so a swipe that starts on an
+  arrow holds nothing. Measured on fluxui.dev at 390px with touch and on a desktop.
+- **`Ui.Editor`'s toolbar popovers stay on a phone's screen, as Flux's do.** Before: the 360px link panel ran off a
+  390px screen (from 120 to 480), and the align list ran 16px past its button's end. After: a list that runs off
+  the right ends under its button's end instead, and whatever still runs off is shifted along to stay 5px inside
+  the screen (the link panel at 25), as Flux places them.
+- **On a touch screen, a tooltip and a toast answer a finger as Flux UI's do.** Measured on fluxui.dev at 390×844.
+  Before: the runtime ignored a touch, so `Ui.Tooltip` never showed under a finger; and a toast or a toast group
+  was held only for the moment a tap lasted, its countdown running on under the finger. After: a finger resting on
+  a tooltip's trigger shows it and lifting it hides it (an instant tap leaves it shown, a second tap or a tap
+  elsewhere hides it), and once a finger has shown one no finger shows a tooltip again until a mouse moves —
+  Flux's own rule. A tap on a toast or its group holds every countdown until a tap elsewhere, as the browser leaves
+  its mouse where the tap was.
 - **A frame whose connection goes while it is being made is sent to the next connection, never thrown at the
   handler (#1258).** Before: a render checked the connection before its walk and read it again to send; a reconnect's
   cleanup clearing it in between threw a `NullReferenceException` out of `SendGuardedAsync` into the handler
@@ -248,6 +290,18 @@ them until tagged releases begin.
   attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
   closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
   refuses, as before.
+- **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
+  Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
+  the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it
+  (`[[data-ui-select-button]:hover_&]`, `group-[:hover]/row`) — a phone keeps it on what was tapped — and the list
+  open holds it light only where there is a pointer, which Flux takes away then.
+- **An editor's pressed toolbar button is filled only under the pointer, as Flux's.** Before: `aria-pressed` filled
+  it (zinc-200), so Bold stayed grey after the pointer left and after a tap on a phone. After: the fill is `hover:`'s
+  alone; the ink still says what the caret is in.
+- **A calendar's month and year chevrons no longer stay dark after a tap on a phone, as Flux's do not.** Before: they
+  darkened under a bare `:hover`, which a touch screen keeps after a tap. After: `@variant hover`, as Flux's `hover:`
+  is — only where there is a pointer to hover. (A native select's chevron does darken after a tap on Flux, measured,
+  and keeps its plain `:hover`.)
 - **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
   label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
   siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its

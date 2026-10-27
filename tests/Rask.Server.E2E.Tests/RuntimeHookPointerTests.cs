@@ -1,3 +1,4 @@
+using Microsoft.Playwright;
 using Rask.Core;
 using Rask.Server.E2E.Tests.Infrastructure;
 using Rask.Site.E2E.Tests.Infrastructure;
@@ -17,6 +18,9 @@ namespace Rask.Server.E2E.Tests;
 /// </remarks>
 public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
+    // A touch screen: what a finger does is a touch, and the mouse events the browser makes of it.
+    private static readonly BrowserNewContextOptions Phone = new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true };
+
     [Fact]
     public async Task A_tooltip_shows_the_moment_the_pointer_arrives_and_hides_the_moment_it_leaves()
     {
@@ -236,6 +240,28 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
         Assert.True(await session.ShownAsync("#panel"));
     }
 
+    // Measured on Flux UI's popover page at 390 × 844 on a touch screen (2026-10-27): each tap on a hover trigger toggles
+    // its panel, as a press on any popover's button does, and so does Enter on the button a tap opened it from. A
+    // finger never hovers, so nothing opened it before the tap.
+    [Fact]
+    public async Task On_a_touch_screen_each_tap_on_a_hover_trigger_toggles_its_panel_and_so_does_Enter()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright,
+            new BrowserNewContextOptions { ViewportSize = new() { Width = 1000, Height = 700 }, HasTouch = true });
+        var page = session.Page;
+
+        await page.TapAsync("#hover-trigger");
+        var first = await session.ShownAsync("#panel");
+        await page.TapAsync("#hover-trigger");
+        var second = await session.ShownAsync("#panel");
+        await page.TapAsync("#hover-trigger");
+        await page.Keyboard.PressAsync("Enter");
+
+        Assert.True(first, "a tap did not open the hover panel");
+        Assert.False(second, "a second tap kept the hover panel open, as a mouse press over it does");
+        Assert.False(await session.ShownAsync("#panel"), "Enter kept a panel a tap opened, as it keeps one the pointer opened");
+    }
+
     [Fact]
     public async Task A_hover_panel_with_a_condition_opens_only_while_its_root_matches_it()
     {
@@ -397,6 +423,64 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
 
         // Flux lit the next row 26 ms after the pointer left the submenu's, with no grace period.
         Assert.Equal("row-c", await page.EvaluateAsync<string>("() => document.querySelector('#menu [data-active]').id"));
+    }
+
+    [Fact]
+    public async Task A_finger_shows_a_tooltip_while_it_rests_on_the_trigger_and_lifting_it_hides_it()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright, Phone);
+        var page = session.Page;
+        var cdp = await page.Context.NewCDPSessionAsync(page);
+
+        await FingerDownAsync(cdp, page, "#tip-trigger");
+        var resting = await session.ShownAsync("#bubble");
+        var expanded = await page.GetAttributeAsync("#tip-trigger", "aria-expanded");
+        await FingerUpAsync(cdp, page);
+
+        // Flux on a phone: the finger's pointerenter shows it, the press its lifting makes hides it.
+        Assert.True(resting, "a finger on the trigger did not show the tooltip");
+        Assert.Equal("true", expanded);
+        Assert.False(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
+    public async Task Once_a_finger_has_shown_a_tooltip_no_finger_shows_one_again_until_a_mouse_moves()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright, Phone);
+        var page = session.Page;
+        var cdp = await page.Context.NewCDPSessionAsync(page);
+
+        await FingerDownAsync(cdp, page, "#tip-trigger");
+        await FingerUpAsync(cdp, page);
+        await FingerDownAsync(cdp, page, "#plain-trigger");
+        var another = await session.ShownAsync("#plain-bubble");
+        await FingerUpAsync(cdp, page);
+        await page.Mouse.MoveAsync(300, 600);
+        await FingerDownAsync(cdp, page, "#plain-trigger");
+        var afterMouse = await session.ShownAsync("#plain-bubble");
+        await FingerUpAsync(cdp, page);
+
+        Assert.False(another, "a second finger showed a tooltip, where Flux's shows none until a mouse moves");
+        Assert.True(afterMouse);
+    }
+
+    // A finger put down on the middle of `selector` and held there; a tap would be over within one frame.
+    private static async Task FingerDownAsync(ICDPSession cdp, IPage page, string selector)
+    {
+        await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
+        {
+            ["type"] = "touchStart",
+            ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = await CenterX(page, selector), ["y"] = await CenterY(page, selector) } },
+        });
+        await page.WaitForTimeoutAsync(100);
+    }
+
+    // The finger lifted, and the click the browser makes of it come.
+    private static async Task FingerUpAsync(ICDPSession cdp, IPage page)
+    {
+        await page.EvaluateAsync("() => { window.__clicked = new Promise(done => addEventListener('click', done, { once: true, capture: true })); }");
+        await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        await page.EvaluateAsync("() => window.__clicked");
     }
 
     private static async Task<float> CenterX(Microsoft.Playwright.IPage page, string selector)

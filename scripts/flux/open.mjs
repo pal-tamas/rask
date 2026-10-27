@@ -38,7 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, root, STYLES } from './lib.mjs';
+import { chromium, press, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -60,6 +60,8 @@ export async function openParity(kind) {
   const flag = name => args.includes(`--${name}`);
   const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
   const out = join(root, 'artifacts', 'flux-parity');
+  // `--view 390x844`: every example opened on a phone (lib.mjs's screen()), its Flux side kept under its own name.
+  const view = viewOf(args);
   const fluxUrl = `https://fluxui.dev/components/${kind.slug}`;
   const raskPage = join(out, 'rask', `${kind.raskPage ?? kind.slug}.html`);
   if (!existsSync(raskPage) && !flag('record') && !option('live')) {
@@ -70,27 +72,30 @@ export async function openParity(kind) {
   const browser = await chromium().launch();
   if (option('live') || flag('record')) {
     // `--walk <name>` runs one walk. `--wait <ms>` between steps: a Debug WASM site takes over a second to draw a page of demos again.
-    const differs = await walkBoth(browser, kind, fluxUrl, option('live'), flag('all') || flag('record'), Number(option('wait') ?? 450), option('walk'));
+    const differs = await walkBoth(browser, kind, fluxUrl, option('live'), flag('all') || flag('record'), Number(option('wait') ?? 450), option('walk'), view);
     await browser.close();
     console.log(differs ? `\nflux parity: the ${kind.name}'s keyboard differs in ${differs} walk(s).` : `\nflux parity: the ${kind.name} walks as Flux does.`);
     process.exit(differs ? 1 : 0);
   }
 
   const folder = `${kind.slug}-open`;
-  const fluxFile = join(out, 'flux', folder, 'measurements.json');
+  const fluxFile = join(out, 'flux', folder, `measurements${view.sized}.json`);
   let flux;
   if (existsSync(fluxFile) && !flag('refresh')) {
     flux = JSON.parse(await readFile(fluxFile, 'utf8'));
   } else {
-    flux = await measureOpen(browser, kind, fluxUrl, join(out, 'flux', folder));
+    flux = await measureOpen(browser, kind, fluxUrl, join(out, 'flux', folder + view.sized), view);
+    await mkdir(join(out, 'flux', folder), { recursive: true });
     await writeFile(fluxFile, JSON.stringify(flux));
   }
 
-  const rask = await measureOpen(browser, kind, kind.raskUrl ?? pathToFileURL(raskPage).href, join(out, 'rask', folder), flux);
-  await writeFile(join(out, 'rask', folder, 'measurements.json'), JSON.stringify(rask));
+  const rask = await measureOpen(browser, kind, kind.raskUrl ?? pathToFileURL(raskPage).href, join(out, 'rask', folder + view.sized), view, flux);
+  await mkdir(join(out, 'rask', folder), { recursive: true });
+  await writeFile(join(out, 'rask', folder, `measurements${view.sized}.json`), JSON.stringify(rask));
   // The same width on both pages: Flux's control fills its column, and a held one has no column.
   const held = marker => kind.root.split(', ').filter(root => root.includes(marker)).map(root => `[data-preview-wrapper] ${root}:has(${kind.popup})`).join(', ');
-  const astray = kind.edges ? await landings(browser, {
+  // Where the list lands is held on a phone and a desktop alike by the desktop run (placement.mjs's VIEWS).
+  const astray = kind.edges && !view.sized ? await landings(browser, {
     name: folder, refresh: flag('refresh'), all: flag('all'), width: 260, hosts: kind.edges,
     // The popover itself: with a search field over the list, Flux's marker is on the list inside it.
     flux: { url: fluxUrl, host: held('data-flux-'), panel: '[popover]', trigger: kind.trigger },
@@ -134,7 +139,7 @@ export async function openParity(kind) {
   }
 
   console.log(failures ? `\nflux parity: the open ${kind.name} differs in ${failures} example(s).` : `\nflux parity: the open ${kind.name} matches Flux.`);
-  if (kind.edges) console.log(astray ? `flux parity: the ${kind.name}'s list lands elsewhere for ${astray} control(s).` : `flux parity: the ${kind.name}'s list lands where Flux's does.`);
+  if (kind.edges && !view.sized) console.log(astray ? `flux parity: the ${kind.name}'s list lands elsewhere for ${astray} control(s).` : `flux parity: the ${kind.name}'s list lands where Flux's does.`);
   process.exit(failures || astray ? 1 : 0);
 }
 
@@ -147,12 +152,14 @@ export async function openParity(kind) {
 // (aria-activedescendant) is held to the active one as well; Flux's is not read, since it goes stale (after
 // Backspace took a pill off, its combobox still names the row picked before). `--record` walks Flux's page alone and prints every step: how a behaviour table is
 // written down before the component is.
-async function walkBoth(browser, kind, fluxUrl, live, every, wait, only) {
+async function walkBoth(browser, kind, fluxUrl, live, every, wait, only, view) {
   let differs = 0;
-  for (const walk of kind.walks.filter(each => !only || each.name === only)) {
-    const theirs = await walkOne(browser, kind, fluxUrl, walk, 450, wrappers => wrappers[walk.flux]);
+  for (const asked of kind.walks.filter(each => !only || each.name === only)) {
+    // A phone has no pointer to rest on a row or to take away: those steps are not taken there.
+    const walk = view.phone ? { ...asked, keys: asked.keys.filter(key => !/^(hover|leave)\b/.test(key)) } : asked;
+    const theirs = await walkOne(browser, kind, fluxUrl, walk, 450, wrappers => wrappers[walk.flux], view);
     const mine = live
-      ? await walkOne(browser, kind, live, walk, wait, async (_, page) => (await page.waitForSelector(walk.rask, { timeout: 120000 })).evaluateHandle(kind.liveRoot))
+      ? await walkOne(browser, kind, live, walk, wait, async (_, page) => (await page.waitForSelector(walk.rask, { timeout: 120000 })).evaluateHandle(kind.liveRoot), view)
       : theirs;
     const lines = walk.keys.map((key, i) => ({ key, theirs: theirs[i], mine: mine[i] }));
     const off = lines.filter(line => line.theirs !== line.mine);
@@ -168,8 +175,8 @@ async function walkBoth(browser, kind, fluxUrl, live, every, wait, only) {
   return differs;
 }
 
-async function walkOne(browser, kind, url, walk, wait, find) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+async function walkOne(browser, kind, url, walk, wait, find, view) {
+  const context = await browser.newContext(view.screen);
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
   await page.waitForSelector(kind.root, { timeout: 120000 });
@@ -185,10 +192,11 @@ async function walkOne(browser, kind, url, walk, wait, find) {
   for (const key of walk.keys) {
     const [verb, arg] = key.split(':');
     if (verb === 'focus') await trigger.focus();
-    else if (verb === 'click' && arg === undefined) await trigger.click();
-    else if (verb === 'click') await (await rows())[Number(arg)].click();
+    // A press is a tap on a phone.
+    else if (verb === 'click' && arg === undefined) await trigger[view.phone ? 'tap' : 'click']();
+    else if (verb === 'click') await (await rows())[Number(arg)][view.phone ? 'tap' : 'click']();
     else if (verb === 'hover') await (await rows())[Number(arg)].hover();
-    else if (verb === 'remove') await (await scope.$$(kind.remove))[Number(arg)].click();
+    else if (verb === 'remove') await (await scope.$$(kind.remove))[Number(arg)][view.phone ? 'tap' : 'click']();
     else if (verb === 'leave') await page.mouse.move(2, 2);
     else if (verb === 'type') await page.keyboard.type(arg, { delay: 60 });
     else await page.keyboard.press(verb);
@@ -238,19 +246,22 @@ function read(scope, selectors) {
 // is Flux's measurement when the page is Rask's: each example is given the text its Flux twin inherits from
 // the docs page (parity.mjs's INHERITED rule), and the page the room under its last example that Flux's
 // has, so a list at the foot of it opens downwards on both.
-async function measureOpen(browser, kind, url, shots, like) {
+async function measureOpen(browser, kind, url, shots, view, like) {
   const schemes = {};
   const selectors = { root: kind.root, trigger: kind.trigger, popup: kind.popup };
   for (const scheme of ['light', 'dark']) {
     await mkdir(join(shots, scheme), { recursive: true });
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    const context = await browser.newContext({ ...view.screen, colorScheme: scheme });
     const page = await context.newPage();
+    const finger = view.phone ? await context.newCDPSession(page) : null;
     await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
     await page.evaluate(() => document.fonts.ready);
     // Which row is lit is the runtime's to write (data-rask-list), on a page of the kit's as in an app: the
     // parity page is given the hook that does it, and nothing else of the runtime -- or the hooks its kind names.
     if (like) {
-      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']));
+      // On a phone the overlay hook too: a tap leaves focus on the button it opened (rask-overlay.ts). Not where the
+      // page is written with picks made: there `focused` stands in for where Flux's script left focus.
+      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']), ...(view.phone && !kind.pick ? ['rask-overlay.ts'] : []));
       if (kind.ready) await page.waitForSelector(kind.ready, { state: 'attached', timeout: 15000 });
     }
     const examples = [];
@@ -260,14 +271,16 @@ async function measureOpen(browser, kind, url, shots, like) {
       // An example whose controls none of them open (disabled, read-only) is no open state on either page.
       if (!(await wrapper.$(kind.popup)) || !(await wrapper.$(kind.trigger))) continue;
       const twin = like?.[scheme][examples.length];
-      if (twin) await wrapper.evaluate((w, inherited) => Object.assign(w.style, inherited), twin.inherited);
+      // On a phone the docs page's column is narrower than the parity page's: each example is also given its
+      // twin's width and padding, the room the control is laid out in (parity.mjs's FRAME rule).
+      if (twin) await wrapper.evaluate((w, { inherited, frame }) => Object.assign(w.style, inherited, frame), { inherited: twin.inherited, frame: view.sized ? twin.frame : {} });
       await wrapper.evaluate(w => w.scrollIntoView({ block: 'center' }));
       const trigger = await wrapper.$(kind.trigger);
-      await trigger.click();
+      await trigger[view.phone ? 'tap' : 'click']();
       await page.waitForTimeout(350);
       // A static page has no runtime to pick with: Rask's is written with these rows already picked.
       for (const row of like ? [] : kind.pick ?? []) {
-        await (await wrapper.$$(kind.rows))[row].click();
+        await (await wrapper.$$(kind.rows))[row][view.phone ? 'tap' : 'click']();
         await page.waitForTimeout(350);
       }
 
@@ -275,8 +288,9 @@ async function measureOpen(browser, kind, url, shots, like) {
       // the click on a backend-search example) is back with the next move.
       // Off the control altogether where rows were picked: Flux's page takes no pointer while a list is
       // open, so nothing on its trigger hovers, and a static page's trigger would.
+      // A phone has no pointer: what the tap left is what is measured.
       const at = await trigger.boundingBox();
-      if (kind.pick) await page.mouse.move(2, 2);
+      if (view.phone) { /* no pointer */ } else if (kind.pick) await page.mouse.move(2, 2);
       else await page.mouse.move(at.x + at.width / 2 + 1, at.y + at.height / 2);
       await page.waitForTimeout(100);
       // A static page has no runtime to open a list from an input: the popover is shown as the runtime
@@ -295,6 +309,10 @@ async function measureOpen(browser, kind, url, shots, like) {
           break;
         }
       }
+      // On a phone no pointer left the list: the last tap's mouse events lit the row it picked, and it stays lit.
+      if (like && kind.pick && view.phone) {
+        await wrapper.evaluate((w, { rows, last }) => w.querySelectorAll(rows)[last]?.setAttribute('data-active', ''), { rows: kind.rows, last: kind.pick.at(-1) });
+      }
 
       const example = await wrapper.evaluate(collect, { STYLES, index, selectors });
       await page.screenshot({ path: join(shots, scheme, `${String(index).padStart(2, '0')}-${example.section || 'intro'}.png`) });
@@ -302,7 +320,17 @@ async function measureOpen(browser, kind, url, shots, like) {
       example.rows = {};
       // The second option: the first is where the cursor already is.
       const row = (await wrapper.$$(kind.rows))[1];
-      if (row) {
+      // On a phone no row is hovered, and a row pressed is a finger held on it, then lifted off the screen
+      // (touchCancel), so nothing is picked.
+      if (row && finger) {
+        const before = await row.evaluate(look, STYLES);
+        const box = await row.boundingBox();
+        await finger.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+        await page.waitForTimeout(200);
+        example.rows.pressed = changed(before, await row.evaluate(look, STYLES));
+        await finger.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+        await page.waitForTimeout(100);
+      } else if (row) {
         const before = await row.evaluate(look, STYLES);
         await row.hover();
         await page.waitForTimeout(150);
@@ -320,7 +348,7 @@ async function measureOpen(browser, kind, url, shots, like) {
         const el = w.querySelector(popup);
         if (el && Object.keys(el.dataset).some(k => k.startsWith('ui')) && el.matches(':popover-open')) el.hidePopover();
       }, kind.popup);
-      await page.mouse.click(2, 2);
+      await press(page, 2, 2, view.phone);
       await page.waitForTimeout(150);
       examples.push(example);
     }
@@ -388,7 +416,10 @@ function collect(wrapper, { STYLES, index, selectors }) {
 
   const inherited = Object.fromEntries(['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing']
     .map(key => [key, getComputedStyle(wrapper)[key]]));
-  return { index, section, ordinal, open: popup.matches(':popover-open'), inherited, nodes };
+  const frame = Object.fromEntries(['boxSizing', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft']
+    .map(key => [key, getComputedStyle(wrapper)[key]]));
+  frame.width = `${wrapper.getBoundingClientRect().width}px`;
+  return { index, section, ordinal, open: popup.matches(':popover-open'), inherited, frame, nodes };
 }
 
 function compareTree(kind, theirs, a, mine, b, where, diffs) {

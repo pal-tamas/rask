@@ -16,7 +16,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { root } from './lib.mjs';
+import { root, screen } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 // What `hold` and `read` do to a page. Raised whenever that changes: Flux's kept measurements are then stale.
@@ -121,7 +121,7 @@ async function measure(browser, family, side, views, edges, hosts, inherited) {
   const found = {};
   for (const [width, height] of views) {
     for (const host of hosts) {
-      const context = await browser.newContext({ viewport: { width, height } });
+      const context = await browser.newContext(screen(width, height));
       // The day lib.mjs pins: a calendar that opens on today is another height in a month of six weeks.
       await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
       const page = await context.newPage();

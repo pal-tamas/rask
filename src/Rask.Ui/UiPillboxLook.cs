@@ -30,7 +30,7 @@ internal static class UiPillboxLook
 
     /// <summary>One picked option.</summary>
     internal const string Pill =
-        "flex max-w-full px-2 cursor-default text-sm leading-4 bg-zinc-400/15 dark:bg-zinc-400/40 text-zinc-700 dark:text-zinc-200";
+        "flex max-w-full px-2 cursor-default leading-4 bg-zinc-400/15 dark:bg-zinc-400/40 text-zinc-700 dark:text-zinc-200";
 
     /// <summary>A pill's words.</summary>
     internal const string PillWords = "min-w-0 font-medium";
@@ -100,9 +100,9 @@ internal static class UiPillboxLook
     /// <summary>The list under a search field: a select's height.</summary>
     internal const string SearchedList = "max-h-[20rem]";
 
-    /// <summary>A pill's padding and corners at each size.</summary>
+    /// <summary>A pill's padding, corners and text at each size: 16px on a phone, as the trigger's, at the default.</summary>
     /// <param name="small">Flux's <c>size="sm"</c>.</param>
-    internal static string PillSize(bool small) => small ? "py-[3px] rounded-sm" : "py-1 rounded-md";
+    internal static string PillSize(bool small) => small ? "py-[3px] rounded-sm text-sm" : "py-1 rounded-md text-base sm:text-sm";
 
     /// <summary>How far the cross reaches over its pill's padding at each size.</summary>
     /// <param name="small">Flux's <c>size="sm"</c>.</param>

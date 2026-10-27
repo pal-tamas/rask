@@ -842,6 +842,7 @@ the very press or submit go. Opening, typing and closing send nothing.
 Ui.Confirm                                                // "Confirm", "No" and "Yes"
 Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // your own words
 Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a title of its own
+Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a menu item too
 ```
 
 `Ui.ConfirmLeave` is where a form's [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks, in

@@ -2188,6 +2188,7 @@ Rask.UiMenuCheckboxGroup.Class.set -> void
 Rask.UiMenuCheckboxGroup.UiMenuCheckboxGroup() -> void
 Rask.UiMenuGroup.Heading.get -> string?
 Rask.UiMenuGroup.Heading.set -> void
+Rask.UiMenuItem.Confirm(string! text, string? expect = null, string? heading = null) -> Rask.UiMenuItem!
 Rask.UiMenuItem.Href.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiMenuItem.IconVariant.get -> Rask.Ui.IconVariant?
 Rask.UiMenuItem.IconVariant.set -> void

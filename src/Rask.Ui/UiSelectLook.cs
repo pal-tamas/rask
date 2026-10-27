@@ -49,11 +49,13 @@ internal static class UiSelectLook
 
     /// <summary>The button's chevron.</summary>
     internal const string Chevron =
-        "ms-2 -me-1 text-zinc-400/75 group-hover/select-button:text-zinc-800 "
-        + "dark:text-white/60 dark:group-hover/select-button:text-white "
+        "ms-2 -me-1 text-zinc-400/75 [[data-ui-select-button]:hover_&]:text-zinc-800 "
+        + "dark:text-white/60 dark:[[data-ui-select-button]:hover_&]:text-white "
         + "group-disabled/select-button:text-zinc-200! dark:group-disabled/select-button:text-white/20! "
-        // Open, the pointer is the list's: Flux takes the page's pointer away, so nothing behind it hovers.
-        + "[[data-ui-select]:has(:popover-open)_&]:text-zinc-400/75! dark:[[data-ui-select]:has(:popover-open)_&]:text-white/60!";
+        // Open, the pointer is the list's: Flux takes the page's pointer away, so nothing behind it hovers — where there
+        // is a pointer. A tap's hover stays on a phone, and Flux's chevron with it (measured).
+        + "[@media(hover:hover)]:[[data-ui-select]:has(:popover-open)_&]:text-zinc-400/75! "
+        + "dark:[@media(hover:hover)]:[[data-ui-select]:has(:popover-open)_&]:text-white/60!";
 
 
     /// <summary>The chevron button at the end of the combobox's input.</summary>
