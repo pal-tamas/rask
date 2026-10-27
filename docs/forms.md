@@ -484,7 +484,7 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 `.Confirm("…")` asks the reader before a click or a submit is sent — in the browser's own `confirm` dialog, or
 in [`Ui.Confirm`](#ask-for-a-confirmation-in-a-dialog-of-your-own) when the layout has one. Livewire's
 `wire:confirm`. It is a step on every element, so it works on a plain `Button`, a kit `Ui.Button`, a `Form` and
-a submit button alike:
+a submit button alike, and on a `Ui.MenuItem` too, which puts it on the row it draws:
 
 ```csharp
 Ui.Button.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the partner?")
@@ -494,6 +494,9 @@ Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Type the partner's name to 
 
 // On a form it asks before the submit; on a submit button, before the submit that button makes.
 Form.Model(_order).OnSubmit(Send).Confirm("Send the order?")[ … ]
+
+// A row's ⋯ menu: the pick asks first.
+Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the partner?")["Delete"]
 ```
 
 <!-- demo:form-confirm -->
