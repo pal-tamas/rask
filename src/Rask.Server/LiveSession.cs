@@ -1091,6 +1091,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await SendGuardedAsync(payload).ConfigureAwait(false);
             return true;
         }
+        catch (Exception ex) when (ConnectionWentUnder(ex))
+        {
+            // It went between the look and the send.
+            return false;
+        }
         finally
         {
             _renderLock.Release();
@@ -1437,7 +1442,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     // The send failed because the connection went or closed under the render: what the reader has not been sent is
     // the next connection's to send, not an error of the handler that asked for it.
     private bool ConnectionWentUnder(Exception ex) =>
-        ex is WebSocketException or OperationCanceledException or ObjectDisposedException
+        ex is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException
         && !_disposed
         && Volatile.Read(ref _transport) is not { IsOpen: true };
 
@@ -1464,8 +1469,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         if (_forceResend)
         {
             _forceResend = false;
-            _lastSentBuffer = null;
-            _htmlBuffers.Invalidate();
+            ForgetWhatTheBrowserHas();
         }
     }
 

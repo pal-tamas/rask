@@ -61,20 +61,15 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
     /// </summary>
     public Task Completed => _completed.Task;
 
+    // A frame for a stream that has ended is not sent, and says so, as a closed socket's send does: the session keeps
+    // it for the next connection rather than counting it as the browser's.
     public async ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct)
     {
-        if (_closed)
-        {
-            return;
-        }
-
+        ThrowIfEnded();
         await _write.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            if (_closed)
-            {
-                return;
-            }
+            ThrowIfEnded();
 
             WriteData(frame.Span);
             await writer.FlushAsync(ct).ConfigureAwait(false);
@@ -162,6 +157,14 @@ internal sealed class SseTransport(PipeWriter writer, int generation, Cancellati
         if (await _write.WaitAsync(timeout, CancellationToken.None).ConfigureAwait(false))
         {
             _write.Release();
+        }
+    }
+
+    private void ThrowIfEnded()
+    {
+        if (_closed)
+        {
+            throw new IOException("The event stream has ended.");
         }
     }
 

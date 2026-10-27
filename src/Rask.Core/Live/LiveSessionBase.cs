@@ -649,6 +649,18 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     }
 
     /// <summary>
+    ///     Forgets every baseline the next frame is measured against — the last frame sent, the last page committed and
+    ///     the render the diff is taken from — so it is the whole page: a connection that replaced one may not have had
+    ///     what the frames before it carried.
+    /// </summary>
+    protected void ForgetWhatTheBrowserHas()
+    {
+        _lastSentBuffer = null;
+        _htmlBuffers.Invalidate();
+        _renderCache?.ForgetPrevious();
+    }
+
+    /// <summary>
     ///     Push one built frame's bytes to the host transport: Server writes them to the WebSocket
     ///     (<c>ReadOnlyMemory&lt;byte&gt;</c>, zero-copy); WASM pushes them to JS via a zero-copy
     ///     <c>MemoryView</c>. WASM's is synchronous — it returns a completed <see cref="ValueTask" />.

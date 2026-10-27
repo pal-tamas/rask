@@ -159,6 +159,12 @@ public sealed class SessionRenderCache : IDisposable
     public void Snapshot() => RotateBuffers();
 
     /// <summary>
+    ///     Forgets the render the next one would be diffed against: the browser never received it — the frame
+    ///     made from it was lost with its connection — so the next frame is the whole page. The buffers are kept.
+    /// </summary>
+    internal void ForgetPrevious() => _hasPrevious = false;
+
+    /// <summary>
     ///     One-shot render + diff. Mostly useful for tests and the
     ///     <c>payload-bytes</c> report; production callers use
     ///     <see cref="PrepareCurrentBuffer" /> + <c>TryComputeDiff</c>

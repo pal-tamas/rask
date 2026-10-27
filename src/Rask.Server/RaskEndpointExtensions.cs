@@ -1314,9 +1314,9 @@ public static partial class RaskEndpointExtensions
             await transport.SendAsync(StreamOpenedFrame(generation, session.Id, limits.MaxInboundFrameBytes), ct).ConfigureAwait(false);
             await KeepAliveAsync(transport, ct).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (Exception ex) when (ex is OperationCanceledException or IOException)
         {
-            // The client went away, or the drain's deadline passed. Both end the stream.
+            // The client went away, the drain's deadline passed, or a newer stream ended this one. All end the stream.
         }
         finally
         {

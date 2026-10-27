@@ -194,6 +194,14 @@ them until tagged releases begin.
   (`Rask Live handler 'h…' threw`), and what the click changed never reached the page. After: the connection is read
   once, and a frame it can no longer carry — gone, or closed — is made again for the connection that attaches next,
   with the browser calls and the address it carried.
+- **A connection that replaces one is sent the whole page, so nothing a lost frame carried stays missing (#1258).**
+  Before: the diff baseline moved when a frame was written, not when it reached the browser. A frame lost with its
+  connection — the send above, an event stream that had ended and dropped it silently — left the next connection's
+  catch-up a diff against a page the browser never had, and once anything else changed (a source the page follows
+  ticking) the lost change never came: a toast, a value read again, a list's first rows. After: the catch-up after a
+  reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
+  does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
+  one host at once, with the host's cores kept busy, and every answer reaches every page.
 - **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
   emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a
