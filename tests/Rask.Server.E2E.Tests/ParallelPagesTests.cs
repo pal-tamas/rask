@@ -67,12 +67,13 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
             }
         }
 
-        Assert.Equal(Pages * Rounds * ChecksPerRound, Volatile.Read(ref _checked));
         Assert.True(lost.IsEmpty, $"{lost.Count} answers never reached their page:{Environment.NewLine}{string.Join(Environment.NewLine, lost)}"
                                   + $"{Environment.NewLine}{lifecycle}");
         // A tab that came back to a session this host had removed under it is told so, and reloads.
         Assert.True(lifecycle.Refused.IsEmpty, $"a tab came back to a removed session:{Environment.NewLine}"
                                                + $"{string.Join(Environment.NewLine, lifecycle.Refused)}{Environment.NewLine}{lifecycle}");
+        // Every check ran: a round cut short is noted as lost above, so this only says nothing was skipped silently.
+        Assert.Equal(Pages * Rounds * ChecksPerRound, Volatile.Read(ref _checked));
     }
 
     private async Task ReadAsync(string baseUrl, int reader, ConcurrentQueue<string> lost)
