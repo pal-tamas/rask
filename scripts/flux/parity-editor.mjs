@@ -16,14 +16,17 @@
 //   - the marks no example shows a button for (code, subscript, superscript, highlight), by a control of that name.
 //
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask page
-//         node scripts/flux/parity-editor.mjs [--all]
+//         node scripts/flux/parity-editor.mjs [--all] [--view 390x844]
+//
+// On a phone (`--view 390x844`) every press is a tap; the keys still apply, for a phone has a keyboard on its
+// screen. A phone has no pointer to hover with, so the step that hovers an option is skipped there.
 // Exit code 1 on any difference.
 
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, root } from './lib.mjs';
+import { chromium, press, root, viewOf } from './lib.mjs';
 
 const raskPage = join(root, 'artifacts', 'flux-parity', 'rask', 'editor.html');
 if (!existsSync(raskPage)) {
@@ -40,6 +43,7 @@ const DOCUMENT = '<h1>One</h1><h2>Two</h2><h3>Three</h3><p>Para <strong>b</stron
   + '<blockquote><p>quote</p><p>quote2</p></blockquote><pre><code class="language-js">let a = 1;</code></pre><p style="text-align:center">centered</p><p>last</p>';
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
 
+const { screen, phone } = viewOf(process.argv.slice(2));
 const browser = await chromium().launch();
 let failures = 0;
 for (const scheme of ['light', 'dark']) {
@@ -61,7 +65,7 @@ console.log(failures ? `\nflux parity: the editor in use differs in ${failures} 
 process.exit(failures ? 1 : 0);
 
 async function transcript(scheme, url, at, inherited) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+  const context = await browser.newContext({ ...screen, colorScheme: scheme });
   await context.addInitScript(`window.__look = ${look}; window.__states = ${states}`);
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
@@ -83,6 +87,8 @@ async function transcript(scheme, url, at, inherited) {
   const editor = page.locator(at.editor).first();
   await editor.scrollIntoViewIfNeeded();
   const content = editor.locator('[data-slot=content]');
+  // A click, or a tap on a phone.
+  const hit = target => (phone ? target.tap() : target.click());
   // A gray's hue means nothing at zero chroma, and prints as `none` once a minifier has been at the sheet.
   const note = (what, value) => lines.push(`${what}: ${value}`.replaceAll(' none)', ' 0)'));
   const value = () => editor.evaluate(el => el.value);
@@ -139,24 +145,24 @@ async function transcript(scheme, url, at, inherited) {
 
   // Toggles: by button, by shortcut, and what the button says.
   await set('<p>Hello world</p>');
-  await content.click();
+  await hit(content);
   await settle();
   await events();
   note('focused area', await editor.evaluate(el => window.__look(el.querySelector('[data-slot=content]')) + ' root ' + getComputedStyle(el).boxShadow.slice(-40)));
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
   note('bold at rest', await state('[data-editor=bold]'));
-  await editor.locator('[data-editor=bold]').click();
+  await hit(editor.locator('[data-editor=bold]'));
   await settle();
   note('bold pressed', `${await state('[data-editor=bold]')} value=${await value()} events=${await events()} focus=${await focus()}`);
   await page.keyboard.press('ControlOrMeta+b');
   note('bold by shortcut', `${await state('[data-editor=bold]')} value=${await value()}`);
   for (const [name, keys] of [['italic', 'ControlOrMeta+i'], ['strike', 'ControlOrMeta+Shift+s'], ['bullet', 'ControlOrMeta+Shift+8'], ['ordered', 'ControlOrMeta+Shift+7'], ['blockquote', 'ControlOrMeta+Shift+b']]) {
     await set('<p>Hello world</p><p>second</p>');
-    await content.locator('p').first().click();
+    await hit(content.locator('p').first());
     await settle();
     for (let press = 1; press <= 2; press++) {
-      await editor.locator(`[data-editor=${name}]`).click();
+      await hit(editor.locator(`[data-editor=${name}]`));
       await page.waitForTimeout(120);
       note(`${name} click ${press}`, `${await state(`[data-editor=${name}]`)} value=${await value()} focus=${await focus()}`);
     }
@@ -167,7 +173,7 @@ async function transcript(scheme, url, at, inherited) {
 
   for (const keys of ['ControlOrMeta+u', 'ControlOrMeta+e', 'ControlOrMeta+Shift+h', 'ControlOrMeta+,', 'ControlOrMeta+.', 'ControlOrMeta+Alt+2', 'ControlOrMeta+Alt+0', 'ControlOrMeta+Shift+e', 'ControlOrMeta+Shift+r']) {
     await set('<p>Hello world</p>');
-    await content.click();
+    await hit(content);
     await settle();
     await page.keyboard.press('ControlOrMeta+a');
     await settle();
@@ -179,7 +185,7 @@ async function transcript(scheme, url, at, inherited) {
 
   // Typing, undo, redo, and the Markdown rules.
   await set('<p>Hello world</p>');
-  await content.click();
+  await hit(content);
   await settle();
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
@@ -197,12 +203,20 @@ async function transcript(scheme, url, at, inherited) {
   note('markdown input rules', await value());
   await page.keyboard.press('ControlOrMeta+Shift+Enter');
 
+  // The toolbar as it lays out: one row, and on a narrow screen a row that scrolls.
+  note('toolbar', await editor.evaluate(el => {
+    const bar = el.querySelector('[role=toolbar]'), at = bar.getBoundingClientRect();
+    const scroller = [bar, ...bar.querySelectorAll('*')].find(n => n.scrollWidth > n.clientWidth && getComputedStyle(n).overflowX !== 'visible');
+    const boxes = [...bar.querySelectorAll('button')].filter(b => b.offsetParent).map(b => { const r = b.getBoundingClientRect(); return `${Math.round(r.x - at.x)},${Math.round(r.y - at.y)}`; });
+    return `${Math.round(at.width)}x${Math.round(at.height)} scrolls=${scroller ? `${scroller.scrollWidth}/${scroller.clientWidth}` : 'no'} ${boxes.join(' ')}`;
+  }));
+
   // The heading list.
   await set('<p>Hello world</p>');
-  await content.click();
+  await hit(content);
   await settle();
   note('heading closed', await state(select('heading')));
-  await editor.locator(select('heading')).click();
+  await hit(editor.locator(select('heading')));
   await page.waitForTimeout(300);
   note('heading open', `${await state(select('heading'))} list ${await placed(`[data-editor=heading] ${at.list}`, select('heading'))} focus=${await focus()}`);
   note('heading options', await options('heading'));
@@ -215,35 +229,37 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('Enter');
   await page.waitForTimeout(200);
   note('heading Enter', `${await value()} ${await state(select('heading'))} list ${await display(`[data-editor=heading] ${at.list}`)} shown=${await shown('heading')} focus=${await focus()}`);
-  await editor.locator(select('heading')).click();
+  await hit(editor.locator(select('heading')));
   await page.waitForTimeout(300);
   const third = await editor.locator(`[data-editor=heading] ${at.option}`).nth(3).evaluate(o => { const box = o.getBoundingClientRect(); return [box.x + 20, box.y + 10]; });
-  await page.mouse.move(third[0], third[1], { steps: 4 });
-  note('heading pointer over an option', await options('heading'));
-  await page.mouse.down();
-  await page.mouse.up();
+  if (!phone) {
+    await page.mouse.move(third[0], third[1], { steps: 4 });
+    note('heading pointer over an option', await options('heading'));
+  }
+
+  await press(page, third[0], third[1], phone);
   await page.waitForTimeout(200);
   note('heading option clicked', `${await value()} shown=${await shown('heading')} focus=${await focus()}`);
-  await editor.locator(select('heading')).click();
+  await hit(editor.locator(select('heading')));
   await page.waitForTimeout(300);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('heading Escape', `${await state(select('heading'))} focus=${await focus()}`);
-  await editor.locator(select('heading')).click();
+  await hit(editor.locator(select('heading')));
   await page.waitForTimeout(300);
-  await page.mouse.click(5, 5);
+  await press(page, 5, 5, phone);
   await page.waitForTimeout(150);
   note('heading press outside', `${await state(select('heading'))} list ${await display(`[data-editor=heading] ${at.list}`)} focus=${await focus()}`);
   await set('<h2>Head</h2><p>para</p>');
-  await content.locator('h2').click();
+  await hit(content.locator('h2'));
   await settle();
   note('caret in a heading', `shown=${await shown('heading')} ${await options('heading')}`);
 
   // The align list.
   await set('<p>Hello world</p>');
-  await content.click();
+  await hit(content);
   await settle();
-  await editor.locator(select('align')).click();
+  await hit(editor.locator(select('align')));
   await page.waitForTimeout(300);
   note('align open', `${await state(select('align'))} list ${await placed(`[data-editor=align] ${at.list}`, select('align'))}`);
   await page.keyboard.press('ArrowDown');
@@ -255,11 +271,11 @@ async function transcript(scheme, url, at, inherited) {
 
   // The link panel.
   await set('<p>Hello world</p>');
-  await content.click();
+  await hit(content);
   await settle();
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
-  await editor.locator(linkButton).click();
+  await hit(editor.locator(linkButton));
   await page.waitForTimeout(300);
   note('link open', `${await state(linkButton)} panel ${await placed(linkPanel, linkButton)} focus=${await focus()}`);
   note('link panel look', await editor.evaluate((el, at) => {
@@ -270,21 +286,21 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.type('example.com');
   await page.keyboard.press('Enter');
   await page.waitForTimeout(200);
-  await page.mouse.move(640, 4);
+  if (!phone) await page.mouse.move(640, 4);
   await settle();
   note('link Enter', `${await value()} ${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await editor.locator(linkButton).click();
+  await hit(editor.locator(linkButton));
   await page.waitForTimeout(300);
   note('link reopened', await editor.locator('[data-editor="link:url"]').inputValue());
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by its button', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await editor.locator(linkButton).click();
+  await hit(editor.locator(linkButton));
   await page.waitForTimeout(300);
-  await editor.locator('[data-editor="link:unlink"]').click();
+  await hit(editor.locator('[data-editor="link:unlink"]'));
   await page.waitForTimeout(200);
   note('unlink', `${await value()} ${await state(linkButton)} focus=${await focus()}`);
-  await content.click();
+  await hit(content);
   await settle();
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
@@ -294,10 +310,10 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by the shortcut', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await editor.locator(linkButton).click();
+  await hit(editor.locator(linkButton));
   await page.waitForTimeout(300);
   await editor.locator('[data-editor="link:url"]').fill('https://x.y');
-  await editor.locator('[data-editor="link:insert"]').click();
+  await hit(editor.locator('[data-editor="link:insert"]'));
   await page.waitForTimeout(200);
   note('link insert button', `${await value()} focus=${await focus()}`);
 

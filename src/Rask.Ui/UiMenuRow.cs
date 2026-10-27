@@ -32,10 +32,10 @@ internal static class UiMenuRow
 
     // A navigation menu's link is lit by the pointer alone.
     private const string LinkLeadingIcon =
-        "me-2 text-zinc-400 group-hover/row:text-current group-data-active/row:text-current dark:text-white/60";
+        "me-2 text-zinc-400 group-[:hover]/row:text-current group-data-active/row:text-current dark:text-white/60";
 
     /// <summary>A trailing icon. It follows the pointer and not the cursor, as a submenu's chevron does in Flux.</summary>
-    internal const string TrailingIcon = "ms-auto text-zinc-400 group-hover/row:text-current";
+    internal const string TrailingIcon = "ms-auto text-zinc-400 group-[:hover]/row:text-current";
 
     // Flux's `data-flux-menu-item-icon`, beside the icon's own marks: a row's leading icon and its check.
     private static readonly Dictionary<string, string?> ItemIcon = UiIcon.MarksWith("data-ui-menu-item-icon");

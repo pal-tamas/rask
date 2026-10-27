@@ -53,6 +53,7 @@ function invoked(doc: Document, target: EventTarget | null): Element | null {
 
 let pressedAt = 0;
 let pressed: EventTarget | null = null;
+let touched = false;
 
 function installPopoverFocus(doc: Document): void {
     listen("focusout", function (e) {
@@ -68,7 +69,25 @@ function installPopoverFocus(doc: Document): void {
     listen("pointerdown", function (e) {
         pressedAt = Date.now();
         pressed = e.target;
+        touched = (e as PointerEvent).pointerType === "touch";
     }, {capture: true, passive: true});
+
+    // A FINGER that opens a popover keeps the focus where it pressed: a text field inside does not take it by its
+    // autofocus, which on a phone raises the keyboard over the list. Measured on Flux UI's select and phone pages
+    // (2026-10-27): a tap opens a searchable list with focus on its button; a click or a key, in the search field.
+    listen("toggle", function (e) {
+        const panel = e.target;
+        const field = doc.activeElement;
+        if (!touched || !(panel instanceof HTMLElement) || (e as ToggleEvent).newState !== "open" || Date.now() - pressedAt > 1000
+            || !(field instanceof HTMLInputElement) || !field.hasAttribute("autofocus") || !panel.contains(field)
+            || !(pressed instanceof Element) || panel.contains(pressed)) {
+            return;
+        }
+        const opener = pressed.closest<HTMLElement>("button,[tabindex],input,a[href]");
+        if (opener) {
+            opener.focus({preventScroll: true});
+        }
+    }, true);
 
     // `toggle` does not bubble; it is caught on the way down. Only a close that a press outside caused, and
     // only when it left focus nowhere: a panel the pointer merely left, or one the page closed, takes no focus.

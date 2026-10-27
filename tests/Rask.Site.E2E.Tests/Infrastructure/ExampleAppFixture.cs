@@ -67,7 +67,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var repoRoot = LocateRepoRoot();
+        var repoRoot = Repository.Root;
         var projectPath = Path.Combine(repoRoot, ProjectRelativePath);
 
         // Reserve → launch → wait, retrying the *whole* launch if the child reports the port was taken in
@@ -342,22 +342,5 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         psi.ArgumentList.Add("--urls");
         psi.ArgumentList.Add(BaseUrl);
         return psi;
-    }
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
     }
 }

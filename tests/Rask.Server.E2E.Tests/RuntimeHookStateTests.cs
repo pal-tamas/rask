@@ -39,6 +39,26 @@ public sealed class RuntimeHookStateTests(PlaywrightFixture playwright) : IClass
     }
 
     [Fact]
+    public async Task On_a_phone_a_tap_on_a_group_holds_every_toast_in_it_until_a_tap_elsewhere()
+    {
+        await using var session = await HookSession.OpenAsync<StateHookPage>(
+            playwright, new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true });
+        var page = session.Page;
+        await page.TapAsync("#show");
+        await Expect(page.Locator("[role=status]")).ToHaveCountAsync(2);
+
+        // Over the group's own padding. A finger's pointerout comes a moment after the tap, and lets nothing go:
+        // the browser's mouse stays where the tap was, as on Flux UI's phone.
+        await page.Touchscreen.TapAsync(30, 834);
+        await page.WaitForTimeoutAsync(2_000);
+        var whileHeld = await page.Locator("[role=status]").CountAsync();
+        await page.Touchscreen.TapAsync(300, 400);
+
+        Assert.Equal(2, whileHeld);
+        await Expect(page.Locator("#dismissed")).ToHaveTextAsync("dismissed=2", new() { Timeout = 3_000 });
+    }
+
+    [Fact]
     public async Task Focus_inside_a_toast_that_only_the_pointer_holds_does_not_stop_its_countdown()
     {
         await using var session = await HookSession.OpenAsync<StateHookPage>(playwright);

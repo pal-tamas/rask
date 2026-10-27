@@ -124,11 +124,6 @@ export function setOpen(row: Element, open: boolean): void {
     }
 }
 
-/** Whether the flyout of a submenu's row is open. */
-export function isOpen(row: Element): boolean {
-    return !!row.parentElement && row.parentElement.hasAttribute("data-open");
-}
-
 // Every flyout `row` is not inside closes.
 function closeAround(root: Element, row: Element): void {
     const open = root.querySelectorAll("[data-open]");
@@ -149,9 +144,10 @@ export function cursorOf(root: Element): HTMLElement | null {
 
 /**
  * The keyboard, or a press, arrives on `row` of a kept menu: it is lit, focused and the tab stop, the rows of
- * the submenus around it stay lit, and every flyout it is not inside closes.
+ * the submenus around it stay lit, and every flyout it is not inside closes. `lit` false leaves the row itself
+ * dark: a tap on the row that had focus already, as on Flux UI.
  */
-export function land(root: Element, row: HTMLElement): void {
+export function land(root: Element, row: HTMLElement, lit = true): void {
     const around: Element[] = [];
     for (let menu = row.closest("[role=menu]"); menu && menu !== root;) {
         const opener = rowOf(menu);
@@ -164,7 +160,7 @@ export function land(root: Element, row: HTMLElement): void {
     closeAround(root, row);
     const rows = root.querySelectorAll(ROW);
     for (let i = 0; i < rows.length; i++) {
-        mark(rows[i], "data-active", rows[i] === row || around.indexOf(rows[i]) >= 0 ? "" : null);
+        mark(rows[i], "data-active", (rows[i] === row && lit) || around.indexOf(rows[i]) >= 0 ? "" : null);
         stop(rows[i], rows[i] === row);
     }
     cursors.set(root, row);

@@ -109,9 +109,11 @@ const rask = layout
     { prepare: inherit, only: new Set(flux.light.map(example => example.section)) })
   : await measurePage(browser, pathToFileURL(raskPage).href, join(out, 'rask', slug + sized), prepared
     ? async (p, scheme) => {
+      // The frame first: the runtime fits what it draws to the room it is given as it arrives (a composer's box to
+      // its text), and an app's page has its width from the start.
+      await inherit(p, scheme);
       await withRuntime(p, ...prepared.runtime);
       await prepared.prepare(p, scheme, 'rask');
-      await inherit(p, scheme);
     }
     : inherit, view);
 await browser.close();

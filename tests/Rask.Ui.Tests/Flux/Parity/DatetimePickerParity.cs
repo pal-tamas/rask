@@ -52,6 +52,8 @@ public abstract partial class DatetimePickerExamples : FluxParity
         + ":root{--font-mono:MonoLisa,monospace}.parity-flex-1{flex:1 1 0%}"
         + ".parity-separate{display:flex;gap:8px;width:100%;max-width:256px}"
         + "@media (width < 40rem){.parity-separate{flex-direction:column}}"
+        // The time-format example's `px-2 flex flex-col sm:flex-row gap-4`: on a phone its two pickers are stacked.
+        + ".parity-pair{display:flex;flex-direction:column;gap:16px;padding:0 8px}@media (width >= 40rem){.parity-pair{flex-direction:row}}"
         + "@media (width >= 40rem){.parity-separate{max-width:384px}.parity-sm-w-40{width:160px}}</style>";
 
     /// <summary>What the page measured open adds to each example: room around it, and the mark the measurer presses.</summary>
@@ -95,7 +97,7 @@ public abstract partial class DatetimePickerExamples : FluxParity
             ]));
 
         // Two pickers in a row, each in a field of its own.
-        yield return ("time-format", Div.Style("display:flex;gap:16px;padding:0 8px")[
+        yield return ("time-format", Div.Class("parity-pair")[
             One(At(now.AddDays(1), 18, 30)).Label("12-hour").TimeFormat(Ui.DatetimePickerTimeFormat.TwelveHour),
             One(At(now.AddDays(1), 18, 30)).Label("24-hour").TimeFormat(Ui.DatetimePickerTimeFormat.TwentyFourHour)
         ]);

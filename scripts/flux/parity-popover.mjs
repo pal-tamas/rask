@@ -26,6 +26,7 @@
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
 //         node scripts/flux/parity-popover.mjs [--refresh] [--all]     # --refresh re-measures Flux
 //         node scripts/flux/parity-popover.mjs --record                # Flux's walk alone, every step
+//         node scripts/flux/parity-popover.mjs --view 390x844          # the same on a phone (PHONE, below)
 //
 // Exit code 1 on any difference.
 
@@ -34,15 +35,16 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { chromium, measurePage, root } from './lib.mjs';
+import { chromium, measurePage, press, root, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { runtime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
 const flag = name => args.includes(`--${name}`);
 const fluxUrl = 'https://fluxui.dev/components/popover';
+const view = viewOf(args);
 const out = join(root, 'artifacts', 'flux-parity', 'flux', 'popover-open');
-const file = join(out, 'measurements.json');
+const file = join(out, `measurements${view.sized}.json`);
 const raskPage = join(root, 'artifacts', 'flux-parity', 'rask', 'popover-open.html');
 const HOOKS = '<!-- runtime hooks -->';
 
@@ -60,11 +62,23 @@ const HOVERED = ['hover', 'hoverpanel', 'leave', 'hover', 'click', 'leave', 'foc
 const GLIDED = ['hover', 'gap', 'hover', 'glide', 'hoverpanel', 'glide', 'gap', 'hover', 'leave'];
 // A panel the pointer left takes focus nowhere, on both: the runtime's menu keys hand focus to the trigger of a
 // popover that closed with focus on nothing, but not of one the pointer walked away from (rask-menu-keys.ts).
-const WALKS = [
+const DESKTOP = [
   { name: 'a press opens it', dropdown: 0, steps: PRESSED },
   { name: 'the pointer opens it', dropdown: 1, steps: HOVERED },
   { name: 'the pointer glides across the gap', dropdown: 1, steps: GLIDED },
 ];
+// On a phone a press is a tap and the wheel a swipe, and there is no pointer to rest anywhere: the hover steps
+// are not taken, so the hovered popover is walked by taps and keys, and the glide across the gap has no walk.
+const PHONE = [
+  { name: 'a tap opens it', dropdown: 0, steps: PRESSED },
+  { name: 'a tap on the hovered one', dropdown: 1, steps: HOVERED },
+].map(walk => ({ ...walk, steps: walk.steps.filter(step => !['hover', 'hoverpanel', 'leave', 'glide', 'gap'].includes(step)) }));
+const WALKS = view.phone ? PHONE : DESKTOP;
+// FIRST_TOUCH. Measured on Flux (2026-10-27): the FIRST touch of a page, if it lands on a hover trigger, opens the
+// panel on its pointerenter and its click toggles it shut again; from then on a hover trigger answers a tap as any
+// popover's button does, open and shut. The kit has no such first touch, so both pages are touched once, away from
+// every example, before they are walked or measured (lib.mjs too): what is held to Flux is the page in use.
+
 
 const browser = await chromium().launch();
 if (flag('record')) {
@@ -82,15 +96,18 @@ if (!existsSync(raskPage)) {
 // on every run, so the hooks on the page are the hooks in the tree.
 const html = await readFile(raskPage, 'utf8');
 const bare = html.includes(HOOKS) ? `${html.slice(0, html.indexOf(HOOKS))}</body></html>` : html;
-await writeFile(raskPage, bare.replace('</body>', () => `${HOOKS}<script>${runtime('rask-hooks.ts').replaceAll('</script', '<\\/script')}</script></body>`));
+// A view of its own gets a page of its own (parity.mjs reads `popover-open@390x844.html`), so a desktop run and a
+// phone run at once never read a page the other is writing.
+const walked = view.sized ? raskPage.replace('.html', `${view.sized}.html`) : raskPage;
+await writeFile(walked, bare.replace('</body>', () => `${HOOKS}<script>${runtime('rask-hooks.ts').replaceAll('</script', '<\\/script')}</script></body>`));
 
 if (!existsSync(file) || flag('refresh')) {
   const open = { light: [], dark: [] };
   for (let dropdown = 0; ; dropdown++) {
     let found = false;
-    const measured = await measurePage(browser, fluxUrl, join(out, String(dropdown)), async page => {
+    const measured = await measurePage(browser, fluxUrl, join(out + view.sized, String(dropdown)), async page => {
       found = await page.evaluate(mark, dropdown);
-    });
+    }, view.size);
     if (!found) break;
 
     for (const scheme of ['light', 'dark']) {
@@ -107,7 +124,7 @@ if (!existsSync(file) || flag('refresh')) {
 let differs = 0;
 for (const walk of WALKS) {
   const theirs = await walkOne(fluxUrl, walk, 'flux');
-  const mine = await walkOne(pathToFileURL(raskPage).href, walk, 'ui');
+  const mine = await walkOne(pathToFileURL(walked).href, walk, 'ui');
   const off = walk.steps.filter((_, i) => theirs[i] !== mine[i]).length;
   // A walk's open difference, and nothing else: with `as`, every line has to agree once Flux's is read that way.
   const known = off && walk.open && (!walk.open.as || walk.steps.every((_, i) => theirs[i] === mine[i] || walk.open.as(theirs[i]) === mine[i]));
@@ -118,15 +135,16 @@ for (const walk of WALKS) {
 
 console.log(differs ? `\nflux parity: the popover walks differently in ${differs} walk(s).\n` : '\nflux parity: the popover walks as Flux\'s does.\n');
 
-const dropdowns = await count(fluxUrl);
-const astray = await landings(browser, {
+// Where it lands is held on a phone and a desktop alike by the desktop run (placement.mjs's VIEWS).
+const dropdowns = view.sized ? [] : await count(fluxUrl);
+const astray = view.sized ? 0 : await landings(browser, {
   name: 'popover', refresh: flag('refresh'), all: flag('all'),
   flux: { url: fluxUrl, host: '[data-preview-wrapper] [data-flux-dropdown]', panel: '[data-flux-popover]' },
   rask: { url: pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', 'popover.html')).href, host: '[data-preview-wrapper] [data-ui-dropdown]', panel: '[data-ui-popover]' },
   hosts: dropdowns.map((hover, index) => (hover ? { index, open: 'hover' } : index)),
 });
 await browser.close();
-console.log(astray ? `\nflux parity: the popover lands elsewhere for ${astray} dropdown(s).\n` : '\nflux parity: the popover lands where Flux\'s does.\n');
+if (!view.sized) console.log(astray ? `\nflux parity: the popover lands elsewhere for ${astray} dropdown(s).\n` : '\nflux parity: the popover lands where Flux\'s does.\n');
 differs += astray;
 
 const rest = args.filter(a => a !== '--refresh');
@@ -152,8 +170,9 @@ function print(walk, theirs, mine) {
 // One dropdown of the page, walked. Each step waits on STATE — the panel open or closed for three frames in
 // a row — and then writes down what it left behind.
 async function walkOne(url, walk, prefix) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext(view.screen);
   const page = await context.newPage();
+  const finger = view.phone ? await context.newCDPSession(page) : null;
   await page.goto(url, { waitUntil: 'networkidle', timeout: 120000 });
   await page.evaluate(() => document.fonts.ready);
   // Flux's page has links above its first example; a parity page begins with it, and Shift+Tab off the first
@@ -165,7 +184,9 @@ async function walkOne(url, walk, prefix) {
   const panel = await dropdown.$(`[data-${prefix}-popover]`);
   // A pointer comes from somewhere: Flux's page now and then does not open under a pointer whose first move
   // ever lands on the trigger.
-  await page.mouse.move(4, 450);
+  // On a phone a finger has touched the page before (FIRST_TOUCH, above).
+  if (view.phone) await press(page, 4, 450, true);
+  else await page.mouse.move(4, 450);
   await page.waitForTimeout(200);
   const centre = async el => {
     const box = await el.boundingBox();
@@ -178,7 +199,7 @@ async function walkOne(url, walk, prefix) {
   for (const step of walk.steps) {
     const scrolled = await page.evaluate(() => scrollY);
     if (await panel.boundingBox()) onPanel = await centre(panel);
-    if (step === 'click') await page.mouse.click(...await centre(trigger));
+    if (step === 'click') await press(page, ...await centre(trigger), view.phone);
     else if (step === 'hover') await page.mouse.move(...await centre(trigger));
     else if (step === 'hoverpanel') await page.mouse.move(...onPanel);
     // Two moves with nothing between them: one that stays on the trigger, one into the gap under it.
@@ -191,10 +212,12 @@ async function walkOne(url, walk, prefix) {
       const from = await centre(trigger);
       await page.mouse.move(from[0] + 12, from[1] + 21);
     }
-    else if (step === 'clickpanel') await page.mouse.click(...onPanel.map((v, i) => (i ? v : v - 80)));
-    else if (step === 'outside') await page.mouse.click(4, 450);
+    else if (step === 'clickpanel') await press(page, ...onPanel.map((v, i) => (i ? v : v - 80)), view.phone);
+    else if (step === 'outside') await press(page, 4, 450, view.phone);
     else if (step === 'leave') await page.mouse.move(4, 450);
     else if (step === 'focus') await trigger.focus();
+    // A finger swipes the page 120 px up, where a wheel turns.
+    else if (step === 'wheel' && finger) await finger.send('Input.synthesizeScrollGesture', { x: 195, y: 600, yDistance: -120, gestureSourceType: 'touch', speed: 800 });
     else if (step === 'wheel') await page.mouse.wheel(0, 120);
     else await page.keyboard.press(step);
     await settled(page, panel);

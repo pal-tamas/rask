@@ -15,8 +15,13 @@
 // What shows a hover tooltip on the Rask page is Rask's RUNTIME (data-rask-tooltip), as in an app: the page
 // is given the runtime's behaviour hooks (runtime.mjs) before it is walked. Flux's page has Flux's script.
 //
+// On a phone (--view 390x844) there is no hover: each tooltip is shown by a FINGER on its trigger (a tap, for
+// a toggleable one), which is what shows Flux's — it opens on a pointerenter of any pointer, a touch's too —
+// and the walk is the phone's own (walkTap). The cases pushed against an edge are left to the landings, which
+// hold them at a phone's edges.
+//
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask page
-//         node scripts/flux/parity-tooltip.mjs [--all]
+//         node scripts/flux/parity-tooltip.mjs [--all] [--view 390x844]
 //
 // Exit code 1 on any difference. Screenshots land in artifacts/flux-parity/shown/.
 
@@ -24,7 +29,7 @@ import { mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, root, STYLES } from './lib.mjs';
+import { chromium, press, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -94,15 +99,13 @@ const CONTENT = '[data-flux-tooltip-content], [data-ui-tooltip-content]';
 const AWAY = [2, 450];
 
 const flag = name => process.argv.includes(`--${name}`);
+const view = viewOf(process.argv);
 const browser = await chromium().launch();
 let failures = 0;
 for (const scheme of ['light', 'dark']) {
-  const flux = await open(scheme, FLUX);
-  await prepareFlux(flux);
-  const rask = await open(scheme, pathToFileURL(raskPage).href);
-  await withRuntime(rask, 'rask-hooks.ts');
-
-  for (const test of CASES) {
+  const [flux, rask] = await pages(scheme);
+  // The kbd case is the docs header's own button, which Flux's site does not draw on a phone.
+  for (const test of CASES.filter(test => !(view.phone && (test.edge || test.header)))) {
     const theirs = await show(flux, test, 'flux', scheme);
     const mine = await show(rask, test, 'rask', scheme);
     const diffs = compare(theirs, mine, test);
@@ -113,14 +116,17 @@ for (const scheme of ['light', 'dark']) {
     for (const d of diffs.slice(0, flag('all') ? Infinity : 10)) console.log(`       ${d}`);
   }
 
-  if (scheme === 'light') failures += await behaviour(flux, rask);
+  // A phone's walk starts on fresh pages, where no finger has shown a tooltip yet.
+  if (scheme === 'light' && !view.phone) failures += await behaviour(flux, rask);
   await flux.context().close();
   await rask.context().close();
+  if (scheme === 'light' && view.phone) failures += await phoneBehaviour(...await pages(scheme));
 }
 
 // Where it lands with no room: the tooltips of Flux's own page — over, beside, under and before their trigger
-// — shown with the trigger held at the edges of a phone and of a desktop (placement.mjs).
-const astray = await landings(browser, {
+// — shown with the trigger held at the edges of a phone and of a desktop (placement.mjs). The desktop's run
+// holds both, so a phone's leaves it out.
+const astray = view.phone ? 0 : await landings(browser, {
   name: 'tooltip', refresh: flag('refresh'), all: flag('all'),
   flux: { url: FLUX, host: '[data-preview-wrapper] ui-tooltip[data-flux-tooltip]', panel: '[data-flux-tooltip-content]' },
   rask: { url: pathToFileURL(join(out, 'rask', 'tooltip.html')).href, host: '[data-preview-wrapper] [data-ui-tooltip]:not([data-toggleable])', panel: '[data-ui-tooltip-content]' },
@@ -131,8 +137,17 @@ console.log(failures ? `\nflux parity: the shown tooltip differs in ${failures} 
 console.log(astray ? `flux parity: the tooltip lands elsewhere for ${astray} tooltip(s).` : 'flux parity: the tooltip lands where Flux\'s does.');
 process.exit(failures || astray ? 1 : 0);
 
+// Flux's page with the cases built into it, and the Rask page with the runtime's hooks.
+async function pages(scheme) {
+  const flux = await open(scheme, FLUX);
+  await prepareFlux(flux);
+  const rask = await open(scheme, pathToFileURL(raskPage).href);
+  await withRuntime(rask, 'rask-hooks.ts');
+  return [flux, rask];
+}
+
 async function open(scheme, url) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+  const context = await browser.newContext({ ...view.screen, colorScheme: scheme });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   // Every declared face, not only those the closed page uses: the medium a tooltip is set in is first needed
@@ -178,31 +193,54 @@ async function show(page, test, side, scheme) {
   const host = page.locator(`[data-case="${side === 'rask' ? test.rask ?? test.name : test.name}"]`);
   // Mid-viewport, so nothing flips that was not pushed against an edge on purpose.
   if (test.edge) await host.evaluate((el, css) => { el.style.cssText = `position:fixed;z-index:99999;${css}`; }, test.edge);
+  // On a phone, 390px leave a 320px tooltip no room to centre on a trigger off the middle, so each is held in
+  // the middle of the screen on both pages: the two pages lay their examples out differently.
+  else if (view.phone) await mid(tooltip, true);
   else await trigger.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
 
+  // On a phone too: once a finger has shown one tooltip Flux shows no other to a finger, until a mouse moves.
   await page.mouse.move(...AWAY);
   await settle(tooltip);
-  await (test.click ? trigger.click() : trigger.hover({ force: true }));
+  // A finger that rests on the trigger, measured before it lifts: an instant tap leaves Flux's tooltip shown
+  // only when its mouse events land in the frame it showed in, which a loaded machine does not promise.
+  if (view.phone && test.click) await tap(page, trigger);
+  else if (view.phone) await finger(page, trigger, true);
+  else await (test.click ? trigger.click() : trigger.hover({ force: true }));
   // On the state, not on a delay: showing, then the same box for three frames (Flux places its popover a
   // frame after it opens it). A case that must stay closed only has to hold still.
   if (!test.closed) await tooltip.locator(CONTENT).and(page.locator(':popover-open')).waitFor({ state: 'attached', timeout: 3000 }).catch(() => {});
   await settle(tooltip);
   const measured = await tooltip.evaluate(measure, { STYLES: STYLES.filter(key => !MECHANISM.has(key)) });
   if (measured.shown) {
-    const dir = join(out, 'shown', side, scheme);
+    const dir = join(out, `shown${view.sized}`, side, scheme);
     await mkdir(dir, { recursive: true });
     const { clip } = measured;
     await page.screenshot({ path: join(dir, `${test.name.replace(/[ ,]+/g, '-')}.png`), clip }).catch(() => {});
   }
 
-  if (test.click) await trigger.click();
+  if (test.click) await (view.phone ? tap(page, trigger) : trigger.click());
+  else if (view.phone) await finger(page, trigger, false);
   if (test.edge) await host.evaluate(el => { el.style.cssText = ''; });
-  await page.mouse.move(...AWAY);
+  if (view.phone) await mid(tooltip, false);
+  if (view.phone) await press(page, ...AWAY, true);
+  else await page.mouse.move(...AWAY);
   // Closed again before the next case starts: an open neighbour would be in its screenshot, and a page still
   // moving back from an edge would be hovered where the trigger no longer is.
   await tooltip.locator(CONTENT).and(page.locator(':popover-open')).waitFor({ state: 'detached', timeout: 3000 }).catch(() => {});
   await settle(tooltip);
   return measured;
+}
+
+// Holds a tooltip's root in the middle of the viewport, or puts it back where it was.
+function mid(tooltip, held) {
+  return tooltip.evaluate((el, held) => {
+    if (!held) { el.style.cssText = el.dataset.parityStyle ?? ''; return; }
+    el.dataset.parityStyle = el.style.cssText;
+    // The trigger centred: a root may be wider than it.
+    Object.assign(el.style, { position: 'fixed', zIndex: '99999', margin: '0', width: 'max-content', left: '0', top: `${Math.round(innerHeight / 2)}px` });
+    const trigger = el.firstElementChild.getBoundingClientRect();
+    el.style.left = `${Math.round((innerWidth - trigger.width) / 2 - trigger.x)}px`;
+  }, held);
 }
 
 // Resolves once nothing about the tooltip has changed for three frames running: whether it shows, its box,
@@ -330,10 +368,28 @@ async function behaviour(flux, rask) {
   const expanded = { flux: await walkExpanded(flux, locate(flux, interactive, 'flux')), rask: await walkExpanded(rask, locate(rask, interactive, 'rask')) };
   const info = CASES.find(test => test.name === 'info');
   const toggled = { flux: await walkToggle(flux, locate(flux, info, 'flux')), rask: await walkToggle(rask, locate(rask, info, 'rask')) };
+  return report([['hover', walked], ['interactive: aria-expanded on the trigger', expanded], ['toggleable', toggled]]);
+}
 
+// The same on a phone, where every step is a finger's. Each walk takes tooltips no finger has shown yet.
+async function phoneBehaviour(flux, rask) {
+  const both = async walk => ({ flux: await walk(flux, 'flux'), rask: await walk(rask, 'rask') });
+  const named = (page, side, name) => locate(page, CASES.find(test => test.name === name), side);
+  // Flux's own examples, so that what is walked is all Flux's.
+  const tapped = await both((page, side) => walkTap(page, ['intro', 'position top'].map(name => named(page, side, name))));
+  const expanded = await both((page, side) => walkTapExpanded(page, named(page, side, 'interactive')));
+  const toggled = await both((page, side) => walkTapToggle(page, named(page, side, 'info')));
+  const result = await report([['tap', tapped], ['interactive: aria-expanded on the trigger', expanded], ['toggleable', toggled]]);
+  await flux.context().close();
+  await rask.context().close();
+  return result;
+}
+
+// Prints each walk step by step, Flux's first; answers how many steps differ from Flux's.
+function report(tables) {
   let failed = 0;
   console.log('\nbehaviour (true = the tooltip is showing after the step)');
-  for (const [title, runs] of [['hover', walked], ['interactive: aria-expanded on the trigger', expanded], ['toggleable', toggled]]) {
+  for (const [title, runs] of tables) {
     const labels = Object.keys(runs);
     console.log(`  ${title}: ${labels.join(' | ')}`);
     for (const step of Object.keys(runs.flux)) {
@@ -528,5 +584,101 @@ async function walkToggle(page, tooltip) {
   steps['Enter on the trigger shows it'] = await showing();
   await page.keyboard.press('Escape');
   await settle(tooltip);
+  return steps;
+}
+
+// A tap in the middle of `locator`, after it is brought into view. Over once its click has come: the browser
+// makes the mouse events of a tap a little after the touch, and a press that hides a tooltip is among them.
+async function tap(page, locator) {
+  await locator.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  const box = await locator.boundingBox();
+  await page.evaluate(() => { window.__clicked = new Promise(done => addEventListener('click', done, { once: true, capture: true })); });
+  await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
+  await page.evaluate(() => Promise.race([window.__clicked, new Promise(done => setTimeout(done, 1000))]));
+}
+
+function showingOf(tooltip) {
+  return () => tooltip.evaluate(el => {
+    const content = el.querySelector('[data-flux-tooltip-content], [data-ui-tooltip-content]');
+    const computed = getComputedStyle(content);
+    return computed.display !== 'none' && computed.visibility !== 'hidden';
+  });
+}
+
+// A finger put down on `locator`'s middle (brought into view first), or lifted again.
+async function finger(page, locator, down) {
+  page.__cdp ??= await page.context().newCDPSession(page);
+  if (!down) {
+    await page.__cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await page.waitForTimeout(300);
+    return;
+  }
+  await locator.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+  const box = await locator.boundingBox();
+  await page.__cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+  await page.waitForTimeout(100);
+}
+
+// What a finger does to a hover tooltip, measured on Flux's page (2026-10-27). The finger's pointerenter shows
+// it, as a mouse's does on a desktop; lifting the finger is a press, which hides a tooltip that was showing
+// before the frame it lands in. So a real finger, which rests longer than a frame, shows it only while it is
+// down — and an instant tap (Playwright's) leaves it shown, as long as the tap's mouse events come in the frame
+// it showed in: a race this walk does not run. Then a second tap or a tap elsewhere hides it. And once a finger
+// has shown one, no finger shows any tooltip of the page again, not even another, until a MOUSE moves.
+async function walkTap(page, [first, second]) {
+  const steps = {};
+  const rests = async (tooltip, step) => {
+    await finger(page, tooltip.locator(':scope > :first-child'), true);
+    await settle(tooltip);
+    steps[step] = await showingOf(tooltip)();
+    await finger(page, null, false);
+    await settle(tooltip);
+    steps[`${step}, lifted`] = await showingOf(tooltip)();
+  };
+
+  await rests(first, 'a finger resting on it');
+  await rests(first, 'a finger on it again');
+  await rests(second, 'a finger on another');
+  await page.mouse.move(...AWAY);
+  await rests(second, 'a mouse moves, then a finger on that one');
+  return steps;
+}
+
+// The state Flux writes on an interactive tooltip's trigger, through one finger.
+async function walkTapExpanded(page, tooltip) {
+  const trigger = tooltip.locator(':scope > :first-child');
+  const state = () => trigger.getAttribute('aria-expanded');
+  const steps = {};
+  await page.mouse.move(...AWAY);
+  await settle(tooltip);
+  steps['at rest'] = await state();
+  await finger(page, trigger, true);
+  await settle(tooltip);
+  steps['while a finger rests on it'] = await state();
+  await finger(page, null, false);
+  await settle(tooltip);
+  steps['once the finger has lifted'] = await state();
+  return steps;
+}
+
+async function walkTapToggle(page, tooltip) {
+  const trigger = tooltip.locator(':scope > :first-child');
+  const content = tooltip.locator('[data-flux-tooltip-content], [data-ui-tooltip-content]');
+  const showing = showingOf(tooltip);
+  const tapped = async () => { await tap(page, trigger); await settle(tooltip); return showing(); };
+  const steps = {};
+
+  steps['a tap shows it'] = await tapped();
+  await page.waitForTimeout(1000);
+  steps['it stays once the finger has lifted'] = await showing();
+  const box = await content.boundingBox();
+  await press(page, box.x + 20, box.y + 20, true);
+  await settle(tooltip);
+  steps['stays on a tap inside it'] = await showing();
+  steps['a second tap hides it'] = !(await tapped());
+  steps['a third tap shows it again'] = await tapped();
+  await press(page, ...AWAY, true);
+  await settle(tooltip);
+  steps['a tap elsewhere hides it'] = !(await showing());
   return steps;
 }

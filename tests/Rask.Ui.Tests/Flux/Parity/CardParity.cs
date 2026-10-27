@@ -199,7 +199,8 @@ public sealed partial class CardParity : FluxParity
     // Flux's example passes the hover as utilities of the docs app's own stylesheet, which the kit's sheet does
     // not carry; the same two colours (zinc-50, zinc-700) are stated here.
     private static Component LinkCard() => Narrow(
-        Raw.Value("<style>.parity-link:hover{background-color:oklch(0.985 0 0)}.dark .parity-link:hover{background-color:oklch(0.37 0.013 285.805)}</style>"),
+        // `hover:` as Tailwind writes it: only where there is a pointer to hover (a phone has none).
+        Raw.Value("<style>@media (hover:hover){.parity-link:hover{background-color:oklch(0.985 0 0)}.dark .parity-link:hover{background-color:oklch(0.37 0.013 285.805)}}</style>"),
         A.Href("#").Aria("label", "Latest on our blog").Style("display:block;cursor:pointer")[
             Ui.Card.Xs.Class("parity-link")[
                 StandIn("height:20px", "Latest on our blog"),

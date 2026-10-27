@@ -78,7 +78,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
 
     public async ValueTask InitializeAsync()
     {
-        var repoRoot = LocateRepoRoot();
+        var repoRoot = Repository.Root;
         Wwwroot = Path.Combine(repoRoot, ProjectRelativePath, "bin", Configuration,
             "net10.0-browser", "publish", "wwwroot");
         if (!File.Exists(Path.Combine(Wwwroot, "index.html")))
@@ -309,22 +309,5 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         }
 
         throw new TimeoutException($"Static host did not respond on {BaseUrl} within {timeout}.");
-    }
-
-    private static string LocateRepoRoot()
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null)
-        {
-            if (File.Exists(Path.Combine(dir.FullName, "Rask.slnx")))
-            {
-                return dir.FullName;
-            }
-
-            dir = dir.Parent;
-        }
-
-        throw new InvalidOperationException(
-            $"Could not locate Rask.slnx walking up from {AppContext.BaseDirectory}");
     }
 }

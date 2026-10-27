@@ -164,6 +164,27 @@ public sealed class RuntimeHookLockTests(PlaywrightFixture playwright) : IClassF
         Assert.All([outer, both, one], step => Assert.Equal(before.Where, step.Where));
     }
 
+    // Measured on Flux UI's popover page at 390 × 844 on a touch screen (2026-10-27): the second tap on the trigger of
+    // an open popover lands on <html>, every one of its events, and closes the panel. A phone makes the tap's click once
+    // the finger is up, when the lock has let go, and hit-tests it again — the trigger then opened it once more.
+    [Fact]
+    public async Task A_tap_on_the_locked_page_closes_the_popover_and_presses_nothing_under_it()
+    {
+        await using var session = await HookSession.OpenAsync<LockHookPage>(playwright,
+            new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.EvaluateAsync("() => document.getElementById('open').scrollIntoView({ block: 'center' })");
+        await page.TapAsync("#open");
+        var opened = await session.ShownAsync("#pop");
+
+        await page.TapAsync("#open", new PageTapOptions { Force = true });
+        await page.WaitForTimeoutAsync(100);
+
+        Assert.True(opened, "the first tap did not open the popover");
+        Assert.False(await session.ShownAsync("#pop"), "the tap that closed the popover also pressed its trigger again");
+    }
+
     private static BrowserNewContextOptions Viewport(int width, int height) =>
         new() { ViewportSize = new() { Width = width, Height = height } };
 

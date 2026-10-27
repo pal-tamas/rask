@@ -50,6 +50,33 @@ public abstract partial class KitDrawsWithoutAskingTests(PlaywrightFixture playw
     /// <summary>The pages a family is drawn on, for the check that each has a class that walks it.</summary>
     internal static IReadOnlySet<Type> Pages() => Families.Values.Select(family => family.Page).ToHashSet();
 
+    /// <summary>Flux's pages whose component a reader does nothing to, so no gesture of theirs can cost a frame.</summary>
+    internal static readonly Dictionary<string, string> NothingToDo = new(StringComparer.Ordinal)
+    {
+        ["brand"] = "a logo and a name: a link at most, which is the page's",
+        ["flag"] = "an image",
+        ["heading"] = "words",
+        ["icon"] = "an image",
+        ["text"] = "words",
+    };
+
+    /// <summary>Flux's pages whose family the kit names after its component rather than the page.</summary>
+    internal static readonly Dictionary<string, string> CalledHere = new(StringComparer.Ordinal)
+    {
+        ["otp-input"] = "otp",
+    };
+
+    /// <summary>
+    ///     The pages of Flux's catalogue with no family here and no reason for none: a component Flux added, put through
+    ///     nothing. A family is the page's slug, or the slug and a variant (<c>select-bound</c>).
+    /// </summary>
+    internal static IReadOnlyList<string> Unwalked(IEnumerable<string> catalogue) =>
+        [.. catalogue.Where(slug => !NothingToDo.ContainsKey(slug)).Where(slug =>
+        {
+            var family = CalledHere.GetValueOrDefault(slug, slug);
+            return !Families.Keys.Any(key => key == family || key.StartsWith(family + "-", StringComparison.Ordinal));
+        })];
+
     // Null when the gesture cost what its row says. A count is the same on every machine (KitFrameCount), so a
     // row is exact: more is a gesture that began to send, fewer is a row to lower — or to take out, at none.
     private static string? Judge(string key, KitFrames frames)

@@ -24,8 +24,12 @@
 //
 // Last, the countdown (compareCountdowns): what holds a toast and what it does once let go, timed on both.
 //
+// On a phone (--view 390x844) a finger does what the pointer does on a desktop: on Flux's page a TAP on the
+// stack opens it and holds every countdown, and a tap elsewhere lets it go (measured 2026-10-27: the stack
+// stayed open and both toasts stayed there 5 s after the tap, and went once a tap landed elsewhere).
+//
 // Usage:  dotnet test tests/Rask.Ui.Tests --filter FluxParityPages     # writes the Rask pages
-//         node scripts/flux/parity-toast.mjs                            # measure Flux, compare
+//         node scripts/flux/parity-toast.mjs [--view 390x844]           # measure Flux, compare
 //         node scripts/flux/parity-toast.mjs --cached --all             # reuse Flux's measurement
 //
 // Exit code 1 on any difference.
@@ -35,10 +39,17 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root } from './lib.mjs';
+import { chromium, measurePage, press, root, viewOf } from './lib.mjs';
 import { runtime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
+const view = viewOf(args);
+// Where nothing is: the pointer rests there on a desktop, and a finger taps there to let a stack go.
+const AWAY = [5, 450];
+// Over the front toast: the pointer moved there, or a tap.
+const over = (page, [x, y]) => (view.phone ? press(page, x, y, true) : page.mouse.move(x, y));
+// Off it again: the pointer away, or a tap elsewhere.
+const away = page => (view.phone ? press(page, ...AWAY, true) : page.mouse.move(...AWAY));
 const out = join(root, 'artifacts', 'flux-parity');
 const fluxDir = join(out, 'flux', 'toast-shown');
 const raskPage = join(out, 'rask', 'toast-shown.html');
@@ -84,15 +95,18 @@ const SINGLE = 'ui-toast:not(ui-toast-group ui-toast)';
 const NATIVE = { 'ui-toast': 'div', 'ui-toast-group': 'div', 'ui-close': 'div' };
 const screens = { flux: { light: {}, dark: {} }, rask: { light: {}, dark: {} } };
 
+// A viewport of its own is a measurement of its own, kept beside the desktop's (as parity.mjs keeps it).
+const measured = join(fluxDir, `measurements${view.sized}.json`);
+const where = join(fluxDir, `screens${view.sized}.json`);
 let flux;
-if (args.includes('--cached') && existsSync(join(fluxDir, 'measurements.json'))) {
-  flux = JSON.parse(await readFile(join(fluxDir, 'measurements.json'), 'utf8'));
-  Object.assign(screens.flux, JSON.parse(await readFile(join(fluxDir, 'screens.json'), 'utf8')));
+if (args.includes('--cached') && existsSync(measured)) {
+  flux = JSON.parse(await readFile(measured, 'utf8'));
+  Object.assign(screens.flux, JSON.parse(await readFile(where, 'utf8')));
 } else {
   flux = await measureFlux();
   await mkdir(fluxDir, { recursive: true });
-  await writeFile(join(fluxDir, 'measurements.json'), JSON.stringify(flux));
-  await writeFile(join(fluxDir, 'screens.json'), JSON.stringify(screens.flux));
+  await writeFile(measured, JSON.stringify(flux));
+  await writeFile(where, JSON.stringify(screens.flux));
 }
 
 await measureRaskScreens();
@@ -148,14 +162,14 @@ function clock() {
 
 async function hold(page, front) {
   const hover = await page.evaluate(() => window.__mark());
-  await page.mouse.move(front[0], front[1]);
+  await over(page, front);
   await page.waitForTimeout(5000);
   const stacked = 'ui-toast-group > [data-flux-toast-dialog], [data-ui-toast-group] > [data-ui-toast-dialog]';
   const held = await page.evaluate(stacked => document.querySelectorAll(stacked).length, stacked);
   // Held is not enough: a toast whose fade ran on would be there and not be seen.
   const opaque = await page.evaluate(stacked => [...document.querySelectorAll(stacked)]
     .every(dialog => [dialog, dialog.firstElementChild].every(el => getComputedStyle(el).opacity === '1')), stacked);
-  await page.mouse.move(5, 450);
+  await away(page);
   const leave = await page.evaluate(() => window.__mark());
   await page.waitForTimeout(6000);
   const { shown, gone } = await page.evaluate(() => window.__toasts);
@@ -165,7 +179,7 @@ async function hold(page, front) {
 }
 
 async function fluxCountdown(browser) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext(view.screen);
   const page = await context.newPage();
   const raise = async (name, duration, event) => {
     await page.evaluate(({ name, duration, event }) => {
@@ -175,7 +189,7 @@ async function fluxCountdown(browser) {
   };
   const load = async () => {
     await page.goto('https://fluxui.dev/components/toast', { waitUntil: 'networkidle', timeout: 90000 });
-    await page.mouse.move(5, 450);
+    if (!view.phone) await page.mouse.move(...AWAY);
     await page.evaluate(clock);
     // Flux takes a toast out of its host when it has gone.
     await page.evaluate(() => new MutationObserver(records => {
@@ -205,7 +219,7 @@ async function fluxCountdown(browser) {
 }
 
 async function raskCountdown(browser) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext(view.screen);
   const page = await context.newPage();
   const timed = join(out, 'rask', 'toast-timed.html');
   const hooks = runtime('rask-dom.ts', 'rask-hooks.ts');
@@ -213,7 +227,7 @@ async function raskCountdown(browser) {
   // button is when it went.
   const load = async () => {
     await page.goto(pathToFileURL(timed).href, { waitUntil: 'load' });
-    await page.mouse.move(5, 450);
+    if (!view.phone) await page.mouse.move(...AWAY);
     await page.evaluate(clock);
     await page.evaluate(() => document.addEventListener('click', e => {
       const dialog = e.target.closest?.('[data-rask-dismiss]')?.closest('[data-ui-toast-dialog]');
@@ -246,7 +260,7 @@ async function measureFlux() {
   const browser = await chromium().launch();
   const result = { light: [], dark: [] };
   for (const [index, [name, scenario]] of Object.entries(SCENARIOS).entries()) {
-    const schemes = await measurePage(browser, 'https://fluxui.dev/components/toast', join(fluxDir, name), (page, scheme) => raise(page, scheme, name, scenario));
+    const schemes = await measurePage(browser, 'https://fluxui.dev/components/toast', join(fluxDir, name + view.sized), (page, scheme) => raise(page, scheme, name, scenario), view.size);
     for (const scheme of ['light', 'dark']) {
       const example = schemes[scheme][0];
       if (!example) throw new Error(`flux parity: ${name} raised no toast on Flux's page (${scheme})`);
@@ -281,14 +295,14 @@ async function raise(page, scheme, name, scenario) {
   }
 
   if (scenario.toast) await page.evaluate(toast => window.Flux.toast({ duration: 0, ...toast }), scenario.toast);
-  await page.mouse.move(5, 450);
+  if (!view.phone) await page.mouse.move(...AWAY);
   await page.waitForTimeout(900);
   if (scenario.hover) {
     const front = await page.evaluate(() => {
       const box = [...document.querySelectorAll('ui-toast-group > [data-flux-toast-dialog]')].pop().firstElementChild.getBoundingClientRect();
       return [box.x + 40, box.y + box.height / 2];
     });
-    await page.mouse.move(front[0], front[1]);
+    await over(page, front);
     await page.waitForTimeout(900);
   }
 
@@ -338,7 +352,7 @@ function placed(depth, back, scenario) {
 async function measureRaskScreens() {
   const browser = await chromium().launch();
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, colorScheme: scheme });
+    const context = await browser.newContext({ ...view.screen, colorScheme: scheme });
     const page = await context.newPage();
     await page.goto(pathToFileURL(raskPage).href, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);

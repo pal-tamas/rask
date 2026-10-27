@@ -31,7 +31,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root } from './lib.mjs';
+import { chromium, measurePage, root, screen } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -214,7 +214,7 @@ function numbers(value) {
 async function pointerWalk() {
   const document = await readFile(join(fluxDir, 'document.html'), 'utf8');
   const [width, height] = view;
-  const context = await browser.newContext({ viewport: { width, height } });
+  const context = await browser.newContext(screen(width, height));
   await context.route(URL, route => route.fulfill({ status: 200, contentType: 'text/html; charset=utf-8', body: document }));
   const theirs = await context.newPage();
   await theirs.goto(URL, { waitUntil: 'networkidle', timeout: 90000 });
