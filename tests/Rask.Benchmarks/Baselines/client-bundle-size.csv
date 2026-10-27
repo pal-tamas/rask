@@ -470,3 +470,12 @@ bundle,bytes
 rask.js,110821
 rask.wasm.js,96120
 rask-hooks.js,117568
+#
+# 2026-10-27, a slow tab is rebuilt, not reloaded (#1258): the runtime reads the record its first page carries
+# (data-rask-resume), counts its open deadline in the time the page could run (pageTimeout), and its HTTP fallback
+# names the session in the Rask-Session header instead of the URL: rask.js 110,821 -> 111,091, the others
+# unchanged (Server runtime only). Measured locally (Release) on the tree merged with main a3c1a41bc.
+bundle,bytes
+rask.js,111091
+rask.wasm.js,96120
+rask-hooks.js,117568

@@ -581,7 +581,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         // cost for a record that is never going to be produced.
         _lastResumeVersion = state.Version;
         _lastResumeUrl = url;
-        return Seal(user => protector.Protect(url, user, state.Entries));
+        return Seal(protector, url, state, firstPage: false);
     }
 
     /// <summary>
@@ -602,7 +602,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
         var state = Scope.ServiceProvider.GetRequiredService<PersistentState>();
         var url = RouteUrl(Scope.ServiceProvider.GetRequiredService<RouteState>());
-        return Seal(user => protector.ProtectFirstPage(Id, url, user, state.Entries));
+        return Seal(protector, url, state, firstPage: true);
     }
 
     // The protector, when this host seals records and this session can be resumed: a bag over its budget has
@@ -614,11 +614,16 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             ? protector
             : null;
 
-    private string? Seal(Func<ClaimsPrincipal?, string> seal)
+    // No lambda: TakeResumeToken runs on every render, and a closure over its locals is allocated on entry, before
+    // the early returns — bytes on every live update for a record most renders never issue.
+    private string? Seal(SessionHandoffProtector protector, string url, PersistentState state, bool firstPage)
     {
         try
         {
-            return seal(Scope.ServiceProvider.GetRequiredService<SessionUserProvider>().Current);
+            var user = Scope.ServiceProvider.GetRequiredService<SessionUserProvider>().Current;
+            return firstPage
+                ? protector.ProtectFirstPage(Id, url, user, state.Entries)
+                : protector.Protect(url, user, state.Entries);
         }
         catch (CryptographicException)
         {
