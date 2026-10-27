@@ -445,7 +445,7 @@ anything into `Request.PathBase`, so `Request.Path` is the whole address:
 | Request | Path under `pathBase: "/app"` |
 |---|---|
 | The socket | `/app/rask/ws` |
-| The HTTP fallback | `/app/_rask/stream/{session}`, `/app/_rask/send/{session}`, `/app/_rask/leave/{session}` |
+| The HTTP fallback | `/app/_rask/stream`, `/app/_rask/send`, `/app/_rask/leave` (the session in the `Rask-Session` header) |
 | Files | `/app/_rask/upload/{session}`, `/app/_rask/download/{session}/{token}` |
 | The sign-in relay, and the question a tab asks | `/app/_rask/auth/redeem`, `/app/_rask/auth/who/{session}` |
 

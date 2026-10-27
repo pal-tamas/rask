@@ -180,7 +180,7 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 5));
 async function connection(): Promise<Result> {
     const encoder = new TextEncoder();
     let push: (text: string) => void = () => {};
-    const requests: Array<{ url: string; method: string; stream: string | null; body: string | null }> = [];
+    const requests: Array<{ url: string; method: string; session: string | null; stream: string | null; body: string | null }> = [];
 
     const realFetch = globalThis.fetch;
     globalThis.fetch = (async (input: string, init: RequestInit = {}) => {
@@ -188,6 +188,7 @@ async function connection(): Promise<Result> {
         requests.push({
             url: input,
             method: init.method ?? "GET",
+            session: headers.get("rask-session"),
             stream: headers.get("rask-stream"),
             body: typeof init.body === "string" ? init.body : null,
         });
@@ -208,7 +209,7 @@ async function connection(): Promise<Result> {
     try {
         const conn = openHttpConnection({
             sessionId: "old-id",
-            url: (kind, session) => "/_rask/" + kind + "/" + session,
+            url: (kind) => "/_rask/" + kind,
             resumeToken: "record",
             onOpen: (session) => events.push("open:" + session),
             onFrame: (text) => events.push("frame:" + text),
@@ -238,7 +239,8 @@ async function connection(): Promise<Result> {
             sendWhileConnecting,
             events,
             streamUrl: requests[0]?.url ?? null,
-            posts: requests.slice(1).map((r) => ({url: r.url, stream: r.stream, body: r.body})),
+            streamSession: requests[0]?.session ?? null,
+            posts: requests.slice(1).map((r) => ({url: r.url, session: r.session, stream: r.stream, body: r.body})),
         };
     } finally {
         globalThis.fetch = realFetch;
@@ -342,7 +344,7 @@ async function unread(status: number): Promise<string[]> {
     try {
         const conn = openHttpConnection({
             sessionId: "s",
-            url: (kind: string, session: string) => "/_rask/" + kind + "/" + session,
+            url: (kind: string) => "/_rask/" + kind,
             resumeToken: null,
             onOpen: () => {},
             onFrame: () => {},

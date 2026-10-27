@@ -444,3 +444,10 @@ bundle,bytes
 rask.js,110475
 rask.wasm.js,96099
 rask-hooks.js,116043
+#
+# 2026-10-27, the HTTP fallback names its session in the Rask-Session header instead of the URL: rask.js +15
+# (110,475 -> 110,490), the others unchanged. Measured locally (Release) on branch resume-in-first-page.
+bundle,bytes
+rask.js,110490
+rask.wasm.js,96099
+rask-hooks.js,116043

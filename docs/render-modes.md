@@ -40,9 +40,13 @@ checked the same way — the host-only `Origin` check and the signed-in user, no
 
 | Endpoint | What it carries |
 |---|---|
-| `GET /_rask/stream/{session}` | The server's frames, as an event stream, with a comment heartbeat every 15 s on a quiet page. |
-| `POST /_rask/send/{session}` | The tab's frames, as a JSON array — whatever piled up while the previous `POST` was in flight. |
-| `POST /_rask/leave/{session}` | Sent as the tab closes, so its session is freed now rather than after the grace period. |
+| `GET /_rask/stream` | The server's frames, as an event stream, with a comment heartbeat every 15 s on a quiet page. |
+| `POST /_rask/send` | The tab's frames, as a JSON array — whatever piled up while the previous `POST` was in flight. |
+| `POST /_rask/leave` | Sent as the tab closes, so its session is freed now rather than after the grace period. |
+
+Each names its session in the `Rask-Session` header, never in the path: the session id is what drives the
+session, and a path is written down by the request log, every proxy on the way and the browser's history of
+requests.
 
 **When a tab switches.** It tries the socket first, and makes HTTP the candidate when the socket errors
 before opening, has not opened within 5 seconds, or is cut off within 5 seconds of opening three times in a

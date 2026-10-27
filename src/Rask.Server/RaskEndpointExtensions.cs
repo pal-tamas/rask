@@ -73,9 +73,14 @@ public static partial class RaskEndpointExtensions
 
     // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
     // client's own frames go up as POSTs, and the leave request says a tab is gone without waiting for a timeout.
-    private const string StreamPath = "/_rask/stream/{sessionId}";
-    private const string SendPath = "/_rask/send/{sessionId}";
-    private const string LeavePath = "/_rask/leave/{sessionId}";
+    // The session id is the bearer secret, so it rides the Rask-Session header and never the path, where request
+    // logs and proxies write it down. A runtime from before kept it in the path ({sessionId}): a tab open across
+    // the deploy still reaches its session that way.
+    private const string StreamPath = "/_rask/stream";
+    private const string SendPath = "/_rask/send";
+    private const string LeavePath = "/_rask/leave";
+    private const string BeforeHeader = "/{sessionId}";
+    private const string SessionHeader = "Rask-Session";
 
     // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/, and
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
@@ -1254,17 +1259,26 @@ public static partial class RaskEndpointExtensions
     /// </remarks>
     private static void MapHttpTransport(IEndpointRouteBuilder endpoints, string pathBase, RaskRootSelector selector)
     {
-        // The stream. One per tab, held open for the life of the page.
-        endpoints.MapGet(pathBase + StreamPath, (RequestDelegate)(ctx =>
-            StreamAsync(ctx, selector))).DisableAntiforgery();
+        foreach (var suffix in (string[])["", BeforeHeader])
+        {
+            // The stream. One per tab, held open for the life of the page.
+            endpoints.MapGet(pathBase + StreamPath + suffix, (RequestDelegate)(ctx =>
+                StreamAsync(ctx, selector))).DisableAntiforgery();
 
-        // The client's frames. One request per interaction, which is the cost of not having a socket.
-        endpoints.MapPost(pathBase + SendPath, (RequestDelegate)SendAsync).DisableAntiforgery();
+            // The client's frames. One request per interaction, which is the cost of not having a socket.
+            endpoints.MapPost(pathBase + SendPath + suffix, (RequestDelegate)SendAsync).DisableAntiforgery();
 
-        // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
-        // grace period — the socket gets this for free from its own close.
-        endpoints.MapPost(pathBase + LeavePath, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+            // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
+            // grace period — the socket gets this for free from its own close.
+            endpoints.MapPost(pathBase + LeavePath + suffix, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+        }
     }
+
+    // The session a fallback request names: its Rask-Session header, or the path of a runtime from before the header.
+    private static string? NamedSession(HttpContext ctx) =>
+        ctx.Request.Headers[SessionHeader] is { Count: 1 } header && !string.IsNullOrEmpty(header[0])
+            ? header[0]
+            : (string?)ctx.Request.RouteValues["sessionId"];
 
     // A browser stamps every request with where it came from, and "cross-site" is a page on another site driving
     // this one. Refused beside the Origin check. A missing header — a non-browser client, an older browser — is
@@ -1361,7 +1375,7 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         if (string.IsNullOrEmpty(sessionId))
         {
             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -1472,7 +1486,7 @@ public static partial class RaskEndpointExtensions
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
         var metrics = store.Metrics;
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         // Peek: a POST must not be what keeps a detached session alive (see LiveSessionStore.Peek).
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
@@ -1687,7 +1701,7 @@ public static partial class RaskEndpointExtensions
         var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
             || !MayDrive(UserOf(ctx), session))

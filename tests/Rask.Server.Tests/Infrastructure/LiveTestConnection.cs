@@ -241,8 +241,9 @@ internal static class LiveTestConnection
 
         public static async Task<ILiveTestConnection> OpenAsync(RaskTestHost host, string sessionId, string? resume)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{Uri.EscapeDataString(sessionId)}");
+            var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/stream");
             request.Headers.Accept.ParseAdd("text/event-stream");
+            request.Headers.Add("Rask-Session", sessionId);
             if (resume is not null)
             {
                 request.Headers.Add("Rask-Resume", resume);
@@ -297,10 +298,11 @@ internal static class LiveTestConnection
         private async Task PostAsync(string frame)
         {
             var generation = await _generation.Task;
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{Uri.EscapeDataString(_sessionId)}")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
             {
                 Content = new StringContent("[" + frame + "]", Encoding.UTF8, "application/json"),
             };
+            request.Headers.Add("Rask-Session", _sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var response = await _host.Http.SendAsync(request);

@@ -210,6 +210,12 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **Security: the HTTP fallback no longer puts the session id in its URLs.** `/_rask/stream/{session}`,
+  `/_rask/send/{session}` and `/_rask/leave/{session}` wrote the session id — the secret that drives a session —
+  into ASP.NET's request log and every proxy's access log. The runtime now calls `/_rask/stream`, `/_rask/send` and
+  `/_rask/leave` and names its session in the `Rask-Session` header. The old paths still answer, so a tab open across
+  the deploy keeps its session; a reverse-proxy rule that matched `/_rask/stream/` should match `/_rask/stream` too.
+
 - **A frame whose connection goes while it is being made is sent to the next connection, never thrown at the
   handler (#1258).** Before: a render checked the connection before its walk and read it again to send; a reconnect's
   cleanup clearing it in between threw a `NullReferenceException` out of `SendGuardedAsync` into the handler

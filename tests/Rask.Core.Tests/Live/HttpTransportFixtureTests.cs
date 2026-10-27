@@ -142,14 +142,18 @@ public sealed class HttpTransportFixtureTests
             new[] { "open:new-id", "frame:{\"html\":\"rebuilt\"}", "close:1001:server-shutdown:true" },
             events);
 
-        // The stream asked for the session the tab had; everything after went to the one it got.
-        Assert.Equal("/_rask/stream/old-id", connection.GetProperty("streamUrl").GetString());
+        // The stream asked for the session the tab had; everything after went to the one it got. The id rides a
+        // header, never the URL a request log or a proxy writes down.
+        Assert.Equal("/_rask/stream", connection.GetProperty("streamUrl").GetString());
+        Assert.Equal("old-id", connection.GetProperty("streamSession").GetString());
         var posts = connection.GetProperty("posts");
         Assert.Equal(2, posts.GetArrayLength());
-        Assert.Equal("/_rask/send/new-id", posts[0].GetProperty("url").GetString());
+        Assert.Equal("/_rask/send", posts[0].GetProperty("url").GetString());
+        Assert.Equal("new-id", posts[0].GetProperty("session").GetString());
         Assert.Equal("3", posts[0].GetProperty("stream").GetString());
         Assert.Equal("[{\"id\":\"h1\"}]", posts[0].GetProperty("body").GetString());
-        Assert.Equal("/_rask/leave/new-id", posts[1].GetProperty("url").GetString());
+        Assert.Equal("/_rask/leave", posts[1].GetProperty("url").GetString());
+        Assert.Equal("new-id", posts[1].GetProperty("session").GetString());
         Assert.Equal("3", posts[1].GetProperty("stream").GetString());
     }
 

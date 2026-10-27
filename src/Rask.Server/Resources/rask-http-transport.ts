@@ -1,7 +1,8 @@
 // The live protocol over plain HTTP, for a tab whose WebSocket never opened.
 //
-// Frames come DOWN a Server-Sent Events stream (GET /_rask/stream/{session}) and the tab's own frames go UP as
-// POSTs (POST /_rask/send/{session}). It is the same protocol the socket carries — same hello semantics, same
+// Frames come DOWN a Server-Sent Events stream (GET /_rask/stream) and the tab's own frames go UP as
+// POSTs (POST /_rask/send), each naming its session in the Rask-Session header: the id is what drives the session, and
+// a URL is written down by every request log and proxy on the way. It is the same protocol the socket carries — same hello semantics, same
 // frames, same session — at the cost of one request per interaction. Chosen automatically: nothing in an app
 // asks for it, and nothing turns it off.
 //
@@ -309,8 +310,8 @@ export function createTransportChooser(storage: ChoiceStorage | null, now: () =>
 export interface HttpConnectionOptions {
     /** The session the tab believes it has. The stream answers with the one it actually attached. */
     sessionId: string;
-    /** `/_rask/{kind}/{session}`, with the app's base path applied. */
-    url(kind: "stream" | "send" | "leave", session: string): string;
+    /** `/_rask/{kind}`, with the app's base path applied. The session never goes in it: it rides a header. */
+    url(kind: "stream" | "send" | "leave"): string;
     /** The resume record, sent as a header so it never lands in a URL. */
     resumeToken: string | null;
     /** `session` is the one the server attached — a new id when a resume record rebuilt a lost session. */
@@ -378,9 +379,9 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     }
 
     const batcher = createPostBatcher(
-        (body) => fetch(options.url("send", session), {
+        (body) => fetch(options.url("send"), {
             method: "POST",
-            headers: {"content-type": "application/json", "rask-stream": generation ?? ""},
+            headers: {"content-type": "application/json", "rask-session": session, "rask-stream": generation ?? ""},
             body,
             credentials: "same-origin",
         }).then((response) => response.status),
@@ -428,10 +429,10 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         options.onFrame(data);
     });
 
-    const headers: Record<string, string> = {accept: "text/event-stream"};
+    const headers: Record<string, string> = {accept: "text/event-stream", "rask-session": options.sessionId};
     if (options.resumeToken) headers["rask-resume"] = options.resumeToken;
 
-    fetch(options.url("stream", options.sessionId), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
+    fetch(options.url("stream"), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
         .then(async (response) => {
             if (!response.ok || !response.body) {
                 end(1006, "stream-" + response.status);
@@ -473,9 +474,9 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         leave(): void {
             if (!generation) return;
             try {
-                void fetch(options.url("leave", session), {
+                void fetch(options.url("leave"), {
                     method: "POST",
-                    headers: {"rask-stream": generation},
+                    headers: {"rask-session": session, "rask-stream": generation},
                     credentials: "same-origin",
                     keepalive: true,
                 });

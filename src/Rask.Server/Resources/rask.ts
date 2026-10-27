@@ -499,7 +499,7 @@ import {
     function connectHttp(): void {
         const connection = openHttpConnection({
             sessionId: sessionId ?? "",
-            url: (kind, session) => prependBase("/_rask/" + kind + "/" + encodeURIComponent(session)),
+            url: (kind) => prependBase("/_rask/" + kind),
             resumeToken,
             onOpen: (session) => {
                 // The session the server attached: a rebuilt one has a new id, and the next reconnect must ask for
