@@ -13,7 +13,7 @@
 //     and C# answers them;
 //   * ArrowDown on a closed menu button opens it with the cursor on the first row;
 //   * a pick closes the popover the menu sits in — unless the row, or something around it, says
-//     data-rask-keep-open, or the row opens a submenu;
+//     data-rask-keep-open, or the row opens a submenu; so does a link followed in a `<nav popover>`;
 //   * Tab out of an open menu closes it, the way a menu is left;
 //   * a click outside closes it (the browser's) and focus goes back to its trigger (ours); a panel the pointer
 //     opened and then left hands focus to nobody.
@@ -25,7 +25,7 @@
 
 import {walkedFrom} from "./rask-hover.js";
 import {isShown, listen, near, page, setShown} from "./rask-owned.js";
-import {cursorOf, flyoutOf, isOff, isOpen, kept, land, ROW as ITEM, rowOf, rowsOf, setOpen} from "./rask-menu.js";
+import {cursorOf, flyoutOf, isOff, kept, land, ROW as ITEM, rowOf, rowsOf, setOpen} from "./rask-menu.js";
 
 const CONTAIN = [" ", "Enter", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"];
 
@@ -188,15 +188,28 @@ if (page) {
         }
     }, true);
 
+    // What had focus when a finger came down: a tap on the row that had it already leaves that row dark.
+    let touchedFocus: Element | null = null;
+    listen("pointerdown", function (e) {
+        touchedFocus = (e as PointerEvent).pointerType === "touch" ? doc.activeElement : null;
+    }, {capture: true, passive: true});
+
     listen("click", function (e) {
         const row = near(e.target, ITEM);
         const root = kept(row);
         if (row && root && !isOff(row)) {
-            // A press puts the cursor on its row. On a submenu's row a tap, which has no hover, opens the flyout
-            // and the next one closes it; a press from a pointer that was resting there leaves it open.
-            const toggles = (e as PointerEvent).pointerType === "touch" && isOpen(row);
-            land(root, row);
-            setOpen(row, !toggles);
+            // A press puts the cursor on its row, and on a submenu's row opens the flyout — a tap again too: on
+            // Flux UI a tap never closes one. A tap on the row that had focus already lights nothing.
+            const again = (e as PointerEvent).pointerType === "touch" && touchedFocus === row;
+            land(root, row, !again);
+            setOpen(row, true);
+        }
+        // A navigation menu's link, followed: its popover closes, as Flux UI's does.
+        const link = near(e.target, "a[href]");
+        const nav = link && link.closest("[popover]");
+        if (nav && nav.tagName === "NAV") {
+            setTimeout(function () { setShown(nav, false); }, 0);
+            return;
         }
         if (!row || opensSubmenu(row) || row.getAttribute("aria-disabled") === "true"
             || row.closest("[data-rask-keep-open]")) {

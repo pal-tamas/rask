@@ -194,6 +194,13 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **Menus on a touch screen behave as Flux UI's.** Before: a `Ui.Context` opened by a long press closed again as the
+  finger lifted; a second tap on a submenu's row closed its flyout and left the row lit. After: the long press opens
+  the menu once the finger is up, and it stays; a tap opens a flyout and another tap leaves it open (another row, or
+  the menu closing, shuts it); a tap on the row that had focus already lights nothing, a checkbox row's too.
+  Measured on fluxui.dev at 390 × 844; held by `scripts/flux/parity-menu.mjs dropdown|context --view 390x844`.
+- **Following a `Ui.NavmenuItem` link closes its dropdown**, clicked or tapped, and focus goes back to the trigger,
+  as Flux UI's does. Before: the dropdown stayed open over the page the link led to.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

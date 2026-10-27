@@ -12,6 +12,7 @@ internal sealed partial class UiContextBehaviour : Component
                 "The runtime opens it: an element carrying `data-rask-contextmenu=\"<popover id>\"` shows that popover "
                 + "at the pointer in place of the browser's menu, straight away and on either host. A round trip first "
                 + "would be a lag felt on every right-click.",
+                "On a touch screen a long press opens it, and it stays open when the finger lifts, as Flux's does.",
                 "Nothing in a context menu should be the only way to do something: iOS Safari never fires the event, so "
                 + "put the same actions somewhere visible too.",
             ]),

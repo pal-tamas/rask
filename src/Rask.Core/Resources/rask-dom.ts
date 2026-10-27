@@ -1299,8 +1299,9 @@ export function applyFrameInvokes(
         // macOS and Linux fire contextmenu on the PRESS, with the button still down. Shown now, the release that
         // follows is a click outside a freshly opened popover and the browser light-dismisses it at once — so wait
         // for the release, and open after the browser has finished handling it. Windows fires on the release, with
-        // no button down, and opens straight away.
-        if (e.buttons > 0) {
+        // no button down, and opens straight away. A phone's long press fires it with the finger still down and
+        // says no button: it waits for the lift too.
+        if (e.buttons > 0 || (e as PointerEvent).pointerType === "touch") {
             document.addEventListener("pointerup", function () {
                 window.setTimeout(function () {
                     open(panel, x, y);

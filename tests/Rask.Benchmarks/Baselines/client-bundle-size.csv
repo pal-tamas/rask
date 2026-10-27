@@ -435,3 +435,13 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96099
 rask-hooks.js,116043
+#
+# 2026-10-27, menus on a touch screen as Flux's: a context menu's long press waits for the finger to lift before
+# it opens (rask-dom.ts, both runtimes +25: 110,100 -> 110,125 and 96,099 -> 96,124); a tap on a submenu's row
+# never closes its flyout, a tap on the row that had focus lights nothing, and a link followed in a `<nav popover>`
+# closes it (rask-menu.ts, rask-menu-keys.ts: rask-hooks.js +163, 116,043 -> 116,206). Measured locally with the
+# build's esbuild flags (--minify) on 76b174b87, whose bundles measured 110,100 / 96,099 / 116,043 the same way.
+bundle,bytes
+rask.js,110125
+rask.wasm.js,96124
+rask-hooks.js,116206
