@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every
+  docs page beside its Rask page at both widths and takes every behaviour walk (open, keys, pointer) against
+  fluxui.dev as it is that day; the daily `upstream.yml` runs it as `flux-parity` and opens one issue — "Rask.Ui no
+  longer matches Flux UI", naming each check — when they part. A phone is measured as a phone (touch, overlay
+  scrollbars), so Flux's headless-only `scrollbar-gutter` room no longer reads as the kit's dialogs being off
+  centre.
 - **`[Guest]` — a page only for readers who are not signed in.** A signed-in reader is sent to `Then` (`"/"` by
   default; `[Guest(Then = "/app")]`) before the page is built: a `302` on the first request, and in an open
   session the destination in place of the page, its address replaced — on the Server host and in WebAssembly.
