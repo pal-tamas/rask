@@ -23,7 +23,7 @@ What that costs is bounded, not unlimited:
 
 | Bound | Default | What it does |
 |---|---|---|
-| [`UnconnectedSessionGracePeriod`](configuration.md) | 10 s | A session whose browser never connects — a crawler, a bounced visit — is released after this. |
+| [`UnconnectedSessionGracePeriod`](configuration.md) | 10 s | A session whose browser never connects — a crawler, a bounced visit — is released after this. A real tab that connects later, starved on a busy machine, is rebuilt from the record its page carries rather than reloaded. |
 | [`MaxSessions`](configuration.md#sizing-maxsessions-for-a-memory-budget) | set it for your memory budget | A `GET` that would exceed it is answered `503` instead of taking a session the box cannot hold. |
 
 So `MaxSessions` bounds live sessions *and* recent page loads together. Size it against both — see

@@ -435,3 +435,12 @@ bundle,bytes
 rask.js,110100
 rask.wasm.js,96099
 rask-hooks.js,116043
+#
+# 2026-10-27, a slow tab is rebuilt, not reloaded (#1258): the runtime reads the record its first page carries
+# (data-rask-resume), counts its open deadline in the time the page could run (pageTimeout), and sends again a
+# click a newer HTTP stream refused unread: rask.js +375 (110,100 -> 110,475), the others unchanged. Measured
+# locally (Release, the benchmarks job's recipe) on branch resume-in-first-page.
+bundle,bytes
+rask.js,110475
+rask.wasm.js,96099
+rask-hooks.js,116043

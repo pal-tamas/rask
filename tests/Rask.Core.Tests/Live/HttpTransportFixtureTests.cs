@@ -197,6 +197,38 @@ public sealed class HttpTransportFixtureTests
     }
 
     [Fact]
+    public void A_click_a_newer_stream_refused_unread_is_handed_back_for_the_next_connection()
+    {
+        var result = Run();
+        if (result is null)
+        {
+            return;
+        }
+
+        var unread = result.Value.GetProperty("unread");
+
+        Assert.Equal(["{\"id\":\"h1\",\"seq\":1}"], unread.GetProperty("conflict").EnumerateArray().Select(static e => e.GetString()));
+        Assert.Empty(unread.GetProperty("gone").EnumerateArray());
+    }
+
+    [Fact]
+    public void An_open_deadline_counts_only_the_time_a_starved_page_could_run()
+    {
+        var result = Run();
+        if (result is null)
+        {
+            return;
+        }
+
+        var starved = result.Value.GetProperty("starved");
+
+        Assert.True(starved.GetProperty("onTime").GetBoolean(), "a page on time is given up on at its deadline");
+        Assert.False(starved.GetProperty("starvedAfterAFewLateChecks").GetBoolean(), "a late check is not a spent deadline");
+        Assert.True(starved.GetProperty("starvedInTheEnd").GetBoolean(), "a starved page still gives up in the end");
+        Assert.False(starved.GetProperty("cancelled").GetBoolean(), "a cancelled deadline never fires");
+    }
+
+    [Fact]
     public void Sockets_cut_off_early_three_times_count_and_blips_or_deliberate_closes_do_not()
     {
         var result = Run();

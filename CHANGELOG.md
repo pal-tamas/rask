@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A slow tab is rebuilt, not reloaded.** A page's `GET` now carries a sealed resume record of itself
+  (`data-rask-resume` on `<body>`, 175 bytes for an anonymous reader, about 220 signed in), bound to the session it was served with and to its reader, and
+  expiring with `ResumeTokenLifetime`. Before: under load — parallel E2E runs, a CPU-starved browser — a tab could
+  take longer than `UnconnectedSessionGracePeriod` (10 s, unchanged) to connect, found its session released, and
+  reloaded, dropping what the reader did meanwhile (#1258). After: the late connection rebuilds the page where it
+  stands. The record opens only for a connection naming that session and never for another user. The runtime's
+  5 s connection-open deadline also counts only the time the page could run, so a starved tab is no longer pushed
+  onto the HTTP fallback for being busy, and on that fallback a click posted just as a newer stream took the
+  session (refused unread, `409`) is sent again on the next connection instead of being dropped. See
+  [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
+
 - **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
   or HTTP stream opens, attaches (first connection, reconnect, replacement or resume-record rebuild; how long it
   waited; the catch-up it was sent: none, a diff or the whole page, in bytes) and closes (closed by the client,

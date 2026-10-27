@@ -859,6 +859,13 @@ public static partial class RaskEndpointExtensions
             html = LivePayload.InjectSignedInAttr(html);
         }
 
+        // What rebuilds this page if its session is gone before the browser connects (a starved tab past the
+        // unconnected grace): sealed, bound to this session and its reader, and only where resume is on.
+        if (session.FirstPageResumeToken() is { } resumeToken)
+        {
+            html = LivePayload.InjectResumeAttr(html, resumeToken);
+        }
+
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
         if (!dev && devTools is null)
@@ -2436,7 +2443,7 @@ public static partial class RaskEndpointExtensions
         if (session is null)
         {
             var rebuilt = await ResumeAttachAsync(
-                resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
+                sessionId, resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
             ReportRefusedAttach(store, sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
             return rebuilt;
@@ -2466,9 +2473,9 @@ public static partial class RaskEndpointExtensions
                 await RenderAttachedAsync(session, ct).ConfigureAwait(false);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            AbandonAttach(session, transport, store, limits);
+            AbandonAttach(session, transport, store, limits, ex);
             throw;
         }
         finally
@@ -2641,6 +2648,7 @@ public static partial class RaskEndpointExtensions
     }
 
     private static async Task<AttachOutcome> ResumeAttachAsync(
+        string sessionId,
         string? resumeToken,
         ILiveTransport transport,
         LiveSessionStore store,
@@ -2657,7 +2665,7 @@ public static partial class RaskEndpointExtensions
         // rebuild the page around it instead.
         var session = string.IsNullOrEmpty(resumeToken)
             ? null
-            : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
+            : TryResumeSession(sessionId, resumeToken, user, resume, store, metrics, selector);
 
         if (session is null)
         {
@@ -2693,9 +2701,9 @@ public static partial class RaskEndpointExtensions
             Adopt(session, user, await AnswerForAsync(session, user, ct).ConfigureAwait(false));
             await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            AbandonAttach(session, transport, store, limits);
+            AbandonAttach(session, transport, store, limits, ex);
             throw;
         }
         finally
@@ -2711,9 +2719,9 @@ public static partial class RaskEndpointExtensions
     // connection attached (no outcome is returned), so its cleanup cannot undo it: this does, or the session keeps
     // a dead transport with no removal armed and the connected count never comes back down.
     private static void AbandonAttach(
-        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits)
+        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits, Exception failure)
     {
-        transport.Record.Ended(ClosedBy.Error, "the attach's render failed");
+        transport.Record.Ended(ClosedBy.Error, "the attach's render failed: " + failure.GetType().Name);
         if (session.DetachTransport(transport))
         {
             store.Disconnected(session, transport, limits.SessionGracePeriod);
@@ -3308,6 +3316,7 @@ public static partial class RaskEndpointExtensions
     ///     rather than walking straight past the cap.
     /// </remarks>
     private static LiveSession? TryResumeSession(
+        string sessionId,
         string token,
         ClaimsPrincipal user,
         SessionResumeSupport resume,
@@ -3320,7 +3329,7 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        if (!protector.TryUnprotect(token, user, out var record, out var rejection))
+        if (!protector.TryUnprotectFor(sessionId, token, user, out var record, out var rejection))
         {
             metrics?.ResumeRejected(rejection.ToString().ToLowerInvariant());
             return null;

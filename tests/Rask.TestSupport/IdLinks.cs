@@ -50,6 +50,9 @@ public static partial class IdLinks
     ///     token per response.
     ///     </para>
     ///     <para>
+    ///     The page's resume record (<c>data-rask-resume</c>) is sealed afresh for every response.
+    ///     </para>
+    ///     <para>
     ///     An element a component holds a reference to carries a token (<c>data-rask-ref</c>) made up for that
     ///     one instance, so the browser can find it: random, and a fresh one per response.
     ///     </para>
@@ -64,6 +67,7 @@ public static partial class IdLinks
         var session = SessionId().Match(html).Groups[1].Value;
         var shaped = session.Length == 0 ? html : html.Replace(session, "SESSION", StringComparison.Ordinal);
         shaped = ElementRefs().Replace(shaped, "data-rask-ref=\"REF\"");
+        shaped = ResumeRecords().Replace(shaped, "data-rask-resume=\"RECORD\"");
         var seen = new Dictionary<string, string>(StringComparer.Ordinal);
 
         return Generated().Replace(shaped, match =>
@@ -114,6 +118,9 @@ public static partial class IdLinks
 
     [GeneratedRegex("data-rask-ref=\"[0-9a-f]{32}\"", RegexOptions.None, 2000)]
     private static partial Regex ElementRefs();
+
+    [GeneratedRegex("data-rask-resume=\"[A-Za-z0-9_-]+\"", RegexOptions.None, 2000)]
+    private static partial Regex ResumeRecords();
 
     [GeneratedRegex("data-rask-root=\"([^\"]+)\"", RegexOptions.None, 2000)]
     private static partial Regex SessionId();
