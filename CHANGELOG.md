@@ -194,6 +194,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A select's and a calendar's chevron no longer stay dark after a tap on a phone, as Flux's do not.** Before: the
+  kit's own chevron rules darkened under a bare `:hover`, which a touch screen keeps after a tap. After: they are
+  `@variant hover`, as Flux's `hover:` utilities are — only where there is a pointer to hover.
 - **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
   label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
   siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its
