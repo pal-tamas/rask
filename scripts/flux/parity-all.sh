@@ -39,9 +39,11 @@ checks() {
     }'
   cat <<'EOF'
 parity-autocomplete.mjs --refresh
+parity-autocomplete.mjs --refresh --view 390x844
 parity-carousel.mjs
 parity-color-picker.mjs --refresh
 parity-command.mjs --refresh
+parity-command.mjs --refresh --view 390x844
 parity-date.mjs date-picker --refresh
 parity-date.mjs time-picker --refresh
 parity-date.mjs datetime-picker --refresh
@@ -50,9 +52,13 @@ parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh
 parity-modal.mjs --refresh
 parity-phone.mjs --refresh
+parity-phone.mjs --refresh --view 390x844
 parity-pillbox.mjs --refresh
+parity-pillbox.mjs --refresh --view 390x844
 parity-popover.mjs --refresh
+parity-popover.mjs --refresh --view 390x844
 parity-select.mjs --refresh
+parity-select.mjs --refresh --view 390x844
 parity-toast.mjs
 parity-tooltip.mjs --refresh
 chart

@@ -129,12 +129,18 @@ async function measure(page, shots, layout = false) {
 }
 
 // Opened the way a reader opens it — a real pointer, at the element's centre — with the example mid-screen, so
-// the popup has the same room around it on both pages.
+// the popup has the same room around it on both pages. On a phone a finger: a tap, for a press and a hover alike.
 async function open(page, wrapper, opener) {
   await wrapper.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const box = await opener.boundingBox();
   const at = [box.x + box.width / 2, box.y + box.height / 2];
-  if (await opener.getAttribute('data-parity-open') === 'hover') {
+  const phone = page.viewportSize().width < 640;
+  // A reader's finger has been on the page before it reaches the example (FIRST_TOUCH in parity-popover.mjs).
+  if (phone) {
+    await page.touchscreen.tap(4, at[1]);
+    await page.touchscreen.tap(...at);
+  }
+  else if (await opener.getAttribute('data-parity-open') === 'hover') {
     // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
     // lands on the trigger (its hover example measured closed, in one scheme of two). Parked first, then
     // brought over, and waited on until the popup shows — or a second of frames has gone by.
@@ -153,7 +159,7 @@ async function open(page, wrapper, opener) {
 
 async function close(page) {
   await page.keyboard.press('Escape');
-  await page.mouse.move(0, 0);
+  if (page.viewportSize().width >= 640) await page.mouse.move(0, 0);
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
 
