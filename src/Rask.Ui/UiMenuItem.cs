@@ -13,7 +13,7 @@ namespace Rask;
 /// </para>
 /// <code>
 /// Ui.MenuItem.Icon(Ui.IconName.PencilSquare).Kbd("⌘S").OnClick(Save)["Save"]
-/// Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(Delete)["Delete"]
+/// Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(Delete).Confirm("Delete the partner?")["Delete"]
 /// </code>
 /// </remarks>
 public sealed partial class UiMenuItem : Component
@@ -51,6 +51,34 @@ public sealed partial class UiMenuItem : Component
     public Callback OnClick { get; set; }
 
     public string? Class { get; set; }
+
+    // What `.Confirm(…)` asks, put on the row it draws: a component, the item cannot take the element's own step.
+    private (string Text, string? Expect, string? Heading)? _confirm;
+
+    /// <summary>
+    ///     Asks the reader before the item's pick is sent, as <c>.Confirm(…)</c> does on an element:
+    ///     <c>Ui.MenuItem.Danger.OnClick(() =&gt; Delete(row)).Confirm("Delete the partner?", heading: "Delete partner")</c>.
+    ///     Cancelled, nothing is sent.
+    /// </summary>
+    /// <remarks>
+    ///     Asked of a pick that runs <see cref="OnClick" />: a link to a string, which the browser follows by itself,
+    ///     sends nothing to hold back. Asked in <c>Ui.Confirm</c> where the layout placed one, otherwise in the
+    ///     browser's own dialog. With
+    ///     <paramref name="expect" /> the reader types the answer, and only an exact match goes: a guard against a slip,
+    ///     never a secret, as it is written into the page.
+    /// </remarks>
+    /// <param name="text">The question.</param>
+    /// <param name="expect">What the reader must type; null asks yes or no.</param>
+    /// <param name="heading">The title over the question in <c>Ui.Confirm</c>; null keeps the layout's.</param>
+    /// <returns>This item.</returns>
+    public UiMenuItem Confirm(string text, string? expect = null, string? heading = null)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+        _confirm = (text, expect, heading);
+        // What a generated step does when it writes a new value: the item is drawn again with it.
+        BuilderRuntime.MarkChanged(this);
+        return this;
+    }
 
     // Registration happens in Render, so a cached render would drop out of the menu's cursor.
     /// <inheritdoc />
@@ -98,7 +126,7 @@ public sealed partial class UiMenuItem : Component
             var link = NavLink.Href(href).ActiveClass("").Class(classes);
             if (OnClick.HasValue)
             {
-                link = link.OnClick(OnClick);
+                link = Asking(link.OnClick(OnClick));
             }
 
             return UiMenuRow.Decorate(link, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
@@ -108,9 +136,14 @@ public sealed partial class UiMenuItem : Component
         // Nothing to run, nothing to send: the runtime closes the menu on a pick by itself.
         if (!disabled && OnClick.HasValue)
         {
-            button = button.OnClick(OnClick);
+            button = Asking(button.OnClick(OnClick));
         }
 
         return UiMenuRow.Decorate(button, level, ordinal, "menuitem", "ui-menu-item", aria, data)[content];
     }
+
+    // The question, on the element whose click is sent: the runtime asks it before the click leaves the browser.
+    private T Asking<T>(T element)
+        where T : Element =>
+        _confirm is { } ask ? element.Confirm(ask.Text, ask.Expect, ask.Heading) : element;
 }

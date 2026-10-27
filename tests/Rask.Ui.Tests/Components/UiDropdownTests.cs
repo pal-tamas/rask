@@ -190,6 +190,41 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_item_that_confirms_asks_on_the_button_its_pick_is_sent_from()
+    {
+        var html = Html(Ui.Menu[
+            Ui.MenuItem.Danger.OnClick(() => { }).Confirm("Delete the partner?", heading: "Delete partner")["Delete"],
+            Ui.MenuItem.OnClick(() => { })["Edit"]
+        ]);
+
+        var (delete, edit) = (Row(html, "Delete"), Row(html, "Edit"));
+
+        Assert.StartsWith("<button", delete, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm=\"Delete the partner?\"", delete, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-heading=\"Delete partner\"", delete, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-confirm", edit, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_item_that_confirms_with_an_answer_asks_for_the_answer_it_waits_for()
+    {
+        var html = Html(Ui.Menu[Ui.MenuItem.OnClick(() => { }).Confirm("Leave?", expect: "leave")["Leave"]]);
+
+        var row = Row(html, "Leave");
+
+        Assert.Contains("data-rask-confirm=\"Leave?\"", row, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-expect=\"leave\"", row, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_disabled_item_that_confirms_asks_nothing_as_it_sends_nothing()
+    {
+        var html = Html(Ui.Menu[Ui.MenuItem.Disabled(true).OnClick(() => { }).Confirm("Archive it?")["Archive"]]);
+
+        Assert.DoesNotContain("data-rask-confirm", Row(html, "Archive"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_item_with_an_Href_is_a_link_that_is_still_a_menuitem()
     {
         var html = Html(Ui.Menu[Ui.MenuItem.Href("/settings")["Settings"]]);

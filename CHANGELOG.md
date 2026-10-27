@@ -14,6 +14,9 @@ them until tagged releases begin.
   longer matches Flux UI", naming each check — when they part. A phone is measured as a phone (touch, overlay
   scrollbars), so Flux's headless-only `scrollbar-gutter` room no longer reads as the kit's dialogs being off
   centre.
+- **A menu item asks before it acts.** `Ui.MenuItem.Danger.OnClick(() => Delete(row)).Confirm("Delete the
+  partner?", heading: "Delete partner")` asks as `.Confirm(…)` does on an element (in `Ui.Confirm` where the layout
+  placed one), and a no sends nothing. `UiMenuItem` is a component, so the element's own step could not reach it.
 - **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
   or HTTP stream opens, attaches (first connection, reconnect, replacement or resume-record rebuild; how long it
   waited; the catch-up it was sent: none, a diff or the whole page, in bytes) and closes (closed by the client,
