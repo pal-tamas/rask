@@ -44,6 +44,12 @@ public sealed class TransportAttachTests
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> frame, CancellationToken ct)
         {
+            if (!IsOpen)
+            {
+                // As a closed WebSocket does.
+                return ValueTask.FromException(new System.Net.WebSockets.WebSocketException("closed"));
+            }
+
             Sent.Add(System.Text.Encoding.UTF8.GetString(frame.Span));
             return ValueTask.CompletedTask;
         }
@@ -66,6 +72,8 @@ public sealed class TransportAttachTests
     {
         var services = new ServiceCollection();
         services.AddSingleton(new RaskServerLimits());
+        services.AddScoped<Rask.Core.Routing.RouteState>();
+        services.AddScoped<Rask.Core.Routing.Navigator>();
         var sp = services.BuildServiceProvider();
         return new LiveSessionStore(sp.GetRequiredService<IServiceScopeFactory>());
     }
@@ -210,6 +218,128 @@ public sealed class TransportAttachTests
         }
 
         Assert.Null(host.Store.Peek(sessionId));
+    }
+
+    /// <summary>A page whose render runs <see cref="During" /> first: where a connection can go under a render.</summary>
+    private sealed class Watched : Component
+    {
+        internal Action? During;
+
+        internal int Count;
+
+        internal int Ticks;
+
+        protected override string? HtmlLang => null;
+
+        protected override Component? Render()
+        {
+            During?.Invoke();
+            // A page long enough that a change to it goes as a diff, not as the whole page again.
+            return Markup.Div[
+                Markup.H1[$"count {Count}"],
+                Markup.P[$"ticks {Ticks}"],
+                Enumerable.Range(0, 40).Select(static line => Markup.P.Key($"line-{line}")[$"line {line} of a page that stays as it is"])];
+        }
+    }
+
+    /// <summary>
+    ///     A connection that goes while a handler's render is being made: the render was checked against it before
+    ///     the walk, and sent after. The send read it again, found none and threw a NullReferenceException into the
+    ///     handler, and the frame was lost (#1258).
+    /// </summary>
+    [Fact]
+    public async Task A_frame_whose_connection_goes_during_its_render_is_sent_to_the_next_one()
+    {
+        Watched? page = null;
+        var session = NewStore().Create(_ => page = new Watched());
+        var first = new FakeTransport();
+        var second = new FakeTransport();
+        session.AttachTransport(first, CancellationToken.None);
+        page!.Count = 1;
+        page.During = () =>
+        {
+            page.During = null;
+            session.DetachTransport(first);
+        };
+
+        var sent = await session.RenderAndSendAsync(null, false);
+        session.AttachTransport(second, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+
+        Assert.False(sent, "nobody was left to send it to");
+        Assert.Empty(first.Sent);
+        Assert.Contains(second.Sent, frame => frame.Contains("count 1", StringComparison.Ordinal));
+    }
+
+    /// <summary>The same, when the connection is still attached but closed by the time its frame is sent.</summary>
+    [Fact]
+    public async Task A_frame_whose_connection_closes_during_its_render_is_sent_to_the_next_one()
+    {
+        Watched? page = null;
+        var session = NewStore().Create(_ => page = new Watched());
+        var first = new FakeTransport();
+        var second = new FakeTransport();
+        session.AttachTransport(first, CancellationToken.None);
+        page!.Count = 2;
+        page.During = () =>
+        {
+            page.During = null;
+            first.IsOpen = false;
+        };
+
+        var sent = await session.RenderAndSendAsync(null, false);
+        session.AttachTransport(second, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+
+        Assert.False(sent, "nobody was left to send it to");
+        Assert.Empty(first.Sent);
+        Assert.Contains(second.Sent, frame => frame.Contains("count 2", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     What a frame that never left carried is shown by the next connection, however much changed after it. The
+    ///     catch-up was a diff against the render that frame was made from, which the browser never had: the change
+    ///     in it was left out, and a page that kept changing — a ticking source — never showed it (#1258).
+    /// </summary>
+    [Fact]
+    public async Task The_next_connection_is_shown_what_a_lost_frame_carried_beside_what_changed_since()
+    {
+        Watched? page = null;
+        var session = NewStore().Create(_ => page = new Watched());
+        var first = new FakeTransport();
+        var second = new FakeTransport();
+        session.AttachTransport(first, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+        page!.Count = 1;
+        page.During = () =>
+        {
+            page.During = null;
+            first.IsOpen = false;
+        };
+        await session.RenderAndSendAsync(null, false);
+        page.Ticks = 1;
+
+        session.AttachTransport(second, CancellationToken.None);
+        await session.RenderAndSendAsync(null, false);
+
+        Assert.Single(first.Sent);
+        Assert.Contains("count 1", second.Sent[^1], StringComparison.Ordinal);
+        Assert.Contains("ticks 1", second.Sent[^1], StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     An event stream that has ended says so when handed a frame, as a closed socket does. It used to take the frame
+    ///     and drop it, and the session counted it as the browser's.
+    /// </summary>
+    [Fact]
+    public async Task An_ended_event_stream_refuses_a_frame_rather_than_dropping_it()
+    {
+        var writer = new System.IO.Pipelines.Pipe().Writer;
+        var stream = new SseTransport(writer, generation: 1);
+
+        stream.Abort();
+
+        await Assert.ThrowsAsync<IOException>(async () => await stream.SendAsync("frame"u8.ToArray(), CancellationToken.None));
     }
 
     /// <summary>

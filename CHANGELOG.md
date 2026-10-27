@@ -188,6 +188,20 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A frame whose connection goes while it is being made is sent to the next connection, never thrown at the
+  handler (#1258).** Before: a render checked the connection before its walk and read it again to send; a reconnect's
+  cleanup clearing it in between threw a `NullReferenceException` out of `SendGuardedAsync` into the handler
+  (`Rask Live handler 'h…' threw`), and what the click changed never reached the page. After: the connection is read
+  once, and a frame it can no longer carry — gone, or closed — is made again for the connection that attaches next,
+  with the browser calls and the address it carried.
+- **A connection that replaces one is sent the whole page, so nothing a lost frame carried stays missing (#1258).**
+  Before: the diff baseline moved when a frame was written, not when it reached the browser. A frame lost with its
+  connection — the send above, an event stream that had ended and dropped it silently — left the next connection's
+  catch-up a diff against a page the browser never had, and once anything else changed (a source the page follows
+  ticking) the lost change never came: a toast, a value read again, a list's first rows. After: the catch-up after a
+  reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
+  does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
+  one host at once, with the host's cores kept busy, and every answer reaches every page.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

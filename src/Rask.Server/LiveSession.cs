@@ -1091,6 +1091,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             await SendGuardedAsync(payload).ConfigureAwait(false);
             return true;
         }
+        catch (Exception ex) when (ConnectionWentUnder(ex))
+        {
+            // It went between the look and the send.
+            return false;
+        }
         finally
         {
             _renderLock.Release();
@@ -1185,7 +1190,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
     private async ValueTask SendGuardedAsync(ReadOnlyMemory<byte> payload)
     {
-        var transport = Volatile.Read(ref _transport)!;
+        // Read once: a connection's cleanup clears it on its own thread, at any point of a render that checked it
+        // before the walk. Gone by now, the frame is the next connection's (RenderAndSendAsync), never a
+        // NullReferenceException in the handler that asked for it (#1258).
+        if (Volatile.Read(ref _transport) is not { IsOpen: true } transport)
+        {
+            throw new WebSocketException(WebSocketError.InvalidState, "The connection went while its frame was made.");
+        }
 
         if (_sendTimeout <= TimeSpan.Zero)
         {
@@ -1390,22 +1401,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
 
             var renderStarted = Stopwatch.GetTimestamp();
             var force = WriteFrame(html, frameWriter, download, jsInvokes, historyUrl, replace, auth, out var payloadBytes);
-            bool sent;
-            try
-            {
-                sent = await TryEmitFrameAsync(force).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (jsInvokes is not null)
-            {
-                // The queue was already drained at line ~225, so any taskIds in this batch
-                // would otherwise hang their awaiting Task<T> forever — the JS side never
-                // received the request, so no jsResult is coming back. Fail them locally
-                // with the send error before letting the exception propagate so callers see
-                // a meaningful JSException instead of an infinite await.
-                FailPendingJsInvokes(jsInvokes, ex);
-                throw;
-            }
-
+            var sent = await EmitAsync(force, jsInvokes, historyUrl).ConfigureAwait(false);
             if (sent)
             {
                 RecordSent(renderStarted, payloadBytes);
@@ -1419,6 +1415,51 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         }
     }
 
+    // Sends the frame just written. One the connection went under is kept for the next connection; any other failure
+    // fails the calls it carried, which nothing would otherwise answer, and is the caller's.
+    private async ValueTask<bool> EmitAsync(bool force, PendingJsInvoke[]? jsInvokes, string? historyUrl)
+    {
+        try
+        {
+            return await TryEmitFrameAsync(force).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ConnectionWentUnder(ex))
+        {
+            KeepForTheNextConnection(jsInvokes, historyUrl);
+            return false;
+        }
+        catch (Exception ex) when (jsInvokes is not null)
+        {
+            // The queue was already drained, so any taskIds in this batch would otherwise hang their awaiting
+            // Task<T> forever — the JS side never received the request, so no jsResult is coming back. Fail them
+            // locally with the send error before letting the exception propagate so callers see a meaningful
+            // JSException instead of an infinite await.
+            FailPendingJsInvokes(jsInvokes, ex);
+            throw;
+        }
+    }
+
+    // The send failed because the connection went or closed under the render: what the reader has not been sent is
+    // the next connection's to send, not an error of the handler that asked for it.
+    private bool ConnectionWentUnder(Exception ex) =>
+        ex is WebSocketException or IOException or OperationCanceledException or ObjectDisposedException
+        && !_disposed
+        && Volatile.Read(ref _transport) is not { IsOpen: true };
+
+    // A frame that could not be sent is made again for the connection that attaches next, with the calls it carried
+    // and the address it moved to: the reader is shown it then, as a render asked for while detached would be.
+    private void KeepForTheNextConnection(PendingJsInvoke[]? jsInvokes, string? historyUrl)
+    {
+        if (jsInvokes is not null)
+        {
+            JsInvokes.PutBack(jsInvokes);
+        }
+
+        _undeliveredAddress = historyUrl ?? _undeliveredAddress;
+        _renderRequestedWhileDetached = true;
+        _forceResend = true;
+    }
+
     // Consume a reconnect's resend request inside the lock that owns the dedup
     // baselines, so AttachSocket never has to touch them from another thread. Clearing
     // both forces this render past the HTML dedup (below) and the buffer dedup (line
@@ -1428,8 +1469,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         if (_forceResend)
         {
             _forceResend = false;
-            _lastSentBuffer = null;
-            _htmlBuffers.Invalidate();
+            ForgetWhatTheBrowserHas();
         }
     }
 
