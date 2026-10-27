@@ -40,8 +40,7 @@ internal static partial class TemplateMarkers
 {
     [GeneratedRegex(
         @"^[ \t]*(?://|<!--|/\*|#|@\*)[ \t]*rask:(?<kind>if|ifnot|end)(?:[ \t]+(?<flags>[A-Za-z0-9_ -]+?))?[ \t]*(?:-->|\*/|\*@)?[ \t]*$",
-        RegexOptions.ExplicitCapture,
-        matchTimeoutMilliseconds: 1000)]
+        RegexOptions.ExplicitCapture | RegexOptions.NonBacktracking)]
     private static partial Regex Marker { get; }
 
     /// <summary>Whether <paramref name="line"/> is a marker rather than content.</summary>
