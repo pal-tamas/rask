@@ -201,21 +201,6 @@ public sealed class HttpTransportFixtureTests
     }
 
     [Fact]
-    public void A_click_a_newer_stream_refused_unread_is_handed_back_for_the_next_connection()
-    {
-        var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var unread = result.Value.GetProperty("unread");
-
-        Assert.Equal(["{\"id\":\"h1\",\"seq\":1}"], unread.GetProperty("conflict").EnumerateArray().Select(static e => e.GetString()));
-        Assert.Empty(unread.GetProperty("gone").EnumerateArray());
-    }
-
-    [Fact]
     public void An_open_deadline_counts_only_the_time_a_starved_page_could_run()
     {
         var result = Run();

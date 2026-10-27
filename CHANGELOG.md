@@ -15,8 +15,7 @@ them until tagged releases begin.
   reloaded, dropping what the reader did meanwhile (#1258). After: the late connection rebuilds the page where it
   stands. The record opens only for a connection naming that session and never for another user. The runtime's
   5 s connection-open deadline also counts only the time the page could run, so a starved tab is no longer pushed
-  onto the HTTP fallback for being busy, and on that fallback a click posted just as a newer stream took the
-  session (refused unread, `409`) is sent again on the next connection instead of being dropped. See
+  onto the HTTP fallback for being busy. See
   [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
 
 - **The live-session lifecycle is logged.** At `Debug` on `Rask.Live`, the server says when each `/rask/ws` socket
@@ -154,6 +153,11 @@ them until tagged releases begin.
 
 ### Changed
 
+- **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
+  its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and
+  landed by itself, so one release the gates refuse no longer holds back MDN, Node, CLDR and the rest. A red that
+  `main` already has is no longer reported as upstream's: the follower waits and runs again when `full` passes.
+  Every source — each follower, Flux UI, each front-end template — keeps one issue, closed by its next green run.
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
@@ -230,6 +234,13 @@ them until tagged releases begin.
   reconnect forgets every baseline and sends the whole page, an ended event stream refuses a frame as a closed socket
   does, and an out-of-band frame whose connection went says it was not sent. `ParallelPagesTests` drives many pages on
   one host at once, with the host's cores kept busy, and every answer reaches every page.
+- **A click sent into a connection as it dies is sent again on the next one, and runs once (#1258).** Before: the
+  Server runtime let go of an event the moment it handed it to the socket (or the HTTP transport's POST), so one the
+  server never read was simply gone. After: every event no ack has answered is kept and sent first on the next
+  connection, in order, over either transport; the session takes an event as run when its handler starts, so one that
+  did arrive is only answered again, and a page rebuilt from its resume record on another host runs none of them (the
+  `hello` names the newest it sent). A render asked for from another thread as an event's scope ended could be lost:
+  the two sides' write-then-read now has a full fence between, not just `volatile`.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

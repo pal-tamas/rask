@@ -109,7 +109,7 @@ public sealed class CancelledRevalidationTests
     private static Task<RaskEndpointExtensions.AttachOutcome> HelloAsync(
         RaskTestHost host, LiveSession session, CancellationToken ct) =>
         RaskEndpointExtensions.AttachAsync(
-            session.Id, resumeToken: null, new Connection(), host.Store,
+            session.Id, resumeToken: null, sentBefore: 0, new Connection(), host.Store,
             host.Services.GetRequiredService<RaskServerLimits>(), Alice,
             host.Services.GetRequiredService<SessionResumeSupport>(),
             // Only a resume rebuild consults it; this session is known.

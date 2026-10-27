@@ -1,6 +1,7 @@
+using System.Globalization;
 using System.Security.Claims;
-using System.Text;
 using System.Text.Json;
+using System.Text.Unicode;
 using BenchmarkDotNet.Attributes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +41,11 @@ public partial class EventDispatchBenchmarks
         new Route(typeof(MembersPage), "/members")
     ];
 
-    private byte[] _frame = null!;
+    // Written again for every click: each carries the next seq, as the browser's do, or the session takes it for a
+    // click it has already run and only answers it.
+    private readonly byte[] _frame = new byte[256];
+    private string _handlerId = null!;
+    private long _seq;
     private RaskServerLimits _limits = null!;
     private ServiceProvider _services = null!;
     private LiveSession _session = null!;
@@ -69,8 +74,7 @@ public partial class EventDispatchBenchmarks
         var socket = new NullWebSocket();
         _session.AttachSocket(socket, CancellationToken.None);
 
-        var id = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"([^\"]+)\"").Groups[1].Value;
-        _frame = Encoding.UTF8.GetBytes($"{{\"id\":\"{id}\",\"seq\":1}}");
+        _handlerId = System.Text.RegularExpressions.Regex.Match(html, "data-rask-on-click=\"([^\"]+)\"").Groups[1].Value;
 
         // A click that reached no handler, or whose render never left, would measure an empty loop.
         Click();
@@ -93,12 +97,13 @@ public partial class EventDispatchBenchmarks
     [Benchmark]
     public void Click()
     {
-        using var doc = JsonDocument.Parse(_frame.AsMemory());
+        Utf8.TryWrite(_frame, CultureInfo.InvariantCulture, $"{{\"id\":\"{_handlerId}\",\"seq\":{++_seq}}}", out var length);
+        using var doc = JsonDocument.Parse(_frame.AsMemory(0, length));
         var root = doc.RootElement;
         var hasType = root.TryGetProperty("type", out var type) && type.ValueKind == JsonValueKind.String;
 
         RaskEndpointExtensions
-            .ProcessFrameAsync(_session, root, hasType, type, _frame.Length, _store, _limits, _store.Metrics, CancellationToken.None)
+            .ProcessFrameAsync(_session, root, hasType, type, length, _store, _limits, _store.Metrics, CancellationToken.None)
             .GetAwaiter().GetResult();
         _session.LastHandlerTask.GetAwaiter().GetResult();
     }

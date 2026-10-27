@@ -211,6 +211,7 @@ async function connection(): Promise<Result> {
             sessionId: "old-id",
             url: (kind) => "/_rask/" + kind,
             resumeToken: "record",
+            sent: 0,
             onOpen: (session) => events.push("open:" + session),
             onFrame: (text) => events.push("frame:" + text),
             onClose: (code, reason, opened) => events.push("close:" + code + ":" + reason + ":" + opened),
@@ -273,6 +274,7 @@ async function deadlines(): Promise<Result> {
         sessionId: "s",
         url: (kind: string, session: string) => "/_rask/" + kind + "/" + session,
         resumeToken: null,
+        sent: 0,
         onOpen: () => events.push("open"),
         onFrame: () => {},
         onClose: (code: number, reason: string, opened: boolean) => events.push(code + ":" + reason + ":" + opened),
@@ -319,51 +321,6 @@ async function starvedDeadline(): Promise<Result> {
     return {onTime, starvedAfterAFewLateChecks, starvedInTheEnd: starved, cancelled};
 }
 
-// --- What the server never read --------------------------------------------------------------------------------------
-
-// A click posted as a newer stream took the session is refused unread (409); one refused because the session is gone
-// (404) may not be the reader's to send again. Only the first is handed back for the next connection.
-async function unread(status: number): Promise<string[]> {
-    const encoder = new TextEncoder();
-    let push: (text: string) => void = () => {};
-    const realFetch = globalThis.fetch;
-    globalThis.fetch = (async (_input: string, init: RequestInit = {}) => {
-        if ((init.method ?? "GET") === "GET") {
-            const body = new ReadableStream<Uint8Array>({
-                start(controller) {
-                    push = (text) => controller.enqueue(encoder.encode(text));
-                },
-            });
-            return new Response(body, {status: 200, headers: {"content-type": "text/event-stream"}});
-        }
-
-        return new Response(null, {status});
-    }) as typeof fetch;
-
-    const handedBack: string[] = [];
-    try {
-        const conn = openHttpConnection({
-            sessionId: "s",
-            url: (kind: string) => "/_rask/" + kind,
-            resumeToken: null,
-            onOpen: () => {},
-            onFrame: () => {},
-            onClose: () => {},
-            onUnsent: (frames) => handedBack.push(...frames),
-        });
-        await tick();
-        push('data: {"type":"stream","session":"s","generation":1}\n\n');
-        await tick();
-        conn.send('{"id":"h1","seq":1}');
-        await tick();
-        await tick();
-        return handedBack;
-    } finally {
-        globalThis.fetch = realFetch;
-    }
-}
-
-results.unread = {conflict: await unread(409), gone: await unread(404)};
 results.starved = await starvedDeadline();
 results.connection = await connection();
 results.deadlines = await deadlines();

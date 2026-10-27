@@ -85,14 +85,14 @@ export function createSseParser(onEvent: (event: string, data: string) => void):
  * flight waits, and everything that piled up goes in the next one, as a single JSON array the server walks in order.
  *
  * `post` resolves with the response status. A refusal (anything but a 2xx) stops the batcher and reports the
- * status, with the frames it refused: the stream is what carries the recovery, and a batcher that kept posting into
- * a refused session would only produce more refusals. `stop` hands back what was never posted.
+ * status: the stream is what carries the recovery, and a batcher that kept posting into a refused session would
+ * only produce more refusals.
  */
 export function createPostBatcher(
     post: (body: string) => Promise<number>,
-    onRefused: (status: number, refused: string[]) => void,
+    onRefused: (status: number) => void,
     maxBytes: () => number = () => 0,
-): { push(message: string): void; readonly pending: number; stop(): string[] } {
+): { push(message: string): void; readonly pending: number; stop(): void } {
     let queue: string[] = [];
     let inFlight = false;
     let stopped = false;
@@ -107,7 +107,7 @@ export function createPostBatcher(
                 inFlight = false;
                 if (status < 200 || status >= 300) {
                     stopped = true;
-                    onRefused(status, batch);
+                    onRefused(status);
                     return;
                 }
                 flush();
@@ -115,7 +115,7 @@ export function createPostBatcher(
             () => {
                 inFlight = false;
                 stopped = true;
-                onRefused(0, []);
+                onRefused(0);
             });
     }
 
@@ -128,11 +128,9 @@ export function createPostBatcher(
         get pending(): number {
             return queue.length + (inFlight ? 1 : 0);
         },
-        stop(): string[] {
+        stop(): void {
             stopped = true;
-            const unsent = queue;
             queue = [];
-            return unsent;
         },
     };
 }
@@ -314,16 +312,13 @@ export interface HttpConnectionOptions {
     url(kind: "stream" | "send" | "leave"): string;
     /** The resume record, sent as a header so it never lands in a URL. */
     resumeToken: string | null;
+    /** The newest event the connections before this one carried: a page rebuilt from the record runs none of them. */
+    sent: number;
     /** `session` is the one the server attached — a new id when a resume record rebuilt a lost session. */
     onOpen(session: string): void;
     onFrame(text: string): void;
     /** `code` mirrors a WebSocket close: 1001 a server going away, 1008 a policy refusal, 1006 a dropped link. */
     onClose(code: number, reason: string, opened: boolean): void;
-    /**
-     * Frames that never reached a handler when the connection ended — never posted, or refused unread because a newer
-     * stream owns the session — in the order they were sent, for the next connection to carry.
-     */
-    onUnsent?(frames: string[]): void;
     /** Overrides {@link OPEN_TIMEOUT_MS}; for tests. */
     openTimeoutMs?: number;
     /** Overrides {@link STREAM_SILENCE_MS}; for tests. */
@@ -346,8 +341,6 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     let open = false;
     let closed = false;
     let limit = 0;
-    // Refused with 409: a newer stream owns the session, and the server read none of them.
-    let unread: string[] = [];
 
     // A buffering proxy — the kind of network this fallback exists for — can hold the response headers or the
     // first event for ever. Without a deadline the connection would report `isConnecting` indefinitely, and the
@@ -368,8 +361,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         if (silenceTimer !== null) clearTimeout(silenceTimer);
         const wasOpen = open;
         open = false;
-        const unsent = unread.concat(batcher.stop());
-        if (unsent.length > 0 && options.onUnsent) options.onUnsent(unsent);
+        batcher.stop();
         try {
             abort.abort();
         } catch {
@@ -387,10 +379,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         }).then((response) => response.status),
         // 409: a newer stream owns the session. 404: the session is gone. 429: a breaker tripped, and the
         // stream's own close event is on its way. All of them end this connection so the runtime reconnects.
-        (status, refused) => {
-            if (status === 409) unread = refused;
-            end(status === 429 ? 1008 : 1006, "send-refused-" + status);
-        },
+        (status) => end(status === 429 ? 1008 : 1006, "send-refused-" + status),
         () => limit);
 
     const parse = createSseParser((event, data) => {
@@ -431,6 +420,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
 
     const headers: Record<string, string> = {accept: "text/event-stream", "rask-session": options.sessionId};
     if (options.resumeToken) headers["rask-resume"] = options.resumeToken;
+    if (options.sent > 0) headers["rask-sent"] = String(options.sent);
 
     fetch(options.url("stream"), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
         .then(async (response) => {
