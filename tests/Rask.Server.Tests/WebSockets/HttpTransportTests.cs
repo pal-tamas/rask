@@ -65,12 +65,13 @@ public sealed class HttpTransportTests
         return host.Store.Peek(sessionId) is null;
     }
 
-    private static async Task<HttpStatusCode> PostAsync(RaskTestHost host, string path, string generation)
+    private static async Task<HttpStatusCode> PostAsync(RaskTestHost host, string path, string sessionId, string generation)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, path)
         {
             Content = JsonContent.Create(new[] { new { type = "navigate", path = "/", query = "" } }),
         };
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add("Rask-Stream", generation);
         using var response = await host.Http.SendAsync(request);
         return response.StatusCode;
@@ -92,7 +93,7 @@ public sealed class HttpTransportTests
         {
             var generation = await EventStream.GenerationAsync(reader);
 
-            Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
+            Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, "/_rask/leave", sessionId, generation));
 
             Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)),
                 "a leaving tab's session should go at once, not after five minutes");
@@ -122,7 +123,7 @@ public sealed class HttpTransportTests
         Assert.Equal(0, host.Store.ConnectedCount);
         Assert.NotNull(host.Store.Peek(sessionId));
 
-        Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, $"/_rask/leave/{sessionId}", generation));
+        Assert.Equal(HttpStatusCode.NoContent, await PostAsync(host, "/_rask/leave", sessionId, generation));
 
         Assert.True(await GoneWithinAsync(host, sessionId, TimeSpan.FromSeconds(3)));
     }
@@ -147,7 +148,7 @@ public sealed class HttpTransportTests
             () => host.Store.HasPendingRemoval(sessionId), "the stream's end arms the session's removal");
 
         // The stream is gone, so this generation is no longer current: refused.
-        var answer = await PostAsync(host, $"/_rask/send/{sessionId}", generation);
+        var answer = await PostAsync(host, "/_rask/send", sessionId, generation);
 
         Assert.Equal(HttpStatusCode.Conflict, answer);
         Assert.True(host.Store.HasPendingRemoval(sessionId),
@@ -172,7 +173,8 @@ public sealed class HttpTransportTests
     private static async Task<(HttpResponseMessage Response, StreamReader Reader)> OpenStreamAsync(
         RaskTestHost host, string sessionId, string? user = null)
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{sessionId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/stream");
+        request.Headers.Add("Rask-Session", sessionId);
         if (user is not null)
         {
             request.Headers.Add(UserHeader, user);
@@ -239,10 +241,11 @@ public sealed class HttpTransportTests
         using var host = NewHost();
         var sessionId = await StartSessionAsync(host, "alice");
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
         {
             Content = JsonContent.Create(new[] { new { type = "navigate", url = "/" } }),
         };
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add(UserHeader, "bob");
         request.Headers.Add("Rask-Stream", "1");
 
@@ -258,10 +261,11 @@ public sealed class HttpTransportTests
         using var host = NewHost();
         var sessionId = await StartSessionAsync(host);
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
         {
             Content = JsonContent.Create(new[] { new { type = "navigate", url = "/" } }),
         };
+        request.Headers.Add("Rask-Session", sessionId);
 
         using var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
 
@@ -282,10 +286,11 @@ public sealed class HttpTransportTests
         {
             var generation = await EventStream.GenerationAsync(reader);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
             {
                 Content = JsonContent.Create(new[] { new { type = "navigate", url = "/" } }),
             };
+            request.Headers.Add("Rask-Session", sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var accepted = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -306,7 +311,8 @@ public sealed class HttpTransportTests
         {
             var generation = await EventStream.GenerationAsync(reader);
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/leave/{sessionId}");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/leave");
+            request.Headers.Add("Rask-Session", sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var left = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
