@@ -188,6 +188,11 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **Two `Ui.Filter` badges of one label no longer share a diff key (#1257).** Before: each badge was keyed by its
+  label, so `Ui.Filter.Key("filter-7").Label("Vehicles")` beside `.Key("filter-8").Label("Vehicles")` drew two
+  siblings with one `data-rask-key` and the live diff fell back to a positional one. After: a badge is keyed by its
+  address key, else its `Ui.Filter`'s own `.Key(…)`, else its label — and a second keyless one of the same label by
+  its place among the badges.
 - **A chart's tooltip takes the pointer as Flux's does.** Before: it let the pointer through (`pointer-events-none`),
   emptied itself when the pointer left, and moved by fractions of a pixel. After, measured on Flux's chart: over the
   box — shown, or left unseen where it was last shown — the pointer is off the plot, so tooltip and cursor go (on a

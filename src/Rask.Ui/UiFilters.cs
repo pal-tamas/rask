@@ -80,7 +80,7 @@ public sealed partial class UiFilters : Component
             }
 
             return Div.Class("flex flex-wrap items-center gap-2").Data(BadgesMarker.With(null))[
-                active.Select(Badge),
+                KeyedBadges(active),
                 clearAll?[RaskStrings.Get(RaskString.FiltersClearAll, "Clear all")]
             ];
         }
@@ -171,12 +171,33 @@ public sealed partial class UiFilters : Component
         ];
     }
 
-    private Component Badge(UiFilterEntry entry)
+    // Each badge keyed by its address key, its Ui.Filter's own key, or its label — and two that still say the same
+    // (two filters of one label, neither keyed) by their place among the badges, so no two siblings share a key.
+    private List<Component> KeyedBadges(List<UiFilterEntry> active)
+    {
+        var keys = new HashSet<object>();
+        var badges = new List<Component>(active.Count);
+        foreach (var entry in active)
+        {
+            object key = entry.Key ?? entry.Identity ?? entry.Label;
+            if (!keys.Add(key))
+            {
+                key = entry.Label + "#" + badges.Count.ToString(CultureInfo.InvariantCulture);
+                keys.Add(key);
+            }
+
+            badges.Add(Badge(entry, key));
+        }
+
+        return badges;
+    }
+
+    private Component Badge(UiFilterEntry entry, object key)
     {
         var remove = Ui.BadgeClose.AriaLabel(RaskStrings.Get(RaskString.FilterRemove, "Remove filter {0}", entry.Label)).OnClick(() => RemoveAsync(entry));
         _presses.Add(remove);
 
-        return Ui.Badge.Sm.Key(entry.Key ?? entry.Label)[entry.Words, remove];
+        return Ui.Badge.Sm.Key(key)[entry.Words, remove];
     }
 
     // The id of the table the set drives — its own, or one the set gives it — written as aria-controls on the badge
