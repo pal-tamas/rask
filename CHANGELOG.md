@@ -199,6 +199,10 @@ them until tagged releases begin.
   left at once). After: a press on the track (a click, a tap, a finger that swipes from it) or on an arrow (by the
   pointer or a key) ends it for the page's life; the hover that holds it is the mouse's, so a swipe that starts on an
   arrow holds nothing. Measured on fluxui.dev at 390px with touch and on a desktop.
+- **`Ui.Editor`'s toolbar popovers stay on a phone's screen, as Flux's do.** Before: the 360px link panel ran off a
+  390px screen (from 120 to 480), and the align list ran 16px past its button's end. After: a list that runs off
+  the right ends under its button's end instead, and whatever still runs off is shifted along to stay 5px inside
+  the screen (the link panel at 25), as Flux places them.
 - **A hello or an event whose client goes away while the `ISessionRevalidator` is asked ends quietly** (#1256).
   Before: EF's SQL Server retrying strategy reports a cancelled query as an `InvalidOperationException`, so an aborted
   socket hello reached Kestrel as an unhandled exception ("the connection to the host closed") and an aborted event

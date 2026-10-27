@@ -47,6 +47,7 @@ const TOGGLES: Record<string, { run: (editor: Editor) => void; active?: string }
 // The table extensions are installed and off, as Flux's are: `enableExtension('table')` turns one on.
 const DISABLED = new Set(['table', 'tableRow', 'tableCell', 'tableHeader']);
 const GAP = 5;
+const EDGE = 5;
 const mounted = new WeakMap<HTMLElement, Mounted>();
 
 /** Turns the editor markup under `root` into a live editor. `onChange` hears every change of its HTML. */
@@ -379,13 +380,19 @@ class Mounted {
     anchor.setAttribute('aria-expanded', 'true');
     panel.showPopover();
     const box = anchor.getBoundingClientRect();
-    const left = align === 'start' ? box.left : box.left + (box.width - panel.offsetWidth) / 2;
+    // As Flux places it on a phone: a list that runs off the right ends under its button's end instead, when
+    // that runs off less, and then whatever still runs off is shifted along to stay EDGE px inside the screen
+    // (measured at 390px: the align list ends with its button; the 360px link panel lands at 25).
+    const screen = document.documentElement.clientWidth, width = panel.offsetWidth;
+    let left = align === 'start' ? box.left : box.left + (box.width - width) / 2;
+    if (align === 'start' && left + width > screen && width - box.right < left + width - screen) left = box.right - width;
+    left = Math.max(EDGE, Math.min(screen - EDGE - width, left));
     const below = box.bottom + GAP;
     const top = below + panel.offsetHeight > window.innerHeight && box.top - GAP - panel.offsetHeight >= 0 ? box.top - GAP - panel.offsetHeight : below;
     Object.assign(panel.style, {
       position: 'absolute',
       overflowY: 'auto',
-      inset: `${top + window.scrollY}px auto auto ${Math.max(0, left) + window.scrollX}px`,
+      inset: `${top + window.scrollY}px auto auto ${left + window.scrollX}px`,
     });
 
     const away = new AbortController();
