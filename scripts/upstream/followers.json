@@ -76,10 +76,22 @@
       "outputs": ["src/Rask.Ui/UiDatetimePickerJoins.g.cs", "src/Rask.Ui/Resources/cldr.LICENSE.txt"]
     },
     {
+      "name": "cldr-plurals",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/cldr-plurals.mjs",
+      "outputs": ["tests/Rask.Generators.Tests/cldr-plurals.json"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
       "outputs": ["tests/Rask.Ui.Tests/Flux/flux.snapshot.json", "tests/Rask.Ui.Tests/Flux/flux.lock.json"]
+    },
+    {
+      "name": "flux-parity",
+      "kind": "match",
+      "run": "scripts/flux/parity-all.sh",
+      "outputs": []
     }
   ],
   "manual": [
@@ -119,12 +131,6 @@
       "generator": "",
       "outputs": ["src/Rask.Ui/UiEditorIcons.cs"],
       "why": "Held at 0.300.0 on purpose: the release whose boxes match Flux's measured icons. Moves only with Flux."
-    },
-    {
-      "name": "cldr-plurals",
-      "generator": "",
-      "outputs": ["src/Rask.Generators/Translations/PluralRules.cs"],
-      "why": "Hand-written from CLDR's plural rules; becomes a follower in P2."
     }
   ]
 }
