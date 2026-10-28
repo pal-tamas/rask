@@ -77,7 +77,7 @@ public sealed partial class UiDatetimePickerButton : Component
                 ? UiPickerClear.Inside(scope.Clear, scope.Text is not null && !scope.Disabled,
                     RaskStrings.Get(RaskString.DatetimePickerClear, "Clear date and time"), UiCalendarHook.Named("clear"))
                 : null,
-            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.ButtonChevron)
+            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
         ];
 
         return button;

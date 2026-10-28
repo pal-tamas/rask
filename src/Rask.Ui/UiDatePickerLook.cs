@@ -26,17 +26,6 @@ internal static class UiDatePickerLook
         "ms-2 -me-1 text-zinc-400/75 [:hover:not(:has(input:hover))>&]:text-zinc-800 "
         + "dark:text-white/60 dark:[:hover:not(:has(input:hover))>&]:text-white";
 
-    // A picker button's chevron darkens under a plain :hover of its button, as Flux's does — a phone keeps it after a
-    // tap — and is held light while the calendar is open only where there is a pointer, which Flux takes away then
-    // (measured: Flux's is zinc-800 on a phone with the calendar open, and light on a desktop).
-    internal const string ButtonChevron = Trailing + " "
-        + "[[data-ui-date-picker-button]:hover_&]:text-zinc-800 [[data-ui-datetime-picker-button]:hover_&]:text-zinc-800 "
-        + "dark:[[data-ui-date-picker-button]:hover_&]:text-white dark:[[data-ui-datetime-picker-button]:hover_&]:text-white "
-        + "[@media(hover:hover)]:[[data-ui-date-picker]:has(:popover-open)_&]:text-zinc-400/75! "
-        + "[@media(hover:hover)]:[[data-ui-datetime-picker]:has(:popover-open)_&]:text-zinc-400/75! "
-        + "dark:[@media(hover:hover)]:[[data-ui-date-picker]:has(:popover-open)_&]:text-white/60! "
-        + "dark:[@media(hover:hover)]:[[data-ui-datetime-picker]:has(:popover-open)_&]:text-white/60!";
-
     internal const string Selected = "flex flex-1 gap-2 overflow-hidden whitespace-nowrap text-start text-zinc-700 dark:text-zinc-300";
 
     internal const string Placeholder = "text-zinc-400";
