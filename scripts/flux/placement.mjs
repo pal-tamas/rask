@@ -55,7 +55,8 @@ export const EDGES = [
  * Opens every host of `family` at every edge on both pages and prints one line per host and viewport.
  * Returns how many of them differ.
  *
- * family: { name, flux: side, rask: side, hosts: [index | { index, open, name }], views, edges, width, refresh, all }
+ * family: { name, flux: side, rask: side, hosts: [index | { index, open, name }], views, edges, width, refresh, all,
+ *           scrollbars } — `scrollbars: 'shown'` when `browser` was launched showing them, which Flux's kept side is keyed on
  * side:   { url, host, panel, trigger, open, prepare } — `host` a selector matched in document order on that
  *         page, `panel` and `trigger` selectors inside the host (the trigger is its first child without one,
  *         and the host itself when the selector matches it), `open` a function (page, point) for a page that
@@ -65,7 +66,8 @@ export async function landings(browser, family) {
   const views = family.views ?? VIEWS;
   const edges = family.edges ?? EDGES;
   const hosts = family.hosts.map(host => (typeof host === 'number' ? { index: host } : host));
-  const asked = JSON.stringify({ HARNESS, views, edges, hosts, width: family.width, host: family.flux.host, panel: family.flux.panel });
+  const asked = JSON.stringify({ HARNESS, views, edges, hosts, width: family.width, host: family.flux.host, panel: family.flux.panel,
+    ...(family.scrollbars ? { scrollbars: family.scrollbars } : {}) });
   const file = join(root, 'artifacts', 'flux-parity', 'flux', family.name, 'edges.json');
   let flux = existsSync(file) && !family.refresh ? JSON.parse(await readFile(file, 'utf8')) : null;
   if (!flux || flux.asked !== asked) {

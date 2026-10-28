@@ -4,18 +4,17 @@ namespace Rask;
 internal static class UiTableBox
 {
     /// <summary>
-    ///     12px all round, flush with the table's edge in the first and last column — or, in a bleeding
-    ///     table, in from it by the distance the table bled out.
+    ///     12px all round, flush with the table's edge in the first and last column. A bleeding table moves
+    ///     those two edges itself (<see cref="UiTable" />), once for all its cells, as Flux's does.
     /// </summary>
     /// <remarks>
-    ///     All of it at zero specificity, and no two rules for one side of one cell: a cell's own <c>py-0</c>,
-    ///     <c>px-6</c> or <c>ps-10</c> wins in every column, and nothing depends on the order the stylesheet
-    ///     emits the kit's own rules in. Flux merges the classes on the server to the same end.
+    ///     Flux's <c>[:where(&amp;)]:py-3 [:where(&amp;)]:px-3 first:ps-0 last:pe-0</c>, with the edges at zero
+    ///     specificity too and no two rules for one side of one cell: a cell's own <c>py-0</c>, <c>px-6</c> or
+    ///     <c>ps-10</c> wins in every column, and nothing depends on the order the stylesheet emits the kit's
+    ///     own rules in.
     /// </remarks>
     internal const string Padding =
-        "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3 "
-        + "[:where([data-ui-table-bleed]_&:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
-        + "[:where([data-ui-table-bleed]_&:last-child)]:pe-[var(--ui-bleed,1.5rem)]";
+        "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3";
 
     /// <summary>
     ///     Held at the scroll area's left edge. The <c>::after</c> hangs off its right side and carries the

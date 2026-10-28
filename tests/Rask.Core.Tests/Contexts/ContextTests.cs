@@ -192,6 +192,25 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_component_that_stops_reading_a_context_goes_back_to_the_render_cache()
+    {
+        var sp = RenderHarness.EmptyServices();
+        var reader = new SometimesConsumer();
+        var host = new MutableThemeHost(new Theme("light"), reader, new PlainChild());
+        host.RenderAsLiveRoot(sp);
+        reader.Reads = false;
+        reader.MarkDirtyForFrame();
+        host.RenderAsLiveRoot(sp);
+        var before = reader.RenderCount;
+
+        host.Theme = new Theme("dark");
+        host.RenderAsLiveRoot(sp);
+
+        Assert.Equal(before, reader.RenderCount);
+        Assert.False(reader.ReadsAmbientStateInternal);
+    }
+
+    [Fact]
     public void Outside_a_render_Get_returns_default_and_Required_throws()
     {
         // No LiveRenderContext is active: the consumer-mark must no-op rather than NRE.
@@ -261,6 +280,18 @@ public partial class ContextTests : global::Rask.Core.RaskMarkup
             var theme = Context.Required<Theme>();
             LastSeen = theme.Name;
             return Span[theme.Name];
+        }
+    }
+
+    private sealed class SometimesConsumer : Component
+    {
+        public bool Reads = true;
+        public int RenderCount;
+
+        protected override Component? Render()
+        {
+            RenderCount++;
+            return Span[Reads ? Context.Required<Theme>().Name : "not reading"];
         }
     }
 

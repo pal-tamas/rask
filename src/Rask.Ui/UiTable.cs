@@ -29,7 +29,16 @@ public sealed partial class UiTable : UiElement, IUiHost
 {
     private const string Base =
         "isolate border-separate border-spacing-0 "
-        + "[:where(&)]:min-w-full [:where(&)]:table-fixed [:where(&)]:whitespace-nowrap [:where(&)]:text-zinc-800";
+        + "[:where(&)]:min-w-full [:where(&)]:table-fixed [:where(&)]:whitespace-nowrap [:where(&)]:text-zinc-800 "
+        + "[&_dialog]:whitespace-normal [&_[popover]]:whitespace-normal";
+
+    // A bleeding table moves its first and last column in by the distance it bled out — on the table, once, as Flux
+    // does, so no cell carries a rule for it. At zero specificity, as the cells' own padding is, so a cell's ps-10 wins.
+    private const string BleedEdges =
+        "[:where(&_[data-ui-column]:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
+        + "[:where(&_[data-ui-cell]:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
+        + "[:where(&_[data-ui-column]:last-child)]:pe-[var(--ui-bleed,1.5rem)] "
+        + "[:where(&_[data-ui-cell]:last-child)]:pe-[var(--ui-bleed,1.5rem)]";
 
     // The pager under the rows keeps its height when the box is given one to scroll within, as Flux's does.
     private const string Container = "flex flex-col *:data-ui-pagination:shrink-0";
@@ -158,7 +167,7 @@ public sealed partial class UiTable : UiElement, IUiHost
     protected override string? TagName => null;
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose(Base, Class);
+    protected override string? ResolveClass() => UiClass.Compose(Base, Bleed is true ? BleedEdges : "", Class);
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
