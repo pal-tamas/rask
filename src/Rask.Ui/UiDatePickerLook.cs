@@ -16,7 +16,15 @@ internal static class UiDatePickerLook
 
     internal const string Leading = "me-2 text-zinc-400/75 dark:text-white/60";
 
-    internal const string Trailing = "ms-2 -me-1 text-zinc-400/75 dark:text-white/60";
+    // The chevron darkens under the pointer: a button's while the button is under it, a typed field's while the
+    // field is and none of its parts (measured on Flux's, the pointer walked across it). A tap's hover stays on a
+    // phone, and Flux's chevron with it.
+    internal const string Trailing =
+        "ms-2 -me-1 text-zinc-400/75 [:hover>&]:text-zinc-800 dark:text-white/60 dark:[:hover>&]:text-white";
+
+    internal const string TrailingTyped =
+        "ms-2 -me-1 text-zinc-400/75 [:hover:not(:has(input:hover))>&]:text-zinc-800 "
+        + "dark:text-white/60 dark:[:hover:not(:has(input:hover))>&]:text-white";
 
     internal const string Selected = "flex flex-1 gap-2 overflow-hidden whitespace-nowrap text-start text-zinc-700 dark:text-zinc-300";
 
