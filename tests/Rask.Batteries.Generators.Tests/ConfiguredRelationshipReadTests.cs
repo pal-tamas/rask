@@ -214,7 +214,7 @@ public class ConfiguredRelationshipReadTests
         Assert.Equal(2, errors.Count);
         Assert.All(errors, e => Assert.Equal(DiagnosticSeverity.Error, e.Severity));
         Assert.Equal(
-            "The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'User' is already taken. Rename the id, or what holds the name.",
+            "The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'User' is already taken by a member or another relationship. Rename the id, or what holds the name.",
             errors[0].GetMessage(CultureInfo.InvariantCulture));
     }
 
@@ -229,7 +229,42 @@ public class ConfiguredRelationshipReadTests
         var error = Assert.Single(run.Diagnostics, d => d.Id == "RASK112");
 
         Assert.Equal(
-            "The relationship configured on 'ProviderCountry.TransactionTypeId' gets no navigation on 'ProviderCountryRead': 'Provider' and 'TransactionType' are both already taken. Rename the id, or what holds the name.",
+            "The relationship configured on 'ProviderCountry.TransactionTypeId' gets no navigation on 'ProviderCountryRead': 'Provider' and 'TransactionType' are already taken by a member or another relationship. Rename the id, or what holds the name.",
             error.GetMessage(CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void An_id_named_after_its_target_keeps_the_name_and_a_second_id_to_it_is_named_after_itself()
+    {
+        var run = Run("""
+            using Microsoft.EntityFrameworkCore;
+            using Microsoft.EntityFrameworkCore.Metadata.Builders;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Payee : Aggregate<int>
+            {
+                private Payee() { }
+            }
+            public sealed class Payroll : Aggregate<int>
+            {
+                private Payroll() { }
+                public int PayeeId { get; private set; }
+                public int? AuditorId { get; private set; }
+                public static void Configure(EntityTypeBuilder<Payroll> b)
+                {
+                    b.HasOne<Payee>().WithMany().HasForeignKey(p => p.AuditorId);
+                    b.HasOne<Payee>().WithMany().HasForeignKey(p => p.PayeeId);
+                }
+            }
+            """);
+
+        var face = run.GeneratedSource("Shop_PayrollRead");
+        var payee = run.GeneratedSource("Shop_PayeeRead");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Contains("public global::Shop.PayeeRead Payee { get; init; } = null!;", face, StringComparison.Ordinal);
+        Assert.Contains("public global::Shop.PayeeRead? Auditor { get; init; }", face, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Shop.PayrollRead> Payrolls { get; init; }", payee, StringComparison.Ordinal);
+        Assert.Contains("IReadOnlyList<global::Shop.PayrollRead> PayrollsAuditor { get; init; }", payee, StringComparison.Ordinal);
     }
 }

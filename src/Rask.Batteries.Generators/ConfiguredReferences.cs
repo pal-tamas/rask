@@ -21,7 +21,7 @@ internal sealed class ConfiguredReferences
     private static readonly DiagnosticDescriptor Rask112 = new(
         "RASK112",
         "A configured relationship's read navigation has no free name",
-        "The relationship configured on '{0}.{1}' gets no navigation on '{2}': {3}. Rename the id, or what holds the name.",
+        "The relationship configured on '{0}.{1}' gets no navigation on '{2}': {3} already taken by a member or another relationship. Rename the id, or what holds the name.",
         DiagnosticHelp.Category,
         DiagnosticSeverity.Error,
         true,
@@ -62,50 +62,52 @@ internal sealed class ConfiguredReferences
         new(Of(shape).SelectMany(static r => r.ForeignKeys), StringComparer.Ordinal);
 
     /// <summary>The navigations <paramref name="shape" />'s configured relationships give it, each name added to <paramref name="taken" />.</summary>
+    /// <remarks>
+    ///     An id that names itself is settled first — its name is its own, no other id has it. Then each of the rest takes
+    ///     its target's name if nothing else holds or wants it, and its own otherwise.
+    /// </remarks>
     public List<ReadNavigation> Navigations(SourceProductionContext context, ReadShape shape, HashSet<string> taken)
     {
-        var candidates = Of(shape)
-            .Select(r => Candidate(shape, r))
-            .Where(static c => c is not null)
-            .Select(static c => c!.Value)
-            .ToList();
+        var candidates = Of(shape).Select(r => Candidate(shape, r)).OfType<Navigable>().ToList();
+        var names = new Dictionary<Navigable, string>();
+
+        foreach (var candidate in candidates.Where(c => c.NamedById && taken.Add(c.IdName!)))
+        {
+            names[candidate] = candidate.IdName!;
+        }
+
+        var rest = candidates.Where(c => !names.ContainsKey(c)).ToList();
+
+        foreach (var candidate in rest)
+        {
+            var target = candidate.Target.SourceName;
+            var wanted = rest.Count(c => string.Equals(c.Target.SourceName, target, StringComparison.Ordinal));
+
+            if (wanted == 1 && taken.Add(target))
+            {
+                names[candidate] = target;
+            }
+            else if (!candidate.NamedById && candidate.IdName is { } own && taken.Add(own))
+            {
+                names[candidate] = own;
+            }
+        }
 
         var navigations = new List<ReadNavigation>();
 
-        foreach (var (foreignKey, preferred, other, target) in candidates)
+        foreach (var candidate in candidates)
         {
-            var name = Pick(candidates, preferred, other, taken);
-
-            if (name is null)
+            if (!names.TryGetValue(candidate, out var name))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    Rask112, shape.Location?.ToLocation(), shape.SourceName, foreignKey.Name, shape.Name, Why(preferred, other)));
+                    Rask112, shape.Location?.ToLocation(), shape.SourceName, candidate.ForeignKey.Name, shape.Name, Tried(candidate)));
                 continue;
             }
 
-            taken.Add(name);
-            navigations.Add(new ReadNavigation(name, target.FullyQualifiedName, foreignKey.Name, foreignKey.Nullable));
+            navigations.Add(new ReadNavigation(name, candidate.Target.FullyQualifiedName, candidate.ForeignKey.Name, candidate.ForeignKey.Nullable));
         }
 
         return navigations;
-    }
-
-    // The preferred name, unless another relationship prefers it too; else the other, unless any relationship prefers it.
-    private static string? Pick(
-        List<(ReadMember ForeignKey, string Preferred, string? Other, ReadShape Target)> candidates,
-        string preferred,
-        string? other,
-        HashSet<string> taken)
-    {
-        if (!taken.Contains(preferred) && candidates.Count(c => string.Equals(c.Preferred, preferred, StringComparison.Ordinal)) == 1)
-        {
-            return preferred;
-        }
-
-        return other is not null && !taken.Contains(other) &&
-               !candidates.Exists(c => string.Equals(c.Preferred, other, StringComparison.Ordinal))
-            ? other
-            : null;
     }
 
     private List<ReadRelationship> Of(ReadShape shape) =>
@@ -113,7 +115,7 @@ internal sealed class ConfiguredReferences
 
     // The id's column and target, when the relationship is one a navigation can carry: one column, onto a face this
     // compilation reads, joined on the target's key and of its key's type.
-    private (ReadMember ForeignKey, string Preferred, string? Other, ReadShape Target)? Candidate(ReadShape shape, ReadRelationship relationship)
+    private Navigable? Candidate(ReadShape shape, ReadRelationship relationship)
     {
         if (relationship is not { OnAlternateKey: false, ForeignKeys.Count: 1 } ||
             !_bySource.TryGetValue(relationship.PrincipalTypeName, out var target) ||
@@ -123,17 +125,20 @@ internal sealed class ConfiguredReferences
             return null;
         }
 
-        var stripped = foreignKey.Name.Length > 2 && foreignKey.Name.EndsWith("Id", StringComparison.Ordinal)
+        var idName = foreignKey.Name.Length > 2 && foreignKey.Name.EndsWith("Id", StringComparison.Ordinal)
             ? foreignKey.Name.Substring(0, foreignKey.Name.Length - 2)
             : null;
 
-        return stripped is not null && stripped.EndsWith(LastWord(target.SourceName), StringComparison.Ordinal)
-            ? (foreignKey, stripped, target.SourceName, target)
-            : (foreignKey, target.SourceName, stripped, target);
+        return new Navigable(foreignKey, target, idName, idName?.EndsWith(LastWord(target.SourceName), StringComparison.Ordinal) == true);
     }
 
+    private static string Tried(Navigable candidate) =>
+        candidate.IdName is null || string.Equals(candidate.IdName, candidate.Target.SourceName, StringComparison.Ordinal)
+            ? $"'{candidate.Target.SourceName}' is"
+            : $"'{candidate.Target.SourceName}' and '{candidate.IdName}' are";
+
     // ForeignTaxCategory -> Category: the noun an id has to end in to be named after itself.
-    private static string LastWord(string name)
+    internal static string LastWord(string name)
     {
         for (var i = name.Length - 1; i > 0; i--)
         {
@@ -146,8 +151,7 @@ internal sealed class ConfiguredReferences
         return name;
     }
 
-    private static string Why(string preferred, string? other) =>
-        other is null || string.Equals(other, preferred, StringComparison.Ordinal)
-            ? $"'{preferred}' is already taken"
-            : $"'{preferred}' and '{other}' are both already taken";
+    // A relationship a navigation can carry: its id's column, the face it points at, the name the id gives it, and
+    // whether the id names itself — ends in the target's last word.
+    private sealed record Navigable(ReadMember ForeignKey, ReadShape Target, string? IdName, bool NamedById);
 }

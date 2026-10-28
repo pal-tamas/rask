@@ -287,12 +287,7 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
             {
                 var target = faces[navigation.TargetReadType].Shape;
 
-                // A configured navigation need not end in its target's name — ForeignTaxProductCategory to a
-                // ForeignTaxCategory — and then nothing comes before the plural.
-                var prefix = navigation.Name.EndsWith(target.SourceName, StringComparison.Ordinal)
-                    ? navigation.Name.Substring(0, navigation.Name.Length - target.SourceName.Length)
-                    : string.Empty;
-                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + prefix));
+                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + Prefix(navigation.Name, target.SourceName)));
             }
         }
 
@@ -321,6 +316,20 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         }
 
         return reverses;
+    }
+
+    // What the collection's name takes after the plural: the navigation's words before its target's name (FromFueling ->
+    // From). A configured navigation need not end in its target's: one named by its id after the target's last word
+    // (ForeignTaxProductCategory, to a ForeignTaxCategory) adds nothing, and one named after nothing of it (Auditor, to
+    // a Payee) adds its whole name, so it never takes the plain plural from the id that does point by name.
+    private static string Prefix(string navigation, string target)
+    {
+        if (navigation.EndsWith(target, StringComparison.Ordinal))
+        {
+            return navigation.Substring(0, navigation.Length - target.Length);
+        }
+
+        return navigation.EndsWith(ConfiguredReferences.LastWord(target), StringComparison.Ordinal) ? string.Empty : navigation;
     }
 
     // What the target's face already calls this name, and what to rename instead of the id — or null when it is free.
