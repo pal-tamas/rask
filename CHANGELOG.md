@@ -157,6 +157,8 @@ them until tagged releases begin.
   landed by itself, so one release the gates refuse no longer holds back MDN, Node, CLDR and the rest. A red that
   `main` already has is no longer reported as upstream's: the follower waits and runs again when `full` passes.
   Every source — each follower, Flux UI, each front-end template — keeps one issue, closed by its next green run.
+  The followers are one list, `scripts/upstream/followers.json`, and the unit gate fails a generated file whose
+  generator is on neither it nor its list of what is still made by hand.
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
