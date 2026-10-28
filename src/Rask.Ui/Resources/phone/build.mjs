@@ -2,7 +2,8 @@
 // Builds Ui.Phone's engine: ui-phone.ts + intl-tel-input (pinned in package.json, locked in package-lock.json)
 // into ONE minified ES module, ../ui-phone.js, and copies the library's own utils (Google's libphonenumber,
 // compiled by its authors) beside it as ../ui-phone-utils.js. Both are committed. The kit's build never runs
-// this — it needs npm, and the kit builds without Node — so run it by hand after changing ui-phone.ts or a pin:
+// this — it needs npm, and the kit builds without Node — so run it by hand after changing ui-phone.ts. The pins
+// move daily: scripts/upstream/kit-bundle.mjs phone takes the release fluxui.dev serves and runs this.
 //
 //     cd src/Rask.Ui/Resources/phone && npm ci && node build.mjs
 //

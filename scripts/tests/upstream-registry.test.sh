@@ -28,6 +28,9 @@ dupes="$(jq -r '[.followers[], .manual[]] | map(.name) | group_by(.) | map(selec
 bad_kind="$(jq -r '.followers[] | select(.kind != "regenerate" and .kind != "measure") | .name' "$registry")"
 [ -z "$bad_kind" ] || fail "kind is neither regenerate nor measure: $bad_kind"
 
+bad_setup="$(jq -r '.followers[] | select((.setup // "dotnet") != "dotnet") | .name' "$registry")"
+[ -z "$bad_setup" ] || fail "setup is neither absent nor dotnet (upstream-follow.yml knows no other): $bad_setup"
+
 # The script a command runs: its first word, or its second after an interpreter.
 while IFS=$'\t' read -r name script; do
   [ -e "$script" ] || fail "$name runs $script, which does not exist"

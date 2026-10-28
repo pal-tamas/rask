@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Rask.UiTests.Components;
@@ -136,13 +137,15 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
         var notices = File.ReadAllText(Path.Combine(Resources, "ui-phone.LICENSES.txt"));
         var banner = File.ReadLines(Path.Combine(Resources, "ui-phone.js")).First();
         var lockfile = File.ReadAllText(Path.Combine(Resources, "phone", "package-lock.json"));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(Resources, "phone", "package.json")));
+        var release = package.RootElement.GetProperty("dependencies").GetProperty("intl-tel-input").GetString();
 
-        Assert.Contains("intl-tel-input 29.2.3 — MIT", notices, StringComparison.Ordinal);
+        Assert.Contains("intl-tel-input " + release + " — MIT", notices, StringComparison.Ordinal);
         Assert.Contains("Copyright (c) 2014-2016 Jack O'Connor", notices, StringComparison.Ordinal);
         Assert.Contains("Apache License", notices, StringComparison.Ordinal);
         Assert.Contains("Version 2.0, January 2004", notices, StringComparison.Ordinal);
         Assert.Contains("rask-ui-phone.LICENSES.txt", banner, StringComparison.Ordinal);
-        Assert.Matches("\"node_modules/intl-tel-input\": \\{\\s*\"version\": \"29.2.3\",[^}]*\"integrity\": \"sha512-", lockfile);
+        Assert.Matches("\"node_modules/intl-tel-input\": \\{\\s*\"version\": \"" + Regex.Escape(release!) + "\",[^}]*\"integrity\": \"sha512-", lockfile);
     }
 
     [Fact]

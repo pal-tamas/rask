@@ -106,6 +106,9 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
     <!-- The showcase draws Ui.Flag: its drawings are files in wwwroot/flags, copied there at build. -->
     <RaskUiWriteFlags>true</RaskUiWriteFlags>
+    <!-- The package islands' committed *.props.json are moved by the island-props follower
+         (scripts/upstream/followers.json), daily and gated, never as a side effect of a build here. -->
+    <RaskExternalPropsExtract>false</RaskExternalPropsExtract>
   </PropertyGroup>
 
   <ItemGroup>

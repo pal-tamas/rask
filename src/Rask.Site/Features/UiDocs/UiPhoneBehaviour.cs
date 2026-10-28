@@ -21,7 +21,7 @@ internal sealed partial class UiPhoneBehaviour : Component
 
     private static UiDocsTopic Browser() =>
         UiDocsTopic.Key("browser").Heading("Everything is in the browser").Paragraphs([
-            "The field runs intl-tel-input 29.2.3, the release fluxui.dev runs, so a formatting quirk of Flux's is this "
+            "The field runs the intl-tel-input release fluxui.dev runs, so a formatting quirk of Flux's is this "
             + "field's too, with Google's libphonenumber compiled. Typing, formatting, opening, searching and walking the "
             + "list send the server nothing; the number goes with the next action, as Flux's `wire:model` does, or as it "
             + "changes with `.Live()` or `.Debounce(…)`. The list names the countries in the page's language "

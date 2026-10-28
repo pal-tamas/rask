@@ -4,8 +4,16 @@
       "name": "mdn",
       "kind": "regenerate",
       "run": "scripts/mdn/follow.sh",
+      "setup": "dotnet",
       "outputs": ["src/Rask.Core/Dom/mdn.snapshot.json", "src/Rask.Core/PublicAPI/*/PublicAPI.*.txt",
                   "src/Rask.Web/PublicAPI/*/PublicAPI.*.txt", "src/Rask.Wasm/PublicAPI/*/PublicAPI.*.txt"]
+    },
+    {
+      "name": "island-props",
+      "kind": "regenerate",
+      "run": "scripts/upstream/island-props.sh",
+      "setup": "dotnet",
+      "outputs": ["src/Rask.Site/Features/Islands/React/*.props.json"]
     },
     {
       "name": "node-lts",
@@ -68,6 +76,36 @@
       "outputs": ["src/Rask.Ui/UiDatetimePickerJoins.g.cs", "src/Rask.Ui/Resources/cldr.LICENSE.txt"]
     },
     {
+      "name": "heroicons",
+      "kind": "regenerate",
+      "run": "node scripts/flux/icons.mjs",
+      "setup": "dotnet",
+      "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs", "src/Rask.Ui/PublicAPI/*/PublicAPI.*.txt"]
+    },
+    {
+      "name": "country-flag-icons",
+      "kind": "regenerate",
+      "run": "node scripts/flux/flags.mjs",
+      "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt", "src/Rask.Ui/Flags/*.svg"]
+    },
+    {
+      "name": "tiptap",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/kit-bundle.mjs editor",
+      "outputs": ["src/Rask.Ui/Resources/editor/package.json", "src/Rask.Ui/Resources/editor/package-lock.json",
+                  "src/Rask.Ui/Resources/ui-editor.js", "src/Rask.Ui/Resources/ui-editor.LICENSES.txt",
+                  "src/Rask.Ui/UiEditorEngine.cs"]
+    },
+    {
+      "name": "intl-tel-input",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/kit-bundle.mjs phone",
+      "outputs": ["src/Rask.Ui/Resources/phone/package.json", "src/Rask.Ui/Resources/phone/package-lock.json",
+                  "src/Rask.Ui/Resources/ui-phone.js", "src/Rask.Ui/Resources/ui-phone-utils.js",
+                  "src/Rask.Ui/Resources/ui-phone.LICENSES.txt", "src/Rask.Ui/UiPhoneEngine.cs",
+                  "src/Rask.Ui/UiPhoneCountries.g.cs"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
@@ -76,35 +114,10 @@
   ],
   "manual": [
     {
-      "name": "heroicons",
-      "generator": "scripts/flux/icons.mjs",
-      "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs"],
-      "why": "Run by hand; becomes a follower in P2."
-    },
-    {
-      "name": "country-flag-icons",
-      "generator": "scripts/flux/flags.mjs",
-      "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt"],
-      "why": "Run by hand; becomes a follower in P2."
-    },
-    {
       "name": "inter",
       "generator": "scripts/flux/inter-metrics.mjs",
       "outputs": ["src/Rask.Ui/UiChartInter.Metrics.cs"],
-      "why": "Run by hand; becomes a follower in P2."
-    },
-    {
-      "name": "tiptap",
-      "generator": "src/Rask.Ui/Resources/editor/build.mjs",
-      "outputs": ["src/Rask.Ui/Resources/ui-editor.js", "src/Rask.Ui/Resources/ui-editor.LICENSES.txt"],
-      "why": "Dependabot moves the lockfile but nothing rebuilds the bundle; becomes a follower in P2 (growth opens an issue)."
-    },
-    {
-      "name": "intl-tel-input",
-      "generator": "src/Rask.Ui/Resources/phone/build.mjs",
-      "outputs": ["src/Rask.Ui/Resources/ui-phone.js", "src/Rask.Ui/Resources/ui-phone-utils.js",
-                  "src/Rask.Ui/Resources/ui-phone.LICENSES.txt"],
-      "why": "Neither Dependabot nor a follower moves it; becomes a follower in P2 (growth opens an issue)."
+      "why": "Measured in Chromium on fluxui.dev's chart page (the widths the browser answers with Flux's Inter loaded), so it needs a browser and Flux's served face, not an npm release: run it by hand when Flux's Inter changes."
     },
     {
       "name": "lucide",
@@ -117,12 +130,6 @@
       "generator": "",
       "outputs": ["src/Rask.Generators/Translations/PluralRules.cs"],
       "why": "Hand-written from CLDR's plural rules; becomes a follower in P2."
-    },
-    {
-      "name": "island-props",
-      "generator": "src/Rask.External.Tasks",
-      "outputs": ["src/Rask.Site/Features/Islands/React/*.props.json"],
-      "why": "Written by the local build (RaskExternalPropsExtract) until P3 hands it to a follower."
     }
   ]
 }

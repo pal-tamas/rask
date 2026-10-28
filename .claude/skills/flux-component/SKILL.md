@@ -978,8 +978,8 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   chosen picture for its preview, which Flux's page does on the server.
 
 - Flag (2026-10-13): `Ui.Flag` is a `<span>` frame around a lazy `<img>`. The drawings are FILES
-  (`src/Rask.Ui/Flags/`, country-flag-icons 1.6.20, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
-  from the pinned tarball and writes `UiFlagRegistry.g.cs`), packed ONCE as `flags/` at the package root (not under `build/`: `PackagingContractTests` wants every `build/` item twinned, which would ship them twice) and copied to
+  (`src/Rask.Ui/Flags/`, country-flag-icons, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
+  from npm's latest release, followed daily, and writes `UiFlagRegistry.g.cs`), packed ONCE as `flags/` at the package root (not under `build/`: `PackagingContractTests` wants every `build/` item twinned, which would ship them twice) and copied to
   `wwwroot/flags` only for a project that says `RaskUiWriteFlags` (`Rask.Ui.targets`; the browser half of a
   one-project WASM app owns them, as it owns the editor's engine — `ClientCompanionGenerationTests`). `UN` and
   `CQ`: Flux serves them from artwork whose licence could not be established, so they are not shipped. The
@@ -988,7 +988,8 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   content draws the content and keeps the label for the search and the closed button's text; `Ui.SelectOption`
   draws the `Label` in place of its children, so the flag page's two selects are written without it.
 
-- Phone (2026-10-14): `Ui.Phone` runs intl-tel-input 29.2.3 — the release fluxui.dev's `phone.min.js` says it is —
+- Phone (2026-10-14): `Ui.Phone` runs intl-tel-input — the release fluxui.dev's `phone.min.js` says it is, followed daily by
+  `scripts/upstream/kit-bundle.mjs phone` —
   with that release's own libphonenumber utils (Flux's `phone-utils.js` answered the same on every country's
   examples and as-you-type), as an ENGINE like the editor's: `Resources/phone/` (pinned, locked, `npm ci && node
   build.mjs`) writes `Resources/ui-phone.js`, `ui-phone-utils.js`, their notices (MIT + Apache-2.0),

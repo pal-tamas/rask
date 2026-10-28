@@ -60,7 +60,7 @@ def build(project):
     """One build with the two findings as warnings, so a project that references this one still compiles."""
     done = subprocess.run(
         ["dotnet", "build", project, "--no-incremental", "-nologo", "-clp:NoSummary",
-         "-p:TreatWarningsAsErrors=false", "-p:RaskMdnRefresh=false"],
+         "-p:TreatWarningsAsErrors=false"],
         capture_output=True, text=True, check=False)
     if done.returncode != 0 or FAILED.search(done.stdout):
         sys.stdout.write(done.stdout)
