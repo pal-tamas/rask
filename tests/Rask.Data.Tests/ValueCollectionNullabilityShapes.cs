@@ -41,35 +41,12 @@ public sealed class ReturnFiling : Aggregate<int>
     public void Attach(string name) => (Attachments ??= []).Add(new AttachedFile(name));
 }
 
-/// <summary>
-/// A get-only view with no list behind it: EF Core cannot write a complex collection through it, so it keeps the
-/// owned mapping, whose column is NULL whatever the model says.
-/// </summary>
-public sealed class DraftFiling : Aggregate<int>
-{
-    private DraftFiling() { }
-
-#pragma warning disable RASK111 // the shape this pins: it keeps the owned mapping and its NULL column
-    public IReadOnlyList<FiledFile> Files { get; private set; } = new List<FiledFile>();
-#pragma warning restore RASK111
-}
-
 /// <summary>The return mapped by Rask's conventions alone.</summary>
 public sealed class FilingContext(DbContextOptions<FilingContext> options) : DbContext(options)
 {
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ReturnFiling>().ToTable(ReturnFiling.Table);
-        modelBuilder.ApplyRaskConventions();
-    }
-}
-
-/// <summary>The draft mapped by Rask's conventions alone.</summary>
-public sealed class DraftFilingContext(DbContextOptions<DraftFilingContext> options) : DbContext(options)
-{
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        modelBuilder.Entity<DraftFiling>();
         modelBuilder.ApplyRaskConventions();
     }
 }

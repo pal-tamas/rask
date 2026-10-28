@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- DraftFiling (ValueCollectionNullabilityTests) is the shape RASK111 warns about, kept to pin its NULL column. -->
+    <NoWarn>$(NoWarn);RASK111</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

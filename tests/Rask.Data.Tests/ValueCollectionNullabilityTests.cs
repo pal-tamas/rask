@@ -307,3 +307,25 @@ public sealed class CoverContext(DbContextOptions<CoverContext> options, bool co
         public object Create(DbContext context, bool designTime) => (context.GetType(), ((CoverContext)context).Complex, designTime);
     }
 }
+
+/// <summary>
+/// A get-only view with no list behind it: EF Core cannot write a complex collection through it, so it keeps the
+/// owned mapping, whose column is NULL whatever the model says. RASK111 warns about it; this project lets it build
+/// (NoWarn in the csproj — a generator's diagnostic carries no syntax tree, so a #pragma cannot reach it).
+/// </summary>
+public sealed class DraftFiling : Aggregate<int>
+{
+    private DraftFiling() { }
+
+    public IReadOnlyList<FiledFile> Files { get; private set; } = new List<FiledFile>();
+}
+
+/// <summary>The draft mapped by Rask's conventions alone.</summary>
+public sealed class DraftFilingContext(DbContextOptions<DraftFilingContext> options) : DbContext(options)
+{
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<DraftFiling>();
+        modelBuilder.ApplyRaskConventions();
+    }
+}
