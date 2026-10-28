@@ -104,9 +104,15 @@ internal static partial class BigTableReport
         return cells;
     }
 
-    // The classes the kit writes on a cell, so the arm differs only in what draws them.
-    private const string CellClass =
-        "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3 [:where([data-ui-table-bleed]_&:first-child)]:ps-[var(--ui-bleed,1.5rem)] [:where([data-ui-table-bleed]_&:last-child)]:pe-[var(--ui-bleed,1.5rem)] border-zinc-800/10 [:where(&)]:text-sm dark:border-white/20 [[data-ui-row]:not(:first-child)>&]:border-t [:where(&)]:text-zinc-500 dark:[:where(&)]:text-zinc-300 truncate";
+    // The classes the kit writes on a cell today, read off one it rendered, so the arm differs only in what draws them.
+    private static readonly string CellClass = KitCellClass();
+
+    private static string KitCellClass()
+    {
+        var html = Ui.TableCell.Class("truncate")["x"].ToHtml();
+        var start = html.IndexOf("class=\"", StringComparison.Ordinal) + "class=\"".Length;
+        return System.Net.WebUtility.HtmlDecode(html[start..html.IndexOf('"', start)]);
+    }
 
     private static Component PlainTable() =>
         Markup.Table[Tbody[Enumerable.Range(0, Rows).Select(i => (Component)Tr.Key(i)[Row(() => Td.Data("ui-cell", null).Class(CellClass).Title("x")["x"])])]];
