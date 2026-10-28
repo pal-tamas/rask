@@ -267,6 +267,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **The date and datetime pickers' chevron darkens under the pointer, as Flux UI's does.** On the button it turns
+  zinc-800 (white in dark) while the button is hovered; on a typed date field while the field is and none of its parts. Open, the
+  page lock takes the hover away on a desktop, and a tap's hover stays on a phone, both as Flux's.
 - **Hebrew and Vietnamese counts take the plural form CLDR gives them.** Hebrew has a dual — 2 is `two`, not
   `other` — and CLDR 49 counts 0 and 1 as `one` in Vietnamese, where Rask had no plural at all. A catalog without
   those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to

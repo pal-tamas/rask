@@ -162,6 +162,17 @@ public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_chevron_darkens_under_the_pointer_on_the_button_and_on_a_typed_field_but_not_on_its_parts()
+    {
+        var button = System.Net.WebUtility.HtmlDecode(Single(Jan(20)).ToHtml());
+        var typed = System.Net.WebUtility.HtmlDecode(Single(Jan(20)).Trigger(Ui.DatePickerInput).ToHtml());
+
+        Assert.Contains("[:hover>&]:text-zinc-800 dark:text-white/60 dark:[:hover>&]:text-white", button, StringComparison.Ordinal);
+        Assert.Contains("[:hover:not(:has(input:hover))>&]:text-zinc-800 dark:text-white/60 dark:[:hover:not(:has(input:hover))>&]:text-white", typed, StringComparison.Ordinal);
+        Assert.DoesNotContain("[:hover>&]", typed, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_closed_button_keeps_its_arrows_and_the_popup_holds_the_page_still()
     {
         var html = Single(Jan(20)).ToHtml();
