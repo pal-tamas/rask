@@ -472,28 +472,28 @@ collection is stored as `[]`, never as NULL. A nullable one, `List<Stop>? Detour
 column. This works the same way as Laravel's `$table->json('stops')` and Rails' `t.json :stops, null: false`. An
 adopted `Stops nvarchar(max) NOT NULL` column is mapped as it is, with no migration.
 
-A JSON column is an EF Core *complex collection*, which EF Core writes through a list. The property needs one
-behind it: the `List<T>` field behind a read-only view, as above, or a `List<T>` property of its own. A get-only
-`IReadOnlyList<Stop> Stops { get; private set; }` has no list behind it. It is mapped the old way, as an owned
-collection, and EF Core makes that column NULL whatever the model says.
-
-**Moving an existing app onto `NOT NULL` takes one edit to its next migration.** Before this, every value-object
-collection was a NULL column, so `rask db add` now writes an `AlterColumn` to `NOT NULL` for each non-nullable one.
-EF Core gives that column `defaultValue: "{}"`, an object, which no collection can read: a row filled with it fails
-on its next load. Change it to `"[]"`:
+A JSON column is an EF Core *complex collection*, which EF Core writes through a list, so the property needs a
+`List<T>` behind it. **A get-only `IReadOnlyList<T>` auto-property keeps a NULL column**, whatever its nullability:
 
 ```csharp
-migrationBuilder.AlterColumn<string>(
-    name: "Stops",
-    table: "Trip",
-    nullable: false,
-    defaultValue: "[]",          // EF Core wrote "{}"
-    oldClrType: typeof(string),
-    oldNullable: true);
+public IReadOnlyList<Stop> Stops { get; private set; } = new List<Stop>();   // NULL column: no list behind it
+
+private readonly List<Stop> _stops = [];
+public IReadOnlyList<Stop> Stops => _stops;                                  // NOT NULL: the field is the list
+
+public List<Stop> Stops { get; private set; } = [];                          // NOT NULL: the property is the list
 ```
 
-SQLite, SQL Server and PostgreSQL then fill every NULL row with `[]` before the column turns `NOT NULL`. Make the
-same edit to the `AddColumn` that adds a new non-nullable collection to a table that already has rows.
+The first shape is mapped the old way, as an owned collection, and EF Core makes an owned collection's column NULL and
+refuses `IsRequired()` on it.
+
+**Moving an existing app onto `NOT NULL` is one migration, with no edit.** Every value-object collection used to be a
+NULL column, so the next `rask db add` writes an `AlterColumn` to `NOT NULL` for each non-nullable one, with
+`defaultValue: "[]"`. SQLite, SQL Server and PostgreSQL fill every NULL row with `[]` before the column turns
+`NOT NULL`, and an `AddColumn` of a new collection fills the rows already there the same way. EF Core on its own would
+write `"{}"`, an object that no collection can read back, so a Rask context writes its migrations through Rask's
+differ: a `RaskDbContext`, a context on `UseRaskSqlite` or `UseRaskPostgres`, and an app's own context registered with
+`AddRaskData<TContext>()`. A JSON column that holds one value object keeps `"{}"`.
 
 **Choose a child entity instead when the elements need identity** — to be referenced, updated one at a time, or
 indexed. That is the real trade-off, and the deciding factor is usually the index:

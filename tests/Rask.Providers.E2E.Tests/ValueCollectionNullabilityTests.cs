@@ -3,18 +3,24 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Rask.Data.Tests.Shapes;
 
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>
 /// A collection of values is NULL in the database exactly where the model says it may be null, on the two server
-/// databases: the columns, the DDL, an adopted NOT NULL table, and the migration from the owned mapping.
+/// databases: the columns, the DDL, an adopted NOT NULL table, and the migration from the owned mapping — which fills
+/// the rows that were NULL with an empty array by itself.
 /// </summary>
 /// <remarks>
-/// Proved without a server — a model, its DDL and a migration's SQL need a provider but no connection.
+/// The model, the DDL and the migration's SQL are proved without a server — they need a provider but no connection.
+/// The migration is also run against each server, which reports SKIPPED where there is none.
 /// </remarks>
-public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
+[Collection(PostgresCollection.Name)]
+public sealed class ValueCollectionNullabilityTests
 {
     private const string OfflineSqlServer = "Server=(local);Database=rask_model_only;Trusted_Connection=True";
     private const string OfflinePostgres = "Host=localhost;Database=rask_model_only";
@@ -22,7 +28,8 @@ public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
     [Fact]
     public void On_sql_server_a_column_is_null_only_where_the_model_says_the_collection_may_be()
     {
-        using var context = new FilingContext(SqlServer<FilingContext>());
+        using var app = SqlServerApp(OfflineSqlServer);
+        var context = app.Context;
 
         var columns = ValueObjectMappingDiff.Columns(context, ReturnFiling.Table);
         var script = context.Database.GenerateCreateScript();
@@ -43,7 +50,7 @@ public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
     [Fact]
     public void On_postgresql_a_column_is_null_only_where_the_model_says_the_collection_may_be()
     {
-        using var context = new FilingContext(Postgres<FilingContext>());
+        using var context = new FilingContext(OnPostgres<FilingContext>(OfflinePostgres));
 
         var columns = ValueObjectMappingDiff.Columns(context, ReturnFiling.Table);
         var script = context.Database.GenerateCreateScript();
@@ -64,10 +71,10 @@ public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
     [Fact]
     public void On_sql_server_an_adopted_not_null_json_column_is_the_column_rask_maps()
     {
-        using var legacy = new LegacyFilingContext(SqlServer<LegacyFilingContext>());
-        using var rask = new FilingContext(SqlServer<FilingContext>());
+        using var legacy = new LegacyFilingContext(new DbContextOptionsBuilder<LegacyFilingContext>().UseSqlServer(OfflineSqlServer).Options);
+        using var app = SqlServerApp(OfflineSqlServer);
 
-        var (forward, back) = ValueObjectMappingDiff.Between(legacy, rask);
+        var (forward, back) = ValueObjectMappingDiff.Between(legacy, app.Context);
 
         Assert.Empty(forward);
         Assert.Empty(back);
@@ -76,8 +83,8 @@ public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
     [Fact]
     public void On_postgresql_an_adopted_not_null_json_column_is_the_column_rask_maps()
     {
-        using var legacy = new LegacyFilingContext(Postgres<LegacyFilingContext>());
-        using var rask = new FilingContext(Postgres<FilingContext>());
+        using var legacy = new LegacyFilingContext(new DbContextOptionsBuilder<LegacyFilingContext>().UseNpgsql(OfflinePostgres).Options);
+        using var rask = new FilingContext(OnPostgres<FilingContext>(OfflinePostgres));
 
         var (forward, back) = ValueObjectMappingDiff.Between(legacy, rask);
 
@@ -86,47 +93,123 @@ public sealed class ValueCollectionNullabilityTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void On_sql_server_the_migration_with_an_empty_array_as_its_default_fills_the_null_rows_first()
+    public void On_sql_server_the_migration_rask_generates_fills_the_null_rows_with_an_empty_array_first()
     {
-        using var owned = new OwnedFilingContext(SqlServer<OwnedFilingContext>());
-        using var rask = new FilingContext(SqlServer<FilingContext>());
+        using var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(OfflineSqlServer).Options);
+        using var app = SqlServerApp(OfflineSqlServer);
 
-        var sql = MigrationSql(owned, rask);
+        var sql = MigrationSql(owned, app.Context);
 
         Assert.Contains("UPDATE [ReturnFilings] SET [Files] = N'[]' WHERE [Files] IS NULL", sql, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE [ReturnFilings] ALTER COLUMN [Files] nvarchar(max) NOT NULL", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("'{}'", sql, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void On_postgresql_the_migration_with_an_empty_array_as_its_default_fills_the_null_rows_first()
+    public void On_postgresql_the_migration_rask_generates_fills_the_null_rows_with_an_empty_array_first()
     {
-        using var owned = new OwnedFilingContext(Postgres<OwnedFilingContext>());
-        using var rask = new FilingContext(Postgres<FilingContext>());
+        using var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseNpgsql(OfflinePostgres).Options);
+        using var rask = new FilingContext(OnPostgres<FilingContext>(OfflinePostgres));
 
         var sql = MigrationSql(owned, rask);
 
         Assert.Contains("UPDATE \"ReturnFilings\" SET \"Files\" = '[]' WHERE \"Files\" IS NULL", sql, StringComparison.Ordinal);
         Assert.Contains("ALTER COLUMN \"Files\" SET NOT NULL", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("'{}'", sql, StringComparison.Ordinal);
     }
 
-    // The SQL of the migration `dotnet ef migrations add` writes, with the one edit docs/data.md describes.
-    private string MigrationSql(DbContext from, DbContext to)
+    [Fact]
+    public async Task On_a_sql_server_the_migrated_rows_that_were_null_read_back_as_empty_lists()
     {
-        var operations = to.GetService<IMigrationsModelDiffer>().GetDifferences(
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        var connection = SqlServer.Database("rask_value_collections");
+        await using (var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(connection).Options))
+        {
+            await owned.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
+            await owned.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+            await owned.Database.ExecuteSqlRawAsync(
+                "INSERT INTO [ReturnFilings] ([Files], [Labels]) VALUES (NULL, N'[]'), (N'[{\"Name\":\"a.pdf\",\"Pages\":1}]', N'[]')",
+                TestContext.Current.CancellationToken);
+        }
+
+        using var app = SqlServerApp(connection);
+        await MigrateAsync(new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(connection).Options), app.Context);
+        var files = await FileCountsAsync(app.Context);
+        await app.Context.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal([0, 1], files);
+    }
+
+    [Fact]
+    public async Task On_a_postgresql_server_the_migrated_rows_that_were_null_read_back_as_empty_lists()
+    {
+        Assert.SkipUnless(Postgres.Available, Postgres.SkipReason);
+        const string Schema = "value_collection_nullability";
+        var connection = new NpgsqlConnectionStringBuilder(Postgres.Required) { SearchPath = Schema }.ConnectionString;
+        await using (var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseNpgsql(connection).Options))
+        {
+            await Postgres.ResetSchemaAsync(owned, Schema);
+            await owned.Database.ExecuteSqlRawAsync(
+                "INSERT INTO \"ReturnFilings\" (\"Files\", \"Labels\") VALUES (NULL, '{}'), ('[{\"Name\":\"a.pdf\",\"Pages\":1}]', '{}')",
+                TestContext.Current.CancellationToken);
+        }
+
+        await using var rask = new FilingContext(OnPostgres<FilingContext>(connection));
+        await MigrateAsync(new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseNpgsql(connection).Options), rask);
+        var files = await FileCountsAsync(rask);
+        await Postgres.DropSchemaAsync(rask, Schema);
+
+        Assert.Equal([0, 1], files);
+    }
+
+    private static async Task<List<int>> FileCountsAsync(FilingContext context) =>
+        [.. (await context.Set<ReturnFiling>().OrderBy(f => f.Id).ToListAsync(TestContext.Current.CancellationToken)).Select(f => f.Files.Count)];
+
+    // The path `dotnet ef migrations add` and `database update` take: the differ between the two models, then the generator.
+    private static async Task MigrateAsync(DbContext from, DbContext to)
+    {
+        await using (from)
+        {
+            var model = to.GetService<IDesignTimeModel>().Model;
+            var commands = to.GetService<IMigrationsSqlGenerator>().Generate(Differences(from, to), model);
+            await to.GetService<IMigrationCommandExecutor>().ExecuteNonQueryAsync(
+                commands, to.GetService<IRelationalConnection>(), TestContext.Current.CancellationToken);
+        }
+    }
+
+    private static string MigrationSql(DbContext from, DbContext to) =>
+        string.Join("\n", to.GetService<IMigrationsSqlGenerator>()
+            .Generate(Differences(from, to), to.GetService<IDesignTimeModel>().Model)
+            .Select(c => c.CommandText));
+
+    private static IReadOnlyList<MigrationOperation> Differences(DbContext from, DbContext to) =>
+        to.GetService<IMigrationsModelDiffer>().GetDifferences(
             from.GetService<IDesignTimeModel>().Model.GetRelationalModel(),
             to.GetService<IDesignTimeModel>().Model.GetRelationalModel());
-        operations.OfType<AlterColumnOperation>().Single(a => a.Name == "Files").DefaultValue = "[]";
 
-        var sql = string.Join("\n", to.GetService<IMigrationsSqlGenerator>()
-            .Generate(operations, to.GetService<IDesignTimeModel>().Model)
-            .Select(c => c.CommandText));
-        output.WriteLine(sql);
-        return sql;
+    // UseRaskPostgres, as an app configures its context.
+    private static DbContextOptions<TContext> OnPostgres<TContext>(string connection)
+        where TContext : DbContext => new DbContextOptionsBuilder<TContext>().UseRaskPostgresAt(connection).Options;
+
+    // A hand-wired SQL Server app: its own context on plain UseSqlServer, registered beside AddRaskData<TContext>.
+    private static SqlServerAppContext SqlServerApp(string connection)
+    {
+        var services = new ServiceCollection()
+            .AddRaskData<FilingContext>()
+            .AddDbContext<FilingContext>(o => o.UseSqlServer(connection))
+            .BuildServiceProvider();
+        var scope = services.CreateScope();
+        return new SqlServerAppContext(services, scope, scope.ServiceProvider.GetRequiredService<FilingContext>());
     }
 
-    private static DbContextOptions<TContext> SqlServer<TContext>()
-        where TContext : DbContext => new DbContextOptionsBuilder<TContext>().UseSqlServer(OfflineSqlServer).Options;
+    private sealed class SqlServerAppContext(ServiceProvider services, IServiceScope scope, FilingContext context) : IDisposable
+    {
+        public FilingContext Context { get; } = context;
 
-    private static DbContextOptions<TContext> Postgres<TContext>()
-        where TContext : DbContext => new DbContextOptionsBuilder<TContext>().UseNpgsql(OfflinePostgres).Options;
+        public void Dispose()
+        {
+            scope.Dispose();
+            services.Dispose();
+        }
+    }
 }

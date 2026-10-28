@@ -111,6 +111,10 @@ public static partial class RaskDataServiceCollectionExtensions
         // than the first double booking or search. TryAddEnumerable, so a second call for the same context checks once.
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, ProviderFeatureCheck<TContext>>());
 
+        // The app's own context too, however its provider was chosen: a collection of value objects turned NOT NULL is
+        // filled with [] by the migration `dotnet ef migrations add` writes for it, not with EF Core's {}.
+        services.ConfigureDbContext<TContext>(static o => RaskMigrationsModelDiffer.Use(o));
+
         return services;
     }
 

@@ -96,6 +96,9 @@ public class RaskDbContext : DbContext, ITenantScoped
         optionsBuilder.ConfigureWarnings(warnings =>
             warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
 
+        // A collection of value objects turned NOT NULL is filled with [] by its migration, not with EF Core's {}.
+        RaskMigrationsModelDiffer.Use(optionsBuilder);
+
         // A child collection declared `= []` is filled through it, so a context configured without it gets it here.
         if (optionsBuilder.Options.FindExtension<CoreOptionsExtension>()?.Interceptors?
                 .Contains(WritableChildrenInterceptor.Instance) != true)

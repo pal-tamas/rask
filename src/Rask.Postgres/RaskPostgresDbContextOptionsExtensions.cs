@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Rask.Data;
 using Rask.Hosting.Shared;
 
 namespace Rask.Postgres;
@@ -71,6 +72,9 @@ public static class RaskPostgresDbContextOptionsExtensions
         // one generator and one extension of each type, so calling this twice registers nothing twice.
         optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskPostgresMigrationsSqlGenerator>();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new PostgresFullTextSearchOptionsExtension());
+
+        // A collection of value objects turned NOT NULL is filled with [] by its migration, not with EF Core's {}.
+        RaskMigrationsModelDiffer.Use(optionsBuilder);
 
         return optionsBuilder.UseNpgsql(PostgresSessionSettings.Apply(connectionString, options), postgres =>
         {

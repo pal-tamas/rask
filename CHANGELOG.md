@@ -194,11 +194,13 @@ them until tagged releases begin.
   face, element converters and wholesale replacement are unchanged. EF Core writes a complex collection through a
   list, so the property needs one behind it: the `List<T>` field behind a read-only view, or a `List<T>` property.
   A get-only `IReadOnlyList<T> { get; private set; }` has none and keeps the old `NULL` mapping. An existing app's next
-  migration snapshot changes, and every non-nullable value-object collection gets an `AlterColumn` to `NOT NULL`.
-  EF Core gives that column `defaultValue: "{}"`, an object, which no collection can read. **Change it to
-  `defaultValue: "[]"`** in that `AlterColumn`, and in any `AddColumn` of a new collection on a table that has rows.
-  Then SQLite, SQL Server and PostgreSQL all fill the existing `NULL` rows with `[]` before the column turns
-  `NOT NULL`. See [collections of values](docs/data.md#collections-of-values).
+  migration snapshot changes, and every non-nullable value-object collection gets an `AlterColumn` to `NOT NULL`
+  with `defaultValue: "[]"`. No hand edit is needed: SQLite, SQL Server and PostgreSQL fill the existing `NULL` rows
+  with `[]` before the column turns `NOT NULL`, and an `AddColumn` of a new collection fills the rows already there
+  the same way. EF Core on its own writes `"{}"`, an object that no collection can read back. A Rask context
+  therefore writes its migrations through Rask's differ, which writes `"[]"` for a JSON collection and keeps `"{}"`
+  for one value object. That covers `RaskDbContext`, `UseRaskSqlite`, `UseRaskPostgres` and an app's own context
+  registered with `AddRaskData<TContext>()`. See [collections of values](docs/data.md#collections-of-values).
 
 - **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
   its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and

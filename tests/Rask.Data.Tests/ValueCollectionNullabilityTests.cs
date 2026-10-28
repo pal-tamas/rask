@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Data.Tests.Shapes;
 
 namespace Rask.Data.Tests;
@@ -176,7 +177,7 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     }
 
     [Fact]
-    public void An_app_on_the_owned_mapping_gets_one_alter_column_and_only_for_the_non_nullable_collection()
+    public void An_app_on_the_owned_mapping_gets_one_alter_column_that_fills_with_an_empty_array()
     {
         using var owned = new OwnedFilingContext(Sqlite<OwnedFilingContext>());
         using var rask = new FilingContext(Sqlite<FilingContext>());
@@ -186,35 +187,58 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
 
         Assert.Equal(["AlterColumn ReturnFilings.Files: TEXT NULL -> TEXT NOT NULL"], forward);
 
-        // EF Core fills every JSON column it makes NOT NULL with an OBJECT — right for one value object, wrong for a
-        // collection of them. docs/data.md says to change it to "[]" in the migration; this pins the reason.
-        Assert.Equal("{}", alter.DefaultValue);
+        // EF Core's own differ writes "{}" here — an object, which no collection can read back.
+        Assert.Equal("[]", alter.DefaultValue);
     }
 
     [Fact]
-    public async Task The_migration_as_ef_writes_it_leaves_rows_no_collection_can_read()
+    public async Task The_migration_rask_generates_fills_the_null_rows_with_an_empty_array()
     {
         await SeedOnTheOwnedMappingAsync();
         await using var rask = new FilingContext(Sqlite<FilingContext>());
 
-        await MigrateFromOwnedAsync(rask, emptyArray: false);
-        var unreadable = await Record.ExceptionAsync(() => rask.Set<ReturnFiling>().ToListAsync(TestContext.Current.CancellationToken));
-
-        Assert.IsType<InvalidOperationException>(unreadable);
-    }
-
-    [Fact]
-    public async Task With_an_empty_array_as_its_default_the_migration_fills_the_null_rows()
-    {
-        await SeedOnTheOwnedMappingAsync();
-        await using var rask = new FilingContext(Sqlite<FilingContext>());
-
-        await MigrateFromOwnedAsync(rask, emptyArray: true);
+        await MigrateFromOwnedAsync(rask);
         var filings = await rask.Set<ReturnFiling>().OrderBy(f => f.Id).ToListAsync(TestContext.Current.CancellationToken);
         var stored = await StoredAsync(rask, filings[0].Id);
 
         Assert.Equal([0, 1], filings.Select(f => f.Files.Count));
         Assert.Equal("'[]'", stored.Files);
+    }
+
+    [Fact]
+    public void A_json_column_holding_one_value_object_keeps_an_empty_object()
+    {
+        using var owned = new CoverContext(Sqlite<CoverContext>(), complex: false);
+        using var complex = new CoverContext(Sqlite<CoverContext>(), complex: true);
+
+        var alter = Assert.Single(Differences(owned, complex).OfType<AlterColumnOperation>());
+
+        Assert.Equal("Cover", alter.Name);
+        Assert.Equal("{}", alter.DefaultValue);
+    }
+
+    [Fact]
+    public void A_rask_context_writes_its_migrations_through_rasks_differ()
+    {
+        using var context = new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
+
+        var differ = context.GetService<IMigrationsModelDiffer>();
+
+        Assert.IsType<RaskMigrationsModelDiffer>(differ);
+    }
+
+    [Fact]
+    public void An_app_context_registered_with_add_rask_data_writes_its_migrations_through_rasks_differ()
+    {
+        var services = new ServiceCollection()
+            .AddRaskData<FilingContext>()
+            .AddDbContext<FilingContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
+        using var app = services.BuildServiceProvider();
+        using var scope = app.CreateScope();
+
+        var differ = scope.ServiceProvider.GetRequiredService<FilingContext>().GetService<IMigrationsModelDiffer>();
+
+        Assert.IsType<RaskMigrationsModelDiffer>(differ);
     }
 
     private async Task SeedOnTheOwnedMappingAsync()
@@ -227,16 +251,11 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
         await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
     }
 
-    // The operations `dotnet ef migrations add` writes — with, when asked, the one edit docs/data.md describes.
-    private async Task MigrateFromOwnedAsync(FilingContext rask, bool emptyArray)
+    // The operations `dotnet ef migrations add` writes, applied the way `dotnet ef database update` applies them.
+    private async Task MigrateFromOwnedAsync(FilingContext rask)
     {
         await using var owned = new OwnedFilingContext(Sqlite<OwnedFilingContext>());
         var operations = Differences(owned, rask);
-
-        if (emptyArray)
-        {
-            operations.OfType<AlterColumnOperation>().Single(a => a.Name == "Files").DefaultValue = "[]";
-        }
 
         var commands = rask.GetService<IMigrationsSqlGenerator>().Generate(operations, rask.GetService<IDesignTimeModel>().Model);
         await rask.GetService<IMigrationCommandExecutor>().ExecuteNonQueryAsync(
@@ -269,6 +288,48 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     private DbContextOptions<TContext> Sqlite<TContext>()
         where TContext : DbContext => Sqlite<TContext>($"Data Source={_dbPath}");
 
+    // Through Rask's differ, as UseRaskSqlite, a RaskDbContext and AddRaskData<TContext> all configure a context.
     private static DbContextOptions<TContext> Sqlite<TContext>(string connectionString)
-        where TContext : DbContext => new DbContextOptionsBuilder<TContext>().UseSqlite(connectionString).Options;
+        where TContext : DbContext
+    {
+        var options = new DbContextOptionsBuilder<TContext>().UseSqlite(connectionString);
+        RaskMigrationsModelDiffer.Use(options);
+        return options.Options;
+    }
+}
+
+/// <summary>A row holding ONE value object as JSON — the column EF Core's "{}" is right for.</summary>
+public sealed class CoverRow
+{
+    public int Id { get; set; }
+
+    public FiledFile Cover { get; set; } = new("", 0);
+}
+
+/// <summary>The row with its cover owned (a NULL column) or complex (NOT NULL), so the move between them is diffed.</summary>
+public sealed class CoverContext(DbContextOptions<CoverContext> options, bool complex) : DbContext(options)
+{
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.ReplaceService<IModelCacheKeyFactory, CoverModelKey>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+        modelBuilder.Entity<CoverRow>(b =>
+        {
+            if (complex)
+            {
+                b.ComplexProperty(r => r.Cover, c => c.ToJson());
+            }
+            else
+            {
+                b.OwnsOne(r => r.Cover, o => o.ToJson());
+                b.Navigation(r => r.Cover).IsRequired(false);
+            }
+        });
+
+    internal bool Complex => complex;
+
+    private sealed class CoverModelKey : IModelCacheKeyFactory
+    {
+        public object Create(DbContext context, bool designTime) => (context.GetType(), ((CoverContext)context).Complex, designTime);
+    }
 }
