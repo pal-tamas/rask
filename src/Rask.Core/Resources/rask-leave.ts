@@ -29,6 +29,14 @@
 // closing the tab, a reload and a link out of the app are `beforeunload`, whose dialog is the browser's own.
 // A navigation the server makes from a handler takes none of those paths, so a save that ends in
 // `Go.To(…)` is never asked about. A form that has left the document is not found, and guards nothing.
+//
+// A DIALOG THAT HOLDS ONE. A form in a Ui.Modal is left when the modal closes, and no navigation is made: so
+// every way the READER closes one asks first — Escape, a press outside (both a `cancel`), and a button that
+// closes it (`command="close" | "request-close"`: the corner's cross, Ui.ModalClose). Escape is asked about on
+// its way back up, so a listbox or a popover inside that closes on it first is left to do so. A close the page
+// makes (Open false after a save) is the server's, as `Go.To(…)` is, and never asked about. Once the reader
+// lets the dialog go, what its forms held is let go with it; and a form in a closed dialog is on no screen, so
+// it holds nothing to lose.
 
 import {dialogAsking} from "./rask-ask.js";
 import {isUnasked, listen, near, page, seam} from "./rask-owned.js";
@@ -64,16 +72,48 @@ function edits(form: Element): Edits {
     return known;
 }
 
-/** The message of the first guarded form in `doc` holding edits no accepted submit carried, or null. */
-export function unsavedMessage(doc: Document): string | null {
-    const guarded = doc.querySelectorAll(GUARDED);
+/** Whether `el` is a <dialog> that is showing. */
+function isOpenDialog(el: Element | null): el is HTMLDialogElement {
+    return !!el && el.matches("dialog") && (el as HTMLDialogElement).open;
+}
+
+// A form in a dialog that is closed is on no screen.
+function onScreen(form: Element): boolean {
+    const dialog = form.closest("dialog");
+    return !dialog || isOpenDialog(dialog);
+}
+
+/**
+ * The message of the first guarded form in `within` — the page, or a dialog — holding edits no accepted
+ * submit carried, or null.
+ */
+export function unsavedMessage(within: Document | Element): string | null {
+    const guarded = within.querySelectorAll(GUARDED);
     for (let i = 0; i < guarded.length; i++) {
         const known = edits(guarded[i]);
-        if (known.made > known.saved || guarded[i].hasAttribute(EDITED)) {
+        if ((known.made > known.saved || guarded[i].hasAttribute(EDITED)) && onScreen(guarded[i])) {
             return guarded[i].getAttribute(MESSAGE);
         }
     }
     return null;
+}
+
+// The reader let the dialog go, and what its forms held with it.
+function letGo(dialog: Element): void {
+    const guarded = dialog.querySelectorAll(GUARDED);
+    for (let i = 0; i < guarded.length; i++) {
+        const known = edits(guarded[i]);
+        known.saved = known.sent = known.made;
+    }
+}
+
+// Whether something inside `dialog` that Escape closes before the dialog is showing.
+function holdsAPopover(dialog: Element): boolean {
+    try {
+        return dialog.querySelector(":popover-open") !== null;
+    } catch (e) {
+        return false; // an engine without popovers
+    }
 }
 
 interface HistoryEntry {
@@ -176,6 +216,61 @@ if (page) {
         if (form) {
             const known = edits(form);
             known.sent = known.made;
+        }
+    }, true);
+
+    // A dialog the reader is closing, asked about first; `close` is the same close again, which `closing`
+    // lets through once the reader says to let the dialog go.
+    let closing = false;
+    const closes = function (e: Event, dialog: Element | null, close: () => void): void {
+        if (closing || !isOpenDialog(dialog)) {
+            return;
+        }
+        const message = unsavedMessage(dialog);
+        if (message === null) {
+            return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const yes = function (): void {
+            letGo(dialog);
+            closing = true;
+            try {
+                close();
+            } finally {
+                closing = false;
+            }
+        };
+        if (!inDialog(message, yes) && window.confirm(message)) {
+            yes();
+        }
+    };
+    // Escape and a press outside, as rask-overlay.ts dismisses a dialog: a `cancel` the page may refuse, then the close.
+    const dismiss = function (dialog: HTMLDialogElement): void {
+        if (dialog.dispatchEvent(new Event("cancel", {cancelable: true}))) {
+            dialog.close();
+        }
+    };
+    listen("keydown", function (e) {
+        const dialog = e.key === "Escape" && !e.defaultPrevented ? near(e.target, "dialog") : null;
+        if (dialog && !holdsAPopover(dialog)) {
+            closes(e, dialog, function () { dismiss(dialog as HTMLDialogElement); });
+        }
+    });
+    // A press outside, and any close request the key above did not see (a phone's back gesture). One the browser
+    // will not let be refused is over already.
+    listen("cancel", function (e) {
+        const dialog = e.target instanceof Element ? e.target : null;
+        if (e.cancelable && dialog) {
+            closes(e, dialog, function () { dismiss(dialog as HTMLDialogElement); });
+        }
+    }, true);
+    // A button that closes it, whether the engine runs its command or rask-overlay.ts does: refused before either.
+    listen("click", function (e) {
+        const button = near(e.target, "button[commandfor]");
+        const command = button ? button.getAttribute("command") : null;
+        if (button && (command === "close" || command === "request-close")) {
+            closes(e, doc.getElementById(button.getAttribute("commandfor") || ""), function () { button.click(); });
         }
     }, true);
 

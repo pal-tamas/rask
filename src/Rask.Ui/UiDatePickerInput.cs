@@ -114,7 +114,7 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
                 ],
             Span.Class(UiDatePickerLook.Spacer),
             scope.ClearInside(Clearable, locked),
-            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
+            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.TrailingTyped)
         ];
 
         // Everything in the field but its parts and its × opens the calendar.

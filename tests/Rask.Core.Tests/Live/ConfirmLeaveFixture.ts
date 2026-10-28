@@ -6,7 +6,17 @@
 // fixture fires by hand, as the browser would after a render changed an attribute. The C# test
 // (ConfirmLeaveClientTests) runs this in a node subprocess and asserts the JSON line.
 
-type Heard = (e: { target: unknown }) => void;
+type Heard = (e: Raised) => void;
+
+// An event as the guard reads one: what it was raised on, and whether a listener refused it.
+interface Raised {
+    target: unknown;
+    key?: string;
+    cancelable: boolean;
+    defaultPrevented: boolean;
+    preventDefault(): void;
+    stopImmediatePropagation(): void;
+}
 
 const heard: Record<string, Heard[]> = {};
 const onWindow = new Set<string>();
@@ -14,8 +24,25 @@ let observed: (() => void) | null = null;
 
 // An element as the guard reads one: its attributes, and the elements it is inside.
 class Stub {
+    // A dialog's: whether it is showing, and how many times something closed it.
+    open = false;
+    closed = 0;
+
     constructor(readonly tag: string, readonly attributes: Record<string, string>, readonly parent: Stub | null = null) {
     }
+
+    // The guarded forms inside this one.
+    querySelectorAll(selector: string): Stub[] {
+        return forms.filter((form) => form !== this && form.matches(selector) && form.inside(this));
+    }
+
+    querySelector(): Stub | null { return null; }
+
+    inside(other: Stub): boolean { return this.parent === other || (!!this.parent && this.parent.inside(other)); }
+
+    dispatchEvent(): boolean { return true; }
+
+    close(): void { this.open = false; this.closed++; }
 
     hasAttribute(name: string): boolean { return name in this.attributes; }
 
@@ -42,6 +69,9 @@ page.Element = Stub;
 page.location = {href: "https://app.test/edit"};
 page.addEventListener = function (type: string) { onWindow.add(type); };
 page.removeEventListener = function (type: string) { onWindow.delete(type); };
+let answer = false;
+let asked = 0;
+page.confirm = function () { asked++; return answer; };
 page.MutationObserver = class {
     constructor(changed: () => void) { observed = changed; }
     observe(): void { /* fired by the fixture */ }
@@ -57,12 +87,23 @@ const {unsavedMessage} = await import("../../../src/Rask.Core/Resources/rask-lea
 
 const doc = page.document as Document;
 
-function raise(type: string, target: Stub): void {
-    (heard[type] || []).forEach(function (listener) { listener({target}); });
+// Raised on `target`, as every listener on the document hears it; true when one of them refused it.
+function raise(type: string, target: Stub, key?: string): boolean {
+    let stopped = false;
+    const event: Raised = {
+        target, key, cancelable: true, defaultPrevented: false,
+        preventDefault() { this.defaultPrevented = true; },
+        stopImmediatePropagation() { stopped = true; },
+    };
+    for (const listener of heard[type] || []) {
+        if (stopped) break;
+        listener(event);
+    }
+    return event.defaultPrevented;
 }
 
-function guarded(message: string): Stub {
-    const form = new Stub("form", {"data-rask-confirm-leave": message});
+function guarded(message: string, inside: Stub | null = null): Stub {
+    const form = new Stub("form", {"data-rask-confirm-leave": message}, inside);
     forms.push(form);
     return form;
 }
@@ -129,7 +170,43 @@ forms.length = 0;
 forms.push(new Stub("form", {"data-rask-edited": ""}));
 const aFormThatDoesNotAsk = unsavedMessage(doc);
 
+// A form in a modal: closing the modal is leaving it. Untouched, Escape closes it unasked.
+forms.length = 0;
+const dialog = new Stub("dialog", {});
+dialog.open = true;
+form = guarded("Leave the tank?", dialog);
+const escapeUntouchedRefused = raise("keydown", new Stub("input", {}, form), "Escape");
+
+// Typed into: Escape and a press outside ask, and the reader who stays keeps the dialog and the edits.
+raise("input", new Stub("input", {}, form));
+const inTheDialog = unsavedMessage(dialog as unknown as Element);
+const escapeRefused = raise("keydown", new Stub("input", {}, form), "Escape");
+const pressOutsideRefused = raise("cancel", dialog);
+const askedWhileStaying = asked;
+const stillOpen = dialog.open;
+
+// The reader lets it go: it closes, and nothing it held is asked about again.
+answer = true;
+raise("cancel", dialog);
+const closedOnceLetGo = dialog.closed;
+dialog.open = true;
+const afterLettingGo = unsavedMessage(doc);
+
+// Typed into again, then closed by the page (a render, not the reader): a form in a closed dialog holds nothing.
+raise("input", new Stub("input", {}, form));
+dialog.open = false;
+const inAClosedDialog = unsavedMessage(doc);
+
 process.stdout.write(JSON.stringify({
+    escapeUntouchedRefused,
+    inTheDialog,
+    escapeRefused,
+    pressOutsideRefused,
+    askedWhileStaying,
+    stillOpen,
+    closedOnceLetGo,
+    afterLettingGo,
+    inAClosedDialog,
     untouched,
     afterAPick,
     closingTheTabAsks,

@@ -13,6 +13,13 @@ them until tagged releases begin.
   keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that
   get `NOT NULL`: a `List<FiledFile>` field behind the read-only view, or a `List<FiledFile>` property. See
   [RASK111](docs/diagnostics.md#rask111).
+- **A guarded form in a modal asks before the modal closes.** Before: a `ConfirmLeave` form inside a `Ui.Modal` or a
+  flyout asked only when the reader left the PAGE; its close button, a `Ui.ModalClose`, Escape or a press outside closed
+  the modal and dropped what was typed without a word. Now each of those asks first, in `Ui.ConfirmLeave` when the
+  layout has one: staying keeps the modal open with the edits, leaving closes it as it would have (`OnCancel`,
+  `OnClose`) and lets the edits go. A close the page makes (`Open` false after a save) is never asked about, as
+  `Go.To(…)` is not, and Escape is left to a listbox or popover open inside the modal first. A form in a closed modal
+  no longer counts as unsaved for a navigation. See [A form in a modal](docs/forms.md#a-form-in-a-modal).
 - **An aggregate's form carries its children keyed by several columns.** Before: an aggregate whose base names `Model`
   and holds `Entity<(Company, Teaor)>` rows was RASK106, and the rows were filled through a method of its own. Now a
   LINK — the holder's part and one other, nothing else — is a list of that part's ids on the model, saved as a set
@@ -209,6 +216,17 @@ them until tagged releases begin.
   on plain `UseSqlite`/`UseNpgsql`/`UseSqlServer` keeps EF Core's `"{}"`. See
   [collections of values](docs/data.md#collections-of-values).
 
+- **A table cell writes 40% fewer class characters, so a big table is much less HTML.** Each `Ui.TableCell` used
+  to carry two bleed rules of its own, `[:where([data-ui-table-bleed]_&:first-child)]:ps-[…]` and the `last-child`
+  one, even in a table that does not bleed. Flux puts its bleed on the `<table>`, once per table, and now
+  `Ui.Table.Bleed()` does the same: four zero-specificity rules on the table and none on any cell. The cell also
+  uses Flux's `not-in-[tr:first-child]:border-t` for its row line. A plain cell's class list goes from 394 to 235
+  characters (strong 403 → 244, end-aligned 415 → 270, sticky 536 → 377). A 14-cell row drops from 6,188 to
+  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. The cell's defaults stay at zero specificity, so a
+  class like `ps-10` or `text-red-600` on a cell still wins (`AnAppsClassWinsTests`). An end-aligned cell now also
+  writes Flux's `[&>*]:ms-auto`, and the table writes Flux's `[&_dialog]:whitespace-normal
+  [&_[popover]]:whitespace-normal`. The look is unchanged: `parity.mjs table` and `parity-filters-bleed.mjs` match Flux.
+
 - **A component that reads a query stays in the render cache.** Reading `Query.Data` (or any query, command or
   subscription state) during `Render` used to take the component out of the render cache for good, so every walk
   ran it again. A walk that another component asked for (a modal closing, a counter ticking) re-ran the whole
@@ -297,6 +315,12 @@ them until tagged releases begin.
   so each configuration built two. `UseRaskSqlite`, `UseRaskPostgres`, a RaskApp's `UseRaskDatabase` and the read
   context's factories now say the same up front, and the context shares one. Rask.Server.Tests builds 15 where it
   built 20, the limit.
+- **A time picker's chevron darkens under the pointer, as Flux's does.** Before: it never changed. After: the button's
+  goes zinc-300 to zinc-800 while the button is hovered, a typed field's zinc-400/75 to zinc-800 while the field is and
+  none of its parts is (white in dark) — measured on Flux's with a real pointer.
+- **The date and datetime pickers' chevron darkens under the pointer, as Flux UI's does.** On the button it turns
+  zinc-800 (white in dark) while the button is hovered; on a typed date field while the field is and none of its parts. Open, the
+  page lock takes the hover away on a desktop, and a tap's hover stays on a phone, both as Flux's.
 - **Hebrew and Vietnamese counts take the plural form CLDR gives them.** Hebrew has a dual — 2 is `two`, not
   `other` — and CLDR 49 counts 0 and 1 as `one` in Vietnamese, where Rask had no plural at all. A catalog without
   those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to
@@ -386,10 +410,6 @@ them until tagged releases begin.
   turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
   `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
   menu — where Flux's lands.
-- **A date or datetime picker button's chevron darkens under the pointer and under a tap, as Flux's does.** Before: it
-  never changed. After: a plain `:hover` of its button darkens it (zinc-800, white in dark) — a phone keeps it after
-  the tap that opened the calendar — and the calendar open holds it light where there is a pointer, which Flux takes
-  away then.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it
