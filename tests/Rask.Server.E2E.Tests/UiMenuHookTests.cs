@@ -198,14 +198,18 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         var page = session.Page;
         // The hooks load on demand: a press before they have is heard by nobody (a slow runner got there first).
         await session.HooksLoadedAsync();
-        var area = (await page.Locator("#area").BoundingBoxAsync())!;
-        var cdp = await page.Context.NewCDPSessionAsync(page);
-
-        // The gesture's answer comes once the finger has lifted; the menu is then waited for, and still there after.
-        await cdp.SendAsync("Input.synthesizeTapGesture", new Dictionary<string, object>
-        {
-            ["x"] = area.X + (area.Width / 2), ["y"] = area.Y + (area.Height / 2), ["duration"] = 1000, ["gestureSourceType"] = "touch",
-        });
+        // What a phone sends for a long press, as it sends it: the contextmenu with the finger still down (a touch
+        // pointer, no button), then the finger's lift. Sent as events, not a synthesized gesture: whether a desktop
+        // browser turns a held touch into contextmenu at all is its platform's choice (macOS's does, Linux's not).
+        await page.EvaluateAsync("""
+            () => {
+                const area = document.getElementById('area');
+                const box = area.getBoundingClientRect();
+                const at = { bubbles: true, cancelable: true, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 };
+                area.dispatchEvent(new PointerEvent('contextmenu', { ...at, pointerType: 'touch', buttons: 0 }));
+                area.dispatchEvent(new PointerEvent('pointerup', { ...at, pointerType: 'touch' }));
+            }
+            """);
         await page.WaitForFunctionAsync("() => document.querySelector(\"[data-testid='context'] [popover]\").matches(':popover-open')", null, new() { Timeout = 5_000 });
         await page.WaitForTimeoutAsync(300);
 

@@ -197,6 +197,8 @@ internal static partial class UiApi
             new("KeepOpen", typeof(bool?), "Keeps the menu open after this row is picked."),
             new("Href", typeof(RouteUrl?), "Where it leads. A generated route stays in the app; a string is a link the browser follows.", "a route, or a URL string"),
             new("OnClick", typeof(Callback), "What picking it does.", Handler),
+            new("Confirm", typeof(string), "Asks before the pick is sent: a no sends nothing. In the layout's Ui.Confirm where there is one.",
+                "the question, and a heading if you like: .Confirm(\"Delete the partner?\", heading: \"Delete partner\")"),
         ]),
         new("Ui.MenuSubmenu", typeof(UiMenuSubmenu), "flux:menu.submenu", "A row that flies out a menu of its own beside it.",
         [

@@ -76,12 +76,15 @@ public sealed class ToastDismissTests(PlaywrightFixture playwright) : IClassFixt
         var toast = page.Locator("[role=\"status\"] span");
         await Expect(toast).ToBeVisibleAsync(new() { Timeout = 5_000 });
 
-        // Flux UI's toast on a phone: the tap is a mouse over it, which the browser leaves there until the next tap.
-        // A 3 s toast, waited past: held, it is still there; and the tap has the 3 s to land, which a loaded runner needs.
-        await toast.TapAsync();
+        // Flux UI's toast on a phone: a tap leaves the browser's mouse where the finger was — over the toast, :hover and
+        // all — until the next tap moves it. The mouse is put there and taken away as those taps do: whether a desktop
+        // browser's touch emulation moves its mouse for a tap is its platform's choice (macOS's does, Linux's not).
+        // A 3 s toast, waited past: held, it is still there.
+        var box = (await toast.BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
         await page.WaitForTimeoutAsync(4_000);
         var held = await page.Locator("#dismissed").TextContentAsync();
-        await page.Touchscreen.TapAsync(300, 600);
+        await page.Mouse.MoveAsync(300, 700);
 
         Assert.Equal("dismissed=0", held);
         await Expect(page.Locator("#dismissed")).ToHaveTextAsync("dismissed=1", new() { Timeout = 10_000 });
