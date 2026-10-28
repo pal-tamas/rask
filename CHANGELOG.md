@@ -253,6 +253,11 @@ them until tagged releases begin.
   `/_rask/leave` and names its session in the `Rask-Session` header. The old paths still answer, so a tab open across
   the deploy keeps its session; a reverse-proxy rule that matched `/_rask/stream/` should match `/_rask/stream` too.
 
+- **A press read from a page two renders behind still reaches its handler when the server also walked a page it did
+  not send.** A filter's cross pressed while the panel's closing and the rows' arrival were both on their way ran
+  nothing on a loaded runner: a third walk rendered what the browser already had, nothing was sent, and it still pushed
+  the page the press was read from out of the two its slot remembers. A slot now keeps a third handler until the walk
+  that moved it last is sent (`Component.StaleEvents`); a press on a handler that has since left still runs nothing.
 - **`rask new` no longer fails on a busy machine with a regex timeout.** The template-marker scan gave each line a
   one-second wall-clock budget, which a starved thread could spend without matching anything; it now runs on .NET's
   linear-time engine, which needs no timeout (`TemplateMarkers`).

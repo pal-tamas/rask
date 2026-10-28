@@ -348,6 +348,7 @@ Three cases are worth knowing:
 - **Older than two pages.** Rask remembers what a place held for the last two pages sent whose handlers moved —
   enough for a handler that awaits, which is rendered while it waits and again when it is done. A click that was
   on its way through three such renders (a page that ticks several times a second on a slow link) is dropped.
+  A render that changed nothing the browser shows is not sent, and is not one of the three.
   Handlers that are methods of the component (`.OnClick(Save)`), and lambdas that capture only the component,
   are the same handler in every render and are never dropped for this.
 - **A list longer than 4,096 handlers in one component** is not searched for a handler that moved.
