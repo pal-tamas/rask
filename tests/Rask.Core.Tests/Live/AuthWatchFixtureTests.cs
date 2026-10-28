@@ -100,7 +100,7 @@ public sealed class AuthWatchFixtureTests
     }
 
     [Fact]
-    public void A_question_that_gets_no_answer_opens_the_connection_again_rather_than_sending()
+    public void A_question_that_gets_no_answer_keeps_the_connection_and_sends_what_waited_on_it()
     {
         if (Run() is not { } result)
         {
@@ -109,8 +109,56 @@ public sealed class AuthWatchFixtureTests
 
         var unanswered = result.GetProperty("unanswered");
 
-        Assert.Equal(1, unanswered.GetProperty("reopens").GetInt32());
-        Assert.Empty(Strings(unanswered.GetProperty("wire")));
+        Assert.Equal(0, unanswered.GetProperty("reopens").GetInt32());
+        Assert.Equal(0, unanswered.GetProperty("told").GetInt32());
+        Assert.Equal(["1:click", "1:after"], Strings(unanswered.GetProperty("wire")));
+        Assert.Equal(["1:click"], Strings(unanswered.GetProperty("emptyWire")));
+        Assert.Equal(2, unanswered.GetProperty("asksAfterNextTrigger").GetInt32());
+    }
+
+    [Fact]
+    public void A_slow_answer_holds_a_frame_for_a_moment_of_the_page_time_and_is_still_acted_on_when_it_comes()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var slow = result.GetProperty("slow");
+
+        Assert.Empty(Strings(slow.GetProperty("wireWithin")));
+        Assert.Equal(["1:click", "1:after"], Strings(slow.GetProperty("wireLate")));
+        Assert.Equal(0, slow.GetProperty("reopens").GetInt32());
+        Assert.Equal(["1:click", "2:held"], Strings(slow.GetProperty("changedWire")));
+        Assert.Equal(1, slow.GetProperty("changedReopens").GetInt32());
+    }
+
+    [Fact]
+    public void A_hold_that_lapses_after_its_answer_lets_nothing_go_twice()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var lapsed = result.GetProperty("lapsedAfterAnswer");
+
+        Assert.Equal(["1:click"], Strings(lapsed.GetProperty("wire")));
+        Assert.Equal(1, lapsed.GetProperty("asks").GetInt32());
+    }
+
+    [Fact]
+    public void A_tab_told_to_ask_later_every_time_keeps_its_connection()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var later = result.GetProperty("laterForEver");
+
+        Assert.Equal(0, later.GetProperty("reopens").GetInt32());
+        Assert.Equal(6, later.GetProperty("asks").GetInt32());
     }
 
     [Fact]
