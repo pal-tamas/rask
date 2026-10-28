@@ -347,12 +347,24 @@
     }
   }
 
+  /* A sticky LAST column casts its shadow the other way, until the columns beside it have scrolled all the way out. */
+  @keyframes ui-table-scrolled-end {
+    from {
+      --ui-table-scrolled: inset -8px 0 8px -8px rgb(0 0 0 / 0.05);
+    }
+  }
+
   @supports (animation-timeline: scroll()) {
-    :is([data-ui-column], [data-ui-cell]).sticky::after {
+    :is([data-ui-column], [data-ui-cell]):is(.first\:sticky:first-child, .last\:sticky:last-child)::after {
       box-shadow: var(--ui-table-scrolled, none);
       animation: ui-table-scrolled step-end both;
       animation-timeline: scroll(nearest inline);
       animation-range: 0 1px;
+    }
+
+    :is([data-ui-column], [data-ui-cell]).last\:sticky:last-child:not(:first-child)::after {
+      animation-name: ui-table-scrolled-end;
+      animation-range: calc(100% - 1px) 100%;
     }
   }
 }

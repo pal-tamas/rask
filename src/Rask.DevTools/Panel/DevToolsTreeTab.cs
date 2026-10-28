@@ -220,7 +220,7 @@ internal sealed partial class DevToolsTreeTab : Component
     private static Component ProvidedRow(DevToolsProvidedContext provided, int index) =>
         Ui.TableRow.Key(index)[
             Ui.TableCell.Class("font-mono")[provided.Type],
-            Ui.TableCell.Class("font-mono text-xs")[provided.Name is null ? Span.Class("opacity-60")["—"] : provided.Name],
+            Ui.TableCell.Class("font-mono text-xs!")[provided.Name is null ? Span.Class("opacity-60")["—"] : provided.Name],
             Ui.TableCell.Class("font-mono break-all whitespace-normal")[
                 ValueText(
                     provided.Value, provided.IsRedacted, "Not read: its name or type says it is a secret.", PropsDescriber.Redacted)
@@ -254,7 +254,7 @@ internal sealed partial class DevToolsTreeTab : Component
     private static Component ReadRow(DevToolsReadContext read, Action<long>? open) =>
         Ui.TableRow.Key(read.Type + "|" + read.Name)[
             Ui.TableCell.Class("font-mono")[read.Type],
-            Ui.TableCell.Class("font-mono text-xs")[read.Name is null ? Span.Class("opacity-60")["—"] : read.Name],
+            Ui.TableCell.Class("font-mono text-xs!")[read.Name is null ? Span.Class("opacity-60")["—"] : read.Name],
             Ui.TableCell[
                 Provider(read, open)
             ]
@@ -263,7 +263,7 @@ internal sealed partial class DevToolsTreeTab : Component
     private static Component PropRow(DescribedProp prop) =>
         Ui.TableRow.Key(prop.Name)[
             Ui.TableCell.Class("font-mono")[prop.Name],
-            Ui.TableCell.Class("font-mono text-xs opacity-60").Title(prop.Type)[ShortType(prop.Type)],
+            Ui.TableCell.Class("font-mono text-xs! opacity-60").Title(prop.Type)[ShortType(prop.Type)],
             Ui.TableCell.Class("font-mono break-all whitespace-normal")[
                 ValueText(prop.Value, prop.IsRedacted, "Not read: the build treats this prop as sensitive.", "••••")
             ]

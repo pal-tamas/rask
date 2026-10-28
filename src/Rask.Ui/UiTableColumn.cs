@@ -13,20 +13,31 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTableColumn : UiElement, IUiHost
 {
-    private const string Base = "border-b border-zinc-800/10 font-medium dark:border-white/20 "
-        + "[:where(&)]:text-start [:where(&)]:text-sm [:where(&)]:text-zinc-800 dark:[:where(&)]:text-white";
+    // Flux's heading, in Flux's order: its box and look, the group its alignment names, the sortable group, the sticky
+    // edge, and the sort button's own margin taken back where it ends the heading.
+    private const string Box = "py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium text-zinc-800 dark:text-white "
+        + "border-b border-zinc-800/10 dark:border-white/20";
 
-    // The whole heading cell is the hover target, as it is the click target.
     private const string SortGroup = "group/sortable";
 
-    private const string SortButton = "-my-1 -ms-2 flex items-center gap-1 px-2 py-1 text-start";
+    private const string SortEdge = "**:data-ui-table-sortable:last:me-0";
+
+    // The label and the sort button follow the heading's alignment group, so neither has a list per alignment.
+    private const string Label = @"flex in-[.group\/center-align]:justify-center in-[.group\/end-align]:justify-end";
 
     // An end-aligned heading draws its chevron before the label, hung into the space on that side.
-    private const string SortButtonAtEnd = "-my-1 -ms-8 flex flex-row-reverse items-center gap-1 px-2 py-1 text-start";
+    private const string SortButton = "flex items-center gap-1 -my-1 -ms-2 -me-2 px-2 py-1 "
+        + "[text-align:inherit] [text-indent:inherit] [text-shadow:inherit] [text-transform:inherit] [word-spacing:inherit] "
+        + @"in-[.group\/end-align]:flex-row-reverse in-[.group\/end-align]:-me-2 in-[.group\/end-align]:-ms-8";
 
     private const string SortIcon = "rounded-sm text-zinc-400 group-hover/sortable:text-zinc-800 dark:group-hover/sortable:text-white";
 
     private const string SortHint = "opacity-0 group-hover/sortable:opacity-100";
+
+    // Every list a heading can write, built once: by alignment, sortability and stickiness.
+    private static readonly string[] Lists = [.. Enum.GetValues<Ui.Align>().SelectMany(align =>
+        new[] { false, true }.SelectMany(sortable => new[] { false, true }.Select(sticky =>
+            UiTableBox.Join(Box, Group(align), sortable ? SortGroup : "", sticky ? UiTableBox.Stuck : "", SortEdge))))];
 
     private static readonly UiPartMarker Marker = new("ui-column");
 
@@ -65,12 +76,9 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     protected override string? TagName => null;
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose(
-        UiTableBox.Padding,
-        Base,
-        Sortable is true ? SortGroup : "",
-        Sticky is true ? UiTableBox.Stuck : "",
-        Class);
+    /// <remarks>Flux's list as it is: a class of the call site's that contradicts it is written with <c>!</c> (<c>ps-10!</c>).</remarks>
+    protected override string? ResolveClass() =>
+        UiTableBox.WithClass(Lists[((int)(Align ?? default) * 4) + (Sortable is true ? 2 : 0) + (Sticky is true ? 1 : 0)], Class);
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() =>
         (Sortable is true ? Waiting : Marker).With(Data);
@@ -78,7 +86,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var label = Div.Class(Label(Align));
+        var label = Div.Class(Label);
 
         return HostedElement.Tag("th").Owner(this)[Sortable is true ? label[SortControl()] : label[Children ?? []]];
     }
@@ -114,7 +122,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     }
 
     private Component SortControl() =>
-        Button.Type(ButtonType.Button).Class(Align is Ui.Align.End ? SortButtonAtEnd : SortButton).Data("ui-table-sortable", "")[
+        Button.Type(ButtonType.Button).Class(SortButton).Data("ui-table-sortable", "")[
             Div[Children ?? []],
             Div.Class(SortIcon)[Indicator()]
         ];
@@ -128,10 +136,10 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     private static UiIcon Chevron(bool down) =>
         Ui.Icon.Name(down ? Ui.IconName.ChevronDown : Ui.IconName.ChevronUp).Variant(Ui.IconVariant.Micro);
 
-    private static string Label(Ui.Align? align) => align switch
+    private static string Group(Ui.Align align) => align switch
     {
-        Ui.Align.Center => "flex justify-center",
-        Ui.Align.End => "flex justify-end",
-        _ => "flex",
+        Ui.Align.Center => "group/center-align",
+        Ui.Align.End => "group/end-align",
+        _ => "",
     };
 }

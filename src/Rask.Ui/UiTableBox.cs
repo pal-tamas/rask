@@ -1,25 +1,27 @@
 namespace Rask;
 
-/// <summary>What a heading cell and a data cell of a <see cref="UiTable" /> share: their box.</summary>
+/// <summary>What a heading cell and a data cell of a <see cref="UiTable" /> share: their sticky edge and their class join.</summary>
 internal static class UiTableBox
 {
     /// <summary>
-    ///     12px all round, flush with the table's edge in the first and last column. A bleeding table moves
-    ///     those two edges itself (<see cref="UiTable" />), once for all its cells, as Flux's does.
-    /// </summary>
-    /// <remarks>
-    ///     Flux's <c>[:where(&amp;)]:py-3 [:where(&amp;)]:px-3 first:ps-0 last:pe-0</c>, with the edges at zero
-    ///     specificity too and no two rules for one side of one cell: a cell's own <c>py-0</c>, <c>px-6</c> or
-    ///     <c>ps-10</c> wins in every column, and nothing depends on the order the stylesheet emits the kit's
-    ///     own rules in.
-    /// </remarks>
-    internal const string Padding =
-        "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3";
-
-    /// <summary>
-    ///     Held at the scroll area's left edge. The <c>::after</c> hangs off its right side and carries the
-    ///     shadow the stylesheet draws once the columns beside it have scrolled underneath.
+    ///     Flux's sticky cell: held at the scroll area's left edge in the first column, its right edge in the last. The
+    ///     <c>::after</c> hangs off the inner side and carries the shadow <c>ui.css</c> draws once columns have scrolled
+    ///     under it (Flux's <c>in-data-scrolled-*</c> waits on a mark its script writes, which the kit has no script for).
     /// </summary>
     internal const string Stuck =
-        "sticky left-0 z-10 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-8 after:translate-x-full after:content-['']";
+        "z-10 first:sticky first:left-0 last:sticky last:right-0 "
+        + "first:after:w-8 first:after:absolute first:after:inset-y-0 first:after:right-0 first:after:translate-x-full first:after:pointer-events-none "
+        + "last:after:w-8 last:after:absolute last:after:inset-y-0 last:after:left-0 last:after:-translate-x-full last:after:pointer-events-none "
+        + "in-data-scrolled-right:first:after:inset-shadow-[8px_0px_8px_-8px_rgba(0,0,0,0.05)] "
+        + "in-data-scrolled-left:last:after:inset-shadow-[-8px_0px_8px_-8px_rgba(0,0,0,0.05)]";
+
+    /// <summary>Flux's parts, in Flux's order, joined once: the empty ones left out.</summary>
+    internal static string Join(params string[] parts) => string.Join(' ', parts.Where(part => part.Length > 0));
+
+    /// <summary>
+    ///     The part's own list with the call site's class after it. A table renders thousands of cells, so the list is
+    ///     handed back as it is when there is no class, and joined in one exact-size step when there is.
+    /// </summary>
+    internal static string WithClass(string list, string? @class) =>
+        string.IsNullOrWhiteSpace(@class) ? list : string.Concat(list, " ", @class.Trim());
 }
