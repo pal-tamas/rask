@@ -18,6 +18,18 @@ public static partial class BuilderRuntime
     [ThreadStatic]
     private static List<ClassWatchEntry>? _classWatches;
 
+    // How many watch entries this thread's scans have looked at: a test's measure of the work, which a quadratic
+    // settle makes grow with the square of the cells instead of with the cells.
+    [ThreadStatic]
+    private static long _classWatchVisits;
+
+    /// <summary>The watch entries this thread's class-watch scans have visited, for tests.</summary>
+    internal static long ClassWatchVisits
+    {
+        get => _classWatchVisits;
+        set => _classWatchVisits = value;
+    }
+
     private static void WatchClass(Component target, ulong bit, string? before, string? after)
     {
         // A component with no watch open needs no look: the scan is only for a second write of the same pass, and
@@ -30,10 +42,13 @@ public static partial class BuilderRuntime
                 ref var watch = ref watches[i];
                 if (ReferenceEquals(watch.Target, target) && watch.Bit == bit)
                 {
+                    _classWatchVisits += watches.Length - i;
                     watch.After = after;
                     return;
                 }
             }
+
+            _classWatchVisits += watches.Length;
         }
 
         if (!string.Equals(before, after, StringComparison.Ordinal))
@@ -57,10 +72,13 @@ public static partial class BuilderRuntime
         {
             if (ReferenceEquals(watches[i].Target, target) && watches[i].Bit == bit)
             {
+                _classWatchVisits += watches.Count - i;
                 watches.RemoveAt(i);
                 return;
             }
         }
+
+        _classWatchVisits += watches.Count;
     }
 
     // Marks a drained component's open watches for the settle pass that follows the drain.
@@ -86,6 +104,7 @@ public static partial class BuilderRuntime
             return;
         }
 
+        _classWatchVisits += watches.Count;
         var write = 0;
         for (var read = 0; read < watches.Count; read++)
         {

@@ -149,32 +149,20 @@ public class ClassJoinChangeTests
         Assert.Equal([1, 2, 1], host.Leaves.Select(l => l.Renders));
     }
 
-    // Each cell's watch was settled by a scan of every watch the render opened, so a first render of n cells cost
-    // n x n. Eight times the cells may take about eight times as long; a quadratic settle takes about sixty-four.
-    [Fact]
-    public void A_first_render_of_a_big_table_with_joined_classes_grows_linearly_with_its_cells()
+    // Each cell's watch was settled by a scan of every watch the render opened, so a first render of n cells looked
+    // at n x n entries: 2,500 cells about three million, 20,000 about two hundred million. Linear is a few per cell.
+    [Theory]
+    [InlineData(250)]
+    [InlineData(2_000)]
+    public void A_first_render_of_a_big_table_looks_at_each_class_watch_a_few_times_not_once_per_cell(int rows)
     {
         var sp = RenderHarness.EmptyServices();
-        RenderFirst(sp, 250);
+        var host = new WatchedTableHost { Rows = rows };
+        BuilderRuntime.ClassWatchVisits = 0;
 
-        var small = RenderFirst(sp, 250);
-        var large = RenderFirst(sp, 2_000);
+        RenderLive(host, sp);
 
-        Assert.True(large < small * 24, $"20,000 cells took {large / small:F1}x as long as 2,500 (linear is ~8x).");
-    }
-
-    // The best of five, each on a host that has never rendered, so every cell opens its watch.
-    private static double RenderFirst(IServiceProvider sp, int rows)
-    {
-        var best = double.MaxValue;
-        for (var i = 0; i < 5; i++)
-        {
-            var host = new WatchedTableHost { Rows = rows };
-            var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            RenderLive(host, sp);
-            best = Math.Min(best, System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
-        }
-
-        return best;
+        var cells = rows * 10;
+        Assert.InRange(BuilderRuntime.ClassWatchVisits, cells, 4L * cells);
     }
 }
