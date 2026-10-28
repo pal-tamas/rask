@@ -28,6 +28,7 @@ public sealed partial class FilteredOrdersPage(RouteState route) : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
+        FilteredOrders.Renders++;
         var filters = Ui.Filters.OnOpen(() => { FilteredOrders.Opened++; })[
             Ui.Select.Bind(() => Driver).Label("Driver").Placeholder("Anyone")[
                 Ui.SelectOption.Value("ada")["Ada Lovelace"],
@@ -103,6 +104,9 @@ internal static class FilteredOrders
 
     /// <summary>How many times the reader opened the panel.</summary>
     internal static int Opened { get; set; }
+
+    /// <summary>How many times the orders page itself rendered.</summary>
+    internal static int Renders { get; set; }
 
     /// <summary>The rows every filtered list here is drawn from.</summary>
     internal static readonly Query<string[]> Rows =
@@ -290,6 +294,19 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("q=tea", page.TextOf("#at"));
         Assert.Equal(["Search: tea"], Badges(page));
+    }
+
+    [Fact]
+    public async Task Closing_the_panel_with_nothing_touched_renders_the_panel_and_not_the_page()
+    {
+        var page = Page.Visit(Orders);
+        await Open(page);
+        var before = FilteredOrders.Renders;
+
+        await page.On("dialog > input[data-rask-modal-shown]").Change("false");
+
+        Assert.Equal(before, FilteredOrders.Renders);
+        Assert.False(page.Exists("dialog [data-ui-input]"));
     }
 
     [Fact]

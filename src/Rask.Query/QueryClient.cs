@@ -67,8 +67,7 @@ public static class QueryClient
             if (slot.Last is not Asked<TResult> asked || !Equals(asked.Message, message) || asked.Key != key)
             {
                 existing.Repoint(
-                    new QueryTarget(key ?? MessageKey.For(message), client.DispatchFetch(message), IsPaused: false),
-                    renderReaders: false);
+                    new QueryTarget(key ?? MessageKey.For(message), client.DispatchFetch(message), IsPaused: false));
                 slot.Last = new Asked<TResult>(message, key);
             }
 
@@ -117,7 +116,7 @@ public static class QueryClient
         {
             if (seen.Prefix != prefix || !EqualityComparer<TInput>.Default.Equals(seen.Input, input))
             {
-                existing.Repoint(QueryTarget.ForInput(prefix, input, fetch), renderReaders: false);
+                existing.Repoint(QueryTarget.ForInput(prefix, input, fetch));
                 seen.Prefix = prefix;
                 seen.Input = input;
             }
@@ -168,8 +167,7 @@ public static class QueryClient
             if (slot.Last is not QueryKey last || last != key)
             {
                 existing.Repoint(
-                    new QueryTarget(key, async ct => await fetch(ct).ConfigureAwait(false), IsPaused: false),
-                    renderReaders: false);
+                    new QueryTarget(key, async ct => await fetch(ct).ConfigureAwait(false), IsPaused: false));
                 slot.Last = key;
             }
 
