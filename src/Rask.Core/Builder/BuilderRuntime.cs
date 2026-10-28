@@ -295,21 +295,32 @@ public static partial class BuilderRuntime
             return;
         }
 
-        // One forward pass: reset what this parent owns (in creation order, the order the chains ran)
-        // and compact everything else down. No allocation, and no reliance on where the slots sit.
+        // Reset what this parent owns (in creation order, the order the chains ran), settle the class watches of
+        // all of it in one pass, then compact everything else down. No allocation, and no reliance on where the
+        // slots sit.
+        var settle = false;
+        var span = CollectionsMarshal.AsSpan(slots);
+        foreach (ref var slot in span)
+        {
+            if (ReferenceEquals(slot.Parent, parent))
+            {
+                slot.Reset(slot.Target, slot.PendingMask);
+                settle |= MarkForSettling(slot.Target);
+            }
+        }
+
+        if (settle)
+        {
+            SettleMarkedClasses();
+        }
+
         var write = 0;
-        var settle = HasClassWatches;
         for (var read = 0; read < slots.Count; read++)
         {
             var slot = slots[read];
             if (ReferenceEquals(slot.Parent, parent))
             {
-                slot.Reset(slot.Target, slot.PendingMask);
-                if (settle)
-                {
-                    SettleClasses(slot.Target);
-                }
-
+                ClearClassMarks(slot.Target);
                 continue;
             }
 
@@ -363,15 +374,22 @@ public static partial class BuilderRuntime
             return;
         }
 
-        var settle = HasClassWatches;
+        var settle = false;
         for (var i = depth; i < slots.Count; i++)
         {
             var slot = slots[i];
             slot.Reset(slot.Target, slot.PendingMask);
-            if (settle)
-            {
-                SettleClasses(slot.Target);
-            }
+            settle |= MarkForSettling(slot.Target);
+        }
+
+        if (settle)
+        {
+            SettleMarkedClasses();
+        }
+
+        for (var i = depth; i < slots.Count; i++)
+        {
+            ClearClassMarks(slots[i].Target);
         }
 
         slots.RemoveRange(depth, slots.Count - depth);

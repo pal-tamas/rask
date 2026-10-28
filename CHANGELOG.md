@@ -301,6 +301,15 @@ them until tagged releases begin.
   id, route, binding and message is the same; a guard test keeps daisyUI's classes and theme colours out of every
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
+### Performance
+- **A big table's first page load is linear again: 5,000 rows of 14 cells went from 8.5 s to 0.15 s.** Every
+  `.Class(…)` on an element built in one `Render()` left a change report on a list, and the end of that render
+  scanned the whole list once per element: n² for n cells, about 0.12 ms a cell at 70,000 cells and 0.6 ms at
+  280,000. The reports are now settled in one pass per render. Live first GET of `Ui.Table` with
+  `Ui.TableCell.Class("truncate")` cells (`big-table` report in `tests/Rask.Benchmarks`): 500 rows 152 → 26 ms,
+  5,000 rows 8,471 → 149 ms, 20,000 rows 172 s → 3.4 s; plain `Tr`/`Td` the same. The HTML, the class join and
+  when a component counts as changed are unchanged. Nothing to change in an app.
+
 ### Fixed
 - **A slow answer to "is the browser still signed in as the same user?" no longer reconnects the tab.** A live page
   asks `/_rask/auth/who` when it comes back to the reader and before the first event after a pause. The question had
