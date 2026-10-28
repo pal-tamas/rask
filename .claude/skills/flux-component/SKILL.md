@@ -138,10 +138,15 @@ departure in behaviour carries none.
   the kit's class list (`@import "./vendor/rask-ui.css"`, `docs/tailwind.md`), so a `dark:` or `sm:`
   variant follows its base utility by Tailwind's own order. Between a kit DEFAULT and an app's utility for
   the same property that order is no one's intent (`first:ps-0` beat a cell's `ps-10`; `text-zinc-500` beat
-  `text-red-600`): a default the call site must be able to change is written `[:where(&)]:…`, as the table
-  family is, with ONE rule per property and state so the kit's own rules never race each other.
+  `text-red-600`): a default the call site must be able to change is written `[:where(&)]:…`, with ONE rule
+  per property and state so the kit's own rules never race each other.
   `AnAppsClassWinsTests` resolves that from the compiled sheet for every component and lists in `Known` the
   ones not written so yet, where an app writes Tailwind's `!` (Flux's own advice). Never a `!` in the kit.
+  **Tables are the exception (owner, 2026-10-28):** `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` write
+  Flux's LITERAL class lists in Flux's order (read off fluxui.dev/components/table's live DOM, the `:where`
+  only where Flux has one), so they sit in `Known` on purpose and an app overriding one writes `!`
+  (`ps-10!`, `text-xs!`); `AnAppsClassWinsTests` pins both halves. A cell's lists are built once per
+  variant × align × sticky (a table renders thousands of cells), never composed per render.
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.

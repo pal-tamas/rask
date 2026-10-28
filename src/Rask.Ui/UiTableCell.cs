@@ -9,12 +9,19 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTableCell : UiElement
 {
-    private const string Size = "[:where(&)]:text-sm";
+    // Flux's cell, in Flux's order: its box, size, alignment, tone, sticky edge, and the line above every row but the first.
+    private const string Box = "[:where(&)]:py-3 [:where(&)]:px-3 first:ps-0 last:pe-0 text-sm";
 
-    // Every row but the first draws the line above it.
     private const string Line = "not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20";
 
+    private const int Aligns = (int)Ui.Align.End + 1;
+
     private static readonly UiPartMarker Marker = new("ui-cell");
+
+    // Every list a cell can write, built once: by variant, alignment and stickiness.
+    private static readonly string[] Lists = [.. Enum.GetValues<Ui.TableCellVariant>().SelectMany(variant =>
+        Enum.GetValues<Ui.Align>().SelectMany(align =>
+            new[] { false, true }.Select(sticky => UiTableBox.Join(Box, Alignment(align), Tone(variant), sticky ? UiTableBox.Stuck : "", Line))))];
 
     /// <summary>Where the value sits in its column. Start unless this says otherwise.</summary>
     public Ui.Align? Align { get; set; }
@@ -30,27 +37,24 @@ public sealed partial class UiTableCell : UiElement
     protected override string TagName => "td";
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose(
-        UiTableBox.Padding,
-        Size,
-        Alignment(Align),
-        Tone(Variant),
-        Sticky is true ? UiTableBox.Stuck : "",
-        Line,
-        Class);
+    /// <remarks>Flux's list as it is: a class of the call site's that contradicts it is written with <c>!</c> (<c>ps-10!</c>).</remarks>
+    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true), Class);
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
-    private static string Tone(Ui.TableCellVariant? variant) => variant switch
+    private static string List(Ui.TableCellVariant? variant, Ui.Align? align, bool sticky) =>
+        Lists[((((int)(variant ?? default) * Aligns) + (int)(align ?? default)) * 2) + (sticky ? 1 : 0)];
+
+    private static string Tone(Ui.TableCellVariant variant) => variant switch
     {
-        Ui.TableCellVariant.Strong => "font-medium [:where(&)]:text-zinc-800 dark:[:where(&)]:text-white",
-        _ => "[:where(&)]:text-zinc-500 dark:[:where(&)]:text-zinc-300",
+        Ui.TableCellVariant.Strong => "font-medium text-zinc-800 dark:text-white",
+        _ => "text-zinc-500 dark:text-zinc-300",
     };
 
-    private static string Alignment(Ui.Align? align) => align switch
+    private static string Alignment(Ui.Align align) => align switch
     {
-        Ui.Align.Center => "[:where(&)]:text-center",
-        Ui.Align.End => "[:where(&)]:text-end [&>*]:ms-auto",
+        Ui.Align.Center => "text-center",
+        Ui.Align.End => "text-end [&>*]:ms-auto",
         _ => "",
     };
 }

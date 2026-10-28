@@ -193,14 +193,31 @@ them until tagged releases begin.
 
 ### Changed
 
+- **BREAKING: a table writes Flux's own class lists, so an app's class that contradicts one needs `!`.** The owner's
+  call (2026-10-28): `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` now write exactly what Flux's table writes, in
+  Flux's order, read off fluxui.dev/components/table: a cell is `[:where(&)]:py-3 [:where(&)]:px-3 first:ps-0 last:pe-0
+  text-sm text-zinc-500 dark:text-zinc-300 not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20`, a
+  heading `py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium …`, the table `table-fixed text-zinc-800
+  whitespace-nowrap …`, a bleeding table Flux's `[&_[data-ui-cell]:first-child]:ps-[var(--ui-bleed,1.5rem)]` four, a
+  heading's alignment Flux's `group/end-align` that its label and sort button follow, and a sticky cell or heading
+  Flux's `first:sticky first:left-0 last:sticky last:right-0 …` (a last column now sticks at the right, and its shadow
+  is drawn while columns are hidden beside it). The 2026-10-09 rule that a plain class always beats a table default no
+  longer holds: write Tailwind's `!` where yours contradicts one, as Flux says, `Ui.TableCell.Class("ps-10!")` on a
+  first cell, `dark:text-white/70!`, `text-xs!`, `table-auto!`. A class that only adds (`truncate`, `w-40`, `py-0`,
+  `align-top`, `whitespace-normal` on a cell) needs nothing. A plain cell's list goes from 235 to 168 characters
+  (strong 244 → 177, end 270 → 191, strong + end 279 → 200, center 259 → 180; sticky 377 → 665, Flux's sticky list
+  being long), and a 14-cell row of `Ui.TableCell.Class("truncate").Title(text)[text]` from 4,537 to 3,375 bytes. A
+  cell's lists are built once per variant, alignment and stickiness instead of composed on every render: 100 × 14
+  cells allocate 1.49 MB instead of 4.01 MB (1,116 instead of 3,003 bytes a cell; 1,588 instead of 3,116 with a class).
+  The site's own call sites (the master-detail and nested-list demos, the dev tools' tree tab) carry the `!` now. Still
+  `parity.mjs table` at 1280 and 390 match Flux; `AnAppsClassWinsTests` pins both halves.
 - **A table cell writes 40% fewer class characters, so a big table is much less HTML.** Each `Ui.TableCell` used
   to carry two bleed rules of its own, `[:where([data-ui-table-bleed]_&:first-child)]:ps-[…]` and the `last-child`
   one, even in a table that does not bleed. Flux puts its bleed on the `<table>`, once per table, and now
   `Ui.Table.Bleed()` does the same: four zero-specificity rules on the table and none on any cell. The cell also
   uses Flux's `not-in-[tr:first-child]:border-t` for its row line. A plain cell's class list goes from 394 to 235
   characters (strong 403 → 244, end-aligned 415 → 270, sticky 536 → 377). A 14-cell row drops from 6,188 to
-  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. The cell's defaults stay at zero specificity, so a
-  class like `ps-10` or `text-red-600` on a cell still wins (`AnAppsClassWinsTests`). An end-aligned cell now also
+  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. (Since superseded by Flux's literal lists, above.) An end-aligned cell now also
   writes Flux's `[&>*]:ms-auto`, and the table writes Flux's `[&_dialog]:whitespace-normal
   [&_[popover]]:whitespace-normal`. The look is unchanged: `parity.mjs table` and `parity-filters-bleed.mjs` match Flux.
 

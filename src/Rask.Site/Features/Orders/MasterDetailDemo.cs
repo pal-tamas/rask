@@ -74,9 +74,9 @@ public sealed partial class MasterDetailDemo : Component
                         .OnClick(() => Toggle(order.Id))
                 ],
                 Ui.TableCell.Class("truncate font-semibold").Title(order.Customer)[order.Customer],
-                Ui.TableCell.Class("text-zinc-500 dark:text-white/70 text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
+                Ui.TableCell.Class("text-zinc-500 dark:text-white/70! text-sm")[order.Placed.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)],
                 Ui.TableCell[Ui.Badge.Color(StatusColor(order.Status))[order.Status]],
-                Ui.TableCell.Class("text-zinc-500 dark:text-white/70")[order.Items.Count],
+                Ui.TableCell.Class("text-zinc-500 dark:text-white/70!")[order.Items.Count],
                 Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                     "$" + order.Total.ToString("N2", CultureInfo.InvariantCulture)
                 ]
@@ -113,7 +113,7 @@ public sealed partial class MasterDetailDemo : Component
                     Ui.TableRow.Key(it.Id)[
                         Ui.TableCell[Code[it.Sku]],
                         Ui.TableCell.Class("truncate").Title(it.Product)[it.Product],
-                        Ui.TableCell.Class("text-zinc-500 dark:text-white/70")[it.Qty],
+                        Ui.TableCell.Class("text-zinc-500 dark:text-white/70!")[it.Qty],
                         Ui.TableCell.Style("text-align:right; font-variant-numeric:tabular-nums;")[
                             "$" + it.UnitPrice.ToString("N2", CultureInfo.InvariantCulture)
                         ],

@@ -99,7 +99,7 @@ internal sealed partial class UiTableBehaviour : Component
     private static UiDocsTopic Sticky() =>
         UiDocsTopic.Key("sticky").Heading("Sticky parts and bleed").Paragraphs([
             "`Ui.TableColumns.Sticky()` holds the headings at the top of the box, and a sticky `Ui.TableColumn` with "
-            + "sticky `Ui.TableCell`s under it holds a column at the left. Give each `.Class(\"bg-white "
+            + "sticky `Ui.TableCell`s under it holds the first column at the left, or the last at the right. Give each `.Class(\"bg-white "
             + "dark:bg-zinc-900\")`, or the rows show through. A sticky column casts a shadow once the others have "
             + "scrolled under it; that is a CSS scroll timeline, so a browser without one shows no shadow. A sticky "
             + "column takes its width like any other.",
@@ -109,11 +109,12 @@ internal sealed partial class UiTableBehaviour : Component
         ]);
 
     private static UiDocsTopic Classes() =>
-        UiDocsTopic.Key("classes").Heading("A class of yours wins").Paragraphs([
-            "What the table writes by default (a cell's padding, text size, colour and alignment, the table's "
-            + "`min-w-full`, `table-fixed` and `whitespace-nowrap`) weighs nothing in the cascade, so `py-0`, `ps-10` "
-            + "on a first cell, `text-xs`, `whitespace-normal` or `min-w-160` does what it says wherever Tailwind sorts "
-            + "it. `colspan` and `scope` go through `.Attributes((\"colspan\", \"3\"))`.",
+        UiDocsTopic.Key("classes").Heading("Flux's classes, and yours with !").Paragraphs([
+            "Every part writes Flux's own class list: a cell's padding, text size and colour, a heading's, the table's "
+            + "`table-fixed`, `text-zinc-800` and `whitespace-nowrap`. A class of yours that only adds (`truncate`, `w-40`, "
+            + "`align-top`, `py-0`, `whitespace-normal` on a cell) does what it says. One that contradicts a default is "
+            + "written with Tailwind's `!`, as Flux's guide says: `ps-10!` on a first cell, `dark:text-white/70!`, "
+            + "`text-xs!`, `table-auto!`. `colspan` and `scope` go through `.Attributes((\"colspan\", \"3\"))`.",
         ]);
 
     private static UiDocsTopic Frame() =>

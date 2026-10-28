@@ -35,6 +35,8 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
+    <!-- UiTableCellRenderBenchmarks draws the kit's table cells. -->
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.SQLite\Rask.SQLite.csproj"/>
     <!-- The bulk-insert arms compare Rask.Data's write paths against raw ADO.NET, so they need the EF Core
          side of the SQLite story (UseRaskSqlite + the production pragmas) as well as the raw one. -->

@@ -21,24 +21,24 @@ namespace Rask;
 /// every <see cref="UiTableColumn" /> but one hold them still across pages and sort orders.
 /// </para>
 /// <para>
-/// The defaults an app lays a table out with — its minimum width, layout, wrapping and colour — are written at
-/// zero specificity, so a class of the call site's wins wherever the stylesheet sorts it.
+/// Every part writes Flux's own class list. A class of the call site's that contradicts one of them — a layout, a
+/// colour, a first cell's padding — is written with Tailwind's <c>!</c> (<c>table-auto!</c>, <c>ps-10!</c>), as
+/// Flux's guide says.
 /// </para>
 /// </remarks>
 public sealed partial class UiTable : UiElement, IUiHost
 {
+    // Flux's table, in Flux's order.
     private const string Base =
-        "isolate border-separate border-spacing-0 "
-        + "[:where(&)]:min-w-full [:where(&)]:table-fixed [:where(&)]:whitespace-nowrap [:where(&)]:text-zinc-800 "
+        "[:where(&)]:min-w-full table-fixed border-separate border-spacing-0 isolate text-zinc-800 whitespace-nowrap "
         + "[&_dialog]:whitespace-normal [&_[popover]]:whitespace-normal";
 
-    // A bleeding table moves its first and last column in by the distance it bled out — on the table, once, as Flux
-    // does, so no cell carries a rule for it. At zero specificity, as the cells' own padding is, so a cell's ps-10 wins.
+    // A bleeding table moves its first and last column in by the distance it bled out — on the table, once, as Flux does.
     private const string BleedEdges =
-        "[:where(&_[data-ui-column]:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
-        + "[:where(&_[data-ui-cell]:first-child)]:ps-[var(--ui-bleed,1.5rem)] "
-        + "[:where(&_[data-ui-column]:last-child)]:pe-[var(--ui-bleed,1.5rem)] "
-        + "[:where(&_[data-ui-cell]:last-child)]:pe-[var(--ui-bleed,1.5rem)]";
+        "[&_[data-ui-column]:first-child]:ps-[var(--ui-bleed,1.5rem)] "
+        + "[&_[data-ui-cell]:first-child]:ps-[var(--ui-bleed,1.5rem)] "
+        + "[&_[data-ui-column]:last-child]:pe-[var(--ui-bleed,1.5rem)] "
+        + "[&_[data-ui-cell]:last-child]:pe-[var(--ui-bleed,1.5rem)]";
 
     // The pager under the rows keeps its height when the box is given one to scroll within, as Flux's does.
     private const string Container = "flex flex-col *:data-ui-pagination:shrink-0";
