@@ -1,5 +1,4 @@
-// Rask.Core's build-time MDN tasks, loaded by src/Rask.Core/Dom/Rask.Dom.targets. Two jobs:
-//   RaskMdnRefresh  keeps mdn.snapshot.json on MDN's latest stable data (local builds, at most once a day)
+// Rask.Core's build-time MDN task, loaded by src/Rask.Core/Dom/Rask.Dom.targets:
 //   RaskDomEmit     writes one partial per DOM interface, the Keys/Codes constants and the Css steps, into obj/, from the snapshot, before the compile
 // The emitted code is ordinary source to the chain generator, which is why it is written here and not by a
 // Roslyn generator: generators never see each other's output.

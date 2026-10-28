@@ -1,10 +1,9 @@
 <Project>
   <!--
-    MDN is the source of truth for Rask's element types. Before Rask.Core compiles:
-      1. RaskMdnRefresh (local builds, at most once a day) moves mdn.snapshot.json to MDN's latest stable data
-         and says to commit it; offline or under CI it does nothing and the committed snapshot is used.
-      2. RaskDomEmit writes one partial per DOM interface into obj/, which the chain generator then sees as
-         ordinary source. Nothing it writes is committed.
+    MDN is the source of truth for Rask's element types. Before Rask.Core compiles, RaskDomEmit writes one
+    partial per DOM interface into obj/ from the committed mdn.snapshot.json, which the chain generator then
+    sees as ordinary source. Nothing it writes is committed. The build never moves the snapshot: the mdn
+    follower does (scripts/upstream/followers.json), daily, gated, in upstream.yml.
     Imported by Rask.Core.csproj only: consumers get the compiled types, never this step.
   -->
   <PropertyGroup>
@@ -12,9 +11,6 @@
     <RaskDomTasksAssembly>$(MSBuildThisFileDirectory)..\..\Rask.Dom.Tasks\bin\$(Configuration)\netstandard2.0\Rask.Dom.Tasks.dll</RaskDomTasksAssembly>
     <!-- IntermediateOutputPath is not set yet when an imported file is evaluated; the base one is. -->
     <RaskDomOutput>$(BaseIntermediateOutputPath)$(Configuration)\$(TargetFramework)\dom\</RaskDomOutput>
-    <RaskMdnRefresh Condition=" '$(RaskMdnRefresh)' == '' and '$(ContinuousIntegrationBuild)' == 'true' ">false</RaskMdnRefresh>
-    <RaskMdnRefresh Condition=" '$(RaskMdnRefresh)' == '' and '$(DesignTimeBuild)' == 'true' ">false</RaskMdnRefresh>
-    <RaskMdnRefresh Condition=" '$(RaskMdnRefresh)' == '' ">true</RaskMdnRefresh>
   </PropertyGroup>
 
   <ItemGroup>
@@ -29,14 +25,6 @@
     build of the tasks project can overwrite it.
   -->
   <UsingTask TaskName="Rask.Core.Dom.Build.RaskDomEmit" AssemblyFile="$(RaskDomTasksAssembly)" TaskFactory="TaskHostFactory"/>
-  <UsingTask TaskName="Rask.Core.Dom.Build.RaskMdnRefresh" AssemblyFile="$(RaskDomTasksAssembly)" TaskFactory="TaskHostFactory"/>
-
-  <!-- Once per build invocation, not per target framework: the snapshot is one file. -->
-  <Target Name="_RaskMdnRefresh" BeforeTargets="_RaskDomEmit" Condition=" '$(RaskMdnRefresh)' == 'true' ">
-    <RaskMdnRefresh Snapshot="$(RaskMdnSnapshot)"
-                    RefreshScript="$(MSBuildThisFileDirectory)..\..\..\scripts\mdn\refresh.sh"
-                    StampDirectory="$([System.IO.Path]::Combine($([System.Environment]::GetFolderPath(SpecialFolder.UserProfile)), '.rask', 'mdn'))"/>
-  </Target>
 
   <!-- After the project references resolve, which is what builds Rask.Dom.Tasks on a clean clone; and before the SDK hashes
        @(Compile) into CoreCompileInputs.cache, the only thing that notices a generated file going away. -->
