@@ -66,7 +66,7 @@
       forget. A line that STARTS with the import, so prose mentioning it in a comment does not count.
     -->
     <_RaskUiSheetImportsKit>false</_RaskUiSheetImportsKit>
-    <_RaskUiSheetImportsKit Condition="'$(RaskTailwindInput)' != '' AND Exists('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')">$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')), `^[ \t]*@import\s+["'][^"']*rask-ui[.\w]*\.css["']`, System.Text.RegularExpressions.RegexOptions.Multiline))</_RaskUiSheetImportsKit>
+    <_RaskUiSheetImportsKit Condition="'$(RaskTailwindInput)' != '' AND Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskTailwindInput)`))')">$([System.Text.RegularExpressions.Regex]::IsMatch($([System.IO.File]::ReadAllText('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskTailwindInput)`))')), `^[ \t]*@import\s+["'][^"']*rask-ui[.\w]*\.css["']`, System.Text.RegularExpressions.RegexOptions.Multiline))</_RaskUiSheetImportsKit>
   </PropertyGroup>
 
   <!--
@@ -85,7 +85,7 @@
   -->
   <ItemGroup Condition=" '$(RaskUiWriteStylesheet)' == 'true'
                          AND '$(RaskUiStylesheetOutput)' != ''
-                         AND !Exists('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)') ">
+                         AND !Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskUiStylesheetOutput)`))') ">
     <Content Include="$(RaskUiStylesheetOutput)" Pack="false"/>
   </ItemGroup>
 
@@ -196,11 +196,11 @@
            Text="Rask.Ui: this project set RaskUiWriteStylesheet=true but the kit's stylesheet could not be found, so $(RaskUiStylesheetOutput) cannot be written and every kit colour would resolve to nothing. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/ui.generated.css); from the package, the sheet ships beside these targets as build/ui.css."/>
 
     <MakeDir Condition="'@(_RaskUiStylesheetSource)' != ''"
-             Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)'))"/>
+             Directories="$([System.IO.Path]::GetDirectoryName('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskUiStylesheetOutput)`))'))"/>
 
     <Copy Condition="'@(_RaskUiStylesheetSource)' != ''"
           SourceFiles="@(_RaskUiStylesheetSource)"
-          DestinationFiles="$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)"
+          DestinationFiles="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskUiStylesheetOutput)'))"
           SkipUnchangedFiles="true"/>
   </Target>
 
@@ -210,7 +210,7 @@
   -->
   <Target Name="_RaskUiResolveTailwind" DependsOnTargets="_RaskUiResolveStylesheet">
     <PropertyGroup>
-      <_RaskUiTailwindSheet Condition="'$(RaskTailwindInput)' != ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindInput)'))</_RaskUiTailwindSheet>
+      <_RaskUiTailwindSheet Condition="'$(RaskTailwindInput)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskTailwindInput)'))</_RaskUiTailwindSheet>
 
       <_RaskUiHasTailwind>false</_RaskUiHasTailwind>
       <_RaskUiHasTailwind Condition="'$(_RaskUiReferenced)' == 'true' AND '$(_RaskUiTailwindSheet)' != '' AND Exists('$(_RaskUiTailwindSheet)')">true</_RaskUiHasTailwind>
@@ -311,8 +311,8 @@
            Text="Rask.Ui: $(RaskTailwindInput) compiles the kit in, but the kit's Tailwind sources could not all be found (found @(_RaskUiTailwindSource->Count()) of 3; missing on disk: @(_RaskUiTailwindMissing)), so $(RaskUiTailwindDirectory) cannot be written and the kit's components would render unstyled. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/rask-ui.classes.txt); from the package they ship beside these targets as build/rask-ui.css, rask-ui.kit.css and rask-ui.classes.txt."/>
 
     <PropertyGroup Condition="'$(_RaskUiTailwind)' == 'true'">
-      <_RaskUiTailwindDirectory>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskUiTailwindDirectory)'))</_RaskUiTailwindDirectory>
-      <_RaskUiTailwindStamp>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask-ui.tailwind.stamp'))</_RaskUiTailwindStamp>
+      <_RaskUiTailwindDirectory>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskUiTailwindDirectory)'))</_RaskUiTailwindDirectory>
+      <_RaskUiTailwindStamp>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)rask-ui.tailwind.stamp'))</_RaskUiTailwindStamp>
     </PropertyGroup>
 
     <Copy Condition="'$(_RaskUiTailwind)' == 'true'"
@@ -354,8 +354,8 @@
       is published, precached and — by anything that still links it — loaded, which is the double include
       again from a file no property asks for any more.
     -->
-    <Delete Condition="'$(_RaskUiTailwind)' == 'true' AND '$(RaskUiStylesheetOutput)' != '' AND Exists('$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)')"
-            Files="$(MSBuildProjectDirectory)/$(RaskUiStylesheetOutput)"/>
+    <Delete Condition="'$(_RaskUiTailwind)' == 'true' AND '$(RaskUiStylesheetOutput)' != '' AND Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskUiStylesheetOutput)`))')"
+            Files="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskUiStylesheetOutput)'))"/>
   </Target>
 
   <!--

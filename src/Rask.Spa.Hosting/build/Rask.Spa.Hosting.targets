@@ -44,7 +44,7 @@
   <PropertyGroup>
     <!-- An explicit directory wins, resolved against the project rather than the working directory. -->
     <_RaskSpaDir Condition="'$(RaskSpaClientDir)' != ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskSpaClientDir)'))</_RaskSpaDir>
+    >$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskSpaClientDir)'))</_RaskSpaDir>
 
     <!--
       Otherwise the convention: a `client` folder inside the host project. One project owns both

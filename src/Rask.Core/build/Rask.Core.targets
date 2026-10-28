@@ -206,9 +206,20 @@
       Compiled output lands under obj/, so `dotnet clean` removes it, it never appears in the source
       tree, and it can never be mistaken for the sibling .js that RASK055 forbids.
     -->
-    <_RaskScopedTsOutDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
-    <_RaskScopedTsOptionsStamp>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/ts-options.stamp'))</_RaskScopedTsOptionsStamp>
-    <_RaskScopedTsTypesDir>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(IntermediateOutputPath)rask/types'))/</_RaskScopedTsTypesDir>
+    <_RaskScopedTsOutDir>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)rask/ts'))/</_RaskScopedTsOutDir>
+    <_RaskScopedTsOptionsStamp>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)rask/ts-options.stamp'))</_RaskScopedTsOptionsStamp>
+    <_RaskScopedTsTypesDir>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)rask/types'))/</_RaskScopedTsTypesDir>
+
+    <!--
+      Build output is never a source, wherever it lives: a nested project's obj/ and bin/, and the build's
+      own output paths when they are moved (an absolute IntermediateOutputPath, as BenchmarkDotNet's child
+      build sets). Otherwise a compiled .d.ts is globbed back in and tsgo refuses to overwrite its input (TS5055).
+    -->
+    <_RaskBuildOutputExclude>**\bin\**;**\obj\**</_RaskBuildOutputExclude>
+    <_RaskBuildOutputExclude Condition="'$(BaseIntermediateOutputPath)' != ''">$(_RaskBuildOutputExclude);$([MSBuild]::EnsureTrailingSlash('$(BaseIntermediateOutputPath)'))**</_RaskBuildOutputExclude>
+    <_RaskBuildOutputExclude Condition="'$(IntermediateOutputPath)' != ''">$(_RaskBuildOutputExclude);$([MSBuild]::EnsureTrailingSlash('$(IntermediateOutputPath)'))**</_RaskBuildOutputExclude>
+    <_RaskBuildOutputExclude Condition="'$(BaseOutputPath)' != ''">$(_RaskBuildOutputExclude);$([MSBuild]::EnsureTrailingSlash('$(BaseOutputPath)'))**</_RaskBuildOutputExclude>
+    <_RaskBuildOutputExclude Condition="'$(OutputPath)' != ''">$(_RaskBuildOutputExclude);$([MSBuild]::EnsureTrailingSlash('$(OutputPath)'))**</_RaskBuildOutputExclude>
 
     <!--
       Where the scoped .ts sources are rooted, which is also where tsgo roots the emitted tree. The default
@@ -253,7 +264,7 @@
   -->
   <ItemGroup Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
     <_RaskScopedTs Include="**\*.ts"
-                   Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts;$(RaskScopedSourceExclude)"
+                   Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts;$(RaskScopedSourceExclude)"
                    Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -264,7 +275,7 @@
       to type-check. They emit nothing, so they never become an AdditionalFile.
     -->
     <_RaskScopedTsTypes Include="**\*.d.ts"
-                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**;$(RaskScopedSourceExclude)"
                         Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -288,7 +299,7 @@
 
     <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK055. -->
     <_RaskStrayScopedJs Include="**\*.js"
-                        Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;$(RaskScopedSourceExclude)"
                         Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -301,7 +312,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
-    <Watch Include="**\*.css" Exclude="bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
+    <Watch Include="**\*.css" Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
   </ItemGroup>
 
   <!--

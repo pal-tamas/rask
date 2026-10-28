@@ -75,7 +75,7 @@
       naming it is stable.
     -->
     <_RaskExternalStableObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/rask-external'))\</_RaskExternalStableObj>
-    <_RaskExternalOut>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskExternalOutputDir)'))</_RaskExternalOut>
+    <_RaskExternalOut>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskExternalOutputDir)'))</_RaskExternalOut>
     <_RaskExternalManifest>$(_RaskExternalOut)\manifest.json</_RaskExternalManifest>
 
     <!--

@@ -22,9 +22,9 @@
 
   <PropertyGroup>
     <_RaskTailwindInput Condition="'$(RaskTailwindInput)' != ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindInput)'))</_RaskTailwindInput>
+    >$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskTailwindInput)'))</_RaskTailwindInput>
     <_RaskTailwindOutput Condition="'$(RaskTailwindOutput)' != ''"
-    >$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)'))</_RaskTailwindOutput>
+    >$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskTailwindOutput)'))</_RaskTailwindOutput>
 
     <!--
       Whether any of this happens. Two conditions, and neither is a switch.
@@ -278,7 +278,7 @@
           DependsOnTargets="ResolveProjectReferences"
           Condition="'$(_RaskTailwindDoBuild)' == 'true' AND '$(RaskTailwindClassList)' != ''">
     <WriteTailwindClassListTask Stylesheet="$(_RaskTailwindOutput)"
-                                Output="$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/$(RaskTailwindClassList)'))"/>
+                                Output="$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskTailwindClassList)'))"/>
   </Target>
 
   <!--
