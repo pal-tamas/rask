@@ -44,6 +44,8 @@ Rask.Wasm.WasmHostBuilder.Services.get -> Microsoft.Extensions.DependencyInjecti
 Rask.Wasm.WasmHostBuilder.UseCulture(System.Action<Rask.Core.Globalization.RaskCultureOptions!>! configure) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.WasmHostBuilder.UsePwa(Rask.Core.Browser.WebAppManifest! manifest) -> Rask.Wasm.WasmHostBuilder!
 Rask.Wasm.WasmPrerender
+Rask.Web.Types.EXT_polygon_offset_clamp
+Rask.Web.Types.EXT_polygon_offset_clamp.PolygonOffsetClampEXT(double factor, double units, double clamp) -> System.Threading.Tasks.ValueTask
 RaskBuilderSettersRask_Wasm
 const Rask.Wasm.WasmPrerender.OutputVariable = "RASK_PRERENDER_OUT" -> string!
 const Rask.Wasm.WasmPrerender.PathBaseVariable = "RASK_PRERENDER_PATH_BASE" -> string!
