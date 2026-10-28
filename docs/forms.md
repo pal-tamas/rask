@@ -559,6 +559,7 @@ of the page asks first:
 | is navigated by front-end code (`__raskHost.navigate(…)`, an island's router) | the same dialog |
 | presses Back or Forward | the same dialog; staying puts the address and the history back where they were |
 | closes the tab, reloads, or follows a link out of the app | the browser's own "leave site?" prompt. No page can set its text, so your message is not shown there. |
+| closes the [`Ui.Modal`](ui-kit.md#who-owns-the-state) the form is in — its close button, a `Ui.ModalClose`, Escape, a press outside | the same dialog; staying keeps the modal open with what was typed |
 
 Staying sends nothing to the server and leaves the page exactly as it was, typed values included.
 
@@ -596,6 +597,25 @@ the browser's own prompt: no page can draw that one.
 
 A form that is no longer on the page guards nothing. With several guarded forms on one page, the first
 unsaved one asks, with its own message.
+
+#### A form in a modal
+
+A create or edit form in a `Ui.Modal` or a flyout is guarded the same way, with nothing added: closing the
+modal is leaving the form, so every way the **reader** closes it asks first. `Leave` closes it — `OnCancel`
+and `OnClose` run as they would have — and what it held is let go; a form in a closed modal guards nothing.
+Escape is asked about only once nothing inside the modal took it, so a listbox open over the form closes first.
+A close the page makes is not asked about, as a `Go.To(…)` is not: the usual "save, then close" is
+
+```csharp
+private async Task Save(Product product)
+{
+    await product.Save();
+    _editing = null;   // Ui.Modal.Open(_editing is not null) closes, unasked
+}
+```
+
+A cancel button of your own should close the modal in the browser — `Ui.ModalClose[Ui.Button["Mégse"]]` —
+so it asks too; one whose `OnClick` sets the field closes it from the page, unasked.
 
 Three things to know:
 

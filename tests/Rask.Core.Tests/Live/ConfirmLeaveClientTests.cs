@@ -108,4 +108,44 @@ public sealed class ConfirmLeaveClientTests
 
         Assert.Null(said);
     }
+
+    [Fact]
+    public void Escape_and_a_press_outside_ask_before_a_dialog_holding_unsaved_edits_closes()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var untouched = root.GetProperty("escapeUntouchedRefused").GetBoolean();
+        var inTheDialog = Said(root, "inTheDialog");
+        var escape = root.GetProperty("escapeRefused").GetBoolean();
+        var pressOutside = root.GetProperty("pressOutsideRefused").GetBoolean();
+        var asked = root.GetProperty("askedWhileStaying").GetInt32();
+        var stillOpen = root.GetProperty("stillOpen").GetBoolean();
+
+        Assert.False(untouched);
+        Assert.Equal(Asks, inTheDialog);
+        Assert.True(escape);
+        Assert.True(pressOutside);
+        Assert.Equal(2, asked);
+        Assert.True(stillOpen);
+    }
+
+    [Fact]
+    public void A_dialog_the_reader_lets_go_closes_once_and_what_it_held_is_never_asked_about_again()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var closed = root.GetProperty("closedOnceLetGo").GetInt32();
+        var afterLettingGo = Said(root, "afterLettingGo");
+        var inAClosedDialog = Said(root, "inAClosedDialog");
+
+        Assert.Equal(1, closed);
+        Assert.Null(afterLettingGo);
+        Assert.Null(inAClosedDialog);
+    }
 }
