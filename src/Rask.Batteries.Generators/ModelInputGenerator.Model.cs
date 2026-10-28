@@ -43,13 +43,49 @@ public sealed partial class ModelInputGenerator
             return Entity.Refused(name, symbol.Name, location, Refusal.Clash, existing.ToDisplayString());
         }
 
-        // No model: its aggregate writes it through its own methods, and a form does not carry it yet (RASK106).
+        // A row keyed by several columns gets a model only as a row its holder's form carries; a link is a list of
+        // ids on the holder's model, and one a form cannot carry is RASK106 on the holder.
         if (CompositeKeyShape.HasCompositeKey(symbol))
         {
-            return Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
+            return CompositeChildForm.Of(symbol) is { Kind: CompositeChildKind.Rows, Problem: null } form
+                ? AsKeyedRow(Accepted(symbol, name, location, cancellationToken), symbol, form)
+                : Entity.Refused(name, symbol.Name, location, Refusal.CompositeKey, "");
         }
 
         return Accepted(symbol, name, location, cancellationToken);
+    }
+
+    // A row matched by its key's parts rather than an Id: the parts its holder does not give lead the model, each one
+    // required, and the generated ones — invisible here, another generator writes them — are written by their setter.
+    private static Entity AsKeyedRow(Entity row, INamedTypeSymbol symbol, CompositeChildForm form)
+    {
+        var parts = form.OwnParts.Select((part, index) =>
+            row.Members.FirstOrDefault(m => string.Equals(m.Name, part.Name, StringComparison.Ordinal)) is { } declared
+                ? declared with { RequiredByType = declared.Write is not null, KeyPart = true }
+                : new Member(
+                    part.Name,
+                    ModelMemberRole.Value,
+                    NullableDisplay(part.Type),
+                    false,
+                    null,
+                    new Write(ModelWriteKind.Setter, "__Part" + index.ToString(CultureInfo.InvariantCulture) + "_" + part.Name,
+                        symbol.ToDisplayString(TypeFormat), part.Type.ToDisplayString(TypeFormat), null, null, "", false),
+                    new EquatableArray<string>([]),
+                    new EquatableArray<string>([]),
+                    RequiredByType: true,
+                    KeyPart: true)).ToList();
+
+        return row with
+        {
+            IdTypeName = null,
+            KeyWrite = null,
+            KeySource = KeySource.None,
+            KeyFactory = null,
+            KeyIsReference = false,
+            KeyedByParts = true,
+            Members = new EquatableArray<Member>(parts.Concat(row.Members.Where(m =>
+                !form.OwnParts.Any(p => string.Equals(p.Name, m.Name, StringComparison.Ordinal))))),
+        };
     }
 
     private static Entity Accepted(
@@ -83,9 +119,11 @@ public sealed partial class ModelInputGenerator
             GeneratedModelShape.IsChildEntity(symbol),
             new EquatableArray<ChildShape>(shape.Children
                 .Where(static c => c.Access != ModelChildAccess.None)
-                .Select(ToChild)),
+                .Select(ToChild)
+                .Concat(Carried(shape, CompositeChildKind.Rows).Select(ToRowChild))),
             new EquatableArray<string>(AggregateReferencesOf(symbol)),
             new EquatableArray<string>(shape.Children
+                .Concat(shape.CompositeChildren.Select(static c => c.Child))
                 .Where(static c => c.Access == ModelChildAccess.None)
                 .Select(static c => c.Name)),
             new EquatableArray<ValueCollectionShape>(
@@ -94,16 +132,46 @@ public sealed partial class ModelInputGenerator
             DeletableOf(symbol),
             ConfiguresUniqueRule(symbol, cancellationToken))
         {
-            CompositeChildren = new EquatableArray<string>(CompositeChildrenOf(symbol)),
+            CompositeChildren = new EquatableArray<string>(shape.CompositeChildren
+                .Where(static c => c.Form.Problem is not null && c.Child.Access != ModelChildAccess.None)
+                .Select(static c => c.Child.Name + "|" + c.Child.ChildType.Name + "|" + c.Form.Problem)),
+            IdLists = new EquatableArray<IdListShape>(Carried(shape, CompositeChildKind.Ids).Select(ToIdList)),
         };
     }
 
-    // The children keyed by several columns, as `property|child`: read through the aggregate, never written by its form.
-    private static IEnumerable<string> CompositeChildrenOf(INamedTypeSymbol symbol) =>
-        GeneratedModelShape.Properties(symbol)
-            .Select(p => GeneratedModelShape.DescribeChild(symbol, p))
-            .Where(static c => c is not null && CompositeKeyShape.HasCompositeKey(c.ChildType))
-            .Select(static c => c!.Name + "|" + c.ChildType.Name);
+    // The children keyed by several columns a form carries as `kind`: a list of ids, or of rows.
+    private static IEnumerable<ModelCompositeChild> Carried(ModelShape shape, CompositeChildKind kind) =>
+        shape.CompositeChildren.Where(c =>
+            c.Form.Kind == kind && c.Form.Problem is null && c.Child.Access != ModelChildAccess.None);
+
+    // A row matched by the parts of its key its holder does not give.
+    private static ChildShape ToRowChild(ModelCompositeChild row) =>
+        ToChild(row.Child) with
+        {
+            KeyParts = new EquatableArray<KeyMatch>(row.Form.OwnParts.Select(static p =>
+                new KeyMatch(p.Name, p.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat)))),
+        };
+
+    // A link carried as the ids of its one other part: made by its constructor, that part written by its setter.
+    private static IdListShape ToIdList(ModelCompositeChild link)
+    {
+        var part = link.Form.OwnParts[0];
+        var name = CompositeChildForm.IdListName(link.Child.Name);
+        var declared = part.Aggregate is null
+            ? link.Child.ChildType.GetMembers(part.Name).OfType<IPropertySymbol>().First()
+            : null;
+        var write = declared is not null
+            ? WriteOf(declared, GeneratedModelShape.WriteKindOf(declared)!.Value, "__Link_" + name, byRef: false)
+            : new Write(ModelWriteKind.Setter, "__Link_" + name, link.Child.ChildType.ToDisplayString(TypeFormat),
+                part.Type.ToDisplayString(TypeFormat), null, null, "", false);
+
+        return new IdListShape(
+            name,
+            ToChild(link.Child),
+            part.Name,
+            part.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat),
+            write);
+    }
 
     /// <summary>
     ///     Whether the aggregate gets a generated <c>Delete</c>: its base names <c>Deletable</c> or <c>SoftDelete</c>.

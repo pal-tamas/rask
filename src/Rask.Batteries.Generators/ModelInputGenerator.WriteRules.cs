@@ -33,7 +33,8 @@ public sealed partial class ModelInputGenerator
         var rules = RuledModels(entity).SelectMany(static m => m.Rules).ToList();
 
         return new RuleReach(
-            rules.Count > 0 || CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable, ValueRule.Sync)),
+            rules.Count > 0 || CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => Asks(m.ValueObject!, m.Nullable, ValueRule.Sync)) ||
+            entity.Children.Any(static c => c.ByParts),
             rules.Exists(static r => r.Kind == ValueRule.Async));
     }
 
@@ -180,6 +181,11 @@ public sealed partial class ModelInputGenerator
 
         if (!awaited)
         {
+            foreach (var child in entity.Children.Where(static c => c.ByParts))
+            {
+                AppendTwiceGiven(s, child);
+            }
+
             foreach (var member in CheckedMembers(entity))
             {
                 foreach (var check in member.Checks)
@@ -325,6 +331,34 @@ public sealed partial class ModelInputGenerator
         s.Append("                if (").Append(rows).AppendLine("[i] is { } row)");
         s.AppendLine("                {");
         s.Append("                    failures = ").Append(awaited ? "await " + asked + ".ConfigureAwait(false)" : asked).AppendLine(";");
+        s.AppendLine("                }");
+        s.AppendLine("            }");
+        s.AppendLine("        }");
+    }
+
+    // A row keyed by several columns is matched by its key, so two posted rows of one key would be one row twice: the
+    // second is refused under the list, before anything is loaded. A row whose key is not filled in yet is the
+    // required rule's to report, not this one's.
+    private static void AppendTwiceGiven(StringBuilder s, ChildShape child)
+    {
+        var rows = "__" + child.Name + "Keys";
+        var key = child.KeyParts.Count == 1
+            ? "row." + child.KeyParts[0].Name
+            : "(" + string.Join(", ", child.KeyParts.Select(static p => "row." + p.Name)) + ")";
+        var keyType = child.KeyParts.Count == 1
+            ? child.KeyParts[0].TypeName + "?"
+            : "(" + string.Join(", ", child.KeyParts.Select(static p => p.TypeName + "?")) + ")";
+        var filled = string.Join(" && ", child.KeyParts.Select(static p => "row." + p.Name + " is not null"));
+
+        s.Append("        if (model.").Append(child.Name).Append(" is { } ").Append(rows).AppendLine(")");
+        s.AppendLine("        {");
+        s.Append("            var seen = new global::System.Collections.Generic.HashSet<").Append(keyType).AppendLine(">();");
+        s.Append("            for (var i = 0; i < ").Append(rows).AppendLine(".Count; i++)");
+        s.AppendLine("            {");
+        s.Append("                if (").Append(rows).Append("[i] is { } row && ").Append(filled).Append(" && !seen.Add(").Append(key).AppendLine("))");
+        s.AppendLine("                {");
+        s.Append("                    failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(child.Name)
+            .AppendLine("\", \"The same row is in this list twice.\");");
         s.AppendLine("                }");
         s.AppendLine("            }");
         s.AppendLine("        }");
