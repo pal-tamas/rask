@@ -19,6 +19,8 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **rask-seo** — search + AI-assistant discoverability of rask.sh and the packages (page/guide copy, JSON-LD, sitemap, llms.txt); on EVERY site/docs/package-metadata change.
 - **land-on-main** — Conventional-Commit, merge `origin/main`, `git push origin HEAD:main`, CI reports after. **Never open a PR** for own work.
 - **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
+- **upstream-follower** — anything generated from or pinned to an upstream release is a follower in `scripts/upstream/followers.json`
+  (daily → gated → auto-landed, one issue per source); never a hand-run script or a build side effect.
 
 Standing rules: do your best every change, holding **UX + security + performance** together; prefer
 standard .NET APIs (don't reinvent); refactor duplication you touch; **SOLID + Clean Code** (one
