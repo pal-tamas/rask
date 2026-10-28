@@ -45,11 +45,11 @@ jobs() { local out='{"jobs":[' sep=''; for j in "$@"; do out+="$sep{\"name\":\"$
 
 echo "==> upstream follow"
 
-listed="$("$root/scripts/upstream/follow.sh" --list | tr '\n' ' ')"
-check "--list names MDN and CLDR"             2 "$(grep -oEw 'mdn|cldr' <<<"$listed" | wc -l | tr -d ' ')"
+listed="$("$root/scripts/upstream/follow.sh" --list)"
+check "--list names MDN and CLDR"             2 "$(grep -cxE 'mdn|cldr' <<<"$listed")"
 status=0; "$root/scripts/upstream/follow.sh" no-such 2>/dev/null || status=$?
 check "an unknown follower is refused"        2 "$status"
-check "Flux is measured in its own job, not listed" 0 "$(grep -cw flux <<<"$listed" || true)"
+check "Flux is measured in its own job, not listed" 0 "$(grep -cxE 'flux|flux-parity' <<<"$listed" || true)"
 
 rm -rf "$FAKE"; mkdir -p "$FAKE"
 printf '[{"number":7,"title":"Upstream: mdn could not be followed","state":"CLOSED"},{"number":9,"title":"Upstream: mdn could not be followed!","state":"OPEN"}]' > "$FAKE/issues.json"

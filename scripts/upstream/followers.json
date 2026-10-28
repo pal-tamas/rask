@@ -86,6 +86,12 @@
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
       "outputs": ["tests/Rask.Ui.Tests/Flux/flux.snapshot.json", "tests/Rask.Ui.Tests/Flux/flux.lock.json"]
+    },
+    {
+      "name": "flux-parity",
+      "kind": "match",
+      "run": "scripts/flux/parity-all.sh",
+      "outputs": []
     }
   ],
   "manual": [
