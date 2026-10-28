@@ -272,12 +272,12 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     ///     Points this query at <paramref name="target" /> — a new page, a new filter, a new route
     ///     parameter — and starts observing that entry instead. An unchanged target is a no-op.
     /// </summary>
+    /// <remarks>
+    ///     Every other component reading this query is told: it is showing the entry this one just left. The
+    ///     component whose read moved it is rendering already, and is not asked again.
+    /// </remarks>
     /// <param name="target">What to show now.</param>
-    /// <param name="renderReaders">
-    ///     False when called from a read: the component reading is rendering already and will show the
-    ///     new entry, so asking it to render again would only buy a second, identical frame.
-    /// </param>
-    internal void Repoint(QueryTarget target, bool renderReaders)
+    internal void Repoint(QueryTarget target)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -302,10 +302,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
         // should show that page, not the one before it.
         _placeholder = Options.KeepPreviousData && !_entry.HasData && previous.HasData ? previous : null;
         _ = _client.EnsureFreshAsync(target.Key, this, CancellationToken.None);
-        if (renderReaders)
-        {
-            _readers.RenderAll();
-        }
+        _readers.RenderAll();
     }
 
     /// <summary>
@@ -326,12 +323,15 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     }
 
     /// <summary>Fetches again regardless of freshness, and paints the result.</summary>
+    /// <remarks>Its readers are told at once as well, so whatever shows <see cref="IsFetching" /> shows it now.</remarks>
     public Task Reload(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         Resume();
         _entry.Invalidate();
-        return _client.EnsureFreshAsync(_key, this, cancellationToken);
+        var fetch = _client.EnsureFreshAsync(_key, this, cancellationToken);
+        _readers.RenderAll();
+        return fetch;
     }
 
     /// <summary>Stops observing the entry, which starts its GC clock once nothing else is watching.</summary>
@@ -509,7 +509,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     {
         if (!_disposed && _source is not null && _source.TryAdvance(_client, out var target))
         {
-            Repoint(target, renderReaders: false);
+            Repoint(target);
         }
     }
 }

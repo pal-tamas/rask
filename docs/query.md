@@ -67,6 +67,18 @@ Query<Customer> Customer => field ??= QueryClient.Query(() => Selected is { } id
 hosted service, a test. `QueryClient` throws outside a session rather than guess at one, because a cache
 that is not the session's would serve one visitor another's data.
 
+### What renders again
+
+A component that reads a query stays in the render cache. Reading `Data`, `IsLoading` or any other state
+during `Render` registers the component, and the query re-renders it when what it read moves: the data
+arriving, an invalidation and its refetch, a `Reload()`, a poll, a key moving to another entry. A render
+that another component asks for (a dialog closing, a counter ticking) serves the reader's cached output and
+does not run its `Render` again. TanStack Query and Livewire work the same way.
+
+A lambda query follows its inputs when its component renders. A route parameter, a prop, or a field a handler
+or callback of the component changes all render it. A static or a service the query reads from somewhere else
+does not: invalidate the query when it changes.
+
 ### A query that is a function
 
 Data that does not arrive through CQRS — a Rask.Data read face, a third-party HTTP call — is a function

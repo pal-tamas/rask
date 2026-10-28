@@ -39,13 +39,12 @@ internal sealed class ComponentReaders
     ///     Registers the component currently rendering, if one is.
     /// </summary>
     /// <remarks>
-    ///     <see cref="LiveRenderContext.ObserveAmbientState" /> also opts that component out of the
-    ///     render cache, and the two must happen together: a component told to re-render that then
-    ///     serves its cached tree looks exactly like the data never arriving.
+    ///     The reader stays in the render cache: it renders again when <see cref="RenderAll" /> tells it the
+    ///     state moved, and a walk some other component asked for serves its cached output.
     /// </remarks>
     public void Observe()
     {
-        if (LiveRenderContext.ObserveAmbientState() is not { } component)
+        if (LiveRenderContext.RenderOwner(out _) is not { } component)
         {
             return;
         }
@@ -66,17 +65,22 @@ internal sealed class ComponentReaders
     }
 
     /// <summary>Re-renders every live reader, dropping any that has been collected.</summary>
+    /// <remarks>
+    ///     All but the component rendering now, when this is said from inside a render: that one is reading
+    ///     the state as it stands, and asking it to render again would only buy a second, identical frame.
+    /// </remarks>
     public void RenderAll()
     {
+        var rendering = LiveRenderContext.RenderOwner(out _);
         for (var i = _readers.Count - 1; i >= 0; i--)
         {
-            if (_readers[i].TryGetTarget(out var component))
-            {
-                component.StateHasChanged();
-            }
-            else
+            if (!_readers[i].TryGetTarget(out var component))
             {
                 _readers.RemoveAt(i);
+            }
+            else if (!ReferenceEquals(component, rendering))
+            {
+                component.StateHasChanged();
             }
         }
     }

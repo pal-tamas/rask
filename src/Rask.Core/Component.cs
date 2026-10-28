@@ -74,13 +74,14 @@ public abstract partial class Component : RaskMarkup
     // already has. Zero for everything that is not a [Tag] element.
     internal ushort TagId { get; set; }
 
-    // Set the first time this component reads untracked ambient state during Render: a context value
-    // (Context.Get/Required/Has-via-Get) OR EditContext state (validation messages / validating flags,
-    // via EditContext.MarkReader). Such a component depends on state the framework doesn't diff, so —
-    // like BypassRenderCache — it must re-execute Render() on every walk to pick up a changed value.
-    // This is why form controls that read validation state need no manual BypassRenderCache override.
-    // Latched on: once a reader, always a reader (its Render path can read different
-    // context/edit-context state across renders).
+    // Set when this component reads untracked ambient state during its render: a context value
+    // (Context.Get/Required/Has-via-Get), EditContext state (validation messages / validating flags,
+    // via EditContext.MarkReader) or the culture. Such a component depends on state nothing tells it
+    // about, so — like BypassRenderCache — it re-executes Render() on every walk to pick up a changed
+    // value. This is why form controls that read validation state need no manual BypassRenderCache override.
+    // Re-armed by every render rather than latched for life: RenderForLive clears it before Render() runs
+    // and the reads set it again, so a component that stops reading goes back to the render cache.
+    // A query read is not one of these: Rask.Query tells its readers when the data moves.
     private const byte FlagReadsAmbientState = 1 << 0;
 
     private bool _readsAmbientState => (_flags & FlagReadsAmbientState) != 0;
@@ -312,6 +313,8 @@ public abstract partial class Component : RaskMarkup
     internal string? PageTitleInternal => PageTitle;
 
     internal void MarkReadsAmbientStateInternal() => SetFlag(FlagReadsAmbientState, true);
+
+    private void ForgetAmbientReads() => SetFlag(FlagReadsAmbientState, false);
 
     // Test seam: whether this component read something the render cache cannot see (context,
     // edit context, culture). Paired with the setter above so a test can assert the marking

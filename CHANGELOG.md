@@ -163,6 +163,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A component that reads a query stays in the render cache.** Reading `Query.Data` (or any query, command or
+  subscription state) during `Render` used to take the component out of the render cache for good, so every walk
+  ran it again. A walk that another component asked for (a modal closing, a counter ticking) re-ran the whole
+  page and rebuilt its handlers. Now the query re-renders its readers only when what they show moves, as TanStack
+  Query and Livewire do: data arriving, an invalidation, a reload, a poll, a key moving. A reload and a key moved
+  by one reader now also reach the query's other readers at once, so `IsFetching` shows as the fetch starts. A
+  context, edit-context or culture reader still renders on every walk, but only while it still reads: one that
+  stops goes back to the cache.
 - **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
   its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and
   landed by itself, so one release the gates refuse no longer holds back MDN, Node, CLDR and the rest. A red that

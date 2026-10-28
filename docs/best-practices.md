@@ -106,7 +106,7 @@ mistake, the rule notes the ID.
 
 - **Use `Context` to skip prop drilling, not as a general data bus.** `Context.Provide(value)`
   near the top, then `Context.Get<T>()` / `Required<T>()` / `Has<T>()` *inside `Render()`* below.
-  Reading a context value latches the consumer out of the render cache, so it stays reactive even
+  Reading a context value keeps the consumer out of the render cache while it reads, so it stays reactive even
   through a render-cached intermediate — that's the point. Provide a concrete type and consume by an
   interface if you like. See [composition → context](composition-callbacks-context.md#context-provide--consume).
 - **Always pair a manual subscription with its teardown.** If a component *above* the `Router` (a

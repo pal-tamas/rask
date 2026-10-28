@@ -260,6 +260,9 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
 
         Cancel(previous);
         Start();
+
+        // Every other component reading this is still showing what the old target held.
+        _readers.RenderAll();
     }
 
     /// <summary>Whether this subscription has been set aside by a render that stopped using it.</summary>
