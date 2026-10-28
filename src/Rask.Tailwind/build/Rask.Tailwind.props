@@ -102,8 +102,8 @@
   -->
   <ItemGroup Condition=" '$(RaskTailwindOutput)' != ''
                          AND $([System.String]::Copy('$(RaskTailwindOutput)').Replace('\','/').StartsWith('wwwroot/'))
-                         AND Exists('$(MSBuildProjectDirectory)/$(RaskTailwindInput)')
-                         AND !Exists('$(MSBuildProjectDirectory)/$(RaskTailwindOutput)') ">
+                         AND Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskTailwindInput)`))')
+                         AND !Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskTailwindOutput)`))') ">
     <Content Include="$(RaskTailwindOutput)" Pack="false"/>
   </ItemGroup>
 

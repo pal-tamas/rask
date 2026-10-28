@@ -321,6 +321,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An app building with an ABSOLUTE `IntermediateOutputPath` (or `ArtifactsPath`, as BenchmarkDotNet's child build
+  sets) no longer writes its compiled scoped TypeScript into the source tree.** The build glued the path onto the
+  project directory, so `UiEditor.d.ts` landed in `src/Rask.Ui/Users/…/obj/…`, the next build read it back as an
+  input and tsgo stopped with TS5055. The scoped-TypeScript, Rask.Ui, Rask.Tailwind, Rask.External and
+  Rask.Spa.Hosting paths are now resolved with `NormalizePath`, so an absolute one is used as it is, and the
+  scoped-source globs skip build output wherever it lives (any nested `obj/`/`bin/`, and the moved output paths).
 - **A read-face navigation could read the wrong table.** Before: the read face guessed every navigation from the id's
   name, even where `Configure` said otherwise — `HasOne<ForeignTaxCategory>()…HasForeignKey(p => p.ForeignTaxProductCategoryId)`
   still gave `ProductRead.ForeignTaxProductCategory` typed `ProductCategoryRead?`, so `p.ForeignTaxProductCategory!.Name`
