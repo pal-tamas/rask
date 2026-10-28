@@ -361,11 +361,71 @@ public sealed partial class ReportGroupTotal : Entity<(ReportColumn, int TotalCo
 
 A column that is replaced takes the new instance's totals with it, and they are matched by key the same way.
 
-**A form does not carry such a row yet.** An aggregate whose form would carry one is
-[RASK106](diagnostics.md#rask106): leave `Model` (and `CreateModel` / `UpdateModel`) off its base, and fill the
-collection through a method of the aggregate. A class that is not `partial`, a part with no name or a named
-aggregate or entity part, a name that is already taken, and a key of several columns on an aggregate **root** are
-RASK106 too.
+A class that is not `partial`, a part with no name or a named aggregate or entity part, a name that is already
+taken, and a key of several columns on an aggregate **root** are [RASK106](diagnostics.md#rask106).
+
+#### Link tables and child rows on the form
+
+An aggregate whose base names `Model` carries these rows on its form too, in one of two shapes, and saves them in
+the aggregate's one save. A table an existing app made — a company, the activities it does, and the columns of its
+report:
+
+```csharp
+public sealed class Company : Aggregate<int, Model, PerTenant<int>>
+{
+    private readonly List<CompanyActivity> _activities = [];
+    private readonly List<CompanyColumn> _columns = [];
+
+    public string Name { get; private set; } = "";
+    public IReadOnlyList<CompanyActivity> Activities => _activities;
+    public IReadOnlyList<CompanyColumn> Columns => _columns;
+}
+
+public sealed partial class CompanyActivity : Entity<(Company, Teaor)> { }   // CompanyTeaors(CompanyId, TeaorId)
+
+public sealed partial class CompanyColumn : Entity<(Company, int ColumnId)>
+{
+    public int ColumnId { get; private set; }
+    public int Order { get; private set; }
+    public bool Sum { get; private set; }
+}
+```
+
+**A link — the holder's part and one other, and nothing else — is a list of ids.** It is named after the collection,
+made singular, plus `Ids` (`Activities` → `ActivityIds`), and holds the other part's key type. It is saved as a
+**set**: a link is inserted for an id it does not hold yet, deleted for one no longer listed, never updated, and an
+id given twice is one link. The same set in another order writes nothing.
+
+```csharp
+var model = await Company.Model(id);           // model.ActivityIds = [0111, 0112]
+model.ActivityIds = [teaorA.Id, teaorB.Id];
+await Company.Update(id, model);               // INSERT the new link, DELETE the dropped one, nothing else
+```
+
+Laravel's `$company->teaors()->sync($ids)` and Rails' `company.teaor_ids = ids`, on the form model.
+
+**A row with fields of its own is a list of rows**, keeping the collection's name. Each row is a generated
+`CompanyColumnModel` carrying the parts of the key the holder does not give — `ColumnId` here, `TransactionId` for
+`Entity<(DeliveryNote, Transaction)>` — and the row's own settable fields. The holder's part is never on the form:
+the save fills it. Rows are matched to the stored ones **by key**, as a refill is above:
+
+```csharp
+model.Columns = [new() { ColumnId = 3, Order = 1, Sum = true }];
+await Company.Update(id, model);               // UPDATE a changed row, INSERT a new key, DELETE a dropped one
+```
+
+`Company.Create(model)`, `Company.Update(id, model)` and `Company.Model(id)` carry both; with `db:` or inside
+`Db.Transaction` they stage with everything else, so several aggregates saved together are one transaction. A
+per-tenant holder keeps its rows to its tenant through itself — the rows carry no `TenantId`.
+
+**What a form is told.** A row whose key part is empty is required, under its own field (`Columns[0].ColumnId`).
+Two rows of one key are refused under `Columns` before anything is loaded. An id the database refuses — no such
+activity, the foreign key the table declares — is a field error under `ActivityIds` (or `Columns`), and the whole
+save, every aggregate in it, is rolled back.
+
+**What a form still cannot carry is [RASK106](diagnostics.md#rask106):** rows that hold rows of their own (a
+`ReportColumn` holding `Totals`), a row with no parameterless constructor to add one with, and a key with no part for
+the aggregate that holds it. Leave `Model` off the holder's base and fill those through a method of the aggregate.
 
 ### Collections of values
 
@@ -1307,6 +1367,9 @@ generated one stays reachable as `ProductModelExtensions.Create(…)` for an ove
 - **A value object as a model of its own:** `Money Price` on `Product` is a nested `MoneyModel? Price` on `ProductModel`, filled by `new ProductModel()` and `ToModel()`, so a
   form binds `() => _product.Price!.Amount` like any [nested model](forms-advanced.md), however `Money` is declared.
   A one-value value object (`record Email(string Value)`) is carried as its value: `string? Email`.
+- **Children keyed by several columns:** a link table as a list of ids (`List<int> ActivityIds`), a row with fields of
+  its own as a list of rows (`List<CompanyColumnModel> Columns`) — see
+  [Link tables and child rows on the form](#link-tables-and-child-rows-on-the-form).
 
 ### What a form over the model asks by itself
 
