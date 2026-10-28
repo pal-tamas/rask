@@ -8,12 +8,17 @@ import {
     createAuthWatch,
     FRESH_FOCUSED_MS,
     FRESH_UNFOCUSED_MS,
+    HOLD_MS,
+    RETRIES,
+    RETRY_MS,
     type WhoAnswer,
 } from "../../../src/Rask.Server/Resources/rask-auth-watch.js";
 
 interface Tab {
     send(frame: string): void;
-    answer(answer: WhoAnswer | "fails"): Promise<void>;
+    answer(answer: WhoAnswer | null | "fails"): Promise<void>;
+    /** Lets `ms` of the page's time pass for whatever waits that long. */
+    elapse(ms: number): void;
     reconnected(): void;
     watch: ReturnType<typeof createAuthWatch>;
     state: { now: number; focused: boolean; visible: boolean; http: boolean };
@@ -25,14 +30,14 @@ interface Tab {
     /** The browser's other tabs: what this one tells, they hear. */
     others: Tab[];
     /** What is waiting for time to pass. */
-    waiting: Array<() => void>;
+    waiting: Array<{ again: () => void; ms: number }>;
 }
 
 function tab(bootedWithUser = true): Tab {
     const state = {now: 1_000_000, focused: true, visible: true, http: false};
     const wire: string[] = [];
     const queue: string[] = [];
-    const owed: Array<{ resolve: (a: WhoAnswer) => void; reject: (e: Error) => void }> = [];
+    const owed: Array<{ resolve: (a: WhoAnswer | null) => void; reject: (e: Error) => void }> = [];
     let connection = 1;
     let open = true;
 
@@ -47,7 +52,7 @@ function tab(bootedWithUser = true): Tab {
         watch: createAuthWatch({
             ask() {
                 me.asks++;
-                return new Promise<WhoAnswer>((resolve, reject) => owed.push({resolve, reject}));
+                return new Promise<WhoAnswer | null>((resolve, reject) => owed.push({resolve, reject}));
             },
             reopen() {
                 me.reopens++;
@@ -58,8 +63,8 @@ function tab(bootedWithUser = true): Tab {
                 me.told++;
                 for (const other of me.others) other.watch.noticed(true);
             },
-            wait(again) {
-                me.waiting.push(again);
+            wait(again, ms) {
+                me.waiting.push({again, ms});
             },
             now: () => state.now,
             focused: () => state.focused,
@@ -77,6 +82,11 @@ function tab(bootedWithUser = true): Tab {
             else asked.resolve(answer);
             // The watch hears the answer in a microtask of its own.
             await new Promise<void>((done) => setImmediate(done));
+        },
+        elapse(ms) {
+            const due = me.waiting.filter((w) => w.ms <= ms);
+            me.waiting = me.waiting.filter((w) => w.ms > ms);
+            for (const w of due) w.again();
         },
         reconnected() {
             connection++;
@@ -166,14 +176,72 @@ const results: Record<string, unknown> = {};
     results.agedUnfocused = {asksWithin, asksBeyond: t.asks, wire: t.wire};
 }
 
-// No answer is not "the same": the connection is opened again, and the attach decides.
+// No answer is not "changed": a question that fails, times out or is answered with nothing keeps the connection,
+// lets what waited go on it, and the next trigger asks again.
+{
+    const failed = tab();
+    failed.watch.left();
+    failed.watch.noticed();
+    failed.send("click");
+    await failed.answer("fails");
+    failed.send("after");
+    const empty = tab();
+    empty.watch.left();
+    empty.watch.noticed();
+    empty.send("click");
+    await empty.answer(null);
+    empty.watch.noticed();
+    results.unanswered = {
+        reopens: failed.reopens + empty.reopens, told: failed.told + empty.told,
+        wire: failed.wire, emptyWire: empty.wire, asksAfterNextTrigger: empty.asks,
+    };
+}
+
+// An answer slow to come holds what the page sends for a moment of the page's time and no longer: it leaves on the
+// connection that is open, and so does what is sent while the answer is still out. The answer is still acted on.
 {
     const t = tab();
     t.watch.left();
     t.watch.noticed();
     t.send("click");
-    await t.answer("fails");
-    results.unanswered = {reopens: t.reopens, wire: t.wire};
+    const wireWithin = t.wire.slice();
+    t.elapse(HOLD_MS);
+    t.send("after");
+    const wireLate = t.wire.slice();
+    await t.answer({same: true, user: true});
+    const slowSame = {wireWithin, wireLate, reopens: t.reopens};
+    const changed = tab();
+    changed.watch.left();
+    changed.watch.noticed();
+    changed.send("click");
+    changed.elapse(HOLD_MS);
+    await changed.answer({same: false});
+    changed.send("held");
+    changed.reconnected();
+    results.slow = {...slowSame, changedWire: changed.wire, changedReopens: changed.reopens};
+}
+
+// A hold that lapses after its answer came lets nothing go twice and asks nothing.
+{
+    const t = tab();
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    await t.answer({same: true, user: true});
+    t.elapse(HOLD_MS);
+    results.lapsedAfterAnswer = {wire: t.wire, asks: t.asks};
+}
+
+// "Later" every time is no answer either: the connection stays.
+{
+    const t = tab();
+    t.watch.left();
+    t.watch.noticed();
+    for (let i = 0; i <= RETRIES; i++) {
+        await t.answer({later: true});
+        t.elapse(RETRY_MS);
+    }
+    results.laterForEver = {reopens: t.reopens, asks: t.asks};
 }
 
 // Told three times while one question is out: one question.
@@ -233,8 +301,8 @@ const results: Record<string, unknown> = {};
     t.watch.noticed();
     t.send("click");
     await t.answer({later: true});
-    const afterLater = {reopens: t.reopens, wire: t.wire.slice(), waiting: t.waiting.length};
-    t.waiting.shift()!();
+    const afterLater = {reopens: t.reopens, wire: t.wire.slice(), waiting: t.waiting.filter((w) => w.ms === RETRY_MS).length};
+    t.elapse(RETRY_MS);
     await t.answer({same: true, user: true});
     results.later = {afterLater, asks: t.asks, reopens: t.reopens, wire: t.wire};
 }
