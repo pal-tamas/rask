@@ -65,20 +65,20 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 }
 
-if (!moved.length) {
-  await locked();
-  console.log(`${LABEL}: already the newest.`);
-  process.exit(0);
-}
-
 const budget = await sizes();
-const summary = named(moved);
-for (const [dependency, r] of moved) {
-  for (const section of SECTIONS) if (manifest[section]?.[dependency]) manifest[section][dependency] = r.version;
+// No pin moved, but the lock may have: a security update to a package only some dependency pulls in moves the
+// lockfile and nothing else. Rebuilt from it all the same — a lock the bundle was built from builds the same bytes,
+// and nothing moves; one that moved builds what it now holds, and that lands, or grows and is the owner's call.
+const summary = moved.length ? named(moved) : 'the lockfile as it stands';
+if (moved.length) {
+  for (const [dependency, r] of moved) {
+    for (const section of SECTIONS) if (manifest[section]?.[dependency]) manifest[section][dependency] = r.version;
+  }
+
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  run('npm', 'install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund');
 }
 
-await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-run('npm', 'install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund');
 await locked();
 run('npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund');
 run(process.execPath, 'build.mjs');

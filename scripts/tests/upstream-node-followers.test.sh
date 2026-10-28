@@ -177,9 +177,9 @@ editor_bytes="$(wc -c < "$root/src/Rask.Ui/Resources/ui-editor.js" | tr -d ' ')"
 
 engine editor
 registry editor
-check "nothing new on npm rebuilds nothing"            passed "$(bundle '{}' editor && echo passed)"
-check "...runs no npm"                                 "" "$(npm_ran)"
-check "...and moves nothing"                           "" "$(unchanged "${engine_files[@]}")"
+check "nothing new on npm still rebuilds from the lock"  passed "$(bundle '{}' editor && echo passed)"
+check "...installs what the lock holds, locking nothing" "npm ci" "$(npm_ran)"
+check "...and, the lock unmoved, moves nothing"         "" "$(unchanged "${engine_files[@]}")"
 
 engine editor
 registry editor @tiptap/core=99.0.0
