@@ -19,6 +19,12 @@ them until tagged releases begin.
   rebuild's render) rather than giving up at 5 s and making the host build the page again on every retry. See
   [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
 
+- **`TestDatabase.Start<TContext>(…)` runs a test against the app's own context.** `await using var db = await
+  TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs));` builds `AppDbContext` through its
+  `DbContextOptions<AppDbContext>` constructor, so the tables its `OnModelCreating` adds (`b.AddRaskOutbox()`) are
+  in the schema and its `SaveChangesAsync` override runs on every save — through `db.Context` (typed, no cast) or
+  through an aggregate. Interceptors, `Db`/`ReadDb` wiring, `Load`/`OpenRead` and disposal are as before; a
+  context with no such constructor is refused naming the one to add. `TestDatabase.Start(…)` is unchanged.
 - **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every
   docs page beside its Rask page at both widths and takes every behaviour walk (open, keys, pointer) against
   fluxui.dev as it is that day; the daily `upstream.yml` runs it as `flux-parity` and opens one issue — "Rask.Ui no
@@ -255,6 +261,11 @@ them until tagged releases begin.
   `/_rask/leave` and names its session in the `Rask-Session` header. The old paths still answer, so a tab open across
   the deploy keeps its session; a reverse-proxy rule that matched `/_rask/stream/` should match `/_rask/stream` too.
 
+- **A press read from a page two renders behind still reaches its handler when the server also walked a page it did
+  not send.** A filter's cross pressed while the panel's closing and the rows' arrival were both on their way ran
+  nothing on a loaded runner: a third walk rendered what the browser already had, nothing was sent, and it still pushed
+  the page the press was read from out of the two its slot remembers. A slot now keeps a third handler until the walk
+  that moved it last is sent (`Component.StaleEvents`); a press on a handler that has since left still runs nothing.
 - **`rask new` no longer fails on a busy machine with a regex timeout.** The template-marker scan gave each line a
   one-second wall-clock budget, which a starved thread could spend without matching anything; it now runs on .NET's
   linear-time engine, which needs no timeout (`TemplateMarkers`).

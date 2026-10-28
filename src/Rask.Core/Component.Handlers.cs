@@ -105,12 +105,8 @@ public abstract partial class Component
                 continue;
             }
 
-            slot.Older = slot.Before;
-            slot.OlderSince = slot.BeforeSince;
-            slot.Before = held;
-            slot.BeforeSince = slot.Since;
+            Remember(ref slot, held, rootState.Version);
             slot.Handler = null;
-            slot.Since = rootState.Version;
         }
 
         slotState.Held = Math.Min(slotState.Held, slotState.LocalCount);
@@ -878,5 +874,14 @@ public abstract partial class Component
 
         /// <summary>The page version from which it held <see cref="Older" />.</summary>
         public int OlderSince;
+
+        /// <summary>
+        ///     The handler it held before <see cref="Older" />, read only while the page that moved it last is not
+        ///     the browser's: a walk whose page was not sent moves the slot without moving the browser.
+        /// </summary>
+        public Delegate? Oldest;
+
+        /// <summary>The page version from which it held <see cref="Oldest" />.</summary>
+        public int OldestSince;
     }
 }

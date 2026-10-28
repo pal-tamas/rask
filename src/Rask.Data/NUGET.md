@@ -37,8 +37,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **State stays inside**: a public setter or mutable field on an aggregate, entity or value object is a build
   error with a lightbulb fix (RASK084), and an entity exposing a mutable collection of entities is a warning
   (RASK085).
-- **`TestDatabase.Start`**: a real database for a test in one line, so behaviour on an aggregate is
-  tested against the database it ships on rather than a mocked `DbContext`.
+- **`TestDatabase.Start<AppDbContext>`**: a real database for a test in one line, through the app's own context, so
+  behaviour on an aggregate is tested against the database, model and `SaveChangesAsync` it ships on rather than
+  a mocked `DbContext`.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
   that names `SoftDelete`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
