@@ -81,7 +81,7 @@ public sealed partial class UiDatePickerButton : Component
                     : Span.Key("placeholder").Class(UiDatePickerLook.Placeholder).Data(PlaceholderMark)[placeholder]
             ],
             scope.ClearInside(Clearable, locked),
-            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.Trailing)
+            Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiDatePickerLook.ButtonChevron)
         ];
 
         return button;

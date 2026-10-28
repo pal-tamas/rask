@@ -320,6 +320,10 @@ them until tagged releases begin.
   turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
   `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
   menu — where Flux's lands.
+- **A date or datetime picker button's chevron darkens under the pointer and under a tap, as Flux's does.** Before: it
+  never changed. After: a plain `:hover` of its button darkens it (zinc-800, white in dark) — a phone keeps it after
+  the tap that opened the calendar — and the calendar open holds it light where there is a pointer, which Flux takes
+  away then.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it
