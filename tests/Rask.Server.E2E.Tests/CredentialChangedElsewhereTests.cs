@@ -107,6 +107,44 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
         await Expect(desk.Locator("#note")).ToHaveValueAsync("half a thought");
     }
 
+    // A loaded host can be slow to answer the question. Late or never is no answer, and never "changed": the tab keeps
+    // its socket, what the reader pressed leaves after a moment, and the question gives up without a reconnect.
+    [Fact]
+    public async Task A_tab_whose_question_is_never_answered_keeps_its_socket_and_acts_after_a_moment()
+    {
+        await using var host = await StartAsync();
+        await using var context = await playwright.Browser.NewContextAsync();
+        var desk = await OpenDeskAsync(context, host, "/token?user=alice&tenant=7");
+        var sockets = 0;
+        desk.WebSocket += (_, _) => Interlocked.Increment(ref sockets);
+        var gaveUp = new TaskCompletionSource();
+        desk.RequestFailed += (_, request) =>
+        {
+            if (request.Url.Contains("/_rask/auth/who", StringComparison.Ordinal))
+            {
+                gaveUp.TrySetResult();
+            }
+        };
+        // Held, never answered: the request stays open until the page gives up on it.
+        await desk.RouteAsync("**/_rask/auth/who**", static _ => Task.CompletedTask);
+
+        await ComeBackToAsync(desk);
+        await desk.ClickAsync("#act");
+        await Expect(desk.Locator("#acted")).ToHaveTextAsync("acted=alice:7", Settled);
+        await gaveUp.Task.WaitAsync(TimeSpan.FromSeconds(60), TestContext.Current.CancellationToken);
+        await desk.ClickAsync("#act");
+
+        // The second press renders what the first did, so its arrival is read off the server, bounded.
+        for (var waited = 0; WhoDeskPage.Acted.Count < 2 && waited < 150; waited++)
+        {
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(["alice:7", "alice:7"], WhoDeskPage.Acted);
+        Assert.Equal(0, Volatile.Read(ref sockets));
+        await Expect(desk.Locator("#mounts")).ToHaveTextAsync("mounts=1");
+    }
+
     private static Task<LiveServerHost> StartAsync()
     {
         WhoDeskPage.Acted.Clear();

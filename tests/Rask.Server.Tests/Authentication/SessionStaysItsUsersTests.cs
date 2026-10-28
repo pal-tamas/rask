@@ -11,6 +11,7 @@ using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Components;
 using Rask.Server.Authentication;
+using Rask.Server.Files;
 using Rask.Server.Tests.Infrastructure;
 
 #pragma warning disable RASK019 // test-infra apps predate framework-managed <head>
@@ -163,8 +164,10 @@ public sealed partial class SessionStaysItsUsersTests
     }
 
     [Theory]
-    [InlineData("POST", "/_rask/upload/")]
-    [InlineData("GET", "/_rask/download/")]
+    [InlineData("POST", "/_rask/upload")]
+    [InlineData("GET", "/_rask/download")]
+    [InlineData("POST", "/_rask/upload/{session}")]
+    [InlineData("GET", "/_rask/download/{session}")]
     public async Task A_file_endpoint_refuses_another_signed_in_user(string method, string path)
     {
         using var host = CreateHost();
@@ -176,8 +179,10 @@ public sealed partial class SessionStaysItsUsersTests
     }
 
     [Theory]
-    [InlineData("POST", "/_rask/upload/")]
-    [InlineData("GET", "/_rask/download/")]
+    [InlineData("POST", "/_rask/upload")]
+    [InlineData("GET", "/_rask/download")]
+    [InlineData("POST", "/_rask/upload/{session}")]
+    [InlineData("GET", "/_rask/download/{session}")]
     public async Task A_file_endpoint_refuses_another_user_once_the_session_s_own_was_signed_out(string method, string path)
     {
         using var host = CreateHost();
@@ -287,7 +292,12 @@ public sealed partial class SessionStaysItsUsersTests
     private static async Task<HttpResponseMessage> FileRequestAsync(
         RaskTestHost host, string method, string path, string sessionId, string user)
     {
-        using var request = new HttpRequestMessage(new HttpMethod(method), path + sessionId + (method == "GET" ? "/token" : ""));
+        // A real staged download, so only who asks for it can refuse it. The {session} paths are a runtime's from
+        // before the Rask-Session header, still answered for one release.
+        var token = host.Services.GetRequiredService<SessionDownloadStore>().StageBytes(sessionId, "a.txt", [1], null).Token;
+        var url = path.Replace("{session}", sessionId, StringComparison.Ordinal) + (method == "GET" ? "/" + token : "");
+        using var request = new HttpRequestMessage(new HttpMethod(method), url);
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add(UserHeader, user);
         if (method == "POST")
         {

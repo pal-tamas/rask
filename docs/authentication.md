@@ -367,12 +367,13 @@ A revalidator sees what your store knows. It cannot see what only the browser ho
 out, or that some page of the site — yours, or an older application in the same host — issued the token again
 with another tenant in it. An open socket never sees that cookie.
 
-So the tab asks. A request under the app's path base, `/_rask/auth/who/{session}`, is authenticated like any
+So the tab asks. A request under the app's path base, `/_rask/auth/who` (the session in its `Rask-Session` header,
+never in the URL), is authenticated like any
 other — your own cookie-reading event runs for it — and answers only whether the principal it carries is the one
 the tab's connection opened with. No claim is in the answer, a session that does not exist and one that is not
-the caller's answer alike, it is refused cross-site and `no-store`. When the answer is anything but "the same",
-the tab drops its connection and opens it again **before it sends anything**, so the upgrade carries the cookie
-as it is now:
+the caller's answer alike, it is refused cross-site and `no-store`. When the answer names another principal, the
+tab drops its connection and opens it again **before it sends anything**, so the upgrade carries the cookie as it
+is now:
 
 | The new cookie names | The tab |
 |---|---|
@@ -390,6 +391,13 @@ What they cannot see is bounded: an answer is trusted for **30 seconds** in the 
 **2 seconds** in one that does not, and the first thing sent after that waits for a new one. Those are the longest
 a reader's action can run under a cookie the browser has since replaced, and only when it was replaced without
 the window ever losing the focus — a script in another frame, say.
+
+**A slow answer is no answer, never a change.** What the page sends waits for the answer for one second of the
+page's own time — time a tab starved of CPU could not run is not counted — and then leaves on the connection it
+has, where the server checks every event against the session's user as it always does; the answer is still acted
+on when it comes. A question that gets no answer within five seconds of the page's time, fails on the network or
+is answered with an error keeps the connection, and the tab asks again at the next trigger. Only an answer that
+names another principal opens the connection again, so a loaded host never makes its tabs reconnect.
 
 Nothing in your app takes part in this. A cookie set by a plain endpoint of your own is found the same way as
 one set by `auth.SignIn(…)`; going through Rask's sign-in only makes the other tabs ask a moment sooner. The
@@ -433,7 +441,7 @@ serving them.
 ### On a host you wire yourself
 
 All of it rests on one thing: `HttpContext.User` must be the user on the page's `GET`, on the socket's upgrade
-*and* on `/_rask/auth/who/…`, which is the same pipeline — `UseAuthentication()` with a default scheme, or a
+*and* on `/_rask/auth/who`, which is the same pipeline — `UseAuthentication()` with a default scheme, or a
 middleware that sets `HttpContext.User`, ahead of `MapRask`. A user the app works out some other way — its own
 scoped service filled from the request, a second scheme authenticated by hand inside a page — is one Rask never
 sees: the session then belongs to nobody, and its id is the only thing guarding it.
@@ -446,8 +454,8 @@ anything into `Request.PathBase`, so `Request.Path` is the whole address:
 |---|---|
 | The socket | `/app/rask/ws` |
 | The HTTP fallback | `/app/_rask/stream`, `/app/_rask/send`, `/app/_rask/leave` (the session in the `Rask-Session` header) |
-| Files | `/app/_rask/upload/{session}`, `/app/_rask/download/{session}/{token}` |
-| The sign-in relay, and the question a tab asks | `/app/_rask/auth/redeem`, `/app/_rask/auth/who/{session}` |
+| Files | `/app/_rask/upload` (the session in the `Rask-Session` header), `/app/_rask/download/{token}` |
+| The sign-in relay, and the question a tab asks | `/app/_rask/auth/redeem`, `/app/_rask/auth/who` (the session in the `Rask-Session` header) |
 
 So a token read from a cookie is read for the prefix, not for "a page":
 

@@ -1,7 +1,7 @@
 namespace Rask.Core.Routing;
 
 // Three transport modes — exactly one of Url/Bytes/Token is set per record:
-//   * Url   — server path: bytes live in SessionUploadStore, served from /_rask/download/{...}.
+//   * Url   — server path: bytes live in SessionUploadStore, served from /_rask/download/{token}.
 //             Render payload carries the URL; the browser fetches it directly.
 //   * Bytes — legacy WASM path: bytes inlined as base64 in the JSON render payload. Doubles
 //             the payload size (33% base64 inflation + duplicate copy through the .NET ⇄ JS

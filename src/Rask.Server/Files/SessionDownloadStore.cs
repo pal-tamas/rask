@@ -2,6 +2,11 @@ using System.Collections.Concurrent;
 
 namespace Rask.Server.Files;
 
+/// <summary>
+///     The files a session's handlers offered, each until its one request. Keyed by its token alone: the download URL
+///     the browser navigates to carries that and nothing else, so the session id never lands in a URL. The entry
+///     remembers its session, and the endpoint serves it only to that session's user.
+/// </summary>
 internal sealed class SessionDownloadStore : IDisposable
 {
     private readonly ConcurrentDictionary<string, Entry> _entries = new(StringComparer.Ordinal);
@@ -21,7 +26,7 @@ internal sealed class SessionDownloadStore : IDisposable
     {
         var token = Guid.NewGuid().ToString("N");
         var entry = new Entry(sessionId, token, filename, contentType ?? "application/octet-stream", bytes, null);
-        _entries[Key(sessionId, token)] = entry;
+        _entries[token] = entry;
         return entry;
     }
 
@@ -42,14 +47,21 @@ internal sealed class SessionDownloadStore : IDisposable
         }
 
         var entry = new Entry(sessionId, token, filename, contentType ?? "application/octet-stream", null, path);
-        _entries[Key(sessionId, token)] = entry;
+        _entries[token] = entry;
         return entry;
     }
 
+    /// <summary>The session <paramref name="token" /> was staged for, without taking it.</summary>
+    public string? SessionOf(string token) => _entries.TryGetValue(token, out var entry) ? entry.SessionId : null;
+
+    /// <summary>Takes the entry, once, and only for the session it was staged for.</summary>
     public bool TryTake(string sessionId, string token, out Entry? entry)
     {
-        if (_entries.TryRemove(Key(sessionId, token), out entry))
+        if (_entries.TryGetValue(token, out var found)
+            && string.Equals(found.SessionId, sessionId, StringComparison.Ordinal)
+            && _entries.TryRemove(new KeyValuePair<string, Entry>(token, found)))
         {
+            entry = found;
             return true;
         }
 
@@ -67,21 +79,15 @@ internal sealed class SessionDownloadStore : IDisposable
 
     public void ReleaseSession(string sessionId)
     {
-        foreach (var key in _entries.Keys.ToArray())
+        foreach (var pair in _entries.ToArray())
         {
-            if (!key.StartsWith(sessionId + ":", StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (_entries.TryRemove(key, out var entry) && entry.TempPath is { } path)
+            if (string.Equals(pair.Value.SessionId, sessionId, StringComparison.Ordinal)
+                && _entries.TryRemove(pair) && pair.Value.TempPath is { } path)
             {
                 TryDelete(path);
             }
         }
     }
-
-    private static string Key(string sessionId, string token) => sessionId + ":" + token;
 
     private static void TryDelete(string path)
     {

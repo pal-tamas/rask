@@ -122,7 +122,7 @@ data-protection key ring** — the record is sealed with it.
 | Surface | Why |
 | --- | --- |
 | File uploads | Staged to a node-local temp file; the WebSocket message that consumes them must reach the same host. |
-| Downloads | `GET /_rask/download/{session}/{token}` reads a node-local entry. |
+| Downloads | `GET /_rask/download/{token}` reads a node-local entry. |
 | Sign-in redeem | `POST /_rask/auth/redeem` reads an in-memory ticket issued on the host that authenticated you. |
 | The [HTTP fallback](render-modes.md#when-websockets-are-blocked) | A tab's `POST`s must reach the host holding its stream; anywhere else answers `404`, and the tab reconnects rather than working. |
 

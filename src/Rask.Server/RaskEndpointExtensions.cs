@@ -81,6 +81,8 @@ public static partial class RaskEndpointExtensions
     private const string LeavePath = "/_rask/leave";
     private const string BeforeHeader = "/{sessionId}";
     private const string SessionHeader = "Rask-Session";
+    private const string UploadPath = "/_rask/upload";
+    private const string DownloadPath = "/_rask/download";
 
     // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/, and
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
@@ -1142,20 +1144,35 @@ public static partial class RaskEndpointExtensions
 
     private static void MapSessionEndpoints(IEndpointRouteBuilder endpoints, string pathBase)
     {
-        endpoints.MapGet(pathBase + WhoPath, (RequestDelegate)WhoAsync);
         endpoints.MapPost(pathBase + "/_rask/auth/redeem", (RequestDelegate)(ctx =>
                 RedeemAuthTicketAsync(ctx, ctx.RequestServices.GetRequiredService<IAuthTicketStore>())))
             .DisableAntiforgery();
 
-        endpoints.MapPost(pathBase + "/_rask/upload/{sessionId}", (RequestDelegate)(ctx =>
-                HandleUploadAsync(ctx,
-                    (string)ctx.Request.RouteValues["sessionId"]!,
-                    ctx.RequestServices.GetRequiredService<LiveSessionStore>(),
-                    ctx.RequestServices.GetRequiredService<SessionUploadStore>(),
-                    ctx.RequestServices.GetRequiredService<RaskUploadOptions>())))
-            .DisableAntiforgery();
+        // The session id rides the Rask-Session header, never the path, as the HTTP fallback's does. The {sessionId}
+        // routes are what a tab opened before the header still asks; they go after one release.
+        foreach (var suffix in (string[])["", BeforeHeader])
+        {
+            endpoints.MapGet(pathBase + WhoPath + suffix, (RequestDelegate)WhoAsync);
 
-        endpoints.MapGet(pathBase + "/_rask/download/{sessionId}/{token}", (RequestDelegate)(ctx =>
+            endpoints.MapPost(pathBase + UploadPath + suffix, (RequestDelegate)(ctx =>
+                    HandleUploadAsync(ctx,
+                        NamedSession(ctx),
+                        ctx.RequestServices.GetRequiredService<LiveSessionStore>(),
+                        ctx.RequestServices.GetRequiredService<SessionUploadStore>(),
+                        ctx.RequestServices.GetRequiredService<RaskUploadOptions>())))
+                .DisableAntiforgery();
+        }
+
+        // A download is navigated to by the browser, which can send no header: its URL carries the one-shot token
+        // alone, and the token knows its session. The {sessionId}/{token} route answers a page rendered before.
+        endpoints.MapGet(pathBase + DownloadPath + "/{token}", (RequestDelegate)(ctx =>
+        {
+            var downloads = ctx.RequestServices.GetRequiredService<SessionDownloadStore>();
+            var token = (string)ctx.Request.RouteValues["token"]!;
+            return HandleDownloadAsync(ctx, downloads.SessionOf(token), token,
+                ctx.RequestServices.GetRequiredService<LiveSessionStore>(), downloads);
+        }));
+        endpoints.MapGet(pathBase + DownloadPath + BeforeHeader + "/{token}", (RequestDelegate)(ctx =>
             HandleDownloadAsync(ctx,
                 (string)ctx.Request.RouteValues["sessionId"]!,
                 (string)ctx.Request.RouteValues["token"]!,
@@ -4398,14 +4415,20 @@ public static partial class RaskEndpointExtensions
 
     private static async Task HandleUploadAsync(
         HttpContext ctx,
-        string sessionId,
+        string? sessionId,
         LiveSessionStore sessions,
         SessionUploadStore uploads,
         RaskUploadOptions options)
     {
-        // The {sessionId} is the only credential on this multipart POST (DisableAntiforgery), so
+        // The session id is the only credential on this multipart POST (DisableAntiforgery), so
         // guard it like the WS handshake: reject cross-origin posts and require the request's
         // authenticated user to match the session owner.
+        if (sessionId is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
         if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
             ctx.Response.StatusCode = refusal;
@@ -4547,14 +4570,20 @@ public static partial class RaskEndpointExtensions
 
     private static async Task HandleDownloadAsync(
         HttpContext ctx,
-        string sessionId,
+        string? sessionId,
         string token,
         LiveSessionStore sessions,
         SessionDownloadStore downloads)
     {
         // A leaked download URL must not serve a victim's file to another principal: require the
         // session to still exist and the request to be same-origin and from the session owner
-        // before consuming the one-shot entry.
+        // before consuming the one-shot entry. A token nobody staged names no session: 404, as a gone one.
+        if (sessionId is null)
+        {
+            ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+
         if (RefuseSessionRequest(ctx, sessions, sessionId) is { } refusal)
         {
             ctx.Response.StatusCode = refusal;

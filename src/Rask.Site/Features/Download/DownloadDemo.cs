@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Rask.Site.Features;
 
-// Download.File stages bytes on the active session — served from /_rask/download/{sid}/{token}
+// Download.File stages bytes on the active session — served from /_rask/download/{token}
 // on the server, pulled by JS from the .NET side by token on WASM. It must be called from an event handler,
 // so the state and the handler live together in this self-contained component.
 public sealed partial class DownloadDemo : Component

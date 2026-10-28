@@ -285,6 +285,14 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A slow answer to "is the browser still signed in as the same user?" no longer reconnects the tab.** A live page
+  asks `/_rask/auth/who` when it comes back to the reader and before the first event after a pause. The question had
+  five seconds of wall-clock time, and no answer counted as "the credential changed", so on a loaded host a tab
+  dropped its socket and reconnected mid-session (logged as closed by the client, status 1000). Now only an answer
+  that names another principal opens the connection again. A late, failed or error answer keeps the connection and
+  the tab asks again at the next trigger; the event it held leaves after one second of the page's own time and is
+  checked against the session's user on the server, as every event is. Both limits count the page's runnable time,
+  not the wall clock, like the HTTP stream's open deadline.
 - **A time picker's chevron darkens under the pointer, as Flux's does.** Before: it never changed. After: the button's
   goes zinc-300 to zinc-800 while the button is hovered, a typed field's zinc-400/75 to zinc-800 while the field is and
   none of its parts is (white in dark) — measured on Flux's with a real pointer.
@@ -1298,6 +1306,13 @@ them until tagged releases begin.
   the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
 
 ### Security
+
+- **The session id no longer appears in request URLs.** The question a live tab asks about its credential
+  (`/_rask/auth/who`) and its file uploads (`/_rask/upload`) name the session in the `Rask-Session` header, as the
+  HTTP fallback already does. A download, which the browser navigates to and so cannot carry a header, is now
+  `/_rask/download/{token}`: a one-shot token bound to the session that staged it, served only to that session's
+  user. The `{session}` paths still answer for one release, so a tab open across the deploy keeps working; a
+  reverse-proxy rule that matched `/_rask/upload/` or `/_rask/auth/who/` should match the bare paths too.
 
 - **A child row is read only by the tenant of the aggregate that holds it.** Before: since the unreleased reverse
   navigation on the read face, a child with no tenant column of its own was also readable by the tenant of any
