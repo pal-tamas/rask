@@ -19,6 +19,12 @@ them until tagged releases begin.
   rebuild's render) rather than giving up at 5 s and making the host build the page again on every retry. See
   [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
 
+- **`TestDatabase.Start<TContext>(…)` runs a test against the app's own context.** `await using var db = await
+  TestDatabase.Start<AppDbContext>(o => o.UseSqlServer(cs));` builds `AppDbContext` through its
+  `DbContextOptions<AppDbContext>` constructor, so the tables its `OnModelCreating` adds (`b.AddRaskOutbox()`) are
+  in the schema and its `SaveChangesAsync` override runs on every save — through `db.Context` (typed, no cast) or
+  through an aggregate. Interceptors, `Db`/`ReadDb` wiring, `Load`/`OpenRead` and disposal are as before; a
+  context with no such constructor is refused naming the one to add. `TestDatabase.Start(…)` is unchanged.
 - **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every
   docs page beside its Rask page at both widths and takes every behaviour walk (open, keys, pointer) against
   fluxui.dev as it is that day; the daily `upstream.yml` runs it as `flux-parity` and opens one issue — "Rask.Ui no

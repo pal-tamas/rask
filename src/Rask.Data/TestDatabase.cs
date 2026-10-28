@@ -44,20 +44,24 @@ namespace Rask.Data;
 ///         record of what happened, and checking it needs no dispatcher at all.
 ///     </para>
 /// </remarks>
-public sealed class TestDatabase : IAsyncDisposable
+/// <seealso cref="TestDatabase{TContext}" />
+public class TestDatabase : IAsyncDisposable
 {
     private readonly RaskDbContext _schemaOwner;
     private readonly Func<RaskReadDbContext> _openRead;
     private readonly Func<DbContext> _openWrite;
 
-    private TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite)
+    private protected TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
     }
 
-    /// <summary>Builds the database, creates its schema, and makes it the ambient one.</summary>
+    /// <summary>Builds the database over a plain <see cref="RaskDbContext" />, creates its schema, and makes it the ambient one.</summary>
+    /// <remarks>
+    ///     For an app with a context of its own, <see cref="Start{TContext}" /> runs the test against that one instead.
+    /// </remarks>
     /// <param name="configure">
     ///     Points EF Core at a provider, e.g. <c>o =&gt; o.UseSqlite($"Data Source={path}")</c>.
     /// </param>
@@ -69,15 +73,54 @@ public sealed class TestDatabase : IAsyncDisposable
     public static async Task<TestDatabase> Start(
         Action<DbContextOptionsBuilder> configure,
         TimeProvider? timeProvider = null,
+        CancellationToken cancellationToken = default) =>
+        await Open<RaskDbContext>(configure, static options => new RaskDbContext(options), timeProvider, cancellationToken).ConfigureAwait(false);
+
+    /// <summary>
+    ///     Builds the database over the app's own context, creates its schema, and makes it the ambient one — so the
+    ///     test runs against exactly the model and the <c>SaveChangesAsync</c> the app runs in production.
+    /// </summary>
+    /// <remarks>
+    ///     <typeparamref name="TContext" /> is built the way the app builds it: through its public constructor taking
+    ///     <c>DbContextOptions&lt;TContext&gt;</c> (or <c>DbContextOptions</c>). Its <c>OnModelCreating</c> additions —
+    ///     a battery's tables, its own entities — are in the schema, and its <c>SaveChangesAsync</c> override runs on
+    ///     every save, whether through <see cref="TestDatabase{TContext}.Context" /> or through an aggregate.
+    /// </remarks>
+    /// <typeparam name="TContext">The app's context.</typeparam>
+    /// <param name="configure">
+    ///     Points EF Core at a provider, e.g. <c>o =&gt; o.UseSqlServer(connectionString)</c>.
+    /// </param>
+    /// <param name="timeProvider">
+    ///     The clock the audit stamps come from. Pass a fake to assert on <c>CreatedAt</c>/<c>UpdatedAt</c>.
+    /// </param>
+    /// <param name="cancellationToken">Cancels schema creation.</param>
+    /// <exception cref="InvalidOperationException"><typeparamref name="TContext" /> has no constructor taking its options.</exception>
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    public static Task<TestDatabase<TContext>> Start<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
+        Action<DbContextOptionsBuilder> configure,
+        TimeProvider? timeProvider = null,
         CancellationToken cancellationToken = default)
+        where TContext : RaskDbContext
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+        return Open(configure, AppContextConstructor.For<TContext>(), timeProvider, cancellationToken);
+    }
+
+    [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
+    private static async Task<TestDatabase<TContext>> Open<TContext>(
+        Action<DbContextOptionsBuilder> configure,
+        Func<DbContextOptions<TContext>, TContext> construct,
+        TimeProvider? timeProvider,
+        CancellationToken cancellationToken)
+        where TContext : RaskDbContext
     {
         ArgumentNullException.ThrowIfNull(configure);
 
         var clock = timeProvider ?? Clock.TimeProvider;
 
-        RaskDbContext Create()
+        TContext Create()
         {
-            var builder = new DbContextOptionsBuilder<RaskDbContext>();
+            var builder = new DbContextOptionsBuilder<TContext>();
             configure(builder);
 
             // The same order the container registers them in: soft delete rewrites Deleted -> Modified
@@ -88,7 +131,7 @@ public sealed class TestDatabase : IAsyncDisposable
                 new SoftDeleteInterceptor(clock),
                 new AuditingInterceptor(clock),
                 new ViolationMessageInterceptor());
-            return new RaskDbContext(builder.Options);
+            return construct(builder.Options);
         }
 
         // Held open for the fixture's lifetime, which is what keeps a "Data Source=:memory:" database
@@ -110,7 +153,7 @@ public sealed class TestDatabase : IAsyncDisposable
         }
 
         ReadDb.Configure(CreateRead);
-        return new TestDatabase(schemaOwner, CreateRead, Create);
+        return new TestDatabase<TContext>(schemaOwner, CreateRead, Create);
     }
 
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
@@ -167,6 +210,7 @@ public sealed class TestDatabase : IAsyncDisposable
         Db.Reset();
         ReadDb.Reset();
         await _schemaOwner.DisposeAsync().ConfigureAwait(false);
+        GC.SuppressFinalize(this);
     }
 
     private static async Task<TEntity?> FindByKeyAsync<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(

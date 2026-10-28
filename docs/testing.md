@@ -308,7 +308,7 @@ it waits: only a call with nothing else to go on boots it — `Page.Visit`, a ba
 public async Task A_company_that_still_has_contacts_is_not_removed()
 {
     using var clock = Clock.Fake(at: monday9am);   // the only Rask.Testing call in this test
-    await using var database = await TestDatabase.Start(o => o.UseSqlServer(cs));
+    await using var database = await TestDatabase.Start<CrmContext>(o => o.UseSqlServer(cs));
     var company = Company.Named("Acme");
     database.Context.AddRange(company, Contact.At(company));
     await database.Context.SaveChangesAsync();
@@ -317,8 +317,9 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 }
 ```
 
-`TestDatabase.Start(…)` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes go to
-that database, and the app's `Program.cs` (with whatever settings it demands) never runs for it.
+`TestDatabase.Start<CrmContext>(…)` — or any `Db.Configure(…)` the test makes — is the test's say: its reads and writes
+go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
+(with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start(…)`.
 
 Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
 its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and

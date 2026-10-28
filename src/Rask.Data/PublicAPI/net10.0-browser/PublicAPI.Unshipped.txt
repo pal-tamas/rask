@@ -384,3 +384,6 @@ Rask.Data.IRaskModel.Model(Microsoft.EntityFrameworkCore.ModelBuilder! modelBuil
 static Rask.Data.ModelConfigurationBuilderExtensions.ConstraintNames(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, System.Func<Rask.Data.Constraint!, string?>! name) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 static Rask.Data.ModelConfigurationBuilderExtensions.DeleteBehavior(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, Microsoft.EntityFrameworkCore.DeleteBehavior children, Microsoft.EntityFrameworkCore.DeleteBehavior others) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!
 static Rask.Data.ModelRegistry.UseModel<TModel>() -> void
+Rask.Data.TestDatabase<TContext>
+Rask.Data.TestDatabase<TContext>.Context.get -> TContext!
+static Rask.Data.TestDatabase.Start<TContext>(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!

@@ -1692,11 +1692,12 @@ public void A_shipped_order_refuses_to_be_cancelled()
 }
 ```
 
-Behaviour that touches the database gets a real one in a line, rather than a mocked `DbContext`. Save
+Behaviour that touches the database gets a real one in a line, rather than a mocked `DbContext` — and
+it is the app's OWN context, so the test runs the model and the save the app runs in production. Save
 through `database.Context`, then read through the model surface exactly as the app does:
 
 ```csharp
-await using var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={path}"));
+await using var database = await TestDatabase.Start<AppDbContext>(o => o.UseSqlite($"Data Source={path}"));
 
 var anvil = Product.Create("Anvil", 9.99m);
 database.Context.Add(anvil);
@@ -1715,7 +1716,15 @@ await database.Context.SaveChangesAsync();
 Assert.Equal(2, await Order.Count());
 ```
 
-`TestDatabase.Start` maps every entity the build found — so no fixture has to list entities — creates the
+`TestDatabase.Start<AppDbContext>` builds the app's context the way the app does — through its constructor
+taking `DbContextOptions<AppDbContext>` — so what its `OnModelCreating` adds (`b.AddRaskOutbox()`, a table of
+its own) is in the schema, and its `SaveChangesAsync` override (a guard, an audit) runs on every save, whether
+the test saves through `database.Context` or through an aggregate (`product.Save()`, `Product.Create(model)`).
+`database.Context` is typed as `AppDbContext`, so its own sets need no cast. A context with no such constructor
+is refused with a message naming the one to add. An app on Rask's own context writes `TestDatabase.Start(…)`,
+which runs a plain `RaskDbContext`.
+
+Either way it maps every entity the build found — so no fixture has to list entities — creates the
 schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
 production, and points the model surface at it. Disposing clears it, so one test cannot leak its
 database into the next. It takes a `TimeProvider`, so audit stamps are assertable.
