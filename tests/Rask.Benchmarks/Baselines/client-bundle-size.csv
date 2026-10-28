@@ -487,3 +487,12 @@ bundle,bytes
 rask.js,111095
 rask.wasm.js,96120
 rask-hooks.js,117568
+#
+# 2026-10-28, a slow or failed who-answer is no change (rask-auth-watch.ts: a one-second hold in page time, the
+# question bounded by pageTimeout, failures keep the connection) and the who/upload requests name the session in
+# the Rask-Session header (Server runtime only): rask.js 111,239 -> 111,447 (+208; main had already moved 111,095
+# -> 111,239 unrecorded), the others unchanged. Measured locally (Release) on the tree merged with main 86c66fb20.
+bundle,bytes
+rask.js,111447
+rask.wasm.js,96120
+rask-hooks.js,117568
