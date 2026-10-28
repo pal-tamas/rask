@@ -17,7 +17,7 @@ public class UploadDownloadEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
         var form = BuildSingleFileForm("hi.txt", new byte[] { 1, 2, 3 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/no-such-session", form, TestContext.Current.CancellationToken);
+        var response = await UploadAsync(host, "no-such-session", form);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -29,7 +29,7 @@ public class UploadDownloadEndpointTests
         var sessionId = await CreateSessionAsync(host);
         var form = BuildSingleFileForm("data.bin", new byte[] { 9, 8, 7, 6, 5 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form, TestContext.Current.CancellationToken);
+        var response = await UploadAsync(host, sessionId, form);
 
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -57,7 +57,7 @@ public class UploadDownloadEndpointTests
         var bytes = Encoding.UTF8.GetBytes("rask-report");
         var entry = store.StageBytes(sessionId, "report.txt", bytes, "text/plain");
 
-        var url = $"/_rask/download/{sessionId}/{entry.Token}";
+        var url = $"/_rask/download/{entry.Token}";
         var first = await host.Http.GetAsync(url, TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
@@ -81,9 +81,72 @@ public class UploadDownloadEndpointTests
     {
         using var host = RaskTestHost.Create<TestApp>();
 
-        var response = await host.Http.GetAsync("/_rask/download/missing-session/nope", TestContext.Current.CancellationToken);
+        var response = await host.Http.GetAsync("/_rask/download/nope", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task An_upload_without_a_session_header_answers_404()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+
+        var response = await host.Http.PostAsync(
+            "/_rask/upload", BuildSingleFileForm("a.txt", [1]), TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    // What a page offers to download is a URL the browser navigates to, and a URL is written down by request logs,
+    // history and Referer: it carries the one-shot token, never the session id.
+    [Fact]
+    public async Task The_url_a_handler_offers_to_download_carries_no_session_id()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
+        var sink = session.Services.GetRequiredService<IDownloadSink>();
+        sink.Stage("report.txt", [1, 2, 3], "text/plain");
+
+        Assert.True(sink.TryConsume(out var download));
+
+        Assert.DoesNotContain(session.Id, download!.Url, StringComparison.Ordinal);
+        Assert.Matches("^/_rask/download/[0-9a-f]{32}$", download.Url);
+        var response = await host.Http.GetAsync(download.Url, TestContext.Current.CancellationToken);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    // A tab opened before the header still names its session in the path, and is answered until the next release.
+    [Fact]
+    public async Task A_runtime_from_before_still_uploads_and_downloads_with_the_session_in_the_path()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var sessionId = await CreateSessionAsync(host);
+        var entry = host.Server.Services.GetRequiredService<SessionDownloadStore>()
+            .StageBytes(sessionId, "report.txt", Encoding.UTF8.GetBytes("rask-report"), "text/plain");
+
+        var upload = await host.Http.PostAsync(
+            "/_rask/upload/" + sessionId, BuildSingleFileForm("a.txt", [1]), TestContext.Current.CancellationToken);
+        var download = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.OK, upload.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, download.StatusCode);
+    }
+
+    // The token is bound to the session it was staged for: naming another session in the old path takes nothing.
+    [Fact]
+    public async Task A_download_token_is_not_served_under_another_session_s_path()
+    {
+        using var host = RaskTestHost.Create<TestApp>();
+        var mine = await CreateSessionAsync(host);
+        var other = await CreateSessionAsync(host);
+        var entry = host.Server.Services.GetRequiredService<SessionDownloadStore>()
+            .StageBytes(mine, "report.txt", Encoding.UTF8.GetBytes("secret"), "text/plain");
+
+        var stolen = await host.Http.GetAsync($"/_rask/download/{other}/{entry.Token}", TestContext.Current.CancellationToken);
+        var own = await host.Http.GetAsync($"/_rask/download/{entry.Token}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.NotFound, stolen.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, own.StatusCode);
     }
 
     // A page that was fetched and never connected is reclaimed after its grace period. A download or upload
@@ -98,10 +161,7 @@ public class UploadDownloadEndpointTests
         var store = host.Server.Services.GetRequiredService<LiveSessionStore>();
 
         await host.Http.GetAsync($"/_rask/download/{sessionId}/nope", TestContext.Current.CancellationToken);
-        await host.Http.PostAsync(
-            $"/_rask/upload/{sessionId}",
-            BuildSingleFileForm("a.txt", [1]),
-            TestContext.Current.CancellationToken);
+        await UploadAsync(host, sessionId, BuildSingleFileForm("a.txt", [1]));
 
         await WaitFor.True(() => store.Peek(sessionId) is null, "the session to be removed");
 
@@ -120,7 +180,10 @@ public class UploadDownloadEndpointTests
         var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
         session.Scope.Dispose();
 
-        var response = await host.Http.GetAsync($"/_rask/download/{session.Id}/nope", TestContext.Current.CancellationToken);
+        var entry = host.Server.Services.GetRequiredService<SessionDownloadStore>()
+            .StageBytes(session.Id, "report.txt", [1], "text/plain");
+
+        var response = await host.Http.GetAsync($"/_rask/download/{entry.Token}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -132,10 +195,7 @@ public class UploadDownloadEndpointTests
         var session = host.Store.Create(sp => new TestApp(sp.GetRequiredService<RouteState>()));
         session.Scope.Dispose();
 
-        var response = await host.Http.PostAsync(
-            $"/_rask/upload/{session.Id}",
-            BuildSingleFileForm("a.txt", [1]),
-            TestContext.Current.CancellationToken);
+        var response = await UploadAsync(host, session.Id, BuildSingleFileForm("a.txt", [1]));
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -147,7 +207,7 @@ public class UploadDownloadEndpointTests
         var sessionId = await CreateSessionAsync(host);
         var form = BuildSingleFileForm("../../etc/passwd", new byte[] { 1, 2, 3 });
 
-        var response = await host.Http.PostAsync("/_rask/upload/" + sessionId, form, TestContext.Current.CancellationToken);
+        var response = await UploadAsync(host, sessionId, form);
 
         response.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
@@ -163,10 +223,11 @@ public class UploadDownloadEndpointTests
         using var host = RaskTestHost.Create<TestApp>();
         var sessionId = await CreateSessionAsync(host);
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/upload/" + sessionId)
+        var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/upload")
         {
             Content = BuildSingleFileForm("data.bin", new byte[] { 1, 2, 3 })
         };
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add("Origin", "http://evil.example");
 
         var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -183,7 +244,7 @@ public class UploadDownloadEndpointTests
         var store = host.Server.Services.GetRequiredService<SessionDownloadStore>();
         var entry = store.StageBytes(sessionId, "report.txt", Encoding.UTF8.GetBytes("secret"), "text/plain");
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/download/{sessionId}/{entry.Token}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/_rask/download/{entry.Token}");
         request.Headers.Add("Origin", "http://evil.example");
 
         var response = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -191,9 +252,17 @@ public class UploadDownloadEndpointTests
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
         // The cross-origin attempt must not consume the one-shot entry — a legitimate same-origin
         // fetch still succeeds afterward.
-        var legit = await host.Http.GetAsync($"/_rask/download/{sessionId}/{entry.Token}", TestContext.Current.CancellationToken);
+        var legit = await host.Http.GetAsync($"/_rask/download/{entry.Token}", TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, legit.StatusCode);
+    }
+
+    // As the runtime uploads: the session in the Rask-Session header, never in the path.
+    private static async Task<HttpResponseMessage> UploadAsync(RaskTestHost host, string sessionId, MultipartFormDataContent form)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/upload") { Content = form };
+        request.Headers.Add("Rask-Session", sessionId);
+        return await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
     private static async Task<string> CreateSessionAsync(RaskTestHost host)

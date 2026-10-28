@@ -70,12 +70,28 @@ public sealed partial class SessionStaysItsUsersTests
         Assert.Equal("{\"same\":true,\"user\":false}", await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
     }
 
+    // A tab opened before the header still names its session in the path, and is answered until the next release.
+    [Fact]
+    public async Task A_runtime_from_before_still_asks_with_the_session_in_the_path()
+    {
+        using var host = CreateHost<FollowApp>();
+        var page = await OpenAsync(host, "/open", "alice");
+        using var ws = await AttachAsync(host, page.SessionId, "alice");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/auth/who/" + page.SessionId);
+        request.Headers.Add(UserHeader, "alice");
+
+        using var answer = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
+
+        Assert.Equal("{\"same\":true,\"user\":true}", await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+    }
+
     [Fact]
     public async Task Another_site_s_page_cannot_ask()
     {
         using var host = CreateHost<FollowApp>();
         var page = await OpenAsync(host, "/open", "alice");
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/auth/who/" + page.SessionId);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/auth/who");
+        request.Headers.Add("Rask-Session", page.SessionId);
         request.Headers.Add(UserHeader, "alice");
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
 
@@ -203,9 +219,11 @@ public sealed partial class SessionStaysItsUsersTests
 
     // ── helpers ──────────────────────────────────────────────────────────────────────────────────
 
+    // As the runtime asks: the session in the Rask-Session header, never in the path.
     private static async Task<HttpResponseMessage> WhoAsync(RaskTestHost host, string sessionId, string? caller)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/auth/who/" + sessionId);
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/_rask/auth/who");
+        request.Headers.Add("Rask-Session", sessionId);
         if (caller is not null)
         {
             request.Headers.Add(UserHeader, caller);

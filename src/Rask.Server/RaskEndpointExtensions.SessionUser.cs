@@ -523,7 +523,8 @@ public static partial class RaskEndpointExtensions
         return !all.IsCompletedSuccessfully || all.Result.Any();
     }
 
-    private const string WhoPath = "/_rask/auth/who/{sessionId}";
+    // The session rides the Rask-Session header; a runtime from before named it in the path, and still reaches it.
+    private const string WhoPath = "/_rask/auth/who";
 
     // How often one session's tab may ask. It asks as it comes back to the reader and before an event after a
     // pause: a handful of times a minute.
@@ -559,7 +560,7 @@ public static partial class RaskEndpointExtensions
             return Task.CompletedTask;
         }
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         var session = sessionId is null ? null : ctx.RequestServices.GetRequiredService<LiveSessionStore>().Peek(sessionId);
 
         ctx.Response.ContentType = "application/json";

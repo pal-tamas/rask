@@ -29,7 +29,8 @@ internal sealed class ServerDownloadSink : IDownloadSink
             return false;
         }
 
-        var url = $"{LiveOptions.PathBase}/_rask/download/{_pending.SessionId}/{_pending.Token}";
+        // The token alone: the browser navigates to it, and a URL is written down by logs, history and Referer.
+        var url = $"{LiveOptions.PathBase}/_rask/download/{_pending.Token}";
         download = new PendingDownload(_pending.Filename, _pending.ContentType, url, null);
         _pending = null;
         return true;
