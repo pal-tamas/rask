@@ -93,11 +93,7 @@ public class RaskDbContext : DbContext, ITenantScoped
         ArgumentNullException.ThrowIfNull(optionsBuilder);
 
         base.OnConfiguring(optionsBuilder);
-        optionsBuilder.ConfigureWarnings(warnings =>
-            warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
-
-        // A collection of value objects turned NOT NULL is filled with [] by its migration, not with EF Core's {}.
-        RaskMigrationsModelDiffer.Use(optionsBuilder);
+        WithSharedWarnings(optionsBuilder);
 
         // A child collection declared `= []` is filled through it, so a context configured without it gets it here.
         if (optionsBuilder.Options.FindExtension<CoreOptionsExtension>()?.Interceptors?
@@ -106,6 +102,20 @@ public class RaskDbContext : DbContext, ITenantScoped
             optionsBuilder.AddInterceptors(WritableChildrenInterceptor.Instance);
         }
     }
+
+    /// <summary>
+    ///     The warnings a Rask context configures for itself, for the places that build its options to say up front.
+    /// </summary>
+    /// <param name="optionsBuilder">The options being built.</param>
+    /// <returns>The same builder.</returns>
+    /// <remarks>
+    ///     EF Core builds a context's internal services twice when <see cref="OnConfiguring" /> changes what its
+    ///     constructor was given — once for the options passed in, once for the configured ones — and refuses a process
+    ///     that builds more than twenty. Options that already say this are left the same by <see cref="OnConfiguring" />,
+    ///     so the context shares one set.
+    /// </remarks>
+    internal static DbContextOptionsBuilder WithSharedWarnings(DbContextOptionsBuilder optionsBuilder) =>
+        optionsBuilder.ConfigureWarnings(static warnings => warnings.Ignore(CoreEventId.NoEntityTypeConfigurationsWarning));
 
     /// <inheritdoc />
     /// <remarks>

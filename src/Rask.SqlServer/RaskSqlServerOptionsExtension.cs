@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Data;
 
 namespace Rask.SqlServer;
 
@@ -24,8 +25,13 @@ internal sealed class RaskSqlServerOptionsExtension(SqlServerOptions options) : 
 
     public DbContextOptionsExtensionInfo Info => _info ??= new ExtensionInfo(this);
 
-    public void ApplyServices(IServiceCollection services) =>
+    public void ApplyServices(IServiceCollection services)
+    {
         new EntityFrameworkServicesBuilder(services).TryAdd<IConventionSetPlugin, RaskSqlServerConventionSetPlugin>();
+
+        // Carried by every UseRaskSqlServer context: a collection of value objects turned NOT NULL is filled with [].
+        RaskMigrationsModelDiffer.Register(services);
+    }
 
     public void Validate(IDbContextOptions options)
     {

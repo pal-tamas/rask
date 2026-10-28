@@ -50,12 +50,14 @@ public static class RaskDatabaseDbContextOptionsExtensions
         // set of EF Core's internal services: an extension only some of them carried would split it in two.
         var tables = services.GetService<BatteryTablesExtension>()?.Tables ?? BatteryTables.All;
 
-        return (RaskDatabase.Provider(services.GetService<IConfiguration>()) switch
+        // And what a RaskDbContext configures for itself, said here so its constructor and its OnConfiguring see the
+        // same options: EF Core builds its internal services once for each when they differ.
+        return Rask.Data.RaskDbContext.WithSharedWarnings((RaskDatabase.Provider(services.GetService<IConfiguration>()) switch
         {
             RaskDatabaseProvider.Postgres => optionsBuilder.UseRaskPostgres(services),
             RaskDatabaseProvider.SqlServer => optionsBuilder.UseRaskSqlServer(services),
             _ => optionsBuilder.UseRaskSqlite(services),
-        }).WithBatteryTables(tables);
+        }).WithBatteryTables(tables));
     }
 
     /// <summary>

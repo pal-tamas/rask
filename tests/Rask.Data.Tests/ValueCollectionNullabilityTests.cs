@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using Rask.Data.Tests.Shapes;
 
 namespace Rask.Data.Tests;
@@ -217,30 +216,6 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
         Assert.Equal("{}", alter.DefaultValue);
     }
 
-    [Fact]
-    public void A_rask_context_writes_its_migrations_through_rasks_differ()
-    {
-        using var context = new RaskDbContext(new DbContextOptionsBuilder<RaskDbContext>().UseSqlite($"Data Source={_dbPath}").Options);
-
-        var differ = context.GetService<IMigrationsModelDiffer>();
-
-        Assert.IsType<RaskMigrationsModelDiffer>(differ);
-    }
-
-    [Fact]
-    public void An_app_context_registered_with_add_rask_data_writes_its_migrations_through_rasks_differ()
-    {
-        var services = new ServiceCollection()
-            .AddRaskData<FilingContext>()
-            .AddDbContext<FilingContext>(o => o.UseSqlite($"Data Source={_dbPath}"));
-        using var app = services.BuildServiceProvider();
-        using var scope = app.CreateScope();
-
-        var differ = scope.ServiceProvider.GetRequiredService<FilingContext>().GetService<IMigrationsModelDiffer>();
-
-        Assert.IsType<RaskMigrationsModelDiffer>(differ);
-    }
-
     private async Task SeedOnTheOwnedMappingAsync()
     {
         await using var owned = new OwnedFilingContext(Sqlite<OwnedFilingContext>());
@@ -288,14 +263,13 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
     private DbContextOptions<TContext> Sqlite<TContext>()
         where TContext : DbContext => Sqlite<TContext>($"Data Source={_dbPath}");
 
-    // Through Rask's differ, as UseRaskSqlite, a RaskDbContext and AddRaskData<TContext> all configure a context.
+    // Through Rask's differ, which UseRaskSqlite, UseRaskSqlServer, UseRaskPostgres and a RaskApp register; the wiring
+    // is pinned in their own test projects, so here it is put in place directly.
     private static DbContextOptions<TContext> Sqlite<TContext>(string connectionString)
-        where TContext : DbContext
-    {
-        var options = new DbContextOptionsBuilder<TContext>().UseSqlite(connectionString);
-        RaskMigrationsModelDiffer.Use(options);
-        return options.Options;
-    }
+        where TContext : DbContext => new DbContextOptionsBuilder<TContext>()
+        .UseSqlite(connectionString)
+        .ReplaceService<IMigrationsModelDiffer, RaskMigrationsModelDiffer>()
+        .Options;
 }
 
 /// <summary>A row holding ONE value object as JSON — the column EF Core's "{}" is right for.</summary>

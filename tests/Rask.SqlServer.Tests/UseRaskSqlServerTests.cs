@@ -259,6 +259,20 @@ public sealed class UseRaskSqlServerTests
         Assert.Null(await Record.ExceptionAsync(() => interceptor.ConnectionOpenedAsync(new NotSqlServerConnection(), null!, TestContext.Current.CancellationToken)));
     }
 
+    [Fact]
+    public void Its_migrations_go_through_rasks_differ_without_a_replaced_service()
+    {
+        var options = Options<PlainContext>();
+        using var context = new PlainContext(options);
+
+        var differ = context.GetService<Microsoft.EntityFrameworkCore.Migrations.IMigrationsModelDiffer>();
+
+        // Registered by the extension UseRaskSqlServer adds anyway, so the options' identity — and EF Core's count of
+        // internal service providers — is what it was.
+        Assert.IsType<Rask.Data.RaskMigrationsModelDiffer>(differ);
+        Assert.Null(options.FindExtension<CoreOptionsExtension>()?.ReplacedServices);
+    }
+
     private static DbContextOptions<TContext> Options<TContext>(Action<SqlServerOptions>? configure = null)
         where TContext : DbContext =>
         new DbContextOptionsBuilder<TContext>().UseRaskSqlServer(Services, configure).Options;

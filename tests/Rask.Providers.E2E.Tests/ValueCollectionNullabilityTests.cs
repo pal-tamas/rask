@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Storage;
-using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using Rask.Data.Tests.Shapes;
 
@@ -28,8 +27,7 @@ public sealed class ValueCollectionNullabilityTests
     [Fact]
     public void On_sql_server_a_column_is_null_only_where_the_model_says_the_collection_may_be()
     {
-        using var app = SqlServerApp(OfflineSqlServer);
-        var context = app.Context;
+        using var context = OnSqlServer(OfflineSqlServer);
 
         var columns = ValueObjectMappingDiff.Columns(context, ReturnFiling.Table);
         var script = context.Database.GenerateCreateScript();
@@ -72,9 +70,9 @@ public sealed class ValueCollectionNullabilityTests
     public void On_sql_server_an_adopted_not_null_json_column_is_the_column_rask_maps()
     {
         using var legacy = new LegacyFilingContext(new DbContextOptionsBuilder<LegacyFilingContext>().UseSqlServer(OfflineSqlServer).Options);
-        using var app = SqlServerApp(OfflineSqlServer);
+        using var rask = OnSqlServer(OfflineSqlServer);
 
-        var (forward, back) = ValueObjectMappingDiff.Between(legacy, app.Context);
+        var (forward, back) = ValueObjectMappingDiff.Between(legacy, rask);
 
         Assert.Empty(forward);
         Assert.Empty(back);
@@ -96,9 +94,9 @@ public sealed class ValueCollectionNullabilityTests
     public void On_sql_server_the_migration_rask_generates_fills_the_null_rows_with_an_empty_array_first()
     {
         using var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(OfflineSqlServer).Options);
-        using var app = SqlServerApp(OfflineSqlServer);
+        using var rask = OnSqlServer(OfflineSqlServer);
 
-        var sql = MigrationSql(owned, app.Context);
+        var sql = MigrationSql(owned, rask);
 
         Assert.Contains("UPDATE [ReturnFilings] SET [Files] = N'[]' WHERE [Files] IS NULL", sql, StringComparison.Ordinal);
         Assert.Contains("ALTER TABLE [ReturnFilings] ALTER COLUMN [Files] nvarchar(max) NOT NULL", sql, StringComparison.Ordinal);
@@ -132,10 +130,10 @@ public sealed class ValueCollectionNullabilityTests
                 TestContext.Current.CancellationToken);
         }
 
-        using var app = SqlServerApp(connection);
-        await MigrateAsync(new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(connection).Options), app.Context);
-        var files = await FileCountsAsync(app.Context);
-        await app.Context.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
+        await using var rask = OnSqlServer(connection);
+        await MigrateAsync(new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseSqlServer(connection).Options), rask);
+        var files = await FileCountsAsync(rask);
+        await rask.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([0, 1], files);
     }
@@ -191,25 +189,7 @@ public sealed class ValueCollectionNullabilityTests
     private static DbContextOptions<TContext> OnPostgres<TContext>(string connection)
         where TContext : DbContext => new DbContextOptionsBuilder<TContext>().UseRaskPostgresAt(connection).Options;
 
-    // A hand-wired SQL Server app: its own context on plain UseSqlServer, registered beside AddRaskData<TContext>.
-    private static SqlServerAppContext SqlServerApp(string connection)
-    {
-        var services = new ServiceCollection()
-            .AddRaskData<FilingContext>()
-            .AddDbContext<FilingContext>(o => o.UseSqlServer(connection))
-            .BuildServiceProvider();
-        var scope = services.CreateScope();
-        return new SqlServerAppContext(services, scope, scope.ServiceProvider.GetRequiredService<FilingContext>());
-    }
-
-    private sealed class SqlServerAppContext(ServiceProvider services, IServiceScope scope, FilingContext context) : IDisposable
-    {
-        public FilingContext Context { get; } = context;
-
-        public void Dispose()
-        {
-            scope.Dispose();
-            services.Dispose();
-        }
-    }
+    // UseRaskSqlServer, as an app configures its context.
+    private static FilingContext OnSqlServer(string connection) =>
+        new(new DbContextOptionsBuilder<FilingContext>().UseRaskSqlServerAt(connection).Options);
 }

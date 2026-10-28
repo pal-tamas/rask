@@ -491,9 +491,10 @@ refuses `IsRequired()` on it.
 NULL column, so the next `rask db add` writes an `AlterColumn` to `NOT NULL` for each non-nullable one, with
 `defaultValue: "[]"`. SQLite, SQL Server and PostgreSQL fill every NULL row with `[]` before the column turns
 `NOT NULL`, and an `AddColumn` of a new collection fills the rows already there the same way. EF Core on its own would
-write `"{}"`, an object that no collection can read back, so a Rask context writes its migrations through Rask's
-differ: a `RaskDbContext`, a context on `UseRaskSqlite` or `UseRaskPostgres`, and an app's own context registered with
-`AddRaskData<TContext>()`. A JSON column that holds one value object keeps `"{}"`.
+write `"{}"`, an object that no collection can read back, so a context writes its migrations through Rask's differ
+when it is on `UseRaskSqlite`, `UseRaskPostgres` or `UseRaskSqlServer`, or is a RaskApp's. A context on plain
+`UseSqlite`, `UseNpgsql` or `UseSqlServer` gets EF Core's `"{}"`: switch it to the Rask call. A JSON column that holds
+one value object keeps `"{}"`.
 
 **Choose a child entity instead when the elements need identity** — to be referenced, updated one at a time, or
 indexed. That is the real trade-off, and the deciding factor is usually the index:

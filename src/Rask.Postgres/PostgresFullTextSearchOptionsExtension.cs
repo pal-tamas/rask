@@ -27,6 +27,9 @@ internal sealed class PostgresFullTextSearchOptionsExtension : IDbContextOptions
             .TryAdd<IConventionSetPlugin, PostgresFullTextSearchConventionSetPlugin>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor, PostgresFullTextSearchQueryInterceptor>());
+
+        // Carried by every UseRaskPostgres context: a collection of value objects turned NOT NULL is filled with [].
+        RaskMigrationsModelDiffer.Register(services);
     }
 
     public void Validate(IDbContextOptions options)

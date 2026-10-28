@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -8,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore.Update;
 using Microsoft.EntityFrameworkCore.Update.Internal;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data;
 
@@ -42,13 +42,19 @@ internal sealed class RaskMigrationsModelDiffer(
     private const string EmptyObject = "{}";
     private const string EmptyArray = "[]";
 
-    /// <summary>Makes <paramref name="optionsBuilder" />'s context write its migrations through this differ.</summary>
-    /// <param name="optionsBuilder">The context's options.</param>
-    // ReplaceService<,> activates the differ through EF Core's internal container by reflection, and EF does not
-    // annotate it for the trimmer — kept here, or a trimmed app fails building its migrations services.
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(RaskMigrationsModelDiffer))]
-    public static DbContextOptionsBuilder Use(DbContextOptionsBuilder optionsBuilder) =>
-        optionsBuilder.ReplaceService<IMigrationsModelDiffer, RaskMigrationsModelDiffer>();
+    /// <summary>
+    ///     Registers this differ in a context's internal services, from the <c>ApplyServices</c> of an options extension
+    ///     the context already carries.
+    /// </summary>
+    /// <param name="services">EF Core's internal service collection.</param>
+    /// <remarks>
+    ///     Not <c>ReplaceService</c>: that changes the options' identity, so every context that has it gets an internal
+    ///     service provider of its own, and EF Core refuses a process that builds more than twenty. An extension the
+    ///     context carries anyway adds none. Added, not tried: the provider may register EF Core's own differ first, and
+    ///     the last registration wins.
+    /// </remarks>
+    public static void Register(IServiceCollection services) =>
+        services.AddScoped<IMigrationsModelDiffer, RaskMigrationsModelDiffer>();
 
     /// <inheritdoc />
     public override IReadOnlyList<MigrationOperation> GetDifferences(IRelationalModel? source, IRelationalModel? target)

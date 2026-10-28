@@ -197,10 +197,12 @@ them until tagged releases begin.
   migration snapshot changes, and every non-nullable value-object collection gets an `AlterColumn` to `NOT NULL`
   with `defaultValue: "[]"`. No hand edit is needed: SQLite, SQL Server and PostgreSQL fill the existing `NULL` rows
   with `[]` before the column turns `NOT NULL`, and an `AddColumn` of a new collection fills the rows already there
-  the same way. EF Core on its own writes `"{}"`, an object that no collection can read back. A Rask context
-  therefore writes its migrations through Rask's differ, which writes `"[]"` for a JSON collection and keeps `"{}"`
-  for one value object. That covers `RaskDbContext`, `UseRaskSqlite`, `UseRaskPostgres` and an app's own context
-  registered with `AddRaskData<TContext>()`. See [collections of values](docs/data.md#collections-of-values).
+  the same way. EF Core on its own writes `"{}"`, an object that no collection can read back. A context on
+  `UseRaskSqlite`, `UseRaskPostgres`, `UseRaskSqlServer` or a RaskApp's therefore writes its migrations through Rask's
+  differ, which writes `"[]"` for a JSON collection and keeps `"{}"` for one value object. It is registered by an
+  options extension those contexts already carry, so it builds no extra EF Core internal service provider. A context
+  on plain `UseSqlite`/`UseNpgsql`/`UseSqlServer` keeps EF Core's `"{}"`. See
+  [collections of values](docs/data.md#collections-of-values).
 
 - **A component that reads a query stays in the render cache.** Reading `Query.Data` (or any query, command or
   subscription state) during `Render` used to take the component out of the render cache for good, so every walk
@@ -283,6 +285,13 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A Rask context builds EF Core's internal services once, not twice.** EF Core builds them for the options a
+  context's constructor gets and again for what its `OnConfiguring` makes of them when the two differ. It refuses a
+  process that builds more than twenty (`ManyServiceProvidersCreatedWarning`), and an app's test suite with a few
+  configurations could reach that. `RaskDbContext` and `RaskReadDbContext` changed their options in `OnConfiguring`,
+  so each configuration built two. `UseRaskSqlite`, `UseRaskPostgres`, a RaskApp's `UseRaskDatabase` and the read
+  context's factories now say the same up front, and the context shares one. Rask.Server.Tests builds 15 where it
+  built 20, the limit.
 - **Hebrew and Vietnamese counts take the plural form CLDR gives them.** Hebrew has a dual — 2 is `two`, not
   `other` — and CLDR 49 counts 0 and 1 as `one` in Vietnamese, where Rask had no plural at all. A catalog without
   those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to

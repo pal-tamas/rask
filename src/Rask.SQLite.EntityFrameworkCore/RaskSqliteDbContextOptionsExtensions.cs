@@ -92,8 +92,8 @@ public static class RaskSqliteDbContextOptionsExtensions
         // DDL; this adds the model and query halves.
         AddFullTextSearchModelAndQuery(optionsBuilder);
 
-        // A collection of value objects turned NOT NULL is filled with [] by its migration, not with EF Core's {}.
-        RaskMigrationsModelDiffer.Use(optionsBuilder);
+        // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
+        RaskDbContext.WithSharedWarnings(optionsBuilder);
 
         return optionsBuilder
             // Inert too: it only reacts to the error the range-exclusion triggers raise.
