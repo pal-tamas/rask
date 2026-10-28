@@ -186,6 +186,14 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A component that reads a query stays in the render cache.** Reading `Query.Data` (or any query, command or
+  subscription state) during `Render` used to take the component out of the render cache for good, so every walk
+  ran it again. A walk that another component asked for (a modal closing, a counter ticking) re-ran the whole
+  page and rebuilt its handlers. Now the query re-renders its readers only when what they show moves, as TanStack
+  Query and Livewire do: data arriving, an invalidation, a reload, a poll, a key moving. A reload and a key moved
+  by one reader now also reach the query's other readers at once, so `IsFetching` shows as the fetch starts. A
+  context, edit-context or culture reader still renders on every walk, but only while it still reads: one that
+  stops goes back to the cache.
 - **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
   its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and
   landed by itself, so one release the gates refuse no longer holds back MDN, Node, CLDR and the rest. A red that
@@ -267,6 +275,9 @@ them until tagged releases begin.
   the tab asks again at the next trigger; the event it held leaves after one second of the page's own time and is
   checked against the session's user on the server, as every event is. Both limits count the page's runnable time,
   not the wall clock, like the HTTP stream's open deadline.
+- **The date and datetime pickers' chevron darkens under the pointer, as Flux UI's does.** On the button it turns
+  zinc-800 (white in dark) while the button is hovered; on a typed date field while the field is and none of its parts. Open, the
+  page lock takes the hover away on a desktop, and a tap's hover stays on a phone, both as Flux's.
 - **Hebrew and Vietnamese counts take the plural form CLDR gives them.** Hebrew has a dual — 2 is `two`, not
   `other` — and CLDR 49 counts 0 and 1 as `one` in Vietnamese, where Rask had no plural at all. A catalog without
   those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to
@@ -356,10 +367,6 @@ them until tagged releases begin.
   turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
   `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
   menu — where Flux's lands.
-- **A date or datetime picker button's chevron darkens under the pointer and under a tap, as Flux's does.** Before: it
-  never changed. After: a plain `:hover` of its button darkens it (zinc-800, white in dark) — a phone keeps it after
-  the tap that opened the calendar — and the calendar open holds it light where there is a pointer, which Flux takes
-  away then.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it

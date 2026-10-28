@@ -40,6 +40,12 @@ public abstract partial class Component
         var wasStateDirty = Live.StateDirty;
         Live.PropsDirty = false;
         Live.StateDirty = false;
+
+        // Whether it reads ambient state is this render's answer, not a past one's: the reads below arm it
+        // again, and a component that no longer makes any is served from the cache like any other. A render
+        // that throws has answered nothing, so it is put back with the dirty flags.
+        var wasReadingAmbientState = _readsAmbientState;
+        ForgetAmbientReads();
         var completed = false;
 
         try
@@ -51,21 +57,31 @@ public abstract partial class Component
         {
             if (!completed)
             {
-                // Each a plain store, never `|=`: a read-then-write would lose a StateHasChanged another thread
-                // made between the two, and that request has nothing else to carry it.
-                if (wasPropsDirty)
-                {
-                    Live.PropsDirty = true;
-                }
-
-                if (wasStateDirty)
-                {
-                    Live.StateDirty = true;
-                }
+                PutBackWhatAskedForTheRender(wasPropsDirty, wasStateDirty, wasReadingAmbientState);
             }
         }
 
         return Live.CachedRenderResult;
+    }
+
+    // Each a plain store, never `|=`: a read-then-write would lose a StateHasChanged another thread made
+    // between the two, and that request has nothing else to carry it.
+    private void PutBackWhatAskedForTheRender(bool propsDirty, bool stateDirty, bool readingAmbientState)
+    {
+        if (propsDirty)
+        {
+            Live.PropsDirty = true;
+        }
+
+        if (stateDirty)
+        {
+            Live.StateDirty = true;
+        }
+
+        if (readingAmbientState)
+        {
+            MarkReadsAmbientStateInternal();
+        }
     }
 
     // Skip when nothing meaningful changed: no first-time render, no prop change, no

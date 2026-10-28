@@ -33,6 +33,7 @@ import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { chromium, measurePage, root, screen } from './lib.mjs';
 import { landings } from './placement.mjs';
+import { launch, mark } from './picker-open.mjs';
 
 const args = process.argv.slice(2);
 const option = name => (args.includes(`--${name}`) ? args[args.indexOf(`--${name}`) + 1] : undefined);
@@ -54,7 +55,7 @@ const out = join(root, 'artifacts', 'flux-parity', 'flux', `${slug}-open`);
 for (const view of views) {
   const file = join(out, `measurements${sized(view)}.json`);
   if (existsSync(file) && !refresh) continue;
-  const browser = await chromium().launch();
+  const browser = await chromium().launch(launch);
   const open = await measurePage(browser, `https://fluxui.dev/components/${slug}`, out + sized(view), page => page.evaluate(mark, slug), view);
   await browser.close();
   await mkdir(out, { recursive: true });
@@ -64,9 +65,13 @@ for (const view of views) {
 
 // Flux's date popup is a <dialog> it opens itself, its list of times a popover; the kit's are both popovers.
 const popup = dated ? 'dialog' : '[popover]';
-const edges = await chromium().launch();
+// A browser that SHOWS its scrollbars, as a reader's does (parity-modal.mjs). Headless hides them, and there the
+// page lock Flux's dialog puts on (`scrollbar-gutter: stable`) reserves 15px that no scrollbar takes: the dialog's
+// containing block is 625px of a 640px viewport (measured 2026-10-28), so from `sm` up its width cap and its far
+// edge sit 15px in, where no reader sees them. The kit keeps a gutter only where a scrollbar takes room (rask-lock.ts).
+const edges = await chromium().launch(launch);
 const astray = await landings(edges, {
-  name: `${slug}-open`, refresh, all: args.includes('--all'), width: 260, hosts: [0, 1, 2],
+  name: `${slug}-open`, refresh, all: args.includes('--all'), width: 260, hosts: [0, 1, 2], scrollbars: 'shown',
   views: dated ? [PHONE, [640, 844], [1920, 1080]] : undefined,
   flux: { url: `https://fluxui.dev/components/${slug}`, host: `[data-preview-wrapper] [data-flux-${slug}]`, panel: popup, trigger: '[data-parity-open]', prepare: page => page.evaluate(mark, slug) },
   rask: { url: pathToFileURL(join(root, 'artifacts', 'flux-parity', 'rask', `${slug}-open.html`)).href, host: `[data-preview-wrapper] [data-ui-${slug}]`, panel: popup, trigger: '[data-parity-open]' },
@@ -77,30 +82,20 @@ const strayed = option('live') && slug === 'date-picker' ? await walk(edges, opt
 await edges.close();
 
 const passed = args.filter((a, i) => a === '--all' || a === '--section' || args[i - 1] === '--section');
+const here = fileURLToPath(new URL('.', import.meta.url));
 const parity = (page, view, more = []) => spawnSync(process.execPath,
-  [join(fileURLToPath(new URL('.', import.meta.url)), 'parity.mjs'), page, ...(view ? ['--view', view.join('x')] : []), ...passed, ...more],
+  [join(here, 'parity.mjs'), page, ...(view ? ['--view', view.join('x')] : []), ...passed, ...more],
   { stdio: 'inherit' }).status ?? 1;
 let failed = astray + strayed;
 for (const view of views) {
   if (view) console.log(`\n— at ${view.join(' × ')} —`);
-  failed += parity(`${slug}-open`, view);
+  // Open, the Rask page is given the runtime's hooks, which place its popup as Flux's script places Flux's.
+  failed += parity(`${slug}-open`, view, ['--prepare', join(here, 'picker-open.mjs')]);
   // As it loads at a phone's width too: the trigger is another size there, and so is what the closed popup holds.
   if (view) failed += parity(slug, view, refresh ? ['--refresh'] : []);
 }
 
 process.exit(failed ? 1 : 0);
-
-// Runs in the page. Marks what a reader presses to open each picker: the picker itself where its trigger
-// fills it (a press at the centre lands on the button), or the button beside the typed fields where the
-// trigger is an input — a press on a field only puts the caret in it.
-function mark(slug) {
-  for (const picker of document.querySelectorAll(`[data-preview-wrapper] [data-flux-${slug}]`)) {
-    // …a button where the trigger has one, else the chevron at the end of the typed field.
-    const beside = picker.querySelector(`[data-flux-${slug}-trigger] button, ui-${slug}-trigger button`)
-      ?? picker.querySelector(`ui-${slug}-trigger > svg:last-child`);
-    (beside ?? picker).setAttribute('data-parity-open', '');
-  }
-}
 
 // ----- The walk on a phone -------------------------------------------------------------------------------
 // One scenario, driven with a real pointer and real keys on Flux's first example and on a picker of a running

@@ -233,8 +233,11 @@ const EXTRA = ['data-ui-chart-hover', 'data-ui-color-picker-sheet', 'data-ui-cal
 // how each says where the popup goes is not compared; where it ends up is — its offset from the root it
 // floats beside, like every other node's.
 const PLACEMENT = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft']);
-// The same holds for a modal <dialog> the kit anchors to its trigger (the color picker's).
-const placed = (a, b) => ('popover' in b.attrs || b.tag === 'dialog') && a.style.position === 'absolute' && b.style.position === 'fixed';
+// The same holds for a modal <dialog> the kit anchors to its trigger (the color picker's), and for a popup the
+// runtime has placed (`data-rask-placed`, rask-place.ts): absolute at the inset it computes, its margins zeroed
+// where Flux's dialog keeps the `auto` they resolve from.
+const placed = (a, b) => ('popover' in b.attrs || b.tag === 'dialog') && a.style.position === 'absolute'
+  && (b.style.position === 'fixed' || (b.style.position === 'absolute' && 'data-rask-placed' in b.attrs));
 // A dialog the VIEWPORT places (`position: fixed` on both sides: Flux's date picker under 640 px, centred over
 // the page) is nowhere against the trigger that opened it — that distance is how far each page happened to be
 // scrolled. It is held to its place in the viewport, and what is inside it to the dialog.
