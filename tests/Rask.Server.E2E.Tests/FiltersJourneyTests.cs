@@ -91,6 +91,37 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
         await Expect(page.Locator("#rows")).ToHaveTextAsync("anyone · · name");
     }
 
+    // The press on a badge's cross leaves before the page has answered the panel's closing, so it is read from the
+    // page that still had the panel's fields in it — and reaches a server that has since rendered that closing and
+    // then the rows that arrived: two pages later.
+    [Fact]
+    public async Task A_cross_pressed_before_the_page_answered_the_panel_closing_still_takes_its_filter_off()
+    {
+        await using var session = await HookSession.OpenAsync<FiltersJourneyApp>(playwright, path: "/filters-journey?sort=name", services: services =>
+        {
+            services.AddRaskQuery();
+            services.AddSingleton<IDispatcher, FiltersJourneyPage.NothingToAsk>();
+        }, beforeLoad: HeldReplies.Install);
+        var page = session.Page;
+        await page.ClickAsync("[data-ui-filters] [data-ui-modal-trigger] button");
+        await page.Locator(Panel + " [data-ui-select-button]").ClickAsync();
+        await page.Locator(Panel + " [data-ui-option]").Filter(new() { HasTextString = "Bob Ross" }).ClickAsync();
+        await Expect(page).ToHaveURLAsync(new Regex(@"driver=bob"));
+        await page.FillAsync(Panel + " #f-search", "tea");
+        await Expect(page).ToHaveURLAsync(new Regex(@"q=tea"));
+        await Expect(page.Locator("#rows")).ToHaveTextAsync("bob · tea · name");
+
+        await HeldReplies.HoldAsync(page);
+        await page.Locator(Panel + " button").Filter(new() { HasTextString = "Close" }).ClickAsync();
+        await Expect(page.Locator(Panel)).Not.ToHaveAttributeAsync("open", "");
+        await HeldReplies.UntilHeldAsync(page, "order for bob 1");
+        await page.ClickAsync("[aria-label='Remove filter Driver']");
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(Badge(page, "Driver: Bob Ross")).ToHaveCountAsync(0);
+        await Expect(page).ToHaveURLAsync(new Regex(@"/filters-journey\?sort=name&q=tea$"));
+    }
+
     [Fact]
     public async Task A_shared_address_opens_on_its_filters()
     {

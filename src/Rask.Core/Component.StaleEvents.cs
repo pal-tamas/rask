@@ -15,7 +15,8 @@ namespace Rask.Core;
 //   * from one of the two pages before: one of the two handlers the slot remembers is. The handler that runs is
 //     the one in the page as it is now that is the SAME as it (HandlerSameness): in that slot, or in another slot
 //     of the same component when the slot was taken by another, or — among the handlers one lambda made — the
-//     one its siblings are told apart from it by.
+//     one its siblings are told apart from it by. Two pages the browser was SENT: a walk whose page repeated the
+//     browser's moves the slot but not the browser, and the slot keeps a third handler until its page is sent.
 //   * older than that, or nothing the same is left: nothing runs.
 //
 // What runs is always a handler the page has now, so `v` reaches nothing a click could not. An event that names no
@@ -53,16 +54,22 @@ public abstract partial class Component
         }
 
         root.Moved = true;
-        if (slot.Since == next)
+        if (slot.Since != next)
         {
-            return;
+            Remember(ref slot, held, next);
         }
+    }
 
+    // The slot holds another handler from page `since` on: the one it held goes into what it remembers.
+    private static void Remember(ref HandlerSlot slot, Delegate held, int since)
+    {
+        slot.Oldest = slot.Older;
+        slot.OldestSince = slot.OlderSince;
         slot.Older = slot.Before;
         slot.OlderSince = slot.BeforeSince;
         slot.Before = held;
         slot.BeforeSince = slot.Since;
-        slot.Since = next;
+        slot.Since = since;
     }
 
     // `asking` is the batch's question — would this event's handler outlive a render? — which is not a dispatch:
@@ -107,10 +114,10 @@ public abstract partial class Component
             return true;
         }
 
-        return ((current ? slot.Handler : HeldAt(ref slot, seen)) is { } sought
+        return ((current ? slot.Handler : HeldAt(ref slot, seen, root)) is { } sought
                 && ((!current && TryFindInPlace(ref slot, map, id, sought, out entry))
                     || TryFindMoved(state, map, sought, at.Slot, out entry)
-                    || TryFindAmongSiblings(state, map, sought, seen, out entry)))
+                    || TryFindAmongSiblings(state, map, sought, seen, root, out entry)))
                || (!asking && Missed(at.Component, at.Slot, version, root));
     }
 
@@ -120,7 +127,7 @@ public abstract partial class Component
     // it by: the row, not the view every row shares (HandlerSameness.Pick).
     private static bool TryFindAmongSiblings(
         HandlerState state, Dictionary<string, (Component Owner, Delegate Handler)> map, Delegate sought, long seen,
-        out (Component Owner, Delegate Handler) entry)
+        HandlerState root, out (Component Owner, Delegate Handler) entry)
     {
         entry = default;
         var then = new List<Delegate>();
@@ -129,7 +136,7 @@ public abstract partial class Component
         for (var i = 0; i < issued; i++)
         {
             ref var slot = ref i == 0 ? ref state.Slot0 : ref state.Rest![i - 1];
-            if ((seen >= slot.Since ? slot.Handler : HeldAt(ref slot, seen)) is { } held
+            if ((seen >= slot.Since ? slot.Handler : HeldAt(ref slot, seen, root)) is { } held
                 && HandlerSameness.FromOneLambda(sought, held))
             {
                 then.Add(held);
@@ -154,15 +161,22 @@ public abstract partial class Component
         return true;
     }
 
-    // What the slot held in the page numbered `seen`, when that is one of the two handlers it remembers.
-    private static Delegate? HeldAt(ref HandlerSlot slot, long seen)
+    // What the slot held in the page numbered `seen`, when that is one of the two handlers it remembers — or a third,
+    // while the walk that last moved the slot made a page the browser was not sent (it already had it): that walk
+    // moved the slot and not the browser, so the browser is still only two pages past the third.
+    private static Delegate? HeldAt(ref HandlerSlot slot, long seen, HandlerState root)
     {
         if (slot.Before is { } before && seen >= slot.BeforeSince)
         {
             return before;
         }
 
-        return slot.Older is { } older && seen >= slot.OlderSince ? older : null;
+        if (slot.Older is { } older && seen >= slot.OlderSince)
+        {
+            return older;
+        }
+
+        return slot.Oldest is { } oldest && seen >= slot.OldestSince && slot.Since > root.Version ? oldest : null;
     }
 
     // The slot still holds the same handler: proven once, and remembered as held since the older one took it.
@@ -181,13 +195,19 @@ public abstract partial class Component
             slot.Before = slot.Older;
             slot.BeforeSince = slot.OlderSince;
         }
-        else
+        else if (ReferenceEquals(sought, slot.Older))
         {
             slot.Since = slot.OlderSince;
             slot.Before = null;
         }
+        else
+        {
+            // The third is read only until the slot's page is sent: proven for this event, and not remembered.
+            return true;
+        }
 
         slot.Older = null;
+        slot.Oldest = null;
         return true;
     }
 
