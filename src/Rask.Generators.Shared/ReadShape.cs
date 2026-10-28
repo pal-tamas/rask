@@ -21,6 +21,7 @@ namespace Rask.Generators.Shared;
 /// <param name="References">The ids that might be references, for the emit pass to resolve.</param>
 /// <param name="Children">The child collections.</param>
 /// <param name="ValueCollections">The collections of values: tags, stops.</param>
+/// <param name="Relationships">The relationships its own <c>Configure</c> declares, which win over a guess from an id's name.</param>
 /// <param name="Location">Where the entity is declared, for a diagnostic to point at.</param>
 internal sealed record ReadShape(
     string Name,
@@ -36,4 +37,5 @@ internal sealed record ReadShape(
     EquatableArray<ReadReference> References,
     EquatableArray<ReadChildCollection> Children,
     EquatableArray<ReadValueCollection> ValueCollections,
+    EquatableArray<ReadRelationship> Relationships,
     SymbolLocation? Location);

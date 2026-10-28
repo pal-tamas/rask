@@ -54,8 +54,10 @@ internal static class ReadModelShape
     ///     compilation declares, which is not knowable while walking one entity.
     /// </remarks>
     /// <param name="entity">The write model to read.</param>
+    /// <param name="relationships">What its <c>Configure</c> declares — see <see cref="ConfiguredRelationships" />.</param>
     /// <param name="cancellationToken">Cancels the walk.</param>
-    public static ReadShape? Describe(INamedTypeSymbol entity, CancellationToken cancellationToken = default)
+    public static ReadShape? Describe(
+        INamedTypeSymbol entity, IReadOnlyList<ReadRelationship> relationships, CancellationToken cancellationToken = default)
     {
         var members = new List<ReadMember>();
         var references = new List<ReadReference>();
@@ -100,7 +102,7 @@ internal static class ReadModelShape
         AddKey(entity, members, references, keyParts);
         AddFrameworkColumns(entity, members);
         AddTenantColumn(entity, members);
-        return Shape(entity, idType, members, references, children, valueCollections);
+        return Shape(entity, idType, members, references, children, valueCollections, relationships);
     }
 
     // A collection of values, the columns of a value object, or one plain column.
@@ -180,7 +182,8 @@ internal static class ReadModelShape
         List<ReadMember> members,
         List<ReadReference> references,
         List<ReadChildCollection> children,
-        List<ReadValueCollection> valueCollections) =>
+        List<ReadValueCollection> valueCollections,
+        IReadOnlyList<ReadRelationship> relationships) =>
         new(
             ReadName(entity),
             ReadFqn(entity),
@@ -197,6 +200,7 @@ internal static class ReadModelShape
             new EquatableArray<ReadReference>([.. references]),
             new EquatableArray<ReadChildCollection>([.. children]),
             new EquatableArray<ReadValueCollection>([.. valueCollections]),
+            new EquatableArray<ReadRelationship>(relationships),
             SymbolLocation.From(entity));
 
     /// <summary>What an entity offers the resolver: its read face and the key a reference must match.</summary>

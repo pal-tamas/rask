@@ -176,7 +176,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, moved daily by the `mdn` follower in `upstream.yml`, never by the build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–110 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/075/076/081/091 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK111). **Grep `src/`
+  (RASK027/030/032/034/042/046/047/048/049/050/054/075/076/081/091 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK113; RASK111 is taken on ci/release/value-collection-not-null). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and
