@@ -11,6 +11,7 @@ import {
     EARLY_CLOSE_MS,
     framesThatFit,
     openHttpConnection,
+    pageTimeout,
     TRANSPORT_STORAGE_KEY,
 } from "../../../src/Rask.Server/Resources/rask-http-transport.js";
 
@@ -179,7 +180,7 @@ const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 5));
 async function connection(): Promise<Result> {
     const encoder = new TextEncoder();
     let push: (text: string) => void = () => {};
-    const requests: Array<{ url: string; method: string; stream: string | null; body: string | null }> = [];
+    const requests: Array<{ url: string; method: string; session: string | null; stream: string | null; body: string | null }> = [];
 
     const realFetch = globalThis.fetch;
     globalThis.fetch = (async (input: string, init: RequestInit = {}) => {
@@ -187,6 +188,7 @@ async function connection(): Promise<Result> {
         requests.push({
             url: input,
             method: init.method ?? "GET",
+            session: headers.get("rask-session"),
             stream: headers.get("rask-stream"),
             body: typeof init.body === "string" ? init.body : null,
         });
@@ -207,7 +209,7 @@ async function connection(): Promise<Result> {
     try {
         const conn = openHttpConnection({
             sessionId: "old-id",
-            url: (kind, session) => "/_rask/" + kind + "/" + session,
+            url: (kind) => "/_rask/" + kind,
             resumeToken: "record",
             sent: 0,
             onOpen: (session) => events.push("open:" + session),
@@ -238,7 +240,8 @@ async function connection(): Promise<Result> {
             sendWhileConnecting,
             events,
             streamUrl: requests[0]?.url ?? null,
-            posts: requests.slice(1).map((r) => ({url: r.url, stream: r.stream, body: r.body})),
+            streamSession: requests[0]?.session ?? null,
+            posts: requests.slice(1).map((r) => ({url: r.url, session: r.session, stream: r.stream, body: r.body})),
         };
     } finally {
         globalThis.fetch = realFetch;
@@ -253,11 +256,17 @@ results.packing = {
     multibyte: framesThatFit(['"é"', '"é"'], 9),
 };
 
-// Deadlines: a stream that never opens, and one that opens and then goes silent.
+// Deadlines: a stream whose request is never answered, one answered whose attach outlasts the open deadline (a
+// rebuild's render on a loaded host), and one that opens and then goes silent.
 async function deadlines(): Promise<Result> {
     const realFetch = globalThis.fetch;
     let push: (text: string) => void = () => {};
-    globalThis.fetch = (async () => {
+    let answer = true;
+    globalThis.fetch = (async (_input: string, init: RequestInit = {}) => {
+        if (!answer) {
+            return new Promise<Response>((_resolve, reject) =>
+                init.signal?.addEventListener("abort", () => reject(new Error("aborted"))));
+        }
         const body = new ReadableStream<Uint8Array>({
             start(controller) {
                 push = (text) => controller.enqueue(new TextEncoder().encode(text));
@@ -278,9 +287,20 @@ async function deadlines(): Promise<Result> {
     };
 
     try {
+        answer = false;
         openHttpConnection({...options, openTimeoutMs: 20, silenceMs: 10_000});
         await new Promise((resolve) => setTimeout(resolve, 60));
         const neverOpened = events.splice(0);
+        answer = true;
+
+        const slowAttach = openHttpConnection({...options, openTimeoutMs: 20, silenceMs: 10_000});
+        await new Promise((resolve) => setTimeout(resolve, 60));
+        const stillAttaching = events.splice(0);
+        push('data: {"type":"stream","generation":1}\n\n');
+        await tick();
+        const attachedLate = events.splice(0);
+        slowAttach.close(1000, "done");
+        events.splice(0);
 
         openHttpConnection({...options, openTimeoutMs: 10_000, silenceMs: 30});
         await tick();
@@ -288,12 +308,37 @@ async function deadlines(): Promise<Result> {
         await new Promise((resolve) => setTimeout(resolve, 80));
         const wentSilent = events.splice(0);
 
-        return {neverOpened, wentSilent};
+        return {neverOpened, stillAttaching, attachedLate, wentSilent};
     } finally {
         globalThis.fetch = realFetch;
     }
 }
 
+// --- A deadline counted in the page's own time ---------------------------------------------------------------------
+
+// The same 100 ms deadline on a page that runs on time and on one so starved that every check finds a second gone.
+// A wall-clock timer gives the starved page up at its first late check; this one counts what the page could run.
+async function starvedDeadline(): Promise<Result> {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    let onTime = false;
+    pageTimeout(() => { onTime = true; }, 100, () => performance.now(), 10);
+
+    let starvedFor = 0;
+    let starved = false;
+    pageTimeout(() => { starved = true; }, 100, () => performance.now() + (starvedFor += 1000), 10);
+
+    await wait(30);
+    const starvedAfterAFewLateChecks = starved;
+    await wait(270);
+
+    let cancelled = false;
+    pageTimeout(() => { cancelled = true; }, 20, () => performance.now(), 10)();
+    await wait(60);
+
+    return {onTime, starvedAfterAFewLateChecks, starvedInTheEnd: starved, cancelled};
+}
+
+results.starved = await starvedDeadline();
 results.connection = await connection();
 results.deadlines = await deadlines();
 results.batching = await batching();

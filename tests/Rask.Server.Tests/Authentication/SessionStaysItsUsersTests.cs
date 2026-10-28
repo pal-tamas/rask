@@ -195,10 +195,11 @@ public sealed partial class SessionStaysItsUsersTests
         using var host = CreateHost();
         var (sessionId, save) = await OpenPageAsync(host, "alice");
         host.Store.Peek(sessionId)!.Services.GetRequiredService<SessionUserProvider>().Clear();
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
         {
             Content = JsonContent.Create(new[] { new { id = save } }),
         };
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add(UserHeader, "mallory");
         request.Headers.Add("Rask-Stream", "1");
 

@@ -1,7 +1,7 @@
 {
   "name": "rask-ui-editor-engine",
   "private": true,
-  "description": "Builds src/Rask.Ui/Resources/ui-editor.js, the lazily loaded engine behind Ui.Editor: npm ci && node build.mjs. Tiptap is on its newest 3.x, every package of the family at one version; prosemirror-model is held to the last one whose serialised HTML is what Flux's live editor answers (no trailing semicolon in a style attribute).",
+  "description": "Builds src/Rask.Ui/Resources/ui-editor.js, the lazily loaded engine behind Ui.Editor: npm ci && node build.mjs. Tiptap is npm's latest, every package of the family at one version (scripts/upstream/kit-bundle.mjs follows it daily); prosemirror-model is held to the last one whose serialised HTML is what Flux's live editor answers (no trailing semicolon in a style attribute).",
   "type": "module",
   "scripts": {
     "build": "node build.mjs"

@@ -23,6 +23,17 @@ them until tagged releases begin.
   written. RASK106 now refuses only what a form truly cannot carry: rows holding rows of their own, a row with no
   parameterless constructor, a key with no part for its holder. See
   [Link tables and child rows on the form](docs/data.md#link-tables-and-child-rows-on-the-form).
+- **A slow tab is rebuilt, not reloaded.** A page's `GET` now carries a sealed resume record of itself
+  (`data-rask-resume` on `<body>`, 175 bytes for an anonymous reader, about 220 signed in), bound to the session it was served with and to its reader, and
+  expiring with `ResumeTokenLifetime`. Before: under load — parallel E2E runs, a CPU-starved browser — a tab could
+  take longer than `UnconnectedSessionGracePeriod` (10 s, unchanged) to connect, found its session released, and
+  reloaded, dropping what the reader did meanwhile (#1258). After: the late connection rebuilds the page where it
+  stands. The record opens only for a connection naming that session and never for another user. The runtime's
+  5 s connection-open deadline also counts only the time the page could run, so a starved tab is no longer pushed
+  onto the HTTP fallback for being busy, and an HTTP stream whose request was answered waits for its attach (a
+  rebuild's render) rather than giving up at 5 s and making the host build the page again on every retry. See
+  [Surviving a restart or a redeploy](docs/configuration.md#surviving-a-restart-or-a-redeploy).
+
 - **Rask.Ui is held to Flux UI every day, on a desktop and on a phone.** `scripts/flux/parity-all.sh` measures every
   docs page beside its Rask page at both widths and takes every behaviour walk (open, keys, pointer) against
   fluxui.dev as it is that day; the daily `upstream.yml` runs it as `flux-parity` and opens one issue — "Rask.Ui no
@@ -176,7 +187,14 @@ them until tagged releases begin.
   generator is on neither it nor its list of what is still made by hand. A build of this repository no longer
   moves anything upstream: Rask.Core's build stopped refreshing the MDN snapshot (the `RaskMdnRefresh` step is
   gone), and the site's build stopped re-reading its package islands' props — the `mdn` and the new `island-props`
-  followers do both, daily and gated. An app's own build still reads its islands' props as before.
+  followers do both, daily and gated. An app's own build still reads its islands' props as before. Rask.Ui's
+  icons and flags follow too: `heroicons` and `country-flag-icons` take npm's latest release, checked against the
+  registry's integrity, and the icons a release adds are recorded in the kit's public API. `Ui.Editor`'s engine
+  follows Tiptap's latest release (the whole family at one version, `prosemirror-model` still held): the lock is
+  checked against the registry and the engine rebuilt — and an engine that comes out bigger than the committed one
+  is not landed but opens an issue, since every visitor of an editor page downloads it. `Ui.Phone`'s engine
+  follows the same way, to the intl-tel-input release fluxui.dev serves (not npm's latest: its formatting is held
+  to Flux's key by key).
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
@@ -238,6 +256,12 @@ them until tagged releases begin.
   those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to
   CLDR itself: every carried language is run for each whole count up to 10,000 against CLDR's own rules, which
   the new `cldr-plurals` follower keeps on CLDR's latest release (`PluralRulesMatchCldrTests`).
+- **Security: the HTTP fallback no longer puts the session id in its URLs.** `/_rask/stream/{session}`,
+  `/_rask/send/{session}` and `/_rask/leave/{session}` wrote the session id — the secret that drives a session —
+  into ASP.NET's request log and every proxy's access log. The runtime now calls `/_rask/stream`, `/_rask/send` and
+  `/_rask/leave` and names its session in the `Rask-Session` header. The old paths still answer, so a tab open across
+  the deploy keeps its session; a reverse-proxy rule that matched `/_rask/stream/` should match `/_rask/stream` too.
+
 - **`rask new` no longer fails on a busy machine with a regex timeout.** The template-marker scan gave each line a
   one-second wall-clock budget, which a starved thread could spend without matching anything; it now runs on .NET's
   linear-time engine, which needs no timeout (`TemplateMarkers`).
@@ -307,6 +331,10 @@ them until tagged releases begin.
   attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
   closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
   refuses, as before.
+- **A submenu's flyout with room on neither side stays on the screen, as Flux's does.** Before: on a phone it was
+  turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
+  `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
+  menu — where Flux's lands.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it

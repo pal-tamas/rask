@@ -1004,6 +1004,12 @@ public static class LivePayload
     /// </summary>
     internal static string InjectSignedInAttr(string html) => InjectBodyAttr(html, "data-rask-user", "1");
 
+    /// <summary>
+    ///     Stamps <c>data-rask-resume</c> onto <c>&lt;body&gt;</c>: the sealed record that rebuilds this page if its
+    ///     session is gone by the time the browser connects. The client reads it once as it boots.
+    /// </summary>
+    internal static string InjectResumeAttr(string html, string token) => InjectBodyAttr(html, "data-rask-resume", token);
+
     private static string InjectBodyAttr(string html, string name, string? value)
     {
         if (string.IsNullOrEmpty(value))

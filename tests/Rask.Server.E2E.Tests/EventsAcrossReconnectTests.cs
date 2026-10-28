@@ -31,7 +31,7 @@ public sealed class EventsAcrossReconnectTests(PlaywrightFixture playwright) : I
         var cut = 0;
         if (overHttp)
         {
-            await page.RouteAsync(new Regex("/_rask/send/"), async route =>
+            await page.RouteAsync(new Regex("/_rask/send(/|$)"), async route =>
             {
                 if (route.Request.PostData?.Contains("\"seq\"", StringComparison.Ordinal) == true
                     && Interlocked.Exchange(ref cut, 1) == 0)

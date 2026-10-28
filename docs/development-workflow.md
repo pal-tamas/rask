@@ -489,8 +489,8 @@ stopped getting security patches.
 
 **What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
 and `scripts/tools/RaskRename`'s own), GitHub Actions (the workflows and the shared
-`.github/actions/setup`), the npm lockfiles (the site, the rich text editor's engine in
-`src/Rask.Ui/Resources/editor`, the devtools E2E island bundler) and the base images of every template
+`.github/actions/setup`), the npm lockfiles (the site and the devtools E2E island bundler; the kit's
+editor and phone engines are followers, which rebuild their committed bundles with the lock) and the base images of every template
 `Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
 moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
 self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`). The followers, their commands and

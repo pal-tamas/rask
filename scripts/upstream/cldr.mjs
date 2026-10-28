@@ -23,15 +23,16 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { latest } from './npm.mjs';
+import { gunzipSync } from 'node:zlib';
+import { fail as failAs, latest, tarball, untar } from './npm.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PACKAGE = 'cldr-dates-full';
 const ROOT_LOCALE = 'und';
 
-const release = await latest(PACKAGE,
+const release = await latest(PACKAGE, 'cldr');
+const files = untar(gunzipSync(await tarball(release, 'cldr')),
   path => path === 'package/LICENSE' || /^package\/main\/[^/]+\/ca-gregorian\.json$/.test(path));
-const files = release.files;
 
 const joins = new Map();
 for (const [path, text] of files) {
@@ -147,6 +148,5 @@ ${rows}
 }
 
 function fail(message) {
-  console.error(`cldr: ${message}`);
-  process.exit(1);
+  failAs('cldr', message);
 }

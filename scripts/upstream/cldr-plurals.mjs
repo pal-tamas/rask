@@ -20,14 +20,20 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { latest } from './npm.mjs';
+import { gunzipSync } from 'node:zlib';
+import { latest, tarball, untar } from './npm.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PACKAGE = 'cldr-core';
 const PLURALS = 'package/supplemental/plurals.json';
 const output = join(root, 'tests', 'Rask.Generators.Tests', 'cldr-plurals.json');
 
-const release = await latest(PACKAGE, path => path === PLURALS);
+const manifest = await latest(PACKAGE, 'cldr-plurals');
+const release = {
+  version: manifest.version,
+  integrity: manifest.dist.integrity,
+  files: untar(gunzipSync(await tarball(manifest, 'cldr-plurals')), path => path === PLURALS),
+};
 const cardinal = JSON.parse(release.files.get(PLURALS) ?? fail(`no ${PLURALS} in ${PACKAGE} ${release.version}`))
   .supplemental['plurals-type-cardinal'] ?? fail('no plurals-type-cardinal: CLDR\'s shape moved');
 

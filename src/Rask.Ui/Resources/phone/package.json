@@ -1,7 +1,7 @@
 {
   "name": "rask-ui-phone-engine",
   "private": true,
-  "description": "Builds src/Rask.Ui/Resources/ui-phone.js and ui-phone-utils.js, the lazily loaded engine behind Ui.Phone: npm ci && node build.mjs. intl-tel-input is pinned to the release fluxui.dev serves (29.2.3, read off its phone.min.js); its utils are that release's own build of Google's libphonenumber.",
+  "description": "Builds src/Rask.Ui/Resources/ui-phone.js and ui-phone-utils.js, the lazily loaded engine behind Ui.Phone: npm ci && node build.mjs. intl-tel-input is pinned to the release fluxui.dev serves (read off its phone.min.js by scripts/upstream/kit-bundle.mjs, daily); its utils are that release's own build of Google's libphonenumber.",
   "type": "module",
   "scripts": {
     "build": "node build.mjs"

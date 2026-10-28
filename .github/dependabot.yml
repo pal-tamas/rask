@@ -106,24 +106,8 @@ updates:
         patterns:
           - "*"
 
-  # The rich text editor's engine (src/Rask.Ui/Resources/editor): Tiptap and the esbuild that bundles it.
-  - package-ecosystem: npm
-    directory: "/src/Rask.Ui/Resources/editor"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # Held to the last release whose serialised HTML is what Flux's live editor answers (no trailing
-      # semicolon in a style attribute) — package.json's description says so; it is an override there.
-      - dependency-name: "prosemirror-model"
-    groups:
-      # Every @tiptap/* package at one version: the family refuses a mixed set.
-      ui-editor:
-        patterns:
-          - "*"
+  # NOT the rich text editor's engine (src/Rask.Ui/Resources/editor): the tiptap follower moves its pins, lock AND
+  # the committed bundle together, daily (scripts/upstream/followers.json). A version PR here moved the lock alone.
 
   # The island bundler the devtools E2E journeys run (tests/Rask.DevTools.E2E.Tests/package.json).
   - package-ecosystem: npm

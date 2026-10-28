@@ -1,7 +1,8 @@
 // The live protocol over plain HTTP, for a tab whose WebSocket never opened.
 //
-// Frames come DOWN a Server-Sent Events stream (GET /_rask/stream/{session}) and the tab's own frames go UP as
-// POSTs (POST /_rask/send/{session}). It is the same protocol the socket carries — same hello semantics, same
+// Frames come DOWN a Server-Sent Events stream (GET /_rask/stream) and the tab's own frames go UP as
+// POSTs (POST /_rask/send), each naming its session in the Rask-Session header: the id is what drives the session, and
+// a URL is written down by every request log and proxy on the way. It is the same protocol the socket carries — same hello semantics, same
 // frames, same session — at the cost of one request per interaction. Chosen automatically: nothing in an app
 // asks for it, and nothing turns it off.
 //
@@ -180,8 +181,38 @@ export interface ChoiceStorage {
 
 export const TRANSPORT_STORAGE_KEY = "rask:transport";
 
-/** How long a WebSocket gets to open before the tab tries HTTP instead — and an HTTP stream before it is given up on. */
+/**
+ * How long a WebSocket gets to open before the tab tries HTTP instead — and an HTTP stream's request to be answered
+ * with its headers before it is given up on. Neither covers the attach that follows: a socket's hello and a stream's
+ * first frame wait on the server's render, which a loaded host may take longer than this to make.
+ */
 export const OPEN_TIMEOUT_MS = 5000;
+
+/**
+ * Calls `expire` once `ms` of the page's own time has passed, and returns what cancels it. Time the page could not
+ * run at all — a tab starved of CPU on a loaded machine, whose timers all fire late — is not counted: each check
+ * counts at most two of its steps, however late it ran. A connection that is slow only because the page was too busy
+ * to see it open is not given up on, while one a proxy swallows on a healthy page still is, on time.
+ */
+export function pageTimeout(expire: () => void, ms: number, now: () => number = () => performance.now(), step = 250): () => void {
+    let left = ms;
+    let last = now();
+    let timer = setTimeout(check, Math.min(step, ms));
+
+    function check(): void {
+        const at = now();
+        left -= Math.min(at - last, step * 2);
+        last = at;
+        if (left <= 0) {
+            expire();
+            return;
+        }
+
+        timer = setTimeout(check, Math.min(step, left));
+    }
+
+    return () => clearTimeout(timer);
+}
 
 /**
  * How long an open stream may stay silent before it is treated as dropped. The server writes a heartbeat every
@@ -281,8 +312,8 @@ export function createTransportChooser(storage: ChoiceStorage | null, now: () =>
 export interface HttpConnectionOptions {
     /** The session the tab believes it has. The stream answers with the one it actually attached. */
     sessionId: string;
-    /** `/_rask/{kind}/{session}`, with the app's base path applied. */
-    url(kind: "stream" | "send" | "leave", session: string): string;
+    /** `/_rask/{kind}`, with the app's base path applied. The session never goes in it: it rides a header. */
+    url(kind: "stream" | "send" | "leave"): string;
     /** The resume record, sent as a header so it never lands in a URL. */
     resumeToken: string | null;
     /** The newest event the connections before this one carried: a page rebuilt from the record runs none of them. */
@@ -318,11 +349,15 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     // A buffering proxy — the kind of network this fallback exists for — can hold the response headers or the
     // first event for ever. Without a deadline the connection would report `isConnecting` indefinitely, and the
     // runtime's single-flight guard would then swallow every Retry and every `online` event.
-    const openTimer = setTimeout(() => end(1006, "stream-open-timeout"), options.openTimeoutMs ?? OPEN_TIMEOUT_MS);
+    const stopOpenTimer = pageTimeout(() => end(1006, "stream-open-timeout"), options.openTimeoutMs ?? OPEN_TIMEOUT_MS);
     let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 
+    // From the response's headers on, what ends a stream that has stopped arriving is its silence, not the open
+    // deadline: the server has the request, and is attaching — which for a page rebuilt from its record is a whole
+    // render, longer than the deadline on a loaded host. Given up on then, the attach was cancelled, the tab asked
+    // again, and every attempt built another session it never reached.
     function heard(): void {
-        if (!open || closed) return;
+        if (closed) return;
         if (silenceTimer !== null) clearTimeout(silenceTimer);
         silenceTimer = setTimeout(() => end(1006, "stream-silent"), options.silenceMs ?? STREAM_SILENCE_MS);
     }
@@ -330,7 +365,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     function end(code: number, reason: string): void {
         if (closed) return;
         closed = true;
-        clearTimeout(openTimer);
+        stopOpenTimer();
         if (silenceTimer !== null) clearTimeout(silenceTimer);
         const wasOpen = open;
         open = false;
@@ -344,9 +379,9 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
     }
 
     const batcher = createPostBatcher(
-        (body) => fetch(options.url("send", session), {
+        (body) => fetch(options.url("send"), {
             method: "POST",
-            headers: {"content-type": "application/json", "rask-stream": generation ?? ""},
+            headers: {"content-type": "application/json", "rask-session": session, "rask-stream": generation ?? ""},
             body,
             credentials: "same-origin",
         }).then((response) => response.status),
@@ -369,7 +404,7 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
                     if (typeof first.session === "string" && first.session) session = first.session;
                     if (typeof first.limit === "number") limit = first.limit;
                     open = true;
-                    clearTimeout(openTimer);
+                    stopOpenTimer();
                     heard();
                     options.onOpen(session);
                     const held = early;
@@ -391,16 +426,19 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         options.onFrame(data);
     });
 
-    const headers: Record<string, string> = {accept: "text/event-stream"};
+    const headers: Record<string, string> = {accept: "text/event-stream", "rask-session": options.sessionId};
     if (options.resumeToken) headers["rask-resume"] = options.resumeToken;
     if (options.sent > 0) headers["rask-sent"] = String(options.sent);
 
-    fetch(options.url("stream", options.sessionId), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
+    fetch(options.url("stream"), {headers, credentials: "same-origin", signal: abort.signal, cache: "no-store"})
         .then(async (response) => {
             if (!response.ok || !response.body) {
                 end(1006, "stream-" + response.status);
                 return;
             }
+
+            stopOpenTimer();
+            heard();
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
@@ -437,9 +475,9 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
         leave(): void {
             if (!generation) return;
             try {
-                void fetch(options.url("leave", session), {
+                void fetch(options.url("leave"), {
                     method: "POST",
-                    headers: {"rask-stream": generation},
+                    headers: {"rask-session": session, "rask-stream": generation},
                     credentials: "same-origin",
                     keepalive: true,
                 });

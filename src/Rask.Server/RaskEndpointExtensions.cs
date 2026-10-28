@@ -73,9 +73,14 @@ public static partial class RaskEndpointExtensions
 
     // The HTTP fallback, for a client whose WebSocket never opened: frames come down the stream, the
     // client's own frames go up as POSTs, and the leave request says a tab is gone without waiting for a timeout.
-    private const string StreamPath = "/_rask/stream/{sessionId}";
-    private const string SendPath = "/_rask/send/{sessionId}";
-    private const string LeavePath = "/_rask/leave/{sessionId}";
+    // The session id is the bearer secret, so it rides the Rask-Session header and never the path, where request
+    // logs and proxies write it down. A runtime from before kept it in the path ({sessionId}): a tab open across
+    // the deploy still reaches its session that way.
+    private const string StreamPath = "/_rask/stream";
+    private const string SendPath = "/_rask/send";
+    private const string LeavePath = "/_rask/leave";
+    private const string BeforeHeader = "/{sessionId}";
+    private const string SessionHeader = "Rask-Session";
 
     // PWA endpoints, mapped only when AddRaskPwa registered a RaskPwaState. The manifest is under /rask/, and
     // the service worker is served at the app root (NOT under /rask/) so its default control scope covers
@@ -859,6 +864,13 @@ public static partial class RaskEndpointExtensions
             html = LivePayload.InjectSignedInAttr(html);
         }
 
+        // What rebuilds this page if its session is gone before the browser connects (a starved tab past the
+        // unconnected grace): sealed, bound to this session and its reader, and only where resume is on.
+        if (session.FirstPageResumeToken() is { } resumeToken)
+        {
+            html = LivePayload.InjectResumeAttr(html, resumeToken);
+        }
+
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
         if (!dev && devTools is null)
@@ -1247,17 +1259,26 @@ public static partial class RaskEndpointExtensions
     /// </remarks>
     private static void MapHttpTransport(IEndpointRouteBuilder endpoints, string pathBase, RaskRootSelector selector)
     {
-        // The stream. One per tab, held open for the life of the page.
-        endpoints.MapGet(pathBase + StreamPath, (RequestDelegate)(ctx =>
-            StreamAsync(ctx, selector))).DisableAntiforgery();
+        foreach (var suffix in (string[])["", BeforeHeader])
+        {
+            // The stream. One per tab, held open for the life of the page.
+            endpoints.MapGet(pathBase + StreamPath + suffix, (RequestDelegate)(ctx =>
+                StreamAsync(ctx, selector))).DisableAntiforgery();
 
-        // The client's frames. One request per interaction, which is the cost of not having a socket.
-        endpoints.MapPost(pathBase + SendPath, (RequestDelegate)SendAsync).DisableAntiforgery();
+            // The client's frames. One request per interaction, which is the cost of not having a socket.
+            endpoints.MapPost(pathBase + SendPath + suffix, (RequestDelegate)SendAsync).DisableAntiforgery();
 
-        // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
-        // grace period — the socket gets this for free from its own close.
-        endpoints.MapPost(pathBase + LeavePath, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+            // "This tab is gone." Sent by pagehide, so a closed tab frees its session now rather than after the
+            // grace period — the socket gets this for free from its own close.
+            endpoints.MapPost(pathBase + LeavePath + suffix, (RequestDelegate)LeaveAsync).DisableAntiforgery();
+        }
     }
+
+    // The session a fallback request names: its Rask-Session header, or the path of a runtime from before the header.
+    private static string? NamedSession(HttpContext ctx) =>
+        ctx.Request.Headers[SessionHeader] is { Count: 1 } header && !string.IsNullOrEmpty(header[0])
+            ? header[0]
+            : (string?)ctx.Request.RouteValues["sessionId"];
 
     // A browser stamps every request with where it came from, and "cross-site" is a page on another site driving
     // this one. Refused beside the Origin check. A missing header — a non-browser client, an older browser — is
@@ -1369,7 +1390,7 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         if (string.IsNullOrEmpty(sessionId))
         {
             ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
@@ -1480,7 +1501,7 @@ public static partial class RaskEndpointExtensions
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
         var metrics = store.Metrics;
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         // Peek: a POST must not be what keeps a detached session alive (see LiveSessionStore.Peek).
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
@@ -1695,7 +1716,7 @@ public static partial class RaskEndpointExtensions
         var store = ctx.RequestServices.GetRequiredService<LiveSessionStore>();
         var registry = ctx.RequestServices.GetRequiredService<StreamRegistry>();
 
-        var sessionId = (string?)ctx.Request.RouteValues["sessionId"];
+        var sessionId = NamedSession(ctx);
         var session = sessionId is null ? null : store.Peek(sessionId);
         if (session is null
             || !MayDrive(UserOf(ctx), session))
@@ -2464,7 +2485,7 @@ public static partial class RaskEndpointExtensions
         if (session is null)
         {
             var rebuilt = await ResumeAttachAsync(
-                resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
+                sessionId, resumeToken, transport, store, limits, user, resume, selector, metrics, resumeCulture, ct)
                 .ConfigureAwait(false);
             ReportRefusedAttach(store, sessionId, existing, user, rebuilt.Status == AttachStatus.Attached);
 
@@ -2497,9 +2518,9 @@ public static partial class RaskEndpointExtensions
                 await RenderAttachedAsync(session, ct).ConfigureAwait(false);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            AbandonAttach(session, transport, store, limits);
+            AbandonAttach(session, transport, store, limits, ex);
             throw;
         }
         finally
@@ -2672,6 +2693,7 @@ public static partial class RaskEndpointExtensions
     }
 
     private static async Task<AttachOutcome> ResumeAttachAsync(
+        string sessionId,
         string? resumeToken,
         ILiveTransport transport,
         LiveSessionStore store,
@@ -2688,7 +2710,7 @@ public static partial class RaskEndpointExtensions
         // rebuild the page around it instead.
         var session = string.IsNullOrEmpty(resumeToken)
             ? null
-            : TryResumeSession(resumeToken, user, resume, store, metrics, selector);
+            : TryResumeSession(sessionId, resumeToken, user, resume, store, metrics, selector);
 
         if (session is null)
         {
@@ -2724,9 +2746,9 @@ public static partial class RaskEndpointExtensions
             Adopt(session, user, await AnswerForAsync(session, user, ct).ConfigureAwait(false));
             await RenderArrivedAsync(session, moveTo: null, ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex)
         {
-            AbandonAttach(session, transport, store, limits);
+            AbandonAttach(session, transport, store, limits, ex);
             throw;
         }
         finally
@@ -2742,9 +2764,9 @@ public static partial class RaskEndpointExtensions
     // connection attached (no outcome is returned), so its cleanup cannot undo it: this does, or the session keeps
     // a dead transport with no removal armed and the connected count never comes back down.
     private static void AbandonAttach(
-        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits)
+        LiveSession session, ILiveTransport transport, LiveSessionStore store, RaskServerLimits limits, Exception failure)
     {
-        transport.Record.Ended(ClosedBy.Error, "the attach's render failed");
+        transport.Record.Ended(ClosedBy.Error, "the attach's render failed: " + failure.GetType().Name);
         if (session.DetachTransport(transport))
         {
             store.Disconnected(session, transport, limits.SessionGracePeriod);
@@ -3362,6 +3384,7 @@ public static partial class RaskEndpointExtensions
     ///     rather than walking straight past the cap.
     /// </remarks>
     private static LiveSession? TryResumeSession(
+        string sessionId,
         string token,
         ClaimsPrincipal user,
         SessionResumeSupport resume,
@@ -3374,7 +3397,7 @@ public static partial class RaskEndpointExtensions
             return null;
         }
 
-        if (!protector.TryUnprotect(token, user, out var record, out var rejection))
+        if (!protector.TryUnprotectFor(sessionId, token, user, out var record, out var rejection))
         {
             metrics?.ResumeRejected(rejection.ToString().ToLowerInvariant());
             return null;

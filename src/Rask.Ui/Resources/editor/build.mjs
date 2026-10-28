@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Bundles the editor engine: ui-editor.ts + Tiptap (pinned in package.json, locked in package-lock.json)
 // into ONE minified ES module, ../ui-editor.js, which is committed. The kit's build never runs this —
-// it needs npm, and the kit builds without Node — so run it by hand after changing ui-editor.ts or a pin:
+// it needs npm, and the kit builds without Node — so run it by hand after changing ui-editor.ts. The pins move
+// daily: scripts/upstream/kit-bundle.mjs editor takes Tiptap's latest release and runs this.
 //
 //     cd src/Rask.Ui/Resources/editor && npm ci && node build.mjs
 //

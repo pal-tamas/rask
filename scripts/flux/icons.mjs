@@ -2,27 +2,30 @@
 // Generates Rask.Ui's icon set from Heroicons — the collection Flux UI's `flux:icon.*` is.
 //
 // Heroicons (https://github.com/tailwindlabs/heroicons) is MIT-licensed, Copyright (c) Tailwind Labs, Inc.
-// The npm tarball is PINNED below by version and integrity, read in memory, and never unpacked to disk.
-// Out of its four folders come:
+// The data is npm's latest release, checked against the registry's integrity, read in memory, and never
+// unpacked to disk. Out of its four folders come:
 //
 //   src/Rask.Ui/Ui.IconName.cs     every icon, in PascalCase of Heroicons' name (arrow-down-tray -> ArrowDownTray)
 //   src/Rask.Ui/UiIconPaths.g.cs   the path data of all four variants (outline, solid, mini, micro)
 //
-// Usage:  node scripts/flux/icons.mjs            # regenerate
-//         node scripts/flux/icons.mjs --check    # exit 1 when the committed files are stale
+// A release that adds or drops an icon moves Ui.IconName, and the run records that in src/Rask.Ui/PublicAPI
+// (scripts/public-api/record.py, which builds the kit).
 //
-// To take a new Heroicons release: change VERSION and INTEGRITY (`npm view heroicons@<v> dist.integrity`),
-// run this, then record the new enum members in src/Rask.Ui/PublicAPI (scripts/public-api/record.py src/Rask.Ui).
+// Usage:  node scripts/flux/icons.mjs            # regenerate from the latest release
+//         node scripts/flux/icons.mjs --check    # exit 1 when the committed files are not that release's
+//
+// scripts/upstream/follow.sh runs it every day.
 
-import { createHash } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import { fail as failAs, latest, tarball, untar } from '../upstream/npm.mjs';
 import { root } from './lib.mjs';
 
-const VERSION = '2.2.0';
-const INTEGRITY = 'sha512-yOwvztmNiBWqR946t+JdgZmyzEmnRMC2nxvHFC90bF1SUttwB6yJKYeme1JeEcBfobdOs827nCyiWBS2z/brog==';
-const TARBALL = `https://registry.npmjs.org/heroicons/-/heroicons-${VERSION}.tgz`;
+const LABEL = 'flux icons';
+const release = await latest('heroicons', LABEL);
+const VERSION = release.version;
 
 // Folder in the package -> the Ui.IconVariant it draws, and the root attributes every file in it must
 // carry. UiIcon writes those attributes itself, so a release that changes one has to fail here.
@@ -40,7 +43,7 @@ const DEPRECATED = [
   'arrow-small-right', 'arrow-small-up', 'minus-small', 'plus-small',
 ];
 
-const files = untar(gunzipSync(await download()));
+const files = untar(gunzipSync(await tarball(release, LABEL)));
 const sets = VARIANTS.map(variant => ({ ...variant, icons: read(variant) }));
 const names = [...sets[0].icons.keys()].filter(name => !DEPRECATED.includes(name)).sort();
 for (const set of sets) {
@@ -56,46 +59,25 @@ const outputs = [
   [join(root, 'src', 'Rask.Ui', 'UiIconPaths.g.cs'), pathsSource()],
 ];
 
-let stale = 0;
+const check = process.argv.includes('--check');
+let stale = 0, surface = false;
 for (const [path, text] of outputs) {
-  if (process.argv.includes('--check')) {
-    stale += (await readFile(path, 'utf8').catch(() => '')) === text ? 0 : 1;
-  } else {
-    await writeFile(path, text);
-  }
+  const committed = await readFile(path, 'utf8').catch(() => '');
+  if (committed === text) continue;
+  stale++;
+  // The enum is public: an icon added or dropped is surface PublicAPI must record.
+  surface ||= path.endsWith('Ui.IconName.cs') && members(committed) !== members(text);
+  if (!check) await writeFile(path, text);
 }
 
-if (stale) fail(`${stale} generated file(s) are stale — run: node scripts/flux/icons.mjs`);
+if (check && stale) fail(`${stale} generated file(s) are stale — run: node scripts/flux/icons.mjs`);
+if (!check && surface) {
+  const recorded = spawnSync('python3', [join(root, 'scripts', 'public-api', 'record.py'), 'src/Rask.Ui'], { cwd: root, stdio: 'inherit' });
+  if (recorded.status !== 0) fail('the icons that moved could not be recorded in src/Rask.Ui/PublicAPI');
+}
+
 console.log(`flux icons: heroicons ${VERSION} — ${names.length} icons x ${sets.length} variants, `
   + `${sets.reduce((sum, set) => sum + blob(set).length, 0)} bytes of path data.`);
-
-async function download() {
-  const response = await fetch(TARBALL);
-  if (!response.ok) fail(`${TARBALL}: HTTP ${response.status}`);
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const digest = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
-  if (digest !== INTEGRITY) fail(`${TARBALL} is not the pinned tarball (${digest})`);
-  return bytes;
-}
-
-// A ustar archive, read in place: 512-byte headers, each followed by its file rounded up to 512.
-function untar(archive) {
-  const entries = new Map();
-  const field = (at, start, length) => archive.subarray(at + start, at + start + length).toString('utf8').replace(/\0.*$/s, '');
-  for (let at = 0; at + 512 <= archive.length;) {
-    const name = field(at, 0, 100);
-    if (!name) break;
-    const size = parseInt(field(at, 124, 12).trim() || '0', 8);
-    const prefix = field(at, 345, 155);
-    if (field(at, 156, 1) === '0' || field(at, 156, 1) === '') {
-      entries.set(prefix ? `${prefix}/${name}` : name, archive.subarray(at + 512, at + 512 + size).toString('utf8'));
-    }
-
-    at += 512 + Math.ceil(size / 512) * 512;
-  }
-
-  return entries;
-}
 
 // One folder: icon name -> its shapes, each encoded. Anything UiIcon does not draw fails here.
 function read(variant) {
@@ -167,7 +149,8 @@ function blob(set) {
 function header() {
   return [
     '// <auto-generated />',
-    `// Generated by scripts/flux/icons.mjs from heroicons ${VERSION} (${TARBALL}).`,
+    `// Generated by scripts/flux/icons.mjs from heroicons ${VERSION} (${release.dist.tarball},`,
+    `// ${release.dist.integrity}).`,
     '// Heroicons is MIT-licensed, Copyright (c) Tailwind Labs, Inc. — https://github.com/tailwindlabs/heroicons',
     '// Do not edit: change the script and run it again.',
     '#nullable enable',
@@ -240,7 +223,11 @@ function pathsSource() {
   return lines.join('\n');
 }
 
+// The members of Ui.IconName as written: one `Name,` a line.
+function members(text) {
+  return (text.match(/^ {8}\w+,$/gm) ?? []).join(' ');
+}
+
 function fail(message) {
-  console.error(`flux icons: ${message}`);
-  process.exit(1);
+  failAs(LABEL, message);
 }

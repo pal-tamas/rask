@@ -72,15 +72,19 @@ public sealed class ToastDismissTests(PlaywrightFixture playwright) : IClassFixt
         await using var context = await playwright.Browser.NewContextAsync(new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true });
         var page = await context.NewPageAsync();
         await page.GotoAsync(host.BaseUrl + "/");
-        await page.Locator("#show").TapAsync();
+        await page.Locator("#show-long").TapAsync();
         var toast = page.Locator("[role=\"status\"] span");
         await Expect(toast).ToBeVisibleAsync(new() { Timeout = 5_000 });
 
-        // Flux UI's toast on a phone: the tap is a mouse over it, which the browser leaves there until the next tap.
-        await toast.TapAsync();
-        await page.WaitForTimeoutAsync(2_500);
+        // Flux UI's toast on a phone: a tap leaves the browser's mouse where the finger was — over the toast, :hover and
+        // all — until the next tap moves it. The mouse is put there and taken away as those taps do: whether a desktop
+        // browser's touch emulation moves its mouse for a tap is its platform's choice (macOS's does, Linux's not).
+        // A 3 s toast, waited past: held, it is still there.
+        var box = (await toast.BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
+        await page.WaitForTimeoutAsync(4_000);
         var held = await page.Locator("#dismissed").TextContentAsync();
-        await page.Touchscreen.TapAsync(300, 600);
+        await page.Mouse.MoveAsync(300, 700);
 
         Assert.Equal("dismissed=0", held);
         await Expect(page.Locator("#dismissed")).ToHaveTextAsync("dismissed=1", new() { Timeout = 10_000 });
@@ -135,6 +139,7 @@ public sealed partial class ToastPage : Component
     private readonly List<string> _up = [];
     private bool _sticky;
     private int _dismissed;
+    private int _after = 1000;
 
     protected override Component? HeadAssets => Markup.Title["toast"];
 
@@ -145,15 +150,19 @@ public sealed partial class ToastPage : Component
         P.Id("dismissed")[$"dismissed={_dismissed}"],
         Button.Id("show").OnClick(() => Show(false, "saved"))["show"],
         Button.Id("show-sticky").OnClick(() => Show(true, "saved"))["show sticky"],
-        Button.Id("show-several").OnClick(() => Show(false, "saved", "sent", "copied", "moved", "archived"))["show several"],
+        Button.Id("show-long").OnClick(() => Show(false, "saved", after: 3000))["show long"],
+        Button.Id("show-several").OnClick(() => Show(false, ["saved", "sent", "copied", "moved", "archived"]))["show several"],
         Div.Id("toasts")[_up.Select(Notice).ToArray()]
     ];
 
-    private void Show(bool sticky, params string[] notices)
+    private void Show(bool sticky, string notice, int after = 1000) => Show(sticky, [notice], after);
+
+    private void Show(bool sticky, string[] notices, int after = 1000)
     {
         _up.Clear();
         _up.AddRange(notices);
         _sticky = sticky;
+        _after = after;
     }
 
     private Component Notice(string text)
@@ -161,7 +170,7 @@ public sealed partial class ToastPage : Component
         var notice = Div.Key(text).Role("status").Class("notice");
         if (!_sticky)
         {
-            notice = notice.Data("rask-dismiss-after", "1000");
+            notice = notice.Data("rask-dismiss-after", _after.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         return notice[

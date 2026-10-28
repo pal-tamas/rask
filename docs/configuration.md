@@ -516,6 +516,14 @@ the reload it would have had anyway, and logs a warning saying so.
 **Even declaring nothing is worth something.** The route alone turns a deploy from a full-page reload into
 a re-render of the page the user was already on.
 
+**The first page carries one too.** A page's `GET` stamps a record of itself on `<body>` as
+`data-rask-resume` (175 bytes for an anonymous reader, about 220 signed in; the runtime reads it once and removes it). It matters when the browser is
+slow to connect: a tab starved of CPU on a busy machine can take longer than `UnconnectedSessionGracePeriod`
+(10 s) to start its runtime, and its session is released before it says `hello`. Instead of reloading — and
+dropping whatever the reader clicked meanwhile — the tab's late connection rebuilds the page where it stands.
+That record is bound to the session the page was served with as well as to its reader: it opens only for a
+connection naming that session, never for another user, and expires with `ResumeTokenLifetime`.
+
 **What does not come back:** anything you didn't name. In-flight async work, undeclared fields, open
 interop handles. And note that a value only *reads* back if the JSON still fits the type — if you change
 the shape of a persisted type, change its key too, or a renamed property will read back as a default
@@ -528,7 +536,7 @@ infrastructure. It is encrypted and authenticated under its own data-protection 
 and unforgeable to the client holding it. Expiry is enforced by ASP.NET's time-limited protector rather
 than a field we compare, so an expired record cannot be opened at all. It carries **no principal** — a
 reconnect authenticates from its session cookie exactly as before — but it is bound to the
-identity it was issued to, so it cannot be replayed onto another account, and signing in or out
+identity it was issued to (and a first page's record to its session, by data-protection purpose, at no cost in bytes), so it cannot be replayed onto another account, and signing in or out
 invalidates it. A rebuild takes a `MaxSessions` slot through the same atomic reservation a `GET` uses, so
 the reconnect storm after a deploy sheds like ordinary traffic instead of walking past the cap.
 
