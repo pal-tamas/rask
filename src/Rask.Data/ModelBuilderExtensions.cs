@@ -388,20 +388,15 @@ public static class ModelBuilderExtensions
                 // navigation to an entity type. Only an explicit answer counts as "said otherwise"; a
                 // conventional one is the thing being corrected.
                 if (IsDeclared(conventional.FindProperty(collection.Property)?.GetConfigurationSource()) ||
-                    IsDeclared(conventional.FindNavigation(collection.Property)?.GetConfigurationSource()))
+                    IsDeclared(conventional.FindNavigation(collection.Property)?.GetConfigurationSource()) ||
+                    IsDeclared(conventional.FindComplexProperty(collection.Property)?.GetConfigurationSource()))
                 {
                     continue;
                 }
 
                 if (collection.Element is { } element)
                 {
-                    builder.OwnsMany(element, collection.Property, owned => owned.ToJson());
-
-                    if (collection.Field is { } ownedField)
-                    {
-                        UseField(builder.Navigation(collection.Property).Metadata, clrType, ownedField);
-                    }
-
+                    MapJsonCollection(builder, clrType, collection, element);
                     continue;
                 }
 
@@ -417,6 +412,33 @@ public static class ModelBuilderExtensions
 
         static bool IsDeclared(ConfigurationSource? source) =>
             source is ConfigurationSource.Explicit or ConfigurationSource.DataAnnotation;
+    }
+
+    // A complex collection, NOT NULL where the property is non-nullable, whenever there is a list behind the property
+    // for EF Core to write. A get-only `IReadOnlyList<T> { get; private set; }` has none — its backing field is the same
+    // read-only view — so it keeps the owned mapping, whose column is NULL whatever the model says.
+    private static void MapJsonCollection(
+        EntityTypeBuilder builder,
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] Type clrType,
+        ValueCollection collection,
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] Type element)
+    {
+        if (JsonCollection.ListBehind(clrType, collection.Property, collection.Field, element) is { } list)
+        {
+            var values = JsonCollection.Map(builder, list, collection.Property);
+            if (collection.Field is { } field)
+            {
+                UseField(values.Metadata, clrType, field);
+            }
+
+            return;
+        }
+
+        builder.OwnsMany(element, collection.Property, owned => owned.ToJson());
+        if (collection.Field is { } ownedField)
+        {
+            UseField(builder.Navigation(collection.Property).Metadata, clrType, ownedField);
+        }
     }
 
     // HasField(name) looks on the entity's own type only, so a field an abstract base declares — the base's

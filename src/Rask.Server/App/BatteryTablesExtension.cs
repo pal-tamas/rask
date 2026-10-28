@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Data;
 
 namespace Rask;
 
@@ -18,8 +19,14 @@ internal sealed class BatteryTablesExtension(BatteryTables tables) : IDbContextO
         options.FindExtension<BatteryTablesExtension>()?.Tables ?? BatteryTables.All;
 
     // Added, not tried: the provider registers EF Core's own key factory first, and the last registration wins.
-    public void ApplyServices(IServiceCollection services) =>
+    public void ApplyServices(IServiceCollection services)
+    {
         services.AddSingleton<IModelCacheKeyFactory, RaskAppModelCacheKeyFactory>();
+
+        // Carried by every RaskAppDbContext, whichever provider: a collection of value objects turned NOT NULL is
+        // filled with [] by its migration.
+        RaskMigrationsModelDiffer.Register(services);
+    }
 
     public void Validate(IDbContextOptions options)
     {

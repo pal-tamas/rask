@@ -62,15 +62,26 @@ public class RaskReadDbContext : DbContext, ITenantScoped
     }
 
     /// <inheritdoc />
-    // ReplaceService<,> activates the key factory through EF Core's internal container by reflection, and EF does not
-    // annotate it for the trimmer — kept here, or a trimmed app fails building the read model.
-    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ReadModelCacheKeyFactory))]
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         ArgumentNullException.ThrowIfNull(optionsBuilder);
 
         base.OnConfiguring(optionsBuilder);
+        Prepare(optionsBuilder);
+    }
 
+    /// <summary>The read context's own configuration, for the factories that build its options to apply up front.</summary>
+    /// <param name="optionsBuilder">The options being built.</param>
+    /// <remarks>
+    ///     Applied here as well as in <see cref="OnConfiguring" /> because EF Core builds a context's internal services
+    ///     once for the options its constructor is given and again for the configured ones when they differ, and
+    ///     refuses a process that builds more than twenty; options that already say this are left the same.
+    /// </remarks>
+    // ReplaceService<,> activates the key factory through EF Core's internal container by reflection, and EF does not
+    // annotate it for the trimmer — kept here, or a trimmed app fails building the read model.
+    [DynamicDependency(DynamicallyAccessedMemberTypes.PublicConstructors, typeof(ReadModelCacheKeyFactory))]
+    internal static void Prepare(DbContextOptionsBuilder optionsBuilder)
+    {
         // Untracked at the CONTEXT, not only at the head of each query. ModelQuery already starts every read
         // with AsNoTracking() — it has to, because the same type also queries aggregates through the write
         // context — but this context holds no aggregate at all, so there is nothing here worth watching for

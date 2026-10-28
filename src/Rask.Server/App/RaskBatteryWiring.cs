@@ -362,10 +362,15 @@ internal static class RaskBatteryWiring
     private sealed class ReadContextFactory(IServiceProvider services) : IDbContextFactory<RaskReadDbContext>
     {
         private readonly Lazy<DbContextOptions<RaskReadDbContext>> _options = new(() =>
-            new DbContextOptionsBuilder<RaskReadDbContext>()
+        {
+            var options = new DbContextOptionsBuilder<RaskReadDbContext>()
                 .UseApplicationServiceProvider(services)
-                .UseRaskDatabase(services)
-                .Options);
+                .UseRaskDatabase(services);
+
+            // What its OnConfiguring would add, said up front so the context shares one set of EF Core's internal services.
+            RaskReadDbContext.Prepare(options);
+            return options.Options;
+        });
 
         [UnconditionalSuppressMessage("Trimming", "IL2026",
             Justification = "The read context's constructor carries EF Core's own [RequiresUnreferencedCode]; this "

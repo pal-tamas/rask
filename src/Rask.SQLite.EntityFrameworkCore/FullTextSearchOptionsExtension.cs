@@ -42,6 +42,9 @@ internal sealed class FullTextSearchOptionsExtension : IDbContextOptionsExtensio
             .TryAdd<IMethodCallTranslatorPlugin, FullTextFunctionTranslatorPlugin>();
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IInterceptor, FullTextSearchQueryInterceptor>());
+
+        // Carried by every UseRaskSqlite context: a collection of value objects turned NOT NULL is filled with [].
+        RaskMigrationsModelDiffer.Register(services);
     }
 
     public void Validate(IDbContextOptions options)

@@ -71,7 +71,7 @@ public sealed class ValueCollectionTests : IDisposable
         var journey = database.Context.Model.FindEntityType(typeof(Journey))!;
 
         Assert.True(journey.FindProperty(nameof(Journey.Tags))!.IsPrimitiveCollection);
-        Assert.True(journey.FindNavigation(nameof(Journey.Waypoints))!.TargetEntityType.IsMappedToJson());
+        Assert.True(journey.FindComplexProperty(nameof(Journey.Waypoints))!.ComplexType.IsMappedToJson());
 
         // The BLOB stays a BLOB: one column holding bytes, not a collection of them.
         var thumbnail = journey.FindProperty(nameof(Journey.Thumbnail))!;

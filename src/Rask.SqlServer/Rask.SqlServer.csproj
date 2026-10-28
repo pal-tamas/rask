@@ -38,6 +38,9 @@
 
   <ItemGroup>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <!-- Rask's migrations differ, registered by RaskSqlServerOptionsExtension. Linked, since this package does not
+         reference Rask.Data; internal in both, so an app holding both sees neither. -->
+    <Compile Include="..\Rask.Data\RaskMigrationsModelDiffer.cs" Link="Shared\RaskMigrationsModelDiffer.cs"/>
   </ItemGroup>
 
   <ItemGroup>

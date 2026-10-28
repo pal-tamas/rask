@@ -72,6 +72,9 @@ public static class RaskPostgresDbContextOptionsExtensions
         optionsBuilder.ReplaceService<IMigrationsSqlGenerator, RaskPostgresMigrationsSqlGenerator>();
         ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(new PostgresFullTextSearchOptionsExtension());
 
+        // What a RaskDbContext configures for itself, said here so it shares one set of EF Core's internal services.
+        Rask.Data.RaskDbContext.WithSharedWarnings(optionsBuilder);
+
         return optionsBuilder.UseNpgsql(PostgresSessionSettings.Apply(connectionString, options), postgres =>
         {
             if (options.Retry.Enabled)

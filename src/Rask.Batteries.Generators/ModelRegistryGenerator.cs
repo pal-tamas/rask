@@ -199,7 +199,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             .Select(static c => new ValueCollectionSpec(
                 c.Name,
                 c.Field?.Name,
-                c.ValueObject?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+                c.ValueObject?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                c.ValueObject is not null && !HasListBehind(c) ? SymbolLocation.From(c.Property) : null))
             .ToArray();
 
         return new EquatableArray<ValueCollectionSpec>(collections);
@@ -396,6 +397,7 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
             StringComparer.Ordinal);
 
         ReportReferenceValues(context, entities, idTypes);
+        ReportJsonCollectionsWithNoList(context, entities);
         EmitMapEntities(source, entities, idTypes);
         EmitConfigureConventions(source, entities);
         EmitApplyConfigurations(source, entities);
@@ -879,7 +881,9 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
 
     // A collection of values the entity holds. Symbols cannot cross a pipeline step, so the element travels
     // as its fully-qualified name, and null there means a primitive collection rather than a JSON one.
-    private readonly record struct ValueCollectionSpec(string Property, string? Field, string? ElementTypeName);
+    // NoListAt is where a collection of value objects with no list behind it is declared (RASK111), or null.
+    private readonly record struct ValueCollectionSpec(
+        string Property, string? Field, string? ElementTypeName, SymbolLocation? NoListAt = null);
 
     // A child collection's navigation and the field behind it, for a field EF Core cannot find by name.
     private readonly record struct ChildFieldSpec(string Navigation, string Field);

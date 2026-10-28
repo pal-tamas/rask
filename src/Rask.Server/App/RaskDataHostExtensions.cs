@@ -148,6 +148,9 @@ public static class RaskDataHostExtensions
         {
             var options = new DbContextOptionsBuilder<RaskReadDbContext>().UseApplicationServiceProvider(services);
             configure(services, options);
+
+            // What its OnConfiguring would add, said up front so the context shares one set of EF Core's internal services.
+            RaskReadDbContext.Prepare(options);
             return options.Options;
         });
 

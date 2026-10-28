@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK111 warns about a collection of value objects that will be a NULL column.** A get-only
+  `IReadOnlyList<FiledFile> Files { get; private set; }` has no list behind it for EF Core to write through, so it
+  keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that
+  get `NOT NULL`: a `List<FiledFile>` field behind the read-only view, or a `List<FiledFile>` property. See
+  [RASK111](docs/diagnostics.md#rask111).
 - **A guarded form in a modal asks before the modal closes.** Before: a `ConfirmLeave` form inside a `Ui.Modal` or a
   flyout asked only when the reader left the PAGE; its close button, a `Ui.ModalClose`, Escape or a press outside closed
   the modal and dropped what was typed without a word. Now each of those asks first, in `Ui.ConfirmLeave` when the
@@ -192,6 +197,24 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
+  `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
+  `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update
+  and read back as an empty list. Before: every such column was `NULL`, whatever the model said, and EF Core refused
+  `IsRequired()` on it ("configured as a collection"), so an app adopting a `Files nvarchar(max) NOT NULL` column could
+  not map it as it is. Rask now maps it as an EF Core complex collection instead of an owned one; queries, the read
+  face, element converters and wholesale replacement are unchanged. EF Core writes a complex collection through a
+  list, so the property needs one behind it: the `List<T>` field behind a read-only view, or a `List<T>` property.
+  A get-only `IReadOnlyList<T> { get; private set; }` has none and keeps the old `NULL` mapping. An existing app's next
+  migration snapshot changes, and every non-nullable value-object collection gets an `AlterColumn` to `NOT NULL`
+  with `defaultValue: "[]"`. No hand edit is needed: SQLite, SQL Server and PostgreSQL fill the existing `NULL` rows
+  with `[]` before the column turns `NOT NULL`, and an `AddColumn` of a new collection fills the rows already there
+  the same way. EF Core on its own writes `"{}"`, an object that no collection can read back. A context on
+  `UseRaskSqlite`, `UseRaskPostgres`, `UseRaskSqlServer` or a RaskApp's therefore writes its migrations through Rask's
+  differ, which writes `"[]"` for a JSON collection and keeps `"{}"` for one value object. It is registered by an
+  options extension those contexts already carry, so it builds no extra EF Core internal service provider. A context
+  on plain `UseSqlite`/`UseNpgsql`/`UseSqlServer` keeps EF Core's `"{}"`. See
+  [collections of values](docs/data.md#collections-of-values).
 
 - **BREAKING: a table writes Flux's own class lists, so an app's class that contradicts one needs `!`.** The owner's
   call (2026-10-28): `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` now write exactly what Flux's table writes, in
@@ -340,6 +363,13 @@ them until tagged releases begin.
   The name rules stay for an id nothing is configured on. A configured navigation is named after its id when the id
   ends in the target's last word, after the target otherwise; one with no free name is the new error
   [RASK112](docs/diagnostics.md#rask112). See [configured relationships win](docs/data.md#configured-relationships-win).
+- **A Rask context builds EF Core's internal services once, not twice.** EF Core builds them for the options a
+  context's constructor gets and again for what its `OnConfiguring` makes of them when the two differ. It refuses a
+  process that builds more than twenty (`ManyServiceProvidersCreatedWarning`), and an app's test suite with a few
+  configurations could reach that. `RaskDbContext` and `RaskReadDbContext` changed their options in `OnConfiguring`,
+  so each configuration built two. `UseRaskSqlite`, `UseRaskPostgres`, a RaskApp's `UseRaskDatabase` and the read
+  context's factories now say the same up front, and the context shares one. Rask.Server.Tests builds 15 where it
+  built 20, the limit.
 - **A slow answer to "is the browser still signed in as the same user?" no longer reconnects the tab.** A live page
   asks `/_rask/auth/who` when it comes back to the reader and before the first event after a pause. The question had
   five seconds of wall-clock time, and no answer counted as "the credential changed", so on a loaded host a tab

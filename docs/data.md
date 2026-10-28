@@ -467,6 +467,35 @@ await Trip.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2));
 and deletes the rest. A value has no id, so there is nothing to match against: what the form posts is what the
 aggregate holds afterwards, and an empty list clears the collection.
 
+**The column is NULL only where the model says it may be.** `Tags` and `Stops` above are `NOT NULL`, and an empty
+collection is stored as `[]`, never as NULL. A nullable one, `List<Stop>? Detours { get; private set; }`, is a NULL
+column. This works the same way as Laravel's `$table->json('stops')` and Rails' `t.json :stops, null: false`. An
+adopted `Stops nvarchar(max) NOT NULL` column is mapped as it is, with no migration.
+
+A JSON column is an EF Core *complex collection*, which EF Core writes through a list, so the property needs a
+`List<T>` behind it. **A get-only `IReadOnlyList<T>` auto-property keeps a NULL column**, whatever its nullability:
+
+```csharp
+public IReadOnlyList<Stop> Stops { get; private set; } = new List<Stop>();   // NULL column: no list behind it
+
+private readonly List<Stop> _stops = [];
+public IReadOnlyList<Stop> Stops => _stops;                                  // NOT NULL: the field is the list
+
+public List<Stop> Stops { get; private set; } = [];                          // NOT NULL: the property is the list
+```
+
+The first shape is mapped the old way, as an owned collection, and EF Core makes an owned collection's column NULL and
+refuses `IsRequired()` on it.
+
+**Moving an existing app onto `NOT NULL` is one migration, with no edit.** Every value-object collection used to be a
+NULL column, so the next `rask db add` writes an `AlterColumn` to `NOT NULL` for each non-nullable one, with
+`defaultValue: "[]"`. SQLite, SQL Server and PostgreSQL fill every NULL row with `[]` before the column turns
+`NOT NULL`, and an `AddColumn` of a new collection fills the rows already there the same way. EF Core on its own would
+write `"{}"`, an object that no collection can read back, so a context writes its migrations through Rask's differ
+when it is on `UseRaskSqlite`, `UseRaskPostgres` or `UseRaskSqlServer`, or is a RaskApp's. A context on plain
+`UseSqlite`, `UseNpgsql` or `UseSqlServer` gets EF Core's `"{}"`: switch it to the Rask call. A JSON column that holds
+one value object keeps `"{}"`.
+
 **Choose a child entity instead when the elements need identity** — to be referenced, updated one at a time, or
 indexed. That is the real trade-off, and the deciding factor is usually the index:
 

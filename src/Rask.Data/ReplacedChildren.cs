@@ -142,7 +142,15 @@ internal static class ReplacedChildren
 
         foreach (var complex in type.GetComplexProperties())
         {
-            stored.ComplexProperty(complex).CurrentValue = complex.GetGetter().GetClrValue(fresh);
+            var value = complex.GetGetter().GetClrValue(fresh);
+            if (complex.IsCollection)
+            {
+                stored.ComplexCollection(complex).CurrentValue = (IList?)value;
+            }
+            else
+            {
+                stored.ComplexProperty(complex).CurrentValue = value;
+            }
         }
 
         foreach (var children in type.GetNavigations().Where(static n => n.IsCollection))
