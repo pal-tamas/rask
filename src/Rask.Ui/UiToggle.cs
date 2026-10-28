@@ -151,7 +151,7 @@ public sealed partial class UiToggle : Component, IDeferredBind
             .Role("switch")
             .Aria("checked", on ? "true" : "false")
             .Disabled(Disabled == true)
-            .Class(UiClass.Compose(Frame, Shape(), Surface(), Class))
+            .Class(Frame, Shape(), Surface(), Class)
             .Data((on, heard) switch { (true, true) => On, (false, true) => Off, (true, false) => OwnOn, _ => OwnOff });
 
         // Bound and waiting, the turn is held for the next action: the press only draws it (UiDraws).
@@ -227,8 +227,8 @@ public sealed partial class UiToggle : Component, IDeferredBind
         var ink = UiClass.Compose(size, Variant == Ui.ToggleVariant.Subtle ? SubtleIconInk : IconInk, Accent());
         return
         [
-            (OnIcon ?? Icon?.Name) is { } on ? Ui.Icon.Name(on).Variant(Ui.IconVariant.Solid).Class(UiClass.Compose(ShownOn, ink)) : null,
-            (OffIcon ?? Icon?.Name) is { } off ? Ui.Icon.Name(off).Class(UiClass.Compose(ShownOff, ink)) : null,
+            (OnIcon ?? Icon?.Name) is { } on ? Ui.Icon.Name(on).Variant(Ui.IconVariant.Solid).Class(ShownOn, ink) : null,
+            (OffIcon ?? Icon?.Name) is { } off ? Ui.Icon.Name(off).Class(ShownOff, ink) : null,
         ];
     }
 

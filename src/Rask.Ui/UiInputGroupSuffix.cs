@@ -13,6 +13,6 @@ public sealed partial class UiInputGroupSuffix : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(UiInputGroupAffix.Look, "border-s-0 rounded-e-lg", UiInputGroupAffix.Size(Size), Class))
+        Div.Class(UiInputGroupAffix.Look, "border-s-0 rounded-e-lg", UiInputGroupAffix.Size(Size), Class)
             .Data("ui-input-group-suffix", "")[Children ?? []];
 }

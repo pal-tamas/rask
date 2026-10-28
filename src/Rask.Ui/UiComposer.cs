@@ -163,10 +163,10 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
             Variant == Ui.ComposerVariant.Input ? null : UiComposerLook.RoundButtons,
             disabled ? UiComposerLook.LockedButtons : null);
 
-        var root = Div.Class(UiClass.Compose(
+        var root = Div.Class(
                 UiComposerLook.Root,
                 Variant == Ui.ComposerVariant.Input ? UiComposerLook.InputCorners : UiComposerLook.Corners,
-                Class))
+                Class)
             .Role("group")
             .Aria(Names(field))
             .Data(UiComposerLook.Marks(Submit ?? Ui.ComposerSubmit.CmdEnter, field.Invalid));
@@ -177,8 +177,8 @@ public sealed partial class UiComposer<T> : Component, IFormControl<T>, IUiFormC
             root[
                 Div.Class(Header is null ? UiComposerLook.NoHeader : UiComposerLook.Header)[Header],
                 Div.Class(inline ? UiComposerLook.InlineBox : UiComposerLook.Box)[box],
-                Div.Class(UiClass.Compose(inline ? UiComposerLook.InlineLeading : UiComposerLook.Leading, buttons))[ActionsLeading],
-                Div.Class(UiClass.Compose(inline ? UiComposerLook.InlineTrailing : UiComposerLook.Trailing, buttons))[ActionsTrailing],
+                Div.Class(inline ? UiComposerLook.InlineLeading : UiComposerLook.Leading, buttons)[ActionsLeading],
+                Div.Class(inline ? UiComposerLook.InlineTrailing : UiComposerLook.Trailing, buttons)[ActionsTrailing],
                 Div.Class(Footer is null ? UiComposerLook.NoFooter : UiComposerLook.Footer)[Footer]
             ],
             labelSrOnly: LabelSrOnly == true,

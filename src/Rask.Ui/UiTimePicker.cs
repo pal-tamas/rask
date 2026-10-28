@@ -159,11 +159,11 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         var clears = Clearable == true && UiTimePickerValue.Clears<T>() ? (bool?)(Disabled != true && chosen.Count > 0) : null;
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(
+            Div.Class(
                     UiTimePickerLook.Root,
                     UiPickerWidth.For(Class),
                     UiTimePickerValue.Several<T>() ? UiTimePickerLook.RootSeveral : null,
-                    Class))
+                    Class)
                 .Data(UiTimePickerLook.RootMarks)[
                 Div.Key("trigger").Class("inline")[Typed ? TypedTrigger(field, accessor, context, chosen, clears) : ButtonTrigger(field, chosen, clears)],
                 Options(times, chosen)
@@ -185,7 +185,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
             .Id(field.ControlId)
             .Type(ButtonType.Button)
             .Role("combobox")
-            .Class(UiClass.Compose(UiTimePickerLook.Button, UiTimePickerLook.ButtonSize(Size ?? Ui.TimePickerSize.Base)))
+            .Class(UiTimePickerLook.Button, UiTimePickerLook.ButtonSize(Size ?? Ui.TimePickerSize.Base))
             .Disabled(Disabled == true)
             .Data(field.Invalid ? UiTimePickerLook.InvalidButtonMarks : UiTimePickerLook.ButtonMarks)
             .Aria(aria)

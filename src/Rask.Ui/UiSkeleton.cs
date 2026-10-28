@@ -30,10 +30,10 @@ public sealed partial class UiSkeleton : Component
     protected override Component? Render() =>
         Div
             .Data("ui-skeleton", "")
-            .Class(UiClass.Compose(
+            .Class(
                 "[:where(&)]:h-4 [:where(&)]:rounded-md bg-zinc-400/20",
                 UiSkeletonScope.Class(UiSkeletonScope.Resolve(Animate)),
-                Class))
+                Class)
             .Style(Style)[
             Children ?? []
         ];

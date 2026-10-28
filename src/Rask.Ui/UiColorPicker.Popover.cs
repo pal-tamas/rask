@@ -129,7 +129,7 @@ public sealed partial class UiColorPicker
         var color = _kept.Color;
         var (across, down) = (Fraction(color.Saturation / 100), Fraction(1 - (color.Brightness / 100)));
 
-        return Div.Class(UiClass.Compose(UiColorPickerLook.Area, @class)).Data(Off ? AreaOff : AreaMarks)[
+        return Div.Class(UiColorPickerLook.Area, @class).Data(Off ? AreaOff : AreaMarks)[
             Div.Class(UiColorPickerLook.AreaLayer).Style("background-color:" + color.HueCss)
                 .Attributes(("data-ui-color-picker-area-hue", null), UiColorPickerMarks.Named("hue-layer")),
             Div.Class(UiColorPickerLook.AreaWhite).Data("ui-color-picker-area-gradient", string.Empty),
@@ -248,7 +248,7 @@ public sealed partial class UiColorPicker
             .Type(InputType.Text)
             .Placeholder(placeholder ?? Hint)
             .Disabled(Off)
-            .Class(UiClass.Compose(UiColorPickerLook.PopoverInput, @class))
+            .Class(UiColorPickerLook.PopoverInput, @class)
             .Aria("label", RaskStrings.Get(RaskString.ColorPickerValue, "Color value"))
             .Attributes(("data-ui-color-picker-popover-input", null), UiColorPickerMarks.Named("popover-text"));
 
@@ -260,7 +260,7 @@ public sealed partial class UiColorPicker
     internal Component DrawDropper(string? @class) =>
         Button
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiColorPickerLook.Dropper, @class))
+            .Class(UiColorPickerLook.Dropper, @class)
             .Disabled(Off)
             .Hidden()
             .Aria("label", RaskStrings.Get(RaskString.ColorPickerDropper, "Pick a color from the screen"))
@@ -279,7 +279,7 @@ public sealed partial class UiColorPicker
         var picked = _kept.Empty ? -1 : palette.IndexOf(Matched(_kept));
         var stop = Math.Max(picked, 0);
 
-        return Div.Class(UiClass.Compose(UiColorPickerLook.Swatches, @class))
+        return Div.Class(UiColorPickerLook.Swatches, @class)
             .Data(SwatchesMarks)
             .Role("listbox")
             .Aria("label", RaskStrings.Get(RaskString.ColorPickerSwatches, "Color swatches"))[

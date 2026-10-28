@@ -305,11 +305,13 @@ them until tagged releases begin.
 - **A class list left with one part is that part, not a copy.** `BuilderRuntime.JoinClasses` (behind
   `.Class("p-4", on ? "x" : null)` and every kit look) hands back the one non-blank, already-trimmed part as the
   very string it was given, so a kit look with no app class no longer copies itself on every render.
-- **Every kit component joins its class list without a builder: a big kit table's live first GET allocates 23%
-  less.** `UiClass.Compose` (the join behind every `Ui.*` class attribute) built each list in a fresh
-  `StringBuilder`; it now hands a lone part back as itself and writes the rest exact-size through Core's
-  `BuilderRuntime.JoinClasses`. `big-table 5000` (`tests/Rask.Benchmarks`), kit live GET: 4,971 → 3,804 B a cell;
-  the HTML and its classes are unchanged. Nothing to change in an app.
+- **Kit components join their class lists without a builder: a form of `Ui.Checkbox` renders with 21% less
+  garbage.** `UiClass.Compose` built each list in a fresh `StringBuilder`; a kit element now hands its parts to the
+  element's own `.Class(a, b, c)` step, and what is left of `Compose` (a `ResolveClass()` override, a named look)
+  is Core's exact-size `BuilderRuntime.JoinClasses`, which returns a lone part as itself. 100 controls to HTML
+  (`UiFormControlRenderBenchmarks`): `Ui.Input` 882 → 811 KB, with a label 1,711 → 1,519 KB, `Ui.Checkbox` 2,957 →
+  2,325 KB. A table's cells never used it (their lists are cached), so `big-table` is unchanged. The HTML and its
+  classes are unchanged. Nothing to change in an app.
 - **A big table's first page load is linear again: 5,000 rows of 14 cells went from 8.5 s to 0.15 s.** Every
   `.Class(…)` on an element built in one `Render()` left a change report on a list, and the end of that render
   scanned the whole list once per element: n² for n cells, about 0.12 ms a cell at 70,000 cells and 0.6 ms at

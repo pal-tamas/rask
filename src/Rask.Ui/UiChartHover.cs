@@ -92,15 +92,15 @@ internal static class UiChartHover
         if (cursor.Type != Ui.ChartCursorType.Area)
         {
             return plot.Horizontal
-                ? Div.Class(UiClass.Compose(Cursor, Level, cursor.Class)).Style("top:" + At)
-                : Div.Class(UiClass.Compose(Cursor, Upright, cursor.Class)).Style("left:" + At);
+                ? Div.Class(Cursor, Level, cursor.Class).Style("top:" + At)
+                : Div.Class(Cursor, Upright, cursor.Class).Style("left:" + At);
         }
 
         // Flux's area cursor covers the row's whole band, however much of it the bar fills.
         var across = Percent(plot.Band);
         return plot.Horizontal
-            ? Div.Class(UiClass.Compose(Cursor, Band, "inset-x-0 -translate-y-1/2", cursor.Class)).Style($"top:{At};height:{across}")
-            : Div.Class(UiClass.Compose(Cursor, Band, "inset-y-0 -translate-x-1/2", cursor.Class)).Style($"left:{At};width:{across}");
+            ? Div.Class(Cursor, Band, "inset-x-0 -translate-y-1/2", cursor.Class).Style($"top:{At};height:{across}")
+            : Div.Class(Cursor, Band, "inset-y-0 -translate-x-1/2", cursor.Class).Style($"left:{At};width:{across}");
     }
 
     private static string Percent(double fraction) => (fraction * 100).ToString("0.###", CultureInfo.InvariantCulture) + "%";

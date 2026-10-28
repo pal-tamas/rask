@@ -34,7 +34,7 @@ public abstract partial class UiSelectControl<T>
             .Key(TriggerKey)
             .TabIndex(PillsCombobox || off ? -1 : 0)
             .Role(plain ? "combobox" : "button")
-            .Class(UiClass.Compose(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class))
+            .Class(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class)
             .Aria(PillTriggerAria(view, plain))
             .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain));
         if (!PillsCombobox)
@@ -58,7 +58,7 @@ public abstract partial class UiSelectControl<T>
                 ? Button.Key("chevron").Type(ButtonType.Button).TabIndex(-1).Class(UiPillboxLook.InputChevron).Data("ui-button", "")[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiPillboxLook.InputChevronIcon)
                 ]
-                : Ui.Icon.Key("chevron").Name(Ui.IconName.ChevronDown).Mini.Class(UiClass.Compose(UiPillboxLook.Chevron, UiPillboxLook.ChevronSize(IsSmall(slot))))
+                : Ui.Icon.Key("chevron").Name(Ui.IconName.ChevronDown).Mini.Class(UiPillboxLook.Chevron, UiPillboxLook.ChevronSize(IsSmall(slot)))
         ];
     }
 
@@ -76,11 +76,11 @@ public abstract partial class UiSelectControl<T>
     {
         var value = answer.Value;
         var small = IsSmall(Pills!.Trigger);
-        var remove = Div.Class(UiClass.Compose(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small)));
+        var remove = Div.Class(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
         // Backspace in the empty input presses the last cross (`data-rask-list-remove`, rask-list.ts).
-        return Div.Key(answer.Face.FormValue).Class(UiClass.Compose(UiPillboxLook.Pill, UiPillboxLook.PillSize(small))).Data("value", answer.Face.FormValue)[
+        return Div.Key(answer.Face.FormValue).Class(UiPillboxLook.Pill, UiPillboxLook.PillSize(small)).Data("value", answer.Face.FormValue)[
             Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
             (off ? remove : remove.Attributes(UiDraws.With(UiPillboxLook.RemoveMarks, ("click", CommitDraws))).OnClick(() => RemoveAsync(value)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
@@ -106,7 +106,7 @@ public abstract partial class UiSelectControl<T>
             .Placeholder(pills == 0 ? placeholder : string.Empty)
             .Role("combobox")
             .Disabled(off)
-            .Class(UiClass.Compose(UiPillboxLook.Input, slot?.Class))
+            .Class(UiPillboxLook.Input, slot?.Class)
             .Aria(aria)
             .Attributes(marks);
     }

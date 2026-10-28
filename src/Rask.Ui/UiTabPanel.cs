@@ -44,7 +44,7 @@ public sealed partial class UiTabPanel : Component
 
         var panel = Div
             .Id(group?.PanelId(Name))
-            .Class(UiClass.Compose(group?.Findable == true ? Findable : "pt-8", Class))
+            .Class(group?.Findable == true ? Findable : "pt-8", Class)
             .Data((shown ? SelectedMarker : Marker).With(null))
             .Role("tabpanel")
             .TabIndex(shown ? 0 : -1);

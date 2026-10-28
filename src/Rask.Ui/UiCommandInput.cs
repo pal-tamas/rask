@@ -61,7 +61,7 @@ public sealed partial class UiCommandInput : Component
         return Div.Class("relative").Data(Marker.With(null))[
             Div.Class(Leading)[Ui.Icon.Name(Icon ?? Ui.IconName.MagnifyingGlass).Mini],
             Box(),
-            clearable ? Div.Class(UiClass.Compose(Trailing, WhileTyped))[ClearButton()] : null,
+            clearable ? Div.Class(Trailing, WhileTyped)[ClearButton()] : null,
             closable ? Div.Class(Trailing)[Div[CloseButton()]] : null
         ];
     }
@@ -72,7 +72,7 @@ public sealed partial class UiCommandInput : Component
         Input.Of<string>()
             .Id(InputId)
             .Type(InputType.Text)
-            .Class(UiClass.Compose(Field, Class))
+            .Class(Field, Class)
             .Placeholder(Placeholder ?? " ")
             .Autocomplete("off")
             .Aria("autocomplete", "none")

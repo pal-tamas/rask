@@ -14,7 +14,7 @@ public sealed partial class UiMenuCheckboxGroup : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Role("group").Class(UiClass.Compose("inline", Class)).Data(Group)[Children ?? []];
+        Div.Role("group").Class("inline", Class).Data(Group)[Children ?? []];
 
     private static readonly Dictionary<string, string?> Group =
         new(StringComparer.Ordinal) { ["ui-menu-checkbox-group"] = "" };

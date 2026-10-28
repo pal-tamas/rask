@@ -113,7 +113,7 @@ public sealed partial class UiMenu : Component
             .Popover(Popover.Auto)
             .Role("menu")
             .TabIndex(-1)
-            .Class(UiClass.Compose(UiMenuRow.Panel, Class))
+            .Class(UiMenuRow.Panel, Class)
             .Data(data)
             .Attributes(("autofocus", null), ("style", style));
         if (_host?.Toggled is { } toggled)

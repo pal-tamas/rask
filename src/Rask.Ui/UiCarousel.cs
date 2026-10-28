@@ -100,14 +100,14 @@ public sealed partial class UiCarousel : Component
         var bleed = Bleed == true;
 
         return Div
-            .Class(UiClass.Compose(bleed ? "[:where(&)]:block [:where(&)]:-mx-[var(--ui-bleed,1.5rem)]" : "[:where(&)]:block", Class))
+            .Class(bleed ? "[:where(&)]:block [:where(&)]:-mx-[var(--ui-bleed,1.5rem)]" : "[:where(&)]:block", Class)
             .Data(Settings())
             .Role("group")
             .Aria(
                 ("roledescription", RaskStrings.Get(RaskString.CarouselRole, "carousel")),
                 ("label", RaskStrings.Get(RaskString.CarouselLabel, "Items")))[
             Div.Class("relative").Data(ViewportMark)[
-                Div.Class(UiClass.Compose(Track, Motion(), bleed ? "px-[var(--ui-bleed,1.5rem)] scroll-px-[var(--ui-bleed,1.5rem)]" : "", TrackClass))
+                Div.Class(Track, Motion(), bleed ? "px-[var(--ui-bleed,1.5rem)] scroll-px-[var(--ui-bleed,1.5rem)]" : "", TrackClass)
                     .Data(Fade == true ? FadingTrackMark : TrackMark)
                     .Aria(("live", "polite"), ("atomic", "false"))[
                     Children ?? []

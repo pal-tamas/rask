@@ -18,7 +18,7 @@ public sealed partial class UiTimePicker<T>
         var hour = RaskStrings.Get(RaskString.PickerHour, "Hour");
 
         var box = Div
-            .Class(UiClass.Compose(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Size ?? Ui.TimePickerSize.Base)))
+            .Class(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Size ?? Ui.TimePickerSize.Base))
             .Data(field.Invalid ? UiTimePickerLook.InvalidBoxMarks : UiTimePickerLook.BoxMarks);
 
         // Everything in the box but a field opens the list, and a second press closes it, as on Flux: the

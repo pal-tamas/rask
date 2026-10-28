@@ -59,7 +59,7 @@ public sealed partial class UiFileItem : Component
     {
         var detail = Text ?? (Size is { } bytes ? UiFileSize.Format(bytes) : null);
 
-        return Div.Class(UiClass.Compose(Invalid == true ? InvalidFrame : Frame, Class)).Data(Marker.With(null))[
+        return Div.Class(Invalid == true ? InvalidFrame : Frame, Class).Data(Marker.With(null))[
             Lead(detail is not null),
             Div.Class("me-3 flex grow flex-col justify-center gap-1 overflow-hidden py-[9px]").Data(ContentSlot.With(null))[
                 Div.Class("truncate text-sm font-medium text-zinc-500 dark:text-white/80")[Heading],

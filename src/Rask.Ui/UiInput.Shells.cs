@@ -17,7 +17,7 @@ public sealed partial class UiInput<T>
             .Aria(field.Aria)
             .Attributes(Attributes)
             .OnClick(OnClick)
-            .Class(UiClass.Compose(UiInputLook.AsButton, UiInputLook.Padding(Icon is not null, Kbd is not null), Class))[
+            .Class(UiInputLook.AsButton, UiInputLook.Padding(Icon is not null, Kbd is not null), Class)[
             Icon is { } icon ? Div.Class(UiInputLook.AsButtonLeading)[Glyph(icon)] : null,
             Div.Class(UiInputLook.AsButtonText)[Placeholder],
             Kbd is { } kbd ? Div.Class(UiInputLook.AsButtonKbd)[kbd] : null
@@ -27,7 +27,7 @@ public sealed partial class UiInput<T>
     // the input keeps the keyboard (Enter and Space open it too) — what Flux's div does with script.
     // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.
     private Component FileShell(UiWithField field) =>
-        RaskMarkup.Label.Class(UiClass.Compose(UiInputLook.File, Class)).Data("ui-input-file", "")[
+        RaskMarkup.Label.Class(UiInputLook.File, Class).Data("ui-input-file", "")[
             Input
                 .Of<string>()
                 .Id(field.ControlId)

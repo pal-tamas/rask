@@ -35,7 +35,7 @@ public sealed partial class UiCommandItem : Component
     protected override Component? Render()
     {
         var row = Div.Id("ui-command-item-" + _instance.ToString(System.Globalization.CultureInfo.InvariantCulture))
-            .Class(UiClass.Compose(Look, Class))
+            .Class(Look, Class)
             .Data(Marker.With(null))
             .Role("option")
             .Attributes(("data-rask-match", UiMenuRow.Label(Children)));

@@ -75,12 +75,12 @@ public sealed partial class UiSidebar : Component
         var rails = collapsible == Ui.SidebarCollapsible.Always;
 
         var sidebar = Div
-            .Class(UiClass.Compose(
+            .Class(
                 Base,
                 putAway ? PutAway : "",
                 Docked(Sticky == true, putAway),
                 rails ? Rail : "",
-                Class))
+                Class)
             .Attributes(UiMarks.Present(
                 ("data-ui-sidebar", ""),
                 ("data-breakpoint", putAway ? Width(Breakpoint ?? Ui.Breakpoint.Lg) : null)))[

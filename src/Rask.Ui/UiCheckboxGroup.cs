@@ -130,7 +130,7 @@ public sealed partial class UiCheckboxGroup<T> : Component, IFormControl<ICollec
         return field.Wrap(
             Div.Id(field.ControlId)
                 .Role("group")
-                .Class(UiClass.Compose(Look(variant), Class))
+                .Class(Look(variant), Class)
                 .Aria(aria)
                 .Data(Marker(variant), "")[
                 Context.Provide(scope)[Children ?? []]

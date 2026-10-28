@@ -64,7 +64,7 @@ public sealed partial class UiMenuCheckbox : Component, IFormControl<bool>, IDef
 
         var button = Button
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiMenuRow.Classes(variant: null), Class))
+            .Class(UiMenuRow.Classes(variant: null), Class)
             .Disabled(disabled);
         if (!disabled)
         {

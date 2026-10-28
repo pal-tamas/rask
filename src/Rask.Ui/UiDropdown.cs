@@ -104,7 +104,7 @@ public sealed partial class UiDropdown : Component
 
         var root = Div
             // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.
-            .Class(UiClass.Compose(_owner is null ? "inline-flex" : "", Class))
+            .Class(_owner is null ? "inline-flex" : "", Class)
             .Style("anchor-name:--" + Prefix)
             .Data(Marks());
 

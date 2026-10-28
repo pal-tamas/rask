@@ -37,7 +37,7 @@ public sealed partial class UiEditorToolbar : Component
         var composed = (Children ?? []).Where(child => child is not null).ToList();
         var hosted = Context.Get<UiEditorScope>()?.Host is not null;
         var bar = Div
-            .Class(UiClass.Compose(hosted ? InComposer : Look, Class))
+            .Class(hosted ? InComposer : Look, Class)
             .Role("toolbar")
             .Aria("label", RaskStrings.Get(RaskString.EditorToolbar, "Formatting"));
         if (Context.Get<UiEditorScope>() is { } editor)

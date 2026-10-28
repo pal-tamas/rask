@@ -25,7 +25,7 @@ public sealed partial class UiSliderTick : Component
         var scope = Context.Get<UiSliderScope>();
         var value = (decimal)Value;
         var tick = Div
-            .Class(UiClass.Compose(UiSliderLook.Tick, scope?.Inside == true ? UiSliderLook.TickInside : UiSliderLook.TickBelow, Class))
+            .Class(UiSliderLook.Tick, scope?.Inside == true ? UiSliderLook.TickInside : UiSliderLook.TickBelow, Class)
             .Data(Marks(scope, value))
             .Style(scope is null ? null : "inset-inline-start:" + UiSliderLook.At(scope.Scale.Fraction(value)));
 

@@ -143,12 +143,12 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
             .ReadOnly(ReadOnly == true)
             .Aria(field.Aria)
             .Attributes(UiInputLook.TextareaMarks(field.Invalid))
-            .Class(UiClass.Compose(
+            .Class(
                 Look,
                 UiInputLook.Outline,
                 rows.Count is null ? "field-sizing-content" : null,
                 ResizeClass(Resize ?? Ui.TextareaResize.Vertical),
-                Class)));
+                Class));
     }
 
     private static string ResizeClass(Ui.TextareaResize resize) => resize switch

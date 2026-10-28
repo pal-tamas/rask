@@ -29,10 +29,10 @@ public sealed partial class UiSkeletonLine : Component
 
         return Div
             .Data("ui-skeleton-line", "")
-            .Class(UiClass.Compose(
+            .Class(
                 large ? "py-1" : "py-[3px]",
                 UiSkeletonScope.Class(UiSkeletonScope.Resolve(Animate)),
-                Class))
+                Class)
             .Style(Style)[
             Div.Class(large ? "h-4 rounded-sm bg-zinc-400/20" : "h-3.5 rounded-sm bg-zinc-400/20")
         ];

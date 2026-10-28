@@ -60,7 +60,7 @@ public sealed partial class UiNavmenu : Component
         var nav = Nav
             .Id(_host?.PanelId ?? "uinavmenu-" + _instance.ToString(CultureInfo.InvariantCulture))
             .Popover(Popover.Auto)
-            .Class(UiClass.Compose(UiMenuRow.Box, Class))
+            .Class(UiMenuRow.Box, Class)
             .Data(data);
         if (_host?.Toggled is { } toggled)
         {

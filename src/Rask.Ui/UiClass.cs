@@ -1,14 +1,14 @@
 namespace Rask;
 
 /// <summary>
-/// Joins the parts of a class attribute.
+/// Joins the parts of a class list where no chain step takes them: a <c>ResolveClass()</c> override, a named
+/// look that is itself one part of a bigger list, or a string handed to a non-chain sink.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every component builds its class list from a base name plus whichever of colour, fill, size and the
-/// call site's own extras are present, and most of those are absent most of the time. Interpolating them
-/// directly produces runs of spaces and a trailing one on nearly every element — harmless to a browser,
-/// noisy in a diff, and enough to break an assertion that expects an exact attribute.
+/// Where an element is being built, pass the parts to its <c>.Class(a, b, c)</c> step instead: it joins by the
+/// same rules (<see cref="BuilderRuntime.JoinClasses" />). This differs only in returning the empty string, not
+/// <c>null</c>, when every part is blank.
 /// </para>
 /// <para>
 /// This does no other work. In particular it never BUILDS a class name, only joins ones already spelled
@@ -19,28 +19,5 @@ namespace Rask;
 /// </remarks>
 internal static class UiClass
 {
-    internal static string Compose(params ReadOnlySpan<string?> parts)
-    {
-        // The commonest list is one part with nothing beside it: that string itself, no copy.
-        string? only = null;
-        var count = 0;
-        foreach (var part in parts)
-        {
-            if (!string.IsNullOrWhiteSpace(part))
-            {
-                only = part;
-                if (++count > 1)
-                {
-                    break;
-                }
-            }
-        }
-
-        if (count == 1 && only!.Length == only.AsSpan().Trim().Length)
-        {
-            return only;
-        }
-
-        return BuilderRuntime.JoinClasses(parts) ?? string.Empty;
-    }
+    internal static string Compose(params ReadOnlySpan<string?> parts) => BuilderRuntime.JoinClasses(parts) ?? string.Empty;
 }

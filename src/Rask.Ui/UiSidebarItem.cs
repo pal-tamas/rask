@@ -88,7 +88,7 @@ public sealed partial class UiSidebarItem : Component
     {
         if (Href is not { } url)
         {
-            return Button.Type(ButtonType.Button).Class(UiClass.Compose(classes, "w-full"));
+            return Button.Type(ButtonType.Button).Class(classes, "w-full");
         }
 
         // A STRING is an ordinary link, written as given with no path base added (#1070): the way out of the

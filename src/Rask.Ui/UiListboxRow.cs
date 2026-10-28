@@ -61,7 +61,7 @@ internal static class UiListboxRow
         }
 
         return icon is { } drawn
-            ? Ui.Icon.Name(drawn).Variant(iconVariant ?? Ui.IconVariant.Mini).Class(UiClass.Compose(UiListboxLook.Icon, iconClass))
+            ? Ui.Icon.Name(drawn).Variant(iconVariant ?? Ui.IconVariant.Mini).Class(UiListboxLook.Icon, iconClass)
             : null;
     }
 

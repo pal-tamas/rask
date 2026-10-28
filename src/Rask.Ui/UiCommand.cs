@@ -36,7 +36,7 @@ public sealed partial class UiCommand : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(Look, Class is null ? "max-w-120" : null, Class))
+        Div.Class(Look, Class is null ? "max-w-120" : null, Class)
             .Data(Marker.With(null))
             .Attributes(("data-rask-command", null))[Children ?? []];
 }

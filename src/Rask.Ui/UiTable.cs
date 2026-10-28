@@ -188,7 +188,7 @@ public sealed partial class UiTable : UiElement, IUiHost
             marks["rask-skeleton"] = UiTableSkeleton.Word(query);
         }
 
-        var box = Div.Class(UiClass.Compose(Container, Bleed is true ? Bleeding : "", ContainerClass));
+        var box = Div.Class(Container, Bleed is true ? Bleeding : "", ContainerClass);
         if (marks.Count > 0)
         {
             box = box.Data(marks);

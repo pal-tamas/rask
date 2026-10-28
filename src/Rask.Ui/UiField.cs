@@ -34,7 +34,7 @@ public sealed partial class UiField : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(Variant == Ui.FieldVariant.Inline ? Inline : Block, Disabled, Class))
+        Div.Class(Variant == Ui.FieldVariant.Inline ? Inline : Block, Disabled, Class)
             .Data("ui-field", "")[
             Context.Provide(UiFieldScope.Of(Children))[Children ?? []]
         ];

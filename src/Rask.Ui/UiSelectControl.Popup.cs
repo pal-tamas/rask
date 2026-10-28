@@ -11,15 +11,15 @@ public abstract partial class UiSelectControl<T>
             .Key("list")
             .Id(PanelId)
             .Popover(Popover.Auto)
-            .Class(UiClass.Compose(
+            .Class(
                 HasSearchField ? UiListboxLook.PopupOverList : UiListboxLook.Popup,
                 HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls,
                 PillPopupLook(),
-                OptionsClass))
+                OptionsClass)
             .Attributes(PopupMarks());
 
         return HasSearchField
-            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiClass.Compose(UiSelectLook.SearchedList, PillListLook())))[Rows(view)]]
+            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList, PillListLook()))[Rows(view)]]
             : ListRole(popup)[Rows(view)];
     }
 
@@ -94,7 +94,7 @@ public abstract partial class UiSelectControl<T>
             .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(CultureInfo.InvariantCulture))
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
             .Role("option")
-            .Class(UiClass.Compose(RowLook(row.Option), row.Option.Class))
+            .Class(RowLook(row.Option), row.Option.Class)
             .Aria(UiOptionAria.For(off, picked))
             .Attributes(UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
@@ -171,7 +171,7 @@ public abstract partial class UiSelectControl<T>
         var marks = RowMarks("data-ui-listbox-empty", picked: false, hidden: others);
         marks["data-rask-list-empty"] = null;
 
-        return Div.Key("ui:empty").Class(UiClass.Compose(UiListboxLook.Empty, slot?.Class)).Attributes(marks)[
+        return Div.Key("ui:empty").Class(UiListboxLook.Empty, slot?.Class).Attributes(marks)[
             _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
@@ -191,7 +191,7 @@ public abstract partial class UiSelectControl<T>
         return Div
             .Key("ui:create")
             .Id(UiSelectNav.OptId(Prefixed, index))
-            .Class(UiClass.Compose(UiListboxLook.Create, create.Class))
+            .Class(UiListboxLook.Create, create.Class)
             .Attributes(marks)
             // The press runs the page's own code.
             .OnClick(CreateAsync)[
@@ -216,7 +216,7 @@ public abstract partial class UiSelectControl<T>
 
         var marks = HearingMarks(Pills is null ? UiSelectLook.SearchMarks : UiPillboxLook.InputMarks(null), view.Parts.Create is not null);
 
-        return Div.Class(UiClass.Compose(UiSelectLook.Search, slot?.Class)).Data(Pills is null ? "ui-select-search" : "ui-pillbox-search", "")[
+        return Div.Class(UiSelectLook.Search, slot?.Class).Data(Pills is null ? "ui-select-search" : "ui-pillbox-search", "")[
             Div.Class(UiSelectLook.SearchIcon)[Ui.Icon.Name(slot?.Icon ?? Ui.IconName.MagnifyingGlass).Micro],
             Input
                 // Only what the page itself holds: what is typed is the reader's, and a render says nothing of it.

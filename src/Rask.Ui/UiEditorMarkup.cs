@@ -45,7 +45,7 @@ internal static class UiEditorMarkup
     {
         var editor = Context.Get<UiEditorScope>();
         var stop = Context.Get<UiEditorToolbarScope>()?.TakeTabStop() ?? true;
-        var button = Markup.Button.Class(UiClass.Compose(ButtonClass, extra)).TabIndex(stop ? 0 : -1).Attributes(("type", "button"));
+        var button = Markup.Button.Class(ButtonClass, extra).TabIndex(stop ? 0 : -1).Attributes(("type", "button"));
         if (name is not null)
         {
             button = button.Data("editor", name);

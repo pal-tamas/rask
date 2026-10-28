@@ -70,7 +70,7 @@ public sealed partial class UiFlag : Component
         }
 
         var frame = Span
-            .Class(UiClass.Compose(Frame, Width(), Circle == true ? "aspect-square rounded-full" : "aspect-3/2 rounded-[2px]", Class))
+            .Class(Frame, Width(), Circle == true ? "aspect-square rounded-full" : "aspect-3/2 rounded-[2px]", Class)
             .Data(marks);
 
         return source is null

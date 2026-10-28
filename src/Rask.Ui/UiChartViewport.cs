@@ -9,5 +9,5 @@ public sealed partial class UiChartViewport : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose("relative", Class))[Children ?? []];
+    protected override Component? Render() => Div.Class("relative", Class)[Children ?? []];
 }

@@ -86,7 +86,7 @@ public sealed partial class UiCallout : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Id(Id).Class(UiClass.Compose(Frame, Palette(), Class)).Data(Marker.With(null)).Role(Role)[
+        Div.Id(Id).Class(Frame, Palette(), Class).Data(Marker.With(null)).Role(Role)[
             IconColumn(),
             Div.Class(Inline == true ? "flex-1 ps-2 @md:flex" : "flex-1 ps-2")[
                 Div.Class(Content).Data(ContentSlot)[

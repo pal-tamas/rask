@@ -19,19 +19,19 @@ public sealed partial class UiChartTooltipIndicator : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var plain = Div.Class(UiClass.Compose(Dot, Class));
+        var plain = Div.Class(Dot, Class);
         if (Context.Get<UiChartScope>() is not { Pie: { } pie, Data: { } data })
         {
             return plain;
         }
 
-        var dots = new List<Component?> { Div.Key(-1).Class(UiClass.Compose(Dot, "in-data-active:hidden", Class)) };
+        var dots = new List<Component?> { Div.Key(-1).Class(Dot, "in-data-active:hidden", Class) };
         var slice = 0;
         for (var row = 0; row < data.Count; row++)
         {
             if (UiChartPieDrawing.Size(pie, data, row) > 0)
             {
-                dots.Add(Div.Key(row).Class(UiClass.Compose(Dot, "hidden data-active:block", UiChartPieDrawing.Background(UiChartPieDrawing.Hue(pie, data, row, slice++)), Class))
+                dots.Add(Div.Key(row).Class(Dot, "hidden data-active:block", UiChartPieDrawing.Background(UiChartPieDrawing.Hue(pie, data, row, slice++)), Class)
                     .Data(UiChartHover.Row(row)));
             }
         }

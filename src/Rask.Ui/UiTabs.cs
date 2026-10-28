@@ -93,7 +93,7 @@ public sealed partial class UiTabs : Component
 
         var scrolls = Scrollable == true;
         var list = Div
-            .Class(UiClass.Compose(ListClass(variant, scope.Size, scrolls), Class))
+            .Class(ListClass(variant, scope.Size, scrolls), Class)
             .Data(Marker.With(null, "rask-tabs", Says(chosen)))
             .Role("tablist")[
             Field(chosen),

@@ -226,7 +226,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .Popover(Popover.Auto)
             .Role("listbox")
             .TabIndex(-1)
-            .Class(UiClass.Compose(UiListboxLook.Box, UiListboxLook.Scrolls, UiAutocompleteLook.Items, ContainerClass))
+            .Class(UiListboxLook.Box, UiListboxLook.Scrolls, UiAutocompleteLook.Items, ContainerClass)
             .Aria("multiselectable", "true")
             .Attributes(PopupMarks())[
             items.Select(Row),
@@ -266,7 +266,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .Key(item.Key)
             .Id(UiSelectNav.OptId(Prefixed, index))
             .Role("option")
-            .Class(UiClass.Compose(UiAutocompleteLook.Item, item.Class))
+            .Class(UiAutocompleteLook.Item, item.Class)
             .Aria(UiOptionAria.For(off, selected: false))
             .Attributes(marks)[
             item.Children ?? []

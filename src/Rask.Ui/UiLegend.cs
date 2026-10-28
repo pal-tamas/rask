@@ -8,6 +8,6 @@ public sealed partial class UiLegend : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Legend.Class(UiClass.Compose("mb-4 w-full p-0 text-base font-medium text-zinc-800 dark:text-white", Class))
+        Legend.Class("mb-4 w-full p-0 text-base font-medium text-zinc-800 dark:text-white", Class)
             .Data("ui-legend", "")[Children ?? []];
 }

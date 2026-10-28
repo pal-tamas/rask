@@ -8,6 +8,6 @@ public sealed partial class UiSidebarNav : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class(UiClass.Compose("flex flex-col", Class))
+        Nav.Class("flex flex-col", Class)
             .Attributes(("data-ui-sidebar-nav", ""))[Children ?? []];
 }

@@ -18,7 +18,7 @@ public sealed partial class UiChartLegend : Component, IUiChartField
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose("flex items-center gap-2 p-2", Class))[
+    protected override Component? Render() => Div.Class("flex items-center gap-2 p-2", Class)[
         Children ?? [],
         Div.Class("text-xs text-zinc-500 dark:text-zinc-400")[Label]
     ];

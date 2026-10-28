@@ -8,5 +8,5 @@ public sealed partial class UiSidebarSpacer : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose("flex-1", Class)).Attributes(("data-ui-sidebar-spacer", ""));
+        Div.Class("flex-1", Class).Attributes(("data-ui-sidebar-spacer", ""));
 }

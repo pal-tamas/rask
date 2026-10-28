@@ -53,7 +53,7 @@ public sealed partial class UiMenuRadio : Component, IDeferredBind
 
         var button = Button
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiMenuRow.Classes(variant: null), Class))
+            .Class(UiMenuRow.Classes(variant: null), Class)
             .Disabled(disabled);
         if (!disabled)
         {

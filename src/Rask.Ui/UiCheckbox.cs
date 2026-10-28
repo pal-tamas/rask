@@ -189,7 +189,7 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
             marks["data-invalid"] = "";
         }
 
-        return RaskMarkup.Label.Class(UiClass.Compose(look, Class)).Attributes(marks);
+        return RaskMarkup.Label.Class(look, Class).Attributes(marks);
     }
 
     private Component Native(UiWithField field, bool on, bool mixed)

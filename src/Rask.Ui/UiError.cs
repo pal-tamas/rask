@@ -46,7 +46,7 @@ public sealed partial class UiError : Component
         var message = custom ? null : Message ?? FormMessage(scope);
         var shown = custom || message is not null;
         var box = Div.Id(Id ?? scope?.ErrorId)
-            .Class(UiClass.Compose(shown ? null : "hidden", Look, Class))
+            .Class(shown ? null : "hidden", Look, Class)
             .Data("ui-error", "")
             .Role("alert")
             .Aria(("live", "polite"), ("atomic", "true"));

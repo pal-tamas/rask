@@ -77,7 +77,7 @@ public sealed partial class UiPopover : Component
             .Id(_host?.PanelId)
             .Popover(Popover.Auto)
             .TabIndex(-1)
-            .Class(UiClass.Compose(Panel, Class))
+            .Class(Panel, Class)
             .Data(data);
         if (_host?.Toggled is { } toggled)
         {

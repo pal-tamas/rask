@@ -11,7 +11,7 @@ public sealed partial class UiCheckboxIndicator : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(UiOptionLook.CheckboxIndicator, Class)).Data("ui-checkbox-indicator", "")[
+        Div.Class(UiOptionLook.CheckboxIndicator, Class).Data("ui-checkbox-indicator", "")[
             Ui.Icon.Name(Ui.IconName.Check).Micro.Class(UiOptionLook.Tick),
             Ui.Icon.Name(Ui.IconName.Minus).Micro.Class(UiOptionLook.Dash)
         ];

@@ -18,7 +18,7 @@ public abstract partial class UiSelectControl<T>
             .. PostedValues(view),
         ];
 
-        return Div.Class(UiClass.Compose(UiSelectLook.Root, Class)).Attributes(RootMarks())[children];
+        return Div.Class(UiSelectLook.Root, Class).Attributes(RootMarks())[children];
     }
 
     private Component Trigger(View view)
@@ -96,7 +96,7 @@ public abstract partial class UiSelectControl<T>
             .Type(ButtonType.Button)
             .Role("combobox")
             .Disabled(IsOff(view.Parts))
-            .Class(UiClass.Compose(UiSelectLook.Button, UiSelectLook.ButtonSize(slot?.Size ?? Height), slot?.Class))
+            .Class(UiSelectLook.Button, UiSelectLook.ButtonSize(slot?.Size ?? Height), slot?.Class)
             .Aria(TriggerAria(view))
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
@@ -158,12 +158,12 @@ public abstract partial class UiSelectControl<T>
                 .Role("combobox")
                 .Autocomplete("off")
                 .Disabled(Disabled == true)
-                .Class(UiClass.Compose(
+                .Class(
                     UiInputLook.Control,
                     UiInputLook.Size(size),
                     UiInputLook.Padding(leading: false, trailing: true),
                     UiInputLook.Variant(Ui.InputVariant.Outline),
-                    slot?.Class))
+                    slot?.Class)
                 .Aria(TriggerAria(view, autocompletes: true))
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.

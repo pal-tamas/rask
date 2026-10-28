@@ -32,9 +32,9 @@ public sealed partial class UiSidebarProfile : Component, IUiTrigger
     protected override Component? Render()
     {
         var button = Button.Type(ButtonType.Button)
-            .Class(UiClass.Compose(
+            .Class(
                 "group flex w-full cursor-default items-center rounded-lg p-1 hover:bg-zinc-800/5 dark:hover:bg-white/10",
-                Class))
+                Class)
             .Attributes(("data-ui-sidebar-profile", ""));
 
         return (_invoked is { } invoked ? invoked.On(button) : button)[

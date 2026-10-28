@@ -119,7 +119,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
             : Finish(Input.Value((string?)null).Type(InputType.Checkbox).Checked(Value).OnChange(Changed), field);
 
         // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.
-        var track = RaskMarkup.Label.Class(UiClass.Compose(Track, Class)).Attributes(Marks(on))[input, Span.Class(Thumb)];
+        var track = RaskMarkup.Label.Class(Track, Class).Attributes(Marks(on))[input, Span.Class(Thumb)];
 
         return field.Wrap(track, Ui.FieldVariant.Inline, controlFirst: Align == Ui.SwitchAlign.Left);
     }

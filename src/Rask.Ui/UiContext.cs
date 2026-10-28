@@ -90,7 +90,7 @@ public sealed partial class UiContext : Component
         // task the menu opens in (rask-toggle.ts).
         data[UiInvoker.OpenMark] = Target ?? PanelId;
 
-        return Div.Class(UiClass.Compose("inline", Class)).Data(data)[
+        return Div.Class("inline", Class).Data(data)[
             parts.Count > 0 ? parts[0] : null,
             Context.Provide(host)[parts.Skip(1)]
         ];

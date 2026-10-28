@@ -61,7 +61,7 @@ public sealed partial class UiMenuRadioGroup<T> : Component, IFormControl<T>, ID
             value => value is T chosen ? UiFormCommit.CommitAsync(this, accessor, context, chosen) : Task.CompletedTask,
             Live);
 
-        return Div.Role("group").Class(UiClass.Compose("inline", Class)).Data(KeepOpen == true ? KeepsOpen : Group)[
+        return Div.Role("group").Class("inline", Class).Data(KeepOpen == true ? KeepsOpen : Group)[
             Context.Provide(scope)[Children ?? []]
         ];
     }

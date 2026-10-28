@@ -44,7 +44,7 @@ public sealed partial class UiSidebarGroup : Component
     {
         if (Expandable != true)
         {
-            return Div.Class(UiClass.Compose("block sidebar-rail:hidden", Class)).Attributes(("data-ui-sidebar-group", ""))[
+            return Div.Class("block sidebar-rail:hidden", Class).Attributes(("data-ui-sidebar-group", ""))[
                 Heading is { } heading
                     ? Div.Class("px-3 py-2 text-xs font-medium text-zinc-400")[heading]
                     : null,
@@ -53,7 +53,7 @@ public sealed partial class UiSidebarGroup : Component
         }
 
         var details = Details.Open(Expanded != false)
-            .Class(UiClass.Compose("group/disclosure grid sidebar-rail:hidden", Class))
+            .Class("group/disclosure grid sidebar-rail:hidden", Class)
             .Attributes(("data-ui-sidebar-group", ""));
         if (OnToggle.HasValue)
         {

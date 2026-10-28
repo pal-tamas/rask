@@ -101,7 +101,7 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
         var height = UiDatePickerLook.Height((int)(Size ?? Ui.DatePickerInputSize.Base));
         var group = Div
             .Id(owns ? field.ControlId : scope.ControlId)
-            .Class(UiClass.Compose(UiDatePickerLook.Typed, height, Class))
+            .Class(UiDatePickerLook.Typed, height, Class)
             .Data(Marked(field.Invalid, locked ? null : scope.PopoverId))
             .Role("group")
             .Aria(aria)[

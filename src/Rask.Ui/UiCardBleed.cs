@@ -15,10 +15,10 @@ public sealed partial class UiCardBleed : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(
+        Div.Class(
                 "-mx-[calc(var(--ui-bleed-x)+1px)] overflow-hidden",
                 "first:-mt-[calc(var(--ui-bleed-top)+1px)] first:rounded-t-[calc(var(--ui-bleed-top-radius)+1px)]",
                 "last:-mb-[calc(var(--ui-bleed-bottom)+1px)] last:rounded-b-[calc(var(--ui-bleed-bottom-radius)+1px)]",
-                Class))
+                Class)
             .Data("ui-card-bleed")[Children ?? []];
 }

@@ -143,7 +143,7 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
             marks["data-invalid"] = "";
         }
 
-        return RaskMarkup.Label.Class(UiClass.Compose(look, Class)).Attributes(marks);
+        return RaskMarkup.Label.Class(look, Class).Attributes(marks);
     }
 
     // The change event of a radio only ever says "chosen": the value to commit is this radio's own.

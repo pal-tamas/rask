@@ -16,12 +16,12 @@ public sealed partial class UiColorPicker
 
         var actions = (Clearable == true || Copyable == true) && !Off;
 
-        return Div.Class(UiClass.Compose(UiColorPickerLook.Trigger, UiColorPickerLook.TriggerSize(Height), actions ? UiColorPickerLook.TriggerWithAction : null))
+        return Div.Class(UiColorPickerLook.Trigger, UiColorPickerLook.TriggerSize(Height), actions ? UiColorPickerLook.TriggerWithAction : null)
             // While a message shows under the field, the first key of a correction takes it away.
             .Attributes([.. Marked("data-ui-color-picker-trigger", field.Invalid), .. UiFormCommit.FirstEdit(_bound.Accessor, _bound.Context)])[
             Button
                 .Type(ButtonType.Button)
-                .Class(UiClass.Compose(UiColorPickerLook.SwatchButton, UiColorPickerLook.SwatchSize(Height)))
+                .Class(UiColorPickerLook.SwatchButton, UiColorPickerLook.SwatchSize(Height))
                 .Disabled(Off)
                 .Aria(OpenerAria(null, OpenerLabel()))
                 .Attributes(("data-ui-color-picker-swatch-button", null), ("command", "show-modal"), ("commandfor", DialogId), UiColorPickerMarks.Named("opener"))[
@@ -55,11 +55,11 @@ public sealed partial class UiColorPicker
         return Button
             .Type(ButtonType.Button)
             .Id(field.ControlId)
-            .Class(UiClass.Compose(UiColorPickerLook.ButtonTrigger, UiColorPickerLook.ButtonSize(Height)))
+            .Class(UiColorPickerLook.ButtonTrigger, UiColorPickerLook.ButtonSize(Height))
             .Disabled(Off)
             .Aria(aria)
             .Attributes([.. Marked("data-ui-color-picker-button", field.Invalid), ("command", "show-modal"), ("commandfor", DialogId), UiColorPickerMarks.Named("button")])[
-            Div.Class(UiClass.Compose(UiColorPickerLook.SwatchBox, UiColorPickerLook.SwatchSize(Height)))[Preview()],
+            Div.Class(UiColorPickerLook.SwatchBox, UiColorPickerLook.SwatchSize(Height))[Preview()],
             Span.Class(UiColorPickerLook.Display).Data("ui-color-picker-display", string.Empty)[
                 Span.Class(UiColorPickerLook.DisplayPlaceholder).Hidden(!empty)
                     .Attributes(("data-ui-color-picker-placeholder", null), UiColorPickerMarks.Named("placeholder"))[Hint],

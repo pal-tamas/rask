@@ -31,7 +31,7 @@ public sealed partial class UiCommandItems : Component
         ];
 
         return Div.Id("ui-command-items-" + _instance.ToString(System.Globalization.CultureInfo.InvariantCulture))
-            .Class(UiClass.Compose("block cursor-default overflow-auto bg-white p-[5px] dark:bg-zinc-700", Class))
+            .Class("block cursor-default overflow-auto bg-white p-[5px] dark:bg-zinc-700", Class)
             .Data(Marker.With(null))
             .Role("listbox")
             .TabIndex(-1)

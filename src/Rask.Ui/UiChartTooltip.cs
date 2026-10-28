@@ -29,5 +29,5 @@ public sealed partial class UiChartTooltip : Component, IUiChartField
         new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-plot-tooltip"] = "15" };
 
     /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose(Box, Class)).Data(Beside)[Children ?? []];
+    protected override Component? Render() => Div.Class(Box, Class).Data(Beside)[Children ?? []];
 }

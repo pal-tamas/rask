@@ -151,7 +151,7 @@ public sealed partial class UiPhone : Component, IFormControl<string?>, IUiFormC
         }
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(UiPhoneLook.Root, Class)).Attributes(marks)[
+            Div.Class(UiPhoneLook.Root, Class).Attributes(marks)[
                 Div.Class(UiPhoneLook.Group).Data("ui-input-group", "")[
                     UiPhonePicker.Draw(id, country, size, variant, Disabled == true, ReadOnly == true),
                     Div.Class(UiPhoneLook.NumberHalf).Data("ui-input", "")[

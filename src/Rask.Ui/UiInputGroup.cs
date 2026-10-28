@@ -45,7 +45,7 @@ public sealed partial class UiInputGroup : Component, IUiFieldControl
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(Look, Class)).Data("ui-input-group", "")[
+        Div.Class(Look, Class).Data("ui-input-group", "")[
             Context.Provide(Scope())[Children ?? []]
         ];
 

@@ -236,7 +236,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
         var config = UiCalendarHook.Config(options, Picks(committed).Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder), json => Write(json, times, options.Culture));
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(RootClass, Class))
+            Div.Class(RootClass, Class)
                 .Data(new Dictionary<string, string?>(StringComparer.Ordinal)
                 {
                     ["ui-control"] = "",

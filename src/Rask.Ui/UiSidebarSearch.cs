@@ -45,7 +45,7 @@ public sealed partial class UiSidebarSearch : Component
                 .Attributes(("data-ui-sidebar-search", null), ("aria-label", Placeholder ?? RaskStrings.Get(RaskString.SidebarSearch, "Search")));
         }
 
-        var button = Button.Type(ButtonType.Button).Class(UiClass.Compose(Root, Class))
+        var button = Button.Type(ButtonType.Button).Class(Root, Class)
             .Attributes(("data-ui-sidebar-search", ""));
         return Ui.Tooltip.Position(Ui.TooltipPosition.Right).Class("flex")[
             button[

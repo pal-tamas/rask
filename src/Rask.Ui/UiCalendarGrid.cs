@@ -65,7 +65,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
 
         var calendar = Div
             .Id(options.Id)
-            .Class(UiClass.Compose(rootClass ?? UiCalendarLook.Root, options.Class));
+            .Class(rootClass ?? UiCalendarLook.Root, options.Class);
         if (marked)
         {
             // Inside a date picker the calendar is the picker's own part, and Flux leaves it unmarked there.
@@ -227,7 +227,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
                     Weeks(options, month) is var weeks ? weeks.Select((week, at) =>
                         Tr.Key(week[0].DayNumber).Class(at == 0 ? UiCalendarLook.Row : UiCalendarLook.RowBelow)[
                             options.WeekNumbers
-                                ? Td.Key("week").Class(UiClass.Compose("p-0 relative", UiCalendarLook.WeekNumber, cell))[
+                                ? Td.Key("week").Class("p-0 relative", UiCalendarLook.WeekNumber, cell)[
                                     WeekOf(week).ToString(options.Culture)
                                 ]
                                 : null,
@@ -242,7 +242,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         options.WeekNumbers ? UiCalendarLook.CellBesideWeek(options.Size) : UiCalendarLook.Cell(options.Size);
 
     private static global::Rask.Core.Component Weekday(string cell, object key, string name) =>
-        Th.Key(key).Class(UiClass.Compose("p-0", UiCalendarLook.Weekday, cell)).Attributes(("scope", "col"))[
+        Th.Key(key).Class("p-0", UiCalendarLook.Weekday, cell).Attributes(("scope", "col"))[
             Div.Class(UiCalendarLook.WeekdayText)[name]
         ];
 
@@ -277,8 +277,8 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         var td = Td
             .Key(day.DayNumber)
             .Role("gridcell")
-            .Class(UiClass.Compose(
-                UiCalendarLook.Td(slot == 0 && !options.WeekNumbers, Last(slot, lastRow, marks), outside && !options.Static, unavailable, marks), cell))
+            .Class(
+                UiCalendarLook.Td(slot == 0 && !options.WeekNumbers, Last(slot, lastRow, marks), outside && !options.Static, unavailable, marks), cell)
             .Data(States(day, outside, today, unavailable, marks))
             .Aria(CellAria(options, picks, marks, name, blocked));
 
@@ -286,9 +286,9 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         if (options.Static)
         {
             return td[
-                Div.Class(UiClass.Compose(marks.Selected ? UiCalendarLook.DayStaticSelected : UiCalendarLook.DayStatic, cell))[
+                Div.Class(marks.Selected ? UiCalendarLook.DayStaticSelected : UiCalendarLook.DayStatic, cell)[
                     Div.Class(today ? UiCalendarLook.StaticDot : UiCalendarLook.StaticDotHidden)[
-                        Div.Class(UiClass.Compose("mb-1", marks.Selected ? UiCalendarLook.DotSelected : UiCalendarLook.Dot))
+                        Div.Class("mb-1", marks.Selected ? UiCalendarLook.DotSelected : UiCalendarLook.Dot)
                     ],
                     number
                 ]
@@ -300,7 +300,7 @@ internal abstract partial class UiCalendarGrid : global::Rask.Core.RaskMarkup
         ];
 
         var button = Button.Type(ButtonType.Button).Disabled(blocked).TabIndex(day == stop ? 0 : -1)
-            .Class(UiClass.Compose(marks.Selected ? UiCalendarLook.DaySelected : UiCalendarLook.Day, cell))
+            .Class(marks.Selected ? UiCalendarLook.DaySelected : UiCalendarLook.Day, cell)
             .Aria("label", name);
 
         return td[

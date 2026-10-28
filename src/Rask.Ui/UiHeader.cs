@@ -23,15 +23,15 @@ public sealed partial class UiHeader : Component
         var header = Header.Attributes(("data-ui-header", ""));
         if (Container == true)
         {
-            return header.Class(UiClass.Compose("z-10 min-h-14 [grid-area:header]", Sticky == true ? "sticky top-0" : "", Class))[
+            return header.Class("z-10 min-h-14 [grid-area:header]", Sticky == true ? "sticky top-0" : "", Class)[
                 Div.Class("mx-auto flex h-14 w-full items-center px-6 lg:px-8 [:where(&)]:max-w-7xl")[Children ?? []]
             ];
         }
 
-        return header.Class(UiClass.Compose(
+        return header.Class(
             "z-10 flex min-h-14 items-center px-6 lg:px-8 [grid-area:header]",
             Sticky == true ? "sticky top-0" : "",
-            Class))[
+            Class)[
             Children ?? []
         ];
     }

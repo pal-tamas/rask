@@ -122,7 +122,7 @@ public sealed partial class UiModal : Component
         // The dialog's id: what its own buttons, and a trigger, name in their commands.
         var id = Name ?? "ui-modal-" + _instance.ToString(CultureInfo.InvariantCulture);
         _opening = Lazy == true ? Context.Get<UiModalOpening>(id) : null;
-        var dialog = Dialog.Id(id).Class(UiClass.Compose(Motion, Shape(), ScrollsBody ? null : Class)).Data(Marks(id));
+        var dialog = Dialog.Id(id).Class(Motion, Shape(), ScrollsBody ? null : Class).Data(Marks(id));
 
         if (OnClose.HasValue)
         {
@@ -243,7 +243,7 @@ public sealed partial class UiModal : Component
                 Dismissible == false
                     ? null
                     : Outside().Class("absolute inset-0 size-full cursor-default border-0 bg-transparent").Attributes(UiModalInvoker.Dismisses(id)),
-                Div.Class(UiClass.Compose("relative", Panel, Box, Class))[parts]
+                Div.Class("relative", Panel, Box, Class)[parts]
             ]
         ];
     }

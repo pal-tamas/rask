@@ -31,14 +31,14 @@ public sealed partial class UiMain : Component
     /// <inheritdoc />
     protected override Component? Render() => (Inset == true, Container == true) switch
     {
-        (true, true) => Div.Class(UiClass.Compose(Panel, Class)).Attributes(("data-ui-main", ""), ("data-inset", ""))[
+        (true, true) => Div.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
             Div.Class("mx-auto [:where(&)]:max-w-7xl")[Children ?? []]
         ],
-        (true, false) => Div.Class(UiClass.Compose(Panel, Class)).Attributes(("data-ui-main", ""), ("data-inset", ""))[
+        (true, false) => Div.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
             Children ?? []
         ],
-        (false, true) => Div.Class(UiClass.Compose("mx-auto w-full p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class))
+        (false, true) => Div.Class("mx-auto w-full p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class)
             .Attributes(("data-ui-main", ""))[Children ?? []],
-        _ => Div.Class(UiClass.Compose("p-6 lg:p-8 [grid-area:main]", Class)).Attributes(("data-ui-main", ""))[Children ?? []],
+        _ => Div.Class("p-6 lg:p-8 [grid-area:main]", Class).Attributes(("data-ui-main", ""))[Children ?? []],
     };
 }

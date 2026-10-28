@@ -60,7 +60,7 @@ public sealed partial class UiDatetimePickerButton : Component
         var button = Button
             .Id(scope.ControlId)
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiDatePickerLook.Button, height, Class))
+            .Class(UiDatePickerLook.Button, height, Class)
             .Data(new Dictionary<string, string?>(Invalid == true || scope.Invalid ? MarksInvalid : Marks, StringComparer.Ordinal)
             {
                 // `data-open` while the popup shows, as Flux writes it (rask-toggle.ts).

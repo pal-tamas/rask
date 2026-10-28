@@ -101,7 +101,7 @@ public sealed partial class UiFileUpload : Component, IUiFormControl
         // RaskMarkup.Label, qualified: this type's Label property hides the chain entry of the same name.
         return field.Wrap(
             RaskMarkup.Label
-                .Class(UiClass.Compose(Root, Class))
+                .Class(Root, Class)
                 .Data(Disabled == true ? Marker.With(null) : Droppable)[
                 Input
                     .Of<string>()

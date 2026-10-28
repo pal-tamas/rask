@@ -39,7 +39,7 @@ public sealed partial class UiChartTooltipValue : Component, IUiChartField, IUiC
     protected override Component? Render()
     {
         var data = Context.Get<UiChartScope>()?.Data;
-        return Div.Class(UiClass.Compose(Look, Class))[
+        return Div.Class(Look, Class)[
             Children ?? [],
             LabelField is { } label
                 ? Div.Class(Name).Data(_labels.Of(data, label, format: null, asText: true))

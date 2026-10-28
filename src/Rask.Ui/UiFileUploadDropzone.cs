@@ -74,9 +74,9 @@ public sealed partial class UiFileUploadDropzone : UiElement
             Div.Class(Inline == true ? "relative me-4" : "relative mb-4")[
                 // Without the bar the icon gives way to a spinner while files upload.
                 Ui.Icon.Name(Icon ?? Ui.IconName.CloudArrowUp).Solid
-                    .Class(UiClass.Compose(Glyph, withBar ? null : "in-data-loading:opacity-0")),
+                    .Class(Glyph, withBar ? null : "in-data-loading:opacity-0"),
                 Ui.Icon.Name(Ui.IconName.Loading)
-                    .Class(UiClass.Compose(Spinner, withBar ? null : "in-data-loading:opacity-100"))
+                    .Class(Spinner, withBar ? null : "in-data-loading:opacity-100")
             ],
             Div.Class(Inline == true ? "flex flex-col gap-1" : "flex flex-col items-center gap-2")[
                 Heading is null ? null : Div.Class(HeadingLook)[Heading],

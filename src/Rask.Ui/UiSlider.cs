@@ -126,11 +126,11 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
         var inside = TickPosition == Ui.SliderTickPosition.Inside;
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(UiSliderLook.Root, Class))
+            Div.Class(UiSliderLook.Root, Class)
                 .Data(("ui-slider", ""), ("ui-control", ""))
                 .Style(UiSliderLook.ThumbSize(ThumbClass))[
                 Div.Class(UiSliderLook.Wrapper).Data("ui-slider-track", "")[
-                    Div.Class(UiClass.Compose(UiSliderLook.Track, TrackClass)).Data("ui-slider-track", "")[
+                    Div.Class(UiSliderLook.Track, TrackClass).Data("ui-slider-track", "")[
                         Div.Class(UiSliderLook.Clip)[
                             Div.Class(UiSliderLook.Indicator)
                                 .Data("ui-slider-indicator", "")
@@ -174,7 +174,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
     {
         var fraction = live.Scale.Fraction(live.Values[thumb]);
 
-        return Div.Class(UiClass.Compose(UiSliderLook.Thumb, ThumbClass))
+        return Div.Class(UiSliderLook.Thumb, ThumbClass)
             .Data("ui-slider-thumb", "")
             .Style("inset-inline-start:" + UiSliderLook.At(fraction))
             .Key(thumb)[

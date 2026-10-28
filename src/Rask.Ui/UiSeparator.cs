@@ -43,11 +43,11 @@ public sealed partial class UiSeparator : Component
         var root = Div.Data(("orientation", IsVertical ? "vertical" : "horizontal"), ("ui-separator", "")).Role("none");
         if (Text is null)
         {
-            return root.Class(UiClass.Compose(IsVertical ? "w-px self-stretch" : "h-px w-full", Line(Variant), Class));
+            return root.Class(IsVertical ? "w-px self-stretch" : "h-px w-full", Line(Variant), Class);
         }
 
         var line = UiClass.Compose("h-px grow", Line(Variant));
-        return root.Class(UiClass.Compose("flex w-full items-center", Class))[
+        return root.Class("flex w-full items-center", Class)[
             Div.Class(line),
             Span.Class("mx-6 text-sm font-medium whitespace-nowrap text-zinc-500 dark:text-zinc-300")[Text],
             Div.Class(line)

@@ -41,7 +41,7 @@ public sealed partial class UiChart : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose("relative block", Class)).Data(Marker.With(null))[
+        Div.Class("relative block", Class).Data(Marker.With(null))[
             Context.Provide(new UiChartScope(Value, Horizontal == true, Pie(Children)))[Children ?? []]
         ];
 

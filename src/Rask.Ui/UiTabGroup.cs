@@ -48,7 +48,7 @@ public sealed partial class UiTabGroup : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         // The arrow, not the text caret, over the whole group: a tab row is chrome, as Flux draws it.
-        Div.Class(UiClass.Compose("cursor-default", Class)).Data(Marker.With(null))[
+        Div.Class("cursor-default", Class).Data(Marker.With(null))[
             Context.Provide(new UiTabGroupScope(_prefix, Findable == true))[Children ?? []]
         ];
 }

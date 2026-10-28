@@ -117,7 +117,7 @@ public sealed partial class UiRadioGroup<T> : Component, IFormControl<T>, IUiFor
         return field.Wrap(
             Div.Id(field.ControlId)
                 .Role("radiogroup")
-                .Class(UiClass.Compose(Look(variant, size), Class))
+                .Class(Look(variant, size), Class)
                 .Aria(aria)
                 .Data(Marker(variant), "")[
                 Context.Provide(scope)[Children ?? []]

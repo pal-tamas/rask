@@ -9,6 +9,6 @@ public sealed partial class UiCardSubheading : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        P.Class(UiClass.Compose("mt-1 text-sm text-zinc-500 dark:text-white/70", Class))
+        P.Class("mt-1 text-sm text-zinc-500 dark:text-white/70", Class)
             .Data(("ui-card-subheading", null), ("ui-text", null))[Children ?? []];
 }

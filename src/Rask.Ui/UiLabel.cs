@@ -33,7 +33,7 @@ public sealed partial class UiLabel : Component
     {
         var scope = Context.Get<UiFieldScope>();
         var label = Label.Id(Id ?? scope?.LabelId)
-            .Class(UiClass.Compose(Trailing is null ? "inline-flex" : "flex", Look, Class))
+            .Class(Trailing is null ? "inline-flex" : "flex", Look, Class)
             .Data("ui-label", "");
 
         if ((For ?? scope?.ControlId) is { } control)

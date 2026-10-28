@@ -25,7 +25,7 @@ public sealed partial class UiSidebarToggle : Component
     protected override Component? Render() =>
         RaskMarkup.Label
             .For(UiSidebarState.Open)
-            .Class(UiClass.Compose(Root, UiSidebarCollapse.InsetClass(Inset), Class))
+            .Class(Root, UiSidebarCollapse.InsetClass(Inset), Class)
             .Role("button")
             .TabIndex(0)
             .Attributes(("data-ui-sidebar-toggle", ""))

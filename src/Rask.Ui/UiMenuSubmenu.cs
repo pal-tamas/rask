@@ -63,7 +63,7 @@ public sealed partial class UiMenuSubmenu : Component
         var flyout = Div.Role("menu").TabIndex(-1).Class(UiMenuRow.Panel);
 
         // No handler: a tap opens the flyout and the next closes it in the browser, as the pointer and the keys do.
-        var row = Button.Type(ButtonType.Button).Class(UiClass.Compose(UiMenuRow.Classes(variant: null), Class));
+        var row = Button.Type(ButtonType.Button).Class(UiMenuRow.Classes(variant: null), Class);
 
         return Div.Class("inline").Data(Submenu)[
             UiMenuRow.Decorate(row, level, ordinal, "menuitem", "ui-menu-item", aria, data)[

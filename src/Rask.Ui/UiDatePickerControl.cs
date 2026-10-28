@@ -252,7 +252,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         return field.Wrap(
             // The popup hangs under the whole picker — under both fields of a range typed into two. Whether it is
             // open, and what is picked in it, are the browser's (rask-calendar.ts); the page hears the choice.
-            Div.Class(UiClass.Compose(UiPickerWidth.For(Class), Class))
+            Div.Class(UiPickerWidth.For(Class), Class)
                 .Data(Hooked(config))
                 .Attributes(("style", "anchor-name:--" + PopoverId))[
                 Field(committed, Commit),

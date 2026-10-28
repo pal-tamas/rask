@@ -156,7 +156,7 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
         Read();
 
         return field.Wrap(
-            Div.Class(UiClass.Compose(UiColorPickerLook.Root, Class))
+            Div.Class(UiColorPickerLook.Root, Class)
                 .Style("--ui-color-picker-anchor:--" + Prefixed)
                 .Data(Off ? Marks : Hooked())[
                 ValueField(),

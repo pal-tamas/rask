@@ -24,5 +24,5 @@ public sealed partial class UiChartTooltipHeading : Component, IUiChartField
     // Empty at rest, as Flux's: the plot hook writes the hovered row's line into it.
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(Look, Class)).Data(_lines.Of(Context.Get<UiChartScope>()?.Data, Field, Format));
+        Div.Class(Look, Class).Data(_lines.Of(Context.Get<UiChartScope>()?.Data, Field, Format));
 }

@@ -274,7 +274,7 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
         // What a list hangs from, when the input is the text box of a control that drops one.
         var anchor = Host is { } host ? "anchor-name:--" + host.AnchorName : null;
 
-        return Div.Class(UiClass.Compose(UiInputLook.Root, Class)).Data("ui-input", "").Style(anchor)[
+        return Div.Class(UiInputLook.Root, Class).Data("ui-input", "").Style(anchor)[
             leading,
             Control(field, leading is not null, trailing is not null),
             trailing
@@ -320,12 +320,12 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
             .ReadOnly(ReadOnly == true)
             .Aria(Host?.AriaOver(field.Aria) ?? field.Aria)
             .Attributes(Marks(field.Invalid))
-            .Class(UiClass.Compose(
+            .Class(
                 UiInputLook.Control,
                 UiInputLook.Size(Size ?? Ui.InputSize.Base),
                 UiInputLook.Padding(leading, trailing),
                 UiInputLook.Variant(Variant ?? Ui.InputVariant.Outline),
-                InputClass));
+                InputClass);
     }
 
     private IReadOnlyDictionary<string, string?> Marks(bool invalid)

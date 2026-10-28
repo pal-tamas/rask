@@ -118,7 +118,7 @@ internal abstract partial class UiDatetimePickerTimes : global::Rask.Core.RaskMa
         Button
             .Type(ButtonType.Button)
             .Role("combobox")
-            .Class(UiClass.Compose(UiTimePickerLook.Button, UiTimePickerLook.ButtonSize(Ui.TimePickerSize.Base)))
+            .Class(UiTimePickerLook.Button, UiTimePickerLook.ButtonSize(Ui.TimePickerSize.Base))
             .Disabled(times.Disabled)
             .Data(UiTimePickerLook.ButtonMarks)
             .Aria(new Dictionary<string, string?>(StringComparer.Ordinal) { ["controls"] = list, ["haspopup"] = "listbox", ["expanded"] = "false" })
@@ -135,7 +135,7 @@ internal abstract partial class UiDatetimePickerTimes : global::Rask.Core.RaskMa
     // The hour and minute typed as one field (rask-segments.ts), its whole time in the one hidden field the
     // calendar reads; anything in the box but a part opens the list of suggestions.
     private static global::Rask.Core.Component Typed(UiDatetimeTimes times, string list, TimeOnly? chosen) =>
-        Div.Class(UiClass.Compose(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Ui.TimePickerSize.Base)))
+        Div.Class(UiTimePickerLook.InputBox, UiTimePickerLook.BoxSize(Ui.TimePickerSize.Base))
             .Data(UiTimePickerLook.BoxMarks)
             .Attributes(("data-rask-toggle", list), ("style", "anchor-name:--" + list))[
             Ui.Icon.Name(Ui.IconName.Clock).Mini.Class(UiTimePickerLook.InputIcon),

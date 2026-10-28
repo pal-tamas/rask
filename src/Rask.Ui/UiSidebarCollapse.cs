@@ -38,7 +38,7 @@ public sealed partial class UiSidebarCollapse : Component
     protected override Component? Render()
     {
         var name = Tooltip ?? RaskStrings.Get(RaskString.SidebarToggle, "Toggle sidebar");
-        return Div.Class(UiClass.Compose(Root, InsetClass(Inset), Class)).Attributes(("data-ui-sidebar-collapse", ""))[
+        return Div.Class(Root, InsetClass(Inset), Class).Attributes(("data-ui-sidebar-collapse", ""))[
             // Flux's button sits in its tooltip, which is its name. Two here, as the control is two labels:
             // each is shown at the widths its checkbox means something.
             Press(UiSidebarState.Open, name, "flex sidebar-desktop:hidden", ""),
@@ -48,7 +48,7 @@ public sealed partial class UiSidebarCollapse : Component
 
     private static Component Press(string checkbox, string name, string shown, string cursor) =>
         Ui.Tooltip.Content(name).Position(Ui.TooltipPosition.Right).Class(shown)[
-            RaskMarkup.Label.For(checkbox).Class(UiClass.Compose(Pressable, cursor)).Role("button").TabIndex(0)[Glyph()]
+            RaskMarkup.Label.For(checkbox).Class(Pressable, cursor).Role("button").TabIndex(0)[Glyph()]
         ];
 
     // A panel with its side column marked: drawn here, because Heroicons has no such glyph.

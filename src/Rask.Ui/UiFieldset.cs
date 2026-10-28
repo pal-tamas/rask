@@ -22,7 +22,7 @@ public sealed partial class UiFieldset : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Fieldset.Class(UiClass.Compose(Look, Class)).Data("ui-fieldset", "")[
+        Fieldset.Class(Look, Class).Data("ui-fieldset", "")[
             // A boundary: the heading's description is the fieldset's, not that of a field around it.
             Context.Provide(UiFieldScope.None)[
                 Legend is null ? null : Ui.Legend[Legend],

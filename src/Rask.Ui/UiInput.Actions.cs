@@ -23,7 +23,7 @@ public sealed partial class UiInput<T>
     // `change`, and leaves the focus in the field — which is what Flux's script does.
     private static Component ClearButton(string inputId) =>
         ActionButton(RaskStrings.Get(RaskString.InputClear, "Clear input"), ("ui-clear-button", string.Empty), ("rask-clear", inputId))
-            .Class(UiClass.Compose(UiInputLook.Action, UiInputLook.Clear))
+            .Class(UiInputLook.Action, UiInputLook.Clear)
             .TabIndex(-1)[
             Ui.Icon.Name(Ui.IconName.XMark).Mini
         ];

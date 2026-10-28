@@ -9,5 +9,5 @@ public sealed partial class UiChartLegendIndicator : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() => Div.Class(UiClass.Compose("size-2.5 rounded-full", Class));
+    protected override Component? Render() => Div.Class("size-2.5 rounded-full", Class);
 }

@@ -11,7 +11,7 @@ public sealed partial class UiRadioIndicator : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class(UiClass.Compose(UiOptionLook.RadioIndicator, Class)).Data("ui-radio-indicator", "")[
+        Div.Class(UiOptionLook.RadioIndicator, Class).Data("ui-radio-indicator", "")[
             Div.Class(UiOptionLook.Dot)
         ];
 }

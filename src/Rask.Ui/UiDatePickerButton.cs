@@ -64,7 +64,7 @@ public sealed partial class UiDatePickerButton : Component
         var button = Button
             .Id(scope.ControlId)
             .Type(ButtonType.Button)
-            .Class(UiClass.Compose(UiDatePickerLook.Button, height, Class))
+            .Class(UiDatePickerLook.Button, height, Class)
             .Data(Invalid == true || scope.Invalid ? MarksInvalid : Marks)
             .Role("combobox")
             .Disabled(locked)

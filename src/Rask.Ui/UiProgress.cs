@@ -102,7 +102,7 @@ public sealed partial class UiProgress : UiElement
     protected override IEnumerable<Component?> RenderChildren() =>
     [
         Div
-            .Class(UiClass.Compose("h-full rounded-full transition-[width] duration-300 ease-out", Fill(Color)))
+            .Class("h-full rounded-full transition-[width] duration-300 ease-out", Fill(Color))
             .Style("width:var(--ui-progress-percentage)"),
     ];
 

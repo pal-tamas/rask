@@ -137,7 +137,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
         var composed = (Children ?? []).Where(child => child is not null).ToList();
         var scope = new UiEditorScope(Locked, Current, Placeholder ?? Host?.Placeholder, field.ControlId + "-input", Host);
         var box = Div.Id(field.ControlId)
-            .Class(UiClass.Compose(Host is null ? Boxed : "block w-full", Class))
+            .Class(Host is null ? Boxed : "block w-full", Class)
             .Data(Marks())
             .Aria(Names(field))
             .Ref(_root);

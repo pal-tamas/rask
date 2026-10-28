@@ -32,7 +32,7 @@ public sealed partial class UiFileItemRemove : Component
             .OnClick(OnClick.HasValue ? new Callback(Removed) : default)
             .AriaLabel(AriaLabel ?? RaskStrings.Get(RaskString.FileItemRemove, "Remove file"))
             .Data(Marker.With(null))
-            .Class(UiClass.Compose("cursor-pointer", Class))[
+            .Class("cursor-pointer", Class)[
             // A child, not the button's Icon: alone in a square that one is drawn at 20px, and Flux's is 16.
             Ui.Icon.Name(Ui.IconName.XMark).Micro
         ];
