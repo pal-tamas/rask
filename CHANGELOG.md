@@ -161,7 +161,9 @@ them until tagged releases begin.
   generator is on neither it nor its list of what is still made by hand. A build of this repository no longer
   moves anything upstream: Rask.Core's build stopped refreshing the MDN snapshot (the `RaskMdnRefresh` step is
   gone), and the site's build stopped re-reading its package islands' props — the `mdn` and the new `island-props`
-  followers do both, daily and gated. An app's own build still reads its islands' props as before.
+  followers do both, daily and gated. An app's own build still reads its islands' props as before. Rask.Ui's
+  icons follow too: `heroicons` takes npm's latest release, checked against the registry's integrity, and records
+  the icons a release adds in the kit's public API.
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then

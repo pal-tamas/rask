@@ -76,6 +76,13 @@
       "outputs": ["src/Rask.Ui/UiDatetimePickerJoins.g.cs", "src/Rask.Ui/Resources/cldr.LICENSE.txt"]
     },
     {
+      "name": "heroicons",
+      "kind": "regenerate",
+      "run": "node scripts/flux/icons.mjs",
+      "setup": "dotnet",
+      "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs", "src/Rask.Ui/PublicAPI/*/PublicAPI.*.txt"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
@@ -83,12 +90,6 @@
     }
   ],
   "manual": [
-    {
-      "name": "heroicons",
-      "generator": "scripts/flux/icons.mjs",
-      "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs"],
-      "why": "Run by hand; becomes a follower in P2."
-    },
     {
       "name": "country-flag-icons",
       "generator": "scripts/flux/flags.mjs",
