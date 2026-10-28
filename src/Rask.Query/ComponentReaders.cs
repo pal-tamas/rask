@@ -8,24 +8,34 @@ namespace Rask.Querying;
 ///     re-render when it changes.
 /// </summary>
 /// <remarks>
-///     Shared by <see cref="Query{TResult}" /> and the command types, which need exactly the same
-///     thing: notice who is looking, tell them when it moves.
+///     <para>
+///         Shared by <see cref="Query{TResult}" /> and the command types, which need exactly the same
+///         thing: notice who is looking, tell them when it moves.
+///     </para>
+///     <para>
+///         A render registers its component while a stream or a fetch, on another thread, may be telling them
+///         all: the readers are an array replaced whole under a lock, so a change walks the ones that were
+///         there and never a list half-way through an add.
+///     </para>
 /// </remarks>
 internal sealed class ComponentReaders
 {
-    private readonly List<WeakReference<Component>> _readers = [];
+    private readonly Lock _gate = new();
+    private Reader[] _readers = [];
+    private volatile bool _everObserved;
 
     /// <summary>Whether any component has ever read this during a render.</summary>
-    public bool EverObserved { get; private set; }
+    /// <remarks>Set only once that reader is in the list, so whoever sees it set sees the reader too.</remarks>
+    public bool EverObserved => _everObserved;
 
     /// <summary>Whether at least one registered component is still alive.</summary>
     public bool HasLiveReaders
     {
         get
         {
-            foreach (var reader in _readers)
+            foreach (var reader in Volatile.Read(ref _readers))
             {
-                if (reader.TryGetTarget(out _))
+                if (reader.Component.TryGetTarget(out _))
                 {
                     return true;
                 }
@@ -44,46 +54,97 @@ internal sealed class ComponentReaders
     /// </remarks>
     public void Observe()
     {
-        if (LiveRenderContext.RenderOwner(out _) is not { } component)
+        if (LiveRenderContext.RenderOwner(out var pass) is not { } component)
         {
             return;
         }
 
-        EverObserved = true;
-
-        foreach (var existing in _readers)
+        if (Find(Volatile.Read(ref _readers), component) is { } known)
         {
-            if (existing.TryGetTarget(out var target) && ReferenceEquals(target, component))
-            {
-                return;
-            }
+            known.LastReadIn = pass;
+            return;
         }
 
-        // Weak, so a component that leaves the tree without this being disposed — because it lives in
-        // a longer-lived field — cannot be held alive by the cache.
-        _readers.Add(new WeakReference<Component>(component));
+        lock (_gate)
+        {
+            if (Find(_readers, component) is { } added)
+            {
+                added.LastReadIn = pass;
+                return;
+            }
+
+            // Weak, so a component that leaves the tree without this being disposed — because it lives in
+            // a longer-lived field — cannot be held alive by the cache.
+            Volatile.Write(ref _readers, [.. _readers, new Reader(new WeakReference<Component>(component)) { LastReadIn = pass }]);
+        }
+
+        // After the add, never before: a value landing in between would find it observed with nobody reading, and
+        // close the subscription under the component about to show it.
+        _everObserved = true;
     }
 
     /// <summary>Re-renders every live reader, dropping any that has been collected.</summary>
     /// <remarks>
-    ///     All but the component rendering now, when this is said from inside a render: that one is reading
-    ///     the state as it stands, and asking it to render again would only buy a second, identical frame.
+    ///     All but the component rendering now when it has not read this yet in that render: it will read the state as
+    ///     it stands, and asking it to render again would only buy a second, identical frame. One that already read it
+    ///     is told like any other — it is showing what this held before the change.
     /// </remarks>
     public void RenderAll()
     {
-        var rendering = LiveRenderContext.RenderOwner(out _);
-        for (var i = _readers.Count - 1; i >= 0; i--)
+        var rendering = LiveRenderContext.RenderOwner(out var pass);
+        var collected = false;
+        foreach (var reader in Volatile.Read(ref _readers))
         {
-            if (!_readers[i].TryGetTarget(out var component))
+            if (!reader.Component.TryGetTarget(out var component))
             {
-                _readers.RemoveAt(i);
+                collected = true;
             }
-            else if (!ReferenceEquals(component, rendering))
+            else if (!ReferenceEquals(component, rendering) || reader.LastReadIn == pass)
             {
                 component.StateHasChanged();
             }
         }
+
+        if (collected)
+        {
+            DropCollected();
+        }
     }
 
-    public void Clear() => _readers.Clear();
+    public void Clear()
+    {
+        lock (_gate)
+        {
+            Volatile.Write(ref _readers, []);
+        }
+    }
+
+    private void DropCollected()
+    {
+        lock (_gate)
+        {
+            Volatile.Write(ref _readers, Array.FindAll(_readers, static reader => reader.Component.TryGetTarget(out _)));
+        }
+    }
+
+    private static Reader? Find(Reader[] readers, Component component)
+    {
+        foreach (var reader in readers)
+        {
+            if (reader.Component.TryGetTarget(out var target) && ReferenceEquals(target, component))
+            {
+                return reader;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>One reading component, and the render pass it last read this in.</summary>
+    private sealed class Reader(WeakReference<Component> component)
+    {
+        public WeakReference<Component> Component { get; } = component;
+
+        public long LastReadIn { get; set; }
+    }
 }
