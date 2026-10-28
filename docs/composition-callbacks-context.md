@@ -230,7 +230,7 @@ so read the value in `Render()` and hand it to the task.
 can **provide a concrete type and consume by an interface**. A provider supplying `null`
 still resolves (it is a real provider of `null`).
 
-**Reactivity:** reading a context value latches the consumer out of the render cache, so
+**Reactivity:** reading a context value keeps the consumer out of the render cache while it reads, so
 it re-reads when the provider re-renders — *even through a render-cached intermediate*
 that never re-renders itself. That is the whole point: `ThemeCard` above is cached after
 first paint, yet the `ThemeBadge` it nests still updates on every toggle.
