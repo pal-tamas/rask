@@ -73,6 +73,12 @@
     <Using Include="Rask.Generators.TestSupport"/>
   </ItemGroup>
 
+  <!-- CLDR's plural rules, which PluralRulesMatchCldrTests holds the curated table to. The cldr-plurals follower
+       (scripts/upstream/cldr-plurals.mjs) moves it; nothing here writes it. -->
+  <ItemGroup>
+    <None Include="cldr-plurals.json" CopyToOutputDirectory="PreserveNewest"/>
+  </ItemGroup>
+
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test
        that starts reading a new file outside this project must add it here. -->

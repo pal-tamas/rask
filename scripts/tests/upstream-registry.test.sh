@@ -25,8 +25,13 @@ jq -e . "$registry" >/dev/null || { echo "upstream registry: $registry is not JS
 dupes="$(jq -r '[.followers[], .manual[]] | map(.name) | group_by(.) | map(select(length > 1) | .[0]) | .[]' "$registry")"
 [ -z "$dupes" ] || fail "names used twice: $dupes"
 
-bad_kind="$(jq -r '.followers[] | select(.kind != "regenerate" and .kind != "measure") | .name' "$registry")"
-[ -z "$bad_kind" ] || fail "kind is neither regenerate nor measure: $bad_kind"
+bad_kind="$(jq -r '.followers[] | select(.kind | IN("regenerate", "measure", "match") | not) | .name' "$registry")"
+[ -z "$bad_kind" ] || fail "kind is not regenerate, measure or match: $bad_kind"
+
+# A measure or match follower runs in a job of its own; one upstream.yml does not have is a follower nothing runs.
+while read -r name; do
+  grep -qE "^  $name:" .github/workflows/upstream.yml || fail "$name is a $(jq -r --arg n "$name" '.followers[] | select(.name == $n) | .kind' "$registry") follower, and upstream.yml has no '$name' job"
+done < <(jq -r '.followers[] | select(.kind != "regenerate") | .name' "$registry")
 
 bad_setup="$(jq -r '.followers[] | select((.setup // "dotnet") != "dotnet") | .name' "$registry")"
 [ -z "$bad_setup" ] || fail "setup is neither absent nor dotnet (upstream-follow.yml knows no other): $bad_setup"

@@ -5,131 +5,199 @@
       "kind": "regenerate",
       "run": "scripts/mdn/follow.sh",
       "setup": "dotnet",
-      "outputs": ["src/Rask.Core/Dom/mdn.snapshot.json", "src/Rask.Core/PublicAPI/*/PublicAPI.*.txt",
-                  "src/Rask.Web/PublicAPI/*/PublicAPI.*.txt", "src/Rask.Wasm/PublicAPI/*/PublicAPI.*.txt"]
+      "outputs": [
+        "src/Rask.Core/Dom/mdn.snapshot.json",
+        "src/Rask.Core/PublicAPI/*/PublicAPI.*.txt",
+        "src/Rask.Web/PublicAPI/*/PublicAPI.*.txt",
+        "src/Rask.Wasm/PublicAPI/*/PublicAPI.*.txt"
+      ]
     },
     {
       "name": "island-props",
       "kind": "regenerate",
       "run": "scripts/upstream/island-props.sh",
       "setup": "dotnet",
-      "outputs": ["src/Rask.Site/Features/Islands/React/*.props.json"]
+      "outputs": [
+        "src/Rask.Site/Features/Islands/React/*.props.json"
+      ]
     },
     {
       "name": "node-lts",
       "kind": "regenerate",
       "run": "scripts/upstream/node-lts.sh",
-      "outputs": ["src/Rask.Cli/NodeRequirement.cs", "rask.sh", "rask.ps1", "docs/installation.md",
-                  "src/Rask.External/build/Rask.External.props", "src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props",
-                  "src/Rask.Templates/*/Dockerfile", "src/Rask.Templates/*/client/package.json"]
+      "outputs": [
+        "src/Rask.Cli/NodeRequirement.cs",
+        "rask.sh",
+        "rask.ps1",
+        "docs/installation.md",
+        "src/Rask.External/build/Rask.External.props",
+        "src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props",
+        "src/Rask.Templates/*/Dockerfile",
+        "src/Rask.Templates/*/client/package.json"
+      ]
     },
     {
       "name": "images",
       "kind": "regenerate",
       "run": "scripts/upstream/images.py",
-      "outputs": ["src/Rask.Cli/Commands/DeployCommand.cs", "src/Rask.Cli/Commands/DbCommand.Backup.cs",
-                  "tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs", "scripts/run-providers-local.sh"]
+      "outputs": [
+        "src/Rask.Cli/Commands/DeployCommand.cs",
+        "src/Rask.Cli/Commands/DbCommand.Backup.cs",
+        "tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs",
+        "scripts/run-providers-local.sh"
+      ]
     },
     {
       "name": "litestream",
       "kind": "regenerate",
       "run": "scripts/upstream/litestream.py",
-      "outputs": ["src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props",
-                  "src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets", "src/Rask.Templates/*/Dockerfile"]
+      "outputs": [
+        "src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props",
+        "src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets",
+        "src/Rask.Templates/*/Dockerfile"
+      ]
     },
     {
       "name": "chrome",
       "kind": "regenerate",
       "run": "scripts/upstream/chrome.py",
-      "outputs": ["src/Rask.Pdf/build/Rask.Pdf.ChromePin.props"]
+      "outputs": [
+        "src/Rask.Pdf/build/Rask.Pdf.ChromePin.props"
+      ]
     },
     {
       "name": "tools",
       "kind": "regenerate",
       "run": "scripts/upstream/tools.py",
-      "outputs": ["src/Rask.Core/build/Rask.Core.targets", "src/Rask.External/build/Rask.External.props",
-                  "src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs", "src/Rask.Tailwind/build/Rask.Tailwind.props",
-                  "src/Rask.Tailwind.Tasks/TailwindPins.cs", "docs/tailwind.md"]
+      "outputs": [
+        "src/Rask.Core/build/Rask.Core.targets",
+        "src/Rask.External/build/Rask.External.props",
+        "src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs",
+        "src/Rask.Tailwind/build/Rask.Tailwind.props",
+        "src/Rask.Tailwind.Tasks/TailwindPins.cs",
+        "docs/tailwind.md"
+      ]
     },
     {
       "name": "fixtures",
       "kind": "regenerate",
       "run": "scripts/upstream/fixtures.py",
-      "outputs": ["tests/Rask.External.Tests/Rask.External.Tests.csproj"]
+      "outputs": [
+        "tests/Rask.External.Tests/Rask.External.Tests.csproj"
+      ]
     },
     {
       "name": "actions",
       "kind": "regenerate",
       "run": "scripts/upstream/actions.py",
-      "outputs": ["src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs"]
+      "outputs": [
+        "src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs"
+      ]
     },
     {
       "name": "front-ends",
       "kind": "regenerate",
       "run": "scripts/upstream/front-ends.py",
-      "outputs": ["src/Rask.Cli/Scaffolding/npm.snapshot.json"]
+      "outputs": [
+        "src/Rask.Cli/Scaffolding/npm.snapshot.json"
+      ]
     },
     {
       "name": "cldr",
       "kind": "regenerate",
       "run": "node scripts/upstream/cldr.mjs",
-      "outputs": ["src/Rask.Ui/UiDatetimePickerJoins.g.cs", "src/Rask.Ui/Resources/cldr.LICENSE.txt"]
+      "outputs": [
+        "src/Rask.Ui/UiDatetimePickerJoins.g.cs",
+        "src/Rask.Ui/Resources/cldr.LICENSE.txt"
+      ]
+    },
+    {
+      "name": "cldr-plurals",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/cldr-plurals.mjs",
+      "outputs": [
+        "tests/Rask.Generators.Tests/cldr-plurals.json"
+      ]
+    },
+    {
+      "name": "flux",
+      "kind": "measure",
+      "run": "node scripts/flux/sync.mjs",
+      "outputs": [
+        "tests/Rask.Ui.Tests/Flux/flux.snapshot.json",
+        "tests/Rask.Ui.Tests/Flux/flux.lock.json"
+      ]
+    },
+    {
+      "name": "flux-parity",
+      "kind": "match",
+      "run": "scripts/flux/parity-all.sh",
+      "outputs": []
     },
     {
       "name": "heroicons",
       "kind": "regenerate",
       "run": "node scripts/flux/icons.mjs",
       "setup": "dotnet",
-      "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs", "src/Rask.Ui/PublicAPI/*/PublicAPI.*.txt"]
+      "outputs": [
+        "src/Rask.Ui/UiIconPaths.g.cs",
+        "src/Rask.Ui/Ui.IconName.cs",
+        "src/Rask.Ui/PublicAPI/*/PublicAPI.*.txt"
+      ]
     },
     {
       "name": "country-flag-icons",
       "kind": "regenerate",
       "run": "node scripts/flux/flags.mjs",
-      "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt", "src/Rask.Ui/Flags/*.svg"]
+      "outputs": [
+        "src/Rask.Ui/UiFlagRegistry.g.cs",
+        "src/Rask.Ui/Flags/LICENSE.txt",
+        "src/Rask.Ui/Flags/*.svg"
+      ]
     },
     {
       "name": "tiptap",
       "kind": "regenerate",
       "run": "node scripts/upstream/kit-bundle.mjs editor",
-      "outputs": ["src/Rask.Ui/Resources/editor/package.json", "src/Rask.Ui/Resources/editor/package-lock.json",
-                  "src/Rask.Ui/Resources/ui-editor.js", "src/Rask.Ui/Resources/ui-editor.LICENSES.txt",
-                  "src/Rask.Ui/UiEditorEngine.cs"]
+      "outputs": [
+        "src/Rask.Ui/Resources/editor/package.json",
+        "src/Rask.Ui/Resources/editor/package-lock.json",
+        "src/Rask.Ui/Resources/ui-editor.js",
+        "src/Rask.Ui/Resources/ui-editor.LICENSES.txt",
+        "src/Rask.Ui/UiEditorEngine.cs"
+      ]
     },
     {
       "name": "intl-tel-input",
       "kind": "regenerate",
       "run": "node scripts/upstream/kit-bundle.mjs phone",
-      "outputs": ["src/Rask.Ui/Resources/phone/package.json", "src/Rask.Ui/Resources/phone/package-lock.json",
-                  "src/Rask.Ui/Resources/ui-phone.js", "src/Rask.Ui/Resources/ui-phone-utils.js",
-                  "src/Rask.Ui/Resources/ui-phone.LICENSES.txt", "src/Rask.Ui/UiPhoneEngine.cs",
-                  "src/Rask.Ui/UiPhoneCountries.g.cs"]
-    },
-    {
-      "name": "flux",
-      "kind": "measure",
-      "run": "node scripts/flux/sync.mjs",
-      "outputs": ["tests/Rask.Ui.Tests/Flux/flux.snapshot.json", "tests/Rask.Ui.Tests/Flux/flux.lock.json"]
+      "outputs": [
+        "src/Rask.Ui/Resources/phone/package.json",
+        "src/Rask.Ui/Resources/phone/package-lock.json",
+        "src/Rask.Ui/Resources/ui-phone.js",
+        "src/Rask.Ui/Resources/ui-phone-utils.js",
+        "src/Rask.Ui/Resources/ui-phone.LICENSES.txt",
+        "src/Rask.Ui/UiPhoneEngine.cs",
+        "src/Rask.Ui/UiPhoneCountries.g.cs"
+      ]
     }
   ],
   "manual": [
     {
       "name": "inter",
       "generator": "scripts/flux/inter-metrics.mjs",
-      "outputs": ["src/Rask.Ui/UiChartInter.Metrics.cs"],
+      "outputs": [
+        "src/Rask.Ui/UiChartInter.Metrics.cs"
+      ],
       "why": "Measured in Chromium on fluxui.dev's chart page (the widths the browser answers with Flux's Inter loaded), so it needs a browser and Flux's served face, not an npm release: run it by hand when Flux's Inter changes."
     },
     {
       "name": "lucide",
       "generator": "",
-      "outputs": ["src/Rask.Ui/UiEditorIcons.cs"],
+      "outputs": [
+        "src/Rask.Ui/UiEditorIcons.cs"
+      ],
       "why": "Held at 0.300.0 on purpose: the release whose boxes match Flux's measured icons. Moves only with Flux."
-    },
-    {
-      "name": "cldr-plurals",
-      "generator": "",
-      "outputs": ["src/Rask.Generators/Translations/PluralRules.cs"],
-      "why": "Hand-written from CLDR's plural rules; becomes a follower in P2."
     }
   ]
 }
