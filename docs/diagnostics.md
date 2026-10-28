@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK110, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK112, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -134,6 +134,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASK109](#rask109) | Warning | A call to an `[Authorize]` component method cannot be checked where it is written |
 | [RASK110](#rask110) | Error | More than one class implements `IRaskModel` |
+| [RASK112](#rask112) | Error | A relationship configured in `Configure` has no free name for its read navigation |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3174,3 +3175,38 @@ public sealed class LegacyModel : IRaskModel { … }   // ✗ RASK110
 
 **Fix:** move the rules of one into the other and delete it. Two assemblies that each bring one are refused at start,
 naming both.
+
+---
+
+## RASK112
+
+**A relationship configured in `Configure` has no free name for its read navigation** · Error
+
+A relationship the entity's own `Configure` declares — `b.HasOne<Provider>().WithMany().HasForeignKey(c => c.TransactionTypeId)`
+— gives the read face a navigation to the configured target
+([configured relationships](data.md#configured-relationships-win)). It is named after the id when the id ends in the
+target's last word (`ForeignTaxProductCategoryId` → `ForeignTaxProductCategory`), after the target otherwise
+(`TransactionTypeId` → `Provider`), and takes the other name when its own is held. When both are already a column, a
+collection or another relationship's navigation — or two ids with no `Id` to name themselves by point at one target —
+it gets no navigation, and the build stops rather than leave the join out without a word.
+
+```csharp
+public sealed class Note : Aggregate<int>
+{
+    public int Owner { get; private set; }
+    public int Editor { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Note> b)
+    {
+        b.HasOne<User>().WithMany().HasForeignKey(n => n.Owner);    // ✗ RASK112
+        b.HasOne<User>().WithMany().HasForeignKey(n => n.Editor);   // ✗ RASK112
+    }
+}
+```
+
+```text
+The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'User' is already taken by a member or another relationship. Rename the id, or what holds the name.
+```
+
+**Fix:** name the ids `OwnerId` and `EditorId` (keep the columns with `HasColumnName("Owner")`), which gives
+`NoteRead.Owner` and `NoteRead.Editor`; or rename the member that already holds the name.

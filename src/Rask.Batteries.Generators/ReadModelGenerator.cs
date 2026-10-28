@@ -30,7 +30,7 @@ namespace Rask.Batteries.Generators;
 /// </para>
 /// </remarks>
 [Generator]
-public sealed class ReadModelGenerator : IIncrementalGenerator
+public sealed partial class ReadModelGenerator : IIncrementalGenerator
 {
     private const string Query = "global::Rask.Data.ModelQuery";
     private const string Registry = "global::Rask.Data.ReadModelRegistry";
@@ -129,7 +129,7 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         ctx.Node is ClassDeclarationSyntax declaration &&
         ctx.SemanticModel.GetDeclaredSymbol(declaration, token) is INamedTypeSymbol symbol &&
         ReadModelShape.IsCandidate(symbol)
-            ? ReadModelShape.Describe(symbol, token)
+            ? ReadModelShape.Describe(symbol, ConfiguredRelationships.Of(symbol, ctx.SemanticModel.Compilation, token), token)
             : null;
 
     private static void Emit(SourceProductionContext context, ImmutableArray<ReadShape> candidates)
@@ -170,10 +170,11 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         }
 
         var mappings = new List<(ReadShape Shape, List<ReadNavigation> Navigations)>();
+        var configured = new ConfiguredReferences(shapes);
 
         foreach (var shape in shapes)
         {
-            mappings.Add((shape, Resolve(context, shape, aggregates, children, inverses)));
+            mappings.Add((shape, Resolve(context, shape, aggregates, children, inverses, configured)));
         }
 
         var reverses = Reverses(context, mappings, inverses);
@@ -206,20 +207,22 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         return (aggregates, children);
     }
 
-    // Every {X}Id that resolves, with the ones that cannot reported rather than silently dropped.
+    // The relationships Configure declares first, then every other {X}Id that resolves by its name, with the ones that
+    // cannot reported rather than silently dropped. An id a relationship is configured on is never guessed at.
     private static List<ReadNavigation> Resolve(
         SourceProductionContext context,
         ReadShape shape,
         IReadOnlyDictionary<string, ReadModelShape.ReadTarget> aggregates,
         IReadOnlyDictionary<string, ReadModelShape.ReadTarget> children,
-        Dictionary<string, List<(string RootReadType, string Name)>> inverses)
+        Dictionary<string, List<(string RootReadType, string Name)>> inverses,
+        ConfiguredReferences configured)
     {
-        var navigations = new List<ReadNavigation>();
-
         // A child holding an explicit OrderId is exactly this case — the relationship is already there, under that name.
         var taken = Taken(shape, inverses);
+        var navigations = configured.Navigations(context, shape, taken);
+        var keys = configured.ForeignKeysOf(shape);
 
-        foreach (var reference in shape.References)
+        foreach (var reference in shape.References.Where(r => !keys.Contains(r.Property)))
         {
             var (navigation, problem) = Infer(reference, shape.SourceTypeName, aggregates, children);
 
@@ -283,8 +286,8 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
             foreach (var navigation in navigations)
             {
                 var target = faces[navigation.TargetReadType].Shape;
-                var prefix = navigation.Name.Substring(0, navigation.Name.Length - target.SourceName.Length);
-                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + prefix));
+
+                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + Prefix(navigation.Name, target.SourceName)));
             }
         }
 
@@ -313,6 +316,20 @@ public sealed class ReadModelGenerator : IIncrementalGenerator
         }
 
         return reverses;
+    }
+
+    // What the collection's name takes after the plural: the navigation's words before its target's name (FromFueling ->
+    // From). A configured navigation need not end in its target's: one named by its id after the target's last word
+    // (ForeignTaxProductCategory, to a ForeignTaxCategory) adds nothing, and one named after nothing of it (Auditor, to
+    // a Payee) adds its whole name, so it never takes the plain plural from the id that does point by name.
+    private static string Prefix(string navigation, string target)
+    {
+        if (navigation.EndsWith(target, StringComparison.Ordinal))
+        {
+            return navigation.Substring(0, navigation.Length - target.Length);
+        }
+
+        return navigation.EndsWith(ConfiguredReferences.LastWord(target), StringComparison.Ordinal) ? string.Empty : navigation;
     }
 
     // What the target's face already calls this name, and what to rename instead of the id — or null when it is free.
