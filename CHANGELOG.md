@@ -278,6 +278,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **A time picker's chevron darkens under the pointer, as Flux's does.** Before: it never changed. After: the button's
+  goes zinc-300 to zinc-800 while the button is hovered, a typed field's zinc-400/75 to zinc-800 while the field is and
+  none of its parts is (white in dark) — measured on Flux's with a real pointer.
 - **The date and datetime pickers' chevron darkens under the pointer, as Flux UI's does.** On the button it turns
   zinc-800 (white in dark) while the button is hovered; on a typed date field while the field is and none of its parts. Open, the
   page lock takes the hover away on a desktop, and a tap's hover stays on a phone, both as Flux's.
