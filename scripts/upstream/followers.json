@@ -89,6 +89,14 @@
       "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt", "src/Rask.Ui/Flags/*.svg"]
     },
     {
+      "name": "tiptap",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/kit-bundle.mjs editor",
+      "outputs": ["src/Rask.Ui/Resources/editor/package.json", "src/Rask.Ui/Resources/editor/package-lock.json",
+                  "src/Rask.Ui/Resources/ui-editor.js", "src/Rask.Ui/Resources/ui-editor.LICENSES.txt",
+                  "src/Rask.Ui/UiEditorEngine.cs"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
@@ -101,12 +109,6 @@
       "generator": "scripts/flux/inter-metrics.mjs",
       "outputs": ["src/Rask.Ui/UiChartInter.Metrics.cs"],
       "why": "Run by hand; becomes a follower in P2."
-    },
-    {
-      "name": "tiptap",
-      "generator": "src/Rask.Ui/Resources/editor/build.mjs",
-      "outputs": ["src/Rask.Ui/Resources/ui-editor.js", "src/Rask.Ui/Resources/ui-editor.LICENSES.txt"],
-      "why": "Dependabot moves the lockfile but nothing rebuilds the bundle; becomes a follower in P2 (growth opens an issue)."
     },
     {
       "name": "intl-tel-input",

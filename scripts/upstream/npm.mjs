@@ -17,16 +17,21 @@ export function fixtureName(url) {
 }
 
 /** npm's latest stable release of `name`: its manifest, with `version` and `dist`. */
-export async function latest(name, label) {
-  const release = JSON.parse((await fetchBytes(`https://registry.npmjs.org/${name.replace('/', '%2f')}/latest`, label)).toString('utf8'));
-  if (!/^\d+\.\d+\.\d+$/.test(release.version ?? '')) fail(label, `npm's latest ${name} is ${release.version}, not a stable release`);
-  if (!release.dist?.tarball || !release.dist?.integrity?.startsWith('sha512-')) fail(label, `${name} ${release.version} names no sha512 tarball`);
-  return release;
+export function latest(name, label) {
+  return release(name, 'latest', label);
+}
+
+/** One release of `name` (a version, or a dist-tag), as the registry describes it. */
+export async function release(name, version, label) {
+  const manifest = JSON.parse((await get(`https://registry.npmjs.org/${name.replace('/', '%2f')}/${version}`, label)).toString('utf8'));
+  if (!/^\d+\.\d+\.\d+$/.test(manifest.version ?? '')) fail(label, `npm's ${version} ${name} is ${manifest.version}, not a stable release`);
+  if (!manifest.dist?.tarball || !manifest.dist?.integrity?.startsWith('sha512-')) fail(label, `${name} ${manifest.version} names no sha512 tarball`);
+  return manifest;
 }
 
 /** The release's tarball, gunzipped later by the caller; refused unless it hashes to the registry's integrity. */
 export async function tarball(release, label) {
-  const bytes = await fetchBytes(release.dist.tarball, label);
+  const bytes = await get(release.dist.tarball, label);
   const digest = `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
   if (digest !== release.dist.integrity) fail(label, `${release.dist.tarball} is not the tarball the registry names (${digest})`);
   return bytes;
@@ -66,7 +71,8 @@ function unanswered(label, url, why) {
   process.exit(0);
 }
 
-async function fetchBytes(url, label) {
+/** What `url` answers, as bytes; a saved answer under RASK_UPSTREAM_FIXTURES. No answer exits 0. */
+export async function get(url, label) {
   if (saved) {
     return readFile(join(saved, fixtureName(url))).catch(() => unanswered(label, url, 'no saved answer'));
   }

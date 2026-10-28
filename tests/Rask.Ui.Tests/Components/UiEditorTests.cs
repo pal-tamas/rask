@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Rask.UiTests.Components;
@@ -247,9 +248,11 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
     public void The_engine_travels_with_the_notices_of_what_it_bundles()
     {
         var notices = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.LICENSES.txt"));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "editor", "package.json")));
+        var tiptap = package.RootElement.GetProperty("dependencies").GetProperty("@tiptap/core").GetString();
 
         var licences = Regex.Matches(notices, "^(\\S+) (\\S+) — (.+)$", RegexOptions.Multiline);
-        Assert.Contains(licences, licence => licence.Groups[1].Value == "@tiptap/core" && licence.Groups[2].Value == "3.32.0");
+        Assert.Contains(licences, licence => licence.Groups[1].Value == "@tiptap/core" && licence.Groups[2].Value == tiptap);
         Assert.Contains(licences, licence => licence.Groups[1].Value == "prosemirror-model" && licence.Groups[2].Value == "1.25.1");
         Assert.All(licences, licence => Assert.Equal(licence.Groups[1].Value == "lucide" ? "ISC" : "MIT", licence.Groups[3].Value.Trim()));
     }

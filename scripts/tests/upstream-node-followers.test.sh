@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs|UiFlagRegistry\.g\.cs|Flags/.*)$
+# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs|UiFlagRegistry\.g\.cs|Flags/.*|Resources/editor/package(-lock)?\.json|Resources/ui-editor.*\.js)$
 # The node followers of Rask.Ui's upstreams, each run in a copy of the files it writes against saved npm answers
 # (RASK_UPSTREAM_FIXTURES, scripts/upstream/npm.mjs): a new release is written with its version and integrity,
 # and records the public surface when it moves it; a tarball that is not the one the registry names, or a
-# registry that does not answer, moves nothing.
+# registry that does not answer, moves nothing. The kit's engines run with a stand-in npm and build: a bundle
+# that grows stops the run, one that does not lands.
 #
 # These edits land with nobody reading them, so what is checked here is what the daily run trusts.
 #
@@ -124,6 +125,89 @@ check "...and moves nothing"                           "" "$(unchanged $(flag_fi
 fresh
 check "a registry that does not answer is not a failure" passed "$(run flux/flags.mjs && echo passed)"
 check "...and moves nothing"                           "" "$(unchanged $(flag_files))"
+
+echo "==> kit engines"
+# A copy of ENGINE's package and bundles, with a stand-in npm (`install` locks what $tmp/lock.json says, `ci`
+# installs nothing) and a build.mjs that writes each bundle at the size RASK_TEST_SIZES names.
+engine() {
+  fresh
+  local dir="src/Rask.Ui/Resources/$1"
+  mkdir -p "$tmp/tree/$dir" "$tmp/bin"
+  cp "$root/scripts/upstream/kit-bundle.mjs" "$tmp/tree/scripts/upstream/"
+  cp "$root/$dir/package.json" "$root/$dir/package-lock.json" "$tmp/tree/$dir/"
+  cp "$root/src/Rask.Ui/Resources/ui-$1"*.js "$tmp/tree/src/Rask.Ui/Resources/"
+  printf '#!/bin/sh\necho "npm $*" >> "%s/npm.log"\n[ "$1" != install ] || cp "%s/lock.json" package-lock.json\n' "$tmp" "$tmp" > "$tmp/bin/npm"
+  chmod +x "$tmp/bin/npm"
+  rm -f "$tmp/npm.log"
+  printf '%s\n' "import { writeFileSync } from 'node:fs';" \
+    "for (const [file, bytes] of Object.entries(JSON.parse(process.env.RASK_TEST_SIZES))) writeFileSync('../' + file, 'x'.repeat(bytes));" \
+    > "$tmp/tree/$dir/build.mjs"
+  engine_files=("$dir/package.json" "$dir/package-lock.json")
+  for f in "$root/src/Rask.Ui/Resources/ui-$1"*.js; do engine_files+=("src/Rask.Ui/Resources/$(basename "$f")"); done
+}
+# `registry ENGINE [NAME=VERSION]... [--tamper]` answers npm's latest of every dependency: its pin, or VERSION.
+# The lock npm would write goes to $tmp/lock.json (--tamper: with an integrity the registry does not name).
+registry() {
+  node "$tmp/registry.mjs" "$root/scripts/upstream/npm.mjs" "$tmp/tree/src/Rask.Ui/Resources/$1" "$tmp/saved" "$tmp/lock.json" "${@:2}"
+}
+cat > "$tmp/registry.mjs" <<'JS'
+import { createHash } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
+const [npm, dir, saved, out, ...specs] = process.argv.slice(2);
+const { fixtureName } = await import(npm);
+const manifest = JSON.parse(readFileSync(`${dir}/package.json`, 'utf8'));
+const lock = JSON.parse(readFileSync(`${dir}/package-lock.json`, 'utf8'));
+const asked = Object.fromEntries(specs.filter(s => s.includes('=')).map(s => s.split('=')));
+for (const name of Object.keys({ ...manifest.dependencies, ...manifest.devDependencies })) {
+  const entry = lock.packages[`node_modules/${name}`];
+  const version = asked[name] ?? entry.version;
+  const integrity = version === entry.version ? entry.integrity : `sha512-${createHash('sha512').update(`${name}@${version}`).digest('base64')}`;
+  const answer = JSON.stringify({ name, version, dist: { tarball: `https://registry.npmjs.org/${name}/-/x-${version}.tgz`, integrity } });
+  for (const tag of ['latest', version]) writeFileSync(`${saved}/${fixtureName(`https://registry.npmjs.org/${name.replace('/', '%2f')}/${tag}`)}`, answer);
+  lock.packages[`node_modules/${name}`] = { ...entry, version, integrity: specs.includes('--tamper') ? 'sha512-AAAA' : integrity };
+}
+writeFileSync(out, JSON.stringify(lock, null, 2));
+JS
+sizes() { node -e 'const a = process.argv.slice(1), o = {}; for (let i = 0; i < a.length; i += 2) o[a[i]] = +a[i + 1]; console.log(JSON.stringify(o))' "$@"; }
+bundle() { RASK_TEST_SIZES="$1" PATH="$tmp/bin:$PATH" run upstream/kit-bundle.mjs "${@:2}"; }
+pin() { node -e 'const m = require(process.argv[1]); console.log({ ...m.dependencies, ...m.devDependencies }[process.argv[2]])' "$1/src/Rask.Ui/Resources/$2/package.json" "$3"; }
+npm_ran() { cut -d' ' -f1-2 "$tmp/npm.log" 2>/dev/null | tr '\n' ' ' | sed 's/ $//'; }
+tiptap="$(node -e 'console.log(Object.keys(require(process.argv[1]).dependencies).filter(n => n.startsWith("@tiptap/")).map(n => n + "=99.0.0").join(" "))' "$root/src/Rask.Ui/Resources/editor/package.json")"
+editor_bytes="$(wc -c < "$root/src/Rask.Ui/Resources/ui-editor.js" | tr -d ' ')"
+
+engine editor
+registry editor
+check "nothing new on npm rebuilds nothing"            passed "$(bundle '{}' editor && echo passed)"
+check "...runs no npm"                                 "" "$(npm_ran)"
+check "...and moves nothing"                           "" "$(unchanged "${engine_files[@]}")"
+
+engine editor
+registry editor @tiptap/core=99.0.0
+check "a Tiptap family not yet at one version waits"  passed "$(bundle '{}' editor && echo passed)"
+check "...and moves nothing"                           "" "$(unchanged "${engine_files[@]}")"
+
+engine editor
+# shellcheck disable=SC2086  # one NAME=VERSION a word
+registry editor $tiptap
+check "--check fails on a family behind npm's latest" stale "$(bundle '{}' editor --check || echo stale)"
+check "a family at one new version lands when its bundle does not grow" passed \
+  "$(bundle "$(sizes ui-editor.js "$editor_bytes")" editor && echo passed)"
+check "...pinned"                                     99.0.0 "$(pin "$tmp/tree" editor @tiptap/starter-kit)"
+check "...locked, installed and built"                 "npm install npm ci" "$(npm_ran)"
+check "...esbuild kept at its own latest"              "$(pin "$root" editor esbuild)" "$(pin "$tmp/tree" editor esbuild)"
+check "...and the prosemirror-model hold kept"         1.25.1 "$(node -e 'console.log(require(process.argv[1]).overrides["prosemirror-model"])' "$tmp/tree/src/Rask.Ui/Resources/editor/package.json")"
+
+engine editor
+# shellcheck disable=SC2086
+registry editor $tiptap
+check "a bundle that grows stops the run"              grown "$(bundle "$(sizes ui-editor.js $((editor_bytes + 1)))" editor || echo grown)"
+check "...naming both sizes"                           1 "$(grep -c "ui-editor.js from $editor_bytes to $((editor_bytes + 1)) bytes" "$tmp/out" || true)"
+
+engine editor
+# shellcheck disable=SC2086
+registry editor $tiptap --tamper
+check "a lock that is not the registry's is refused"  refused "$(bundle "$(sizes ui-editor.js 1)" editor || echo refused)"
+check "...before anything is installed"                "npm install" "$(npm_ran)"
 
 [ "$failures" -eq 0 ] || { echo "upstream node followers: $failures failed" >&2; exit 1; }
 echo "upstream node followers: ok"
