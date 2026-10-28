@@ -629,4 +629,10 @@ public enum RaskString
 
     /// <summary>The button that confirms a datetime picker's waiting choice.</summary>
     DatetimePickerSelect,
+
+    /// <summary>What a form's list says when something chosen in it — an id, a row's key — is not in the database.</summary>
+    ValidationNotFound,
+
+    /// <summary>What a form's list of rows says when two of its rows have the same key.</summary>
+    ValidationDuplicateRow,
 }

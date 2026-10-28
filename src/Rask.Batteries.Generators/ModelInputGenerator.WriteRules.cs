@@ -13,6 +13,9 @@ namespace Rask.Batteries.Generators;
 public sealed partial class ModelInputGenerator
 {
     private const string ModelRules = "global::Rask.Data.GeneratedModelRules";
+    // What two rows of one key say where the app has no strings catalog: the catalog's English, as a literal.
+    private const string DuplicateRowEnglish = "\"The same row is in this list twice.\"";
+
     private const string FailureList = "global::System.Collections.Generic.IList<" + FieldFailure + ">?";
 
     /// <summary>Whether a model has anything to be asked before a write, and whether any of it is awaited.</summary>
@@ -183,7 +186,7 @@ public sealed partial class ModelInputGenerator
         {
             foreach (var child in entity.Children.Where(static c => c.ByParts))
             {
-                AppendTwiceGiven(s, child);
+                AppendTwiceGiven(s, child, entity.DuplicateRowFromCatalog);
             }
 
             foreach (var member in CheckedMembers(entity))
@@ -339,7 +342,7 @@ public sealed partial class ModelInputGenerator
     // A row keyed by several columns is matched by its key, so two posted rows of one key would be one row twice: the
     // second is refused under the list, before anything is loaded. A row whose key is not filled in yet is the
     // required rule's to report, not this one's.
-    private static void AppendTwiceGiven(StringBuilder s, ChildShape child)
+    private static void AppendTwiceGiven(StringBuilder s, ChildShape child, bool fromCatalog)
     {
         var rows = "__" + child.Name + "Keys";
         var key = child.KeyParts.Count == 1
@@ -358,7 +361,10 @@ public sealed partial class ModelInputGenerator
         s.Append("                if (").Append(rows).Append("[i] is { } row && ").Append(filled).Append(" && !seen.Add(").Append(key).AppendLine("))");
         s.AppendLine("                {");
         s.Append("                    failures = ").Append(ModelRules).Append(".Told(failures, path, \"").Append(child.Name)
-            .AppendLine("\", \"The same row is in this list twice.\");");
+            .Append("\", ").Append(fromCatalog
+                ? "global::Rask.Core.Globalization.RaskStrings.Get(global::Rask.Core.Globalization.RaskString.ValidationDuplicateRow, "
+                  + DuplicateRowEnglish + ")"
+                : DuplicateRowEnglish).AppendLine(");");
         s.AppendLine("                }");
         s.AppendLine("            }");
         s.AppendLine("        }");

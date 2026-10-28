@@ -355,7 +355,22 @@ public class CompositeKeyGeneratorTests
             "__row.TransactionId is { } __part0 && global::System.Collections.Generic.EqualityComparer<int>.Default.Equals(__part0, __stored.TransactionId)",
             note,
             StringComparison.Ordinal);
-        Assert.Contains("\"Fuellings\", \"The same row is in this list twice.\"", note, StringComparison.Ordinal);
+        Assert.Contains(
+            "\"Fuellings\", global::Rask.Core.Globalization.RaskStrings.Get(global::Rask.Core.Globalization.RaskString.ValidationDuplicateRow, \"The same row is in this list twice.\")",
+            note,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_library_with_no_strings_catalog_says_the_duplicate_row_in_english()
+    {
+        var run = GeneratorHarness.RunWithout(
+            FuellingOnAForm, new ModelInputGenerator(), ["Rask.Core"], "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        var note = run.GeneratedSource("Fuel.DeliveryNoteModel");
+
+        Assert.Contains("\"Fuellings\", \"The same row is in this list twice.\");", note, StringComparison.Ordinal);
+        Assert.DoesNotContain("ValidationDuplicateRow", note, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -425,7 +440,18 @@ public class CompositeKeyGeneratorTests
     [InlineData("Addresses", "AddressIds")]
     [InlineData("Boxes", "BoxIds")]
     [InlineData("Branches", "BranchIds")]
+    [InlineData("Statuses", "StatusIds")]
+    [InlineData("Matches", "MatchIds")]
+    [InlineData("Houses", "HouseIds")]
+    [InlineData("Courses", "CourseIds")]
+    [InlineData("Classes", "ClassIds")]
+    [InlineData("Buses", "BusIds")]
+    [InlineData("People", "PersonIds")]
+    [InlineData("ContactPeople", "ContactPersonIds")]
+    [InlineData("Children", "ChildIds")]
+    [InlineData("Movies", "MovieIds")]
     [InlineData("Staff", "StaffIds")]
+    [InlineData("Glass", "GlassIds")]
     public void The_list_of_ids_is_named_after_the_collection_made_singular(string collection, string ids)
     {
         var name = Rask.Generators.Shared.FormListName.Ids(collection);

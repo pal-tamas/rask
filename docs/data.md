@@ -392,7 +392,10 @@ public sealed partial class CompanyColumn : Entity<(Company, int ColumnId)>
 ```
 
 **A link — the holder's part and one other, and nothing else — is a list of ids.** It is named after the collection,
-made singular, plus `Ids` (`Activities` → `ActivityIds`), and holds the other part's key type. It is saved as a
+made singular, plus `Ids` (`Activities` → `ActivityIds`, `Statuses` → `StatusIds`, `Boxes` → `BoxIds`, `People` →
+`PersonIds`), and holds the other part's key type. The singular follows Rails' rules — `ies` → `y`, `es` dropped where
+it was added (after x/ch/sh/ss/zz, and `Statuses`, `Buses`, `Aliases`), a final `s`, and a short list of irregular
+plurals — so `Houses` is `HouseIds`. A name no rule makes singular keeps the collection's own name: `StaffIds`. It is saved as a
 **set**: a link is inserted for an id it does not hold yet, deleted for one no longer listed, never updated, and an
 id given twice is one link. The same set in another order writes nothing.
 
@@ -419,9 +422,11 @@ await Company.Update(id, model);               // UPDATE a changed row, INSERT a
 per-tenant holder keeps its rows to its tenant through itself — the rows carry no `TenantId`.
 
 **What a form is told.** A row whose key part is empty is required, under its own field (`Columns[0].ColumnId`).
-Two rows of one key are refused under `Columns` before anything is loaded. An id the database refuses — no such
-activity, the foreign key the table declares — is a field error under `ActivityIds` (or `Columns`), and the whole
-save, every aggregate in it, is rolled back.
+Two rows of one key are refused under `Columns` before anything is loaded — the strings catalog's
+`ValidationDuplicateRow`. An id the database refuses — no such activity, the foreign key the table declares — is a
+field error under `ActivityIds` (or `Columns`) saying `ValidationNotFound`, and the whole save, every aggregate in it,
+is rolled back. Both are in the reader's language — the kit carries Hungarian — and an app's own catalog overrides
+them ([Localization](localization.md)).
 
 **What a form still cannot carry is [RASK106](diagnostics.md#rask106):** rows that hold rows of their own (a
 `ReportColumn` holding `Totals`), a row with no parameterless constructor to add one with, and a key with no part for

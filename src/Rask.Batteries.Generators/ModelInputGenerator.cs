@@ -169,6 +169,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         {
             AnnouncesFieldRules = seams.FieldRules,
             RequiredFromCatalog = seams.RequiredSentence,
+            DuplicateRowFromCatalog = seams.DuplicateRowSentence,
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
             AnnouncesOptionalFields = seams.OptionalFields,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
@@ -222,6 +223,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
+        bool DuplicateRowFromCatalog = false,
         bool AnnouncesRequiredFields = false,
         bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,

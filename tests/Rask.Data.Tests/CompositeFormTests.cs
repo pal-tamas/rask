@@ -143,6 +143,27 @@ public sealed class CompositeFormTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task A_refused_id_is_told_in_the_sentence_the_host_handed_over()
+    {
+        var company = await CreateAsync(Acme, new CompanyModel { Name = "Acme", ActivityIds = [_teaors[0]] });
+        var english = HeldRowReference.Sentence;
+        HeldRowReference.Sentence = static () => "Az itt kiválasztott elem nem létezik.";
+
+        RaskValidationException refused;
+        try
+        {
+            refused = await Assert.ThrowsAsync<RaskValidationException>(
+                () => UpdateAsync(Acme, company.Id, m => m.ActivityIds = [99_999]));
+        }
+        finally
+        {
+            HeldRowReference.Sentence = english;
+        }
+
+        Assert.Equal("Az itt kiválasztott elem nem létezik.", Assert.Single(refused.Failures).Message);
+    }
+
+    [Fact]
     public async Task Another_tenants_company_cannot_be_given_links_and_its_own_are_kept()
     {
         var theirs = await CreateAsync(Globex, new CompanyModel { Name = "Globex", ActivityIds = [_teaors[0]] });

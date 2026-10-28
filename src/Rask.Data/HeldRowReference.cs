@@ -18,8 +18,14 @@ namespace Rask.Data;
 /// </remarks>
 internal static class HeldRowReference
 {
-    /// <summary>What a form says when one of the rows it chose is not there.</summary>
+    /// <summary>What a form says when one of the rows it chose is not there: the strings catalog's English.</summary>
     internal const string Message = "Something chosen here does not exist.";
+
+    /// <summary>
+    ///     The sentence in the reader's language — <c>RaskString.ValidationNotFound</c> through the strings catalog,
+    ///     which the host puts here (Rask.Data's server build does not reference Rask.Core); the English without one.
+    /// </summary>
+    internal static Func<string> Sentence { get; set; } = static () => Message;
 
     private const string SqlServerCheck = "CHECK constraint";
 
@@ -45,7 +51,7 @@ internal static class HeldRowReference
             .ToList();
 
         return fields is [{ } field]
-            ? new RaskValidationException([new FieldFailure(Message, [field], Source: provider.Data["ConstraintName"] as string)], failure)
+            ? new RaskValidationException([new FieldFailure(Sentence(), [field], Source: provider.Data["ConstraintName"] as string)], failure)
             : null;
     }
 

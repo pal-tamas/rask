@@ -19370,3 +19370,5 @@ Rask.Core.Routing.GuestAttribute.GuestAttribute() -> void
 Rask.Core.Routing.GuestAttribute.Then.get -> string!
 Rask.Core.Routing.GuestAttribute.Then.set -> void
 static Rask.Core.Authorization.RouteAuthorizationResult.Redirect(string! url) -> Rask.Core.Authorization.RouteAuthorizationResult!
+Rask.Core.Globalization.RaskString.ValidationDuplicateRow = 199 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNotFound = 198 -> Rask.Core.Globalization.RaskString
