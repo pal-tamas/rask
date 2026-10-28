@@ -44,8 +44,12 @@ on:
 permissions:
   contents: read
 
+# A group holds ONE pending run, and a newer one cancels it. Every full.yml on main ends in a workflow_run run
+# here — usually nothing waits, and it ends at once — so sharing the daily run's group cancelled the daily run
+# whenever it was queued behind another (2026-10-27). The two kinds queue apart; a follower is followed by one
+# run at a time through the follow job's own group.
 concurrency:
-  group: upstream
+  group: upstream-${{ github.event_name == 'workflow_run' && 'waits' || 'daily' }}
   cancel-in-progress: false
 
 jobs:
@@ -74,6 +78,10 @@ jobs:
     needs: followers
     if: needs.followers.outputs.names != '[]'
     name: ${{ matrix.follower }}
+    # One run follows a source at a time. A newer one waiting in its place is the same regeneration, newer.
+    concurrency:
+      group: upstream-follow-${{ matrix.follower }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false   # one source the gates refuse says nothing about the others
       max-parallel: 4
