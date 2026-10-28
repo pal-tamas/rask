@@ -24,7 +24,9 @@ internal static class UiTimePickerLook
     /// <summary>The clock before the choice and the chevron after it.</summary>
     internal const string ButtonIcon = "me-2 text-zinc-300 dark:text-white/60";
 
-    internal const string ButtonChevron = "ms-2 -me-1 text-zinc-300 dark:text-white/60";
+    // Darkens while the button is under the pointer, as Flux's does (measured: zinc-300 at rest, zinc-800 over it). A
+    // tap's hover stays on a phone, and the chevron with it.
+    internal const string ButtonChevron = "ms-2 -me-1 text-zinc-300 [:hover>&]:text-zinc-800 dark:text-white/60 dark:[:hover>&]:text-white";
 
     /// <summary>What the button says: one line, cut off rather than wrapped.</summary>
     internal const string Selected =
@@ -39,7 +41,10 @@ internal static class UiTimePickerLook
 
     internal const string InputIcon = "me-2 text-zinc-400/75 dark:text-white/60";
 
-    internal const string InputChevron = "ms-2 -me-1 text-zinc-400/75 dark:text-white/60";
+    // Darkens while the typed field is under the pointer and none of its parts is, as Flux's does (measured).
+    internal const string InputChevron =
+        "ms-2 -me-1 text-zinc-400/75 [:hover:not(:has(input:hover))>&]:text-zinc-800 "
+        + "dark:text-white/60 dark:[:hover:not(:has(input:hover))>&]:text-white";
 
     /// <summary>The three fields, left to right in every language: a clock reads that way.</summary>
     internal const string Segments = "flex items-center min-w-0 -ms-px overflow-hidden";
