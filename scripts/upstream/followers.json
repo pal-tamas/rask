@@ -4,8 +4,16 @@
       "name": "mdn",
       "kind": "regenerate",
       "run": "scripts/mdn/follow.sh",
+      "setup": "dotnet",
       "outputs": ["src/Rask.Core/Dom/mdn.snapshot.json", "src/Rask.Core/PublicAPI/*/PublicAPI.*.txt",
                   "src/Rask.Web/PublicAPI/*/PublicAPI.*.txt", "src/Rask.Wasm/PublicAPI/*/PublicAPI.*.txt"]
+    },
+    {
+      "name": "island-props",
+      "kind": "regenerate",
+      "run": "scripts/upstream/island-props.sh",
+      "setup": "dotnet",
+      "outputs": ["src/Rask.Site/Features/Islands/React/*.props.json"]
     },
     {
       "name": "node-lts",
@@ -117,12 +125,6 @@
       "generator": "",
       "outputs": ["src/Rask.Generators/Translations/PluralRules.cs"],
       "why": "Hand-written from CLDR's plural rules; becomes a follower in P2."
-    },
-    {
-      "name": "island-props",
-      "generator": "src/Rask.External.Tasks",
-      "outputs": ["src/Rask.Site/Features/Islands/React/*.props.json"],
-      "why": "Written by the local build (RaskExternalPropsExtract) until P3 hands it to a follower."
     }
   ]
 }

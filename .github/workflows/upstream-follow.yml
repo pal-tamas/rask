@@ -38,9 +38,15 @@ jobs:
         with:
           fetch-depth: 0   # the commit is rebased onto main before it is pushed
 
-      # Only MDN builds: the public surface is recorded from a build of the new snapshot.
+      # Only a follower that builds (`"setup": "dotnet"` in the registry) pays for .NET: MDN records the public
+      # surface from a build of the new snapshot, island-props reads the islands' props in the site's build.
+      - name: Needs .NET?
+        id: needs
+        run: |
+          echo "setup=$(jq -r --arg n "$FOLLOWER" '.followers[] | select(.name == $n) | .setup // ""' scripts/upstream/followers.json)" >> "$GITHUB_OUTPUT"
+
       - uses: ./.github/actions/setup
-        if: inputs.follower == 'mdn'
+        if: steps.needs.outputs.setup == 'dotnet'
         with:
           workloads: wasm-tools
 

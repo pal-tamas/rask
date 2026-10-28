@@ -3,7 +3,7 @@
 # @mdn/browser-compat-data, read UI Events' key and code tables, and rewrite src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
 #
 # Versions default to each package's `latest` dist-tag (its stable release), webref's `curated` head and w3c/aria's
-# `main` head. The Rask.Core build runs this with exact pins when it sees a newer release (src/Rask.Core/Dom/Rask.Dom.targets):
+# `main` head. Each can be pinned:
 #   RASK_MDN_BCD, RASK_MDN_IDL, RASK_MDN_ELEMENTS, RASK_MDN_EVENTS, RASK_MDN_CSS  npm versions (stable releases)
 #   RASK_MDN_WEBIDL2                                the IDL parser's version
 #   RASK_MDN_PARSE5                                 the HTML parser's version, which reads the ARIA spec

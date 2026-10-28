@@ -171,7 +171,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
-- **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, refreshed daily by the local build): MDN type names
+- **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, moved daily by the `mdn` follower in `upstream.yml`, never by the build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–110 are documented in `docs/diagnostics.md`
   (RASK027/030/032/034/042/046/047/048/049/050/054/075/076/081/091 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK111). **Grep `src/`

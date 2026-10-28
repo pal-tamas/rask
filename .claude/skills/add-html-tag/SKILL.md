@@ -26,7 +26,7 @@ fails unless its members are exactly the spec's keywords.
 scripts/mdn/refresh.sh        # latest stable MDN data, latest LTS Node
 git diff --stat src/Rask.Core/Dom/mdn.snapshot.json
 ```
-A local build does this by itself at most once a day. If MDN still lacks it, it does not ship in two of
+The `mdn` follower does this every day in `upstream.yml` (the build never does). If MDN still lacks it, it does not ship in two of
 Chrome/Firefox/Safari (desktop or mobile), or MDN marks it deprecated — then Rask does not offer it either.
 
 ## 2. Behaviour MDN cannot know → a hand partial
