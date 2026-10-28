@@ -19,7 +19,8 @@ namespace Rask.Benchmarks;
 /// </summary>
 /// <remarks>
 ///     A report rather than a BenchmarkDotNet class: one render of 5,000 rows takes seconds, and the question is
-///     whether the cost per cell stays flat from 500 rows to 5,000. Usage: <c>big-table [rows…]</c>.
+///     whether the cost per cell stays flat from 500 rows to 20,000. Usage: <c>big-table [rows…] [--get]</c>
+///     (<c>--get</c>: the live GET alone).
 /// </remarks>
 internal static partial class BigTableReport
 {
@@ -31,7 +32,9 @@ internal static partial class BigTableReport
 
     public static int Run(string[] args)
     {
-        var sizes = args.Skip(1).Select(a => int.Parse(a, CultureInfo.InvariantCulture)).ToArray();
+        var getOnly = args.Contains("--get", StringComparer.Ordinal);
+        var sizes = args.Skip(1).Where(a => !a.StartsWith("--", StringComparison.Ordinal))
+            .Select(a => int.Parse(a, CultureInfo.InvariantCulture)).ToArray();
         if (sizes.Length == 0)
         {
             sizes = [500, 5000];
@@ -44,7 +47,11 @@ internal static partial class BigTableReport
             {
                 Kit = kit;
                 Rows = rows;
-                Measure(kit, rows, "a html", () => Table().ToHtml().Length);
+                if (!getOnly)
+                {
+                    Measure(kit, rows, "a html", () => Table().ToHtml().Length);
+                }
+
                 Measure(kit, rows, "b get ", () => host.Get());
             }
         }
@@ -54,12 +61,18 @@ internal static partial class BigTableReport
 
     private static void Measure(bool kit, int rows, string arm, Func<int> run)
     {
-        run(); // warm
+        // A run past 10,000 rows is long enough to be its own warm-up, and slow enough before a fix to take minutes.
+        var runs = rows > 10_000 ? 1 : 3;
+        if (runs > 1)
+        {
+            run();
+        }
+
         GC.Collect();
         var best = TimeSpan.MaxValue;
         long allocated = 0;
         var length = 0;
-        for (var i = 0; i < 3; i++)
+        for (var i = 0; i < runs; i++)
         {
             var before = GC.GetTotalAllocatedBytes(precise: true);
             var watch = Stopwatch.StartNew();

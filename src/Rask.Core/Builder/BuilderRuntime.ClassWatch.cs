@@ -20,20 +20,26 @@ public static partial class BuilderRuntime
 
     private static void WatchClass(Component target, ulong bit, string? before, string? after)
     {
-        var watches = CollectionsMarshal.AsSpan(_classWatches);
-        for (var i = watches.Length - 1; i >= 0; i--)
+        // A component with no watch open needs no look: the scan is only for a second write of the same pass, and
+        // it finds that one at the tail, where the chain that is writing it left it.
+        if (target.ClassWatchedInternal)
         {
-            ref var watch = ref watches[i];
-            if (ReferenceEquals(watch.Target, target) && watch.Bit == bit)
+            var watches = CollectionsMarshal.AsSpan(_classWatches);
+            for (var i = watches.Length - 1; i >= 0; i--)
             {
-                watch.After = after;
-                return;
+                ref var watch = ref watches[i];
+                if (ReferenceEquals(watch.Target, target) && watch.Bit == bit)
+                {
+                    watch.After = after;
+                    return;
+                }
             }
         }
 
         if (!string.Equals(before, after, StringComparison.Ordinal))
         {
             (_classWatches ??= new List<ClassWatchEntry>()).Add(new ClassWatchEntry(target, bit, before, after));
+            target.ClassWatchedInternal = true;
         }
     }
 
@@ -42,7 +48,7 @@ public static partial class BuilderRuntime
     private static void ForgetClass(Component target, ulong bit)
     {
         var watches = _classWatches;
-        if (watches is null)
+        if (watches is null || !target.ClassWatchedInternal)
         {
             return;
         }
@@ -57,15 +63,34 @@ public static partial class BuilderRuntime
         }
     }
 
-    // Reports the change for every class prop of `target` whose final value differs from where the pass started.
-    private static void SettleClasses(Component target)
+    // Marks a drained component's open watches for the settle pass that follows the drain.
+    private static bool MarkForSettling(Component target)
     {
-        var watches = _classWatches!;
+        if (!target.ClassWatchedInternal)
+        {
+            return false;
+        }
+
+        target.ClassSettlingInternal = true;
+        return true;
+    }
+
+    // Reports the change for every class prop of every marked component whose final value differs from where the
+    // pass started, and drops their watches. One pass over the list for a whole drain: a pass per drained
+    // component made a first render of n cells, each with a watch open, n x n.
+    private static void SettleMarkedClasses()
+    {
+        var watches = _classWatches;
+        if (watches is null)
+        {
+            return;
+        }
+
         var write = 0;
         for (var read = 0; read < watches.Count; read++)
         {
             var watch = watches[read];
-            if (!ReferenceEquals(watch.Target, target))
+            if (!watch.Target.ClassSettlingInternal)
             {
                 watches[write++] = watch;
                 continue;
@@ -73,12 +98,17 @@ public static partial class BuilderRuntime
 
             if (!string.Equals(watch.Before, watch.After, StringComparison.Ordinal))
             {
-                target.MarkEntryPropsChangedInternal();
+                watch.Target.MarkEntryPropsChangedInternal();
             }
         }
 
         watches.RemoveRange(write, watches.Count - write);
     }
 
-    private static bool HasClassWatches => _classWatches is { Count: > 0 };
+    // A drained component has no watch left open: settled, or never opened.
+    private static void ClearClassMarks(Component target)
+    {
+        target.ClassWatchedInternal = false;
+        target.ClassSettlingInternal = false;
+    }
 }
