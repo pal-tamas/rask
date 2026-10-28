@@ -56,7 +56,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var html = Orders().ToHtml();
 
-        Assert.Contains("<div class=\"flex\">Customer</div></th>", html, StringComparison.Ordinal);
+        Assert.Contains(@"<div class=""flex in-[.group\/center-align]:justify-center in-[.group\/end-align]:justify-end"">Customer</div></th>", html, StringComparison.Ordinal);
         Assert.Contains(">Lindsey</td>", html, StringComparison.Ordinal);
     }
 
@@ -117,22 +117,61 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         var bleeding = Ui.Table.Bleed()[Ui.TableRows[row]].ToHtml();
 
         Assert.DoesNotContain("--ui-bleed", plain, StringComparison.Ordinal);
-        Assert.Matches("<table class=\"[^\"]*\\[:where\\(&amp;_\\[data-ui-cell\\]:first-child\\)\\]:ps-\\[var\\(--ui-bleed,1.5rem\\)\\]", bleeding);
-        Assert.Matches("<table class=\"[^\"]*\\[:where\\(&amp;_\\[data-ui-column\\]:last-child\\)\\]:pe-\\[var\\(--ui-bleed,1.5rem\\)\\]", bleeding);
+        Assert.EndsWith(
+            " [&_[data-ui-column]:first-child]:ps-[var(--ui-bleed,1.5rem)] [&_[data-ui-cell]:first-child]:ps-[var(--ui-bleed,1.5rem)] "
+            + "[&_[data-ui-column]:last-child]:pe-[var(--ui-bleed,1.5rem)] [&_[data-ui-cell]:last-child]:pe-[var(--ui-bleed,1.5rem)]",
+            Classes(bleeding, "<table "),
+            StringComparison.Ordinal);
         Assert.DoesNotMatch("<td class=\"[^\"]*bleed", bleeding);
     }
 
     [Fact]
-    public void A_plain_cell_writes_Fluxs_class_list_with_its_defaults_at_zero_specificity()
+    public void A_plain_cell_writes_Fluxs_class_list_as_Flux_writes_it()
     {
         var html = Ui.TableCell["$49.00"].ToHtml();
 
-        var classes = System.Text.RegularExpressions.Regex.Match(html, "class=\"([^\"]*)\"").Groups[1].Value.Replace("&amp;", "&", StringComparison.Ordinal);
+        var classes = Classes(html, "<td ");
 
         Assert.Equal(
-            "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3 [:where(&)]:text-sm "
-            + "[:where(&)]:text-zinc-500 dark:[:where(&)]:text-zinc-300 not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20",
+            "[:where(&)]:py-3 [:where(&)]:px-3 first:ps-0 last:pe-0 text-sm text-zinc-500 dark:text-zinc-300 "
+            + "not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20",
             classes);
+    }
+
+    [Fact]
+    public void A_heading_writes_Fluxs_class_list_as_Flux_writes_it()
+    {
+        var html = Ui.TableColumn["Customer"].ToHtml();
+
+        var classes = Classes(html, "<th ");
+
+        Assert.Equal(
+            "py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium text-zinc-800 dark:text-white "
+            + "border-b border-zinc-800/10 dark:border-white/20 **:data-ui-table-sortable:last:me-0",
+            classes);
+    }
+
+    [Fact]
+    public void A_table_writes_Fluxs_class_list_as_Flux_writes_it()
+    {
+        var html = Ui.Table.ToHtml();
+
+        var classes = Classes(html, "<table ");
+
+        Assert.Equal(
+            "[:where(&)]:min-w-full table-fixed border-separate border-spacing-0 isolate text-zinc-800 whitespace-nowrap "
+            + "[&_dialog]:whitespace-normal [&_[popover]]:whitespace-normal",
+            classes);
+    }
+
+    [Fact]
+    public void A_call_sites_class_follows_the_kits_list_whole()
+    {
+        var html = Ui.TableCell.Class("  truncate ")["$49.00"].ToHtml();
+
+        var classes = Classes(html, "<td ");
+
+        Assert.EndsWith(" dark:border-white/20 truncate", classes, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -152,14 +191,20 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_sticky_column_and_cell_hold_to_the_left_and_carry_the_shadow_hook()
+    public void A_sticky_column_and_cell_hold_to_their_edge_as_Fluxs_do()
     {
-        var column = Ui.TableColumn.Sticky()["ID"].ToHtml();
+        const string stuck = "z-10 first:sticky first:left-0 last:sticky last:right-0 first:after:w-8 first:after:absolute "
+            + "first:after:inset-y-0 first:after:right-0 first:after:translate-x-full first:after:pointer-events-none last:after:w-8 "
+            + "last:after:absolute last:after:inset-y-0 last:after:left-0 last:after:-translate-x-full last:after:pointer-events-none "
+            + "in-data-scrolled-right:first:after:inset-shadow-[8px_0px_8px_-8px_rgba(0,0,0,0.05)] "
+            + "in-data-scrolled-left:last:after:inset-shadow-[-8px_0px_8px_-8px_rgba(0,0,0,0.05)]";
 
-        var cell = Ui.TableCell.Sticky()["428"].ToHtml();
+        var column = Classes(Ui.TableColumn.Sticky().Class("bg-white")["ID"].ToHtml(), "<th ");
+        var cell = Classes(Ui.TableCell.Sticky().Class("bg-white")["428"].ToHtml(), "<td ");
 
-        Assert.Contains(" sticky left-0 z-10 after:", column, StringComparison.Ordinal);
-        Assert.Contains(" sticky left-0 z-10 after:", cell, StringComparison.Ordinal);
+        Assert.Contains(" dark:border-white/20 " + stuck + " **:data-ui-table-sortable:last:me-0 bg-white", column, StringComparison.Ordinal);
+        Assert.Contains(" dark:text-zinc-300 " + stuck + " not-in-[tr:first-child]:border-t ", cell, StringComparison.Ordinal);
+        Assert.EndsWith(" bg-white", cell, StringComparison.Ordinal);
         Assert.DoesNotContain("sticky", Ui.TableCell["428"].ToHtml(), StringComparison.Ordinal);
     }
 
@@ -168,22 +213,24 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var plain = Ui.TableCell["$49.00"].ToHtml();
 
-        var strong = Ui.TableCell.Variant(Ui.TableCellVariant.Strong)["$49.00"].ToHtml();
+        var strong = Classes(Ui.TableCell.Variant(Ui.TableCellVariant.Strong)["$49.00"].ToHtml(), "<td ");
 
         Assert.Contains("text-zinc-500", plain, StringComparison.Ordinal);
-        Assert.Contains("font-medium [:where(&amp;)]:text-zinc-800 dark:[:where(&amp;)]:text-white", strong, StringComparison.Ordinal);
+        Assert.Contains(" text-sm font-medium text-zinc-800 dark:text-white not-in-", strong, StringComparison.Ordinal);
         Assert.DoesNotContain("text-zinc-500", strong, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Alignment_moves_a_cells_text_and_a_headings_label()
+    public void Alignment_moves_a_cells_text_and_names_a_headings_group()
     {
-        var cell = Ui.TableCell.End["$49.00"].ToHtml();
+        var end = Classes(Ui.TableCell.End.Variant(Ui.TableCellVariant.Strong)["$49.00"].ToHtml(), "<td ");
+        var center = Classes(Ui.TableCell.Center["$49.00"].ToHtml(), "<td ");
 
         var column = Ui.TableColumn.Center["Amount"].ToHtml();
 
-        Assert.Contains(" [:where(&amp;)]:text-end", cell, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"flex justify-center\">Amount</div>", column, StringComparison.Ordinal);
+        Assert.Contains(" text-sm text-end [&>*]:ms-auto font-medium text-zinc-800 ", end, StringComparison.Ordinal);
+        Assert.Contains(" text-sm text-center text-zinc-500 ", center, StringComparison.Ordinal);
+        Assert.Contains(" dark:border-white/20 group/center-align **:data-ui-table-sortable:last:me-0", Classes(column, "<th "), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -236,9 +283,12 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         var atEnd = Ui.TableColumn.End.Sortable()["Amount"].ToHtml();
 
-        Assert.Contains("<button class=\"-my-1 -ms-2 flex items-center ", atStart, StringComparison.Ordinal);
-        Assert.DoesNotContain("flex-row-reverse", atStart, StringComparison.Ordinal);
-        Assert.Contains("<div class=\"flex justify-end\"><button class=\"-my-1 -ms-8 flex flex-row-reverse items-center ", atEnd, StringComparison.Ordinal);
+        const string button = "flex items-center gap-1 -my-1 -ms-2 -me-2 px-2 py-1 [text-align:inherit] [text-indent:inherit] "
+            + @"[text-shadow:inherit] [text-transform:inherit] [word-spacing:inherit] in-[.group\/end-align]:flex-row-reverse "
+            + @"in-[.group\/end-align]:-me-2 in-[.group\/end-align]:-ms-8";
+        Assert.Contains("<button class=\"" + button + "\"", atStart, StringComparison.Ordinal);
+        Assert.Contains("<button class=\"" + button + "\"", atEnd, StringComparison.Ordinal);
+        Assert.Contains(" group/end-align group/sortable ", Classes(atEnd, "<th "), StringComparison.Ordinal);
         Assert.Contains("type=\"button\"><div>Amount</div><div class=", atEnd, StringComparison.Ordinal);
     }
 
@@ -310,4 +360,8 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("data-rask-key=\"order-428\"", html, StringComparison.Ordinal);
     }
+
+    // The class list of the first element the markup opens with <paramref name="tag" />, as the browser reads it.
+    private static string Classes(string html, string tag) =>
+        System.Net.WebUtility.HtmlDecode(System.Text.RegularExpressions.Regex.Match(html[html.IndexOf(tag, StringComparison.Ordinal)..], "class=\"([^\"]*)\"").Groups[1].Value);
 }

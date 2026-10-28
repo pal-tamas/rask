@@ -34,7 +34,7 @@ internal static class KitSocket
         const fetch0 = window.fetch;
         window.fetch = function (input, init) {
             const url = typeof input === 'string' ? input : (input && input.url) || '';
-            if (url.indexOf('/_rask/auth/who/') < 0) {
+            if (url.indexOf('/_rask/auth/who') < 0) {
                 return fetch0.call(this, input, init);
             }
             const kit = window.__kit;
@@ -45,6 +45,7 @@ internal static class KitSocket
                 after.port2.postMessage(0);
             };
             return fetch0.call(this, input, init).then(response => {
+                if (!response.ok) { done(); return response; }
                 const json = response.json.bind(response);
                 response.json = () => json().finally(done);
                 return response;

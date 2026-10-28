@@ -54,12 +54,30 @@ public abstract partial class Component : RaskMarkup
     //   bit 1 — the after-render hooks have fired once (RaiseOnRendered)
     //   bit 2 — a render walk has met it (MetByTheWalk): a hook's fault no longer waits for one
     //   bit 3 — held back by a Lazy not yet in view: the commit does not mount it, the walk does when it is drawn
+    //   bit 4 — a joined class step left a change report open on the builder's watch list (BuilderRuntime)
+    //   bit 5 — that report is being settled by the drain running now
     private byte _lifecycleFlags;
 
     private const byte FlagEntryPropsChanged = 1 << 0;
     private const byte FlagHasRenderedOnce = 1 << 1;
     private const byte FlagMetByTheWalk = 1 << 2;
     private const byte FlagHeldBack = 1 << 3;
+    private const byte FlagClassWatched = 1 << 4;
+    private const byte FlagClassSettling = 1 << 5;
+
+    // Lets the class watch skip a scan of its list for a component that has nothing on it: one table of thousands
+    // of cells each opening a watch made every scan as long as the table, and the first render quadratic.
+    internal bool ClassWatchedInternal
+    {
+        get => GetLifecycleFlag(FlagClassWatched);
+        set => SetLifecycleFlag(FlagClassWatched, value);
+    }
+
+    internal bool ClassSettlingInternal
+    {
+        get => GetLifecycleFlag(FlagClassSettling);
+        set => SetLifecycleFlag(FlagClassSettling, value);
+    }
 
     // Lazy's: a component built in a render it is not yet drawn in is not mounted by that render's commit.
     internal void HoldBackInternal(bool held) => SetLifecycleFlag(FlagHeldBack, held);

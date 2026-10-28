@@ -216,14 +216,31 @@ them until tagged releases begin.
   on plain `UseSqlite`/`UseNpgsql`/`UseSqlServer` keeps EF Core's `"{}"`. See
   [collections of values](docs/data.md#collections-of-values).
 
+- **BREAKING: a table writes Flux's own class lists, so an app's class that contradicts one needs `!`.** The owner's
+  call (2026-10-28): `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` now write exactly what Flux's table writes, in
+  Flux's order, read off fluxui.dev/components/table: a cell is `[:where(&)]:py-3 [:where(&)]:px-3 first:ps-0 last:pe-0
+  text-sm text-zinc-500 dark:text-zinc-300 not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20`, a
+  heading `py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium …`, the table `table-fixed text-zinc-800
+  whitespace-nowrap …`, a bleeding table Flux's `[&_[data-ui-cell]:first-child]:ps-[var(--ui-bleed,1.5rem)]` four, a
+  heading's alignment Flux's `group/end-align` that its label and sort button follow, and a sticky cell or heading
+  Flux's `first:sticky first:left-0 last:sticky last:right-0 …` (a last column now sticks at the right, and its shadow
+  is drawn while columns are hidden beside it). The 2026-10-09 rule that a plain class always beats a table default no
+  longer holds: write Tailwind's `!` where yours contradicts one, as Flux says, `Ui.TableCell.Class("ps-10!")` on a
+  first cell, `dark:text-white/70!`, `text-xs!`, `table-auto!`. A class that only adds (`truncate`, `w-40`, `py-0`,
+  `align-top`, `whitespace-normal` on a cell) needs nothing. A plain cell's list goes from 235 to 168 characters
+  (strong 244 → 177, end 270 → 191, strong + end 279 → 200, center 259 → 180; sticky 377 → 665, Flux's sticky list
+  being long), and a 14-cell row of `Ui.TableCell.Class("truncate").Title(text)[text]` from 4,537 to 3,375 bytes. A
+  cell's lists are built once per variant, alignment and stickiness instead of composed on every render: 100 × 14
+  cells allocate 1.49 MB instead of 4.01 MB (1,116 instead of 3,003 bytes a cell; 1,588 instead of 3,116 with a class).
+  The site's own call sites (the master-detail and nested-list demos, the dev tools' tree tab) carry the `!` now. Still
+  `parity.mjs table` at 1280 and 390 match Flux; `AnAppsClassWinsTests` pins both halves.
 - **A table cell writes 40% fewer class characters, so a big table is much less HTML.** Each `Ui.TableCell` used
   to carry two bleed rules of its own, `[:where([data-ui-table-bleed]_&:first-child)]:ps-[…]` and the `last-child`
   one, even in a table that does not bleed. Flux puts its bleed on the `<table>`, once per table, and now
   `Ui.Table.Bleed()` does the same: four zero-specificity rules on the table and none on any cell. The cell also
   uses Flux's `not-in-[tr:first-child]:border-t` for its row line. A plain cell's class list goes from 394 to 235
   characters (strong 403 → 244, end-aligned 415 → 270, sticky 536 → 377). A 14-cell row drops from 6,188 to
-  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. The cell's defaults stay at zero specificity, so a
-  class like `ps-10` or `text-red-600` on a cell still wins (`AnAppsClassWinsTests`). An end-aligned cell now also
+  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. (Since superseded by Flux's literal lists, above.) An end-aligned cell now also
   writes Flux's `[&>*]:ms-auto`, and the table writes Flux's `[&_dialog]:whitespace-normal
   [&_[popover]]:whitespace-normal`. The look is unchanged: `parity.mjs table` and `parity-filters-bleed.mjs` match Flux.
 
@@ -307,6 +324,23 @@ them until tagged releases begin.
   id, route, binding and message is the same; a guard test keeps daisyUI's classes and theme colours out of every
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
+### Performance
+- **A class list left with one part is that part, not a copy.** `BuilderRuntime.JoinClasses` (behind
+  `.Class("p-4", on ? "x" : null)` and every kit look) hands back the one non-blank, already-trimmed part as the
+  very string it was given, so a kit look with no app class no longer copies itself on every render.
+- **Every kit component joins its class list without a builder: a big kit table's live first GET allocates 23%
+  less.** `UiClass.Compose` (the join behind every `Ui.*` class attribute) built each list in a fresh
+  `StringBuilder`; it now hands a lone part back as itself and writes the rest exact-size through Core's
+  `BuilderRuntime.JoinClasses`. `big-table 5000` (`tests/Rask.Benchmarks`), kit live GET: 4,971 → 3,804 B a cell;
+  the HTML and its classes are unchanged. Nothing to change in an app.
+- **A big table's first page load is linear again: 5,000 rows of 14 cells went from 8.5 s to 0.15 s.** Every
+  `.Class(…)` on an element built in one `Render()` left a change report on a list, and the end of that render
+  scanned the whole list once per element: n² for n cells, about 0.12 ms a cell at 70,000 cells and 0.6 ms at
+  280,000. The reports are now settled in one pass per render. Live first GET of `Ui.Table` with
+  `Ui.TableCell.Class("truncate")` cells (`big-table` report in `tests/Rask.Benchmarks`): 500 rows 152 → 26 ms,
+  5,000 rows 8,471 → 149 ms, 20,000 rows 172 s → 3.4 s; plain `Tr`/`Td` the same. The HTML, the class join and
+  when a component counts as changed are unchanged. Nothing to change in an app.
+
 ### Fixed
 - **A Rask context builds EF Core's internal services once, not twice.** EF Core builds them for the options a
   context's constructor gets and again for what its `OnConfiguring` makes of them when the two differ. It refuses a
@@ -315,6 +349,14 @@ them until tagged releases begin.
   so each configuration built two. `UseRaskSqlite`, `UseRaskPostgres`, a RaskApp's `UseRaskDatabase` and the read
   context's factories now say the same up front, and the context shares one. Rask.Server.Tests builds 15 where it
   built 20, the limit.
+- **A slow answer to "is the browser still signed in as the same user?" no longer reconnects the tab.** A live page
+  asks `/_rask/auth/who` when it comes back to the reader and before the first event after a pause. The question had
+  five seconds of wall-clock time, and no answer counted as "the credential changed", so on a loaded host a tab
+  dropped its socket and reconnected mid-session (logged as closed by the client, status 1000). Now only an answer
+  that names another principal opens the connection again. A late, failed or error answer keeps the connection and
+  the tab asks again at the next trigger; the event it held leaves after one second of the page's own time and is
+  checked against the session's user on the server, as every event is. Both limits count the page's runnable time,
+  not the wall clock, like the HTTP stream's open deadline.
 - **A time picker's chevron darkens under the pointer, as Flux's does.** Before: it never changed. After: the button's
   goes zinc-300 to zinc-800 while the button is hovered, a typed field's zinc-400/75 to zinc-800 while the field is and
   none of its parts is (white in dark) — measured on Flux's with a real pointer.
@@ -1328,6 +1370,13 @@ them until tagged releases begin.
   the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
 
 ### Security
+
+- **The session id no longer appears in request URLs.** The question a live tab asks about its credential
+  (`/_rask/auth/who`) and its file uploads (`/_rask/upload`) name the session in the `Rask-Session` header, as the
+  HTTP fallback already does. A download, which the browser navigates to and so cannot carry a header, is now
+  `/_rask/download/{token}`: a one-shot token bound to the session that staged it, served only to that session's
+  user. The `{session}` paths still answer for one release, so a tab open across the deploy keeps working; a
+  reverse-proxy rule that matched `/_rask/upload/` or `/_rask/auth/who/` should match the bare paths too.
 
 - **A child row is read only by the tenant of the aggregate that holds it.** Before: since the unreleased reverse
   navigation on the read face, a child with no tenant column of its own was also readable by the tenant of any

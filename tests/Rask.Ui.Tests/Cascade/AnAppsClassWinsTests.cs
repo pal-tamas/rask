@@ -21,6 +21,10 @@ namespace Rask.UiTests.Cascade;
 ///         components where the kit still wins; there an app writes Tailwind's <c>!</c> (<c>ps-10!</c>), as
 ///         Flux's own guide says to. The full findings land in <c>artifacts/kit-class-overrides.txt</c>.
 ///     </para>
+///     <para>
+///         The table's parts are listed there on purpose (the owner, 2026-10-28): they write Flux's own class lists,
+///         and an app overrides them with <c>!</c>.
+///     </para>
 /// </remarks>
 public sealed class AnAppsClassWinsTests
 {
@@ -167,6 +171,9 @@ public sealed class AnAppsClassWinsTests
         ["UiSwitch"] = "display, width",
         ["UiTab"] = "display, gap, margin, padding, text colour, text size",
         ["UiTabPanel"] = "padding",
+        ["UiTable"] = "text colour",
+        ["UiTableCell"] = "padding, text colour, text size",
+        ["UiTableColumn"] = "padding, text colour, text size",
         ["UiTabs"] = "display, gap, padding, rounded",
         ["UiText"] = "text colour, text size",
         ["UiTextarea"] = "padding, rounded, text colour, text size, width",
@@ -192,9 +199,11 @@ public sealed class AnAppsClassWinsTests
     // A default as the table's cells wrote it before: heavier than any plain utility.
     private const string Weighted = "first:ps-0";
 
+    // Every utility plain and with Tailwind's `!`, which is how an app overrides a table's defaults.
     private static readonly Lazy<CompiledSheet> Sheet = new(() => CompiledSheet.Parse(KitConsumer.Compile(
         KitConsumer.Import,
-        string.Join(' ', Guarded.Concat(TableOnly).SelectMany(guard => guard.Utilities).Append(Weighted).Distinct(StringComparer.Ordinal)))));
+        string.Join(' ', Guarded.Concat(TableOnly).SelectMany(guard => guard.Utilities)
+            .SelectMany(utility => new[] { utility, utility + "!" }).Append(Weighted).Distinct(StringComparer.Ordinal)))));
 
     [Fact]
     public void An_apps_utility_beats_the_kits_default_on_every_component_but_the_known_ones()
@@ -236,14 +245,28 @@ public sealed class AnAppsClassWinsTests
         Assert.True(known == unseen, "The components rendered alone with a class that show it on no element are now:\n" + unseen);
     }
 
+    // The owner, 2026-10-28: a table's parts write Flux's own lists, and an app that overrides one writes `!`, as
+    // Flux's guide says. Before, they were written at zero specificity so a plain class won (2026-10-09).
     [Theory]
     [InlineData(typeof(UiTable))]
-    [InlineData(typeof(UiTableColumns))]
     [InlineData(typeof(UiTableColumn))]
+    [InlineData(typeof(UiTableCell))]
+    public void A_table_part_holds_Fluxs_defaults_and_an_apps_class_with_a_bang_beats_them(Type part)
+    {
+        var elements = KitRenders.Elements(part);
+
+        var held = elements.SelectMany(element => Lost(element, [.. Guarded, .. TableOnly])).Distinct().ToList();
+        var lost = elements.SelectMany(element => Lost(element, [.. Guarded, .. TableOnly], bang: true)).Distinct().ToList();
+
+        Assert.NotEmpty(held);
+        Assert.Empty(lost);
+    }
+
+    [Theory]
+    [InlineData(typeof(UiTableColumns))]
     [InlineData(typeof(UiTableRows))]
     [InlineData(typeof(UiTableRow))]
-    [InlineData(typeof(UiTableCell))]
-    public void A_table_part_yields_to_an_apps_class_in_everything_columns_are_laid_out_with(Type part)
+    public void A_table_part_with_no_defaults_of_its_own_yields_to_an_apps_class(Type part)
     {
         var elements = KitRenders.Elements(part);
 
@@ -267,7 +290,8 @@ public sealed class AnAppsClassWinsTests
     }
 
     // Every (family, kit rule, app utility) where the kit's rule still sets the property with the app's class beside it.
-    private static IEnumerable<(string Family, string Kit, string App)> Lost(StyledElement element, (string Family, string Property, string[] Utilities)[] guards)
+    private static IEnumerable<(string Family, string Kit, string App)> Lost(
+        StyledElement element, (string Family, string Property, string[] Utilities)[] guards, bool bang = false)
     {
         foreach (var (family, property, utilities) in guards)
         {
@@ -276,7 +300,7 @@ public sealed class AnAppsClassWinsTests
                 continue;
             }
 
-            foreach (var utility in utilities)
+            foreach (var utility in utilities.Select(utility => bang ? utility + "!" : utility))
             {
                 var app = Sheet.Value.Winner(Only(utility), property);
                 Assert.True(app is not null && app.Selector.SubjectClasses().Contains(utility, StringComparer.Ordinal), $"the sheet has no .{utility} that sets {property}.");

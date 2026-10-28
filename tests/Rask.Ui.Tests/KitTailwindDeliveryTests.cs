@@ -213,10 +213,12 @@ public sealed class KitTailwindDeliveryTests
     public void The_class_list_carries_candidates_as_markup_writes_them()
     {
         // Unescaped, variants and arbitrary values included: Tailwind reads the list the way it reads a
-        // page, and `.dark\:bg-white\/10` is a selector, not a class name.
+        // page, and `.dark\:bg-white\/10` is a selector, not a class name. The one backslash a class keeps is the one
+        // its markup writes: Flux's table names a group in an arbitrary selector, `in-[.group\/end-align]:…`.
         Assert.Contains("dark:bg-white/10", KitConsumer.Classes);
         Assert.Contains("rounded-lg", KitConsumer.Classes);
-        Assert.DoesNotContain(KitConsumer.Classes, name => name.Contains('\\', StringComparison.Ordinal));
+        Assert.Contains(@"in-[.group\/end-align]:justify-end", KitConsumer.Classes);
+        Assert.DoesNotContain(KitConsumer.Classes, name => name.Replace(@"\/", "/", StringComparison.Ordinal).Contains('\\', StringComparison.Ordinal));
     }
 
     // One compile per question, shared: each run of the engine costs most of a second, and a slow engine

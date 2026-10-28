@@ -112,4 +112,22 @@ public partial class ClassJoinTests : RaskMarkup
 
         Assert.All(renders, html => Assert.Contains("class=\"leaf a b\"", html, StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void A_join_left_with_one_trimmed_part_hands_that_very_string_back()
+    {
+        var look = string.Concat("p-4 ", "text-sm");
+
+        var joined = BuilderRuntime.JoinClasses([look, null, "  "]);
+
+        Assert.Same(look, joined);
+    }
+
+    [Fact]
+    public void A_join_left_with_one_part_that_needs_trimming_returns_it_trimmed()
+    {
+        var joined = BuilderRuntime.JoinClasses([null, " p-4 "]);
+
+        Assert.Equal("p-4", joined);
+    }
 }

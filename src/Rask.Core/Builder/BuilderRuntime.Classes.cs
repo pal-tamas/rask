@@ -19,6 +19,7 @@ public static partial class BuilderRuntime
     {
         var length = 0;
         var count = 0;
+        string? only = null;
         foreach (var part in parts)
         {
             var trimmed = part.AsSpan().Trim();
@@ -26,12 +27,20 @@ public static partial class BuilderRuntime
             {
                 length += trimmed.Length;
                 count++;
+                only = part;
             }
         }
 
         if (count == 0)
         {
             return null;
+        }
+
+        // The usual call has one part left (a kit look with no app class, a class whose condition is off): hand
+        // that string back rather than copy it on every render.
+        if (count == 1 && only!.Length == length)
+        {
+            return only;
         }
 
         var buffer = length + count - 1 <= 256 ? stackalloc char[length + count - 1] : new char[length + count - 1];

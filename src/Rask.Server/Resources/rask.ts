@@ -52,7 +52,7 @@ import {
     pageTimeout,
     type LiveConnection,
 } from "./rask-http-transport.js";
-import { createAuthWatch } from "./rask-auth-watch.js";
+import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "./rask-auth-watch.js";
 import { createUnacked, newestSeq } from "./rask-resend.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
@@ -240,24 +240,30 @@ import {
     let attempt = 0;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let suppressEvents = false;
-    const WHO_TIMEOUT_MS = 5000;
     // Set while the connection is dropped on purpose because the browser's credential changed (rask-auth-watch.ts):
     // the next one opens at once, with no backoff and nothing on screen.
     let authReopen = false;
     // Other tabs of this browser, for the one thing they tell each other: the credential changed, ask again.
     const authChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("rask-auth") : null;
-    const authWatch = createAuthWatch({
-        // Bounded: what the page sends waits for this answer, and a request that never comes back must not hold
-        // it for ever. No answer is "not the same", and the connection is opened again.
-        ask: () => fetch(prependBase("/_rask/auth/who/" + encodeURIComponent(sessionId ?? "")), {
+    // Bounded by the page's own time, as the stream's open is: a page starved of CPU is not given up on for being
+    // slow to read the answer. A late, failed or refused question is no answer (rask-auth-watch.ts), never a change.
+    function askWho(): Promise<WhoAnswer | null> {
+        const asking = new AbortController();
+        const stop = pageTimeout(() => asking.abort(), ASK_TIMEOUT_MS);
+        return fetch(prependBase("/_rask/auth/who"), {
             credentials: "same-origin",
             cache: "no-store",
-            signal: AbortSignal.timeout(WHO_TIMEOUT_MS),
-        }).then((response) => response.ok ? response.json() : {same: false}),
+            headers: {"rask-session": sessionId ?? ""},
+            signal: asking.signal,
+        }).then((response) => response.ok ? response.json() as Promise<WhoAnswer> : null)
+            .finally(stop);
+    }
+    const authWatch = createAuthWatch({
+        ask: askWho,
         reopen: reopenForAuth,
         release: flushQueue,
         tellOthers: () => authChannel?.postMessage(1),
-        wait: (again, ms) => { setTimeout(again, ms); },
+        wait: (again, ms) => { pageTimeout(again, ms); },
         now: () => Date.now(),
         focused: () => document.hasFocus(),
         visible: () => document.visibilityState === "visible",
@@ -1903,7 +1909,8 @@ import {
         }
         return new Promise<unknown>((resolve, reject) => {
             const xhr = new XMLHttpRequest();
-            xhr.open("POST", prependBase(`/_rask/upload/${encodeURIComponent(sessionId ?? "")}`));
+            xhr.open("POST", prependBase("/_rask/upload"));
+            xhr.setRequestHeader("rask-session", sessionId ?? "");
             xhr.responseType = "json";
             if (upload) {
                 xhr.upload.onprogress = (e) => {

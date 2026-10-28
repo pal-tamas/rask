@@ -6,8 +6,8 @@ namespace Rask.Dashboard.Tests;
 /// <summary>
 ///     The dashboard now lives under <c>/_rask</c>, which is also the framework's own reserved prefix:
 ///     scoped assets are served from <c>/_rask/a/{hash}.{ext}</c>, and the live runtime owns
-///     <c>/_rask/auth/redeem</c>, <c>/_rask/upload/{sessionId}</c> and
-///     <c>/_rask/download/{sessionId}/{token}</c>.
+///     <c>/_rask/auth/redeem</c>, <c>/_rask/upload</c> and
+///     <c>/_rask/download/{token}</c>.
 ///     <para>
 ///         Those are literal endpoints and the dashboard's pages resolve through a catch-all, so routing
 ///         precedence already keeps the framework's paths working — a page named <c>auth</c> would not
