@@ -557,7 +557,8 @@ from a form.
 column, so no migration is involved in any of this.
 
 **The navigations are inferred from the ids**, which is what gives the read side its freedom: you write the
-DDD-correct id on the aggregate and the join appears on the read face, having declared nothing.
+DDD-correct id on the aggregate and the join appears on the read face, having declared nothing. A relationship you
+*did* declare in `Configure` is followed instead — [configured relationships win](#configured-relationships-win).
 
 | Property on the aggregate | Target | Navigation |
 |---|---|---|
@@ -589,6 +590,52 @@ await Order
 Four aggregates in one statement, from a write model that holds nothing but ids. An id may name another
 aggregate's **child** too — `Fueling.Where(f => f.Pistol.TankId == tank)` reaches the pistol under its pump — and
 the child is filtered by its root's tenant like any other read.
+
+### Configured relationships win
+
+A relationship your entity's own `Configure` declares is followed as written: the navigation points at the
+`HasOne<T>()` you named, on the `HasForeignKey` you gave, and the id's name is never guessed at — the name rules above
+apply only to an id nothing is configured on. (Laravel's `belongsTo(Category::class, 'fk')` and Rails'
+`belongs_to :x, class_name:, foreign_key:` work the same way.)
+
+```csharp
+public sealed class Product : Aggregate<int, PerTenant>
+{
+    public int? ProductCategoryId { get; private set; }
+    public int? ForeignTaxProductCategoryId { get; private set; }
+
+    public static void Configure(EntityTypeBuilder<Product> b) =>
+        b.HasOne<ForeignTaxCategory>().WithMany().HasForeignKey(p => p.ForeignTaxProductCategoryId);
+}
+
+public sealed partial class ProviderCountry : Entity<(int TransactionTypeId, Country)>
+{
+    public int TransactionTypeId { get; private set; }   // the legacy column the provider's id kept
+    public string VatNumber { get; private set; } = "";
+
+    public static void Configure(EntityTypeBuilder<ProviderCountry> b) =>
+        b.HasOne<Provider>().WithMany().HasForeignKey(c => c.TransactionTypeId);
+}
+```
+
+| Configured | Navigation | The rows that point here |
+|---|---|---|
+| `ForeignTaxProductCategoryId` → `ForeignTaxCategory` | `ProductRead.ForeignTaxProductCategory` (`ForeignTaxCategoryRead?`) — named by the id, which ends in the target's last word | `ForeignTaxCategoryRead.Products` |
+| `ProductCategoryId`, nothing configured | `ProductRead.ProductCategory` — inferred, as before | `ProductCategoryRead.Products` |
+| `TransactionTypeId` → `Provider` | `ProviderCountryRead.Provider` — named by the target, the id says nothing of it | `ProviderRead.ProviderCountries` |
+| `PayeeId` and `AuditorId` → `Payee` | `Payee` and `Auditor` — an id that names itself keeps its name, and a second one to the same target is named by its id | `PayeeRead.Payrolls`, `PayeeRead.PayrollsAuditor` |
+
+```csharp
+await Provider.Where(p => p.Id == id)
+    .Select(p => p.ProviderCountries.Where(c => c.CountryId == hungary).Select(c => c.VatNumber).First());
+```
+
+A relationship configured from the other end — `b.HasMany<ProviderCountry>().WithOne().HasForeignKey(…)` in
+`Provider.Configure` — counts the same. One joined on a `HasPrincipalKey`, or on several columns, gets no navigation
+(the read face joins on the target's key) and no guess either. When every name a configured navigation could take is
+already a column, a collection or another relationship's navigation, the build stops with
+[RASK112](diagnostics.md#rask112). Only `Configure` is read: a relationship set up in `OnModelCreating` or an
+`IEntityTypeConfiguration` is not seen, and its id falls back to the name rules.
 
 ### The rows that point here
 

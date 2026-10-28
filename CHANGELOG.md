@@ -311,6 +311,19 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A read-face navigation could read the wrong table.** Before: the read face guessed every navigation from the id's
+  name, even where `Configure` said otherwise — `HasOne<ForeignTaxCategory>()…HasForeignKey(p => p.ForeignTaxProductCategoryId)`
+  still gave `ProductRead.ForeignTaxProductCategory` typed `ProductCategoryRead?`, so `p.ForeignTaxProductCategory!.Name`
+  silently read the `ProductCategories` table; and an id that kept a legacy name (`ProviderCountry.TransactionTypeId`
+  configured to `Provider`) got no navigation at all. Now the relationships an entity's `Configure` declares decide:
+  ```csharp
+  p.ForeignTaxProductCategory!.Name                                    // ForeignTaxCategoryRead — the configured table
+  c.Provider.Name                                                      // ProviderCountryRead.Provider, by TransactionTypeId
+  provider.ProviderCountries.Where(c => c.CountryId == hu).Select(c => c.VatNumber)
+  ```
+  The name rules stay for an id nothing is configured on. A configured navigation is named after its id when the id
+  ends in the target's last word, after the target otherwise; one with no free name is the new error
+  [RASK112](docs/diagnostics.md#rask112). See [configured relationships win](docs/data.md#configured-relationships-win).
 - **A slow answer to "is the browser still signed in as the same user?" no longer reconnects the tab.** A live page
   asks `/_rask/auth/who` when it comes back to the reader and before the first event after a pause. The question had
   five seconds of wall-clock time, and no answer counted as "the credential changed", so on a loaded host a tab
