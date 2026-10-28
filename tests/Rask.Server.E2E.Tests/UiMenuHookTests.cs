@@ -192,28 +192,25 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     public async Task A_long_press_opens_a_context_menu_that_stays_open_when_the_finger_lifts()
     {
         // Flux UI's context menu on a phone, 2026-10-27: the browser's contextmenu comes with the finger still
-        // down, and the menu is still open after the lift. A phone's browser says it as the press is held; headless
-        // Chromium on Linux, where CI runs, says nothing on a long press, so the walk says it for the phone: the
-        // finger down, its contextmenu, then the lift.
+        // down, and the menu is still open after the lift.
         var phone = new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true };
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, phone);
         var page = session.Page;
+        // The hooks load on demand: a press before they have is heard by nobody (a slow runner got there first).
         await session.HooksLoadedAsync();
-        var area = (await page.Locator("#area").BoundingBoxAsync())!;
-        var (x, y) = (area.X + (area.Width / 2), area.Y + (area.Height / 2));
-        var cdp = await page.Context.NewCDPSessionAsync(page);
-
-        await Touch(cdp, "touchStart", x, y);
-        await page.WaitForTimeoutAsync(600);
-        await page.Locator("#area").EvaluateAsync(
-            """
-            area => {
-              const box = area.getBoundingClientRect();
-              area.dispatchEvent(new PointerEvent("contextmenu", { bubbles: true, cancelable: true, pointerType: "touch",
-                buttons: 0, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 }));
+        // What a phone sends for a long press, as it sends it: the contextmenu with the finger still down (a touch
+        // pointer, no button), then the finger's lift. Sent as events, not a synthesized gesture: whether a desktop
+        // browser turns a held touch into contextmenu at all is its platform's choice (macOS's does, Linux's not).
+        await page.EvaluateAsync("""
+            () => {
+                const area = document.getElementById('area');
+                const box = area.getBoundingClientRect();
+                const at = { bubbles: true, cancelable: true, clientX: box.left + box.width / 2, clientY: box.top + box.height / 2 };
+                area.dispatchEvent(new PointerEvent('contextmenu', { ...at, pointerType: 'touch', buttons: 0 }));
+                area.dispatchEvent(new PointerEvent('pointerup', { ...at, pointerType: 'touch' }));
             }
             """);
-        await Touch(cdp, "touchEnd", x, y);
+        await page.WaitForFunctionAsync("() => document.querySelector(\"[data-testid='context'] [popover]\").matches(':popover-open')", null, new() { Timeout = 5_000 });
         await page.WaitForTimeoutAsync(300);
 
         Assert.True(await session.ShownAsync("[data-testid='context'] [popover]"));
@@ -355,14 +352,6 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         var box = (await target.BoundingBoxAsync())!;
         await page.Touchscreen.TapAsync(box.X + (box.Width / 2), box.Y + (box.Height / 2));
     }
-
-    // One finger, put down or lifted at a point: the touch, and the pointer events the browser makes of it.
-    private static Task Touch(ICDPSession cdp, string type, float x, float y) =>
-        cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
-        {
-            ["type"] = type,
-            ["touchPoints"] = type == "touchEnd" ? Array.Empty<object>() : new object[] { new Dictionary<string, object> { ["x"] = x, ["y"] = y } },
-        });
 
     // The hook answers at once and the page's own cursor a round trip later: this is where they agree.
     private static async Task SeeAsync(IPage page, string expected)

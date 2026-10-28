@@ -172,7 +172,14 @@ them until tagged releases begin.
   generator is on neither it nor its list of what is still made by hand. A build of this repository no longer
   moves anything upstream: Rask.Core's build stopped refreshing the MDN snapshot (the `RaskMdnRefresh` step is
   gone), and the site's build stopped re-reading its package islands' props — the `mdn` and the new `island-props`
-  followers do both, daily and gated. An app's own build still reads its islands' props as before.
+  followers do both, daily and gated. An app's own build still reads its islands' props as before. Rask.Ui's
+  icons and flags follow too: `heroicons` and `country-flag-icons` take npm's latest release, checked against the
+  registry's integrity, and the icons a release adds are recorded in the kit's public API. `Ui.Editor`'s engine
+  follows Tiptap's latest release (the whole family at one version, `prosemirror-model` still held): the lock is
+  checked against the registry and the engine rebuilt — and an engine that comes out bigger than the committed one
+  is not landed but opens an issue, since every visitor of an editor page downloads it. `Ui.Phone`'s engine
+  follows the same way, to the intl-tel-input release fluxui.dev serves (not npm's latest: its formatting is held
+  to Flux's key by key).
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then
@@ -309,6 +316,10 @@ them until tagged releases begin.
   attaches and nothing is logged — and a handler whose dispatch was cancelled (its `HandlerTimeout`, or its connection
   closing) the same way is recorded as timed out or cancelled, not faulted. A revalidator that fails uncancelled still
   refuses, as before.
+- **A submenu's flyout with room on neither side stays on the screen, as Flux's does.** Before: on a phone it was
+  turned to whichever side and hung past the edge (175px off its row at 390 wide). After: a last fallback,
+  `@position-try --ui-menu-submenu-inside`, slides it back to 5px inside the screen at its row's height, over the
+  menu — where Flux's lands.
 - **A listbox select's and a phone field's chevron, and a menu row's icons, darken under a tap on a phone, as
   Flux's do.** Before: Tailwind's `group-hover` (only where the device hovers), so a tapped button stayed light, and
   the chevron was held light whenever the list was open. After: a plain `:hover`, as Flux writes it

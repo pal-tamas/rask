@@ -260,8 +260,10 @@ async function measureOpen(browser, kind, url, shots, view, like) {
     // parity page is given the hook that does it, and nothing else of the runtime -- or the hooks its kind names.
     if (like) {
       // On a phone the overlay hook too: a tap leaves focus on the button it opened (rask-overlay.ts). Not where the
-      // page is written with picks made: there `focused` stands in for where Flux's script left focus.
-      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']), ...(view.phone && !kind.pick ? ['rask-overlay.ts'] : []));
+      // page is written with picks made: there `focused` stands in for where Flux's script left focus. And the
+      // placement, as in an app: an open list kept inside the viewport (rask-place.ts) — on a phone a list wider than
+      // the room left of it is turned to the trigger's other edge, as Flux's is.
+      await withRuntime(page, ...(kind.runtime ?? ['rask-list.ts']), 'rask-place.ts', ...(view.phone && !kind.pick ? ['rask-overlay.ts'] : []));
       if (kind.ready) await page.waitForSelector(kind.ready, { state: 'attached', timeout: 15000 });
     }
     const examples = [];
