@@ -117,7 +117,7 @@
       "name": "inter",
       "generator": "scripts/flux/inter-metrics.mjs",
       "outputs": ["src/Rask.Ui/UiChartInter.Metrics.cs"],
-      "why": "Run by hand; becomes a follower in P2."
+      "why": "Measured in Chromium on fluxui.dev's chart page (the widths the browser answers with Flux's Inter loaded), so it needs a browser and Flux's served face, not an npm release: run it by hand when Flux's Inter changes."
     },
     {
       "name": "lucide",
