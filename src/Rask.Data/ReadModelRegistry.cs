@@ -156,8 +156,7 @@ public static class ReadModelRegistry
 
         if (collection.ValueObject is { } element && source is null)
         {
-            var json = write?.FindNavigation(collection.Member)?.TargetEntityType.GetContainerColumnName();
-            builder.OwnsMany(element, collection.Member, owned => owned.ToJson(json));
+            MapJsonCollection(builder, collection.Member, element, write);
             return;
         }
 
@@ -166,6 +165,9 @@ public static class ReadModelRegistry
         {
             return;
         }
+
+        // The face declares a list where the model may declare a nullable one: a NULL column is read as the model allows.
+        primitive.IsRequired(!source.IsNullable);
 
         if ((store is { } table ? source.GetColumnName(table) : source.GetColumnName()) is { Length: > 0 } name)
         {
@@ -180,6 +182,30 @@ public static class ReadModelRegistry
         if (source.GetElementType() is { } written)
         {
             MirrorElement(primitive.ElementType(), written);
+        }
+    }
+
+    // The shape the write side stored it as: a complex collection — NULL only where the write model's property is
+    // nullable — or an owned one, for a property with no list behind it or one the entity's own Configure chose. The
+    // face declares every collection as a List<T>, which is the list EF Core needs.
+    private static void MapJsonCollection(
+        EntityTypeBuilder builder,
+        string member,
+        [DynamicallyAccessedMembers(DataTrimming.Entity)] Type element,
+        IEntityType? write)
+    {
+        if (write?.FindNavigation(member) is { } owned)
+        {
+            builder.OwnsMany(element, member, json => json.ToJson(owned.TargetEntityType.GetContainerColumnName()));
+            return;
+        }
+
+        var written = write?.FindComplexProperty(member);
+        var values = builder.ComplexCollection(member);
+        values.ToJson(written?.ComplexType.GetContainerColumnName());
+        if (written is not null)
+        {
+            values.Metadata.IsNullable = written.IsNullable;
         }
     }
 

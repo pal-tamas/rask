@@ -168,6 +168,20 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
+  `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
+  `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update
+  and read back as an empty list. Before: every such column was `NULL`, whatever the model said, and EF Core refused
+  `IsRequired()` on it ("configured as a collection"), so an app adopting a `Files nvarchar(max) NOT NULL` column could
+  not map it as it is. Rask now maps it as an EF Core complex collection instead of an owned one; queries, the read
+  face, element converters and wholesale replacement are unchanged. EF Core writes a complex collection through a
+  list, so the property needs one behind it: the `List<T>` field behind a read-only view, or a `List<T>` property.
+  A get-only `IReadOnlyList<T> { get; private set; }` has none and keeps the old `NULL` mapping. An existing app's next
+  migration snapshot changes, and every non-nullable value-object collection gets an `AlterColumn` to `NOT NULL`.
+  EF Core gives that column `defaultValue: "{}"`, an object, which no collection can read. **Change it to
+  `defaultValue: "[]"`** in that `AlterColumn`, and in any `AddColumn` of a new collection on a table that has rows.
+  Then SQLite, SQL Server and PostgreSQL all fill the existing `NULL` rows with `[]` before the column turns
+  `NOT NULL`. See [collections of values](docs/data.md#collections-of-values).
 
 - **The daily upstream run follows each source on its own.** `upstream.yml` runs every follower as a job of
   its own (`upstream-follow.yml`, `scripts/upstream/follow.sh <follower>`), gated by what its commit can reach and

@@ -402,6 +402,34 @@ await Trip.Where(t => t.Stops.Any(s => s.City == "Vienna" && s.Day >= 2));
 and deletes the rest. A value has no id, so there is nothing to match against: what the form posts is what the
 aggregate holds afterwards, and an empty list clears the collection.
 
+**The column is NULL only where the model says it may be.** `Tags` and `Stops` above are `NOT NULL`, and an empty
+collection is stored as `[]`, never as NULL. A nullable one, `List<Stop>? Detours { get; private set; }`, is a NULL
+column. This works the same way as Laravel's `$table->json('stops')` and Rails' `t.json :stops, null: false`. An
+adopted `Stops nvarchar(max) NOT NULL` column is mapped as it is, with no migration.
+
+A JSON column is an EF Core *complex collection*, which EF Core writes through a list. The property needs one
+behind it: the `List<T>` field behind a read-only view, as above, or a `List<T>` property of its own. A get-only
+`IReadOnlyList<Stop> Stops { get; private set; }` has no list behind it. It is mapped the old way, as an owned
+collection, and EF Core makes that column NULL whatever the model says.
+
+**Moving an existing app onto `NOT NULL` takes one edit to its next migration.** Before this, every value-object
+collection was a NULL column, so `rask db add` now writes an `AlterColumn` to `NOT NULL` for each non-nullable one.
+EF Core gives that column `defaultValue: "{}"`, an object, which no collection can read: a row filled with it fails
+on its next load. Change it to `"[]"`:
+
+```csharp
+migrationBuilder.AlterColumn<string>(
+    name: "Stops",
+    table: "Trip",
+    nullable: false,
+    defaultValue: "[]",          // EF Core wrote "{}"
+    oldClrType: typeof(string),
+    oldNullable: true);
+```
+
+SQLite, SQL Server and PostgreSQL then fill every NULL row with `[]` before the column turns `NOT NULL`. Make the
+same edit to the `AddColumn` that adds a new non-nullable collection to a table that already has rows.
+
 **Choose a child entity instead when the elements need identity** — to be referenced, updated one at a time, or
 indexed. That is the real trade-off, and the deciding factor is usually the index:
 
