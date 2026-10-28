@@ -218,6 +218,11 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Fixed
+- **Hebrew and Vietnamese counts take the plural form CLDR gives them.** Hebrew has a dual — 2 is `two`, not
+  `other` — and CLDR 49 counts 0 and 1 as `one` in Vietnamese, where Rask had no plural at all. A catalog without
+  those forms keeps compiling, with the usual warning that a form is missing. The curated table is now held to
+  CLDR itself: every carried language is run for each whole count up to 10,000 against CLDR's own rules, which
+  the new `cldr-plurals` follower keeps on CLDR's latest release (`PluralRulesMatchCldrTests`).
 - **`rask new` no longer fails on a busy machine with a regex timeout.** The template-marker scan gave each line a
   one-second wall-clock budget, which a starved thread could spend without matching anything; it now runs on .NET's
   linear-time engine, which needs no timeout (`TemplateMarkers`).

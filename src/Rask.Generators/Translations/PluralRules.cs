@@ -60,7 +60,6 @@ internal static class PluralRules
         ["hu"] = OneOther,
         ["tr"] = OneOther,
         ["bg"] = OneOther,
-        ["he"] = OneOther,
         ["eu"] = OneOther,
         ["af"] = OneOther,
         ["sq"] = OneOther,
@@ -72,12 +71,12 @@ internal static class PluralRules
         ["fr"] = ZeroIsOne,
         ["pt"] = ZeroIsOne,
         ["hy"] = ZeroIsOne,
+        ["vi"] = ZeroIsOne,
 
         // other only — no grammatical number.
         ["ja"] = OtherOnly,
         ["zh"] = OtherOnly,
         ["ko"] = OtherOnly,
-        ["vi"] = OtherOnly,
         ["th"] = OtherOnly,
         ["id"] = OtherOnly,
         ["ms"] = OtherOnly,
@@ -93,6 +92,7 @@ internal static class PluralRules
         ["lv"] = Latvian,
         ["ro"] = Romanian,
         ["ar"] = Arabic,
+        ["he"] = Hebrew,
     };
 
     private static Rule OneOther => new(
@@ -165,6 +165,15 @@ internal static class PluralRules
         """);
 
     // Romanian: one (1), few (0, or n%100 in 1..19), other.
+    // Hebrew: one (1), two (2 — the dual, "יומיים"), other.
+    private static Rule Hebrew => new(
+        ["one", "two", "other"],
+        """
+        if (n == 1) return 0;
+                if (n == 2) return 1;
+                return 2;
+        """);
+
     private static Rule Romanian => new(
         ["one", "few", "other"],
         """
@@ -214,6 +223,9 @@ internal static class PluralRules
     /// <summary>The body of the picker for a language, or <c>null</c> when Rask does not carry it.</summary>
     public static string? BodyFor(string cultureTag) =>
         _rules.TryGetValue(PrimaryLanguage(cultureTag), out var rule) ? rule.Body : null;
+
+    /// <summary>The languages Rask carries, by primary subtag.</summary>
+    public static IEnumerable<string> Languages => _rules.Keys;
 
     /// <summary>Whether <paramref name="name" /> is a CLDR plural category at all.</summary>
     public static bool IsCategory(string name) => Array.IndexOf(AllCategories, name) >= 0;
