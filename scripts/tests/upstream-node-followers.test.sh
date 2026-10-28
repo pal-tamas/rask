@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs)$
+# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs|UiFlagRegistry\.g\.cs|Flags/.*)$
 # The node followers of Rask.Ui's upstreams, each run in a copy of the files it writes against saved npm answers
 # (RASK_UPSTREAM_FIXTURES, scripts/upstream/npm.mjs): a new release is written with its version and integrity,
 # and records the public surface when it moves it; a tarball that is not the one the registry names, or a
@@ -14,12 +14,13 @@ root="$(git rev-parse --show-toplevel)"
 tmp="$(mktemp -d -t rask-node-followers.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
-files=(scripts/upstream/npm.mjs scripts/flux/lib.mjs scripts/flux/icons.mjs
-       src/Rask.Ui/Ui.IconName.cs src/Rask.Ui/UiIconPaths.g.cs)
+files=(scripts/upstream/npm.mjs scripts/flux/lib.mjs scripts/flux/icons.mjs scripts/flux/flags.mjs
+       src/Rask.Ui/Ui.IconName.cs src/Rask.Ui/UiIconPaths.g.cs src/Rask.Ui/UiFlagRegistry.g.cs)
 fresh() {
   rm -rf "$tmp/tree" "$tmp/saved" "$tmp/package"
   mkdir -p "$tmp/saved" "$tmp/tree/scripts/public-api"
   for f in "${files[@]}"; do mkdir -p "$tmp/tree/$(dirname "$f")"; cp "$root/$f" "$tmp/tree/$f"; done
+  cp -R "$root/src/Rask.Ui/Flags" "$tmp/tree/src/Rask.Ui/Flags"
   # What the follower asks to record, in place of a build of the kit.
   printf 'import sys\nopen(sys.argv[0] + ".log", "a").write(" ".join(sys.argv[1:]) + "\\n")\n' > "$tmp/tree/scripts/public-api/record.py"
 }
@@ -88,6 +89,41 @@ check "...and moves nothing"                           "" "$(unchanged "${icons[
 fresh
 check "a registry that does not answer is not a failure" passed "$(run flux/icons.mjs && echo passed)"
 check "...and moves nothing"                           "" "$(unchanged "${icons[@]}")"
+
+echo "==> country-flag-icons"
+# `flags [EXTRA]` puts 260 plain 3:2 flags (FR, IO and ES among them, never CP, DG or EA, which Unicode aliases
+# to them) and a licence in the package; EXTRA is one more file's body, as ZZ.svg.
+flags() {
+  for a in A B C D E F G H I J K; do for b in A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; do
+    case "$a$b" in CP|DG|EA) continue ;; esac
+    put "package/3x2/$a$b.svg" "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 513 342\"><path fill=\"#$a$b$a\" d=\"M0 0h513v342H0z\"/></svg>"
+  done; done
+  put package/3x2/IO.svg '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 513 342"><path d="M0 0h1"/></svg>'
+  put package/LICENSE 'The MIT License (MIT) Copyright (c) 2099 nobody'
+  [ -z "${1:-}" ] || put package/3x2/ZZ.svg "$1"
+}
+flag_files() { printf '%s\n' src/Rask.Ui/UiFlagRegistry.g.cs; (cd "$root" && ls src/Rask.Ui/Flags/*); }
+
+fresh
+flags
+publish country-flag-icons 99.0.0
+run flux/flags.mjs
+check "a new release is written"                       1 "$(has src/Rask.Ui/UiFlagRegistry.g.cs 'internal const string Version = "99.0.0";')"
+check "...naming its integrity"                        1 "$(has src/Rask.Ui/UiFlagRegistry.g.cs "$(sed -n 's/.*"integrity":"\([^"]*\)".*/\1/p' "$tmp/saved/$(fixture https://registry.npmjs.org/country-flag-icons/latest)")")"
+check "...with its licence"                            1 "$(has src/Rask.Ui/Flags/LICENSE.txt 'country-flag-icons 99.0.0 — ')"
+check "...its drawings"                                1 "$(has src/Rask.Ui/Flags/KZ.svg 'fill="#KZK"')"
+check "...and none of the last release's left over"    0 "$(ls "$tmp/tree/src/Rask.Ui/Flags" | grep -c '^[L-Z].\.svg$' || true)"
+check "--check passes on what it wrote"                passed "$(run flux/flags.mjs --check && echo passed)"
+
+fresh
+flags '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><script>alert(1)</script></svg>'
+publish country-flag-icons 99.0.0
+check "a drawing that is not plain artwork is refused" refused "$(run flux/flags.mjs || echo refused)"
+check "...and moves nothing"                           "" "$(unchanged $(flag_files))"
+
+fresh
+check "a registry that does not answer is not a failure" passed "$(run flux/flags.mjs && echo passed)"
+check "...and moves nothing"                           "" "$(unchanged $(flag_files))"
 
 [ "$failures" -eq 0 ] || { echo "upstream node followers: $failures failed" >&2; exit 1; }
 echo "upstream node followers: ok"

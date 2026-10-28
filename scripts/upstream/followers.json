@@ -83,6 +83,12 @@
       "outputs": ["src/Rask.Ui/UiIconPaths.g.cs", "src/Rask.Ui/Ui.IconName.cs", "src/Rask.Ui/PublicAPI/*/PublicAPI.*.txt"]
     },
     {
+      "name": "country-flag-icons",
+      "kind": "regenerate",
+      "run": "node scripts/flux/flags.mjs",
+      "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt", "src/Rask.Ui/Flags/*.svg"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
@@ -90,12 +96,6 @@
     }
   ],
   "manual": [
-    {
-      "name": "country-flag-icons",
-      "generator": "scripts/flux/flags.mjs",
-      "outputs": ["src/Rask.Ui/UiFlagRegistry.g.cs", "src/Rask.Ui/Flags/LICENSE.txt"],
-      "why": "Run by hand; becomes a follower in P2."
-    },
     {
       "name": "inter",
       "generator": "scripts/flux/inter-metrics.mjs",
