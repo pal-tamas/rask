@@ -49,6 +49,7 @@ import {
     createTransportChooser,
     openHttpConnection,
     OPEN_TIMEOUT_MS,
+    pageTimeout,
     type LiveConnection,
 } from "./rask-http-transport.js";
 import { createAuthWatch } from "./rask-auth-watch.js";
@@ -177,6 +178,15 @@ import {
     } catch (err) {
         // Storage can throw outright in a partitioned or cookie-blocked context. Resume then works
         // for a reconnect (the token still lives in memory) but not across an F5. Not worth failing over.
+    }
+
+    // The page's own record, bound to the session it was served with: if a starved tab reaches the server only after
+    // that session was let go, the page is rebuilt where it stands rather than reloaded. It is newer than anything a
+    // previous page of this tab left in storage, so it replaces that.
+    const pageResume = root.getAttribute("data-rask-resume");
+    if (pageResume) {
+        root.removeAttribute("data-rask-resume");
+        resumeToken = pageResume;
     }
 
     function rememberResumeToken(token: string | null): void {
@@ -440,7 +450,7 @@ import {
 
         // A socket that neither opens nor fails — a proxy that swallows the upgrade — would otherwise leave the
         // page waiting for ever. Give up on it, and let the next attempt try HTTP.
-        const openTimeout = setTimeout(() => {
+        const stopOpenTimeout = pageTimeout(() => {
             if (opened) return;
             chooser.wsFailedBeforeOpen();
             try {
@@ -468,7 +478,7 @@ import {
 
         socket.addEventListener("open", () => {
             opened = true;
-            clearTimeout(openTimeout);
+            stopOpenTimeout();
             chooser.wsOpened();
             onConnectionOpen((hello) => socket.send(hello));
         });
@@ -490,7 +500,7 @@ import {
         }
 
         socket.addEventListener("close", (e: CloseEvent) => {
-            clearTimeout(openTimeout);
+            stopOpenTimeout();
             if (opened) {
                 chooser.wsClosed(deliberateClose);
             } else if (failedBeforeOpen()) {
@@ -507,7 +517,7 @@ import {
     function connectHttp(): void {
         const connection = openHttpConnection({
             sessionId: sessionId ?? "",
-            url: (kind, session) => prependBase("/_rask/" + kind + "/" + encodeURIComponent(session)),
+            url: (kind) => prependBase("/_rask/" + kind),
             resumeToken,
             sent: unacked.newest,
             onOpen: (session) => {

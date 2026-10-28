@@ -564,19 +564,13 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     /// </remarks>
     protected override string? TakeResumeToken()
     {
-        if (_disposed || Scope.ServiceProvider.GetService<SessionResumeSupport>()?.Protector is not { } protector)
+        if (ResumeProtector() is not { } protector)
         {
             return null;
         }
 
         var state = Scope.ServiceProvider.GetRequiredService<PersistentState>();
-        if (state.Overflowed)
-        {
-            return null;
-        }
-
-        var route = Scope.ServiceProvider.GetRequiredService<RouteState>();
-        var url = RouteUrl(route);
+        var url = RouteUrl(Scope.ServiceProvider.GetRequiredService<RouteState>());
         if (state.Version == _lastResumeVersion && string.Equals(url, _lastResumeUrl, StringComparison.Ordinal))
         {
             return null;
@@ -587,11 +581,49 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
         // cost for a record that is never going to be produced.
         _lastResumeVersion = state.Version;
         _lastResumeUrl = url;
+        return Seal(protector, url, state, firstPage: false);
+    }
 
+    /// <summary>
+    ///     The resume record the page's GET carries, bound to this session: a tab whose connection reaches the host
+    ///     only after the session was removed — a starved browser past the unconnected grace — is rebuilt where it
+    ///     stood instead of reloading.
+    /// </summary>
+    /// <remarks>
+    ///     It leaves the frames' own records as they were: the first frame still carries one, so what a connected tab
+    ///     holds is the record it always held.
+    /// </remarks>
+    internal string? FirstPageResumeToken()
+    {
+        if (ResumeProtector() is not { } protector)
+        {
+            return null;
+        }
+
+        var state = Scope.ServiceProvider.GetRequiredService<PersistentState>();
+        var url = RouteUrl(Scope.ServiceProvider.GetRequiredService<RouteState>());
+        return Seal(protector, url, state, firstPage: true);
+    }
+
+    // The protector, when this host seals records and this session can be resumed: a bag over its budget has
+    // declared itself unresumable, and a record it can never redeem is wire cost for nothing.
+    private SessionHandoffProtector? ResumeProtector() =>
+        !_disposed
+        && Scope.ServiceProvider.GetService<SessionResumeSupport>()?.Protector is { } protector
+        && !Scope.ServiceProvider.GetRequiredService<PersistentState>().Overflowed
+            ? protector
+            : null;
+
+    // No lambda: TakeResumeToken runs on every render, and a closure over its locals is allocated on entry, before
+    // the early returns — bytes on every live update for a record most renders never issue.
+    private string? Seal(SessionHandoffProtector protector, string url, PersistentState state, bool firstPage)
+    {
         try
         {
-            return protector.Protect(
-                url, Scope.ServiceProvider.GetRequiredService<SessionUserProvider>().Current, state.Entries);
+            var user = Scope.ServiceProvider.GetRequiredService<SessionUserProvider>().Current;
+            return firstPage
+                ? protector.ProtectFirstPage(Id, url, user, state.Entries)
+                : protector.Protect(url, user, state.Entries);
         }
         catch (CryptographicException)
         {

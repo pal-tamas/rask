@@ -35,6 +35,10 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
     private static readonly int Stress = Setting("RASK_E2E_PARALLEL_STRESS", 0);
     private static readonly int Throttle = Setting("RASK_E2E_PARALLEL_CPU_THROTTLE", 1);
 
+    // How long an answer may take before it counts as lost: a page whose scripts run N times slower is given N times
+    // as long, so what is counted is an answer that never came, not one a throttled page was slow to paint.
+    private static readonly float AnswerWithin = 15_000f * Throttle;
+
     private int _checked;
 
     [Fact]
@@ -57,14 +61,19 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
         finally
         {
             TestContext.Current.TestOutputHelper?.WriteLine(lifecycle.ToString());
+            if (Environment.GetEnvironmentVariable("RASK_E2E_LIFECYCLE_LOG") is { Length: > 0 } keep)
+            {
+                await File.WriteAllLinesAsync(keep, lifecycle.Lines, TestContext.Current.CancellationToken);
+            }
         }
 
-        Assert.Equal(Pages * Rounds * ChecksPerRound, Volatile.Read(ref _checked));
         Assert.True(lost.IsEmpty, $"{lost.Count} answers never reached their page:{Environment.NewLine}{string.Join(Environment.NewLine, lost)}"
                                   + $"{Environment.NewLine}{lifecycle}");
         // A tab that came back to a session this host had removed under it is told so, and reloads.
         Assert.True(lifecycle.Refused.IsEmpty, $"a tab came back to a removed session:{Environment.NewLine}"
                                                + $"{string.Join(Environment.NewLine, lifecycle.Refused)}{Environment.NewLine}{lifecycle}");
+        // Every check ran: a round cut short is noted as lost above, so this only says nothing was skipped silently.
+        Assert.Equal(Pages * Rounds * ChecksPerRound, Volatile.Read(ref _checked));
     }
 
     private async Task ReadAsync(string baseUrl, int reader, ConcurrentQueue<string> lost)
@@ -78,6 +87,21 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
             await cdp.SendAsync("Emulation.setCPUThrottlingRate", new Dictionary<string, object> { ["rate"] = Throttle });
         }
 
+        // RASK_E2E_FRAMES=<dir>: every frame this reader's page sent and received, kept for a reader that lost one.
+        var frames = new ConcurrentQueue<string>();
+        var keepFrames = Environment.GetEnvironmentVariable("RASK_E2E_FRAMES");
+        if (!string.IsNullOrEmpty(keepFrames))
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                frames.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} open {socket.Url}");
+                socket.FrameSent += (_, f) => frames.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} >> {Cut(f.Text)}");
+                socket.FrameReceived += (_, f) => frames.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} << {Cut(f.Text)}");
+                socket.Close += (_, _) => frames.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} closed");
+            };
+            page.Console += (_, m) => frames.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} console {m.Type}: {Cut(m.Text)}");
+        }
+
         for (var round = 1; round <= Rounds; round++)
         {
             var at = $"reader {reader}, round {round}";
@@ -85,14 +109,21 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
             {
                 await RoundAsync(page, baseUrl, at, lost);
             }
-            catch (TimeoutException ex)
+            catch (Exception ex) when (ex is TimeoutException or PlaywrightException)
             {
                 // A control that never appeared: the page is not the one the round expects. Noted, and the next round
                 // starts from a fresh load.
                 lost.Enqueue($"{at}: {ex.Message.Split('\n')[0]} {ex.Message.Split('\n').ElementAtOrDefault(2)}");
             }
         }
+
+        if (!string.IsNullOrEmpty(keepFrames) && lost.Any(l => l.StartsWith($"reader {reader},", StringComparison.Ordinal)))
+        {
+            await File.WriteAllLinesAsync(Path.Combine(keepFrames, $"reader-{reader}.log"), frames);
+        }
     }
+
+    private static string Cut(string? text) => text is null ? "(binary)" : text.Length <= 400 ? text : text[..400] + "…";
 
     private async Task RoundAsync(IPage page, string baseUrl, string at, ConcurrentQueue<string> lost)
     {
@@ -101,19 +132,28 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
 
         for (var save = 1; save <= 2; save++)
         {
-            await page.ClickAsync("#save");
+            await PressAsync(page, "#save");
             await Seen(page.Locator("#value"), $"value={save}", $"{at}: value read again after save {save}", lost);
             await Seen(page.Locator("[data-ui-toast]").GetByText($"Saved {save}."), null, $"{at}: toast of save {save}", lost);
         }
 
-        await page.ClickAsync("#run");
+        await PressAsync(page, "#run");
         await Seen(page.Locator("#job"), "job=1", $"{at}: job heard", lost);
         await Seen(page.Locator("[data-ui-toast]").GetByText("Job 1 done."), null, $"{at}: toast of the job", lost);
 
-        await page.ClickAsync("#to-list");
+        await PressAsync(page, "#to-list");
         await Seen(page.Locator("#list"), "listed 3", $"{at}: a list reached by a link", lost);
-        await page.ClickAsync("#to-desk");
+        await PressAsync(page, "#to-desk");
         await Seen(page.Locator("#rows"), "row 1, row 2, row 3", $"{at}: back at the desk", lost);
+    }
+
+    // Presses a control as a reader does: not while it shows it is still working on the last press (aria-busy), which
+    // it refuses by design — a second Save while the first is unanswered is the double submit it exists to stop.
+    private static async Task PressAsync(IPage page, string selector)
+    {
+        var control = page.Locator(selector);
+        await Expect(control).Not.ToHaveAttributeAsync("aria-busy", "true", new() { Timeout = AnswerWithin });
+        await control.ClickAsync();
     }
 
     // Waits for what an action brings back, noting it when it never comes rather than ending the reader's walk.
@@ -124,20 +164,26 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
         {
             if (text is null)
             {
-                await Expect(what).ToHaveCountAsync(1, new() { Timeout = 15_000 });
+                await Expect(what).ToHaveCountAsync(1, new() { Timeout = AnswerWithin });
             }
             else
             {
-                await Expect(what).ToHaveTextAsync(text, new() { Timeout = 15_000 });
+                await Expect(what).ToHaveTextAsync(text, new() { Timeout = AnswerWithin });
             }
         }
         catch (PlaywrightException ex)
         {
             var now = await what.Page.EvaluateAsync<string>(
                 "() => ['value', 'job', 'rows', 'list'].map(id => document.getElementById(id)?.textContent ?? '-').join(' | ')");
-            lost.Enqueue($"{described}: {ex.Message.Split('\n')[0]} (page: {now})");
+            var session = await what.Page.EvaluateAsync<string?>("() => document.body.getAttribute('data-rask-root')");
+            lost.Enqueue($"{described}: {ex.Message.Split('\n')[0]} (page: {now}; session #{Fingerprint(session)})");
         }
     }
+
+    // What the host's log calls a session: the first four bytes of its id's SHA-256.
+    private static string Fingerprint(string? sessionId) => sessionId is null
+        ? "-"
+        : Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(sessionId)).AsSpan(0, 4));
 
     private static int Setting(string name, int otherwise) =>
         int.TryParse(Environment.GetEnvironmentVariable(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
@@ -157,6 +203,9 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
 
         public ConcurrentQueue<string> Refused { get; } = new();
 
+        /// <summary>Every line, timed, for <c>RASK_E2E_LIFECYCLE_LOG</c> to keep.</summary>
+        public ConcurrentQueue<string> Lines { get; } = new();
+
         public ILogger CreateLogger(string categoryName) => this;
 
         public IDisposable? BeginScope<TState>(TState state)
@@ -167,6 +216,7 @@ public sealed class ParallelPagesTests(PlaywrightFixture playwright) : IClassFix
         public void Log<TState>(
             LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
+            Lines.Enqueue($"{DateTime.UtcNow:HH:mm:ss.fff} {formatter(state, exception)}");
             if (eventId.Id is > 1100 and < 1200 && state is IReadOnlyList<KeyValuePair<string, object?>> fields)
             {
                 var kind = string.Join(" / ", fields.Where(static f => Named.Contains(f.Key)).Select(static f => f.Value));

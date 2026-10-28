@@ -1,3 +1,4 @@
+using System.Buffers.Text;
 using System.Diagnostics.CodeAnalysis;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -45,19 +46,65 @@ internal sealed class SessionHandoffProtector
 
     private const byte FormatVersion = 1;
 
+    /// <summary>The sub-purpose a first page's record is sealed under, beneath the session id it was served with.</summary>
+    internal const string FirstPagePurpose = "FirstPage";
+
     private readonly ITimeLimitedDataProtector _protector;
+    private readonly IDataProtector _firstPage;
     private readonly TimeSpan _lifetime;
 
     internal SessionHandoffProtector(IDataProtectionProvider provider, TimeSpan lifetime)
     {
-        _protector = provider.CreateProtector(Purpose).ToTimeLimitedDataProtector();
+        var root = provider.CreateProtector(Purpose);
+        _protector = root.ToTimeLimitedDataProtector();
+        _firstPage = root.CreateProtector(FirstPagePurpose);
         _lifetime = lifetime;
     }
 
     /// <summary>
     ///     Seals a record for <paramref name="user" />. The returned string is safe to hand to the browser.
     /// </summary>
-    internal string Protect(string url, ClaimsPrincipal? user, IReadOnlyDictionary<string, byte[]> entries)
+    internal string Protect(string url, ClaimsPrincipal? user, IReadOnlyDictionary<string, byte[]> entries) =>
+        Convert.ToBase64String(Seal(_protector, url, user, entries));
+
+    /// <summary>
+    ///     Seals the record a first page carries, bound to the session it was served with as well as to
+    ///     <paramref name="user" />: it opens only for a connection that names that session.
+    /// </summary>
+    /// <remarks>
+    ///     A session the page's connection never reached in time — the unconnected grace ran out while a starved
+    ///     browser was still starting — is then rebuilt where it stood instead of reloading the tab. Bound by
+    ///     data-protection purpose, so the binding costs the page no bytes; base64url, so an HTML attribute carries it
+    ///     with nothing escaped.
+    /// </remarks>
+    internal string ProtectFirstPage(
+        string sessionId, string url, ClaimsPrincipal? user, IReadOnlyDictionary<string, byte[]> entries) =>
+        Base64Url.EncodeToString(Seal(FirstPage(sessionId), url, user, entries));
+
+    /// <summary>
+    ///     Opens a record a connection naming <paramref name="sessionId" /> carries: its first page's, bound to that
+    ///     session, or any later one.
+    /// </summary>
+    internal bool TryUnprotectFor(
+        string sessionId,
+        string token,
+        ClaimsPrincipal? user,
+        [NotNullWhen(true)] out SessionHandoffRecord? record,
+        out ResumeRejection rejection)
+    {
+        if (Open(FirstPage(sessionId), static t => Base64Url.DecodeFromChars(t), token, user, out record, out rejection))
+        {
+            return true;
+        }
+
+        return Open(_protector, Convert.FromBase64String, token, user, out record, out rejection);
+    }
+
+    private ITimeLimitedDataProtector FirstPage(string sessionId) =>
+        _firstPage.CreateProtector(sessionId).ToTimeLimitedDataProtector();
+
+    private byte[] Seal(
+        ITimeLimitedDataProtector protector, string url, ClaimsPrincipal? user, IReadOnlyDictionary<string, byte[]> entries)
     {
         using var buffer = new MemoryStream();
         using (var writer = new BinaryWriter(buffer, Encoding.UTF8, leaveOpen: true))
@@ -76,7 +123,7 @@ internal sealed class SessionHandoffProtector
             }
         }
 
-        return Convert.ToBase64String(_protector.Protect(buffer.ToArray(), _lifetime));
+        return protector.Protect(buffer.ToArray(), _lifetime);
     }
 
     /// <summary>
@@ -88,11 +135,20 @@ internal sealed class SessionHandoffProtector
         string token,
         ClaimsPrincipal? user,
         [NotNullWhen(true)] out SessionHandoffRecord? record,
+        out ResumeRejection rejection) =>
+        Open(_protector, Convert.FromBase64String, token, user, out record, out rejection);
+
+    private static bool Open(
+        ITimeLimitedDataProtector protector,
+        Func<string, byte[]> decode,
+        string token,
+        ClaimsPrincipal? user,
+        [NotNullWhen(true)] out SessionHandoffRecord? record,
         out ResumeRejection rejection)
     {
         record = null;
 
-        if (!TryOpen(token, out var plaintext, out rejection))
+        if (!TryOpen(protector, decode, token, out var plaintext, out rejection))
         {
             return false;
         }
@@ -145,7 +201,9 @@ internal sealed class SessionHandoffProtector
         }
     }
 
-    private bool TryOpen(string token, [NotNullWhen(true)] out byte[]? plaintext, out ResumeRejection rejection)
+    private static bool TryOpen(
+        ITimeLimitedDataProtector protector, Func<string, byte[]> decode, string token, [NotNullWhen(true)] out byte[]? plaintext,
+        out ResumeRejection rejection)
     {
         plaintext = null;
 
@@ -157,7 +215,7 @@ internal sealed class SessionHandoffProtector
 
         try
         {
-            plaintext = _protector.Unprotect(Convert.FromBase64String(token));
+            plaintext = protector.Unprotect(decode(token));
             rejection = ResumeRejection.None;
             return true;
         }

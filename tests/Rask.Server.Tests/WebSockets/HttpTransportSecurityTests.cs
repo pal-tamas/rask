@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Server.Tests.Infrastructure;
 
@@ -16,6 +17,47 @@ namespace Rask.Server.Tests.WebSockets;
 /// </remarks>
 public sealed class HttpTransportSecurityTests
 {
+    /// <summary>A runtime from before the header — a tab open across the deploy — still reaches its session by the path.</summary>
+    [Fact]
+    public async Task A_stream_that_names_its_session_in_the_path_still_attaches()
+    {
+        using var host = RaskTestHost.Create<NoOpApp>();
+        var sessionId = await StartSessionAsync(host);
+
+        using var response = await host.Http.SendAsync(
+            new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{sessionId}"), HttpCompletionOption.ResponseHeadersRead,
+            TestContext.Current.CancellationToken);
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(TestContext.Current.CancellationToken), Encoding.UTF8);
+        var opening = await EventStream.OpeningFrameAsync(reader);
+
+        Assert.Contains($"\"session\":\"{sessionId}\"", opening, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     The session id drives the session, so it never goes in a URL: ASP.NET's request log, a reverse proxy's access
+    ///     log and a browser's network panel all write the path down. It rides the <c>Rask-Session</c> header.
+    /// </summary>
+    [Fact]
+    public async Task A_tab_on_the_http_fallback_never_puts_its_session_id_in_a_request_path()
+    {
+        var paths = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        using var host = RaskTestHost.Create<NoOpApp>(configureMiddleware: app => app.Use(async (ctx, next) =>
+        {
+            paths.Enqueue(ctx.Request.Path + ctx.Request.QueryString);
+            await next(ctx);
+        }));
+        var sessionId = await StartSessionAsync(host);
+
+        await using (var tab = await LiveTestConnection.OpenAsync(host, LiveTransportKind.Http, sessionId))
+        {
+            await tab.SettledAsync();
+        }
+
+        Assert.Contains(paths, static p => p.StartsWith("/_rask/stream", StringComparison.Ordinal));
+        Assert.Contains(paths, static p => p.StartsWith("/_rask/send", StringComparison.Ordinal));
+        Assert.DoesNotContain(paths, p => p.Contains(sessionId, StringComparison.Ordinal));
+    }
+
     private static async Task<string> StartSessionAsync(RaskTestHost host)
     {
         using var response = await host.Http.GetAsync("/");
@@ -25,9 +67,9 @@ public sealed class HttpTransportSecurityTests
     private static async Task<(HttpResponseMessage Response, StreamReader Reader, string Generation)> OpenStreamAsync(
         RaskTestHost host, string sessionId)
     {
-        var response = await host.Http.SendAsync(
-            new HttpRequestMessage(HttpMethod.Get, $"/_rask/stream/{Uri.EscapeDataString(sessionId)}"),
-            HttpCompletionOption.ResponseHeadersRead);
+        var stream = new HttpRequestMessage(HttpMethod.Get, "/_rask/stream");
+        stream.Headers.Add("Rask-Session", sessionId);
+        var response = await host.Http.SendAsync(stream, HttpCompletionOption.ResponseHeadersRead);
         var reader = new StreamReader(await response.Content.ReadAsStreamAsync(), Encoding.UTF8);
         return (response, reader, await EventStream.GenerationAsync(reader));
     }
@@ -81,10 +123,11 @@ public sealed class HttpTransportSecurityTests
         using (response)
         using (reader)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
             {
                 Content = new StringContent("[]", Encoding.UTF8, "text/plain"),
             };
+            request.Headers.Add("Rask-Session", sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -144,7 +187,8 @@ public sealed class HttpTransportSecurityTests
         var content = new StreamContent(new UnknownLengthStream(big));
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}") { Content = content };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send") { Content = content };
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add("Rask-Stream", generation);
         request.Headers.TransferEncodingChunked = true;
 
@@ -166,10 +210,11 @@ public sealed class HttpTransportSecurityTests
         using (response)
         using (reader)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/send/{sessionId}")
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/send")
             {
                 Content = JsonContent.Create(Enumerable.Repeat(new { type = "noop" }, 10).ToArray()),
             };
+            request.Headers.Add("Rask-Session", sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var refused = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -191,7 +236,8 @@ public sealed class HttpTransportSecurityTests
         using (response)
         using (reader)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"/_rask/leave/{sessionId}");
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/_rask/leave");
+            request.Headers.Add("Rask-Session", sessionId);
             request.Headers.Add("Rask-Stream", generation);
 
             using var left = await host.Http.SendAsync(request, TestContext.Current.CancellationToken);
@@ -204,15 +250,16 @@ public sealed class HttpTransportSecurityTests
     }
 
     [Theory]
-    [InlineData("GET", "/_rask/stream/{0}")]
-    [InlineData("POST", "/_rask/send/{0}")]
-    [InlineData("POST", "/_rask/leave/{0}")]
+    [InlineData("GET", "/_rask/stream")]
+    [InlineData("POST", "/_rask/send")]
+    [InlineData("POST", "/_rask/leave")]
     public async Task A_cross_site_request_is_refused(string method, string path)
     {
         using var host = RaskTestHost.Create<NoOpApp>();
         var sessionId = await StartSessionAsync(host);
 
-        using var request = new HttpRequestMessage(new HttpMethod(method), string.Format(path, sessionId));
+        using var request = new HttpRequestMessage(new HttpMethod(method), path);
+        request.Headers.Add("Rask-Session", sessionId);
         request.Headers.Add("Sec-Fetch-Site", "cross-site");
 
         using var refused = await host.Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, TestContext.Current.CancellationToken);
