@@ -21,6 +21,13 @@ namespace Rask.Benchmarks;
 ///     A report rather than a BenchmarkDotNet class: one render of 5,000 rows takes seconds, and the question is
 ///     whether the cost per cell stays flat from 500 rows to 20,000. Usage: <c>big-table [rows…] [--get]</c>
 ///     (<c>--get</c>: the live GET alone).
+///     <para>
+///         Both figures are the MINIMUM over the timed runs, after an untimed warm-up, so a row reads the steady
+///         state rather than whichever run a pool chose to regrow in. The GET's bytes are counted process-wide
+///         (the request crosses threads), so a run that regrows a pooled buffer or overlaps a background
+///         sweep reads high, never low — the minimum is the run with none of that. The response is streamed
+///         into a fixed buffer, not buffered whole, so the client's own copy of a ~16 MB page is not counted.
+///     </para>
 /// </remarks>
 internal static partial class BigTableReport
 {
@@ -62,15 +69,16 @@ internal static partial class BigTableReport
     private static void Measure(bool kit, int rows, string arm, Func<int> run)
     {
         // A run past 10,000 rows is long enough to be its own warm-up, and slow enough before a fix to take minutes.
-        var runs = rows > 10_000 ? 1 : 3;
-        if (runs > 1)
+        var (warmups, runs) = rows > 10_000 ? (0, 1) : (2, 5);
+        for (var i = 0; i < warmups; i++)
         {
             run();
         }
 
         GC.Collect();
+        GC.WaitForPendingFinalizers();
         var best = TimeSpan.MaxValue;
-        long allocated = 0;
+        var allocated = long.MaxValue;
         var length = 0;
         for (var i = 0; i < runs; i++)
         {
@@ -78,7 +86,7 @@ internal static partial class BigTableReport
             var watch = Stopwatch.StartNew();
             length = run();
             watch.Stop();
-            allocated = GC.GetTotalAllocatedBytes(precise: true) - before;
+            allocated = Math.Min(allocated, GC.GetTotalAllocatedBytes(precise: true) - before);
             best = watch.Elapsed < best ? watch.Elapsed : best;
         }
 
@@ -121,6 +129,7 @@ internal static partial class BigTableReport
     {
         private readonly WebApplication _app;
         private readonly HttpClient _client;
+        private readonly byte[] _drain = new byte[64 * 1024];
 
         public Host()
         {
@@ -139,9 +148,17 @@ internal static partial class BigTableReport
 
         public int Get()
         {
-            using var response = _client.GetAsync(BigTablePage.Path).GetAwaiter().GetResult();
+            using var response = _client.GetAsync(BigTablePage.Path, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult();
             response.EnsureSuccessStatusCode();
-            return response.Content.ReadAsByteArrayAsync().GetAwaiter().GetResult().Length;
+            using var body = response.Content.ReadAsStream();
+            var length = 0;
+            int read;
+            while ((read = body.Read(_drain)) > 0)
+            {
+                length += read;
+            }
+
+            return length;
         }
 
         public void Dispose()
