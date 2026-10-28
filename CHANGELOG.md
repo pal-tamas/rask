@@ -302,6 +302,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A class list left with one part is that part, not a copy.** `BuilderRuntime.JoinClasses` (behind
+  `.Class("p-4", on ? "x" : null)` and every kit look) hands back the one non-blank, already-trimmed part as the
+  very string it was given, so a kit look with no app class no longer copies itself on every render.
 - **Every kit component joins its class list without a builder: a big kit table's live first GET allocates 23%
   less.** `UiClass.Compose` (the join behind every `Ui.*` class attribute) built each list in a fresh
   `StringBuilder`; it now hands a lone part back as itself and writes the rest exact-size through Core's
