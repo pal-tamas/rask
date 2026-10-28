@@ -50,5 +50,10 @@ if (args.Length >= 1 && args[0] == "allocation-profile")
     return AllocationProfileReport.Run(args);
 }
 
+if (args.Length >= 1 && args[0] == "big-table")
+{
+    return BigTableReport.Run(args);
+}
+
 BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
 return 0;
