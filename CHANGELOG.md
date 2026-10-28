@@ -302,6 +302,11 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **Every kit component joins its class list without a builder: a big kit table's live first GET allocates 23%
+  less.** `UiClass.Compose` (the join behind every `Ui.*` class attribute) built each list in a fresh
+  `StringBuilder`; it now hands a lone part back as itself and writes the rest exact-size through Core's
+  `BuilderRuntime.JoinClasses`. `big-table 5000` (`tests/Rask.Benchmarks`), kit live GET: 4,971 → 3,804 B a cell;
+  the HTML and its classes are unchanged. Nothing to change in an app.
 - **A big table's first page load is linear again: 5,000 rows of 14 cells went from 8.5 s to 0.15 s.** Every
   `.Class(…)` on an element built in one `Render()` left a change report on a list, and the end of that render
   scanned the whole list once per element: n² for n cells, about 0.12 ms a cell at 70,000 cells and 0.6 ms at

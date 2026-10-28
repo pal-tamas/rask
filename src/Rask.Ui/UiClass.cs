@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace Rask;
 
 /// <summary>
@@ -21,24 +19,28 @@ namespace Rask;
 /// </remarks>
 internal static class UiClass
 {
-    internal static string Compose(params string?[] parts)
+    internal static string Compose(params ReadOnlySpan<string?> parts)
     {
-        var sb = new StringBuilder();
+        // The commonest list is one part with nothing beside it: that string itself, no copy.
+        string? only = null;
+        var count = 0;
         foreach (var part in parts)
         {
-            if (string.IsNullOrWhiteSpace(part))
+            if (!string.IsNullOrWhiteSpace(part))
             {
-                continue;
+                only = part;
+                if (++count > 1)
+                {
+                    break;
+                }
             }
-
-            if (sb.Length > 0)
-            {
-                sb.Append(' ');
-            }
-
-            sb.Append(part.Trim());
         }
 
-        return sb.ToString();
+        if (count == 1 && only!.Length == only.AsSpan().Trim().Length)
+        {
+            return only;
+        }
+
+        return BuilderRuntime.JoinClasses(parts) ?? string.Empty;
     }
 }
