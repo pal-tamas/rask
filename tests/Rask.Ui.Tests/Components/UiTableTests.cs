@@ -109,6 +109,33 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_bleeding_table_moves_its_edge_columns_itself_so_no_cell_carries_a_bleed_rule()
+    {
+        var row = Ui.TableRow[Ui.TableCell["A"], Ui.TableCell["B"]];
+
+        var plain = Ui.Table[Ui.TableRows[row]].ToHtml();
+        var bleeding = Ui.Table.Bleed()[Ui.TableRows[row]].ToHtml();
+
+        Assert.DoesNotContain("--ui-bleed", plain, StringComparison.Ordinal);
+        Assert.Matches("<table class=\"[^\"]*\\[:where\\(&amp;_\\[data-ui-cell\\]:first-child\\)\\]:ps-\\[var\\(--ui-bleed,1.5rem\\)\\]", bleeding);
+        Assert.Matches("<table class=\"[^\"]*\\[:where\\(&amp;_\\[data-ui-column\\]:last-child\\)\\]:pe-\\[var\\(--ui-bleed,1.5rem\\)\\]", bleeding);
+        Assert.DoesNotMatch("<td class=\"[^\"]*bleed", bleeding);
+    }
+
+    [Fact]
+    public void A_plain_cell_writes_Fluxs_class_list_with_its_defaults_at_zero_specificity()
+    {
+        var html = Ui.TableCell["$49.00"].ToHtml();
+
+        var classes = System.Text.RegularExpressions.Regex.Match(html, "class=\"([^\"]*)\"").Groups[1].Value.Replace("&amp;", "&", StringComparison.Ordinal);
+
+        Assert.Equal(
+            "[:where(&)]:py-3 [:where(&:not(:first-child))]:ps-3 [:where(&:not(:last-child))]:pe-3 [:where(&)]:text-sm "
+            + "[:where(&)]:text-zinc-500 dark:[:where(&)]:text-zinc-300 not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20",
+            classes);
+    }
+
+    [Fact]
     public void The_pager_sits_in_the_box_after_the_scroll_area()
     {
         var html = Ui.Table.Paginate(Nav.Id("pager")).ToHtml();
