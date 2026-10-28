@@ -8,6 +8,23 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **An aggregate's form carries its children keyed by several columns.** Before: an aggregate whose base names `Model`
+  and holds `Entity<(Company, Teaor)>` rows was RASK106, and the rows were filled through a method of its own. Now a
+  LINK — the holder's part and one other, nothing else — is a list of that part's ids on the model, saved as a set
+  (added and removed by key, never updated, an unchanged set writes nothing); a row with fields of its own is a list
+  of rows matched by key (insert, update, delete), each carrying the parts the holder does not give:
+  ```csharp
+  model.ActivityIds = [teaorA.Id, teaorB.Id];                       // CompanyTeaors(CompanyId, TeaorId)
+  model.Columns = [new() { ColumnId = 3, Order = 1, Sum = true }];  // CompanyColumn(CompanyId, ColumnId, Order, Sum)
+  await Company.Update(id, model);                                  // one save, per-tenant parent included
+  ```
+  `Company.Model(id)` fills both for an edit form. An id the database refuses (no such activity) is a field error
+  under `ActivityIds`, a row's under `Columns`; two rows of one key are refused under `Columns` before anything is
+  written — the new strings-catalog keys `ValidationNotFound` and `ValidationDuplicateRow`, with built-in Hungarian.
+  The list's name is the collection made singular by Rails' rules (`Statuses` → `StatusIds`, `People` →
+  `PersonIds`), or the collection's own name when none applies (`StaffIds`). RASK106 now refuses only what a form truly cannot carry: rows holding rows of their own, a row with no
+  parameterless constructor, a key with no part for its holder. See
+  [Link tables and child rows on the form](docs/data.md#link-tables-and-child-rows-on-the-form).
 - **A slow tab is rebuilt, not reloaded.** A page's `GET` now carries a sealed resume record of itself
   (`data-rask-resume` on `<body>`, 175 bytes for an anonymous reader, about 220 signed in), bound to the session it was served with and to its reader, and
   expiring with `ResumeTokenLifetime`. Before: under load — parallel E2E runs, a CPU-starved browser — a tab could

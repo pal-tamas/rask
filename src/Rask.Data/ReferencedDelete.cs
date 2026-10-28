@@ -68,7 +68,7 @@ internal static class ReferencedDelete
             : null;
     }
 
-    private static bool IsForeignKeyViolation(DbException provider) =>
+    internal static bool IsForeignKeyViolation(DbException provider) =>
         string.Equals(provider.SqlState, PostgresForeignKeyViolation, StringComparison.Ordinal) ||
         string.Equals(provider.SqlState, PostgresRestrictViolation, StringComparison.Ordinal) ||
         string.Equals(provider.Data[SqlServerErrorNumber]?.ToString(), SqlServerConstraintConflict, StringComparison.Ordinal) ||

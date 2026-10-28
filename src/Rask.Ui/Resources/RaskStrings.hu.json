@@ -220,5 +220,7 @@
   "FiltersClear": "Szűrők törlése",
   "FiltersClearAll": "Összes törlése",
   "FiltersClose": "Bezárás",
-  "FilterRemove": "{0} szűrő törlése"
+  "FilterRemove": "{0} szűrő törlése",
+  "ValidationNotFound": "Az itt kiválasztott elem nem létezik.",
+  "ValidationDuplicateRow": "Ugyanaz a sor kétszer szerepel a listában."
 }

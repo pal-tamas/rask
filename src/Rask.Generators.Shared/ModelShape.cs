@@ -12,7 +12,8 @@ internal sealed class ModelShape(
     IReadOnlyList<ModelMember> members,
     IReadOnlyList<ModelValueObject> valueObjects,
     IReadOnlyList<ModelChild> children,
-    IReadOnlyList<ModelValueCollection> valueCollections)
+    IReadOnlyList<ModelValueCollection> valueCollections,
+    IReadOnlyList<ModelCompositeChild>? compositeChildren = null)
 {
     /// <summary>The entity.</summary>
     public INamedTypeSymbol Entity { get; } = entity;
@@ -40,6 +41,12 @@ internal sealed class ModelShape(
 
     /// <summary>The child collections this aggregate holds, in the order they are emitted.</summary>
     public IReadOnlyList<ModelChild> Children { get; } = children;
+
+    /// <summary>
+    ///     The collections of children keyed by several columns, in the order they are emitted: a list of ids or of
+    ///     rows on the form, each with why it cannot be when it cannot.
+    /// </summary>
+    public IReadOnlyList<ModelCompositeChild> CompositeChildren { get; } = compositeChildren ?? [];
 
     /// <summary>The collections of values it holds, in the order they are emitted.</summary>
     public IReadOnlyList<ModelValueCollection> ValueCollections { get; } = valueCollections;

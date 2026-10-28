@@ -100,6 +100,13 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         {
             // A child's form surface is the ROOT's, always: its model is carried by the root's form.
             var entity = candidate;
+
+            // A row keyed by several columns exists on a form only as the row its holder's form carries.
+            if (candidate.KeyedByParts && !childrenWithAForm.Contains(candidate.FullyQualifiedName))
+            {
+                continue;
+            }
+
             if (candidate.IsChild)
             {
                 entity = candidate with
@@ -133,8 +140,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         }
     }
 
-    // A form saves what it carries, and a form does not carry a row keyed by several columns yet: an aggregate whose
-    // form would hold one is refused rather than given a form that silently leaves it out.
+    // A form saves what it carries: a row keyed by several columns that it cannot carry — as a list of ids or of rows —
+    // is refused rather than given a form that silently leaves it out.
     private static void ReportFormsOverCompositeChildren(SourceProductionContext context, Entity entity)
     {
         if (entity.Writes == NoWrites)
@@ -144,14 +151,14 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
 
         foreach (var held in entity.CompositeChildren)
         {
-            var parts = held.Split('|');
+            var parts = held.Split(['|'], 3);
             context.ReportDiagnostic(Diagnostic.Create(
                 CompositeKeyGenerator.Rask106,
                 entity.Location?.ToLocation(),
                 parts[1],
-                $"'{entity.Name}.{parts[0]}' holds it on a form, and a form does not carry a row keyed by several "
-                + $"columns yet; take 'Model' (or 'CreateModel' / 'UpdateModel') off '{entity.Name}''s base and fill "
-                + $"'{parts[0]}' through a method of '{entity.Name}' — {entity.Name}.Update(id, x => x.Fill(…))"));
+                $"'{entity.Name}.{parts[0]}' holds it on a form, and {parts[2]}; take 'Model' (or 'CreateModel' / "
+                + $"'UpdateModel') off '{entity.Name}''s base and fill '{parts[0]}' through a method of '{entity.Name}' "
+                + $"— {entity.Name}.Update(id, x => x.Fill(…))"));
         }
     }
 
@@ -162,6 +169,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         {
             AnnouncesFieldRules = seams.FieldRules,
             RequiredFromCatalog = seams.RequiredSentence,
+            DuplicateRowFromCatalog = seams.DuplicateRowSentence,
             AnnouncesRequiredFields = seams.FieldRules && seams.RequiredFields,
             AnnouncesOptionalFields = seams.OptionalFields,
             DeclaresUniqueRules = entity.DeclaresUniqueRules && seams.StoreRules,
@@ -215,11 +223,14 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,
+        bool DuplicateRowFromCatalog = false,
         bool AnnouncesRequiredFields = false,
         bool AnnouncesOptionalFields = false,
         EquatableArray<string> ValidatingChildren = default,
         EquatableArray<string> AwaitingChildren = default,
-        EquatableArray<string> CompositeChildren = default)
+        EquatableArray<string> CompositeChildren = default,
+        EquatableArray<IdListShape> IdLists = default,
+        bool KeyedByParts = false)
     {
         public static Entity Refused(string fullyQualifiedName, string name, SymbolLocation? location, Refusal refusal, string detail) =>
             new(fullyQualifiedName, name, "", "public", null, false, false, null, KeySource.None, null, false, location, refusal, detail,
@@ -277,7 +288,21 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         string? FieldName,
         string FieldTypeName,
         Write? Replace,
-        string? FieldOwnerTypeName);
+        string? FieldOwnerTypeName,
+        EquatableArray<KeyMatch> KeyParts = default)
+    {
+        /// <summary>Whether a posted row is matched by its key's parts rather than by an <c>Id</c>.</summary>
+        public bool ByParts => KeyParts.Count > 0;
+    }
+
+    /// <summary>A part of a row's key its holder does not give: what a posted row is matched by.</summary>
+    private sealed record KeyMatch(string Name, string TypeName);
+
+    /// <summary>
+    ///     A collection of links on the form as the ids of their one other part — <c>ActivityIds</c> for
+    ///     <c>Activities</c> — saved as a set.
+    /// </summary>
+    private sealed record IdListShape(string Name, ChildShape Collection, string PartName, string PartTypeName, Write PartWrite);
 
     private sealed record Member(
         string Name,
@@ -288,7 +313,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         Write? Write,
         EquatableArray<string> Attributes,
         EquatableArray<string> Checks,
-        bool RequiredByType = false);
+        bool RequiredByType = false,
+        bool KeyPart = false);
 
     private sealed record Write(
         ModelWriteKind Kind,

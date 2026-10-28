@@ -33,9 +33,10 @@ public sealed class CompositeKeyGenerator : IIncrementalGenerator
                      + "a DeliveryNoteId and a TransactionId of those aggregates' key types, and an Id that is the "
                      + "two values together. That needs a partial class it can add to, parts it can name, and names "
                      + "nothing else holds. A grandchild names the child that holds it, which adds one column per part "
-                     + "of that child's key. The aggregate writes such rows through its own methods; a form does not "
-                     + "carry them yet, so an aggregate whose base names Model (or CreateModel / UpdateModel) and holds "
-                     + "one is refused here rather than given a form that leaves it out.",
+                     + "of that child's key. A form carries such rows — a link as a list of ids, a row with fields of "
+                     + "its own as a list of rows — unless they hold rows of their own, cannot be made, or name no part "
+                     + "for what holds them; an aggregate whose form would carry one of those is refused here rather "
+                     + "than given a form that leaves it out.",
         helpLinkUri: DiagnosticHelp.Link("RASK106"));
 
     /// <inheritdoc />
