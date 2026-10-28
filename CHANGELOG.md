@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK111 warns about a collection of value objects that will be a NULL column.** A get-only
+  `IReadOnlyList<FiledFile> Files { get; private set; }` has no list behind it for EF Core to write through, so it
+  keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that
+  get `NOT NULL`: a `List<FiledFile>` field behind the read-only view, or a `List<FiledFile>` property. See
+  [RASK111](docs/diagnostics.md#rask111).
 - **An aggregate's form carries its children keyed by several columns.** Before: an aggregate whose base names `Model`
   and holds `Entity<(Company, Teaor)>` rows was RASK106, and the rows were filled through a method of its own. Now a
   LINK — the holder's part and one other, nothing else — is a list of that part's ids on the model, saved as a set

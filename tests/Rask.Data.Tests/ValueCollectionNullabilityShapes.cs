@@ -49,7 +49,9 @@ public sealed class DraftFiling : Aggregate<int>
 {
     private DraftFiling() { }
 
+#pragma warning disable RASK111 // the shape this pins: it keeps the owned mapping and its NULL column
     public IReadOnlyList<FiledFile> Files { get; private set; } = new List<FiledFile>();
+#pragma warning restore RASK111
 }
 
 /// <summary>The return mapped by Rask's conventions alone.</summary>

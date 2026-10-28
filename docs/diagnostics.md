@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK110, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK111, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -134,6 +134,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASK109](#rask109) | Warning | A call to an `[Authorize]` component method cannot be checked where it is written |
 | [RASK110](#rask110) | Error | More than one class implements `IRaskModel` |
+| [RASK111](#rask111) | Warning | A collection of value objects with no list behind it is a NULL column |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3174,3 +3175,35 @@ public sealed class LegacyModel : IRaskModel { … }   // ✗ RASK110
 
 **Fix:** move the rules of one into the other and delete it. Two assemblies that each bring one are refused at start,
 naming both.
+
+## RASK111
+
+**A collection of value objects with no list behind it is a NULL column** · Warning
+
+A [collection of value objects](data.md#collections-of-values) is one JSON column, `NOT NULL` where the property is
+non-nullable. EF Core reads and writes that column through an `IList<T>`, so the property needs one behind it. A get-only
+`IReadOnlyList<T>` auto-property has none: its backing field is the same read-only view. Rask then maps it the old way,
+as an owned collection, and EF Core makes that column NULL whatever the model says.
+
+```csharp
+public sealed class ReturnFiling : Aggregate<int>
+{
+    public IReadOnlyList<FiledFile> Files { get; private set; } = new List<FiledFile>();   // ⚠ RASK111
+}
+```
+
+```text
+'Files' on 'ReturnFiling' has no list behind it, so its JSON column is NULL whatever its nullability; hold it in a List<FiledFile> field behind the read-only view, or declare it List<FiledFile>
+```
+
+**Fix:** put a list behind the view, or make the property the list:
+
+```csharp
+private readonly List<FiledFile> _files = [];
+public IReadOnlyList<FiledFile> Files => _files;                    // NOT NULL
+
+public List<FiledFile> Files { get; private set; } = [];            // NOT NULL
+```
+
+A collection of plain values (`IReadOnlyList<string>`) is a primitive collection, which needs no list behind it and is
+never reported.
