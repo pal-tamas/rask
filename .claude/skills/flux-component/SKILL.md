@@ -14,7 +14,9 @@ behaviour **to the pixel and to the keypress**. Its theme is Flux's alone: the z
 MIT. **Never open, read or copy that repository's Blade, CSS or JS.** Everything comes from the
 PUBLIC docs site: its markdown (`https://fluxui.dev/components/<slug>.md`, index at `/llms.txt`) and
 its live rendered examples, which `scripts/flux/measure.mjs` measures. Class strings are written from
-the measurements, never transcribed from a page's `class` attributes.
+the measurements, never transcribed from a page's `class` attributes — except a TABLE's parts, which the
+owner ordered to write Flux's literal per-cell class lists, read off the live DOM (2026-10-28: a printed
+table's size; an app beats a table default with `!`).
 
 ## 1. Read and measure
 ```bash
