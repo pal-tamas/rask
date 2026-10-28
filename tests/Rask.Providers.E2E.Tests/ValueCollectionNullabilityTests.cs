@@ -125,9 +125,7 @@ public sealed class ValueCollectionNullabilityTests
         {
             await owned.Database.EnsureDeletedAsync(TestContext.Current.CancellationToken);
             await owned.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-            await owned.Database.ExecuteSqlRawAsync(
-                "INSERT INTO [ReturnFilings] ([Files], [Labels]) VALUES (NULL, N'[]'), (N'[{\"Name\":\"a.pdf\",\"Pages\":1}]', N'[]')",
-                TestContext.Current.CancellationToken);
+            await SeedOnTheOwnedMappingAsync(owned, "INSERT INTO [ReturnFilings] ([Files], [Labels]) VALUES (NULL, N'[]')");
         }
 
         await using var rask = OnSqlServer(connection);
@@ -147,9 +145,7 @@ public sealed class ValueCollectionNullabilityTests
         await using (var owned = new OwnedFilingContext(new DbContextOptionsBuilder<OwnedFilingContext>().UseNpgsql(connection).Options))
         {
             await Postgres.ResetSchemaAsync(owned, Schema);
-            await owned.Database.ExecuteSqlRawAsync(
-                "INSERT INTO \"ReturnFilings\" (\"Files\", \"Labels\") VALUES (NULL, '{}'), ('[{\"Name\":\"a.pdf\",\"Pages\":1}]', '{}')",
-                TestContext.Current.CancellationToken);
+            await SeedOnTheOwnedMappingAsync(owned, "INSERT INTO \"ReturnFilings\" (\"Files\", \"Labels\") VALUES (NULL, '{}')");
         }
 
         await using var rask = new FilingContext(OnPostgres<FilingContext>(connection));
@@ -158,6 +154,23 @@ public sealed class ValueCollectionNullabilityTests
         await Postgres.DropSchemaAsync(rask, Schema);
 
         Assert.Equal([0, 1], files);
+    }
+
+    // A NULL row first, the way an app's NULL-able column holds one, then a filing the owned mapping writes itself — so
+    // what the migrated model reads back is JSON EF Core's owned collection wrote, not JSON the test spelled.
+    private static async Task SeedOnTheOwnedMappingAsync(OwnedFilingContext owned, string insertNull)
+    {
+        await owned.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
+        await using (var insert = owned.Database.GetDbConnection().CreateCommand())
+        {
+            insert.CommandText = insertNull;
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        var filing = ReturnFiling.Empty();
+        filing.File("a.pdf", 1);
+        owned.Add(filing);
+        await owned.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     private static async Task<List<int>> FileCountsAsync(FilingContext context) =>

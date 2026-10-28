@@ -126,9 +126,9 @@ public sealed class SqlServerValueCollectionTests
             new DbContextOptionsBuilder<TripDbContext>().UseRaskSqlServerAt(Offline).Options);
         var trip = db.Model.FindEntityType(typeof(Trip))!;
 
-        // A primitive collection is a column; a collection of value objects is a navigation held as JSON.
+        // A primitive collection is a column; a collection of value objects is a complex collection held as JSON.
         Assert.True(trip.FindProperty(nameof(Trip.Tags))!.IsPrimitiveCollection);
-        Assert.True(trip.FindNavigation(nameof(Trip.Stops))!.TargetEntityType.IsMappedToJson());
+        Assert.True(trip.FindComplexProperty(nameof(Trip.Stops))!.ComplexType.IsMappedToJson());
 
         // Both filters reach the column rather than coming back as client-side evaluation.
         Assert.Contains("OPENJSON", db.Trips.Where(t => t.Tags.Contains("urgent")).ToQueryString(), StringComparison.Ordinal);

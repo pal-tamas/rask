@@ -201,6 +201,7 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
         var stored = await StoredAsync(rask, filings[0].Id);
 
         Assert.Equal([0, 1], filings.Select(f => f.Files.Count));
+        Assert.Equal(("a.pdf", 1), (filings[1].Files[0].Name, filings[1].Files[0].Pages));
         Assert.Equal("'[]'", stored.Files);
     }
 
@@ -221,9 +222,17 @@ public sealed class ValueCollectionNullabilityTests : IDisposable
         await using var owned = new OwnedFilingContext(Sqlite<OwnedFilingContext>());
         await owned.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
         await owned.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
-        await using var insert = owned.Database.GetDbConnection().CreateCommand();
-        insert.CommandText = "INSERT INTO \"ReturnFilings\" (\"Files\", \"Labels\") VALUES (NULL, '[]'), ('[{\"Name\":\"a.pdf\",\"Pages\":1}]', '[]')";
-        await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        await using (var insert = owned.Database.GetDbConnection().CreateCommand())
+        {
+            insert.CommandText = "INSERT INTO \"ReturnFilings\" (\"Files\", \"Labels\") VALUES (NULL, '[]')";
+            await insert.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
+        }
+
+        // Written by the owned mapping itself, so what the migrated model reads is JSON EF Core's owned collection wrote.
+        var filing = ReturnFiling.Empty();
+        filing.File("a.pdf", 1);
+        owned.Add(filing);
+        await owned.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
     // The operations `dotnet ef migrations add` writes, applied the way `dotnet ef database update` applies them.
