@@ -350,6 +350,15 @@ them until tagged releases begin.
   input and tsgo stopped with TS5055. The scoped-TypeScript, Rask.Ui, Rask.Tailwind, Rask.External and
   Rask.Spa.Hosting paths are now resolved with `NormalizePath`, so an absolute one is used as it is, and the
   scoped-source globs skip build output wherever it lives (any nested `obj/`/`bin/`, and the moved output paths).
+- **A subscription or query change that landed while its reader was rendering could be lost.** Two holes in how
+  `Rask.Query` tells its readers. A stream value arriving on another thread at the moment a component registered as a
+  reader found it "read, but nobody reading any more" and closed the subscription — the end of a finite stream
+  (`IsEnded`), its last value and every later one never reached the page, which stayed on `Live` for good; the same
+  race could tear the reader list, turning a healthy stream into a reconnect. And a value, end, error or `Set` raised
+  from the reader's own thread after it had already read, in the same render, was skipped as "rendering already" — the
+  page kept showing what it read before the change. Now a reader is in the list before anyone can see it observed, the
+  list is replaced whole rather than mutated under a walk, and only a component that has not read the state yet in the
+  render under way is spared the second render.
 - **A read-face navigation could read the wrong table.** Before: the read face guessed every navigation from the id's
   name, even where `Configure` said otherwise — `HasOne<ForeignTaxCategory>()…HasForeignKey(p => p.ForeignTaxProductCategoryId)`
   still gave `ProductRead.ForeignTaxProductCategory` typed `ProductCategoryRead?`, so `p.ForeignTaxProductCategory!.Name`
