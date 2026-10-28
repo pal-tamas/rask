@@ -96,7 +96,8 @@ your own authorization check. It runs on the server: a WebAssembly page uploads 
 ## Downloading files
 
 `Download.File` stages bytes (or a stream) on the active session: on the Server they're served from
-`/_rask/download/{sid}/{token}`; on WASM the bytes stay on the .NET side and the render carries only a short
+`/_rask/download/{token}` — a one-shot token, served only to the session
+that staged it and to that session's user, so the session id never appears in the URL; on WASM the bytes stay on the .NET side and the render carries only a short
 token, which the page trades for the bytes through a JS-to-.NET call when it starts the download. The
 component code is the same. It must be called from an **event handler** — outside that scope it throws, because there's no live
 render round-trip to attach the download to. The handler can make other state changes too (here it bumps a

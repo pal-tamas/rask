@@ -92,7 +92,7 @@ The dashboard shows job payloads, stored email bodies, log lines and the names o
 `/_rask` as a view of your database, because that is what it is.
 
 `/_rask` is the framework's own reserved prefix — scoped assets are served from `/_rask/a/{hash}.{ext}`,
-the live runtime owns `/_rask/auth/redeem`, `/_rask/upload/{id}` and `/_rask/download/{id}/{token}`, and
+the live runtime owns `/_rask/auth/redeem`, `/_rask/upload`, `/_rask/auth/who` and `/_rask/download/{token}`, and
 [`Rask.Storage`](file-storage.md) owns `/_rask/files/public/{id}` and `/_rask/files/{token}`.
 Those are literal routes and the dashboard's pages resolve through a catch-all, so they coexist by
 ordinary routing precedence and none of them shadows an application route of yours.
