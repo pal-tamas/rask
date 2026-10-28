@@ -487,3 +487,12 @@ bundle,bytes
 rask.js,111095
 rask.wasm.js,96120
 rask-hooks.js,117568
+#
+# 2026-10-28, a guarded form in a modal asks before the reader closes the modal (rask-leave.ts, hooks only:
+# Escape, a `cancel`, a closing invoker button, and the dialog scope of `unsavedMessage`): rask-hooks.js
+# 117,568 -> 118,642. The runtimes are untouched by it (measured 111,239 / 96,218 on this tree, which is main's
+# own drift since the last refresh). Measured locally (Release) on main 906f58848.
+bundle,bytes
+rask.js,111095
+rask.wasm.js,96120
+rask-hooks.js,118642

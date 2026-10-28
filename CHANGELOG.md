@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A guarded form in a modal asks before the modal closes.** Before: a `ConfirmLeave` form inside a `Ui.Modal` or a
+  flyout asked only when the reader left the PAGE; its close button, a `Ui.ModalClose`, Escape or a press outside closed
+  the modal and dropped what was typed without a word. Now each of those asks first, in `Ui.ConfirmLeave` when the
+  layout has one: staying keeps the modal open with the edits, leaving closes it as it would have (`OnCancel`,
+  `OnClose`) and lets the edits go. A close the page makes (`Open` false after a save) is never asked about, as
+  `Go.To(…)` is not, and Escape is left to a listbox or popover open inside the modal first. A form in a closed modal
+  no longer counts as unsaved for a navigation. See [A form in a modal](docs/forms.md#a-form-in-a-modal).
 - **An aggregate's form carries its children keyed by several columns.** Before: an aggregate whose base names `Model`
   and holds `Entity<(Company, Teaor)>` rows was RASK106, and the rows were filled through a method of its own. Now a
   LINK — the holder's part and one other, nothing else — is a list of that part's ids on the model, saved as a set
