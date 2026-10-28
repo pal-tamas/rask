@@ -392,6 +392,20 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         table.EvaluateAsync<double[]>("el => [...el.querySelectorAll('thead th')].map(th => th.getBoundingClientRect().width)");
 
     [Fact]
+    public Task A_bleeding_table_sets_its_edge_columns_in_by_the_gutter_and_a_plain_one_keeps_them_flush() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+        const string paddings = "el => [...el.querySelectorAll('tr')].map(tr => [...tr.children].map(c => getComputedStyle(c).paddingLeft + ' ' + getComputedStyle(c).paddingRight).join('|'))";
+
+        var bleeding = await Page.Locator("[data-testid='ui-table-bleed'] table[data-ui-table]").EvaluateAsync<string[]>(paddings);
+        var plain = await Page.Locator("[data-testid='ui-table-intro'] table[data-ui-table]").EvaluateAsync<string[]>(paddings);
+
+        // The example's box says [--ui-bleed:1rem]: its heading row and every row of cells start and end 16px in.
+        Assert.All(bleeding, row => Assert.Equal("16px 12px|12px 12px|12px 16px", row));
+        Assert.All(plain, row => Assert.Matches("^0px 12px\\|(12px 12px\\|)*12px 0px$", row));
+    });
+
+    [Fact]
     public Task A_sticky_table_column_stays_put_and_casts_its_shadow_only_once_scrolled() => RunAsync(async () =>
     {
         await OpenUiPageAsync("table", "Table");

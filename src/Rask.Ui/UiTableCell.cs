@@ -9,9 +9,10 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTableCell : UiElement
 {
+    private const string Size = "[:where(&)]:text-sm";
+
     // Every row but the first draws the line above it.
-    private const string Base =
-        "border-zinc-800/10 [:where(&)]:text-sm dark:border-white/20 [[data-ui-row]:not(:first-child)>&]:border-t";
+    private const string Line = "not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20";
 
     private static readonly UiPartMarker Marker = new("ui-cell");
 
@@ -31,10 +32,11 @@ public sealed partial class UiTableCell : UiElement
     /// <inheritdoc />
     protected override string? ResolveClass() => UiClass.Compose(
         UiTableBox.Padding,
-        Base,
-        Tone(Variant),
+        Size,
         Alignment(Align),
+        Tone(Variant),
         Sticky is true ? UiTableBox.Stuck : "",
+        Line,
         Class);
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
@@ -48,7 +50,7 @@ public sealed partial class UiTableCell : UiElement
     private static string Alignment(Ui.Align? align) => align switch
     {
         Ui.Align.Center => "[:where(&)]:text-center",
-        Ui.Align.End => "[:where(&)]:text-end",
+        Ui.Align.End => "[:where(&)]:text-end [&>*]:ms-auto",
         _ => "",
     };
 }

@@ -186,6 +186,17 @@ them until tagged releases begin.
 
 ### Changed
 
+- **A table cell writes 40% fewer class characters, so a big table is much less HTML.** Each `Ui.TableCell` used
+  to carry two bleed rules of its own, `[:where([data-ui-table-bleed]_&:first-child)]:ps-[…]` and the `last-child`
+  one, even in a table that does not bleed. Flux puts its bleed on the `<table>`, once per table, and now
+  `Ui.Table.Bleed()` does the same: four zero-specificity rules on the table and none on any cell. The cell also
+  uses Flux's `not-in-[tr:first-child]:border-t` for its row line. A plain cell's class list goes from 394 to 235
+  characters (strong 403 → 244, end-aligned 415 → 270, sticky 536 → 377). A 14-cell row drops from 6,188 to
+  3,752 bytes of HTML, and Eszaf's 5,106-row print about 12 MB. The cell's defaults stay at zero specificity, so a
+  class like `ps-10` or `text-red-600` on a cell still wins (`AnAppsClassWinsTests`). An end-aligned cell now also
+  writes Flux's `[&>*]:ms-auto`, and the table writes Flux's `[&_dialog]:whitespace-normal
+  [&_[popover]]:whitespace-normal`. The look is unchanged: `parity.mjs table` and `parity-filters-bleed.mjs` match Flux.
+
 - **A component that reads a query stays in the render cache.** Reading `Query.Data` (or any query, command or
   subscription state) during `Render` used to take the component out of the render cache for good, so every walk
   ran it again. A walk that another component asked for (a modal closing, a counter ticking) re-ran the whole
