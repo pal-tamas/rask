@@ -46,6 +46,12 @@
     <ProjectReference Include="..\Rask.Cqrs\Rask.Cqrs.csproj"/>
   </ItemGroup>
 
+  <!-- The name a form gives a list of link ids (Activities → ActivityIds): the generator writes the list, and a refused
+       id is reported under it here, so both read the one rule. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Generators.Shared\FormListName.cs" Link="Shared\FormListName.cs"/>
+  </ItemGroup>
+
   <!--
     THE BROWSER FACE: AddRaskData in a WebAssembly app also wires what a Rask server host would — a save
     refreshes the page's Rask.Query queries about what it wrote (Browser/). Rask.Core is PrivateAssets="all"

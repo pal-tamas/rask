@@ -213,6 +213,6 @@ internal static class ReplacedChildren
     private static string Joined(IEnumerable<object?> values) =>
         string.Join('\u001f', values.Select(static v => Convert.ToString(v, System.Globalization.CultureInfo.InvariantCulture)));
 
-    private static bool IsKeyedByParts(IEntityType type) =>
+    internal static bool IsKeyedByParts(IEntityType type) =>
         AggregateChildren.IsChild(type.ClrType) && ModelBuilderExtensions.HasCompositeKey(type.ClrType);
 }

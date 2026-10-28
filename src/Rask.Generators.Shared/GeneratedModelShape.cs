@@ -77,10 +77,14 @@ internal static class GeneratedModelShape
             : null;
 
     /// <summary>Whether a model is actually generated for <paramref name="symbol" />.</summary>
-    /// <remarks>A row keyed by several columns is written through its aggregate's methods, not from a model.</remarks>
+    /// <remarks>
+    ///     A row keyed by several columns gets one only as a ROW its holder's form carries — one with fields of its own
+    ///     beside its key; a link is carried as a list of ids, and needs none.
+    /// </remarks>
     public static bool GetsModel(INamedTypeSymbol symbol) =>
         IsCandidate(symbol) && symbol.ContainingType is null && ClashingType(symbol) is null &&
-        !CompositeKeyShape.HasCompositeKey(symbol);
+        (!CompositeKeyShape.HasCompositeKey(symbol) ||
+         CompositeChildForm.Of(symbol) is { Kind: CompositeChildKind.Rows, Problem: null });
 
     /// <summary>The model's simple name: <c>ProductModel</c>.</summary>
     public static string ModelName(INamedTypeSymbol entity) => entity.Name + ModelSuffix;
@@ -329,6 +333,7 @@ internal static class GeneratedModelShape
 
         var children = new List<ModelChild>();
         var collections = new List<ModelValueCollection>();
+        var composite = new List<ModelCompositeChild>();
 
         foreach (var property in Properties(entity))
         {
@@ -336,12 +341,7 @@ internal static class GeneratedModelShape
 
             if (DescribeChild(entity, property) is { } child)
             {
-                // Not carried: a form does not carry a row keyed by several columns yet (RASK106).
-                if (!CompositeKeyShape.HasCompositeKey(child.ChildType))
-                {
-                    children.Add(child);
-                }
-
+                AddChild(entity, child, children, composite);
                 continue;
             }
 
@@ -360,7 +360,22 @@ internal static class GeneratedModelShape
             }
         }
 
-        return new ModelShape(entity, idType, key, members, valueObjects.Shapes, children, collections);
+        return new ModelShape(entity, idType, key, members, valueObjects.Shapes, children, collections, composite);
+    }
+
+    // A row keyed by several columns is carried as a list of ids or of rows, matched by its key — or, when it cannot be,
+    // kept with the reason, which RASK106 reports on a holder that has a form.
+    private static void AddChild(
+        INamedTypeSymbol entity, ModelChild child, List<ModelChild> children, List<ModelCompositeChild> composite)
+    {
+        if (!CompositeKeyShape.HasCompositeKey(child.ChildType))
+        {
+            children.Add(child);
+        }
+        else if (CompositeChildForm.For(entity, child) is { } form)
+        {
+            composite.Add(new ModelCompositeChild(child, form));
+        }
     }
 
     /// <summary>

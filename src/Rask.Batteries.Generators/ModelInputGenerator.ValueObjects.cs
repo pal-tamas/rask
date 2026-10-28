@@ -151,23 +151,13 @@ public sealed partial class ModelInputGenerator
             .Append(" is { } __given ? __given : new global::System.Collections.Generic.List<")
             .Append(child.ChildModelName).AppendLine(">();");
         s.AppendLine();
-        EmitStaleChildRemoval(s, comparer);
+        EmitStaleChildRemoval(s, child.ByParts ? SameKey(child) : "__row.Id is { } __rowId && " + comparer + ".Equals(__rowId, __stored.Id)");
         s.AppendLine();
         s.AppendLine("                foreach (var __row in __posted)");
         s.AppendLine("                {");
         s.Append("                    ").Append(child.ChildTypeName).AppendLine("? __target = null;");
         s.AppendLine();
-        s.AppendLine("                    if (__row.Id is { } __rowId)");
-        s.AppendLine("                    {");
-        s.AppendLine("                        foreach (var __stored in __children)");
-        s.AppendLine("                        {");
-        s.Append("                            if (").Append(comparer).AppendLine(".Equals(__rowId, __stored.Id))");
-        s.AppendLine("                            {");
-        s.AppendLine("                                __target = __stored;");
-        s.AppendLine("                                break;");
-        s.AppendLine("                            }");
-        s.AppendLine("                        }");
-        s.AppendLine("                    }");
+        EmitStoredMatch(s, child, comparer);
         s.AppendLine();
         s.AppendLine("                    if (__target is null)");
         s.AppendLine("                    {");
@@ -206,8 +196,85 @@ public sealed partial class ModelInputGenerator
         }
     }
 
-    // A stored child whose id no posted row carries is removed: the posted list is what the aggregate holds.
-    private static void EmitStaleChildRemoval(StringBuilder s, string comparer)
+    // The stored child a posted row is for: the one of its Id, or of its key's parts — never one an Id merely names.
+    private static void EmitStoredMatch(StringBuilder s, ChildShape child, string comparer)
+    {
+        if (child.ByParts)
+        {
+            s.AppendLine("                    foreach (var __stored in __children)");
+            s.AppendLine("                    {");
+            s.Append("                        if (").Append(SameKey(child)).AppendLine(")");
+            s.AppendLine("                        {");
+            s.AppendLine("                            __target = __stored;");
+            s.AppendLine("                            break;");
+            s.AppendLine("                        }");
+            s.AppendLine("                    }");
+            return;
+        }
+
+        s.AppendLine("                    if (__row.Id is { } __rowId)");
+        s.AppendLine("                    {");
+        s.AppendLine("                        foreach (var __stored in __children)");
+        s.AppendLine("                        {");
+        s.Append("                            if (").Append(comparer).AppendLine(".Equals(__rowId, __stored.Id))");
+        s.AppendLine("                            {");
+        s.AppendLine("                                __target = __stored;");
+        s.AppendLine("                                break;");
+        s.AppendLine("                            }");
+        s.AppendLine("                        }");
+        s.AppendLine("                    }");
+    }
+
+    // `__row` posted for `__stored`: every part of the key the holder does not give, equal.
+    private static string SameKey(ChildShape child) =>
+        string.Join(" && ", child.KeyParts.Select(static (part, index) =>
+            "__row." + part.Name + " is { } __part" + index.ToString(CultureInfo.InvariantCulture) +
+            " && global::System.Collections.Generic.EqualityComparer<" + part.TypeName + ">.Default.Equals(__part" +
+            index.ToString(CultureInfo.InvariantCulture) + ", __stored." + part.Name + ")"));
+
+    /// <summary>
+    ///     The link sync: after this, the aggregate holds one link for each distinct id the posted list holds.
+    /// </summary>
+    /// <remarks>
+    ///     A SET, so nothing is updated: a stored link whose id is not posted is removed, a posted id no link holds yet
+    ///     is a new link, and every other link is left exactly as it is — an unchanged list writes nothing.
+    /// </remarks>
+    private static void EmitIdListSync(StringBuilder s, IdListShape ids)
+    {
+        s.AppendLine();
+        s.AppendLine("        {");
+        s.Append("            var __children = ").Append(ChildrenOf(ids.Collection)).AppendLine(";");
+        s.AppendLine();
+        s.AppendLine("            if (__children is not null)");
+        s.AppendLine("            {");
+        s.Append("                var __posted = model.").Append(ids.Name)
+            .Append(" is { } __given ? __given : new global::System.Collections.Generic.List<").Append(ids.PartTypeName).AppendLine(">();");
+        s.Append("                var __new = new global::System.Collections.Generic.HashSet<").Append(ids.PartTypeName).AppendLine(">(__posted);");
+        s.AppendLine();
+        s.AppendLine("                foreach (var __stored in global::System.Linq.Enumerable.ToArray(__children))");
+        s.AppendLine("                {");
+        s.Append("                    if (!__new.Remove(__stored.").Append(ids.PartName).AppendLine("))");
+        s.AppendLine("                    {");
+        s.AppendLine("                        __children.Remove(__stored);");
+        s.AppendLine("                    }");
+        s.AppendLine("                }");
+        s.AppendLine();
+        s.AppendLine("                foreach (var __id in __posted)");
+        s.AppendLine("                {");
+        s.AppendLine("                    if (__new.Remove(__id))");
+        s.AppendLine("                    {");
+        s.Append("                        var __link = __New_").Append(ids.Name).AppendLine("();");
+        s.Append("                        ").AppendLine(Assignment(ids.PartWrite, "__link", ids.PartName, "__id"));
+        s.AppendLine("                        __children.Add(__link);");
+        s.AppendLine("                    }");
+        s.AppendLine("                }");
+        EmitChildWriteBack(s, ids.Collection);
+        s.AppendLine("            }");
+        s.AppendLine("        }");
+    }
+
+    // A stored child no posted row is for is removed: the posted list is what the aggregate holds.
+    private static void EmitStaleChildRemoval(StringBuilder s, string matches)
     {
         s.AppendLine("                foreach (var __stored in global::System.Linq.Enumerable.ToArray(__children))");
         s.AppendLine("                {");
@@ -215,8 +282,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
         s.AppendLine("                    foreach (var __row in __posted)");
         s.AppendLine("                    {");
-        s.Append("                        if (__row.Id is { } __rowId && ").Append(comparer)
-            .AppendLine(".Equals(__rowId, __stored.Id))");
+        s.Append("                        if (").Append(matches).AppendLine(")");
         s.AppendLine("                        {");
         s.AppendLine("                            __keep = true;");
         s.AppendLine("                            break;");

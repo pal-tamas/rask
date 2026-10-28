@@ -133,7 +133,9 @@ public sealed partial class ModelInputGenerator
             s.Append("/// It is a CHILD model: it belongs to the <c>")
                 .Append(entity.Name)
                 .AppendLine("</c> list on its aggregate's model, and is saved with it.");
-            s.AppendLine("/// It carries an <c>Id</c> so a save knows which stored child each row is — a row with none is a new one.");
+            s.AppendLine(entity.KeyedByParts
+                ? "/// It carries the parts of its key its aggregate does not give, so a save knows which stored row it is — a key held by none is a new one."
+                : "/// It carries an <c>Id</c> so a save knows which stored child each row is — a row with none is a new one.");
         }
         else if (entity.IdTypeName is not null)
         {
@@ -152,8 +154,26 @@ public sealed partial class ModelInputGenerator
         {
             s.Append("    /// <summary>A model holding <see cref=\"").Append(entityType)
                 .AppendLine("\" />'s own defaults — what its constructor and property initializers set.</summary>");
-            s.Append("    public ").Append(modelName).Append("() => ").Append(modelName)
-                .AppendLine("Extensions.__Fill(this, " + modelName + "Extensions.__Defaults());");
+            var fill = modelName + "Extensions.__Fill(this, " + modelName + "Extensions.__Defaults());";
+            var keyParts = entity.Members.Where(static m => m.KeyPart).ToList();
+            if (keyParts.Count == 0)
+            {
+                s.Append("    public ").Append(modelName).Append("() => ").AppendLine(fill);
+            }
+            else
+            {
+                // A new row's key is the form's to fill — never the 0 a new entity holds, which would match a stored row.
+                s.Append("    public ").Append(modelName).AppendLine("()");
+                s.AppendLine("    {");
+                s.Append("        ").AppendLine(fill);
+                foreach (var part in keyParts)
+                {
+                    s.Append("        ").Append(part.Name).AppendLine(" = null;");
+                }
+
+                s.AppendLine("    }");
+            }
+
             s.AppendLine();
             s.AppendLine("    /// <summary>A model with no values yet, filled by the generated <c>ToModel()</c>.</summary>");
             s.Append("    internal ").Append(modelName).AppendLine("(bool blank) => _ = blank;");
@@ -188,6 +208,20 @@ public sealed partial class ModelInputGenerator
             s.AppendLine("    /// </remarks>");
             s.Append("    public global::System.Collections.Generic.List<").Append(child.ChildModelName)
                 .Append("> ").Append(child.Name).AppendLine(" { get; set; } = [];");
+            s.AppendLine();
+        }
+
+        foreach (var ids in entity.IdLists)
+        {
+            s.Append("    /// <summary>The <c>").Append(ids.PartName).Append("</c> of each link in <see cref=\"").Append(entityType)
+                .Append('.').Append(ids.Collection.Name).AppendLine("\" />.</summary>");
+            s.AppendLine("    /// <remarks>");
+            s.AppendLine("    /// <b>What this list holds is what the aggregate holds after the save</b>, as a SET: a link is");
+            s.AppendLine("    /// added for an id it does not hold yet and removed for one no longer here, and an id given twice");
+            s.AppendLine("    /// is one link. An empty list removes them all.");
+            s.AppendLine("    /// </remarks>");
+            s.Append("    public global::System.Collections.Generic.List<").Append(ids.PartTypeName).Append("> ")
+                .Append(ids.Name).AppendLine(" { get; set; } = [];");
             s.AppendLine();
         }
 
@@ -348,6 +382,11 @@ public sealed partial class ModelInputGenerator
             EmitChildSync(s, child);
         }
 
+        foreach (var ids in entity.IdLists)
+        {
+            EmitIdListSync(s, ids);
+        }
+
         foreach (var collection in entity.ValueCollections)
         {
             EmitValueCollectionSync(s, collection);
@@ -379,11 +418,17 @@ public sealed partial class ModelInputGenerator
             s.AppendLine("        {");
             s.Append("            var __childModel = ").Append(child.ChildModelName)
                 .AppendLine("Extensions.__ToModel(__child);");
-            s.AppendLine("            __childModel.Id = __child.Id;");
+            if (!child.ByParts)
+            {
+                s.AppendLine("            __childModel.Id = __child.Id;");
+            }
+
             s.Append("            model.").Append(child.Name).AppendLine(".Add(__childModel);");
             s.AppendLine("        }");
             s.AppendLine();
         }
+
+        AppendIdListFill(s, entity);
 
         foreach (var collection in entity.ValueCollections)
         {
@@ -409,6 +454,21 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("    }");
 
         s.AppendLine();
+    }
+
+    // Each link's other part, in the order the aggregate holds them.
+    private static void AppendIdListFill(StringBuilder s, Entity entity)
+    {
+        foreach (var ids in entity.IdLists)
+        {
+            s.Append("        model.").Append(ids.Name).Append(" = new global::System.Collections.Generic.List<")
+                .Append(ids.PartTypeName).AppendLine(">();");
+            s.Append("        foreach (var __link in entity.").Append(ids.Collection.Name).AppendLine(")");
+            s.AppendLine("        {");
+            s.Append("            model.").Append(ids.Name).Append(".Add(__link.").Append(ids.PartName).AppendLine(");");
+            s.AppendLine("        }");
+            s.AppendLine();
+        }
     }
 
     // The same thing ToModel() does, callable by name: a parent fills its children through this rather than
@@ -463,7 +523,7 @@ public sealed partial class ModelInputGenerator
                 .Append(collection.Name).Append('(').Append(collection.FieldOwnerTypeName ?? entityType).AppendLine(" entity);");
         }
 
-        foreach (var child in entity.Children.Where(static c => c.ThroughField))
+        foreach (var child in entity.Children.Concat(entity.IdLists.Select(static l => l.Collection)).Where(static c => c.ThroughField))
         {
             s.AppendLine();
             s.Append("    /// <summary>The field behind <c>").Append(child.Name)
@@ -493,6 +553,19 @@ public sealed partial class ModelInputGenerator
         foreach (var child in entity.Children)
         {
             EmitReplaceAccessor(s, child.Replace, child.Name);
+        }
+
+        foreach (var ids in entity.IdLists)
+        {
+            EmitReplaceAccessor(s, ids.Collection.Replace, ids.Collection.Name);
+            if (ids.PartWrite.Kind != ModelWriteKind.Public)
+            {
+                EmitAccessor(s, ids.PartWrite, ids.PartName);
+            }
+
+            s.AppendLine();
+            s.Append("    [").Append(UnsafeAccessor).Append('(').Append(UnsafeAccessorKind).AppendLine(".Constructor)]");
+            s.Append("    private static extern ").Append(ids.Collection.ChildTypeName).Append(" __New_").Append(ids.Name).AppendLine("();");
         }
 
         foreach (var collection in entity.ValueCollections)

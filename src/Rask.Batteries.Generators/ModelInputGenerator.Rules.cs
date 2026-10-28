@@ -24,7 +24,8 @@ public sealed partial class ModelInputGenerator
     ///     What the compilation offers a form's rules to be announced through. A library that models its data
     ///     and draws no form references neither, and its models are then generated without them.
     /// </summary>
-    private readonly record struct Seams(bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields, bool OptionalFields);
+    private readonly record struct Seams(
+        bool FieldRules, bool StoreRules, bool RequiredSentence, bool RequiredFields, bool OptionalFields, bool DuplicateRowSentence);
 
     private static IncrementalValueProvider<Seams> FormSeams(IncrementalGeneratorInitializationContext context) =>
         context.CompilationProvider.Select(static (compilation, _) =>
@@ -39,7 +40,9 @@ public sealed partial class ModelInputGenerator
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
                 compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationRequired").Length > 0,
                 validation?.GetMembers("RegisterRequiredFields").Length > 0,
-                validation?.GetMembers("RegisterOptionalFields").Length > 0);
+                validation?.GetMembers("RegisterOptionalFields").Length > 0,
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskStrings") is not null &&
+                compilation.GetTypeByMetadataName("Rask.Core.Globalization.RaskString")?.GetMembers("ValidationDuplicateRow").Length > 0);
         });
 
     /// <summary>How a one-value value object states its rule, when it does.</summary>

@@ -314,6 +314,8 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ValidationRequired), nameof(RaskString.ValidationWholeNumber), nameof(RaskString.ValidationNumber),
         nameof(RaskString.ValidationNumberRange), nameof(RaskString.ValidationDate), nameof(RaskString.ValidationTime),
         nameof(RaskString.ValidationColor),
+        // A form's list of ids or of rows: the generated model and Rask.Data's refused id.
+        nameof(RaskString.ValidationNotFound), nameof(RaskString.ValidationDuplicateRow),
         nameof(RaskString.FormSaveFailed),
         nameof(RaskString.ErrorHeading), nameof(RaskString.ErrorTryAgain), nameof(RaskString.ErrorReload), nameof(RaskString.ErrorReference),
         nameof(RaskString.HandlerFailed),

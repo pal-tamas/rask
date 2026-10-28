@@ -575,6 +575,8 @@ they say when you set nothing.
 | `ValidationNumberRange` | Validation | `The number is out of range.` |
 | `ValidationDate` | Validation | `Enter a valid date.` |
 | `ValidationTime` | Validation | `Enter a valid time.` |
+| `ValidationNotFound` | Validation — a form's list of ids or rows (Rask.Data) | `Something chosen here does not exist.` |
+| `ValidationDuplicateRow` | Validation — a form's list of rows | `The same row is in this list twice.` |
 | `FormSaveFailed` | Form | `The save failed. Please try again.` |
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |

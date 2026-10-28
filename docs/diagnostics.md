@@ -129,7 +129,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
 | [RASK104](#rask104) | Warning | A static member keeps a component built from a chain entry, sharing one render's slot across pages |
 | [RASK105](#rask105) | Error | A value object compares by reference |
-| [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form would carry a row keyed by one |
+| [RASK106](#rask106) | Error | A key of several columns cannot be built, or an aggregate's form cannot carry a row keyed by one |
 | [RASK107](#rask107) | Error | An aggregate or a child entity is made with `new` outside the type that guards it |
 | [RASK108](#rask108) | Warning | A read face's collection of the rows that point at it would take a name already used |
 | [RASK109](#rask109) | Warning | A call to an `[Authorize]` component method cannot be checked where it is written |
@@ -2362,35 +2362,37 @@ Reported when:
 - the entity already declares `Id`, or a name an aggregate or entity part generates;
 - an entity part's own key cannot be built;
 - the entity is an **aggregate root** — a key of several columns is for a child its aggregate holds;
-- an aggregate whose **form** would carry such a child (its base names `Model`, `CreateModel` or `UpdateModel`):
-  a form does not carry a row keyed by several columns yet, so it is refused rather than given one that leaves the
-  child out. The aggregate writes the rows through its own methods instead.
+- an aggregate whose **form** (its base names `Model`, `CreateModel` or `UpdateModel`) would carry such a child it
+  cannot carry. A form carries a link as a list of ids (`ActivityIds`) and a row with fields of its own as a list of
+  rows (`Columns`) — see [Link tables and child rows on the form](data.md#link-tables-and-child-rows-on-the-form) —
+  and refuses, rather than leaving the child out:
+  - rows that hold rows of their own (`ReportColumn` holding `Totals`);
+  - a row with no parameterless constructor, so the form cannot add one;
+  - a key with no part naming the aggregate that holds the rows;
+  - a link whose list of ids takes a name the aggregate already declares.
 
-**Fix:** declare the class `partial`, name each value part and declare its property, and fill the collection through
-a method of the aggregate rather than a form:
+> 'ReportColumn' has a key of several columns, but 'Report.Layout' holds it on a form, and its rows hold rows of their
+> own ('Totals'), which a form does not carry; take 'Model' (or 'CreateModel' / 'UpdateModel') off 'Report''s base
+> and fill 'Layout' through a method of 'Report' — Report.Update(id, x => x.Fill(…))
+
+**Fix:** declare the class `partial`, name each value part and declare its property. For a child a form cannot carry,
+fill the collection through a method of the aggregate rather than a form:
 
 ```csharp
-public sealed class DeliveryNote : Aggregate<int, PerTenant>   // no Model on the base
+public sealed class Report : Aggregate<int, PerTenant<int>>   // no Model on the base
 {
-    private readonly List<DeliveryNoteLine> _lines = [];
+    private readonly List<ReportColumn> _layout = [];
 
-    public IReadOnlyList<DeliveryNoteLine> Lines => _lines;
+    public IReadOnlyList<ReportColumn> Layout => _layout;
 
-    public void Fill(IEnumerable<int> lineNos)
+    public void Lay(IEnumerable<(int ColumnId, int[] Totals)> layout)
     {
-        _lines.Clear();
-        _lines.AddRange(lineNos.Select(DeliveryNoteLine.Numbered));
+        _layout.Clear();
+        _layout.AddRange(layout.Select(static c => ReportColumn.For(c.ColumnId, c.Totals)));
     }
 }
 
-public sealed partial class DeliveryNoteLine : Entity<(DeliveryNote, int LineNo)>
-{
-    public int LineNo { get; private set; }
-
-    internal static DeliveryNoteLine Numbered(int lineNo) => new() { LineNo = lineNo };
-}
-
-await DeliveryNote.Update(id, n => n.Fill([1, 2, 3]));   // matched by key: insert, update, delete
+await Report.Update(id, r => r.Lay([(1, [100, 101]), (2, [])]));   // matched by key: insert, update, delete
 ```
 
 ---

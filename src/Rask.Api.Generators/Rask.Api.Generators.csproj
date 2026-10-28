@@ -49,6 +49,10 @@
     <Compile Include="..\Rask.Generators.Shared\ModelShape.cs" Link="Shared\ModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\AggregateShape.cs" Link="Shared\AggregateShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\CompositeKeyShape.cs" Link="Shared\CompositeKeyShape.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\CompositeChildForm.cs" Link="Shared\CompositeChildForm.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\CompositeChildKind.cs" Link="Shared\CompositeChildKind.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\FormListName.cs" Link="Shared\FormListName.cs"/>
+    <Compile Include="..\Rask.Generators.Shared\ModelCompositeChild.cs" Link="Shared\ModelCompositeChild.cs"/>
     <Compile Include="..\Rask.Generators.Shared\KeyPart.cs" Link="Shared\KeyPart.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WriteKind.cs" Link="Shared\WriteKind.cs"/>
   </ItemGroup>
