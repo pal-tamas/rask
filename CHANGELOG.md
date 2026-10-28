@@ -166,7 +166,9 @@ them until tagged releases begin.
   registry's integrity, and the icons a release adds are recorded in the kit's public API. `Ui.Editor`'s engine
   follows Tiptap's latest release (the whole family at one version, `prosemirror-model` still held): the lock is
   checked against the registry and the engine rebuilt — and an engine that comes out bigger than the committed one
-  is not landed but opens an issue, since every visitor of an editor page downloads it.
+  is not landed but opens an issue, since every visitor of an editor page downloads it. `Ui.Phone`'s engine
+  follows the same way, to the intl-tel-input release fluxui.dev serves (not npm's latest: its formatting is held
+  to Flux's key by key).
 - **BREAKING: `RaskAppDbContext` maps a battery's tables only while the battery is on.** A new app's first migration
   carries the tables of what it uses — the way a Laravel app has no jobs table until `queue:table`. Switching a
   battery ON in an app that had it off now needs a migration: `app.Configure(c => c.Jobs.On())`, then

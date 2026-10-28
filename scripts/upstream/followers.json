@@ -97,6 +97,15 @@
                   "src/Rask.Ui/UiEditorEngine.cs"]
     },
     {
+      "name": "intl-tel-input",
+      "kind": "regenerate",
+      "run": "node scripts/upstream/kit-bundle.mjs phone",
+      "outputs": ["src/Rask.Ui/Resources/phone/package.json", "src/Rask.Ui/Resources/phone/package-lock.json",
+                  "src/Rask.Ui/Resources/ui-phone.js", "src/Rask.Ui/Resources/ui-phone-utils.js",
+                  "src/Rask.Ui/Resources/ui-phone.LICENSES.txt", "src/Rask.Ui/UiPhoneEngine.cs",
+                  "src/Rask.Ui/UiPhoneCountries.g.cs"]
+    },
+    {
       "name": "flux",
       "kind": "measure",
       "run": "node scripts/flux/sync.mjs",
@@ -109,13 +118,6 @@
       "generator": "scripts/flux/inter-metrics.mjs",
       "outputs": ["src/Rask.Ui/UiChartInter.Metrics.cs"],
       "why": "Run by hand; becomes a follower in P2."
-    },
-    {
-      "name": "intl-tel-input",
-      "generator": "src/Rask.Ui/Resources/phone/build.mjs",
-      "outputs": ["src/Rask.Ui/Resources/ui-phone.js", "src/Rask.Ui/Resources/ui-phone-utils.js",
-                  "src/Rask.Ui/Resources/ui-phone.LICENSES.txt"],
-      "why": "Neither Dependabot nor a follower moves it; becomes a follower in P2 (growth opens an issue)."
     },
     {
       "name": "lucide",

@@ -660,7 +660,7 @@ where the build would not). Every example, where the drawings come from, and the
 ## Phone
 
 `Ui.Phone` is Flux UI's `flux:phone`: an international number with a searchable list of flags, formatted as it is
-typed by intl-tel-input 29.2.3 (the release Flux runs) and bound as E.164 once it is a possible number, the text as
+typed by intl-tel-input (the release Flux runs, followed daily) and bound as E.164 once it is a possible number, the text as
 typed until then. Everything runs in the browser from two lazily fetched files
 (`<RaskUiPhoneEngine>false</RaskUiPhoneEngine>` keeps them out). Every example and the reference:
 **[rask.sh/ui/phone](https://rask.sh/ui/phone/)**.

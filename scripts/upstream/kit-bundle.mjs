@@ -3,6 +3,8 @@
 //
 //   editor   src/Rask.Ui/Resources/editor   Tiptap behind Ui.Editor: npm's latest, every @tiptap package at one
 //                                           version (until they are, the pins stay)
+//   phone    src/Rask.Ui/Resources/phone    intl-tel-input behind Ui.Phone: the release fluxui.dev serves, not
+//                                           npm's latest, since Ui.Phone's formatting is held to Flux's key by key
 //
 // Every other dependency (esbuild) is npm's latest; package.json's `overrides` are holds a person made and never
 // move. What moved is written to package.json, locked (`npm install --package-lock-only`), every locked package
@@ -13,8 +15,8 @@
 // out bigger than the one committed — its budget — the run stops non-zero, naming both sizes, and the daily job
 // opens its issue. Nothing here re-records a budget.
 //
-// Usage:  node scripts/upstream/kit-bundle.mjs editor            # follow and rebuild
-//         node scripts/upstream/kit-bundle.mjs editor --check    # exit 1 when a pin is not what it follows
+// Usage:  node scripts/upstream/kit-bundle.mjs editor|phone            # follow and rebuild
+//         node scripts/upstream/kit-bundle.mjs editor|phone --check    # exit 1 when a pin is not what it follows
 //
 // scripts/upstream/follow.sh runs it every day.
 
@@ -22,10 +24,11 @@ import { spawnSync } from 'node:child_process';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fail as failAs, latest, release } from './npm.mjs';
+import { fail as failAs, get, latest, release } from './npm.mjs';
 
 const ENGINES = {
   editor: { bundles: ['ui-editor.js'], family: '@tiptap/' },
+  phone: { bundles: ['ui-phone.js', 'ui-phone-utils.js'], follows: { 'intl-tel-input': fluxPhone } },
 };
 const SECTIONS = ['dependencies', 'devDependencies'];
 
@@ -107,6 +110,16 @@ async function sizes() {
 function run(command, ...args) {
   const result = spawnSync(command, args, { cwd: here, stdio: 'inherit' });
   if (result.status !== 0) fail(`${command} ${args.join(' ')} failed (${result.error?.message ?? `exit ${result.status}`})`);
+}
+
+// The intl-tel-input release fluxui.dev's phone field runs: its phone.min.js names it, once.
+async function fluxPhone() {
+  const page = (await get('https://fluxui.dev/components/phone', LABEL)).toString('utf8');
+  const script = /\/flux\/phone\.min\.js\?id=[\w-]+/.exec(page)?.[0] ?? fail('fluxui.dev/components/phone loads no /flux/phone.min.js');
+  const code = (await get(`https://fluxui.dev${script}`, LABEL)).toString('utf8');
+  const versions = new Set([...code.matchAll(/\bversion:"(\d+\.\d+\.\d+)"/g)].map(match => match[1]));
+  if (!code.includes('intl-tel-input') || versions.size !== 1) fail(`fluxui.dev${script} does not name one intl-tel-input release`);
+  return [...versions][0];
 }
 
 function fail(message) {

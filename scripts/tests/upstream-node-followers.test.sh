@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs|UiFlagRegistry\.g\.cs|Flags/.*|Resources/editor/package(-lock)?\.json|Resources/ui-editor.*\.js)$
+# gate-inputs: src/Rask\.Ui/(Ui\.IconName\.cs|UiIconPaths\.g\.cs|UiFlagRegistry\.g\.cs|Flags/.*|Resources/(editor|phone)/package(-lock)?\.json|Resources/ui-(editor|phone).*\.js)$
 # The node followers of Rask.Ui's upstreams, each run in a copy of the files it writes against saved npm answers
 # (RASK_UPSTREAM_FIXTURES, scripts/upstream/npm.mjs): a new release is written with its version and integrity,
 # and records the public surface when it moves it; a tarball that is not the one the registry names, or a
@@ -208,6 +208,20 @@ engine editor
 registry editor $tiptap --tamper
 check "a lock that is not the registry's is refused"  refused "$(bundle "$(sizes ui-editor.js 1)" editor || echo refused)"
 check "...before anything is installed"                "npm install" "$(npm_ran)"
+
+engine phone
+printf '<script src="/flux/phone.min.js?id=abc"></script>' > "$tmp/saved/$(fixture https://fluxui.dev/components/phone)"
+printf '/* intl-tel-input */ var x={version:"29.9.9"};' > "$tmp/saved/$(fixture 'https://fluxui.dev/flux/phone.min.js?id=abc')"
+registry phone intl-tel-input=29.9.9
+printf '{"name":"intl-tel-input","version":"30.0.0","dist":{"tarball":"https://registry.npmjs.org/intl-tel-input/-/x-30.0.0.tgz","integrity":"sha512-BBBB"}}' \
+  > "$tmp/saved/$(fixture https://registry.npmjs.org/intl-tel-input/latest)"
+check "intl-tel-input follows the release Flux serves" passed "$(bundle "$(sizes ui-phone.js 1 ui-phone-utils.js 1)" phone && echo passed)"
+check "...not npm's latest"                            29.9.9 "$(pin "$tmp/tree" phone intl-tel-input)"
+
+engine phone
+registry phone
+check "a Flux page that does not answer moves nothing" passed "$(bundle '{}' phone && echo passed)"
+check "...at all"                                      "" "$(unchanged "${engine_files[@]}")"
 
 [ "$failures" -eq 0 ] || { echo "upstream node followers: $failures failed" >&2; exit 1; }
 echo "upstream node followers: ok"
