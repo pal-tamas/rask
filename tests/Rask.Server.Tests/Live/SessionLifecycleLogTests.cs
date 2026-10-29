@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rask.Core.Diagnostics;
 using Rask.Server.Diagnostics;
+using Rask.Server.Transport;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Live;
@@ -44,9 +45,28 @@ public sealed class SessionLifecycleLogTests
         await ws.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "tab closed", TestContext.Current.CancellationToken);
         var closed = await LineAsync(log, "closed by the");
 
-        Assert.Contains("closed by the client (close status 1001)", closed.Message, StringComparison.Ordinal);
+        Assert.Contains("closed by the client (close status 1001: tab closed)", closed.Message, StringComparison.Ordinal);
         Assert.Contains("the session is kept 30 s for a reconnect", closed.Message, StringComparison.Ordinal);
         Assert.Equal(LogLevel.Debug, closed.Level);
+    }
+
+    // The runtime closes on purpose with a reason — auth-changed, auth-refresh, session-expired — and the reason is
+    // WHY the tab reconnected. It is the client's text: a log line keeps a bounded, single-line copy of it.
+    [Fact]
+    public async Task A_connection_the_client_closes_with_a_reason_logs_the_reason_bounded_to_one_line()
+    {
+        var log = new CapturedLog();
+        using var host = HostWith(log);
+        var sessionId = await OpenPageAsync(host);
+        using var ws = await AttachAsync(host, sessionId);
+        var reason = "auth-changed\nforged line " + new string('x', 90);
+
+        await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, reason, TestContext.Current.CancellationToken);
+        var closed = await LineAsync(log, "closed by the");
+
+        var expected = "auth-changed?forged line " + new string('x', ClientCloseReason.MaxReasonLength - 25) + "…";
+        Assert.Contains($"closed by the client (close status 1000: {expected})", closed.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain('\n', closed.Message);
     }
 
     [Fact]

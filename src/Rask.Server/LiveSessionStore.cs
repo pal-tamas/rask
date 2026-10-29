@@ -535,13 +535,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Re-render every live session from scratch. Used by the dev-time asset-change subscriber.
+    ///     Re-render every live session from scratch. Used by <see cref="ScopedAssetRepaint" /> when a scoped asset a
+    ///     page may be showing is replaced.
     ///     <para>
     ///         Marks each tree dirty before requesting the render: <c>StateHasChangedAsync</c> alone
     ///         only dirties the root, so a cached child subtree replays its previous frame and an edit
-    ///         inside it never appears. Costs nothing in production — the only thing that raises
-    ///         <c>AssetChanged</c> outside hot reload is a module initializer at startup, before any
-    ///         session exists, which the empty check below short-circuits.
+    ///         inside it never appears. A module initializer's FIRST registration never gets here — an
+    ///         assembly loaded lazily mid-run registers assets no page can be showing yet — so in production
+    ///         only an explicit re-registration or removal repaints.
     ///     </para>
     ///     <para>Best-effort: a session whose tree walk or render faults is skipped, not propagated.</para>
     /// </summary>

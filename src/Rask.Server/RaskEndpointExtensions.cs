@@ -101,13 +101,6 @@ public static partial class RaskEndpointExtensions
         Encoding.UTF8.GetBytes("""{"type":"session","status":"unknown"}""");
 
 
-    // 50ms trailing-edge debounce for ScopedAssetRegistry.AssetChanged. A multi-file edit
-    // (or a single hot-reload UpdateApplication burst that re-registers every component
-    // back-to-back) generates N events; without coalescing each fires its own
-    // RerenderAll. The generation counter snapshot survives only if no newer event
-    // arrived during the quiet window — the trailing change wins and we re-render once.
-    private static long _assetChangeGen;
-
     // HTTP methods accepted by the per-component asset endpoint. GET serves the body, and
     // HEAD returns the same headers with no body (handled by Results.Bytes internally).
     // POST/PUT/DELETE/PATCH not listed → ASP.NET returns 405 Method Not Allowed.
@@ -1217,29 +1210,8 @@ public static partial class RaskEndpointExtensions
 
     private static void SubscribeAssetChangedDebounced(LiveSessionStore sessionStore)
     {
-        ScopedAssetRegistry.AssetChanged += (_, _) =>
-        {
-            var gen = Interlocked.Increment(ref _assetChangeGen);
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(50).ConfigureAwait(false);
-                if (Interlocked.Read(ref _assetChangeGen) != gen)
-                {
-                    return;
-                }
-
-                try
-                {
-                    await sessionStore.RerenderAll().ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    RaskDiagnostics.Report(
-                        RaskLogLevel.Warning, "Rask.HotReload",
-                        "Rask: debounced asset-change rerender failed", ex);
-                }
-            });
-        };
+        var repaint = new ScopedAssetRepaint(sessionStore);
+        ScopedAssetRegistry.AssetChanged += (_, change) => _ = repaint.Changed(change);
     }
 
     // Parse an inbound WS frame, returning null on malformed JSON instead of throwing.
@@ -2004,10 +1976,10 @@ public static partial class RaskEndpointExtensions
             return message.WrittenMemory;
         }
 
-        // The browser's close frame: its status says whether the tab went (1001), closed on purpose (1000) or another.
+        // The browser's close frame: its status says whether the tab went (1001), closed on purpose (1000) or another,
+        // and its reason why (auth-changed, session-expired, …).
         private void NoteClientClose() =>
-            connection.Ended(ClosedBy.Client, string.Create(CultureInfo.InvariantCulture,
-                $"close status {(int?)ws.CloseStatus ?? 1005}"));
+            connection.Ended(ClosedBy.Client, ClientCloseReason.Describe(ws.CloseStatus, ws.CloseStatusDescription));
 
         // Inbound frame-rate cap: count every completed receive over a sliding one-second
         // window and close the socket on a flood, before the per-frame parse. Bounds
@@ -2134,7 +2106,7 @@ public static partial class RaskEndpointExtensions
     {
         // A loop that ended with nothing noted: the browser's close the socket's state shows, or the request going.
         transport.Record.Ended(ClosedBy.Client, ws.CloseStatus is { } status
-            ? string.Create(CultureInfo.InvariantCulture, $"close status {(int)status}")
+            ? ClientCloseReason.Describe(status, ws.CloseStatusDescription)
             : "the request was aborted");
 
         // Only when this loop's socket is still the attached one. A tab that reconnected before the

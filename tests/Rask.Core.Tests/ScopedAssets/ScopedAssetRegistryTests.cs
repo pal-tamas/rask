@@ -567,6 +567,36 @@ public partial class ScopedAssetRegistryTests
         }
     }
 
+    // A first registration is an assembly loading — possibly mid-run — and nothing of it can be on screen yet: the
+    // server repaints only what says it replaced or dropped an asset a page may be showing.
+    [Fact]
+    public void AssetChanged_says_a_first_registration_replaced_nothing_and_a_change_or_removal_did()
+    {
+        var replaced = new List<(AssetKind, bool)>();
+        EventHandler<ScopedAssetChangedEventArgs> handler = (_, change) => replaced.Add((change.Kind, change.Replaced));
+        ScopedAssetRegistry.AssetChanged += handler;
+        try
+        {
+            ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: red; }");
+            ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function f() {}");
+            ScopedAssetRegistry.RegisterCss(typeof(WidgetA), ".x { color: blue; }");
+            ScopedAssetRegistry.RegisterJs(typeof(WidgetA), "export function g() {}");
+            ScopedAssetRegistry.UnregisterCss(typeof(WidgetA));
+            ScopedAssetRegistry.UnregisterJs(typeof(WidgetA));
+
+            Assert.Equal(
+                [
+                    (AssetKind.Css, false), (AssetKind.Js, false), (AssetKind.Css, true), (AssetKind.Js, true),
+                    (AssetKind.Css, true), (AssetKind.Js, true),
+                ],
+                replaced);
+        }
+        finally
+        {
+            ScopedAssetRegistry.AssetChanged -= handler;
+        }
+    }
+
     // ─── Type-system edge cases ───────────────────────────────────────────
 
     [Fact]
