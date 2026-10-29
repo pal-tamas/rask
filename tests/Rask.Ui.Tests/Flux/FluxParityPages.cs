@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace Rask.UiTests.Flux;
@@ -48,9 +49,15 @@ public sealed class FluxParityPages
 
     public static string Directory { get; } = Path.Combine(RepoRoot.FullPath, "artifacts", "flux-parity", "rask");
 
+    // The language Flux's docs are read in, whatever the machine writing the pages runs in: the kit writes a time,
+    // a date and a number in the page's culture, and a runner's is the invariant one (a 24-hour 00:00 where Flux's
+    // page says 12:00 AM).
+    private static readonly CultureInfo Docs = CultureInfo.GetCultureInfo("en-US");
+
     [Fact]
     public void Every_parity_page_is_written_for_the_browser_to_measure()
     {
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = Docs;
         var parities = typeof(FluxParity).Assembly.GetTypes()
             .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(FluxParity)))
             .Select(type => (FluxParity)Activator.CreateInstance(type)!)
@@ -68,6 +75,7 @@ public sealed class FluxParityPages
     [Fact]
     public void Every_layout_demo_is_written_as_a_document_of_its_own()
     {
+        CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = Docs;
         var layouts = typeof(FluxLayoutParity).Assembly.GetTypes()
             .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(FluxLayoutParity)))
             .Select(type => (FluxLayoutParity)Activator.CreateInstance(type)!)

@@ -65,13 +65,11 @@ public partial class DatePickerParity : FluxParity
     private static UiDatePickerRange Range() => Ui.DatePicker.Range.Value(default(UiDateRange)).Locale("en-US").On(FluxClock.Today);
 
     /// <summary>
-    ///     The docs site's own monospace face, which a typed date's segments are set in (<c>font-mono</c>) and
-    ///     sized by (<c>ch</c>). It is a licensed font this page cannot load, so the name is given a local face
-    ///     scaled to its advance: 0.64em, where Menlo and DejaVu Sans Mono are 0.602em.
+    ///     The docs site's own monospace face (<see cref="FluxParity.DocsMonospace" />), which a typed date's segments
+    ///     are set in and sized by, and the layout classes its examples are given.
     /// </summary>
     protected const string AppFont =
-        "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Menlo Regular'),local('Menlo-Regular'),local('DejaVu Sans Mono'),local('DejaVuSansMono');size-adjust:106.3%}"
-        + ":root{--font-mono:MonoLisa,monospace}.parity-narrow{min-width:0}"
+        "<style>" + DocsMonospace + ".parity-narrow{min-width:0}"
         + ".parity-inputs{display:flex;flex-direction:column;gap:24px}"
         + "@media (width >= 40rem){.parity-inputs{flex-direction:row;gap:16px}}</style>";
 

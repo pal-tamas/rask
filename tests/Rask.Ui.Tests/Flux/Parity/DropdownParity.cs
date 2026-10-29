@@ -12,9 +12,10 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <c>scripts/flux/parity-menu.mjs</c> opens each of these on both pages and compares that.
 ///     </para>
 ///     <para>
-///     A trigger with words is the real <c>Ui.Button</c>. The icon-only ones and the profile are stand-ins
-///     (<c>data-parity-skip</c>): Flux's snippets do not say which icon, the profile is its own page, and
-///     all a dropdown needs of them is the room they take, because the menu is placed against it.
+///     A trigger with words is the real <c>Ui.Button</c>, and the profile the real <c>Ui.Profile</c>: a box of its
+///     size would be one platform's, as its name is a whole number of pixels wide on Linux and not on a Mac. The
+///     icon-only ones are stand-ins (<c>data-parity-skip</c>): Flux's snippets do not say which icon, and all a
+///     dropdown needs of them is the room they take, because the menu is placed against it.
 ///     </para>
 /// </remarks>
 public sealed partial class DropdownParity : FluxParity
@@ -55,7 +56,7 @@ public sealed partial class DropdownParity : FluxParity
         ]));
 
         yield return ("navigation-menus", Example(Ui.Dropdown.Bottom.End[
-            Room("width:172.14px;height:40px"),
+            Ui.Profile.Name("Olivia Martin").Avatar(LayoutDemo.User),
             Ui.Navmenu[
                 Ui.NavmenuItem.Href("#").Icon(Ui.IconName.User)["Account"],
                 Ui.NavmenuItem.Href("#").Icon(Ui.IconName.BuildingStorefront)["Profile"],
