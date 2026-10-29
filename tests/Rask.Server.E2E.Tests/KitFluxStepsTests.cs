@@ -90,6 +90,35 @@ public sealed class KitFluxStepsTests(PlaywrightFixture playwright) : IClassFixt
     }
 
     [Fact]
+    public async Task A_code_whose_last_digit_left_from_a_page_three_renders_old_reaches_the_click_whole()
+    {
+        await using var session = await HookSession.OpenAsync<KitFluxStepsPage>(playwright, beforeLoad: async page =>
+        {
+            await HeldReplies.Install(page);
+            await SentFrames.Keep(page);
+        });
+        await session.HooksLoadedAsync();
+        var page = session.Page;
+        await page.ClickAsync("#ready");
+        await Expect(page.Locator("#is-ready")).ToHaveTextAsync("ready");
+        await page.Locator("#resend-otp input[data-ui-otp-input]").Nth(0).ClickAsync();
+        await HeldReplies.HoldAsync(page);
+
+        // Each digit leaves in a frame of its own while the browser keeps the page it had: the server draws a
+        // page per digit, so the last one is read from a page three renders older than the server's.
+        foreach (var code in new[] { "4", "43", "432", "4321" })
+        {
+            await page.Keyboard.TypeAsync(code[^1..]);
+            await SentFrames.UntilSentAsync(page, $"\"value\":\"{code}\"");
+        }
+
+        await page.ClickAsync("#resend");
+        await HeldReplies.ReleaseAsync(page);
+
+        await Expect(page.Locator("#resent")).ToHaveTextAsync("resent=4321");
+    }
+
+    [Fact]
     public async Task Two_rows_picked_in_a_checkbox_listbox_tick_both_boxes()
     {
         await using var session = await OpenAsync(playwright);

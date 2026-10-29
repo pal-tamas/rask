@@ -324,6 +324,40 @@ await Promise.resolve();
 const afterTheAnswers = taken();
 answers = false;
 
+// The one bound field of a group a hook owns (rask-bound.ts: one-time-code cells, a date's segments): the hook
+// writes it and raises its `input`, which only draws. The last value written goes ahead of a click in the same
+// frame, and nothing is sent twice when the frame comes.
+fresh();
+const code = new StubField({"data-rask-on-input": "code", "data-rask-draws": "input"});
+type(code, "4");
+frame();
+type(code, "43");
+frame();
+type(code, "4321");
+hostSend({id: "resend", type: "click"});
+const aHookWrittenFieldBeforeAClick = taken();
+frame();
+const aHookWrittenFieldOnce = taken();
+
+// The same on a host that says when it has answered (WASM): what the hook wrote while .NET still owed the field
+// an answer is held, and its LAST value goes ahead of the click — once, whatever the answers do afterwards.
+fresh();
+answers = true;
+const owedCode = new StubField({"data-rask-on-input": "code", "data-rask-draws": "input"});
+type(owedCode, "4");
+frame();
+type(owedCode, "43");
+frame();
+type(owedCode, "4321");
+hostSend({id: "resend", type: "click"});
+const aHookWrittenFieldHeldBeforeAClick = taken();
+owed.splice(0).forEach(function (answer) { answer(); });
+await Promise.resolve();
+await Promise.resolve();
+frame();
+const aHookWrittenFieldAfterTheAnswers = taken();
+answers = false;
+
 process.stdout.write(JSON.stringify({
     hostSkipsItsChange,
     typedAndLeft,
@@ -373,4 +407,8 @@ process.stdout.write(JSON.stringify({
     heldWhileOwed,
     heldBeforeAClick,
     afterTheAnswers,
+    aHookWrittenFieldBeforeAClick,
+    aHookWrittenFieldOnce,
+    aHookWrittenFieldHeldBeforeAClick,
+    aHookWrittenFieldAfterTheAnswers,
 }) + "\n");
