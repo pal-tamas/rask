@@ -506,3 +506,14 @@ bundle,bytes
 rask.js,111447
 rask.wasm.js,96218
 rask-hooks.js,118642
+#
+# 2026-10-29, a confirmed press made again on the element carrying its handler's id at the answer, read from the
+# page it was asked on (rask-confirm.ts, rask-batch.ts's readFrom; both runtimes): rask.js 111,455 -> 111,971
+# (+516), rask.wasm.js 96,226 -> 96,734 (+508). And one Escape closing a lone toast and the modal under it
+# (rask-toast.ts's data-rask-escape, hooks only): rask-hooks.js 119,981 -> 120,136 (+155). 111,455 / 96,226 /
+# 119,981 is main's own drift since the last refresh. Measured locally (Release, the bundle gate's recipe) on the
+# tree merged with main c7d85fd4b.
+bundle,bytes
+rask.js,111971
+rask.wasm.js,96734
+rask-hooks.js,120136

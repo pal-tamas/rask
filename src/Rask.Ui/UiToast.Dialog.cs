@@ -157,13 +157,14 @@ public sealed partial class UiToast
         ];
 
     // data-rask-dismiss is what the runtime presses when the countdown ends. Escape presses it too, for a
-    // toast on its own (data-rask-shortcut) — a stack is not taken down by a key, as Flux's is not.
+    // toast on its own (data-rask-escape) — a stack is not taken down by a key, as Flux's is not. Not a
+    // shortcut: on Flux the same Escape also closes a modal under the toast, and does while typing in it.
     private static Rask.Core.Component CloseControl(Action close, bool escapes)
     {
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal) { ["data-rask-dismiss"] = null };
         if (escapes)
         {
-            marks["data-rask-shortcut"] = "escape";
+            marks["data-rask-escape"] = null;
         }
 
         return Div.Class("flex items-center")[

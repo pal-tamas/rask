@@ -45,7 +45,7 @@ internal static class HookBundleTag
         "data-rask-plot", "data-rask-measure",
         "data-rask-otp",
         "data-rask-segments",
-        "data-rask-dismiss-scope", "data-rask-stack",
+        "data-rask-dismiss-scope", "data-rask-stack", "data-rask-escape",
         "data-rask-confirm-leave",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",

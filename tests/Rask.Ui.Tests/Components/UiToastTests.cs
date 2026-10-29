@@ -133,7 +133,8 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
         var html = One(Say("Saved"));
 
         Assert.Contains("data-rask-dismiss", html, StringComparison.Ordinal);
-        Assert.Contains("data-rask-shortcut=\"escape\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-escape", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-shortcut", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -223,7 +224,7 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
 
         var open = Stack(expanded: true, Say("First", id: 1));
 
-        Assert.DoesNotContain("data-rask-shortcut", deck, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-escape", deck, StringComparison.Ordinal);
         Assert.DoesNotContain("data-expanded", deck, StringComparison.Ordinal);
         Assert.Contains("data-expanded", open, StringComparison.Ordinal);
     }

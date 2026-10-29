@@ -521,7 +521,9 @@ Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // "Confirm", "No" 
 ```
 
 The call sites do not change. No, the close button, Escape and a press outside call the action off; only Yes
-lets it go — the same press, or the same submit by the same button, and a form is held only then. With
+lets it go — the same press, or the same submit by the same button, and a form is held only then. The page may
+render while the reader is asked: a button drawn anew meanwhile still runs the handler said yes to, and one
+whose handler is gone runs nothing — never another action drawn in its place. With
 `expect:` the dialog shows a field, and Yes waits until the answer is typed exactly, case and all; Enter in the
 field is Yes once it matches. It all happens in the browser: opening the dialog, typing in it and closing it
 send the server nothing, and focus goes back to the control that was pressed. A question can bring its own title,

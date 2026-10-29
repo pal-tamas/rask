@@ -61,6 +61,20 @@ public sealed class EventBatchTests
     }
 
     [Fact]
+    public void An_action_made_again_names_the_page_it_was_asked_on_and_the_next_event_the_page_on_screen()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var frame = Assert.Single(root.GetProperty("madeAgain").EnumerateArray());
+
+        var pages = frame.GetProperty("events").EnumerateArray().Select(e => e.GetProperty("v").GetInt32()).ToArray();
+        Assert.Equal([5, 7], pages);
+    }
+
+    [Fact]
     public void Events_of_two_tasks_are_two_frames()
     {
         if (Run() is not { } root)

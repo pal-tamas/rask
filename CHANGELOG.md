@@ -381,6 +381,18 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `.Confirm("…")` the reader said yes to in `Ui.Confirm` runs, though the page drew its button anew while
+  asking.** Before: the yes pressed the old element again, and if a render meanwhile had put a new one in its place
+  (a sheet rebuilt by a poll, a re-keyed row) the press landed on a node no longer in the page and NOTHING was sent
+  — a confirmed delete silently did not happen. Now the press is made on the element carrying the pressed handler's
+  id at the answer, its event saying the page the question was asked on, so the host runs the handler said yes to,
+  wherever it is now, or nothing: another action drawn where the button was is never run in its place.
+  `rask-confirm.ts`, `rask-batch.ts`'s `readFrom`; `ConfirmInFlyoutTests`, `EventBatchTests`.
+- **One Escape closes a toast and the modal under it, as on Flux.** Before: a lone `Ui.Toast`'s close was an Escape
+  *shortcut*, which took the key — the first Escape closed the toast and left the modal — and was not heard while
+  typing in a field, where Escape closed the modal and left the toast. Measured on fluxui.dev (2026-10-29): one
+  Escape closes both, wherever focus is. The close now carries `data-rask-escape` (`rask-toast.ts`): pressed on
+  Escape from anywhere, taking the key from nothing. `ToastEscapeTests`.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever

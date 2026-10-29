@@ -524,6 +524,7 @@ A dialog's `OnClose` hears every close, the page's own included.
 | --- | --- | --- |
 | `data-rask-dismiss-hold="pointer"` | an element with `data-rask-dismiss-after` | Only the pointer holds its countdown; focus inside it does not. |
 | `data-rask-dismiss-scope` | an ancestor of several | The pointer anywhere over it holds every countdown inside, and they run on from where they stopped. |
+| `data-rask-escape` | a close control | Pressed on Escape, wherever focus is — in a field too — without taking the key from anything else: a modal under it closes on the same press. A lone toast's close. |
 | `data-rask-stack` | the element whose children are stacked | Each child gets, in its style, `--rask-stack-index` (0 at the front, the last child), `--rask-stack-height` (its own natural height), `--rask-stack-offset` (the natural heights in front of it) and `--rask-stack-front` (the front child's natural height), measured again when a child joins or leaves and when the window is resized — what a stylesheet needs to cut every card to the front one's height and glide the stack open. While it measures, the stack carries `data-rask-measuring`: write the rule that cuts a card as `[data-rask-stack]:not([data-rask-measuring]) …`, or the hook is handed the cut height back. |
 
 ### State the reader owns

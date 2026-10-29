@@ -295,7 +295,7 @@ opts a field out as it does a button.
 `aria-atomic="true"`, so a toast is read politely and whole — heading and text together — whatever its
 variant. A variant is its icon's **shape** as well as its colour. A timed toast waits while the pointer is over
 it — or, in a stack, over any toast of the stack — and then runs out what it had left; focus inside it holds
-nothing, as on Flux, so one that must not be missed is raised with `.UntilDismissed()`. A toast on its own closes on Escape; its
+nothing, as on Flux, so one that must not be missed is raised with `.UntilDismissed()`. A toast on its own closes on Escape — the same press that closes a modal under it, as on Flux; its
 close button and any action or link are ordinary controls in the tab order. See
 [ui-kit.md](ui-kit.md) and [Toast messages](composition-lists.md#toast-messages).
 
