@@ -547,13 +547,20 @@ await Product.Where(p => p.Active).OrderBy(p => p.Name);
 await Product.Where(p => p.PriceAmount > 10).OrderByDescending(p => p.PriceAmount).Skip(20).Take(20);
 await Product.OrderBy(p => p.Name).Select(p => p.Name);   // reads one column
 await Product.IgnoreQueryFilters();                       // soft-deleted rows too
-await Product.Where(p => p.Id == id).First();             // by id
+await Product.Where(p => p.Id == id).First();             // by id — throws when there is no such row
+await Product.Where(p => p.Id == id).FirstOrDefault();    // …or null instead
 await Product.First(p => p.Name == "Anvil");
+await Product.SingleOrDefault(p => p.Name == "Anvil");    // null for none, throws for two
 await Product.Count(p => p.Active);
 await Product.Any();
 await Product.Search("red anvil").Take(20);               // full-text, best match first
 await foreach (var p in Product.AsAsyncEnumerable()) { }
 ```
+
+`First`, `FirstOrDefault`, `Single` and `SingleOrDefault` mean exactly what they mean in LINQ and EF Core: `First` and
+`Single` hand back a non-nullable row and throw `InvalidOperationException` when nothing matched (`Single` also when two
+did), while the `…OrDefault` forms return `null` for "nothing matched". Pick `FirstOrDefault` wherever a missing row
+is an outcome your code handles — a stale id in a URL, a job whose row was deleted since it was queued.
 
 These are C# 14 static extension members, which is why nothing has to be declared or derived from a second
 base. A member declared on the aggregate itself always wins, so your own static `Where` would be untouched.
@@ -711,7 +718,7 @@ the forward navigation is still there. `Include(f => f.DistributionsTo)` loads o
 To *show* one, it is the narrowest query; to *change* one, `Find` it:
 
 ```csharp
-ProductRead? row = await Product.Where(p => p.Id == id).First();
+ProductRead? row = await Product.Where(p => p.Id == id).FirstOrDefault();
 Product? product = await Product.Find(id);   // whole, children loaded — see "Find, change, Save"
 ```
 

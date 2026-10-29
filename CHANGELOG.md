@@ -201,6 +201,15 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING: `First` and `Single` throw when no row matches, as in LINQ and EF Core; `FirstOrDefault` and
+  `SingleOrDefault` are new and return `null`.** Before: `Product.First(…)`, `Product.Where(…).First()`,
+  `Include(…).First(…)` and `Select(…).First()` returned `null` for no row, and `Single` returned `null` for no row
+  (throwing only for two). Now `First`/`Single` hand back a non-nullable row and throw `InvalidOperationException`
+  naming the `…OrDefault` call to use instead, `Single` still throws for more than one row, and
+  `FirstOrDefault`/`SingleOrDefault` (same overloads: with or without a predicate, on the type and on any query
+  chain; `FirstOrDefault` on a projection) keep the old null-returning behaviour — `SingleOrDefault` throws for more
+  than one row. Migrate: every `First(…)`/`Single(…)` whose caller checks for `null` (`is null`, `?.`, `??`,
+  `Assert.Null`) becomes `FirstOrDefault(…)`/`SingleOrDefault(…)`. `Find(id)` is unchanged and still returns `null`.
 - **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
   `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
   `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update

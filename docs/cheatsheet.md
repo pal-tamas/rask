@@ -147,7 +147,7 @@ b.WhenReferenced("Still in use.");                    // …and one any other ta
 // several fields → Form .Validate(…); needs a service → IRequestValidator<T> (docs/validation.md#which-one-do-i-write)
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
-var one = await Product.Where(p => p.Id == id).First();   // no token: cancelled with the handler or render it runs in
+var one = await Product.Where(p => p.Id == id).FirstOrDefault();   // ProductRead?, no token: cancelled with the work it runs in — First() throws on none
 var agg = await Product.Find(id);   // Product? — whole, untracked
 agg!.Rename("Anvil");
 await agg.Save();                     // only what changed; stale Version throws

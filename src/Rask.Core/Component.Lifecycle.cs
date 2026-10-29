@@ -22,7 +22,7 @@ public abstract partial class Component
 
     /// <summary>
     ///     Runs when a parent passes this component new values — and once on mount, so a component whose data
-    ///     depends on a prop needs only this: <c>protected override async Task OnUpdated() =&gt; _product = await Product.Where(p =&gt; p.Id == Id).First();</c>
+    ///     depends on a prop needs only this: <c>protected override async Task OnUpdated() =&gt; _product = await Product.Where(p =&gt; p.Id == Id).FirstOrDefault();</c>
     /// </summary>
     /// <remarks>Not for this component's own state changes, which simply render again.</remarks>
     protected virtual Task OnUpdated() => Task.CompletedTask;
