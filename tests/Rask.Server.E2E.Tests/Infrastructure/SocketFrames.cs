@@ -7,19 +7,24 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 internal sealed class SocketFrames
 {
     private readonly ConcurrentQueue<(bool Sent, string Text)> _frames = new();
+    private readonly SocketHello _hello;
 
-    /// <summary>Listens to every socket <paramref name="page" /> opens. Call before the page loads.</summary>
-    public static SocketFrames Of(IPage page)
+    private SocketFrames(IPage page)
     {
-        var frames = new SocketFrames();
         page.WebSocket += (_, socket) =>
         {
-            socket.FrameSent += (_, frame) => frames._frames.Enqueue((true, frame.Text ?? string.Empty));
-            socket.FrameReceived += (_, frame) => frames._frames.Enqueue((false, frame.Text ?? string.Empty));
+            socket.FrameSent += (_, frame) => _frames.Enqueue((true, frame.Text ?? string.Empty));
+            socket.FrameReceived += (_, frame) => _frames.Enqueue((false, frame.Text ?? string.Empty));
         };
-
-        return frames;
+        // Watched after the frames, so the hello is among them once it is said to have gone.
+        _hello = SocketHello.Watch(page);
     }
+
+    /// <summary>Listens to every socket <paramref name="page" /> opens. Call before the page loads.</summary>
+    public static SocketFrames Of(IPage page) => new(page);
+
+    /// <summary>Completes once the socket is up and has said hello (<see cref="SocketHello" />).</summary>
+    public Task OpenedAsync() => _hello.SentAsync();
 
     /// <summary>The replies that carried the whole document instead of a diff.</summary>
     public IReadOnlyList<string> FullPages =>

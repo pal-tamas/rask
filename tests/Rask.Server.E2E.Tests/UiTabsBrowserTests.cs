@@ -220,29 +220,21 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
         public static async Task<Watched> OpenAsync(PlaywrightFixture playwright)
         {
             var counts = new int[2];
-            var hello = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            SocketHello? hello = null;
             var session = await HookSession.OpenAsync<TabsBrowserPage>(playwright, beforeLoad: page =>
             {
                 page.WebSocket += (_, socket) =>
                 {
-                    socket.FrameSent += (_, frame) =>
-                    {
-                        Interlocked.Increment(ref counts[0]);
-                        if (frame.Text?.StartsWith("{\"type\":\"hello\"", StringComparison.Ordinal) == true)
-                        {
-                            hello.TrySetResult();
-                        }
-                    };
+                    socket.FrameSent += (_, _) => Interlocked.Increment(ref counts[0]);
                     socket.FrameReceived += (_, _) => Interlocked.Increment(ref counts[1]);
                 };
+                hello = SocketHello.Watch(page);
                 return Task.CompletedTask;
             });
             await session.HooksLoadedAsync();
-            // The socket is up and its hello has gone, so the load's exchange is behind the count and a press made
-            // from here is answered over an open socket. A wait of so many milliseconds was neither: on a loaded
-            // machine the socket was still opening, its hello landed in a journey's count or its save sat queued.
-            // Thirty seconds bounds a hang.
-            await hello.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
+            // The socket is up and its hello is in the count: from here on the socket is watched, and a press made
+            // from here is answered over an open socket.
+            await hello!.SentAsync();
             return new Watched(session, counts);
         }
 
