@@ -7,13 +7,14 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     A child of a <see cref="PerTenant" /> aggregate whose table has no tenant column of its own: it
-///     belongs to a tenant through its parent, and its filter asks the parent (#1251).
+///     A child of a <see cref="PerTenant" /> aggregate: it belongs to a tenant through its parent, and its filter
+///     asks the parent (#1251).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         A child that declares no <c>TenantId</c> is one of these; a child that declares one — or maps the
-///         column in its <c>Configure</c> — carries it, as before. The filter is
+///         Every child is one of these. One that declares a <c>TenantId</c> — or maps the column in its
+///         <c>Configure</c> — keeps the column, stamped with its root's tenant, and is filtered through its parent all
+///         the same: a member's name never turns a filter of its own on. The filter is
 ///         <c>unrestricted || EXISTS(parent visible, parent.Id = row.ParentId) || …</c>, one EXISTS for each
 ///         tenant-scoped parent whose collection holds the child, so a table that is a child of two roots
 ///         (<c>DriverId</c> or <c>VehicleId</c>) keeps a row of either kind.

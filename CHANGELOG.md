@@ -348,6 +348,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A child entity with a `TenantId` member no longer hides its rows whose `TenantId` is NULL.** Before: a child of a
+  `PerTenant` aggregate that declared a `TenantId` — public, or internal and mapped in its `Configure` — was filtered on
+  its OWN column, so a legacy row whose child column was NULL while its parent carried the tenant silently vanished
+  from every read of the child (its read face, `Where`/`Count`, and the aggregate's own collection on a load). Now the
+  tenant is required only on the aggregate root, and every child is partitioned through its root (the `EXISTS` on its
+  parent, #1251) whatever members it declares: a member's name never turns a filter on. A child that keeps the
+  column still has it stamped with its root's tenant and checked against it on a save; a loaded legacy row whose
+  column is NULL can be edited without being refused. Another tenant's children stay invisible, NULL column or not.
+  See [A child that already keeps a column](docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant).
 - **An app building with an ABSOLUTE `IntermediateOutputPath` (or `ArtifactsPath`, as BenchmarkDotNet's child build
   sets) no longer writes its compiled scoped TypeScript into the source tree.** The build glued the path onto the
   project directory, so `UiEditor.d.ts` landed in `src/Rask.Ui/Users/…/obj/…`, the next build read it back as an
