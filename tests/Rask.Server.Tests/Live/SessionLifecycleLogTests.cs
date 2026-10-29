@@ -5,8 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Rask.Core.Diagnostics;
 using Rask.Server.Diagnostics;
-using Rask.Server.Transport;
 using Rask.Server.Tests.Infrastructure;
+using Rask.Server.Transport;
 
 namespace Rask.Server.Tests.Live;
 

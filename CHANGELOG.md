@@ -391,6 +391,12 @@ them until tagged releases begin.
   every session on the host, whatever environment. A first registration can't be on any page yet, so it now repaints
   nothing; only a registration that replaces or drops an asset does. The public event is unchanged: it still fires
   for both. Hot reload is unchanged: it refreshes through its staged path and repaints itself.
+- **Work a hook detached that comes back before the hook itself is done now lets its event's scope go.** A hook's
+  provider lease was released only by a continuation that started after the hook had finished; a detached read that
+  came back a moment earlier — the hook still on its last statement, as happens on a loaded machine — never released
+  it, and the event's scope (its `DbContext`) stayed open for the rest of the session. A continuation that runs beside
+  one of the hook's own can only be detached work, so it now lets the lease go as well. Seen as an intermittent
+  timeout of `HookEventScopeTests` on CI, on `main` too.
 - **A tab whose credential changed no longer holds what it sends for ever when the connection can't be reopened.**
   When the auth watch found a different principal and the connection was not open, or closing it threw, the watch
   kept holding every frame for an `opened` that never came. Now the reopen says whether it dropped anything, and if it
