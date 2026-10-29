@@ -377,11 +377,10 @@ public static class ReadModelRegistry
         }
     }
 
-    // The write model's answer; with none to mirror, a child that declares no TenantId — the write side's own rule.
+    // The write model's answer; with none to mirror, every child — the write side's own rule, which a TenantId
+    // member on the child never changes.
     private static bool IsThroughParent(ReadEntityMapping mapping, IEntityType? write) =>
-        write is not null
-            ? TenantParents.IsThroughParent(write)
-            : !mapping.IsRoot && mapping.WriteType.GetProperty(Columns.TenantId) is null;
+        write is not null ? TenantParents.IsThroughParent(write) : !mapping.IsRoot;
 
     // A tenant column the write side declares and configured — kept as TEXT through a conversion, named as an existing
     // table names it — is read the way it is written. Left as the face's own shadow column it would compare a Guid
