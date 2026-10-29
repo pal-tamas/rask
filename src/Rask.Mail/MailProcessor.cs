@@ -301,6 +301,9 @@ public sealed partial class MailProcessor<TContext>(
         // whatever user happened to be ambient on the processor's own flow.
         using var user = Current.UseUser(message.UserId);
 
+        // Its tenant's and user's own rows read now, so Current.Tenant in the sender is a lookup.
+        await CurrentRows.Prime(graceToken).ConfigureAwait(false);
+
         await sender.Send(outgoing, graceToken).ConfigureAwait(false);
     }
 

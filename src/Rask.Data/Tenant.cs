@@ -11,8 +11,9 @@ namespace Rask.Data;
 ///         <see cref="AsyncLocal{T}" />, so it follows an await without being handed on.
 ///     </para>
 ///     <para>
-///         This type holds the SCOPES — <see cref="Use(Guid)" />, <see cref="Across" />, <see cref="None" />. Which
-///         tenant is in flight is read from <c>Current.Tenant</c>, beside the current user.
+///         This type holds the SCOPES — <see cref="Use(Guid)" />, <see cref="Across" />, <see cref="None" />. The
+///         tenant in flight is read as the app's own row, <c>Current.Tenant</c>, once its tenant aggregate says
+///         <see cref="ITenant" />.
 ///     </para>
 ///     <para>
 ///         <b>A tenant-scoped read with no tenant set THROWS.</b> Returning nothing would be safe against
@@ -55,8 +56,47 @@ public static class Tenant
     public static bool IsAcrossTenants => Ambient.Value.AllTenants;
 
     /// <summary>The tenant an explicit <see cref="Use(Guid)" /> scope set, ignoring the principal.</summary>
-    /// <remarks>The tenant in flight from every source is <c>Current.Tenant</c>.</remarks>
+    /// <remarks>The tenant in flight from every source is <see cref="Key" />.</remarks>
     internal static Guid? Explicit => Ambient.Value.Tenant;
+
+    /// <summary>
+    ///     The tenant the work in flight belongs to, as the <see cref="Guid" /> the framework carries it in, or
+    ///     <see langword="null" /> when it belongs to none.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         An explicit <see cref="Use(Guid)" /> first — a job runs for the tenant its row recorded, an admin in
+    ///         the tenant they chose — then the app's resolver (<c>AddRaskTenant</c>), then the
+    ///         <see cref="ClaimType" /> claim of <c>Current.Principal</c>.
+    ///     </para>
+    ///     <para>
+    ///         Null inside <see cref="Across" /> — work that deliberately spans tenants is not done on behalf of any
+    ///         one of them — and inside <see cref="None" />, which clears it.
+    ///     </para>
+    ///     <para>
+    ///         What the framework's own readers use: a job's or a mail's row, a cache key, a stored file. An app
+    ///         reads its tenant as its own row, <c>Current.Tenant</c>.
+    ///     </para>
+    /// </remarks>
+    /// <exception cref="Rask.Cqrs.ForbiddenException">
+    ///     A resolver is registered and the signed-in user's claim names a different tenant than it did.
+    /// </exception>
+    internal static Guid? Key => KeyIn(Db.ScopeServices);
+
+    /// <summary>The tenant the work in flight belongs to, or a thrown exception when there is none.</summary>
+    /// <exception cref="InvalidOperationException">No tenant is set, the principal carries none, or <see cref="Across" /> is open.</exception>
+    internal static Guid RequiredKey =>
+        Key ?? throw new InvalidOperationException(
+            "No tenant is set, so a tenant-scoped table cannot be read or written. Open one with " +
+            "Tenant.Use(id) — a background job uses the tenant recorded on its own row — or say " +
+            "Tenant.Across() when the work deliberately spans tenants.");
+
+    /// <summary><see cref="Key" />, with <paramref name="scope" /> standing for the scope <see cref="Db.UseScope" /> opened.</summary>
+    /// <remarks>What a live session asks before its event's scope is ambient, so the answer costs no scope of its own.</remarks>
+    /// <param name="scope">The scope whose principal and resolver answer.</param>
+    /// <param name="claims">The principal's claims as read ahead, or null to read them now.</param>
+    internal static Guid? KeyIn(IServiceProvider? scope, PrincipalClaims? claims = null) =>
+        Ambient.Value is { AllTenants: false, Cleared: false } state ? state.Tenant ?? FromScope(scope, claims) : null;
 
     /// <summary>
     ///     Makes <paramref name="tenant" /> the tenant until the returned scope is disposed.
@@ -72,7 +112,7 @@ public static class Tenant
                 "Guid.AllBitsSet is not a tenant: it is what a read compares against when no tenant is " +
                 "resolved, so that it matches nothing. Open the tenant by its own id — Tenant.Use(id).",
                 nameof(tenant))
-            : new Scope(new State(tenant, AllTenants: false));
+            : new Scope(new State(tenant, AllTenants: false, Cleared: false));
 
     /// <summary>
     ///     Makes the tenant numbered <paramref name="tenant" /> the tenant until the returned scope is disposed.
@@ -86,8 +126,8 @@ public static class Tenant
     ///         with, this number.
     ///     </para>
     ///     <para>
-    ///         Everywhere else the tenant is still a <see cref="Guid" /> — <c>Current.Tenant</c>, a job's row, a
-    ///         cache key — and the number travels inside it by a fixed rule: the first eight bytes are zero and
+    ///         Inside the framework the tenant is still a <see cref="Guid" /> — a job's row, a cache key — while
+    ///         <c>Current.Tenant.Id</c> is the number again; the number travels inside it by a fixed rule: the first eight bytes are zero and
     ///         the last eight are the number, big-endian. <c>Tenant.Use(42)</c> is
     ///         <c>Tenant.Use(new Guid("00000000-0000-0000-0000-00000000002a"))</c>, so a job enqueued in tenant
     ///         42 runs in tenant 42. Tenant <c>0</c> would be <see cref="Guid.Empty" />, which the batteries read
@@ -106,12 +146,16 @@ public static class Tenant
     ///     never quietly becomes a cross-tenant read. This is a block rather than a per-query call so that
     ///     crossing a boundary is one greppable thing a reviewer can find.
     /// </remarks>
-    public static IDisposable Across() => new Scope(new State(Tenant: null, AllTenants: true));
+    public static IDisposable Across() => new Scope(new State(Tenant: null, AllTenants: true, Cleared: false));
 
     /// <summary>Clears the tenant for the duration of the returned scope.</summary>
     /// <returns>A scope that restores the previous tenant.</returns>
-    /// <remarks>For a test, or for the sign-in that has to find a user before it can know their tenant.</remarks>
-    public static IDisposable None() => new Scope(new State(Tenant: null, AllTenants: false));
+    /// <remarks>
+    ///     For a test, or for the sign-in that has to find a user before it can know their tenant. It clears the
+    ///     signed-in user's tenant and the resolver's as well as an explicit one: inside it there is no tenant, so
+    ///     <c>Current.Tenant</c> is null and a tenant-scoped read throws.
+    /// </remarks>
+    public static IDisposable None() => new Scope(new State(Tenant: null, AllTenants: false, Cleared: true));
 
     /// <summary>
     ///     The tenant the scope <see cref="Db.UseScope" /> opened says the work is for: the application's
@@ -120,11 +164,11 @@ public static class Tenant
     /// <exception cref="Rask.Cqrs.ForbiddenException">
     ///     A resolver is registered and the signed-in user's claim names a different tenant than it did.
     /// </exception>
-    internal static Guid? FromScope()
+    internal static Guid? FromScope(IServiceProvider? scope, PrincipalClaims? claims = null)
     {
-        var claimed = CurrentUser.ClaimedGuid(ClaimType);
+        var claimed = claims is not null ? claims.Tenant : CurrentUser.ClaimedGuid(scope, ClaimType);
 
-        if (ResolvedTenant.For(Db.ScopeServices) is not { } resolved)
+        if (ResolvedTenant.For(scope) is not { } resolved)
         {
             return claimed;
         }
@@ -147,7 +191,7 @@ public static class Tenant
     ///     with no resolver, where the same lack of a tenant throws as it always has.
     /// </remarks>
     internal static bool IsUnresolved =>
-        Ambient.Value is { AllTenants: false, Tenant: null } && ResolvedTenant.For(Db.ScopeServices) is { Tenant: null };
+        Ambient.Value is { AllTenants: false, Tenant: null, Cleared: false } && ResolvedTenant.For(Db.ScopeServices) is { Tenant: null };
 
     /// <summary>Refuses a write to <paramref name="entity" /> when it is tenant-scoped and no tenant is resolved.</summary>
     /// <exception cref="MissingTenantException">The resolver named no tenant for this work.</exception>
@@ -191,10 +235,11 @@ public static class Tenant
             return null;
         }
 
-        return Current.Tenant ?? (IsUnresolved ? Nobody : Current.RequiredTenant);
+        return Key ?? (IsUnresolved ? Nobody : RequiredKey);
     }
 
-    private readonly record struct State(Guid? Tenant, bool AllTenants);
+    // Cleared is None's: default(State) is "nothing explicit", which still lets the principal say which tenant.
+    private readonly record struct State(Guid? Tenant, bool AllTenants, bool Cleared);
 
     private sealed class Scope : IDisposable
     {

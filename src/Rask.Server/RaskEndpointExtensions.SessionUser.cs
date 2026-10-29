@@ -45,12 +45,22 @@ public static partial class RaskEndpointExtensions
             }
 
             Asked(session, tenantToo);
-            return new ValueTask<bool>(true);
+
+            // The tenant's and the user's own rows, read ahead of the event so Current.Tenant is a lookup in it. Held
+            // rows complete here, allocating nothing.
+            var primed = SessionDataScope.Prime(session.Services, ct);
+            return primed.IsCompletedSuccessfully ? new ValueTask<bool>(true) : PrimedLaterAsync(primed);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             return new ValueTask<bool>(Refused(what, ex));
         }
+    }
+
+    private static async ValueTask<bool> PrimedLaterAsync(ValueTask primed)
+    {
+        await primed.ConfigureAwait(false);
+        return true;
     }
 
     private static async ValueTask<bool> AnsweredLaterAsync(ValueTask asked, LiveSession session, string what, bool tenantToo)
@@ -59,6 +69,7 @@ public static partial class RaskEndpointExtensions
         {
             await asked.ConfigureAwait(false);
             Asked(session, tenantToo);
+            await SessionDataScope.Prime(session.Services, CancellationToken.None).ConfigureAwait(false);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)

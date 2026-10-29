@@ -23,7 +23,7 @@ public static partial class RaskDataServiceCollectionExtensions
     ///     </para>
     ///     <para>
     ///         It is asked once per scope and the answer is kept: as an HTTP request starts, and as a live
-    ///         session opens — for as long as that session lives. <c>Current.Tenant</c>, every tenant filter
+    ///         session opens — for as long as that session lives. the tenant in flight, every tenant filter
     ///         and every insert stamp then use it. An explicit <c>Tenant.Use</c> or <c>Tenant.Across</c> still
     ///         wins, so a background job goes on running in the tenant its row recorded.
     ///     </para>

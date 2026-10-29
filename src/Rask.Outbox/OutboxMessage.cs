@@ -76,7 +76,7 @@ public sealed class OutboxMessage : Aggregate<long, Updated>
     public Guid? UserId { get; private set; }
 
     /// <summary>
-    /// The tenant the event was raised for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// The tenant the event was raised for — the tenant in flight at the time — or <c>null</c> when it
     /// belongs to nobody.
     /// </summary>
     /// <remarks>
@@ -107,7 +107,7 @@ public sealed class OutboxMessage : Aggregate<long, Updated>
             Handler = handler,
             OccurredAt = occurredAt,
             UserId = Current.UserId,
-            TenantId = Current.Tenant,
+            TenantId = Tenant.Key,
         };
     }
 

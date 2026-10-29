@@ -43,8 +43,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
   that names `SoftDelete`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
-- **`Current` and multi-tenancy**: `Current.UserId`, `Current.Principal` and `Current.Tenant` answer from a
-  static factory or anywhere else with no constructor to inject into. `PerTenant` on the base gives a table a `TenantId` and a query filter no read can compose away, and an entity under
+- **`Current` and multi-tenancy**: `Current.UserId` and `Current.Principal` answer from a static factory or anywhere
+  else with no constructor to inject into, and `Current.Tenant` / `Current.User` are your own tenant and user rows
+  once those aggregates say `ITenant` / `IUser` — read ahead, held, never a query. `PerTenant` on the base gives a table a `TenantId` and a query filter no read can compose away, and an entity under
   it is read through its root; the tenant comes from the signed-in user.
 - **`BulkInsert`**: the bulk insert EF Core leaves out (`ExecuteUpdate`/`ExecuteDelete` exist; inserts
   are out of its scope). Batched, with the change tracker cleared as it goes so memory stays flat.

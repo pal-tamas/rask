@@ -76,7 +76,8 @@ it is saved — and any other is refused when the model is built. An aggregate t
 `Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
 it follows the root's number without saying anything.
 
-Everywhere else the tenant is still a `Guid` — `Current.Tenant`, a job's row, a cache key — and a number
+Inside the framework the tenant is still a `Guid` — a job's row, a cache key — while `Current.Tenant.Id` is your
+number again ([your tenant row](#your-tenant-row-currenttenant)); a number
 travels inside it by a fixed rule: **the first eight bytes are zero and the last eight are the number,
 big-endian**. Tenant 42 is `00000000-0000-0000-0000-00000000002a`, readable by eye on a job row or in a log, and
 it is what lets a job enqueued in tenant 42 run in tenant 42. No generated `Guid` has those eight zero bytes,
@@ -197,11 +198,11 @@ A restored session carries the claim too, so a reconnect comes back in the same 
 every HTTP request — a minimal API, a controller, a CQRS endpoint — because the host makes the request's
 services ambient for the data layer after authentication has run.
 
-`Current.Tenant` says which tenant that is, from anywhere, and `Current.RequiredTenant` throws when there is
-none. The order it answers in is: an explicit `Tenant.Use` scope first, then the signed-in user's claim — or,
-in an app that registered one, [its resolver](#from-the-request-a-resolver) in the claim's place — and `null`
-inside `Tenant.Across()`. See [`Current`](data.md#the-current-user--current) for the user it answers
-alongside.
+Which tenant the work is for is answered in this order: an explicit `Tenant.Use` scope first, then the signed-in
+user's claim — or, in an app that registered one, [its resolver](#from-the-request-a-resolver) in the claim's place
+— and none inside `Tenant.Across()` or `Tenant.None()`. Your code reads it as [your own tenant
+row](#your-tenant-row-currenttenant), `Current.Tenant`. See [`Current`](data.md#the-current-user--current) for the
+user it answers alongside.
 
 ### Putting a user in a tenant
 
@@ -302,6 +303,62 @@ a `MissingTenantException` (an `InvalidOperationException`), because a row saved
 can read. This is the one place the rule [below](#a-read-with-no-tenant-throws) gives way, and only for an app
 that registered a resolver.
 
+## Your tenant row: `Current.Tenant`
+
+Say which of your aggregates is the tenant, once, and `Current.Tenant` is that tenant's own row — as Rails'
+`Current.tenant` and Laravel's `tenant()` are:
+
+```csharp
+public sealed class Tenant : Aggregate<int, Deletable>, ITenant
+{
+    public string Name { get; private set; } = "";
+    public string Currency { get; private set; } = "HUF";
+
+    public void Rename(string name) => Name = name;
+}
+```
+
+```csharp
+var currency = Current.RequiredTenant.Currency;          // TenantRead — the tenant's read face
+if (Current.Tenant is { } tenant) title = tenant.Name;   // null when the work belongs to no tenant
+```
+
+| Member | What it answers |
+|---|---|
+| `Current.Tenant` | the tenant's read face (`TenantRead?`), or `null` with no tenant, inside `Tenant.Across()` or `Tenant.None()` |
+| `Current.RequiredTenant` | the same row, or an `InvalidOperationException` when there is no tenant |
+| `Current.Tenant.Id` | your key, in its own type — `int` here; a `Guid`, a `long` or a `string` elsewhere |
+
+The build generates both from the `ITenant` declaration. Its key is a `Guid`, an `int`, a `long`, or a `string`
+holding a `Guid` ([kept as text](#tenants-kept-as-text)), and it must be the key your `PerTenant` tables keep in
+`TenantId` — [RASK114](diagnostics.md#rask114) otherwise. Two aggregates that say `ITenant` are
+[RASK113](diagnostics.md#rask113); a project with `PerTenant` tables and no `ITenant` is warned with the line to
+add ([RASK115](diagnostics.md#rask115)).
+
+**It is not a query.** The row is read once per tenant and held for the whole process: the framework reads it as
+each request, live event, job, mail and outbox message starts, so `Current.Tenant` in a render, a handler or a
+factory is a lookup. Read inside your own `Tenant.Use(id)` before anything has, it is read there and then — one
+synchronous query, counted on the `rask.data.current_row.queries` metric (meter `Rask.Data`) — and held after.
+
+**It is always the tenant in flight.** The row is looked up by the tenant the work is for *now*, so a nested
+`Tenant.Use(other)` reads `other`'s row and the outer one comes back when the scope ends. A tenant whose row is gone
+— deleted, or never written — throws a `MissingTenantException` rather than reading as no tenant, and nothing is
+held for it.
+
+**It is read-only.** It is the read face, with nothing to save. To change the tenant, load the aggregate:
+
+```csharp
+var tenant = await Tenant.Find(Current.RequiredTenant.Id);
+tenant!.Rename(name);
+await tenant.Save();
+```
+
+The save drops what every process-local copy held, so the next `Current.Tenant` reads the new row. Another server
+sees it within 60 seconds, which is how long a held row is trusted.
+
+`Current.Tenant` used to be the tenant's `Guid`. The framework keeps that internally — a job's row, a cache key, a
+stored file still record it — and your code reads the row's `Id` instead.
+
 ## Saying which tenant explicitly
 
 ```csharp
@@ -317,7 +374,8 @@ using (Tenant.Across())             // deliberately span tenants — an admin to
 ```
 
 An explicit scope always beats the principal, which is what a background job relies on. `Tenant.None()` clears
-the tenant for its scope — for a test, or for code that has to find a user before it can know their tenant.
+the tenant for its scope — the signed-in user's and the resolver's too — for a test, or for code that has to find
+a user before it can know their tenant. Inside it `Current.Tenant` is `null` and a tenant-scoped read throws.
 
 ## Administrators
 

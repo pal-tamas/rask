@@ -36,7 +36,7 @@ public sealed class QueuedMail : Aggregate<long, Timestamps>
 
         // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
         // tenant-scoped table would otherwise throw, since background work carries no principal.
-        TenantId = Current.Tenant,
+        TenantId = Tenant.Key,
     };
 
     /// <summary>The sender address, as JSON (see <see cref="MailSerializer"/>).</summary>
@@ -103,7 +103,7 @@ public sealed class QueuedMail : Aggregate<long, Timestamps>
     public Guid? UserId { get; internal set; }
 
     /// <summary>
-    /// The tenant the email was queued for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// The tenant the email was queued for — the tenant in flight at the time — or <c>null</c> when it
     /// belongs to nobody.
     /// </summary>
     /// <remarks>

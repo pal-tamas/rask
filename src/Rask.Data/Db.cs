@@ -205,8 +205,11 @@ public static partial class Db
     ///     Resolved per call rather than captured, because the scope is the session's and the principal in it
     ///     changes — a sign-in, a sign-out, an admin switching tenant.
     /// </remarks>
-    internal static ClaimsPrincipal? PrincipalFromScope() =>
-        AmbientScope.Value?.GetService<IPrincipalSource>()?.Current;
+    internal static ClaimsPrincipal? PrincipalFromScope() => PrincipalIn(AmbientScope.Value);
+
+    /// <summary>The signed-in principal <paramref name="scope" /> holds, or null.</summary>
+    internal static ClaimsPrincipal? PrincipalIn(IServiceProvider? scope) =>
+        scope?.GetService<IPrincipalSource>()?.Current;
 
     /// <summary>Whether <see cref="CreateContext" /> has anything to build a context from.</summary>
     internal static bool HasContext =>

@@ -67,7 +67,7 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
         {
             // Scoped to the tenant in flight, so one tenant cannot reach another's file even holding its
             // id. Null matches the files that belong to nobody, which is what the host's own saves produce.
-            var tenant = Current.Tenant;
+            var tenant = Tenant.Key;
 
             return await db.Set<StoredFile>()
                 .AsNoTracking()
@@ -101,7 +101,7 @@ internal sealed partial class FileStore<TContext>(IDbContextFactory<TContext> co
         await using (db.ConfigureAwait(false))
         {
             // Scoped like the read: deleting another tenant's file has to be as impossible as reading it.
-            var tenant = Current.Tenant;
+            var tenant = Tenant.Key;
             var rows = db.Set<StoredFile>().Where(f => f.Id == id && f.TenantId == tenant);
 
             // The row first. Bytes without a row are an orphan the sweep removes; a row without bytes is a broken link.

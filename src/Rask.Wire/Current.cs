@@ -3,7 +3,7 @@ namespace Rask;
 /// <summary>
 ///     The work in flight — its services, who it is for and when it should stop — read from anywhere, with nothing
 ///     injected: <c>Current.Service&lt;T&gt;()</c> and <c>Current.Cancellation</c> here, and with Rask.Data referenced <c>Current.UserId</c>, <c>Current.Principal</c>
-///     and <c>Current.Tenant</c> too.
+///     and — once the app says <c>ITenant</c> and <c>IUser</c> — <c>Current.Tenant</c> and <c>Current.User</c> too.
 /// </summary>
 /// <remarks>
 ///     A handler, a lifecycle hook and a static call like <c>Cache.Remember(…)</c> take no token: they run inside a

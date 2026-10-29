@@ -68,12 +68,12 @@ public sealed class TenantResolverRequestTests
         Guid? opened, later;
         using (scope.Enter(session.ServiceProvider))
         {
-            opened = Current.Tenant;
+            opened = Tenant.Key;
         }
 
         using (scope.Enter(session.ServiceProvider))
         {
-            later = Current.Tenant;
+            later = Tenant.Key;
         }
 
         Assert.Equal(new Guid("00000000-0000-0000-0000-000000000001"), opened);
@@ -102,8 +102,8 @@ public sealed class TenantResolverRequestTests
         app.MapEndpoints(endpoints =>
         {
             endpoints.MapGet("/ping", () => "pong");
-            endpoints.MapGet("/tenant", () => Current.Tenant?.ToString() ?? "none");
-            endpoints.MapGet("/tenant-twice", () => $"{Current.Tenant}|{Current.Tenant}");
+            endpoints.MapGet("/tenant", () => Tenant.Key?.ToString() ?? "none");
+            endpoints.MapGet("/tenant-twice", () => $"{Tenant.Key}|{Tenant.Key}");
         });
 
         var built = app.Build<MinimalApp>();

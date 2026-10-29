@@ -159,7 +159,7 @@ internal static class ParentTenantCheck
             return;
         }
 
-        var tenant = Current.Tenant ?? throw Refusal(
+        var tenant = Tenant.Key ?? throw Refusal(
             child, parent.Metadata.ClrType.Name, $"which belongs to tenant {rows}, with no tenant in flight");
         var inFlight = TenantColumn.ValueFor(tenant, column.Metadata.ClrType, child.Metadata.ClrType.Name);
 

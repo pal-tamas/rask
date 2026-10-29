@@ -3,8 +3,8 @@ using System.Security.Claims;
 namespace Rask.Data;
 
 /// <summary>
-///     Who and what the work in flight is for: the signed-in user, their principal, and the tenant — read
-///     from anywhere, with nothing injected.
+///     Who the work in flight is for: the signed-in user and their principal — read from anywhere, with nothing
+///     injected.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -27,9 +27,9 @@ namespace Rask.Data;
 ///         anonymous write through looking like a signed-in one.
 ///     </para>
 ///     <para>
-///         The user is an id, not the app's <c>User</c> row: loading the row is a query, and a property that
-///         silently queried the database on every read would be the wrong thing to hide. Load it when you
-///         need it — <c>await User.First(u => u.Id == Current.UserId)</c>.
+///         The user's and the tenant's own rows are <c>Current.User</c> and <c>Current.Tenant</c>, once the app's
+///         aggregates say <see cref="IUser" /> and <see cref="ITenant" />: the build generates them, typed as the
+///         aggregate's read face, and they come from a cache the framework fills as the work starts.
 ///     </para>
 /// </remarks>
 // Rask.Wire declares Current — every app has it, and it carries Current.Cancellation. The data layer adds who the
@@ -66,7 +66,7 @@ public static class CurrentUser
         ///     not for whoever happens to be ambient — then the <see cref="ClaimTypes.NameIdentifier" /> claim of
         ///     <c>Current.Principal</c>.
         /// </remarks>
-        public static Guid? UserId => AmbientUser.Value is { } scope ? scope.UserId : ClaimedGuid(ClaimTypes.NameIdentifier);
+        public static Guid? UserId => UserIdIn(Db.ScopeServices);
 
         /// <summary>The id of the user the work in flight is for, or a thrown exception when there is none.</summary>
         /// <exception cref="InvalidOperationException">No user is signed in and no <c>Current.UseUser</c> scope is open.</exception>
@@ -75,41 +75,6 @@ public static class CurrentUser
                 "No user is signed in, so there is no current user. Current.UserId is set for a signed-in live " +
                 "session, an HTTP request and a background job enqueued by a signed-in user; anywhere else, open " +
                 "Current.UseUser(id) around the work — or use Current.UserId and handle null when anonymous is fine.");
-
-        /// <summary>
-        ///     The tenant the work in flight belongs to, or <see langword="null" /> when it belongs to none.
-        /// </summary>
-        /// <remarks>
-        ///     <para>
-        ///         An explicit <see cref="Rask.Data.Tenant.Use(Guid)" /> first — a job runs for the tenant its row
-        ///         recorded, an admin in the tenant they chose — then the <see cref="Rask.Data.Tenant.ClaimType" />
-        ///         claim of <c>Current.Principal</c>.
-        ///     </para>
-        ///     <para>
-        ///         An app that registered a resolver — <c>services.AddRaskTenant(sp =&gt; …)</c> — has replaced the
-        ///         claim as the source: the answer is what the resolver named for this request or session, asked
-        ///         once and kept. An explicit scope still comes first.
-        ///     </para>
-        ///     <para>
-        ///         Null inside <see cref="Rask.Data.Tenant.Across" />: work that deliberately spans tenants is not
-        ///         done on behalf of any one of them, so a row it records should not claim otherwise.
-        ///     </para>
-        /// </remarks>
-        /// <exception cref="Rask.Cqrs.ForbiddenException">
-        ///     A resolver is registered and the signed-in user's claim names a different tenant than it did.
-        /// </exception>
-        public static Guid? Tenant =>
-            Data.Tenant.IsAcrossTenants ? null : Data.Tenant.Explicit ?? Data.Tenant.FromScope();
-
-        /// <summary>The tenant the work in flight belongs to, or a thrown exception when there is none.</summary>
-        /// <exception cref="InvalidOperationException">
-        ///     No tenant is set, the principal carries none, or <see cref="Rask.Data.Tenant.Across" /> is open.
-        /// </exception>
-        public static Guid RequiredTenant =>
-            Current.Tenant ?? throw new InvalidOperationException(
-                "No tenant is set, so a tenant-scoped table cannot be read or written. Open one with " +
-                "Tenant.Use(id) — a background job uses the tenant recorded on its own row — or say " +
-                "Tenant.Across() when the work deliberately spans tenants.");
 
         /// <summary>
         ///     Makes <paramref name="userId" /> the current user until the returned scope is disposed.
@@ -124,8 +89,21 @@ public static class CurrentUser
         public static IDisposable UseUser(Guid? userId) => new Scope(new UserScope(userId));
     }
 
-    internal static Guid? ClaimedGuid(string claimType) =>
-        Guid.TryParse(Current.Principal?.FindFirst(claimType)?.Value, out var id) ? id : null;
+    /// <summary><c>Current.UserId</c>, with <paramref name="scope" /> standing for the scope <see cref="Db.UseScope" /> opened.</summary>
+    /// <param name="scope">The scope whose principal answers.</param>
+    /// <param name="claims">The principal's claims as read ahead, or null to read them now.</param>
+    internal static Guid? UserIdIn(IServiceProvider? scope, PrincipalClaims? claims = null)
+    {
+        if (AmbientUser.Value is { } explicitUser)
+        {
+            return explicitUser.UserId;
+        }
+
+        return claims is not null ? claims.UserId : ClaimedGuid(scope, ClaimTypes.NameIdentifier);
+    }
+
+    internal static Guid? ClaimedGuid(IServiceProvider? scope, string claimType) =>
+        Guid.TryParse(Db.PrincipalIn(scope)?.FindFirst(claimType)?.Value, out var id) ? id : null;
 
     private sealed record UserScope(Guid? UserId);
 

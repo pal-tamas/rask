@@ -28,7 +28,7 @@ public sealed class NumberedTenantStorageTests
         Assert.Equal(42L, value);
         using (Tenant.Use(42))
         {
-            Assert.Equal(Current.Tenant, file.TenantId);
+            Assert.Equal(Tenant.Key, file.TenantId);
         }
     }
 

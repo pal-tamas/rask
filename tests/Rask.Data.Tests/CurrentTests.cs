@@ -18,9 +18,9 @@ public sealed class CurrentTests
     {
         Assert.Null(Current.Principal);
         Assert.Null(Current.UserId);
-        Assert.Null(Current.Tenant);
+        Assert.Null(Tenant.Key);
         Assert.Throws<InvalidOperationException>(() => Current.RequiredUserId);
-        Assert.Throws<InvalidOperationException>(() => Current.RequiredTenant);
+        Assert.Throws<InvalidOperationException>(() => Tenant.RequiredKey);
     }
 
     [Fact]
@@ -32,7 +32,7 @@ public sealed class CurrentTests
         {
             Assert.Same(principal, Current.Principal);
             Assert.Equal(_alice, Current.RequiredUserId);
-            Assert.Equal(_acme, Current.RequiredTenant);
+            Assert.Equal(_acme, Tenant.RequiredKey);
         }
 
         Assert.Null(Current.UserId);
@@ -84,25 +84,26 @@ public sealed class CurrentTests
     }
 
     [Fact]
-    public void An_explicit_tenant_beats_the_principal_and_Across_is_nobodys()
+    public void An_explicit_tenant_beats_the_principal_and_Across_and_None_are_nobodys()
     {
         using (Db.UseScope(new StubScope(SignedIn(_alice, _acme))))
         {
             using (Tenant.Use(_globex))
             {
-                Assert.Equal(_globex, Current.Tenant);
+                Assert.Equal(_globex, Tenant.Key);
             }
 
-            // None clears the explicit scope only; the signed-in user still says which tenant.
+            // None clears the tenant, the signed-in user's included.
             using (Tenant.None())
             {
-                Assert.Equal(_acme, Current.Tenant);
+                Assert.Null(Tenant.Key);
+                Assert.Throws<InvalidOperationException>(() => Tenant.RequiredKey);
             }
 
             using (Tenant.Across())
             {
-                Assert.Null(Current.Tenant);
-                Assert.Throws<InvalidOperationException>(() => Current.RequiredTenant);
+                Assert.Null(Tenant.Key);
+                Assert.Throws<InvalidOperationException>(() => Tenant.RequiredKey);
             }
         }
     }

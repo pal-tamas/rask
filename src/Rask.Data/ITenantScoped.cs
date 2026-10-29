@@ -7,7 +7,7 @@ namespace Rask.Data;
 ///     <para>
 ///         Implement it on the application's context — <c>: DbContext, ITenantScoped</c> — and pass the
 ///         context to <c>modelBuilder.ApplyRaskConventions(this)</c>. Nothing needs writing: the default
-///         implementation reads <c>Current.Tenant</c>.
+///         implementation reads the tenant in flight.
 ///     </para>
 ///     <para>
 ///         <b>Why the filter goes through an instance member rather than reading the ambient directly.</b>

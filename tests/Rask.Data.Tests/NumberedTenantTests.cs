@@ -666,12 +666,12 @@ public sealed class NumberedTenantTests : IDisposable
     {
         using (Tenant.Use(42))
         {
-            Assert.Equal(new Guid("00000000-0000-0000-0000-00000000002a"), Current.Tenant);
+            Assert.Equal(new Guid("00000000-0000-0000-0000-00000000002a"), Tenant.Key);
         }
 
         using (Tenant.Use(long.MaxValue))
         {
-            Assert.Equal(new Guid("00000000-0000-0000-7fff-ffffffffffff"), Current.Tenant);
+            Assert.Equal(new Guid("00000000-0000-0000-7fff-ffffffffffff"), Tenant.Key);
         }
     }
 

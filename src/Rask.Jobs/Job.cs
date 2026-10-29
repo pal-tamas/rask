@@ -64,7 +64,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     public Guid? UserId { get; private set; }
 
     /// <summary>
-    /// The tenant the job was enqueued for — <c>Current.Tenant</c> at the time — or <c>null</c> when it
+    /// The tenant the job was enqueued for — the tenant in flight at the time — or <c>null</c> when it
     /// belongs to nobody.
     /// </summary>
     /// <remarks>
@@ -123,7 +123,7 @@ public sealed class Job : Aggregate<long, Timestamps>
             RunAt = runAt,
             Lane = lane,
             UserId = userId,
-            TenantId = Current.Tenant,
+            TenantId = Tenant.Key,
             UserClaims = userId is { } user ? JobPrincipal.Record(Current.Principal, user) : null,
         };
     }

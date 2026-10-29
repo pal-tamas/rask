@@ -116,7 +116,8 @@ public sealed class DataChangesTests : IDisposable
     private static IServiceProvider Session(IDataChanges observer) => new SessionScope(observer);
 
     private Task<TestDatabase> StartDatabaseAsync() =>
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(new DataChangesInterceptor()));
+        // TestDatabase registers the interceptor itself, as AddRaskData does.
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
 
     private sealed class Recorder : IDataChanges
     {

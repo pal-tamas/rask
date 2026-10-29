@@ -13,12 +13,16 @@ namespace Rask.Auth;
 /// <c>AddRaskAuth()</c> and <c>modelBuilder.AddRaskAuth()</c> need no type argument.
 /// </para>
 /// <para>
+/// It says <see cref="IUser" />, so the app's <c>User</c> is <c>Current.User</c> — its read face, <c>UserRead</c> — with
+/// no line of its own.
+/// </para>
+/// <para>
 /// The credentials change only through Rask.Auth: registering, resetting and confirming go through <c>IAuth</c>, which
 /// hashes, checks tokens and ends sessions. They have private setters and are never on the generated form model. Roles
 /// are the app's to change: <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </para>
 /// </remarks>
-public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>, IUser
 {
     /// <summary>The sign-in address, trimmed and lower-cased. Unique.</summary>
     public string Email { get; private set; } = "";

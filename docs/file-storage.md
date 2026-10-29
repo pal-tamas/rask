@@ -549,7 +549,7 @@ The table is deliberately not partitioned with a query filter, the way an app's 
 the orphan sweep has to see every tenant's rows to decide which bytes are unreferenced, and a filter would hide
 them — leaving other tenants' files on disk for ever while the sweep reported nothing to do.
 
-**The tenant column follows your tenants.** `StoredFile.TenantId` is a `Guid?` in C#, like `Current.Tenant`. Its
+**The tenant column follows your tenants.** `StoredFile.TenantId` is a `Guid?` in C#, the type the framework carries a tenant in. Its
 column is a `uniqueidentifier` (a `uuid`, SQLite text) — unless every tenant-scoped table in the model numbers its
 tenants (`PerTenant<int>`, or a declared `int? TenantId`): then it is an `int` column holding the number itself,
 `42` for `Tenant.Use(42)` — or a `bigint` for `PerTenant<long>`. A model with no tenant-scoped table, or with tables

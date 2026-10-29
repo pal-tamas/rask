@@ -93,6 +93,12 @@
     <InternalsVisibleTo Include="Rask.Storage"/>
     <!-- The provider suite asks a declared unique rule as a query on a real SQL Server, with the index dropped. -->
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
+    <!-- The tenant in flight as the Guid the framework carries it in (Tenant.Key): a cache key, a push subscription's
+         owner. An app reads its tenant as its own row, Current.Tenant, so the Guid is no public name. -->
+    <InternalsVisibleTo Include="Rask.Cache"/>
+    <InternalsVisibleTo Include="Rask.WebPush"/>
+    <InternalsVisibleTo Include="Rask.Server.Tests"/>
+    <InternalsVisibleTo Include="Rask.Storage.Tests"/>
   </ItemGroup>
 
   <!-- Ship the global `using Rask.Data;` to downstream consumers (mirrors Rask.Cqrs). -->
