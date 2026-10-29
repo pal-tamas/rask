@@ -25,7 +25,9 @@ public sealed class TypedDateOpensTheCalendarTests(PlaywrightFixture playwright)
             return Task.CompletedTask;
         });
         await session.HooksLoadedAsync();
-        return (session, frames!);
+        // The socket's hello is behind what a journey counts (SocketHello).
+        await frames!.OpenedAsync();
+        return (session, frames);
     }
 
     private static async Task OpenCalendarAsync(IPage page)

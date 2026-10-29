@@ -159,12 +159,16 @@ public sealed class UiDatePickerPhoneTests(PlaywrightFixture playwright) : IClas
     public async Task Moving_the_pointer_over_the_days_of_the_sheet_sends_the_server_nothing()
     {
         var sent = 0;
+        SocketHello? hello = null;
         await using var session = await HookSession.OpenAsync<DatePickerPhonePage>(playwright, Phone, beforeLoad: page =>
         {
             page.WebSocket += (_, socket) => socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+            hello = SocketHello.Watch(page);
             return Task.CompletedTask;
         });
         await session.HooksLoadedAsync();
+        // The page's hello is in the count before the count is read (SocketHello).
+        await hello!.SentAsync();
         var page = session.Page;
         var picker = await OpenSheetAsync(page, 0);
         await page.WaitForTimeoutAsync(300);

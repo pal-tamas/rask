@@ -190,15 +190,17 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
     public async Task Opening_and_placing_a_panel_sends_the_server_nothing()
     {
         var sent = 0;
+        SocketHello? hello = null;
         await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright, beforeLoad: page =>
         {
             page.WebSocket += (_, socket) => socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+            hello = SocketHello.Watch(page);
             return Task.CompletedTask;
         });
         await session.HooksLoadedAsync();
-        // What the page says as it boots — its hello, a restored field — may still be on its way when the hooks
-        // have loaded: on a loaded machine one such frame was counted as the panel's. The socket goes quiet first.
-        await session.Page.WaitForTimeoutAsync(300);
+        // The page's hello may still be on its way when the hooks have loaded: on a loaded machine it was counted
+        // as the panel's. It is in the count before the count is read.
+        await hello!.SentAsync();
         var before = Volatile.Read(ref sent);
 
         await OpenedAsync(session, "right");

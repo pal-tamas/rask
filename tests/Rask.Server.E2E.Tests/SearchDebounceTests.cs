@@ -33,7 +33,10 @@ public sealed class SearchDebounceTests(PlaywrightFixture playwright) : IClassFi
             await SentFrames.Count(page);
             await PageClock.Install(page);
         });
-        await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
+        // A press the page answers: the socket is up before the page's time is stopped. The button's text is the
+        // server's first response and says nothing of that; a socket still opening when the clock stops has its
+        // open deadline run out by the journey's own RunFor, and what it then sends goes over HTTP, uncounted.
+        await RoundTripAsync(session.Page);
 
         return session;
     }

@@ -81,14 +81,18 @@ public sealed class UiChartHookTests(PlaywrightFixture playwright) : IClassFixtu
     public async Task The_tooltip_the_cursor_and_the_summary_follow_the_pointer_with_nothing_sent_to_the_server()
     {
         var sent = 0;
+        SocketHello? hello = null;
         await using var session = await HookSession.OpenAsync<ChartHookPage>(playwright, beforeLoad: page =>
         {
             page.WebSocket += (_, socket) => socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+            hello = SocketHello.Watch(page);
             return Task.CompletedTask;
         });
         var page = session.Page;
         await page.WaitForFunctionAsync("() => document.querySelector('#fluid svg')?.getAttribute('viewBox') === '0 0 400 133.33'");
         await session.HooksLoadedAsync();
+        // The page's hello is in the count before the count is read (SocketHello).
+        await hello!.SentAsync();
         const string read = "() => { const c = document.querySelector('#fluid [data-ui-chart]'), t = c.querySelector('[data-rask-plot-tooltip]'), f = c.getBoundingClientRect(), b = t.getBoundingClientRect(); return [c.hasAttribute('data-active') ? 'on' : 'off', t.hasAttribute('data-active') ? t.innerText.replace(/\\s+/g, ' ').trim() : '-', Math.round(b.left - f.left) + ',' + Math.round(b.top - f.top), c.querySelector('slot').textContent, c.style.getPropertyValue('--rask-plot-at'), [...c.querySelectorAll('circle')].map(p => p.hasAttribute('data-active') ? 'A' : '.').join('')].join(' | '); }";
         var before = Volatile.Read(ref sent);
 

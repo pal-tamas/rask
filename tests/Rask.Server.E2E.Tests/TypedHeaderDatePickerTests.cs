@@ -39,6 +39,8 @@ public sealed class TypedHeaderDatePickerTests(PlaywrightFixture playwright) : I
             },
             cultures: o => o.SupportedCultures.Add("hu"));
         await session.HooksLoadedAsync();
+        // The socket's hello is behind what a journey counts (SocketHello).
+        await frames!.OpenedAsync();
         await session.Page.EvaluateAsync("s => window.scrollBy(0, document.querySelector(s).getBoundingClientRect().bottom - 466)", Root);
         return (session, frames!);
     }
