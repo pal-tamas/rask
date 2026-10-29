@@ -348,4 +348,34 @@ public sealed class DeferredBindClientTests
         Assert.Equal(["change:Quy", "input:ab", "click:save"], heldBeforeAClick);
         Assert.Empty(afterTheAnswers);
     }
+
+    [Fact]
+    public void What_a_hook_wrote_into_a_bound_field_goes_ahead_of_a_click_in_the_same_frame_once()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var beforeAClick = Sent(root, "aHookWrittenFieldBeforeAClick");
+        var once = Sent(root, "aHookWrittenFieldOnce");
+
+        Assert.Equal(["input:4~", "input:43~", "input:4321", "click:resend"], beforeAClick);
+        Assert.Empty(once);
+    }
+
+    [Fact]
+    public void What_a_hook_wrote_while_the_host_owed_an_answer_goes_ahead_of_the_click_as_its_last_value_once()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var beforeAClick = Sent(root, "aHookWrittenFieldHeldBeforeAClick");
+        var afterTheAnswers = Sent(root, "aHookWrittenFieldAfterTheAnswers");
+
+        Assert.Equal(["input:4~", "input:4321", "click:resend"], beforeAClick);
+        Assert.Empty(afterTheAnswers);
+    }
 }
