@@ -1570,13 +1570,37 @@ public static partial class RaskEndpointExtensions
         }
 
         using var doc = ParseBatch(ctx, body);
-        if (doc is null || !AdmitBatch(ctx, doc.RootElement, body.Length, session, limits, registry, metrics, out var perFrame))
+        if (doc is null)
         {
             return;
         }
 
-        foreach (var frame in doc.RootElement.EnumerateArray())
+        if (!AdmitBatch(ctx, doc.RootElement, body.Length, session, limits, registry, metrics, out var perFrame))
         {
+            DropFrames(session, doc.RootElement, 0);
+            return;
+        }
+
+        await DispatchFramesAsync(ctx, session, stream, doc.RootElement, perFrame, store, limits, registry, metrics)
+            .ConfigureAwait(false);
+    }
+
+    // A POST's frames, in the order the tab sent them.
+    private static async Task DispatchFramesAsync(
+        HttpContext ctx,
+        LiveSession session,
+        SseTransport stream,
+        JsonElement batch,
+        int perFrame,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        StreamRegistry registry,
+        RaskMetrics? metrics)
+    {
+        var index = 0;
+        foreach (var frame in batch.EnumerateArray())
+        {
+            index++;
             if (!IsFrame(frame, out var hasType, out var type))
             {
                 continue;
@@ -1589,13 +1613,29 @@ public static partial class RaskEndpointExtensions
 
             if (outcome.Status == FrameStatus.Refused)
             {
-                // A breaker tripped. The stream is what ends; this request says so.
+                // A breaker tripped. The stream is what ends; this request says so — and the frames behind the
+                // refused one are never dispatched.
+                DropFrames(session, batch, index);
                 EndForPolicy(ctx, registry, session, outcome.Reason!);
                 return;
             }
         }
 
         ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+    }
+
+    // A POST's frames from `skip` on that will not be dispatched hand back the files they named.
+    private static void DropFrames(LiveSession session, JsonElement batch, int skip)
+    {
+        if (batch.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        foreach (var frame in batch.EnumerateArray().Skip(skip))
+        {
+            DispatchedUploads.Dropped(session, frame);
+        }
     }
 
     private static bool IsFrame(JsonElement frame, out bool hasType, out JsonElement type)
@@ -1781,7 +1821,7 @@ public static partial class RaskEndpointExtensions
 
                 // A breaker tripped. Close politely: the client reconnects (hello) against the intact
                 // session and resumes from current state.
-                if (Speaks(session, transport)
+                if (Heard(session, transport, root)
                     && await ProcessFrameAsync(session, root, hasType, t, payload.Length, store, limits, metrics, ct)
                         .ConfigureAwait(false) is { Status: FrameStatus.Refused } refused)
                 {
@@ -2054,8 +2094,21 @@ public static partial class RaskEndpointExtensions
     // admitted for the principal the session had THEN, which a sign-in on the new socket may
     // have changed since. Dropped rather than closed, so a duplicated tab holding the same id
     // does not fall into a reconnect tug-of-war with the original.
-    private static bool Speaks([NotNullWhen(true)] LiveSession? session, WebSocketTransport transport) =>
-        session is not null && session.IsAttached(transport);
+    private static bool Heard([NotNullWhen(true)] LiveSession? session, WebSocketTransport transport, JsonElement frame)
+    {
+        if (session is not null && session.IsAttached(transport))
+        {
+            return true;
+        }
+
+        // Dropped, and the files it named handed back with it: no handler of this socket's will ever be handed them.
+        if (session is not null)
+        {
+            DispatchedUploads.Dropped(session, frame);
+        }
+
+        return false;
+    }
 
     /// <summary>
     ///     The session a <c>hello</c> attaches the socket to, or <c>Stop</c> when the socket must end.
@@ -2169,8 +2222,8 @@ public static partial class RaskEndpointExtensions
         if (session.SuppressEventsUntilReconnect)
         {
             // Auth handoff in flight: a redeem fetch + reconnect are happening on the client. Drop
-            // everything except a future hello (handled before this).
-            return new(new FrameOutcome(FrameStatus.Handled, null));
+            // everything except a future hello (handled before this) — and the files it named with it.
+            return new(Dropped(session, root, new FrameOutcome(FrameStatus.Handled, null)));
         }
 
         if (hasType && type.ValueEquals("navigate"u8))
@@ -2190,7 +2243,7 @@ public static partial class RaskEndpointExtensions
 
         if (EventBatch.HandlerIdOf(root) is not { } handlerId)
         {
-            return new(new FrameOutcome(FrameStatus.Handled, null));
+            return new(Dropped(session, root, new FrameOutcome(FrameStatus.Handled, null)));
         }
 
         // Dispatch the handler in ARRIVAL order while keeping the caller's reader alive, so async handlers can
@@ -2206,7 +2259,7 @@ public static partial class RaskEndpointExtensions
         var payloadBytes = (long)payloadLength;
         if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
         {
-            return new(new FrameOutcome(FrameStatus.Refused, "handler backlog"));
+            return new(Dropped(session, root, new FrameOutcome(FrameStatus.Refused, "handler backlog")));
         }
 
         // We clone the JSON element because the JsonDocument's backing buffer is disposed by the caller once
@@ -2224,6 +2277,14 @@ public static partial class RaskEndpointExtensions
             ct));
 
         return new(new FrameOutcome(FrameStatus.Handled, null));
+    }
+
+    // A frame that is not dispatched hands back the uploads it named on the way out: no handler will be handed
+    // them, so the chain link that releases a dispatched frame's files never sees these (DispatchedUploads).
+    private static FrameOutcome Dropped(LiveSession session, JsonElement frame, FrameOutcome outcome)
+    {
+        DispatchedUploads.Dropped(session, frame);
+        return outcome;
     }
 
     // A link the reader pressed, or Back: queued behind the handlers read before it, so the reader goes on
@@ -2310,13 +2371,13 @@ public static partial class RaskEndpointExtensions
     {
         if (!root.TryGetProperty("events", out var events) || events.ValueKind != JsonValueKind.Array)
         {
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return Dropped(session, root, new FrameOutcome(FrameStatus.Handled, null));
         }
 
         var count = EventBatch.CountEvents(events);
         if (count == 0)
         {
-            return new FrameOutcome(FrameStatus.Handled, null);
+            return Dropped(session, root, new FrameOutcome(FrameStatus.Handled, null));
         }
 
         // A batch is one frame to the transport's rate cap, so what it carries is counted here: framing a flood
@@ -2326,7 +2387,7 @@ public static partial class RaskEndpointExtensions
                 && !session.AdmitBatchedEvents(count, limits.MaxInboundFramesPerSecond)))
         {
             metrics?.FrameRejected("rate");
-            return new FrameOutcome(FrameStatus.Refused, "event batch");
+            return Dropped(session, root, new FrameOutcome(FrameStatus.Refused, "event batch"));
         }
 
         // ONE dispatch to the backlog caps, which bound what is queued: a batch is one link on the chain and one
@@ -2335,7 +2396,7 @@ public static partial class RaskEndpointExtensions
         var payloadBytes = (long)payloadLength;
         if (!AdmitHandler(session, store, limits, metrics, payloadBytes))
         {
-            return new FrameOutcome(FrameStatus.Refused, "handler backlog");
+            return Dropped(session, root, new FrameOutcome(FrameStatus.Refused, "handler backlog"));
         }
 
         var capturedEvents = events.Clone();
