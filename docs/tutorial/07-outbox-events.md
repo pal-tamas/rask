@@ -112,7 +112,7 @@ Drop it into `ProductsPage`'s actions column (with `using Shop.Features.Orders;`
 PlaceOrder.ProductId(p.Id).Price(p.Price)
 ```
 
-**Receipts follow sales now.** Take chapter 4's enqueue back out of `CreateOrder` — the handler in
+**Receipts follow sales now.** Take chapter 4's enqueue back out of `NewOrderPage` — the handler in
 section 3 queues the receipt from the event instead, durably.
 
 ## 2. Nothing to remember
@@ -165,7 +165,7 @@ receipt already went out before sending another.
 > [jobs](04-background-jobs.md) run what you *schedule* (in an hour, purge stale carts). A confirmation email
 > belongs to the order's transaction. A nightly cleanup does not.
 
-> **What raises nothing.** Editing an order through `UpdateOrder` announces nothing: a form save writes the
+> **What raises nothing.** Editing an order through `EditOrderPage` announces nothing: a form save writes the
 > model's properties and calls no method, so nothing raises an event. When a change *is* something the business
 > cares about (a cancellation, a shipment) give `Order` a method for it that raises its event, and call it
 > through `Order.Update(id, o => o.Cancel(now))`.

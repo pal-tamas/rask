@@ -41,6 +41,21 @@ internal static class NodeRequirement
         + "Linux: your distro's nodejs package), or let `rask.sh` do it.";
 
     /// <summary>
+    ///     How to fix a <c>node</c> that is installed but fails before it runs, given what it printed.
+    /// </summary>
+    /// <remarks>
+    ///     nodejs.org's Linux build links libatomic from Node 26 on, and every minimal image (Debian and
+    ///     Ubuntu slim, Fedora's container) leaves it out — so that is the failure worth naming outright.
+    ///     The same words <c>rask.sh</c> prints after it unpacks Node.
+    /// </remarks>
+    public static string StartFailureHint(string output) =>
+        output.Contains("libatomic", StringComparison.Ordinal)
+            ? "Node's Linux build needs libatomic, which a minimal image leaves out — "
+              + "Debian/Ubuntu: sudo apt-get install -y libatomic1; Fedora/RHEL: sudo dnf install -y libatomic; "
+              + "openSUSE: sudo zypper install -y libatomic1."
+            : "It is on your PATH but fails before it runs — the line above names why. " + InstallHint;
+
+    /// <summary>
     ///     Reads a version out of whatever a tool printed. <c>node --version</c> answers <c>v24.20.0</c>,
     ///     <c>npm --version</c> answers <c>11.19.0</c>, and <c>dotnet --version</c> can answer
     ///     <c>10.0.100-preview.3.25201.16</c> — so the leading <c>v</c> and any pre-release suffix are

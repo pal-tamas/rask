@@ -12,7 +12,7 @@ namespace Rask.Data;
 ///     <para>
 ///         This is what <c>Product.Where(…)</c>, <c>Product.All</c> and friends return. It composes LINQ
 ///         operators the way <see cref="IQueryable{T}" /> does, but records them instead of binding to a
-///         context — the context is opened when the query is awaited (or by <c>First</c>, <c>Count</c>, …)
+///         context — the context is opened when the query is awaited (or by <c>First</c>, <c>FirstOrDefault</c>, <c>Count</c>, …)
 ///         and disposed before it returns.
 ///     </para>
 ///     <para>
@@ -198,12 +198,19 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public System.Runtime.CompilerServices.ConfiguredTaskAwaitable<List<TEntity>> ConfigureAwait(bool continueOnCapturedContext) =>
         RunAsync(static (q, ct) => q.ToListAsync(ct), default).ConfigureAwait(continueOnCapturedContext);
 
-    /// <summary>The first row, or <c>null</c> when the query matched nothing.</summary>
-    public Task<TEntity?> First(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
+    /// <summary>The first row, as LINQ's <c>First</c>: <c>await Product.Where(p =&gt; p.Id == id).First()</c>.</summary>
+    /// <exception cref="InvalidOperationException">
+    ///     The query matched nothing — call <see cref="FirstOrDefault(CancellationToken)" /> when that is expected.
+    /// </exception>
+    public Task<TEntity> First(CancellationToken cancellationToken = default) =>
+        RunAsync(static (q, ct) => QueryTerminals.First(q, typeof(TEntity).Name, ct), cancellationToken);
 
-    /// <summary>The first row matching <paramref name="predicate" />, or <c>null</c>.</summary>
-    public Task<TEntity?> First(
+    /// <summary>The first row matching <paramref name="predicate" />, as LINQ's <c>First</c>.</summary>
+    /// <exception cref="InvalidOperationException">
+    ///     No row matched — call <see cref="FirstOrDefault(Expression{Func{TEntity, bool}}, CancellationToken)" /> when
+    ///     that is expected.
+    /// </exception>
+    public Task<TEntity> First(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
@@ -211,20 +218,51 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         return Where(predicate).First(cancellationToken);
     }
 
-#pragma warning disable CA1720 // Single is LINQ's word for "the only row", which a .NET reader already knows
-    /// <summary>The only row, or <c>null</c> when the query matched nothing.</summary>
-    /// <exception cref="InvalidOperationException">The query matched more than one row.</exception>
-    public Task<TEntity?> Single(CancellationToken cancellationToken = default) =>
-        RunAsync(static (q, ct) => q.SingleOrDefaultAsync(ct), cancellationToken);
+    /// <summary>The first row, or <c>null</c> when the query matched nothing.</summary>
+    public Task<TEntity?> FirstOrDefault(CancellationToken cancellationToken = default) =>
+        RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken);
 
-    /// <summary>The only row matching <paramref name="predicate" />, or <c>null</c>.</summary>
-    /// <exception cref="InvalidOperationException">More than one row matched.</exception>
-    public Task<TEntity?> Single(
+    /// <summary>The first row matching <paramref name="predicate" />, or <c>null</c> when none does.</summary>
+    public Task<TEntity?> FirstOrDefault(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).FirstOrDefault(cancellationToken);
+    }
+
+#pragma warning disable CA1720 // Single is LINQ's word for "the only row", which a .NET reader already knows
+    /// <summary>The only row, as LINQ's <c>Single</c>.</summary>
+    /// <exception cref="InvalidOperationException">
+    ///     The query matched nothing (call <see cref="SingleOrDefault(CancellationToken)" /> when that is expected),
+    ///     or more than one row.
+    /// </exception>
+    public Task<TEntity> Single(CancellationToken cancellationToken = default) =>
+        RunAsync(static (q, ct) => QueryTerminals.Single(q, typeof(TEntity).Name, ct), cancellationToken);
+
+    /// <summary>The only row matching <paramref name="predicate" />, as LINQ's <c>Single</c>.</summary>
+    /// <exception cref="InvalidOperationException">No row matched, or more than one did.</exception>
+    public Task<TEntity> Single(
         Expression<Func<TEntity, bool>> predicate,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(predicate);
         return Where(predicate).Single(cancellationToken);
+    }
+
+    /// <summary>The only row, or <c>null</c> when the query matched nothing.</summary>
+    /// <exception cref="InvalidOperationException">The query matched more than one row.</exception>
+    public Task<TEntity?> SingleOrDefault(CancellationToken cancellationToken = default) =>
+        RunAsync(static (q, ct) => QueryTerminals.SingleOrDefault(q, typeof(TEntity).Name, ct), cancellationToken);
+
+    /// <summary>The only row matching <paramref name="predicate" />, or <c>null</c> when none does.</summary>
+    /// <exception cref="InvalidOperationException">More than one row matched.</exception>
+    public Task<TEntity?> SingleOrDefault(
+        Expression<Func<TEntity, bool>> predicate,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+        return Where(predicate).SingleOrDefault(cancellationToken);
     }
 #pragma warning restore CA1720
 

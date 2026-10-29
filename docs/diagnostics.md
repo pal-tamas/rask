@@ -2433,9 +2433,12 @@ row through reflection, so loading is never affected.
 
 Every navigation the read face infers from an id gives its target the rows that point there, named after the
 referencing type and whatever the id says before the target's name: `Distribution.FromFuelingId` gives
-`FuelingRead.DistributionsFrom` ([the rows that point here](data.md#the-rows-that-point-here)). When the target's face
-already uses that name — a column, a navigation, a collection — or another id would give it the same one, the
-collection is left out rather than renamed by a guess, and this warning names the clash. The build stays green, and
+`FuelingRead.DistributionsFrom` ([the rows that point here](data.md#the-rows-that-point-here)). When another id
+would give it the same name, the first in source order keeps it and the other adds its own words
+(`ReportColumnColumnId` and `TotalColumnId` to a `CatalogColumn` give `ReportColumnTotals` and
+`ReportColumnTotalsTotal`). When the target's face already uses the name — a column, a navigation, a collection —
+or the other's own words are taken too, or two ids say nothing apart (a `FuelingId` on two `Distribution` types),
+the collection is left out rather than renamed by a guess, and this warning names the clash. The build stays green, and
 the forward navigation (`DistributionRead.FromFueling`) is still there.
 
 ```csharp
@@ -2456,7 +2459,7 @@ FuelingRead does not get 'DistributionsFrom': the name is already a column of Fu
 
 **Fix:** rename one side. Renaming the id (`SourceFuelingId` gives `DistributionsSource`) changes its column, so
 keep the column with `[Column("FromFuelingId")]` on an existing table; renaming the target's member works the same
-way. Two ids that clash with each other are reported on both, each naming the other.
+way. Two ids that cannot be told apart are reported on both, each naming the other.
 
 ---
 

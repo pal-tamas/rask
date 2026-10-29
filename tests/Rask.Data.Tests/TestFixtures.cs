@@ -10,6 +10,12 @@ public sealed class Widget : Aggregate<Guid, Timestamps, Versioned, Model, SoftD
 
     public string Name { get; private set; } = "";
 
+    // Reusable queries ("scopes"), declared as docs/data.md#a-reusable-query-a-scope shows: a static on the
+    // aggregate returning the ModelQuery that Widget.Where(…) returns. ModelSetTests composes them.
+    public static ModelQuery<WidgetRead> Visible => Widget.Where(w => w.Name != "hidden");
+
+    public static ModelQuery<WidgetRead> StartingWith(string prefix) => Widget.Where(w => w.Name.StartsWith(prefix));
+
     public static Widget Create(string name)
     {
         var widget = new Widget { Id = Guid.NewGuid(), Name = name };

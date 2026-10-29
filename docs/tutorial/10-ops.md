@@ -22,9 +22,12 @@ query**. Queue depth is `SELECT count(*)`.
 
 They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
 aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. Inject
-`IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh:
+`IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh. These are EF Core's
+own calls, which do not pick up the page's cancellation by themselves, so each is handed the page's
+`CancellationToken` (`ct` below):
 
 ```csharp
+var ct = CancellationToken;
 await using var db = await dbFactory.CreateDbContextAsync(ct);
 ```
 

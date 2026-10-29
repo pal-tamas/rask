@@ -175,9 +175,11 @@ What follows from reading through the root:
   aggregate is refused when the model is built, naming the entity — never read unfiltered.
 
 **A child that already keeps a column.** An existing table may hold the tenant on its children too. Declare it
-(`public Guid? TenantId { get; private set; }`, or `int?`/`long?`) and it is used: filtered on directly, stamped
-with the **root's** tenant — inside `Tenant.Across()` as well — and refused at the save if it disagrees with the
-root's. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
+(`public Guid? TenantId { get; private set; }`, or `int?`/`long?`) and it is kept: stamped with the **root's**
+tenant — inside `Tenant.Across()` as well — and refused at the save if it disagrees with the root's. It is NOT
+filtered on: the child is still read through its root, so a legacy row whose column is NULL is its parent's, and
+editing one is not refused for it. **A member's name never turns tenant filtering on** — public or internal,
+declared or shadow, a `TenantId` on a child is data; only `PerTenant` on the aggregate root partitions. Before #1251 every child got a shadow `TenantId` column; one that relied on it and declares nothing now
 reads through its root, and the next migration Rask makes drops that column. Read the migration, and declare
 the property if the column should stay.
 

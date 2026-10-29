@@ -142,8 +142,8 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         }
     }
 
-    // The row whose tenant says where `entry` belongs: itself, or — for a child added to an aggregate that was
-    // loaded, which has no tenant of its own until it is stamped — its root. Null when nothing has one yet.
+    // The row whose tenant says where `entry` belongs: itself, or — for a child with no tenant in its column (added to
+    // an aggregate that was loaded, or a legacy row) — its root. Null when nothing has one yet.
     private static EntityEntry? OwnerWithATenant(DbContext context, EntityEntry entry)
     {
         if (!IsPartitioned(entry))
@@ -151,7 +151,8 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
             return null;
         }
 
-        if (entry.State != EntityState.Added || HasTenant(entry))
+        // A child's own column is data its root stamps, NULL on a legacy row: with none, its root answers for it.
+        if (HasTenant(entry) || (entry.State != EntityState.Added && entry.Entity is IAggregate))
         {
             return entry;
         }
@@ -266,6 +267,13 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         var property = entry.Property(Columns.TenantId);
         var table = entry.Metadata.ClrType.Name;
+
+        // A legacy row that was loaded with no tenant of its own and still has none: it belongs to its root's tenant
+        // through its parent, which the parent check and the filter already hold it to.
+        if (entry.State == EntityState.Modified && property.CurrentValue is null && property.OriginalValue is null)
+        {
+            return;
+        }
 
         if (!Equals(property.CurrentValue, TenantColumn.ValueFor(rootTenant, property.Metadata.ClrType, table)))
         {

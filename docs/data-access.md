@@ -89,8 +89,8 @@ subscription (e.g. `OnMount() => store.Changed += StateHasChanged`). See
 
 ## How the sample is organised
 
-The sample uses **vertical slices**: code is grouped by use case (`ListProducts`, `CreateProduct`,
-`EditProduct`), each slice owning its page, its own form model, and its own EF Core access — no
+The sample uses **vertical slices**: code is grouped by use case (`ProductsPage`, `NewProductPage`,
+`EditProductPage`), each slice owning its page, its own form model, and its own EF Core access — no
 shared repository or service layer. The only shared things are the app shell, a form-error template,
 and the Catalog domain.
 

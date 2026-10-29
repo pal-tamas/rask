@@ -9,7 +9,7 @@ namespace Rask.Background;
 
 /// <summary>
 /// Polls the <see cref="Job"/> table on a schedule and runs each due job by dispatching it through
-/// <c>Rask.Cqrs</c>' <see cref="IDispatcher"/> to its <see cref="ICommandHandler{TCommand}"/>. At-least-once:
+/// <c>Rask.Cqrs</c>' <see cref="IDispatcher"/> to its <see cref="IJobHandler{TJob}"/>. At-least-once:
 /// a job runs at least once and, on failure, is retried with exponential backoff up to
 /// <see cref="JobsOptions.MaxAttempts"/> (after which it is left as a dead letter). Also enqueues due
 /// interval-recurring jobs and purges completed jobs past <see cref="JobsOptions.Retention"/>. A failing

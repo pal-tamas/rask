@@ -161,6 +161,15 @@ export DOTNET_ROOT="$HOME/.dotnet"
 The installer only writes `DOTNET_ROOT` when it actually installed an SDK into `~/.dotnet` — setting
 it on a machine whose SDK lives elsewhere would break the SDK that was working.
 
+**"Node … unpacked, but it cannot start" / `libatomic.so.1: cannot open shared object file`.**
+nodejs.org's Linux build links `libatomic` from Node 26 on, and a minimal image — `debian:*-slim`,
+Ubuntu's and Fedora's containers — leaves it out. The installer never runs a package manager, so it
+prints the command for your distro instead: `sudo apt-get install -y libatomic1` (Debian/Ubuntu),
+`sudo dnf install -y libatomic` (Fedora/RHEL) or `sudo zypper install -y libatomic1` (openSUSE). The
+unpacked Node stays where it is, so that one command is the whole fix — no re-run. On Alpine, which
+nodejs.org publishes no musl build for, use the distro's own `apk add nodejs npm`. `rask doctor`
+reports the same node as `cannot start`.
+
 **"installing the .NET SDK needs `bash`."** Microsoft's `dotnet-install.sh` is a bash script, even
 though `rask.sh` itself is POSIX `sh`. Nearly every system has bash; a minimal container may not.
 Install it, or install the SDK yourself and re-run with `--no-sdk`.

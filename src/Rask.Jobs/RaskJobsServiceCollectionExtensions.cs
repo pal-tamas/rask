@@ -15,7 +15,7 @@ public static class RaskJobsServiceCollectionExtensions
     /// Registers the <see cref="IJobs"/> and the background <see cref="JobProcessor{TContext}"/>. Map the
     /// tables with <c>modelBuilder.AddRaskJobs()</c> in <c>OnModelCreating</c>, register your context as an
     /// <see cref="IDbContextFactory{TContext}"/>, and add <c>AddRaskCqrs()</c> (jobs dispatch to their
-    /// <c>ICommandHandler</c> through it). Idempotent.
+    /// <see cref="IJobHandler{TJob}"/> through it). Idempotent.
     /// </summary>
     /// <remarks>
     /// <see cref="JobsOptions"/> reads the <c>Rask:Jobs</c> configuration section first (so
