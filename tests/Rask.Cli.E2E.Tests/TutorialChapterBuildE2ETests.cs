@@ -83,9 +83,9 @@ public sealed partial class TutorialChapterBuildE2ETests
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
             Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>"));
-            Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
-            Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
-            Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct : Component"));
+            Write(fs, slice, "NewProductPage.cs", Fence("[Route(\"/products/new\")]"));
+            Write(fs, slice, "EditProductPage.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
+            Write(fs, slice, "DeleteProductButton.cs", Fence("class DeleteProductButton : Component"));
             Write(fs, slice, "ProductsPage.cs", Fence("class ProductsPage"));
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);

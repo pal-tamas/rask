@@ -8,6 +8,28 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A `NavLink` to a section of its page lights up while that section is read.** Before: a one-page site's menu of
+  `NavLink.Href("/#about")`, `"/#contact"` never showed where the reader was — the server never sees the fragment, so
+  only the plain page link was ever active. Now such a link hands its `ActiveClass` to the runtime
+  (`data-rask-nav-spy`), which adds it and `aria-current="true"` while the section's top has passed a third of the
+  viewport, or, at the very bottom, to the lowest section that shows. See
+  [Scroll position on navigation](docs/routing.md#scroll-position-on-navigation).
+- **`rask db migrate` applies pending migrations, as an alias of `rask db update`.** Rails (`db:migrate`) and
+  Laravel (`artisan migrate`) users reach for "migrate"; before, it was rejected as an unknown action. It is the
+  same verb — same options, same checks, same `dotnet ef database update` — and `rask db --help` lists it as
+  `update (migrate)`; bash, zsh and fish completion offer it too.
+- **A job's handler is an `IJobHandler<TJob>`.** A background job was handled by an `ICommandHandler<TJob>`, so every
+  guide had to explain why a job is a "command" before it could show one. Now:
+  ```csharp
+  public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
+  {
+      public Task Handle(SendOrderReceipt job) => …;
+  }
+  ```
+  It is found at build time and run exactly as before: `IJobHandler<TJob>` derives from `ICommandHandler<TJob>`, so the
+  dispatcher, its pipeline and the one-handler-per-job rule (RASK028) are unchanged, and an existing
+  `ICommandHandler<TJob>` keeps working with no edit. The docs, tutorial and `Rask.Jobs` readme now write `IJobHandler`.
+  See [background jobs](docs/jobs.md#use).
 - **RASK111 warns about a collection of value objects that will be a NULL column.** A get-only
   `IReadOnlyList<FiledFile> Files { get; private set; }` has no list behind it for EF Core to write through, so it
   keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that
@@ -197,6 +219,21 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING: `First` and `Single` throw when no row matches, as in LINQ and EF Core; `FirstOrDefault` and
+  `SingleOrDefault` are new and return `null`.** Before: `Product.First(…)`, `Product.Where(…).First()`,
+  `Include(…).First(…)` and `Select(…).First()` returned `null` for no row, and `Single` returned `null` for no row
+  (throwing only for two). Now `First`/`Single` hand back a non-nullable row and throw `InvalidOperationException`
+  naming the `…OrDefault` call to use instead, `Single` still throws for more than one row, and
+  `FirstOrDefault`/`SingleOrDefault` (same overloads: with or without a predicate, on the type and on any query
+  chain; `FirstOrDefault` on a projection) keep the old null-returning behaviour — `SingleOrDefault` throws for more
+  than one row. Migrate: every `First(…)`/`Single(…)` whose caller checks for `null` (`is null`, `?.`, `??`,
+  `Assert.Null`) becomes `FirstOrDefault(…)`/`SingleOrDefault(…)`. `Find(id)` is unchanged and still returns `null`.
+- **Every routed page in the docs ends in `Page`; a verb names a command.** The CRUD slice the tutorial, cheatsheet
+  and recipes write was `ProductsPage` beside `CreateProduct`/`UpdateProduct`, which read like the commands
+  (`new EditProduct { … }`) they sit next to. Now it is `ProductsPage`, `NewProductPage` (`/products/new`) and
+  `EditProductPage` (`/products/{id}/edit`), and the per-row button is `DeleteProductButton`; chapter 3's orders
+  follow (`NewOrderPage`, `EditOrderPage`, `DeleteOrderButton`). A link is `Routes.EditProductPage(Id: id)`. Nothing
+  in a package changed — an app that copied the old names keeps compiling; rename to match when convenient.
 - **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
   `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
   `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update
@@ -344,6 +381,39 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
+  that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
+  the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
+  scrollbars always show. Now every table cell is the containing block of what is placed inside it, and an `sr-only`
+  box in a table sits in its cell's first corner. A `sticky` column keeps its place; a checkbox's native input stays
+  in its own row. Nothing to change in an app.
+- **`rask.sh` names the package when the Node it installed cannot start.** Node 26.13.0, the line's first LTS
+  (2026-10-28), links `libatomic.so.1`, which every minimal Linux image (`debian:*-slim`, Ubuntu, Fedora containers)
+  leaves out — so on a bare box the installer verified, unpacked and reported Node as installed, and the first `node`
+  call died with a loader error that names a file and no package. Now the installer runs the node it unpacked and,
+  if it cannot start, warns with the loader's own line and the command for THIS distro (from `/etc/os-release`):
+  `sudo apt-get install -y libatomic1` on Debian/Ubuntu, `dnf install libatomic` on Fedora/RHEL, `zypper install
+  libatomic1` on openSUSE, and the distro's own `nodejs` on Alpine, which nodejs.org ships no musl build for. Printed,
+  never run — the installer still never uses sudo — and the unpacked Node is kept, so installing the package is the
+  whole fix. `rask doctor` now reports such a node as `cannot start` with the same fix, where it used to say
+  `not found`.
+- **A child entity with a `TenantId` member no longer hides its rows whose `TenantId` is NULL.** Before: a child of a
+  `PerTenant` aggregate that declared a `TenantId` — public, or internal and mapped in its `Configure` — was filtered on
+  its OWN column, so a legacy row whose child column was NULL while its parent carried the tenant silently vanished
+  from every read of the child (its read face, `Where`/`Count`, and the aggregate's own collection on a load). Now the
+  tenant is required only on the aggregate root, and every child is partitioned through its root (the `EXISTS` on its
+  parent, #1251) whatever members it declares: a member's name never turns a filter on. A child that keeps the
+  column still has it stamped with its root's tenant and checked against it on a save; a loaded legacy row whose
+  column is NULL can be edited without being refused. Another tenant's children stay invisible, NULL column or not.
+  See [A child that already keeps a column](docs/multi-tenancy.md#a-child-belongs-to-its-roots-tenant).
+- **Two ids to one target no longer both lose their collection when they would share its name.** Before:
+  `ReportColumnColumnId` and `TotalColumnId`, both configured to a `CatalogColumn`, each wanted
+  `CatalogColumnRead.ReportColumnTotals`, so both were RASK108 and the only way out was renaming a mapped property.
+  Now the first in source order keeps the name and each other one adds its own words — those before the ones it
+  shares with the target's name, or its id without `Id` when it shares all of them — so `TotalColumnId` gives
+  `ReportColumnTotalsTotal`. Every name a read face already had is unchanged; RASK108 stays for a name the target's
+  own members hold, a second name that is taken too, and ids that say nothing apart (two `FuelingId`s from two
+  `Distribution` types). See [The rows that point here](docs/data.md#the-rows-that-point-here).
 - **An app building with an ABSOLUTE `IntermediateOutputPath` (or `ArtifactsPath`, as BenchmarkDotNet's child build
   sets) no longer writes its compiled scoped TypeScript into the source tree.** The build glued the path onto the
   project directory, so `UiEditor.d.ts` landed in `src/Rask.Ui/Users/…/obj/…`, the next build read it back as an

@@ -54,8 +54,8 @@ private static async Task<IReadOnlyList<ProductListItem>> Load() =>
         .Select(p => new ProductListItem(p.Id, p.Name, p.Price, p.InStock, p.Version));
 ```
 
-`Version` rides along because the list's delete button sends it back (Chapter 2). `Current.Cancellation` is
-the same ambient idea as `Cache` itself: the cancellation of the work in progress, with nothing passed in.
+`Version` rides along because the list's delete button sends it back (Chapter 2). The read takes no token:
+like `Cache` itself, it is cancelled with the work in progress, with nothing passed in.
 
 Then have `ProductsPage` read through the accessor instead of asking the database for each page. The page
 loads the list when it mounts, and reloads it after a delete:
@@ -72,7 +72,7 @@ public sealed partial class ProductsPage : Component
 
     // … and in Render(), the table's rows are one page of the list, and a delete reloads it:
     //     _items.Skip((_listing.Page - 1) * PageSize).Take(PageSize).Select(p => Ui.TableRow.Key(p.Id)[ … ])
-    //     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(Load)
+    //     DeleteProductButton.Id(p.Id).Version(p.Version).OnDeleted(Load)
 }
 ```
 
@@ -90,7 +90,7 @@ other half of the pair:
 public static Task Forget() => Cache.Forget(Key);
 ```
 
-Then in the three components that write (`CreateProduct.cs`, `UpdateProduct.cs`, `DeleteProduct.cs`), right
+Then in the three components that write (`NewProductPage.cs`, `EditProductPage.cs`, `DeleteProductButton.cs`), right
 after the write succeeds — before navigating away:
 
 ```csharp

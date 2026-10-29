@@ -20,15 +20,22 @@ slow third-party API. You want to return to the user immediately and do the work
 if the process restarts, the work isn't lost, and a transient failure is retried rather than dropped.
 
 `Rask.Jobs` persists each job to a table in your database and a hosted worker polls it, so there's nothing else
-to run. A job **is** a [Rask.Cqrs](cqrs.md) command — you write an ordinary `ICommandHandler<TJob>` to do the
-work, and the worker dispatches to it.
+to run. A job is a record marked `IJob`, and the work is an `IJobHandler<TJob>` — one per job type, found at
+build time, nothing to register. The worker hands each job it takes off the table to its handler.
+
+> **Under the hood a job travels as a [Rask.Cqrs](cqrs.md) command.** `IJob` derives from `ICommand` and
+> `IJobHandler<TJob>` from `ICommandHandler<TJob>`, so a job gets the dispatcher's pipeline (validation,
+> behaviors, `[Authorize]`) and its one-handler-per-type rule ([RASK028](diagnostics.md#rask028)). That is
+> also why a handler written as `ICommandHandler<TJob>` keeps working — it is the same registration under
+> the older name. Write `IJobHandler`; it says what the class is for. A job is never reachable over HTTP:
+> `IJob` is `[LocalOnly]`.
 
 ## Use
 
 ```csharp
 public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 
-public sealed class SendWelcomeEmailHandler : ICommandHandler<SendWelcomeEmail>
+public sealed class SendWelcomeEmailHandler : IJobHandler<SendWelcomeEmail>
 {
     public async Task Handle(SendWelcomeEmail job) =>
         await Mail.Send(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)));
@@ -157,7 +164,7 @@ write a job for work that may roll back.
 - **`IJobs`** — writes one `Job` row (type name + JSON payload + `RunAt`) through your
   `IDbContextFactory<TContext>`.
 - **`JobProcessor<TContext>`** — a hosted `BackgroundService` that polls on `PollInterval` for **due** jobs
-  (`RunAt <= now`, oldest first), dispatches each through `IDispatcher` to its `ICommandHandler`, and stamps
+  (`RunAt <= now`, oldest first), dispatches each through `IDispatcher` to its `IJobHandler`, and stamps
   `ProcessedAt`. On failure it records the error, increments the attempt count, and pushes `RunAt` out by an
   **exponential backoff** (`BaseRetryDelay × 2^(attempts-1)`, capped at `MaxRetryDelay`), retrying until
   `MaxAttempts` — after which the job is left as a **dead letter** for inspection. A failing job never crashes

@@ -225,4 +225,28 @@ public partial class NavLinkTests : global::Rask.Core.RaskMarkup
             "<a class=\"menu-link\" href=\"/dashboard\" data-rask-nav></a>",
             NavLink.Href("/dashboard").Class("menu-link").ToHtml());
     }
+
+    [Fact]
+    public void A_link_to_a_section_hands_its_active_class_to_the_runtime_instead()
+    {
+        // The fragment never reaches the server, so a section link is not active on its own page; the runtime marks
+        // it while its section is read (rask-nav-spy.ts), with the class it is handed.
+        using var _ = BeginRoute("/");
+
+        var html = NavLink.Href("/#contact").Class("menu-link").ActiveClass("text-brand").ToHtml();
+
+        Assert.Equal(
+            "<a class=\"menu-link\" href=\"/#contact\" data-rask-nav data-rask-nav-spy=\"text-brand\"></a>",
+            html);
+    }
+
+    [Fact]
+    public void A_section_link_hands_over_the_default_class_and_a_plain_link_nothing()
+    {
+        var section = NavLink.Href("/#contact").ToHtml();
+        var plain = NavLink.Href("/contact").ToHtml();
+
+        Assert.Contains("data-rask-nav-spy=\"active\"", section, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-nav-spy", plain, StringComparison.Ordinal);
+    }
 }

@@ -216,6 +216,36 @@ public sealed class DoctorDependencyTests
     }
 
     [Fact]
+    public async Task A_node_that_cannot_load_libatomic_is_named_with_the_package_that_fixes_it()
+    {
+        // Node 26's Linux build on a minimal image: on PATH, executable, and dead in the loader. The
+        // shared probe folded that exit into "not found" and suggested installing what was installed.
+        var (console, command) = Build(Except("node", () => new ProcessResult(
+            127, "",
+            "node: error while loading shared libraries: libatomic.so.1: cannot open shared object file")));
+
+        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
+        Assert.Contains("cannot start", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("libatomic1", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("not found", ValueOf(console.OutText, "node"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_node_that_fails_to_start_for_another_reason_points_at_its_own_words()
+    {
+        var (console, command) = Build(Except("node", () => new ProcessResult(1, "", "Illegal instruction")));
+
+        await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
+        Assert.Contains("Illegal instruction", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("libatomic", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_node_at_the_island_build_floor_is_not_warned_about()
     {
         var (console, command) = Build(Except("node", () => new ProcessResult(0, $"v{NodeRequirement.BuildFloor}", "")));
@@ -311,5 +341,11 @@ public sealed class DoctorDependencyTests
         JsonDocument.Parse(json).RootElement.GetProperty("checks").EnumerateArray()
             .Where(check => check.GetProperty("name").GetString() == name)
             .Select(check => check.GetProperty("status").GetString() ?? "")
+            .FirstOrDefault() ?? $"<no row named {name}>";
+
+    private static string ValueOf(string json, string name) =>
+        JsonDocument.Parse(json).RootElement.GetProperty("checks").EnumerateArray()
+            .Where(check => check.GetProperty("name").GetString() == name)
+            .Select(check => check.GetProperty("detail").GetString() ?? "")
             .FirstOrDefault() ?? $"<no row named {name}>";
 }

@@ -43,6 +43,7 @@ import "./rask-list.js";     // data-rask-list: a list of options' cursor, keys,
 import "./rask-color.js";    // data-rask-color: a colour picker's colour, keys, typing and palette
 import "./rask-calendar.js"; // data-rask-calendar: a calendar's months, keys, picks and a date picker's popup
 import "./rask-skeleton.js"; // data-rask-skeleton: a table's skeleton rows from the press until its rows are back
+import "./rask-nav-spy.js";  // data-rask-nav-spy: a NavLink to a section of its page lights while it is read
 
 // Last, when every hook is listening: what the reader did while this bundle was on its way.
 replayMissed();

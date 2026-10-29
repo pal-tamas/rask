@@ -37,8 +37,15 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     public System.Runtime.CompilerServices.ConfiguredTaskAwaitable<List<TResult>> ConfigureAwait(bool continueOnCapturedContext) =>
         RunAsync(static (q, ct) => q.ToListAsync(ct), default).ConfigureAwait(continueOnCapturedContext);
 
-    /// <summary>The first projected row, or the default when the query matched nothing.</summary>
-    public Task<TResult?> First(CancellationToken cancellationToken = default) =>
+    /// <summary>The first projected row, as LINQ's <c>First</c>.</summary>
+    /// <exception cref="InvalidOperationException">
+    ///     The query matched nothing — call <see cref="FirstOrDefault" /> when that is expected.
+    /// </exception>
+    public Task<TResult> First(CancellationToken cancellationToken = default) =>
+        RunAsync(static (q, ct) => QueryTerminals.First(q, typeof(TEntity).Name, ct), cancellationToken);
+
+    /// <summary>The first projected row, or the default (<c>null</c> for a reference) when the query matched nothing.</summary>
+    public Task<TResult?> FirstOrDefault(CancellationToken cancellationToken = default) =>
         RunAsync(static (q, ct) => q.FirstOrDefaultAsync(ct), cancellationToken)!;
 
     /// <summary>How many rows match.</summary>

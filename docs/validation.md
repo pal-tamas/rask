@@ -29,6 +29,21 @@ supported in a form, and they run with nothing declared.
 > `Validate`, and each unique index declared with `IsUnique("…")`
 > ([data — what a form over the model asks by itself](data.md#what-a-form-over-the-model-asks-by-itself)).
 
+## Which one do I write?
+
+There are several places a rule can live. Pick by what the rule is about:
+
+| The rule | Write it as | Why there |
+| --- | --- | --- |
+| One field, always true — required, a length, a range, a pattern | An attribute on the aggregate's property: `[Required]`, `[StringLength(80)]` | The generated model copies it, so every form, the save and EF Core's column all read the same rule |
+| No two rows alike, or a row still referenced | `HasIndex(…).IsUnique("…")`, `OnDelete(…, "…")`, `WhenReferenced("…")` in `Configure` | The database owns it; a form asks before the save, and a collision comes back as a field message ([data](data.md#what-a-unique-indexs-violation-says)) |
+| Several fields of one form together — two passwords match, an end after a start | `.Validate(…)` on the `Form` | Its message belongs to the form, not to one input ([forms](forms-validation.md#a-rule-across-fields)) |
+| Needs a service or I/O, on a dispatched command | An `IRequestValidator<T>` | Runs for every caller of the command, not only the form, and is async by construction ([below](#requests)) |
+| Anything, if the app already uses FluentValidation | An `AbstractValidator<T>` | Supported everywhere the attributes are; there is no reason to add it otherwise |
+
+A rule a single input owns and nothing else needs — a hint while the user types — can stay as `.Validate(…)` on
+that input.
+
 ## Where it runs
 
 | Where | What runs | Guide |

@@ -83,7 +83,80 @@ public sealed class ModelSetTests : IDisposable
         Assert.False(await Widget.Any(w => w.Name == "nope", TestContext.Current.CancellationToken));
         Assert.Equal(2, (await Widget.All).Count);
         Assert.NotNull(await Widget.Single(w => w.Name == "alpha", TestContext.Current.CancellationToken));
-        Assert.Null(await Widget.First(w => w.Name == "nope", TestContext.Current.CancellationToken));
+        Assert.Null(await Widget.FirstOrDefault(w => w.Name == "nope", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task First_and_FirstOrDefault_return_the_row_when_one_matches()
+    {
+        await SeedAsync("alpha", "beta");
+        var token = TestContext.Current.CancellationToken;
+
+        var first = await Widget.First(w => w.Name == "alpha", token);
+        var chained = await Widget.Where(w => w.Name == "beta").First(token);
+        var orDefault = await Widget.FirstOrDefault(w => w.Name == "alpha", token);
+        var chainedOrDefault = await Widget.OrderBy(w => w.Name).FirstOrDefault(token);
+        var projected = await Widget.OrderBy(w => w.Name).Select(w => w.Name).First(token);
+
+        Assert.Equal("alpha", first.Name);
+        Assert.Equal("beta", chained.Name);
+        Assert.Equal("alpha", orDefault?.Name);
+        Assert.Equal("alpha", chainedOrDefault?.Name);
+        Assert.Equal("alpha", projected);
+    }
+
+    [Fact]
+    public async Task First_throws_when_no_row_matches_and_names_FirstOrDefault()
+    {
+        await SeedAsync("alpha");
+        var token = TestContext.Current.CancellationToken;
+
+        var onType = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.First(w => w.Name == "nope", token));
+        var onChain = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Where(w => w.Name == "nope").First(token));
+        var onProjection = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Widget.Where(w => w.Name == "nope").Select(w => w.Name.Length).First(token));
+
+        Assert.Equal(
+            "No WidgetRead row matched .First(). Call .FirstOrDefault() instead when no row is an expected outcome — "
+            + "it returns null rather than throwing.",
+            onType.Message);
+        Assert.Equal(onType.Message, onChain.Message);
+        Assert.Equal(onType.Message, onProjection.Message);
+    }
+
+    [Fact]
+    public async Task FirstOrDefault_returns_null_when_no_row_matches()
+    {
+        await SeedAsync("alpha");
+        var token = TestContext.Current.CancellationToken;
+
+        var onType = await Widget.FirstOrDefault(w => w.Name == "nope", token);
+        var onChain = await Widget.Where(w => w.Name == "nope").FirstOrDefault(token);
+        var projected = await Widget.Where(w => w.Name == "nope").Select(w => w.Name).FirstOrDefault(token);
+
+        Assert.Null(onType);
+        Assert.Null(onChain);
+        Assert.Null(projected);
+    }
+
+    [Fact]
+    public async Task Single_throws_on_none_or_many_and_SingleOrDefault_only_on_many()
+    {
+        await SeedAsync("alpha", "twin", "twin");
+        var token = TestContext.Current.CancellationToken;
+
+        var none = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Single(w => w.Name == "nope", token));
+        var many = await Assert.ThrowsAsync<InvalidOperationException>(() => Widget.Single(w => w.Name == "twin", token));
+        var manyOrDefault = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => Widget.Where(w => w.Name == "twin").SingleOrDefault(token));
+        var noneOrDefault = await Widget.SingleOrDefault(w => w.Name == "nope", token);
+        var one = await Widget.Where(w => w.Name == "alpha").Single(token);
+
+        Assert.Contains(".SingleOrDefault()", none.Message, StringComparison.Ordinal);
+        Assert.StartsWith("More than one WidgetRead row matched .Single().", many.Message, StringComparison.Ordinal);
+        Assert.StartsWith("More than one WidgetRead row matched .SingleOrDefault().", manyOrDefault.Message, StringComparison.Ordinal);
+        Assert.Null(noneOrDefault);
+        Assert.Equal("alpha", one.Name);
     }
 
     [Fact]
@@ -179,6 +252,20 @@ public sealed class ModelSetTests : IDisposable
 
         Assert.Contains(_recorder.Events, e => e is WidgetRenamed renamed && renamed.Id == widget.Id);
         Assert.Equal(1, await Widget.Count(w => w.Name == "after", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_scope_declared_on_the_aggregate_composes_like_any_query()
+    {
+        await SeedAsync("beta", "hidden", "alpha", "anvil");
+
+        var visible = await Widget.Visible.OrderBy(w => w.Name);
+        var both = await Widget.Visible.Where(w => w.Name != "beta").OrderByDescending(w => w.Name).Take(2);
+        var startingWithA = await Widget.StartingWith("a").Count(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["alpha", "anvil", "beta"], visible.Select(w => w.Name));
+        Assert.Equal(["anvil", "alpha"], both.Select(w => w.Name));
+        Assert.Equal(2, startingWithA);
     }
 
     [Fact]

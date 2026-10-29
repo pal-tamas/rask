@@ -262,8 +262,9 @@ public static class ModelBuilderExtensions
     /// The column is the entity's own <c>public Guid? TenantId { get; private set; }</c> when it declares one —
     /// or <c>int?</c> or <c>long?</c>, for a table whose tenants are numbered: the declared type is the
     /// column's, the filter's and the stamp's (<see cref="TenantColumn" />) — and a shadow <c>Guid?</c> when an
-    /// aggregate does not. A CHILD that declares none has no column at all: it belongs to its tenant through its
-    /// parent, and its filter asks the parent (<see cref="TenantParents" />). A table that did not ask is left
+    /// aggregate does not. A CHILD belongs to its tenant through its parent, and its filter asks the parent
+    /// (<see cref="TenantParents" />): one that declares no <c>TenantId</c> has no column at all, and one that does
+    /// keeps it, stamped and checked, with no filter of its own — a member's name never turns one on. A table that did not ask is left
     /// alone: a <c>TenantId</c> it declares is an ordinary column of its own, mapped by EF Core's convention.
     /// </para>
     /// </remarks>
@@ -307,15 +308,17 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only the root carries the tenant (#1251): a child with no TenantId of its own — at any depth — has no column
-    // and a filter that asks its parent, along the path the aggregate's collections make. A root keeps the column it
-    // declared (Guid?, int? or long?) or a shadow Guid?; a child that declares one keeps it too.
+    // Only the root carries the tenant (#1251): a child — at any depth — has a filter that asks its parent, along the
+    // path the aggregate's collections make. A root keeps the column it declared (Guid?, int? or long?) or a shadow
+    // Guid?, and is filtered on it. A child that keeps a TenantId column keeps it as data — stamped with its root's
+    // tenant and checked against it — and is STILL filtered through its parent: what partitions a table is the
+    // PerTenant its root names, never a member's name, so a legacy child row whose column is NULL stays its parent's.
     private static void PartitionByTenant(ModelBuilder modelBuilder, IMutableEntityType entityType, DbContext context)
     {
         var clrType = entityType.ClrType;
         var builder = modelBuilder.Entity(clrType);
 
-        if (!typeof(IAggregate).IsAssignableFrom(clrType) && entityType.FindProperty(Columns.TenantId) is null)
+        if (!typeof(IAggregate).IsAssignableFrom(clrType))
         {
             var parents = TenantParents.KeysOf(entityType, TenantParents.IsPartitioned);
 

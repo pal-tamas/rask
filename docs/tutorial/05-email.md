@@ -75,11 +75,11 @@ thread. The handler sends with nothing injected:
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Where(o => o.Id == job.OrderId).First(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefault();
         if (order is null) return;
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
@@ -91,8 +91,8 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-The read returns `null` for an order that has been deleted since the job was queued, which is why the handler
-checks before sending.
+`FirstOrDefault` returns `null` for an order that has been deleted since the job was queued, which is why the
+handler checks before sending (`First` would throw instead, and the job would be retried).
 
 `Email.To(...)` is a fluent builder — chain `Subject(...)`, `Cc/Bcc`, `Attach(...)`, and `Body(component)`,
 which renders your component to HTML right there. Note `Body(OrderReceipt.OrderId(…).Total(…))` builds the

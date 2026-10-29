@@ -636,6 +636,12 @@ a page restores where you were. If a `NavLink`'s `Href` includes a `#fragment` t
 page, the runtime scrolls to that element (and keeps the fragment in the address bar) instead of jumping to the top. This
 is handled entirely in the client runtime and applies to both transports.
 
+A `NavLink` to a section of a page — `NavLink.Href("/#contact")` — lights up while that section is the one being read.
+The server never sees a fragment, so it cannot mark the link active; the link carries its active class in
+`data-rask-nav-spy` and the runtime adds that class and `aria-current="true"` while the section's top has passed a third
+of the way down the viewport (at the very bottom of the page, the lowest section that shows). Above the first section
+none is lit. An empty `ActiveClass` opts out.
+
 ## Reading the current URL — `RouteState`
 
 `RouteState` is the scoped, per-session source of truth for the current location. Inject it to read the live URL:
