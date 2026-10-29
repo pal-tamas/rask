@@ -697,13 +697,23 @@ That is one statement: `NOT EXISTS` for the `Any`, a correlated `SUM` for the so
 | `Distribution.ToFuelingId` | `FuelingRead.DistributionsTo` — two ids to one target are two collections |
 | `Distribution.FuelingId` | `FuelingRead.Distributions` — nothing before the name, nothing after the plural |
 | `SupplyPart.VirtualTankId`, a child of `Tank` | `VirtualTankRead.SupplyParts` — a child target gets one too, by the same rules |
+| `ReportColumnTotal.ReportColumnColumnId`, configured to `CatalogColumn` | `CatalogColumnRead.ReportColumnTotals` — named by the id, which ends in the target's last word, so nothing is added |
+| `ReportColumnTotal.TotalColumnId`, configured to `CatalogColumn` too | `CatalogColumnRead.ReportColumnTotalsTotal` — the name above is taken, so it adds its own words |
+
+**Two ids that would give one target the same name** are told apart rather than dropped: the first in source order
+(by type, then by `Configure`'s order) keeps it, and each other one adds its own words — those before the words it
+shares with the target's name (`TotalColumn` and `CatalogColumn` share `Column`, leaving `Total`), or its id without
+`Id` when it shares all of them (`TransactionTypeId` to a `Provider`, named `Provider`, adds `TransactionType`).
+A name of EF's own, `WithMany("TotalOf")`, cannot be given instead: EF refuses a navigation with no CLR property
+behind it, and an aggregate holds ids, not navigations.
 
 The collection is an `IReadOnlyList<DistributionRead>`, and it exists exactly when the navigation it mirrors does,
 inferred by the same rules. **Its rows go through their own filters**: a soft-deleted distribution is not in it, and
 when the referencing aggregate is `PerTenant`, only the current tenant's rows are, even if the target is shared by
 every tenant. The target keeps its own filters too, so another tenant's fueling and the rows pointing at it never
 appear. A name the target's face already uses — a column, a navigation, a child collection — or one that two ids
-would both claim gets no collection and a [RASK108](diagnostics.md#rask108) warning;
+would both claim with no words of their own to tell them apart gets no collection and a
+[RASK108](diagnostics.md#rask108) warning;
 the forward navigation is still there. `Include(f => f.DistributionsTo)` loads one with each row.
 
 ### By id: a row, or the aggregate

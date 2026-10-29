@@ -344,6 +344,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Two ids to one target no longer both lose their collection when they would share its name.** Before:
+  `ReportColumnColumnId` and `TotalColumnId`, both configured to a `CatalogColumn`, each wanted
+  `CatalogColumnRead.ReportColumnTotals`, so both were RASK108 and the only way out was renaming a mapped property.
+  Now the first in source order keeps the name and each other one adds its own words — those before the ones it
+  shares with the target's name, or its id without `Id` when it shares all of them — so `TotalColumnId` gives
+  `ReportColumnTotalsTotal`. Every name a read face already had is unchanged; RASK108 stays for a name the target's
+  own members hold, a second name that is taken too, and ids that say nothing apart (two `FuelingId`s from two
+  `Distribution` types). See [The rows that point here](docs/data.md#the-rows-that-point-here).
 - **An app building with an ABSOLUTE `IntermediateOutputPath` (or `ArtifactsPath`, as BenchmarkDotNet's child build
   sets) no longer writes its compiled scoped TypeScript into the source tree.** The build glued the path onto the
   project directory, so `UiEditor.d.ts` landed in `src/Rask.Ui/Users/…/obj/…`, the next build read it back as an

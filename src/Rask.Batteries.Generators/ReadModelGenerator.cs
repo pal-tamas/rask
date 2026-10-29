@@ -108,8 +108,9 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         true,
         description: "Every navigation a read face infers from an id gives its target the rows that point there, named "
                      + "after the referencing type and the id's prefix: Distribution.FromFuelingId gives "
-                     + "FuelingRead.DistributionsFrom. When the target already uses that name, or two ids would both "
-                     + "claim it, the collection is left out rather than renamed by a guess.",
+                     + "FuelingRead.DistributionsFrom. Of two ids that would both claim a name, the first keeps it and "
+                     + "the other adds its own words. When the target already uses the name, or nothing tells the ids "
+                     + "apart, the collection is left out rather than renamed by a guess.",
         helpLinkUri: DiagnosticHelp.Link("RASK108"));
 
     /// <inheritdoc />
@@ -271,35 +272,25 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
 
     // The rows of another entity that point at this one, one collection per navigation that points here:
     // Distribution.FromFuelingId gives FuelingRead.DistributionsFrom — the referencing type's plural, then whatever
-    // the id says before the target's name. A name the target already uses, or that two navigations would both
-    // claim, gets no collection and RASK108: the navigation it mirrors is still there, and a guessed second name is not.
+    // the id says before the target's name. When several want one name, the first in source order keeps it and each
+    // other one takes the name made of its own words (InverseNames). A name the target already uses, or one nothing
+    // distinct can be made for, gets no collection and RASK108: the navigation it mirrors is still there.
     private static Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>> Reverses(
         SourceProductionContext context,
         List<(ReadShape Shape, List<ReadNavigation> Navigations)> mappings,
         Dictionary<string, List<(string RootReadType, string Name)>> inverses)
     {
         var faces = mappings.ToDictionary(static m => m.Shape.FullyQualifiedName, StringComparer.Ordinal);
-        var proposed = new List<(ReadShape Source, string ForeignKey, ReadShape Target, string Name)>();
-
-        foreach (var (shape, navigations) in mappings)
-        {
-            foreach (var navigation in navigations)
-            {
-                var target = faces[navigation.TargetReadType].Shape;
-
-                proposed.Add((shape, navigation.ForeignKey, target, ModelRegistryGenerator.SetNameOf(shape.SourceName) + Prefix(navigation.Name, target.SourceName)));
-            }
-        }
-
+        var proposed = Proposals(mappings, faces);
         var reverses = new Dictionary<string, List<(string Name, string SourceReadType, string ForeignKey)>>(StringComparer.Ordinal);
+        var settled = new InverseNames(proposed);
 
-        foreach (var (source, foreignKey, target, name) in proposed)
+        foreach (var proposal in proposed)
         {
-            var face = faces[target.FullyQualifiedName];
-            if ((Clash(target, face.Navigations, inverses, name) ?? Rival(proposed, source, foreignKey, target, name)) is { } clash)
+            var (source, foreignKey, target) = (proposal.Source, proposal.ForeignKey, proposal.Target);
+
+            if (SettledName(context, proposal, settled, faces[target.FullyQualifiedName].Navigations, inverses) is not { } name)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Rask108, source.Location?.ToLocation(), target.Name, name, clash.Taken, clash.Rename, source.SourceName, foreignKey));
                 continue;
             }
 
@@ -316,6 +307,67 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
         }
 
         return reverses;
+    }
+
+    // Each navigation's claim to a collection on its target: the convention's name, and the one of its own words.
+    private static List<InverseNames.Proposal> Proposals(
+        List<(ReadShape Shape, List<ReadNavigation> Navigations)> mappings,
+        Dictionary<string, (ReadShape Shape, List<ReadNavigation> Navigations)> faces)
+    {
+        var proposed = new List<InverseNames.Proposal>();
+
+        foreach (var (shape, navigations) in mappings)
+        {
+            foreach (var navigation in navigations)
+            {
+                var target = faces[navigation.TargetReadType].Shape;
+                var plural = ModelRegistryGenerator.SetNameOf(shape.SourceName);
+
+                proposed.Add(new InverseNames.Proposal(
+                    shape,
+                    navigation.ForeignKey,
+                    target,
+                    plural + Prefix(navigation.Name, target.SourceName),
+                    plural + InverseNames.OwnWords(navigation.Name, navigation.ForeignKey, target.SourceName)));
+            }
+        }
+
+        return proposed;
+    }
+
+    // The name a collection gets — the one it wants, or its own words when another keeps that — or null, and RASK108,
+    // when the target already uses it or nothing distinct can be made.
+    private static string? SettledName(
+        SourceProductionContext context,
+        InverseNames.Proposal proposal,
+        InverseNames settled,
+        List<ReadNavigation> targetNavigations,
+        Dictionary<string, List<(string RootReadType, string Name)>> inverses)
+    {
+        var (source, foreignKey, target, name) = (proposal.Source, proposal.ForeignKey, proposal.Target, proposal.Name);
+
+        if (Clash(target, targetNavigations, inverses, name) is { } clash)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask108, source.Location?.ToLocation(), target.Name, name, clash.Taken, clash.Rename, source.SourceName, foreignKey));
+            return null;
+        }
+
+        if (settled.Keeps(proposal))
+        {
+            return name;
+        }
+
+        if (settled.Distinct(proposal) is { } distinct && Clash(target, targetNavigations, inverses, distinct) is null)
+        {
+            return distinct;
+        }
+
+        var rival = settled.RivalOf(proposal);
+        context.ReportDiagnostic(Diagnostic.Create(
+            Rask108, source.Location?.ToLocation(), target.Name, name,
+            $"the collection for {rival.Source.SourceName}.{rival.ForeignKey}", "other id", source.SourceName, foreignKey));
+        return null;
     }
 
     // What the collection's name takes after the plural: the navigation's words before its target's name (FromFueling ->
@@ -355,26 +407,6 @@ public sealed partial class ReadModelGenerator : IIncrementalGenerator
             target.ValueCollections.Any(c => string.Equals(c.Name, name, StringComparison.Ordinal)))
         {
             return ($"a collection of {target.SourceName}", "collection");
-        }
-
-        return null;
-    }
-
-    // Another id that would give the same target the same collection name.
-    private static (string Taken, string Rename)? Rival(
-        List<(ReadShape Source, string ForeignKey, ReadShape Target, string Name)> proposed,
-        ReadShape source,
-        string foreignKey,
-        ReadShape target,
-        string name)
-    {
-        foreach (var other in proposed)
-        {
-            if (ReferenceEquals(other.Target, target) && string.Equals(other.Name, name, StringComparison.Ordinal) &&
-                !(ReferenceEquals(other.Source, source) && string.Equals(other.ForeignKey, foreignKey, StringComparison.Ordinal)))
-            {
-                return ($"the collection for {other.Source.SourceName}.{other.ForeignKey}", "other id");
-            }
         }
 
         return null;
