@@ -182,6 +182,20 @@ public sealed class ModelSetTests : IDisposable
     }
 
     [Fact]
+    public async Task A_scope_declared_on_the_aggregate_composes_like_any_query()
+    {
+        await SeedAsync("beta", "hidden", "alpha", "anvil");
+
+        var visible = await Widget.Visible.OrderBy(w => w.Name);
+        var both = await Widget.Visible.Where(w => w.Name != "beta").OrderByDescending(w => w.Name).Take(2);
+        var startingWithA = await Widget.StartingWith("a").Count(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["alpha", "anvil", "beta"], visible.Select(w => w.Name));
+        Assert.Equal(["anvil", "alpha"], both.Select(w => w.Name));
+        Assert.Equal(2, startingWithA);
+    }
+
+    [Fact]
     public async Task Query_is_a_real_escape_hatch_to_the_live_queryable()
     {
         await SeedAsync("alpha", "beta", "gamma");

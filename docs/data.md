@@ -748,6 +748,35 @@ var byMonth = await Product.Query((q, ct) =>
      .ToListAsync(ct));
 ```
 
+### A reusable query: a scope
+
+A filter several pages share — Rails' `scope :in_stock`, Laravel's `#[Scope]` — is a static on the aggregate
+that returns the query, unrun. `Product.Where(…)` returns a `ModelQuery<ProductRead>`, so that is the type:
+
+```csharp
+public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+{
+    public string Name { get; private set; } = "";
+    public int Stock { get; private set; }
+
+    public static ModelQuery<ProductRead> InStock => Product.Where(p => p.Stock > 0);
+
+    public static ModelQuery<ProductRead> NamedLike(string prefix) => Product.Where(p => p.Name.StartsWith(prefix));
+}
+```
+
+It composes like any other query, and nothing runs until it is awaited:
+
+```csharp
+await Product.InStock.OrderBy(p => p.Name);
+await Product.InStock.Where(p => p.Name != "Anvil").Take(10);
+await Product.NamedLike("An").Count();
+```
+
+Call it through the type — `Product.Where(…)`, not a bare `Where(…)` — and one scope can start from another:
+`InStock.Where(…)`. Every operator returns a new query, so a scope held in a static is never changed by
+the caller who composes on it. It is a read: the rows are `ProductRead`, as for any other query.
+
 ### Handing a query to a component: `AsQueryable()`
 
 A component that composes its own LINQ — sorting with `OrderBy`, paging with `Skip`/`Take`, counting with

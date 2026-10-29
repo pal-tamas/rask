@@ -152,6 +152,9 @@ var agg = await Product.Find(id);   // Product? — whole, untracked
 agg!.Rename("Anvil");
 await agg.Save();                     // only what changed; stale Version throws
 
+// A reusable query (a "scope") — a static on the aggregate returning what Product.Where(…) returns:
+public static ModelQuery<ProductRead> InStock => Product.Where(p => p.Stock > 0);   // await Product.InStock.OrderBy(p => p.Name)
+
 // Ranked full-text search — builder.HasFullTextSearch(p => new { p.Name, p.Description }) in static Configure, then:
 var hits = await Product.Search(query).Take(20);
 
