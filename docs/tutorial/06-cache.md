@@ -54,8 +54,8 @@ private static async Task<IReadOnlyList<ProductListItem>> Load() =>
         .Select(p => new ProductListItem(p.Id, p.Name, p.Price, p.InStock, p.Version));
 ```
 
-`Version` rides along because the list's delete button sends it back (Chapter 2). `Current.Cancellation` is
-the same ambient idea as `Cache` itself: the cancellation of the work in progress, with nothing passed in.
+`Version` rides along because the list's delete button sends it back (Chapter 2). The read takes no token:
+like `Cache` itself, it is cancelled with the work in progress, with nothing passed in.
 
 Then have `ProductsPage` read through the accessor instead of asking the database for each page. The page
 loads the list when it mounts, and reloads it after a delete:

@@ -928,11 +928,14 @@ saves and disposes it. Pass `db:` and it **stages** its change in that context a
 ```csharp
 await using var db = await contexts.CreateDbContextAsync(ct);
 
-var order = await Order.Create(orderModel, db: db, cancellationToken: ct);               // staged
-await StockItem.Update(stockId, s => s.Reserve(quantity), db: db, cancellationToken: ct);        // staged
+var order = await Order.Create(orderModel, db: db);                  // staged
+await StockItem.Update(stockId, s => s.Reserve(quantity), db: db);   // staged
 
 await db.SaveChangesAsync(ct);   // both rows, or neither
 ```
+
+The writes on the type need no token — they are cancelled with the work they run in. EF Core's own calls,
+`CreateDbContextAsync` and `SaveChangesAsync`, do not look for that, so they are handed one.
 
 There is no `BeginTransactionAsync` here, and there should not be: **one `SaveChangesAsync` is already one
 transaction.** Several writes staged on one context commit together by construction.
@@ -1670,7 +1673,7 @@ public sealed class CancelOrderHandler(IDbContextFactory<RaskAppDbContext> conte
 {
     public async Task Handle(CancelOrder command)
     {
-        var ct = Current.Cancellation;
+        var ct = Current.Cancellation;   // EF Core's own calls take the token by hand
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var order = await db.Set<Order>().FindAsync([command.Id], ct)
@@ -1720,7 +1723,7 @@ public sealed partial class OrderPage(IDbContextFactory<RaskAppDbContext> contex
 
     private async Task Ship()
     {
-        await using var db = await contexts.CreateDbContextAsync(CancellationToken);
+        await using var db = await contexts.CreateDbContextAsync(CancellationToken);   // EF Core: the page's token, by hand
 
         var order = await db.Set<Order>().FirstAsync(o => o.Id == Id, CancellationToken);
         order.Ship();

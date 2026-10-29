@@ -144,7 +144,7 @@ b.HasMany<Note>().WithOne().HasForeignKey(n => n.TrailerId)
 b.WhenReferenced("Still in use.");                    // …and one any other table references (unmapped ones too)
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
-var one = await Product.Where(p => p.Id == id).First(CancellationToken);
+var one = await Product.Where(p => p.Id == id).First();   // no token: cancelled with the handler or render it runs in
 var agg = await Product.Find(id);   // Product? — whole, untracked
 agg!.Rename("Anvil");
 await agg.Save();                     // only what changed; stale Version throws

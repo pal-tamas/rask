@@ -48,14 +48,15 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
-        var order = await Order.Where(o => o.Id == job.OrderId).First(Current.Cancellation);
+        var order = await Order.Where(o => o.Id == job.OrderId).First();
         // … process the order …
     }
 }
 ```
 
-There's nothing to inject for that read. `Order.Where(…)` opens its own context and disposes it before it
-returns, which is as right on a background worker as it is on a page.
+There's nothing to inject for that read, and no token to pass. `Order.Where(…)` opens its own context and
+disposes it before it returns, and it is cancelled with the job it runs in — as right on a background worker as
+it is on a page.
 
 ## 2. What's already wired
 
