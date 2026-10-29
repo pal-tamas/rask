@@ -130,6 +130,9 @@ public class TestDatabase : IAsyncDisposable
                 WritableChildrenInterceptor.Instance,
                 new SoftDeleteInterceptor(clock),
                 new AuditingInterceptor(clock),
+                // As the container registers it: a test that saves its tenant or user then reads the new row from
+                // Current.Tenant / Current.User, not the one held before the save.
+                new DataChangesInterceptor(),
                 new ViolationMessageInterceptor());
             return construct(builder.Options);
         }

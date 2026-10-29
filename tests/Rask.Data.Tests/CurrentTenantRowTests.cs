@@ -241,7 +241,7 @@ public sealed class CurrentTenantRowTests : IDisposable
     }
 
     [Fact]
-    public async Task A_save_of_the_tenant_drops_the_row_held()
+    public async Task A_test_database_save_of_the_tenant_shows_the_new_row_at_once()
     {
         await using var database = await StartAsync();
         await SeedAsync(database, NumberShop.Open(7, "Acme"));
@@ -292,8 +292,7 @@ public sealed class CurrentTenantRowTests : IDisposable
     }
 
     private Task<TestDatabase> StartAsync() =>
-        // The interceptor a host registers with AddRaskData, which is what tells CurrentRows a save happened.
-        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_queries, new DataChangesInterceptor()));
+        TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(_queries));
 
     private sealed class QueryCounter : DbCommandInterceptor
     {

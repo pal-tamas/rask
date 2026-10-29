@@ -182,7 +182,14 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
             return;
         }
 
-        foreach (var observer in scope.GetServices<IDataChanges>())
+        // Asked for, not required: the ambient scope is whatever the work opened with Db.UseScope — a test's hand-rolled
+        // provider that knows one service answers null for the list, and has nobody to tell.
+        if (scope.GetService(typeof(IEnumerable<IDataChanges>)) is not IEnumerable<IDataChanges> observers)
+        {
+            return;
+        }
+
+        foreach (var observer in observers)
         {
             try
             {

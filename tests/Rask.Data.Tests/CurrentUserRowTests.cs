@@ -160,7 +160,7 @@ public sealed class CurrentUserRowTests : IDisposable
 
     private async Task<TestDatabase> StartAsync()
     {
-        var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}").AddInterceptors(new DataChangesInterceptor()));
+        var database = await TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"));
         database.Context.AddRange(Member.Join(_ada, "Ada"), Member.Join(_bob, "Bob"));
         await database.Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         database.Context.ChangeTracker.Clear();
