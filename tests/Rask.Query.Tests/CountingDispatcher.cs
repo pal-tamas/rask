@@ -60,6 +60,11 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public int CommandCount { get; private set; }
 
+    private int _cancelled;
+
+    /// <summary>How many held queries were cancelled while they waited, so a test sees the work stop.</summary>
+    public int Cancelled => Volatile.Read(ref _cancelled);
+
     public string Result { get; set; } = "first";
 
     public Exception? Throw { get; set; }
@@ -92,7 +97,15 @@ internal sealed class CountingDispatcher : IDispatcher
             // Honours the token, so a cancellation test proves something: awaiting the gate without
             // it would let a cancelled fetch run to completion anyway and the assertion would pass
             // for the wrong reason.
-            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Interlocked.Increment(ref _cancelled);
+                throw;
+            }
         }
 
         if (FailTimes > 0)

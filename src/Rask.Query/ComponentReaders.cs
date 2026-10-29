@@ -21,8 +21,16 @@ namespace Rask.Querying;
 internal sealed class ComponentReaders
 {
     private readonly Lock _gate = new();
+    private readonly Action? _lastReaderGone;
     private Reader[] _readers = [];
     private volatile bool _everObserved;
+
+    /// <summary>Readers of state that stops nothing, or of state whose work stops when its last reader leaves.</summary>
+    /// <param name="lastReaderGone">
+    ///     Called when a reader leaves the page and no reader is left on it — what the reads were for has gone, so the
+    ///     work behind them can stop. Null for state nothing has to stop for.
+    /// </param>
+    public ComponentReaders(Action? lastReaderGone = null) => _lastReaderGone = lastReaderGone;
 
     /// <summary>Whether any component has ever read this during a render.</summary>
     /// <remarks>Set only once that reader is in the list, so whoever sees it set sees the reader too.</remarks>
@@ -65,6 +73,7 @@ internal sealed class ComponentReaders
             return;
         }
 
+        Reader reader;
         lock (_gate)
         {
             if (Find(_readers, component) is { } added)
@@ -75,7 +84,14 @@ internal sealed class ComponentReaders
 
             // Weak, so a component that leaves the tree without this being disposed — because it lives in
             // a longer-lived field — cannot be held alive by the cache.
-            Volatile.Write(ref _readers, [.. _readers, new Reader(new WeakReference<Component>(component)) { LastReadIn = pass }]);
+            reader = new Reader(new WeakReference<Component>(component)) { LastReadIn = pass };
+            Volatile.Write(ref _readers, [.. _readers, reader]);
+        }
+
+        // Outside the lock: a component already gone runs the callback here and now.
+        if (_lastReaderGone is not null)
+        {
+            reader.Gone = component.CallbackLifetime.Register(static state => ((ComponentReaders)state!).ReaderGone(), this);
         }
 
         // After the add, never before: a value landing in between would find it observed with nobody reading, and
@@ -113,9 +129,40 @@ internal sealed class ComponentReaders
 
     public void Clear()
     {
+        Reader[] cleared;
         lock (_gate)
         {
+            cleared = _readers;
             Volatile.Write(ref _readers, []);
+        }
+
+        foreach (var reader in cleared)
+        {
+            reader.Gone.Dispose();
+        }
+    }
+
+    /// <summary>Whether any reader is still on the page: alive, and not unmounted.</summary>
+    private bool AnyReaderMounted()
+    {
+        foreach (var reader in Volatile.Read(ref _readers))
+        {
+            if (reader.Component.TryGetTarget(out var component) && !component.IsTornDown)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // One reader left the page. Every reader of a shared query has to be gone before the work stops: another may
+    // still be showing it.
+    private void ReaderGone()
+    {
+        if (!AnyReaderMounted())
+        {
+            _lastReaderGone?.Invoke();
         }
     }
 
@@ -146,5 +193,8 @@ internal sealed class ComponentReaders
         public WeakReference<Component> Component { get; } = component;
 
         public long LastReadIn { get; set; }
+
+        /// <summary>The watch on the component's lifetime, released with the reader.</summary>
+        public CancellationTokenRegistration Gone { get; set; }
     }
 }

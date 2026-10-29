@@ -23,7 +23,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     private readonly SessionQueryClient _client;
     private readonly IQuerySource<TResult>? _source;
     private readonly Action _onChanged;
-    private readonly ComponentReaders _readers = new();
+    private readonly ComponentReaders _readers;
     private readonly CancellationTokenSource? _polling;
 
     // Held by a poll tick from its "still wanted?" check until its fetch has STARTED, and by Dispose while it
@@ -69,6 +69,10 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
         Options = options;
         Fetch = target.Fetch;
         _onChanged = OnEntryChanged;
+
+        // Every component that read this has left the page: what it fetches is for a screen that has gone, so it
+        // stops watching the entry, and the entry — once nothing else watches it — cancels its fetch.
+        _readers = new ComponentReaders(Suspend);
         _entry = client.Attach(target.Key, _onChanged, options.GcTime);
 
         // The one trigger TanStack calls "on mount": something has started observing this data, so
@@ -78,7 +82,8 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
 
         if (options.RefetchInterval is { } interval && interval > TimeSpan.Zero)
         {
-            _polling = new CancellationTokenSource();
+            // Linked to the session's lifetime, so a query its session ended without disposing stops polling too.
+            _polling = CancellationTokenSource.CreateLinkedTokenSource(client.Lifetime);
             _ = PollAsync(interval, _polling.Token);
         }
     }
@@ -481,7 +486,15 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     /// </remarks>
     void IRenderSlotHandle.ReleaseUnlessReadIn(long generation)
     {
-        if (_disposed || _suspended || _lastReadGeneration == generation)
+        if (_lastReadGeneration != generation)
+        {
+            Suspend();
+        }
+    }
+
+    private void Suspend()
+    {
+        if (_disposed || _suspended)
         {
             return;
         }

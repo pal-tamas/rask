@@ -25,6 +25,12 @@ internal sealed class SessionQueryClient : IQueryClient
     private CancellationTokenSource? _listening;
     private DateTimeOffset _listeningSince;
 
+    // The session's own lifetime, cancelled by Stop: a fetch or a poll still running when the session ends is work
+    // for nobody. Its token is kept apart, so a fetch linking to it as the session stops finds it cancelled rather
+    // than a disposed source.
+    private readonly CancellationTokenSource _lifetime = new();
+    private readonly CancellationToken _lifetimeToken;
+
     // Whose reads these are. When the session's user becomes another, or the same one with other rights, what
     // was read for the one before is not theirs to see (Forget).
     private readonly IUserProvider? _users;
@@ -34,6 +40,7 @@ internal sealed class SessionQueryClient : IQueryClient
         IDispatcher dispatcher, TimeProvider? time = null, IUserProvider? users = null, PageVisibility? visibility = null)
     {
         _dispatcher = dispatcher;
+        _lifetimeToken = _lifetime.Token;
         Visibility = visibility;
         _time = time ?? Clock.TimeProvider;
         _users = users;
@@ -58,6 +65,9 @@ internal sealed class SessionQueryClient : IQueryClient
     /// <summary>Whether the reader's tab is in sight, where the host says so: a polling query waits while it is not.</summary>
     internal PageVisibility? Visibility { get; }
 
+    /// <summary>Cancelled when the session ends (<see cref="Stop" />).</summary>
+    internal CancellationToken Lifetime => _lifetimeToken;
+
     /// <summary>Stops the live-refresh listener when the session's scope ends (<see cref="SessionQueryClientOwner" />).</summary>
     /// <remarks>
     ///     Not <see cref="IDisposable" />: an event's scope hands out the session's client (it is the session's, see
@@ -79,6 +89,13 @@ internal sealed class SessionQueryClient : IQueryClient
 
         listening?.Cancel();
         listening?.Dispose();
+
+        // Every fetch in flight is linked to this, and stops with it: as a cancellation, never an error on the entry.
+        if (!_lifetimeToken.IsCancellationRequested)
+        {
+            _lifetime.Cancel();
+            _lifetime.Dispose();
+        }
     }
 
     public Query<TResult> Query<TResult>(
@@ -623,9 +640,9 @@ internal sealed class SessionQueryClient : IQueryClient
             // refetches again, for the rest of the session.
             completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-            // Linked, so the fetch is cancelled either by the caller or by the entry losing its last
-            // observer — a component unmounting should release the request it started.
-            cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            // Linked, so the fetch is cancelled by the caller, by the session ending, or by the entry losing its
+            // last observer — a component unmounting should release the request it started.
+            cancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeToken);
             entry.BeginFetch(completion.Task, cancellation);
         }
 
