@@ -1588,7 +1588,8 @@ public sealed class Product : Aggregate<Guid>
 | `Current.UserId` | the signed-in user's id (`Guid?`), or `null` when the work is for nobody |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
-| `Current.Tenant` / `Current.RequiredTenant` | the tenant in flight — see [Multi-tenancy](multi-tenancy.md) |
+| `Current.User` / `Current.RequiredUser` | the signed-in user's own row — your `User`'s read face — once it says `IUser` (below) |
+| `Current.Tenant` / `Current.RequiredTenant` | the tenant's own row, once your tenant aggregate says `ITenant` — see [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant) |
 | `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
 
 **Where it is set.** For a live session's work (rendering, event handlers), for every HTTP request (a minimal API,
@@ -1596,12 +1597,22 @@ a controller, a CQRS endpoint), and for a background job — which runs for the 
 job row records `UserId` and the runner re-enters it. Anywhere else (a hosted service's own loop, startup) it is
 `null`, and the `Required…` forms throw rather than let an anonymous write through looking like a signed-in one.
 
-**The user is an id, not your `User` row.** Loading the row is a query, and a property that silently queried the
-database on every read would be the wrong thing to hide. Load it when you need it:
+**The user's own row is `Current.User`.** Say which aggregate is your user — Rask.Auth's `Authenticatable` says it
+already, so a `User : Authenticatable` needs nothing — and the build generates `Current.User` (its read face,
+`UserRead?`) and `Current.RequiredUser`:
 
 ```csharp
-var me = await User.First(u => u.Id == Current.UserId);
+public sealed class Member : Aggregate<Guid>, IUser { … }   // an app that keeps its users itself
+
+var greeting = $"Hello, {Current.RequiredUser.DisplayName}";
 ```
+
+It is looked up by `Current.UserId` and is not a query: the row is read as each request, live event and background
+job starts, and held per user for the process — a save of the user drops it, and another server sees the change
+within 60 seconds. A signed-in user whose row is gone throws rather than reading as nobody; read `Current.UserId`
+where a missing row is an answer you handle. It is read-only — to change the user, load the aggregate:
+`var me = await User.Find(Current.RequiredUserId);`. Two aggregates that say `IUser` are
+[RASK113](diagnostics.md#rask113).
 
 Inside a component, inject `IUserProvider` as before — it also raises `Changed` so the UI re-renders on sign-in.
 `Current` is for the code that has no constructor to inject into.

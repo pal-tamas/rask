@@ -38,6 +38,16 @@ scaffolds a working pair. The rules that are easy to get wrong — props declare
 written without decorators, no Rask markup inside an island, no `AddRaskBlazor()` call needed — are in
 [islands](islands.md) and [Blazor components](blazor-components.md), and in their `llms.txt` entries.
 
+## The current tenant and user
+
+An assistant that reaches for "the current tenant" or "the current user" should read the app's own rows,
+`Current.Tenant` and `Current.User`, not query them by id. They exist once the tenant aggregate says `ITenant` and
+the user aggregate says `IUser` (`Authenticatable` already does), are typed as the aggregate's read face
+(`TenantRead`, `UserRead`), are read-only, and cost no query — the framework reads them ahead of each request, live
+event and job. `Current.Tenant` is no longer a `Guid`: compare `Current.Tenant?.Id`, and to change the tenant load
+the aggregate (`await Tenant.Find(Current.RequiredTenant.Id)`) and save it. See
+[your tenant row](multi-tenancy.md#your-tenant-row-currenttenant).
+
 ## How to use it
 
 1. Scaffold: `rask new MyApp`.
