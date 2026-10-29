@@ -3,8 +3,9 @@
 **Durable background jobs** for a Rask app — enqueued work that runs off the request thread, stored in the
 app's own database, with no broker or Redis.
 
-- Mark a type **`IJob`** and it dispatches to an ordinary [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs)
-  **`ICommandHandler<TJob>`** — a job *is* a command executed later.
+- Mark a type **`IJob`** and write an **`IJobHandler<TJob>`** to do the work — found at build time, nothing to
+  register. Underneath it travels through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs) as a command, so
+  a handler written as `ICommandHandler<TJob>` keeps working.
 - A background **`JobProcessor`** polls the `Job` table and runs each due job — **at-least-once**, with
   **exponential-backoff** retries up to `MaxAttempts` (then left as a dead letter for inspection).
 - **Delayed** (`await Jobs.Enqueue(job).In(24.Hours)`, `.At(when)`) and durable **recurring**
@@ -20,9 +21,9 @@ app's own database, with no broker or Redis.
 ```csharp
 public sealed record SendWelcomeEmail(Guid UserId) : IJob;
 
-public sealed class SendWelcomeEmailHandler(IEmailSender email) : ICommandHandler<SendWelcomeEmail>
+public sealed class SendWelcomeEmailHandler(IEmailSender email) : IJobHandler<SendWelcomeEmail>
 {
-    public Task Handle(SendWelcomeEmail cmd) => email.SendWelcomeAsync(cmd.UserId, Current.Cancellation);
+    public Task Handle(SendWelcomeEmail job) => email.SendWelcomeAsync(job.UserId, Current.Cancellation);
 }
 
 // Program.cs

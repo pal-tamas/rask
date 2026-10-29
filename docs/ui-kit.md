@@ -676,7 +676,7 @@ is an ordinary link the browser follows itself, written exactly as given. That i
 leaves the app wants.
 
 ```csharp
-Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]    // stays in the app
+Ui.Button.Primary.Href(Routes.NewProductPage())["New product"]    // stays in the app
 Ui.Link.Href(Routes.ProductsPage())["Back to the list"]                   // stays in the app
 Ui.Button.Href("https://github.com/pal-tamas/rask")["GitHub"]              // leaves it
 ```

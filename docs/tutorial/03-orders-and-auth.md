@@ -39,7 +39,7 @@ await Order.Where(o => o.Product.Name == "Anvil");   // declared nothing
 ```
 
 Then the same four
-components as before: `CreateOrder`, `UpdateOrder`, `DeleteOrder` and `OrdersPage`. They're the chapter 2 files
+components as before: `NewOrderPage`, `EditOrderPage`, `DeleteOrderButton` and `OrdersPage`. They're the chapter 2 files
 with `Product` swapped for `Order`, the routes moved under `/orders`, and the three inputs and table columns
 changed to `Total`, `ProductId` and `Placed`. Copy them and change the names.
 
@@ -87,17 +87,17 @@ offers two gates, and you'll use both:
 ### Gate the write pages
 
 Add `[Authorize]` (from `Microsoft.AspNetCore.Authorization`) to the two write pages —
-`Features/Products/CreateProduct.cs` and `UpdateProduct.cs`:
+`Features/Products/NewProductPage.cs` and `EditProductPage.cs`:
 
 ```csharp
 using Microsoft.AspNetCore.Authorization;
 
 [Authorize]                          // ← anonymous users are redirected to /login
 [Route("/products/new")]
-public sealed partial class CreateProduct : Component { … }
+public sealed partial class NewProductPage : Component { … }
 ```
 
-Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse. `DeleteProduct` isn't a
+Leave the read-only `ProductsPage` (`/products`) public so shoppers can browse. `DeleteProductButton` isn't a
 page — it has no URL anyone could deep-link to — so it's gated the other way, by not rendering it.
 
 ### Hide the "New / Edit / Delete" buttons from anonymous users
@@ -110,7 +110,7 @@ Div.Class("flex flex-wrap items-center gap-3")[
     Ui.Heading.Level(1).Xl["Products"],
     Ui.Spacer,
     Authorize[                             // only rendered for signed-in users
-        Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
+        Ui.Button.Primary.Href(Routes.NewProductPage())["New product"]
     ]
 ]
 ```
@@ -120,7 +120,7 @@ last cell that is:
 
 ```csharp
 Authorize.Role("admin")[
-    DeleteProduct.Id(p.Id).Version(p.Version)
+    DeleteProductButton.Id(p.Id).Version(p.Version)
 ]
 ```
 

@@ -75,7 +75,7 @@ thread. The handler sends with nothing injected:
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {

@@ -72,7 +72,7 @@ public sealed partial class ProductsPage : Component
 
     // … and in Render(), the table's rows are one page of the list, and a delete reloads it:
     //     _items.Skip((_listing.Page - 1) * PageSize).Take(PageSize).Select(p => Ui.TableRow.Key(p.Id)[ … ])
-    //     DeleteProduct.Id(p.Id).Version(p.Version).OnDeleted(Load)
+    //     DeleteProductButton.Id(p.Id).Version(p.Version).OnDeleted(Load)
 }
 ```
 
@@ -90,7 +90,7 @@ other half of the pair:
 public static Task Forget() => Cache.Forget(Key);
 ```
 
-Then in the three components that write (`CreateProduct.cs`, `UpdateProduct.cs`, `DeleteProduct.cs`), right
+Then in the three components that write (`NewProductPage.cs`, `EditProductPage.cs`, `DeleteProductButton.cs`), right
 after the write succeeds — before navigating away:
 
 ```csharp
