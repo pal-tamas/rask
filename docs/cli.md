@@ -818,7 +818,7 @@ Breakpoints then hit in `.cs` and `.ts` files alike.
 ```bash
 rask db add InitialCreate            # create a migration for the current model
 rask db list                         # list migrations and which are applied
-rask db update                       # apply pending migrations now (the app also does it when it starts)
+rask db update                       # apply pending migrations now (the app also does it when it starts) — also `rask db migrate`
 rask db update 20240101_Init         # migrate up/down to a specific migration
 rask db remove                       # undo the last (unapplied) migration
 rask db drop --yes                 # drop the database (a dev reset)

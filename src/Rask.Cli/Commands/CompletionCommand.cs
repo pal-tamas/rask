@@ -66,7 +66,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
         commands.FirstOrDefault(c => c.Name.Equals(commandName, StringComparison.Ordinal))?.OptionSchema;
 
     /// <summary>
-    /// Every word that can follow a command: its subcommands first, then its options. Verbs come from the
+    /// Every word that can follow a command: its subcommands (and their aliases) first, then its options. Verbs come from the
     /// same schema that dispatches them, so <c>rask db &lt;tab&gt;</c> can't drift from what <c>rask db</c> accepts.
     /// </summary>
     private IReadOnlyList<string> WordsFor(string commandName)
@@ -79,7 +79,7 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
 
         return
         [
-            .. schema.Verbs.Select(v => v.Name),
+            .. schema.Verbs.SelectMany(v => v.Aliases.Prepend(v.Name)),
             .. schema.Declared.Select(o => "--" + o.LongName),
         ];
     }
@@ -186,6 +186,10 @@ internal sealed class CompletionCommand(IConsole console, IReadOnlyList<CliComma
             {
                 var description = verb.Description.Replace("'", "", StringComparison.Ordinal);
                 builder.AppendLine(CultureInfo.InvariantCulture, $"complete -c rask -f -n '__fish_seen_subcommand_from {command.Name}' -a {verb.Name} -d '{description}'");
+                foreach (var verbAlias in verb.Aliases)
+                {
+                    builder.AppendLine(CultureInfo.InvariantCulture, $"complete -c rask -f -n '__fish_seen_subcommand_from {command.Name}' -a {verbAlias} -d 'Same as {verb.Name}'");
+                }
             }
 
             foreach (var option in command.OptionSchema?.Declared ?? [])

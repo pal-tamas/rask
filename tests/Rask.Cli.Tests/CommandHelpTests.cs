@@ -88,6 +88,16 @@ public sealed class CommandHelpTests
     }
 
     [Fact]
+    public async Task Db_help_shows_migrate_beside_update_as_its_alias()
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["db", "--help"], CancellationToken.None);
+
+        Assert.Contains("update (migrate)", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Completion_help_lists_its_shells_as_shells_rather_than_actions()
     {
         var (console, app) = Build();

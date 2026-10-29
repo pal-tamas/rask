@@ -65,7 +65,9 @@ internal sealed partial class DbCommand(
             .Verb("add", "Create a migration from the current model.")
             .Verb("remove", "Delete the most recent migration.")
             .Verb("list", "List the migrations and which are applied.")
-            .Verb("update", "Apply pending migrations to the database.")
+            // `migrate` is what Rails (`db:migrate`) and Laravel (`artisan migrate`) call this; an alias, not a
+            // second verb, so it dispatches to `update` and shares every option and check with it.
+            .Verb("update", "Apply pending migrations to the database.", "migrate")
             .Verb("drop", "Delete the database and everything in it.")
             .Verb("backup", "Copy the database, and any uploaded files kept on disk, to a backup.")
             .Verb("restore", "Replace the database, and its files when their archive is beside it, from a backup.")

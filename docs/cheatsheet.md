@@ -14,7 +14,7 @@ rask info                             # what rask sees: project, packages, versi
 
 # database (wraps dotnet-ef; installs it on first use)
 rask db add InitialCreate             # generate a migration from the current model
-rask db update                        # apply it now — the app also does this when it starts
+rask db update                        # apply it now — also `rask db migrate`; the app also does this when it starts
 rask db list                          # which migrations exist, and which are applied
 rask db remove                        # undo the last migration
 rask db drop --yes                  # delete the database, no prompt

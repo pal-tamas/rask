@@ -78,6 +78,19 @@ public sealed class CompletionCommandTests
     }
 
     [Theory]
+    [InlineData("bash", "add remove list update migrate drop")]
+    [InlineData("zsh", "add remove list update migrate drop")]
+    [InlineData("fish", "-a migrate -d 'Same as update'")]
+    public async Task A_verb_alias_completes_beside_its_verb(string shell, string expected)
+    {
+        var (console, app) = Build();
+
+        await app.RunAsync(["completion", shell], CancellationToken.None);
+
+        Assert.Contains(expected, console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("bash")]
     [InlineData("zsh")]
     [InlineData("fish")]

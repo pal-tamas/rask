@@ -151,10 +151,50 @@ public sealed class DbCommandTests
     {
         var (command, runner, _) = CreateWithProject();
 
-        var exit = await command.ExecuteAsync(["migrate"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["seed"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
+    }
+
+    [Fact]
+    public async Task Migrate_runs_exactly_what_update_runs_with_the_same_options()
+    {
+        // Rails and Laravel call it migrate; it is the same verb, not a lookalike with its own handler.
+        var (update, updateRunner, _) = CreateWithProject();
+        var (migrate, migrateRunner, _) = CreateWithProject();
+        string[] tail = ["20240101_Init", "--context", "AppDb", "--", "--verbose"];
+
+        var updateExit = await update.ExecuteAsync(["update", .. tail], CancellationToken.None);
+        var migrateExit = await migrate.ExecuteAsync(["migrate", .. tail], CancellationToken.None);
+
+        Assert.Equal(0, updateExit);
+        Assert.Equal(0, migrateExit);
+        Assert.Equal(["ef", "database", "update", "20240101_Init", "--project", ProjectDir, "--startup-project", ProjectDir, "--context", "AppDb", "--verbose"], migrateRunner.LastRun!.Arguments);
+        Assert.Equal(updateRunner.LastRun!.Arguments, migrateRunner.LastRun!.Arguments);
+    }
+
+    [Fact]
+    public async Task Migrate_is_held_to_the_same_option_checks_as_update()
+    {
+        var (command, runner, console) = CreateWithProject();
+
+        var exit = await command.ExecuteAsync(["migrate", "--yes"], CancellationToken.None);
+
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Contains("--yes only applies", console.ErrorText);
+    }
+
+    [Fact]
+    public void Migrate_resolves_to_the_update_verb_on_the_schema()
+    {
+        var schema = new DbCommand(new StringConsole(), new FakeFileSystem(), new FakeProcessRunner(), ProjectDir).OptionSchema!;
+
+        var resolved = schema.TryResolveVerb("migrate", out var verb);
+
+        Assert.True(resolved);
+        Assert.Equal("update", verb);
     }
 
     [Fact]

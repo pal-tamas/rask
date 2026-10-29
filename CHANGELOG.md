@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask db migrate` applies pending migrations, as an alias of `rask db update`.** Rails (`db:migrate`) and
+  Laravel (`artisan migrate`) users reach for "migrate"; before, it was rejected as an unknown action. It is the
+  same verb — same options, same checks, same `dotnet ef database update` — and `rask db --help` lists it as
+  `update (migrate)`; bash, zsh and fish completion offer it too.
 - **RASK111 warns about a collection of value objects that will be a NULL column.** A get-only
   `IReadOnlyList<FiledFile> Files { get; private set; }` has no list behind it for EF Core to write through, so it
   keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that
