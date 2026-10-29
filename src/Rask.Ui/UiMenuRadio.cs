@@ -57,15 +57,7 @@ public sealed partial class UiMenuRadio : Component, IDeferredBind
             .Disabled(disabled);
         if (!disabled)
         {
-            button = button.OnClick(async () =>
-            {
-                if (group is not null)
-                {
-                    await group.Choose(Value).ConfigureAwait(false);
-                }
-
-                await OnClick.Invoke().ConfigureAwait(false);
-            });
+            button = button.OnClick(ChosenAsync);
         }
 
         var aria = new Dictionary<string, string?>(StringComparer.Ordinal) { ["checked"] = chosen ? "true" : "false" };
@@ -73,5 +65,18 @@ public sealed partial class UiMenuRadio : Component, IDeferredBind
 
         Component?[] content = [UiMenuRow.Check(chosen), .. Children ?? []];
         return UiMenuRow.Decorate(button, level, ordinal, "menuitemradio", "ui-menu-radio", aria, data)[content];
+    }
+
+    // The press reads the group as last drawn and closes over none of it: a pick sent from an older page reaches
+    // the handler that is the same as the one it was sent to, and a handler over one render's group — its value
+    // as chosen then — is a different one every render, so the last of a few quick picks ran nothing.
+    private async Task ChosenAsync()
+    {
+        if (_group is { } group)
+        {
+            await group.Choose(Value).ConfigureAwait(false);
+        }
+
+        await OnClick.Invoke().ConfigureAwait(false);
     }
 }

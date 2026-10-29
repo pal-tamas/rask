@@ -41,6 +41,11 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
     private string? _ownId;
     private (bool Held, T? Value, T? Given) _own;
 
+    // What the last render resolved. The picker's handlers read it when they run and close over none of it: a
+    // pick sent from an older page reaches the handler that is the same as the one it was sent to, and a handler
+    // made of one render's choice is a different one every render — so the last of a few quick picks ran nothing.
+    private Drawn? _drawn;
+
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
 
@@ -230,9 +235,10 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
             Invalid = field.Invalid,
             Aria = field.Aria,
             Clearable = Clearable == true,
-            Clear = () => ClearAsync(acc, ctx),
+            Clear = ClearAsync,
         };
 
+        _drawn = new Drawn(Commit, acc, ctx);
         var config = UiCalendarHook.Config(options, Picks(committed).Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder), json => Write(json, times, options.Culture));
 
         return field.Wrap(
@@ -245,7 +251,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
                     [UiInvoker.OpenMark] = _popover,
                 })
                 .Attributes(("style", "anchor-name:--" + _popover))[
-                FieldOf(committed, Commit),
+                FieldOf(committed),
                 Context.Provide(scope)[OwnedTrigger()],
                 Popup(options, times, committed, ends)
             ]);
@@ -266,7 +272,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
 
     // The one field the page hears the choice through: on change, or as it is chosen for a bound picker that says
     // `.Live()`; bound and waiting, it goes ahead of the reader's next action.
-    private HTMLInputElement<string> FieldOf(T? committed, Func<T, Task> commit)
+    private HTMLInputElement<string> FieldOf(T? committed)
     {
         var input = Input.Value(Written(committed)).Type(InputType.Hidden);
         if (Bind is null && !OnChange.HasValue)
@@ -274,22 +280,24 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
             return input;
         }
 
-        Task Changed(string text) => TryRead(text, out var value) ? commit(value) : Task.CompletedTask;
-
         if (Bind is not null && Live == true)
         {
-            return input.OnInput(Changed);
+            return input.OnInput(ChangedAsync);
         }
 
-        input = input.OnChange(Changed);
+        input = input.OnChange(ChangedAsync);
         return UiDraws.Waits(this, Bind is not null) ? input.Attributes(UiCalendarHook.WaitsForAction) : input;
     }
 
+    private Drawn Latest => _drawn ?? throw new InvalidOperationException("The datetime picker has not been drawn.");
+
+    private Task ChangedAsync(string text) => TryRead(text, out var value) ? Latest.Commit(value) : Task.CompletedTask;
+
     // Nothing chosen: null where the bound member can say so, the type's unset value where it cannot.
-    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    private Task ClearAsync()
     {
         _own = (Bind is null, default, Value);
-        return UiFormCommit.ClearAsync(this, accessor, context);
+        return UiFormCommit.ClearAsync(this, Latest.Accessor, Latest.Context);
     }
 
     // The caller's own trigger opens the popup as Flux's does: its button names the dialog it opens.
@@ -456,4 +464,6 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
 
     /// <summary>What the button shows for <paramref name="current" />; nothing while it is unset.</summary>
     private protected abstract (string Before, string Between, string After)? Text(T? current, UiDatetimeTimes times, DateOnly today);
+
+    private sealed record Drawn(Func<T, Task> Commit, ExpressionAccessor.Accessor? Accessor, EditContext? Context);
 }

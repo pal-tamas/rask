@@ -381,6 +381,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A gesture that arrived from an older page could be dropped by `Ui.DatePicker`, `Ui.DatetimePicker` and
+  `Ui.Pagination`.** Picks, a clear and step presses made faster than the page answers are each read from the page as
+  loaded, so the later ones arrive pages late — and these handlers closed over what one render resolved (the day
+  chosen, the page to step to), so no two renders made the same one and the runtime could not prove sameness: the
+  fourth quick pick, a clear after three, or the second quick Next ran nothing. They now read the picker's and the
+  pager's state when they run, as `Ui.Otp`, `Ui.Select` and `Ui.Slider` do. Every other kit control that writes a
+  value was checked the same way (`KitControlsHeardFromAnOlderPageTests`). Nothing to change in an app.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever

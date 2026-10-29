@@ -136,14 +136,23 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             .Disabled(disabled)
             .Attributes(("dir", "ltr"));
 
+    /// <summary>What the typed field in <paramref name="slot" /> announced, read against <paramref name="scope" />.</summary>
+    /// <param name="scope">The picker's fields as it last drew them.</param>
+    /// <param name="slot">Which of the trigger's fields.</param>
+    /// <param name="text">The whole date, or nothing.</param>
+    internal static Task Hear(UiDatePickerScope scope, int slot, string text) =>
+        DateOnly.TryParseExact(text, Iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
+            ? scope.Typed(slot, day)
+            // No date: the parts were left half filled, which the frame says beside its empty value, or emptied.
+            : scope.Left(slot, UnreadInput.Current is not null);
+
     private static HTMLInputElement<string> Written(UiDatePickerScope scope, int slot)
     {
+        // The picker's handler, and not the scope: a handler over one render's scope is a new one every render.
+        var heard = scope.Heard;
         var field = Input
             .Value(scope.Dates[slot]?.ToString(Iso, CultureInfo.InvariantCulture) ?? string.Empty)
-            // No date: the parts were left half filled, which the frame says beside its empty value, or emptied.
-            .OnChange(text => DateOnly.TryParseExact(text, Iso, CultureInfo.InvariantCulture, DateTimeStyles.None, out var day)
-                ? scope.Typed(slot, day)
-                : scope.Left(slot, UnreadInput.Current is not null));
+            .OnChange(text => heard(slot, text));
 
         // Bound and waiting, it is the browser's to keep until the next action, which it goes ahead of.
         return scope.Waits ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
