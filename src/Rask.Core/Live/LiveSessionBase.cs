@@ -434,6 +434,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     /// <summary>The session has ended: every event's scope is disposed, whatever its hooks are still doing.</summary>
     protected void EndEvents() => _eventServices?.EndAll();
 
+    /// <summary>Completes once every command this session's events sent has run to its end.</summary>
+    internal Task CommandsSending => _eventServices?.Sending ?? Task.CompletedTask;
+
     /// <summary>
     ///     Keeps <paramref name="owner" />'s part of the event in progress, and the scope it has or will open, until
     ///     <paramref name="hook" /> — started by <paramref name="render" /> under <paramref name="context" /> — is done.

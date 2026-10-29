@@ -122,35 +122,44 @@ internal sealed class CountingDispatcher : IDispatcher
         return (TResult)(object)Result;
     }
 
-    /// <summary>When set, a void command waits for it — so a test can look at a command while it is pending.</summary>
+    /// <summary>
+    ///     When set, a command waits for it — so a test can look at a command while it is pending. The wait honours
+    ///     the token the command was given, as a handler mid-write does, so a test that the caller's leaving does not
+    ///     stop the command proves something.
+    /// </summary>
     public TaskCompletionSource? CommandGate { get; set; }
+
+    private int _commandsCompleted;
+
+    /// <summary>How many commands ran to their end: the write a store would hold afterwards.</summary>
+    public int CommandsCompleted => Volatile.Read(ref _commandsCompleted);
 
     public Task Send(ICommand command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        if (CommandGate is { } gate)
-        {
-            return Gated(gate.Task);
-        }
-
-        return ThrowOnCommand is { } error ? Task.FromException(error) : Task.CompletedTask;
-
-        async Task Gated(Task open)
-        {
-            await open.ConfigureAwait(false);
-            if (ThrowOnCommand is { } thrown)
-            {
-                throw thrown;
-            }
-        }
+        return Run<object?>(null, cancellationToken);
     }
 
     public Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        return ThrowOnCommand is { } error
-            ? Task.FromException<TResult>(error)
-            : Task.FromResult((TResult)(object)CommandResult!);
+        return Run((TResult)CommandResult!, cancellationToken);
+    }
+
+    private async Task<TResult> Run<TResult>(TResult result, CancellationToken cancellationToken)
+    {
+        if (CommandGate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (ThrowOnCommand is { } thrown)
+        {
+            throw thrown;
+        }
+
+        Interlocked.Increment(ref _commandsCompleted);
+        return result;
     }
 
     // Every open subscription, so a publish through this double reaches them the way the real feed would — minus

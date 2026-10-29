@@ -219,6 +219,18 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- A command the page sent runs to its end when the page goes away, and the page drops its answer without an error,
+  the way Laravel does. Before, cancelling the caller's token (navigating away, the component unmounting, the tab
+  closing) cancelled the command's handler mid-write, and `Command<T>` showed an `OperationCanceledException` as its
+  `Error`. Now the handler runs under its own token, which only `HandlerTimeout` and the host stopping can cancel. That
+  applies in-process on the Server host, where a closing tab's session waits for the commands it sent before it ends,
+  and to a command posted over HTTP from a WASM page, where the server no longer passes the aborted request's token to
+  the handler. The command's DI scope stays alive until it finishes. If the caller has gone by the time the answer
+  arrives, there is no `Error` and `Status` goes back to what it was before the send. A completed command keeps its
+  result and invalidates its declared queries. A failed one rolls back its optimistic edits. When the outcome is
+  unknown (the transport was cancelled), the declared queries are invalidated. A timeout, the host stopping or an
+  exception is still an `Error`, as before. A command whose caller had already gone before it was sent is not sent. See
+  [query](docs/query.md#when-the-page-leaves).
 - BREAKING: `Current.Tenant` is your tenant row. Say which aggregate is the tenant —
   `public sealed class Tenant : Aggregate<int, Deletable>, ITenant` — and the build generates `Current.Tenant`
   (its read face, `TenantRead?`) and `Current.RequiredTenant`, with `Current.Tenant.Id` in your own key type (a `Guid`,

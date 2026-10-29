@@ -266,7 +266,8 @@ public static partial class RaskCqrsEndpointExtensions
             return;
         }
 
-        var (completed, result) = await InvokeAsync(context, invoker, message, faults).ConfigureAwait(false);
+        var (completed, result) = await InvokeAsync(context, invoker, message, faults, RunsUntil(context, contract))
+            .ConfigureAwait(false);
         if (completed)
         {
             await WriteResultAsync(context, contract, result).ConfigureAwait(false);
@@ -327,16 +328,24 @@ public static partial class RaskCqrsEndpointExtensions
         return await AuthorizedAsync(context, contract).ConfigureAwait(false) ? contract : null;
     }
 
+    // What stops the handler. A query is the caller's to abandon; a command once sent runs to its end — a tab that
+    // closes mid-save aborts the fetch, not the write — and only the host stopping ends it (CommandLifetime).
+    private static CancellationToken RunsUntil(HttpContext context, RemoteContract contract) =>
+        contract.Kind is RemoteMessageKind.VoidCommand or RemoteMessageKind.ResultCommand
+            ? CommandLifetime.Of(context.RequestServices)
+            : context.RequestAborted;
+
     // Runs the handler. Not completed when a failure has already been answered.
     private static async Task<(bool Completed, object? Result)> InvokeAsync(
         HttpContext context,
         RemoteLocalInvoker invoker,
         object message,
-        FaultAnswer faults)
+        FaultAnswer faults,
+        CancellationToken runsUntil)
     {
         try
         {
-            var result = await invoker(context.RequestServices, message, context.RequestAborted)
+            var result = await invoker(context.RequestServices, message, runsUntil)
                 .ConfigureAwait(false);
             return (true, result);
         }
