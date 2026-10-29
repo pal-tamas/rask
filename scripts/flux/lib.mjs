@@ -69,7 +69,12 @@ export async function press(page, x, y, phone) {
 export async function measurePage(browser, url, shots, prepare, view = [1280, 900]) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ ...screen(view[0], view[1]), colorScheme: scheme });
+    // A reader who asks for less motion: the page is measured as it loads, and what its script moves on a timer of
+    // its own is held there — Flux's autoplaying carousel (its docs: "disabled when reduced motion is preferred";
+    // measured, it stays on its first slide), which moved on a loaded runner before its example was reached and
+    // never on the static Rask page. Neither stylesheet changes for it: Flux stops no animation under reduced
+    // motion, and the kit has no `motion-reduce` rule.
+    const context = await browser.newContext({ ...screen(view[0], view[1]), colorScheme: scheme, reducedMotion: 'reduce' });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
