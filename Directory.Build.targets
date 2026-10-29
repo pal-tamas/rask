@@ -108,6 +108,37 @@
           ContinueOnError="true"
           StandardOutputImportance="low"
           StandardErrorImportance="low" />
+
+    <!--
+      The `rask-append` merge driver .gitattributes names for CHANGELOG.md: two branches' bullets added at the
+      same spot are both kept instead of conflicting (.githooks/merge-append says why not git's `union`). Read
+      before write, for the lock reason above. Unset, git merges the file with its ordinary text merge, so a
+      clone that has not built yet only loses the convenience. Exec runs a batch file on Windows, where a
+      lone % is eaten, hence the doubled form there.
+    -->
+    <Exec Command="git config --get merge.rask-append.driver"
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="true"
+          IgnoreExitCode="true"
+          EchoOff="true"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_RaskAppendDriver" />
+    </Exec>
+
+    <Exec Command="git config merge.rask-append.driver &quot;sh .githooks/merge-append %O %A %B %L&quot;"
+          Condition=" '$(_RaskAppendDriver)' != 'sh .githooks/merge-append %O %A %B %L' And '$(OS)' != 'Windows_NT' "
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
+    <Exec Command="git config merge.rask-append.driver &quot;sh .githooks/merge-append %%O %%A %%B %%L&quot;"
+          Condition=" '$(_RaskAppendDriver)' != 'sh .githooks/merge-append %O %A %B %L' And '$(OS)' == 'Windows_NT' "
+          WorkingDirectory="$(MSBuildThisFileDirectory)"
+          ContinueOnError="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low" />
   </Target>
 
   <!--

@@ -1,6 +1,10 @@
 # The client runtimes every visitor downloads, in bytes, RELEASE (esbuild --minify) — and rask-hooks.js, which
 # only a page that carries a hooked attribute downloads.
 #
+# A refresh APPENDS a block: a comment that opens with its date, then the bundle,bytes rows. The gate reads the
+# block with the newest date (of two with one date, the larger row), so two branches' blocks, kept both by
+# .gitattributes' union merge, mean the same in either order.
+#
 # Refreshed 2026-10-12 with whose doing an event is (`unasked` in rask-owned.ts, the module both bundles carry:
 # what the runtime does by itself carries no waiting value ahead of it and says so on the wire — asked by
 # rask-input.ts's one flush, taken by the toast's timed press and a render's focus in rask-dom.ts, the table's

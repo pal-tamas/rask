@@ -76,6 +76,15 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    request** — PRs are reserved for external contributions, which arrive from forks. `ci.yml` runs
    on the push; a red `main` is fixed forward. See the `land-on-main` skill.
 
+**The shared files merge by themselves when two branches only add to them** (`.gitattributes`,
+proved by `scripts/tests/merge-friendly-files.test.sh`). Two `CHANGELOG.md` bullets added under one
+heading are both kept, whole (`.githooks/merge-append`, which the first `dotnet build` configures as it
+does the hooks); two branches changing the same existing line still conflict. Two blocks appended to
+`client-bundle-size.csv` are both kept, and the bundle gate reads the newest-dated one, so their order
+does not matter — open each block's comment with its date, as every block does. `llms.txt` is written
+one sentence per line (a list item continues on lines indented two spaces), so edits to different
+sentences of a guide merge; keep new text that way.
+
 ## Versioning & releases
 
 - **Versions come from git tags via MinVer** (`vX.Y.Z`); assemblies carry `AssemblyVersion`,
