@@ -422,6 +422,14 @@ them until tagged releases begin.
   typing in a field, where Escape closed the modal and left the toast. Measured on fluxui.dev (2026-10-29): one
   Escape closes both, wherever focus is. The close now carries `data-rask-escape` (`rask-toast.ts`): pressed on
   Escape from anywhere, taking the key from nothing. `ToastEscapeTests`.
+- **A read Rask starts while a `Db.Transaction` is open no longer runs inside that transaction.** Before: a
+  `StateHasChanged`, a repaint between a handler's awaits, a query's fetch or a subscription's stream started inside
+  the block inherited the transaction (it rides the async flow). Its reads then ran on the transaction's connection, at
+  the transaction's isolation level. A read face the app only ever calls outside its transactions took serializable
+  range locks there, and on SQL Server it deadlocked: the handler failed with error 1205 and the user saw an error
+  toast. Now that work starts outside the transaction, on a connection of its own, and sees only what is committed.
+  Reads the block makes itself still run inside the transaction and see its own writes. Domain events and data-changed
+  notices still go out after the commit, and never after a rollback. Nothing to change in an app.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever

@@ -475,9 +475,13 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
     // Volatile for the handoff described at _pendingRenderInScope.
     private volatile bool _inHandlerScope;
 
-    public Task RequestRender() => RequestRenderInternalAsync(false);
+    // Every render is the session's, never the work that asked for it: a StateHasChanged said inside a Db.Transaction
+    // must not render, and read, on that transaction's connection (SpawnedWork).
+    public Task RequestRender() =>
+        SpawnedWork.Start(static session => session.RequestRenderInternalAsync(false), this);
 
-    public Task RequestPublishRender() => RequestRenderInternalAsync(true);
+    public Task RequestPublishRender() =>
+        SpawnedWork.Start(static session => session.RequestRenderInternalAsync(true), this);
 
     // A StateHasChanged that lands while the scope is held and is not drawn inside it: after the coalescing loop has
     // settled — during the noop guard, the frame emit, the commit — or past the loop's budget. The in-scope branch
@@ -579,7 +583,9 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
     }
 
-    Task IRenderHandle.RenderInScopeAsync() => RenderInScopeCoreAsync();
+    // A handler's repaint runs while the handler's work is still open, and from its continuations' flow (SpawnedWork).
+    Task IRenderHandle.RenderInScopeAsync() =>
+        SpawnedWork.Start(static session => session.RenderInScopeCoreAsync(), this);
 
     TimeSpan IRenderHandle.HandlerRepaintBudget => HandlerBudget;
 

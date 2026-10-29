@@ -1063,6 +1063,11 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
 - **After the commit, never before:** domain events are published, the outbox is woken (its rows were written
   inside, so they commit or roll back with the work), and the session's queries are told what changed.
   A rollback announces nothing.
+- **What Rask starts while the block is open runs outside it.** A render that a `StateHasChanged` asks for, a
+  handler's repaint between its awaits, a query's fetch and a subscription's stream each read on a connection of
+  their own, at the database's default isolation, and see only what is committed. They never take the
+  transaction's locks, so a page's read cannot deadlock the work it repaints for. Reads that the block's own code
+  makes are inside the transaction.
 - **`isolation` is optional.** Omitted, none is sent and the database's default applies: read committed on SQL
   Server and PostgreSQL. SQLite is serializable and has one writer — a second `Db.Transaction` waits at its
   `BEGIN` for the first to commit, then sees what it wrote.

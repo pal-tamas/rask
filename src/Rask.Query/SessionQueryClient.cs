@@ -632,7 +632,11 @@ internal sealed class SessionQueryClient : IQueryClient
         // Started outside the lock: it runs synchronously up to its first await, and both Succeeded
         // and Failed notify observers — which re-renders components, and must not happen while this
         // holds the cache's lock.
-        _ = ExecuteAsync(entry, fetch, options, completion, cancellation.Token);
+        // Outside a Db.Transaction open where it was asked for: the fetch is the cache's, read on a connection of its
+        // own, and must not take that transaction's locks at its isolation level (SpawnedWork).
+        _ = SpawnedWork.Start(
+            static run => run.Client.ExecuteAsync(run.Entry, run.Fetch, run.Options, run.Completion, run.Token),
+            (Client: this, Entry: entry, Fetch: fetch, Options: options, Completion: completion, Token: cancellation.Token));
         return completion.Task;
     }
 

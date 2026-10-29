@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,6 +58,24 @@ public sealed class DbTransactionHostTests : IAsyncDisposable
         Assert.Equal((0, 0), (eventsBeforeCommit, changesBeforeCommit));
         Assert.IsType<WidgetCreated>(Assert.Single(_events.Events));
         Assert.Equal([typeof(Widget)], Assert.Single(_changes.Saves));
+    }
+
+    [Fact]
+    public async Task The_event_handlers_and_the_change_notice_run_outside_the_committed_transaction()
+    {
+        await using var session = _provider.CreateAsyncScope();
+        using var bound = Db.UseScope(session.ServiceProvider);
+
+        await Db.Transaction(
+            async () => await GeneratedModelWrites.Create(Widget.Create("anvil"), cancellationToken: TestContext.Current.CancellationToken),
+            IsolationLevel.Serializable,
+            TestContext.Current.CancellationToken);
+
+        // What they read — a refetch the notice starts, a handler's own query — opens a connection of its own.
+        Assert.Single(_events.Events);
+        Assert.Single(_changes.Saves);
+        Assert.False(_events.HandledInsideATransaction);
+        Assert.False(_changes.ToldInsideATransaction);
     }
 
     [Fact]
@@ -122,6 +141,12 @@ public sealed class DbTransactionHostTests : IAsyncDisposable
     {
         public List<Type[]> Saves { get; } = [];
 
-        public void Saved(IReadOnlyCollection<Type> entityTypes) => Saves.Add([.. entityTypes]);
+        public bool ToldInsideATransaction { get; private set; }
+
+        public void Saved(IReadOnlyCollection<Type> entityTypes)
+        {
+            ToldInsideATransaction |= AmbientTransaction.Current is not null;
+            Saves.Add([.. entityTypes]);
+        }
     }
 }
