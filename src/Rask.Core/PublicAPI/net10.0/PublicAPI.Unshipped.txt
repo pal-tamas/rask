@@ -8818,8 +8818,7 @@ Rask.Core.Routing.RouteState.Changed -> System.EventHandler?
 Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs
 Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.Component.get -> System.Type!
 Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.Kind.get -> Rask.Core.ScopedAssets.AssetKind
-Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.Replaced.get -> bool
-Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.ScopedAssetChangedEventArgs(System.Type! component, Rask.Core.ScopedAssets.AssetKind kind, bool replaced) -> void
+Rask.Core.ScopedAssets.ScopedAssetChangedEventArgs.ScopedAssetChangedEventArgs(System.Type! component, Rask.Core.ScopedAssets.AssetKind kind) -> void
 static Rask.Core.Component.Culture.get -> System.Globalization.CultureInfo!
 static Rask.Core.Component.HostEngine.get -> Rask.Core.RenderEngine
 static Rask.Core.Component.IsRightToLeft.get -> bool

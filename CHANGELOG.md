@@ -356,8 +356,8 @@ them until tagged releases begin.
 - **A lazily loaded assembly no longer re-renders every live session in production.** Its generated module
   initializer registers its scoped CSS/JS as it loads, which raised `ScopedAssetRegistry.AssetChanged` and repainted
   every session on the host, whatever environment. A first registration can't be on any page yet, so it now repaints
-  nothing; only a registration that replaces or drops an asset does. `ScopedAssetChangedEventArgs.Replaced` says which
-  (its constructor takes it). Hot reload is unchanged: it refreshes through its staged path and repaints itself.
+  nothing; only a registration that replaces or drops an asset does. The public event is unchanged: it still fires
+  for both. Hot reload is unchanged: it refreshes through its staged path and repaints itself.
 - **A tab whose credential changed no longer holds what it sends for ever when the connection can't be reopened.**
   When the auth watch found a different principal and the connection was not open, or closing it threw, the watch
   kept holding every frame for an `opened` that never came. Now the reopen says whether it dropped anything, and if it
