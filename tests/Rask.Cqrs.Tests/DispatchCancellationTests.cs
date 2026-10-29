@@ -69,4 +69,55 @@ public sealed class DispatchCancellationTests
 
         Assert.False(Ambient.CancellationToken.CanBeCanceled);
     }
+
+    [Fact]
+    public async Task A_dispatch_given_no_token_hands_the_one_in_scope_to_its_transport()
+    {
+        // In a browser app the invoker IS the transport: it sends the command over HTTP with the token it is
+        // handed. Handing it the caller's empty one left the request running after the component that sent it
+        // was gone, while a handler in the same process read the scope's token and stopped.
+        var seen = default(CancellationToken);
+        CqrsRegistry.RegisterRequest(typeof(SentElsewhere), (_, _, token) =>
+        {
+            seen = token;
+            return Task.CompletedTask;
+        });
+        await using var sp = Build();
+        using var cts = new CancellationTokenSource();
+
+        using (Ambient.Enter(cts.Token))
+        {
+#pragma warning disable xUnit1051 // the missing token is the point: the dispatch must hand on the one in scope
+            await sp.GetRequiredService<IDispatcher>().Send(new SentElsewhere());
+#pragma warning restore xUnit1051
+        }
+
+        Assert.Equal(cts.Token, seen);
+    }
+
+    [Fact]
+    public async Task A_publish_given_no_token_hands_the_one_in_scope_to_its_transport()
+    {
+        var seen = default(CancellationToken);
+        CqrsRegistry.RegisterEvent(typeof(HappenedElsewhere), (_, _, token) =>
+        {
+            seen = token;
+            return Task.CompletedTask;
+        });
+        await using var sp = Build();
+        using var cts = new CancellationTokenSource();
+
+        using (Ambient.Enter(cts.Token))
+        {
+#pragma warning disable xUnit1051 // the missing token is the point: the publish must hand on the one in scope
+            await sp.GetRequiredService<IDispatcher>().Publish(new HappenedElsewhere());
+#pragma warning restore xUnit1051
+        }
+
+        Assert.Equal(cts.Token, seen);
+    }
+
+    private sealed record SentElsewhere : ICommand;
+
+    private sealed record HappenedElsewhere : IEvent;
 }

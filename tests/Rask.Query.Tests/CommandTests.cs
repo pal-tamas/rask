@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Cqrs;
 
 namespace Rask.Querying.Tests;
@@ -401,4 +402,31 @@ public class CommandTests
         Assert.Equal(42, seenAtSuccess);
         Assert.Equal(new CountOrders(), count.Variables);
     }
+
+    [Fact]
+    public async Task A_command_sent_with_no_token_travels_with_the_one_of_the_work_that_sent_it()
+    {
+        // A browser app's command goes over HTTP with the token its invoker is handed: the click handler's, so a
+        // page left mid-send cancels the request rather than leaving it to run for nobody.
+        var seen = default(CancellationToken);
+        CqrsRegistry.RegisterRequest(typeof(ShipElsewhere), (_, _, token) =>
+        {
+            seen = token;
+            return Task.CompletedTask;
+        });
+        await using var services = new ServiceCollection().AddRaskCqrs().BuildServiceProvider();
+        var ship = new SessionQueryClient(services.GetRequiredService<IDispatcher>()).Command<ShipElsewhere>();
+        using var cts = new CancellationTokenSource();
+
+        using (Ambient.Enter(cts.Token))
+        {
+#pragma warning disable xUnit1051 // the missing token is the point: the send must hand on the one in scope
+            await ship.Send(new ShipElsewhere());
+#pragma warning restore xUnit1051
+        }
+
+        Assert.Equal(cts.Token, seen);
+    }
+
+    private sealed record ShipElsewhere : ICommand;
 }

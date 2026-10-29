@@ -28,6 +28,8 @@ internal sealed class WasmRaskFile : IRaskFile
                 $"File '{Name}' is {Size} bytes, exceeds maxAllowedSize of {maxAllowedSize}.");
         }
 
-        return new WasmFileStream(Ref, Size, cancellationToken);
+        // No token of its own: the stream reads under the work that opened it, so a page left mid-upload stops
+        // asking the browser for the next chunk.
+        return new WasmFileStream(Ref, Size, Ambient.Or(cancellationToken));
     }
 }
