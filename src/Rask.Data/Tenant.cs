@@ -93,8 +93,10 @@ public static class Tenant
 
     /// <summary><see cref="Key" />, with <paramref name="scope" /> standing for the scope <see cref="Db.UseScope" /> opened.</summary>
     /// <remarks>What a live session asks before its event's scope is ambient, so the answer costs no scope of its own.</remarks>
-    internal static Guid? KeyIn(IServiceProvider? scope) =>
-        Ambient.Value is { AllTenants: false, Cleared: false } state ? state.Tenant ?? FromScope(scope) : null;
+    /// <param name="scope">The scope whose principal and resolver answer.</param>
+    /// <param name="claims">The principal's claims as read ahead, or null to read them now.</param>
+    internal static Guid? KeyIn(IServiceProvider? scope, PrincipalClaims? claims = null) =>
+        Ambient.Value is { AllTenants: false, Cleared: false } state ? state.Tenant ?? FromScope(scope, claims) : null;
 
     /// <summary>
     ///     Makes <paramref name="tenant" /> the tenant until the returned scope is disposed.
@@ -162,9 +164,9 @@ public static class Tenant
     /// <exception cref="Rask.Cqrs.ForbiddenException">
     ///     A resolver is registered and the signed-in user's claim names a different tenant than it did.
     /// </exception>
-    internal static Guid? FromScope(IServiceProvider? scope)
+    internal static Guid? FromScope(IServiceProvider? scope, PrincipalClaims? claims = null)
     {
-        var claimed = CurrentUser.ClaimedGuid(scope, ClaimType);
+        var claimed = claims is not null ? claims.Tenant : CurrentUser.ClaimedGuid(scope, ClaimType);
 
         if (ResolvedTenant.For(scope) is not { } resolved)
         {

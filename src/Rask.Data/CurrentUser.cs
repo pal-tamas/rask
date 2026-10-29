@@ -90,8 +90,17 @@ public static class CurrentUser
     }
 
     /// <summary><c>Current.UserId</c>, with <paramref name="scope" /> standing for the scope <see cref="Db.UseScope" /> opened.</summary>
-    internal static Guid? UserIdIn(IServiceProvider? scope) =>
-        AmbientUser.Value is { } explicitUser ? explicitUser.UserId : ClaimedGuid(scope, ClaimTypes.NameIdentifier);
+    /// <param name="scope">The scope whose principal answers.</param>
+    /// <param name="claims">The principal's claims as read ahead, or null to read them now.</param>
+    internal static Guid? UserIdIn(IServiceProvider? scope, PrincipalClaims? claims = null)
+    {
+        if (AmbientUser.Value is { } explicitUser)
+        {
+            return explicitUser.UserId;
+        }
+
+        return claims is not null ? claims.UserId : ClaimedGuid(scope, ClaimTypes.NameIdentifier);
+    }
 
     internal static Guid? ClaimedGuid(IServiceProvider? scope, string claimType) =>
         Guid.TryParse(Db.PrincipalIn(scope)?.FindFirst(claimType)?.Value, out var id) ? id : null;

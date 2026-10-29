@@ -71,6 +71,8 @@ public class CurrentRowsGeneratorTests
     public void A_user_deriving_from_a_base_that_says_IUser_is_the_current_user_with_no_line_of_its_own()
     {
         var run = Run("""
+            using Rask.Data;
+
             namespace Rask.Auth
             {
                 public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid, Rask.Data.Deletable>, Rask.Data.IUser

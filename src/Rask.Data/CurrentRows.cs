@@ -141,8 +141,9 @@ public static class CurrentRows
         try
         {
             scope ??= Db.ScopeServices;
-            var tenantKey = tenant is not null ? Data.Tenant.KeyIn(scope) : null;
-            var userKey = user is not null ? CurrentUser.UserIdIn(scope) : null;
+            var claims = PrincipalClaims.In(scope);
+            var tenantKey = tenant is not null ? Data.Tenant.KeyIn(scope, claims) : null;
+            var userKey = user is not null ? CurrentUser.UserIdIn(scope, claims) : null;
             var tenantOwed = tenantKey is { } t && !tenant!.Holds(t) ? tenant : null;
             var userOwed = userKey is { } u && !user!.Holds(u) ? user : null;
 
