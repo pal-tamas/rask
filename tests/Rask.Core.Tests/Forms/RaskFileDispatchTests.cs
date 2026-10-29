@@ -60,6 +60,47 @@ public partial class RaskFileDispatchTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_files_handler_that_takes_no_argument_runs_when_files_arrive()
+    {
+        var services = new ServiceCollection()
+            .AddSingleton<IBrowserFileBackend>(new TestBackend())
+            .BuildServiceProvider();
+        var chosen = 0;
+        var page = Page.Render(() => Input.Value<string>(null).OnFiles(() => chosen++), services);
+
+        var ok = await page.TryInvoke("h0", """
+                                                 { "id": "h0", "type": "files", "files": [
+                                                     { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 }
+                                                 ]}
+                                                 """);
+
+        Assert.True(ok);
+        Assert.Equal(1, chosen);
+    }
+
+    [Fact]
+    public async Task An_asynchronous_files_handler_that_takes_no_argument_runs_when_files_arrive()
+    {
+        var services = new ServiceCollection()
+            .AddSingleton<IBrowserFileBackend>(new TestBackend())
+            .BuildServiceProvider();
+        var chosen = 0;
+        var page = Page.Render(() => Input.Value<string>(null).OnFiles(async () =>
+        {
+            await Task.Yield();
+            chosen++;
+        }), services);
+
+        await page.Invoke("h0", """
+                                     { "id": "h0", "type": "files", "files": [
+                                         { "token": "t1", "name": "a.txt", "size": 5, "type": "text/plain", "lastModified": 1 }
+                                     ]}
+                                     """);
+
+        Assert.Equal(1, chosen);
+    }
+
+    [Fact]
     public void An_input_with_OnFiles_set_emits_the_files_handler_attribute()
     {
         Action<IReadOnlyList<IRaskFile>> handler = _ => { };

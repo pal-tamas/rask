@@ -449,7 +449,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         }
         else
         {
-            submit = OnAnySubmit.Handler;
+            submit = OnAnySubmit.Handler is { } posted ? ArgumentIgnoringHandler<FormData>.Fed(posted) : null;
         }
 
         if (submit is not null && LiveRenderContext.CurrentSync is { } liveCtx)

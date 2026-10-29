@@ -192,7 +192,8 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var files = OnFiles.Handler;
         if (files is not null)
         {
-            AppendAttr(sb, "data-rask-on-files", ctx.RegisterHandler(files));
+            AppendAttr(sb, "data-rask-on-files",
+                ctx.RegisterHandler(ArgumentIgnoringHandler<IReadOnlyList<RaskFileType>>.Fed(files)));
         }
     }
 
@@ -333,7 +334,7 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
         }
 
         var change = Spelled(((IFormControl<T>)this).ControlledChangeHandler());
