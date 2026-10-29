@@ -38,7 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, hoverSettled, press, root, STYLES, viewOf } from './lib.mjs';
+import { chromium, frames, hoverSettled, press, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -204,7 +204,7 @@ async function walkOne(browser, kind, url, walk, wait, find, view) {
     // A headless page left alone draws no frame, and what waits for one — a list placed again under a trigger
     // that grew a line, the row then under the pointer — is read a step late. Two frames are asked for, and
     // what they move is given the time to land.
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await frames(page);
     await page.waitForTimeout(250);
     states.push(await scope.evaluate(read, selectors));
   }
