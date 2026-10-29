@@ -28,10 +28,8 @@ public enum TraitSet
     /// <summary><see cref="IUpdateFormModel" />, or half of <see cref="IFormModel" />.</summary>
     UpdateModel = 16,
 
-    /// <summary><see cref="IDeletable" />.</summary>
-    Deletable = 32,
 
-    /// <summary><see cref="ISoftDelete" />.</summary>
+    /// <summary><see cref="ISoftDeletable" />.</summary>
     SoftDelete = 64,
 
     /// <summary><see cref="IPerTenant" />, named on the root or reached through it.</summary>

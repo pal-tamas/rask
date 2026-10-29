@@ -111,11 +111,6 @@ public static class ConventionRegistry
     /// <param name="entity">The entity type.</param>
     internal static bool IsPerTenant(Type entity) => Has(entity, TraitSet.PerTenant);
 
-    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="IDeletable" /> or <see cref="ISoftDelete" />.</summary>
-    /// <param name="entity">The entity type.</param>
-    internal static bool IsDeletable(Type entity) =>
-        Has(entity, TraitSet.Deletable) || Has(entity, TraitSet.SoftDelete);
-
     /// <summary>Whether any entity at all is partitioned by tenant.</summary>
     internal static bool AnyTenantScoped => DeclaredTraits.Values.Any(static t => (t & TraitSet.PerTenant) != TraitSet.None);
 

@@ -10,7 +10,7 @@ using Rask.TestSupport;
 namespace Rask.UiTests.Live;
 
 /// <summary>Referenced by a table the model does not map, and says what a refused delete means.</summary>
-public sealed class Hitch : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Hitch : Aggregate<int>, ITimestamps, IVersioned, IFormModel
 {
     public const string InUse = "A pótkocsi nem törölhető, mert még hivatkoznak rá.";
 

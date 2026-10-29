@@ -20,7 +20,7 @@ public sealed class FilingLine : Entity<int>
 /// values behind private fields.
 /// </summary>
 /// <typeparam name="TSelf">The aggregate deriving from it.</typeparam>
-public abstract class Filing<TSelf> : Aggregate<int>, IFormModel, IDeletable
+public abstract class Filing<TSelf> : Aggregate<int>, IFormModel
     where TSelf : Filing<TSelf>
 {
     private readonly List<FilingLine> _lines = [];

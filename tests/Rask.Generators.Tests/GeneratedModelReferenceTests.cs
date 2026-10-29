@@ -33,7 +33,6 @@ public class GeneratedModelReferenceTests
             public interface ITimestamps;
             public interface IVersioned;
             public interface IFormModel;
-            public interface IDeletable;
         }
         namespace FluentValidation
         {
@@ -45,7 +44,7 @@ public class GeneratedModelReferenceTests
         }
         namespace Shop
         {
-            public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable
+            public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel
             {
                 private Product() { }
                 public string Name { get; private set; } = "";
@@ -114,11 +113,10 @@ public class GeneratedModelReferenceTests
                 public interface ITimestamps;
                 public interface IVersioned;
                 public interface IFormModel;
-                public interface IDeletable;
             }
             namespace Shop.Catalog
             {
-                public sealed class Product : Rask.Data.Aggregate<int>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable
+                public sealed class Product : Rask.Data.Aggregate<int>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

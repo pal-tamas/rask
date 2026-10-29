@@ -69,7 +69,6 @@ Rask.Data.TraitSet
 Rask.Data.TraitSet.Broadcast = 256 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Created = 1 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.CreateModel = 8 -> Rask.Data.TraitSet
-Rask.Data.TraitSet.Deletable = 32 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.None = 0 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.PerTenant = 128 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.SoftDelete = 64 -> Rask.Data.TraitSet
@@ -351,12 +350,11 @@ Rask.Data.IBroadcast
 Rask.Data.ICreated
 Rask.Data.ICreated.CreatedAt.get -> System.DateTime
 Rask.Data.ICreateFormModel
-Rask.Data.IDeletable
 Rask.Data.IFormModel
 Rask.Data.IPerTenant
 Rask.Data.IPerTenant<TKey>
-Rask.Data.ISoftDelete
-Rask.Data.ISoftDelete.DeletedAt.get -> System.DateTime?
+Rask.Data.ISoftDeletable
+Rask.Data.ISoftDeletable.DeletedAt.get -> System.DateTime?
 Rask.Data.ITimestamps
 Rask.Data.IUpdated
 Rask.Data.IUpdated.UpdatedAt.get -> System.DateTime

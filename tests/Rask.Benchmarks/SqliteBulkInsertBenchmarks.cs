@@ -290,7 +290,7 @@ public class SqliteBulkInsertBenchmarks
 }
 
 /// <summary>A representative row: a few scalars of each storage class, plus Rask's audit stamps.</summary>
-public sealed class BenchProduct : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class BenchProduct : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     public string Sku { get; private set; } = string.Empty;
 

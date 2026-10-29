@@ -65,7 +65,7 @@ public sealed record GondolaRoute
 }
 
 /// <summary>An aggregate holding one-value value objects one and two levels inside other value objects.</summary>
-public sealed class Gondola : Aggregate<int>, IFormModel, IDeletable
+public sealed class Gondola : Aggregate<int>, IFormModel
 {
     private Gondola() { }
 

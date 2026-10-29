@@ -175,7 +175,7 @@ internal static partial class ProjectGenerator
         {
             steps.Append("\nFor your first entity, declare a class deriving from Aggregate<TId> — no DbSet, no\n");
             steps.Append("configuration class, no registration:\n");
-            steps.Append("\n  public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable\n");
+            steps.Append("\n  public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel\n");
             steps.Append("  {\n");
             steps.Append("      public string Name { get; private set; } = \"\";\n");
             steps.Append("  }\n");

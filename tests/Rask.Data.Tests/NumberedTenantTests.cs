@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 /// A table that already exists, mapped as it is: an identity key, a tenant numbered by an <c>int</c>, a name
 /// unique within the tenant, and none of the framework's columns.
 /// </summary>
-public sealed class Destination : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Destination : Aggregate<int>, IFormModel, IPerTenant
 {
     private Destination() { }
 
@@ -28,7 +28,7 @@ public sealed class Destination : Aggregate<int>, IFormModel, IDeletable, IPerTe
 }
 
 /// <summary>The same with a <c>long</c> tenant, and a child that keeps the tenant in its own column.</summary>
-public sealed class Waybill : Aggregate<long>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Waybill : Aggregate<long>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private readonly List<WaybillLine> _lines = [];
 

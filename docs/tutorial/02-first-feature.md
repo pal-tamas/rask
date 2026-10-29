@@ -25,7 +25,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Products;
 
-public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     [MaxLength(200)]
     public string Name { get; private set; } = "";
@@ -48,11 +48,10 @@ the table opts into:
   the same product from silently overwriting each other, and you'll see it at work in section 4.
 - **`IFormModel`** generates the `ProductModel` the forms below bind, with `Product.Create(model)` and
   `Product.Update(id, model)`.
-- **`IDeletable`** generates `Product.Delete(id)`.
 
-The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete
-removes the row; an aggregate whose deleted rows must stay recoverable implements `ISoftDelete` instead of `IDeletable`
-and gets a `DeletedAt` column (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
+The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. Every
+aggregate also gets `Product.Delete(id)`, which removes the row; an aggregate whose deleted rows must stay
+recoverable implements `ISoftDeletable` and gets a `DeletedAt` column (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
 
 Two rules shape the class, and the build enforces both:
 
@@ -317,8 +316,8 @@ public sealed partial class DeleteProduct : Component
 }
 ```
 
-A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. `Product`
-implements `IDeletable`; implementing `ISoftDelete` instead would keep deleted products in the table behind a `DeletedAt`
+A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. Implementing
+`ISoftDeletable` on `Product` would keep deleted products in the table behind a `DeletedAt`
 stamp.
 
 ## 5. The list page

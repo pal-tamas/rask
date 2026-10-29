@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>The shape of a table Rask did not create: an identity key, a name of its own, and no framework columns.</summary>
-public sealed class Depot : Aggregate<int>, IFormModel, IDeletable
+public sealed class Depot : Aggregate<int>, IFormModel
 {
     private readonly List<DepotBay> _bays = [];
 

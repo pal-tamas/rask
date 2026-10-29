@@ -74,13 +74,13 @@ internal static class AggregateShape
     public const int Versioned = 4;
     public const int CreateModel = 8;
     public const int UpdateModel = 16;
-    public const int Deletable = 32;
+    // 32 was Deletable: every aggregate is deletable now, and the bit is not reused.
     public const int SoftDelete = 64;
     public const int PerTenant = 128;
     public const int Broadcast = 256;
 
     /// <summary>
-    ///     The traits <paramref name="symbol" /> implements — <c>Order : Aggregate&lt;Guid&gt;, ITimestamps, ISoftDelete</c>
+    ///     The traits <paramref name="symbol" /> implements — <c>Order : Aggregate&lt;Guid&gt;, ITimestamps, ISoftDeletable</c>
     ///     — as <c>Rask.Data.TraitSet</c> bits, its bases' included. None when it implements none: a table carries only
     ///     what it asks for.
     /// </summary>
@@ -121,16 +121,12 @@ internal static class AggregateShape
     /// <summary>Whether the aggregate has a <c>Version</c>: only when it implements <c>IVersioned</c>.</summary>
     public static bool HasVersion(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, Versioned);
 
-    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it implements <c>ISoftDelete</c>.</summary>
+    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it implements <c>ISoftDeletable</c>.</summary>
     public static bool SoftDeletes(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, SoftDelete);
-
-    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>IDeletable</c> or <c>ISoftDelete</c>.</summary>
-    public static bool IsDeletable(INamedTypeSymbol entity) =>
-        IsAggregate(entity) && (TraitsOf(entity) & (Deletable | SoftDelete)) != 0;
 
     /// <summary>
     ///     The traits written on <paramref name="symbol" /> itself that only an aggregate root carries — <c>IFormModel</c>,
-    ///     <c>IDeletable</c>, <c>IPerTenant</c>, <c>IBroadcast</c> and the rest — as written. A child entity carries
+    ///     <c>IPerTenant</c>, <c>IBroadcast</c> and the rest — as written. A child entity carries
     ///     only <c>ICreated</c>, <c>IUpdated</c> or <c>ITimestamps</c>.
     /// </summary>
     public static IEnumerable<string> AggregateOnlyTraitsDeclaredOn(INamedTypeSymbol symbol) =>
@@ -150,8 +146,7 @@ internal static class AggregateShape
                 "IFormModel" => CreateModel | UpdateModel,
                 "ICreateFormModel" => CreateModel,
                 "IUpdateFormModel" => UpdateModel,
-                "IDeletable" => Deletable,
-                "ISoftDelete" => SoftDelete,
+                "ISoftDeletable" => SoftDelete,
                 "IPerTenant" => PerTenant,
                 "IBroadcast" => Broadcast,
                 _ => 0,

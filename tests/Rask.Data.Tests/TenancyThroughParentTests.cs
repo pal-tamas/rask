@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's driver, as an existing app has it: a text key and a <see cref="Guid" /> tenant kept as text.</summary>
-public sealed class Driver : Aggregate<string>, IFormModel, IDeletable, IPerTenant
+public sealed class Driver : Aggregate<string>, IFormModel, IPerTenant
 {
     private readonly List<Chip> _chips = [];
 
@@ -35,7 +35,7 @@ public sealed class Driver : Aggregate<string>, IFormModel, IDeletable, IPerTena
 }
 
 /// <summary>The other parent of the same chips: a chip is a driver's or a vehicle's, never both.</summary>
-public sealed class Vehicle : Aggregate<string>, IFormModel, IDeletable, IPerTenant
+public sealed class Vehicle : Aggregate<string>, IFormModel, IPerTenant
 {
     private readonly List<Chip> _chips = [];
 

@@ -12,7 +12,7 @@ public class ChildEntityTraitAnalyzerTests
             using System.Collections.Generic;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete, IPerTenant, IBroadcast
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable, IPerTenant, IBroadcast
             {
                 private readonly List<OrderLine> _lines = [];
                 public IReadOnlyList<OrderLine> Lines => _lines;
@@ -28,7 +28,6 @@ public class ChildEntityTraitAnalyzerTests
     [InlineData(", IPerTenant<int>", "'IPerTenant<int>'")]
     [InlineData(", IFormModel", "'IFormModel'")]
     [InlineData(", ICreateFormModel", "'ICreateFormModel'")]
-    [InlineData(", IDeletable", "'IDeletable'")]
     [InlineData(", ITimestamps, IBroadcast", "'IBroadcast'")]
     public async Task A_child_that_implements_a_root_trait_is_RASK113(string traits, string named)
     {
@@ -42,9 +41,9 @@ public class ChildEntityTraitAnalyzerTests
     [Fact]
     public async Task Every_root_trait_on_the_child_is_named_in_one_report()
     {
-        var diagnostic = Assert.Single(await Run(", IDeletable, IBroadcast"));
+        var diagnostic = Assert.Single(await Run(", IFormModel, IBroadcast"));
 
-        Assert.Contains("'IDeletable', 'IBroadcast'", diagnostic.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'IFormModel', 'IBroadcast'", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Theory]

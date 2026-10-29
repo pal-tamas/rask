@@ -198,20 +198,23 @@ them until tagged releases begin.
 
 ### Changed
 - **BREAKING: an aggregate's traits are interfaces it implements, not type arguments of its base.**
-  `Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` is now
-  `Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable`, and a child's
-  `Entity<Guid, Timestamps>` is `Entity<Guid>, ITimestamps`. Each trait is the interface of the same name with an `I`
-  in front, except the form-model three: `Model` / `CreateModel` / `UpdateModel` are `IFormModel` /
-  `ICreateFormModel` / `IUpdateFormModel`, because `IModel` is EF Core's and a file using both namespaces could name
-  neither. The `Aggregate<TId, T1…T6>` and `Entity<TId, T1>` overloads, the marker classes and `IAggregateTrait` /
-  `IEntityTrait` are gone — no obsolete period, Rask is pre-1.0. Nothing else moves: the same table, the same
-  columns, the same generated code, no migration. What is new: `IVersioned.Version`, `ISoftDelete.DeletedAt`,
-  `ICreated.CreatedAt` and `IUpdated.UpdatedAt` expose the column the trait stands for — the base already implements
-  them — so generic code can constrain `where T : Aggregate<Guid>, IVersioned` and read `entity.Version`; a trait an
-  abstract base implements reaches every type deriving from it; and the limit of six traits is gone. A child entity
-  that implements `IVersioned` or `ISoftDelete` is a compile error (CS0535: it has no `Version` or `DeletedAt`), and
-  one that implements `IFormModel`, `IDeletable`, `IPerTenant` or `IBroadcast` is the new
-  [RASK113](docs/diagnostics.md#rask113).
+  `Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>` is now `Product : Aggregate<Guid>, ITimestamps,
+  IVersioned, IFormModel`, and a child's `Entity<Guid, Timestamps>` is `Entity<Guid>, ITimestamps`. Each trait is the
+  interface of the same name with an `I` in front, except the form-model three and the deletes: `Model` /
+  `CreateModel` / `UpdateModel` are `IFormModel` / `ICreateFormModel` / `IUpdateFormModel`, because `IModel` is EF
+  Core's and a file using both namespaces could name neither; `SoftDelete` is `ISoftDeletable`; and `Deletable` is
+  gone, because **every aggregate now has a generated `Delete`** — removing the row, or stamping `DeletedAt` under
+  `ISoftDeletable`, the way Rails and Laravel models always have one. An aggregate that named neither gains
+  `X.Delete(id)` and `x.Delete()`; one whose rows must never go declares a `Delete` of its own, which wins over the
+  generated extension, and the runtime refusal ("implements neither … so it is never deleted") is gone with
+  `TraitSet.Deletable`. The `Aggregate<TId, T1…T6>` and `Entity<TId, T1>` overloads, the marker classes and
+  `IAggregateTrait` / `IEntityTrait` are gone — no obsolete period, Rask is pre-1.0. The tables and columns do not
+  move: no migration. What is new: `IVersioned.Version`, `ISoftDeletable.DeletedAt`, `ICreated.CreatedAt` and
+  `IUpdated.UpdatedAt` expose the column the trait stands for — the base already implements them — so generic code can
+  constrain `where T : Aggregate<Guid>, IVersioned` and read `entity.Version`; a trait an abstract base implements
+  reaches every type deriving from it; and the limit of six traits is gone. A child entity that implements
+  `IVersioned` or `ISoftDeletable` is a compile error (CS0535: it has no `Version` or `DeletedAt`), and one that
+  implements `IFormModel`, `IPerTenant` or `IBroadcast` is the new [RASK113](docs/diagnostics.md#rask113).
 - **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
   `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
   `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update

@@ -17,7 +17,7 @@ using Rask.Server.Tests.Infrastructure;
 namespace Rask.Server.Tests.App;
 
 /// <summary>An existing table with one unique rule, filtered the way the real one is.</summary>
-public sealed class Wharf : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Wharf : Aggregate<int>, IFormModel, IPerTenant
 {
     public const string NameTaken = "Ilyen néven már létezik rakpart.";
 
@@ -37,7 +37,7 @@ public sealed class Wharf : Aggregate<int>, IFormModel, IDeletable, IPerTenant
 }
 
 /// <summary>An existing table whose unique rule is over two columns the form binds.</summary>
-public sealed class Crane : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Crane : Aggregate<int>, IFormModel, IPerTenant
 {
     public const string PlaceTaken = "Ezen a rakparton már áll daru ezen a helyen.";
 

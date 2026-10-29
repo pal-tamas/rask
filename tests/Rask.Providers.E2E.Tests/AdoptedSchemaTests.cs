@@ -11,7 +11,7 @@ namespace Rask.Providers.E2E.Tests;
 /// A table that already exists, mapped as it is: <c>Destinations (Id int IDENTITY, Name nvarchar(255) NOT NULL,
 /// TenantId int NULL)</c> with a unique index over <c>(Name, TenantId)</c>, and none of Rask's own columns.
 /// </summary>
-public sealed class Destination : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Destination : Aggregate<int>, IFormModel, IPerTenant
 {
     public const string NameTaken = "Ilyen néven már létezik viszonylat.";
 

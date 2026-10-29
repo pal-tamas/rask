@@ -8,7 +8,7 @@ namespace Rask.Outbox;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Names neither <see cref="ISoftDelete"/> nor <see cref="IVersioned"/>, deliberately. Soft delete would bring a
+/// Names neither <see cref="ISoftDeletable"/> nor <see cref="IVersioned"/>, deliberately. Soft delete would bring a
 /// global "not deleted" query filter, which would hide rows from the drain query and turn the dashboard's purge —
 /// an <c>ExecuteDelete</c> — into a stamp that leaves them in the table forever. A <c>Version</c> would be a
 /// second concurrency token beside <see cref="ClaimToken"/>, and the processor advances state with

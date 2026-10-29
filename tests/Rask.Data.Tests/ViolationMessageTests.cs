@@ -5,7 +5,7 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant-scoped table whose unique indexes say what a collision means — and one that does not.</summary>
-public sealed class Lane : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Lane : Aggregate<int>, IFormModel, IPerTenant
 {
     public const string NameTaken = "Ilyen néven már létezik viszonylat.";
     public const string CodeTaken = "This code is already in use.";
@@ -59,7 +59,7 @@ public sealed class Lane : Aggregate<int>, IFormModel, IDeletable, IPerTenant
 }
 
 /// <summary>One table for everybody, with one unique column.</summary>
-public sealed class Badge : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Badge : Aggregate<int>, ITimestamps, IVersioned, IFormModel
 {
     public const string SerialTaken = "That serial number is already registered.";
 

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A pump and its nozzles: each nozzle draws from one tank.</summary>
-public sealed class Dispenser : Aggregate<Guid>, IFormModel, IDeletable
+public sealed class Dispenser : Aggregate<Guid>, IFormModel
 {
     private readonly List<Nozzle> _nozzles = [];
 
@@ -31,7 +31,7 @@ public sealed class Nozzle : Entity<Guid>
 }
 
 /// <summary>Another aggregate that names a nozzle — a child of the dispenser — by its id, and nothing more.</summary>
-public sealed class Refill : Aggregate<Guid>, IFormModel, IDeletable
+public sealed class Refill : Aggregate<Guid>, IFormModel
 {
     private Refill() { }
 

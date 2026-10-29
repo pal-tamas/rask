@@ -9,7 +9,7 @@ public sealed record TripStop(string City, int Day);
 /// An aggregate holding both shapes of value collection, in the encapsulated form Rask recommends: a private
 /// field and a read-only view.
 /// </summary>
-public sealed class Trip : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Trip : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private readonly List<string> _tags = [];
     private readonly List<TripStop> _stops = [];

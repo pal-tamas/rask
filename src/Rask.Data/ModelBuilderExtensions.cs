@@ -228,7 +228,7 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only for an aggregate that implements ISoftDelete. A stamped row still occupies its UNIQUE constraints.
+    // Only for an aggregate that implements ISoftDeletable. A stamped row still occupies its UNIQUE constraints.
     private static void ApplySoftDelete(EntityTypeBuilder builder, Type clrType)
     {
         // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and

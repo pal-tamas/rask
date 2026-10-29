@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant-scoped aggregate: <c>IPerTenant</c> on its base, and it never mentions the tenant again.</summary>
-public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private readonly List<LedgerEntry> _entries = [];
 
@@ -36,7 +36,7 @@ public sealed class LedgerEntry : Entity<Guid>
 }
 
 /// <summary>A tenant-scoped aggregate that READS its tenant, so it declares the column itself.</summary>
-public sealed class Vault : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Vault : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private Vault() { }
 
@@ -48,7 +48,7 @@ public sealed class Vault : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 }
 
 /// <summary>Not partitioned, but it keeps a tenant as data of its own — the shape a queue's rows have.</summary>
-public sealed class Haulier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Haulier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private Haulier() { }
 
@@ -63,7 +63,7 @@ public sealed class Haulier : Aggregate<Guid>, ITimestamps, IVersioned, IFormMod
 public sealed record LedgerOwner(string Reference, Guid? Tenant);
 
 /// <summary>An aggregate that does not name <c>IPerTenant</c>, so it is one table for everybody.</summary>
-public sealed class RateCard : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class RateCard : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private RateCard() { }
 

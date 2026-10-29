@@ -16,7 +16,7 @@ namespace Rask.Auth;
 /// removes them; an app does not.
 /// </para>
 /// </remarks>
-public sealed class Passkey : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Passkey : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     /// <summary>The user this passkey signs in.</summary>
     public Guid UserId { get; private set; }

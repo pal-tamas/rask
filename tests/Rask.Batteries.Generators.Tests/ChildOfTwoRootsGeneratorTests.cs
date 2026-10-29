@@ -11,7 +11,7 @@ public class ChildOfTwoRootsGeneratorTests
         using Rask.Data;
         namespace Fleet;
 
-        public sealed class Driver : Aggregate<string>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+        public sealed class Driver : Aggregate<string>, ITimestamps, IVersioned, IFormModel, IPerTenant
         {
             private readonly List<Chip> _chips = [];
             private Driver() { }
@@ -20,7 +20,7 @@ public class ChildOfTwoRootsGeneratorTests
             public IReadOnlyList<Chip> Chips => _chips;
         }
 
-        public sealed class Vehicle : Aggregate<string>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Vehicle : Aggregate<string>, ITimestamps, IVersioned, IFormModel
         {
             private readonly List<Chip> _chips = [];
             private Vehicle() { }
@@ -68,7 +68,7 @@ public class ChildOfTwoRootsGeneratorTests
             using Rask.Data;
             namespace Rounds;
 
-            public sealed class Tour : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+            public sealed class Tour : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
             {
                 private readonly List<Drop> _drops = [];
                 private Tour() { }

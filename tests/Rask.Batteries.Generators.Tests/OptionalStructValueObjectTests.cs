@@ -23,7 +23,7 @@ public class OptionalStructValueObjectTests
         """;
 
     private const string Norm = """
-        public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private Norm() { }
             public Percent? Discount { get; private set; }
@@ -109,7 +109,7 @@ public class OptionalStructValueObjectTests
     {
         var run = Run("""
             public sealed record Size(Percent? Tolerance, int Units);
-            public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Norm() { }
                 public Size Size { get; private set; } = new(null, 0);
@@ -135,7 +135,7 @@ public class OptionalStructValueObjectTests
     public void A_nullable_struct_of_several_values_is_left_as_the_plain_value_it_was()
     {
         var run = Run("""
-            public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Norm : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Norm() { }
                 public Money? Price { get; private set; }

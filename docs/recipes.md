@@ -33,7 +33,7 @@ Declare the aggregate under `Features/Orders/` and its pages beside it. Nothing 
 from the traits it implements — its form model (`OrderModel`), read face (`OrderRead`, queried as `Order.Where(…)`), `Order.Find(id)` + `order.Save()`, and writes (`Order.Create(model)`).
 
 ```csharp
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     [MaxLength(40)]
     public string Reference { get; private set; } = "";
@@ -64,11 +64,15 @@ through the root; loading the root by id loads it whole. Many-to-many between ag
 
 ## Keep deleted rows, or forbid deleting
 
-`IDeletable` generates a delete that removes the row. Implement another trait, or none, to say otherwise:
+Every aggregate has a generated `Delete` that removes the row. `ISoftDeletable` keeps it instead, and a `Delete` of
+the aggregate's own replaces the generated one:
 
 ```csharp
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete { }  // Order.Delete stamps DeletedAt; reads hide the row
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel { }              // no Order.Delete at all — cancel it instead
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable { }  // Order.Delete stamps DeletedAt; reads hide the row
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel                // Invoice.Delete refuses — cancel it instead
+{
+    public static Task Delete(Guid id) => throw new InvalidOperationException("An invoice is cancelled, not deleted.");
+}
 ```
 
 Then `rask db add OrderDeletes && rask db update`. `Order.IgnoreQueryFilters()` brings soft-deleted rows
@@ -111,7 +115,7 @@ One trait partitions a table by tenant; every read filters to the signed-in user
 stamps it:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant { }
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant { }
 
 using (Tenant.Use(tenantId)) { /* an admin working in one tenant */ }
 ```

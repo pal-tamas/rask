@@ -18,7 +18,7 @@ public enum SkidHandling
 /// An aggregate holding three collections of values whose ELEMENT is read through a converter: one-value value
 /// objects, enums stored as their names, and strings sealed by the app's own converter.
 /// </summary>
-public sealed class Skid : Aggregate<int>, IDeletable
+public sealed class Skid : Aggregate<int>
 {
     private readonly List<SkidBarcode> _barcodes = [];
     private readonly List<SkidHandling> _handling = [];

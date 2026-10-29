@@ -17,7 +17,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IBroadcast
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IBroadcast
             {
             }
             """);
@@ -26,7 +26,7 @@ public class BroadcastConstGeneratorTests
 
         var conventions = run.GeneratedSource("__RaskConventions");
         Assert.Contains(
-            "Declare(typeof(global::Shop.Order), (global::Rask.Data.TraitSet)319)",
+            "Declare(typeof(global::Shop.Order), (global::Rask.Data.TraitSet)287)",
             conventions,
             StringComparison.Ordinal);
     }
@@ -38,7 +38,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
             {
             }
             """);

@@ -10,7 +10,7 @@ public class AuthUserGeneratorTests
     private const string Authenticatable = """
         namespace Rask.Auth
         {
-            public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable
+            public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel
             {
                 public string Email { get; private set; } = "";
                 public System.DateTime? EmailConfirmedAt { get; private set; }
@@ -75,7 +75,7 @@ public class AuthUserGeneratorTests
 
             namespace Shop
             {
-                public sealed class Customer : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable { }
+                public sealed class Customer : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel { }
                 public abstract class BaseUser : Rask.Auth.Authenticatable { }
             }
             """,

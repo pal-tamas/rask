@@ -36,7 +36,7 @@ public class ChildStampsGeneratorTests
         Assert.Empty(run.GeneratedCompileErrors());
         Assert.Contains(" CreatedAt {", driver, StringComparison.Ordinal);
         Assert.Contains(" UpdatedAt {", driver, StringComparison.Ordinal);
-        Assert.Contains(Declares + "Driver), (global::Rask.Data.TraitSet)63);", run.GeneratedSource("__RaskConventions"), StringComparison.Ordinal);
+        Assert.Contains(Declares + "Driver), (global::Rask.Data.TraitSet)31);", run.GeneratedSource("__RaskConventions"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public class ChildStampsGeneratorTests
             using Rask.Data;
             namespace Fleet;
 
-            public sealed class Driver : Aggregate<string>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Driver : Aggregate<string>, ITimestamps, IVersioned, IFormModel
             {
                 private readonly List<Chip> _chips = [];
                 private Driver() { }

@@ -10,7 +10,7 @@ public sealed record Waypoint(string City, int Day);
 /// An aggregate holding both shapes of value collection behind the encapsulation Rask recommends everywhere
 /// else: a private field, a read-only view, and a domain method as the only way in.
 /// </summary>
-public sealed class Journey : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Journey : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private readonly List<string> _tags = [];
     private readonly List<Waypoint> _waypoints = [];
@@ -35,7 +35,7 @@ public sealed class Journey : Aggregate<Guid>, ITimestamps, IVersioned, IFormMod
 }
 
 /// <summary>An aggregate that maps its own collection, to prove the convention does not overwrite it.</summary>
-public sealed class Itinerary : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Itinerary : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private Itinerary() { }
 

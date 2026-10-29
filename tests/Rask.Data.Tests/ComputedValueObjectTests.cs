@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 public readonly record struct PermitKind(string Name, int Rank);
 
 /// <summary>An aggregate with a computed get-only property of a record struct type: no column behind it.</summary>
-public sealed class Permit : Aggregate<int>, ITimestamps, IFormModel, IDeletable
+public sealed class Permit : Aggregate<int>, ITimestamps, IFormModel
 {
     private Permit() { } // EF materialization
 
@@ -18,7 +18,7 @@ public sealed class Permit : Aggregate<int>, ITimestamps, IFormModel, IDeletable
 }
 
 /// <summary>An aggregate whose field-backed lists sit beside members computed from them.</summary>
-public sealed class Hamper : Aggregate<Guid>, IFormModel, IDeletable
+public sealed class Hamper : Aggregate<Guid>, IFormModel
 {
     private readonly List<HamperItem> _items = [];
     private readonly List<string> _labels = [];

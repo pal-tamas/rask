@@ -7,8 +7,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 
 - **`Aggregate<TId>` and `Entity<TId>`**: domain-driven design's building blocks as base classes. An entity carries
   `Id`; an aggregate adds domain events. Everything else is a **trait** — an interface the aggregate implements beside its base, in any order —
-  `Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable` is the CRUD shape `rask new` scaffolds: `ITimestamps`
-  (or `ICreated` / `IUpdated`), `IVersioned`, `IFormModel` (or `ICreateFormModel` / `IUpdateFormModel`), `IDeletable` or `ISoftDelete`,
+  `Aggregate<Guid>, ITimestamps, IVersioned, IFormModel` is the CRUD shape `rask new` scaffolds: `ITimestamps`
+  (or `ICreated` / `IUpdated`), `IVersioned`, `IFormModel` (or `ICreateFormModel` / `IUpdateFormModel`), `ISoftDeletable`,
   `IPerTenant`, `IBroadcast`. A bare `Aggregate<Guid>` has none of them. A source generator finds every one and
   builds the model, so nothing is scanned or reflected and a trimmed publish cannot quietly drop a table.
 - **Value objects that compare by value**: a record, a record struct, or a class on `ValueObject` an entity holds maps as an
@@ -26,8 +26,8 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   form.
 - **Writes off the type**: creates read like their updates: `Product.Create(model)` /
   `Product.Update(id, model)`, `Product.Update(id, p => …)`, plus `product.Save()` or
-  `Product.Create(entity)` for one built by its factory and `Product.Delete(id)`, which removes the row under
-  `IDeletable` (or stamps `DeletedAt` under `ISoftDelete`; with neither there is no delete at all). A save
+  `Product.Create(entity)` for one built by its factory and `Product.Delete(id)`, which removes the row (or stamps
+  `DeletedAt` under `ISoftDeletable`). A save
   writes what the form holds; values that do not come from the form go in an optional `p => …`; the id is always
   the caller's, never the form's; a stale `Version` is refused (`IVersioned`). Each takes an optional `DbContext` to join a
   caller's transaction.
@@ -41,7 +41,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
   behaviour on an aggregate is tested against the database, model and `SaveChangesAsync` it ships on rather than
   a mocked `DbContext`.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
-  that implements `ISoftDelete`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
+  that implements `ISoftDeletable`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).
 - **`Current` and multi-tenancy**: `Current.UserId`, `Current.Principal` and `Current.Tenant` answer from a
   static factory or anywhere else with no constructor to inject into. `IPerTenant` on the aggregate gives a table a `TenantId` and a query filter no read can compose away, and an entity under
@@ -52,7 +52,7 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 ## Use
 
 ```csharp
-public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     [Required, MaxLength(200)]
     public string Name { get; private set; } = "";
@@ -107,7 +107,7 @@ and configurations and use them exactly as before. Registering an `IDbContextFac
 the whole of opting out at the app level.
 
 A delete, `db.Remove(product)`, removes the row — or, for an aggregate that names
-`ISoftDelete`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
+`ISoftDeletable`, stamps `DeletedAt` so the row drops out of queries (`IgnoreQueryFilters()` brings it
 back); a save of a `IVersioned` aggregate against a stale `Version` throws
 `DbUpdateConcurrencyException`; and any `IEvent` raised on the aggregate is published after the change
 commits.

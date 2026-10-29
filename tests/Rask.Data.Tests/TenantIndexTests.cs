@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 /// <summary>A tenant-scoped table whose indexes are declared every way an index can be.</summary>
 [Index(nameof(Region))]
-public sealed class Carrier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Carrier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private Carrier() { }
 

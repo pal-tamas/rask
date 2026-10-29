@@ -31,7 +31,7 @@ the write side only; the read side has none.**
 ```csharp
 public sealed record Money(decimal Amount, string Currency);   // a value object: a record needs no base
 
-public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     [MaxLength(200)]
     public string Name   { get; private set; } = "";
@@ -107,7 +107,7 @@ framework writes them:
 | `Id` | `Entity<TId>` | The key. A `Guid` or strongly-typed id is assigned in the factory; an integer is the store's identity. |
 | `CreatedAt`, `UpdatedAt` | `Entity<TId>` | **With [`ITimestamps`](#choosing-what-a-table-carries)** (or `ICreated` / `IUpdated` for one). Stamped (UTC) on insert and on every update. |
 | `Version` | `Aggregate<TId>` | **With [`IVersioned`](#choosing-what-a-table-carries).** The optimistic-concurrency token, bumped on every update. |
-| `DeletedAt` | `Aggregate<TId>` | **With [`ISoftDelete`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
+| `DeletedAt` | `Aggregate<TId>` | **With [`ISoftDeletable`](#choosing-what-a-table-carries).** The generated `Delete` stamps it instead of removing the row. |
 
 ```csharp
 var recent = await Product.OrderByDescending(p => p.CreatedAt).Take(10);
@@ -133,7 +133,7 @@ An aggregate holds its parts. Declare them as `Entity<TId>`, keep them in a fiel
 view — nothing else is configured, and no `HasMany`, no foreign key and no key generation is written anywhere:
 
 ```csharp
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private readonly List<OrderLine> _lines = [];
 
@@ -224,7 +224,7 @@ and severing a child would set that key to `NULL` and leave the row in the table
 navigation, unreachable through the aggregate, and impossible to delete through it either.
 
 Deleting the aggregate follows the same rule: `Order.Delete(id)` removes the order and its lines with it.
-An order that names [`ISoftDelete`](#choosing-what-a-table-carries) instead of `IDeletable` is different, and deliberately
+An order that implements [`ISoftDeletable`](#choosing-what-a-table-carries) is different, and deliberately
 so: `DeletedAt` is stamped rather than the row removed, so nothing cascades and the lines are still there if the
 order comes back.
 
@@ -672,7 +672,7 @@ Every navigation the read face infers also works backwards: the **target** gets 
 at it. A distribution moves fuel from one fueling to another, and holds nothing but their ids:
 
 ```csharp
-public sealed class Distribution : Aggregate<string>, IDeletable
+public sealed class Distribution : Aggregate<string>
 {
     public string FromFuelingId { get; private set; } = "";
     public string ToFuelingId { get; private set; } = "";
@@ -844,14 +844,13 @@ update just names the row first:
 - **`Product.Create(entity)`** inserts an aggregate you built with its own factory:
   `Product.Create(Product.Create("Anvil", new(30m, "EUR")))`.
 - **An update** loads the row, applies the model and then the lambda, and saves **only the columns that changed**.
-- **`Product.Delete(id)`** loads the row and **removes** it — generated for an aggregate that implements `IDeletable`.
-  One that implements `ISoftDelete` keeps the row instead: `DeletedAt` is stamped and every read stops seeing it. One
-  that names neither has no `Delete`. A row that is still referenced is refused by the database —
+- **`Product.Delete(id)`** loads the row and **removes** it — generated for every aggregate.
+  One that implements `ISoftDeletable` keeps the row instead: `DeletedAt` is stamped and every read stops seeing it. A row that is still referenced is refused by the database —
   [with the sentence you declared](#what-deleting-a-referenced-row-says); a soft delete never asks it.
 
 Each write is one unit of work for one aggregate, and each goes through EF Core's change tracker, so the
 interceptors run exactly as for a hand-written save: `CreatedAt`/`UpdatedAt` are stamped and `Version` is bumped
-where the aggregate names them, a delete becomes a stamp *for an aggregate that implements `ISoftDelete`*, and the aggregate's domain events are
+where the aggregate names them, a delete becomes a stamp *for an aggregate that implements `ISoftDeletable`*, and the aggregate's domain events are
 published after the commit.
 
 - **The id is always yours.** The model carries none; the row is addressed by the `id` you pass, never by anything
@@ -899,7 +898,7 @@ writes what changed since — it never reads the row again.
 - **Changed underneath is refused, never written over.** The `Version` compared is the one `Find` read, so on a
   `IVersioned` aggregate a save after someone else's — or after a soft delete, which bumps it — is
   `DbUpdateConcurrencyException`. So is a save whose row, or a changed child's, has been deleted outright: nothing is
-  silently re-inserted. An aggregate with no `Version` that implements `ISoftDelete` is asked first whether its row is
+  silently re-inserted. An aggregate with no `Version` that implements `ISoftDeletable` is asked first whether its row is
   still there (by its key alone — one small SELECT), and is `KeyNotFoundException` when it is not.
 - **The interceptors run** as for any write: times stamped, `Version` bumped, tenant checked, domain events
   published after the commit.
@@ -908,7 +907,7 @@ writes what changed since — it never reads the row again.
   taken when that context's `SaveChangesAsync` succeeds.
 - **Delete what you found: `await file.Delete();`** — `var file = await QueuedFile.Find(id); if (file.Expired) await
   file.Delete();`. Like Rails' `record.destroy` and Laravel's `$model->delete()` it works from what `Find` read, with no
-  read first: an aggregate that implements `ISoftDelete` is stamped, any other has its row and its children removed. The
+  read first: an aggregate that implements `ISoftDeletable` is stamped, any other has its row and its children removed. The
   `Version` read is compared, so a row changed or deleted since is `DbUpdateConcurrencyException` (an unversioned
   soft-deleting one is asked by its key first, `KeyNotFoundException` when gone); one never saved is
   `InvalidOperationException`. It takes `db:` like `Save`, and inside `Db.Transaction` it is written in the
@@ -1155,45 +1154,48 @@ listed after its base in any order, and an aggregate that implements none — `A
 | `ITimestamps` — or `ICreated` / `IUpdated` for one | `CreatedAt` and `UpdatedAt`, stamped on save |
 | `IVersioned` | a `Version` concurrency token: a save from a stale copy is refused |
 | `IFormModel` — or `ICreateFormModel` / `IUpdateFormModel` for half | the form model, `X.Create(model)` and `X.Update(id, model)` — [below](#turning-the-form-surface-off) |
-| `IDeletable` | a generated `X.Delete(id)` that removes the row |
-| `ISoftDelete` | `DeletedAt` and a filter; the generated `Delete` stamps it instead (it implies `IDeletable`) |
+| `ISoftDeletable` | `DeletedAt` and a filter; the generated `Delete` stamps it instead of removing the row |
 | `IPerTenant` — or `IPerTenant<int>` / `IPerTenant<long>` | a `TenantId`, a filter and a stamp — see [Multi-tenancy](multi-tenancy.md) |
 | `IBroadcast` | a save announced to the whole process — see [Announcing a save](#announcing-a-save) |
 
-With neither `IDeletable` nor `ISoftDelete` there is no `Delete` at all — calling it is a compile error, which is
-what a [behaviour-rich aggregate](#behaviour-rich-aggregates) wants.
+Every aggregate has a generated `X.Delete(id)` — the row and its children removed, or `DeletedAt` stamped under
+`ISoftDeletable`. A [behaviour-rich aggregate](#behaviour-rich-aggregates) whose rows must never go declares a
+`Delete` of its own that refuses: the type's own member is found before the generated one, so `Invoice.Delete(id)`
+then calls it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { }    // what rask new scaffolds
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete { }     // keep the row when deleted
-public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned { }   // behaviour-rich: no model, no Delete
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel { }    // what rask new scaffolds
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable { }     // keep the row when deleted
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned { }   // behaviour-rich: no model
 public sealed class Reading : Aggregate<Guid>, ICreated { }                 // append-only: no UpdatedAt, no Version
 ```
 
 What the table does not carry, the generated types do not either. A `Reading` like the one above has no
 `Version`, and its read face has `CreatedAt` and nothing else of the framework's:
 `Reading.OrderBy(r => r.UpdatedAt)` is a compile error, not a query that fails. `DeletedAt` is on a read face
-only for an aggregate that implements `ISoftDelete`.
+only for an aggregate that implements `ISoftDeletable`.
 
 A child `Entity` takes only a timestamp trait — `OrderLine : Entity<Guid>, ITimestamps`. Tenancy, the version, the
 delete and the form model are the aggregate's: a child has no `Version` or `DeletedAt` to implement `IVersioned` or
-`ISoftDelete` with (CS0535), and the rest is [RASK113](diagnostics.md#rask113).
+`ISoftDeletable` with (CS0535), and the rest is [RASK113](diagnostics.md#rask113).
 
-The interfaces that stand for a column expose it — `IVersioned.Version`, `ISoftDelete.DeletedAt`,
+The interfaces that stand for a column expose it — `IVersioned.Version`, `ISoftDeletable.DeletedAt`,
 `ICreated.CreatedAt`, `IUpdated.UpdatedAt` — and the base the aggregate derives from already implements them, so
 generic code can ask for one: `where T : Aggregate<Guid>, IVersioned` reads `entity.Version`. The others are markers.
 
 > **Upgrading from the type arguments.** A trait used to be a type argument of the base —
 > `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`, `Entity<Guid, Timestamps>`. Each is now the interface
 > of the same name with an `I` in front, implemented beside the base: `Aggregate<Guid>, ITimestamps, IVersioned,
-> IFormModel, IDeletable`. `Model`, `CreateModel` and `UpdateModel` became `IFormModel`, `ICreateFormModel` and
-> `IUpdateFormModel` — `IModel` is EF Core's. The table, its columns and the generated code are unchanged.
+> IFormModel`. `Model`, `CreateModel` and `UpdateModel` became `IFormModel`, `ICreateFormModel` and
+> `IUpdateFormModel` — `IModel` is EF Core's — and `SoftDelete` became `ISoftDeletable`. `Deletable` is gone: every
+> aggregate now has a generated `Delete`, so drop it from the list; one that named neither gains a `Delete`, and if
+> its rows must never go, give it a `Delete` of its own that refuses. The table and its columns are unchanged.
 
 > **Upgrading from the consts.** An aggregate that said nothing used to get `ITimestamps`, `IVersioned`, `IFormModel` and
-> `IDeletable`. Implement them — `Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable` — or its next
+> a delete. Implement them — `Aggregate<Guid>, ITimestamps, IVersioned, IFormModel` — or its next
 > migration drops `CreatedAt`, `UpdatedAt` and `Version`, and its form writes stop compiling. An old const
 > (`Writes`, `Stamps`, `Deletes`, `Checks`, `Scope`, `Broadcast`) no longer compiles: its enum is gone.
-> `Deletes = Deletion.Soft` is `ISoftDelete`, `Scope = Tenancy.PerTenant` is `IPerTenant`,
+> `Deletes = Deletion.Soft` is `ISoftDeletable`, `Scope = Tenancy.PerTenant` is `IPerTenant`,
 > `Broadcast = Broadcasts.OnCommit` is `IBroadcast`, and `Deletes = Deletion.None` is leaving both deletes off.
 
 ### Announcing a save
@@ -1234,7 +1236,7 @@ it can actually be expressed.
 
 #### Why the scaffold checks the version and soft-deletes nothing
 
-Both are opt-in, and `rask new` implements `IVersioned` and `IDeletable`. They look symmetrical and are not.
+Both are opt-in, and `rask new` implements `IVersioned` but not `ISoftDeletable`. They look symmetrical and are not.
 
 Soft delete used to be the default and is not any more, because it costs an ordinary application more than the
 recovery is worth. A stamped row still occupies its UNIQUE constraints, so deleting the account `a@b.com` and
@@ -1265,7 +1267,7 @@ Not every aggregate should be creatable from a form. A passkey is minted by a We
 is started by signing in. The form surface is a trait, so an aggregate that leaves `IFormModel` off has none:
 
 ```csharp
-public sealed class Passkey : Aggregate<Guid>, ITimestamps, IVersioned, IDeletable
+public sealed class Passkey : Aggregate<Guid>, ITimestamps, IVersioned
 {
     public string Name { get; private set; } = "";
 
@@ -1347,9 +1349,10 @@ When a page shows the order between loading and changing it, the same rules run 
 - **No `IFormModel` closes the form path.** A form update copies each field of the model onto the private setters
   directly, which is right for a product and wrong here: a posted form could set `Status` without going through
   `Ship`. Implement `ICreateFormModel` instead if a form may place an order but never edit one.
-- **No `IDeletable` means no `Delete`.** `Order.Delete(id)` is then a compile error, and
-  the underlying `GeneratedModelWrites.Delete<Order>` throws. Retiring an order is `Cancel`, which keeps
-  the row, its history and everything that refers to it.
+- **Its own `Delete` keeps the rows.** Every aggregate gets a generated `Order.Delete(id)`; an order declares
+  `public static Task Delete(Guid id) => throw new InvalidOperationException("An order is cancelled, not deleted.");`
+  and that one is called instead. Retiring an order is `Cancel`, which keeps the row, its history and everything
+  that refers to it.
 
 ### How a form save writes
 
@@ -1653,7 +1656,7 @@ The writes on the type cover a create, an update and a delete. **Everything past
 change several entities make together, a query-then-decide, a bulk statement: load the entities into a context,
 call their methods, save — so the entity's own rules run on every write, and so do the interceptors:
 `CreatedAt`/`UpdatedAt` are stamped and `Version` is bumped where the aggregate names them, a delete of an
-aggregate that implements `ISoftDelete` becomes a `DeletedAt` stamp, and the aggregate's domain events are published after the commit. When a
+aggregate that implements `ISoftDeletable` becomes a `DeletedAt` stamp, and the aggregate's domain events are published after the commit. When a
 check and the writes it guards must be one transaction, wrap them in
 [`Db.Transaction`](#a-check-and-the-writes-it-guards-dbtransaction) instead of opening one by hand.
 
@@ -1821,7 +1824,7 @@ await db.Set<Product>().Where(p => p.Discontinued)
 ```
 
 **A batch soft delete is an update, not `ExecuteDeleteAsync`.** `db.Remove(product)` on an aggregate
-that implements `ISoftDelete` stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
+that implements `ISoftDeletable` stamps `DeletedAt`, but `ExecuteDeleteAsync` is a `DELETE` the interceptors never see — the rows are gone, not
 hidden. Stamp them instead:
 
 ```csharp
@@ -2086,7 +2089,7 @@ Which sentence, in this order:
   exists the constraint's name in the database has to be the one in the model
   (`FK_{Dependent}_{Principal}_{Column}`, or `HasConstraintName("…")`) for the relationship's sentence to be
   found; under any other name the entity's `WhenReferenced` answers.
-- **A soft delete is never refused.** An aggregate that implements `ISoftDelete` keeps its row, so
+- **A soft delete is never refused.** An aggregate that implements `ISoftDeletable` keeps its row, so
   the database is not asked and the rows that reference it stay as they are.
 
 ## Value objects
@@ -2392,7 +2395,7 @@ public sealed class Destination : Aggregate<int>, IPerTenant<int>   // filtered 
 |---|---|---|
 | `CreatedAt` and `UpdatedAt` | neither, or one | name nothing, or `ICreated` / `IUpdated` for the one it has — on the root; a [child](#children) implements it beside `Entity<TId>` |
 | a `Version` concurrency token | none | name nothing — a write then takes no version, and the last writer wins |
-| a delete | a hard one | `IDeletable`; `ISoftDelete` only for a table with a `DeletedAt` column; neither, and there is no `Delete` |
+| a delete | a hard one | nothing — every aggregate has one; `ISoftDeletable` only for a table with a `DeletedAt` column |
 | a table named after the class | a plural, or a name of its own | `b.ToTable("Destinations")` in `Configure` |
 | an integer key the database numbers | a key the application numbers | `b.Property(d => d.Id).ValueGeneratedNever()` in `Configure` — the aggregate then takes its key in [`Create(id, model)`](#writing-create-update-delete) |
 | a `Guid?` tenant column | an `int` one | `IPerTenant<int>`, and declare `public int? TenantId { get; private set; }` to read it — see [numbered tenants](multi-tenancy.md#tenants-that-are-numbered) |
@@ -2464,7 +2467,7 @@ the filter: **[Multi-tenancy](multi-tenancy.md#from-the-request-a-resolver)**.
 
 - **`AuditingInterceptor`** — stamps `CreatedAt`/`UpdatedAt` (UTC, from an injectable `TimeProvider`) and
   increments each `IVersioned` aggregate's `Version` on update, so the stored token changes (SQLite has no rowversion).
-- **`SoftDeleteInterceptor`** — for an aggregate that implements `ISoftDelete`, rewrites a `Deleted`
+- **`SoftDeleteInterceptor`** — for an aggregate that implements `ISoftDeletable`, rewrites a `Deleted`
   entry to `Modified` + sets `DeletedAt`. Your handler just calls `db.Remove(entity)`; to restore, load with
   `IgnoreQueryFilters()` and clear `DeletedAt`. Every other entity's delete removes the row.
 - **`DomainEventInterceptor`**: after the change commits, publishes each entity's `DomainEvents`
@@ -2624,7 +2627,7 @@ constraint keeping `lo < hi`; it assumes well-formed ranges and says nothing abo
 | Option | Effect |
 | --- | --- |
 | `partitionBy` | Scopes the rule: `x => x.RoomId`, or `x => new { x.Sku, x.Region }`. Omit for table-wide. |
-| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that implements `ISoftDelete`, where it defaults to on; a hard-deleted row has already freed its slot, so asking for it on any other entity throws. |
+| `ignoreSoftDeleted` | Lets a soft-deleted row free its slot. Applies only to an aggregate that implements `ISoftDeletable`, where it defaults to on; a hard-deleted row has already freed its slot, so asking for it on any other entity throws. |
 
 Three things worth knowing:
 

@@ -89,7 +89,7 @@ public sealed partial class HeroCode : Component
             // A table, its columns and a generated read face.
             // No DbSet, no configuration class, no registration.
             public sealed class Product
-                : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+                : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 [MaxLength(200)]
                 public string Name { get; private set; } = "";

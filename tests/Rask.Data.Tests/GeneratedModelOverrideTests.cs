@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 // overriding one: a type's own member wins over an extension member of the same signature, so every
 // `Ticket.Create(model)` in the app reaches this code — and the generated write stays reachable
 // through its extension class for an override that only wants to add to it.
-public sealed class Ticket : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Ticket : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Ticket() { }
 

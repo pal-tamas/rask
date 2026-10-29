@@ -129,7 +129,6 @@ public sealed partial class ModelInputGenerator
             new EquatableArray<ValueCollectionShape>(
                 shape.ValueCollections.Select(c => ToValueCollection(c, converted))),
             WritesOf(symbol),
-            DeletableOf(symbol),
             ConfiguresUniqueRule(symbol, cancellationToken))
         {
             CompositeChildren = new EquatableArray<string>(shape.CompositeChildren
@@ -172,12 +171,6 @@ public sealed partial class ModelInputGenerator
             part.Type.WithNullableAnnotation(NullableAnnotation.NotAnnotated).ToDisplayString(TypeFormat),
             write);
     }
-
-    /// <summary>
-    ///     Whether the aggregate gets a generated <c>Delete</c>: it implements <c>IDeletable</c> or <c>ISoftDelete</c>.
-    ///     One that names neither is corrected by a new row or retired by a state change, never removed.
-    /// </summary>
-    private static bool DeletableOf(INamedTypeSymbol symbol) => AggregateShape.IsDeletable(symbol);
 
     /// <summary>
     ///     The writes a form model takes — <c>IFormModel</c>, <c>ICreateFormModel</c>, <c>IUpdateFormModel</c> on the aggregate — as

@@ -4,7 +4,7 @@ using Rask.Cqrs;
 namespace Rask.Testing.Database.Tests;
 
 /// <summary>A company, which refuses to go while it still has contacts — and only the database knows whether it does.</summary>
-public sealed class Company : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Company : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     public const string StillHasContacts = "A company that still has contacts is not removed.";
 
@@ -29,7 +29,7 @@ public sealed class Company : Aggregate<Guid>, ITimestamps, IVersioned, IFormMod
 }
 
 /// <summary>Someone at a company.</summary>
-public sealed class Contact : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Contact : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Contact() { } // EF materialization
 

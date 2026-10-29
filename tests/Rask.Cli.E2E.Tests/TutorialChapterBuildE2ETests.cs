@@ -82,7 +82,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // form model. The aggregate is mapped with no context to edit, so there is nothing else to overlay.
             var slice = Path.Combine(projectDir, "Features", "Products");
             fs.CreateDirectory(slice);
-            Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable"));
+            Write(fs, slice, "Product.cs", Fence("class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel"));
             Write(fs, slice, "CreateProduct.cs", Fence("[Route(\"/products/new\")]"));
             Write(fs, slice, "UpdateProduct.cs", Fence("[Route(\"/products/{id:guid}/edit\")]"));
             Write(fs, slice, "DeleteProduct.cs", Fence("class DeleteProduct : Component"));
@@ -102,7 +102,7 @@ public sealed partial class TutorialChapterBuildE2ETests
             // --- Chapter 3: a second entity on the same database ---
             var orders = Path.Combine(projectDir, "Features", "Orders");
             fs.CreateDirectory(orders);
-            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable", "3"));
+            Write(fs, orders, "Order.cs", Pick(ch3, "class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel", "3"));
 
             await Build(csproj, "chapter 3");
 

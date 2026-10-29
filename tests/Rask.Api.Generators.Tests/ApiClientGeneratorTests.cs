@@ -551,11 +551,10 @@ public sealed class ApiClientGeneratorTests
                 public interface ITimestamps;
                 public interface IVersioned;
                 public interface IFormModel;
-                public interface IDeletable;
             }
             namespace Shop
             {
-                public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable
+                public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

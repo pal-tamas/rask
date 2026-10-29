@@ -41,7 +41,7 @@ public sealed record BerthName(string Value)
 }
 
 /// <summary>An existing table whose unique rule is over a value object's column.</summary>
-public sealed class Berth : Aggregate<int>, IFormModel, IDeletable, IPerTenant
+public sealed class Berth : Aggregate<int>, IFormModel, IPerTenant
 {
     public const string NameTaken = "Ilyen néven már létezik kikötőhely.";
 
@@ -60,7 +60,7 @@ public sealed class Berth : Aggregate<int>, IFormModel, IDeletable, IPerTenant
 }
 
 /// <summary>An aggregate of plain properties: nothing but their types says what must be filled.</summary>
-public sealed class Trailer : Aggregate<int>, IFormModel, IDeletable
+public sealed class Trailer : Aggregate<int>, IFormModel
 {
     private Trailer() { }
 

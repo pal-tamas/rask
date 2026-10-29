@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A root that implements ITimestamps, so it carries both — and its children carry none.</summary>
-public sealed class Roster : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Roster : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private readonly List<RosterSlot> _slots = [];
     private readonly List<RosterBadge> _badges = [];

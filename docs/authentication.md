@@ -176,7 +176,7 @@ serializes a `User`'s public properties can ever carry it. Add the columns your 
 `rask db add AddUserColumns` — the app applies it when it starts.
 
 **It is an [aggregate](data.md) like any other.** `Authenticatable` derives from
-`Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable`, so a `User` has the reads, the writes, a generated
+`Aggregate<Guid>, ITimestamps, IVersioned, IFormModel`, so a `User` has the reads, the writes, a generated
 `UserModel` for a profile form (never with the credentials on it), a `Version` and domain events. It does **not**
 soft-delete: soft delete is [a trait it does not name](data.md#choosing-what-a-table-carries),
 and a deleted account has to free its address for the person to sign up again, so deleting a user removes the row.
@@ -227,7 +227,7 @@ would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and `modelB
 **Each signed-in device is a row.** Signing in starts a `Session` (the user, the address and browser it came from,
 when it was last seen, when it expires, whether it is remembered) and the cookie carries only that session's id,
 sealed. Every request loads the session and rebuilds the user's claims from it, so a role granted or removed shows
-up without signing in again. Signing out ends the row — `Session` implements `ISoftDelete`, so an ended
+up without signing in again. Signing out ends the row — `Session` implements `ISoftDeletable`, so an ended
 session is stamped rather than removed, and the device list can still say "signed out yesterday". A sweep removes
 the rows of sessions that ended or expired more than a day ago, once an hour and when the host starts.
 

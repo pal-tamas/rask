@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant-scoped aggregate: <c>IPerTenant</c> on its base, nothing else configured.</summary>
-public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private Ledger() { }
 
@@ -13,7 +13,7 @@ public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormMode
 }
 
 /// <summary>A table whose tenants are numbered: the declared property's type is the column's.</summary>
-public sealed class Depot : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+public sealed class Depot : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IPerTenant
 {
     private Depot() { }
 
@@ -28,7 +28,7 @@ public sealed class Depot : Aggregate<int>, ITimestamps, IVersioned, IFormModel,
 /// The shape the accounts table has: a NULLABLE tenant inside a unique index. This is the one the providers
 /// disagree about, so it is modelled here rather than only reasoned about.
 /// </summary>
-public sealed class Member : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Member : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private Member() { }
 

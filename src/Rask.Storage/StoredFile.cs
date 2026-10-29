@@ -5,7 +5,7 @@ namespace Rask.Storage;
 /// <summary>One stored file: what it is, where its bytes are, and whether it is public.</summary>
 /// <remarks>
 /// A class rather than a record: a record class can only derive from another record, and <c>Id</c>/<c>CreatedAt</c>
-/// come from the base. No <see cref="ISoftDelete"/> and no <see cref="IVersioned"/>: the orphan sweep removes
+/// come from the base. No <see cref="ISoftDeletable"/> and no <see cref="IVersioned"/>: the orphan sweep removes
 /// rows for real, and nothing edits one twice.
 /// </remarks>
 public sealed class StoredFile : Aggregate<Guid>, ITimestamps

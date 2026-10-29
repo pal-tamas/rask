@@ -15,7 +15,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Orders;
 
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     [Range(0, 1_000_000)]
     public decimal Total { get; private set; }

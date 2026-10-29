@@ -209,12 +209,11 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
     }
 
-    // An aggregate that implements neither IDeletable nor ISoftDelete is cancelled or archived through its own methods, so a
-    // delete it cannot be asked for is one nobody can call by mistake.
+    // Every aggregate has one: it removes the row, or stamps DeletedAt under ISoftDeletable. A method of the aggregate's own
+    // named Delete wins over this extension, so an aggregate that deletes differently says so there.
     private static void AppendDelete(StringBuilder s, Entity entity, string idType)
     {
         var entityType = entity.FullyQualifiedName;
-        var deleteMark = s.Length;
         s.Append("        /// <summary>Deletes the stored <see cref=\"").Append(entityType)
             .AppendLine("\" /> with <paramref name=\"id\" />, through the interceptors.</summary>");
         s.AppendLine("        /// <param name=\"id\">The id of the row to delete.</param>");
@@ -236,7 +235,6 @@ public sealed partial class ModelInputGenerator
         s.Append("            ").Append(WritesFqn).Append(".Delete<").Append(entityType).Append(">(id!, ")
             .Append(entity.Versioned ? "version" : "null").AppendLine(", db, cancellationToken);");
         s.AppendLine();
-        Keep(s, entity.Deletable, deleteMark);
     }
 
     // The aggregate itself, to call its methods and `Save()`: detached, its snapshot remembered, so no `db:` — a
@@ -278,11 +276,9 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
     }
 
-    // `file.Delete()`: the aggregate the caller holds, deleted from what Find read — no read first. Only where the
-    // static Delete(id) is, so an aggregate retired through its own methods has neither.
+    // `file.Delete()`: the aggregate the caller holds, deleted from what Find read — no read first.
     private static void AppendInstanceDelete(StringBuilder s, Entity entity)
     {
-        var deleteMark = s.Length;
         s.AppendLine();
         s.AppendLine("        /// <summary>Deletes this aggregate from what was read, with no read first: stamped when it soft-deletes, otherwise its row and its children removed.</summary>");
         s.AppendLine(DbDoc);
@@ -293,7 +289,6 @@ public sealed partial class ModelInputGenerator
             .AppendLine(" cancellationToken = default) =>");
         s.Append("            ").Append(WritesFqn).Append(".Delete<").Append(entity.FullyQualifiedName)
             .AppendLine(">(entity, db, cancellationToken);");
-        Keep(s, entity.Deletable, deleteMark);
     }
 
     private static string JoinWrites(List<string> writes) =>

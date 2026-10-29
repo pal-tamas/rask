@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 // An aggregate that names every column trait: the framework's columns come from the bases.
-public sealed class Memo : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Memo : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Memo() { } // EF materialization
 
@@ -29,7 +29,7 @@ public sealed class FrameworkColumnTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         // The default is HARD: no column, no query filter, and Delete removes the row. An aggregate
-        // that wants the row kept says so — see Memo, which implements ISoftDelete.
+        // that wants the row kept says so — see Memo, which implements ISoftDeletable.
         var receipt = database.Context.Model.FindEntityType(typeof(Receipt))!;
         Assert.Null(receipt.FindProperty(Columns.DeletedAt));
         Assert.Empty(receipt.GetDeclaredQueryFilters());
@@ -140,7 +140,7 @@ public sealed class AppendOnlyLedger : Entity<long>, ICreated
 }
 
 /// <summary>An aggregate that names what a CRUD table carries: timestamps, a version, a model, a delete.</summary>
-public sealed class Receipt : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Receipt : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     /// <summary>What the receipt says.</summary>
     public string Text { get; private set; } = "";

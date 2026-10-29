@@ -13,7 +13,7 @@ namespace Rask.Batteries.Generators.Analyzers;
 ///     <para>
 ///         A child entity — <c>OrderLine : Entity&lt;Guid&gt;</c> — may keep its own timestamps (<c>ICreated</c>,
 ///         <c>IUpdated</c>, <c>ITimestamps</c>). Everything else is the aggregate's: a form model, a delete, the
-///         tenant, a broadcast. <c>IVersioned</c> and <c>ISoftDelete</c> need no rule here — a child has no
+///         tenant, a broadcast. <c>IVersioned</c> and <c>ISoftDeletable</c> need no rule here — a child has no
 ///         <c>Version</c> or <c>DeletedAt</c> to implement them with, so the compiler refuses them first.
 ///     </para>
 ///     <para>

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>An aggregate with no Version that soft-deletes, holding a payload that may be large.</summary>
-public sealed class Satchel : Aggregate<Guid>, IFormModel, ISoftDelete
+public sealed class Satchel : Aggregate<Guid>, IFormModel, ISoftDeletable
 {
     private Satchel() { } // EF materialization
 

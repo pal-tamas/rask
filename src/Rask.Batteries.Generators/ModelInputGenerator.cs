@@ -15,7 +15,7 @@ namespace Rask.Batteries.Generators;
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
 /// the writes that take it: <c>Product.Create(id, model)</c> where the key is the caller's to give,
 /// <c>Product.Create(model)</c> where one can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
-/// and <c>Product.Delete(id, version)</c> — when the aggregate implements <c>IDeletable</c> or <c>ISoftDelete</c>. Every write takes an optional <c>apply</c> (values that do not come
+/// and <c>Product.Delete(id, version)</c> — a stamp instead of a removal when the aggregate implements <c>ISoftDeletable</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
 /// <remarks>
@@ -219,7 +219,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> UnsyncableChildren,
         EquatableArray<ValueCollectionShape> ValueCollections,
         int Writes,
-        bool Deletable,
         bool DeclaresUniqueRules = false,
         bool AnnouncesFieldRules = true,
         bool RequiredFromCatalog = false,

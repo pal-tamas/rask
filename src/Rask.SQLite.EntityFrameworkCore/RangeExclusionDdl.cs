@@ -182,7 +182,7 @@ internal static class RangeExclusionDdl
             return null;
         }
 
-        // Only an entity that implements ISoftDelete has the column. The builder refuses the flag
+        // Only an entity that implements ISoftDeletable has the column. The builder refuses the flag
         // otherwise, but an annotation written by an older build (or by hand in a migration) can still carry it,
         // so say what is wrong rather than fail on an unmapped column (#1131).
         if (entityType.FindProperty(Columns.DeletedAt) is null)
@@ -190,7 +190,7 @@ internal static class RangeExclusionDdl
             throw new InvalidOperationException(
                 $"'{entityType.DisplayName()}' declares a non-overlapping range that ignores soft-deleted rows, " +
                 "but it does not soft delete, so it has no DeletedAt column. Implement " +
-                "ISoftDelete on the aggregate (Aggregate<Guid>, ISoftDelete), or re-create the migration so the rule " +
+                "ISoftDeletable on the aggregate (Aggregate<Guid>, ISoftDeletable), or re-create the migration so the rule " +
                 "no longer asks for it.");
         }
 

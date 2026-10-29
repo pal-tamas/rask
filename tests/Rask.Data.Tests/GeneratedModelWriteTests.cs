@@ -177,21 +177,24 @@ public sealed class GeneratedModelWriteTests : IDisposable
     }
 
     [Fact]
-    public async Task Delete_of_an_aggregate_that_is_not_deletable_is_refused_before_anything_is_opened()
+    public async Task Delete_of_an_aggregate_that_is_not_soft_deletable_removes_its_row()
     {
-        // The generated JournalLine.Delete does not exist; this is the direct call into the write half.
-        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            GeneratedModelWrites.Delete<JournalLine>(Guid.NewGuid(), version: null, cancellationToken: TestContext.Current.CancellationToken));
+        await using var database = await StartDatabaseAsync();
+        var line = await GeneratedModelWrites.Create(ScratchNote.Create(), cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Contains("implements neither IDeletable nor ISoftDelete", refused.Message, StringComparison.Ordinal);
+        await GeneratedModelWrites.Delete<ScratchNote>(line.Id, version: 0, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(0, await ScratchNote.IgnoreQueryFilters().Count(TestContext.Current.CancellationToken));
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
         TestDatabase.Start(o => o.UseSqlite($"Data Source={_dbPath}"), _clock);
 }
 
-// An append-only record: corrected by a reversing entry, never removed.
-public sealed class JournalLine : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
+// No delete trait: every aggregate is deletable, and without ISoftDeletable a delete removes the row.
+public sealed class ScratchNote : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     public decimal Amount { get; private set; }
+
+    public static ScratchNote Create() => new() { Id = Guid.CreateVersion7() };
 }

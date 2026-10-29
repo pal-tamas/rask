@@ -15,13 +15,14 @@ namespace Rask.Data;
 /// <para>
 /// A table carries only the traits the aggregate implements, in any order: <see cref="ITimestamps" /> (or
 /// <see cref="ICreated" /> / <see cref="IUpdated" />), <see cref="IVersioned" />, <see cref="IFormModel" />,
-/// <see cref="IDeletable" /> or <see cref="ISoftDelete" />, <see cref="IPerTenant" />, <see cref="IBroadcast" />.
-/// The generator reads them at compile time; the members they expose are this base's. Every aggregate has a
+/// <see cref="ISoftDeletable" />, <see cref="IPerTenant" />, <see cref="IBroadcast" />.
+/// The generator reads them at compile time; the members they expose are this base's. Every aggregate gets a
+/// generated <c>X.Delete(id)</c> — removing the row, or stamping it under <see cref="ISoftDeletable" /> — and a
 /// domain-events buffer that the <see cref="DomainEventInterceptor"/> publishes after the change commits.
 /// </para>
 /// <example>
 /// <code>
-/// public sealed class Product : Aggregate&lt;Guid&gt;, ITimestamps, IVersioned, IFormModel, IDeletable
+/// public sealed class Product : Aggregate&lt;Guid&gt;, ITimestamps, IVersioned, IFormModel
 /// {
 ///     private Product() { }
 ///
@@ -57,7 +58,7 @@ public abstract class Aggregate<TId> : Entity<TId>, IAggregate, IHasDomainEvents
     /// <summary>
     /// When the aggregate was deleted, in UTC, or <c>null</c>. A delete stamps this instead of removing the row,
     /// and a global query filter hides it from every read; <c>IgnoreQueryFilters()</c> lists it again. A column only
-    /// on an aggregate that implements <see cref="ISoftDelete" />.
+    /// on an aggregate that implements <see cref="ISoftDeletable" />.
     /// </summary>
 #pragma warning disable S1144 // EF materializes the column through the setter; SoftDeleteInterceptor stamps it
     public DateTime? DeletedAt { get; private set; }

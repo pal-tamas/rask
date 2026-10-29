@@ -34,7 +34,7 @@ public sealed record Packaging
 
 // An entity, and nothing else: no DbContext, no DbSet property, no IEntityTypeConfiguration class, no
 // registration, no interface to implement. The generator finds it and RaskDbContext maps it.
-public sealed class Gadget : Aggregate<GadgetId>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Gadget : Aggregate<GadgetId>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Gadget() { } // EF materialization
 
@@ -65,7 +65,7 @@ public sealed class Gadget : Aggregate<GadgetId>, ITimestamps, IVersioned, IForm
 }
 
 // A second entity with no configuration and no value objects, to pin that both are optional.
-public sealed class Doodad : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Doodad : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Doodad() { }
 

@@ -53,7 +53,7 @@ public sealed class HarborAddress : ValueObject
 }
 
 /// <summary>An aggregate holding one value object that must be there and one that may be absent.</summary>
-public sealed class Harbor : Aggregate<int>, IFormModel, IDeletable
+public sealed class Harbor : Aggregate<int>, IFormModel
 {
     private Harbor() { }
 

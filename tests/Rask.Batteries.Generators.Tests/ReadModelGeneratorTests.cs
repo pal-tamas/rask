@@ -19,13 +19,13 @@ public class ReadModelGeneratorTests
         using Rask.Data;
         namespace Shop;
 
-        public sealed class Customer : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Customer : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private Customer() { }
             public string Country { get; private set; } = "";
         }
 
-        public sealed class User : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class User : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private User() { }
             public string Name { get; private set; } = "";
@@ -33,7 +33,7 @@ public class ReadModelGeneratorTests
 
         public sealed record Money(decimal Amount, string Currency);
 
-        public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private readonly List<OrderLine> _lines = [];
             private Order() { }
@@ -242,11 +242,11 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Customer : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Customer : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Customer() { }
             }
-            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Order() { }
                 public int CustomerId { get; private set; }
@@ -279,7 +279,7 @@ public class ReadModelGeneratorTests
             private Fueling() { }
             public decimal Quantity { get; private set; }
         }
-        public sealed class Distribution : Aggregate<string>, IDeletable
+        public sealed class Distribution : Aggregate<string>
         {
             private Distribution() { }
             public string FromFuelingId { get; private set; } = "";
@@ -430,7 +430,7 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Category : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Category : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Category() { }
                 public Guid? ParentId { get; private set; }
@@ -452,7 +452,7 @@ public class ReadModelGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Supply : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Supply : Aggregate<int>, ITimestamps, IVersioned, IFormModel
             {
                 private Supply() { }
                 public int? SumSupplyId { get; private set; }
@@ -473,20 +473,20 @@ public class ReadModelGeneratorTests
         using Rask.Data;
         namespace Shop;
 
-        public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+        public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
         {
             private Invoice() { }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Receipt : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
+        public sealed class Receipt : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IPerTenant
         {
             private Receipt() { }
             public Guid? TenantId { get; private set; }
             public string Number { get; private set; } = "";
         }
 
-        public sealed class Delivery : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Delivery : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private Delivery() { }
             public Guid? TenantId { get; set; }
@@ -608,7 +608,7 @@ public class ReadModelGeneratorTests
     [InlineData("IUpdated", "CreatedAt")]
     [InlineData("ITimestamps", "Version")]
     [InlineData("ITimestamps, IVersioned", "DeletedAt")]
-    [InlineData("ITimestamps, IVersioned, IDeletable", "DeletedAt")]
+    [InlineData("ITimestamps, IVersioned, IFormModel", "DeletedAt")]
     public void A_column_no_trait_asks_for_is_not_on_the_read_face(string traits, string column)
     {
         var run = Run($$"""
@@ -633,7 +633,7 @@ public class ReadModelGeneratorTests
     [InlineData("ITimestamps", "UpdatedAt")]
     [InlineData("IVersioned", "Version")]
     [InlineData("ICreated", "CreatedAt")]
-    [InlineData("ISoftDelete", "DeletedAt")]
+    [InlineData("ISoftDeletable", "DeletedAt")]
     public void A_column_a_trait_asks_for_stays_on_the_read_face(string traits, string column)
     {
         var run = Run($$"""

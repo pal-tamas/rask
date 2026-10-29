@@ -23,7 +23,7 @@ public class ConstructorBuiltHolderTests
 
     private const string Parcel = """
 
-        public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+        public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
         {
             private Parcel() { }
             public Route Route { get; private set; } = null!;
@@ -94,7 +94,7 @@ public class ConstructorBuiltHolderTests
                 public Route Route { get; private set; } = null!;
                 public string Deck { get; private set; } = "";
             }
-            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private readonly List<Stop> _stops = [];
                 private Parcel() { }
@@ -118,13 +118,13 @@ public class ConstructorBuiltHolderTests
     {
         var diagnostics = Rask103("""
             public sealed record Route(Label Label, string Carrier);
-            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Parcel() { }
                 public Route Route { get; private set; } = null!;
                 public Route Return { get; private set; } = null!;
             }
-            public sealed class Pallet : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Pallet : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private Pallet() { }
                 public Route Route { get; private set; } = null!;
@@ -139,7 +139,7 @@ public class ConstructorBuiltHolderTests
     {
         var diagnostics = Rask103("""
             public sealed record Route(Label Label, string Carrier);
-            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+            public sealed class Parcel : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
             {
                 private readonly List<Route> _routes = [];
                 private Parcel() { }

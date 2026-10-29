@@ -1927,7 +1927,7 @@ holds the aggregate's own defaults. That needs a constructor that takes nothing,
 no constructor has one for free. Declaring one that takes arguments removes it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid>, IFormModel, IDeletable
+public sealed class Product : Aggregate<Guid>, IFormModel
 {
     public Product(string name) => Name = name;   // ⚠ RASK086: the only constructor takes a name
 
@@ -1938,7 +1938,7 @@ public sealed class Product : Aggregate<Guid>, IFormModel, IDeletable
 **Fix:** declare no constructor, and put domain creation in a static factory:
 
 ```csharp
-public sealed class Product : Aggregate<Guid>, IFormModel, IDeletable
+public sealed class Product : Aggregate<Guid>, IFormModel
 {
     public string Name { get; private set; } = "";
 
@@ -2308,7 +2308,7 @@ public sealed class Money                       // ✗ RASK105: compares by refe
     public string Currency { get; private set; } = "";
 }
 
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     public Money Total { get; private set; } = null!;
 }
@@ -2409,7 +2409,7 @@ a form, the generated `X.Create(model)`. A child is made by its own type or by t
 what a `private` parameterless constructor used to say, so that constructor need not be written.
 
 ```csharp
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     public string Reference { get; private set; } = "";
 
@@ -3253,10 +3253,10 @@ The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'U
 
 A child entity — `OrderLine : Entity<Guid>`, held by its aggregate — may keep its own timestamps: `ICreated`,
 `IUpdated` or `ITimestamps`. Every other trait belongs to the aggregate root: `IFormModel` (or `ICreateFormModel` /
-`IUpdateFormModel`), `IDeletable`, `IPerTenant`, `IBroadcast`. The child is created, deleted, partitioned and
+`IUpdateFormModel`), `IPerTenant`, `IBroadcast`. The child is created, deleted, partitioned and
 announced together with its root, so the trait on the child would say something nothing honours.
 
-`IVersioned` and `ISoftDelete` never reach this rule: a child has no `Version` or `DeletedAt` to implement them
+`IVersioned` and `ISoftDeletable` never reach this rule: a child has no `Version` or `DeletedAt` to implement them
 with, so the compiler refuses them first (CS0535).
 
 ```csharp

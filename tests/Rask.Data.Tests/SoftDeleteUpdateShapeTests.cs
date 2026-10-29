@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // Aggregates, so the conventions give them DeletedAt, the timestamps and Version. Namespace-level rather than nested:
 // the generated model registry maps every aggregate in the assembly, and cannot name a private nested one.
-public sealed class ShapeCard : Aggregate<string>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class ShapeCard : Aggregate<string>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private ShapeCard() { }
 
@@ -17,7 +17,7 @@ public sealed class ShapeCard : Aggregate<string>, ITimestamps, IVersioned, IFor
     public void Retitle(string title) => Title = title;
 }
 
-public sealed class ShapeTicket : Aggregate<string>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class ShapeTicket : Aggregate<string>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private ShapeTicket() { }
 

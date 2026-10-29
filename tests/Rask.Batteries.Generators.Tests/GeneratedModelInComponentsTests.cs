@@ -39,7 +39,7 @@ public class GeneratedModelInComponentsTests
 
             namespace Shop.Catalog
             {
-                public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+                public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

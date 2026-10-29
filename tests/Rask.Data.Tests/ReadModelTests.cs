@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 // A supplier an order points at by id — never by navigation, which is the whole border.
-public sealed class Supplier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Supplier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Supplier() { } // EF materialization
 
@@ -14,7 +14,7 @@ public sealed class Supplier : Aggregate<Guid>, ITimestamps, IVersioned, IFormMo
 }
 
 // The courier, to prove a SUFFIX match: PickedUpByCourierId -> Courier.
-public sealed class Courier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Courier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Courier() { } // EF materialization
 
@@ -25,7 +25,7 @@ public sealed class Courier : Aggregate<Guid>, ITimestamps, IVersioned, IFormMod
 
 public sealed record Freight(decimal Amount, string Currency);
 
-public sealed class Consignment : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Consignment : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private readonly List<ConsignmentLine> _lines = [];
 

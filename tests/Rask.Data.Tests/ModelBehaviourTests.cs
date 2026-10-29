@@ -4,7 +4,7 @@ namespace Rask.Data.Tests;
 
 // Behaviour on the model, of the kind an application actually writes: a guard, a state change, an event
 // — and one method that has to ask the database something before it can decide.
-public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Order() { } // EF materialization
 
@@ -68,7 +68,7 @@ public enum OrderStatus
     Cancelled,
 }
 
-public sealed class Shipment : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
+public sealed class Shipment : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDeletable
 {
     private Shipment() { }
 

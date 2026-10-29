@@ -5,7 +5,7 @@ namespace Rask.Data.Tests;
 // The RASK085 shape: the entity keeps its lines in a private readonly field, hands out a read-only view,
 // and is the only thing that can add one. Nothing below configures anything — no HasMany, no HasField, no
 // UsePropertyAccessMode, and no key configuration either — which is the claim under test.
-public sealed class Cart : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Cart : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     private readonly List<CartLine> _lines = [];
 

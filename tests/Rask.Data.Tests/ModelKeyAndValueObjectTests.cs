@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 
 // Rask.Data's key convention leaves an integer key to the store's identity and marks every other key never
 // generated, so the entity's own factory is what assigns it. Saved the way every write is — through a context.
-public sealed class Coupon : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Coupon : Aggregate<int>, ITimestamps, IVersioned, IFormModel
 {
     private Coupon() { }
 
@@ -16,7 +16,7 @@ public sealed class Coupon : Aggregate<int>, ITimestamps, IVersioned, IFormModel
 }
 
 // An integer key the application assigns — a table numbered by something other than the store's identity.
-public sealed class Chit : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Chit : Aggregate<int>, ITimestamps, IVersioned, IFormModel
 {
     private Chit() { }
 
@@ -31,7 +31,7 @@ public readonly record struct ParcelId(Guid Value);
 
 public readonly record struct LockerCode(string Value);
 
-public sealed class Locker : Aggregate<LockerCode>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Locker : Aggregate<LockerCode>, ITimestamps, IVersioned, IFormModel
 {
     private Locker() { }
 
@@ -44,7 +44,7 @@ public sealed class Locker : Aggregate<LockerCode>, ITimestamps, IVersioned, IFo
 
 // Value objects the way RASK084 wants them — no public setters — so EF Core has to materialise them through
 // private members; only a round trip shows it can.
-public sealed class Parcel : Aggregate<ParcelId>, ITimestamps, IVersioned, IFormModel, IDeletable
+public sealed class Parcel : Aggregate<ParcelId>, ITimestamps, IVersioned, IFormModel
 {
     private Parcel() { }
 
