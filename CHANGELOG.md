@@ -210,6 +210,12 @@ them until tagged releases begin.
   chain; `FirstOrDefault` on a projection) keep the old null-returning behaviour — `SingleOrDefault` throws for more
   than one row. Migrate: every `First(…)`/`Single(…)` whose caller checks for `null` (`is null`, `?.`, `??`,
   `Assert.Null`) becomes `FirstOrDefault(…)`/`SingleOrDefault(…)`. `Find(id)` is unchanged and still returns `null`.
+- **Every routed page in the docs ends in `Page`; a verb names a command.** The CRUD slice the tutorial, cheatsheet
+  and recipes write was `ProductsPage` beside `CreateProduct`/`UpdateProduct`, which read like the commands
+  (`new EditProduct { … }`) they sit next to. Now it is `ProductsPage`, `NewProductPage` (`/products/new`) and
+  `EditProductPage` (`/products/{id}/edit`), and the per-row button is `DeleteProductButton`; chapter 3's orders
+  follow (`NewOrderPage`, `EditOrderPage`, `DeleteOrderButton`). A link is `Routes.EditProductPage(Id: id)`. Nothing
+  in a package changed — an app that copied the old names keeps compiling; rename to match when convenient.
 - **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
   `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
   `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update

@@ -136,7 +136,7 @@ Two gates, use both: `[Authorize]` at the route (redirects anonymous deep-links 
 
 ```csharp
 [Authorize]                                    // route-level; from Microsoft.AspNetCore.Authorization
-public sealed partial class CreateProduct : Component { … }
+public sealed partial class NewProductPage : Component { … }
 
 Authorize[ NewProductButton() ]              // rendered only for signed-in users
 Authorize.Role("admin")[ DeleteProductButton(product.Id) ]

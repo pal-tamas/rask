@@ -82,12 +82,12 @@ long-lived, and a scoped context would outlive any unit of work.
 
 ## 3. Enqueue from your code
 
-Open chapter 3's `CreateOrder` page in `Features/Orders/CreateOrder.cs` and enqueue right after the order is
+Open chapter 3's `NewOrderPage` in `Features/Orders/NewOrderPage.cs` and enqueue right after the order is
 saved. Nothing is injected: `Jobs` reaches the queue of the work it runs in, and is cancelled with it.
 `SendOrderReceipt` lives in `Features/Shared/`, so the page also needs `using Shop.Features.Shared;`:
 
 ```csharp
-public sealed partial class CreateOrder : Component
+public sealed partial class NewOrderPage : Component
 {
     // … the fields and Render() are unchanged …
 
