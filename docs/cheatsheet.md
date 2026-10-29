@@ -143,6 +143,9 @@ b.HasMany<Note>().WithOne().HasForeignKey(n => n.TrailerId)
  .OnDelete(DeleteBehavior.Restrict, "Still on a note.");   // so does deleting a row that relationship references
 b.WhenReferenced("Still in use.");                    // …and one any other table references (unmapped ones too)
 
+// Which validation: one field → attribute on the aggregate; the store → IsUnique/OnDelete/WhenReferenced;
+// several fields → Form .Validate(…); needs a service → IRequestValidator<T> (docs/validation.md#which-one-do-i-write)
+
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
 var one = await Product.Where(p => p.Id == id).First();   // no token: cancelled with the handler or render it runs in
 var agg = await Product.Find(id);   // Product? — whole, untracked
