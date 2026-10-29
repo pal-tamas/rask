@@ -48,6 +48,12 @@ internal sealed class UiDatePickerScope
     /// </summary>
     internal required Func<int, bool, int, Task> Untyped { get; init; }
 
+    /// <summary>
+    ///     What a typed field announced, heard by the picker against the fields as it last drew them: the one
+    ///     handler a typed field registers, the same in every render (the scope itself is new in each).
+    /// </summary>
+    internal required Func<int, string, Task> Heard { get; init; }
+
     /// <summary>What a typed field's parts carry while a message shows: the mark that hears the first key of a correction.</summary>
     internal (string Name, string? Value)[] FirstEdit { get; init; } = [];
 

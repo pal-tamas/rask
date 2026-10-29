@@ -129,17 +129,18 @@ public sealed partial class UiPagination : Component
     }
 
     private Component Previous() =>
-        Step("previous", RaskStrings.Get(RaskString.PaginationPrevious, "« Previous"), Paginator.OnFirstPage ? null : Paginator.Current - 1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
+        Step("previous", RaskStrings.Get(RaskString.PaginationPrevious, "« Previous"), -1, Ui.IconName.ChevronLeft, Ui.IconName.ChevronRight);
 
     private Component Next() =>
-        Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next »"), Paginator.OnLastPage ? null : Paginator.Current + 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
+        Step("next", RaskStrings.Get(RaskString.PaginationNext, "Next »"), 1, Ui.IconName.ChevronRight, Ui.IconName.ChevronLeft);
 
     // A step with nowhere to go is not a control: it keeps its place. A counted pager names its steps and
     // says aria-disabled on a spent one; the simple one says neither. The label is Laravel's translation as
     // a reader hears it — "« Previous", the character and not the name of its entity — encoded once.
     // The arrow turns round where the page reads right to left.
-    private Component Step(string key, string name, int? page, Ui.IconName arrow, Ui.IconName mirrored)
+    private Component Step(string key, string name, int step, Ui.IconName arrow, Ui.IconName mirrored)
     {
+        var page = Spent(step) ? (int?)null : Paginator.Current + step;
         Component[] arrows =
         [
             Ui.Icon.Name(arrow).Micro.Class("rtl:hidden"),
@@ -155,9 +156,16 @@ public sealed partial class UiPagination : Component
             null when counted => Div.Key(key).Class(ArrowOff).Aria(("disabled", "true"), ("label", label))[arrows],
             null => Div.Key(key).Class(ArrowOff)[arrows],
             { } to when Href is { } href => Link(key, href.Invoke(to), look, label, arrows),
-            { } to => Button.Key(key).Type(ButtonType.Button).Class(look).AriaLabel(label).OnClick(() => OnPage.Invoke(to))[arrows],
+            _ => Button.Key(key).Type(ButtonType.Button).Class(look).AriaLabel(label).OnClick(() => SteppedAsync(step))[arrows],
         };
     }
+
+    // A step press goes on from the page as it is when it is heard, and closes over the direction alone: a
+    // handler over the page one render drew is a new one every render, so of two quick presses of Next the
+    // second, sent from the page before the first was answered, ran nothing (Component.StaleEvents).
+    private ValueTask SteppedAsync(int step) => Spent(step) ? ValueTask.CompletedTask : OnPage.Invoke(Paginator.Current + step);
+
+    private bool Spent(int step) => step < 0 ? Paginator.OnFirstPage : Paginator.OnLastPage;
 
     // A generated route navigates inside the app, under its path base; a string is an ordinary link, written
     // exactly as given (#1070) — the rule the kit's other links follow. Neither lights up on its own: a

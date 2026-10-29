@@ -52,6 +52,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     // The typed fields the reader emptied, a bit a slot: a range is nothing chosen once both are.
     private int _emptied;
 
+    // What the last render resolved. The picker's handlers read it when they run and close over none of it: a
+    // pick or a typed date sent from an older page reaches the handler that is the same as the one it was sent
+    // to, and a handler made of one render's choice is a different one every render — so the last of a few
+    // quick picks ran nothing.
+    private Drawn? _drawn;
+
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }
 
@@ -238,14 +244,16 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Invalid = field.Invalid,
             Aria = field.Aria,
             Clearable = Clearable == true,
-            Clear = () => ClearAsync(acc, ctx),
+            Clear = ClearAsync,
             Dates = Dates(committed),
             Typed = (slot, date) => Commit(Typed(committed, slot, date)),
+            Heard = HeardAsync,
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
             FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
             Waits = UiDraws.Waits(this, Bind is not null),
         };
 
+        _drawn = new Drawn(Commit, scope, acc, ctx);
         var picks = Picks(committed);
         var config = UiCalendarHook.Config(options, picks.Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder));
 
@@ -255,7 +263,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Div.Class(UiPickerWidth.For(Class), Class)
                 .Data(Hooked(config))
                 .Attributes(("style", "anchor-name:--" + PopoverId))[
-                Field(committed, Commit),
+                Field(committed),
                 Context.Provide(scope)[Trigger ?? OwnTrigger()],
                 Popup(Calendar(scope.CalendarId, options, picks, committed))
             ]);
@@ -270,7 +278,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     // The one field the page hears the choice through, first in the picker: on change, or as it is chosen for a
     // bound picker that says `.Live()`; bound and waiting, it goes ahead of the reader's next action. A picker
     // that keeps its own choice hears nothing.
-    private HTMLInputElement<string> Field(T? committed, Func<T, Task> commit)
+    private HTMLInputElement<string> Field(T? committed)
     {
         var field = Input.Value(Written(committed)).Type(InputType.Hidden);
         if (Bind is null && !OnChange.HasValue)
@@ -278,14 +286,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             return field;
         }
 
-        Task Changed(string text) => TryRead(text, out var value) ? commit(value) : Task.CompletedTask;
-
         if (Bind is not null && Live == true)
         {
-            return field.OnInput(Changed);
+            return field.OnInput(ChangedAsync);
         }
 
-        field = field.OnChange(Changed);
+        field = field.OnChange(ChangedAsync);
         return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
     }
 
@@ -304,12 +310,19 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         return EmptyAsync(accessor, context);
     }
 
+    private Drawn Latest => _drawn ?? throw new InvalidOperationException("The date picker has not been drawn.");
+
+    private Task ChangedAsync(string text) => TryRead(text, out var value) ? Latest.Commit(value) : Task.CompletedTask;
+
+    // A typed field's date, read against the fields as last drawn.
+    private Task HeardAsync(int slot, string text) => UiDatePickerInput.Hear(Latest.Scope, slot, text);
+
     // The clear button's: every typed field counts as emptied, and a choice still waiting to be confirmed goes
     // with the one that was written.
-    private Task ClearAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
+    private Task ClearAsync()
     {
         _emptied = ~0;
-        return EmptyAsync(accessor, context);
+        return EmptyAsync(Latest.Accessor, Latest.Context);
     }
 
     // Nothing chosen, however the reader said so — the clear button, or every part of every field erased: null
@@ -409,4 +422,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             FixedWeeks = FixedWeeks == true,
         };
     }
+
+    private sealed record Drawn(Func<T, Task> Commit, UiDatePickerScope Scope, ExpressionAccessor.Accessor? Accessor, EditContext? Context);
 }
