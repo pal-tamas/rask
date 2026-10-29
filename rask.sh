@@ -207,6 +207,36 @@ rask_node_triple() {
     printf '%s-%s' "$_nt_o" "$_nt_a"
 }
 
+# $1: an os-release file (default /etc/os-release). Prints the command that installs what the
+# nodejs.org Linux build links against and a minimal image leaves out — libatomic since Node 26
+# (26.13.0, the line's first LTS, answered `libatomic.so.1: cannot open shared object file` on a bare
+# debian:trixie-slim). Arch
+# ships it inside gcc-libs, so it never reaches this. Alpine is a different gap: nodejs.org publishes
+# no musl build at all, so the fix there is the distro's own Node. An unknown distro gets every line.
+#
+# Printed, never run: the contract at the top of this file is no sudo and no package manager, and the
+# ICU message in step_dotnet already makes the same call for the .NET runtime's native dependency.
+rask_node_native_fix() {
+    _nf_file="${1:-/etc/os-release}"
+    _nf_ids=""
+    if [ -r "$_nf_file" ]; then
+        _nf_ids="$(sed -n 's/^ID\(_LIKE\)\{0,1\}=//p' "$_nf_file" | tr -d '"' | tr '\n' ' ')"
+    fi
+    case " $_nf_ids " in
+        *" alpine "*) printf '%s\n' "sudo apk add nodejs npm   (nodejs.org publishes no musl build)" ;;
+        *" debian "* | *" ubuntu "*) printf '%s\n' "sudo apt-get install -y libatomic1" ;;
+        *" fedora "* | *" rhel "* | *" centos "*) printf '%s\n' "sudo dnf install -y libatomic" ;;
+        *" suse "* | *" opensuse "*) printf '%s\n' "sudo zypper install -y libatomic1" ;;
+        *)
+            printf '%s\n' \
+                "Debian/Ubuntu:  sudo apt-get install -y libatomic1" \
+                "Fedora/RHEL:    sudo dnf install -y libatomic" \
+                "openSUSE:       sudo zypper install -y libatomic1" \
+                "Alpine:         sudo apk add nodejs npm"
+            ;;
+    esac
+}
+
 # stdin: https://nodejs.org/dist/index.json. Prints the newest LTS version, no leading `v`.
 #
 # `tr '{' '\n'` puts one release object per line — the entries have no nested objects, only a
@@ -772,6 +802,23 @@ step_node() {
 
     rm -rf "$_nd_tmp"
     trap - EXIT INT TERM
+
+    [ "$RASK_DRY_RUN" = 1 ] && return 0
+
+    # The tarball is self-contained except for the system libraries it links, and a minimal image lacks
+    # one of them: Node 26 needs libatomic, which debian:*-slim, ubuntu and fedora containers leave out.
+    # Unpacked, it then fails at its first run with a loader error that names a .so and no package. Ask
+    # it now, while the install is still on screen. A warning, not a failure — only islands need Node —
+    # and the unpacked tree stays where it is, so installing the package is the whole fix: no re-run.
+    if ! _nd_err="$("$RASK_INSTALL_PREFIX/node/bin/node" --version 2>&1)"; then
+        rask_warn \
+            "Node $_nd_version unpacked into $RASK_INSTALL_PREFIX/node, but it cannot start:" \
+            "  $(printf '%s\n' "$_nd_err" | head -n 1)" \
+            "Most often a system library a minimal image leaves out. Install it, and node works as is:"
+        rask_node_native_fix | while IFS= read -r _nd_line; do
+            printf '           %s\n' "$_nd_line" >&2
+        done
+    fi
 }
 
 step_docker() {
