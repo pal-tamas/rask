@@ -246,9 +246,17 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
     private async Task<DialogSession> OpenAsync()
     {
         var sent = new ConcurrentQueue<string>();
+        var hello = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var session = await HookSession.OpenAsync<ConfirmDialogPage>(playwright, beforeLoad: page =>
         {
-            page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) => sent.Enqueue(frame.Text ?? "");
+            page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) =>
+            {
+                sent.Enqueue(frame.Text ?? "");
+                if (frame.Text?.StartsWith("{\"type\":\"hello\"", StringComparison.Ordinal) == true)
+                {
+                    hello.TrySetResult();
+                }
+            };
             return Task.CompletedTask;
         });
         List<string> browserDialogs = [];
@@ -258,6 +266,9 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
             _ = dialog.DismissAsync();
         };
         await session.HooksLoadedAsync();
+        // The socket is up and its hello has gone: the bundle loading says nothing of the socket, and a hello sent
+        // after a journey cleared what was sent is no frame of the journey's. Thirty seconds bounds a hang.
+        await hello.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
         return new DialogSession(session, browserDialogs, sent);
     }
 
