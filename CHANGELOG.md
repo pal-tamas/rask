@@ -357,6 +357,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
+  that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
+  the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
+  scrollbars always show. Now every table cell is the containing block of what is placed inside it, and an `sr-only`
+  box in a table sits in its cell's first corner. A `sticky` column keeps its place; a checkbox's native input stays
+  in its own row. Nothing to change in an app.
 - **A child entity with a `TenantId` member no longer hides its rows whose `TenantId` is NULL.** Before: a child of a
   `PerTenant` aggregate that declared a `TenantId` — public, or internal and mapped in its `Configure` — was filtered on
   its OWN column, so a legacy row whose child column was NULL while its parent carried the tenant silently vanished
