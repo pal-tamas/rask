@@ -35,6 +35,8 @@
     <!-- The server host drops a session's cached reads when its user or tenant changes (SessionQueryClient.Forget). -->
     <InternalsVisibleTo Include="Rask.Server"/>
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
+    <!-- A fetch or a stream started inside a Db.Transaction reads outside it (DbTransactionSpawnedWorkTests). -->
+    <InternalsVisibleTo Include="Rask.Data.Tests"/>
   </ItemGroup>
 
 </Project>

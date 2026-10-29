@@ -63,9 +63,19 @@ internal sealed class AmbientTransaction
         // An event published inside reaches the live pages that handle it once this commits, and not on a rollback.
         LiveEvents.DeferUntilCommit ??= DeferUntilCommit;
 
+        // What Rask starts from inside — a repaint, a render a StateHasChanged asks for, a query's fetch — runs outside.
+        SpawnedWork.Leave ??= Leave;
+
         var entered = new AmbientTransaction(owner, transaction.GetDbTransaction(), isolation);
         return new Scope(entered);
     }
+
+    /// <summary>
+    ///     Clears the transaction in progress from this flow until disposed, for work Rask starts from inside the block
+    ///     to run beside or after it: its reads open connections of their own, at the database's default isolation,
+    ///     and never take the transaction's locks. <see langword="null" />, allocating nothing, when there is none.
+    /// </summary>
+    internal static IDisposable? Leave() => Current is null ? null : new Left(Open.Value);
 
     private static bool DeferUntilCommit(Action work)
     {
@@ -219,6 +229,20 @@ internal sealed class AmbientTransaction
     ///     out of a failure, and the failure is what reaches the caller.
     /// </summary>
     internal void OnRollback(Func<Task> undo) => _onRollback.Add(undo);
+
+    // The flow outside the transaction, for as long as the work Rask starts there takes to start.
+    private sealed class Left : IDisposable
+    {
+        private readonly AmbientTransaction? _left;
+
+        internal Left(AmbientTransaction? left)
+        {
+            _left = left;
+            Open.Value = null;
+        }
+
+        public void Dispose() => Open.Value = _left;
+    }
 
     /// <summary>What the outermost call holds: the flow's binding, restored on dispose.</summary>
     internal sealed class Scope : IDisposable

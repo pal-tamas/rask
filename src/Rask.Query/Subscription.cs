@@ -307,8 +307,10 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
         }
 
         // Runs synchronously up to its first real wait, so a replayed value is already in Data when a constructor or a
-        // render that created this returns.
-        _ = RunAsync(target, run);
+        // render that created this returns. Never inside a Db.Transaction open where it was started (SpawnedWork).
+        _ = SpawnedWork.Start(
+            static start => start.Subscription.RunAsync(start.Target, start.Run),
+            (Subscription: this, Target: target, Run: run));
     }
 
     private async Task RunAsync(SubscriptionTarget<T> target, CancellationTokenSource run)

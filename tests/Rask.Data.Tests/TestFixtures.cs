@@ -54,11 +54,15 @@ public sealed class EventRecorder
         }
     }
 
+    /// <summary>Whether any handler ran with a <c>Db.Transaction</c> still in its flow.</summary>
+    public bool HandledInsideATransaction { get; private set; }
+
     public void Add(IEvent e)
     {
         lock (_events)
         {
             _events.Add(e);
+            HandledInsideATransaction |= AmbientTransaction.Current is not null;
         }
     }
 }
