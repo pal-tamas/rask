@@ -40,6 +40,7 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
         {
             services.AddRaskQuery();
             services.AddSingleton<IDispatcher, FiltersJourneyPage.NothingToAsk>();
+            services.AddSingleton(FiltersJourneyRows.AfterAWhile);
         });
 
     private static async Task<bool> SkeletonAtPressAsync(IPage page, Func<Task> press)
@@ -93,16 +94,25 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
 
     // The press on a badge's cross leaves before the page has answered the panel's closing, so it is read from the
     // page that still had the panel's fields in it — and reaches a server that has since rendered that closing and
-    // then the rows that arrived: two pages later.
+    // then the rows that arrived: two pages later. The rows arrive when the test lets them, once the replies are
+    // held: on a clock they could land before the hold, and then no held reply would ever carry them.
     [Fact]
     public async Task A_cross_pressed_before_the_page_answered_the_panel_closing_still_takes_its_filter_off()
     {
+        var rows = FiltersJourneyRows.WhenLetGo();
+        SocketHello? hello = null;
         await using var session = await HookSession.OpenAsync<FiltersJourneyApp>(playwright, path: "/filters-journey?sort=name", services: services =>
         {
             services.AddRaskQuery();
             services.AddSingleton<IDispatcher, FiltersJourneyPage.NothingToAsk>();
-        }, beforeLoad: HeldReplies.Install);
+            services.AddSingleton(rows);
+        }, beforeLoad: page =>
+        {
+            hello = SocketHello.Watch(page);
+            return HeldReplies.Install(page);
+        });
         var page = session.Page;
+        await hello!.SentAsync();
         await page.ClickAsync("[data-ui-filters] [data-ui-modal-trigger] button");
         await page.Locator(Panel + " [data-ui-select-button]").ClickAsync();
         await page.Locator(Panel + " [data-ui-option]").Filter(new() { HasTextString = "Bob Ross" }).ClickAsync();
@@ -114,6 +124,8 @@ public sealed partial class FiltersJourneyTests(PlaywrightFixture playwright) : 
         await HeldReplies.HoldAsync(page);
         await page.Locator(Panel + " button").Filter(new() { HasTextString = "Close" }).ClickAsync();
         await Expect(page.Locator(Panel)).Not.ToHaveAttributeAsync("open", "");
+        await HeldReplies.UntilAnyHeldAsync(page);
+        rows.LetGo();
         await HeldReplies.UntilHeldAsync(page, "order for bob 1");
         await page.ClickAsync("[aria-label='Remove filter Driver']");
         await HeldReplies.ReleaseAsync(page);
@@ -217,7 +229,7 @@ public sealed partial class FiltersJourneyApp : Component
 
 /// <summary>An orders list filtered by its address: a driver, a period and a search, and a sort that is no filter.</summary>
 [Route("/filters-journey")]
-public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
+public sealed partial class FiltersJourneyPage(IQueryClient queries, FiltersJourneyRows rows) : Component
 {
     [QueryParam("driver")] public string? Driver { get; set; }
 
@@ -271,7 +283,7 @@ public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
     private Query<string[]> Orders => field ??= queries.Query(
         QueryKey.Of("filters-journey"), () => (Driver, Search), async (asked, ct) =>
         {
-            await Task.Delay(TimeSpan.FromMilliseconds(400), ct);
+            await rows.Arrive(ct);
             return Enumerable.Range(1, 3).Select(n => $"order for {asked.Driver ?? "anyone"} {n}").ToArray();
         });
 
@@ -296,6 +308,27 @@ public sealed partial class FiltersJourneyPage(IQueryClient queries) : Component
             ISubscription<TEvent> subscription, CancellationToken cancellationToken = default)
             where TEvent : IEvent => throw new NotSupportedException();
     }
+}
+
+/// <summary>When the orders page's rows arrive: a little after they are asked for, or when a test lets them.</summary>
+public sealed class FiltersJourneyRows
+{
+    private readonly TaskCompletionSource? _letGo;
+
+    private FiltersJourneyRows(TaskCompletionSource? letGo) => _letGo = letGo;
+
+    /// <summary>Rows that arrive slowly enough for their skeleton to be seen.</summary>
+    public static FiltersJourneyRows AfterAWhile => new(null);
+
+    /// <summary>Rows that wait for <see cref="LetGo" />, then arrive at once — every read since, too.</summary>
+    public static FiltersJourneyRows WhenLetGo() => new(new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+
+    /// <summary>Lets the rows asked for arrive.</summary>
+    public void LetGo() => _letGo?.TrySetResult();
+
+    /// <summary>Completes when rows asked for now arrive.</summary>
+    public Task Arrive(CancellationToken cancellationToken) =>
+        _letGo is null ? Task.Delay(TimeSpan.FromMilliseconds(400), cancellationToken) : _letGo.Task.WaitAsync(cancellationToken);
 }
 
 /// <summary>An orders list whose page is the page's own state, turned by the pager's buttons.</summary>

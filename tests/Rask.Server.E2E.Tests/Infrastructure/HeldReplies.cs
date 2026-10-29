@@ -38,6 +38,9 @@ internal static class HeldReplies
     public static Task UntilHeldAsync(IPage page, string text) =>
         page.WaitForFunctionAsync("text => window.__held().some(frame => frame.includes(text))", text);
 
+    /// <summary>Waits until the server has said anything since <see cref="HoldAsync" />: its answer to the last press.</summary>
+    public static Task UntilAnyHeldAsync(IPage page) => page.WaitForFunctionAsync("() => window.__held().length > 0");
+
     /// <summary>Everything held lands, in the order it came, and nothing is held any more.</summary>
     public static Task ReleaseAsync(IPage page) => page.EvaluateAsync("() => window.__release()");
 }
