@@ -4,9 +4,10 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary><c>fluxui.dev/layouts/header</c>, demo for demo.</summary>
 /// <remarks>
-///     What a header holds — the brand, the navbars, the profile — is other pages' to draw, so each is a
-///     box of the size Flux gave it; the icon navbar is the real one, since its items' <c>label</c> is only
-///     written on these pages. What is compared is the header, the phone's sidebar and the main.
+///     What a header holds — the brand, the navbars, the profile — is other pages' to draw, and compared as a box
+///     (parity.mjs's FOREIGN). The brand and the navbars are the real ones, so each is as wide as its words are on
+///     the platform measuring it (whole pixels on Linux, not on a Mac); the profile is a box of the size Flux gave
+///     it. What is compared is the header, the phone's sidebar and the main.
 /// </remarks>
 public sealed partial class HeaderLayoutParity : FluxLayoutParity
 {
@@ -52,8 +53,23 @@ public sealed partial class HeaderLayoutParity : FluxLayoutParity
         inset
             ? Ui.SidebarToggle.Icon(Ui.IconName.Bars2).Inset(Ui.Position.Left)
             : Ui.SidebarToggle.Icon(Ui.IconName.Bars2),
-        Div.Class("slot-brand max-lg:hidden"),
-        Div.Class("slot-navbar max-lg:hidden"),
+        Ui.Brand.Href("#").Logo(LayoutDemo.Logo).Name("Acme Inc.").Class("max-lg:hidden dark:hidden"),
+        Ui.Brand.Href("#").Logo(LayoutDemo.DarkLogo).Name("Acme Inc.").Class("max-lg:hidden! hidden dark:flex"),
+        Ui.Navbar.Class("-mb-px max-lg:hidden")[
+            Ui.NavbarItem.Icon(Ui.IconName.Home).Href("#").Current(true)["Home"],
+            Ui.NavbarItem.Icon(Ui.IconName.Inbox).Badge("12").Href("#")["Inbox"],
+            Ui.NavbarItem.Icon(Ui.IconName.DocumentText).Href("#")["Documents"],
+            Ui.NavbarItem.Icon(Ui.IconName.Calendar).Href("#")["Calendar"],
+            Ui.Separator.Vertical(true).Variant(Ui.SeparatorVariant.Subtle).Class("my-2"),
+            Ui.Dropdown.Class("max-lg:hidden")[
+                Ui.NavbarItem.IconTrailing(Ui.IconName.ChevronDown)["Favorites"],
+                Ui.Navmenu[
+                    Ui.NavmenuItem.Href("#")["Marketing site"],
+                    Ui.NavmenuItem.Href("#")["Android app"],
+                    Ui.NavmenuItem.Href("#")["Brand guidelines"]
+                ]
+            ]
+        ],
         Ui.Spacer,
         Ui.Navbar.Class("me-4")[
             Ui.NavbarItem.Icon(Ui.IconName.MagnifyingGlass).Href("#").Label("Search"),
