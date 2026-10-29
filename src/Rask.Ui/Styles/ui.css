@@ -370,6 +370,28 @@
 }
 
 /*
+  WHAT A TABLE SAYS TO A SCREEN READER ALONE TAKES NO ROOM IN ITS SCROLL AREA (TA and Eszaf, 2026-10-29).
+
+  An `sr-only` box is a pixel square placed where its text would have started. Under a heading that keeps to its
+  end — the row actions' column, the last — that is the table's edge, and the pixel past it made the scroll area
+  scroll: every list drew a scrollbar under rows that fitted. A cell holds what it hides, then: each is the
+  containing block of what is placed inside it, and the hidden box sits in its first corner, a pixel inside it,
+  whichever way the text runs. A checkbox's native input is such a box too, so focusing one scrolls to its own row.
+  A sticky column's `sticky` is a utility, a layer above this, and keeps its place.
+*/
+@layer rask {
+  :where([data-ui-table]) :where(th, td) {
+    position: relative;
+  }
+
+  :where([data-ui-table]) .sr-only {
+    inset-block-start: 0;
+    inset-inline-start: 0;
+    margin: 0;
+  }
+}
+
+/*
   A TABLE DIMS ITS ROWS WHILE THE PAGE THEY ARE GIVING WAY TO IS STILL BEING READ.
 
   Flux documents no loading treatment for a table. This is Livewire's: `data-loading` on what was pressed,

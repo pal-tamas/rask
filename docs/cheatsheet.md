@@ -47,9 +47,9 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 | File | What it is |
 |---|---|
 | `Product.cs` | the aggregate — `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`, `private set` properties, validation attributes, no constructor |
-| `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
-| `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
-| `DeleteProduct.cs` | a button per row — `Product.Delete(id, version)` behind a command |
+| `NewProductPage.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
+| `EditProductPage.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
+| `DeleteProductButton.cs` | a button per row — `Product.Delete(id, version)` behind a command |
 | `ProductsPage.cs` | `[Route("/products")]` — a `Ui.Table` with a `Ui.Pagination` under it, one page of `Product.OrderBy(…).Skip(…).Take(…)` at a time |
 
 Nothing else is written: the build generates `ProductModel`, the queries off the type (`Product.Where(…)`,
@@ -115,8 +115,8 @@ After any `modelBuilder.AddRask…` line: `rask db add <Name>`.
 var view = await dispatcher.Query(new GetProducts(), CancellationToken);   // IDispatcher, ctor-injected
 
 // Type-safe URL for a routed page — never a string path:
-NavLink.Href(Routes.ProductsPage())["Catalog"];       // list page → <Plural>Page
-Routes.UpdateProduct(Id: id).Go();                     // edit page → Update<Entity>; from an event handler
+NavLink.Href(Routes.ProductsPage())["Catalog"];       // a routed page ends in Page: ProductsPage, NewProductPage
+Routes.EditProductPage(Id: id).Go();                   // EditProductPage; a verb alone (EditProduct) names a command
 
 // Gate on auth — route-level attribute, or a component that renders only when signed in:
 [Authorize]                                            // redirects anonymous deep-links to /login
@@ -147,7 +147,7 @@ b.WhenReferenced("Still in use.");                    // …and one any other ta
 // several fields → Form .Validate(…); needs a service → IRequestValidator<T> (docs/validation.md#which-one-do-i-write)
 
 // One row by id to SHOW it (a ProductRead), or the aggregate to CHANGE it — both skip soft-deleted rows:
-var one = await Product.Where(p => p.Id == id).First();   // no token: cancelled with the handler or render it runs in
+var one = await Product.Where(p => p.Id == id).FirstOrDefault();   // ProductRead?, no token: cancelled with the work it runs in — First() throws on none
 var agg = await Product.Find(id);   // Product? — whole, untracked
 agg!.Rename("Anvil");
 await agg.Save();                     // only what changed; stale Version throws

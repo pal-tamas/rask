@@ -105,13 +105,13 @@ just pages.
 
 ## 3. The create page
 
-`Features/Products/CreateProduct.cs`:
+`Features/Products/NewProductPage.cs`:
 
 ```csharp
 namespace Shop.Features.Products;
 
 [Route("/products/new")]
-public sealed partial class CreateProduct : Component
+public sealed partial class NewProductPage : Component
 {
     private readonly ProductModel _model = new();
 
@@ -181,7 +181,7 @@ See [queries and commands](../query.md).
 
 Same shape, and the list page in the next step links to both — so write them now or it won't compile.
 
-`Features/Products/UpdateProduct.cs` loads the row as a `ProductModel` and saves it back:
+`Features/Products/EditProductPage.cs` loads the row as a `ProductModel` and saves it back:
 
 ```csharp
 using Microsoft.EntityFrameworkCore;
@@ -189,7 +189,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Shop.Features.Products;
 
 [Route("/products/{id:guid}/edit")]
-public sealed partial class UpdateProduct : Component
+public sealed partial class EditProductPage : Component
 {
     // Loaded for this page alone: a zero GcTime drops it the moment you leave, so a later visit always
     // starts from the database, and the form can edit what was loaded in place.
@@ -277,20 +277,20 @@ Four things in that page are doing more than they look:
   `IsLoading` is the only state that needs a word of its own, and the load is handed the `Id` its key was built from,
   so a slow load for product 1 can never land in product 2's form.
 
-`Features/Products/DeleteProduct.cs` is a small reusable button the list page drops next to each row:
+`Features/Products/DeleteProductButton.cs` is a small reusable button the list page drops next to each row:
 
 ```csharp
 namespace Shop.Features.Products;
 
 // A reusable delete button: removes the product, then invokes OnDeleted so a caller can react.
-public sealed partial class DeleteProduct : Component
+public sealed partial class DeleteProductButton : Component
 {
     public Guid Id { get; set; }
 
     // The version the row was read at, so a delete can't remove a product someone has just edited.
     public int Version { get; set; }
 
-    // Callback, not Func<Task>. A delegate-typed property is INVOCABLE, so `DeleteProduct.OnDeleted(x)`
+    // Callback, not Func<Task>. A delegate-typed property is INVOCABLE, so `DeleteProductButton.OnDeleted(x)`
     // at the call site binds to the property being called rather than to the generated chain setter,
     // and the compiler reports CS1593 on a delegate that "does not take 1 arguments". Callback is a
     // struct with no invocation, so lookup finds nothing applicable and falls through to the setter.
@@ -299,7 +299,7 @@ public sealed partial class DeleteProduct : Component
 
     protected override Component? Render()
     {
-        // One button per row, and each row is its own DeleteProduct, so each has its own pending state.
+        // One button per row, and each row is its own DeleteProductButton, so each has its own pending state.
         var delete = QueryClient.Command();
 
         return Ui.Button.Ghost.Red.Sm
@@ -358,7 +358,7 @@ public sealed partial class ProductsPage : Component
         Div.Class("flex flex-wrap items-center gap-3")[
             Ui.Heading.Level(1).Xl[$"Products ({count.Data})"],
             Ui.Spacer,
-            Ui.Button.Primary.Href(Routes.CreateProduct())["New product"]
+            Ui.Button.Primary.Href(Routes.NewProductPage())["New product"]
         ],
         Ui.Table.Class("w-full")
             .Paginate(Ui.Pagination
@@ -378,8 +378,8 @@ public sealed partial class ProductsPage : Component
                     Ui.TableCell[p.InStock ? "Yes" : "No"],
                     Ui.TableCell[$"{p.UpdatedAt:g}"],
                     Ui.TableCell.Class("py-0")[
-                        Ui.Button.Ghost.Sm.Href(Routes.UpdateProduct(p.Id))["Edit"],
-                        DeleteProduct.Id(p.Id).Version(p.Version)
+                        Ui.Button.Ghost.Sm.Href(Routes.EditProductPage(p.Id))["Edit"],
+                        DeleteProductButton.Id(p.Id).Version(p.Version)
                     ]
                 ])
             ]

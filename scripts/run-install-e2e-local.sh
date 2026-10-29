@@ -48,8 +48,11 @@ cases=0
 # `curl` and `ca-certificates` are the premise, not the thing under test: someone who cannot fetch a
 # URL never reached this script. `libicu` is the .NET runtime's own native dependency — present on
 # every desktop and normal server image, absent from -slim. rask.sh detects its absence and says so,
-# which case 5 asserts; the other cases install it so they exercise the happy path.
-premise='apt-get update -qq >/dev/null && apt-get install -y -qq --no-install-recommends curl ca-certificates libicu76 >/dev/null 2>&1 || apt-get install -y -qq --no-install-recommends curl ca-certificates libicu72 >/dev/null 2>&1'
+# which case 5 asserts; the other cases install it so they exercise the happy path. `libatomic1` is
+# the same thing for Node: nodejs.org's Linux build links it from Node 26 on, and -slim leaves it out —
+# rask.sh names it when the unpacked node cannot start, which case 6 asserts.
+premise_without_libatomic='apt-get update -qq >/dev/null && apt-get install -y -qq --no-install-recommends curl ca-certificates libicu76 >/dev/null 2>&1 || apt-get install -y -qq --no-install-recommends curl ca-certificates libicu72 >/dev/null 2>&1'
+premise="$premise_without_libatomic && apt-get install -y -qq --no-install-recommends libatomic1 >/dev/null 2>&1"
 
 # Run a script inside a fresh container with rask.sh mounted read-only, and report pass/fail on the
 # script's exit status. The container is the assertion: if it exits 0, everything it checked held.
@@ -203,7 +206,22 @@ printf '%s\n' \"\$out\" | grep -q 'cannot run' || { echo 'no diagnosis of the un
 printf '%s\n' \"\$out\" | grep -q 'libicu'    || { echo 'the fix does not name libicu';      printf '%s\n' \"\$out\"; exit 1; }
 "
 
-# --- 6. an unknown flag is a usage error, not a silent install ----------------------------------
+# --- 6. a Node that cannot start is named, not left as a raw loader error -------------------------
+# Node 26 links libatomic and -slim lacks it, so the tarball verifies, unpacks, and then fails its first
+# run with `libatomic.so.1: cannot open shared object file` — which names a file and no package. The
+# installer must say which package, and keep the tree so installing it is the whole fix.
+
+run_case "a Node missing libatomic is named, and works once it is installed" "$image" "
+set -eu
+$premise_without_libatomic
+out=\$(sh /rask.sh --no-ef --no-wasm-tools --no-path 2>&1 || true)
+printf '%s\n' \"\$out\" | grep -q 'cannot start'                       || { echo 'no diagnosis of the unusable node'; printf '%s\n' \"\$out\"; exit 1; }
+printf '%s\n' \"\$out\" | grep -q 'apt-get install -y libatomic1'      || { echo 'the fix does not name libatomic1';  printf '%s\n' \"\$out\"; exit 1; }
+apt-get install -y -qq --no-install-recommends libatomic1 >/dev/null 2>&1
+/root/.local/share/rask/node/bin/node --version || { echo 'node still cannot start with libatomic1 installed'; exit 1; }
+"
+
+# --- 7. an unknown flag is a usage error, not a silent install ----------------------------------
 
 run_case "an unknown flag exits 2 and installs nothing" "$image" "
 set -eu
@@ -214,7 +232,7 @@ test \"\$code\" = 2 || { echo \"expected exit 2, got \$code\"; exit 1; }
 test ! -d /root/.dotnet || { echo 'a bad flag still installed an SDK'; exit 1; }
 "
 
-# --- 7. the Windows twin, as far as a Linux box can take it -------------------------------------
+# --- 8. the Windows twin, as far as a Linux box can take it -------------------------------------
 # Nobody working on this repo runs Windows, so rask.ps1 would otherwise ship having never been
 # executed at all. PowerShell arrives as a dotnet tool rather than from the powershell image, which
 # publishes no arm64 manifest — this way the case runs on an Apple Silicon laptop and on CI alike.
@@ -250,6 +268,6 @@ if [ "$failures" -gt 0 ]; then
     exit 1
 fi
 echo "==> Install gate passed ($cases cases)."
-echo "    Not covered: a real Windows host. Case 7 runs rask.ps1 under PowerShell on Linux with the"
+echo "    Not covered: a real Windows host. Case 8 runs rask.ps1 under PowerShell on Linux with the"
 echo "    Windows-only steps switched off, so the SDK install and the user PATH write are unproven —"
 echo "    verify those once on a Windows box. Also not covered: macOS, which has no container."

@@ -145,6 +145,19 @@ public sealed partial class NavLink : Element
         }
 
         AppendAttr(sb, "data-rask-nav", null);
+        AppendSectionSpy(sb);
+    }
+
+    // A link to a section of a page (/#contact) is never active here: the fragment never reaches the server. It
+    // hands its active class to the runtime instead, which marks it while that section is the one being read
+    // (rask-nav-spy.ts). Not when the active state is opted out.
+    private void AppendSectionSpy(StringBuilder sb)
+    {
+        var active = ActiveClass ?? "active";
+        if (Href?.Path.Contains('#', StringComparison.Ordinal) == true && active.Length > 0)
+        {
+            AppendAttr(sb, "data-rask-nav-spy", active);
+        }
     }
 
     private bool IsActive()

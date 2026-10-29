@@ -128,6 +128,71 @@ check "Linux/armv7l"   linux-armv7l "$(triple Linux armv7l)"
 check "FreeBSD/x86_64" unsupported  "$(triple FreeBSD x86_64)"
 check "Linux/riscv64"  unsupported  "$(triple Linux riscv64)"
 
+# --- rask_node_native_fix --------------------------------------------------------------------
+# Node 26's Linux build links libatomic, which every minimal image leaves out — the first 26 LTS
+# (26.13.0) turned the bare-Debian install case red with `libatomic.so.1: cannot open shared object
+# file`. The fix the installer prints has to name THIS distro's package, read from os-release.
+
+os_release() { printf '%s\n' "$@" >"$tmp/os-release"; rask_node_native_fix "$tmp/os-release"; }
+
+echo "==> rask_node_native_fix"
+check "Debian"                  "sudo apt-get install -y libatomic1" "$(os_release 'ID=debian')"
+check "Ubuntu (ID_LIKE=debian)" "sudo apt-get install -y libatomic1" "$(os_release 'ID=ubuntu' 'ID_LIKE=debian')"
+check "Fedora"                  "sudo dnf install -y libatomic"      "$(os_release 'ID=fedora')"
+check "Rocky (quoted ID_LIKE)"  "sudo dnf install -y libatomic"      "$(os_release 'ID="rocky"' 'ID_LIKE="rhel centos fedora"')"
+check "openSUSE"                "sudo zypper install -y libatomic1"  "$(os_release 'ID="opensuse-tumbleweed"' 'ID_LIKE="opensuse suse"')"
+# No libatomic fixes Alpine: nodejs.org ships no musl build, so the glibc tarball never starts there.
+check "Alpine"                  "sudo apk add nodejs npm   (nodejs.org publishes no musl build)" "$(os_release 'ID=alpine')"
+# An ID that merely CONTAINS a known one is not it: `debian-ish` must not match `debian`.
+check "unknown distro: every line" 4 "$(os_release 'ID=debian-ish' | wc -l | tr -d ' ')"
+check "no os-release: every line"  4 "$(rask_node_native_fix "$tmp/no-such-file" | wc -l | tr -d ' ')"
+
+# --- step_node, against a fixture nodejs.org -------------------------------------------------
+# Drives the REAL step_node against a file:// dist tree holding one fake release whose `node` is a
+# script. This is the seam that was missing: the tarball downloaded, verified and unpacked while the
+# binary could not start, and nothing said so until a later `node` call failed with a loader error.
+
+if sn_triple="$(rask_node_triple 2>/dev/null)" && command -v curl >/dev/null 2>&1 &&
+    command -v shasum >/dev/null 2>&1; then
+    echo "==> step_node (the shipped function, against a fixture nodejs.org)"
+
+    fake_node_dist() { # $1 = the body of the fake bin/node
+        local release="node-v99.0.0-$sn_triple"
+        rm -rf "$tmp/dist" "$tmp/stage" "$tmp/nprefix"
+        mkdir -p "$tmp/dist/v99.0.0" "$tmp/stage/$release/bin"
+        printf '#!/bin/sh\n%s\n' "$1" >"$tmp/stage/$release/bin/node"
+        chmod +x "$tmp/stage/$release/bin/node"
+        tar -czf "$tmp/dist/v99.0.0/$release.tar.gz" -C "$tmp/stage" "$release"
+        printf '[{"version":"v99.0.0","lts":"Fixture"}]' >"$tmp/dist/index.json"
+        (cd "$tmp/dist/v99.0.0" && shasum -a 256 "$release.tar.gz" >SHASUMS256.txt)
+    }
+
+    run_step_node() {
+        (
+            RASK_INSTALL_NODE_DIST="file://$tmp/dist"
+            RASK_INSTALL_NODE_MIN=99.0.0 # whatever node runs this suite is "too old", so it installs
+            RASK_INSTALL_PREFIX="$tmp/nprefix"
+            RASK_CURL="$(command -v curl)"
+            RASK_SHA256=""
+            RASK_SHASUM="$(command -v shasum)"
+            RASK_QUIET=1
+            step_node
+        ) 2>&1
+    }
+
+    has() { case "$1" in *"$2"*) printf yes ;; *) printf no ;; esac; }
+
+    fake_node_dist 'echo "node: error while loading shared libraries: libatomic.so.1: cannot open shared object file" >&2; exit 127'
+    out="$(run_step_node)"
+    check "a node that cannot start is reported"  yes "$(has "$out" 'cannot start')"
+    check "the loader's own words are passed on"  yes "$(has "$out" 'libatomic.so.1')"
+    check "the fix names the package"             yes "$(has "$out" 'libatomic1')"
+    check "the unpacked tree is kept for the fix" yes "$([ -x "$tmp/nprefix/node/bin/node" ] && printf yes || printf no)"
+
+    fake_node_dist 'echo v99.0.0'
+    check "a node that starts says nothing"       "" "$(run_step_node)"
+fi
+
 # --- rask_node_lts_version -------------------------------------------------------------------
 # Shaped like the real nodejs.org index.json: one line, newest first, "lts" is a codename string on
 # an LTS release and the bare literal false otherwise.

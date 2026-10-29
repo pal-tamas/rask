@@ -45,8 +45,11 @@ public sealed class SelectPickKeepsTypingTests(PlaywrightFixture playwright) : I
             return beforeLoad?.Invoke(page) ?? Task.CompletedTask;
         });
         await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
+        // That text is the first page's, and says nothing of the socket: it is up before a journey counts or stops
+        // the page's clock (SocketHello).
+        await frames!.OpenedAsync();
 
-        return (session, frames!);
+        return (session, frames);
     }
 
     [Fact]

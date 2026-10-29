@@ -184,7 +184,7 @@ and a deleted account has to free its address for the person to sign up again, s
 
 ```csharp
 var me = users.Current.UserId() is { } id
-    ? await User.Where(u => u.Id == id).First(CancellationToken)
+    ? await User.Where(u => u.Id == id).FirstOrDefault(CancellationToken)
     : null;
 await User.Update(id, u => u.Rename(name));
 await User.Update(id, u => u.GrantRole("editor"));

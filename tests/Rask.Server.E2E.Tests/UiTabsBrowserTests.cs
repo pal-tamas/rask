@@ -220,6 +220,7 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
         public static async Task<Watched> OpenAsync(PlaywrightFixture playwright)
         {
             var counts = new int[2];
+            SocketHello? hello = null;
             var session = await HookSession.OpenAsync<TabsBrowserPage>(playwright, beforeLoad: page =>
             {
                 page.WebSocket += (_, socket) =>
@@ -227,11 +228,13 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
                     socket.FrameSent += (_, _) => Interlocked.Increment(ref counts[0]);
                     socket.FrameReceived += (_, _) => Interlocked.Increment(ref counts[1]);
                 };
+                hello = SocketHello.Watch(page);
                 return Task.CompletedTask;
             });
             await session.HooksLoadedAsync();
-            // Whatever the load itself exchanged has gone by: from here on the socket is watched.
-            await session.Page.WaitForTimeoutAsync(300);
+            // The socket is up and its hello is in the count: from here on the socket is watched, and a press made
+            // from here is answered over an open socket.
+            await hello!.SentAsync();
             return new Watched(session, counts);
         }
 

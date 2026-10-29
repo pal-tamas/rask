@@ -33,7 +33,9 @@ public sealed class SelectSearchDebounceTests(PlaywrightFixture playwright) : IC
             await SentFrames.Count(page);
             await PageClock.Install(page);
         });
-        await Expect(session.Page.Locator("#ready")).ToHaveTextAsync("ready");
+        // A press the page answers: the socket is up before the page's time is stopped (SearchDebounceTests says why).
+        await session.Page.ClickAsync("#ready");
+        await Expect(session.Page.Locator("#presses")).ToHaveTextAsync("1");
 
         return session;
     }

@@ -147,8 +147,7 @@ internal sealed class DoctorCommand(
         // documented only in prose in the README.
         checks.Add(await WorkloadCheckAsync(sdk, cancellationToken).ConfigureAwait(false));
 
-        var node = await CaptureAsync(["--version"], cancellationToken, "node").ConfigureAwait(false);
-        checks.Add(NodeCheck(node));
+        checks.Add(await NodeCheckAsync(cancellationToken).ConfigureAwait(false));
 
         var npm = await CaptureAsync(["--version"], cancellationToken, "npm").ConfigureAwait(false);
         checks.Add(npm is null
@@ -253,6 +252,41 @@ internal sealed class DoctorCommand(
         {
             return null;
         }
+    }
+
+    /// <summary>
+    ///     Asks <c>node --version</c> itself rather than through <see cref="CaptureAsync" />, because a
+    ///     node that is ON the PATH but cannot start is a different answer from no node at all.
+    /// </summary>
+    /// <remarks>
+    ///     The shared helper folds a non-zero exit into "not found", which is how a Node 26 unpacked onto
+    ///     a minimal Linux image — present, executable, and failing in the loader on a missing
+    ///     <c>libatomic.so.1</c> — was reported as missing, with an install hint for a thing already installed.
+    /// </remarks>
+    private async Task<DoctorCheck> NodeCheckAsync(CancellationToken cancellationToken)
+    {
+        ProcessResult result;
+        try
+        {
+            result = await _process.CaptureAsync("node", ["--version"], null, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Not on PATH throws rather than exiting non-zero, same as every other probe here.
+            return NodeCheck(null);
+        }
+
+        if (result.ExitCode != 0)
+        {
+            var said = Shorten(string.Concat(result.StandardError, result.StandardOutput).Trim());
+            return new DoctorCheck(
+                "node", DoctorStatus.Warn,
+                said.Length == 0 ? $"cannot start (exit {result.ExitCode})" : $"cannot start: {said}",
+                NodeRequirement.StartFailureHint(said));
+        }
+
+        var reported = result.StandardOutput.Trim();
+        return NodeCheck(reported.Length == 0 ? null : reported);
     }
 
     /// <summary>The Node row, measured against the floor island and front-end builds enforce.</summary>

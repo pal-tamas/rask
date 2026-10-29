@@ -138,7 +138,7 @@ public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {
-        var order = await Order.Where(o => o.Id == notification.Id).First();
+        var order = await Order.Where(o => o.Id == notification.Id).FirstOrDefault();
         if (order?.CustomerId is not { } customer) return;
 
         await Push.Send(WebPushMessage.Text("Order shipped", $"Order {order.Id} is on its way.", $"/orders/{order.Id}"))

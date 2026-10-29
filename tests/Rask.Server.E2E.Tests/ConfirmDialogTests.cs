@@ -246,9 +246,11 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
     private async Task<DialogSession> OpenAsync()
     {
         var sent = new ConcurrentQueue<string>();
+        SocketHello? hello = null;
         var session = await HookSession.OpenAsync<ConfirmDialogPage>(playwright, beforeLoad: page =>
         {
             page.WebSocket += (_, socket) => socket.FrameSent += (_, frame) => sent.Enqueue(frame.Text ?? "");
+            hello = SocketHello.Watch(page);
             return Task.CompletedTask;
         });
         List<string> browserDialogs = [];
@@ -258,6 +260,9 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
             _ = dialog.DismissAsync();
         };
         await session.HooksLoadedAsync();
+        // The bundle having run says nothing of the socket: a hello sent after a journey cleared what was sent is no
+        // frame of the journey's.
+        await hello!.SentAsync();
         return new DialogSession(session, browserDialogs, sent);
     }
 
