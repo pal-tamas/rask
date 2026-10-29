@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A `NavLink` to a section of its page lights up while that section is read.** Before: a one-page site's menu of
+  `NavLink.Href("/#about")`, `"/#contact"` never showed where the reader was — the server never sees the fragment, so
+  only the plain page link was ever active. Now such a link hands its `ActiveClass` to the runtime
+  (`data-rask-nav-spy`), which adds it and `aria-current="true"` while the section's top has passed a third of the
+  viewport, or, at the very bottom, to the lowest section that shows. See
+  [Scroll position on navigation](docs/routing.md#scroll-position-on-navigation).
 - **`rask db migrate` applies pending migrations, as an alias of `rask db update`.** Rails (`db:migrate`) and
   Laravel (`artisan migrate`) users reach for "migrate"; before, it was rejected as an unknown action. It is the
   same verb — same options, same checks, same `dotnet ef database update` — and `rask db --help` lists it as
