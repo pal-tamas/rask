@@ -44,12 +44,11 @@ public sealed partial class DatetimePickerOpenParity : DatetimePickerExamples
 public abstract partial class DatetimePickerExamples : FluxParity
 {
     /// <summary>
-    ///     The docs site's monospace face, which typed times are set in and sized by — a licensed font, given here as a
-    ///     local face scaled to its advance — and the classes Flux's last example hands its two pickers.
+    ///     The docs site's monospace face (<see cref="FluxParity.DocsMonospace" />), which typed times are set in and
+    ///     sized by, and the classes Flux's last example hands its two pickers.
     /// </summary>
     private const string App =
-        "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Menlo Regular'),local('Menlo-Regular'),local('DejaVu Sans Mono'),local('DejaVuSansMono');size-adjust:106.3%}"
-        + ":root{--font-mono:MonoLisa,monospace}.parity-flex-1{flex:1 1 0%}"
+        "<style>" + DocsMonospace + ".parity-flex-1{flex:1 1 0%}"
         + ".parity-separate{display:flex;gap:8px;width:100%;max-width:256px}"
         + "@media (width < 40rem){.parity-separate{flex-direction:column}}"
         // The time-format example's `px-2 flex flex-col sm:flex-row gap-4`: on a phone its two pickers are stacked.

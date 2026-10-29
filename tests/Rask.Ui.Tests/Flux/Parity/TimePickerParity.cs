@@ -42,12 +42,8 @@ public abstract partial class TimePickerExamples : FluxParity
     // Flux's examples sit in a centred row, the picker in an item as wide as its content: its own 240px.
     private const string Centre = "display:flex;justify-content:center";
 
-    // What the docs page is to these examples. Its theme's monospace face is MonoLisa, a licensed webfont the
-    // typed fields are set in and sized by (two of its `ch`): here a local monospace scaled to the same advance,
-    // 8.96px at 14px where a system face is 8.40px.
-    private const string App =
-        "<style>@font-face{font-family:MonoLisa;src:local('Menlo'),local('Courier New'),local('DejaVu Sans Mono');size-adjust:106.649%}"
-        + ":root{--font-mono:MonoLisa,monospace}</style>";
+    // What the docs page is to these examples: its theme's monospace face.
+    private const string App = "<style>" + DocsMonospace + "</style>";
 
     /// <summary>What marks an example's pickers for the measurer to open, on the page that is measured open.</summary>
     protected abstract Component? Mark { get; }
