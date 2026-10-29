@@ -409,6 +409,10 @@ TanStack's, deliberately: `StaleTime` 0 and `GcTime` five minutes. A query is st
 resolves — so anything that observes it again refetches in the background while showing what it has —
 and an entry nothing is watching is collected five minutes later.
 
+A fetch stops with what wanted it: when every component that read the query has left the page, or when the
+session ends. A query another component still shows keeps its fetch, and a stopped fetch is not an error — the
+entry keeps what it had, and the next reader fetches again.
+
 `QueryOptions` covers `StaleTime`, `GcTime`, `Retry`, `RefetchInterval` and `KeepPreviousData`.
 
 ### A key that a handler moves

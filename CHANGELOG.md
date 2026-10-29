@@ -403,6 +403,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A query's fetch kept running after the screen or the session that wanted it had gone.** A fetch was linked only
+  to its caller's token, and a component that read a query in `Render` and then left the page never let go of it,
+  so the request ran on against the database. A fetch now stops when the session ends, and when every component
+  that read its query has left the page — a query another reader still shows keeps its fetch. A stopped fetch is
+  no error: the entry keeps what it held and fetches again for the next reader. A polling query stops with its
+  session too.
 - **A gesture that arrived from an older page could be dropped by `Ui.DatePicker`, `Ui.DatetimePicker` and
   `Ui.Pagination`.** Picks, a clear and step presses made faster than the page answers are each read from the page as
   loaded, so the later ones arrive pages late — and these handlers closed over what one render resolved (the day
