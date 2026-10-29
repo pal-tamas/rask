@@ -585,8 +585,8 @@ public sealed partial class ModelRegistryGenerator : IIncrementalGenerator
         "Set" or "Update" or "UpdateRange" or "Equals" or "GetHashCode" or "GetType" or "ToString";
 
     /// <summary>
-    ///     Registers the traits every entity's base names — and a child's tenancy, which is its root's — so they can
-    ///     be honoured without reflecting over the base at runtime.
+    ///     Registers the traits every entity implements — and a child's tenancy, which is its root's — so they can
+    ///     be honoured without reflecting over the type at runtime.
     /// </summary>
     private static void EmitConventions(SourceProductionContext context, ImmutableArray<Candidate> candidates)
     {

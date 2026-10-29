@@ -16,7 +16,7 @@ public readonly record struct OfferDiscount(int Value)
 public readonly record struct OfferCode(string Value);
 
 /// <summary>An aggregate whose one-value struct value objects are OPTIONAL: declared <c>T?</c>.</summary>
-public sealed class Offer : Aggregate<int, Model, Deletable>
+public sealed class Offer : Aggregate<int>, IFormModel, IDeletable
 {
     public const string CodeTaken = "This code is already in use.";
 
@@ -58,7 +58,7 @@ public sealed record OfferTerms
 }
 
 /// <summary>An aggregate that holds the optional struct one level down.</summary>
-public sealed class OfferPlan : Aggregate<int, Model, Deletable>
+public sealed class OfferPlan : Aggregate<int>, IFormModel, IDeletable
 {
     private OfferPlan() { }
 

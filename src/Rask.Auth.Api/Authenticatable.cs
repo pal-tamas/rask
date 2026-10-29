@@ -18,7 +18,7 @@ namespace Rask.Auth;
 /// are the app's to change: <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </para>
 /// </remarks>
-public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public abstract class Authenticatable : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     /// <summary>The sign-in address, trimmed and lower-cased. Unique.</summary>
     public string Email { get; private set; } = "";

@@ -13,7 +13,7 @@ public static class StorageModelBuilderExtensions
     /// </summary>
     /// <remarks>
     /// <see cref="StoredFile.TenantId"/> is kept in the column type the app's tenant-scoped tables use: an <c>int</c>
-    /// when every one of them keeps a number (<c>PerTenant&lt;int&gt;</c>), a <c>long</c> likewise, and a
+    /// when every one of them keeps a number (<c>IPerTenant&lt;int&gt;</c>), a <c>long</c> likewise, and a
     /// <c>Guid</c> otherwise. Call it before or after <c>ApplyRaskConventions</c>: either order gives the same model.
     /// </remarks>
     public static ModelBuilder AddRaskStorage(this ModelBuilder modelBuilder)

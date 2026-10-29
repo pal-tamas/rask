@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 // A row that points at another row of its OWN table: SumTotalizerId -> Totalizer.
-public sealed class Totalizer : Aggregate<int, Timestamps, Model, Deletable>
+public sealed class Totalizer : Aggregate<int>, ITimestamps, IFormModel, IDeletable
 {
     private Totalizer() { } // EF materialization
 

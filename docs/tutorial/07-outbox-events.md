@@ -43,7 +43,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Orders;
 
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     [Range(0, 1_000_000)]
     public decimal Total { get; private set; }

@@ -6,7 +6,7 @@ using Rask.Cqrs;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant's sign-ins: a name unique among every tenant, a badge unique within one, as the app wrote them.</summary>
-public sealed class Login : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Login : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     public const string UsernameTaken = "Ez a felhasználónév foglalt.";
     public const string BadgeTaken = "This badge is already handed out.";

@@ -2,8 +2,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A root that names Timestamps, so it carries both — and its children carry none.</summary>
-public sealed class Roster : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+/// <summary>A root that implements ITimestamps, so it carries both — and its children carry none.</summary>
+public sealed class Roster : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private readonly List<RosterSlot> _slots = [];
     private readonly List<RosterBadge> _badges = [];
@@ -61,7 +61,7 @@ public sealed class SlotNote : Entity<Guid>
 }
 
 /// <summary>A child that opts in, which it keeps.</summary>
-public sealed class RosterBadge : Entity<Guid, Timestamps>
+public sealed class RosterBadge : Entity<Guid>, ITimestamps
 {
     private RosterBadge() { }
 

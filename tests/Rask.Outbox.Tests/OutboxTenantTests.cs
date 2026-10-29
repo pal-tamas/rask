@@ -7,7 +7,7 @@ namespace Rask.Outbox.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The outbox table is deliberately NOT <c>PerTenant</c>. A partitioned table takes a query filter,
+/// The outbox table is deliberately NOT <c>IPerTenant</c>. A partitioned table takes a query filter,
 /// and a filter here would hide other tenants' rows from the drain — one processor publishes everybody's
 /// work. So the tenant is data on the row rather than a partition of the table.
 /// </para>

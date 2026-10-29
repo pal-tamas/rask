@@ -4,18 +4,6 @@ override Rask.Data.Entity<TId>.Equals(object? obj) -> bool
 override Rask.Data.Entity<TId>.GetHashCode() -> int
 override Rask.Data.ValueObject.Equals(object? obj) -> bool
 override Rask.Data.ValueObject.GetHashCode() -> int
-Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>
-Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5, T6>.Aggregate() -> void
-Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5>
-Rask.Data.Aggregate<TId, T1, T2, T3, T4, T5>.Aggregate() -> void
-Rask.Data.Aggregate<TId, T1, T2, T3, T4>
-Rask.Data.Aggregate<TId, T1, T2, T3, T4>.Aggregate() -> void
-Rask.Data.Aggregate<TId, T1, T2, T3>
-Rask.Data.Aggregate<TId, T1, T2, T3>.Aggregate() -> void
-Rask.Data.Aggregate<TId, T1, T2>
-Rask.Data.Aggregate<TId, T1, T2>.Aggregate() -> void
-Rask.Data.Aggregate<TId, T1>
-Rask.Data.Aggregate<TId, T1>.Aggregate() -> void
 Rask.Data.Aggregate<TId>
 Rask.Data.Aggregate<TId>.Aggregate() -> void
 Rask.Data.Aggregate<TId>.ClearDomainEvents() -> void
@@ -28,8 +16,6 @@ Rask.Data.AmbientContextBinding.ContextType.get -> System.Type!
 Rask.Data.AmbientContextBinding.CreateContext() -> Microsoft.EntityFrameworkCore.DbContext!
 Rask.Data.AuditingInterceptor
 Rask.Data.AuditingInterceptor.AuditingInterceptor(System.TimeProvider! timeProvider) -> void
-Rask.Data.Broadcast
-Rask.Data.Broadcast.Broadcast() -> void
 Rask.Data.BulkInsertExtensions
 Rask.Data.BulkInsertOptions
 Rask.Data.BulkInsertOptions.BatchSize.get -> int
@@ -41,16 +27,8 @@ Rask.Data.BulkInsertOptions.SkipChangeTracking.get -> bool
 Rask.Data.BulkInsertOptions.SkipChangeTracking.set -> void
 Rask.Data.Columns
 Rask.Data.ConventionRegistry
-Rask.Data.Created
-Rask.Data.Created.Created() -> void
-Rask.Data.CreateModel
-Rask.Data.CreateModel.CreateModel() -> void
 Rask.Data.Db
-Rask.Data.Deletable
-Rask.Data.Deletable.Deletable() -> void
 Rask.Data.DomainEventInterceptor
-Rask.Data.Entity<TId, T1>
-Rask.Data.Entity<TId, T1>.Entity() -> void
 Rask.Data.Entity<TId>
 Rask.Data.Entity<TId>.CreatedAt.get -> System.DateTime
 Rask.Data.Entity<TId>.Entity() -> void
@@ -70,11 +48,9 @@ Rask.Data.GeneratedModelWrites
 Rask.Data.GeneratedReadQuery
 Rask.Data.GeneratedStoreRules
 Rask.Data.IAggregate
-Rask.Data.IAggregateTrait
 Rask.Data.IDataChanges
 Rask.Data.IDataChanges.Saved(System.Collections.Generic.IReadOnlyCollection<System.Type!>! entityTypes) -> void
 Rask.Data.IEntity
-Rask.Data.IEntityTrait
 Rask.Data.IHasDomainEvents
 Rask.Data.IHasDomainEvents.ClearDomainEvents() -> void
 Rask.Data.IHasDomainEvents.DomainEvents.get -> System.Collections.Generic.IReadOnlyList<Rask.Cqrs.IEvent!>!
@@ -84,20 +60,11 @@ Rask.Data.IReadModel
 Rask.Data.ITenantScoped
 Rask.Data.ITenantScoped.CurrentTenant.get -> System.Guid?
 Rask.Data.JsonIndexBuilderExtensions
-Rask.Data.Model
-Rask.Data.Model.Model() -> void
 Rask.Data.ModelBuilderExtensions
 Rask.Data.MissingTenantException
 Rask.Data.MissingTenantException.MissingTenantException() -> void
 Rask.Data.MissingTenantException.MissingTenantException(string! message) -> void
 Rask.Data.MissingTenantException.MissingTenantException(string! message, System.Exception? innerException) -> void
-Rask.Data.PerTenant
-Rask.Data.PerTenant.PerTenant() -> void
-Rask.Data.PerTenant<TKey>
-Rask.Data.PerTenant<TKey>.PerTenant() -> void
-Rask.Data.SoftDelete
-Rask.Data.SoftDelete.SoftDelete() -> void
-Rask.Data.Timestamps.Timestamps() -> void
 Rask.Data.TraitSet
 Rask.Data.TraitSet.Broadcast = 256 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Created = 1 -> Rask.Data.TraitSet
@@ -109,15 +76,9 @@ Rask.Data.TraitSet.SoftDelete = 64 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Updated = 2 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.UpdateModel = 16 -> Rask.Data.TraitSet
 Rask.Data.TraitSet.Versioned = 4 -> Rask.Data.TraitSet
-Rask.Data.Updated
-Rask.Data.Updated.Updated() -> void
-Rask.Data.UpdateModel
-Rask.Data.UpdateModel.UpdateModel() -> void
 Rask.Data.ValueObject
 Rask.Data.ValueObject.Equals(Rask.Data.ValueObject? other) -> bool
 Rask.Data.ValueObject.ValueObject() -> void
-Rask.Data.Versioned
-Rask.Data.Versioned.Versioned() -> void
 Rask.Data.ViolationMessageBuilderExtensions
 Rask.Data.ModelQuery<TEntity>
 Rask.Data.ModelQuery<TEntity>.AsAsyncEnumerable(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<TEntity!>!
@@ -210,7 +171,6 @@ Rask.Data.TestDatabase.DisposeAsync() -> System.Threading.Tasks.ValueTask
 Rask.Data.TestDatabase.Load<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.Load<TEntity>(object?[]! keyValues, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 Rask.Data.TestDatabase.OpenRead() -> Rask.Data.RaskReadDbContext!
-Rask.Data.Timestamps
 const Rask.Data.GeneratedModelRules.RequiredMessage = "This field is required." -> string!
 const Rask.Data.Columns.CreatedAt = "CreatedAt" -> string!
 const Rask.Data.Columns.DeletedAt = "DeletedAt" -> string!
@@ -387,3 +347,19 @@ static Rask.Data.ModelRegistry.UseModel<TModel>() -> void
 Rask.Data.TestDatabase<TContext>
 Rask.Data.TestDatabase<TContext>.Context.get -> TContext!
 static Rask.Data.TestDatabase.Start<TContext>(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
+Rask.Data.IBroadcast
+Rask.Data.ICreated
+Rask.Data.ICreated.CreatedAt.get -> System.DateTime
+Rask.Data.ICreateFormModel
+Rask.Data.IDeletable
+Rask.Data.IFormModel
+Rask.Data.IPerTenant
+Rask.Data.IPerTenant<TKey>
+Rask.Data.ISoftDelete
+Rask.Data.ISoftDelete.DeletedAt.get -> System.DateTime?
+Rask.Data.ITimestamps
+Rask.Data.IUpdated
+Rask.Data.IUpdated.UpdatedAt.get -> System.DateTime
+Rask.Data.IUpdateFormModel
+Rask.Data.IVersioned
+Rask.Data.IVersioned.Version.get -> int

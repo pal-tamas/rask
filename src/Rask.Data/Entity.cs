@@ -41,10 +41,16 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>
     /// <summary>The entity's identity. Set by the derived type's constructor or factory (or EF on materialization).</summary>
     public TId Id { get; protected set; } = default!;
 
-    /// <summary>When the row was inserted, in UTC. Stamped by the framework on insert.</summary>
+    /// <summary>
+    ///     When the row was inserted, in UTC. Stamped by the framework on insert, and a column only on an entity that
+    ///     implements <see cref="ICreated" /> or <see cref="ITimestamps" />.
+    /// </summary>
     public DateTime CreatedAt { get; private set; }
 
-    /// <summary>When the row last changed, in UTC. Stamped by the framework on every insert and update.</summary>
+    /// <summary>
+    ///     When the row last changed, in UTC. Stamped by the framework on every insert and update, and a column only on
+    ///     an entity that implements <see cref="IUpdated" /> or <see cref="ITimestamps" />.
+    /// </summary>
     public DateTime UpdatedAt { get; private set; }
 
     private bool IsTransient => EqualityComparer<TId>.Default.Equals(Id, default!);
@@ -99,22 +105,5 @@ public abstract class Entity<TId> : IEntity, IEquatable<Entity<TId>>
         }
 
         UpdatedAt = at;
-    }
-}
-
-/// <summary>
-/// An entity that keeps timestamps of its own — a child of an aggregate, or a table that is not one:
-/// <c>OrderLine : Entity&lt;Guid, Timestamps&gt;</c>. Only an <see cref="IEntityTrait" /> fits here; everything
-/// else is the aggregate's.
-/// </summary>
-/// <typeparam name="TId">The key type.</typeparam>
-/// <typeparam name="T1"><see cref="Created" />, <see cref="Updated" /> or <see cref="Timestamps" />.</typeparam>
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Major Code Smell", "S2326", Justification = "The type argument IS the declaration, read by the generator.")]
-public abstract class Entity<TId, T1> : Entity<TId>
-    where T1 : IEntityTrait
-{
-    /// <summary>Initializes the base.</summary>
-    protected Entity()
-    {
     }
 }

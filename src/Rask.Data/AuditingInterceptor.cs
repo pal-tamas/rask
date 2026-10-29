@@ -89,7 +89,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
         foreach (var entry in context.ChangeTracker.Entries<IAggregate>())
         {
-            // Only an aggregate that maps the token: one that does not name Versioned has no Version,
+            // Only an aggregate that maps the token: one that does not implement IVersioned has no Version,
             // and asking an entry for a property that is not mapped throws rather than no-ops.
             if (entry.State == EntityState.Modified && entry.Metadata.FindProperty(Columns.Version) is not null)
             {
@@ -197,7 +197,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
 
     // Keeps TenantKey equal to TenantId with its null folded away, for the one table that maps it.
     //
-    // NOT gated on the tenancy registry, deliberately: the accounts table cannot name PerTenant,
+    // NOT gated on the tenancy registry, deliberately: the accounts table cannot implement IPerTenant,
     // because stamping a tenant-scoped row demands an ambient tenant and an ADMINISTRATOR legitimately has
     // none — a tenant-scoped accounts table could not have an admin inserted into it at all. So Rask.Auth
     // maps the tenant itself, and this keeps the indexed copy honest wherever it is mapped.

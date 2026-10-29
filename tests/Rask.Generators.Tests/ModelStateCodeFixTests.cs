@@ -13,8 +13,8 @@ public class ModelStateCodeFixTests
         using System.Collections.Generic;
         using Rask.Data;
         namespace Shop;
-        public sealed class OrderLine : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
-        public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+        public sealed class OrderLine : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { }
+        public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
         {
             {{members}}
         }
@@ -60,7 +60,7 @@ public class ModelStateCodeFixTests
             {
                 public string City { get; init; } = "";
             }
-            public sealed class Customer : Aggregate<System.Guid, Timestamps, Versioned, Model, Deletable> { public Address Home { get; private set; } = new(); }
+            public sealed class Customer : Aggregate<System.Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { public Address Home { get; private set; } = new(); }
             """);
 
         Assert.Contains("public string City { get; private init; } = \"\";", fixed_, StringComparison.Ordinal);
@@ -112,7 +112,7 @@ public class ModelStateCodeFixTests
             using Rask.Data;
             namespace Shop;
             public record struct Weight(decimal Grams);
-            public sealed class Parcel : Aggregate<System.Guid, Timestamps, Versioned, Model, Deletable> { public Weight Weight { get; private set; } }
+            public sealed class Parcel : Aggregate<System.Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { public Weight Weight { get; private set; } }
             """));
 
     // ---- RASK085 ----
@@ -172,8 +172,8 @@ public class ModelStateCodeFixTests
             using Microsoft.EntityFrameworkCore.Metadata.Builders;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class OrderLine : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { }
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
             {
                 public List<OrderLine> Lines { get; private set; } = new();
                 public void Add(OrderLine line) => Lines.Add(line);
@@ -231,8 +231,8 @@ public class ModelStateCodeFixTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class OrderLine : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            public sealed class OrderLine : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { }
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
             {
                 public System.Collections.Generic.List<OrderLine> Lines { get; } = [];
             }

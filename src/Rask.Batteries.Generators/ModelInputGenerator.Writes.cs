@@ -209,7 +209,7 @@ public sealed partial class ModelInputGenerator
         s.AppendLine();
     }
 
-    // An aggregate that names neither Deletable nor SoftDelete is cancelled or archived through its own methods, so a
+    // An aggregate that implements neither IDeletable nor ISoftDelete is cancelled or archived through its own methods, so a
     // delete it cannot be asked for is one nobody can call by mistake.
     private static void AppendDelete(StringBuilder s, Entity entity, string idType)
     {

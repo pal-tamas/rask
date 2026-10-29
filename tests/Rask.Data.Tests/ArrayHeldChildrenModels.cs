@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests.Arrays;
 
 /// <summary>A note of numbered tenants whose rows are an auto-property set to an empty collection expression.</summary>
-public sealed class Tanker : Aggregate<int, PerTenant<int>>
+public sealed class Tanker : Aggregate<int>, IPerTenant<int>
 {
     public string Number { get; private set; } = "";
 
@@ -46,7 +46,7 @@ public sealed partial class FillReading : Entity<(TankerFill, int Litres)>
 }
 
 /// <summary>A tote of <see cref="Guid" /> tenants whose items have keys the store hands out.</summary>
-public sealed class Tote : Aggregate<Guid, PerTenant>
+public sealed class Tote : Aggregate<Guid>, IPerTenant
 {
     public string Label { get; private set; } = "";
 
@@ -79,7 +79,7 @@ public sealed class ToteItemTag : Entity<int>
 }
 
 /// <summary>A squad with a form: its posts and its skills are auto-properties set to an empty collection expression.</summary>
-public sealed class Squad : Aggregate<Guid, Model>
+public sealed class Squad : Aggregate<Guid>, IFormModel
 {
     public string Name { get; private set; } = "";
 

@@ -5,10 +5,10 @@ namespace Rask.Storage;
 /// <summary>One stored file: what it is, where its bytes are, and whether it is public.</summary>
 /// <remarks>
 /// A class rather than a record: a record class can only derive from another record, and <c>Id</c>/<c>CreatedAt</c>
-/// come from the base. No <see cref="SoftDelete"/> and no <see cref="Versioned"/>: the orphan sweep removes
+/// come from the base. No <see cref="ISoftDelete"/> and no <see cref="IVersioned"/>: the orphan sweep removes
 /// rows for real, and nothing edits one twice.
 /// </remarks>
-public sealed class StoredFile : Aggregate<Guid, Timestamps>
+public sealed class StoredFile : Aggregate<Guid>, ITimestamps
 {
     /// <summary>The display name the file was uploaded with, reduced to a safe leaf.</summary>
     public string Name { get; internal set; } = "";
@@ -39,7 +39,7 @@ public sealed class StoredFile : Aggregate<Guid, Timestamps>
     /// <summary>The tenant the file was saved for, or <c>null</c> for one the host itself saved.</summary>
     /// <remarks>
     /// A <see cref="Guid"/>, like <c>Current.Tenant</c>. In an app whose tenant-scoped tables number their tenants
-    /// (<c>PerTenant&lt;int&gt;</c>) the column is that number, and this is the <see cref="Guid"/> that carries it —
+    /// (<c>IPerTenant&lt;int&gt;</c>) the column is that number, and this is the <see cref="Guid"/> that carries it —
     /// the one <c>Tenant.Use(42)</c> opens.
     /// </remarks>
     public Guid? TenantId { get; private set; }

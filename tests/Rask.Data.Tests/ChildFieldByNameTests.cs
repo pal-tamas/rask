@@ -18,7 +18,7 @@ public sealed class CaseNote : Entity<int>
 /// as a read-only view.
 /// </summary>
 /// <typeparam name="TSelf">The aggregate deriving from it.</typeparam>
-public abstract class Casebook<TSelf> : Aggregate<int, Model, Deletable>
+public abstract class Casebook<TSelf> : Aggregate<int>, IFormModel, IDeletable
     where TSelf : Casebook<TSelf>
 {
     private readonly List<CaseNote> _items = [];
@@ -61,7 +61,7 @@ public sealed class LogbookEntry : Entity<int>
 }
 
 /// <summary>An aggregate holding its own children in a field EF Core cannot match to the property by name.</summary>
-public sealed class Logbook : Aggregate<int, Model, Deletable>
+public sealed class Logbook : Aggregate<int>, IFormModel, IDeletable
 {
     private readonly List<LogbookEntry> _records = [];
 

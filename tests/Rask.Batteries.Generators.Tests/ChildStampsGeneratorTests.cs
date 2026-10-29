@@ -1,7 +1,7 @@
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-/// A child entity carries timestamps only when its own base names them (<c>Entity&lt;string, Timestamps&gt;</c>) —
+/// A child entity carries timestamps only when its own base names them (<c>Entity&lt;string&gt;, ITimestamps</c>) —
 /// not on its read face, not in its registered conventions.
 /// </summary>
 public class ChildStampsGeneratorTests
@@ -42,7 +42,7 @@ public class ChildStampsGeneratorTests
     [Fact]
     public void A_child_that_names_its_own_keeps_them()
     {
-        var run = Run("Entity<string, Timestamps>");
+        var run = Run("Entity<string>, ITimestamps");
 
         var chip = run.GeneratedSource("Fleet_ChipRead");
         var conventions = run.GeneratedSource("__RaskConventions");
@@ -62,7 +62,7 @@ public class ChildStampsGeneratorTests
             using Rask.Data;
             namespace Fleet;
 
-            public sealed class Driver : Aggregate<string, Timestamps, Versioned, Model, Deletable>
+            public sealed class Driver : Aggregate<string>, ITimestamps, IVersioned, IFormModel, IDeletable
             {
                 private readonly List<Chip> _chips = [];
                 private Driver() { }

@@ -11,9 +11,9 @@ namespace Rask.Auth.Tests;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The accounts table maps its tenant itself rather than naming <c>PerTenant</c>. It has
+/// The accounts table maps its tenant itself rather than naming <c>IPerTenant</c>. It has
 /// to: a tenant-scoped row is stamped from the ambient tenant and refused without one, and an administrator
-/// legitimately has none — a <c>PerTenant</c> accounts table could not have an admin inserted into it at all.
+/// legitimately has none — a <c>IPerTenant</c> accounts table could not have an admin inserted into it at all.
 /// </para>
 /// <para>
 /// The unique index is on <c>TenantKey</c>, not <c>TenantId</c>, because NULL in a unique index is not
@@ -67,7 +67,7 @@ public sealed class TenantAccountTests
     {
         await using var harness = new AuthHarness();
 
-        // The case a PerTenant accounts table could not serve at all: no ambient tenant, and the insert has
+        // The case an IPerTenant accounts table could not serve at all: no ambient tenant, and the insert has
         // to succeed rather than be refused for having none.
         await AddAsync(harness, "root@example.com", tenant: null);
 

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data.Tests;
 
 // Soft-deletable because it asks to be; the range tests only read the model built for it.
-public sealed class RangeLease : Aggregate<int, Timestamps, Versioned, Model, SoftDelete>
+public sealed class RangeLease : Aggregate<int>, ITimestamps, IVersioned, IFormModel, ISoftDelete
 {
     public long StartsAt { get; private set; }
 
@@ -13,7 +13,7 @@ public sealed class RangeLease : Aggregate<int, Timestamps, Versioned, Model, So
 }
 
 // The default aggregate: hard delete, so it has no DeletedAt column for the rule to filter on (#1131).
-public sealed class RangeDesk : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class RangeDesk : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public long StartsAt { get; private set; }
 
@@ -126,7 +126,7 @@ public sealed class RangeExclusionTests
             .HasNonOverlappingRange(x => x.StartsAt, x => x.EndsAt, ignoreSoftDeleted: true)));
 
         Assert.Equal("ignoreSoftDeleted", error.ParamName);
-        Assert.Contains("Name SoftDelete on its base", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Implement ISoftDelete on the aggregate", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

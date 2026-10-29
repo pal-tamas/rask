@@ -3,22 +3,22 @@ using Rask.Data;
 
 namespace Rask.Storage.Tests;
 
-/// <summary>A tenant-scoped table whose tenants are numbered: <c>PerTenant&lt;int&gt;</c>, with no declared column.</summary>
-public sealed class NumberedLedger : Aggregate<Guid, PerTenant<int>>
+/// <summary>A tenant-scoped table whose tenants are numbered: <c>IPerTenant&lt;int&gt;</c>, with no declared column.</summary>
+public sealed class NumberedLedger : Aggregate<Guid>, IPerTenant<int>
 {
     public string Name { get; private set; } = "";
 }
 
 /// <summary>The same numbered by <c>long</c>, declaring its column.</summary>
-public sealed class LongLedger : Aggregate<Guid, PerTenant<long>>
+public sealed class LongLedger : Aggregate<Guid>, IPerTenant<long>
 {
     public long? TenantId { get; private set; }
 
     public string Name { get; private set; } = "";
 }
 
-/// <summary>A tenant-scoped table whose tenants are Guids, as plain <c>PerTenant</c> gives it.</summary>
-public sealed class GuidLedger : Aggregate<Guid, PerTenant>
+/// <summary>A tenant-scoped table whose tenants are Guids, as plain <c>IPerTenant</c> gives it.</summary>
+public sealed class GuidLedger : Aggregate<Guid>, IPerTenant
 {
     public string Name { get; private set; } = "";
 }

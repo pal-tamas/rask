@@ -317,7 +317,7 @@ public sealed class ServerBatteryScaffoldTests
         var next = ProjectGenerator.GenerateServer(
             Root, "App", BatterySelection.BatteriesOf(["jobs"]), Version).Notes ?? "";
 
-        Assert.Contains("Aggregate<Guid, Timestamps, Versioned, Model, Deletable>", next, StringComparison.Ordinal);
+        Assert.Contains("Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable", next, StringComparison.Ordinal);
         Assert.DoesNotContain("Add a DbSet", next, StringComparison.Ordinal);
     }
 }

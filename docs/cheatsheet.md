@@ -46,7 +46,7 @@ A vertical slice under `Features/<Plural>/` is one aggregate and the components 
 
 | File | What it is |
 |---|---|
-| `Product.cs` | the aggregate — `Aggregate<Guid, Timestamps, Versioned, Model, Deletable>`, `private set` properties, validation attributes, no constructor |
+| `Product.cs` | the aggregate — `Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable`, `private set` properties, validation attributes, no constructor |
 | `CreateProduct.cs` | `[Route("/products/new")]` — a form over the generated `ProductModel`, saved through a `QueryClient.Command()` that runs `Product.Create(model)` |
 | `UpdateProduct.cs` | `[Route("/products/{id:guid}/edit")]` — loads `Product.Model(id)` through `QueryClient.Query`, saves with `Product.Update(id, model)` |
 | `DeleteProduct.cs` | a button per row — `Product.Delete(id, version)` behind a command |
@@ -124,19 +124,19 @@ Authorize[ NewProductButton ]                        // shown only to signed-in 
 Authorize.Role("admin")[ DeleteProductButton.Id(id) ]
 
 // Declare an aggregate: private setters, no constructor, a static factory; value objects need no marker (Rask.Data):
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { public string Name { get; private set; } = ""; }
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { public string Name { get; private set; } = ""; }
 
-// What a table carries — traits on the base, in any order, each opt-in (Rask.Data):
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable> { }  // what rask new scaffolds
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete> { }   // keep the row as DeletedAt
-public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned> { }   // no Model, no Deletable: methods only, never deleted
-public sealed class Ticket : Aggregate<Guid, PerTenant> { }                // a TenantId on the root, a filter — docs/multi-tenancy.md
-public sealed class OrderLine : Entity<Guid, Timestamps> { }               // a child takes only a timestamp trait
+// What a table carries — trait interfaces beside the base, in any order, each opt-in (Rask.Data):
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable { }  // what rask new scaffolds
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete { }   // keep the row as DeletedAt
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned { }   // no IFormModel, no IDeletable: methods only, never deleted
+public sealed class Ticket : Aggregate<Guid>, IPerTenant { }                // a TenantId on the root, a filter — docs/multi-tenancy.md
+public sealed class OrderLine : Entity<Guid>, ITimestamps { }               // a child takes only a timestamp trait
 
 // Who is signed in, from a static factory or anything with no constructor to inject into:
 OwnerId = Current.RequiredUserId,                   // Current.UserId is null when nobody is
 using (Tenant.Use(tenantId)) { /* … */ }           // work as one tenant; Tenant.Across() spans them
-using (Tenant.Use(42)) { /* … */ }                 // a numbered tenant: `PerTenant<int>` on the base
+using (Tenant.Use(42)) { /* … */ }                 // a numbered tenant: `IPerTenant<int>` on the aggregate
 builder.Services.AddRaskTenant(sp => …);            // the tenant from the request instead of the claim (Guid?, int?, long?)
 b.HasIndex(d => d.Name).IsUnique("Already taken.");   // a collision fails as a RaskValidationException, not a DbUpdateException
 b.HasMany<Note>().WithOne().HasForeignKey(n => n.TrailerId)

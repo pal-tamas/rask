@@ -42,7 +42,7 @@ public sealed class SiteExampleTests
 
             // The hero's code is one feature back to front, and its first file — the aggregate that is
             // the table — is in the prerendered document, both tabs with it.
-            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<Guid, Timestamps, Versioned, Model, Deletable>");
+            await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable");
             await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
 
             // The three front-end lanes are part of the prerendered document rather than something the

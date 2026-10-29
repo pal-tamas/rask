@@ -183,7 +183,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             GeneratedModelWrites.Delete<JournalLine>(Guid.NewGuid(), version: null, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("names neither Deletable nor SoftDelete", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("implements neither IDeletable nor ISoftDelete", refused.Message, StringComparison.Ordinal);
     }
 
     private Task<TestDatabase> StartDatabaseAsync() =>
@@ -191,7 +191,7 @@ public sealed class GeneratedModelWriteTests : IDisposable
 }
 
 // An append-only record: corrected by a reversing entry, never removed.
-public sealed class JournalLine : Aggregate<Guid, Timestamps, Versioned, Model>
+public sealed class JournalLine : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel
 {
     public decimal Amount { get; private set; }
 }

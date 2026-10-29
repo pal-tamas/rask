@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's silo, and the gauges fitted to it.</summary>
-public sealed class Silo : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Silo : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Gauge> _gauges = [];
 
@@ -35,7 +35,7 @@ public sealed class Gauge : Entity<string>
 }
 
 /// <summary>Grain moved between two silos, read off one gauge — another aggregate, holding nothing but ids.</summary>
-public sealed class Transfer : Aggregate<string, Model, SoftDelete>
+public sealed class Transfer : Aggregate<string>, IFormModel, ISoftDelete
 {
     private Transfer() { }
 
@@ -54,7 +54,7 @@ public sealed class Transfer : Aggregate<string, Model, SoftDelete>
 }
 
 /// <summary>A grade every tenant shares.</summary>
-public sealed class Grade : Aggregate<string, Model, Deletable>
+public sealed class Grade : Aggregate<string>, IFormModel, IDeletable
 {
     private Grade() { }
 
@@ -62,7 +62,7 @@ public sealed class Grade : Aggregate<string, Model, Deletable>
 }
 
 /// <summary>A tenant's reading of a shared grade.</summary>
-public sealed class Reading : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Reading : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private Reading() { }
 

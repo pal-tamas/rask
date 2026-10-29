@@ -14,13 +14,13 @@ public class CompositeKeyGeneratorTests
         using Rask.Data;
         namespace Fuel;
 
-        public sealed class DeliveryNote : Aggregate<int, PerTenant>
+        public sealed class DeliveryNote : Aggregate<int>, IPerTenant
         {
             public string Number { get; private set; } = "";
             public IReadOnlyList<DeliveryNoteTransaction> Fuellings { get; private set; } = [];
         }
 
-        public sealed class Transaction : Aggregate<int, PerTenant>
+        public sealed class Transaction : Aggregate<int>, IPerTenant
         {
             public int ProductId { get; private set; }
         }
@@ -41,7 +41,7 @@ public class CompositeKeyGeneratorTests
         using Rask.Data;
         namespace Reports;
 
-        public sealed class Report : Aggregate<int, PerTenant<int>>
+        public sealed class Report : Aggregate<int>, IPerTenant<int>
         {
             public IReadOnlyList<ReportColumn> Layout { get; private set; } = [];
         }
@@ -60,7 +60,7 @@ public class CompositeKeyGeneratorTests
 
     // The same note with a form: its fuellings, which carry a quantity of their own, are a list of rows on it.
     private static readonly string FuellingOnAForm = Fuelling.Replace(
-        "class DeliveryNote : Aggregate<int, PerTenant>", "class DeliveryNote : Aggregate<int, Model, PerTenant>", StringComparison.Ordinal);
+        "class DeliveryNote : Aggregate<int>, IPerTenant", "class DeliveryNote : Aggregate<int>, IFormModel, IPerTenant", StringComparison.Ordinal);
 
     // A company of an existing app linked to the activities it does: a pure link table, carried as their ids.
     private const string Activities = """
@@ -69,7 +69,7 @@ public class CompositeKeyGeneratorTests
         using Rask.Data;
         namespace Companies;
 
-        public sealed class Company : Aggregate<int, Model, PerTenant<int>>
+        public sealed class Company : Aggregate<int>, IFormModel, IPerTenant<int>
         {
             private readonly List<CompanyActivity> _activities = [];
             public string Name { get; private set; } = "";
@@ -376,7 +376,7 @@ public class CompositeKeyGeneratorTests
     [Fact]
     public void A_named_value_part_of_a_row_leads_its_model_and_is_required()
     {
-        var run = Run(Lines.Replace("class DeliveryNote : Aggregate<int, PerTenant>", "class DeliveryNote : Aggregate<int, Model, PerTenant>", StringComparison.Ordinal)
+        var run = Run(Lines.Replace("class DeliveryNote : Aggregate<int>, IPerTenant", "class DeliveryNote : Aggregate<int>, IFormModel, IPerTenant", StringComparison.Ordinal)
                       .Replace("IReadOnlyList<DeliveryNoteLine> Fuellings", "IReadOnlyList<DeliveryNoteLine> Lines", StringComparison.Ordinal) + """
             public sealed partial class DeliveryNoteLine : Entity<(DeliveryNote, int LineNo)>
             {
@@ -398,7 +398,7 @@ public class CompositeKeyGeneratorTests
     [Fact]
     public void A_row_holding_rows_of_its_own_on_an_aggregates_form_is_still_refused()
     {
-        var run = Run(Report.Replace("class Report : Aggregate<int, PerTenant<int>>", "class Report : Aggregate<int, Model, PerTenant<int>>", StringComparison.Ordinal));
+        var run = Run(Report.Replace("class Report : Aggregate<int>, IPerTenant<int>", "class Report : Aggregate<int>, IFormModel, IPerTenant<int>", StringComparison.Ordinal));
 
         var message = Assert.Single(Rask106(run));
 
@@ -423,7 +423,7 @@ public class CompositeKeyGeneratorTests
     [Fact]
     public void A_link_on_an_aggregate_without_a_form_gets_no_list()
     {
-        var run = Run(Activities.Replace("Aggregate<int, Model, PerTenant<int>>", "Aggregate<int, PerTenant<int>>", StringComparison.Ordinal));
+        var run = Run(Activities.Replace("Aggregate<int>, IFormModel, IPerTenant<int>", "Aggregate<int>, IPerTenant<int>", StringComparison.Ordinal));
 
         var company = run.GeneratedSource("Companies.CompanyModel");
 

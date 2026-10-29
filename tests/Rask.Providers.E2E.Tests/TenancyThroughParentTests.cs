@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant's driver: a text key, the tenant a <see cref="Guid" /> kept as text (#1251).</summary>
-public sealed class Driver : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Driver : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Chip> _chips = [];
 
@@ -28,7 +28,7 @@ public sealed class Driver : Aggregate<string, Model, Deletable, PerTenant>
 }
 
 /// <summary>The other parent of the same chips.</summary>
-public sealed class Vehicle : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Vehicle : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Chip> _chips = [];
 

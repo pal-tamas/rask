@@ -1,7 +1,7 @@
 namespace Rask.Data.Tests.Reports;
 
 /// <summary>A report of an existing app: numbered tenants, links to what it covers and a layout of columns.</summary>
-public sealed class Report : Aggregate<int, PerTenant<int>>
+public sealed class Report : Aggregate<int>, IPerTenant<int>
 {
     private readonly List<ReportSite> _sites = [];
     private readonly List<ReportColumn> _layout = [];
@@ -34,7 +34,7 @@ public sealed class Report : Aggregate<int, PerTenant<int>>
 }
 
 /// <summary>A site a report can cover.</summary>
-public sealed class Site : Aggregate<int, PerTenant<int>>
+public sealed class Site : Aggregate<int>, IPerTenant<int>
 {
     public string Name { get; private set; } = "";
 }

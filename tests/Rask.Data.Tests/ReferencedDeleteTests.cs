@@ -6,7 +6,7 @@ using Rask.Cqrs;
 namespace Rask.Data.Tests;
 
 /// <summary>Referenced by a row the model maps: the relationship says what a refused delete means.</summary>
-public sealed class Trailer : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Trailer : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public const string OnADocket = "A pótkocsi nem törölhető, mert szállítólevél hivatkozik rá.";
 
@@ -22,7 +22,7 @@ public sealed class Trailer : Aggregate<int, Timestamps, Versioned, Model, Delet
             .OnDelete(DeleteBehavior.Restrict, OnADocket);
 }
 
-public sealed class Docket : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Docket : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Docket() { }
 
@@ -32,7 +32,7 @@ public sealed class Docket : Aggregate<int, Timestamps, Versioned, Model, Deleta
 }
 
 /// <summary>Referenced by a table the model does not map: the entity says it, for whatever references it.</summary>
-public sealed class Tractor : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Tractor : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public const string InUse = "A vontató nem törölhető, mert még hivatkoznak rá.";
 
@@ -46,7 +46,7 @@ public sealed class Tractor : Aggregate<int, Timestamps, Versioned, Model, Delet
 }
 
 /// <summary>Referenced, and says nothing about it.</summary>
-public sealed class Garage : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Garage : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Garage() { }
 
@@ -58,7 +58,7 @@ public sealed class Garage : Aggregate<int, Timestamps, Versioned, Model, Deleta
         builder.HasMany<Bay>().WithOne().HasForeignKey(b => b.GarageId).OnDelete(DeleteBehavior.Restrict);
 }
 
-public sealed class Bay : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Bay : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Bay() { }
 
@@ -68,7 +68,7 @@ public sealed class Bay : Aggregate<int, Timestamps, Versioned, Model, Deletable
 }
 
 /// <summary>Two relationships with a sentence each, and one for the entity: SQLite cannot say which refused.</summary>
-public sealed class Yard : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Yard : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public const string HasAGate = "The yard still has a gate.";
     public const string HasAFence = "The yard still has a fence.";
@@ -88,7 +88,7 @@ public sealed class Yard : Aggregate<int, Timestamps, Versioned, Model, Deletabl
     }
 }
 
-public sealed class Gate : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Gate : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Gate() { }
 
@@ -97,7 +97,7 @@ public sealed class Gate : Aggregate<int, Timestamps, Versioned, Model, Deletabl
     public static Gate Of(int yardId) => new() { YardId = yardId };
 }
 
-public sealed class Fence : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Fence : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Fence() { }
 
@@ -107,7 +107,7 @@ public sealed class Fence : Aggregate<int, Timestamps, Versioned, Model, Deletab
 }
 
 /// <summary>Soft-deleted: the row stays, so the database is never asked.</summary>
-public sealed class Forwarder : Aggregate<int, Timestamps, Versioned, Model, SoftDelete>
+public sealed class Forwarder : Aggregate<int>, ITimestamps, IVersioned, IFormModel, ISoftDelete
 {
     public const string HasAnAgreement = "The forwarder still has an agreement.";
 
@@ -123,7 +123,7 @@ public sealed class Forwarder : Aggregate<int, Timestamps, Versioned, Model, Sof
             .OnDelete(DeleteBehavior.Restrict, HasAnAgreement);
 }
 
-public sealed class Agreement : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+public sealed class Agreement : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Agreement() { }
 

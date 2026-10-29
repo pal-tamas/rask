@@ -3,8 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Rask.Data.Tests;
 
-/// <summary>A tenant-scoped aggregate: <c>PerTenant</c> on its base, and it never mentions the tenant again.</summary>
-public sealed class Ledger : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+/// <summary>A tenant-scoped aggregate: <c>IPerTenant</c> on its base, and it never mentions the tenant again.</summary>
+public sealed class Ledger : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<LedgerEntry> _entries = [];
 
@@ -36,7 +36,7 @@ public sealed class LedgerEntry : Entity<Guid>
 }
 
 /// <summary>A tenant-scoped aggregate that READS its tenant, so it declares the column itself.</summary>
-public sealed class Vault : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+public sealed class Vault : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private Vault() { }
 
@@ -48,7 +48,7 @@ public sealed class Vault : Aggregate<Guid, Timestamps, Versioned, Model, Deleta
 }
 
 /// <summary>Not partitioned, but it keeps a tenant as data of its own — the shape a queue's rows have.</summary>
-public sealed class Haulier : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Haulier : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private Haulier() { }
 
@@ -62,8 +62,8 @@ public sealed class Haulier : Aggregate<Guid, Timestamps, Versioned, Model, Dele
 /// <summary>A ledger's reference and the tenant it belongs to, read across tenants.</summary>
 public sealed record LedgerOwner(string Reference, Guid? Tenant);
 
-/// <summary>An aggregate that does not name <c>PerTenant</c>, so it is one table for everybody.</summary>
-public sealed class RateCard : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+/// <summary>An aggregate that does not name <c>IPerTenant</c>, so it is one table for everybody.</summary>
+public sealed class RateCard : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private RateCard() { }
 
@@ -73,7 +73,7 @@ public sealed class RateCard : Aggregate<Guid, Timestamps, Versioned, Model, Del
 }
 
 /// <summary>
-/// <c>PerTenant</c> on the base partitions a table by tenant: a <c>TenantId</c> column, a query filter no read can
+/// <c>IPerTenant</c> on the base partitions a table by tenant: a <c>TenantId</c> column, a query filter no read can
 /// compose away, and a stamp on insert.
 /// </summary>
 /// <remarks>

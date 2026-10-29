@@ -370,7 +370,7 @@ internal sealed class SessionQueryClient : IQueryClient
     /// <summary>
     ///     Watches the entity a key names, for a query keyed by the thing it reads rather than by a message —
     ///     <c>QueryKey.For&lt;Order&gt;(…)</c>, a Rask.Data read face. Nothing is published unless that entity
-    ///     named <c>Broadcast</c> on its base, so this costs an unwatched table nothing.
+    ///     implements <c>IBroadcast</c>, so this costs an unwatched table nothing.
     /// </summary>
     internal void WatchKeyed(QueryKey key)
     {

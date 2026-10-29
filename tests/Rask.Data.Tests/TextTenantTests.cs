@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 /// A table that already exists, whose tenant is a <see cref="Guid" /> kept as TEXT: a string key and a text
 /// <c>TenantId</c> column, as a database another tool made often has it.
 /// </summary>
-public sealed class Branch : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Branch : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private Branch() { }
 

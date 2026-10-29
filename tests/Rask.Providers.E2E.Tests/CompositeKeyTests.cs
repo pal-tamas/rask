@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Providers.E2E.Tests.Fuel;
 
 /// <summary>A delivery note of an existing app: numbered tenants, no framework columns.</summary>
-public sealed class DeliveryNote : Aggregate<int, PerTenant>
+public sealed class DeliveryNote : Aggregate<int>, IPerTenant
 {
     private readonly List<DeliveryNoteTransaction> _fuellings = [];
 
@@ -25,7 +25,7 @@ public sealed class DeliveryNote : Aggregate<int, PerTenant>
 }
 
 /// <summary>A fuel transaction of the same app.</summary>
-public sealed class Transaction : Aggregate<int, PerTenant>
+public sealed class Transaction : Aggregate<int>, IPerTenant
 {
     public int? TenantId { get; private set; }
 

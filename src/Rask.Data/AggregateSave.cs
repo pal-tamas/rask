@@ -277,7 +277,7 @@ internal static class AggregateSave
         }
     }
 
-    // A column the type does not declare — a PerTenant<int> root's TenantId, a child's foreign key — is not on the
+    // A column the type does not declare — an IPerTenant<int> root's TenantId, a child's foreign key — is not on the
     // object attached, so it is put back as read: the tenant check reads it, and a save must not null it.
     private static void Restore(EntityEntry tracked, object original)
     {

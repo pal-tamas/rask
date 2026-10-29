@@ -174,14 +174,14 @@ public sealed partial class ModelInputGenerator
     }
 
     /// <summary>
-    ///     Whether the aggregate gets a generated <c>Delete</c>: its base names <c>Deletable</c> or <c>SoftDelete</c>.
+    ///     Whether the aggregate gets a generated <c>Delete</c>: it implements <c>IDeletable</c> or <c>ISoftDelete</c>.
     ///     One that names neither is corrected by a new row or retired by a state change, never removed.
     /// </summary>
     private static bool DeletableOf(INamedTypeSymbol symbol) => AggregateShape.IsDeletable(symbol);
 
     /// <summary>
-    ///     The writes a form model takes — <c>Model</c>, <c>CreateModel</c>, <c>UpdateModel</c> on the base — as
-    ///     <see cref="CreateWrite" /> / <see cref="UpdateWrite" /> bits; none when the base names none.
+    ///     The writes a form model takes — <c>IFormModel</c>, <c>ICreateFormModel</c>, <c>IUpdateFormModel</c> on the aggregate — as
+    ///     <see cref="CreateWrite" /> / <see cref="UpdateWrite" /> bits; none when it implements none.
     /// </summary>
     private static int WritesOf(INamedTypeSymbol symbol)
     {

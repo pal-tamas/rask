@@ -4,7 +4,7 @@ namespace Rask.Data.Tests;
 
 // The child shape Rask recommends: the line is an Entity<Guid>, NOT an Aggregate<Guid>. It has no version of its
 // own, no soft delete and no query surface — it is part of the invoice, and the invoice is what you load and save.
-public sealed class Basket : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Basket : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     private readonly List<BasketLine> _lines = [];
 

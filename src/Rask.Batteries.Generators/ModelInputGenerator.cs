@@ -15,7 +15,7 @@ namespace Rask.Batteries.Generators;
 /// Gives every <c>Rask.Data.Aggregate&lt;TId&gt;</c> a form-shaped companion — <c>ProductModel</c> for <c>Product</c> — and
 /// the writes that take it: <c>Product.Create(id, model)</c> where the key is the caller's to give,
 /// <c>Product.Create(model)</c> where one can be produced without the caller, <c>Product.Update(id, model)</c>, <c>Product.Update(id, apply)</c>
-/// and <c>Product.Delete(id, version)</c> — when the aggregate names <c>Deletable</c> or <c>SoftDelete</c>. Every write takes an optional <c>apply</c> (values that do not come
+/// and <c>Product.Delete(id, version)</c> — when the aggregate implements <c>IDeletable</c> or <c>ISoftDelete</c>. Every write takes an optional <c>apply</c> (values that do not come
 /// from the form) where it builds or edits a row, and an optional <c>db</c> to join a caller's context.
 /// </summary>
 /// <remarks>
@@ -43,7 +43,7 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
     /// <summary>The suffix the generated model takes after the entity's name.</summary>
     internal const string ModelSuffix = GeneratedModelShape.ModelSuffix;
 
-    // The writes a form model takes, read off the Model / CreateModel / UpdateModel traits.
+    // The writes a form model takes, read off the IFormModel / ICreateFormModel / IUpdateFormModel traits.
     private const int NoWrites = 0;
     private const int CreateWrite = 1;
     private const int UpdateWrite = 2;
@@ -156,8 +156,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
                 CompositeKeyGenerator.Rask106,
                 entity.Location?.ToLocation(),
                 parts[1],
-                $"'{entity.Name}.{parts[0]}' holds it on a form, and {parts[2]}; take 'Model' (or 'CreateModel' / "
-                + $"'UpdateModel') off '{entity.Name}''s base and fill '{parts[0]}' through a method of '{entity.Name}' "
+                $"'{entity.Name}.{parts[0]}' holds it on a form, and {parts[2]}; take 'IFormModel' (or 'ICreateFormModel' / "
+                + $"'IUpdateFormModel') off '{entity.Name}' and fill '{parts[0]}' through a method of '{entity.Name}' "
                 + $"— {entity.Name}.Update(id, x => x.Fill(…))"));
         }
     }

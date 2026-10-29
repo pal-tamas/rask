@@ -80,8 +80,9 @@ internal static class AggregateShape
     public const int Broadcast = 256;
 
     /// <summary>
-    ///     The traits the base of <paramref name="symbol" /> names — <c>Aggregate&lt;Guid, Timestamps, SoftDelete&gt;</c>
-    ///     — as <c>Rask.Data.TraitSet</c> bits. None when it names none: a table carries only what it asks for.
+    ///     The traits <paramref name="symbol" /> implements — <c>Order : Aggregate&lt;Guid&gt;, ITimestamps, ISoftDelete</c>
+    ///     — as <c>Rask.Data.TraitSet</c> bits, its bases' included. None when it implements none: a table carries only
+    ///     what it asks for.
     /// </summary>
     /// <remarks>
     ///     Read at compile time and carried out as an int, since an ISymbol must not cross an incremental-generator step.
@@ -90,74 +91,69 @@ internal static class AggregateShape
     {
         var traits = 0;
 
-        foreach (var argument in TraitArguments(symbol))
+        foreach (var trait in symbol.AllInterfaces)
         {
-            traits |= TraitOf(argument);
+            traits |= TraitOf(trait);
         }
 
         return traits;
     }
 
-    /// <summary>Whether the base of <paramref name="symbol" /> names <paramref name="trait" />.</summary>
+    /// <summary>Whether <paramref name="symbol" /> implements <paramref name="trait" />.</summary>
     public static bool Has(INamedTypeSymbol symbol, int trait) => (TraitsOf(symbol) & trait) == trait;
 
     /// <summary>
-    ///     The key type <c>PerTenant&lt;TKey&gt;</c> names, fully qualified — <c>global::System.Int32</c> — or null
-    ///     for plain <c>PerTenant</c> or none.
+    ///     The key type <c>IPerTenant&lt;TKey&gt;</c> names, fully qualified — <c>global::System.Int32</c> — or null
+    ///     for plain <c>IPerTenant</c> or none.
     /// </summary>
     public static string? TenantKeyOf(INamedTypeSymbol symbol) =>
-        TraitArguments(symbol)
-            .OfType<INamedTypeSymbol>()
-            .Where(static t => t is { Name: "PerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
+        symbol.AllInterfaces
+            .Where(static t => t is { Name: "IPerTenant", TypeArguments.Length: 1 } && IsRaskDataType(t))
             .Select(static t => t.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))
             .FirstOrDefault();
 
-    /// <summary>Whether the table has <c>CreatedAt</c>: only when its base names <c>Created</c> or <c>Timestamps</c>.</summary>
+    /// <summary>Whether the table has <c>CreatedAt</c>: only when it implements <c>ICreated</c> or <c>ITimestamps</c>.</summary>
     public static bool StampsCreated(INamedTypeSymbol entity) => Has(entity, Created);
 
-    /// <summary>Whether the table has <c>UpdatedAt</c>: only when its base names <c>Updated</c> or <c>Timestamps</c>.</summary>
+    /// <summary>Whether the table has <c>UpdatedAt</c>: only when it implements <c>IUpdated</c> or <c>ITimestamps</c>.</summary>
     public static bool StampsUpdated(INamedTypeSymbol entity) => Has(entity, Updated);
 
-    /// <summary>Whether the aggregate has a <c>Version</c>: only when its base names <c>Versioned</c>.</summary>
+    /// <summary>Whether the aggregate has a <c>Version</c>: only when it implements <c>IVersioned</c>.</summary>
     public static bool HasVersion(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, Versioned);
 
-    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when its base names <c>SoftDelete</c>.</summary>
+    /// <summary>Whether the aggregate has a <c>DeletedAt</c>: only when it implements <c>ISoftDelete</c>.</summary>
     public static bool SoftDeletes(INamedTypeSymbol entity) => IsAggregate(entity) && Has(entity, SoftDelete);
 
-    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>Deletable</c> or <c>SoftDelete</c>.</summary>
+    /// <summary>Whether the aggregate gets a generated <c>Delete</c>: <c>IDeletable</c> or <c>ISoftDelete</c>.</summary>
     public static bool IsDeletable(INamedTypeSymbol entity) =>
         IsAggregate(entity) && (TraitsOf(entity) & (Deletable | SoftDelete)) != 0;
 
-    // The type arguments after TId, on every Rask.Data base in the chain.
-    private static IEnumerable<ITypeSymbol> TraitArguments(INamedTypeSymbol symbol)
-    {
-        for (var current = symbol.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current is { Name: EntityBase or AggregateBase, TypeArguments.Length: > 1 } && IsRaskDataType(current))
-            {
-                foreach (var argument in current.TypeArguments.Skip(1))
-                {
-                    yield return argument;
-                }
-            }
-        }
-    }
+    /// <summary>
+    ///     The traits written on <paramref name="symbol" /> itself that only an aggregate root carries — <c>IFormModel</c>,
+    ///     <c>IDeletable</c>, <c>IPerTenant</c>, <c>IBroadcast</c> and the rest — as written. A child entity carries
+    ///     only <c>ICreated</c>, <c>IUpdated</c> or <c>ITimestamps</c>.
+    /// </summary>
+    public static IEnumerable<string> AggregateOnlyTraitsDeclaredOn(INamedTypeSymbol symbol) =>
+        symbol.Interfaces
+            .Where(static t => (TraitOf(t) & ~(Created | Updated)) != 0)
+            .Select(static t => t.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
 
-    private static int TraitOf(ITypeSymbol argument) =>
-        argument is INamedTypeSymbol named && IsRaskDataType(named)
-            ? named.Name switch
+    // A composite folds into what it stands for; AllInterfaces lists what it extends too, and OR-ing is idempotent.
+    private static int TraitOf(INamedTypeSymbol trait) =>
+        IsRaskDataType(trait)
+            ? trait.Name switch
             {
-                "Created" => Created,
-                "Updated" => Updated,
-                "Timestamps" => Created | Updated,
-                "Versioned" => Versioned,
-                "Model" => CreateModel | UpdateModel,
-                "CreateModel" => CreateModel,
-                "UpdateModel" => UpdateModel,
-                "Deletable" => Deletable,
-                "SoftDelete" => SoftDelete,
-                "PerTenant" => PerTenant,
-                "Broadcast" => Broadcast,
+                "ICreated" => Created,
+                "IUpdated" => Updated,
+                "ITimestamps" => Created | Updated,
+                "IVersioned" => Versioned,
+                "IFormModel" => CreateModel | UpdateModel,
+                "ICreateFormModel" => CreateModel,
+                "IUpdateFormModel" => UpdateModel,
+                "IDeletable" => Deletable,
+                "ISoftDelete" => SoftDelete,
+                "IPerTenant" => PerTenant,
+                "IBroadcast" => Broadcast,
                 _ => 0,
             }
             : 0;

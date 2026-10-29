@@ -30,7 +30,7 @@ public sealed class FormerCrate : FormerAggregate
 }
 
 /// <summary>Tenant-scoped, and silent about the column: it is a shadow one.</summary>
-public sealed class Pallet : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+public sealed class Pallet : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private Pallet() { }
 
@@ -38,7 +38,7 @@ public sealed class Pallet : Aggregate<Guid, Timestamps, Versioned, Model, Delet
 }
 
 /// <summary>Tenant-scoped, and it declares the column because it reads it.</summary>
-public sealed class Crate : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, PerTenant>
+public sealed class Crate : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private Crate() { }
 

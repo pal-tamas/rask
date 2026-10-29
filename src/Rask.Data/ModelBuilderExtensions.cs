@@ -65,7 +65,7 @@ public static class ModelBuilderExtensions
     /// </para>
     /// <para>
     /// <paramref name="context" /> must implement <see cref="ITenantScoped" /> once anything is
-    /// <see cref="PerTenant" />; the parameterless overload refuses rather than mapping a table whose
+    /// <see cref="IPerTenant" />; the parameterless overload refuses rather than mapping a table whose
     /// filter could not be built.
     /// </para>
     /// </remarks>
@@ -194,7 +194,7 @@ public static class ModelBuilderExtensions
 
     private static void ApplyTimestamps(EntityTypeBuilder builder, Type clrType)
     {
-        // Only what the base names — Aggregate<Guid, Timestamps> or Entity<Guid, Created> — read from the
+        // Only what the entity implements — ITimestamps, or ICreated / IUpdated alone — read from the
         // registry the generator filled at compile time, never reflected over.
         //
         // Ignore, not merely "do not add": both are real properties on Entity<TId>, so EF Core's own
@@ -215,7 +215,7 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only for an aggregate that names Versioned.
+    // Only for an aggregate that implements IVersioned.
     private static void ApplyVersion(EntityTypeBuilder builder, Type clrType)
     {
         if (ConventionRegistry.Has(clrType, TraitSet.Versioned))
@@ -228,7 +228,7 @@ public static class ModelBuilderExtensions
         }
     }
 
-    // Only for an aggregate that names SoftDelete. A stamped row still occupies its UNIQUE constraints.
+    // Only for an aggregate that implements ISoftDelete. A stamped row still occupies its UNIQUE constraints.
     private static void ApplySoftDelete(EntityTypeBuilder builder, Type clrType)
     {
         // Ignore, not merely "do not add" — the same rule as the timestamps above. Version and
@@ -254,7 +254,7 @@ public static class ModelBuilderExtensions
     internal const string TenantFilter = "Tenant";
 
     /// <summary>
-    /// Gives every <see cref="PerTenant" /> table its <c>TenantId</c> column and its query filter. Its
+    /// Gives every <see cref="IPerTenant" /> table its <c>TenantId</c> column and its query filter. Its
     /// indexes are what the app wrote: one that holds within a tenant names <c>TenantId</c> itself.
     /// </summary>
     /// <remarks>
@@ -279,7 +279,7 @@ public static class ModelBuilderExtensions
             if (context is not ITenantScoped)
             {
                 throw new InvalidOperationException(
-                    $"'{entityType.ClrType.Name}' names PerTenant, but its DbContext " +
+                    $"'{entityType.ClrType.Name}' implements IPerTenant, but its DbContext " +
                     $"('{context?.GetType().Name ?? "none"}') cannot supply the current tenant. Declare the " +
                     "context as ': DbContext, ITenantScoped' and call " +
                     "modelBuilder.ApplyRaskConventions(this) — the filter has to read the tenant through the " +

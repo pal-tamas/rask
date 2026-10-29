@@ -5,8 +5,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace Rask.Data;
 
 /// <summary>
-///     The traits each entity type's base names, as the generator read them — a child of a
-///     <see cref="PerTenant" /> root is registered partitioned too: tenancy is the aggregate's.
+///     The traits each entity type implements, as the generator read them — a child of a
+///     <see cref="IPerTenant" /> root is registered partitioned too: tenancy is the aggregate's.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -32,7 +32,7 @@ public static class ConventionRegistry
 
     /// <summary>Records the traits <paramref name="entity" /> named. Called by generated code.</summary>
     /// <param name="entity">The entity type.</param>
-    /// <param name="traits">What its base names, and its root's tenancy for a child.</param>
+    /// <param name="traits">What it implements, and its root's tenancy for a child.</param>
     public static void Declare(Type entity, TraitSet traits)
     {
         ArgumentNullException.ThrowIfNull(entity);
@@ -40,7 +40,7 @@ public static class ConventionRegistry
     }
 
     /// <summary>
-    ///     Records the key type of <c>PerTenant&lt;TKey&gt;</c>, for an aggregate that does not declare its
+    ///     Records the key type of <c>IPerTenant&lt;TKey&gt;</c>, for an aggregate that does not declare its
     ///     <c>TenantId</c>. Called by generated code.
     /// </summary>
     /// <param name="entity">The entity type.</param>
@@ -111,7 +111,7 @@ public static class ConventionRegistry
     /// <param name="entity">The entity type.</param>
     internal static bool IsPerTenant(Type entity) => Has(entity, TraitSet.PerTenant);
 
-    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="Deletable" /> or <see cref="SoftDelete" />.</summary>
+    /// <summary>Whether <paramref name="entity" /> gets a generated delete — <see cref="IDeletable" /> or <see cref="ISoftDelete" />.</summary>
     /// <param name="entity">The entity type.</param>
     internal static bool IsDeletable(Type entity) =>
         Has(entity, TraitSet.Deletable) || Has(entity, TraitSet.SoftDelete);
@@ -119,7 +119,7 @@ public static class ConventionRegistry
     /// <summary>Whether any entity at all is partitioned by tenant.</summary>
     internal static bool AnyTenantScoped => DeclaredTraits.Values.Any(static t => (t & TraitSet.PerTenant) != TraitSet.None);
 
-    /// <summary>The key type <c>PerTenant&lt;TKey&gt;</c> named, or null for plain <see cref="PerTenant" />.</summary>
+    /// <summary>The key type <c>IPerTenant&lt;TKey&gt;</c> named, or null for plain <see cref="IPerTenant" />.</summary>
     /// <param name="entity">The entity type.</param>
     internal static Type? TenantKeyFor(Type entity) => DeclaredTenantKeys.GetValueOrDefault(entity);
 

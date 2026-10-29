@@ -252,7 +252,7 @@ public abstract class PostgresBulkInsertArms
 /// <see cref="BenchProduct"/> for PostgreSQL: an aggregate, so every arm writes the same columns and the Rask arms
 /// carry the stamping every entity gets.
 /// </summary>
-public sealed class PgBenchProduct : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class PgBenchProduct : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public string Sku { get; private set; } = string.Empty;
 

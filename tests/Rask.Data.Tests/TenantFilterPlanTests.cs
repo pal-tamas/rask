@@ -6,7 +6,7 @@ namespace Rask.Data.Tests;
 public sealed record SkiffSize(int Width, int Height);
 
 /// <summary>A tenant-scoped aggregate holding a multi-value value object (a complex type).</summary>
-public sealed class Skiff : Aggregate<int, Timestamps, Versioned, Model, Deletable, PerTenant>
+public sealed class Skiff : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private Skiff() { }
 

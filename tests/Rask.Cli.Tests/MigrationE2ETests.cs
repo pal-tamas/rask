@@ -85,7 +85,7 @@ public sealed class MigrationE2ETests
     /// <remarks>
     ///     <para>
     ///         This is the headline claim of the data layer measured on the path a user actually takes:
-    ///         <c>rask new --data</c>, then one class deriving from <c>Model&lt;TId&gt;</c>. No
+    ///         <c>rask new --data</c>, then one class deriving from <c>Aggregate&lt;TId&gt;</c>. No
     ///         <c>DbSet</c>, no <c>IEntityTypeConfiguration</c>, no registration, no edit to
     ///         <c>AppDbContext</c>.
     ///     </para>
@@ -127,7 +127,7 @@ public sealed class MigrationE2ETests
 
                 namespace {{name}}.Features.Shared;
 
-                public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+                public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
                 {
                     public string Name { get; private set; } = "";
                 }

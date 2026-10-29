@@ -13,7 +13,7 @@ public sealed partial class ModelInputGenerator
 {
     private static string Render(Entity entity)
     {
-        // What the Model / CreateModel / UpdateModel traits name. It reaches the FORM surface only: the behaviour
+        // What the IFormModel / ICreateFormModel / IUpdateFormModel traits ask for. It reaches the FORM surface only: the behaviour
         // writes below take no model, and the read face is generated elsewhere and not negotiable.
         var formCreate = (entity.Writes & CreateWrite) != 0;
         var formUpdate = (entity.Writes & UpdateWrite) != 0;

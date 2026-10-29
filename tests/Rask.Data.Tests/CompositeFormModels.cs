@@ -7,7 +7,7 @@ namespace Rask.Data.Tests.Companies;
 /// A company of an existing app, edited through a form: the activities it does are a link table, the columns of its
 /// report have fields of their own.
 /// </summary>
-public sealed class Company : Aggregate<int, Model, PerTenant<int>>
+public sealed class Company : Aggregate<int>, IFormModel, IPerTenant<int>
 {
     private readonly List<CompanyActivity> _activities = [];
     private readonly List<CompanyColumn> _columns = [];
@@ -23,7 +23,7 @@ public sealed class Company : Aggregate<int, Model, PerTenant<int>>
 }
 
 /// <summary>An activity a company can do: one list for every tenant.</summary>
-public sealed class Teaor : Aggregate<int, Model>
+public sealed class Teaor : Aggregate<int>, IFormModel
 {
     public string Code { get; private set; } = "";
 }

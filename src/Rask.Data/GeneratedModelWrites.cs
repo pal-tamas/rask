@@ -153,7 +153,7 @@ public static class GeneratedModelWrites
     /// <param name="cancellationToken">Cancels the load and the save; unset, the work this call belongs to does.</param>
     /// <exception cref="KeyNotFoundException">No row has <paramref name="key" /> (or it is soft-deleted).</exception>
     /// <exception cref="DbUpdateConcurrencyException">The row's version is no longer <paramref name="version" />.</exception>
-    /// <exception cref="InvalidOperationException">The aggregate names neither <see cref="Deletable" /> nor <see cref="SoftDelete" />.</exception>
+    /// <exception cref="InvalidOperationException">The aggregate names neither <see cref="IDeletable" /> nor <see cref="ISoftDelete" />.</exception>
     public static Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
         object key,
         int? version,
@@ -179,7 +179,7 @@ public static class GeneratedModelWrites
 
     /// <summary>
     ///     Deletes the aggregate the caller holds — what <c>product.Delete()</c> does — from what <c>Find</c> read,
-    ///     with no read first: a stamp when it names <see cref="SoftDelete" />, the row and its children otherwise.
+    ///     with no read first: a stamp when it implements <see cref="ISoftDelete" />, the row and its children otherwise.
     /// </summary>
     /// <param name="entity">The aggregate, from <c>Find</c> or saved.</param>
     /// <param name="db">
@@ -187,7 +187,7 @@ public static class GeneratedModelWrites
     ///     it, and it is not disposed.
     /// </param>
     /// <param name="cancellationToken">Cancels the save; unset, the work this call belongs to does.</param>
-    /// <exception cref="InvalidOperationException">It was never saved, or names neither Deletable nor SoftDelete.</exception>
+    /// <exception cref="InvalidOperationException">It was never saved, or implements neither IDeletable nor ISoftDelete.</exception>
     /// <exception cref="KeyNotFoundException">Its row has been deleted since it was read, and it has no Version to say so.</exception>
     /// <exception cref="DbUpdateConcurrencyException">Its row was changed or deleted by someone else since it was read.</exception>
     public static async Task Delete<[DynamicallyAccessedMembers(DataTrimming.Entity)] TEntity>(
@@ -286,7 +286,7 @@ public static class GeneratedModelWrites
         if (!ConventionRegistry.IsDeletable(typeof(TEntity)))
         {
             throw new InvalidOperationException(
-                $"{typeof(TEntity).Name} names neither Deletable nor SoftDelete, so it is never deleted; " +
+                $"{typeof(TEntity).Name} implements neither IDeletable nor ISoftDelete, so it is never deleted; " +
                 "retire it through a method of its own (Cancel, Archive) instead.");
         }
     }
@@ -351,7 +351,7 @@ public static class GeneratedModelWrites
         if (entry.Metadata.FindProperty(Columns.Version) is null)
         {
             throw new InvalidOperationException(
-                $"{entry.Metadata.ClrType.Name} does not name Versioned, so it has no Version to compare " +
+                $"{entry.Metadata.ClrType.Name} does not implement IVersioned, so it has no Version to compare " +
                 $"{expected} with. Call the write without a version, or remove the const to keep the check.");
         }
 

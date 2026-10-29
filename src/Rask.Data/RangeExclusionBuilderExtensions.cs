@@ -36,7 +36,7 @@ public static class RangeExclusionBuilderExtensions
     /// </param>
     /// <param name="ignoreSoftDeleted">
     /// Excludes soft-deleted rows, so a deleted row frees its slot. Defaults to <see langword="true"/> when
-    /// <typeparamref name="TEntity"/> names <see cref="SoftDelete" />, and to
+    /// <typeparamref name="TEntity"/> implements <see cref="ISoftDelete" />, and to
     /// <see langword="false"/> otherwise — a hard-deleted row has already freed its slot, and there is no
     /// <c>DeletedAt</c> column to filter on.
     /// </param>
@@ -67,7 +67,7 @@ public static class RangeExclusionBuilderExtensions
         {
             throw new ArgumentException(
                 $"'{typeof(TEntity).Name}' does not soft delete, so it has no DeletedAt column for a " +
-                "non-overlapping range to ignore. Name SoftDelete on its base (Aggregate<Guid, SoftDelete>), " +
+                "non-overlapping range to ignore. Implement ISoftDelete on the aggregate (Aggregate<Guid>, ISoftDelete), " +
                 "or drop 'ignoreSoftDeleted: true' — a hard-deleted row has already freed its slot.",
                 nameof(ignoreSoftDeleted));
         }

@@ -20,7 +20,7 @@ public class ConfiguredRelationshipReadTests
                 private ProductCategory() { }
                 public string Name { get; private set; } = "";
             }
-            public sealed class Product : Aggregate<int, PerTenant>
+            public sealed class Product : Aggregate<int>, IPerTenant
             {
                 private Product() { }
                 public int? TenantId { get; private set; }
@@ -49,7 +49,7 @@ public class ConfiguredRelationshipReadTests
         {
             private Country() { }
         }
-        public sealed class Provider : Aggregate<int, PerTenant>
+        public sealed class Provider : Aggregate<int>, IPerTenant
         {
             private Provider() { }
             public int? TenantId { get; private set; }

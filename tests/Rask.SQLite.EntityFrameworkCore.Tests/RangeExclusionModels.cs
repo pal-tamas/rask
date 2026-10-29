@@ -103,7 +103,7 @@ internal sealed class RenamedColumnContext(DbContextOptions options) : DbContext
     }
 }
 
-internal sealed class Lease : Aggregate<int, Timestamps, Versioned, Model, SoftDelete>
+internal sealed class Lease : Aggregate<int>, ITimestamps, IVersioned, IFormModel, ISoftDelete
 {
     public int AssetId { get; private set; }
 
@@ -129,7 +129,7 @@ internal sealed class LeaseContext(DbContextOptions options) : DbContext(options
 }
 
 // The default aggregate: hard delete, so DeletedAt is ignored and the rule has nothing to filter on (#1131).
-internal sealed class Reservation : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+internal sealed class Reservation : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public int DeskId { get; private set; }
 

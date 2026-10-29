@@ -457,7 +457,7 @@ missing from the model, the boot stops and names the line to add.
 #### An adopted database: the tables by hand
 
 An app that keeps its own schema and runs no Rask migrations creates the two tables itself. On SQL Server, in
-`dbo` with plain names — for an app whose tenants are numbered (`PerTenant<int>`):
+`dbo` with plain names — for an app whose tenants are numbered (`IPerTenant<int>`):
 
 <!-- ddl:sqlserver-int -->
 ```sql
@@ -551,8 +551,8 @@ them — leaving other tenants' files on disk for ever while the sweep reported 
 
 **The tenant column follows your tenants.** `StoredFile.TenantId` is a `Guid?` in C#, like `Current.Tenant`. Its
 column is a `uniqueidentifier` (a `uuid`, SQLite text) — unless every tenant-scoped table in the model numbers its
-tenants (`PerTenant<int>`, or a declared `int? TenantId`): then it is an `int` column holding the number itself,
-`42` for `Tenant.Use(42)` — or a `bigint` for `PerTenant<long>`. A model with no tenant-scoped table, or with tables
+tenants (`IPerTenant<int>`, or a declared `int? TenantId`): then it is an `int` column holding the number itself,
+`42` for `Tenant.Use(42)` — or a `bigint` for `IPerTenant<long>`. A model with no tenant-scoped table, or with tables
 of more than one kind, keeps the `Guid` column. `modelBuilder.AddRaskStorage()` reads this off the model, before or
 after `ApplyRaskConventions`. In a numbered app, a tenant in flight that is not a number is refused rather than
 compared.

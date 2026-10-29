@@ -7,11 +7,11 @@ namespace Rask.Background;
 /// and drained by the <see cref="JobProcessor{TContext}"/>.
 /// </summary>
 /// <remarks>
-/// Names neither <see cref="SoftDelete"/> nor <see cref="Versioned"/>: a soft-delete query filter would hide rows
+/// Names neither <see cref="ISoftDelete"/> nor <see cref="IVersioned"/>: a soft-delete query filter would hide rows
 /// from the claim query and turn the dashboard's purge into a stamp, and a <c>Version</c> would be a second
 /// concurrency token beside <see cref="ClaimToken"/> that the processor's <c>ExecuteUpdate</c> never maintains.
 /// </remarks>
-public sealed class Job : Aggregate<long, Timestamps>
+public sealed class Job : Aggregate<long>, ITimestamps
 {
     private Job()
     {

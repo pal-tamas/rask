@@ -10,10 +10,10 @@ namespace Rask.Caching;
 /// The table carries a surrogate <c>Id</c> and keeps <see cref="Key"/> as a UNIQUE index. Nothing ever looked
 /// this row up by primary key — every read is <c>Where(e =&gt; e.Key == key)</c> — and nothing holds a foreign
 /// key to it, so the surrogate changes no lookup; it is what lets the row have a read face. No
-/// <see cref="SoftDelete"/>: a soft-delete filter over a cache would hide entries the purge sweep is meant to
+/// <see cref="ISoftDelete"/>: a soft-delete filter over a cache would hide entries the purge sweep is meant to
 /// remove.
 /// </remarks>
-public sealed class CacheEntry : Aggregate<Guid, Timestamps>
+public sealed class CacheEntry : Aggregate<Guid>, ITimestamps
 {
     /// <summary>The cache key.</summary>
     public string Key { get; internal set; } = "";

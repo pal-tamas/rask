@@ -25,7 +25,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Shop.Features.Products;
 
-public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     [MaxLength(200)]
     public string Name { get; private set; } = "";
@@ -43,15 +43,15 @@ configuration class, no registration). The key comes first, and every name after
 the table opts into:
 
 - **`Guid`** is the `Id`, the key, generated for you when a product is created.
-- **`Timestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
-- **`Versioned`** adds `Version`, a concurrency token bumped on every update. It's what stops two people editing
+- **`ITimestamps`** adds `CreatedAt` / `UpdatedAt`, stamped on every save.
+- **`IVersioned`** adds `Version`, a concurrency token bumped on every update. It's what stops two people editing
   the same product from silently overwriting each other, and you'll see it at work in section 4.
-- **`Model`** generates the `ProductModel` the forms below bind, with `Product.Create(model)` and
+- **`IFormModel`** generates the `ProductModel` the forms below bind, with `Product.Create(model)` and
   `Product.Update(id, model)`.
-- **`Deletable`** generates `Product.Delete(id)`.
+- **`IDeletable`** generates `Product.Delete(id)`.
 
 The columns are ordinary read-only properties, so a page can show `product.CreatedAt` or sort by it. A delete
-removes the row; an aggregate whose deleted rows must stay recoverable names `SoftDelete` instead of `Deletable`
+removes the row; an aggregate whose deleted rows must stay recoverable implements `ISoftDelete` instead of `IDeletable`
 and gets a `DeletedAt` column (see [choosing what a table carries](../data.md#choosing-what-a-table-carries)).
 
 Two rules shape the class, and the build enforces both:
@@ -318,7 +318,7 @@ public sealed partial class DeleteProduct : Component
 ```
 
 A delete **removes the row** from `app.db`, so every read, the list's included, stops seeing it. `Product`
-names `Deletable`; naming `SoftDelete` instead would keep deleted products in the table behind a `DeletedAt`
+implements `IDeletable`; implementing `ISoftDelete` instead would keep deleted products in the table behind a `DeletedAt`
 stamp.
 
 ## 5. The list page
@@ -420,7 +420,7 @@ whose key holds it reads that page: `OrderBy` becomes `ORDER BY` and `Skip`/`Tak
 the database does the work however large the catalog grows. `Key(p.Id)` on each row is what identifies it when
 the page redraws. The table has a width and every column but `Name` has one, so the columns
 [stay where they are](../ui-kit.md#tables) from one page or sort order to the next. The rows are
-read faces, read-only by construction; `UpdatedAt` is one of the columns `Timestamps` brought.
+read faces, read-only by construction; `UpdatedAt` is one of the columns `ITimestamps` brought.
 
 Note what the page doesn't have: an `OnMount`, or anything that refreshes after a delete. Both lists are
 **queries** — asked for in `Render`, cached for the session, loading on their own. Their keys,

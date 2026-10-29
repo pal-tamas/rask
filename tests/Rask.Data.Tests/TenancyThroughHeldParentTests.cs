@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Query;
 namespace Rask.Data.Tests;
 
 /// <summary>A tenant's operating company — the aggregate the children below only point at.</summary>
-public sealed class Outfit : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Outfit : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private Outfit() { }
 
@@ -14,7 +14,7 @@ public sealed class Outfit : Aggregate<string, Model, Deletable, PerTenant>
 }
 
 /// <summary>A tenant's storage tank, holding its cells.</summary>
-public sealed class Cistern : Aggregate<string, Model, SoftDelete, PerTenant>
+public sealed class Cistern : Aggregate<string>, IFormModel, ISoftDelete, IPerTenant
 {
     private readonly List<Cell> _cells = [];
 
@@ -41,7 +41,7 @@ public sealed class Cell : Entity<string>
 }
 
 /// <summary>A tenant's pump, holding its spouts.</summary>
-public sealed class Bowser : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Bowser : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Spout> _spouts = [];
 
@@ -68,7 +68,7 @@ public sealed class Spout : Entity<string>
 }
 
 /// <summary>A tenant's delivery, holding its lines.</summary>
-public sealed class Dropoff : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Dropoff : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<DropoffLine> _lines = [];
 
@@ -95,7 +95,7 @@ public sealed class DropoffLine : Entity<string>
 }
 
 /// <summary>One parent of a fob.</summary>
-public sealed class Chauffeur : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Chauffeur : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Fob> _fobs = [];
 
@@ -112,7 +112,7 @@ public sealed class Chauffeur : Aggregate<string, Model, Deletable, PerTenant>
 }
 
 /// <summary>The other parent of a fob.</summary>
-public sealed class Lorry : Aggregate<string, Model, Deletable, PerTenant>
+public sealed class Lorry : Aggregate<string>, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<Fob> _fobs = [];
 

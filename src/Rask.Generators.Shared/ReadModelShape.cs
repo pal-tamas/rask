@@ -399,7 +399,7 @@ internal static class ReadModelShape
         }
     }
 
-    // The framework columns its base names: CreatedAt / UpdatedAt, Version, DeletedAt.
+    // The framework columns its traits ask for: CreatedAt / UpdatedAt, Version, DeletedAt.
     private static void AddFrameworkColumns(INamedTypeSymbol entity, List<ReadMember> members)
     {
         // Only the columns the table has. A face that showed one the consts ruled out would compile —
@@ -426,7 +426,7 @@ internal static class ReadModelShape
     }
 
     // A per-tenant ROOT's face reads its tenant, so a read under Tenant.Across() can tell whose row it is — in the
-    // column's own type: the one the root declares, else PerTenant<TKey>'s, else Guid. A column only, never a
+    // column's own type: the one the root declares, else IPerTenant<TKey>'s, else Guid. A column only, never a
     // navigation, and never on a child, which belongs to its root's tenant. The face is init-only, so nothing writes it.
     private static void AddTenantColumn(INamedTypeSymbol entity, List<ReadMember> members)
     {

@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 /// A table that already exists, mapped as it is: an identity key, a tenant numbered by an <c>int</c>, a name
 /// unique within the tenant, and none of the framework's columns.
 /// </summary>
-public sealed class Destination : Aggregate<int, Model, Deletable, PerTenant>
+public sealed class Destination : Aggregate<int>, IFormModel, IDeletable, IPerTenant
 {
     private Destination() { }
 
@@ -28,7 +28,7 @@ public sealed class Destination : Aggregate<int, Model, Deletable, PerTenant>
 }
 
 /// <summary>The same with a <c>long</c> tenant, and a child that keeps the tenant in its own column.</summary>
-public sealed class Waybill : Aggregate<long, Timestamps, Versioned, Model, Deletable, PerTenant>
+public sealed class Waybill : Aggregate<long>, ITimestamps, IVersioned, IFormModel, IDeletable, IPerTenant
 {
     private readonly List<WaybillLine> _lines = [];
 
@@ -70,10 +70,10 @@ public sealed class MistypedTenant
     public string TenantId { get; set; } = "";
 }
 
-/// <summary>Not an entity: what <c>PerTenant&lt;int&gt;</c> gives a table that declares no <c>TenantId</c>.</summary>
+/// <summary>Not an entity: what <c>IPerTenant&lt;int&gt;</c> gives a table that declares no <c>TenantId</c>.</summary>
 public sealed class UndeclaredNumberedTenant;
 
-/// <summary>Not an entity: a declared <c>TenantId</c> that disagrees with <c>PerTenant&lt;long&gt;</c>.</summary>
+/// <summary>Not an entity: a declared <c>TenantId</c> that disagrees with <c>IPerTenant&lt;long&gt;</c>.</summary>
 public sealed class DisagreeingNumberedTenant
 {
     public int? TenantId { get; set; }
@@ -728,7 +728,7 @@ public sealed class NumberedTenantTests : IDisposable
 
         var refused = Assert.Throws<InvalidOperationException>(() => TenantColumn.TypeFor(typeof(DisagreeingNumberedTenant)));
 
-        Assert.Contains("PerTenant<Int64>", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("IPerTenant<Int64>", refused.Message, StringComparison.Ordinal);
         Assert.Contains("'Int32?'", refused.Message, StringComparison.Ordinal);
     }
 

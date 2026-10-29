@@ -6,9 +6,9 @@ namespace Rask.Cqrs;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Published for an entity that names <c>Broadcast</c> on its base, and consumed by
+///         Published for an entity that implements <c>IBroadcast</c>, and consumed by
 ///         <c>Rask.Query</c>, which refetches the queries that declared they read that entity. An application
-///         rarely names it: <c>Broadcast</c> on the aggregate's base and a live query are the whole of it.
+///         rarely names it: <c>IBroadcast</c> on the aggregate and a live query are the whole of it.
 ///     </para>
 ///     <para>
 ///         The entity travels as a name rather than a <see cref="System.Type" /> so the same event crosses

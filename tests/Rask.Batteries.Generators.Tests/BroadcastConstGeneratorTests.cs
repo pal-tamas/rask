@@ -1,7 +1,7 @@
 namespace Rask.Batteries.Generators.Tests;
 
 /// <summary>
-///     The <c>Broadcast</c> trait, which is what makes a save announce itself to pages that did not make it.
+///     The <c>IBroadcast</c> trait, which is what makes a save announce itself to pages that did not make it.
 ///     Without this the base compiles, the build is green, and <c>Live()</c> silently never fires.
 /// </summary>
 public class BroadcastConstGeneratorTests
@@ -17,7 +17,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable, Broadcast>
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable, IBroadcast
             {
             }
             """);
@@ -38,7 +38,7 @@ public class BroadcastConstGeneratorTests
             using System;
             using Rask.Data;
             namespace Shop;
-            public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+            public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
             {
             }
             """);

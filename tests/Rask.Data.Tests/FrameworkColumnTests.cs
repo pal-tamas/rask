@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Rask.Data.Tests;
 
 // An aggregate that names every column trait: the framework's columns come from the bases.
-public sealed class Memo : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+public sealed class Memo : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
 {
     private Memo() { } // EF materialization
 
@@ -29,7 +29,7 @@ public sealed class FrameworkColumnTests : IDisposable
         await using var database = await StartDatabaseAsync();
 
         // The default is HARD: no column, no query filter, and Delete removes the row. An aggregate
-        // that wants the row kept says so — see Memo, whose base names SoftDelete.
+        // that wants the row kept says so — see Memo, which implements ISoftDelete.
         var receipt = database.Context.Model.FindEntityType(typeof(Receipt))!;
         Assert.Null(receipt.FindProperty(Columns.DeletedAt));
         Assert.Empty(receipt.GetDeclaredQueryFilters());
@@ -61,7 +61,7 @@ public sealed class FrameworkColumnTests : IDisposable
         Assert.NotNull(ledger.FindProperty(Columns.CreatedAt));
         Assert.Null(ledger.FindProperty(Columns.UpdatedAt));
 
-        // And a neighbour that names Timestamps keeps both.
+        // And a neighbour that implements ITimestamps keeps both.
         var memo = database.Context.Model.FindEntityType(typeof(Memo))!;
         Assert.NotNull(memo.FindProperty(Columns.CreatedAt));
         Assert.NotNull(memo.FindProperty(Columns.UpdatedAt));
@@ -133,14 +133,14 @@ public sealed class FrameworkColumnTests : IDisposable
 }
 
 /// <summary>An append-only table: written once, never changed, so it declines <c>UpdatedAt</c>.</summary>
-public sealed class AppendOnlyLedger : Entity<long, Created>
+public sealed class AppendOnlyLedger : Entity<long>, ICreated
 {
     /// <summary>What was recorded.</summary>
     public string Line { get; private set; } = "";
 }
 
 /// <summary>An aggregate that names what a CRUD table carries: timestamps, a version, a model, a delete.</summary>
-public sealed class Receipt : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Receipt : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     /// <summary>What the receipt says.</summary>
     public string Text { get; private set; } = "";

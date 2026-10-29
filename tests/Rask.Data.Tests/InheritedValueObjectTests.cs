@@ -16,7 +16,7 @@ public sealed record FilingPeriod(int Year, int Quarter);
 /// An abstract base two aggregates share, holding every shape of value: a nullable one-value struct, a
 /// required one-value class, one of several values, and a collection of values behind a private field.
 /// </summary>
-public abstract class Filing : Aggregate<int, Model, Deletable>
+public abstract class Filing : Aggregate<int>, IFormModel, IDeletable
 {
     private readonly List<string> _tags = [];
 

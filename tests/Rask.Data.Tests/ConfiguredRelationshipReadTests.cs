@@ -22,7 +22,7 @@ public sealed class ForeignTaxCategory : Aggregate<int>
 }
 
 /// <summary>A tenant's good, holding one id to each category — the second one under a name that ends in the first.</summary>
-public sealed class TaxedGood : Aggregate<int, PerTenant>
+public sealed class TaxedGood : Aggregate<int>, IPerTenant
 {
     public int? TenantId { get; private set; }
 
@@ -46,7 +46,7 @@ public sealed class Country : Aggregate<int>
 }
 
 /// <summary>A tenant's provider, kept in a table an older app named after transaction types.</summary>
-public sealed class Provider : Aggregate<int, PerTenant>
+public sealed class Provider : Aggregate<int>, IPerTenant
 {
     public int? TenantId { get; private set; }
 

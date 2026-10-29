@@ -115,7 +115,7 @@ public sealed class FullTextModelSearchTests : IDisposable
     }
 }
 
-internal sealed class Post : Aggregate<int, Timestamps, Versioned, Model, Deletable>
+internal sealed class Post : Aggregate<int>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public string Title { get; private set; } = string.Empty;
 

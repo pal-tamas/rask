@@ -17,7 +17,7 @@ internal sealed class PushSubscriberConfiguration : IEntityTypeConfiguration<Pus
         entity.HasIndex(s => s.Endpoint).IsUnique();
         entity.HasIndex(s => s.UserId);
         entity.Ignore(s => s.Subscription);
-        // Mapped explicitly, and the table is deliberately not PerTenant: a broadcast from a background
+        // Mapped explicitly, and the table is deliberately not IPerTenant: a broadcast from a background
         // job has no tenant to filter by. The tenant is data on the row.
         entity.Property(s => s.TenantId);
     }

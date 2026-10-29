@@ -20,7 +20,7 @@ public class InheritedValueObjectTests
             private Line() { }
             public string Text { get; private set; } = "";
         }
-        public abstract class Filing : Aggregate<int, Model, Deletable>
+        public abstract class Filing : Aggregate<int>, IFormModel, IDeletable
         {
             private readonly List<string> _tags = [];
             private readonly List<Line> _lines = [];

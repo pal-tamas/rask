@@ -21,7 +21,7 @@ public class ChildFieldDeclarationTests
             private Entry() { }
             public string Text { get; private set; } = "";
         }
-        public abstract class Casebook<TSelf> : Aggregate<int, Model>
+        public abstract class Casebook<TSelf> : Aggregate<int>, IFormModel
             where TSelf : Casebook<TSelf>
         {
             private readonly List<Note> _items = [];

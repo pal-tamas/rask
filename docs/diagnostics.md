@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK112, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK113, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -136,6 +136,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK110](#rask110) | Error | More than one class implements `IRaskModel` |
 | [RASK111](#rask111) | Warning | A collection of value objects with no list behind it is a NULL column |
 | [RASK112](#rask112) | Error | A relationship configured in `Configure` has no free name for its read navigation |
+| [RASK113](#rask113) | Error | A child entity implements a trait of an aggregate root |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -1737,7 +1738,7 @@ public sealed partial class MuiToggle : ReactComponent
 
 **A type already has the generated model's name** · Error
 
-An aggregate that names `Model` (or `CreateModel` / `UpdateModel`) gets a generated form model emitted beside
+An aggregate that implements `IFormModel` (or `ICreateFormModel` / `IUpdateFormModel`) gets a generated form model emitted beside
 it, in the same namespace, as `{Aggregate}Model`. A
 hand-written, non-`partial` type of that name, often a request model written before the generator existed,
 would collide with it as `CS0101`, a message that names neither the generator nor the way out. So the
@@ -1745,7 +1746,7 @@ generator stands down for that aggregate and says why: no `ProductModel` is gene
 `Create`, `Update` and `Delete` that take it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model> { /* … */ }
+public sealed class Product : Aggregate<Guid>, IFormModel { /* … */ }
 
 public sealed class ProductModel                  // ✗ RASK082: the generated model's name
 {
@@ -1781,7 +1782,7 @@ model is generated for it.
 ```csharp
 public static class Catalog
 {
-    public sealed class Product : Aggregate<Guid, Model> { }  // ⚠ RASK083: nested in Catalog
+    public sealed class Product : Aggregate<Guid>, IFormModel { }  // ⚠ RASK083: nested in Catalog
 }
 ```
 
@@ -1790,7 +1791,7 @@ public static class Catalog
 ```csharp
 namespace Shop.Catalog;
 
-public sealed class Product : Aggregate<Guid, Model> { }      // ✓ gets ProductModel
+public sealed class Product : Aggregate<Guid>, IFormModel { }      // ✓ gets ProductModel
 ```
 
 ---
@@ -1919,14 +1920,14 @@ type split across several files, or a member that already has the field's name.
 
 **Aggregate has no parameterless constructor, so `Create` is not generated** · Warning
 
-An aggregate that names `Model` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
+An aggregate that implements `IFormModel` gets a generated form model (`ProductModel` for `Product`) and the writes that take it
 ([data guide](data.md#writing-create-update-delete)). `Product.Create(model)` starts from a new, empty
 aggregate, and so does `new ProductModel()`, which
 holds the aggregate's own defaults. That needs a constructor that takes nothing, and an aggregate that declares
 no constructor has one for free. Declaring one that takes arguments removes it.
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, IFormModel, IDeletable
 {
     public Product(string name) => Name = name;   // ⚠ RASK086: the only constructor takes a name
 
@@ -1937,7 +1938,7 @@ public sealed class Product : Aggregate<Guid, Model, Deletable>
 **Fix:** declare no constructor, and put domain creation in a static factory:
 
 ```csharp
-public sealed class Product : Aggregate<Guid, Model, Deletable>
+public sealed class Product : Aggregate<Guid>, IFormModel, IDeletable
 {
     public string Name { get; private set; } = "";
 
@@ -2307,7 +2308,7 @@ public sealed class Money                       // ✗ RASK105: compares by refe
     public string Currency { get; private set; } = "";
 }
 
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public Money Total { get; private set; } = null!;
 }
@@ -2364,7 +2365,7 @@ Reported when:
 - the entity already declares `Id`, or a name an aggregate or entity part generates;
 - an entity part's own key cannot be built;
 - the entity is an **aggregate root** — a key of several columns is for a child its aggregate holds;
-- an aggregate whose **form** (its base names `Model`, `CreateModel` or `UpdateModel`) would carry such a child it
+- an aggregate whose **form** (it implements `IFormModel`, `ICreateFormModel` or `IUpdateFormModel`) would carry such a child it
   cannot carry. A form carries a link as a list of ids (`ActivityIds`) and a row with fields of its own as a list of
   rows (`Columns`) — see [Link tables and child rows on the form](data.md#link-tables-and-child-rows-on-the-form) —
   and refuses, rather than leaving the child out:
@@ -2374,14 +2375,14 @@ Reported when:
   - a link whose list of ids takes a name the aggregate already declares.
 
 > 'ReportColumn' has a key of several columns, but 'Report.Layout' holds it on a form, and its rows hold rows of their
-> own ('Totals'), which a form does not carry; take 'Model' (or 'CreateModel' / 'UpdateModel') off 'Report''s base
+> own ('Totals'), which a form does not carry; take 'IFormModel' (or 'ICreateFormModel' / 'IUpdateFormModel') off 'Report'
 > and fill 'Layout' through a method of 'Report' — Report.Update(id, x => x.Fill(…))
 
 **Fix:** declare the class `partial`, name each value part and declare its property. For a child a form cannot carry,
 fill the collection through a method of the aggregate rather than a form:
 
 ```csharp
-public sealed class Report : Aggregate<int, PerTenant<int>>   // no Model on the base
+public sealed class Report : Aggregate<int>, IPerTenant<int>   // no IFormModel
 {
     private readonly List<ReportColumn> _layout = [];
 
@@ -2408,7 +2409,7 @@ a form, the generated `X.Create(model)`. A child is made by its own type or by t
 what a `private` parameterless constructor used to say, so that constructor need not be written.
 
 ```csharp
-public sealed class Order : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+public sealed class Order : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, IDeletable
 {
     public string Reference { get; private set; } = "";
 
@@ -3245,3 +3246,30 @@ The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'U
 
 **Fix:** name the ids `OwnerId` and `EditorId` (keep the columns with `HasColumnName("Owner")`), which gives
 `NoteRead.Owner` and `NoteRead.Editor`; or rename the member that already holds the name.
+
+## RASK113
+
+**A child entity implements a trait of an aggregate root** · Error
+
+A child entity — `OrderLine : Entity<Guid>`, held by its aggregate — may keep its own timestamps: `ICreated`,
+`IUpdated` or `ITimestamps`. Every other trait belongs to the aggregate root: `IFormModel` (or `ICreateFormModel` /
+`IUpdateFormModel`), `IDeletable`, `IPerTenant`, `IBroadcast`. The child is created, deleted, partitioned and
+announced together with its root, so the trait on the child would say something nothing honours.
+
+`IVersioned` and `ISoftDelete` never reach this rule: a child has no `Version` or `DeletedAt` to implement them
+with, so the compiler refuses them first (CS0535).
+
+```csharp
+public sealed class OrderLine : Entity<Guid>, ITimestamps, IPerTenant   // ✗ RASK113
+{
+    public string Sku { get; private set; } = "";
+}
+```
+
+```text
+'OrderLine' is a child entity, so it cannot implement 'IPerTenant' — move it to the aggregate root, or derive 'OrderLine' from 'Aggregate<TId>'
+```
+
+**Fix:** put the trait on the aggregate root (`Order : Aggregate<Guid>, ITimestamps, IPerTenant`) — a child of an
+`IPerTenant` root is partitioned with it — or, when the type is really a root of its own, derive it from
+`Aggregate<TId>`.

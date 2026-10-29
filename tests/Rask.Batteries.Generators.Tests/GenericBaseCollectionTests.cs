@@ -16,7 +16,7 @@ public class GenericBaseCollectionTests
             private FilingLine() { }
             public string Text { get; private set; } = "";
         }
-        public abstract class Filing<TSelf> : Aggregate<int, Model, Deletable>
+        public abstract class Filing<TSelf> : Aggregate<int>, IFormModel, IDeletable
             where TSelf : Filing<TSelf>
         {
             private readonly List<FilingLine> _lines = [];

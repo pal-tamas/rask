@@ -11,7 +11,7 @@ using Rask.Storage;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>A tenant-scoped table whose tenants are numbered, which makes the stored-file tenant an <c>int</c>.</summary>
-public sealed class Consignment : Aggregate<Guid, Timestamps, PerTenant<int>>
+public sealed class Consignment : Aggregate<Guid>, ITimestamps, IPerTenant<int>
 {
     private Consignment() { }
 

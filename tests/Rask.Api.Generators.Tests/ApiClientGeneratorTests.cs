@@ -548,15 +548,14 @@ public sealed class ApiClientGeneratorTests
             {
                 public abstract class Entity<TId> { public TId Id { get; protected set; } = default!; }
                 public abstract class Aggregate<TId> : Entity<TId> { public int Version { get; private set; } }
-                public abstract class Aggregate<TId, T1, T2, T3, T4> : Aggregate<TId> { }
-                public abstract class Timestamps;
-                public abstract class Versioned;
-                public abstract class Model;
-                public abstract class Deletable;
+                public interface ITimestamps;
+                public interface IVersioned;
+                public interface IFormModel;
+                public interface IDeletable;
             }
             namespace Shop
             {
-                public sealed class Product : Rask.Data.Aggregate<System.Guid, Rask.Data.Timestamps, Rask.Data.Versioned, Rask.Data.Model, Rask.Data.Deletable>
+                public sealed class Product : Rask.Data.Aggregate<System.Guid>, Rask.Data.ITimestamps, Rask.Data.IVersioned, Rask.Data.IFormModel, Rask.Data.IDeletable
                 {
                     private Product() { }
                     public string Name { get; private set; } = "";

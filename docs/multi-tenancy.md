@@ -12,11 +12,11 @@ table has nothing to configure.
 
 ## Declaring a tenant-scoped table
 
-One trait on the base partitions a table by tenant — `PerTenant`, one of the family that
+One trait partitions a table by tenant — `IPerTenant`, implemented beside the base, one of the family that
 [chooses what a table carries](data.md#choosing-what-a-table-carries):
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IPerTenant
 {
     public string Reference { get; private set; } = "";
 }
@@ -30,7 +30,7 @@ The column is the framework's, so the entity does not mention it. One that wants
 the property, and Rask maps the column to it:
 
 ```csharp
-public sealed class Invoice : Aggregate<Guid, Timestamps, PerTenant>
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IPerTenant
 {
     public Guid? TenantId { get; private set; }
 }
@@ -47,17 +47,17 @@ using (Tenant.Across())
 }
 ```
 
-**Why a type argument.** Like the other traits, it is read at compile time rather than reflected over, so a
+**Why an interface.** Like the other traits, it is read at compile time rather than reflected over, so a
 trimmed publish cannot lose it and quietly fall back to "shared".
 
 ### Tenants that are numbered
 
-An app whose tenants are rows with an integer key names `PerTenant<int>` (or `PerTenant<long>`), and that type is
+An app whose tenants are rows with an integer key implements `IPerTenant<int>` (or `IPerTenant<long>`), and that type is
 the column's, the filter's and the stamp's. The column is a shadow `int?` until the aggregate declares it, and a
 declared `TenantId` must have the same type:
 
 ```csharp
-public sealed class Destination : Aggregate<int, PerTenant<int>>
+public sealed class Destination : Aggregate<int>, IPerTenant<int>
 {
     public int? TenantId { get; private set; }     // optional — to read it; long? under PerTenant<long>
 
@@ -72,7 +72,7 @@ using (Tenant.Use(42))
 ```
 
 `Guid?`, `int?` and `long?` are the three types a tenant is kept in — nullable, because a row has none until
-it is saved — and any other is refused when the model is built. An aggregate that names plain `PerTenant` and declares nothing keeps a shadow
+it is saved — and any other is refused when the model is built. An aggregate that implements plain `IPerTenant` and declares nothing keeps a shadow
 `Guid?`. A child needs no column at all: it is [read through its root](#a-child-belongs-to-its-roots-tenant), so
 it follows the root's number without saying anything.
 
@@ -94,7 +94,7 @@ the `Guid?` and say how it is stored; Rask filters and stamps in the column's ow
 read face alike:
 
 ```csharp
-public sealed class Company : Aggregate<string, PerTenant>
+public sealed class Company : Aggregate<string>, IPerTenant
 {
     public Guid? TenantId { get; private set; }
 
@@ -120,13 +120,13 @@ column and you write nothing for it: no `TenantId`, no trait, no configuration, 
 an `EXISTS` on the parent's key and tenant, one per level for a grandchild.
 
 ```csharp
-public sealed class Driver : Aggregate<string, PerTenant>
+public sealed class Driver : Aggregate<string>, IPerTenant
 {
     public Guid? TenantId { get; private set; }                   // tenantId, text
     public IReadOnlyList<Chip> Chips => _chips;                   // by driverId
 }
 
-public sealed class Vehicle : Aggregate<string, PerTenant>
+public sealed class Vehicle : Aggregate<string>, IPerTenant
 {
     public Guid? TenantId { get; private set; }
     public IReadOnlyList<Chip> Chips => _chips;                   // by vehicleId
@@ -358,7 +358,7 @@ await Invoice.IgnoreQueryFilters();   // includes soft-deleted; SAME tenant
 ```
 
 It means "include soft-deleted rows" and leaves the tenant filter exactly where it is, so an existing call
-never quietly becomes a cross-tenant read the day an aggregate names `PerTenant`. Crossing tenants is
+never quietly becomes a cross-tenant read the day an aggregate implements `IPerTenant`. Crossing tenants is
 `Tenant.Across()`. This uses EF Core 10's named query filters.
 
 ## An index is what you write

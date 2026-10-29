@@ -7,7 +7,7 @@ namespace Rask.Data.Tests;
 // An aggregate shaped the way the guide shows one — no constructor, private setters, a validation attribute, a value
 // object, an optional note, a counter the application owns — so these drive the form model and the writes the source
 // generator really emitted for it in this compilation, not the hook underneath them.
-public sealed class Invoice : Aggregate<Guid, Timestamps, Versioned, Model, SoftDelete>
+public sealed class Invoice : Aggregate<Guid>, ITimestamps, IVersioned, IFormModel, ISoftDelete
 {
     [Required]
     [MaxLength(40)]

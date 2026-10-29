@@ -22,7 +22,7 @@ public enum CofferKind
 /// An aggregate whose write model stores values through converters that keep the type: bytes compressed to bytes,
 /// a string sealed to a string.
 /// </summary>
-public sealed class Coffer : Aggregate<int, Deletable>
+public sealed class Coffer : Aggregate<int>, IDeletable
 {
     private Coffer() { }
 

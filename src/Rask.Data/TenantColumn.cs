@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 namespace Rask.Data;
 
 /// <summary>
-///     The <c>TenantId</c> column of a <see cref="PerTenant" /> table, in the type the entity declared
+///     The <c>TenantId</c> column of a <see cref="IPerTenant" /> table, in the type the entity declared
 ///     it: its query filter and the value an insert is stamped with.
 /// </summary>
 /// <remarks>
@@ -216,22 +216,22 @@ internal static class TenantColumn
             Nullable.GetUnderlyingType(declared) != key)
         {
             throw new InvalidOperationException(
-                $"'{entity.Name}' names PerTenant<{key.Name}> but declares a TenantId of type '{Display(declared)}'. " +
+                $"'{entity.Name}' implements IPerTenant<{key.Name}> but declares a TenantId of type '{Display(declared)}'. " +
                 $"Make them agree: declare `public {key.Name}? TenantId {{ get; private set; }}`, or name " +
-                $"PerTenant<{Display(declared).TrimEnd('?')}>.");
+                $"IPerTenant<{Display(declared).TrimEnd('?')}>.");
         }
 
         return column == typeof(Guid?) || column == typeof(int?) || column == typeof(long?)
             ? column
             : throw new InvalidOperationException(
-                $"'{entity.Name}' names PerTenant and declares a TenantId of type '{Display(column)}'. " +
+                $"'{entity.Name}' implements IPerTenant and declares a TenantId of type '{Display(column)}'. " +
                 "A tenant-scoped table keeps its tenant in a Guid?, an int? or a long? — nullable, because a row " +
                 "has none until it is saved. Declare `public int? TenantId { get; private set; }`, or leave " +
                 "the property out and name " +
-                "PerTenant<int> (or plain PerTenant for a Guid?) on its base.");
+                "IPerTenant<int> (or plain IPerTenant for a Guid?) on the aggregate.");
     }
 
-    // PerTenant<int> names the column a table with no TenantId property gets; plain PerTenant keeps a Guid?.
+    // IPerTenant<int> names the column a table with no TenantId property gets; plain IPerTenant keeps a Guid?.
     private static Type ShadowColumnFor(Type entity) =>
         ConventionRegistry.TenantKeyFor(entity) switch
         {
