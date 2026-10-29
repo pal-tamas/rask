@@ -348,6 +348,16 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`rask.sh` names the package when the Node it installed cannot start.** Node 26.13.0, the line's first LTS
+  (2026-10-28), links `libatomic.so.1`, which every minimal Linux image (`debian:*-slim`, Ubuntu, Fedora containers)
+  leaves out — so on a bare box the installer verified, unpacked and reported Node as installed, and the first `node`
+  call died with a loader error that names a file and no package. Now the installer runs the node it unpacked and,
+  if it cannot start, warns with the loader's own line and the command for THIS distro (from `/etc/os-release`):
+  `sudo apt-get install -y libatomic1` on Debian/Ubuntu, `dnf install libatomic` on Fedora/RHEL, `zypper install
+  libatomic1` on openSUSE, and the distro's own `nodejs` on Alpine, which nodejs.org ships no musl build for. Printed,
+  never run — the installer still never uses sudo — and the unpacked Node is kept, so installing the package is the
+  whole fix. `rask doctor` now reports such a node as `cannot start` with the same fix, where it used to say
+  `not found`.
 - **A child entity with a `TenantId` member no longer hides its rows whose `TenantId` is NULL.** Before: a child of a
   `PerTenant` aggregate that declared a `TenantId` — public, or internal and mapped in its `Configure` — was filtered on
   its OWN column, so a legacy row whose child column was NULL while its parent carried the tenant silently vanished
