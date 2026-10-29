@@ -261,6 +261,12 @@ async function measureExample(page, cdp, index, prefix) {
       }, point);
     }
 
+    // A long press opens Flux's menu from the `contextmenu` the browser makes of it, when it makes it: a loaded
+    // Linux runner measured the menu shut where it opens a moment later. Waited on, up to two seconds; a menu
+    // that does not open by then did not open.
+    if (parts.kind === 'context' && view.phone) {
+      await page.waitForFunction(() => document.querySelector('[data-pm="panel"]')?.matches(':popover-open'), null, { timeout: 2000 }).catch(() => {});
+    }
     await page.waitForTimeout(300);
     return point;
   };

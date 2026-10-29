@@ -39,7 +39,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, press, root, viewOf } from './lib.mjs';
+import { chromium, hoverSettled, measurePage, press, root, viewOf } from './lib.mjs';
 import { runtime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -302,7 +302,12 @@ async function raise(page, scheme, name, scenario) {
       const box = [...document.querySelectorAll('ui-toast-group > [data-flux-toast-dialog]')].pop().firstElementChild.getBoundingClientRect();
       return [box.x + 40, box.y + box.height / 2];
     });
+    const card = await page.evaluateHandle(([x, y]) => document.elementFromPoint(x, y), front);
     await over(page, front);
+    // A finger's hover comes with the mouse events the browser makes of the tap: at once on a Mac, a while later
+    // on a loaded Linux runner, where the stack was measured before it opened (its back cards still scaled down).
+    // Waited on (lib.mjs's hoverSettled); then the 900 ms its opening takes.
+    await card.evaluate(hoverSettled);
     await page.waitForTimeout(900);
   }
 
