@@ -506,3 +506,12 @@ bundle,bytes
 rask.js,111447
 rask.wasm.js,96218
 rask-hooks.js,118642
+#
+# 2026-10-29, an auth reopen that drops nothing releases what the watch holds (rask-auth-watch.ts: reopen() says
+# whether it dropped a connection; rask.ts's reopenForAuth returns it), Server runtime only: rask.js 111,447 ->
+# 111,503 (+56). rask.wasm.js and rask-hooks.js are untouched. Re-measured locally (Release, the bundle gate's recipe)
+# on the tree merged with main 72b5bb609.
+bundle,bytes
+rask.js,111503
+rask.wasm.js,96218
+rask-hooks.js,118642
