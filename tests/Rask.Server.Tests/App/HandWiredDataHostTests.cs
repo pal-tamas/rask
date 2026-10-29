@@ -96,7 +96,7 @@ public sealed partial class TerminalsApp(HandlerGate gate, Microsoft.JSInterop.I
 
     protected override Component? Render() =>
     [
-        Markup.P[$"tenant={Current.Tenant?.ToString() ?? "none"}"],
+        Markup.P[$"tenant={Tenant.Key?.ToString() ?? "none"}"],
         Markup.P[$"user={Current.UserId?.ToString() ?? "nobody"}"],
         Markup.P[$"names={(_names is null ? "unread" : string.Join(',', _names))}"],
         Button.OnClick(Load)["load"],
@@ -132,21 +132,21 @@ public sealed partial class TerminalsApp(HandlerGate gate, Microsoft.JSInterop.I
     private async Task AddWhenLetThrough()
     {
         await Load();
-        gate.ReadIn = Current.Tenant;
+        gate.ReadIn = Tenant.Key;
         gate.Reached.TrySetResult();
         await gate.Open.Task;
 
-        gate.WroteIn = Current.Tenant;
+        gate.WroteIn = Tenant.Key;
         await Terminal.Named("Added").Save();
     }
 
     // The same, held by a call into the page's script: only a frame from the connection lets it through.
     private async Task AddWhenThePageAnswers()
     {
-        gate.ReadIn = Current.Tenant;
+        gate.ReadIn = Tenant.Key;
         await js.InvokeAsync<string>("prompt", ["name?"]);
 
-        gate.WroteIn = Current.Tenant;
+        gate.WroteIn = Tenant.Key;
         await Terminal.Named("Asked").Save();
     }
 }
@@ -612,7 +612,7 @@ public sealed partial class HandWiredDataHostTests : IDisposable
     private static Guid? TenantOf(LiveSession session)
     {
         using var work = new SessionDataScope().Enter(session.Services);
-        return Current.Tenant;
+        return Tenant.Key;
     }
 
     private static int? PartnerOf(ClaimsPrincipal? principal) =>

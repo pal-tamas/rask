@@ -85,7 +85,7 @@ public sealed class OutboxFake : IDisposable
         lock (_gate)
         {
             _stored.Add(e);
-            _pending.AddRange(handlers.Select(handler => new Pending(e, handler, Current.Tenant, Current.UserId, scopes)));
+            _pending.AddRange(handlers.Select(handler => new Pending(e, handler, Tenant.Key, Current.UserId, scopes)));
         }
     }
 

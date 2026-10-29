@@ -100,7 +100,7 @@ public sealed class JobsFake : IJobs, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at, Current.Tenant, Current.UserId, lane));
+            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, Current.UserId, lane));
         }
 
         return Task.CompletedTask;
@@ -110,7 +110,7 @@ public sealed class JobsFake : IJobs, IDisposable
     Task<bool> IJobs.AddUnlessWaiting(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(job);
-        var tenant = Current.Tenant;
+        var tenant = Tenant.Key;
         lock (_gate)
         {
             for (var i = _ran; i < _enqueued.Count; i++)

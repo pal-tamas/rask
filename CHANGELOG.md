@@ -197,6 +197,28 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- BREAKING: `Current.Tenant` is your tenant row. Say which aggregate is the tenant —
+  `public sealed class Tenant : Aggregate<int, Deletable>, ITenant` — and the build generates `Current.Tenant`
+  (its read face, `TenantRead?`) and `Current.RequiredTenant`, with `Current.Tenant.Id` in your own key type (a `Guid`,
+  `int`, `long`, or a `string` holding a `Guid`). Likewise `IUser` gives `Current.User` / `Current.RequiredUser`, and
+  Rask.Auth's `Authenticatable` says it already. Neither is a query: the row is read ahead as each request, live event,
+  job, mail and outbox message starts, held per key, dropped on a save of the aggregate (60 s for other servers); a
+  miss inside your own `Tenant.Use` is one synchronous query, counted on `rask.data.current_row.queries`. A tenant whose
+  row is gone throws `MissingTenantException`; inside `Tenant.Across()` and `Tenant.None()` it is `null`. The old
+  `Guid?` `Current.Tenant` and `Guid` `Current.RequiredTenant` are removed; a project with `PerTenant` tables and no
+  `ITenant` is told the line to add (RASK115). RASK113 refuses two `ITenant` (or `IUser`) aggregates, RASK114 a key
+  the row cannot be read back by or one the `PerTenant` tables disagree with. `Tenant.None()` now clears the
+  signed-in user's tenant as well as an explicit one, as documented.
+  Before → after:
+  ```csharp
+  if (Current.Tenant is { } id) …                    // Guid
+  var tenant = await Tenant.Find(Current.RequiredTenant);
+  ```
+  ```csharp
+  if (Current.Tenant is { } tenant) title = tenant.Name;   // TenantRead, no query
+  var tenant = await Tenant.Find(Current.RequiredTenant.Id);   // to change it, then await tenant.Save()
+  ```
+  See [your tenant row](docs/multi-tenancy.md#your-tenant-row-currenttenant).
 - **BREAKING (migration): a collection of value objects is NULL in the database only where the model says so.**
   `IReadOnlyList<FiledFile> Files => _files` is now a `NOT NULL` JSON column and `List<FiledFile>? Attachments` a
   `NULL` one, the same rule every other column follows. An empty collection is stored as `[]` on insert and update

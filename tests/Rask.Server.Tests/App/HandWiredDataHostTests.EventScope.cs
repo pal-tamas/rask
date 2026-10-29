@@ -64,7 +64,7 @@ public sealed class EventWitness(LegacyTerminalContext db, EventWitnessLog log)
 {
     public int See()
     {
-        log.Seen.Add((db, Current.Principal?.FindFirst("partner")?.Value, Current.Tenant, () => Disposed(db)));
+        log.Seen.Add((db, Current.Principal?.FindFirst("partner")?.Value, Tenant.Key, () => Disposed(db)));
         log.Wrote();
         return log.Seen.Count;
     }

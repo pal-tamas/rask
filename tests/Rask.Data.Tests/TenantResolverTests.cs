@@ -35,7 +35,7 @@ public sealed class TenantResolverTests : IDisposable
         using (Db.UseScope(request.ServiceProvider))
         {
             Assert.Equal(["Budapest"], await Destination.Select(d => d.Name));
-            Assert.Equal(TenantNumber.ToGuid(Acme), Current.Tenant);
+            Assert.Equal(TenantNumber.ToGuid(Acme), Tenant.Key);
         }
     }
 
@@ -156,7 +156,7 @@ public sealed class TenantResolverTests : IDisposable
             Assert.Empty(await Destination.All);
             Assert.Empty(await Destination.Where(d => d.Name != "").Select(d => d.Name));
             Assert.Null(await Destination.Find(theirs, cancellationToken: TestContext.Current.CancellationToken));
-            Assert.Null(Current.Tenant);
+            Assert.Null(Tenant.Key);
         }
     }
 
@@ -385,7 +385,7 @@ public sealed class TenantResolverTests : IDisposable
     public async Task A_resolver_that_reads_the_tenant_it_is_asked_for_is_told_so()
     {
         await using var database = await StartDatabaseAsync();
-        await using var app = App(_ => TenantNumber.TryRead(Current.Tenant ?? Guid.Empty, out var number) ? (int)number : null);
+        await using var app = App(_ => TenantNumber.TryRead(Tenant.Key ?? Guid.Empty, out var number) ? (int)number : null);
 
         await using var request = app.CreateAsyncScope();
         using (Db.UseScope(request.ServiceProvider))

@@ -101,8 +101,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
 
     private void Collect(DbContext? context)
     {
-        // Nobody to tell outside a session, so nothing is worth walking the tracker for.
-        if (context is null || Db.ScopeServices is null)
+        // Nobody to tell outside a session, so nothing is worth walking the tracker for — except for the app's tenant
+        // and user rows, which a background job's save drops from what Current.Tenant holds as surely as a page's.
+        var inSession = Db.ScopeServices is not null;
+        if (context is null || (!inSession && !CurrentRows.IsOn))
         {
             return;
         }
@@ -111,7 +113,11 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         foreach (var entry in context.ChangeTracker.Entries()
                      .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
-            (types ??= []).Add(RootOf(entry.Metadata));
+            var root = RootOf(entry.Metadata);
+            if (inSession || CurrentRows.Watches(root))
+            {
+                (types ??= []).Add(root);
+            }
         }
 
         if (types is not null)
@@ -164,7 +170,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
                         + "or the caller retries a write that already happened.")]
     private static void Notify(HashSet<Type> types)
     {
-        // Process-wide first, and deliberately outside the scope check below: an entity that announces itself is
+        // What Current.Tenant and Current.User hold, before anybody can read it again as it was.
+        CurrentRows.Saved(types);
+
+        // Process-wide next, and deliberately outside the scope check below: an entity that announces itself is
         // telling every open page, and a background job's save has no session of its own to tell.
         Announce(types);
 

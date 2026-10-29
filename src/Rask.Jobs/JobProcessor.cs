@@ -546,6 +546,9 @@ public sealed partial class JobProcessor<TContext>(
             scope.ServiceProvider.GetService<IScopeUser>()?.SignIn(principal);
         }
 
+        // Its tenant's and user's own rows read now, so Current.Tenant in the handler is a lookup.
+        await CurrentRows.Prime(graceToken).ConfigureAwait(false);
+
         using var ambient = Ambient.Enter(scope.ServiceProvider);
 
         await dispatcher.Send(command, graceToken).ConfigureAwait(false);

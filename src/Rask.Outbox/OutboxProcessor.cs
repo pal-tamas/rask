@@ -318,6 +318,9 @@ public sealed partial class OutboxProcessor<TContext>(
         // `Jobs.Enqueue`) and the model's reads reach the app through this scope, with nothing injected.
         using var work = Db.UseScope(provider);
         using var cancellation = Ambient.Enter(graceToken);
+
+        // Its tenant's and user's own rows read now, so Current.Tenant in the handler is a lookup.
+        await CurrentRows.Prime(graceToken).ConfigureAwait(false);
         await Run(provider, message.Handler, e, graceToken).ConfigureAwait(false);
     }
 

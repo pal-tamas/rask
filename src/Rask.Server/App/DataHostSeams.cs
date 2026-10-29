@@ -85,6 +85,8 @@ internal static class DataHostSeams
             using (Db.OpenScope(context.RequestServices))
             using (Ambient.Enter(context.RequestAborted))
             {
+                // The request's tenant and user rows, read before the endpoint can ask: Current.Tenant is then a lookup.
+                await CurrentRows.Prime(context.RequestAborted).ConfigureAwait(false);
                 await next(context).ConfigureAwait(false);
             }
         });

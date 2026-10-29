@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK112, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK115, RASKVAL001–RASKVAL002, RASKISLAND001–018)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -136,6 +136,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK110](#rask110) | Error | More than one class implements `IRaskModel` |
 | [RASK111](#rask111) | Warning | A collection of value objects with no list behind it is a NULL column |
 | [RASK112](#rask112) | Error | A relationship configured in `Configure` has no free name for its read navigation |
+| [RASK113](#rask113) | Error | More than one aggregate says `ITenant` or `IUser` |
+| [RASK114](#rask114) | Error | The tenant's or the user's key cannot be the current one |
+| [RASK115](#rask115) | Warning | Tenant-scoped tables and no tenant aggregate |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3245,3 +3248,62 @@ The relationship configured on 'Note.Owner' gets no navigation on 'NoteRead': 'U
 
 **Fix:** name the ids `OwnerId` and `EditorId` (keep the columns with `HasColumnName("Owner")`), which gives
 `NoteRead.Owner` and `NoteRead.Editor`; or rename the member that already holds the name.
+
+## RASK113
+
+**More than one aggregate says `ITenant` or `IUser`** · Error
+
+`Current.Tenant` and `Current.User` are generated from the one aggregate that says `ITenant` — or `IUser` — and typed as
+its read face ([your tenant row](multi-tenancy.md#your-tenant-row-currenttenant)). With two, either answer would be a guess
+at which row the work is for, so nothing is generated and the build stops. A user deriving from Rask.Auth's
+`Authenticatable` says `IUser` already.
+
+```csharp
+public sealed class Tenant : Aggregate<int>, ITenant { }    // ✗ RASK113
+public sealed class Partner : Aggregate<int>, ITenant { }   // ✗ RASK113
+```
+
+```text
+'global::Shop.Partner' and 'global::Shop.Tenant' both say ITenant, so Rask cannot tell which one is this app's tenant, and Current.Tenant is not generated. Say ITenant on one of them.
+```
+
+**Fix:** keep the interface on the aggregate that IS the tenant.
+
+## RASK114
+
+**The tenant's or the user's key cannot be the current one** · Error
+
+The framework carries the current tenant and user as a `Guid` and reads the row back by the key that `Guid` stands for:
+a `Guid`, a `string` holding one, or the `int` or `long` it carries (`Tenant.Use(42)`). The marked type must be an
+aggregate with one such key. The tenant's key must also be the one its `PerTenant` tables keep in `TenantId` — a `Guid`
+(or `string`) tenant for `Guid` columns, the same number type for number columns — or a filter and the row would name
+different tenants.
+
+```csharp
+public sealed class Tenant : Aggregate<Guid>, ITenant { }          // ✗ RASK114
+public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   //   keeps its tenant as int
+```
+
+```text
+'Tenant' says ITenant, but its key is Guid and 'Invoice' keeps its tenant as int; give the tenant the key its tables keep, or the tables the tenant's
+```
+
+**Fix:** key the tenant like its tables (`Aggregate<int>` here), or the tables like the tenant.
+
+## RASK115
+
+**Tenant-scoped tables and no tenant aggregate** · Warning
+
+A project with `PerTenant` tables and no aggregate that says `ITenant` has no `Current.Tenant`. It used to be the
+tenant's `Guid`; it is now the app's own tenant row, generated once one aggregate says so.
+
+```csharp
+public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   // ⚠ RASK115
+```
+
+```text
+'Invoice' is PerTenant, but no aggregate in this project says ITenant, so there is no Current.Tenant. Say it on the tenant aggregate: public sealed class Tenant : Aggregate<int>, ITenant.
+```
+
+**Fix:** say `ITenant` on the tenant aggregate. A project whose tenant lives in another assembly (a feature library)
+silences it with `<NoWarn>$(NoWarn);RASK115</NoWarn>`.

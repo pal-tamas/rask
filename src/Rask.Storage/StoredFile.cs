@@ -38,7 +38,7 @@ public sealed class StoredFile : Aggregate<Guid, Timestamps>
 
     /// <summary>The tenant the file was saved for, or <c>null</c> for one the host itself saved.</summary>
     /// <remarks>
-    /// A <see cref="Guid"/>, like <c>Current.Tenant</c>. In an app whose tenant-scoped tables number their tenants
+    /// A <see cref="Guid"/>, the type the framework carries a tenant in. In an app whose tenant-scoped tables number their tenants
     /// (<c>PerTenant&lt;int&gt;</c>) the column is that number, and this is the <see cref="Guid"/> that carries it —
     /// the one <c>Tenant.Use(42)</c> opens.
     /// </remarks>
@@ -84,7 +84,7 @@ public sealed class StoredFile : Aggregate<Guid, Timestamps>
 
         // And which tenant it belongs to, for the same reason: the interceptors may not be there. Null when
         // there is none, which is an ordinary answer — a file saved by the host itself belongs to nobody.
-        file.TenantId = Current.Tenant;
+        file.TenantId = Tenant.Key;
         return file;
     }
 }

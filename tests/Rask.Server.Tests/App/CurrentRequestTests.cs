@@ -75,7 +75,7 @@ public sealed class CurrentRequestTests
                 ], "Test"));
             }
 
-            return $"{Current.UserId?.ToString() ?? "nobody"}|{Current.Tenant?.ToString() ?? "none"}";
+            return $"{Current.UserId?.ToString() ?? "nobody"}|{Tenant.Key?.ToString() ?? "none"}";
         }));
 
         var built = app.Build<MinimalApp>();

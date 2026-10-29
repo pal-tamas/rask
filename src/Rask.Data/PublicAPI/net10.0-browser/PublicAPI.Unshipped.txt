@@ -310,15 +310,11 @@ Rask.Data.CurrentUser
 Rask.Data.CurrentUser.extension(Rask.Current!)
 static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
-static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredTenant.get -> System.Guid
 static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
-static Rask.Data.CurrentUser.extension(Rask.Current!).Tenant.get -> System.Guid?
 static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!
 static Rask.Data.CurrentUser.extension(Rask.Current!).UserId.get -> System.Guid?
 static Rask.Data.CurrentUser.get_Principal() -> System.Security.Claims.ClaimsPrincipal?
-static Rask.Data.CurrentUser.get_RequiredTenant() -> System.Guid
 static Rask.Data.CurrentUser.get_RequiredUserId() -> System.Guid
-static Rask.Data.CurrentUser.get_Tenant() -> System.Guid?
 static Rask.Data.CurrentUser.get_UserId() -> System.Guid?
 static Rask.Data.GeneratedModelWrites.Find<TEntity>(object! key, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity?>!
 static Rask.Data.GeneratedModelWrites.Save<TEntity>(TEntity! entity, Microsoft.EntityFrameworkCore.DbContext? db = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TEntity!>!
@@ -387,3 +383,12 @@ static Rask.Data.ModelRegistry.UseModel<TModel>() -> void
 Rask.Data.TestDatabase<TContext>
 Rask.Data.TestDatabase<TContext>.Context.get -> TContext!
 static Rask.Data.TestDatabase.Start<TContext>(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
+Rask.Data.CurrentRows
+Rask.Data.ITenant
+Rask.Data.IUser
+static Rask.Data.CurrentRows.RequiredTenant<TRead>() -> TRead!
+static Rask.Data.CurrentRows.RequiredUser<TRead>() -> TRead!
+static Rask.Data.CurrentRows.Tenant<TRead>() -> TRead?
+static Rask.Data.CurrentRows.User<TRead>() -> TRead?
+static Rask.Data.CurrentRows.UseTenant<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void
+static Rask.Data.CurrentRows.UseUser<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void

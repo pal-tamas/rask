@@ -43,4 +43,13 @@ internal sealed class SessionDataScope : ISessionWorkScope
         using var ambient = Db.UseScope(sessionServices);
         return tenant.AskAgain(sameReader);
     }
+
+    /// <summary>
+    ///     Reads the rows of the tenant and the user an event is about to run for, ahead of it, so
+    ///     <c>Current.Tenant</c> in the event is a lookup. Completes at once, allocating nothing, when they are held.
+    /// </summary>
+    /// <param name="sessionServices">The session's own service provider.</param>
+    /// <param name="cancellationToken">Ends the read with the event.</param>
+    internal static ValueTask Prime(IServiceProvider sessionServices, CancellationToken cancellationToken) =>
+        CurrentRows.Prime(sessionServices, cancellationToken);
 }

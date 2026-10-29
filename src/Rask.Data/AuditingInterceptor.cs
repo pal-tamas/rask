@@ -168,7 +168,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
         var table = entry.Metadata.ClrType.Name;
 
         // In the column's own type, as the stamp is: a numbered tenant is compared as the number.
-        if (Current.Tenant is not { } tenant)
+        if (Tenant.Key is not { } tenant)
         {
             throw new InvalidOperationException(
                 $"'{table}' belongs to tenant {rows ?? "none"} and is being saved with no tenant in flight. A row " +
@@ -216,7 +216,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
     // A tenant-scoped row records its tenant on insert, from the ambient scope. The column is only mapped on
     // a table whose Scope const asked for it, so an unmapped one means the entity is not partitioned.
     //
-    // Current.RequiredTenant throws when nothing is set — no explicit scope and no signed-in tenant, which is the whole point: writing a tenant-scoped row with
+    // Tenant.RequiredKey throws when nothing is set — no explicit scope and no signed-in tenant, which is the whole point: writing a tenant-scoped row with
     // no tenant would otherwise store a NULL that every tenant's filter then excludes — a row nobody can read.
     private static void StampTenant(DbContext context, EntityEntry entry)
     {
@@ -252,7 +252,7 @@ public sealed class AuditingInterceptor(TimeProvider timeProvider) : SaveChanges
                 $"'{entry.Metadata.ClrType.Name}' is tenant-scoped and is being inserted inside " +
                 "Tenant.Across(), which says which tenant it belongs to for nobody. Set TenantId on the row, " +
                 "or open Tenant.Use(id) around the insert.")
-            : TenantColumn.ValueFor(Current.RequiredTenant, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
+            : TenantColumn.ValueFor(Tenant.RequiredKey, property.Metadata.ClrType, entry.Metadata.ClrType.Name);
     }
 
     // A child that keeps a column of its own agrees with its root: a part of one tenant's aggregate is that

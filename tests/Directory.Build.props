@@ -42,6 +42,13 @@
     test references, including the netstandard2.0 generators and tasks, which do not have that framework.
     Nothing outside tests/ reads this one.
   -->
+  <!-- RASK115 tells an app with tenant-scoped tables how to say which aggregate is its tenant (ITenant). A test
+       assembly keeps tenant-scoped tables of every key type side by side, which no single tenant agrees with, and
+       names its tenant to CurrentRows itself where it needs one. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);RASK115</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <RaskTestTarget Condition=" '$(RaskTestTarget)' == '' ">$(RaskPrimaryNetTarget)</RaskTestTarget>
   </PropertyGroup>

@@ -134,7 +134,7 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
         if (string.Equals(property.Name, Columns.TenantId, StringComparison.Ordinal) &&
             ConventionRegistry.IsPerTenant(typeof(TEntity)))
         {
-            return Current.Tenant is { } tenant && tenant != Tenant.Nobody
+            return Tenant.Key is { } tenant && tenant != Tenant.Nobody
                 ? TenantColumn.ValueFor(tenant, property.ClrType, typeof(TEntity).Name)
                 : null;
         }
