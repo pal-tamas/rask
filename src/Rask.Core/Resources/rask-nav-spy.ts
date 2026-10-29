@@ -59,7 +59,9 @@ function mark(a: HTMLAnchorElement, on: boolean): void {
     }
 }
 
-if (page) {
+// A host with a document but no window to listen on — a test's stand-in DOM — has no reading to follow.
+const view = page ? page.defaultView : null;
+if (page && view) {
     const doc = page;
     let queued = false;
 
@@ -87,9 +89,9 @@ if (page) {
         }
     };
 
-    addEventListener("scroll", schedule, {passive: true});
-    addEventListener("resize", schedule, {passive: true});
-    addEventListener("hashchange", schedule);
+    view.addEventListener("scroll", schedule, {passive: true});
+    view.addEventListener("resize", schedule, {passive: true});
+    view.addEventListener("hashchange", schedule);
     // A navigation or a render brings other links, other sections or another page; the hook's own marks are
     // neither an id, an href nor the spy attribute, so they do not wake it.
     new MutationObserver(schedule).observe(doc.documentElement,
