@@ -403,6 +403,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `.Confirm("…")`'s yes could do nothing on a page that re-renders while the dialog is open.** Before: a page
+  that renders every few seconds (a board told of every change) rebuilt the button's handler, and often its id, in
+  every render; the yes pressed the button as the page was when the question was asked, many pages back — past the
+  two the host remembers — so the click ran nothing and a flyout's confirmed delete stayed open. The browser's own
+  `confirm()` did the same, sending the press it had held while the host rendered on. Now yes presses the SAME button
+  as a fresh press of the page as it is at the answer: the element pressed while it still asks the same question, or
+  the one drawn under its key path in its place; a button that is gone, or another action drawn there, runs nothing.
+  `rask-confirm.ts`; `ConfirmOnLivePageTests`, `ConfirmClientTests`.
 - **A gesture that arrived from an older page could be dropped by `Ui.DatePicker`, `Ui.DatetimePicker` and
   `Ui.Pagination`.** Picks, a clear and step presses made faster than the page answers are each read from the page as
   loaded, so the later ones arrive pages late — and these handlers closed over what one render resolved (the day

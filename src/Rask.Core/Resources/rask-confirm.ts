@@ -9,55 +9,111 @@
 // seam). It answers later, so the action is refused now and a yes makes it again: the same press, or the same
 // submit by the same button, which is then let through.
 //
-// The page can render again while the reader is asked — a poll, a toast arriving, a sheet drawn anew — and the
-// pressed control may by then be another element, or gone. A press is made again on the element that carries the
-// pressed handler's id at the answer, its event saying it was read from the page the question was asked on, so the
-// host runs the handler the reader said yes to, wherever it is now, or nothing (Component.StaleEvents.cs) — never
-// another one that took its place.
+// The page can render again while the reader is asked — a poll, a board told of every change, a sheet drawn anew —
+// as often as it likes, and the pressed control is by then drawn from a newer page, its handler a new closure, its
+// id perhaps another: an event read from the page the question was asked on is long past what the host remembers.
+// So a yes presses the SAME button again, as a fresh press of the page as it is now: the element pressed while it is
+// still on the page asking the same question, or the one drawn under its key path in its place. What stands there
+// asking something else, or nothing, is another action, and nothing runs. A button that left the page with nothing
+// in its place is looked for by the pressed handler's id, its event read from the page the question was asked on,
+// so the host runs the handler the reader said yes to, or nothing (Component.StaleEvents.cs).
+//
+// The browser's own confirm() holds the page still while the host renders on, and what it rendered waits to be put
+// on screen: a yes there is a press made again too, once the page has caught up, not the stale one held.
 
 import {currentPage, readFrom} from "./rask-batch.js";
 import {seam} from "./rask-owned.js";
 
 const HANDLER = "data-rask-on-click";
+const QUESTION = "data-rask-confirm";
+const EXPECT = "data-rask-confirm-expect";
+const KEY = "data-rask-key";
 
 // The element a yes is pressing again, while it is: it was asked already, as the element it stands for.
 let pressing: Element | null = null;
 
 /**
- * Whether the action `el` is about to send may go: true when it asks nothing, or the reader said yes. `again`
- * makes the action a second time, for a dialog that answers after this has returned: a press on `el` unless given.
+ * Whether the action `el` is about to send may go: true when it asks nothing. `again` makes the action a second time,
+ * for a yes given after this has returned — a press on the same button unless given: in Ui.Confirm, and for a press
+ * in the browser's own dialog, which may have held the page while it was drawn anew.
  */
 export function confirmed(el: Element | null, again?: () => void): boolean {
     if (!el || el === pressing) return true;
-    const question = el.getAttribute("data-rask-confirm");
+    const question = el.getAttribute(QUESTION);
     if (question === null) return true;
-    const expect = el.getAttribute("data-rask-confirm-expect");
-    const inDialog = seam.confirm
-        ? seam.confirm(el, question, expect, again || pressAgain(el))
-        : null;
+    const expect = el.getAttribute(EXPECT);
+    const make = again || pressAgain(el);
+    const inDialog = seam.confirm ? seam.confirm(el, question, expect, make) : null;
     if (inDialog !== null) return inDialog;
-    return expect === null ? window.confirm(question) : window.prompt(question) === expect;
+    const yes = expect === null ? window.confirm(question) : window.prompt(question) === expect;
+    if (!yes || again) return yes;
+    setTimeout(make, 0);
+    return false;
 }
 
-// The press on `el` made again as the page stands at the answer: on the element carrying its handler's id, read
-// from the page it was asked on. Nothing when no element carries that id any more.
+// The press on `el` made again as the page stands at the answer: a fresh press of the same button, or — once `el` has
+// left the page with nothing under its key path asking the same — of the element carrying its handler's id, read
+// from the page it was asked on, which the host runs only when it can show its handler is the one pressed.
 function pressAgain(el: Element): () => void {
+    const asked = ask(el);
+    const keys = keyPath(el);
     const id = el.getAttribute(HANDLER);
-    const asked = currentPage();
+    const page = currentPage();
     return function (): void {
-        if (id === null) {
-            if (el.isConnected) (el as HTMLElement).click();
+        const same = sameButton(el, keys, asked, id !== null);
+        if (same) {
+            press(same);
             return;
         }
-        const now = carrying(el, id);
-        if (!now) return;
-        pressing = now;
-        try {
-            readFrom(asked, function () { now.click(); });
-        } finally {
-            pressing = null;
-        }
+        const now = !el.isConnected && id !== null ? carrying(el, id) : null;
+        if (now) readFrom(page, function () { press(now); });
     };
+}
+
+function press(el: HTMLElement): void {
+    pressing = el;
+    try {
+        el.click();
+    } finally {
+        pressing = null;
+    }
+}
+
+// What `el` asks, whole: the question and the answer it expects.
+function ask(el: Element): string {
+    return el.getAttribute(QUESTION) + "\n" + el.getAttribute(EXPECT);
+}
+
+// The keys from the document down to `el`, its own last: null when `el` has no key of its own.
+function keyPath(el: Element): string | null {
+    if (el.getAttribute(KEY) === null) return null;
+    const keys: string[] = [];
+    for (let at: Element | null = el; at; at = at.parentElement) {
+        const key = at.getAttribute(KEY);
+        if (key !== null) keys.push(key);
+    }
+    return JSON.stringify(keys);
+}
+
+// The button the reader pressed, on the page as it is now: `el` itself while it is still on it, or the one drawn
+// under the same key path in its place — while it is a control of the same kind that asks the same question.
+function sameButton(el: Element, keys: string | null, asked: string, handled: boolean): HTMLElement | null {
+    if (el.isConnected) return pressable(el, el, asked, handled);
+    if (keys === null) return null;
+    let found: HTMLElement | null = null;
+    const all = el.ownerDocument.querySelectorAll<HTMLElement>("[" + KEY + "]");
+    for (let i = 0; i < all.length; i++) {
+        if (keyPath(all[i]) !== keys || !pressable(all[i], el, asked, handled)) continue;
+        if (found) return null;
+        found = all[i];
+    }
+    return found;
+}
+
+function pressable(now: Element, was: Element, asked: string, handled: boolean): HTMLElement | null {
+    return now.tagName === was.tagName && (now.getAttribute(HANDLER) !== null) === handled && ask(now) === asked
+        ? now as HTMLElement
+        : null;
 }
 
 // The element carrying handler `id` now: `el` itself while it still does, else the one that took its place.

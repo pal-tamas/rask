@@ -28,22 +28,40 @@ page.prompt = function (question: string) { asked.push("prompt:" + question); re
 
 const {confirmed, submitConfirmed} = await import("../../../src/Rask.Core/Resources/rask-confirm.js");
 const el = (attributes: Record<string, string>) => new Stub(attributes) as unknown as Element;
+const aTask = () => new Promise<void>(function (resolve) { setTimeout(resolve, 0); });
+
+// Whether a press of an element with these attributes goes: at once, or — said yes to in the browser's dialog, which
+// held the page — pressed again a task later, once what arrived meanwhile is on the page.
+async function goes(attributes: Record<string, string>): Promise<boolean> {
+    const stub = new Stub(attributes);
+    const now = confirmed(stub as unknown as Element);
+    await aTask();
+    return now || stub.clicks === 1;
+}
 
 const plain = confirmed(el({}));
 const askedOfPlain = asked.length;
 
 answer = true;
-const accepted = confirmed(el({"data-rask-confirm": "Delete the partner?"}));
+const accepted = await goes({"data-rask-confirm": "Delete the partner?"});
 answer = false;
-const dismissed = confirmed(el({"data-rask-confirm": "Delete the partner?"}));
+const dismissed = await goes({"data-rask-confirm": "Delete the partner?"});
 
-const prompt = el({"data-rask-confirm": "Type the name", "data-rask-confirm-expect": "Acme"});
+// A yes in the browser's dialog: the press it held is not sent, and the same button is pressed once, a task later.
+answer = true;
+const held = new Stub({"data-rask-confirm": "Delete the well?"});
+const heldPressGoes = confirmed(held as unknown as Element);
+const pressedBeforeTheTaskEnds = held.clicks;
+await aTask();
+const pressedAgainAfterYes = held.clicks;
+
+const prompt = {"data-rask-confirm": "Type the name", "data-rask-confirm-expect": "Acme"};
 answer = "Acme";
-const typedExactly = confirmed(prompt);
+const typedExactly = await goes(prompt);
 answer = "acme";
-const typedInAnotherCase = confirmed(prompt);
+const typedInAnotherCase = await goes(prompt);
 answer = null;
-const promptCancelled = confirmed(prompt);
+const promptCancelled = await goes(prompt);
 
 asked.length = 0;
 answer = false;
@@ -81,7 +99,7 @@ const resubmittedBySameButton = order.submittedBy.length === 1 && order.submitte
 const browserAskedWithDialog = asked.slice();
 seam.confirm = function () { return null; };
 answer = true;
-const withoutDialogBrowserAsks = confirmed(el({"data-rask-confirm": "No dialog here?"}));
+const withoutDialogBrowserAsks = await goes({"data-rask-confirm": "No dialog here?"});
 const browserAskedWithoutDialog = asked.slice();
 delete seam.confirm;
 
@@ -98,6 +116,9 @@ process.stdout.write(JSON.stringify({
     askedOfPlain,
     accepted,
     dismissed,
+    heldPressGoes,
+    pressedBeforeTheTaskEnds,
+    pressedAgainAfterYes,
     typedExactly,
     typedInAnotherCase,
     promptCancelled,
