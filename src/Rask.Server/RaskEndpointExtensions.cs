@@ -1210,8 +1210,7 @@ public static partial class RaskEndpointExtensions
 
     private static void SubscribeAssetChangedDebounced(LiveSessionStore sessionStore)
     {
-        var repaint = new ScopedAssetRepaint(sessionStore);
-        ScopedAssetRegistry.AssetChanged += (_, change) => _ = repaint.Changed(change);
+        ScopedAssetRegistry.AssetChanged += new ScopedAssetRepaint(sessionStore).OnAssetChanged;
     }
 
     // Parse an inbound WS frame, returning null on malformed JSON instead of throwing.

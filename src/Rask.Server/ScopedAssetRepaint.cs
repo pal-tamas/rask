@@ -26,6 +26,9 @@ internal sealed class ScopedAssetRepaint(LiveSessionStore sessions)
 
     private long _generation;
 
+    /// <summary>The <see cref="ScopedAssetRegistry.AssetChanged" /> handler: starts <see cref="Changed" /> and returns.</summary>
+    public void OnAssetChanged(object? sender, ScopedAssetChangedEventArgs change) => _ = Changed(change);
+
     /// <summary>Repaints the sessions after the quiet period when <paramref name="change" /> replaced or dropped an asset.</summary>
     /// <returns>Completes when this change's repaint is done, or skipped.</returns>
     public Task Changed(ScopedAssetChangedEventArgs change)

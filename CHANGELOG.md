@@ -348,6 +348,21 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The live-session log says WHY the browser closed its connection.** The "closed by the client" line used to carry
+  only the close status (`close status 1000`), so a reconnect for a changed credential, a token refresh or an expired
+  session looked like any other. It now carries the close frame's reason too — `close status 1000: auth-changed`,
+  `auth-refresh`, `session-expired` — bounded to 64 characters with every control character replaced, since it is the
+  client's text, and passed as the value of the line's `{Reason}` placeholder, never as format text.
+- **A lazily loaded assembly no longer re-renders every live session in production.** Its generated module
+  initializer registers its scoped CSS/JS as it loads, which raised `ScopedAssetRegistry.AssetChanged` and repainted
+  every session on the host, whatever environment. A first registration can't be on any page yet, so it now repaints
+  nothing; only a registration that replaces or drops an asset does. `ScopedAssetChangedEventArgs.Replaced` says which
+  (its constructor takes it). Hot reload is unchanged: it refreshes through its staged path and repaints itself.
+- **A tab whose credential changed no longer holds what it sends for ever when the connection can't be reopened.**
+  When the auth watch found a different principal and the connection was not open, or closing it threw, the watch
+  kept holding every frame for an `opened` that never came. Now the reopen says whether it dropped anything, and if it
+  didn't, the hold ends at once: frames leave on the open connection, or on the next one, whose upgrade carries the
+  current cookie anyway.
 - **A child entity with a `TenantId` member no longer hides its rows whose `TenantId` is NULL.** Before: a child of a
   `PerTenant` aggregate that declared a `TenantId` — public, or internal and mapped in its `Configure` — was filtered on
   its OWN column, so a legacy row whose child column was NULL while its parent carried the tenant silently vanished
