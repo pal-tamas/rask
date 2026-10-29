@@ -78,7 +78,7 @@ public sealed class DbTransactionHostTests : IAsyncDisposable
         Assert.False(_changes.ToldInsideATransaction);
     }
 
-        [Fact]
+    [Fact]
     public async Task A_rollback_announces_nothing()
     {
         await using var session = _provider.CreateAsyncScope();
