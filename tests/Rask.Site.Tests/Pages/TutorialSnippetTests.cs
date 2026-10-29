@@ -160,7 +160,7 @@ public sealed partial class TutorialSnippetTests
 
     /// <summary>
     /// True when the snippet elides code with <c>…</c>. That character is the docs' "the rest is not the
-    /// point here" marker, and a sketch like <c>class CreateProduct : Component { … }</c> is deliberately
+    /// point here" marker, and a sketch like <c>class NewProductPage : Component { … }</c> is deliberately
     /// not something to copy — holding it to the parser would only push the prose into contortions.
     /// </summary>
     private static bool IsElided(string code) => code.Contains('…', StringComparison.Ordinal);

@@ -17,7 +17,7 @@ namespace Shop.Features.Shared;
 
 public sealed record SendOrderReceipt : IJob;
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public Task Handle(SendOrderReceipt job)
     {
@@ -27,8 +27,8 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-A job is a record marked `IJob` plus the class that does the work. `ICommandHandler<T>` is simply
-the interface the job worker hands a job to, and nothing registers the handler: it is found at build time.
+A job is a record marked `IJob` plus the class that does the work, an `IJobHandler<T>`: the job worker hands
+each `SendOrderReceipt` it picks up to its `Handle`. Nothing registers the handler — it is found at build time.
 Give the job the data it needs by adding a parameter:
 
 ```csharp
@@ -44,7 +44,7 @@ order is the same call a page makes:
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
@@ -82,12 +82,12 @@ long-lived, and a scoped context would outlive any unit of work.
 
 ## 3. Enqueue from your code
 
-Open chapter 3's `CreateOrder` page in `Features/Orders/CreateOrder.cs` and enqueue right after the order is
+Open chapter 3's `NewOrderPage` in `Features/Orders/NewOrderPage.cs` and enqueue right after the order is
 saved. Nothing is injected: `Jobs` reaches the queue of the work it runs in, and is cancelled with it.
 `SendOrderReceipt` lives in `Features/Shared/`, so the page also needs `using Shop.Features.Shared;`:
 
 ```csharp
-public sealed partial class CreateOrder : Component
+public sealed partial class NewOrderPage : Component
 {
     // … the fields and Render() are unchanged …
 
