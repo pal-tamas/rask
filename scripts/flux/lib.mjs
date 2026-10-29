@@ -139,6 +139,14 @@ async function open(page, wrapper, opener) {
   if (phone) {
     if (await opener.getAttribute('data-parity-open') === 'hover') await page.touchscreen.tap(4, at[1]);
     await page.touchscreen.tap(...at);
+    // The hover a finger leaves on what it tapped comes with the mouse events the browser makes of the tap, and
+    // those land when they land: two frames after it on a Mac, 150 ms on a loaded Linux runner, where one page
+    // was measured hovered and the other not (the chevron of an open picker). Waited on, up to a second.
+    await opener.evaluate(el => new Promise(done => {
+      let frames = 0;
+      const look = () => (el.matches(':hover') || ++frames > 60 ? done() : requestAnimationFrame(look));
+      look();
+    }));
   }
   else if (await opener.getAttribute('data-parity-open') === 'hover') {
     // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
@@ -153,7 +161,16 @@ async function open(page, wrapper, opener) {
       const look = () => (el.querySelector(':popover-open') || ++frames > 60 ? done() : requestAnimationFrame(look));
       look();
     }));
-  } else await page.mouse.click(...at);
+  } else {
+    await page.mouse.click(...at);
+    // A popup that takes the pointer from the page (pointer-events: none on <html>, Flux's and rask-lock.ts's)
+    // leaves the trigger under a pointer that no longer hovers it — once the browser looks again, which it does
+    // on a timer of its own after the page changed: at once on a Mac, a while later on a loaded Linux runner,
+    // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
+    // already is may be no move at all), so both look now.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.mouse.move(at[0] + 1, at[1]);
+  }
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
 }
 
