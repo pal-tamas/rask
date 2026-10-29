@@ -45,7 +45,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " plot measure"                                             // rask-plot
     + " otp"                                                      // rask-otp
     + " segments"                                                 // rask-segments
-    + " dismiss-scope stack"                                      // rask-toast
+    + " dismiss-scope stack escape"                               // rask-toast
     + " confirm-leave"                                            // rask-leave
     + " persist uncheck-on-navigate"                              // rask-persist
     + " carousel carousel-controls"                               // rask-carousel

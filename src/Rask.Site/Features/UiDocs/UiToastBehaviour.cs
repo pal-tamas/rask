@@ -68,7 +68,8 @@ internal sealed partial class UiToastBehaviour : Component
             + "is a native `popover` the runtime shows (`data-rask-popover-open`), so a toast is in the top layer, over "
             + "an open dialog. `data-rask-dismiss-after=\"<ms>\"` has the runtime press the toast's own "
             + "`[data-rask-dismiss]` button when the time is up, `data-rask-dismiss-hold=\"pointer\"` says only the "
-            + "pointer holds it, and `data-rask-shortcut=\"escape\"` is Escape.",
+            + "pointer holds it, and `data-rask-escape` is Escape — heard wherever focus is, and taken from nothing: "
+            + "as on Flux, one Escape closes both a toast and the modal under it.",
             "A `Ui.ToastGroup` is one `data-rask-dismiss-scope`: the pointer anywhere over the stack holds every "
             + "toast in it, and when it leaves each runs on from where it stopped rather than starting again.",
             "Pressing the button rather than hiding the element is the point: the outlet takes the toast off its "

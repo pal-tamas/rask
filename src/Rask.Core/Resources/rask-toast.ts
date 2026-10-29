@@ -1,4 +1,5 @@
-// A group of toasts: one pointer over any of it holds them all, and the stack knows its own measurements.
+// A group of toasts: one pointer over any of it holds them all, and the stack knows its own measurements. And
+// Escape, which takes a lone toast down (data-rask-escape).
 //
 // The countdown itself is data-rask-dismiss-after's (rask-dom.ts). Two things about a GROUP it cannot see:
 //
@@ -96,6 +97,17 @@ if (page) {
         }).observe(doc.documentElement, {subtree: true, childList: true});
         doc.querySelectorAll(STACK).forEach(measure);
     }
+
+    // Escape presses every control marked data-rask-escape: a lone toast's close. Measured on Flux (2026-10-29):
+    // with a toast over an open modal, ONE Escape closed both, whether focus was on the page, on a button in the
+    // modal or in a field of it. So the key is heard while typing too, and nothing is taken from it: the modal, or
+    // a popover, under the toast closes on the same press.
+    listen("keydown", function (e) {
+        if (e.key !== "Escape" || e.repeat) return;
+        doc.querySelectorAll<HTMLElement>("[data-rask-escape]").forEach(function (close) {
+            if (!close.hasAttribute("disabled")) close.click();
+        });
+    });
 
     window.addEventListener("resize", function () {
         doc.querySelectorAll(STACK).forEach(measure);

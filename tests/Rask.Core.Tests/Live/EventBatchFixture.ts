@@ -7,7 +7,7 @@
 import {listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
-import {eventBatch, isHandlerEvent, MAX_BATCH, pageApplied} from "../../../src/Rask.Core/Resources/rask-batch.js";
+import {currentPage, eventBatch, isHandlerEvent, MAX_BATCH, pageApplied, readFrom} from "../../../src/Rask.Core/Resources/rask-batch.js";
 
 let frames: unknown[] = [];
 let owed: (() => void)[] = [];
@@ -160,8 +160,21 @@ await taskEnds();
 pageApplied({v: 0});
 const pagesNamed = frames.slice();
 
+// An action asked about on one page and made again on a later one (`.Confirm`) says the page it was asked on,
+// and only it: the event sent after it says the page on screen again.
+start();
+pageApplied({v: 5});
+const asked = currentPage();
+pageApplied({v: 7});
+readFrom(asked, function () { send(click(1)); });
+send(click(2));
+await taskEnds();
+pageApplied({v: 0});
+const madeAgain = frames.slice();
+
 process.stdout.write(JSON.stringify({
     pagesNamed,
+    madeAgain,
     editThenInput,
     typedThenSubmitted,
     duringTask,

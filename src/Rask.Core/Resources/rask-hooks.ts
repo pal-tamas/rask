@@ -24,7 +24,7 @@ import "./rask-requires.js"; // data-rask-requires
 import "./rask-plot.js";     // data-rask-plot / -plot-area / -plot-row / -plot-tooltip, data-rask-measure
 import "./rask-otp.js";      // data-rask-otp
 import "./rask-segments.js"; // data-rask-segments, data-rask-segment
-import "./rask-toast.js";    // data-rask-dismiss-scope, data-rask-stack
+import "./rask-toast.js";    // data-rask-dismiss-scope, data-rask-stack, data-rask-escape
 import "./rask-leave.js";    // data-rask-confirm-leave
 import "./rask-confirm-dialog.js"; // data-rask-confirm asked in Ui.Confirm (data-rask-confirm-dialog)
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate

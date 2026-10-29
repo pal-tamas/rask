@@ -16,6 +16,28 @@
 // whose handlers did not move carries none, and the document itself is zero). The host uses it to find the handler
 // the event was sent to, wherever that handler is by the time the event arrives — or to run nothing.
 let pageVersion = 0;
+// The page an action made again was read from, while it is being made: see readFrom.
+let pinned: number | null = null;
+
+/** The page the events read off the page now are read from. */
+export function currentPage(): number {
+    return pageVersion;
+}
+
+/**
+ * Runs `make` with every event it sends saying it was read from page `version`: an action asked about on that page
+ * and made again later (`.Confirm`, rask-confirm.ts), which the host must find on the page as it was asked about —
+ * the same handler, wherever it is now, or nothing.
+ */
+export function readFrom(version: number, make: () => void): void {
+    const before = pinned;
+    pinned = version;
+    try {
+        make();
+    } finally {
+        pinned = before;
+    }
+}
 
 /** Notes the page a reply carries, at the moment it is put on screen — not when it arrives. */
 export function pageApplied(reply: { v?: unknown }): void {
@@ -70,7 +92,7 @@ export function eventBatch(ship: (frame: unknown) => unknown): EventBatch {
                 queueMicrotask(flush);
             }
             const mine = answer;
-            (event as { v?: number }).v = pageVersion;
+            (event as { v?: number }).v = pinned ?? pageVersion;
             held.push(event);
             if (held.length >= MAX_BATCH) {
                 flush();
