@@ -28,14 +28,14 @@ page.prompt = function (question: string) { asked.push("prompt:" + question); re
 
 const {confirmed, submitConfirmed} = await import("../../../src/Rask.Core/Resources/rask-confirm.js");
 const el = (attributes: Record<string, string>) => new Stub(attributes) as unknown as Element;
-const aTask = () => new Promise<void>(function (resolve) { setTimeout(resolve, 0); });
+const settled = () => new Promise<void>(function (resolve) { setTimeout(resolve, 150); });
 
 // Whether a press of an element with these attributes goes: at once, or — said yes to in the browser's dialog, which
-// held the page — pressed again a task later, once what arrived meanwhile is on the page.
+// held the page — pressed again once the page has settled: no page arrives here, so after one beat.
 async function goes(attributes: Record<string, string>): Promise<boolean> {
     const stub = new Stub(attributes);
     const now = confirmed(stub as unknown as Element);
-    await aTask();
+    await settled();
     return now || stub.clicks === 1;
 }
 
@@ -47,12 +47,12 @@ const accepted = await goes({"data-rask-confirm": "Delete the partner?"});
 answer = false;
 const dismissed = await goes({"data-rask-confirm": "Delete the partner?"});
 
-// A yes in the browser's dialog: the press it held is not sent, and the same button is pressed once, a task later.
+// A yes in the browser's dialog: the press it held is not sent; the same button is pressed once the page settled.
 answer = true;
 const held = new Stub({"data-rask-confirm": "Delete the well?"});
 const heldPressGoes = confirmed(held as unknown as Element);
 const pressedBeforeTheTaskEnds = held.clicks;
-await aTask();
+await settled();
 const pressedAgainAfterYes = held.clicks;
 
 const prompt = {"data-rask-confirm": "Type the name", "data-rask-confirm-expect": "Acme"};

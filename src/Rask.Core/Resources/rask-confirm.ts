@@ -47,8 +47,31 @@ export function confirmed(el: Element | null, again?: () => void): boolean {
     if (inDialog !== null) return inDialog;
     const yes = expect === null ? window.confirm(question) : window.prompt(question) === expect;
     if (!yes || again) return yes;
-    setTimeout(make, 0);
+    onceSettled(make);
     return false;
+}
+
+// How long the page must go without a new one put on screen to have caught up, and the longest a press waits for it.
+const SETTLE_BEAT = 100;
+const SETTLE_MOST = 1500;
+
+// Runs `make` once the page has caught up after the browser's dialog let go. What the host sent while it was open
+// arrives only now, a page per task, behind anything the answer queues (measured: a press a task later was read from
+// the page before them all). So the press waits for a beat with no page put on screen — on a page that never stops,
+// for the most it waits — and is read from the page as it is.
+function onceSettled(make: () => void): void {
+    const until = performance.now() + SETTLE_MOST;
+    let seen = currentPage();
+    const beat = function (): void {
+        const now = currentPage();
+        if (now === seen || performance.now() >= until) {
+            make();
+            return;
+        }
+        seen = now;
+        setTimeout(beat, SETTLE_BEAT);
+    };
+    setTimeout(beat, SETTLE_BEAT);
 }
 
 // The press on `el` made again as the page stands at the answer: a fresh press of the same button, or — once `el` has
