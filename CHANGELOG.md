@@ -430,6 +430,27 @@ them until tagged releases begin.
   toast. Now that work starts outside the transaction, on a connection of its own, and sees only what is committed.
   Reads the block makes itself still run inside the transaction and see its own writes. Domain events and data-changed
   notices still go out after the commit, and never after a rollback. Nothing to change in an app.
+- **The live-session log says WHY the browser closed its connection.** The "closed by the client" line used to carry
+  only the close status (`close status 1000`), so a reconnect for a changed credential, a token refresh or an expired
+  session looked like any other. It now carries the close frame's reason too — `close status 1000: auth-changed`,
+  `auth-refresh`, `session-expired` — bounded to 64 characters with every control character replaced, since it is the
+  client's text, and passed as the value of the line's `{Reason}` placeholder, never as format text.
+- **A lazily loaded assembly no longer re-renders every live session in production.** Its generated module
+  initializer registers its scoped CSS/JS as it loads, which raised `ScopedAssetRegistry.AssetChanged` and repainted
+  every session on the host, whatever environment. A first registration can't be on any page yet, so it now repaints
+  nothing; only a registration that replaces or drops an asset does. The public event is unchanged: it still fires
+  for both. Hot reload is unchanged: it refreshes through its staged path and repaints itself.
+- **Work a hook detached that comes back before the hook itself is done now lets its event's scope go.** A hook's
+  provider lease was released only by a continuation that started after the hook had finished; a detached read that
+  came back a moment earlier — the hook still on its last statement, as happens on a loaded machine — never released
+  it, and the event's scope (its `DbContext`) stayed open for the rest of the session. A continuation that runs beside
+  one of the hook's own can only be detached work, so it now lets the lease go as well. Seen as an intermittent
+  timeout of `HookEventScopeTests` on CI, on `main` too.
+- **A tab whose credential changed no longer holds what it sends for ever when the connection can't be reopened.**
+  When the auth watch found a different principal and the connection was not open, or closing it threw, the watch
+  kept holding every frame for an `opened` that never came. Now the reopen says whether it dropped anything, and if it
+  didn't, the hold ends at once: frames leave on the open connection, or on the next one, whose upgrade carries the
+  current cookie anyway.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever

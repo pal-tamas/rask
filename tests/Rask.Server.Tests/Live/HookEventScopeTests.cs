@@ -129,6 +129,22 @@ public class HookEventScopeTests
         await page.Shows("report row");
     }
 
+    // The work a hook detached can come back while the hook itself is still running — on a loaded machine, between
+    // the detach and the hook's return. Its lease was let go only by a return that started after the hook was done,
+    // so this one kept the event's scope for the rest of the session: the report's flake on CI, made certain here.
+    [Fact]
+    public async Task Work_a_hook_detached_that_comes_back_before_the_hook_is_done_still_lets_its_scope_go()
+    {
+        await using var page = await OpenAsync(LiveTransportKind.WebSocket);
+
+        await page.Navigate("/hook-scope/early");
+        await WaitFor.True(() => page.Gates.Read("early").Done, "the hook to finish after its detached work came back");
+
+        var read = page.Gates.Read("early");
+        Assert.Null(read.Failure);
+        await WaitFor.True(() => read.First!.Disposed, TimeSpan.FromSeconds(10), "the scope the detached work read through to go");
+    }
+
     [Fact]
     public async Task The_session_ending_disposes_the_scope_a_hook_still_holds()
     {
@@ -348,6 +364,41 @@ public sealed partial class HookScopeRefunds : Component
     protected override async Task OnUpdated() => _rows = await HookScopeCatalogue.Load("refunds");
 
     protected override Component? Render() => P[string.Join(", ", _rows)];
+}
+
+// A hook whose detached read comes back while the hook is still running: it waits, synchronously, until it has.
+[Route("/hook-scope/early")]
+public sealed partial class HookScopeEarlyReturn : Component
+{
+    private string[] _rows = [];
+
+    protected override async Task OnUpdated()
+    {
+        await Task.Yield();
+        var services = Current.Service<IServiceProvider>();
+        var gates = services.GetRequiredService<HookScopeGates>();
+        var back = new ManualResetEventSlim();
+
+        _ = Run(services, back);
+        var cameBack = back.Wait(TimeSpan.FromSeconds(10));
+
+        gates.Read("early").Failure = cameBack ? null : new TimeoutException("the detached read never came back");
+        gates.Read("early").Done = true;
+    }
+
+    protected override Component? Render() => P[string.Join(", ", _rows)];
+
+    private async Task Run(IServiceProvider services, ManualResetEventSlim back)
+    {
+        var rows = await Task.Run(() =>
+        {
+            var db = services.GetRequiredService<HookScopeDb>();
+            services.GetRequiredService<HookScopeGates>().Read("early").First = db;
+            return db.Rows("early");
+        });
+        _rows = rows;
+        back.Set();
+    }
 }
 
 // The report as Eszaf writes it: the hook awaits a first read, takes its unit of work, then detaches the slow read

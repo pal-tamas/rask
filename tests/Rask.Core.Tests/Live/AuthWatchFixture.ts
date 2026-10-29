@@ -20,8 +20,10 @@ interface Tab {
     /** Lets `ms` of the page's time pass for whatever waits that long. */
     elapse(ms: number): void;
     reconnected(): void;
+    /** The connection drops by itself, as a network does. */
+    drop(): void;
     watch: ReturnType<typeof createAuthWatch>;
-    state: { now: number; focused: boolean; visible: boolean; http: boolean };
+    state: { now: number; focused: boolean; visible: boolean; http: boolean; dropFails: boolean };
     /** Each frame that left, with the connection it left on: "1:click". */
     wire: string[];
     asks: number;
@@ -34,7 +36,7 @@ interface Tab {
 }
 
 function tab(bootedWithUser = true): Tab {
-    const state = {now: 1_000_000, focused: true, visible: true, http: false};
+    const state = {now: 1_000_000, focused: true, visible: true, http: false, dropFails: false};
     const wire: string[] = [];
     const queue: string[] = [];
     const owed: Array<{ resolve: (a: WhoAnswer | null) => void; reject: (e: Error) => void }> = [];
@@ -56,7 +58,10 @@ function tab(bootedWithUser = true): Tab {
             },
             reopen() {
                 me.reopens++;
+                // As the runtime's: nothing to drop without an open connection, and a close that throws drops nothing.
+                if (!open || state.dropFails) return false;
                 open = false;
+                return true;
             },
             release: flush,
             tellOthers() {
@@ -87,6 +92,9 @@ function tab(bootedWithUser = true): Tab {
             const due = me.waiting.filter((w) => w.ms <= ms);
             me.waiting = me.waiting.filter((w) => w.ms > ms);
             for (const w of due) w.again();
+        },
+        drop() {
+            open = false;
         },
         reconnected() {
             connection++;
@@ -305,6 +313,35 @@ const results: Record<string, unknown> = {};
     t.elapse(RETRY_MS);
     await t.answer({same: true, user: true});
     results.later = {afterLater, asks: t.asks, reopens: t.reopens, wire: t.wire};
+}
+
+// "Changed", and the connection cannot be dropped — it throws on close: nothing will open to end the hold, so what
+// waited leaves on the connection that is still open, and so does what is sent after. Before, it waited for ever.
+{
+    const t = tab();
+    t.state.dropFails = true;
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    await t.answer({same: false});
+    t.send("after");
+    results.dropFailed = {wire: t.wire, reopens: t.reopens, holds: t.watch.holds()};
+}
+
+// "Changed" while the connection is already down: nothing is dropped, and the hold does not outlive it — the next
+// connection opens with the cookie as it is then, and everything leaves on it, in order.
+{
+    const t = tab();
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    t.drop();
+    await t.answer({same: false});
+    const holdsWhileDown = t.watch.holds();
+    t.send("down");
+    t.reconnected();
+    t.send("after");
+    results.changedWhileDown = {holdsWhileDown, wire: t.wire};
 }
 
 console.log(JSON.stringify(results));
