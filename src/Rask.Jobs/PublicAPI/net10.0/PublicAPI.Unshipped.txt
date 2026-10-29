@@ -37,6 +37,8 @@ Rask.Background.Enqueuing.In(System.TimeSpan delay) -> Rask.Background.Enqueuing
 Rask.Background.Enqueuing.InLane(string! lane) -> Rask.Background.Enqueuing
 Rask.Background.Enqueuing.UnlessWaiting() -> Rask.Background.Enqueuing
 Rask.Background.IJob
+Rask.Background.IJobHandler<TJob>
+Rask.Background.IJobHandler<TJob>.Handle(TJob job) -> System.Threading.Tasks.Task!
 Rask.Background.IJobs
 Rask.Background.IJobs.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Background.IJobs.AddUnlessWaiting(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!

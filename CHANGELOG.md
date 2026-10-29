@@ -12,6 +12,18 @@ them until tagged releases begin.
   Laravel (`artisan migrate`) users reach for "migrate"; before, it was rejected as an unknown action. It is the
   same verb — same options, same checks, same `dotnet ef database update` — and `rask db --help` lists it as
   `update (migrate)`; bash, zsh and fish completion offer it too.
+- **A job's handler is an `IJobHandler<TJob>`.** A background job was handled by an `ICommandHandler<TJob>`, so every
+  guide had to explain why a job is a "command" before it could show one. Now:
+  ```csharp
+  public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
+  {
+      public Task Handle(SendOrderReceipt job) => …;
+  }
+  ```
+  It is found at build time and run exactly as before: `IJobHandler<TJob>` derives from `ICommandHandler<TJob>`, so the
+  dispatcher, its pipeline and the one-handler-per-job rule (RASK028) are unchanged, and an existing
+  `ICommandHandler<TJob>` keeps working with no edit. The docs, tutorial and `Rask.Jobs` readme now write `IJobHandler`.
+  See [background jobs](docs/jobs.md#use).
 - **RASK111 warns about a collection of value objects that will be a NULL column.** A get-only
   `IReadOnlyList<FiledFile> Files { get; private set; }` has no list behind it for EF Core to write through, so it
   keeps the owned mapping, and its JSON column is NULL whatever its nullability. The warning names the two shapes that

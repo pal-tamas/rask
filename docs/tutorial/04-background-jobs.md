@@ -17,7 +17,7 @@ namespace Shop.Features.Shared;
 
 public sealed record SendOrderReceipt : IJob;
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public Task Handle(SendOrderReceipt job)
     {
@@ -27,8 +27,8 @@ public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
 }
 ```
 
-A job is a record marked `IJob` plus the class that does the work. `ICommandHandler<T>` is simply
-the interface the job worker hands a job to, and nothing registers the handler: it is found at build time.
+A job is a record marked `IJob` plus the class that does the work, an `IJobHandler<T>`: the job worker hands
+each `SendOrderReceipt` it picks up to its `Handle`. Nothing registers the handler — it is found at build time.
 Give the job the data it needs by adding a parameter:
 
 ```csharp
@@ -44,7 +44,7 @@ order is the same call a page makes:
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler : ICommandHandler<SendOrderReceipt>
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {

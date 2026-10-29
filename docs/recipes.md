@@ -155,6 +155,11 @@ at-least-once.
 
 ```csharp
 public sealed record SendOrderReceipt(Guid OrderId) : IJob;
+
+public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
+{
+    public Task Handle(SendOrderReceipt job) => …;   // the work, looked up by job.OrderId
+}
 ```
 ```csharp
 builder.Services.AddRaskJobs<ProductsDbContext>(o => { /* … */ });   // needs AddRaskCqrs()
