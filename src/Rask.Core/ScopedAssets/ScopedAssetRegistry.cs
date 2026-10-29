@@ -174,6 +174,7 @@ public static partial class ScopedAssetRegistry
         var bytes = Encoding.UTF8.GetBytes(rewritten);
         var hash = ComputeHash(bytes);
         bool changed;
+        bool replaced;
 
         lock (_lock)
         {
@@ -188,6 +189,7 @@ public static partial class ScopedAssetRegistry
             }
 
             // Same content as before — preserve no-event semantics.
+            replaced = _cssHashByType.ContainsKey(componentType);
             changed = ApplyCssLocked(
                 _cssHashByType, _scopeIdByType, _cssByHash, componentType, hash, scopeId, bytes);
             if (changed)
@@ -198,7 +200,7 @@ public static partial class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css));
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css, replaced));
         }
     }
 
@@ -278,6 +280,7 @@ public static partial class ScopedAssetRegistry
         var bytes = Encoding.UTF8.GetBytes(wrapped);
         var hash = ComputeHash(bytes);
         bool changed;
+        bool replaced;
 
         lock (_lock)
         {
@@ -287,6 +290,7 @@ public static partial class ScopedAssetRegistry
                 return;
             }
 
+            replaced = _jsHashByType.ContainsKey(componentType);
             changed = ApplyJsLocked(_jsHashByType, _jsByHash, componentType, hash, bytes, sourceMap);
             if (changed)
             {
@@ -296,7 +300,7 @@ public static partial class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js));
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js, replaced));
         }
     }
 
@@ -331,7 +335,7 @@ public static partial class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css));
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Css, replaced: true));
         }
     }
 
@@ -364,7 +368,7 @@ public static partial class ScopedAssetRegistry
 
         if (changed)
         {
-            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js));
+            AssetChanged?.Invoke(null, new ScopedAssetChangedEventArgs(componentType, AssetKind.Js, replaced: true));
         }
     }
 

@@ -58,6 +58,11 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
 
     private bool _hookDone;
 
+    // How many continuations through this context are running now. A hook's own continuations follow one another — each
+    // is the next statement after its await — so one that starts while another is still running is work the hook
+    // detached, coming back before the hook is done. An int beside the three bools: the context is no bigger for it.
+    private int _running;
+
     /// <summary>Whether the hook is one that loads — <c>OnMount</c>, <c>OnUpdated</c> — which a recovered boundary runs again.</summary>
     internal bool IsLoad { get; init; }
 
@@ -119,9 +124,13 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     private void RunContinuation(
         SendOrPostCallback d, object? state, QuiescenceScope? quiescence, TaskCompletionSource? rendered)
     {
-        // Taken as it starts: once the hook itself is done, this is the work it detached coming back, and what it was
-        // lent of the event's services goes when it has run — not what it takes now, which is for its own next return.
-        var returning = HookLeases.Returning(this);
+        // Taken as it starts: once the hook itself is done — or while it is still running, since only detached work
+        // overlaps it — this is the work it detached coming back, and what it was lent of the event's services goes when
+        // it has run, not what it takes now, which is for its own next return. Gated on the hook being done alone, a
+        // return that beat the hook's own last statement by a moment was never let go, and kept the event's scope for
+        // the rest of the session.
+        var overlapping = Interlocked.Increment(ref _running) > 1;
+        var returning = HookLeases.Returning(this, overlapping);
         try
         {
             // Restore ONLY the quiescence scope, never the whole ExecutionContext: the
@@ -141,6 +150,7 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
             // render waiting on a gate nothing will ever open. The fault is already routed to
             // the nearest ErrorBoundary by the caller.
             rendered?.TrySetResult();
+            Interlocked.Decrement(ref _running);
             returning?.ForEach(static hold => hold.Release());
         }
     }
