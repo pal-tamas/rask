@@ -245,3 +245,103 @@ internal sealed class TestClock(DateTimeOffset start) : TimeProvider
 
     public void Advance(TimeSpan by) => _now += by;
 }
+
+/// <summary>
+///     A clock whose timers fire only when the test moves it, so a poll is a step the test takes rather than a
+///     wait it hopes is long enough.
+/// </summary>
+internal sealed class ManualClock : TimeProvider
+{
+    private readonly Lock _gate = new();
+    private readonly List<ManualTimer> _timers = [];
+    private DateTimeOffset _now = DateTimeOffset.UnixEpoch;
+
+    /// <summary>How many timers are waiting to fire — a cancelled wait takes its timer away.</summary>
+    public int PendingTimers
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _timers.Count(timer => timer.Due is not null);
+            }
+        }
+    }
+
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (_gate)
+        {
+            return _now;
+        }
+    }
+
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        var timer = new ManualTimer(this, callback, state);
+        lock (_gate)
+        {
+            _timers.Add(timer);
+        }
+
+        timer.Change(dueTime, period);
+        return timer;
+    }
+
+    /// <summary>Moves the clock on, firing every timer that falls due on the way.</summary>
+    public void Advance(TimeSpan by)
+    {
+        List<ManualTimer> due;
+        lock (_gate)
+        {
+            _now += by;
+            due = [.. _timers.Where(timer => timer.Due is { } at && at <= _now)];
+            foreach (var timer in due)
+            {
+                timer.Due = null;
+            }
+        }
+
+        foreach (var timer in due)
+        {
+            timer.Fire();
+        }
+    }
+
+    private void Remove(ManualTimer timer)
+    {
+        lock (_gate)
+        {
+            _timers.Remove(timer);
+        }
+    }
+
+    private void Schedule(ManualTimer timer, TimeSpan dueTime)
+    {
+        lock (_gate)
+        {
+            timer.Due = dueTime == Timeout.InfiniteTimeSpan ? null : _now + dueTime;
+        }
+    }
+
+    private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
+    {
+        public DateTimeOffset? Due { get; set; }
+
+        public void Fire() => callback(state);
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            clock.Schedule(this, dueTime);
+            return true;
+        }
+
+        public void Dispose() => clock.Remove(this);
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
+}

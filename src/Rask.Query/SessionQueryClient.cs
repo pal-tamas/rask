@@ -65,6 +65,9 @@ internal sealed class SessionQueryClient : IQueryClient
     /// <summary>Whether the reader's tab is in sight, where the host says so: a polling query waits while it is not.</summary>
     internal PageVisibility? Visibility { get; }
 
+    /// <summary>The session's clock: what a poll waits on, so a test can move it rather than wait for it.</summary>
+    internal TimeProvider Time => _time;
+
     /// <summary>Cancelled when the session ends (<see cref="Stop" />).</summary>
     internal CancellationToken Lifetime => _lifetimeToken;
 

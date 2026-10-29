@@ -36,17 +36,20 @@ public class QueryScopeCancellationTests
     public async Task A_query_polled_after_its_session_ended_asks_for_nothing_more()
     {
         var dispatcher = new CountingDispatcher();
-        var client = new SessionQueryClient(dispatcher);
-        var polled = new QueryOptions { RefetchInterval = TimeSpan.FromMilliseconds(10) };
+        var clock = new ManualClock();
+        var client = new SessionQueryClient(dispatcher, clock);
+        var polled = new QueryOptions { RefetchInterval = TimeSpan.FromMinutes(1) };
         using var query = client.Query(new GetOrders(1), polled);
-        await Until(() => dispatcher.QueryCount >= 2);
+        await Until(() => dispatcher.QueryCount == 1 && clock.PendingTimers == 1);
+        clock.Advance(TimeSpan.FromMinutes(1));
+        await Until(() => dispatcher.QueryCount == 2 && clock.PendingTimers == 1);
 
         client.Stop();
-        var stoppedAt = dispatcher.QueryCount;
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+        clock.Advance(TimeSpan.FromMinutes(5));
 
-        // One tick may already have been past its check as the session stopped; none after it.
-        Assert.InRange(dispatcher.QueryCount, stoppedAt, stoppedAt + 1);
+        // The poll's wait was cancelled with the session and took its timer with it: no tick is left to fetch.
+        Assert.Equal(0, clock.PendingTimers);
+        Assert.Equal(2, dispatcher.QueryCount);
     }
 
     [Fact]

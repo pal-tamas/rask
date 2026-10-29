@@ -92,7 +92,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
     ///     Refetches on an interval for as long as this query is alive and something is watching it.
     /// </summary>
     /// <remarks>
-    ///     A <c>Task.Delay</c> loop rather than a timer, which is what the rest of the repo does. A tick that
+    ///     A <c>Task.Delay</c> loop on the session's clock rather than a timer, which is what the rest of the repo does. A tick that
     ///     falls due while the reader's tab is out of sight waits for them to look again, and is taken then.
     ///     It stops on dispose, and also once every component that ever read this has been collected
     ///     — a query left undisposed must not keep a session fetching for ever. Disposing from
@@ -104,7 +104,7 @@ public sealed class Query<TResult> : IDisposable, IRenderSlotHandle, IQueryState
         {
             try
             {
-                await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(interval, _client.Time, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
