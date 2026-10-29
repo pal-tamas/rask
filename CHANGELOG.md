@@ -407,6 +407,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
+  was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
+  caller's empty token — and in a WASM app the invoker is the transport, so the HTTP request (and with it
+  `Command<T>.Send`, which passes none) was never cancelled by leaving the page or by the component going. The
+  invoker now gets the same token the handler reads, on every host. A picked file's `OpenReadStream()` likewise
+  reads under the work that opened it when given no token, and a read whose token is already cancelled stops before
+  asking the browser for the next chunk. A durable event is still stored with the caller's own token, so a page
+  closing does not drop it. Nothing to change in an app.
 - **A gesture that arrived from an older page could be dropped by `Ui.DatePicker`, `Ui.DatetimePicker` and
   `Ui.Pagination`.** Picks, a clear and step presses made faster than the page answers are each read from the page as
   loaded, so the later ones arrive pages late — and these handlers closed over what one render resolved (the day
