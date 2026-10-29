@@ -219,6 +219,10 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **Build: parallel branches no longer conflict on CHANGELOG.md, the bundle-size baseline or llms.txt.** Bullets
+  added under one heading are both kept (`.githooks/merge-append`, set up by the first build), appended bundle-size
+  blocks are both kept and the gate reads the newest-dated one, and `llms.txt` is one sentence per line; two changes
+  to the same line still conflict. See [the development workflow](docs/development-workflow.md).
 - BREAKING: `Current.Tenant` is your tenant row. Say which aggregate is the tenant —
   `public sealed class Tenant : Aggregate<int, Deletable>, ITenant` — and the build generates `Current.Tenant`
   (its read face, `TenantRead?`) and `Current.RequiredTenant`, with `Current.Tenant.Id` in your own key type (a `Guid`,
