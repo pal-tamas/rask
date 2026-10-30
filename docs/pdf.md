@@ -115,7 +115,7 @@ Rask.Pdf prints with the **Chrome for Testing headless shell**, at one pinned ve
 | Where | How the browser gets there |
 | --- | --- |
 | Your machine, `rask dev`, `dotnet test`, CI | Building an app that references Rask.Pdf fetches the pinned shell into the user cache — `~/Library/Caches/Rask`, `~/.cache/rask` (or `$XDG_CACHE_HOME/rask`), `%LOCALAPPDATA%\Rask\Cache` — once per version, after checking its SHA-256. |
-| The container image | The scaffolded Dockerfile has `dotnet publish` fetch it into the build stage, copies it to `/opt/rask/chrome`, and installs the libraries it links against plus fonts — only when the app references Rask.Pdf. About 510 MB more on `aspnet:10.0`. It also sets `Rask__Pdf__NoSandbox=true` — see [In a container](#in-a-container). |
+| The container image | The scaffolded Dockerfile has `dotnet publish` fetch it into a BuildKit cache mount (once per pin, not per deploy) and copy it out with `-p:RaskPdfChromiumCopyTo=/chrome-shell`, then copies it to `/opt/rask/chrome`, and installs the libraries it links against plus fonts — only when the app references Rask.Pdf. About 510 MB more on `aspnet:10.0`. It also sets `Rask__Pdf__NoSandbox=true` — see [In a container](#in-a-container). |
 | Anywhere else | Install Chromium or Google Chrome and set `Rask:Pdf:ChromiumPath`; the build's fetch is off with `<RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>`. |
 
 An app scaffolded before Rask.Pdf existed adds the same lines to its Dockerfile: copy them from any template's

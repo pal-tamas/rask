@@ -400,6 +400,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A redeploy downloads no NuGet package, npm package, Tailwind CLI or PDF browser it already has.** Every
+  template's Dockerfile keeps NuGet's packages, npm's cache, the Tailwind CLI and Rask.Pdf's pinned Chrome
+  headless shell in BuildKit cache mounts (`# syntax=docker/dockerfile:1`; Docker 23+ with buildx, or Podman 4+),
+  which `COPY . .` does not invalidate, and its runtime stage copies the app LAST, so the PDF browser's system
+  libraries are not installed again either. A scaffolded server app with Rask.Pdf rebuilt after a one-line edit
+  in 16 s instead of 179 s (Podman). The image ships the same files: the publish copies this pin's shell out
+  with the new `-p:RaskPdfChromiumCopyTo=…` (Rask.Pdf) instead of searching the cache, which now also holds
+  older pins and other apps' shells. An app scaffolded earlier copies both stages from
+  `src/Rask.Templates/server/Dockerfile`.
 - **A class list left with one part is that part, not a copy.** `BuilderRuntime.JoinClasses` (behind
   `.Class("p-4", on ? "x" : null)` and every kit look) hands back the one non-blank, already-trimmed part as the
   very string it was given, so a kit look with no app class no longer copies itself on every render.

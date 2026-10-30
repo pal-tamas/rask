@@ -97,7 +97,7 @@ Dockerfile below (override with `--dockerfile`).
 - **One box, and how far it goes.** [Scaling](scaling.md) has the measured numbers — sessions held and
   events served — plus where the wall actually is and what to do when you reach it.
 
-**Prerequisites:** the Docker CLI locally, and a host you can `ssh` into non-interactively with a key.
+**Prerequisites:** the Docker CLI locally, with its buildx plugin (the [build cache](#scaffolding-a-dockerfile) needs it), and a host you can `ssh` into non-interactively with a key.
 That's it — **you never have to SSH in and prepare the box yourself**; see below. The host, domain, and
 port are remembered in `.rask/deploy.json` for repeat deploys — a bare `rask deploy` re-ships. Secrets
 are never stored there; pass them with `--env KEY=VALUE` (repeatable) or `--env-file <path>`. Use
@@ -516,6 +516,13 @@ rask new MyApp --template wasm                   # static WASM bundle → nginx:
 
 The Dockerfile references your project by name (the template renames `Company.RaskServer.dll` to
 `MyApp.dll` when it scaffolds), so `docker build` works with no edits.
+
+**Build cache.** The build stage keeps NuGet's packages, npm's cache, the Tailwind CLI and
+[Rask.Pdf's browser](pdf.md#the-browser) in BuildKit cache mounts, and the runtime stage copies the app last, so a
+redeploy after a code edit downloads and installs none of them again. That needs a builder with
+cache mounts — Docker 23+ with the buildx plugin (Docker Desktop and get.docker.com install it; Homebrew's
+`docker` needs `brew install docker-buildx`), or Podman 4+; a docker CLI without buildx, talking to a Docker
+daemon, fails on `RUN --mount`. `docker builder prune` empties the cache.
 
 ## Server app (`--template server`)
 

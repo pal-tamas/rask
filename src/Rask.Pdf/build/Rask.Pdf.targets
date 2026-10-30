@@ -9,9 +9,10 @@
     the build and leaves nothing behind. Fetched once per version and platform, then the build is a file check.
 
     Production does not use this cache: the container image carries the browser (the scaffolded Dockerfile has
-    `dotnet publish` fetch it into a folder of its own, -p:RaskPdfChromiumCache=…, and copies that into the
-    runtime image). A machine with no network, or an app that brings its own Chromium (Rask:Pdf:ChromiumPath),
-    turns the fetch off with <RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>.
+    `dotnet publish` fetch it into a folder of its own, -p:RaskPdfChromiumCache=…, copy the pinned shell out
+    with -p:RaskPdfChromiumCopyTo=…, and copies that into the runtime image). A machine with no network, or an
+    app that brings its own Chromium (Rask:Pdf:ChromiumPath), turns the fetch off with
+    <RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>.
   -->
 
   <Import Project="$(MSBuildThisFileDirectory)Rask.Pdf.ChromePin.props" Condition="'$(RaskPdfChromeVersion)' == ''" />
@@ -82,6 +83,19 @@
           Command="chmod -R u+rwX,go+rX &quot;$(_RaskPdfDir)&quot; &amp;&amp; chmod +x &quot;$(_RaskPdfDir)/chrome-headless-shell-$(_RaskPdfPlatform)/chrome-headless-shell&quot;" />
     <Delete Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfDownload)" />
     <Touch Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfMarker)" AlwaysCreate="true" />
+
+    <!--
+      The shell THIS build prints with, copied out to -p:RaskPdfChromiumCopyTo=… — what a container image's build
+      stage hands its runtime stage. Picked by the pin and the platform, never by searching the cache: a cache
+      kept between builds (a BuildKit cache mount) also holds older pins, and other apps' shells.
+    -->
+    <ItemGroup Condition="'$(RaskPdfChromiumCopyTo)' != '' And '$(_RaskPdfPlatform)' != ''">
+      <_RaskPdfShellFile Include="$(_RaskPdfDir)/chrome-headless-shell-$(_RaskPdfPlatform)/**/*" />
+    </ItemGroup>
+    <Copy Condition="'@(_RaskPdfShellFile)' != ''"
+          SourceFiles="@(_RaskPdfShellFile)"
+          DestinationFiles="@(_RaskPdfShellFile->'$(RaskPdfChromiumCopyTo)/%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
   </Target>
 
 </Project>
