@@ -173,11 +173,19 @@ async function atPointer(page, point) {
   }, point);
 }
 
-// A finger held on the screen: Chromium makes a `contextmenu` of it, as a phone's browser does.
+// A finger held on the screen: Chromium makes a `contextmenu` of it, as a phone's browser does — on a Mac. On Linux
+// it makes none (measured 2026-10-30 in Playwright's 1.63 image: pointerdown, touchstart, then a second later
+// pointerup and touchend, and nothing else, three runs of three), so there the `contextmenu` the press would have
+// made is made at its point by the right button — the same event, at the same place, on both pages.
 async function longPress(page, x, y) {
+  await page.evaluate(() => {
+    window.__parityHeld = false;
+    addEventListener('contextmenu', () => { window.__parityHeld = true; }, { capture: true, once: true });
+  });
   const cdp = await page.context().newCDPSession(page);
   await cdp.send('Input.synthesizeTapGesture', { x, y, duration: 1000, tapCount: 1, gestureSourceType: 'touch' });
   await cdp.detach();
+  if (!await page.evaluate(() => window.__parityHeld)) await page.mouse.click(x, y, { button: 'right' });
 }
 
 // ---- measuring ------------------------------------------------------------------------------------
@@ -261,6 +269,12 @@ async function measureExample(page, cdp, index, prefix) {
       }, point);
     }
 
+    // A long press opens Flux's menu from the `contextmenu` the browser makes of it, when it makes it: a loaded
+    // Linux runner measured the menu shut where it opens a moment later. Waited on, up to two seconds; a menu
+    // that does not open by then did not open.
+    if (parts.kind === 'context' && view.phone) {
+      await page.waitForFunction(() => document.querySelector('[data-pm="panel"]')?.matches(':popover-open'), null, { timeout: 2000 }).catch(() => {});
+    }
     await page.waitForTimeout(300);
     return point;
   };
