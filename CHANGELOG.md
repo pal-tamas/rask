@@ -462,6 +462,10 @@ them until tagged releases begin.
 - **An event batch that never reached its handlers hands its uploads back.** A batch dropped after a sign-in
   in it, or one whose session was gone by the time it reached the lock, kept its files staged until the session
   ended; they are now released where every dispatched event's are.
+- **A frame the server drops without dispatching hands its uploads back at the drop.** A files frame or form
+  submit sent while a sign-in hands the tab over, over a socket another has replaced, naming no handler, or
+  refused by the backlog or batch-rate breaker — and the frames of an HTTP batch behind a refused one — kept its
+  staged files until the session ended, and enough of them answered every later upload `413`.
 - **A TypeScript tool fetched at build time asks again when the network fails for a moment.** The tsgo / esbuild /
   compiler download (and its registry metadata) is retried twice, after 2 s and 5 s, on a dropped connection, a
   timeout or a registry 5xx/408/429; a 404 or a download that fails its integrity check still fails at once, and

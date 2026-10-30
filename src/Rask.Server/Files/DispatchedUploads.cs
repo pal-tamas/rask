@@ -22,6 +22,20 @@ internal static class DispatchedUploads
     public static SessionUploadStore? StoreFor(LiveSession session, JsonElement frame) =>
         !session.IsDisposed && Carries(frame) ? session.Services.GetService<SessionUploadStore>() : null;
 
+    /// <summary>
+    ///     Hands back the files a frame named that the server drops without dispatching — sent while a sign-in hands
+    ///     the tab over, over a socket another has replaced, naming no handler, or refused by a breaker — a batch
+    ///     frame's events included. No handler will ever be handed them, so nothing would release them later.
+    /// </summary>
+    public static void Dropped(LiveSession session, JsonElement frame)
+    {
+        HandBack(session, frame);
+        if (frame.ValueKind == JsonValueKind.Object && frame.TryGetProperty("events", out var events))
+        {
+            HandBack(session, events);
+        }
+    }
+
     // An OnFiles frame names its tokens under `files`, a form submit under `form.__files` per field; a batch is an
     // array of either.
     public static void Release(SessionUploadStore store, string sessionId, JsonElement frame)
@@ -55,6 +69,14 @@ internal static class DispatchedUploads
             {
                 ReleaseEach(store, sessionId, field.Value);
             }
+        }
+    }
+
+    private static void HandBack(LiveSession session, JsonElement frame)
+    {
+        if (StoreFor(session, frame) is { } store)
+        {
+            Release(store, session.Id, frame);
         }
     }
 
