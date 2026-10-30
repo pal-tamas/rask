@@ -84,6 +84,22 @@ public partial class UiPillboxTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Space ArrowUp ArrowDown", button);
     }
 
+    // Measured on fluxui.dev/components/pillbox (2026-10-29): zinc-300 at rest, zinc-800 under the pointer (white /
+    // white at 60% in dark mode), back at rest while the list is open on a desktop, dark after a tap on a phone.
+    [Fact]
+    public void The_chevron_darkens_under_the_pointer_and_rests_while_the_list_is_open_where_there_is_one()
+    {
+        var page = Page.Render(Pillbox);
+
+        var chevron = page.FindAll("[data-ui-pillbox-trigger] svg").Last().Attribute("class")!.Split(' ');
+
+        Assert.Contains("text-zinc-300", chevron);
+        Assert.Contains("[[data-ui-pillbox-trigger]:hover_&]:text-zinc-800", chevron);
+        Assert.Contains("dark:[[data-ui-pillbox-trigger]:hover_&]:text-white", chevron);
+        Assert.Contains("[@media(hover:hover)]:[[data-ui-pillbox]:has(:popover-open)_&]:text-zinc-300!", chevron);
+        Assert.Contains("dark:[@media(hover:hover)]:[[data-ui-pillbox]:has(:popover-open)_&]:text-white/60!", chevron);
+    }
+
     [Fact]
     public void The_list_takes_several_answers()
     {

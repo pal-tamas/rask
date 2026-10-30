@@ -40,7 +40,13 @@ internal static class UiPillboxLook
         "shrink-0 -me-2 px-1 text-zinc-400 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white";
 
     /// <summary>The chevron at the end of the trigger.</summary>
-    internal const string Chevron = "shrink-0 self-start ms-2 -me-1 text-zinc-300 dark:text-white/60";
+    internal const string Chevron =
+        "shrink-0 self-start ms-2 -me-1 text-zinc-300 [[data-ui-pillbox-trigger]:hover_&]:text-zinc-800 "
+        + "dark:text-white/60 dark:[[data-ui-pillbox-trigger]:hover_&]:text-white "
+        // Open, the pointer is the list's (as the select's chevron, UiSelectLook.Chevron): back at rest where there is
+        // a pointer, and dark where a tap's hover stays, on a phone (measured on Flux's pillbox, 2026-10-29).
+        + "[@media(hover:hover)]:[[data-ui-pillbox]:has(:popover-open)_&]:text-zinc-300! "
+        + "dark:[@media(hover:hover)]:[[data-ui-pillbox]:has(:popover-open)_&]:text-white/60!";
 
     /// <summary>The input among the pills: no box of its own, and never narrower than three rem.</summary>
     internal const string Input =

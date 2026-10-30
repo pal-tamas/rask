@@ -419,6 +419,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **On a phone, a tapped `Ui.Select` or `Ui.Phone` trigger lost its hover look while its list was open.** Chromium gives a tapped element its hover about 150 ms after the tap, and a relayout before then cancels
+  it. The placement hook (`rask-place.ts`) placed every new panel a second time when the ResizeObserver first
+  reported it. That pass changed nothing, but measuring moves the panel to the page's corner and back, so the
+  chevron kept its rest colour while Flux's turns dark. A pass that finds the viewport, the page's scroll and every
+  panel's anchor, box and content size as the last pass left them now writes nothing. Placement is unchanged, and
+  there is nothing to change in an app.
+- **`Ui.Pillbox`'s chevron never showed a hover.** Flux's turns zinc-800 (white in dark mode) while the pointer is
+  over the trigger. Like the select's, it goes back to rest while the list is open on a desktop and stays dark after
+  a tap on a phone. The kit's chevron now does the same.
 - **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
   was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
   caller's empty token — and in a WASM app the invoker is the transport, so the HTTP request (and with it
