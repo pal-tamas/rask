@@ -46,10 +46,19 @@ const args = process.argv.slice(2);
 const view = viewOf(args);
 // Where nothing is: the pointer rests there on a desktop, and a finger taps there to let a stack go.
 const AWAY = [5, 450];
+// A tap, and the mouse a phone's browser makes of it left where the finger was. On a Mac Chromium leaves it there by
+// itself. On Linux it hovers what was tapped and then, a dozen milliseconds on, takes that mouse back to where the
+// page's own pointer last was (measured 2026-10-30 in Playwright's 1.63 image: mouseleave off the stack, mouseenter
+// on the docs header), so Flux's stack shut as soon as it opened and neither page held its countdown. Moving the
+// page's pointer to the tap first is what keeps it there on both platforms.
+const tap = async (page, x, y) => {
+  await page.mouse.move(x, y);
+  await press(page, x, y, true);
+};
 // Over the front toast: the pointer moved there, or a tap.
-const over = (page, [x, y]) => (view.phone ? press(page, x, y, true) : page.mouse.move(x, y));
+const over = (page, [x, y]) => (view.phone ? tap(page, x, y) : page.mouse.move(x, y));
 // Off it again: the pointer away, or a tap elsewhere.
-const away = page => (view.phone ? press(page, ...AWAY, true) : page.mouse.move(...AWAY));
+const away = page => (view.phone ? tap(page, ...AWAY) : page.mouse.move(...AWAY));
 const out = join(root, 'artifacts', 'flux-parity');
 const fluxDir = join(out, 'flux', 'toast-shown');
 const raskPage = join(out, 'rask', 'toast-shown.html');
