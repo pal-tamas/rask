@@ -57,8 +57,11 @@ export interface WhoAnswer {
 export interface AuthWatchHost {
     /** Asks the server. A rejection, or anything that is not an answer, is no answer: nothing changes. */
     ask(): Promise<WhoAnswer | null>;
-    /** Drops the connection and opens it again. The host calls `opened` when the new one is up. */
-    reopen(): void;
+    /**
+     * Drops the connection and opens it again. The host calls `opened` when the new one is up. Returns false when it
+     * dropped nothing — no connection was open, or closing it failed — and so no `opened` is coming for it.
+     */
+    reopen(): boolean;
     /** Sends what was kept while an answer was owed, on the connection that is open. */
     release(): void;
     /** Tells the browser's other tabs that this one found the credential changed. */
@@ -126,7 +129,11 @@ export function createAuthWatch(host: AuthWatchHost): AuthWatch {
         if (answer?.same === false) {
             reopening = true;
             if (!told) host.tellOthers();
-            host.reopen();
+            if (host.reopen()) return;
+            // Nothing was dropped, so nothing will open to end the hold: let it go now, or what the page sends waits
+            // for ever. The next connection's upgrade carries the cookie as it is then, as any connection's does.
+            reopening = false;
+            host.release();
             return;
         }
         if (answer?.same === true && typeof answer.user === "boolean") hadUser = answer.user;

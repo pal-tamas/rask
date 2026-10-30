@@ -1,0 +1,64 @@
+#!/bin/sh
+# Git merge driver `rask-append` (.gitattributes) for a file that branches grow by INSERTING lines —
+# CHANGELOG.md, where two branches each add a bullet at the top of `### Fixed`.
+#
+#   usage (git runs it):  sh .githooks/merge-append %O %A %B %L
+#
+# Git's own merge calls two inserts at the same spot a conflict. This driver keeps both, ours first: a
+# conflict whose BASE side is empty is two additions and nothing else, so taking both loses nothing.
+# Every other conflict — both branches edited the same existing line, or one edited what the other
+# deleted — is left exactly as git would leave it, markers and all, and the merge stops as usual.
+#
+# Why not git's built-in `merge=union`: it keeps both sides of a REAL conflict too (an edited bullet
+# arrives twice, old and new, with no conflict reported), and it trims lines the two inserts share at
+# their ends, so two bullets that both end in "  ```" or the same "See [x](y)." line are spliced into one
+# with the other's text inside it. `--diff3` asks xdiff for the conflicts unrefined, so an insert stays
+# whole here.
+#
+# The build points git at this driver (RaskConfigureGitHooks in Directory.Build.targets), as it does at
+# the hooks. A clone that has not built yet has no driver defined, and git then merges the file with its
+# ordinary text merge — a conflict, as before — never with something worse.
+set -u
+
+ours="$2"
+size="${4:-7}"
+
+# merge-file writes the merge into %A and exits with the number of conflicts (negative/>127: an error).
+git merge-file --diff3 --marker-size="$size" -L ours -L base -L theirs "$ours" "$1" "$3"
+status=$?
+if [ "$status" -eq 0 ]; then
+  exit 0
+fi
+if [ "$status" -gt 127 ]; then
+  exit 1
+fi
+
+tmp="$ours.rask-append.$$"
+awk -v n="$size" '
+  function marker(c,   s, i) { s = ""; for (i = 0; i < n; i++) s = s c; return s }
+  BEGIN { m_ours = marker("<") " ours"; m_base = marker("|") " base"; m_sep = marker("="); m_theirs = marker(">") " theirs" }
+  state == 0 && $0 == m_ours   { state = 1; ours = ""; base = ""; theirs = ""; based = 0; next }
+  state == 1 && $0 == m_base   { state = 2; next }
+  state == 1                   { ours = ours $0 "\n"; next }
+  state == 2 && $0 == m_sep    { state = 3; next }
+  state == 2                   { base = base $0 "\n"; based++; next }
+  state == 3 && $0 == m_theirs {
+    state = 0
+    if (based == 0) { printf "%s%s", ours, theirs }
+    else { printf "%s\n%s%s\n%s%s\n%s%s\n", m_ours, ours, m_base, base, m_sep, theirs, m_theirs; left++ }
+    next
+  }
+  state == 3                   { theirs = theirs $0 "\n"; next }
+  { print }
+  END { exit state != 0 ? 2 : left > 0 ? 1 : 0 }
+' "$ours" > "$tmp"
+resolved=$?
+
+# 2: the markers were not the shape merge-file writes (a line of the file itself looked like one). Keep
+# merge-file's own output, a conflict to resolve by hand, rather than a guess.
+if [ "$resolved" -eq 2 ]; then
+  rm -f "$tmp"
+  exit 1
+fi
+mv "$tmp" "$ours"
+exit "$resolved"

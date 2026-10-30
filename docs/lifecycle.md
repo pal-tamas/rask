@@ -320,7 +320,7 @@ private async Task LoadRows(int turn)
 
 The provider a hook takes is its event's, wherever it is used — another thread included — and it keeps that
 event's scope until the detached work **comes back to the page** (the first await that resumes there once the hook
-itself has finished). Work that never comes back keeps it until its component has left the page (ten seconds more
+itself has finished, or while the hook is still running). Work that never comes back keeps it until its component has left the page (ten seconds more
 at most) or the session ends — so a tab closed mid-read, or a first response whose page never connects, lets it go
 with its session. A scope is never disposed on the thread of a response or an event: a `DbContext` that waits, as
 it is disposed, for a query still running on it holds nobody up. A `Current.Service<T>()` made inside the detached

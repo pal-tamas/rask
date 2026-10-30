@@ -40,7 +40,11 @@ internal sealed class WasmFileStream : Stream
 
         var remaining = Length - _position;
         var requested = (int)Math.Min(Math.Min(buffer.Length, ChunkSize), remaining);
-        var ct = cancellationToken == default ? _ct : cancellationToken;
+        var ct = cancellationToken.CanBeCanceled ? cancellationToken : _ct;
+
+        // Before the browser is asked: WaitAsync hands back a chunk that is already there whatever the token
+        // says, so without this a read would go on for work that is gone.
+        ct.ThrowIfCancellationRequested();
         var chunk = await JSInterop.ReadFileChunkAsync(_ref, (int)_position, requested).WaitAsync(ct).ConfigureAwait(false);
         chunk.CopyTo(buffer);
         _position += chunk.Length;

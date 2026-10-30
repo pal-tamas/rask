@@ -17,7 +17,12 @@ export function chromium() {
     process.exit(1);
   }
 
-  return createRequire(import.meta.url)(driver).chromium;
+  // Text at the font's own advances, on every platform. Chromium on Linux hints a face and rounds each glyph's
+  // advance to a whole pixel (a Mac does not), so a word is 174px there and 172.13px here: whatever Rask.Ui draws
+  // from widths measured once — a chart's tick labels (inter-metrics.mjs), a docs monospace stand-in — and every
+  // box written at the size Flux gave it then sat a pixel or two off on the runner alone.
+  const { chromium } = createRequire(import.meta.url)(driver);
+  return { launch: (options = {}) => chromium.launch({ ...options, args: [...(options.args ?? []), '--font-render-hinting=none'] }) };
 }
 
 export const STYLES = [
@@ -139,6 +144,8 @@ async function open(page, wrapper, opener) {
   if (phone) {
     if (await opener.getAttribute('data-parity-open') === 'hover') await page.touchscreen.tap(4, at[1]);
     await page.touchscreen.tap(...at);
+    // The hover a finger leaves on what it tapped (hoverSettled, below).
+    await opener.evaluate(hoverSettled);
   }
   else if (await opener.getAttribute('data-parity-open') === 'hover') {
     // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
@@ -153,8 +160,37 @@ async function open(page, wrapper, opener) {
       const look = () => (el.querySelector(':popover-open') || ++frames > 60 ? done() : requestAnimationFrame(look));
       look();
     }));
-  } else await page.mouse.click(...at);
+  } else {
+    await page.mouse.click(...at);
+    // A popup that takes the pointer from the page (pointer-events: none on <html>, Flux's and rask-lock.ts's)
+    // leaves the trigger under a pointer that no longer hovers it — once the browser looks again, which it does
+    // on a timer of its own after the page changed: at once on a Mac, a while later on a loaded Linux runner,
+    // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
+    // already is may be no move at all), so both look now.
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await page.mouse.move(at[0] + 1, at[1]);
+  }
   await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+/**
+ * Runs in the page, on what a finger tapped: done once it has STAYED hovered for ten frames, or after 1.5 s. That
+ * hover comes with the mouse events the browser makes of a tap, and those land when they land: two frames after it
+ * on a Mac, 150 ms on a loaded Linux runner, where one page was measured hovered and the other not (the chevron of
+ * an open picker). The touch itself hovers it for a moment before, and the page may lose it until they land
+ * (measured on the Rask page: hovered, then not for 130 ms, then hovered for good), so one hovered frame is not it.
+ */
+export function hoverSettled(el) {
+  return new Promise(done => {
+    let frames = 0;
+    let held = 0;
+    const look = () => {
+      held = el?.isConnected && el.matches(':hover') ? held + 1 : 0;
+      if (held >= 10 || ++frames > 90) done();
+      else requestAnimationFrame(look);
+    };
+    look();
+  });
 }
 
 async function close(page) {

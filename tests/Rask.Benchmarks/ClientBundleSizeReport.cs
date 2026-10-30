@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 namespace Rask.Benchmarks;
 
@@ -32,7 +33,7 @@ namespace Rask.Benchmarks;
 ///         </code>
 ///     </para>
 /// </remarks>
-internal static class ClientBundleSizeReport
+internal static partial class ClientBundleSizeReport
 {
     /// <summary>Tolerated growth before the gate fails, as a fraction of the baseline.</summary>
     /// <remarks>
@@ -213,25 +214,78 @@ internal static class ClientBundleSizeReport
         return lines < 8;
     }
 
+    /// <summary>The baseline for each bundle: its row in the newest-dated block of the file.</summary>
+    /// <remarks>
+    ///     <para>
+    ///         The file is a log — each refresh appends a comment that opens with its date, then a
+    ///         <c>bundle,bytes</c> block — and <c>.gitattributes</c> merges it with git's <c>union</c> driver, so
+    ///         two branches that each append a block both land without a conflict, in whichever order the
+    ///         merge happened to take them. "The last row wins" would make the gate depend on that order.
+    ///     </para>
+    ///     <para>
+    ///         So a row is dated by the first <c>yyyy-MM-dd</c> of the comment above it (an undated comment
+    ///         keeps the date before it), the newest date wins, and two rows of the same date — two branches
+    ///         that landed the same day — keep the larger: each measured only its own growth, so the tree that
+    ///         merges both is at least the larger of the two.
+    ///     </para>
+    /// </remarks>
     private static Dictionary<string, long> ParseBaseline(string path)
     {
-        var rows = new Dictionary<string, long>(StringComparer.Ordinal);
+        var rows = new Dictionary<string, (DateOnly Date, long Bytes)>(StringComparer.Ordinal);
+        var date = DateOnly.MinValue;
+        var inComment = false;
+        var dated = false;
+
         foreach (var line in File.ReadAllLines(path))
         {
-            if (line.Length == 0 || line.StartsWith('#') || line.StartsWith("bundle,", StringComparison.Ordinal))
+            if (line.StartsWith('#'))
+            {
+                dated &= inComment;
+                inComment = true;
+                if (!dated && FirstDate(line) is { } stamped)
+                {
+                    date = stamped;
+                    dated = true;
+                }
+
+                continue;
+            }
+
+            inComment = false;
+            if (line.Length == 0 || line.StartsWith("bundle,", StringComparison.Ordinal))
             {
                 continue;
             }
 
             var parts = line.Split(',');
-            if (parts.Length >= 2 && long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var bytes))
+            if (parts.Length < 2
+                || !long.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var bytes))
             {
-                rows[parts[0].Trim()] = bytes;
+                continue;
+            }
+
+            var name = parts[0].Trim();
+            if (!rows.TryGetValue(name, out var kept) || date > kept.Date || (date == kept.Date && bytes > kept.Bytes))
+            {
+                rows[name] = (date, bytes);
             }
         }
 
-        return rows;
+        return rows.ToDictionary(row => row.Key, row => row.Value.Bytes, StringComparer.Ordinal);
     }
+
+    private static DateOnly? FirstDate(string line)
+    {
+        var match = IsoDate().Match(line);
+        return match.Success
+            && DateOnly.TryParseExact(match.Value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)
+            ? date
+            : null;
+    }
+
+    // The committed baseline only, read once per run: no wall-clock budget to fail a slow machine on.
+    [GeneratedRegex(@"\b\d{4}-\d{2}-\d{2}\b", RegexOptions.None, matchTimeoutMilliseconds: Timeout.Infinite)]
+    private static partial Regex IsoDate();
 
     private static string? RepositoryRoot()
     {

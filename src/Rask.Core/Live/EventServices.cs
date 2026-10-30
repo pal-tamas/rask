@@ -60,6 +60,10 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
     private HashSet<EventLife>? _ended;
     private bool _disposed;
 
+    // The commands sent from this session's events still running (Keep), and who waits for the last of them.
+    private int _sending;
+    private TaskCompletionSource? _allSent;
+
     /// <summary>How long a hook whose component has left the page keeps its event's services. Settable for tests.</summary>
     internal TimeSpan TeardownGrace { get; set; } = DefaultTeardownGrace;
 
@@ -153,6 +157,73 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
         hold.OrAfter(TeardownGrace, owner.CallbackLifetime);
         hold.Until(work);
+    }
+
+    /// <summary>
+    ///     Keeps the asking flow's part of its event until <paramref name="work" />, a command it sent, is done — with no
+    ///     grace once its component has left the page: a command already sent runs to its end on the services it began
+    ///     with. The session's end still disposes them.
+    /// </summary>
+    internal void Keep(Task work)
+    {
+        if (work.IsCompleted)
+        {
+            return;
+        }
+
+        EventHold hold;
+        lock (_gate)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            var life = Life();
+            life.Holds++;
+            hold = new EventHold(this, life);
+            _sending++;
+        }
+
+        hold.Until(work);
+        _ = work.ContinueWith(
+            static (_, state) => ((EventServices)state!).Sent(),
+            this,
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
+    }
+
+    /// <summary>
+    ///     Completes once every command kept by <see cref="Keep" /> is done: what a session whose tab has left waits
+    ///     for before it ends, so none of them loses its services mid-write.
+    /// </summary>
+    internal Task Sending
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _sending == 0
+                    ? Task.CompletedTask
+                    : (_allSent ??= new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously)).Task;
+            }
+        }
+    }
+
+    private void Sent()
+    {
+        TaskCompletionSource? allSent = null;
+        lock (_gate)
+        {
+            if (--_sending == 0)
+            {
+                allSent = _allSent;
+                _allSent = null;
+            }
+        }
+
+        allSent?.TrySetResult();
     }
 
     /// <summary>

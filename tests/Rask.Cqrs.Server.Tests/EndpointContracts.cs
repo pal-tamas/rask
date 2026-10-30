@@ -140,3 +140,31 @@ public sealed class UploadManyHandler : ICommandHandler<UploadMany, string>
         return string.Join(",", contents);
     }
 }
+
+public sealed record SaveSlowly(int Id) : ICommand;
+
+// A write held until the test lets it go, honouring the cancellation it runs under as a SaveChangesAsync does: only
+// AbandonedRequestTests sends it.
+public sealed class SaveSlowlyHandler : ICommandHandler<SaveSlowly>
+{
+    public static TaskCompletionSource Reached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public static TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public static TaskCompletionSource<int> Saved { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public async Task Handle(SaveSlowly command)
+    {
+        Reached.TrySetResult();
+        try
+        {
+            await Gate.Task.WaitAsync(Current.Cancellation);
+            Saved.TrySetResult(command.Id);
+        }
+        catch (Exception ex)
+        {
+            Saved.TrySetException(ex);
+            throw;
+        }
+    }
+}

@@ -38,11 +38,12 @@ internal static class HookLeases
 
     /// <summary>
     ///     As a continuation through <paramref name="hook" /> starts: the leases it lets go once it has run — those
-    ///     taken before it, when the hook itself is done — or null.
+    ///     taken before it, when the hook itself is done or the continuation <paramref name="overlapsTheHook" /> (only
+    ///     detached work runs beside one of the hook's own) — or null.
     /// </summary>
-    internal static List<EventHold>? Returning(LifecycleSyncContext hook)
+    internal static List<EventHold>? Returning(LifecycleSyncContext hook, bool overlapsTheHook)
     {
-        if (!_any || !hook.HookDone || !ByHook.TryGetValue(hook, out var taken))
+        if (!_any || !(hook.HookDone || overlapsTheHook) || !ByHook.TryGetValue(hook, out var taken))
         {
             return null;
         }

@@ -219,6 +219,22 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **Build: parallel branches no longer conflict on CHANGELOG.md, the bundle-size baseline or llms.txt.** Bullets
+  added under one heading are both kept (`.githooks/merge-append`, set up by the first build), appended bundle-size
+  blocks are both kept and the gate reads the newest-dated one, and `llms.txt` is one sentence per line; two changes
+  to the same line still conflict. See [the development workflow](docs/development-workflow.md).
+- A command the page sent runs to its end when the page goes away, and the page drops its answer without an error,
+  the way Laravel does. Before, cancelling the caller's token (navigating away, the component unmounting, the tab
+  closing) cancelled the command's handler mid-write, and `Command<T>` showed an `OperationCanceledException` as its
+  `Error`. Now the handler runs under its own token, which only `HandlerTimeout` and the host stopping can cancel. That
+  applies in-process on the Server host, where a closing tab's session waits for the commands it sent before it ends,
+  and to a command posted over HTTP from a WASM page, where the server no longer passes the aborted request's token to
+  the handler. The command's DI scope stays alive until it finishes. If the caller has gone by the time the answer
+  arrives, there is no `Error` and `Status` goes back to what it was before the send. A completed command keeps its
+  result and invalidates its declared queries. A failed one rolls back its optimistic edits. When the outcome is
+  unknown (the transport was cancelled), the declared queries are invalidated. A timeout, the host stopping or an
+  exception is still an `Error`, as before. A command whose caller had already gone before it was sent is not sent. See
+  [query](docs/query.md#when-the-page-leaves).
 - BREAKING: `Current.Tenant` is your tenant row. Say which aggregate is the tenant —
   `public sealed class Tenant : Aggregate<int, Deletable>, ITenant` — and the build generates `Current.Tenant`
   (its read face, `TenantRead?`) and `Current.RequiredTenant`, with `Current.Tenant.Id` in your own key type (a `Guid`,
@@ -412,6 +428,20 @@ them until tagged releases begin.
 - **`Ui.Pillbox`'s chevron never showed a hover.** Flux's turns zinc-800 (white in dark mode) while the pointer is
   over the trigger. Like the select's, it goes back to rest while the list is open on a desktop and stays dark after
   a tap on a phone. The kit's chevron now does the same.
+- **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
+  was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
+  caller's empty token — and in a WASM app the invoker is the transport, so the HTTP request (and with it
+  `Command<T>.Send`, which passes none) was never cancelled by leaving the page or by the component going. The
+  invoker now gets the same token the handler reads, on every host. A picked file's `OpenReadStream()` likewise
+  reads under the work that opened it when given no token, and a read whose token is already cancelled stops before
+  asking the browser for the next chunk. A durable event is still stored with the caller's own token, so a page
+  closing does not drop it. Nothing to change in an app.
+- **A query's fetch kept running after the screen or the session that wanted it had gone.** A fetch was linked only
+  to its caller's token, and a component that read a query in `Render` and then left the page never let go of it,
+  so the request ran on against the database. A fetch now stops when the session ends, and when every component
+  that read its query has left the page — a query another reader still shows keeps its fetch. A stopped fetch is
+  no error: the entry keeps what it held and fetches again for the next reader. A polling query stops with its
+  session too.
 - **A gesture that arrived from an older page could be dropped by `Ui.DatePicker`, `Ui.DatetimePicker` and
   `Ui.Pagination`.** Picks, a clear and step presses made faster than the page answers are each read from the page as
   loaded, so the later ones arrive pages late — and these handlers closed over what one render resolved (the day
@@ -439,6 +469,27 @@ them until tagged releases begin.
   toast. Now that work starts outside the transaction, on a connection of its own, and sees only what is committed.
   Reads the block makes itself still run inside the transaction and see its own writes. Domain events and data-changed
   notices still go out after the commit, and never after a rollback. Nothing to change in an app.
+- **The live-session log says WHY the browser closed its connection.** The "closed by the client" line used to carry
+  only the close status (`close status 1000`), so a reconnect for a changed credential, a token refresh or an expired
+  session looked like any other. It now carries the close frame's reason too — `close status 1000: auth-changed`,
+  `auth-refresh`, `session-expired` — bounded to 64 characters with every control character replaced, since it is the
+  client's text, and passed as the value of the line's `{Reason}` placeholder, never as format text.
+- **A lazily loaded assembly no longer re-renders every live session in production.** Its generated module
+  initializer registers its scoped CSS/JS as it loads, which raised `ScopedAssetRegistry.AssetChanged` and repainted
+  every session on the host, whatever environment. A first registration can't be on any page yet, so it now repaints
+  nothing; only a registration that replaces or drops an asset does. The public event is unchanged: it still fires
+  for both. Hot reload is unchanged: it refreshes through its staged path and repaints itself.
+- **Work a hook detached that comes back before the hook itself is done now lets its event's scope go.** A hook's
+  provider lease was released only by a continuation that started after the hook had finished; a detached read that
+  came back a moment earlier — the hook still on its last statement, as happens on a loaded machine — never released
+  it, and the event's scope (its `DbContext`) stayed open for the rest of the session. A continuation that runs beside
+  one of the hook's own can only be detached work, so it now lets the lease go as well. Seen as an intermittent
+  timeout of `HookEventScopeTests` on CI, on `main` too.
+- **A tab whose credential changed no longer holds what it sends for ever when the connection can't be reopened.**
+  When the auth watch found a different principal and the connection was not open, or closing it threw, the watch
+  kept holding every frame for an `opened` that never came. Now the reopen says whether it dropped anything, and if it
+  didn't, the hold ends at once: frames leave on the open connection, or on the next one, whose upgrade carries the
+  current cookie anyway.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
