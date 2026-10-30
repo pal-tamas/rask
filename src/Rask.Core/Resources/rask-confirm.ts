@@ -18,8 +18,9 @@
 // in its place is looked for by the pressed handler's id, its event read from the page the question was asked on,
 // so the host runs the handler the reader said yes to, or nothing (Component.StaleEvents.cs).
 //
-// The browser's own confirm() holds the page still while the host renders on, and what it rendered waits to be put
-// on screen: a yes there is a press made again too, once the page has caught up, not the stale one held.
+// The press goes once the page has caught up (onceCaughtUp): just after a page lands, the furthest from the next. A
+// yes in the browser's own confirm() is a press made again too: that dialog holds the page still while the host
+// renders on, so the press it held is long stale by the answer and is never sent.
 
 import {currentPage, readFrom} from "./rask-batch.js";
 import {seam} from "./rask-owned.js";
@@ -47,31 +48,38 @@ export function confirmed(el: Element | null, again?: () => void): boolean {
     if (inDialog !== null) return inDialog;
     const yes = expect === null ? window.confirm(question) : window.prompt(question) === expect;
     if (!yes || again) return yes;
-    onceSettled(make);
+    make();
     return false;
 }
 
-// How long the page must go without a new one put on screen to have caught up, and the longest a press waits for it.
-const SETTLE_BEAT = 100;
-const SETTLE_MOST = 1500;
+// When a press made again goes, in ms: a page with no other after it for QUIET is the page as it is; a press waits at
+// most WINDOW for a page to land when none is on its way, and at most MOST on a page that never stops.
+const QUIET = 50;
+const WINDOW = 300;
+const MOST = 1500;
+const LOOK = 16;
 
-// Runs `make` once the page has caught up after the browser's dialog let go. What the host sent while it was open
-// arrives only now, a page per task, behind anything the answer queues (measured: a press a task later was read from
-// the page before them all). So the press waits for a beat with no page put on screen — on a page that never stops,
-// for the most it waits — and is read from the page as it is.
-function onceSettled(make: () => void): void {
-    const until = performance.now() + SETTLE_MOST;
+// Runs `make` once the page has caught up. A page rendering live has its next one on the way at any moment, and a
+// press read from the page before it reaches the host after it: a handler that is a new closure in every render (a
+// row read anew) is then not one the host can show is the same, and nothing runs. So the press waits for a page to
+// land and goes just after it, the furthest from the next — or, when none lands, at the end of the window. After the
+// browser's own dialog let go, what the host sent while it was open arrives only now, a page per task, behind the
+// answer (measured: a press a task later was read from the page before them all): the press goes after the last.
+function onceCaughtUp(make: () => void): void {
+    const start = performance.now();
     let seen = currentPage();
-    const beat = function (): void {
-        const now = currentPage();
-        if (now === seen || performance.now() >= until) {
-            make();
-            return;
+    let landed = -1;
+    const look = function (): void {
+        const at = performance.now();
+        if (currentPage() !== seen) {
+            seen = currentPage();
+            landed = at;
         }
-        seen = now;
-        setTimeout(beat, SETTLE_BEAT);
+        const ready = landed >= 0 ? at - landed >= QUIET : at - start >= WINDOW;
+        if (ready || at - start >= MOST) make();
+        else setTimeout(look, LOOK);
     };
-    setTimeout(beat, SETTLE_BEAT);
+    setTimeout(look, LOOK);
 }
 
 // The press on `el` made again as the page stands at the answer: a fresh press of the same button, or — once `el` has
@@ -83,13 +91,15 @@ function pressAgain(el: Element): () => void {
     const id = el.getAttribute(HANDLER);
     const page = currentPage();
     return function (): void {
-        const same = sameButton(el, keys, asked, id !== null);
-        if (same) {
-            press(same);
-            return;
-        }
-        const now = !el.isConnected && id !== null ? carrying(el, id) : null;
-        if (now) readFrom(page, function () { press(now); });
+        onceCaughtUp(function (): void {
+            const same = sameButton(el, keys, asked, id !== null);
+            if (same) {
+                press(same);
+                return;
+            }
+            const now = !el.isConnected && id !== null ? carrying(el, id) : null;
+            if (now) readFrom(page, function () { press(now); });
+        });
     };
 }
 

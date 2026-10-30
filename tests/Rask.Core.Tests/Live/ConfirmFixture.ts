@@ -28,10 +28,10 @@ page.prompt = function (question: string) { asked.push("prompt:" + question); re
 
 const {confirmed, submitConfirmed} = await import("../../../src/Rask.Core/Resources/rask-confirm.js");
 const el = (attributes: Record<string, string>) => new Stub(attributes) as unknown as Element;
-const settled = () => new Promise<void>(function (resolve) { setTimeout(resolve, 150); });
+const settled = () => new Promise<void>(function (resolve) { setTimeout(resolve, 400); });
 
 // Whether a press of an element with these attributes goes: at once, or — said yes to in the browser's dialog, which
-// held the page — pressed again once the page has settled: no page arrives here, so after one beat.
+// held the page — pressed again once the page has caught up: no page lands here, so at the end of the window.
 async function goes(attributes: Record<string, string>): Promise<boolean> {
     const stub = new Stub(attributes);
     const now = confirmed(stub as unknown as Element);
@@ -90,11 +90,13 @@ asked.length = 0;
 const press = new Stub({"data-rask-confirm": "Delete it?", "data-rask-confirm-expect": "Acme"});
 const pressWaitsForTheDialog = confirmed(press as unknown as Element);
 agains[0]();
+await settled();
 const pressedAgain = press.clicks;
 const order = new Stub({"data-rask-confirm": "Send the order?"});
 const sender = new Stub({});
 const submitWaitsForTheDialog = submitConfirmed(order as unknown as Element, sender as unknown as Element);
 agains[1]();
+await settled();
 const resubmittedBySameButton = order.submittedBy.length === 1 && order.submittedBy[0] === sender;
 const browserAskedWithDialog = asked.slice();
 seam.confirm = function () { return null; };
