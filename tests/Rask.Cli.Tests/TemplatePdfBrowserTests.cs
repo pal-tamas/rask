@@ -19,6 +19,7 @@ public sealed class TemplatePdfBrowserTests
         var missing = images
             .Where(file => File.ReadAllText(file) is var text
                 && !(text.Contains("-p:RaskPdfChromiumCache=/chrome", StringComparison.Ordinal)
+                    && text.Contains("-p:RaskPdfChromiumCopyTo=/chrome-shell", StringComparison.Ordinal)
                     && text.Contains("COPY --from=build /chrome-shell /opt/rask/chrome", StringComparison.Ordinal)
                     && text.Contains("if [ -f /opt/rask/chrome/chrome-headless-shell ]", StringComparison.Ordinal)
                     && text.Contains("ENV Rask__Pdf__NoSandbox=true", StringComparison.Ordinal)))

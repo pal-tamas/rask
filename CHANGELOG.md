@@ -400,6 +400,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A redeploy downloads no NuGet package, npm package, Tailwind CLI or PDF browser it already has.** Every
+  template's Dockerfile keeps NuGet's packages, npm's cache, the Tailwind CLI and Rask.Pdf's pinned Chrome
+  headless shell in BuildKit cache mounts (`# syntax=docker/dockerfile:1`; Docker 23+ with buildx, or Podman 4+),
+  which `COPY . .` does not invalidate, and its runtime stage copies the app LAST, so the PDF browser's system
+  libraries are not installed again either. A scaffolded server app with Rask.Pdf rebuilt after a one-line edit
+  in 16 s instead of 179 s (Podman). The image ships the same files: the publish copies this pin's shell out
+  with the new `-p:RaskPdfChromiumCopyTo=…` (Rask.Pdf) instead of searching the cache, which now also holds
+  older pins and other apps' shells. An app scaffolded earlier copies both stages from
+  `src/Rask.Templates/server/Dockerfile`.
 - **A class list left with one part is that part, not a copy.** `BuilderRuntime.JoinClasses` (behind
   `.Class("p-4", on ? "x" : null)` and every kit look) hands back the one non-blank, already-trimmed part as the
   very string it was given, so a kit look with no app class no longer copies itself on every render.
@@ -419,6 +428,25 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **On a phone, a tapped `Ui.Select` or `Ui.Phone` trigger lost its hover look while its list was open.** Chromium gives a tapped element its hover about 150 ms after the tap, and a relayout before then cancels
+  it. The placement hook (`rask-place.ts`) placed every new panel a second time when the ResizeObserver first
+  reported it. That pass changed nothing, but measuring moves the panel to the page's corner and back, so the
+  chevron kept its rest colour while Flux's turns dark. A pass that finds the viewport, the page's scroll and every
+  panel's anchor, box and content size as the last pass left them now writes nothing. Placement is unchanged, and
+  there is nothing to change in an app.
+- **`Ui.Pillbox`'s chevron never showed a hover.** Flux's turns zinc-800 (white in dark mode) while the pointer is
+  over the trigger. Like the select's, it goes back to rest while the list is open on a desktop and stays dark after
+  a tap on a phone. The kit's chevron now does the same.
+- **A `.Confirm("…")`'s yes could do nothing on a page that re-renders while the dialog is open.** Before: a page
+  that renders every few seconds (a board told of every change) rebuilt the button's handler, and often its id, in
+  every render; the yes pressed the button as the page was when the question was asked, many pages back — past the
+  two the host remembers — so the click ran nothing and a flyout's confirmed delete stayed open. The browser's own
+  `confirm()` did the same, sending the press it had held while the host rendered on. Now yes presses the SAME button
+  as a fresh press of the page as it is at the answer: the element pressed while it still asks the same question, or
+  the one drawn under its key path in its place; a button that is gone, or another action drawn there, runs nothing.
+  The press goes once the page has caught up — just after a page lands, the furthest from the next, or at most 300 ms
+  after the answer on a page that is quiet — so it is not read from a page the host has already replaced.
+  `rask-confirm.ts`; `ConfirmOnLivePageTests`, `ConfirmClientTests`.
 - **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
   was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
   caller's empty token — and in a WASM app the invoker is the transport, so the HTTP request (and with it
@@ -453,6 +481,10 @@ them until tagged releases begin.
 - **An event batch that never reached its handlers hands its uploads back.** A batch dropped after a sign-in
   in it, or one whose session was gone by the time it reached the lock, kept its files staged until the session
   ended; they are now released where every dispatched event's are.
+- **A frame the server drops without dispatching hands its uploads back at the drop.** A files frame or form
+  submit sent while a sign-in hands the tab over, over a socket another has replaced, naming no handler, or
+  refused by the backlog or batch-rate breaker — and the frames of an HTTP batch behind a refused one — kept its
+  staged files until the session ended, and enough of them answered every later upload `413`.
 - **A TypeScript tool fetched at build time asks again when the network fails for a moment.** The tsgo / esbuild /
   compiler download (and its registry metadata) is retried twice, after 2 s and 5 s, on a dropped connection, a
   timeout or a registry 5xx/408/429; a 404 or a download that fails its integrity check still fails at once, and

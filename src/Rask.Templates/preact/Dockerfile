@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Multi-stage build: compile on the .NET SDK image with node beside it, run on the smaller aspnet
 # runtime, which carries neither. The aspnet:10.0 image already runs as a non-root user and listens
 # on port 8080 (ASPNETCORE_HTTP_PORTS=8080) — no extra hardening needed for a basic deploy.
@@ -13,23 +14,32 @@ RUN apt-get update \
 
 # Restore and install first (cached layers): only the csproj and the client's manifests invalidate
 # them, so code edits reuse the cache.
+# NuGet's packages and npm's cache live in BuildKit cache mounts (Docker 23+, Podman 4+), which outlive the
+# layers: the publish below finds them there, and a changed manifest downloads only what changed.
 COPY ["Company.RaskServer.csproj", "./"]
-RUN dotnet restore
+RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
+    dotnet restore
 # The lockfile is the one the first build wrote: the template ships none, its versions are chosen at `rask new`.
 COPY ["client/package*.json", "client/"]
-RUN cd client && if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+RUN --mount=type=cache,id=rask-npm,target=/root/.npm \
+    cd client && if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 COPY . .
-RUN dotnet publish "Company.RaskServer.csproj" -c Release -o /app --no-restore -p:RaskPdfChromiumCache=/chrome
-# An app that references Rask.Pdf prints with the pinned Chrome for Testing headless shell, which that publish
-# fetched into /chrome and checked against its SHA-256. Gathered into one folder for the runtime image; for any
-# other app the folder stays empty and costs nothing.
-RUN mkdir -p /chrome-shell \
- && shell="$(find /chrome -name chrome-headless-shell -type f 2>/dev/null | head -n 1)" \
- && if [ -n "$shell" ]; then cp -a "$(dirname "$shell")/." /chrome-shell/; fi
+# The publish restores again: a no-op while the cache holds the packages, a download only if the builder pruned
+# them. The Tailwind CLI the stylesheet compiles with is cached the same way, once per version. An app that
+# references Rask.Pdf prints with the pinned Chrome for Testing headless shell: the publish fetches it into the
+# /chrome cache mount once per pin, after checking its SHA-256, and copies this pin's shell to /chrome-shell —
+# inside this RUN, because a cache mount is not part of the image. For any other app the folder stays empty
+# and costs nothing.
+RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
+    --mount=type=cache,id=rask-tailwind,target=/root/.rask/tailwind \
+    --mount=type=cache,id=rask-npm,target=/root/.npm \
+    --mount=type=cache,id=rask-chrome,target=/chrome,sharing=locked \
+    dotnet publish "Company.RaskServer.csproj" -c Release -o /app \
+      -p:RaskPdfChromiumCache=/chrome -p:RaskPdfChromiumCopyTo=/chrome-shell \
+ && mkdir -p /chrome-shell
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
-COPY --from=build /app .
 COPY --from=build /chrome-shell /opt/rask/chrome
 
 # rask:if cqrs data
@@ -59,6 +69,9 @@ RUN if [ -f /opt/rask/chrome/chrome-headless-shell ]; then \
 # its scripts off. On a host without that restriction you may delete this line; `rask dev` keeps the sandbox on.
 ENV Rask__Pdf__NoSandbox=true
 USER $APP_UID
+# The app last: everything above changes only with the PDF browser's pin, so a code edit reuses those layers —
+# the system libraries are not installed again on every deploy.
+COPY --from=build /app .
 
 EXPOSE 8080
 # The app calls UseHttpsRedirection(); inside the container no HTTPS port is configured,

@@ -46,6 +46,23 @@ public sealed class ConfirmClientTests
     }
 
     [Fact]
+    public void A_yes_in_the_browsers_dialog_presses_the_button_again_once_the_held_page_caught_up()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var heldPressGoes = root.GetProperty("heldPressGoes").GetBoolean();
+        var before = root.GetProperty("pressedBeforeTheTaskEnds").GetInt32();
+        var after = root.GetProperty("pressedAgainAfterYes").GetInt32();
+
+        Assert.False(heldPressGoes);
+        Assert.Equal(0, before);
+        Assert.Equal(1, after);
+    }
+
+    [Fact]
     public void The_prompt_goes_only_on_an_exact_case_sensitive_match()
     {
         if (Run() is not { } root)

@@ -124,6 +124,8 @@ async function walk(side) {
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
+    // A page that draws no frame (a headless one left alone) is not waited on for ever.
+    setTimeout(resolve, 12000);
   }), side.track);
 
   // Acts, then waits for the track to leave its place: a scroll starts a frame or more after what asked for it,

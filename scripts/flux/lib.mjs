@@ -69,7 +69,12 @@ export async function press(page, x, y, phone) {
 export async function measurePage(browser, url, shots, prepare, view = [1280, 900]) {
   const schemes = {};
   for (const scheme of ['light', 'dark']) {
-    const context = await browser.newContext({ ...screen(view[0], view[1]), colorScheme: scheme });
+    // A reader who asks for less motion: the page is measured as it loads, and what its script moves on a timer of
+    // its own is held there — Flux's autoplaying carousel (its docs: "disabled when reduced motion is preferred";
+    // measured, it stays on its first slide), which moved on a loaded runner before its example was reached and
+    // never on the static Rask page. Neither stylesheet changes for it: Flux stops no animation under reduced
+    // motion, and the kit has no `motion-reduce` rule.
+    const context = await browser.newContext({ ...screen(view[0], view[1]), colorScheme: scheme, reducedMotion: 'reduce' });
     // A fixed clock: a calendar that opens on today would measure differently every morning.
     await context.clock.setFixedTime(new Date('2026-01-15T12:00:00Z'));
     // Motion at rest (rest, below), for Flux's page and Rask's alike: a look read mid-flight measures
@@ -107,7 +112,7 @@ async function measure(page, shots, layout = false) {
     await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
     const name = `${String(index).padStart(2, '0')}-${example.section || 'intro'}`;
-    await wrapper.screenshot({ path: join(shots, `${name}.png`) }).catch(() => {});
+    await shoot(page, wrapper, join(shots, `${name}.png`));
 
     // Forced pseudo-states rather than real pointer moves: a hover that opens a tooltip or a menu would
     // move the page under the next measurement, and :focus-visible cannot be reached by el.focus().
@@ -152,13 +157,14 @@ async function open(page, wrapper, opener) {
     // lands on the trigger (its hover example measured closed, in one scheme of two). Parked first, then
     // brought over, and waited on until the popup shows — or a second of frames has gone by.
     await page.mouse.move(4, 4);
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await frames(page);
     await page.mouse.move(at[0] - 3, at[1] - 3);
     await page.mouse.move(...at);
     await wrapper.evaluate(el => new Promise(done => {
       let frames = 0;
       const look = () => (el.querySelector(':popover-open') || ++frames > 60 ? done() : requestAnimationFrame(look));
       look();
+      setTimeout(done, 1000);
     }));
   } else {
     await page.mouse.click(...at);
@@ -167,10 +173,10 @@ async function open(page, wrapper, opener) {
     // on a timer of its own after the page changed: at once on a Mac, a while later on a loaded Linux runner,
     // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
     // already is may be no move at all), so both look now.
-    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    await frames(page);
     await page.mouse.move(at[0] + 1, at[1]);
   }
-  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  await frames(page);
 }
 
 /**
@@ -190,13 +196,39 @@ export function hoverSettled(el) {
       else requestAnimationFrame(look);
     };
     look();
+    setTimeout(done, 1500);
   });
+}
+
+/**
+ * Two of the page's frames — or a quarter of a second, where it draws none. A headless page left alone may paint
+ * nothing, and a frame waited on that never comes stops the whole run without a word (0% CPU, no timeout: Playwright
+ * puts none on an evaluate). Every frame-counting wait in these scripts carries a timer the same way.
+ */
+export function frames(page) {
+  return page.evaluate(() => new Promise(done => {
+    requestAnimationFrame(() => requestAnimationFrame(done));
+    setTimeout(done, 250);
+  }));
+}
+
+/**
+ * What a reader sees of one example, shot beside its measurement. A wrapper with no box of its own is shot as the
+ * viewport it shows in: on a phone toast-shown's frame is given its Flux twin's padding, none, around a toast fixed to
+ * the viewport, and an element screenshot waits its whole 30 s for that box to show — for every example, twice: the
+ * page took 20 minutes at 0% CPU, and read as hung. A shot is a picture for a person, so one that fails says so and
+ * the measurement goes on.
+ */
+async function shoot(page, wrapper, path) {
+  const box = await wrapper.boundingBox();
+  const shot = box?.width && box?.height ? wrapper.screenshot({ path, timeout: 5000 }) : page.screenshot({ path, timeout: 5000 });
+  await shot.catch(error => console.warn(`flux: no screenshot ${path}: ${error.message.split('\n')[0]}`));
 }
 
 async function close(page) {
   await page.keyboard.press('Escape');
   if (page.viewportSize().width >= 640) await page.mouse.move(0, 0);
-  await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  await frames(page);
 }
 
 // Runs in the page. Everything in motion, put where it rests: what ends (a transition, an entrance) at

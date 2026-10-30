@@ -244,6 +244,26 @@ if (page) {
         }
     }
 
+    // What a pass reads of the page — the viewport, the page's scroll, and each panel's anchor, box and content
+    // size: when none of it has changed since the last pass left it, run() has nothing to do.
+    function state(panels: HTMLElement[]): string {
+        let said = doc.documentElement.clientWidth + " " + doc.documentElement.clientHeight + " " + view.scrollX + " " + view.scrollY;
+        for (const panel of panels) {
+            const held = open.get(panel)!;
+            const at = held.anchor ? held.anchor.getBoundingClientRect() : null;
+            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
+            const box = panel.getBoundingClientRect();
+            said += "|" + held.n + " " + panel.getAttribute(PLACE) + " " + (a ? a.x + " " + a.y + " " + a.w + " " + a.h : "-")
+                + " " + box.left + " " + box.top + " " + box.width + " " + box.height
+                + " " + panel.scrollWidth + " " + panel.scrollHeight;
+        }
+
+        return said;
+    }
+
+    /** The state the last pass left the page in. */
+    let settled = "";
+
     function run(): void {
         queued = false;
         const panels: HTMLElement[] = [];
@@ -252,8 +272,21 @@ if (page) {
                 forget(panel);
             } else if (getComputedStyle(panel).getPropertyValue("--rask-place").trim() !== "none") {
                 panels.push(panel);
+                const held = open.get(panel)!;
+                // A render may have drawn the trigger again as another element.
+                if (held.anchor && !held.anchor.isConnected) {
+                    held.anchor = anchorOf(panel);
+                }
             }
         });
+        // Nothing has moved since the last pass: the panels are where it left them, and placing them again is
+        // not free. Measuring moves each one to the page's corner and back, and on a phone that relayout under
+        // the finger cancels the hover the browser hands the trigger a moment after a tap (Chromium's
+        // deferred tap, ~150 ms): the trigger lost its hover colour while its list was open, Flux's keeps it.
+        // The ResizeObserver reports every panel once as it is observed, which asked for exactly such a pass.
+        if (panels.length && state(panels) === settled) {
+            return;
+        }
         // Measured where nothing squeezes it: at the page's corner, as tall as it wants to be.
         const scrolled = panels.map(function (panel) { return panel.scrollTop; });
         write(panels.map(function (panel) { return rule(open.get(panel)!.n, "0 auto auto 0", null); }).join(""));
@@ -263,8 +296,7 @@ if (page) {
         const rules = panels.map(function (panel, i) {
             const held = open.get(panel)!;
             tall[i] = null;
-            // A render may have drawn the trigger again as another element.
-            const anchor = held.anchor && !held.anchor.isConnected ? held.anchor = anchorOf(panel) : held.anchor;
+            const anchor = held.anchor;
             const at = anchor ? anchor.getBoundingClientRect() : null;
             const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
             const box = panel.getBoundingClientRect();
@@ -294,6 +326,7 @@ if (page) {
                 panel.scrollTop = scrolled[i];
             }
         });
+        settled = panels.length ? state(panels) : "";
     }
 
     function queue(): void {

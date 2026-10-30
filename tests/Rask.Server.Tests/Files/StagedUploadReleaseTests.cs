@@ -170,6 +170,7 @@ public partial class StagedUploadReleaseTests
     {
         private readonly RaskTestHost _host;
         private readonly WebSocket _ws;
+        private WebSocket? _successor;
         private readonly string _loader;
         private readonly string _hold;
 
@@ -196,11 +197,11 @@ public partial class StagedUploadReleaseTests
         public SessionUploadStore Store => _host.Server.Services.GetRequiredService<SessionUploadStore>();
         public bool SessionLives => _host.Store.Peek(SessionId) is not null;
 
-        public static async Task<Tab> OpenAsync()
+        public static async Task<Tab> OpenAsync(Action<RaskServerOptions>? server = null)
         {
             var gate = new FileReceivingGate();
             var host = RaskTestHost.Create<FileReceivingApp>(
-                configureServices: s => s.AddSingleton(gate), diffMode: LiveDiffMode.DisabledFull);
+                configureServices: s => s.AddSingleton(gate), configureServer: server, diffMode: LiveDiffMode.DisabledFull);
             host.Server.Services.GetRequiredService<RaskUploadOptions>().MaxBytesPerSession = Cap;
             var html = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
             var sessionId = MarkupAssert.SessionId(html);
@@ -241,15 +242,7 @@ public partial class StagedUploadReleaseTests
 
         public async Task<List<string>> SubmitAsync(JsonElement file)
         {
-            await _ws.SendJsonAsync(new
-            {
-                id = _loader,
-                type = "submit",
-                form = new Dictionary<string, object>
-                {
-                    ["__files"] = new Dictionary<string, JsonElement[]> { ["doc"] = [file] }
-                }
-            });
+            await _ws.SendJsonAsync(SubmitFrame(file));
             return await _ws.SettledAsync();
         }
 
@@ -279,6 +272,7 @@ public partial class StagedUploadReleaseTests
             }
 
             _ws.Dispose();
+            _successor?.Dispose();
             _host.Dispose();
         }
 
