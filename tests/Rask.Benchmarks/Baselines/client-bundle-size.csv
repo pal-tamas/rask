@@ -528,3 +528,10 @@ bundle,bytes
 rask.js,112027
 rask.wasm.js,96734
 rask-hooks.js,120177
+# 2026-10-30, a placing pass that finds nothing moved writes nothing (rask-place.ts's state(), hooks only):
+# rask-hooks.js 120,177 -> 120,724 (+547). Measured locally (Release, the bundle gate's recipe) on main 37db75770
+# with this change; main's merge since touches rask.js's sources alone.
+bundle,bytes
+rask.js,112027
+rask.wasm.js,96734
+rask-hooks.js,120724
