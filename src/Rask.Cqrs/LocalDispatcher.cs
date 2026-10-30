@@ -32,14 +32,17 @@ internal sealed class LocalDispatcher : IDispatcher
     // is only real if the dispatch OPENS it as the work in progress's: the job processor's grace deadline,
     // an endpoint's RequestAborted. Without this the parameter compiles, travels one frame, and is dropped
     // where the handler looks for it — a shutdown that cancels nothing, with nothing to see at the call site.
-    // `Or` keeps an outer scope when the caller passed no token of its own.
+    // `Or` keeps an outer scope when the caller passed no token of its own — and the invoker is handed that SAME
+    // token: in a browser app it is the transport, which sends the request over HTTP with it, so the caller's empty
+    // one left the request running after the component that sent it was gone.
     public async Task<TResult> Query<TResult>(IQuery<TResult> query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         var invoker = CqrsRegistry.GetRequestInvoker(query.GetType());
 
-        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
-        return await ((Task<TResult>)invoker(provider, query, cancellationToken)).ConfigureAwait(false);
+        var token = Ambient.Or(cancellationToken);
+        using var cancellation = Ambient.Enter(token);
+        return await ((Task<TResult>)invoker(provider, query, token)).ConfigureAwait(false);
     }
 
     public async Task Send(ICommand command, CancellationToken cancellationToken = default)
@@ -47,8 +50,9 @@ internal sealed class LocalDispatcher : IDispatcher
         ArgumentNullException.ThrowIfNull(command);
         var invoker = CqrsRegistry.GetRequestInvoker(command.GetType());
 
-        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
-        await invoker(provider, command, cancellationToken).ConfigureAwait(false); // Task<Unit> is a Task
+        var token = Ambient.Or(cancellationToken);
+        using var cancellation = Ambient.Enter(token);
+        await invoker(provider, command, token).ConfigureAwait(false); // Task<Unit> is a Task
     }
 
     public async Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -56,8 +60,9 @@ internal sealed class LocalDispatcher : IDispatcher
         ArgumentNullException.ThrowIfNull(command);
         var invoker = CqrsRegistry.GetRequestInvoker(command.GetType());
 
-        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
-        return await ((Task<TResult>)invoker(provider, command, cancellationToken)).ConfigureAwait(false);
+        var token = Ambient.Or(cancellationToken);
+        using var cancellation = Ambient.Enter(token);
+        return await ((Task<TResult>)invoker(provider, command, token)).ConfigureAwait(false);
     }
 
     public async Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
@@ -81,23 +86,25 @@ internal sealed class LocalDispatcher : IDispatcher
         // of them runs in.
         LiveEvents.Publish(e);
 
-        using var cancellation = Ambient.Enter(Ambient.Or(cancellationToken));
+        var token = Ambient.Or(cancellationToken);
+        using var cancellation = Ambient.Enter(token);
 
-        // Durable first, so an in-memory handler that throws cannot cost the ones that must not be lost.
+        // Durable first, so an in-memory handler that throws cannot cost the ones that must not be lost. Stored with
+        // the caller's own token, not the scope's: a page closing must not drop what was promised to run later.
         var durable = CqrsRegistry.DurableHandlersOf(type);
         var runDurableHere = durable.Count > 0 && !DurableEvents.Take(e) && !await Stored(e, durable, cancellationToken).ConfigureAwait(false);
 
         // An event with no handlers has no generated invoker, and reaches only its subscribers.
         if (CqrsRegistry.GetEventInvoker(type) is { } invoker)
         {
-            await invoker(provider, e, cancellationToken).ConfigureAwait(false);
+            await invoker(provider, e, token).ConfigureAwait(false);
         }
 
         if (runDurableHere)
         {
             foreach (var handler in durable)
             {
-                await CqrsRegistry.FindDurableHandler(handler)!(provider, e, cancellationToken).ConfigureAwait(false);
+                await CqrsRegistry.FindDurableHandler(handler)!(provider, e, token).ConfigureAwait(false);
             }
         }
     }

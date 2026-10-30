@@ -29,6 +29,22 @@ public abstract partial class FluxParity : global::Rask.Core.RaskMarkup
 
     public abstract IEnumerable<(string Section, Component Example)> Examples();
 
+    /// <summary>
+    ///     The docs site's monospace face, which a typed date's and time's fields are set in (<c>font-mono</c>) and
+    ///     sized by (two of its <c>ch</c>): CSS, for an example's <c>&lt;style&gt;</c>.
+    /// </summary>
+    /// <remarks>
+    ///     MonoLisa is a licensed webfont this page cannot load, so its name is given a free one (OFL) of the same
+    ///     shape from the host Inter comes from, scaled to its advance: 0.6395em (19.906px for two digits and a
+    ///     pixel a side at 14px, measured on Flux's page) over JetBrains Mono's 0.6em. A webfont and not a local
+    ///     face, as one machine has Menlo, a runner DejaVu Sans Mono and Playwright's image neither: a local stand-in
+    ///     was a different width on each, and the fields with it.
+    /// </remarks>
+    protected const string DocsMonospace =
+        "@font-face{font-family:MonoLisa;font-weight:400;"
+        + "src:url(https://fonts.bunny.net/jetbrains-mono/files/jetbrains-mono-latin-400-normal.woff2)format(\"woff2\");"
+        + "size-adjust:106.585%}:root{--font-mono:MonoLisa,monospace}";
+
     /// <summary>Side by side, as most of Flux's examples are laid out.</summary>
     protected static Component Row(params Component[] items) =>
         Div.Style("display:flex;gap:16px;align-items:flex-end;justify-content:center")[items];

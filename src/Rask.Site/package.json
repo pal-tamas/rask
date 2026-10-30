@@ -23,7 +23,7 @@
     "vue-tsc": "^3.3.13"
   },
   "overrides": {
-    "seroval": "^1.6.8",
+    "seroval": "^1.7.3",
     "seroval-plugins": "^1.6.8",
     "vite": "npm:@voidzero-dev/vite-plus-core@1.3.0"
   }

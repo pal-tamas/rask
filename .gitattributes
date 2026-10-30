@@ -1,0 +1,8 @@
+# Merge drivers for the files parallel branches grow at the same spot (docs/development-workflow.md,
+# proved by scripts/tests/merge-friendly-files.test.sh).
+# CHANGELOG.md: two bullets added under one heading are both kept; any real conflict still stops the
+# merge (.githooks/merge-append, configured by the first build).
+CHANGELOG.md merge=rask-append
+# An append-only measurement log: both rows are kept; the check reads the newest-dated block, so their
+# order does not matter (tests/Rask.Benchmarks/ClientBundleSizeReport.cs).
+tests/Rask.Benchmarks/Baselines/client-bundle-size.csv merge=union

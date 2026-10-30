@@ -60,6 +60,11 @@ internal sealed class CountingDispatcher : IDispatcher
 
     public int CommandCount { get; private set; }
 
+    private int _cancelled;
+
+    /// <summary>How many held queries were cancelled while they waited, so a test sees the work stop.</summary>
+    public int Cancelled => Volatile.Read(ref _cancelled);
+
     public string Result { get; set; } = "first";
 
     public Exception? Throw { get; set; }
@@ -92,7 +97,15 @@ internal sealed class CountingDispatcher : IDispatcher
             // Honours the token, so a cancellation test proves something: awaiting the gate without
             // it would let a cancelled fetch run to completion anyway and the assertion would pass
             // for the wrong reason.
-            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                Interlocked.Increment(ref _cancelled);
+                throw;
+            }
         }
 
         if (FailTimes > 0)
@@ -109,35 +122,44 @@ internal sealed class CountingDispatcher : IDispatcher
         return (TResult)(object)Result;
     }
 
-    /// <summary>When set, a void command waits for it — so a test can look at a command while it is pending.</summary>
+    /// <summary>
+    ///     When set, a command waits for it — so a test can look at a command while it is pending. The wait honours
+    ///     the token the command was given, as a handler mid-write does, so a test that the caller's leaving does not
+    ///     stop the command proves something.
+    /// </summary>
     public TaskCompletionSource? CommandGate { get; set; }
+
+    private int _commandsCompleted;
+
+    /// <summary>How many commands ran to their end: the write a store would hold afterwards.</summary>
+    public int CommandsCompleted => Volatile.Read(ref _commandsCompleted);
 
     public Task Send(ICommand command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        if (CommandGate is { } gate)
-        {
-            return Gated(gate.Task);
-        }
-
-        return ThrowOnCommand is { } error ? Task.FromException(error) : Task.CompletedTask;
-
-        async Task Gated(Task open)
-        {
-            await open.ConfigureAwait(false);
-            if (ThrowOnCommand is { } thrown)
-            {
-                throw thrown;
-            }
-        }
+        return Run<object?>(null, cancellationToken);
     }
 
     public Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
     {
         CommandCount++;
-        return ThrowOnCommand is { } error
-            ? Task.FromException<TResult>(error)
-            : Task.FromResult((TResult)(object)CommandResult!);
+        return Run((TResult)CommandResult!, cancellationToken);
+    }
+
+    private async Task<TResult> Run<TResult>(TResult result, CancellationToken cancellationToken)
+    {
+        if (CommandGate is { } gate)
+        {
+            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (ThrowOnCommand is { } thrown)
+        {
+            throw thrown;
+        }
+
+        Interlocked.Increment(ref _commandsCompleted);
+        return result;
     }
 
     // Every open subscription, so a publish through this double reaches them the way the real feed would — minus
@@ -231,4 +253,104 @@ internal sealed class TestClock(DateTimeOffset start) : TimeProvider
     public override DateTimeOffset GetUtcNow() => _now;
 
     public void Advance(TimeSpan by) => _now += by;
+}
+
+/// <summary>
+///     A clock whose timers fire only when the test moves it, so a poll is a step the test takes rather than a
+///     wait it hopes is long enough.
+/// </summary>
+internal sealed class ManualClock : TimeProvider
+{
+    private readonly Lock _gate = new();
+    private readonly List<ManualTimer> _timers = [];
+    private DateTimeOffset _now = DateTimeOffset.UnixEpoch;
+
+    /// <summary>How many timers are waiting to fire — a cancelled wait takes its timer away.</summary>
+    public int PendingTimers
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _timers.Count(timer => timer.Due is not null);
+            }
+        }
+    }
+
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (_gate)
+        {
+            return _now;
+        }
+    }
+
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        var timer = new ManualTimer(this, callback, state);
+        lock (_gate)
+        {
+            _timers.Add(timer);
+        }
+
+        timer.Change(dueTime, period);
+        return timer;
+    }
+
+    /// <summary>Moves the clock on, firing every timer that falls due on the way.</summary>
+    public void Advance(TimeSpan by)
+    {
+        List<ManualTimer> due;
+        lock (_gate)
+        {
+            _now += by;
+            due = [.. _timers.Where(timer => timer.Due is { } at && at <= _now)];
+            foreach (var timer in due)
+            {
+                timer.Due = null;
+            }
+        }
+
+        foreach (var timer in due)
+        {
+            timer.Fire();
+        }
+    }
+
+    private void Remove(ManualTimer timer)
+    {
+        lock (_gate)
+        {
+            _timers.Remove(timer);
+        }
+    }
+
+    private void Schedule(ManualTimer timer, TimeSpan dueTime)
+    {
+        lock (_gate)
+        {
+            timer.Due = dueTime == Timeout.InfiniteTimeSpan ? null : _now + dueTime;
+        }
+    }
+
+    private sealed class ManualTimer(ManualClock clock, TimerCallback callback, object? state) : ITimer
+    {
+        public DateTimeOffset? Due { get; set; }
+
+        public void Fire() => callback(state);
+
+        public bool Change(TimeSpan dueTime, TimeSpan period)
+        {
+            clock.Schedule(this, dueTime);
+            return true;
+        }
+
+        public void Dispose() => clock.Remove(this);
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
 }

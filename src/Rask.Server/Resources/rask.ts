@@ -396,15 +396,20 @@ import {
     }
 
     // The browser's credential is not the one this connection opened with. Open it again, so the upgrade carries
-    // the new one: the server then adopts the principal, or refuses the tab, as it does for any connection.
-    function reopenForAuth(): void {
-        if (!conn || !conn.isOpen) return;
+    // the new one: the server then adopts the principal, or refuses the tab, as it does for any connection. False when
+    // nothing was dropped — no connection open (the next one's upgrade carries the new cookie anyway), or the close
+    // failed — so the watch lets what it holds go instead of waiting for an open that is not coming.
+    function reopenForAuth(): boolean {
+        if (!conn || !conn.isOpen) return false;
         authReopen = true;
         try {
             deliberateClose = true;
             conn.close(1000, "auth-changed");
+            return true;
         } catch (e) {
             authReopen = false;
+            deliberateClose = false;
+            return false;
         }
     }
 

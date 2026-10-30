@@ -171,9 +171,9 @@ public sealed partial class CheckboxParity : FluxParity
 
     private const string Self = "self";
 
-    // Centred at its own width, as the docs page lays out an example that does not fill the column.
-    private static Component Shrunk(params Component[] example) =>
-        Div.Style("display:flex;justify-content:center")[Div[example]];
+    // Centred at its own width in the docs page's 384px column, as it lays out an example that does not fill it: one
+    // a little wider than the column wraps there (the three buttons, whose words are whole pixels on Linux).
+    private static Component Shrunk(params Component[] example) => DocsColumn(Div[example]);
 
     private static Component Wide(int width, Component example) =>
         Div.Style(FormattableString.Invariant($"max-width:{width}px;margin:0 auto"))[example];

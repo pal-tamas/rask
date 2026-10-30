@@ -329,8 +329,25 @@ public sealed partial class HomePage : Component
     internal const int BrowserApiCount = 6;
 
     /// <summary>How many compile-time diagnostics the diagnostics guide documents.</summary>
-    /// <remarks><c>HomePageTests</c> recounts the guide's sections and fails when this goes stale.</remarks>
-    internal const int DiagnosticCount = 100;
+    /// <remarks>
+    /// Counted from the guide the site embeds (one <c>## RASKnnn</c> section per diagnostic) rather than written
+    /// down, so a branch that adds a diagnostic changes the doc and nothing here: two such branches used to
+    /// collide on this number as well as on the doc.
+    /// </remarks>
+    internal static int DiagnosticCount { get; } = CountDiagnostics();
+
+    private static int CountDiagnostics()
+    {
+        var guide = Rask.Site.Features.GuideCatalog.ReadMarkdown("diagnostics") ?? "";
+        var count = 0;
+        for (var at = guide.IndexOf("\n## RASK", StringComparison.Ordinal); at >= 0;
+             at = guide.IndexOf("\n## RASK", at + 1, StringComparison.Ordinal))
+        {
+            count++;
+        }
+
+        return count;
+    }
 
     // ---- install ----
     private static Component InstallSection() =>

@@ -35,9 +35,14 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
         // Flux: in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2
         + "[data-ui-sidebar]:not(:has(> [data-ui-sidebar-rail]:checked)) .docked\\:-mr-2{margin-right:-.5rem}}"
         + "@media (max-width:63.99rem){.max-lg\\:hidden{display:none!important}}"
-        // Slots: a brand, the header demos' main navbar, a profile, the greeting.
-        + ".slot-brand{width:98.9px;height:40px;margin-right:16px;flex-shrink:0}"
-        + ".slot-navbar{width:585.9px;height:56px;margin-bottom:-1px;flex-shrink:0}"
+        // The header demos' brands and main navbar: one brand for each scheme, and the navbar over the header's edge.
+        // On the brand only, which is where the demos write them: unlayered, a `.hidden` would beat the kit's own
+        // `hidden lg:flex`.
+        + "[data-ui-brand].hidden{display:none}.dark [data-ui-brand].dark\\:hidden{display:none}"
+        + ".dark [data-ui-brand].dark\\:flex{display:flex}"
+        + ".-mb-px{margin-bottom:-1px}.my-2{margin-block:.5rem}"
+        + "@media (max-width:63.99rem){.max-lg\\:hidden\\!{display:none!important}}"
+        // Slots: a profile, the greeting.
         + ".me-4{margin-inline-end:1rem}"
         + ".slot-profile{width:72px;height:40px}.slot-heading{height:32px}.slot-text{height:24px;margin:8px 0 24px}"
         + ".slot-separator{height:1px;width:100%}.slot-bar{height:64px;width:100%}"

@@ -238,5 +238,34 @@ public sealed class AuthWatchFixtureTests
         Assert.Equal(["1:click"], Strings(later.GetProperty("wire")));
     }
 
+    [Fact]
+    public void A_changed_credential_whose_connection_cannot_be_dropped_lets_what_waited_go_on_the_open_one()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var failed = result.GetProperty("dropFailed");
+
+        Assert.Equal(["1:click", "1:after"], Strings(failed.GetProperty("wire")));
+        Assert.Equal(1, failed.GetProperty("reopens").GetInt32());
+        Assert.False(failed.GetProperty("holds").GetBoolean());
+    }
+
+    [Fact]
+    public void A_changed_credential_with_no_connection_open_holds_nothing_and_sends_everything_on_the_next_one()
+    {
+        if (Run() is not { } result)
+        {
+            return;
+        }
+
+        var down = result.GetProperty("changedWhileDown");
+
+        Assert.False(down.GetProperty("holdsWhileDown").GetBoolean());
+        Assert.Equal(["2:click", "2:down", "2:after"], Strings(down.GetProperty("wire")));
+    }
+
     private static string[] Strings(JsonElement array) => [.. array.EnumerateArray().Select(static e => e.GetString()!)];
 }

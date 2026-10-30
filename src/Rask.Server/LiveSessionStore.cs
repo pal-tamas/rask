@@ -517,9 +517,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
         // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
         // one step later) — and removing a session under a connected tab is the one outcome that must not
         // happen. Its own disconnect will arm a fresh removal.
-        if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
+        if (_sessions.TryGetValue(id, out var live))
         {
-            return;
+            if (live.HasOpenTransport)
+            {
+                return;
+            }
+
+            // A tab that left still has what it sent run to the end — a command mid-write keeps the services it began
+            // with, as a request the visitor walked away from finishes on its server — and only then goes. A shutdown
+            // ends the wait: the drain owns that teardown.
+            await live.CommandsSending.WaitAsync(_stopping).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            if (live.HasOpenTransport)
+            {
+                return;
+            }
         }
 
         await RemoveAsync(id, why, delay).ConfigureAwait(false);
@@ -535,13 +547,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Re-render every live session from scratch. Used by the dev-time asset-change subscriber.
+    ///     Re-render every live session from scratch. Used by <see cref="ScopedAssetRepaint" /> when a scoped asset a
+    ///     page may be showing is replaced.
     ///     <para>
     ///         Marks each tree dirty before requesting the render: <c>StateHasChangedAsync</c> alone
     ///         only dirties the root, so a cached child subtree replays its previous frame and an edit
-    ///         inside it never appears. Costs nothing in production — the only thing that raises
-    ///         <c>AssetChanged</c> outside hot reload is a module initializer at startup, before any
-    ///         session exists, which the empty check below short-circuits.
+    ///         inside it never appears. A module initializer's FIRST registration never gets here — an
+    ///         assembly loaded lazily mid-run registers assets no page can be showing yet — so in production
+    ///         only an explicit re-registration or removal repaints.
     ///     </para>
     ///     <para>Best-effort: a session whose tree walk or render faults is skipped, not propagated.</para>
     /// </summary>
