@@ -404,10 +404,10 @@ public class CommandTests
     }
 
     [Fact]
-    public async Task A_command_sent_with_no_token_travels_with_the_one_of_the_work_that_sent_it()
+    public async Task A_command_sent_with_no_token_does_not_travel_with_the_work_that_sent_it()
     {
-        // A browser app's command goes over HTTP with the token its invoker is handed: the click handler's, so a
-        // page left mid-send cancels the request rather than leaving it to run for nobody.
+        // A sent command runs to its end (as Laravel's): the work that sent it leaving must not cancel it, so the
+        // handler is handed a token of its own, never the one in scope.
         var seen = default(CancellationToken);
         CqrsRegistry.RegisterRequest(typeof(ShipElsewhere), (_, _, token) =>
         {
@@ -420,12 +420,14 @@ public class CommandTests
 
         using (Ambient.Enter(cts.Token))
         {
-#pragma warning disable xUnit1051 // the missing token is the point: the send must hand on the one in scope
+#pragma warning disable xUnit1051 // the missing token is the point: the send must not hand on the one in scope
             await ship.Send(new ShipElsewhere());
 #pragma warning restore xUnit1051
         }
+        await cts.CancelAsync();
 
-        Assert.Equal(cts.Token, seen);
+        Assert.NotEqual(cts.Token, seen);
+        Assert.False(seen.IsCancellationRequested);
     }
 
     private sealed record ShipElsewhere : ICommand;
