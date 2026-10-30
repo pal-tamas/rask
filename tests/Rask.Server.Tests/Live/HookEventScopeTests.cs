@@ -431,12 +431,19 @@ public sealed partial class HookScopeEarlyReturn : Component
 
     private async Task Run(IServiceProvider services, ManualResetEventSlim back)
     {
-        var rows = await Task.Run(() =>
+        var read = Task.Run(() =>
         {
             var db = services.GetRequiredService<HookScopeDb>();
             services.GetRequiredService<HookScopeGates>().Read("early").First = db;
             return db.Rows("early");
         });
+
+        // The read is back before the await looks at it — what a loaded machine did once in a hundred runs, made
+        // certain here — and it still comes back through the hook's context, which is this test's subject. A plain
+        // await of a finished task goes on inline instead: nothing ever comes back, so the lease is (rightly) kept
+        // until the component leaves the page, and the scope this test waits for never went.
+        read.Wait(TestContext.Current.CancellationToken);
+        var rows = await read.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.ForceYielding);
         _rows = rows;
         back.Set();
     }
