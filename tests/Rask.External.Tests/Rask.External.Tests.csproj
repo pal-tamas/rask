@@ -139,10 +139,10 @@
     <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">21.0.4</RaskHappyDomFixtureVersion>
     <RaskReactFixtureVersion Condition="'$(RaskReactFixtureVersion)' == ''">19.3.1</RaskReactFixtureVersion>
     <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.44</RaskVueFixtureVersion>
-    <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.17</RaskSolidFixtureVersion>
+    <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.18</RaskSolidFixtureVersion>
     <RaskSvelteFixtureVersion Condition="'$(RaskSvelteFixtureVersion)' == ''">5.57.3</RaskSvelteFixtureVersion>
     <!-- One number for @angular/core, compiler, common and platform-browser: Angular refuses a mixed set. -->
-    <RaskAngularFixtureVersion Condition="'$(RaskAngularFixtureVersion)' == ''">22.2.3</RaskAngularFixtureVersion>
+    <RaskAngularFixtureVersion Condition="'$(RaskAngularFixtureVersion)' == ''">22.2.4</RaskAngularFixtureVersion>
     <RaskRxjsFixtureVersion Condition="'$(RaskRxjsFixtureVersion)' == ''">7.8.2</RaskRxjsFixtureVersion>
 
     <!-- The one switch that turns the whole thing off, for a build with no npm and no network. The
