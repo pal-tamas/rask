@@ -20,7 +20,11 @@ internal sealed class CapturedLog : ILoggerProvider
     {
     }
 
-    internal sealed record Entry(string Category, LogLevel Level, string Message, Exception? Exception);
+    internal sealed record Entry(string Category, LogLevel Level, string Message, Exception? Exception)
+    {
+        /// <summary>When it was logged, to line it up with what the test was doing then.</summary>
+        public DateTimeOffset At { get; } = DateTimeOffset.UtcNow;
+    }
 
     private sealed class Logger(string category, ConcurrentQueue<Entry> entries) : ILogger
     {
