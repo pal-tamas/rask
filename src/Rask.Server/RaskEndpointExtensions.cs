@@ -2793,6 +2793,8 @@ public static partial class RaskEndpointExtensions
         TimeSpan handlerTimeout,
         CancellationToken ct)
     {
+        // Taken now, while the session is certainly alive: this much runs as the frame is queued.
+        var uploads = DispatchedUploads.StoreFor(session, root);
         try
         {
             try
@@ -2830,6 +2832,7 @@ public static partial class RaskEndpointExtensions
             session.DecrementPendingHandlers();
             store.HandlerDequeued();
             session.SubtractPendingHandlerBytes(payloadBytes);
+            ReleaseUploads(uploads, session, root);
         }
     }
 
@@ -2847,6 +2850,7 @@ public static partial class RaskEndpointExtensions
         TimeSpan handlerTimeout,
         CancellationToken ct)
     {
+        var uploads = DispatchedUploads.StoreFor(session, events);
         try
         {
             await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
@@ -2867,6 +2871,19 @@ public static partial class RaskEndpointExtensions
             session.DecrementPendingHandlers();
             store.HandlerDequeued();
             session.SubtractPendingHandlerBytes(payloadBytes);
+            ReleaseUploads(uploads, session, events);
+        }
+    }
+
+    // The one release point for staged uploads, which both chain links pass on the way out: after the handler the
+    // files were handed to returned, threw or timed out — or when it was never reached (a stale id, a revoked
+    // route, a lock wait the closing socket cancelled, an event a sign-in dropped). Readable only inside that
+    // handler, a file kept past it would hold the session's upload budget until the tab closed.
+    private static void ReleaseUploads(SessionUploadStore? uploads, LiveSession session, JsonElement frame)
+    {
+        if (uploads is not null)
+        {
+            DispatchedUploads.Release(uploads, session.Id, frame);
         }
     }
 

@@ -161,7 +161,7 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(input));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
         }
 
         var change = ((IFormControl<T>)this).ControlledChangeHandler();

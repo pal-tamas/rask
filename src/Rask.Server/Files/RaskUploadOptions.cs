@@ -28,8 +28,9 @@ public sealed class RaskUploadOptions
     ///     Maximum cumulative bytes a single session may hold in staged uploads at once. Without it an
     ///     authenticated client can stage <see cref="MaxFileSize" /> × <see cref="MaxFilesPerRequest" />
     ///     bytes per request repeatedly and accumulate unbounded temp-file storage across requests; this
-    ///     caps the running total (a request that would exceed it is rejected with <c>413</c>). Staged
-    ///     bytes are released when the session ends. Default 256 MB; <c>0</c> or negative disables the quota.
+    ///     caps the running total (a request that would exceed it is rejected with <c>413</c>). A staged
+    ///     file is handed back once the event that carried it has been dispatched, and whatever a session
+    ///     still holds when it ends goes with it. Default 256 MB; <c>0</c> or negative disables the quota.
     /// </summary>
     public long MaxBytesPerSession { get; set; } = 256 * 1024 * 1024;
 }

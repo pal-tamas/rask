@@ -39,12 +39,8 @@ internal sealed class ServerFileBackend : IBrowserFileBackend
 
     public void Release(IEnumerable<IRaskFile> files)
     {
-        foreach (var file in files)
-        {
-            if (file is ServerRaskFile srf)
-            {
-                _store.Release(srf.SessionId, srf.Token);
-            }
-        }
+        // Nothing to do per handler: the dispatch that carried the files hands them back once it is over —
+        // the ones the handler never opened, and those sent to a handler that was never reached, included
+        // (DispatchedUploads, from RunInSessionAsync).
     }
 }
