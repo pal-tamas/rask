@@ -426,6 +426,8 @@ them until tagged releases begin.
   `confirm()` did the same, sending the press it had held while the host rendered on. Now yes presses the SAME button
   as a fresh press of the page as it is at the answer: the element pressed while it still asks the same question, or
   the one drawn under its key path in its place; a button that is gone, or another action drawn there, runs nothing.
+  The press goes once the page has caught up — just after a page lands, the furthest from the next, or at most 300 ms
+  after the answer on a page that is quiet — so it is not read from a page the host has already replaced.
   `rask-confirm.ts`; `ConfirmOnLivePageTests`, `ConfirmClientTests`.
 - **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
   was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
