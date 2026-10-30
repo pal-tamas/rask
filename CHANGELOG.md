@@ -437,6 +437,16 @@ them until tagged releases begin.
 - **`Ui.Pillbox`'s chevron never showed a hover.** Flux's turns zinc-800 (white in dark mode) while the pointer is
   over the trigger. Like the select's, it goes back to rest while the list is open on a desktop and stays dark after
   a tap on a phone. The kit's chevron now does the same.
+- **A `.Confirm("…")`'s yes could do nothing on a page that re-renders while the dialog is open.** Before: a page
+  that renders every few seconds (a board told of every change) rebuilt the button's handler, and often its id, in
+  every render; the yes pressed the button as the page was when the question was asked, many pages back — past the
+  two the host remembers — so the click ran nothing and a flyout's confirmed delete stayed open. The browser's own
+  `confirm()` did the same, sending the press it had held while the host rendered on. Now yes presses the SAME button
+  as a fresh press of the page as it is at the answer: the element pressed while it still asks the same question, or
+  the one drawn under its key path in its place; a button that is gone, or another action drawn there, runs nothing.
+  The press goes once the page has caught up — just after a page lands, the furthest from the next, or at most 300 ms
+  after the answer on a page that is quiet — so it is not read from a page the host has already replaced.
+  `rask-confirm.ts`; `ConfirmOnLivePageTests`, `ConfirmClientTests`.
 - **In a browser app, a command, query or event sent with no token of its own ran on after the page that sent it
   was gone.** The dispatch opened the work's cancellation for the handler to read, but handed its invoker the
   caller's empty token — and in a WASM app the invoker is the transport, so the HTTP request (and with it

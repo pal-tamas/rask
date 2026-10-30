@@ -535,3 +535,12 @@ bundle,bytes
 rask.js,112027
 rask.wasm.js,96734
 rask-hooks.js,120724
+#
+# 2026-10-30, a confirmed press made again on the SAME button, fresh, once the page has caught up (rask-confirm.ts's
+# sameButton/keyPath/onceCaughtUp; both runtimes): rask.js 112,027 -> 112,952 (+925), rask.wasm.js 96,734 ->
+# 97,659 (+925); rask-hooks.js unchanged at 120,177. Measured locally (Release, the bundle gate's recipe) on the
+# tree merged with main 3f0c2e0b3.
+bundle,bytes
+rask.js,112952
+rask.wasm.js,97659
+rask-hooks.js,120177
