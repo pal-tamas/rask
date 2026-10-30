@@ -166,6 +166,31 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
         Assert.True(await page.EvaluateAsync<bool>("() => document.getElementById('live').hasAttribute('data-rask-placed')"));
     }
 
+    // A pass that finds nothing moved writes nothing: measuring moves the panel to the page's corner and back, and on
+    // a phone that relayout under the finger cancels the hover Chromium hands the tapped trigger ~150 ms after a tap
+    // (Flux's trigger keeps it). The ResizeObserver's first report of every panel asked for exactly such a pass.
+    [Fact]
+    public async Task A_pass_that_finds_nothing_moved_leaves_the_placed_panel_alone()
+    {
+        await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright);
+        await session.HooksLoadedAsync();
+        var page = session.Page;
+        var open = await OpenedAsync(session, "mid");
+        await page.EvaluateAsync("""
+            () => {
+                window.__writes = 0;
+                const replace = CSSStyleSheet.prototype.replaceSync;
+                CSSStyleSheet.prototype.replaceSync = function (text) { window.__writes++; return replace.call(this, text); };
+            }
+            """);
+
+        await page.EvaluateAsync("() => dispatchEvent(new Event('resize'))");
+        await page.EvaluateAsync(Frames);
+
+        Assert.Equal(0, await page.EvaluateAsync<int>("() => window.__writes"));
+        Assert.Equal(open, await page.EvaluateAsync<string>(Box, "mid"));
+    }
+
     [Fact]
     public async Task A_panel_the_stylesheet_takes_under_a_breakpoint_is_left_to_it_and_placed_again_above_it()
     {
