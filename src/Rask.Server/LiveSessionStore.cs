@@ -517,9 +517,21 @@ public sealed class LiveSessionStore : IAsyncDisposable
         // published its transport, but a stale connection's cleanup can arm one in between (#1076's race,
         // one step later) — and removing a session under a connected tab is the one outcome that must not
         // happen. Its own disconnect will arm a fresh removal.
-        if (_sessions.TryGetValue(id, out var live) && live.HasOpenTransport)
+        if (_sessions.TryGetValue(id, out var live))
         {
-            return;
+            if (live.HasOpenTransport)
+            {
+                return;
+            }
+
+            // A tab that left still has what it sent run to the end — a command mid-write keeps the services it began
+            // with, as a request the visitor walked away from finishes on its server — and only then goes. A shutdown
+            // ends the wait: the drain owns that teardown.
+            await live.CommandsSending.WaitAsync(_stopping).ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+            if (live.HasOpenTransport)
+            {
+                return;
+            }
         }
 
         await RemoveAsync(id, why, delay).ConfigureAwait(false);

@@ -38,6 +38,10 @@ git merge origin/main
 A conflict you resolve gets `rask-ship`'s project-level build + test again, for the projects the
 conflict touched — not the solution.
 
+Bullets added to `CHANGELOG.md`, blocks appended to `client-bundle-size.csv` and edits to different
+sentences of an `llms.txt` guide merge without a conflict (`.gitattributes`; docs/development-workflow.md).
+A conflict that still appears in one of them is two changes to the SAME line: resolve it by hand.
+
 A merge from `main` also **invalidates every RASK0xx diagnostic id you hold** — re-grep `src/` for
 your ids before you push (four assemblies allocate in that space).
 
