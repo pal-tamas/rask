@@ -237,6 +237,45 @@ What a command can tell a render:
 | `Data` | `Command<TCommand, TResult>` only: the last successful result, there by the time `Status` says `Success` |
 | `Reset()` | Back to `Idle`, clearing all of the above |
 
+### When the page leaves
+
+A command that has been sent is never abandoned half-way through. If the visitor navigates away, the
+component unmounts or the tab closes while it is running, the command still runs to its end, the way a
+Laravel request does when the visitor walks away. Only its answer is dropped, without an error:
+
+```csharp
+.OnClick(async () => await ship.Send(new ShipOrder(id), CancellationToken))   // the page's token
+```
+
+The token you pass tells the command whether anyone is still waiting for the answer. It does not stop the
+handler. The handler runs under a token of its own, which only the host's limits cancel:
+`RaskServerOptions.HandlerTimeout` and the host stopping, after its graceful shutdown has waited out
+what was in flight.
+
+| The command | The caller is still there | The caller has gone |
+|---|---|---|
+| completes | `Success`; the declared queries refetch | `Status` goes back to what it was before the send; `Data` keeps the result; the declared queries refetch |
+| throws | `Error`; optimistic edits are undone | no `Error`; `Status` goes back; optimistic edits are undone |
+| ends with an unknown outcome (the transport was cancelled) | `Error`; optimistic edits are undone | no `Error`; `Status` goes back; the declared queries refetch to find out |
+| times out, or the host stops | `Error`; optimistic edits are undone | `Error`; optimistic edits are undone |
+
+If the caller has already gone when `Send` is called, the command is not sent at all.
+
+On each host:
+
+- **Server.** The handler runs in-process on the services of the event that sent it, and those services
+  stay alive until it finishes, including after the component that sent it has left the page. When a tab
+  closes, its session waits for the commands it sent before it ends. With a `HandlerTimeout` configured,
+  the event's limit also includes the connection closing, as it does for every handler. In that case a
+  dropped connection still cancels the command.
+- **WASM.** The command is posted to the server, which runs its handler to the end even if the browser
+  aborts the request: a fetch the page drops, or a tab that closes, does not cancel the handler. A page
+  that navigates inside the app does not abort the fetch. The only answer the browser can lose is the
+  reply, and a page that is gone has nothing to show it on.
+
+`QueryClient.Send` is not affected: it passes your token straight to the dispatcher and throws, as
+before.
+
 ### Optimistic updates
 
 An edit made at send time, from the query already on screen, so it sees what is being sent:
