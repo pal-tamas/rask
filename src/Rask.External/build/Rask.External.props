@@ -122,7 +122,7 @@
 
          The first release of the Active LTS line, the same floor a front end takes (RaskSpaMinimumNode):
          Rask builds on the latest LTS, and scripts/upstream/node-lts.sh moves both with the line. -->
-    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">24.11.0</RaskExternalMinimumNode>
+    <RaskExternalMinimumNode Condition="'$(RaskExternalMinimumNode)' == ''">26.13.0</RaskExternalMinimumNode>
 
     <!--
       Package islands: an island whose Module names an npm package gets its props from the package's own

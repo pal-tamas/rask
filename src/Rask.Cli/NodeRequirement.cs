@@ -27,12 +27,12 @@ internal static class NodeRequirement
     ///     <c>src/Rask.External/build/Rask.External.props</c>, which is the enforcing copy — and
     ///     <c>RaskSpaMinimumNode</c> in <c>Rask.Spa.Hosting.props</c> (RASKSPA005), for a front-end template.
     /// </summary>
-    public static readonly Version BuildFloor = new(24, 11, 0);
+    public static readonly Version BuildFloor = new(26, 13, 0);
 
     /// <summary>
-    ///     The Node LTS line the installers put on a machine. 24 is "Krypton", Active LTS since 2025-10.
+    ///     The Node LTS line the installers put on a machine. 26 is "Lithium", Active LTS since 2026-10.
     /// </summary>
-    public static readonly Version ScaffoldLine = new(24, 22, 1);
+    public static readonly Version ScaffoldLine = new(26, 13, 0);
 
     /// <summary>How to get it, phrased the same way everywhere the CLI has to say it.</summary>
     public const string InstallHint =

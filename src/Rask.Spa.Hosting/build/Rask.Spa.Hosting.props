@@ -82,7 +82,7 @@
          scripts/upstream/node-lts.sh moves this with the line every day. What the installers and the
          scaffolded Dockerfile put on a machine is that line's newest release. A tool that asks for more
          than the floor (Angular's CLI) says so itself. -->
-    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">24.11.0</RaskSpaMinimumNode>
+    <RaskSpaMinimumNode Condition="'$(RaskSpaMinimumNode)' == ''">26.13.0</RaskSpaMinimumNode>
 
     <!--
       Where the generated contracts land, relative to the client. Inside src/ on purpose: the bundler

@@ -21,7 +21,7 @@
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "latest",
     "@tsconfig/svelte": "latest",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.0.0",
     "svelte": "latest",
     "svelte-check": "latest",
     "typescript": "latest",
