@@ -154,6 +154,26 @@ public class HookEventScopeTests
             WaitFor.True(() => read.First!.Disposed, TimeSpan.FromSeconds(10), "the scope the detached work read through to go"));
     }
 
+    // A hook's first await can come back on another thread before the walk that started the hook has held its event.
+    // An event that ended in that moment took the hook's scope with it, under the running hook: ObjectDisposedException
+    // from Current.Service<T>() in the app's OnUpdated, about once in two hundred navigations. Made certain here: the
+    // hook keeps its walk until its work has come back or half a second has gone, and the work ends the event itself.
+    [Fact]
+    public async Task Work_that_comes_back_before_its_walk_has_held_the_event_keeps_the_event_s_scope()
+    {
+        await using var page = await OpenAsync(LiveTransportKind.WebSocket);
+        page.Gates.EndEvent = page.Session.EndEvent;
+
+        await page.Navigate("/hook-scope/before-hold");
+        await page.Done("before-hold");
+
+        var read = page.Gates.Read("before-hold");
+        Assert.Null(read.Failure);
+        Assert.Same(read.First, read.Again);
+        await page.Steps.Run("wait for the hook's scope to go", () =>
+            WaitFor.True(() => read.First!.Disposed, "the hook's scope to be disposed once the hook is done"));
+    }
+
     [Fact]
     public async Task The_session_ending_disposes_the_scope_a_hook_still_holds()
     {
@@ -275,6 +295,9 @@ public sealed class HookScopeGates
     private readonly ConcurrentDictionary<(string Page, int Gate), TaskCompletionSource> _gates = new();
     private readonly ConcurrentDictionary<(string Page, int Gate), int> _reached = new();
     private readonly ConcurrentDictionary<string, HookScopeRead> _reads = new();
+
+    /// <summary>Ends the session's event in progress, as another flow of the session may at any moment.</summary>
+    public Action EndEvent { get; set; } = static () => { };
 
     public HookScopeRead Read(string page) => _reads.GetOrAdd(page, static _ => new HookScopeRead());
 
@@ -446,6 +469,45 @@ public sealed partial class HookScopeEarlyReturn : Component
         var rows = await read.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.ForceYielding);
         _rows = rows;
         back.Set();
+    }
+}
+
+// A hook whose work comes back through its context while the walk that started it is still on its way to holding the
+// event — held there here, until the work has come back or half a second has gone — and ends the event in between.
+[Route("/hook-scope/before-hold")]
+public sealed partial class HookScopeBeforeHold : Component
+{
+    protected override Task OnUpdated()
+    {
+        var gates = Current.Service<HookScopeGates>();
+        var cameBack = new ManualResetEventSlim();
+        var work = ComeBack(gates, cameBack);
+        cameBack.Wait(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken);
+        return work;
+    }
+
+    protected override Component? Render() => P["before hold"];
+
+    private static async Task ComeBack(HookScopeGates gates, ManualResetEventSlim cameBack)
+    {
+        var read = gates.Read("before-hold");
+        await Task.Yield();
+        try
+        {
+            read.First = Current.Service<HookScopeDb>();
+            cameBack.Set();
+            gates.EndEvent();
+            read.Again = Current.Service<HookScopeDb>();
+            read.First.Rows("before-hold");
+        }
+        catch (ObjectDisposedException ex)
+        {
+            read.Failure = ex;
+        }
+        finally
+        {
+            read.Done = true;
+        }
     }
 }
 
