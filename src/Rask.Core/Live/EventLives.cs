@@ -73,7 +73,6 @@ internal sealed class EventLives(EventServices services)
             else if (life.Scope is { } scope)
             {
                 done.Add(scope);
-                EventServices.Dbg("END-DISPOSES", life);
                 life.Scope = null;
             }
         }

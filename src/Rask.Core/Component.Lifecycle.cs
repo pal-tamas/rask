@@ -256,11 +256,21 @@ public abstract partial class Component
         // where it is not (see the field it is stored in). One lookup now serves both the context
         // and the Track below, which used to do its own.
         var quiescence = QuiescenceScope.Current;
-        var ctx = new LifecycleSyncContext(this, quiescence) { IsLoad = isLoad };
+
+        // A hook a session's walk starts is part of that walk's event, held below once the hook has started; what comes
+        // back through its context before then waits for the hold (LifecycleSyncContext.AwaitsHold).
+        var render = LiveRenderContext.CurrentSync is { Handle: LiveSessionBase } live ? live : null;
+        var ctx = new LifecycleSyncContext(this, quiescence) { IsLoad = isLoad, AwaitsHold = render is not null };
         var carried = EventServices.Carried;
         SynchronizationContext.SetSynchronizationContext(ctx);
         Task task;
         try { task = invoke(); }
+        catch
+        {
+            // Work the hook detached before it threw still comes back: nothing will be held for it to wait on.
+            ctx.Held();
+            throw;
+        }
         finally
         {
             SynchronizationContext.SetSynchronizationContext(prev);
@@ -272,6 +282,7 @@ public abstract partial class Component
         if (task.IsCompleted)
         {
             ctx.HookDone = true;
+            ctx.Held();
             if (task.IsFaulted)
             {
                 ReportLifecycleFault(this, task.Exception, beforeItsFirstAwait: true);
@@ -303,9 +314,16 @@ public abstract partial class Component
 
         // The hook is part of the event whose render started it, and that event's services stay its own until it is
         // done — a navigation has long been sent by the time a slow read comes back.
-        if (LiveRenderContext.CurrentSync is { Handle: LiveSessionBase session } render)
+        if (render is { Handle: LiveSessionBase session })
         {
-            session.HoldEvent(painted, this, render, ctx);
+            try
+            {
+                session.HoldEvent(painted, this, render, ctx);
+            }
+            finally
+            {
+                ctx.Held();
+            }
         }
     }
 
