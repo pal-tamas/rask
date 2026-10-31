@@ -292,6 +292,13 @@ public abstract partial class Component
             return;
         }
 
+        PaintAndHold(task, ctx, quiescence, render);
+    }
+
+    // A hook still running: its end paints the page, the pass it started in waits for that paint, and the session's
+    // event holds the hook's part until it is done — whereupon what came back through its context goes on.
+    private void PaintAndHold(Task task, LifecycleSyncContext ctx, QuiescenceScope? quiescence, LiveRenderContext? render)
+    {
         var painted = task.ContinueWith(PaintAfterHook, (this, ctx), TaskContinuationOptions.ExecuteSynchronously);
 
         // Tracked on the PAINT, never on the hook's own Task — the ordering guarantee the wave loop
