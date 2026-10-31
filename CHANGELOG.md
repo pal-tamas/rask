@@ -428,6 +428,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
+  the hook's first await.** On a loaded server the await came back on another thread before the render that started
+  the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook
+  had just resolved from — about once in two hundred navigations, the `OnUpdated` an app loads its data in among them.
+  What comes back through a hook's context now waits for that hold, which follows the hook's start at once, and the
+  scope lives as documented: for the event and every hook it started, 10 s more once the component has left the page.
+  Nothing to change in an app.
 - **On a phone, a tapped `Ui.Select` or `Ui.Phone` trigger lost its hover look while its list was open.** Chromium gives a tapped element its hover about 150 ms after the tap, and a relayout before then cancels
   it. The placement hook (`rask-place.ts`) placed every new panel a second time when the ResizeObserver first
   reported it. That pass changed nothing, but measuring moves the panel to the page's corner and back, so the

@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace Rask.Core.Live;
 
 internal sealed class LifecycleSyncContext : SynchronizationContext
@@ -66,6 +68,32 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     /// <summary>Whether the hook is one that loads — <c>OnMount</c>, <c>OnUpdated</c> — which a recovered boundary runs again.</summary>
     internal bool IsLoad { get; init; }
 
+    /// <summary>
+    ///     Whether the walk that started the hook has yet to hold the hook's part of its event: until it has
+    ///     (<see cref="Held" />), what comes back through this context waits. A bool in the context's padding: the
+    ///     context is no bigger for it.
+    /// </summary>
+    /// <remarks>
+    ///     A hook's first await can come back on another thread before the walk, one statement on, has held the event:
+    ///     what the continuation resolved then belonged to a part nothing held, and an event that ended in that moment
+    ///     disposed its scope under the running hook — <c>ObjectDisposedException: IServiceProvider</c> from
+    ///     <c>Current.Service&lt;T&gt;()</c>. Waiting the moment out puts the hold first, always.
+    /// </remarks>
+    internal bool AwaitsHold
+    {
+        get => Volatile.Read(ref _awaitsHold);
+        init => _awaitsHold = value;
+    }
+
+    private bool _awaitsHold;
+
+    // The continuations that came back before the walk had held the event, waiting for it. Beside the context, as
+    // HookLeases is: a field there would cost every hook for what a few, on a loaded machine, ever need.
+    private static readonly ConditionalWeakTable<LifecycleSyncContext, Waiting> WaitingForHold = new();
+
+    // Whether any continuation has ever waited: until one has, a hold costs no lookup.
+    private static volatile bool _anyWaited;
+
     // CreateCopy is invoked along ExecutionContext capture paths; our Post explicitly
     // SuppressFlow()s ExecutionContext propagation, so the runtime never reaches this
     // along the await chains we care about. A fresh copy with PostFired=false is safe —
@@ -74,6 +102,84 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
         new LifecycleSyncContext(_component, _quiescence) { IsLoad = IsLoad };
 
     public override void Post(SendOrPostCallback d, object? state)
+    {
+        if (AwaitsHold && WaitForHold(this, d, state))
+        {
+            return;
+        }
+
+        PostNow(d, state);
+    }
+
+    /// <summary>
+    ///     The walk has held the hook's part of its event, or has nothing to hold: what came back through this context
+    ///     before then goes on now.
+    /// </summary>
+    internal void Held()
+    {
+        // Nothing waits on a context no walk holds for: the hook of a render no session is making.
+        if (!AwaitsHold)
+        {
+            return;
+        }
+
+        Volatile.Write(ref _awaitsHold, false);
+
+        // Between the write and the read: the other half is WaitForHold's, so at least one of the two sees the other.
+        Interlocked.MemoryBarrier();
+        if (_anyWaited)
+        {
+            GoOn();
+        }
+    }
+
+    // Parks a continuation until Held: false when the hold has come since, and it goes on now.
+    private static bool WaitForHold(LifecycleSyncContext hook, SendOrPostCallback d, object? state)
+    {
+        _anyWaited = true;
+        var waiting = WaitingForHold.GetValue(hook, static _ => new Waiting());
+        lock (waiting)
+        {
+            if (waiting.Released)
+            {
+                return false;
+            }
+
+            waiting.Posts.Add((d, state));
+        }
+
+        // A hold that came between the check in Post and the park above may have found nothing parked yet.
+        Interlocked.MemoryBarrier();
+        if (!hook.AwaitsHold)
+        {
+            hook.GoOn();
+        }
+
+        return true;
+    }
+
+    private void GoOn()
+    {
+        if (!WaitingForHold.TryGetValue(this, out var waiting))
+        {
+            return;
+        }
+
+        List<(SendOrPostCallback Callback, object? State)> posts;
+        lock (waiting)
+        {
+            waiting.Released = true;
+            posts = waiting.Posts;
+            waiting.Posts = [];
+        }
+
+        foreach (var (callback, state) in posts)
+        {
+            PostNow(callback, state);
+        }
+    }
+
+    private void PostNow(SendOrPostCallback d, object? state)
     {
         // Set before scheduling Task.Run: the user's continuation can transition the
         // hook's Task to Completed inline, which inline-fires the terminal ContinueWith
@@ -156,4 +262,11 @@ internal sealed class LifecycleSyncContext : SynchronizationContext
     }
 
     public override void Send(SendOrPostCallback d, object? state) => d(state);
+
+    private sealed class Waiting
+    {
+        public List<(SendOrPostCallback Callback, object? State)> Posts { get; set; } = [];
+
+        public bool Released { get; set; }
+    }
 }
