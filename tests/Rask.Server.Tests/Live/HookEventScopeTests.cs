@@ -154,6 +154,36 @@ public class HookEventScopeTests
             WaitFor.True(() => read.First!.Disposed, TimeSpan.FromSeconds(10), "the scope the detached work read through to go"));
     }
 
+    // A hook whose first await comes back on another thread at once resolves before the walk that started it has
+    // said it holds its event: the event must not end under it. Many navigations in one session make the window wide.
+    [Theory]
+    [MemberData(nameof(LiveTestConnection.Transports), MemberType = typeof(LiveTestConnection))]
+    public async Task A_hook_that_resolves_before_its_walk_has_held_the_event_keeps_its_scope(LiveTransportKind transport)
+    {
+        var (host, steps) = Host();
+        var turns = host.Server.Services.GetRequiredService<HookScopeGates>().Turns;
+        var log = new ConcurrentQueue<string>();
+        Rask.Core.Live.EventServices.DebugLog = log;
+
+        for (var turn = 1; turn <= 120 && turns.Failures.IsEmpty; turn++)
+        {
+            var html = await steps.Run($"GET /hook-scope {turn}", () =>
+                host.Http.GetStringAsync("/hook-scope", TestContext.Current.CancellationToken));
+            var page = await AttachAsync(host, steps, transport, html);
+            await page.Navigate("/hook-scope/yield");
+            var reached = turn;
+            await steps.Run($"wait for turn {turn}", () =>
+                WaitFor.True(() => turns.Count >= reached, $"the yielding hook's turn {reached} to resolve"));
+            await page.Leave();
+        }
+
+        await File.WriteAllLinesAsync($"/tmp/hookfix-trace-{transport}.log", [.. log, .. turns.Failures.Select(f => f.ToString())], TestContext.Current.CancellationToken);
+        await host.StopAsync();
+        host.Dispose();
+
+        Assert.Empty(turns.Failures);
+    }
+
     [Fact]
     public async Task The_session_ending_disposes_the_scope_a_hook_still_holds()
     {
@@ -276,6 +306,8 @@ public sealed class HookScopeGates
     private readonly ConcurrentDictionary<(string Page, int Gate), int> _reached = new();
     private readonly ConcurrentDictionary<string, HookScopeRead> _reads = new();
 
+    public HookScopeTurns Turns { get; } = new();
+
     public HookScopeRead Read(string page) => _reads.GetOrAdd(page, static _ => new HookScopeRead());
 
     public Task Reached(string page, int gate) =>
@@ -301,6 +333,31 @@ public sealed class HookScopeGates
 
     private TaskCompletionSource Gate(string page, int gate) =>
         _gates.GetOrAdd((page, gate), static _ => new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+}
+
+// The turns a yielding hook has taken, and what each that failed to resolve threw.
+public sealed class HookScopeTurns
+{
+    private int _count;
+    private int _home;
+
+    public int Count => Volatile.Read(ref _count);
+
+    public int Home => Volatile.Read(ref _home);
+
+    public void HomeShown() => Interlocked.Increment(ref _home);
+
+    public ConcurrentQueue<Exception> Failures { get; } = new();
+
+    public void Resolved(Exception? failure)
+    {
+        if (failure is not null)
+        {
+            Failures.Enqueue(failure);
+        }
+
+        Interlocked.Increment(ref _count);
+    }
 }
 
 public sealed class HookScopeRead
@@ -384,6 +441,12 @@ public sealed partial class HookScopeApp : Component
 [Route("/hook-scope")]
 public sealed partial class HookScopeHome : Component
 {
+    protected override Task OnUpdated()
+    {
+        Current.Service<HookScopeGates>().Turns.HomeShown();
+        return Task.CompletedTask;
+    }
+
     protected override Component? Render() => P["home"];
 }
 
@@ -447,6 +510,28 @@ public sealed partial class HookScopeEarlyReturn : Component
         _rows = rows;
         back.Set();
     }
+}
+
+// A hook whose first await comes back at once, on another thread, and resolves the event's unit of work there.
+[Route("/hook-scope/yield")]
+public sealed partial class HookScopeYield : Component
+{
+    protected override async Task OnUpdated()
+    {
+        await Task.Yield();
+        var turns = Current.Service<HookScopeGates>().Turns;
+        try
+        {
+            Current.Service<HookScopeDb>().Rows("yield");
+            turns.Resolved(null);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            turns.Resolved(ex);
+        }
+    }
+
+    protected override Component? Render() => P["yield"];
 }
 
 // The report as Eszaf writes it: the hook awaits a first read, takes its unit of work, then detaches the slow read

@@ -40,6 +40,12 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
     private readonly Lock _gate = new();
 
+    internal static System.Collections.Concurrent.ConcurrentQueue<string>? DebugLog { get; set; }
+
+    internal static void Dbg(string m, object? life = null) => DebugLog?.Enqueue(
+        $"{System.Diagnostics.Stopwatch.GetTimestamp() / 10000} T{Environment.CurrentManagedThreadId} {m} L{(life is null ? 0 : RuntimeHelpers.GetHashCode(life))}"
+        + (m.StartsWith("DISPOSE", StringComparison.Ordinal) || m.StartsWith("CLOSE", StringComparison.Ordinal) || m.StartsWith("NEW", StringComparison.Ordinal) ? "\n" + Environment.StackTrace : ""));
+
     // The event in progress, or null while it has resolved nothing and started nothing that runs on.
     private EventLives? _current;
 
@@ -151,6 +157,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
             var life = OfHook(hook);
             life.Holds++;
+            Dbg($"HOLD holds={life.Holds} ended={life.Ended}", life);
             (_byRender ??= new ConditionalWeakTable<LiveRenderContext, EventLives>()).AddOrUpdate(render, Current());
             hold = new EventHold(this, life);
         }
@@ -255,6 +262,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
             }
 
             lives.End(done, _ended ??= []);
+            Dbg($"CLOSE done={done.Count}");
         }
 
         foreach (var scope in done)
@@ -275,6 +283,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         lock (_gate)
         {
             life.Holds--;
+            Dbg($"RELEASE holds={life.Holds} ended={life.Ended} scope={life.Scope is not null}", life);
             if (life.Done)
             {
                 done = life.Scope;
@@ -373,6 +382,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         }
 
         life = Current().For(hook.Component);
+        Dbg($"NEW-OFHOOK {hook.Component.GetType().Name} holds={life.Holds} ended={life.Ended}", life);
         _byHook.AddOrUpdate(hook, life);
         return life;
     }
@@ -417,6 +427,7 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
             ObjectDisposedException.ThrowIf(_disposed, this);
             life = Life();
             services = OpenIn(life);
+            Dbg($"OPEN holds={life.Holds} ended={life.Ended}", life);
             component = !ReferenceEquals(life, _current?.RootIfAny);
         }
 
