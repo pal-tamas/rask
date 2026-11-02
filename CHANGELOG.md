@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
+  and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
+  build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
+  connection and send every step through it; a box that refuses the forward is deployed one connection per step, as
+  before. Readiness waits (container running, `/health`, the Caddy reload, the check through the proxy) ask at once,
+  then every second for up to 60 s, and say when the app answered; the four reads before the new colour starts go
+  out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
+
 ### Added
 - **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
   text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or

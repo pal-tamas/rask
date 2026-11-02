@@ -23,6 +23,13 @@ so there's no registry, no local Docker daemon, and no image tarball to copy; th
 to the host's daemon and builds there. It deploys the [scaffolded](#scaffolding-a-dockerfile)
 Dockerfile below (override with `--dockerfile`).
 
+A deploy (and a rollback) logs in **once**: it forwards the host's Docker socket over one SSH connection
+(`ssh -N -L <private socket>:/var/run/docker.sock`) and sends every step through it, instead of paying an SSH
+login — handshake, the box's PAM session, a `docker system dial-stdio` on the box — for each of its forty-odd
+steps. The local socket lives in a directory only you can enter and is removed when the deploy ends. A box that
+refuses socket forwarding, or whose daemon listens elsewhere, is deployed one connection per step as before,
+said in one line; every check, lock and rollback runs the same either way.
+
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
   else to configure. (Point the domain's DNS `A`/`AAAA` record at the host first so the cert can issue.)
@@ -216,8 +223,9 @@ primary domain, and requires exactly the new colour (`<app>-<colour>:<port>`); t
 `https://<domain><health path>` through the proxy by name, as a visitor's request arrives, and requires the
 app to answer. Before the certificate is issued (DNS not pointed yet, or the ACME order still pending) the
 TLS handshake cannot succeed, so the request goes one step in instead — the upstream, asked from the proxy's
-network, must answer. Both are retried for the readiness window. Only then is the old colour retired and
-`Deployed.` printed.
+network, must answer. Like every readiness wait (the container running, its `/health`, the reload) they are
+asked at once and then every second, for up to 60 seconds — never a fixed pause before the first ask. Only then
+is `Deployed.` printed; the old colour is retired after that line, finishing its running jobs within `stopTimeout`.
 
 **What you see when it fails.** The deploy puts this app's file back as it was, reloads, removes the new
 colour, and exits non-zero:

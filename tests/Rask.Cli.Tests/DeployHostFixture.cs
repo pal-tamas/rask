@@ -168,7 +168,7 @@ public sealed class DeployHostFixture : IAsyncLifetime
             RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
             COPY authorized_keys /root/.ssh/authorized_keys
             RUN chmod 600 /root/.ssh/authorized_keys \
-             && printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\n' > /etc/ssh/sshd_config.d/rask-e2e.conf
+             && printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nAllowStreamLocalForwarding yes\n' > /etc/ssh/sshd_config.d/rask-e2e.conf
             COPY entrypoint.sh /usr/local/bin/rask-vps-entrypoint.sh
             RUN chmod +x /usr/local/bin/rask-vps-entrypoint.sh
             ENTRYPOINT ["/usr/local/bin/rask-vps-entrypoint.sh"]
