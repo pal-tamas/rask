@@ -77,8 +77,10 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         await WaitFor.True(() => gate.Seen[0].Disposed, "the hook's scope to go once it is done");
     }
 
+    // The scope is the hook's, as a request's is in Laravel: it goes with the hook, and the read the hook detached
+    // reads through a scope of its own until it is back.
     [Fact]
-    public async Task A_read_a_hook_detaches_keeps_its_event_s_scope_until_it_is_back_on_the_page()
+    public async Task A_read_a_hook_detaches_reads_through_its_own_scope_while_the_hook_s_goes_with_the_hook()
     {
         var (session, services) = NewScopedSession();
         var html = Html(await session.InitialRenderAsync());
@@ -87,12 +89,14 @@ public class EventScopeTests() : ResettingTestBase(LiveDiffMode.Auto)
         await Click(session, html, "detach");
         await WaitFor.True(() => gate.Probe is not null, "the detached read to take its service");
         await Click(session, html, "use");
+        await WaitFor.True(() => gate.HookProbe!.Disposed, "the hook's scope to go once the hook is done");
         var whileReading = gate.Probe!.Disposed;
         gate.Read.SetResult();
         await WaitFor.True(() => gate.Back, "the detached read to come back to the page");
 
         Assert.False(whileReading);
-        await WaitFor.True(() => gate.Probe.Disposed, "the scope to go once the read is back");
+        Assert.NotSame(gate.HookProbe, gate.Probe);
+        await WaitFor.True(() => gate.Probe.Disposed, "the read's own scope to go once the read is back");
     }
 
     // As a Livewire component's action is a request of its own: three components loading at once never share one.
@@ -189,17 +193,20 @@ public sealed class WasmDetachedGate
 {
     public TaskCompletionSource Read { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
+    public WasmScopeProbe? HookProbe { get; set; }
+
     public WasmScopeProbe? Probe { get; set; }
 
     public bool Back { get; set; }
 }
 
-// The hook goes out at once and its read follows: it takes the provider and reads through it on a task of its own.
+// The hook goes out at once and its read follows, on a task and a scope of its own.
 public sealed partial class WasmDetachedChild : Component
 {
     protected override async Task OnMount()
     {
         await Task.Yield();
+        Current.Service<WasmDetachedGate>().HookProbe = Current.Service<WasmScopeProbe>();
 
         // Detached on purpose: the read comes back to the page by itself.
         _ = Load();
@@ -209,11 +216,13 @@ public sealed partial class WasmDetachedChild : Component
 
     private static async Task Load()
     {
-        var services = Current.Service<IServiceProvider>();
-        var gate = services.GetRequiredService<WasmDetachedGate>();
+        var scopes = Current.Service<IServiceScopeFactory>();
+        var gate = Current.Service<WasmDetachedGate>();
         await Task.Run(async () =>
         {
-            gate.Probe = services.GetRequiredService<WasmScopeProbe>();
+            // The hook's services end with the hook: work it does not await opens its own.
+            await using var scope = scopes.CreateAsyncScope();
+            gate.Probe = scope.ServiceProvider.GetRequiredService<WasmScopeProbe>();
             await gate.Read.Task;
             gate.Probe.Use();
         });

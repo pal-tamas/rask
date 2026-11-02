@@ -231,6 +231,16 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
+  keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
+  and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook
+  used to keep the scope until the work came back to the page, which work whose read was already done never did — so
+  a long-lived page held its `DbContext` and connection until it was left. Asked for a scoped service after the hook
+  is done, that provider now throws an `ObjectDisposedException` naming the fix. **To change:** detached work opens a
+  scope of its own — `var scopes = Current.Service<IServiceScopeFactory>();` in the hook, then
+  `await using var scope = scopes.CreateAsyncScope();` in the work, resolving from `scope.ServiceProvider` — in place
+  of `var services = Current.Service<IServiceProvider>();` and `services.GetRequiredService<T>()`; or await the work
+  in the hook. That scope is the app's, not the session's: hand the work what it needs of the visitor.
 - **Build: parallel branches no longer conflict on CHANGELOG.md, the bundle-size baseline or llms.txt.** Bullets
   added under one heading are both kept (`.githooks/merge-append`, set up by the first build), appended bundle-size
   blocks are both kept and the gate reads the newest-dated one, and `llms.txt` is one sentence per line; two changes
