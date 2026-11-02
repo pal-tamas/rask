@@ -262,6 +262,7 @@ internal static partial class UiApi
             new("Level", typeof(int?), "The heading level, 1 to 4. Unset, it is a <div> outside the outline."),
             new("Accent", typeof(bool?), "Draws it in the accent colour."),
         ]),
+        new("Ui.Subheading", typeof(UiSubheading), "flux:subheading", "A line of supporting text, 8px from the heading beside it.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Icon { get; } =

@@ -31,8 +31,8 @@ public sealed partial class TimelineParity : FluxParity
         // dark:hover:bg-zinc-700 text-zinc-300 dark:text-zinc-500 hover:text-zinc-400 dark:hover:text-zinc-300
         // shadow-xs grid place-items-center`, and the `mt-2` above it.
         + ".parity-react{width:1.5rem;height:1.5rem;border-radius:calc(infinity*1px);border:1px solid oklch(92% .004 286.32);"
-        + "color:oklch(87.1% .006 286.286);box-shadow:0 1px 2px 0 rgb(0 0 0/.05);display:grid;place-items:center}"
-        + ".parity-react:where(.dark,.dark *){border-color:oklch(55.2% .016 285.938);color:oklch(55.2% .016 285.938)}"
+        + "color:oklch(87.1% .006 286.286);box-shadow:0 0 #0000,0 0 #0000,0 0 #0000,0 0 #0000,0 1px 2px 0 rgb(0 0 0/.05);display:grid;place-items:center}"
+        + ".parity-react:where(.dark,.dark *){border-color:oklch(44.2% .017 285.786);color:oklch(55.2% .016 285.938)}"
         + "@media (hover:hover){.parity-react:hover{background-color:#fff;color:oklch(70.5% .015 286.067)}"
         + ".parity-react:where(.dark,.dark *):hover{background-color:oklch(37% .013 285.805);color:oklch(87.1% .006 286.286)}}"
         + ".parity-mt-2{margin-top:.5rem}"

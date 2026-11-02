@@ -41,7 +41,8 @@ public sealed partial class OtpParity : FluxParity
                     ],
                     Div.Class("parity-space-y-4")[
                         Ui.Button.Primary.Type(Ui.ButtonType.Submit).Class("w-full")["Verify"],
-                        Ui.Button.Class("w-full")["Resend code"]
+                        // wire:click="resend" there: an action, which a press runs here.
+                        Ui.Button.OnClick(static () => { }).Class("w-full")["Resend code"]
                     ]
                 ]
             ]

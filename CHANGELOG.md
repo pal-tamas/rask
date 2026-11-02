@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
+  text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or
+  before it, as Flux's does, so `Ui.Heading.Lg["Update profile"], Ui.Subheading["Make changes…"]` needs no margin
+  class. The `/ui/modal` floating flyout uses it. The Flux parity pages of modal, input, OTP, editor, checkbox,
+  card, table and timeline now compare the real `Ui.*` components where they used to hold a stand-in box.
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
