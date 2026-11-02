@@ -11,8 +11,8 @@ namespace Rask.UiTests.Flux.Parity;
 ///     </para>
 ///     <para>
 ///     The two examples at the end sit in Flux's header and sidebar and open a dropdown: the real
-///     <c>Ui.Header</c>, <c>Ui.Dropdown</c>, <c>Ui.Navmenu</c> and <c>Ui.Menu</c>. The sidebar is a box of the
-///     same measure, as its navlist is (see that example).
+///     <c>Ui.Header</c>, <c>Ui.Sidebar</c>, <c>Ui.Spacer</c>, <c>Ui.Dropdown</c>, <c>Ui.Navmenu</c> and
+///     <c>Ui.Menu</c>. Only the sidebar's navlist is a box of its measure (see that example).
 ///     </para>
 /// </remarks>
 public sealed partial class ProfileParity : FluxParity

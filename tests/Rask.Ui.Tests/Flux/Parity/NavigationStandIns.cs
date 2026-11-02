@@ -1,10 +1,8 @@
-using Rask.Core;
-
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     What the navigation pages' examples stand next to on fluxui.dev and are not themselves: the classes an
-///     app's own Tailwind build would emit, and the components of other pages.
+///     What the navigation pages' examples share on fluxui.dev and are not themselves: the people they show and
+///     the classes an app's own Tailwind build would emit.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -12,9 +10,8 @@ namespace Rask.UiTests.Flux.Parity;
 ///     out in <see cref="Sheet" /> — unlayered, as an app's later sheet is, so it wins over the kit's own.
 ///     </para>
 ///     <para>
-///     A dropdown, a tooltip, a table, a card and a select are other pages' components. Each is ONE marked box
-///     of the size Flux's takes (<see cref="Skipped" />): <c>parity.mjs</c> holds it to its place and size and
-///     leaves what is inside to that component's own page.
+///     Another page's component beside them is the real <c>Ui.*</c> one: a header, a sidebar, a dropdown and
+///     what it opens, a table, a select.
 ///     </para>
 /// </remarks>
 internal static class NavigationStandIns
@@ -49,8 +46,4 @@ internal static class NavigationStandIns
         // `**:ring-zinc-100 dark:**:ring-zinc-800`, Flux's example of a group on another ground.
         + ".ring-ground>*{--tw-ring-color:oklch(96.7% .001 286.375)}"
         + ".ring-ground>*:where(.dark,.dark *){--tw-ring-color:oklch(27.4% .006 286.033)}</style>";
-
-    /// <summary>Another page's component: one marked box, held to its place and size and not looked into.</summary>
-    public static Component Skipped(string component, string style, params Component?[] children) =>
-        Markup.Div.Style(style).Attributes(("data-ui-" + component, null), ("data-parity-skip", null))[children];
 }
