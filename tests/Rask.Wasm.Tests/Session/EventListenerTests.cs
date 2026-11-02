@@ -57,11 +57,13 @@ public sealed class EventListenerTests : ResettingTestBase, IDisposable
         var click = Click(session, html, "hold");
         await log.ClickReached.Task;
         await services.GetRequiredService<IDispatcher>().Publish(new TabNotice(1), TestContext.Current.CancellationToken);
-        await Task.Delay(100, TestContext.Current.CancellationToken);
+
+        // Publish hands the event to the page before it returns: the listener has run by now, or is queued behind the
+        // click that holds the session. Then the whole of its handling is waited for, not one line of it.
         var heardWhileHeld = log.Heard.Count;
         log.Open.TrySetResult();
         await click;
-        await WaitFor.True(() => log.Heard.Count == 1);
+        await log.Handled.Task.WaitAsync(WaitFor.HangCeiling, TestContext.Current.CancellationToken);
 
         Assert.Equal(0, heardWhileHeld);
         Assert.Equal(["click done", "heard"], log.Order);
@@ -133,6 +135,9 @@ public sealed class TabLog
     public TaskCompletionSource ClickReached { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public TaskCompletionSource Open { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // Set as the listener's last step, so what it recorded is all there once this completes.
+    public TaskCompletionSource Handled { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }
 
 public sealed class TabScoped : IDisposable
@@ -149,6 +154,7 @@ public sealed partial class TabApp(TabLog log) : Component, IEventHandler<TabNot
         log.Heard.Add(e.Number);
         log.Order.Add("heard");
         log.Scoped.Add(Ambient.Services!.GetRequiredService<TabScoped>());
+        log.Handled.TrySetResult();
         return Task.CompletedTask;
     }
 
