@@ -29,13 +29,12 @@ internal sealed partial class DeployCommand
             return 0;
         }
 
-        if (!await PrepareHostAsync(plan, cancellationToken).ConfigureAwait(false))
+        var (prepared, tunnel) = await PrepareWithTunnelAsync(plan, cancellationToken).ConfigureAwait(false);
+        if (!prepared)
         {
             return 1;
         }
 
-        // A deploy and a rollback make dozens of docker calls, so they share one SSH connection; status and logs make one.
-        var tunnel = plan.Action is null or "rollback" ? await OpenTunnelAsync(plan.Host, cancellationToken).ConfigureAwait(false) : null;
         _tunnel.Tunnel = tunnel;
         try
         {
@@ -44,32 +43,81 @@ internal sealed partial class DeployCommand
         finally
         {
             _tunnel.Tunnel = null;
-            if (tunnel is not null)
-            {
-                await tunnel.DisposeAsync().ConfigureAwait(false);
-            }
+            await CloseAsync((tunnel, null)).ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// The one SSH connection a deploy's docker calls share (see <see cref="DockerTunnel"/>), or <c>null</c> — said why —
-    /// when it can't be had, and every call then connects on its own as before.
+    /// Get the box ready, and the one SSH connection a deploy or rollback sends its docker calls over (status and logs
+    /// make one call, so they open none). With --no-setup-host the box is never changed and nothing is asked, so the
+    /// connection opens while the box is probed rather than after: two logins at once, not one after the other.
     /// </summary>
-    private async Task<DockerTunnel?> OpenTunnelAsync(string host, CancellationToken cancellationToken)
+    private async Task<(bool Prepared, DockerTunnel? Tunnel)> PrepareWithTunnelAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
+        var tunnels = plan.Action is null or "rollback";
+        var early = tunnels && plan.SetupMode == SetupMode.Disabled ? OpenTunnelAsync(plan.Host, cancellationToken) : null;
+        var prepared = false;
+        try
+        {
+            prepared = await PrepareHostAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Unreachable box, or the deploy stopped: the early connection has nothing to carry.
+            if (!prepared && early is not null)
+            {
+                await CloseQuietlyAsync(early).ConfigureAwait(false);
+            }
+        }
+
+        if (!prepared || !tunnels)
+        {
+            return (prepared, null);
+        }
+
+        var (tunnel, failure) = await (early ?? OpenTunnelAsync(plan.Host, cancellationToken)).ConfigureAwait(false);
+        if (tunnel is null && failure is not null)
+        {
+            Console.WriteLine($"  Could not keep one SSH connection open to {HostName(plan.Host)} ({failure}) — each docker step connects on its own, which is slower.", ConsoleStyle.Dim);
+        }
+
+        return (true, tunnel);
+    }
+
+    private static async Task CloseAsync((DockerTunnel? Tunnel, string? Failure) opened)
+    {
+        if (opened.Tunnel is not null)
+        {
+            await opened.Tunnel.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    // A connection opened for a deploy that isn't going ahead: closed if it opened, and whatever stopped it is not news.
+    private static async Task CloseQuietlyAsync(Task<(DockerTunnel? Tunnel, string? Failure)> opening)
+    {
+        try
+        {
+            await CloseAsync(await opening.ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The deploy was stopped; the open was stopped with it.
+        }
+    }
+
+    /// <summary>
+    /// The one SSH connection a deploy's docker calls share (see <see cref="DockerTunnel"/>), or why there is none — the
+    /// caller says so, and every call then connects on its own as before. No failure when sharing is off.
+    /// </summary>
+    private async Task<(DockerTunnel? Tunnel, string? Failure)> OpenTunnelAsync(string host, CancellationToken cancellationToken)
     {
         if (!ShareSshConnection || OperatingSystem.IsWindows())
         {
-            return null;
+            return default;
         }
 
         var wait = new ReadinessPoll { Interval = TimeSpan.FromMilliseconds(250), Timeout = TunnelTimeout, Clock = Clock, Sleep = ReadinessSleep };
-        var (tunnel, failure) = await DockerTunnel.OpenAsync(_direct, host, wait, CreateTunnelDirectory, cancellationToken).ConfigureAwait(false);
-        if (tunnel is null)
-        {
-            Console.WriteLine($"  Could not keep one SSH connection open to {HostName(host)} ({failure}) — each docker step connects on its own, which is slower.", ConsoleStyle.Dim);
-        }
-
-        return tunnel;
+        return await DockerTunnel.OpenAsync(_direct, host, wait, CreateTunnelDirectory, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task<int> RunActionAsync(DeployPlan plan, CancellationToken cancellationToken)

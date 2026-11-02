@@ -33,6 +33,39 @@ public sealed partial class DeployCommandTests
         Assert.False(Directory.Exists(directory), "the forwarded socket's directory is removed with the tunnel");
     }
 
+    [Theory]
+    [InlineData("--no-setup-host", 1)]
+    [InlineData("--no-health-check", 0)]
+    public async Task With_no_setup_host_the_connection_opens_while_the_box_is_probed(string flag, int openWhileProbing)
+    {
+        var fs = new FakeFileSystem();
+        HeldSshRunner? held = null;
+        var seenAtProbe = -1;
+        var captures = Captures("demo-blue\tdemo\tdemo.example.com\tblue\n");
+        var runner = new FakeProcessRunner
+        {
+            CaptureHandler = args =>
+            {
+                if (IsHostProbe(args))
+                {
+                    seenAtProbe = held!.TunnelsOpened;
+                }
+
+                return captures(args);
+            },
+        };
+        held = new HeldSshRunner(runner);
+        var directory = Directory.CreateTempSubdirectory("rask-tunnel-test-").FullName;
+        var command = CreateSharing(fs, runner, held, new StringConsole(), directory);
+
+        var exit = await command.ExecuteAsync([.. DomainDeploy, flag], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(openWhileProbing, seenAtProbe);
+        Assert.Equal(1, held.TunnelsOpened);
+        Assert.Equal(1, held.TunnelsClosed);
+    }
+
     [Fact]
     public async Task A_box_that_refuses_the_forward_is_deployed_with_a_connection_per_step()
     {

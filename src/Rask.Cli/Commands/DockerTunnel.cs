@@ -90,9 +90,20 @@ internal sealed class DockerTunnel : IAsyncDisposable
         }
 
         var tunnel = new DockerTunnel(host, directory, stop, ssh);
-        var reached = await wait.UntilAsync(
-            async () => !tunnel.IsOpen || await tunnel.AnswersAsync(process, wait.Timeout, cancellationToken).ConfigureAwait(false),
-            cancellationToken).ConfigureAwait(false);
+        bool reached;
+        try
+        {
+            reached = await wait.UntilAsync(
+                async () => !tunnel.IsOpen || await tunnel.AnswersAsync(process, wait.Timeout, cancellationToken).ConfigureAwait(false),
+                cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Stopped while waiting: the ssh must not outlive the deploy that started it.
+            await tunnel.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+
         if (reached && tunnel.IsOpen)
         {
             return (tunnel, null);
