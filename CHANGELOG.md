@@ -591,8 +591,11 @@ them until tagged releases begin.
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
   scrollbars always show. Now an `sr-only` box in a table keeps to the scroll area's start edge, in its own row, so it
   is never past an edge; the cells stay static, as Flux's are (the first fix made every cell `relative`, which Flux's
-  are not). A `sticky` column keeps its place; focus on a checkbox's native input still scrolls to its row. Nothing to
-  change in an app.
+  are not). That first fix also broke a row's `Ui.Checkbox` in a narrow column (TA, nightly .2537): the positioned
+  cell after it painted over the box and took its click; with static cells the box takes the click again. A
+  `sticky` column keeps its place; focus on a checkbox's native input still scrolls to its row. Nothing to change in
+  an app, except a ticking column with no width in a `table-fixed` table: it gets what the other columns leave, which
+  can be nothing, so give it one that holds its box and badges.
 - **`rask.sh` names the package when the Node it installed cannot start.** Node 26.13.0, the line's first LTS
   (2026-10-28), links `libatomic.so.1`, which every minimal Linux image (`debian:*-slim`, Ubuntu, Fedora containers)
   leaves out — so on a bare box the installer verified, unpacked and reported Node as installed, and the first `node`
