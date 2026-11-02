@@ -17,7 +17,8 @@ them until tagged releases begin.
   next action; the model is written, the rules run and `AfterBind` is called then, exactly as before. The clear
   button is the browser's too. A form that asks before it is left still counts the pick, a submit validates it,
   and a message under the select still goes at the first pick after it. `.Live()`, a select whose value the page
-  holds (`.Value(…).OnChange(…)`), a multiple select and a pillbox send their picks as before. The kit-wide frame
+  holds (`.Value(…).OnChange(…)`), one whose search the page answers (`Filter(false)`), a multiple select and a
+  pillbox send their picks as before. The kit-wide frame
   gate's `select-bound: pick a row` went from 1 frame to 0.
 - **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
   text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or

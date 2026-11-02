@@ -13,15 +13,17 @@ namespace Rask;
 // and its rules run as they did when the press itself was sent.
 //
 // One answer: a listbox, searchable or not, and a combobox. A select of several answers and a pillbox draw a
-// count or pills, and are still drawn by the page.
+// count or pills, and are still drawn by the page. So is a list the page searches itself (`Filter(false)`): the
+// answer is found again by its row when it arrives, and the rows of a search the page answered may be gone by
+// then — a store asked for "" once the list shut has none — where the press finds the row it was made on.
 public abstract partial class UiSelectControl<T>
 {
     private const string HeldValue = "data-rask-list-value";
 
     private const string HeldClear = "data-rask-list-clear";
 
-    /// <summary>Whether a pick is held in the browser until the next action: bound, waiting, one answer.</summary>
-    private bool Held => Pills is null && !IsMultiple && CommitDraws;
+    /// <summary>Whether a pick is held in the browser until the next action: bound, waiting, one answer, rows of its own.</summary>
+    private bool Held => Pills is null && !IsMultiple && Filter != false && CommitDraws;
 
     // The bound field, first in the control: the answers the page drew, as form values (UiFormValues). The browser
     // writes the reader's pick into it, and it goes ahead of the next action. No name: what a form posts is the

@@ -48,12 +48,13 @@ public partial class UiSelectHeldTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_live_listbox_a_select_the_page_holds_a_multiple_one_and_a_pillbox_are_not_held()
+    public void A_live_listbox_one_the_page_holds_or_searches_a_multiple_one_and_a_pillbox_are_not_held()
     {
         var trip = new Trip();
 
         var page = Page.Render(() => Fragment[
             Div.Id("live")[Ui.Select.Bind(() => trip.Room).Listbox.Live()[Rooms()]],
+            Div.Id("searched")[Ui.Select.Bind(() => trip.Room).Listbox.Searchable().Filter(false)[Ui.SelectSearch.OnInput(_ => { }), Rooms()]],
             Div.Id("held-by-page")[Ui.Select.Value(trip.Room).OnChange(room => trip.Room = room).Listbox[Rooms()]],
             Div.Id("many")[Ui.Select.Bind(() => trip.Rooms).Listbox.Multiple()[Ui.SelectOption["attic"], Ui.SelectOption["cellar"]]],
             Div.Id("pills")[Ui.Pillbox.Bind(() => trip.Rooms)[Ui.PillboxOption["attic"], Ui.PillboxOption["cellar"]]]

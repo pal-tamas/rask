@@ -166,14 +166,12 @@ function hold(root: Element, values: string[]): void {
     announce(root, current(root));
 }
 
-/** A row of a held list was picked: true when it is one the browser picks, false for the page's own (create). */
-export function pickHeld(root: Element, row: Element): boolean {
+/** A row of a held list was picked. One that posts no value is the page's own (a create row), and is left to it. */
+export function pickHeld(root: Element, row: Element): void {
     const value = row.getAttribute(VALUE);
-    if (value === null) {
-        return false;
+    if (value !== null) {
+        hold(root, [value]);
     }
-    hold(root, [value]);
-    return true;
 }
 
 /** The clear button of a held list was pressed: it holds nothing. */
