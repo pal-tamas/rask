@@ -39,8 +39,10 @@ on:
 permissions:
   contents: read
 
-# On main every push gets a run of its own, at once: none waits behind the one before it and none is
-# dropped for a newer one, so a red run names the push that caused it. (One group for the branch kept a
+# On main every push gets a run of its own, at once: none waits behind the one before it, and none that
+# has started a gate is dropped for a newer one, so a red run names the push that caused it. One still
+# waiting for its first gate when a newer push's run starts is cancelled by that run (the base job,
+# scripts/lib/cancel_superseded.sh): the newer run's scope holds its change, and it names nothing yet. (One group for the branch kept a
 # single run waiting, the newest — a push landed during a run waited that run out, and the ones between
 # were never run at all.) The runners are free for a public repository and a scoped run is a few jobs
 # of the twenty that may run at once. Anywhere else only the newest push matters.
@@ -55,8 +57,9 @@ jobs:
   # ci/** branch, a manual run and a Dependabot pull request get.
   base:
     runs-on: ubuntu-26.04
+    timeout-minutes: 10   # a minute of git and gh; a hung API call must not hold a runner
     permissions:
-      actions: read    # the last green run
+      actions: write   # the last green run; cancel the runs this push supersedes
       contents: read
     outputs:
       scope: ${{ steps.find.outputs.scope }}
@@ -100,6 +103,14 @@ jobs:
             echo "scope=full" >> "$GITHUB_OUTPUT"
           fi
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # The older main runs still waiting for their first gate: this push's run holds their change.
+      - name: Cancel what this push supersedes
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true   # best effort: a run that slips through just runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/lib/cancel_superseded.sh "$GITHUB_RUN_ID"
 
   gates:
     needs: base
