@@ -561,3 +561,12 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,120724
+# 2026-11-02, a WebAssembly tab follows its user (rask-wasm-auth.ts, wiring the Server runtime's rask-auth-watch.ts,
+# now in Rask.Core/Resources and shared): it asks .NET's user provider again on visibility/focus/pageshow, when
+# another tab tells it, and before an event after the answer went stale, holding what the reader does meanwhile.
+# rask.wasm.js 97,691 -> 99,650 (+1,959); rask.js 113,282 and rask-hooks.js 121,602 unchanged. Measured locally
+# (Release, the bundle gate's recipe).
+bundle,bytes
+rask.js,113282
+rask.wasm.js,99650
+rask-hooks.js,121602
