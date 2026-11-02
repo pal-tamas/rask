@@ -38,6 +38,8 @@ export const STYLES = [
   'boxShadow', 'outlineStyle', 'outlineWidth', 'outlineColor', 'outlineOffset', 'cursor',
   'overflowX', 'overflowY', 'zIndex', 'transform', 'transitionProperty', 'transitionDuration',
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
+  // What a touch does: selects, zooms, scrolls past, opens a callout, drags (parity.mjs DEPARTED, NATIVE FEEL).
+  'userSelect', 'webkitUserSelect', 'touchAction', 'overscrollBehaviorY', 'webkitTouchCallout', 'webkitUserDrag',
 ];
 
 // A browser context's screen: below Tailwind's `sm` (640px) a PHONE's — touch, and the overlay scrollbars a phone
