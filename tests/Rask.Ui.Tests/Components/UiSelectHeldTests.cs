@@ -149,6 +149,24 @@ public partial class UiSelectHeldTests : global::Rask.Core.RaskMarkup
         Assert.Equal("cellar", trip.Room);
     }
 
+    [Fact]
+    public async Task A_message_under_a_held_select_goes_at_the_first_pick_after_it()
+    {
+        var trip = new Trip();
+        var page = Page.Render(() => Form.Model(trip).OnSubmit(() => { })[
+            Ui.Select.Bind(() => trip.Room).Listbox.Validate(NotTheCellar).Label("Room")[Rooms()]
+        ]);
+        await HeldList.Pick(page, "Cellar");
+        await page.On("form").Submit();
+        var edit = page.Find(Field).Attribute("data-rask-on-edit");
+
+        await page.Invoke(edit!);
+
+        Assert.NotNull(edit);
+        Assert.DoesNotContain("Not the cellar.", page.Html, StringComparison.Ordinal);
+        Assert.Null(page.Find(Field).Attribute("data-rask-on-edit"));
+    }
+
     [Theory]
     [InlineData(new string[0], "[]")]
     [InlineData(new[] { "" }, "[\"\"]")]
