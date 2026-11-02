@@ -440,6 +440,8 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`Ui.Editor`'s engine is on Tiptap 3.32.2** (was 3.32.0, a patch release of the whole `@tiptap/*` family).
+  `ui-editor.js` grows by 2,296 bytes (447,234 -> 449,530), which the tiptap follower leaves to the owner; approved.
 - **The gates ran on the Node LTS line GitHub's `setup-node` knew about, not the one Rask states.** `setup-node`
   reads `lts/*` from its own manifest, which still named Node 24 after nodejs.org had made 26 the Active LTS, so the
   node-lts follower that moved the build floor to 26 was refused by every build. The repo now names its Node in
