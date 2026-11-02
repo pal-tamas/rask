@@ -63,7 +63,7 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, awaiting, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
-import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
+import { pagesCaughtUpBy, submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import { connectionIs } from "../../Rask.Core/Resources/rask-offline.js";
 import {
     createJSObjectReference,
@@ -111,6 +111,16 @@ import {
     // always commits before the following message's ops — paths in a later diff are
     // computed against the render this one produces, so they must not be applied first.
     let _renderQueue = Promise.resolve();
+    // What waits until the page holds every page the server sent before it was asked: a `.Confirm` yes pressing
+    // its button again (rask-confirm.ts). The server answers `caughtUp` behind them all, in order, and what waits
+    // runs once they are on screen — however long a slow line or the browser's own dialog kept them on the way.
+    const caughtUpWaits = new Map<number, () => void>();
+    let caughtUpAsked = 0;
+    pagesCaughtUpBy(function (then: () => void): void {
+        const n = ++caughtUpAsked;
+        caughtUpWaits.set(n, then);
+        send({type: "caughtUp", n});
+    });
     // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
     // browser (the navigate message carries only path+query, and the server's history
     // url has no hash), so we stash it here on click and consume it when the matching
@@ -437,6 +447,9 @@ import {
         // What the last connection carried and nobody answered goes first: it happened before anything waiting.
         for (const message of unacked.again()) conn!.send(message);
         flushQueue();
+        // A question the last connection may have dropped is asked again: an answer that finds nothing waiting
+        // is ignored.
+        for (const n of caughtUpWaits.keys()) send({type: "caughtUp", n});
         // Values the field restore put back into the DOM at boot, pushed to the server now that there is a
         // connection to push them over — so the model ends up holding what the page shows rather than the
         // pristine values it rendered. Sent after the hello, so the session exists. The runtime's doing, not an
@@ -635,6 +648,14 @@ import {
             if (typeof seq === "number") {
                 const answer = () => { answerUpTo(seq); };
                 _renderQueue = _renderQueue.then(answer, answer);
+            }
+            return;
+        }
+        if (data.type === "caughtUp") {
+            const then = caughtUpWaits.get(data.n);
+            if (then) {
+                caughtUpWaits.delete(data.n);
+                _renderQueue = _renderQueue.then(then, then);
             }
             return;
         }
