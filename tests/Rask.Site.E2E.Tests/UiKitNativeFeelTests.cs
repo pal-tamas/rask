@@ -190,7 +190,7 @@ public sealed class UiKitNativeFeelTests(WasmExampleAppFixture app, PlaywrightFi
     private async Task OnAPhoneAsync(Func<Task> body)
     {
         var desktop = Page;
-        await using var phone = await pw.Browser.NewContextAsync(new BrowserNewContextOptions
+        await using var phone = await desktop.Context.Browser!.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = BaseUrl,
             ViewportSize = new ViewportSize { Width = 390, Height = 844 },
