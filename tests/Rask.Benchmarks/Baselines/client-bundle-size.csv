@@ -569,3 +569,11 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,121643
+# 2026-11-02, a submenu's flyout closes when the pointer moves on out of the menu, heard once per 100 ms as Flux
+# UI's (rask-menu.ts): rask-hooks.js 121,643 -> 122,298 (+655); rask.js 113,282 and rask.wasm.js 97,691
+# unchanged. Measured locally (the bundle gate's esbuild 0.28.2 --minify recipe) on the tree at 3f981ae05 plus
+# this change.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,122298
