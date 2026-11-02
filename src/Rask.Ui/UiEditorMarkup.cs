@@ -32,7 +32,7 @@ internal static class UiEditorMarkup
         + "dark:border-zinc-600 dark:bg-zinc-700";
 
     private const string OptionClass =
-        "flex h-8 cursor-default items-center gap-2 rounded-lg px-2 text-sm font-medium text-zinc-800 dark:text-white "
+        "flex h-8 items-center gap-2 rounded-lg px-2 text-sm font-medium text-zinc-800 dark:text-white "
         + OptionActive;
 
     // Measured with the list open: the option the keyboard or the pointer is on, and its picture.

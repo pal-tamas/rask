@@ -29,7 +29,7 @@ internal static class UiAutocompleteLook
     /// </summary>
     internal const string Item =
         "group/option outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
+        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
         + "[[data-ui-autocomplete-items]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-autocomplete-items]:popover-open_&]:data-active:bg-zinc-600 "
         + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";

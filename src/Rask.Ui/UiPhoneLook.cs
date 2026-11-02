@@ -21,7 +21,7 @@ internal static class UiPhoneLook
 
     // The button's shape: square where it meets the number.
     private const string Shape =
-        "group/select-button cursor-default overflow-hidden flex items-center w-full rounded-e-none";
+        "group/select-button overflow-hidden flex items-center w-full rounded-e-none";
 
     // Red when the field is invalid: the root says so, and the button takes it from there, as Flux's does. No
     // shadow in dark, as the input has none there.

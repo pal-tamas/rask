@@ -16,12 +16,12 @@ internal static class UiColorPickerLook
 
     /// <summary>The button trigger: the same box, pressed as a whole.</summary>
     internal const string ButtonTrigger =
-        "flex items-center w-full overflow-hidden cursor-default border bg-white dark:bg-white/10 shadow-xs "
+        "flex items-center w-full overflow-hidden border bg-white dark:bg-white/10 shadow-xs "
         + "border-zinc-200 border-b-zinc-300/80 dark:border-white/10 dark:border-b-white/10 "
         + "data-invalid:border-red-500 dark:data-invalid:border-red-500";
 
     /// <summary>The swatch button inside the input trigger.</summary>
-    internal const string SwatchButton = "shrink-0 me-2 cursor-pointer disabled:opacity-50";
+    internal const string SwatchButton = "shrink-0 me-2 cursor-pointer disabled:cursor-default disabled:opacity-50";
 
     /// <summary>The swatch of the button trigger, which is not a button of its own.</summary>
     internal const string SwatchBox = "shrink-0 me-2";
@@ -36,7 +36,7 @@ internal static class UiColorPickerLook
 
     /// <summary>The clear button at the end of the input trigger: Flux's small subtle button, as a <c>div</c>.</summary>
     internal const string Clear =
-        "relative flex shrink-0 items-center justify-center gap-2 size-8 ms-1 rounded-md text-sm font-medium whitespace-nowrap cursor-default "
+        "relative flex shrink-0 items-center justify-center gap-2 size-8 ms-1 rounded-md text-sm font-medium whitespace-nowrap cursor-pointer "
         + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
 
     /// <summary>The button trigger's words: the value, or the placeholder while there is none.</summary>
@@ -124,7 +124,7 @@ internal static class UiColorPickerLook
 
     /// <summary>One colour of the palette.</summary>
     internal const string Swatch =
-        "size-6 max-sm:size-8 rounded border border-black/10 dark:border-white/10 cursor-default "
+        "size-6 max-sm:size-8 rounded border border-black/10 dark:border-white/10 "
         + "data-selected:ring-2 data-selected:ring-offset-1 data-selected:ring-zinc-800 dark:data-selected:ring-white data-selected:ring-offset-white";
 
     /// <summary>Cancel and Select, which only the phone's sheet shows.</summary>

@@ -66,6 +66,15 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **The hand over what can be pressed.** Every pressable kit part shows `cursor: pointer` — buttons, menu rows,
+  options, tabs, calendar days, a pager's pages, a checkbox, radio or switch and the label that toggles it — and
+  the arrow while it cannot be pressed: disabled (`disabled`, `aria-disabled="true"`, `data-disabled`), read-only,
+  inside an `inert` subtree, or busy (a button waiting on its handler, a form's submit while it is sent). Flux keeps
+  the arrow; the kit departs from it on purpose. It is one zero-specificity rule in the kit's sheet (`@layer rask`),
+  keyed on what an element *is* — `button`, `[role=button]` and the other pressable roles, `summary`, `select`,
+  `label[for]`, a label round a box or a radio, and the clickable `input` types — so your own `<button>`s in a page
+  that loads the kit get it too. A `Div.OnClick(...)` does not: add `cursor-pointer` to it yourself. To opt an
+  element out, give it a cursor utility (`cursor-default`, `cursor-text`): utilities sit above `rask` and win.
 - **Its own words are translatable.** The few texts the kit writes itself — a pager's "Showing 1 to 10 of 13
   results", a select's "No results found", a date picker's "Select a date", the name of a close button — are
   `RaskString` keys. The kit speaks English and Hungarian out of the box, in the languages your app lists in
@@ -477,8 +486,10 @@ reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 page keeps the sorted column, its direction and the page number (`Sortable()`, `Sorted`, `Direction`, `OnSort`, and
 `Paginate(Ui.Pagination…)` under the rows). A slow page change keeps the rows and dims them with nothing to write;
 `w-full` on the table and a width on every column but one keep the columns still from page to page
-(`ContainerClass("min-w-0")` inside a grid or a flex row). Every example, the dimming marks, the steady-columns recipe,
-sticky parts, bleed, whose class wins, and the reference of its steps:
+(`ContainerClass("min-w-0")` inside a grid or a flex row). A cell's and a heading's look is written once, in the kit's
+sheet, so a cell writes only what differs and a list of thousands of rows stays small; your class on a cell wins as it
+is (`ps-10`, `text-xs`). Every example, the dimming marks, the steady-columns recipe, sticky parts, bleed, whose class
+wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 **`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:

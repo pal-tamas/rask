@@ -26,7 +26,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { chromium, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
+import { chromium, cursorDeparted, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -398,10 +398,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 function compareLook(theirs, a, mine, b, where, diffs) {
   const departs = departedFrom(mine, b);
   const unheld = placed(a, b) ? new Set([...PLACEMENT, ...departs]) : (departs.length ? new Set(departs) : undefined);
-  compareStyles(a.style, b.style, where, diffs, unheld);
+  compareStyles(a.style, b.style, where, diffs, unheld, b.pressable);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, undefined, b.pressable);
   }
 
   // Flux's keyframes are named `flux-*` as its markers are; Rask's are `ui-*`.
@@ -447,9 +447,11 @@ function shown(example, node) {
   return true;
 }
 
-function compareStyles(x, y, where, diffs, unheld = undefined) {
+// `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
+function compareStyles(x, y, where, diffs, unheld = undefined, pressable = false) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || unheld?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

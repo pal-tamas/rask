@@ -116,6 +116,100 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
         Assert.Equal(["inside", "outside"], await Names());
     }
 
+    [Fact]
+    public async Task An_insert_and_an_update_saved_inside_the_block_on_a_context_read_before_it_commit_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var anvil = await db.Set<Widget>().SingleAsync(w => w.Name == "anvil", TestContext.Current.CancellationToken);
+
+        await Db.Transaction(async () =>
+        {
+            anvil.Rename("renamed");
+            db.Add(Widget.Create("tongs"));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+        }, cancellationToken: TestContext.Current.CancellationToken);
+        db.Add(Widget.Create("outside"));
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        Assert.Null(db.Database.CurrentTransaction);
+        Assert.Equal(["outside", "renamed", "tongs"], await Names());
+    }
+
+    [Fact]
+    public async Task A_throw_after_an_insert_and_an_update_on_a_context_read_before_the_block_takes_both_back()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var anvil = await db.Set<Widget>().SingleAsync(w => w.Name == "anvil", TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Db.Transaction(async () =>
+        {
+            anvil.Rename("renamed");
+            db.Add(Widget.Create("tongs"));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            throw new ArgumentException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["anvil"], await Names());
+    }
+
+    [Fact]
+    public async Task An_insert_and_an_update_saved_synchronously_inside_the_block_commit_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var anvil = await db.Set<Widget>().SingleAsync(w => w.Name == "anvil", TestContext.Current.CancellationToken);
+
+        await Db.Transaction(() =>
+        {
+            anvil.Rename("renamed");
+            db.Add(Widget.Create("tongs"));
+#pragma warning disable CA1849, MA0042 // the synchronous SaveChanges is the path under test
+            db.SaveChanges();
+#pragma warning restore CA1849, MA0042
+            return Task.CompletedTask;
+        }, cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Equal(["renamed", "tongs"], await Names());
+    }
+
+    [Fact]
+    public async Task An_execute_update_and_delete_on_a_context_read_before_the_block_roll_back_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Db.Transaction(async () =>
+        {
+            db.Add(Widget.Create("tongs"));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await db.Set<Widget>().Where(w => w.Name == "anvil")
+                .ExecuteUpdateAsync(w => w.SetProperty(x => x.Name, "renamed"), TestContext.Current.CancellationToken);
+            await db.Set<Widget>().Where(w => w.Name == "tongs").ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+            throw new ArgumentException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["anvil"], await Names());
+    }
+
+    [Fact]
+    public async Task Several_raw_statements_in_one_command_on_a_context_read_before_the_block_roll_back_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+        var table = db.Model.FindEntityType(typeof(Widget))!.GetTableName();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Db.Transaction(async () =>
+        {
+#pragma warning disable EF1002 // the table name comes from the model, never from input
+            await db.Database.ExecuteSqlRawAsync(
+                $"UPDATE \"{table}\" SET \"Name\" = 'renamed'; DELETE FROM \"{table}\" WHERE \"Name\" = 'nothing'",
+                TestContext.Current.CancellationToken);
+#pragma warning restore EF1002
+            throw new ArgumentException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["anvil"], await Names());
+    }
+
     private async Task<List<string>> Names()
     {
         await using var read = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);

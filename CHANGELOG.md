@@ -262,6 +262,14 @@ them until tagged releases begin.
   `await using var scope = scopes.CreateAsyncScope();` in the work, resolving from `scope.ServiceProvider` — in place
   of `var services = Current.Service<IServiceProvider>();` and `services.GetRequiredService<T>()`; or await the work
   in the hook. That scope is the app's, not the session's: hand the work what it needs of the visitor.
+- **Rask.Ui shows the hand over what can be pressed.** Before: the kit drew Flux's arrow over its buttons, menu rows,
+  options, tabs, calendar days, pager pages and toggles, so nothing said "this is clickable" until it was clicked.
+  Now every pressable kit part shows `cursor: pointer`, and the arrow while it is disabled, read-only, inert or
+  busy (a waiting button, a submit in flight). One zero-specificity rule in the kit sheet's `@layer rask`, keyed on
+  what an element is (`button`, the pressable ARIA roles, `summary`, `select`, a label that toggles, the clickable
+  `input` types), so an app's own `<button>`s in a page with the kit get it too; a `Div.OnClick` does not, and an
+  app's own `cursor-*` utility still wins. The collapsed sidebar rail keeps `e-resize`, a modal backdrop the arrow.
+  An owner-approved departure from Flux. See [Principles](docs/ui-kit.md#principles).
 - **Build: parallel branches no longer conflict on CHANGELOG.md, the bundle-size baseline or llms.txt.** Bullets
   added under one heading are both kept (`.githooks/merge-append`, set up by the first build), appended bundle-size
   blocks are both kept and the gate reads the newest-dated one, and `llms.txt` is one sentence per line; two changes
@@ -443,6 +451,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A `Ui.Table`'s HTML is under a quarter of what it was.** Every cell wrote Flux's whole class list, some 200 characters
+  thirteen times a row, and a list of 9,730 rows came to 31.6 MB. Now what every heading and cell share — padding,
+  size, ink, dividers — is written once, in the kit's sheet, on their `data-ui-column` / `data-ui-cell` markers at no
+  weight, and a cell writes only what differs: an alignment, a strong tone, a sticky edge, your class. A row of
+  thirteen plain cells went from 2,962 characters to 557; one as a list writes it (a strong date, end-aligned
+  figures, a truncated name, an edit button) from 3,797 to 1,489. A first GET of 5,000 rows of fourteen cells sends
+  3.6 MB instead of 15.7 MB and allocates 1,385 bytes a cell instead of 3,361. It looks the same, pixel for pixel
+  against Flux, and your class on a cell or a heading now wins as it is (`ps-10`, `text-xs`, no `!`); a class that
+  contradicts the `<table>`'s own list still takes `!` (`table-auto!`).
 - **A redeploy downloads no NuGet package, npm package, Tailwind CLI or PDF browser it already has.** Every
   template's Dockerfile keeps NuGet's packages, npm's cache, the Tailwind CLI and Rask.Pdf's pinned Chrome
   headless shell in BuildKit cache mounts (`# syntax=docker/dockerfile:1`; Docker 23+ with buildx, or Podman 4+),
@@ -482,6 +499,13 @@ them until tagged releases begin.
   create the database file's parent directory when it is missing, so `Data Source=/tmp/rask/app.db` no longer fails a
   fresh container's first start with `SQLite Error 14: 'unable to open database file'`. An in-memory, read-only,
   `file:` URI or `|DataDirectory|` source is left alone.
+- **A save of several changes inside `Db.Transaction`, on a context made before the block, commits with it.** Before:
+  `await Db.Transaction(() => db.SaveChangesAsync())` with an insert and an update pending, on a context that had
+  read before the block, threw "The connection is already in a transaction and cannot participate in another
+  transaction": EF Core begins its own transaction for a save of several commands, the connection opening for it
+  joined the block's, and EF Core then refused the transaction it had just been handed. A save now joins before it
+  starts, so EF Core finds the block's transaction and runs inside it; a throw after it takes both rows back, and the
+  context saves on its own connection again after the block.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a
@@ -637,9 +661,13 @@ them until tagged releases begin.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
-  scrollbars always show. Now every table cell is the containing block of what is placed inside it, and an `sr-only`
-  box in a table sits in its cell's first corner. A `sticky` column keeps its place; a checkbox's native input stays
-  in its own row. Nothing to change in an app.
+  scrollbars always show. Now an `sr-only` box in a table keeps to the scroll area's start edge, in its own row, so it
+  is never past an edge; the cells stay static, as Flux's are (the first fix made every cell `relative`, which Flux's
+  are not). That first fix also broke a row's `Ui.Checkbox` in a narrow column (TA, nightly .2537): the positioned
+  cell after it painted over the box and took its click; with static cells the box takes the click again. A
+  `sticky` column keeps its place; focus on a checkbox's native input still scrolls to its row. Nothing to change in
+  an app, except a ticking column with no width in a `table-fixed` table: it gets what the other columns leave, which
+  can be nothing, so give it one that holds its box and badges.
 - **`rask.sh` names the package when the Node it installed cannot start.** Node 26.13.0, the line's first LTS
   (2026-10-28), links `libatomic.so.1`, which every minimal Linux image (`debian:*-slim`, Ubuntu, Fedora containers)
   leaves out — so on a bare box the installer verified, unpacked and reported Node as installed, and the first `node`

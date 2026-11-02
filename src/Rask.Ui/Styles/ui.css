@@ -326,6 +326,75 @@
 }
 
 /*
+  WHAT CAN BE PRESSED SHOWS THE HAND — an owner-approved departure from Flux (2026-11-02), whose controls keep the
+  arrow. Every document whose sheet carries the kit: the kit's own parts AND the application's own controls, by
+  what they ARE (a button, a role a reader is told is pressable, a label that toggles a box), never by a handler —
+  a plain <div> with a click handler gets nothing, and an app writes `cursor-pointer` there itself.
+
+  Zero specificity (`:where()` around everything) in `rask`, below `utilities`: an app's own `cursor-*` on an
+  element still wins, and so does the kit's where it keeps another cursor on purpose — the collapsed sidebar's
+  `e-resize`, a modal backdrop's arrow, a text field's caret.
+
+  What cannot be pressed now shows the arrow, said outright so a part inside a pressable one does not inherit the
+  hand: disabled (the attribute, `aria-disabled`, Flux's `data-disabled`), read-only, inside an `inert` subtree,
+  and busy — a button waiting on its own press (`data-loading`), a form's submit held while it is sent (`aria-busy`).
+
+  The label rule takes only a label around a box, a radio or a switch: a label wrapped round a TEXT field would hand
+  its whole box the hand. One round a DISABLED box is simply not matched, and keeps the browser's `auto` — Flux's.
+*/
+@layer rask {
+  :where(
+    button,
+    [role="button"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    [role="option"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"],
+    summary,
+    select,
+    label[for],
+    label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)),
+    input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(
+    button,
+    [role="button"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    [role="option"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"],
+    summary,
+    select,
+    label[for],
+    label:has(input:is([type="checkbox"], [type="radio"])),
+    input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"])
+  ):where(:disabled, [aria-disabled="true"], [data-disabled], [readonly], [aria-readonly="true"], [data-loading], [aria-busy="true"], [inert], [inert] *) {
+    cursor: default;
+  }
+
+  /* A kit label (Ui.Label) names a field: the arrow, as Flux draws it, though it is a label[for]... */
+  :where([data-ui-label]) {
+    cursor: default;
+  }
+
+  /* ...and the hand when the field's control is a box, a radio or a switch a press on the name ticks. */
+  :where([data-ui-field]:has(> [data-ui-control] input:is([type="checkbox"], [type="radio"]):not(:disabled)) > [data-ui-label]) {
+    cursor: pointer;
+  }
+}
+
+/*
   A STICKY TABLE COLUMN CASTS A SHADOW ONCE SOMETHING HAS SCROLLED UNDER IT, and not before.
 
   Flux marks its scroll area from script (`data-scrolled-right`) and styles on that. The kit ships no
@@ -370,24 +439,68 @@
 }
 
 /*
-  WHAT A TABLE SAYS TO A SCREEN READER ALONE TAKES NO ROOM IN ITS SCROLL AREA (TA and Eszaf, 2026-10-29).
+  EVERY HEADING AND EVERY CELL OF A TABLE LOOKS THE SAME, SO THE LOOK IS WRITTEN ONCE, HERE (owner, 2026-11-02).
 
-  An `sr-only` box is a pixel square placed where its text would have started. Under a heading that keeps to its
-  end — the row actions' column, the last — that is the table's edge, and the pixel past it made the scroll area
-  scroll: every list drew a scrollbar under rows that fitted. A cell holds what it hides, then: each is the
-  containing block of what is placed inside it, and the hidden box sits in its first corner, a pixel inside it,
-  whichever way the text runs. A checkbox's native input is such a box too, so focusing one scrolls to its own row.
-  A sticky column's `sticky` is a utility, a layer above this, and keeps its place.
+  Flux writes its whole look on each cell — some 200 characters of classes, thirteen times a row — and a list of
+  9,730 rows came to 31.6 MB of HTML, most of it the same class string. Here the look Flux's cells and headings
+  share is keyed on their markers, computed exactly as Flux's classes compute (the same utilities, applied), and a
+  cell writes only what differs: its alignment, a strong tone, a sticky edge, and whatever the app adds.
+
+  Everything here weighs nothing (`:where`) and sits in `rask`, below `utilities`: a class an app writes on a cell
+  or a heading (`ps-10`, `text-xs`, `py-0`, `border-t-0`) wins as it is, and so does the cell's own variant.
+  Flux's order holds within: the box, then the first and last cell's edge, as `first:ps-0` follows `px-3`.
 */
 @layer rask {
-  :where([data-ui-table]) :where(th, td) {
-    position: relative;
+  :where([data-ui-column]) {
+    @apply py-3 px-3 text-start text-sm font-medium text-zinc-800 border-b border-zinc-800/10;
+
+    @variant dark {
+      @apply text-white border-white/20;
+    }
   }
 
-  :where([data-ui-table]) .sr-only {
-    inset-block-start: 0;
+  :where([data-ui-cell]) {
+    @apply py-3 px-3 text-sm text-zinc-500 border-zinc-800/10;
+
+    @variant dark {
+      @apply text-zinc-300 border-white/20;
+    }
+  }
+
+  /* Flux's `not-in-[tr:first-child]:border-t`: the line above every row but the first. */
+  :where([data-ui-cell]:not(tr:first-child *)) {
+    @apply border-t;
+  }
+
+  :where([data-ui-column], [data-ui-cell]):where(:first-child) {
+    @apply ps-0;
+  }
+
+  :where([data-ui-column], [data-ui-cell]):where(:last-child) {
+    @apply pe-0;
+  }
+}
+
+/*
+  WHAT A TABLE SAYS TO A SCREEN READER ALONE TAKES NO ROOM IN ITS SCROLL AREA (TA and Eszaf, 2026-10-29; 2026-11-02).
+
+  How Flux keeps it out, measured on fluxui.dev/components/table: its scroll area and its cells are static, so a box
+  placed absolutely in a cell belongs to a block OUTSIDE the scroll area and adds nothing to what it scrolls — an
+  `sr-only` heading written into the last heading of every example there leaves each area's scroll width as it was,
+  at 1280, 1013 and 390 wide. The kit's cells are static as Flux's. Its scroll area is not: it is `relative` (the
+  approved departure of 2026-10-14, so a checkbox's native input or an `sr-only` heading never scrolls a phone's
+  page sideways), and that makes such a box count. Tailwind's `sr-only` is a pixel square at its own place, pulled
+  back a pixel by its margin; under a heading that keeps to its end, the row actions', the last, flex puts that
+  square one pixel past the table's edge, and every list scrolled sideways under rows that fitted.
+
+  So, inside a table, the box keeps the scroll area's start edge across and its own row down: the start inset is
+  the area's first column, nothing past an edge, and focus on a checkbox's native input still scrolls to its row. No
+  cell is positioned and no node of Flux's changes (none of its tables holds such a box); a sticky cell is the
+  block of what it holds, and it lands at that cell's start.
+*/
+@layer rask {
+  :where([data-ui-table]) :where(.sr-only) {
     inset-inline-start: 0;
-    margin: 0;
   }
 }
 
