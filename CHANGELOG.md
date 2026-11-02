@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A WebAssembly tab follows its user, as a Server tab does.** Before: a WASM page read `IUserProvider` once, at
+  boot — sign out in another tab, let the cookie lapse, and it went on drawing the page for whoever it booted with,
+  and an API call refused with `401` was an exception and nothing more. Now the tab asks the provider again
+  (`Refresh()`) as it becomes the reader's (visible, focused, back from the bfcache), when another tab says the
+  credential changed, and before the first event after 30 s focused / 2 s unfocused — the Server host's
+  `rask-auth-watch.ts`, now shared by both runtimes. Another user: the page is drawn for them. Nobody where there was
+  somebody: `/login?returnUrl=…` from any page, no message, and what the reader pressed meanwhile runs nothing. A
+  `401` from the page's own origin through the host's `HttpClient` asks at once. `HttpUserProvider` keeps the user it
+  has when a refresh gets no answer (offline, `5xx`), and no longer raises `Changed` for the same user read again.
+  New gate: `scripts/run-wasm-e2e-local.sh`. See
+  [In WebAssembly](docs/authentication.md#in-webassembly).
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.

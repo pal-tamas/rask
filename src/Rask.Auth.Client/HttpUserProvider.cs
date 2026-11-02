@@ -60,25 +60,34 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
 
         try
         {
-            var response = await http
+            using var response = await http
                 .GetAsync(options.Prefix + AuthApi.Me)
                 .ConfigureAwait(false);
 
             // 204 is the endpoint's way of saying "nobody", and it is a perfectly good answer rather
-            // than a failure — see the remarks on the endpoint itself.
-            var user = response.StatusCode is HttpStatusCode.NoContent || !response.IsSuccessStatusCode
-                ? null
-                : await response.Content
-                    .ReadFromJsonAsync(AuthJsonContext.Default.CurrentUser)
-                    .ConfigureAwait(false);
+            // than a failure — see the remarks on the endpoint itself. So is a refusal.
+            if (response.StatusCode is HttpStatusCode.NoContent or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                Set(Anonymous);
+                return;
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Unanswered();
+                return;
+            }
+
+            var user = await response.Content
+                .ReadFromJsonAsync(AuthJsonContext.Default.CurrentUser)
+                .ConfigureAwait(false);
 
             Set(user is null ? Anonymous : Principal(user));
         }
         catch (HttpRequestException)
         {
-            // Offline, or the endpoint is unreachable. Anonymous is the safe reading: it closes doors
-            // rather than opening them, and a later refresh recovers.
-            Set(Anonymous);
+            // Offline, or the endpoint is unreachable.
+            Unanswered();
         }
         finally
         {
@@ -87,9 +96,23 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
         }
     }
 
-    private void Set(ClaimsPrincipal user)
+    // No answer — offline, a server that could not say. Before the user was ever read, anonymous is the safe reading:
+    // it closes doors rather than opening them, and a later refresh recovers. After, it is no news: the user the page
+    // was drawn for stays, as a Server tab keeps its connection when its question goes unanswered, and every request
+    // still carries the cookie as it is, so the server decides what it may do.
+    private void Unanswered()
     {
-        if (ReferenceEquals(_current, user))
+        if (!_loaded)
+        {
+            Set(Anonymous);
+        }
+    }
+
+        private void Set(ClaimsPrincipal user)
+    {
+        // The same user with the same rights, read again, is no change: a page asks on every return to the tab, and
+        // would otherwise render again for nothing each time.
+        if (PrincipalRights.Same(_current, user))
         {
             return;
         }

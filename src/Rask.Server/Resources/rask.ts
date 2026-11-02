@@ -52,7 +52,7 @@ import {
     pageTimeout,
     type LiveConnection,
 } from "./rask-http-transport.js";
-import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "./rask-auth-watch.js";
+import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "../../Rask.Core/Resources/rask-auth-watch.js";
 import { createUnacked, newestSeq } from "./rask-resend.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
