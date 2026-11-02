@@ -236,6 +236,10 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **CI: a `ci/**` branch is scoped like a push to `main`**, measured from the newest commit `ci` or `full` passed
+  that it contains (`scripts/lib/green_base.sh`). A change to the CI, a gate script or the pins still runs the whole
+  set, and so does a `ci/release/**` branch; `gh workflow run ci.yml --ref <branch>` runs it on any branch. Fifteen
+  branches running all 26 jobs each held the account's twenty runners for hours on 2026-11-02.
 - **CI: a run on `main` that has not started a gate when a newer push's run starts is cancelled by it**
   (`scripts/lib/cancel_superseded.sh`): both are measured from the last green commit, so the newer run's scope holds
   the older push's change. So is a `full` run whose gates all still wait for a runner while a newer one waits
