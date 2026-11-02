@@ -38,10 +38,10 @@ public sealed partial class UiAccordionHeading : Component
     // The marker a <summary> draws is its list-item box, which `flex` replaces; Safari draws its own besides.
     private static string Classes(bool reverse, bool disabled) => (reverse, disabled) switch
     {
-        (false, false) => "group/accordion-heading flex w-full cursor-pointer items-center justify-between text-start text-sm font-medium text-zinc-800 dark:text-white [&::-webkit-details-marker]:hidden",
-        (true, false) => "group/accordion-heading flex w-full cursor-pointer flex-row-reverse items-center justify-end text-start text-sm font-medium text-zinc-800 dark:text-white [&::-webkit-details-marker]:hidden",
-        (false, true) => "pointer-events-none flex w-full cursor-default items-center justify-between text-start text-sm font-medium text-zinc-400 [&::-webkit-details-marker]:hidden",
-        (true, true) => "pointer-events-none flex w-full cursor-default flex-row-reverse items-center justify-end text-start text-sm font-medium text-zinc-400 [&::-webkit-details-marker]:hidden",
+        (false, false) => "group/accordion-heading [:where(&)]:flex [:where(&)]:w-full cursor-pointer items-center justify-between text-start [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-800 dark:text-white [&::-webkit-details-marker]:hidden",
+        (true, false) => "group/accordion-heading [:where(&)]:flex [:where(&)]:w-full cursor-pointer flex-row-reverse items-center justify-end text-start [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-800 dark:text-white [&::-webkit-details-marker]:hidden",
+        (false, true) => "pointer-events-none [:where(&)]:flex [:where(&)]:w-full cursor-default items-center justify-between text-start [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-400 [&::-webkit-details-marker]:hidden",
+        (true, true) => "pointer-events-none [:where(&)]:flex [:where(&)]:w-full cursor-default flex-row-reverse items-center justify-end text-start [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-400 [&::-webkit-details-marker]:hidden",
     };
 
     // Pale until the heading is pointed at; a disabled heading is never pointed at.

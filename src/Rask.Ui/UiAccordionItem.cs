@@ -15,7 +15,7 @@ namespace Rask;
 public sealed partial class UiAccordionItem : Component
 {
     private const string Classes =
-        "group/accordion-item block border-b border-zinc-800/10 pt-4 pb-4 first:pt-0 last:border-b-0 last:pb-0 dark:border-white/10";
+        "group/accordion-item [:where(&)]:block border-b border-zinc-800/10 [:where(&)]:pt-4 [:where(&)]:pb-4 first:[:where(&)]:pt-0 last:border-b-0 last:[:where(&)]:pb-0 dark:border-white/10";
 
     /// <summary>The heading's text, in place of a <see cref="UiAccordionHeading" /> child.</summary>
     public string? Heading { get; set; }
