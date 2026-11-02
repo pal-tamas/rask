@@ -384,8 +384,8 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         return _current ??= new EventLives(this);
     }
 
-    // The provider handed to a hook that asked for it: held until the work it detached comes back, its component
-    // has left the page, or the session ends — whichever is first.
+    // The provider handed to a hook that asked for it: held until the work it detached comes back, nothing holds the
+    // provider any more, its component has left the page, or the session ends — whichever is first.
     private IServiceProvider Lease(LifecycleSyncContext hook)
     {
         EventHold hold;
@@ -404,7 +404,9 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
 
         hold.OrAfter(TeardownGrace, hook.Component.CallbackLifetime);
         HookLeases.Add(hook, hold);
-        return new EventServicesLease(this, life);
+        var lease = new EventServicesLease(this, life);
+        UnreachableLease.Watch(lease, hold);
+        return lease;
     }
 
     private IServiceProvider Open()

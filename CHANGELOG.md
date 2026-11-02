@@ -440,6 +440,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A hook that lent its provider to detached work kept its event's scope until its component left the page when
+  that work was done before its own await looked at it** (#1265). The await went on inline, nothing came back
+  through the hook's context, and the scope — the app's `DbContext` and its connection with it — stayed for the life
+  of a long-lived page plus 10 s. The scope now also goes once the hook is done and nothing holds the provider
+  `Current.Service<IServiceProvider>()` handed out any more; work that still holds it keeps it, as before. A hook
+  that takes the provider and awaits its own work no longer keeps the scope while the page is open. Nothing to
+  change in an app that keeps the provider in the work that uses it, as the docs show.
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook

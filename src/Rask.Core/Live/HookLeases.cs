@@ -11,7 +11,8 @@ namespace Rask.Core.Live;
 ///         done long before that work is. The work comes back to the page through the hook's own context (its await
 ///         resumes there), so the first continuation the context runs once the hook itself has finished is the
 ///         detached work returning: the leases taken before it are let go once it has run. Work that never comes back
-///         lets them go when its component has left the page, after the grace, or with the session.
+///         lets them go once nothing holds the provider (<see cref="UnreachableLease" />), when its component has left
+///         the page, after the grace, or with the session.
 ///     </para>
 ///     <para>
 ///         Kept beside the hook's context, not on it: a context is made for every hook a render runs, and a field there
