@@ -236,6 +236,10 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **CI: the NuGet cache is keyed on `Directory.Packages.props` and saved by `main` only**; every other ref restores
+  main's. Keyed on every project file, each `ci/**` branch saved its own 1.8 GB copy, five filled the repository's
+  10 GB, and GitHub evicted the workload and Playwright caches the gates read. The Playwright cache is keyed on its
+  version (the E2E project file names none, so a bump kept the old browsers and downloaded the new ones every job).
 - **Rask.Ui: the kit parts Flux documents only in its examples are held to Flux like every other.** `flux.snapshot.json`
   (`scripts/flux/refresh.mjs`, the `flux` follower) now also reads a part Flux writes in its examples or lists as an
   available item but heads no Reference entry with — `flux:spacer`, `flux:navmenu`, `flux:menu.group`, the chart's
