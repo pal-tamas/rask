@@ -241,6 +241,16 @@ them until tagged releases begin.
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
   now says only stop-then-start is safe, to set `WEBSITES_CONTAINER_STOP_TIME_LIMIT` above the grace period, and
   recommends a single-instance VPS/container host, or a server database on App Service.
+- **Rask.Ui feels native on a phone.** The kit's controls — buttons, tabs, nav items, menu rows, triggers,
+  checkboxes, switches, sortable headings, calendar days — select no text and answer a tap at once
+  (`touch-action: manipulation`); a long press on a control or on an avatar or logo opens no callout, and those
+  pictures do not drag (`draggable="false"`); a modal, flyout, menu, popover or the command palette keeps its scroll
+  from the page behind; the header, sidebar, flyouts and toasts keep clear of the notch under `viewport-fit=cover`;
+  the date picker's preset select is 16px below `sm`, so iOS no longer zooms into it. Content — table cells, inputs,
+  text, headings, code, a toast's message — stays selectable, and an app's `select-text` / `touch-auto` / padding
+  wins. A new app (server, wasm, wasm-hosted) writes `viewport-fit=cover`, a light and a dark `theme-color`, and
+  antialiased text plus no bounce of an installed app in `Styles/app.css`. A departure from Flux, recorded in
+  flux-component's list; see [docs/ui-kit.md](docs/ui-kit.md#native-feel).
 - **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
   keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
   and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook

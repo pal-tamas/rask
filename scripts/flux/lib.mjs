@@ -38,6 +38,8 @@ export const STYLES = [
   'boxShadow', 'outlineStyle', 'outlineWidth', 'outlineColor', 'outlineOffset', 'cursor',
   'overflowX', 'overflowY', 'zIndex', 'transform', 'transitionProperty', 'transitionDuration',
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
+  // What a touch does: selects, zooms, scrolls past, opens a callout, drags (parity.mjs DEPARTED, NATIVE FEEL).
+  'userSelect', 'webkitUserSelect', 'touchAction', 'overscrollBehaviorY', 'webkitTouchCallout', 'webkitUserDrag',
 ];
 
 // What the kit shows the hand over — an owner-approved departure from Flux (2026-11-02, flux-component SKILL.md

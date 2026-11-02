@@ -18,7 +18,7 @@ public sealed class AppTests
 
         Assert.StartsWith("<!DOCTYPE html>", html);
         Assert.Contains("<html lang=\"en\">", html);
-        Assert.Contains("<body class=\"bg-zinc-50 dark:bg-zinc-900\">", html);
+        Assert.Contains("<body class=\"bg-zinc-50 antialiased dark:bg-zinc-900\">", html);
     }
 
     [Fact]
