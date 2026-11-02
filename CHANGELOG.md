@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
+  `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
+  browser tests hand-rolled "settled" — counting sent against acknowledged events, waiting for `[aria-busy=true]` and
+  skeletons to go, then a "DOM quiet for 300 ms" window that never settles on a page pushing renders and settles too
+  early on a slow one. Now the runtime itself says it: `data-rask-busy` is on `<html>` while an event is unanswered or
+  its render not on the page, a navigation is in flight, a frame is queued, a live or debounced field has unsent
+  text, a `.Confirm` press waits to be made again, the connection is opening or re-opening (Server), the app is
+  booting (WASM) or the hooks bundle is loading — on both hosts, client-side only, nothing sent for it. The mark goes
+  on in the same task as the click that caused it, so the wait cannot look too early:
+  ```csharp
+  using Rask.Testing;
+
+  await page.GetByRole(AriaRole.Button, new() { Name = "Ship" }).ClickAsync();
+  await page.WaitForRask();               // WaitForRask(this IPage page, TimeSpan? timeout = null); also on IFrame
+  Assert.Equal("Shipped", await page.Locator("#status").TextContentAsync());
+  ```
+  Not covered: the app's own timers, and a server push that has not reached the browser yet (a page pushing a render
+  every second still settles). See [Testing](docs/testing.md#waiting-for-the-page-in-browser-tests).
 - **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
   text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or
   before it, as Flux's does, so `Ui.Heading.Lg["Update profile"], Ui.Subheading["Make changes…"]` needs no margin

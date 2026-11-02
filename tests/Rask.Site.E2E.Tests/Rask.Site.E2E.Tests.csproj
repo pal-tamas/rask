@@ -46,6 +46,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- WaitForRaskWasmTests: the browser-test wait the package ships, driven against the WebAssembly host. -->
+    <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
     <!-- Caps cross-collection parallelism for LOCAL full-suite runs (see xunit.runner.json).
          Each browser-host collection fixture boots a full `dotnet run` host plus a Chromium

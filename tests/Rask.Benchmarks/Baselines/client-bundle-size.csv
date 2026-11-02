@@ -561,3 +561,12 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,120724
+# 2026-11-02, `data-rask-busy` on <html> while the page settles (rask-busy.ts: a hold per unanswered event, queued
+# frame, unsent typing, waiting confirm press, connection or boot, hooks load; what Rask.Testing.Playwright's
+# WaitForRask reads): rask.js 113,282 -> 114,276 (+994), rask.wasm.js 97,691 -> 98,644 (+953), rask-hooks.js
+# 121,602 -> 121,676 (+74). Measured locally with the bundle gate's esbuild recipe on the tree at 7e9d8344c plus
+# this change.
+bundle,bytes
+rask.js,114276
+rask.wasm.js,98644
+rask-hooks.js,121676
