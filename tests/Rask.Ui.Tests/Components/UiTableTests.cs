@@ -82,19 +82,18 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         ].ToHtml();
 
         Assert.Contains("<thead id=\"head\" ", html, StringComparison.Ordinal);
-        Assert.Matches("<th id=\"col\" class=\"[^\"]* w-40\"", html);
+        Assert.Contains("<th id=\"col\" class=\"w-40\"", html, StringComparison.Ordinal);
         Assert.Contains("<tbody id=\"body\" ", html, StringComparison.Ordinal);
         Assert.Contains("<tr id=\"row\" ", html, StringComparison.Ordinal);
-        Assert.Matches("<td id=\"cell\" class=\"[^\"]* py-0\"", html);
+        Assert.Contains("<td id=\"cell\" class=\"py-0\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_cell_pads_itself_at_zero_specificity_so_its_own_padding_class_wins()
+    public void A_cell_writes_no_padding_of_its_own_so_its_padding_class_is_the_only_one()
     {
         var html = Ui.TableCell.Class("py-0").ToHtml();
 
-        Assert.Contains("[:where(&amp;)]:py-3", html, StringComparison.Ordinal);
-        Assert.DoesNotMatch("[\" ]py-3[\" ]", html);
+        Assert.Equal("<td class=\"py-0\" data-ui-cell></td>", html);
     }
 
     [Fact]
@@ -125,30 +124,21 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotMatch("<td class=\"[^\"]*bleed", bleeding);
     }
 
+    // The owner, 2026-11-02: what every cell and heading shares is the kit sheet's, once (ui.css), not each cell's.
     [Fact]
-    public void A_plain_cell_writes_Fluxs_class_list_as_Flux_writes_it()
+    public void A_plain_cell_writes_no_class_its_look_is_the_sheets()
     {
         var html = Ui.TableCell["$49.00"].ToHtml();
 
-        var classes = Classes(html, "<td ");
-
-        Assert.Equal(
-            "[:where(&)]:py-3 [:where(&)]:px-3 first:ps-0 last:pe-0 text-sm text-zinc-500 dark:text-zinc-300 "
-            + "not-in-[tr:first-child]:border-t border-zinc-800/10 dark:border-white/20",
-            classes);
+        Assert.Equal("<td data-ui-cell>$49.00</td>", html);
     }
 
     [Fact]
-    public void A_heading_writes_Fluxs_class_list_as_Flux_writes_it()
+    public void A_plain_heading_writes_no_class_its_look_is_the_sheets()
     {
         var html = Ui.TableColumn["Customer"].ToHtml();
 
-        var classes = Classes(html, "<th ");
-
-        Assert.Equal(
-            "py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium text-zinc-800 dark:text-white "
-            + "border-b border-zinc-800/10 dark:border-white/20 **:data-ui-table-sortable:last:me-0",
-            classes);
+        Assert.StartsWith("<th data-ui-column><div class=", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -167,11 +157,12 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_call_sites_class_follows_the_kits_list_whole()
     {
-        var html = Ui.TableCell.Class("  truncate ")["$49.00"].ToHtml();
+        var plain = Classes(Ui.TableCell.Class("  truncate ")["$49.00"].ToHtml(), "<td ");
 
-        var classes = Classes(html, "<td ");
+        var end = Classes(Ui.TableCell.End.Class("  truncate ")["$49.00"].ToHtml(), "<td ");
 
-        Assert.EndsWith(" dark:border-white/20 truncate", classes, StringComparison.Ordinal);
+        Assert.Equal("truncate", plain);
+        Assert.Equal("text-end [&>*]:ms-auto truncate", end);
     }
 
     [Fact]
@@ -202,9 +193,8 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         var column = Classes(Ui.TableColumn.Sticky().Class("bg-white")["ID"].ToHtml(), "<th ");
         var cell = Classes(Ui.TableCell.Sticky().Class("bg-white")["428"].ToHtml(), "<td ");
 
-        Assert.Contains(" dark:border-white/20 " + stuck + " **:data-ui-table-sortable:last:me-0 bg-white", column, StringComparison.Ordinal);
-        Assert.Contains(" dark:text-zinc-300 " + stuck + " not-in-[tr:first-child]:border-t ", cell, StringComparison.Ordinal);
-        Assert.EndsWith(" bg-white", cell, StringComparison.Ordinal);
+        Assert.Equal(stuck + " bg-white", column);
+        Assert.Equal(stuck + " bg-white", cell);
         Assert.DoesNotContain("sticky", Ui.TableCell["428"].ToHtml(), StringComparison.Ordinal);
     }
 
@@ -215,9 +205,8 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         var strong = Classes(Ui.TableCell.Variant(Ui.TableCellVariant.Strong)["$49.00"].ToHtml(), "<td ");
 
-        Assert.Contains("text-zinc-500", plain, StringComparison.Ordinal);
-        Assert.Contains(" text-sm font-medium text-zinc-800 dark:text-white not-in-", strong, StringComparison.Ordinal);
-        Assert.DoesNotContain("text-zinc-500", strong, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=", plain, StringComparison.Ordinal);
+        Assert.Equal("font-medium text-zinc-800 dark:text-white", strong);
     }
 
     [Fact]
@@ -228,9 +217,9 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         var column = Ui.TableColumn.Center["Amount"].ToHtml();
 
-        Assert.Contains(" text-sm text-end [&>*]:ms-auto font-medium text-zinc-800 ", end, StringComparison.Ordinal);
-        Assert.Contains(" text-sm text-center text-zinc-500 ", center, StringComparison.Ordinal);
-        Assert.Contains(" dark:border-white/20 group/center-align **:data-ui-table-sortable:last:me-0", Classes(column, "<th "), StringComparison.Ordinal);
+        Assert.Equal("text-end [&>*]:ms-auto font-medium text-zinc-800 dark:text-white", end);
+        Assert.Equal("text-center", center);
+        Assert.Equal("group/center-align", Classes(column, "<th "));
     }
 
     [Fact]
@@ -288,7 +277,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
             + @"in-[.group\/end-align]:-me-2 in-[.group\/end-align]:-ms-8";
         Assert.Contains("<button class=\"" + button + "\"", atStart, StringComparison.Ordinal);
         Assert.Contains("<button class=\"" + button + "\"", atEnd, StringComparison.Ordinal);
-        Assert.Contains(" group/end-align group/sortable ", Classes(atEnd, "<th "), StringComparison.Ordinal);
+        Assert.StartsWith("group/end-align group/sortable ", Classes(atEnd, "<th "), StringComparison.Ordinal);
         Assert.Contains("type=\"button\"><div>Amount</div><div class=", atEnd, StringComparison.Ordinal);
     }
 
