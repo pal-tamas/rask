@@ -247,7 +247,7 @@ const CHROME = [
   'data-ui-accordion-heading', 'data-ui-select-button', 'data-ui-pillbox-trigger', 'data-ui-color-picker-trigger',
   'data-ui-color-picker-button', 'data-ui-date-picker-button', 'data-ui-time-picker-button', 'data-ui-datetime-picker-button',
   'data-ui-checkbox', 'data-ui-radio', 'data-ui-switch', 'data-ui-toggle', 'data-ui-checkbox-buttons', 'data-ui-checkbox-pills',
-  'data-ui-radio-buttons', 'data-ui-radio-pills', 'data-ui-radio-segmented', 'data-ui-table-sortable', 'data-ui-profile', 'data-ui-brand',
+  'data-ui-checkbox-cards', 'data-ui-radio-buttons', 'data-ui-radio-pills', 'data-ui-radio-cards', 'data-ui-radio-segmented', 'data-ui-table-sortable', 'data-ui-profile', 'data-ui-brand',
   'data-ui-avatar',
 ];
 // …and the parts whose BUTTONS (or days) are chrome, not the part itself.

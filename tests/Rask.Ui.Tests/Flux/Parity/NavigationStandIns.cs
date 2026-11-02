@@ -38,13 +38,14 @@ internal static class NavigationStandIns
         + "color:#fff;font-size:.75rem;line-height:calc(1/.75);font-weight:700}"
         + ".logo-accent{background:var(--color-accent);color:#fff}.logo-accent:where(.dark,.dark *){color:oklch(27.4% .006 286.033)}"
         + ".logo-tile{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:24px;height:24px;border-radius:.25rem}"
-        // Flux's header and sidebar, which the layouts own: zinc-50 on zinc-100, zinc-800 on white/5 on dark.
-        + ".stand-in-bar{display:flex;align-items:center;min-height:56px;padding-inline:16px;border-radius:8px;"
+        // `px-4! w-full bg-zinc-50 dark:bg-zinc-800 rounded-lg border border-zinc-100 dark:border-white/5`, what the
+        // examples hand Flux's header: zinc-50 on zinc-100, zinc-800 on white/5 on dark.
+        + ".parity-bar{padding-inline:1rem!important;width:100%;border-radius:.5rem;"
         + "background:oklch(98.5% 0 0);border:1px solid oklch(96.7% .001 286.375)}"
-        + ".stand-in-bar:where(.dark,.dark *){background:oklch(27.4% .006 286.033);border-color:color-mix(in oklab,#fff 5%,transparent)}"
-        + ".stand-in-side{display:flex;flex-direction:column;gap:16px;padding:16px;border-radius:8px;z-index:1;"
-        + "background:oklch(98.5% 0 0);border:1px solid oklch(96.7% .001 286.375)}"
-        + ".stand-in-side:where(.dark,.dark *){background:oklch(27.4% .006 286.033);border-color:color-mix(in oklab,#fff 5%,transparent)}"
+        + ".parity-bar:where(.dark,.dark *){background:oklch(27.4% .006 286.033);border-color:color-mix(in oklab,#fff 5%,transparent)}"
+        // `w-full bg-zinc-50 dark:bg-zinc-800 border rounded-lg border-zinc-100 dark:border-white/5`, the sidebar's.
+        + ".parity-side{width:100%;background:oklch(98.5% 0 0);border:1px solid oklch(96.7% .001 286.375);border-radius:.5rem}"
+        + ".parity-side:where(.dark,.dark *){background:oklch(27.4% .006 286.033);border-color:color-mix(in oklab,#fff 5%,transparent)}"
         // `**:ring-zinc-100 dark:**:ring-zinc-800`, Flux's example of a group on another ground.
         + ".ring-ground>*{--tw-ring-color:oklch(96.7% .001 286.375)}"
         + ".ring-ground>*:where(.dark,.dark *){--tw-ring-color:oklch(27.4% .006 286.033)}</style>";

@@ -2901,6 +2901,8 @@ Rask.UiSliderTick.Value.get -> double
 Rask.UiSliderTick.Value.set -> void
 Rask.UiSliderTick.Variant.get -> Rask.Ui.SliderTickVariant?
 Rask.UiSliderTick.Variant.set -> void
+Rask.UiSpacer.Class.get -> string?
+Rask.UiSpacer.Class.set -> void
 Rask.UiSubheading
 Rask.UiSubheading.UiSubheading() -> void
 Rask.UiSwitch
@@ -4073,6 +4075,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarSearch(Rask.Cor
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarSpacer(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSlider_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSliderTick(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSpacer(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimelineIndicator(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimelineItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimePicker_1<T>(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -4218,6 +4221,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarSearch(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarSpacer(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSlider_1<T>(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSliderTick(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSpacer(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimelineIndicator(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimelineItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimePicker_1<T>(Rask.Core.Component! __c0) -> void
@@ -4345,6 +4349,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSidebarSearch(Rask.Co
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSidebarSpacer(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSlider_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSliderTick(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSpacer(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiSwitch(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimelineIndicator(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimelineItem(Rask.Core.Component! __c0, ulong __p) -> void
@@ -4707,6 +4712,8 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiSidebarSpacer! __b, params Sy
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiSidebarSpacer! __b, string? value) -> Rask.UiSidebarSpacer!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiSliderTick! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiSliderTick!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiSliderTick! __b, string? value) -> Rask.UiSliderTick!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiSpacer! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiSpacer!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiSpacer! __b, string? value) -> Rask.UiSpacer!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiSwitch! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiSwitch!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiSwitch! __b, string? value) -> Rask.UiSwitch!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiTimelineIndicator! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiTimelineIndicator!

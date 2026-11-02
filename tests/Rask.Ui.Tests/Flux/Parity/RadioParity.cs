@@ -5,8 +5,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// <summary>fluxui.dev/components/radio, example by example.</summary>
 /// <remarks>
 ///     The words and the chosen radios are the LIVE page's, which differ here and there from the code printed
-///     under each example. The heading and text of the custom cards are another page's components, not
-///     rebuilt yet: stand-ins marked <c>data-parity-skip</c>, held to their place and size.
+///     under each example.
 /// </remarks>
 public sealed partial class RadioParity : FluxParity
 {
@@ -57,6 +56,7 @@ public sealed partial class RadioParity : FluxParity
             Shipping("bare").Indicator(false).Class("max-sm:flex-col")[Cards(icons: true)]));
 
         yield return ("custom-card-content", Wide(542,
+            Raw.Value("<style>.parity-leading-4{line-height:1rem}.parity-mt-2{margin-top:.5rem}</style>"),
             Shipping("custom").Class("max-sm:flex-col")[
                 Custom("standard", "Standard", "4-10 business days"),
                 Custom("fast", "Fast", "2-5 business days"),
@@ -105,13 +105,14 @@ public sealed partial class RadioParity : FluxParity
         Ui.Radio.Value("next-day").Icon(icons ? Ui.IconName.Clock : null).Label("Next day").Description("1 business day"),
     ];
 
-    // <flux:heading class="leading-4"> and <flux:text size="sm" class="mt-2">: other pages' components.
+    // <flux:heading class="leading-4"> and <flux:text size="sm" class="mt-2">: the classes an app's own build
+    // emits for them, under names of this page's own.
     private static Component Custom(string value, string heading, string text) =>
         Ui.Radio.Value(value)[
             Ui.RadioIndicator,
             Div.Style("flex:1 1 0%")[
-                Div.Data("parity-skip", "").Style("font-size:14px;line-height:16px;font-weight:500")[heading],
-                P.Data("parity-skip", "").Style("margin-top:8px;font-size:12px;line-height:16px")[text]
+                Ui.Heading.Class("parity-leading-4")[heading],
+                Ui.Text.Sm.Class("parity-mt-2")[text]
             ]
         ];
 
@@ -119,6 +120,6 @@ public sealed partial class RadioParity : FluxParity
     private static Component Shrunk(Component example) =>
         Div.Style("display:flex;justify-content:center")[Div[example]];
 
-    private static Component Wide(int width, Component example) =>
+    private static Component Wide(int width, params Component[] example) =>
         Div.Style(FormattableString.Invariant($"max-width:{width}px;margin:0 auto"))[example];
 }

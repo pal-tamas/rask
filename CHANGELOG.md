@@ -503,6 +503,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Three `Rask.Ui` parts now draw as Flux UI does, found once its profile and brand pages compared the real
+  header, sidebar and spacer.** `Ui.Spacer` takes `Class`, as `flux:spacer` does (`Ui.Spacer.Class("min-w-24")`).
+  A `Ui.Sidebar` that stays in the page's flow is lifted `z-1`, as Flux's; one that slides over the page keeps
+  `z-20`. A checkbox or radio CARD selects no text, as Flux's does and as every other checkbox and radio already did.
+  The profile page's dropdown is now the real `Ui.Navmenu` (`Ui.NavmenuItem.Indent()`, `Ui.NavmenuSeparator`).
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
