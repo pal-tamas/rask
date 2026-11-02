@@ -93,7 +93,10 @@ public sealed class PostgresDbTransactionIsolationResetTests
             await Postgres.ResetSchemaAsync(reset, "tenancy");
         }
 
-        var (inside, after, level) = await IsolationAfterRun.Run(o => o.UseRaskPostgresAt(Postgres.Required), Probe, throws);
+        // A pool of its own with one connection: Npgsql hands a returning connection to any waiter, so with the
+        // shared pool the read after the block may get another backend. One connection is the reuse being tested.
+        var single = new Npgsql.NpgsqlConnectionStringBuilder(Postgres.Required) { MaxPoolSize = 1, ApplicationName = "isolation-reset" }.ConnectionString;
+        var (inside, after, level) = await IsolationAfterRun.Run(o => o.UseRaskPostgresAt(single), Probe, throws);
 
         Assert.Equal(inside, after);
         Assert.Equal("read committed", level);
