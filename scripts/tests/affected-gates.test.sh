@@ -152,6 +152,8 @@ wired "nightly publishes what the whole run passed"  nightly.yml 'workflows/full
 wired "nightly follows the whole run"                nightly.yml '^    workflows: \[full\]$'
 wired "pages publishes from the whole run"           pages.yml   '^    workflows: \[full\]$'
 wired "a push hands its base to the gates"           ci.yml      '^      base: \$\{\{ needs\.base\.outputs\.sha \}\}$'
+wired "a ci/** branch is scoped like main"          ci.yml      '"ci\.yml/runs\?branch=\$branch&event=push"'
+wired "a ci/release/** branch is never scoped"       ci.yml      '"\$REF" != refs/heads/ci/release/\*'
 wired "the gates ask affected_gates.py"              gates.yml   'scripts/lib/affected_gates\.py'
 wired "a release is never scoped"                    release.yml '^      set: all$'
 
