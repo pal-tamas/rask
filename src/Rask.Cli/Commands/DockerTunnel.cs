@@ -58,7 +58,8 @@ internal sealed class DockerTunnel : IAsyncDisposable
         "-o", "StreamLocalBindUnlink=yes",
         "-o", "ServerAliveInterval=15",
         "-o", "ServerAliveCountMax=4",
-        "-o", "LogLevel=ERROR",
+        // INFO, ssh's default: a refused forward is logged at INFO, and -E keeps it all off the deploy's terminal.
+        "-o", "LogLevel=INFO",
         "-E", logFile,
         "-L", $"{localSocket}:{RemoteSocket}",
         .. target.ConnectionArguments(freshConnection: true),

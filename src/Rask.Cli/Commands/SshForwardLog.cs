@@ -8,11 +8,10 @@ namespace Rask.Cli.Commands;
 /// </summary>
 internal static class SshForwardLog
 {
-    // What ssh logs when the box turned a forwarded connection down — sshd refused it, or the socket couldn't be reached.
+    // What ssh logs (at INFO) when the box turned a forwarded connection down: "channel 1: open failed: connect failed:
+    // open failed" from an sshd whose AllowTcpForwarding is no — it gates unix sockets on that too — and the same
+    // "open failed" from one that can't reach the socket.
     private const string ChannelRefused = "open failed";
-
-    // The refusal sshd gives when its config, or the key's options, forbid forwarding.
-    private const string Prohibited = "administratively prohibited";
 
     /// <summary>The log's last line, or <c>null</c> while it is empty or unreadable.</summary>
     internal static string? LastLine(string path)
@@ -37,14 +36,10 @@ internal static class SshForwardLog
     /// <summary>Whether ssh logged that the box turned a forwarded connection down — no point waiting any longer.</summary>
     internal static bool IsRefusal([NotNullWhen(true)] string? line) => line?.Contains(ChannelRefused, StringComparison.Ordinal) == true;
 
-    /// <summary>
-    /// The refusal said in terms of what to change on the box, when it is sshd's config that forbids it; any other
-    /// line as ssh wrote it.
-    /// </summary>
+    /// <summary>A refusal said in terms of what to look at on the box, with ssh's own line after it.</summary>
     internal static string Explain(string line) =>
-        line.Contains(Prohibited, StringComparison.Ordinal)
-            ? $"the box's sshd refuses forwarding — AllowTcpForwarding or AllowStreamLocalForwarding is 'no', or the key is no-port-forwarding (ssh: {line})"
-            : line;
+        $"the box would not connect the forwarded docker socket — its sshd refuses forwarding (AllowTcpForwarding or "
+        + $"AllowStreamLocalForwarding is 'no', or the key is no-port-forwarding), or docker is not at {DockerTunnel.RemoteSocket} (ssh: {line})";
 
     /// <summary>The last line of <paramref name="text"/> that says something, or <c>null</c>.</summary>
     internal static string? LastNonEmpty(string text) =>

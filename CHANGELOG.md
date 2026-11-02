@@ -12,7 +12,8 @@ them until tagged releases begin.
   and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
   build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
   connection and send every step through it; a box that refuses the forward is deployed one connection per step, as
-  before. Readiness waits (container running, `/health`, the Caddy reload, the check through the proxy) ask at once,
+  before, and the deploy says why in ssh's own words — a stock Ubuntu sshd forwards, an `AllowTcpForwarding no` one
+  (it gates the socket forward too) is named and given up on at once rather than after a 20 s wait. Readiness waits (container running, `/health`, the Caddy reload, the check through the proxy) ask at once,
   then every second for up to 60 s, and say when the app answered; the four reads before the new colour starts go
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 

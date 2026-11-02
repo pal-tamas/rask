@@ -66,11 +66,12 @@ public sealed class DockerTunnelTests
         var probes = 0;
         var runner = new FakeProcessRunner
         {
-            // What a box with `AllowTcpForwarding no` does: the connection holds, each forwarded socket is turned down.
+            // What a box with `AllowTcpForwarding no` does (measured against Alpine's stock sshd): the connection holds,
+            // and each forwarded socket is turned down with this line.
             CaptureHandler = _ =>
             {
                 probes++;
-                File.WriteAllText(DockerTunnel.LogIn(directory), "channel 2: open failed: administratively prohibited: open failed\n");
+                File.WriteAllText(DockerTunnel.LogIn(directory), "channel 1: open failed: connect failed: open failed\n");
                 return new ProcessResult(1, string.Empty, "error during connect: EOF");
             },
         };
@@ -82,7 +83,7 @@ public sealed class DockerTunnelTests
         Assert.Null(tunnel);
         Assert.Equal(1, probes);
         Assert.Contains("AllowTcpForwarding", failure, StringComparison.Ordinal);
-        Assert.Contains("administratively prohibited", failure, StringComparison.Ordinal);
+        Assert.Contains("channel 1: open failed: connect failed: open failed", failure, StringComparison.Ordinal);
         Assert.Equal(1, held.TunnelsClosed);
         Assert.False(Directory.Exists(directory));
     }

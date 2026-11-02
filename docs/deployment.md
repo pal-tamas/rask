@@ -28,7 +28,9 @@ A deploy (and a rollback) logs in **once**: it forwards the host's Docker socket
 login — handshake, the box's PAM session, a `docker system dial-stdio` on the box — for each of its forty-odd
 steps. The local socket lives in a directory only you can enter and is removed when the deploy ends. A box that
 refuses socket forwarding, or whose daemon listens elsewhere, is deployed one connection per step as before,
-said in one line; every check, lock and rollback runs the same either way.
+said in one line with ssh's own reason; every check, lock and rollback runs the same either way. A stock
+Ubuntu sshd forwards; one with `AllowTcpForwarding no` does not — sshd applies that to a socket forward too, not
+only to TCP — so leave it (and `AllowStreamLocalForwarding`) at the default `yes` for the deploy user.
 
 - **Automatic HTTPS.** With `--domain`, Rask runs a shared [Caddy](https://caddyserver.com) reverse
   proxy on the box that obtains and renews a Let's Encrypt certificate — a live HTTPS site with nothing
