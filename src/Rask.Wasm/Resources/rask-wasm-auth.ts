@@ -34,6 +34,9 @@ export function watchUser(asker: () => (() => Promise<string>) | undefined): Use
     let off = false;
     const held: Array<{ go: () => void; drop: () => void }> = [];
     const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel("rask-auth") : null;
+    // Node (which the fixtures import this bundle in) keeps a process alive while a channel is open; a page has no
+    // such method, and goes away with its tab.
+    (channel as { unref?: () => void } | null)?.unref?.();
 
     function read(json: string): WhoAnswer | null {
         if (!json) return null;
