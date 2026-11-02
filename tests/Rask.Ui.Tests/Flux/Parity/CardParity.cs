@@ -6,19 +6,19 @@ namespace Rask.UiTests.Flux;
 ///     Flux UI's card page, example by example: <c>https://fluxui.dev/components/card</c>.
 /// </summary>
 /// <remarks>
-///     The examples put other Flux components inside the cards. The buttons and the table are the real
-///     ones; the fields and the lines of text whose variant was not looked up are built elsewhere
-///     or later, and each is a <see cref="StandIn" /> here: a box the measured size of that neighbour,
-///     marked <c>data-parity-skip</c> so the comparison holds it to its box and skips what is inside. Everything
-///     that is the card's own — the card, its header, heading, subheading, actions, body, footer and bleed — is
-///     the real component and is compared whole.
+///     The examples put other Flux components inside the cards — fields, headings, text, a progress bar, buttons,
+///     a table — and each is the real one, compared whole with the card's own parts. The bleeding photograph is
+///     no component: it is a <see cref="Photo" />, a box of its size marked <c>data-parity-skip</c>.
 /// </remarks>
 public sealed partial class CardParity : FluxParity
 {
     // `my-4` and `my-6` on the separators there: an app's own utilities.
-    private const string Spacing = "<style>.parity-mt-1{margin-top:4px}.parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}.parity-space-y-4>:not(:last-child){margin-bottom:16px}"
-        // A stand-in's height on a phone, where its text wraps onto another number of lines.
-        + "@media (width < 40rem){[data-phone-height]{height:var(--phone-height)!important}}"
+    private const string Spacing = "<style>.parity-mt-1{margin-top:4px}.parity-mt-2{margin-top:8px}.parity-mb-4{margin-bottom:16px}"
+        + ".parity-my-4{margin-block:16px}.parity-my-6{margin-block:24px}.parity-space-y-4>:not(:last-child){margin-bottom:16px}"
+        + ".parity-space-y-6>:not(:last-child){margin-bottom:24px}.parity-space-y-2>:not(:last-child){margin-bottom:8px}"
+        + ".parity-row{display:flex;justify-content:space-between}.parity-gap-3{display:flex;align-items:center;gap:12px}"
+        + ".parity-gap-2{display:flex;align-items:center;gap:8px}.parity-ml-auto{margin-left:auto}"
+        + ".parity-faint{color:oklch(70.5% .015 286.067)}"
         // The grids of the variants and the sizes: one column on a phone, stepped in 32px each side from lg up.
         + ".parity-grid{display:grid;max-width:768px;margin-inline:auto}"
         + "@media (width >= 40rem){.parity-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}.parity-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}}"
@@ -52,12 +52,12 @@ public sealed partial class CardParity : FluxParity
                 Ui.CardSubheading["This is how others will see you"],
                 Ui.CardActions[Ui.Button.Sm.Ghost.Icon(Ui.IconName.EllipsisHorizontal).AriaLabel("More options")]
             ],
-            Ui.CardBody[
-                StandIn("height:75px;margin-bottom:24px", "Name"),
-                StandIn("height:101px", "Bio", phone: 109)
+            Ui.CardBody.Class("parity-space-y-6")[
+                Ui.Input.Value("Olivia Martin").Label("Name"),
+                Ui.Textarea.Of<string>().Label("Bio").Rows(2).Placeholder("A few words about yourself")
             ],
             Ui.CardFooter[
-                StandIn("height:20px", "Last saved 2 minutes ago", phone: 40),
+                Ui.Text["Last saved 2 minutes ago"],
                 Ui.CardActions[
                     Ui.Button.Ghost["Cancel"],
                     Ui.Button.Primary["Save"]
@@ -67,38 +67,38 @@ public sealed partial class CardParity : FluxParity
 
     private static Component SimpleCard() => Narrow(
         Ui.Card[
-            StandIn("height:24px", "Are you sure?"),
-            StandIn("height:40px;margin:8px 0 16px", "Your post will be deleted permanently.", phone: 60),
+            Ui.Heading.Lg["Are you sure?"],
+            Ui.Text.Class("parity-mt-2 parity-mb-4")["Your post will be deleted permanently.", Br, "This action cannot be undone."],
             Ui.Button.Danger["Delete"]
         ]);
 
     private static Component Variants() =>
         Div.Class("parity-grid parity-cols-3").Style("grid-auto-rows:1fr;gap:16px")[
-            Variant(Ui.Card.Sm, "default", 40, 20),
-            Variant(Ui.Card.Sm.Muted, "muted", 40, 20),
-            Variant(Ui.Card.Sm.Soft, "soft", 40, 20),
-            Variant(Ui.Card.Sm.Outline, "outline", 60, 40),
-            Variant(Ui.Card.Sm.Filled, "filled", 40, 20)
+            Variant(Ui.Card.Sm, "default", "Raised, for primary content."),
+            Variant(Ui.Card.Sm.Muted, "muted", "A quieter tint for secondary panels."),
+            Variant(Ui.Card.Sm.Soft, "soft", "The faintest tint, for light grouping."),
+            Variant(Ui.Card.Sm.Outline, "outline", "Just an edge, over whatever's behind it."),
+            Variant(Ui.Card.Sm.Filled, "filled", "A tint with no edge, for inline surfaces.")
         ];
 
-    private static Component Variant(UiCard card, string name, int text, int phone) =>
-        card[StandIn("height:20px", name), StandIn($"height:{text}px;margin-top:4px", phone: phone)];
+    private static Component Variant(UiCard card, string name, string text) =>
+        card[Ui.Heading[name], Ui.Text.Class("parity-mt-1")[text]];
 
     private static Component Sizes() =>
         Div.Class("parity-grid parity-cols-2").Style("gap:24px;align-items:start")[
-            Sized(Ui.Card.Xs.Separated, "xs", 40, 20),
-            Sized(Ui.Card.Sm.Separated, "sm", 20),
-            Sized(Ui.Card.Md.Separated, "md", 20),
-            Sized(Ui.Card.Lg.Separated, "lg", 20)
+            Sized(Ui.Card.Xs.Separated, "xs", "Compact, for dense lists and sidebars."),
+            Sized(Ui.Card.Sm.Separated, "sm", "Tight, for small widgets and stats."),
+            Sized(Ui.Card.Md.Separated, "md", "The default, for most content."),
+            Sized(Ui.Card.Lg.Separated, "lg", "Roomy, for forms and settings.")
         ];
 
-    private static Component Sized(UiCard card, string name, int text, int? phone = null) =>
+    private static Component Sized(UiCard card, string name, string text) =>
         card[
             Ui.CardHeader[
                 Ui.CardHeading[name],
                 Ui.CardActions[Ui.Button.Sm["Edit"]]
             ],
-            Ui.CardBody[StandIn($"height:{text}px", phone: phone)]
+            Ui.CardBody[Ui.Text[text]]
         ];
 
     private static Component Notifications(UiCard card) =>
@@ -118,7 +118,7 @@ public sealed partial class CardParity : FluxParity
     private static Component BleedImage() => Narrow(
         Ui.Card.Inset[
             Ui.CardBody[
-                Ui.CardBleed[StandIn("aspect-ratio:16/9;background:linear-gradient(#5b7a6a,#c9d6c3)")]
+                Ui.CardBleed[Photo()]
             ],
             Ui.CardFooter[
                 Ui.CardHeading["Morning hike"],
@@ -185,15 +185,21 @@ public sealed partial class CardParity : FluxParity
                     Ui.CardSubheading["$24 per month, renews Oct 12"],
                     Ui.CardActions[Ui.Button.Sm["Change plan"]]
                 ],
-                StandIn("height:34px", "Seats used"),
+                Div.Class("parity-space-y-2")[
+                    Div.Class("parity-row")[Ui.Text["Seats used"], Ui.Text.Variant(Ui.TextVariant.Strong)["8 of 10"]],
+                    Ui.Progress.Value(80)
+                ],
                 Ui.Separator.Subtle.Class("parity-my-6"),
                 Ui.CardHeader[
                     Ui.CardHeading["Payment method"],
                     Ui.CardActions[Ui.Button.Sm.Ghost["Update"]]
                 ],
-                StandIn("height:24px", "Visa ending in 4242 · Expires 08/28", phone: 40)
+                Div.Class("parity-gap-3")[
+                    Ui.Icon.Name(Ui.IconName.CreditCard).Outline.Class("parity-faint"),
+                    Ui.Text["Visa ending in 4242 · Expires 08/28"]
+                ]
             ],
-            Ui.CardFooter[StandIn("height:20px", "Invoices are emailed to billing@acme.com", phone: 40)]
+            Ui.CardFooter[Ui.Text["Invoices are emailed to billing@acme.com"]]
         ]);
 
     // Flux's example passes the hover as utilities of the docs app's own stylesheet, which the kit's sheet does
@@ -203,8 +209,11 @@ public sealed partial class CardParity : FluxParity
         Raw.Value("<style>@media (hover:hover){.parity-link:hover{background-color:oklch(0.985 0 0)}.dark .parity-link:hover{background-color:oklch(0.37 0.013 285.805)}}</style>"),
         A.Href("#").Aria("label", "Latest on our blog").Style("display:block;cursor:pointer")[
             Ui.Card.Xs.Class("parity-link")[
-                StandIn("height:20px", "Latest on our blog"),
-                StandIn("height:40px;margin-top:8px", "Stay up to date with our latest insights, tutorials, and product updates.")
+                Ui.Heading.Class("parity-gap-2")[
+                    "Latest on our blog ",
+                    Ui.Icon.Name(Ui.IconName.ArrowUpRight).Micro.Class("parity-ml-auto parity-faint")
+                ],
+                Ui.Text.Class("parity-mt-2")["Stay up to date with our latest insights, tutorials, and product updates."]
             ]
         ]);
 
@@ -215,17 +224,7 @@ public sealed partial class CardParity : FluxParity
     private static Component Pair(Component first, Component second) =>
         Div.Class("parity-grid parity-cols-2").Style("gap:24px")[first, second];
 
-    /// <summary>
-    ///     A neighbouring Flux component that is not the card's: a box of its measured size, compared by that box alone.
-    /// </summary>
-    /// <param name="box">Its box.</param>
-    /// <param name="text">What it says, for a reader of the page.</param>
-    /// <param name="phone">Its height on a phone, where its text takes another number of lines.</param>
-    private static Component StandIn(string box, string? text = null, int? phone = null)
-    {
-        var style = box + ";overflow:hidden;font-size:14px;line-height:20px;white-space:nowrap";
-        return phone is { } height
-            ? Div.Attributes(("data-parity-skip", null), ("data-phone-height", null)).Style(style + $";--phone-height:{height}px")[text ?? ""]
-            : Div.Data("parity-skip").Style(style)[text ?? ""];
-    }
+    // <img class="block aspect-video w-full object-cover">: a picture, no component — the room it takes.
+    private static Component Photo() =>
+        Div.Data("parity-skip").Style("aspect-ratio:16/9;background:linear-gradient(#5b7a6a,#c9d6c3)");
 }

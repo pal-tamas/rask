@@ -5,6 +5,10 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
 {
+    // Flux's own rule for the 8px between a heading and a subheading next to it, HTML-encoded as it is written.
+    internal const string NextToSubheading =
+        "[&amp;:has(&#x2B;[data-ui-subheading])]:mb-2 [[data-ui-subheading]&#x2B;&amp;]:mt-2";
+
     [Fact]
     public void A_heading_without_a_level_is_a_marked_div_in_the_default_size()
     {
@@ -13,7 +17,7 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
         var html = heading.ToHtml();
 
         Assert.Equal(
-            "<div class=\"font-medium text-zinc-800 dark:text-white text-sm\" data-ui-heading>User profile</div>",
+            "<div class=\"font-medium text-zinc-800 dark:text-white text-sm " + NextToSubheading + "\" data-ui-heading>User profile</div>",
             html);
     }
 
@@ -66,7 +70,30 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
 
         var html = heading.ToHtml();
 
-        Assert.Contains("text-sm mb-1\"", html, StringComparison.Ordinal);
+        Assert.Contains(NextToSubheading + " mb-1\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-heading data-testid=\"title\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_subheading_is_a_marked_div_of_small_quiet_text_an_app_can_recolour()
+    {
+        var subheading = Ui.Subheading.Class("text-center")["Make changes to your personal details."];
+
+        var html = subheading.ToHtml();
+
+        Assert.Equal(
+            "<div class=\"text-sm [:where(&amp;)]:text-zinc-500 [:where(&amp;)]:dark:text-white/70 text-center\" data-ui-subheading>"
+            + "Make changes to your personal details.</div>",
+            html);
+    }
+
+    [Fact]
+    public void A_heading_keeps_8px_from_a_subheading_on_either_side_of_it()
+    {
+        var heading = Ui.Heading.Lg["Update profile"];
+
+        var html = heading.ToHtml();
+
+        Assert.Contains(NextToSubheading, html, StringComparison.Ordinal);
     }
 }

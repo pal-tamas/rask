@@ -260,6 +260,7 @@ public sealed class FluxConformanceTests
         [typeof(UiPillboxInput)] = "flux:pillbox.input",
         [typeof(UiCheckboxIndicator)] = "flux:checkbox.indicator",
         [typeof(UiSpacer)] = "flux:spacer",
+        [typeof(UiSubheading)] = "flux:subheading",
         [typeof(UiChartBar)] = "flux:chart.bar",
         [typeof(UiChartGroup)] = "flux:chart.group",
         [typeof(UiChartStack)] = "flux:chart.stack",

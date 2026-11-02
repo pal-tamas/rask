@@ -5,7 +5,11 @@
     <!-- <base href="/"> forces relative URLs (main.js, _framework/*) to resolve from the origin
          root regardless of the current document path. GH Pages deploys rewrite this to /<repo>/. -->
     <base href="/"/>
-    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <!-- Edge to edge on a phone, as an app is: the kit keeps its header, sidebar, flyouts and toasts clear of the notch. -->
+    <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+    <!-- The browser's own bar in the page's ground, light and dark. -->
+    <meta content="#ffffff" media="(prefers-color-scheme: light)" name="theme-color"/>
+    <meta content="#27272a" media="(prefers-color-scheme: dark)" name="theme-color"/>
     <title>Rask WASM</title>
     <!-- Asset-fingerprinting placeholders (OverrideHtmlAssetPlaceholders): on publish the SDK fills
          this import map with content-hashed framework asset URLs + integrity hashes and schedules

@@ -8,6 +8,10 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiHeader : Component
 {
+    // A header's sides are ui.css's (NATIVE FEEL: Flux's 24px, 32px from lg, or the notch's inset when that is more).
+    // A container header leaves them to the box inside it, and keeps only the notch's inset on its own.
+    private const string EdgeOnly = "pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]";
+
     /// <summary>Keeps the header at the top of the viewport while the page scrolls under it.</summary>
     public bool? Sticky { get; set; }
 
@@ -23,13 +27,13 @@ public sealed partial class UiHeader : Component
         var header = Header.Attributes(("data-ui-header", ""));
         if (Container == true)
         {
-            return header.Class("z-10 min-h-14 [grid-area:header]", Sticky == true ? "sticky top-0" : "", Class)[
+            return header.Class("z-10 min-h-14 [grid-area:header] " + EdgeOnly, Sticky == true ? "sticky top-0" : "", Class)[
                 Div.Class("mx-auto flex h-14 w-full items-center px-6 lg:px-8 [:where(&)]:max-w-7xl")[Children ?? []]
             ];
         }
 
         return header.Class(
-            "z-10 flex min-h-14 items-center px-6 lg:px-8 [grid-area:header]",
+            "z-10 flex min-h-14 items-center [grid-area:header]",
             Sticky == true ? "sticky top-0" : "",
             Class)[
             Children ?? []

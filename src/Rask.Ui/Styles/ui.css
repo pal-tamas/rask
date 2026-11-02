@@ -1774,6 +1774,126 @@
 }
 
 /*
+  NATIVE FEEL — a departure from Flux (owner, 2026-11-02; flux-component's list): the kit's controls behave like
+  an app's on a phone, and its content stays a web page's.
+
+  - CHROME IS NOT TEXT. A press that lingers, a double tap or a drag across a row of buttons selects nothing:
+    `user-select: none` on the controls alone — buttons, tabs, nav items, menu rows, triggers, the sidebar's own
+    controls, sortable headings, the calendar's days, a toast's buttons, the brand and the profile. Never on what
+    a reader reads or types: a table's cells, an input, a textarea, an editor, code, a text, a heading, a badge, a
+    callout, a toast's message, a modal's body. The pointer a clickable shows is not this block's business.
+  - A TAP IS A TAP. `touch-action: manipulation` on the same controls and between a calendar's days: no
+    wait for a second tap that a double-tap zoom would need, and pinch zoom stays.
+  - A LONG PRESS ON A CONTROL OPENS NOTHING. `-webkit-touch-callout: none` on the button-like controls and on the
+    pictures that are chrome (an avatar, an icon, the brand's logo); a link keeps its preview and its "open in a new
+    tab", so no `<a href>` is in that list. Those pictures do not drag either (`-webkit-user-drag: none`, and the
+    components write `draggable="false"` for Firefox); a link still does.
+  - A PANEL SCROLLS ITSELF, NOT THE PAGE. `overscroll-behavior: contain` on the scrollers inside an overlay — a
+    modal, a flyout, the command palette's list, a menu, a popover — so reaching their end does not carry on into
+    the page behind (the sidebar and a listbox already say so in their classes).
+  - THE NOTCH. With `viewport-fit=cover` in the page's viewport (the templates write it), the parts that meet the
+    screen's edge keep clear of the notch and the home indicator: `max(the kit's padding, env(safe-area-inset-*))`.
+    Without it every inset is 0, so each value below is the kit's own padding — nothing moves.
+
+  Every selector is inside `:where()`, and the layer is `rask`, under `utilities`: an app's `select-text`,
+  `touch-auto` or `p-*` on any of these parts wins, as an app's class always does here.
+*/
+@layer rask {
+  :where(
+    [data-ui-button], [data-ui-tab], [data-ui-navlist-item], [data-ui-navbar-items], [data-ui-navmenu-item],
+    [data-ui-sidebar-item], [data-ui-sidebar-toggle], [data-ui-sidebar-collapse], [data-ui-sidebar-profile],
+    [data-ui-sidebar-brand], [data-ui-breadcrumbs-item], [data-ui-pagination] button, [data-ui-accordion-heading],
+    [role^="menuitem"], [data-ui-select-button], [data-ui-pillbox-trigger], [data-ui-color-picker-trigger],
+    [data-ui-color-picker-button], [data-ui-date-picker-button], [data-ui-time-picker-button],
+    [data-ui-datetime-picker-button], [data-ui-checkbox], [data-ui-radio], [data-ui-switch], [data-ui-toggle],
+    [data-ui-checkbox-buttons], [data-ui-checkbox-pills], [data-ui-radio-buttons], [data-ui-radio-pills],
+    [data-ui-radio-segmented], [data-ui-field]:has(> [data-ui-checkbox], > [data-ui-radio], > [data-ui-switch]) > [data-ui-label],
+    [data-ui-table-sortable], [data-ui-calendar] button, [data-rask-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-brand]
+  ) {
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  :where(
+    :is(
+      [data-ui-button], [data-ui-tab], [data-ui-sidebar-toggle], [data-ui-accordion-heading], [data-ui-pagination] button,
+      [role^="menuitem"], [data-ui-select-button], [data-ui-pillbox-trigger], [data-ui-color-picker-trigger],
+      [data-ui-color-picker-button], [data-ui-date-picker-button], [data-ui-time-picker-button],
+      [data-ui-datetime-picker-button], [data-ui-checkbox], [data-ui-radio], [data-ui-switch], [data-ui-toggle],
+      [data-ui-table-sortable], [data-ui-calendar] button, [data-rask-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-avatar]
+    ):not(a[href]),
+    [data-ui-icon], [data-ui-brand] img, [data-ui-sidebar-brand] img
+  ) {
+    -webkit-touch-callout: none;
+  }
+
+  :where([data-ui-avatar] img, [data-ui-brand] img, [data-ui-sidebar-brand] img, [data-ui-flag] img) {
+    -webkit-user-drag: none;
+  }
+
+  /* The slashes between a typed date's parts are not text to copy, as Flux draws them; they are pressed by no one. */
+  :where([data-ui-date-inputs] > span) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* A calendar's days, pressed again and again: no double-tap zoom between two presses. */
+  :where([data-ui-calendar] [role="gridcell"], [data-rask-calendar] [role="gridcell"]) {
+    touch-action: manipulation;
+  }
+
+  :where([data-ui-modal] > dialog, [data-ui-command-items], [data-ui-menu], [data-ui-popover]) {
+    overscroll-behavior: contain;
+  }
+
+  /*
+    The bar along the top of the page: the header of the page's own layout grid — not of a layout drawn inside
+    another one's main, as a docs page shows its examples, which is nowhere near the notch.
+  */
+  :where(:has(> [data-ui-main]):not([data-ui-main] *) > [data-ui-header]) {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+
+  /* A header's sides, which a `Container()` header leaves to the box inside it (UiHeader). */
+  :where([data-ui-header]) {
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+  }
+
+  @media (width >= 64rem) {
+    :where([data-ui-header]) {
+      padding-left: max(2rem, env(safe-area-inset-left));
+      padding-right: max(2rem, env(safe-area-inset-right));
+    }
+  }
+
+  /* The sidebar runs the screen's height against its start edge, docked or flown out. */
+  :where([data-ui-sidebar]) {
+    padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+  }
+
+  :where([data-ui-sidebar]:dir(ltr)) {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+
+  :where([data-ui-sidebar]:dir(rtl)) {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  /* A flyout modal is against an edge of the screen, and a toast a corner of it. */
+  :where([data-ui-modal] > dialog[data-ui-flyout]) {
+    padding: max(2rem, env(safe-area-inset-top)) max(2rem, env(safe-area-inset-right)) max(2rem, env(safe-area-inset-bottom))
+      max(2rem, env(safe-area-inset-left));
+  }
+
+  :where([data-ui-toast], [data-ui-toast-group]) {
+    inset: max(0px, env(safe-area-inset-top)) max(0px, env(safe-area-inset-right)) max(0px, env(safe-area-inset-bottom))
+      max(0px, env(safe-area-inset-left));
+  }
+}
+
+/*
   ON PAPER — a departure from Flux, which prints its screen (owner, 2026-10-21; flux-component's list).
 
   A printed page is read, not used: the controls and the app's chrome print as nothing, the main area loses its

@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
+  text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or
+  before it, as Flux's does, so `Ui.Heading.Lg["Update profile"], Ui.Subheading["Make changes…"]` needs no margin
+  class. The `/ui/modal` floating flyout uses it. The Flux parity pages of modal, input, OTP, editor, checkbox,
+  card, table and timeline now compare the real `Ui.*` components where they used to hold a stand-in box.
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
@@ -236,6 +241,16 @@ them until tagged releases begin.
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
   now says only stop-then-start is safe, to set `WEBSITES_CONTAINER_STOP_TIME_LIMIT` above the grace period, and
   recommends a single-instance VPS/container host, or a server database on App Service.
+- **Rask.Ui feels native on a phone.** The kit's controls — buttons, tabs, nav items, menu rows, triggers,
+  checkboxes, switches, sortable headings, calendar days — select no text and answer a tap at once
+  (`touch-action: manipulation`); a long press on a control or on an avatar or logo opens no callout, and those
+  pictures do not drag (`draggable="false"`); a modal, flyout, menu, popover or the command palette keeps its scroll
+  from the page behind; the header, sidebar, flyouts and toasts keep clear of the notch under `viewport-fit=cover`;
+  the date picker's preset select is 16px below `sm`, so iOS no longer zooms into it. Content — table cells, inputs,
+  text, headings, code, a toast's message — stays selectable, and an app's `select-text` / `touch-auto` / padding
+  wins. A new app (server, wasm, wasm-hosted) writes `viewport-fit=cover`, a light and a dark `theme-color`, and
+  antialiased text plus no bounce of an installed app in `Styles/app.css`. A departure from Flux, recorded in
+  flux-component's list; see [docs/ui-kit.md](docs/ui-kit.md#native-feel).
 - **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
   keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
   and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook
@@ -496,6 +511,12 @@ them until tagged releases begin.
   joined the block's, and EF Core then refused the transaction it had just been handed. A save now joins before it
   starts, so EF Core finds the block's transaction and runs inside it; a throw after it takes both rows back, and the
   context saves on its own connection again after the block.
+- **`BeginTransaction`, `Migrate` and `EnsureCreated` on a context inside `Db.Transaction` are refused with the
+  reason.** Before: `db.Database.BeginTransactionAsync()` on a context that had joined the block threw EF Core's
+  "The connection is already in a transaction and cannot participate in another transaction", and `Migrate()` /
+  `EnsureCreated()` ran their schema work inside a transaction the block could still roll back. Now the first says
+  the context is already inside `Db.Transaction(...)` and to remove the call or run it outside the block, and the
+  other two say to run schema work outside `Db.Transaction`. The same calls outside a block run as they always did.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a

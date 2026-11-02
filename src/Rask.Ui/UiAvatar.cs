@@ -161,7 +161,7 @@ public sealed partial class UiAvatar : Component, IUiTrigger
     {
         if (Src is { Length: > 0 } src)
         {
-            return Img.Src(src).Alt(Alt ?? Name ?? "").Class("size-full max-w-full rounded-[inherit] object-cover");
+            return Img.Src(src).Alt(Alt ?? Name ?? "").Class("size-full max-w-full rounded-[inherit] object-cover").Attributes(UiChromeImage.NotDragged);
         }
 
         if (Children is { } children)

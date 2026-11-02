@@ -29,8 +29,8 @@ public sealed partial class UiSidebarBrand : Component
 
     private Component Mark(string logo) =>
         Div.Class("flex size-6 min-w-6 shrink-0 items-center justify-center overflow-hidden rounded-sm")[
-            Img.Src(logo).Alt("").Class(LogoDark is null ? Image : "h-6 min-w-6 dark:hidden"),
-            LogoDark is { Length: > 0 } dark ? Img.Src(dark).Alt("").Class("hidden h-6 min-w-6 dark:block") : null
+            Img.Src(logo).Alt("").Class(LogoDark is null ? Image : "h-6 min-w-6 dark:hidden").Attributes(UiChromeImage.NotDragged),
+            LogoDark is { Length: > 0 } dark ? Img.Src(dark).Alt("").Class("hidden h-6 min-w-6 dark:block").Attributes(UiChromeImage.NotDragged) : null
         ];
 
     /// <inheritdoc />

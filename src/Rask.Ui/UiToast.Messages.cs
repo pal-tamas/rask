@@ -7,7 +7,7 @@ public sealed partial class UiToast
 {
     // A native popover, so a toast is in the top layer — over an open dialog — with the browser's own box for
     // one taken away. The runtime shows it (data-rask-popover-open): a render can only write attributes.
-    private const string Host = "fixed inset-0 overflow-visible border-0 bg-transparent p-0";
+    private const string Host = "fixed overflow-visible border-0 bg-transparent p-0";
 
     /// <summary>
     ///     The session's toasts in the kit's look — what the host draws <c>Toast.Success(…)</c> with when the app

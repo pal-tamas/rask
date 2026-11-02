@@ -5,7 +5,11 @@
     <!-- <base href="/"> resolves relative URLs (main.js, _framework/*) from the origin root whatever the
          current document path, so a deep link boots the app as well as the home page does. -->
     <base href="/"/>
-    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <!-- Edge to edge on a phone, as an app is: the kit keeps its header, sidebar, flyouts and toasts clear of the notch. -->
+    <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+    <!-- The browser's own bar in the page's ground, light and dark. -->
+    <meta content="#ffffff" media="(prefers-color-scheme: light)" name="theme-color"/>
+    <meta content="#27272a" media="(prefers-color-scheme: dark)" name="theme-color"/>
     <title>Company.RaskServer</title>
     <!-- Filled on build and publish: the SDK writes the import map and preload hint for the fingerprinted
          framework files, which keeps a redeploy cache-safe. -->

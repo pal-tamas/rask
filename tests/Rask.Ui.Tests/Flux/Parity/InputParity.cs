@@ -8,10 +8,6 @@ namespace Rask.UiTests.Flux.Parity;
 ///     The words are the rendered page's, which says more than its markdown does: the read-only example has a
 ///     label and a value there, the clearable one a value.
 ///     </para>
-///     <para>
-///     Flux's button and its select are other pages' components and not on this branch, so each is a stand-in
-///     marked <c>data-parity-skip</c>: the room it takes on Flux's page, held to its place and size.
-///     </para>
 /// </remarks>
 public sealed partial class InputParity : FluxParity
 {
@@ -22,8 +18,10 @@ public sealed partial class InputParity : FluxParity
 
     // What an app's own Tailwind build emits for the classes these examples hand to Class: the kit's sheet
     // holds only what the kit writes.
-    private const string AppUtilities = "<style>.mb-6{margin-bottom:1.5rem}.min-w-\\[180px\\]{min-width:180px}"
-        + "@media (width < 40rem){.parity-currency{width:89px!important}}</style>";
+    private const string AppUtilities =
+        "<style>.mb-6{margin-bottom:1.5rem}.min-w-\\[180px\\]{min-width:180px}.max-w-fit{max-width:fit-content}</style>";
+
+    private static readonly string[] Currencies = ["USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CNY", "INR"];
 
     public override string Page => "input";
 
@@ -100,8 +98,7 @@ public sealed partial class InputParity : FluxParity
                 Ui.Button.Icon(Ui.IconName.Plus)["New post"]
             ],
             Ui.InputGroup[
-                // The select of currencies: its words are 16px on a phone, so it is wider there.
-                StandIn("width:85px").Class("parity-currency"),
+                Ui.Select.Value("USD").Class("max-w-fit")[Currencies.Select(code => Ui.SelectOption.Key(code)[code])],
                 Ui.Input.Of<string>().Placeholder("$99.99")
             ]
         ]);
@@ -128,16 +125,6 @@ public sealed partial class InputParity : FluxParity
             ]
         ]);
     }
-
-    private static readonly Dictionary<string, string?> StandInMarks = new(StringComparer.Ordinal)
-    {
-        ["data-parity-skip"] = string.Empty,
-        ["data-ui-group-target"] = string.Empty,
-    };
-
-    // Flux's button or native select beside an input in a group: the room it takes, nothing more.
-    private static HTMLDivElement StandIn(string width) =>
-        Div.Attributes(StandInMarks).Style("height:40px;flex:none;" + width);
 
     // <flux:button size="sm" variant="subtle" icon="x-mark" class="-mr-1" /> in the input's trailing slot.
     private static Component SubtleButton(Ui.IconName icon) =>
