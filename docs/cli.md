@@ -1060,8 +1060,13 @@ through, having already done some of the work.
   ok    npm                 11.19.0
   ok    git                 git version 2.50.1
   ok    ssh                 OpenSSH_9.8p1, LibreSSL 3.3.6
-  warn  docker              not found
-                            Only `rask deploy` needs it — https://docs.docker.com/get-docker/
+  ok    docker              Docker version 27.3.1, build ce12230
+  warn  docker buildx       not installed
+                            `rask deploy` needs it: this docker CLI has no buildx plugin, so
+                            `docker build` falls back to the legacy builder — and the
+                            scaffolded Dockerfile's `RUN --mount=type=cache` steps fail there.
+                            Install it: brew install docker-buildx, then add the
+                            cliPluginsExtraDirs line its caveat prints to ~/.docker/config.json
   ok    project             /src/Shop
   ok    database            SQLite
   fail  .rask/deploy.json   isn't valid JSON: 'o' is an invalid start of a property name…
@@ -1077,6 +1082,14 @@ rather than a missing install.
 **Two of them compare a version, rather than echoing one.** A .NET 9 box used to show a green
 `dotnet sdk` row and then fail at the first build, because the row printed whatever string the tool
 returned. Node is measured against the current Active LTS line.
+
+**Docker is asked for buildx too.** Every scaffolded Dockerfile keeps its package caches in
+`RUN --mount=type=cache` steps, which only BuildKit reads; a docker CLI without the buildx plugin
+(Homebrew's `docker` formula is one) falls back to the legacy builder and fails there. The row appears only
+when docker does, names the install command for the platform (`brew install docker-buildx`,
+`apt-get install docker-buildx-plugin`, or Docker's page), and is green for Podman's `docker` shim, which
+builds with Buildah. `rask deploy` checks the same thing before it touches the host — see
+[Deployment](deployment.md#scaffolding-a-dockerfile).
 
 **Warnings aren't failures.** Docker missing is fatal to `rask deploy` and irrelevant to everyone else,
 so only a genuinely broken thing sets the exit code (`1`); a machine that can start every command exits

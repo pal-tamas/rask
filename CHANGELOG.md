@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
+  `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
+  builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
+  Now `rask doctor` has a `docker buildx` row (a warning, shown only when docker is there, green for Podman's
+  shim), and `rask deploy` stops before it touches the host:
+  ```
+  Can't build here: this docker CLI has no buildx plugin, so `docker build` falls back to the legacy builder — …
+    Install it: brew install docker-buildx, then add the cliPluginsExtraDirs line its caveat prints to ~/.docker/config.json …
+    Nothing was sent to the host. See docs/deployment.md#scaffolding-a-dockerfile.
+  ```
+  Debian/Ubuntu get `sudo apt-get install docker-buildx-plugin`; elsewhere Docker's install page. `status`, `logs`
+  and `rollback` build nothing and are not asked. See [Deployment](docs/deployment.md#scaffolding-a-dockerfile).
 - **A `NavLink` to a section of its page lights up while that section is read.** Before: a one-page site's menu of
   `NavLink.Href("/#about")`, `"/#contact"` never showed where the reader was — the server never sees the fragment, so
   only the plain page link was ever active. Now such a link hands its `ActiveClass` to the runtime

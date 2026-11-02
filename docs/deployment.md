@@ -98,6 +98,9 @@ Dockerfile below (override with `--dockerfile`).
   events served — plus where the wall actually is and what to do when you reach it.
 
 **Prerequisites:** the Docker CLI locally, with its buildx plugin (the [build cache](#scaffolding-a-dockerfile) needs it), and a host you can `ssh` into non-interactively with a key.
+`rask doctor` reports both, and a deploy whose docker has no buildx stops before it touches the host, naming
+the fix (`brew install docker-buildx` on macOS, `apt-get install docker-buildx-plugin` on Debian/Ubuntu);
+Podman's `docker` needs no plugin and is never asked.
 That's it — **you never have to SSH in and prepare the box yourself**; see below. The host, domain, and
 port are remembered in `.rask/deploy.json` for repeat deploys — a bare `rask deploy` re-ships. Secrets
 are never stored there; pass them with `--env KEY=VALUE` (repeatable) or `--env-file <path>`. Use

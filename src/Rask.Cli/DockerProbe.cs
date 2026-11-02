@@ -45,6 +45,38 @@ internal static class DockerProbe
         return false;
     }
 
+    /// <summary>
+    ///     True when the local docker CLI can build a scaffolded Dockerfile — it has buildx, or it is Podman's
+    ///     shim. Otherwise says why and how to fix it, and returns false before anything reaches the host.
+    /// </summary>
+    /// <remarks>
+    ///     Called after <see cref="EnsureLocalAsync" />, so docker is known to be on the PATH. Its
+    ///     <c>--version</c> is asked again rather than threaded through: one local process, and the
+    ///     presence check keeps its single job.
+    /// </remarks>
+    public static async Task<bool> EnsureBuildxAsync(IProcessRunner process, IConsole console, CancellationToken cancellationToken)
+    {
+        string version;
+        try
+        {
+            version = (await process.CaptureAsync("docker", ["--version"], null, cancellationToken).ConfigureAwait(false)).StandardOutput;
+        }
+        catch (Win32Exception)
+        {
+            version = string.Empty;
+        }
+
+        if (await BuildxProbe.CheckAsync(process, version, cancellationToken).ConfigureAwait(false) != BuildxStatus.Missing)
+        {
+            return true;
+        }
+
+        console.WriteErrorLine($"Can't build here: {BuildxProbe.Problem}", ConsoleStyle.Error);
+        await console.Error.WriteLineAsync($"  {BuildxProbe.FixHint()}").ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  Nothing was sent to the host. See {BuildxProbe.DocsReference}.").ConfigureAwait(false);
+        return false;
+    }
+
     /// <summary>The install command for this machine — a command to paste beats a page to go read.</summary>
     private static string InstallHint()
     {

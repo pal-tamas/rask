@@ -58,6 +58,14 @@ internal sealed partial class DeployCommand
             return false;
         }
 
+        // Only a deploy builds; status, logs and rollback run images already on the box. Checked before the host
+        // is touched, so a client that cannot build stops here rather than halfway through the build.
+        if (plan.Action is null
+            && !await DockerProbe.EnsureBuildxAsync(_process, Console, cancellationToken).ConfigureAwait(false))
+        {
+            return false;
+        }
+
         // Probe the box and, if it isn't ready, offer to prepare it. This replaces the old
         // `docker -H ssh:// version` reachability check rather than adding to it — same one round-trip,
         // but it can tell "Docker isn't installed" from "you're not in the docker group".
