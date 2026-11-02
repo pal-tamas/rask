@@ -53,7 +53,7 @@ public sealed partial class UiSidebarGroup : Component
         }
 
         var details = Details.Open(Expanded != false)
-            .Class("group/disclosure grid sidebar-rail:hidden", Class)
+            .Class("group/disclosure [:where(&)]:grid sidebar-rail:hidden", Class)
             .Attributes(("data-ui-sidebar-group", ""));
         if (OnToggle.HasValue)
         {

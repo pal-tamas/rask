@@ -18,7 +18,7 @@ public partial class UiInputGroupTests : global::Rask.Core.RaskMarkup
 
         var html = group.ToHtml();
 
-        Assert.StartsWith("<div class=\"flex w-full ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:flex [:where(&amp;)]:w-full ", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-input-group=\"\"", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-input-group-prefix=\"\">https://</div>", html, StringComparison.Ordinal);
     }
@@ -30,8 +30,8 @@ public partial class UiInputGroupTests : global::Rask.Core.RaskMarkup
 
         var (before, after) = (prefix.ToHtml(), suffix.ToHtml());
 
-        Assert.Contains("border-e-0 rounded-s-lg", before, StringComparison.Ordinal);
-        Assert.Contains("border-s-0 rounded-e-lg", after, StringComparison.Ordinal);
+        Assert.Contains("border-e-0 [:where(&amp;)]:rounded-s-lg", before, StringComparison.Ordinal);
+        Assert.Contains("border-s-0 [:where(&amp;)]:rounded-e-lg", after, StringComparison.Ordinal);
         Assert.Contains("data-ui-input-group-suffix", after, StringComparison.Ordinal);
     }
 

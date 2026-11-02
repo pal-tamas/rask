@@ -13,23 +13,15 @@ internal sealed partial class DeployCommand
     /// <summary>Retried across the readiness window; <c>null</c> when the route checks out, else what was seen last.</summary>
     private async Task<string?> VerifyRouteAsync(ProxySwitch change, CancellationToken cancellationToken)
     {
-        var seen = "it was never checked";
-        for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
-        {
-            if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+        string? seen = "it was never checked";
+        var routed = await Readiness.UntilAsync(
+            async () =>
             {
-                await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (await CheckRouteAsync(change, cancellationToken).ConfigureAwait(false) is not { } failure)
-            {
-                return null;
-            }
-
-            seen = failure;
-        }
-
-        return seen;
+                seen = await CheckRouteAsync(change, cancellationToken).ConfigureAwait(false);
+                return seen is null;
+            },
+            cancellationToken).ConfigureAwait(false);
+        return routed ? null : seen;
     }
 
     private async Task<string?> CheckRouteAsync(ProxySwitch change, CancellationToken cancellationToken)

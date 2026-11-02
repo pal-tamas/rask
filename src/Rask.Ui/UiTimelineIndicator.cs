@@ -17,27 +17,27 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTimelineIndicator : Component
 {
-    private const string Bare = "grid place-items-center rounded-full text-sm font-semibold";
+    private const string Bare = "[:where(&)]:grid place-items-center [:where(&)]:rounded-full [:where(&)]:text-sm font-semibold";
 
     private const string Plain =
-        "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-500 "
+        "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-zinc-100 [:where(&)]:text-sm font-semibold [:where(&)]:text-zinc-500 "
         + "dark:bg-zinc-700 dark:text-zinc-300";
 
     private const string PlainLarge =
-        "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-zinc-100 text-sm font-semibold text-zinc-800 "
+        "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-zinc-100 [:where(&)]:text-sm font-semibold [:where(&)]:text-zinc-800 "
         + "dark:bg-zinc-700 dark:text-white";
 
     private const string Complete =
-        "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-zinc-800 text-sm font-semibold text-white "
+        "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-zinc-800 [:where(&)]:text-sm font-semibold [:where(&)]:text-white "
         + "dark:bg-white dark:text-zinc-800";
 
     private const string Current =
-        "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full border-2 border-zinc-800 text-sm font-semibold "
-        + "text-zinc-800 dark:border-white dark:text-zinc-300";
+        "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full border-2 border-zinc-800 [:where(&)]:text-sm font-semibold "
+        + "[:where(&)]:text-zinc-800 dark:border-white dark:text-zinc-300";
 
     private const string Incomplete =
-        "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full border-2 border-zinc-100 text-sm font-semibold "
-        + "text-zinc-500 dark:border-zinc-700 dark:text-zinc-300";
+        "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full border-2 border-zinc-100 [:where(&)]:text-sm font-semibold "
+        + "[:where(&)]:text-zinc-500 dark:border-zinc-700 dark:text-zinc-300";
 
     // Zero-width space: a line box with a baseline and no width.
     private const string EmptyLine = "\u200B";
@@ -86,23 +86,23 @@ public sealed partial class UiTimelineIndicator : Component
     // and take dark text. The greys of Ui.Color are not colours Flux gives an indicator, and draw the plain one.
     private static string? Filled(Ui.Color color) => color switch
     {
-        Ui.Color.Red => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-red-500 text-sm font-semibold text-white dark:bg-red-600",
-        Ui.Color.Orange => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-orange-500 text-sm font-semibold text-white dark:bg-orange-600",
-        Ui.Color.Amber => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-amber-500 text-sm font-semibold text-white dark:text-zinc-950",
-        Ui.Color.Yellow => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-yellow-500 text-sm font-semibold text-white dark:bg-yellow-400 dark:text-zinc-950",
-        Ui.Color.Lime => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-lime-500 text-sm font-semibold text-white dark:bg-lime-600",
-        Ui.Color.Green => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-green-500 text-sm font-semibold text-white dark:bg-green-600",
-        Ui.Color.Emerald => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-emerald-500 text-sm font-semibold text-white dark:bg-emerald-600",
-        Ui.Color.Teal => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-teal-500 text-sm font-semibold text-white dark:bg-teal-600",
-        Ui.Color.Cyan => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-cyan-500 text-sm font-semibold text-white dark:bg-cyan-600",
-        Ui.Color.Sky => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-sky-500 text-sm font-semibold text-white dark:bg-sky-600",
-        Ui.Color.Blue => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-blue-500 text-sm font-semibold text-white dark:bg-blue-600",
-        Ui.Color.Indigo => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-indigo-500 text-sm font-semibold text-white dark:bg-indigo-600",
-        Ui.Color.Violet => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-violet-500 text-sm font-semibold text-white dark:bg-violet-600",
-        Ui.Color.Purple => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-purple-500 text-sm font-semibold text-white dark:bg-purple-600",
-        Ui.Color.Fuchsia => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-fuchsia-500 text-sm font-semibold text-white dark:bg-fuchsia-600",
-        Ui.Color.Pink => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-pink-500 text-sm font-semibold text-white dark:bg-pink-600",
-        Ui.Color.Rose => "grid size-(--ui-timeline-indicator-size) place-items-center rounded-full bg-rose-500 text-sm font-semibold text-white dark:bg-rose-600",
+        Ui.Color.Red => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-red-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-red-600",
+        Ui.Color.Orange => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-orange-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-orange-600",
+        Ui.Color.Amber => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-amber-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:text-zinc-950",
+        Ui.Color.Yellow => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-yellow-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-yellow-400 dark:text-zinc-950",
+        Ui.Color.Lime => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-lime-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-lime-600",
+        Ui.Color.Green => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-green-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-green-600",
+        Ui.Color.Emerald => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-emerald-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-emerald-600",
+        Ui.Color.Teal => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-teal-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-teal-600",
+        Ui.Color.Cyan => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-cyan-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-cyan-600",
+        Ui.Color.Sky => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-sky-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-sky-600",
+        Ui.Color.Blue => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-blue-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-blue-600",
+        Ui.Color.Indigo => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-indigo-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-indigo-600",
+        Ui.Color.Violet => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-violet-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-violet-600",
+        Ui.Color.Purple => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-purple-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-purple-600",
+        Ui.Color.Fuchsia => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-fuchsia-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-fuchsia-600",
+        Ui.Color.Pink => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-pink-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-pink-600",
+        Ui.Color.Rose => "[:where(&)]:grid [:where(&)]:size-(--ui-timeline-indicator-size) place-items-center [:where(&)]:rounded-full bg-rose-500 [:where(&)]:text-sm font-semibold [:where(&)]:text-white dark:bg-rose-600",
         _ => null,
     };
 }

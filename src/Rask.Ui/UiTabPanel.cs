@@ -44,7 +44,7 @@ public sealed partial class UiTabPanel : Component
 
         var panel = Div
             .Id(group?.PanelId(Name))
-            .Class(group?.Findable == true ? Findable : "pt-8", Class)
+            .Class(group?.Findable == true ? Findable : "[:where(&)]:pt-8", Class)
             .Data((shown ? SelectedMarker : Marker).With(null))
             .Role("tabpanel")
             .TabIndex(shown ? 0 : -1);
@@ -81,5 +81,5 @@ public sealed partial class UiTabPanel : Component
     // An until-found panel still takes its padding's room, so while it is not the one shown it is lifted out
     // of the flow and made inert — from `data-selected`, which the runtime moves with the tab.
     private const string Findable =
-        "pt-8 not-data-selected:absolute not-data-selected:opacity-0 not-data-selected:pointer-events-none";
+        "[:where(&)]:pt-8 not-data-selected:absolute not-data-selected:opacity-0 not-data-selected:pointer-events-none";
 }

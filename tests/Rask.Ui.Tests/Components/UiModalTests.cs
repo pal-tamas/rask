@@ -129,10 +129,10 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(null, "m-0 ms-auto", " border-s ")]
-    [InlineData(Ui.ModalPosition.Right, "m-0 ms-auto", " border-s ")]
-    [InlineData(Ui.ModalPosition.Left, "m-0 me-auto", " border-e ")]
-    [InlineData(Ui.ModalPosition.Bottom, "m-0 mt-auto", " border-t ")]
+    [InlineData(null, "[:where(&amp;)]:m-0 [:where(&amp;)]:ms-auto", " border-s ")]
+    [InlineData(Ui.ModalPosition.Right, "[:where(&amp;)]:m-0 [:where(&amp;)]:ms-auto", " border-s ")]
+    [InlineData(Ui.ModalPosition.Left, "[:where(&amp;)]:m-0 [:where(&amp;)]:me-auto", " border-e ")]
+    [InlineData(Ui.ModalPosition.Bottom, "[:where(&amp;)]:m-0 [:where(&amp;)]:mt-auto", " border-t ")]
     public void A_flyout_sits_against_one_edge_with_its_line_on_the_page_side(
         Ui.ModalPosition? position, string margin, string line)
     {
@@ -143,7 +143,7 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-ui-flyout", dialog);
         Assert.Contains(margin, dialog);
         Assert.Contains(line, dialog);
-        Assert.DoesNotContain("rounded-xl", dialog);
+        Assert.DoesNotContain("[:where(&amp;)]:rounded-xl", dialog);
     }
 
     [Fact]
@@ -163,8 +163,8 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
 
         var dialog = Tag(floating.ToHtml(), "<dialog");
 
-        Assert.Contains("m-2 ms-auto", dialog);
-        Assert.Contains("rounded-xl", dialog);
+        Assert.Contains("[:where(&amp;)]:m-2 [:where(&amp;)]:ms-auto", dialog);
+        Assert.Contains("[:where(&amp;)]:rounded-xl", dialog);
         Assert.Contains("shadow-lg", dialog);
         Assert.DoesNotContain(" border-s ", dialog);
     }

@@ -168,8 +168,8 @@ public sealed partial class UiTab : Component
 
     // A 2px underline that sits ON the row's hairline (-mb-px), in the accent's readable shade.
     private const string Underlined =
-        "flex items-center gap-2 px-2 -mb-px border-b-2 border-transparent text-sm font-medium whitespace-nowrap "
-        + "text-zinc-400 hover:text-zinc-800 dark:text-white/50 dark:hover:text-white";
+        "[:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:px-2 [:where(&)]:-mb-px border-b-2 border-transparent [:where(&)]:text-sm font-medium whitespace-nowrap "
+        + "[:where(&)]:text-zinc-400 hover:text-zinc-800 dark:text-white/50 dark:hover:text-white";
     private const string UnderlinedPaint =
         "data-selected:border-accent-content data-selected:text-accent-content "
         + "dark:data-selected:border-accent-content dark:data-selected:text-accent-content "
@@ -180,11 +180,11 @@ public sealed partial class UiTab : Component
 
     // The selected segment is the base colour whatever the accent: white lifted out of the track.
     private const string Segment =
-        "flex flex-1 items-center justify-center gap-2 px-4 rounded-md text-sm font-medium whitespace-nowrap";
+        "[:where(&)]:flex flex-1 items-center justify-center [:where(&)]:gap-2 [:where(&)]:px-4 [:where(&)]:rounded-md [:where(&)]:text-sm font-medium whitespace-nowrap";
     private const string SegmentSm =
-        "flex flex-1 items-center justify-center gap-2 px-3 rounded-md text-sm font-medium whitespace-nowrap";
+        "[:where(&)]:flex flex-1 items-center justify-center [:where(&)]:gap-2 [:where(&)]:px-3 [:where(&)]:rounded-md [:where(&)]:text-sm font-medium whitespace-nowrap";
     private const string SegmentPaint =
-        "text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white "
+        "[:where(&)]:text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white "
         + "data-selected:bg-white data-selected:text-zinc-800 data-selected:shadow-xs "
         + "dark:data-selected:bg-white/20 dark:data-selected:text-white";
     private const string SegmentIcon =
@@ -192,8 +192,8 @@ public sealed partial class UiTab : Component
         + "[[data-ui-tab][data-selected]_&]:text-zinc-800 dark:[[data-ui-tab][data-selected]_&]:text-white";
 
     private const string Pill =
-        "flex items-center gap-2 px-3 rounded-full text-sm font-medium whitespace-nowrap "
-        + "bg-zinc-800/5 text-zinc-600 hover:bg-zinc-800/10 hover:text-zinc-800 "
+        "[:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:px-3 [:where(&)]:rounded-full [:where(&)]:text-sm font-medium whitespace-nowrap "
+        + "bg-zinc-800/5 [:where(&)]:text-zinc-600 hover:bg-zinc-800/10 hover:text-zinc-800 "
         + "dark:bg-white/5 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white";
     private const string PillPaint =
         "data-selected:bg-accent hover:data-selected:bg-accent dark:data-selected:bg-accent "

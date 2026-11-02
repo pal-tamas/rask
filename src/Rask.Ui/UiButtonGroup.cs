@@ -16,7 +16,7 @@ public sealed partial class UiButtonGroup : UiElement
     protected override string TagName => "div";
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("flex", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:flex", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?>? ResolveData() => Marker.With(Data);

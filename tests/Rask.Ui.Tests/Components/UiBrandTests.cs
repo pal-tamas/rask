@@ -108,7 +108,7 @@ public partial class UiBrandTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Breadcrumbs[Ui.BreadcrumbsItem.Href("/")["Home"], Ui.BreadcrumbsItem["Post"]].ToHtml();
 
-        Assert.StartsWith("<div class=\"flex\" data-ui-breadcrumbs>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:flex\" data-ui-breadcrumbs>", html, StringComparison.Ordinal);
         Assert.Equal(2, html.Split("data-ui-breadcrumbs-item").Length - 1);
     }
 

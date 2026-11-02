@@ -258,7 +258,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
 
         Assert.StartsWith("<div class=\"relative block\" data-ui-chart data-rask-plot=\"\">", html, StringComparison.Ordinal);
         Assert.Equal(1, tooltips);
-        Assert.Matches("<div class=\"absolute flex [^\"]* opacity-0 [^\"]*data-active:opacity-100[^\"]*\" data-rask-plot-tooltip=\"15\">", html);
+        Assert.Matches("<div class=\"absolute \\[:where\\(&amp;\\)]:flex [^\"]* opacity-0 [^\"]*data-active:opacity-100[^\"]*\" data-rask-plot-tooltip=\"15\">", html);
         Assert.Contains("<path fill=\"none\" stroke=\"currentColor\" stroke-width=\"1\" stroke-dasharray=\"4,4\" class=\"text-zinc-500 dark:text-zinc-300\" opacity=\"0\">", html, StringComparison.Ordinal);
     }
 
@@ -370,7 +370,7 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         var html = Ui.ChartLegend.Label("Visitors")[Ui.ChartLegendIndicator.Class("bg-blue-400")].ToHtml();
 
         Assert.Equal(
-            "<div class=\"flex items-center gap-2 p-2\"><div class=\"size-2.5 rounded-full bg-blue-400\"></div>"
+            "<div class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-2 [:where(&amp;)]:p-2\"><div class=\"size-2.5 rounded-full bg-blue-400\"></div>"
             + "<div class=\"text-xs text-zinc-500 dark:text-zinc-400\">Visitors</div></div>",
             html);
     }

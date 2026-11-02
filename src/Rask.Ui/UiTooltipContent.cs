@@ -15,7 +15,7 @@ public sealed partial class UiTooltipContent : Component
     // zinc-800 with white text; in dark zinc-700 inside a hairline of white. Flux draws no arrow and no shadow.
     // Where it sits in the flow, closed and open, is the stylesheet's (ui.css): it changes with the state.
     private const string Look =
-        "m-0 rounded-md border-0 bg-zinc-800 px-2.5 py-2 text-xs font-medium text-white "
+        "[:where(&)]:m-0 [:where(&)]:rounded-md border-0 bg-zinc-800 [:where(&)]:px-2.5 [:where(&)]:py-2 [:where(&)]:text-xs font-medium [:where(&)]:text-white "
         + "[position-anchor:--ui-tooltip] dark:border dark:border-white/10 dark:bg-zinc-700";
 
     private static readonly UiTooltipScope Alone =

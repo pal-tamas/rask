@@ -51,40 +51,40 @@ public sealed partial class UiText : UiElement
 
     private static string SizeClass(Ui.TextSize? size) => size switch
     {
-        Ui.TextSize.Sm => "text-xs",
-        Ui.TextSize.Lg => "text-base",
-        Ui.TextSize.Xl => "text-lg",
-        _ => "text-sm",
+        Ui.TextSize.Sm => "[:where(&)]:text-xs",
+        Ui.TextSize.Lg => "[:where(&)]:text-base",
+        Ui.TextSize.Xl => "[:where(&)]:text-lg",
+        _ => "[:where(&)]:text-sm",
     };
 
     private static string VariantClass(Ui.TextVariant? variant) => variant switch
     {
-        Ui.TextVariant.Strong => "text-zinc-800 dark:text-white",
-        Ui.TextVariant.Subtle => "text-zinc-400 dark:text-white/50",
-        _ => "text-zinc-500 dark:text-white/70",
+        Ui.TextVariant.Strong => "[:where(&)]:text-zinc-800 dark:text-white",
+        Ui.TextVariant.Subtle => "[:where(&)]:text-zinc-400 dark:text-white/50",
+        _ => "[:where(&)]:text-zinc-500 dark:text-white/70",
     };
 
     // Flux's text takes the seventeen chromatic hues. Slate, Gray, Zinc, Neutral and Stone fall through to
     // "" here and in ColorName: a neutral is the default styling, which is the variant's own zinc.
     private static string ColorClass(Ui.Color color) => color switch
     {
-        Ui.Color.Red => "text-red-600 dark:text-red-400",
-        Ui.Color.Orange => "text-orange-600 dark:text-orange-400",
-        Ui.Color.Amber => "text-amber-600 dark:text-amber-400",
-        Ui.Color.Yellow => "text-yellow-600 dark:text-yellow-400",
-        Ui.Color.Lime => "text-lime-600 dark:text-lime-400",
-        Ui.Color.Green => "text-green-600 dark:text-green-400",
-        Ui.Color.Emerald => "text-emerald-600 dark:text-emerald-400",
-        Ui.Color.Teal => "text-teal-600 dark:text-teal-400",
-        Ui.Color.Cyan => "text-cyan-600 dark:text-cyan-400",
-        Ui.Color.Sky => "text-sky-600 dark:text-sky-400",
-        Ui.Color.Blue => "text-blue-600 dark:text-blue-400",
-        Ui.Color.Indigo => "text-indigo-600 dark:text-indigo-400",
-        Ui.Color.Violet => "text-violet-600 dark:text-violet-400",
-        Ui.Color.Purple => "text-purple-600 dark:text-purple-400",
-        Ui.Color.Fuchsia => "text-fuchsia-600 dark:text-fuchsia-400",
-        Ui.Color.Pink => "text-pink-600 dark:text-pink-400",
-        Ui.Color.Rose => "text-rose-600 dark:text-rose-400",
+        Ui.Color.Red => "[:where(&)]:text-red-600 dark:text-red-400",
+        Ui.Color.Orange => "[:where(&)]:text-orange-600 dark:text-orange-400",
+        Ui.Color.Amber => "[:where(&)]:text-amber-600 dark:text-amber-400",
+        Ui.Color.Yellow => "[:where(&)]:text-yellow-600 dark:text-yellow-400",
+        Ui.Color.Lime => "[:where(&)]:text-lime-600 dark:text-lime-400",
+        Ui.Color.Green => "[:where(&)]:text-green-600 dark:text-green-400",
+        Ui.Color.Emerald => "[:where(&)]:text-emerald-600 dark:text-emerald-400",
+        Ui.Color.Teal => "[:where(&)]:text-teal-600 dark:text-teal-400",
+        Ui.Color.Cyan => "[:where(&)]:text-cyan-600 dark:text-cyan-400",
+        Ui.Color.Sky => "[:where(&)]:text-sky-600 dark:text-sky-400",
+        Ui.Color.Blue => "[:where(&)]:text-blue-600 dark:text-blue-400",
+        Ui.Color.Indigo => "[:where(&)]:text-indigo-600 dark:text-indigo-400",
+        Ui.Color.Violet => "[:where(&)]:text-violet-600 dark:text-violet-400",
+        Ui.Color.Purple => "[:where(&)]:text-purple-600 dark:text-purple-400",
+        Ui.Color.Fuchsia => "[:where(&)]:text-fuchsia-600 dark:text-fuchsia-400",
+        Ui.Color.Pink => "[:where(&)]:text-pink-600 dark:text-pink-400",
+        Ui.Color.Rose => "[:where(&)]:text-rose-600 dark:text-rose-400",
         _ => "",
     };
 

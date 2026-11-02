@@ -32,7 +32,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
 
     // Its own box. In a composer it has none: the composer's is around it.
     private const string Boxed =
-        "block w-full rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
+        "[:where(&)]:block [:where(&)]:w-full [:where(&)]:rounded-lg border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
         + "dark:border-white/10 dark:bg-white/10 aria-disabled:shadow-none aria-invalid:border-red-500 aria-invalid:border-b-red-500";
 
     private readonly ElementRef _root = ElementRef.New();
@@ -137,7 +137,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
         var composed = (Children ?? []).Where(child => child is not null).ToList();
         var scope = new UiEditorScope(Locked, Current, Placeholder ?? Host?.Placeholder, field.ControlId + "-input", Host);
         var box = Div.Id(field.ControlId)
-            .Class(Host is null ? Boxed : "block w-full", Class)
+            .Class(Host is null ? Boxed : "[:where(&)]:block [:where(&)]:w-full", Class)
             .Data(Marks())
             .Aria(Names(field))
             .Ref(_root);

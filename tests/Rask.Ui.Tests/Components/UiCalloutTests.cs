@@ -15,7 +15,7 @@ public partial class UiCalloutTests : global::Rask.Core.RaskMarkup
 
         var html = callout.ToHtml();
 
-        Assert.StartsWith("<div class=\"@container flex p-2 border rounded-xl bg-white border-zinc-200 ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"@container [:where(&amp;)]:flex [:where(&amp;)]:p-2 border [:where(&amp;)]:rounded-xl bg-white border-zinc-200 ", html, StringComparison.Ordinal);
         Assert.Contains(" data-ui-callout>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("role=", html, StringComparison.Ordinal);
         Assert.DoesNotContain("aria-live", html, StringComparison.Ordinal);
@@ -41,8 +41,8 @@ public partial class UiCalloutTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(spelled.ToHtml(), html);
         Assert.Contains(
-            "<div class=\"flex items-center gap-2 text-sm font-medium\" data-slot=\"heading\">Saved</div>"
-            + "<div class=\"text-sm\" data-slot=\"text\">Nothing else to do.</div><span>after</span></div>",
+            "<div class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-2 [:where(&amp;)]:text-sm font-medium\" data-slot=\"heading\">Saved</div>"
+            + "<div class=\"[:where(&amp;)]:text-sm\" data-slot=\"text\">Nothing else to do.</div><span>after</span></div>",
             html,
             StringComparison.Ordinal);
     }
@@ -169,7 +169,7 @@ public partial class UiCalloutTests : global::Rask.Core.RaskMarkup
 
         var html = text.ToHtml();
 
-        Assert.Equal("<div id=\"why\" class=\"text-sm mt-1\" data-slot=\"text\" data-testid=\"why\">Because.</div>", html);
+        Assert.Equal("<div id=\"why\" class=\"[:where(&amp;)]:text-sm mt-1\" data-slot=\"text\" data-testid=\"why\">Because.</div>", html);
     }
 
     [Fact]

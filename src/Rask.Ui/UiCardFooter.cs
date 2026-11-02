@@ -27,19 +27,19 @@ public sealed partial class UiCardFooter : Component
 
     private static string Padding(UiCardScope scope) => scope.Edge switch
     {
-        null => scope.Roomy ? "pt-5 pb-1" : "pt-3 pb-1",
-        Ui.CardBodyVariant.Seamless => scope.Roomy ? "pt-6" : "pt-4",
+        null => scope.Roomy ? "[:where(&)]:pt-5 [:where(&)]:pb-1" : "[:where(&)]:pt-3 [:where(&)]:pb-1",
+        Ui.CardBodyVariant.Seamless => scope.Roomy ? "[:where(&)]:pt-6" : "[:where(&)]:pt-4",
         Ui.CardBodyVariant.Inset => scope.Size switch
         {
-            Ui.CardSize.Xs => "rounded-b-[calc(var(--ui-card-radius)-5px)] px-3 pt-3 pb-2",
-            Ui.CardSize.Sm => "rounded-b-[calc(var(--ui-card-radius)-5px)] px-3 pt-4 pb-3",
-            _ => "rounded-b-[calc(var(--ui-card-radius)-5px)] px-5 pt-4 pb-3",
+            Ui.CardSize.Xs => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-3 [:where(&)]:pt-3 [:where(&)]:pb-2",
+            Ui.CardSize.Sm => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-3 [:where(&)]:pt-4 [:where(&)]:pb-3",
+            _ => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-5 [:where(&)]:pt-4 [:where(&)]:pb-3",
         },
         _ => scope.Size switch
         {
-            Ui.CardSize.Xs => "rounded-b-[calc(var(--ui-card-radius)-1px)] px-4 py-3",
-            Ui.CardSize.Sm => "rounded-b-[calc(var(--ui-card-radius)-1px)] p-4",
-            _ => "rounded-b-[calc(var(--ui-card-radius)-1px)] px-6 py-4",
+            Ui.CardSize.Xs => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-1px)] [:where(&)]:px-4 [:where(&)]:py-3",
+            Ui.CardSize.Sm => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-1px)] [:where(&)]:p-4",
+            _ => "[:where(&)]:rounded-b-[calc(var(--ui-card-radius)-1px)] [:where(&)]:px-6 [:where(&)]:py-4",
         },
     };
 

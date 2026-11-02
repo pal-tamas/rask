@@ -15,7 +15,7 @@ namespace Rask;
 public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormControl
 {
     private const string Look =
-        "block w-full p-3 rounded-lg text-base sm:text-sm shadow-xs disabled:shadow-none data-invalid:shadow-none";
+        "[:where(&)]:block [:where(&)]:w-full [:where(&)]:p-3 [:where(&)]:rounded-lg [:where(&)]:text-base sm:text-sm shadow-xs disabled:shadow-none data-invalid:shadow-none";
 
     /// <inheritdoc cref="IUiFormControl.Label" />
     public string? Label { get; set; }

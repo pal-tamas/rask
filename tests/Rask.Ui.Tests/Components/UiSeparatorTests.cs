@@ -9,7 +9,7 @@ public sealed class UiSeparatorTests
         var html = Ui.Separator.ToHtml();
 
         Assert.Equal(
-            "<div class=\"h-px w-full bg-zinc-800/15 dark:bg-white/20\" data-orientation=\"horizontal\" data-ui-separator=\"\" role=\"none\"></div>",
+            "<div class=\"h-px [:where(&amp;)]:w-full bg-zinc-800/15 dark:bg-white/20\" data-orientation=\"horizontal\" data-ui-separator=\"\" role=\"none\"></div>",
             html);
     }
 
@@ -19,7 +19,7 @@ public sealed class UiSeparatorTests
         var html = Ui.Separator.Vertical().ToHtml();
 
         Assert.Contains("data-orientation=\"vertical\"", html);
-        Assert.Contains("class=\"w-px self-stretch bg-zinc-800/15 dark:bg-white/20\"", html);
+        Assert.Contains("class=\"[:where(&amp;)]:w-px self-stretch bg-zinc-800/15 dark:bg-white/20\"", html);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class UiSeparatorTests
         var html = Ui.Separator.Text("or").ToHtml();
 
         Assert.Equal(
-            "<div class=\"flex w-full items-center\" data-orientation=\"horizontal\" data-ui-separator=\"\" role=\"none\">"
+            "<div class=\"[:where(&amp;)]:flex [:where(&amp;)]:w-full items-center\" data-orientation=\"horizontal\" data-ui-separator=\"\" role=\"none\">"
             + "<div class=\"h-px grow bg-zinc-800/15 dark:bg-white/20\"></div>"
             + "<span class=\"mx-6 text-sm font-medium whitespace-nowrap text-zinc-500 dark:text-zinc-300\">or</span>"
             + "<div class=\"h-px grow bg-zinc-800/15 dark:bg-white/20\"></div>"
@@ -76,7 +76,7 @@ public sealed class UiSeparatorTests
     {
         var html = Ui.Separator.Vertical().Class("my-2").ToHtml();
 
-        Assert.Contains("class=\"w-px self-stretch bg-zinc-800/15 dark:bg-white/20 my-2\"", html);
+        Assert.Contains("class=\"[:where(&amp;)]:w-px self-stretch bg-zinc-800/15 dark:bg-white/20 my-2\"", html);
     }
 
     [Fact]

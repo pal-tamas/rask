@@ -11,7 +11,7 @@ public sealed partial class UiCommandItem : Component
     private static readonly UiPartMarker Marker = new("ui-command-item");
 
     private const string Look =
-        "flex h-10 items-center rounded-md px-2 py-1.5 text-sm font-medium text-zinc-800 outline-none "
+        "[:where(&)]:flex h-10 items-center [:where(&)]:rounded-md [:where(&)]:px-2 [:where(&)]:py-1.5 [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-800 outline-none "
         + "data-active:bg-zinc-100 data-hidden:hidden dark:text-white dark:data-active:bg-zinc-600";
 
     private readonly int _instance = UiInstanceCounter.Next();

@@ -23,7 +23,7 @@ public sealed partial class UiKanban : UiElement
     protected override string TagName => "div";
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("flex gap-4", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:flex [:where(&)]:gap-4", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
