@@ -19,7 +19,7 @@ public abstract partial class UiSelectControl<T>
             .Attributes(PopupMarks());
 
         return HasSearchField
-            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList, PillListLook()))[Rows(view)]]
+            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList, UiListboxLook.ListOverscroll, PillListLook()))[Rows(view)]]
             : ListRole(popup)[Rows(view)];
     }
 
