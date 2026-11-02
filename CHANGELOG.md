@@ -412,6 +412,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A `Ui.Table`'s HTML is under a quarter of what it was.** Every cell wrote Flux's whole class list, some 200 characters
+  thirteen times a row, and a list of 9,730 rows came to 31.6 MB. Now what every heading and cell share — padding,
+  size, ink, dividers — is written once, in the kit's sheet, on their `data-ui-column` / `data-ui-cell` markers at no
+  weight, and a cell writes only what differs: an alignment, a strong tone, a sticky edge, your class. A row of
+  thirteen plain cells went from 2,962 characters to 557; one as a list writes it (a strong date, end-aligned
+  figures, a truncated name, an edit button) from 3,797 to 1,489. A first GET of 5,000 rows of fourteen cells sends
+  3.6 MB instead of 15.7 MB and allocates 1,385 bytes a cell instead of 3,361. It looks the same, pixel for pixel
+  against Flux, and your class on a cell or a heading now wins as it is (`ps-10`, `text-xs`, no `!`); a class that
+  contradicts the `<table>`'s own list still takes `!` (`table-auto!`).
 - **A redeploy downloads no NuGet package, npm package, Tailwind CLI or PDF browser it already has.** Every
   template's Dockerfile keeps NuGet's packages, npm's cache, the Tailwind CLI and Rask.Pdf's pinned Chrome
   headless shell in BuildKit cache mounts (`# syntax=docker/dockerfile:1`; Docker 23+ with buildx, or Podman 4+),
