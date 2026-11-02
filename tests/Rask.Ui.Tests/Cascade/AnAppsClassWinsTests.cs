@@ -155,7 +155,7 @@ public sealed class AnAppsClassWinsTests
         ["UiRadioIndicator"] = "display, text colour, text size",
         ["UiSelect"] = "padding, rounded, text colour, text size, width",
         ["UiSeparator"] = "width",
-        ["UiSidebar"] = "display, gap, padding",
+        ["UiSidebar"] = "display, gap",
         ["UiSidebarBrand"] = "display, gap, padding",
         ["UiSidebarCollapse"] = "display, margin",
         ["UiSidebarGroup"] = "display",

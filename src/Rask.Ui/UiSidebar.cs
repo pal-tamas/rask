@@ -18,7 +18,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiSidebar : Component
 {
-    private const string Base = "group/sidebar z-20 flex flex-col gap-4 p-4 [grid-area:sidebar] [:where(&)]:w-64";
+    private const string Base = "group/sidebar z-20 flex flex-col gap-4 [grid-area:sidebar] [:where(&)]:w-64";
 
     // Below the breakpoint it is over the page and off-screen until opened; from it up it is in the grid.
     private const string PutAway =
