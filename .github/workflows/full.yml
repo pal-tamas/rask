@@ -22,7 +22,10 @@ permissions:
 
 concurrency:
   group: full
-  cancel-in-progress: false   # a run in progress gets its verdict; the newest push waits behind it
+  # A run in progress gets its verdict; the newest push waits behind it. One holding the place with every
+  # gate still waiting for a runner is cancelled by the next push's ci run (scripts/lib/cancel_superseded.sh),
+  # so the newer run, with more commits and the same gates, takes it.
+  cancel-in-progress: false
 
 jobs:
   # Has main moved since the last commit this workflow passed? If not, the run cancels itself rather
