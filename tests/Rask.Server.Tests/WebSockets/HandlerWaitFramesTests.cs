@@ -332,15 +332,68 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         var beforeTheAck = await page.UntilAck(1);
         await page.Press("next", seq: 2);
         var next = await page.Next();
+        var beforeTheSecondAck = await page.UntilAck(2);
         page.Store.Release();
         var rows = await page.Until("row p3-3");
 
-        // The read is still held when the ack is read: only the cap could have sent it. Nothing was cancelled.
-        // Two reads are let go together and come back in either order: the page keeps the one it still asks for.
+        // The reads are still held when each ack is read: only the cap could have sent it. Nothing was cancelled.
+        // Both caps have passed before the reads are let go, so whether the second cap or the rows come first is
+        // never left to the clock. The two come back in either order: the page keeps the one it still asks for.
         Assert.Contains(OldRows, atTheBudget, StringComparison.Ordinal);
         Assert.Empty(beforeTheAck);
         Assert.Contains("pager at 3", next, StringComparison.Ordinal);
+        Assert.Empty(beforeTheSecondAck);
         Assert.Contains("pager at 3", rows, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("p2", "p3")]
+    [InlineData("p3", "p2")]
+    public async Task Two_reads_let_go_after_both_caps_in_either_order_paint_only_the_page_still_asked_for(
+        string first, string second)
+    {
+        await using var page = await Page.Open("/w/child", output, Brief);
+        page.Session.ReadsCap = TimeSpan.FromMilliseconds(40);
+        page.Store.Hold();
+        await page.Press("next", seq: 1);
+        await page.NextOfAny();
+        await page.UntilAck(1);
+        await page.Press("next", seq: 2);
+        await page.Next();
+        await page.UntilAck(2);
+
+        page.Store.Release(first);
+        page.Store.Release(second);
+        var rows = await page.Until("row p3-3");
+        var after = await page.Settled();
+
+        Assert.Contains("pager at 3", rows, StringComparison.Ordinal);
+        Assert.DoesNotContain(after, f => f.Contains(NewRows, StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("p2", "p3")]
+    [InlineData("p3", "p2")]
+    public async Task Two_reads_let_go_before_the_second_cap_in_either_order_are_painted_before_its_ack(
+        string first, string second)
+    {
+        await using var page = await Page.Open("/w/child", output, Brief);
+        page.Session.ReadsCap = TimeSpan.FromMilliseconds(40);
+        page.Store.Hold();
+        await page.Press("next", seq: 1);
+        await page.NextOfAny();
+        await page.UntilAck(1);
+        page.Session.ReadsCap = TimeSpan.FromMinutes(5);
+        await page.Press("next", seq: 2);
+        await page.Next();
+
+        page.Store.Release(first);
+        page.Store.Release(second);
+        var beforeTheAck = await page.UntilAck(2);
+
+        // The cap is longer than the test may run, so the ack is the rows': they are on the wire before it.
+        Assert.Contains(beforeTheAck, f => f.Contains("row p3-3", StringComparison.Ordinal));
+        Assert.DoesNotContain(beforeTheAck, f => f.Contains(NewRows, StringComparison.Ordinal));
     }
 
     [Fact]

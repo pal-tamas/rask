@@ -28,6 +28,9 @@ public sealed class HandlerWaitStore
     private TaskCompletionSource? _held;
     private int _heldReads;
 
+    // Each held read by what it reads for, so a test can let one go before another.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, TaskCompletionSource> _byRead = new();
+
     /// <summary>How many reads have started.</summary>
     public int Reads;
 
@@ -39,19 +42,28 @@ public sealed class HandlerWaitStore
 
     public void Release() => Interlocked.Exchange(ref _held, null)?.TrySetResult();
 
+    /// <summary>Lets go of the held read for <paramref name="of" /> alone; the others stay held.</summary>
+    public void Release(string of)
+    {
+        if (_byRead.TryRemove(of, out var read))
+        {
+            read.TrySetResult();
+        }
+    }
+
     /// <summary>Completes once a read has started since the last <see cref="Hold" />.</summary>
     public Task ReadStarted() => Rask.TestSupport.WaitFor.True(() => Volatile.Read(ref _heldReads) > 0, "a held read to start");
 
     /// <summary>Three rows that say which page, or which order, they were read for.</summary>
     public async Task<string[]> Rows(object of)
     {
-        await Read().ConfigureAwait(false);
+        await Read(of.ToString()!).ConfigureAwait(false);
         return [.. Enumerable.Range(1, 3).Select(n => $"row {of}-{n}")];
     }
 
-    public Task Save() => Read();
+    public Task Save() => Read("save");
 
-    private Task Read()
+    private Task Read(string of)
     {
         Interlocked.Increment(ref Reads);
         if (_held is not { } held)
@@ -59,8 +71,13 @@ public sealed class HandlerWaitStore
             return Task.CompletedTask;
         }
 
+        var read = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _byRead[of] = read;
+        // Discarded on purpose: it only passes the release of every read on to this one, and cannot fault.
+        _ = held.Task.ContinueWith(static (_, r) => ((TaskCompletionSource)r!).TrySetResult(), read, CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         Interlocked.Increment(ref _heldReads);
-        return held.Task;
+        return read.Task;
     }
 }
 
