@@ -162,6 +162,36 @@ same "every package is pushed, once" "$(sort "$FAKE/pushed.log" | uniq | wc -l |
 if printf '%s' "$out" | grep -q "$key"; then fail "the key is never printed" "$out"; else ok "the key is never printed"; fi
 check "the key did reach the push command" grep -q -- "--api-key \*\*\*" <<< "$out"
 
+# Trusted publishing: TRUSTED_KEY_CMD stands in for the OIDC exchange, as PUSH_CMD does for the push.
+cat > "$work/trusted-key" <<'SH'
+#!/usr/bin/env bash
+echo x >> "$FAKE/exchanges.log"
+echo "temp-key-$(wc -l < "$FAKE/exchanges.log" | xargs)-never-printed"
+SH
+chmod +x "$work/trusted-key"
+trusted() {
+  : > "$FAKE/exchanges.log"
+  out="$(FAKE_VERSION="$version" PUSH_CMD="$work/push" TRUSTED_KEY_CMD="$work/trusted-key" python3 "$publish" push "$dir" \
+    --source the-feed --trusted-publisher rask-bot --backoff 0.01 --throttle-wait 0.03 --poll 0.05 "$@" 2>&1)"
+}
+
+fresh trusted
+trusted; status=$?
+same "a trusted publish succeeds" "$status" "0"
+same "one temporary key does while it is fresh" "$(wc -l < "$FAKE/exchanges.log" | xargs)" "1"
+check "and it reaches the push command" grep -q -- "--api-key \*\*\*" <<< "$out"
+if grep -q "temp-key-" <<< "$out"; then fail "the temporary key is never printed" "$out"; else ok "the temporary key is never printed"; fi
+
+fresh trusted-aged
+trusted --key-life 0; status=$?
+same "a key past its life is asked for again before every level" "$status:$(wc -l < "$FAKE/exchanges.log" | xargs)" "0:4"
+check "and the publish still goes in order" before Rask.Server Rask.Postgres
+if grep -q "temp-key-" <<< "$out"; then fail "no temporary key is ever printed" "$out"; else ok "no temporary key is ever printed"; fi
+
+env -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u TRUSTED_KEY_CMD FAKE_VERSION="$version" PUSH_CMD="$work/push" python3 "$publish" push "$dir" --source the-feed --trusted-publisher rask-bot > "$work/oidc.out" 2>&1
+same "with no OIDC token in the job it stops before pushing" "$?" "2"
+check "and says what the job lacks" grep -q "id-token: write" "$work/oidc.out"
+
 fresh stall
 echo "2 error: Pushing took too long. You can change the default timeout of 300 seconds by using the --timeout <seconds> option." > "$FAKE/fail/Rask.$version.nupkg"
 push --log "$work/stall/push.log"; status=$?

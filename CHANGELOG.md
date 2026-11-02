@@ -440,6 +440,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Nightly and release packages reach nuget.org through trusted publishing, with no stored key.** An expired
+  `NUGET_API_KEY` stopped every nightly after .2537 (403 at the first push). The jobs now trade their GitHub
+  OIDC token for nuget.org's one-hour key (`publish_packages.py push --trusted-publisher pal-tamas`), and ask
+  for a new one before a level once the key in hand is 40 minutes old, since the dependency gate makes a
+  publish longer than an hour. Only the release's unlist step still reads `NUGET_API_KEY`.
 - **`Ui.Editor`'s engine is on Tiptap 3.32.2** (was 3.32.0, a patch release of the whole `@tiptap/*` family).
   `ui-editor.js` grows by 2,296 bytes (447,234 -> 449,530), which the tiptap follower leaves to the owner; approved.
 - **The gates ran on the Node LTS line GitHub's `setup-node` knew about, not the one Rask states.** `setup-node`

@@ -81,6 +81,10 @@ jobs:
     if: needs.pick.outputs.sha != ''
     runs-on: ubuntu-26.04
     timeout-minutes: 180   # a publish that hangs must end, or `nightly` (one at a time) never runs again
+    permissions:
+      contents: write   # update the rolling "nightly" prerelease
+      packages: write   # push prerelease packages to GitHub Packages
+      id-token: write   # nuget.org trusted publishing: the job's OIDC token buys a one-hour key, no stored secret
     env:
       SHA: ${{ needs.pick.outputs.sha }}   # the commit the whole run passed
     steps:
@@ -140,14 +144,15 @@ jobs:
       # The gate is the slow part: nuget.org validates for minutes and the set is eight levels deep.
       # Drop --gate-index to push without waiting, at the price of a package being served before a
       # dependency of it for as long as validation happens to take.
+      # No key is stored: nuget.org's trusted publishing policy for pal-tamas names this repository and
+      # nightly.yml, and the script trades the job's OIDC token for a one-hour key, again before a level
+      # when the one in hand has aged (the gate makes a publish longer than an hour).
       - name: Push prerelease to nuget.org, dependencies first
         id: push
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: >-
           python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
           --source https://api.nuget.org/v3/index.json
-          --api-key-env NUGET_API_KEY
+          --trusted-publisher pal-tamas
           --gate-index nuget.org
           --projects src
           --commit "$SHA"
