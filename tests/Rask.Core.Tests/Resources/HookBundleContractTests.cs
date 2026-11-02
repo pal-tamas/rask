@@ -92,6 +92,7 @@ public partial class HookBundleContractTests
         ["data-rask-calendar-slot"] = "on a datetime picker's time part inside a data-rask-calendar",
         ["data-rask-loading"] = "the runtime's own loading mark (rask-loading.ts); the skeleton hook reads it on a control by a data-rask-skeleton",
         ["data-rask-on-load"] = "the runtime's own handler mark (rask-events.ts); on a data-rask-lazy here",
+        ["data-rask-otp-submit"] = "on a data-rask-otp group, which is what loads the hooks",
     };
 
     [Fact]

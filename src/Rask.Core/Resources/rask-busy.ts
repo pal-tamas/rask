@@ -21,45 +21,16 @@
 // off in a microtask once nothing holds, so a hold handed from one source to the next (an ack to its render) never
 // shows as idle in between: nothing outside this task can look before the microtask runs.
 //
-// The count lives on the global: the runtime and the hooks are separate bundles, and both may take holds. Nothing
-// is sent anywhere, and nothing runs while the page is idle.
+// The hold itself — the count and the mark — is `busy` in rask-owned.ts: the runtime and the hooks are separate
+// bundles, both take holds, and rask-owned.ts is the one module both carry, sharing through the seam. What is here
+// is the runtime's alone. Nothing is sent anywhere, and nothing runs while the page is idle.
 
-interface Busy {
-    holds: number;
-    clearing: boolean;
-}
+import {BUSY_MARK, busy} from "./rask-owned.js";
 
-const scope = globalThis as typeof globalThis & {__raskBusy?: Busy};
-const state: Busy = scope.__raskBusy || (scope.__raskBusy = {holds: 0, clearing: false});
-
-/** The mark on <html> while the page is settling. */
-export const BUSY_MARK = "data-rask-busy";
+export {BUSY_MARK, busy};
 
 function html(): Element | null {
     return typeof document === "undefined" ? null : document.documentElement;
-}
-
-function clear(): void {
-    state.clearing = false;
-    const el = html();
-    if (state.holds === 0 && el) el.removeAttribute(BUSY_MARK);
-}
-
-/** Holds the page busy until the returned function is called; calling it again does nothing. */
-export function busy(): () => void {
-    state.holds++;
-    const el = html();
-    if (el && !el.hasAttribute(BUSY_MARK)) el.setAttribute(BUSY_MARK, "");
-    let held = true;
-    return function (): void {
-        if (!held) return;
-        held = false;
-        state.holds--;
-        if (state.holds === 0 && !state.clearing) {
-            state.clearing = true;
-            queueMicrotask(clear);
-        }
-    };
 }
 
 /** Lets `release` go once `result` settles, or now when it is not a promise. */

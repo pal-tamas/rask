@@ -22,8 +22,7 @@
 //  4. NOTHING AT IDLE. One MutationObserver, filtered to the attributes below, on a page that has no hooks —
 //     where eight unfiltered ones used to run — and none at all once the bundle has been asked for.
 
-import {busy} from "./rask-busy.js";
-import {page, seam} from "./rask-owned.js";
+import {busy, page, seam} from "./rask-owned.js";
 
 /**
  * Every attribute that asks for a hook. An element carrying one is what loads the bundle; an attribute a hook
