@@ -35,7 +35,8 @@ internal sealed partial record DevTarget(
     /// <remarks>
     ///     Orthogonal to <see cref="Kind" />: islands live in the HOST project, so a plain
     ///     <see cref="DevTemplateKind.Server" /> app can have them and a SPA-hosted one can have both a
-    ///     client dev server and an island one.
+    ///     client dev server and an island one. Never true for <see cref="DevTemplateKind.WasmHosted" />, whose
+    ///     islands are the browser half's and are bundled by its build.
     /// </remarks>
     public bool HasIslands { get; init; }
 
@@ -90,7 +91,10 @@ internal sealed partial record DevTarget(
         // Once. It walks the project tree, and the tree it walks contains node_modules — which for a
         // project with islands is tens of thousands of files. Calling it from two initialisers walked
         // it twice on every `rask dev` startup.
-        var islands = HasIslandSources(fileSystem, directory);
+        //
+        // Never on wasm-hosted: its islands are the browser half's, bundled by the build of the project generated
+        // into obj/, which a dev server's pointer is not written for. They are rebuilt with the rest of Client/.
+        var islands = kind != DevTemplateKind.WasmHosted && HasIslandSources(fileSystem, directory);
 
         return new DevTarget(kind, resolved, directory, url, launchesBrowser)
         {

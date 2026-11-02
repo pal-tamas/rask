@@ -36,11 +36,17 @@ internal static class IslandAssembly
     /// <param name="runtimes">The runtimes asked for, already validated by <see cref="IslandRuntimes.Refuse"/>.</param>
     /// <param name="name">The app's name, substituted for the placeholder namespace.</param>
     /// <param name="existing">The host template's files, so tsconfig.json can be rewritten in place.</param>
+    /// <param name="pagesFolder">
+    ///     The folder the template's pages are compiled from, relative to the project: empty for a server or wasm
+    ///     app, <c>Client</c> for a wasm-hosted one, whose pages are the browser half's (#1194). The islands go
+    ///     beside the pages that render them; the npm manifest and toolchain stay at the project root.
+    /// </param>
     public static IReadOnlyList<ScaffoldFile> Apply(
         string targetDirectory,
         IReadOnlyList<string> runtimes,
         string name,
-        IReadOnlyList<ScaffoldFile> existing)
+        IReadOnlyList<ScaffoldFile> existing,
+        string pagesFolder = "")
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
         ArgumentNullException.ThrowIfNull(runtimes);
@@ -51,6 +57,9 @@ internal static class IslandAssembly
             return existing;
         }
 
+        ArgumentNullException.ThrowIfNull(pagesFolder);
+
+        var features = FeaturesFolder(pagesFolder);
         var files = new List<ScaffoldFile>(existing.Count + runtimes.Count * 2);
         var dependencies = new SortedDictionary<string, string>(StringComparer.Ordinal);
         var overrides = new SortedDictionary<string, string>(StringComparer.Ordinal);
@@ -67,13 +76,12 @@ internal static class IslandAssembly
                     continue;
                 }
 
-                var relative = asset.Path.Replace(
-                    TemplateMaterializer.NameToken, name, StringComparison.Ordinal);
+                var (path, text) = InPagesFolder(asset.Path, Encoding.UTF8.GetString(asset.Bytes), pagesFolder);
+                var relative = path.Replace(TemplateMaterializer.NameToken, name, StringComparison.Ordinal);
 
                 files.Add(new ScaffoldFile(
                     Path.Combine(targetDirectory, relative.Replace('/', Path.DirectorySeparatorChar)),
-                    Encoding.UTF8.GetString(asset.Bytes)
-                        .Replace(TemplateMaterializer.NameToken, name, StringComparison.Ordinal)));
+                    text.Replace(TemplateMaterializer.NameToken, name, StringComparison.Ordinal)));
             }
         }
 
@@ -87,13 +95,41 @@ internal static class IslandAssembly
 
         foreach (var file in existing)
         {
-            files.Add(IsTsConfig(file) ? WithIslandPaths(file, runtimes) : file);
+            files.Add(IsTsConfig(file) ? WithIslandPaths(file, runtimes, features) : file);
         }
 
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, "package.json"), Manifest(name, dependencies, overrides, runtimes)));
-        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ToolchainConfigFile), ToolchainConfig(runtimes)));
+        files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ToolchainConfigFile), ToolchainConfig(runtimes, features)));
         files.Add(new ScaffoldFile(Path.Combine(targetDirectory, ".vite-hooks", "pre-commit"), PreCommitHook));
         return files;
+    }
+
+    /// <summary>The folder every fragment's islands are committed under, and its namespace segment.</summary>
+    private const string FragmentFeatures = "Features";
+
+    /// <summary>The folder the island fragments' <c>Features/</c> lands in: <c>Features</c>, or <c>Client/Features</c>.</summary>
+    private static string FeaturesFolder(string pagesFolder) =>
+        pagesFolder.Length == 0 ? FragmentFeatures : $"{pagesFolder}/{FragmentFeatures}";
+
+    /// <summary>
+    ///     A fragment file moved under <paramref name="pagesFolder" />, its namespace following it — or as committed,
+    ///     when the pages are the project's own.
+    /// </summary>
+    /// <remarks>
+    ///     Only the island pairs move. The Blazor class library is a project of its own beside the app, and a
+    ///     wasm-hosted browser half compiles everything under <c>Client/</c>, so it would compile that library twice.
+    /// </remarks>
+    private static (string Path, string Text) InPagesFolder(string path, string text, string pagesFolder)
+    {
+        if (pagesFolder.Length == 0 || !path.StartsWith(FragmentFeatures + "/", StringComparison.Ordinal))
+        {
+            return (path, text);
+        }
+
+        var token = TemplateMaterializer.NameToken;
+        return (
+            $"{pagesFolder}/{path}",
+            text.Replace($"{token}.{FragmentFeatures}.", $"{token}.{pagesFolder}.{FragmentFeatures}.", StringComparison.Ordinal));
     }
 
     /// <summary>
@@ -200,7 +236,7 @@ internal static class IslandAssembly
     }
 
     /// <summary>The project's <see cref="ToolchainConfigFile" />, linting with each runtime's plugin.</summary>
-    private static string ToolchainConfig(IReadOnlyList<string> runtimes)
+    private static string ToolchainConfig(IReadOnlyList<string> runtimes, string features)
     {
         var (plugins, jsPlugins, rules, scopeSolid) = LintFor(runtimes);
         var svelte = runtimes.Contains("svelte", StringComparer.Ordinal);
@@ -216,7 +252,7 @@ internal static class IslandAssembly
             // islands are not bundled from here — Rask writes the Vite config that does that under obj/ on
             // every build. Not type-aware: `dotnet build` type-checks every island already.
             //
-            // Both blocks reach Features/ and nothing else: the islands are written there, and the rest of
+            // Both blocks reach {{features}}/ and nothing else: the islands are written there, and the rest of
             // the project is the C# side's, formatted by dotnet format and .editorconfig.
             export default defineConfig({
             {{(svelte ? SveltePlugins : "")}}  fmt: {
@@ -224,10 +260,10 @@ internal static class IslandAssembly
                 singleQuote: true,
                 printWidth: 100,
                 trailingComma: 'all',
-                ignorePatterns: ['/*', '!/Features/'],
+                ignorePatterns: [{{Reach(features)}}],
               },
               lint: {
-                ignorePatterns: ['/*', '!/Features/'],
+                ignorePatterns: [{{Reach(features)}}],
                 plugins: [{{string.Join(", ", plugins.Select(p => $"'{p}'"))}}],
                 jsPlugins: [
             {{Lines(jsPlugins, "      ")}}
@@ -237,7 +273,7 @@ internal static class IslandAssembly
                 },
             {{(scopeSolid ? SolidOverride() : "")}}  },
               staged: {
-                'Features/**/*.{js,mjs,cjs,ts,tsx,jsx,vue,svelte}': 'vp check --fix',
+                '{{features}}/**/*.{js,mjs,cjs,ts,tsx,jsx,vue,svelte}': 'vp check --fix',
               },
             })
 
@@ -264,6 +300,26 @@ internal static class IslandAssembly
             ],
 
         """;
+
+    /// <summary>
+    ///     The ignore patterns that leave <paramref name="features" /> and nothing else: everything at the root is
+    ///     ignored, then the path back to it is re-included one level at a time, because a pattern cannot re-include
+    ///     a file whose parent folder is ignored.
+    /// </summary>
+    private static string Reach(string features)
+    {
+        var segments = features.Split('/');
+        var patterns = Enumerable.Range(1, segments.Length).SelectMany(depth =>
+        {
+            var folder = string.Join('/', segments.Take(depth));
+            var reinclude = $"'!/{folder}/'";
+            return depth == 1
+                ? ["'/*'", reinclude]
+                : new[] { $"'/{string.Join('/', segments.Take(depth - 1))}/*'", reinclude };
+        });
+
+        return string.Join(", ", patterns);
+    }
 
     private static string Lines(IEnumerable<string> entries, string indent) =>
         string.Join("\n", entries.Select(e => $"{indent}{e},"));
@@ -301,8 +357,7 @@ internal static class IslandAssembly
         }
     }
 
-    private static readonly string[] IslandIncludePatterns =
-        ["Features/**/*.ts", "Features/**/*.tsx", "Features/**/*.vue", "Features/**/*.svelte"];
+    private static readonly string[] IslandExtensions = ["ts", "tsx", "vue", "svelte"];
 
     private static bool IsTsConfig(ScaffoldFile file) =>
         string.Equals(Path.GetFileName(file.Path), "tsconfig.json", StringComparison.Ordinal);
@@ -316,7 +371,7 @@ internal static class IslandAssembly
     ///     honest state. The include list gains the island extensions so the front-end files are part
     ///     of the program that type-checks them.
     /// </remarks>
-    private static ScaffoldFile WithIslandPaths(ScaffoldFile file, IReadOnlyList<string> runtimes)
+    private static ScaffoldFile WithIslandPaths(ScaffoldFile file, IReadOnlyList<string> runtimes, string features)
     {
         var node = JsonNode.Parse(
             file.Content,
@@ -330,7 +385,8 @@ internal static class IslandAssembly
         node["compilerOptions"] = WithIslandCompilerOptions(node["compilerOptions"] as JsonObject ?? [], runtimes);
 
         var include = node["include"] as JsonArray ?? [];
-        var missing = IslandIncludePatterns
+        var missing = IslandExtensions
+            .Select(extension => $"{features}/**/*.{extension}")
             .Where(pattern => !include.Any(v => string.Equals(v?.GetValue<string>(), pattern, StringComparison.Ordinal)))
             .ToArray();
         foreach (var pattern in missing)

@@ -568,6 +568,15 @@ them until tagged releases begin.
   A `Ui.Sidebar` that stays in the page's flow is lifted `z-1`, as Flux's; one that slides over the page keeps
   `z-20`. A checkbox or radio CARD selects no text, as Flux's does and as every other checkbox and radio already did.
   The profile page's dropdown is now the real `Ui.Navmenu` (`Ui.NavmenuItem.Indent()`, `Ui.NavmenuSeparator`).
+- **`rask new --template wasm-hosted --islands …` scaffolds islands a page can render** (#1194). The pairs went into
+  the server project, which renders no page; they now go in `Client/Features/Islands/` beside the browser app's pages,
+  `Client/Pages/HomePage.cs` renders them, and `Rask.External`/`Rask.Blazor` (and the Blazor class library) are
+  `RaskClientPackageReference`/`RaskClientProjectReference` items. The browser project generated into `obj/` finds them
+  through two new `Rask.External` properties: `RaskExternalSourceRoot` (`Client/`, where the islands are) and
+  `RaskExternalRoot` (the app's folder, where `package.json` and `node_modules` are). Both default to the project's own
+  folder. `rask dev` starts no island dev server for a wasm-hosted app; its islands rebuild with `Client/`.
+  `MapRaskSpa` now serves a WebAssembly bundle's `/_rask/external/` files from a route of its own: the operator
+  dashboard's `/_rask/{**path}` catch-all had sent the island manifest to sign-in, so no island mounted.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
