@@ -210,6 +210,88 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
         Assert.Equal(["anvil"], await Names());
     }
 
+    [Fact]
+    public async Task A_transaction_begun_on_a_joined_context_is_refused_naming_the_block()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+#pragma warning disable CA1849, MA0042 // the synchronous BeginTransaction is the path under test
+            db.Database.BeginTransaction();
+#pragma warning restore CA1849, MA0042
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("already inside Db.Transaction", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("Remove the BeginTransaction call", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_transaction_begun_as_the_contexts_first_use_inside_the_block_is_refused_too()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            db.Add(Widget.Create("tongs"));
+            await using var own = await db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("already inside Db.Transaction", refused.Message, StringComparison.Ordinal);
+        Assert.Equal(["anvil"], await Names());
+    }
+
+    [Fact]
+    public async Task Migrate_on_a_joined_context_is_refused_as_schema_work()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+            await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("Run schema work outside Db.Transaction", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EnsureCreated_on_a_joined_context_is_refused_as_schema_work()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
+        {
+            await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+#pragma warning disable CA1849, MA0042 // the synchronous EnsureCreated is the path under test
+            db.Database.EnsureCreated();
+#pragma warning restore CA1849, MA0042
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Contains("Run schema work outside Db.Transaction", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_transaction_begun_and_schema_work_outside_the_block_run_as_they_always_did()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var created = await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
+        await using (var own = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken))
+        {
+            db.Add(Widget.Create("tongs"));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await own.CommitAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.False(created);
+        Assert.Null(db.Database.CurrentTransaction);
+        Assert.Equal(["anvil", "tongs"], await Names());
+    }
+
     private async Task<List<string>> Names()
     {
         await using var read = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);

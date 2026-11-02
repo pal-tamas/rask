@@ -457,6 +457,12 @@ them until tagged releases begin.
   joined the block's, and EF Core then refused the transaction it had just been handed. A save now joins before it
   starts, so EF Core finds the block's transaction and runs inside it; a throw after it takes both rows back, and the
   context saves on its own connection again after the block.
+- **`BeginTransaction`, `Migrate` and `EnsureCreated` on a context inside `Db.Transaction` are refused with the
+  reason.** Before: `db.Database.BeginTransactionAsync()` on a context that had joined the block threw EF Core's
+  "The connection is already in a transaction and cannot participate in another transaction", and `Migrate()` /
+  `EnsureCreated()` ran their schema work inside a transaction the block could still roll back. Now the first says
+  the context is already inside `Db.Transaction(...)` and to remove the call or run it outside the block, and the
+  other two say to run schema work outside `Db.Transaction`. The same calls outside a block run as they always did.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a

@@ -38,6 +38,13 @@ internal sealed class AmbientTransactionInterceptor
         CommandCorrelatedEventData eventData, InterceptionResult<DbCommand> result)
     {
         AmbientTransaction.JoinBeforeUse(eventData.Context);
+
+        // Migrate and EnsureCreated are refused at their first command, joined or joining just now.
+        if (eventData.CommandSource == CommandSource.Migrations)
+        {
+            AmbientTransaction.RefuseSchemaWork(eventData.Context);
+        }
+
         return result;
     }
 
