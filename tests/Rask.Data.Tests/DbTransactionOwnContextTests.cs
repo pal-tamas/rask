@@ -171,6 +171,45 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
         Assert.Equal(["renamed", "tongs"], await Names());
     }
 
+    [Fact]
+    public async Task An_execute_update_and_delete_on_a_context_read_before_the_block_roll_back_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Db.Transaction(async () =>
+        {
+            db.Add(Widget.Create("tongs"));
+            await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+            await db.Set<Widget>().Where(w => w.Name == "anvil")
+                .ExecuteUpdateAsync(w => w.SetProperty(x => x.Name, "renamed"), TestContext.Current.CancellationToken);
+            await db.Set<Widget>().Where(w => w.Name == "tongs").ExecuteDeleteAsync(TestContext.Current.CancellationToken);
+            throw new ArgumentException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["anvil"], await Names());
+    }
+
+    [Fact]
+    public async Task Several_raw_statements_in_one_command_on_a_context_read_before_the_block_roll_back_with_it()
+    {
+        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        await db.Set<Widget>().CountAsync(TestContext.Current.CancellationToken);
+        var table = db.Model.FindEntityType(typeof(Widget))!.GetTableName();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Db.Transaction(async () =>
+        {
+#pragma warning disable EF1002 // the table name comes from the model, never from input
+            await db.Database.ExecuteSqlRawAsync(
+                $"UPDATE \"{table}\" SET \"Name\" = 'renamed'; DELETE FROM \"{table}\" WHERE \"Name\" = 'nothing'",
+                TestContext.Current.CancellationToken);
+#pragma warning restore EF1002
+            throw new ArgumentException("roll back");
+        }, cancellationToken: TestContext.Current.CancellationToken));
+
+        Assert.Equal(["anvil"], await Names());
+    }
+
     private async Task<List<string>> Names()
     {
         await using var read = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
