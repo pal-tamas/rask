@@ -209,6 +209,10 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/command", "No results found")]
     [InlineData("/ui/popover", "data-rask-open-mark")]
     [InlineData("/ui/modal", "min-w-[22rem]")]
+    [InlineData("/ui/confirm", "window.prompt")]
+    [InlineData("/ui/confirm", "ConfirmHeading")]
+    [InlineData("/ui/confirm-leave", "typed values included")]
+    [InlineData("/ui/confirm-leave", "ConfirmLeaveStay")]
     [InlineData("/ui/progress", "--ui-progress-percentage")]
     [InlineData("/ui/skeleton", "--ui-shimmer-color")]
     [InlineData("/ui/toast", "data-rask-dismiss-hold")]
@@ -341,6 +345,8 @@ public sealed partial class UiDocsTests
     [InlineData("/ui/sidebar", "/demo/sidebar-inset/", "SidebarInsetExample.cs")]
     [InlineData("/ui/sidebar", "/demo/sidebar-with-header/", "SidebarSecondaryHeaderExample.cs")]
     [InlineData("/ui/sidebar", "/demo/sidebar-collapsible/", "SidebarCollapsibleExample.cs")]
+    [InlineData("/ui/confirm", "/demo/confirm-words/", "ConfirmWordsExample.cs")]
+    [InlineData("/ui/confirm-leave", "/demo/confirm-leave-words/", "ConfirmLeaveWordsExample.cs")]
     public async Task A_layout_example_frames_its_demo_page_under_its_code_and_opens_it_full_screen(string page, string demo, string file)
     {
         var html = await SiteDocument.At(page);
@@ -358,6 +364,8 @@ public sealed partial class UiDocsTests
     [Theory]
     [InlineData("/demo/header", "/ui/header/", "data-ui-header")]
     [InlineData("/demo/sidebar-collapsible", "/ui/sidebar/", "sidebar-rail")]
+    [InlineData("/demo/confirm-words", "/ui/confirm/", "id=\"ui-confirm\"")]
+    [InlineData("/demo/confirm-leave-words", "/ui/confirm-leave/", "id=\"ui-confirm-leave\"")]
     public async Task A_layout_demo_is_the_whole_page_and_names_its_layouts_page_canonical(string demo, string page, string part)
     {
         var html = await SiteDocument.At(demo);
@@ -369,6 +377,21 @@ public sealed partial class UiDocsTests
         Assert.Contains(part, html, StringComparison.Ordinal);
         Assert.Contains("data-ui-main", html, StringComparison.Ordinal);
         Assert.DoesNotContain("ui-docs-nav", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/ui/confirm", "ui-confirm")]
+    [InlineData("/ui/confirm-leave", "ui-confirm-leave")]
+    public async Task A_page_of_the_kits_own_says_it_is_not_Fluxs_and_links_to_no_Flux_page(string path, string example)
+    {
+        var html = await SiteDocument.At(path);
+
+        var lead = Regex.Match(html, "<h1[^>]*>.*?</h1>(.*?)data-testid=", RegexOptions.Singleline).Groups[1].Value;
+
+        Assert.Contains("Not one of Flux UI", lead, StringComparison.Ordinal);
+        Assert.DoesNotContain("fluxui.dev", lead, StringComparison.Ordinal);
+        Assert.Contains($"data-testid=\"{example}\"", html, StringComparison.Ordinal);
+        Assert.Contains("not in Flux UI", html, StringComparison.Ordinal);
     }
 
     [Fact]
