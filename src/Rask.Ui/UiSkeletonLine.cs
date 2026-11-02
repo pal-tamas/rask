@@ -30,7 +30,7 @@ public sealed partial class UiSkeletonLine : Component
         return Div
             .Data("ui-skeleton-line", "")
             .Class(
-                large ? "py-1" : "py-[3px]",
+                large ? "[:where(&)]:py-1" : "[:where(&)]:py-[3px]",
                 UiSkeletonScope.Class(UiSkeletonScope.Resolve(Animate)),
                 Class)
             .Style(Style)[

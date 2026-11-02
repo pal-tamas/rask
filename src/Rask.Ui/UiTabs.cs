@@ -168,10 +168,10 @@ public sealed partial class UiTabs : Component
 
     private static string ListClass(Ui.TabsVariant variant, Ui.TabsSize size, bool scrolls) => (variant, size) switch
     {
-        (Ui.TabsVariant.Segmented, Ui.TabsSize.Sm) => "inline-flex h-8.5 p-[3px] rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
-        (Ui.TabsVariant.Segmented, _) => "inline-flex h-10 p-1 rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
-        (Ui.TabsVariant.Pills, _) => "flex h-8 gap-4 cursor-default",
-        _ when scrolls => "flex h-10 gap-4 cursor-default border-b border-transparent",
-        _ => "flex h-10 gap-4 cursor-default border-b border-zinc-800/10 dark:border-white/20",
+        (Ui.TabsVariant.Segmented, Ui.TabsSize.Sm) => "[:where(&)]:inline-flex h-8.5 [:where(&)]:p-[3px] [:where(&)]:rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
+        (Ui.TabsVariant.Segmented, _) => "[:where(&)]:inline-flex h-10 [:where(&)]:p-1 [:where(&)]:rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
+        (Ui.TabsVariant.Pills, _) => "[:where(&)]:flex h-8 [:where(&)]:gap-4 cursor-default",
+        _ when scrolls => "[:where(&)]:flex h-10 [:where(&)]:gap-4 cursor-default border-b border-transparent",
+        _ => "[:where(&)]:flex h-10 [:where(&)]:gap-4 cursor-default border-b border-zinc-800/10 dark:border-white/20",
     };
 }
