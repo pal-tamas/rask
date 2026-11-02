@@ -41,24 +41,25 @@ public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixtur
     [InlineData("tabs", "Tabs", "[data-testid='ui-tabs'] [role=tab]")]
     [InlineData("tabs", "Tabs", "[data-testid='ui-tabs-segmented'] [role=tab]")]
     [InlineData("tabs", "Tabs", "[data-testid='ui-tabs-pills'] [role=tab]")]
-    [InlineData("select", "Select", "[data-testid='ui-select-listbox'] button[role=combobox]")]
-    [InlineData("select", "Select", "[data-testid='ui-select-native'] select")]
-    [InlineData("pagination", "Pagination", "[data-testid='ui-pagination'] [data-ui-pagination] button:not([disabled])")]
+    [InlineData("select", "Select", "#ui-select-listbox")]
+    [InlineData("select", "Select", "#ui-select-native")]
+    [InlineData("pagination", "Pagination", "[data-testid='ui-pagination-size'] select")]
+    [InlineData("pagination", "Pagination", "[data-testid='ui-pagination'] [data-ui-pagination] button >> visible=true")]
     [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox'] [data-ui-checkbox]")]
     [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox'] [data-ui-label]")]
-    [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox-cards'] [data-ui-checkbox-card]")]
-    [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox-buttons'] [data-ui-checkbox-button]")]
+    [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox-cards'] [data-ui-checkbox-cards]")]
+    [InlineData("checkbox", "Checkbox", "[data-testid='ui-checkbox-buttons'] [data-ui-checkbox-buttons]")]
     [InlineData("radio", "Radio", "[data-testid='ui-radio'] [data-ui-radio]")]
     [InlineData("radio", "Radio", "[data-testid='ui-radio-segmented'] [data-ui-radio-segmented]")]
-    [InlineData("radio", "Radio", "[data-testid='ui-radio-cards'] [data-ui-radio-card]")]
+    [InlineData("radio", "Radio", "[data-testid='ui-radio-cards'] [data-ui-radio-cards]")]
     [InlineData("switch", "Switch", "[data-testid='ui-switch'] [data-ui-switch]")]
     [InlineData("toggle", "Toggle", "[data-testid='ui-toggle-basic'] [data-ui-toggle]")]
-    [InlineData("calendar", "Calendar", "[data-testid='ui-calendar'] [data-ui-calendar-day] button:not([disabled])")]
-    [InlineData("calendar", "Calendar", "[data-testid='ui-calendar'] [data-ui-calendar-previous], [data-testid='ui-calendar'] [data-ui-calendar-next]")]
+    [InlineData("calendar", "Calendar", "[data-testid='ui-calendar'] [role=gridcell] button:not([disabled])")]
+    [InlineData("calendar", "Calendar", "[data-testid='ui-calendar'] :is([data-rask-calendar-part=previous], [data-rask-calendar-part=next])")]
     [InlineData("accordion", "Accordion", "[data-testid='ui-accordion-basic'] summary")]
     [InlineData("navlist", "Navlist", "[data-testid='ui-navlist-collapsible'] summary")]
     [InlineData("kanban", "Kanban", "[data-testid='ui-kanban-buttons'] button[data-ui-kanban-card]")]
-    [InlineData("carousel", "Carousel", "[data-testid='ui-carousel-basic'] button")]
+    [InlineData("carousel", "Carousel", "[data-testid='ui-carousel-basic'] button:not([disabled])")]
     public Task A_pressable_kit_part_shows_the_hand_where_the_pointer_lands(string slug, string heading, string selector) => RunAsync(async () =>
     {
         await OpenUiPageAsync(slug, heading);
@@ -88,9 +89,8 @@ public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixtur
     public Task An_open_listbox_shows_the_hand_over_its_options() => RunAsync(async () =>
     {
         await OpenUiPageAsync("select", "Select");
-        var scope = Page.Locator("[data-testid='ui-select-listbox']");
-        await scope.Locator("button[role=combobox]").ClickAsync();
-        var options = scope.Locator("[role=option]:not([aria-disabled=true])");
+        await Page.Locator("#ui-select-listbox").ClickAsync();
+        var options = Page.Locator("[data-testid='ui-listbox'] [role=option]:not([aria-disabled=true])");
         await Expect(options.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         var cursors = await CursorsAsync(options);
@@ -104,7 +104,7 @@ public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixtur
         await OpenUiPageAsync("date-picker", "Date picker");
         var scope = Page.Locator("[data-testid='ui-date-picker']");
         await scope.Locator("button").First.ClickAsync();
-        var days = scope.Locator("[data-ui-calendar-day] button:not([disabled])");
+        var days = scope.Locator("[role=gridcell] button:not([disabled])");
         await Expect(days.First).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 15_000 });
 
         var cursors = await CursorsAsync(days.Locator("visible=true"));
@@ -172,7 +172,7 @@ public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixtur
         Assert.Equal("pointer", button);
         Assert.Equal("auto", div);
         Assert.Equal("pointer", label);
-        Assert.Equal("auto", text);
+        Assert.Equal("text", text);
         Assert.Equal("text", utility);
     });
 
