@@ -17,6 +17,6 @@ public sealed partial class UiNavbar : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class("flex items-center gap-[2px] py-3", Scrollable == true ? "overflow-x-auto overflow-y-hidden" : null, Class)
+        Nav.Class("[:where(&)]:flex items-center [:where(&)]:gap-[2px] [:where(&)]:py-3", Scrollable == true ? "overflow-x-auto overflow-y-hidden" : null, Class)
             .Attributes(("data-ui-navbar", null))[Children ?? []];
 }

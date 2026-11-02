@@ -43,17 +43,17 @@ public sealed partial class UiModal : Component
 
     private const string Grows = "[transform:scale(0.95)] starting:open:[transform:scale(0.95)]";
 
-    private const string Panel = "border-0 bg-white text-inherit shadow-lg ring ring-black/5 dark:bg-zinc-800 dark:ring-zinc-700";
+    private const string Panel = "border-0 bg-white [:where(&)]:text-inherit shadow-lg ring ring-black/5 dark:bg-zinc-800 dark:ring-zinc-700";
 
     // The two sizes are defaults a call site's own `min-w-*` / `max-w-*` replaces, as they are in Flux.
-    private const string Box = "m-auto rounded-xl p-6 [:where(&)]:min-w-xs [:where(&)]:max-w-xl";
+    private const string Box = "[:where(&)]:m-auto [:where(&)]:rounded-xl [:where(&)]:p-6 [:where(&)]:min-w-xs [:where(&)]:max-w-xl";
 
     // A sheet against an edge, with a line on its page side that only dark mode draws.
-    private const string Sheet = "fixed overflow-y-auto border-transparent bg-white p-8 text-inherit dark:border-zinc-700 dark:bg-zinc-800";
+    private const string Sheet = "fixed overflow-y-auto border-transparent bg-white [:where(&)]:p-8 [:where(&)]:text-inherit dark:border-zinc-700 dark:bg-zinc-800";
 
-    private const string Floating = "fixed overflow-y-auto rounded-xl p-8";
+    private const string Floating = "fixed overflow-y-auto [:where(&)]:rounded-xl [:where(&)]:p-8";
 
-    private const string Bare = "m-auto border-0 bg-transparent p-0 text-inherit";
+    private const string Bare = "[:where(&)]:m-auto border-0 bg-transparent [:where(&)]:p-0 [:where(&)]:text-inherit";
 
     private readonly int _instance = UiInstanceCounter.Next();
 
@@ -269,7 +269,7 @@ public sealed partial class UiModal : Component
     {
         if (ScrollsBody)
         {
-            return "m-0 size-full max-h-none max-w-none overflow-y-auto border-0 bg-transparent p-0 text-inherit";
+            return "[:where(&)]:m-0 [:where(&)]:size-full max-h-none [:where(&)]:max-w-none overflow-y-auto border-0 bg-transparent [:where(&)]:p-0 [:where(&)]:text-inherit";
         }
 
         if (IsBare)
@@ -292,16 +292,16 @@ public sealed partial class UiModal : Component
     // Held to its edge, and the margin on the page's side gives way; the line is on the side that faces the page.
     private static string Edge(Ui.ModalPosition position) => position switch
     {
-        Ui.ModalPosition.Left => "m-0 me-auto border-e",
-        Ui.ModalPosition.Bottom => "m-0 mt-auto border-t",
-        _ => "m-0 ms-auto border-s",
+        Ui.ModalPosition.Left => "[:where(&)]:m-0 [:where(&)]:me-auto border-e",
+        Ui.ModalPosition.Bottom => "[:where(&)]:m-0 [:where(&)]:mt-auto border-t",
+        _ => "[:where(&)]:m-0 [:where(&)]:ms-auto border-s",
     };
 
     private static string FloatingEdge(Ui.ModalPosition position) => position switch
     {
-        Ui.ModalPosition.Left => "m-2 me-auto",
-        Ui.ModalPosition.Bottom => "m-2 mt-auto",
-        _ => "m-2 ms-auto",
+        Ui.ModalPosition.Left => "[:where(&)]:m-2 [:where(&)]:me-auto",
+        Ui.ModalPosition.Bottom => "[:where(&)]:m-2 [:where(&)]:mt-auto",
+        _ => "[:where(&)]:m-2 [:where(&)]:ms-auto",
     };
 
     // Where it comes in from, and leaves to.
@@ -315,7 +315,7 @@ public sealed partial class UiModal : Component
     // A side flyout is the viewport's height and at least 25rem wide from md, unless the call site says; a bottom one its width.
     private static string Extent(Ui.ModalPosition position) =>
         position == Ui.ModalPosition.Bottom
-            ? "max-h-dvh w-full max-w-none"
+            ? "max-h-dvh [:where(&)]:w-full [:where(&)]:max-w-none"
             : "max-h-dvh min-h-dvh md:[:where(&)]:min-w-[25rem]";
 
     private static string FloatingExtent(Ui.ModalPosition position) =>
