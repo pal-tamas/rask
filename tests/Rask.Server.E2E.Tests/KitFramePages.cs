@@ -249,6 +249,9 @@ public sealed partial class KitNavigationFramePage : KitFramePage
                 Ui.TabPanel.Name("account")["Your email."],
                 Ui.TabPanel.Name("billing")["Your plan."]
             ]),
+            Part("tabs-valued", Ui.Tabs.Segmented.Value("board")[
+                Ui.Tab.Name("list")["List"], Ui.Tab.Name("board")["Board"], Ui.Tab.Name("timeline")["Timeline"]
+            ]),
             Part("tabs-heard", Ui.Tabs.Segmented.Value(_view).OnChange(view => _view = view)[
                 Ui.Tab.Name("list")["List"], Ui.Tab.Name("board")["Board"], Ui.Tab.Name("timeline")["Timeline"]
             ]),
