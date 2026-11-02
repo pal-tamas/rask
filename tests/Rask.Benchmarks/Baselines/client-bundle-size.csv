@@ -564,9 +564,9 @@ rask-hooks.js,120724
 #
 # 2026-11-02, a bound select of one answer holds its pick in the browser until the next action (rask-list-held.ts:
 # the pick drawn and written into the list's one bound field, as Flux's wire:model sends nothing): rask-hooks.js
-# 121,602 -> 124,349 (+2,747); rask.js 113,282 and rask.wasm.js 97,691 unchanged. Measured locally (the bundle
+# 121,602 -> 124,335 (+2,733); rask.js 113,282 and rask.wasm.js 97,691 unchanged. Measured locally (the bundle
 # gate's esbuild 0.28.2 with its flags, --minify) on the tree at babeac4d5 plus this change.
 bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
-rask-hooks.js,124349
+rask-hooks.js,124335
