@@ -169,6 +169,7 @@ public sealed class AnAppsClassWinsTests
         ["UiSkeletonLine"] = "padding",
         ["UiSlider"] = "display, width",
         ["UiSliderTick"] = "display, text colour, text size, width",
+        ["UiSubheading"] = "text size",
         ["UiSwitch"] = "display, width",
         ["UiTab"] = "display, gap, margin, padding, text colour, text size",
         ["UiTabPanel"] = "padding",

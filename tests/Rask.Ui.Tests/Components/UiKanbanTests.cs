@@ -10,7 +10,8 @@ public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
     private const string Pressed =
         "block w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
 
-    private const string Heading = "<div class=\"font-medium text-zinc-800 dark:text-white text-sm\" data-ui-heading>";
+    private const string Heading =
+        "<div class=\"font-medium text-zinc-800 dark:text-white text-sm " + UiHeadingTests.NextToSubheading + "\" data-ui-heading>";
 
     private const string Muted = "text-sm text-zinc-500 dark:text-white/70";
 

@@ -704,6 +704,7 @@ Flux's names, props and look — measured against its docs in light and dark by 
 ```csharp
 Ui.Heading["User profile"]                                    // <div>, 14px, medium
 Ui.Heading.Level(3).Lg["Orders"]                              // <h3>, 16px
+Ui.Subheading["Make changes to your personal details."]       // 14px zinc-500, 8px under the heading
 Ui.Text.Class("mt-2")["This information will be displayed publicly."]
 
 Ui.Text.Variant(Ui.TextVariant.Strong)["Total"]               // or .Subtle, or .Color(Ui.Color.Blue)
@@ -715,6 +716,7 @@ Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button ty
 | Component | Props |
 | --- | --- |
 | `Ui.Heading` | `Size` — `Base` (14px), `Lg` (16px), `Xl` (24px), `Xxl` (36px, Flux's `2xl`); `Level` 1–4 as in Flux, a `<div>` without one; `Accent()` |
+| `Ui.Subheading` | none — Flux's `flux:subheading`, which its modal page uses and documents no prop of: a `<div>` of supporting text; the heading beside it keeps the 8px between them |
 | `Ui.Text` | `Size` — `Sm`, `Default`, `Lg`, `Xl`; `Variant` — `Default`, `Strong`, `Subtle`; `Color` — a `Ui.Color` (Tailwind's hues), which wins over the variant; `Inline()` for a `<span>` |
 | `Ui.Link` | `Href` — a generated route navigates inside the app, a string is an ordinary link; `Variant` — `Default` (underlined), `Ghost` (underlined under the pointer), `Subtle`; `External()`; `As` — `A`, `Button`; `Accent(false)` to draw it in the page's ink |
 
