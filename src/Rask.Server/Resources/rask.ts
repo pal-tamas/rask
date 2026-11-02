@@ -121,6 +121,18 @@ import {
         caughtUpWaits.set(n, then);
         send({type: "caughtUp", n});
     });
+
+    // Runs `then` once every page received so far is on screen — the answer's, and any that arrived with it: a line
+    // that held the server's frames hands them over together, and a press read from a page before the newest of
+    // them is read from a page the server is already past.
+    function onceReceivedApplied(then: () => void): void {
+        const tail = _renderQueue;
+        const next = function (): void {
+            if (_renderQueue === tail) then();
+            else onceReceivedApplied(then);
+        };
+        tail.then(next, next);
+    }
     // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
     // browser (the navigate message carries only path+query, and the server's history
     // url has no hash), so we stash it here on click and consume it when the matching
@@ -655,7 +667,7 @@ import {
             const then = caughtUpWaits.get(data.n);
             if (then) {
                 caughtUpWaits.delete(data.n);
-                _renderQueue = _renderQueue.then(then, then);
+                onceReceivedApplied(then);
             }
             return;
         }
