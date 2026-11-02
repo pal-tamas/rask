@@ -18,7 +18,8 @@ public sealed partial class OtpParity : FluxParity
     // holds only what the kit writes. Layered, as an app's are: the field's own margin under a label is a
     // utility too, and it is the later one.
     private const string AppUtilities =
-        "<style>@layer base{.mx-auto{margin-inline:auto}.text-center{text-align:center}"
+        "<style>@layer base{.mx-auto{margin-inline:auto}.text-center{text-align:center}.w-full{width:100%}"
+        + ".parity-space-y-4>:not(:last-child){margin-bottom:16px}"
         + ".sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border-width:0}"
         + "}</style>";
 
@@ -38,9 +39,9 @@ public sealed partial class OtpParity : FluxParity
                     Div.Style("margin-bottom:32px")[
                         Ui.Otp.Value("").Length(6).Label("OTP Code").LabelSrOnly().ErrorIcon(false).ErrorClass("text-center").Class("mx-auto")
                     ],
-                    Div[
-                        StandIn("height:40px;margin-bottom:16px", "Verify"),
-                        StandIn("height:40px", "Resend code")
+                    Div.Class("parity-space-y-4")[
+                        Ui.Button.Primary.Type(Ui.ButtonType.Submit).Class("w-full")["Verify"],
+                        Ui.Button.Class("w-full")["Resend code"]
                     ]
                 ]
             ]
@@ -90,7 +91,4 @@ public sealed partial class OtpParity : FluxParity
     // The docs page centres each example in a flex row, so the row of cells is as wide as its cells.
     private static Component Centered(Component example) =>
         Div.Style("display:flex;justify-content:center")[Raw.Value(AppUtilities), Div[example]];
-
-    private static Component StandIn(string box, string text) =>
-        Div.Data("parity-skip").Style(box + ";overflow:hidden;font-size:14px;line-height:20px;white-space:nowrap")[text];
 }

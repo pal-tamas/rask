@@ -15,10 +15,6 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <c>node scripts/flux/parity-editor.mjs</c>, which mounts the kit's engine on this same page and drives
 ///     it and Flux's live editor through one scenario.
 ///     </para>
-///     <para>
-///     Stand-ins: the <c>flux:dropdown</c> and <c>flux:menu</c> of the "customization" example are another
-///     page's, not rebuilt yet.
-///     </para>
 /// </remarks>
 public sealed partial class EditorParity : FluxParity
 {
@@ -72,10 +68,13 @@ public sealed partial class EditorParity : FluxParity
                 Ui.EditorToolbar[
                     Standard(),
                     Ui.EditorSpacer,
-                    // flux:dropdown and flux:menu are not rebuilt: the wrapper is held to its place, the menu is a box.
-                    Div.Attributes(("data-ui-dropdown", ""), ("data-parity-skip", "self")).Style("display:flex")[
+                    Ui.Dropdown.Bottom.End.Offset(-15)[
                         Ui.EditorButton.Icon(Ui.IconName.EllipsisHorizontal).Tooltip("More"),
-                        Div.Attributes(("data-ui-menu", ""), ("data-parity-skip", "")).Style("display:none")
+                        Ui.Menu[
+                            Ui.MenuItem.Icon(Ui.IconName.ArrowTopRightOnSquare)["Preview"],
+                            Ui.MenuItem.Icon(Ui.IconName.ArrowDownTray)["Export"],
+                            Ui.MenuItem.Icon(Ui.IconName.Share)["Share"]
+                        ]
                     ]
                 ],
                 Ui.EditorContent

@@ -20,7 +20,7 @@ public sealed partial class ModalParity : FluxParity
     // What an app's own Tailwind build emits for the classes Flux's examples hand to `class`, under names of
     // this page's own: unlayered, a real utility's name would beat the kit's `dark:` twin of it.
     internal const string AppUtilities =
-        "<style>.parity-min-w-22{min-width:22rem}.parity-mt-2{margin-top:8px}.parity-mb-2{margin-bottom:8px}"
+        "<style>.parity-min-w-22{min-width:22rem}.parity-mt-2{margin-top:8px}"
         + "@media (min-width:48rem){.parity-w-96{width:24rem}.parity-w-lg{width:32rem}}</style>";
 
     public override string Page => "modal";
@@ -56,7 +56,7 @@ public sealed partial class ModalParity : FluxParity
             Div[Ui.Heading.Lg["Update profile"], Ui.Text.Class("parity-mt-2")["Make changes to your personal details."]],
             Ui.Input.Of<string>().Label("Name").Placeholder("Your name"),
             Ui.Input.Of<string>().Label("Date of birth").Type(InputType.Date),
-            Div.Style("display:flex")[Spacer(), Ui.Button.Primary.Type(Ui.ButtonType.Submit)["Save changes"]]);
+            Div.Style("display:flex")[Ui.Spacer, Ui.Button.Primary.Type(Ui.ButtonType.Submit)["Save changes"]]);
 
     internal static Component Confirmation() =>
         SpaceY(6,
@@ -65,20 +65,15 @@ public sealed partial class ModalParity : FluxParity
                 Ui.Text.Class("parity-mt-2")["You're about to delete this project.", Br, "This action cannot be reversed."]
             ],
             Div.Style("display:flex;gap:8px")[
-                Spacer(),
+                Ui.Spacer,
                 Ui.ModalClose[Ui.Button.Ghost["Cancel"]],
                 Ui.Button.Danger.Type(Ui.ButtonType.Submit)["Delete project"]
             ]);
 
     internal static Component FloatingProfile() =>
         SpaceY(6,
-            // Flux's subheading, which the kit has not rebuilt: the line it takes, and the 8px Flux's heading
-            // keeps above one (its own rule for a heading a subheading follows).
-            Ui.Heading.Lg.Class("parity-mb-2")["Update profile"],
-            Div.Data("parity-skip", "").Style("height:20px"),
+            Ui.Heading.Lg["Update profile"],
+            Ui.Subheading["Make changes to your personal details."],
             Ui.Input.Of<string>().Label("Name").Placeholder("Your name"),
             Ui.Input.Of<string>().Label("Date of birth").Type(InputType.Date));
-
-    // Flux's spacer, which the kit's is not yet: the room it takes in a row.
-    private static Component Spacer() => Div.Data("parity-skip", "").Style("flex:1 1 0%");
 }

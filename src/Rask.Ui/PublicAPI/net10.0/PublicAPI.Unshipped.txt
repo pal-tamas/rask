@@ -2901,6 +2901,8 @@ Rask.UiSliderTick.Value.get -> double
 Rask.UiSliderTick.Value.set -> void
 Rask.UiSliderTick.Variant.get -> Rask.Ui.SliderTickVariant?
 Rask.UiSliderTick.Variant.set -> void
+Rask.UiSubheading
+Rask.UiSubheading.UiSubheading() -> void
 Rask.UiSwitch
 Rask.UiSwitch.AfterBind.get -> Rask.Core.Callback<bool>
 Rask.UiSwitch.AfterBind.set -> void
@@ -3939,6 +3941,7 @@ static Rask.Ui.SidebarSpacer.get -> Rask.UiSidebarSpacer!
 static Rask.Ui.SidebarToggle.get -> Rask.UiSidebarToggle!
 static Rask.Ui.Slider.get -> Rask.RaskSeed_UiSlider
 static Rask.Ui.SliderTick.get -> Rask.RaskSeed_UiSliderTick
+static Rask.Ui.Subheading.get -> Rask.UiSubheading!
 static Rask.Ui.Switch.get -> Rask.RaskSeed_UiSwitch
 static Rask.Ui.TimelineBlock.get -> Rask.UiTimelineBlock!
 static Rask.Ui.TimelineContent.get -> Rask.UiTimelineContent!

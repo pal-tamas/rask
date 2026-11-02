@@ -6,10 +6,9 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <c>fluxui.dev/components/timeline</c>, example for example.
 /// </summary>
 /// <remarks>
-///     What an item SAYS on Flux's page is other components, and the heading, the text, the small badge, the
-///     callout and its buttons are the real ones, with the page's own words. The avatars, the reaction button
-///     and the composer of the comment thread are not rebuilt yet: each is a stand-in of the size Flux's
-///     measures, marked <c>data-parity-skip</c> — held to its place and its size and not looked into.
+///     What an item SAYS on Flux's page is other components — the heading, the text, the small badge, the
+///     callout and its buttons, the avatars and the composer of the comment thread — and each is the real one,
+///     with the page's own words.
 /// </remarks>
 public sealed partial class TimelineParity : FluxParity
 {
@@ -28,8 +27,15 @@ public sealed partial class TimelineParity : FluxParity
         + ".parity-reply{padding:.75rem;background-color:#fff}"
         + ".parity-reply:where(.dark,.dark *){background-color:oklch(21% .006 285.885)}"
         + ".parity-below{margin-bottom:.25rem}"
-        // The composer stand-in: its lines are 24px on a phone, where the composer sets its text in 16px.
-        + "@media (width < 40rem){.parity-composer{height:110px!important}}"
+        // The reaction button: `size-6 rounded-full border border-zinc-200 dark:border-zinc-600 hover:bg-white
+        // dark:hover:bg-zinc-700 text-zinc-300 dark:text-zinc-500 hover:text-zinc-400 dark:hover:text-zinc-300
+        // shadow-xs grid place-items-center`, and the `mt-2` above it.
+        + ".parity-react{width:1.5rem;height:1.5rem;border-radius:calc(infinity*1px);border:1px solid oklch(92% .004 286.32);"
+        + "color:oklch(87.1% .006 286.286);box-shadow:0 1px 2px 0 rgb(0 0 0/.05);display:grid;place-items:center}"
+        + ".parity-react:where(.dark,.dark *){border-color:oklch(55.2% .016 285.938);color:oklch(55.2% .016 285.938)}"
+        + "@media (hover:hover){.parity-react:hover{background-color:#fff;color:oklch(70.5% .015 286.067)}"
+        + ".parity-react:where(.dark,.dark *):hover{background-color:oklch(37% .013 285.805);color:oklch(87.1% .006 286.286)}}"
+        + ".parity-mt-2{margin-top:.5rem}"
         + ".\\[--ui-timeline-item-gap\\:1\\.5rem\\]{--ui-timeline-item-gap:1.5rem}"
         + ".\\[--ui-timeline-item-gap\\:3rem\\]{--ui-timeline-item-gap:3rem}"
         + ".\\[--ui-timeline-content-gap\\:1rem\\]{--ui-timeline-content-gap:1rem}"
@@ -92,16 +98,16 @@ public sealed partial class TimelineParity : FluxParity
             Approved()
         ]));
 
-        // A comment and a reply box: each row an avatar (24px, a stand-in) and what is said — the comment's
-        // heading and text over the reaction button (a stand-in), and the composer (a stand-in of its height).
-        // The card's look and the rule between the rows are the example's own classes.
+        // A comment and a reply box: each row an avatar and what is said — the comment's heading and text over
+        // the reaction button, and the composer. The card's look and the rule between the rows are the example's
+        // own classes.
         yield return ("block-subgrid", Preview(Ui.Timeline[
             Requested(),
             Ui.TimelineItem[
                 Ui.TimelineBlock.Class("parity-thread")[
-                    Ui.TimelineSubgrid.Class("parity-said")[Words("width:24px;height:24px"), Comment()],
+                    Ui.TimelineSubgrid.Class("parity-said")[Ui.Avatar.Xs.Circle().Src(NavigationStandIns.Josh), Comment()],
                     Div.Class("parity-rule"),
-                    Ui.TimelineSubgrid.Class("parity-reply")[Words("width:24px;height:24px"), Words("height:102px").Class("parity-composer")]
+                    Ui.TimelineSubgrid.Class("parity-reply")[Ui.Avatar.Xs.Circle().Src(NavigationStandIns.Caleb), Div[Reply()]]
                 ]
             ],
             Tagged(),
@@ -132,10 +138,6 @@ public sealed partial class TimelineParity : FluxParity
     // A preview on Flux's page: the timeline in a 480px box, centred.
     private static Component Preview(params Component[] content) =>
         Div.Style("display:flex;justify-content:center")[Div.Style("min-width:480px")[content]];
-
-    // Stand-in for what is not rebuilt yet (flux:avatar, flux:composer, the reaction button): a box of the size
-    // measured on Flux's page.
-    private static HTMLDivElement Words(string size) => Div.Data("parity-skip", "").Style(size);
 
     private static Component Mark(Ui.IconName icon) => Ui.TimelineIndicator[Ui.Icon.Name(icon).Micro];
 
@@ -176,8 +178,21 @@ public sealed partial class TimelineParity : FluxParity
         Div[
             Ui.Heading.Class("parity-below")["james_rob ", Ui.Text.Inline().Class("font-medium")["commented · 4 days ago"]],
             Ui.Text.Class("parity-comment")["Contrast slider goes a bit wild at the top end..."],
-            Words("height:24px;margin-top:8px")
+            Div.Class("parity-mt-2")[Div.Class("parity-react")[Ui.Icon.Name(Ui.IconName.FaceSmile).Micro]]
         ];
+
+    private static Component Reply() =>
+        Ui.Composer.Of<string>().Variant(Ui.ComposerVariant.Input).Placeholder("Leave a reply...")
+            .Label("Prompt").LabelSrOnly().Description("Enter your prompt here").DescriptionSrOnly()
+            .ActionsLeading([
+                Ui.Button.Sm.Subtle.Icon(Ui.IconName.PaperClip),
+                Ui.Button.Sm.Subtle.Icon(Ui.IconName.Slash),
+                Ui.Button.Sm.Subtle.Icon(Ui.IconName.AdjustmentsHorizontal),
+            ])
+            .ActionsTrailing([
+                Ui.Button.Sm.Filled.Icon(Ui.IconName.Microphone),
+                Ui.Button.Type(Ui.ButtonType.Submit).Sm.Primary.Icon(Ui.IconName.PaperAirplane),
+            ]);
 
     private static Component Said(params Component[] lines) => Ui.TimelineContent.Class("gap-1")[lines];
 }

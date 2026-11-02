@@ -6,10 +6,8 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     A table's cells hold OTHER Flux components — avatars, badges, a row menu — and its page sets it in a
-///     card and under a pager. The card, its heading and text, the pager, every button and the avatars are the
-///     real ones. The dropdown around a row's button is not rebuilt yet, so it is a plain box
-///     marked <c>data-parity-skip</c>: the comparison holds it to the room it takes and looks no further.
-///     Everything that is the table's own is compared whole.
+///     card and under a pager. The card, its heading and text, the pager, every button, the avatars and each
+///     row's dropdown and its closed menu are the real ones. Everything that is the table's own is compared whole.
 ///     </para>
 ///     <para>
 ///     The live examples are fuller than the snippets printed beside them (the sticky tables have ten rows,
@@ -236,13 +234,17 @@ public sealed partial class TableParity : FluxParity
             _ => null,
         })[status];
 
-    // flux:dropdown around a ghost button. The dropdown and its closed menu are stand-ins — neither is
-    // rebuilt yet — and the button between them is compared. The sticky tables' examples set theirs 6px in
-    // from the edge, which is the docs page's doing and is stated in AppUtilities.
+    // <flux:dropdown position="bottom end" offset="-25"> around a ghost button, and its menu. The sticky
+    // tables' examples set the button 6px in from the edge, which is the docs page's doing and is stated in
+    // AppUtilities.
     private static Component RowMenu(string? gap = null) =>
-        Div.Style("display:inline-flex").Attributes(("data-ui-dropdown", ""), ("data-parity-skip", "self"))[
+        Ui.Dropdown.Bottom.End.Offset(-25)[
             Ui.Button.Ghost.Sm.Icon(Ui.IconName.EllipsisHorizontal).Class(gap),
-            Div.Style("display:none").Attributes(("data-ui-menu", ""), ("data-parity-skip", ""))
+            Ui.Menu[
+                Ui.MenuItem.Icon(Ui.IconName.DocumentText)["View invoice"],
+                Ui.MenuItem.Icon(Ui.IconName.ReceiptRefund)["Refund"],
+                Ui.MenuItem.Icon(Ui.IconName.ArchiveBox)["Archive"]
+            ]
         ];
 
     // flux:pagination, as the docs page's table is handed it: 24 orders, five to a page.
