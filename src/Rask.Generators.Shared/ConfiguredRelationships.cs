@@ -58,7 +58,8 @@ internal static class ConfiguredRelationships
             ends.Dependent.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             ends.Principal.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             new EquatableArray<string>(keys),
-            JoinsAnotherKey(call));
+            JoinsAnotherKey(call),
+            PrincipalCollection(call));
     }
 
     // ReferenceCollectionBuilder<TPrincipal, TDependent>, or a one-to-one whose HasForeignKey<TDependent> says which end holds it.
@@ -116,6 +117,25 @@ internal static class ConfiguredRelationships
             .Select(static i => i.Expression is MemberAccessExpressionSyntax access ? access.Name.Identifier.ValueText : null)
             .ToList();
         return names.Contains(null) ? null : [.. names.OfType<string>()];
+    }
+
+    // HasMany(c => c.Countries) or WithMany(c => c.Countries) below the foreign key in its chain: the principal's
+    // collection of the dependents, when the chain names one.
+    private static string? PrincipalCollection(InvocationExpressionSyntax call)
+    {
+        for (var receiver = (call.Expression as MemberAccessExpressionSyntax)?.Expression;
+             receiver is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access } invocation;
+             receiver = access.Expression)
+        {
+            if (access.Name.Identifier.ValueText is "HasMany" or "WithMany" &&
+                invocation.ArgumentList.Arguments.Count == 1 &&
+                invocation.ArgumentList.Arguments[0].Expression is LambdaExpressionSyntax { ExpressionBody: MemberAccessExpressionSyntax collection })
+            {
+                return collection.Name.Identifier.ValueText;
+            }
+        }
+
+        return null;
     }
 
     // HasPrincipalKey anywhere in the same chain, before or after the foreign key.

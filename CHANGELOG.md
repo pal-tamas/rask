@@ -440,6 +440,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
+  `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
+  over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a
+  second navigation over that id beside its way back to the root, and EF Core warned at startup — "the foreign key
+  property 'ForeignTaxCategoryCountryRead.ForeignTaxProductCategoryId1' was created in shadow state" — then selected
+  a column the table has not got. The relationship a root holds its children by is now that way back
+  (`row.ForeignTaxCategory`) and nothing else; the root part spelled as the aggregate
+  (`Entity<(ForeignTaxCategory, Country)>`) and a grandchild held over its child's columns read the same way. See
+  [Configured relationships win](docs/data.md#configured-relationships-win).
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook

@@ -119,6 +119,7 @@ internal sealed class ConfiguredReferences
     {
         if (relationship is not { OnAlternateKey: false, ForeignKeys.Count: 1 } ||
             !_bySource.TryGetValue(relationship.PrincipalTypeName, out var target) ||
+            HoldsAsChild(target, shape, relationship) ||
             shape.Members.FirstOrDefault(m => string.Equals(m.Name, relationship.ForeignKeys[0], StringComparison.Ordinal)) is not { } foreignKey ||
             !string.Equals(foreignKey.TypeName, target.IdTypeName, StringComparison.Ordinal))
         {
@@ -131,6 +132,15 @@ internal sealed class ConfiguredReferences
 
         return new Navigable(foreignKey, target, idName, idName?.EndsWith(LastWord(target.SourceName), StringComparison.Ordinal) == true);
     }
+
+    // The relationship a root holds this entity by — HasMany(c => c.Countries) over its own children — is the face's way
+    // back to that root already, under the root's name. A second navigation over the same id is a second relationship on
+    // one column, which EF Core keeps apart only with a shadow column the table has not got.
+    private static bool HoldsAsChild(ReadShape target, ReadShape shape, ReadRelationship relationship) =>
+        relationship.PrincipalCollection is { } collection &&
+        target.Children.Any(c =>
+            string.Equals(c.Name, collection, StringComparison.Ordinal) &&
+            string.Equals(c.ChildReadType, shape.FullyQualifiedName, StringComparison.Ordinal));
 
     private static string Tried(Navigable candidate) =>
         candidate.IdName is null || string.Equals(candidate.IdName, candidate.Target.SourceName, StringComparison.Ordinal)
