@@ -171,8 +171,9 @@ SH
 chmod +x "$work/trusted-key"
 trusted() {
   : > "$FAKE/exchanges.log"
-  out="$(FAKE_VERSION="$version" PUSH_CMD="$work/push" TRUSTED_KEY_CMD="$work/trusted-key" python3 "$publish" push "$dir" \
-    --source the-feed --trusted-publisher rask-bot --backoff 0.01 --throttle-wait 0.03 --poll 0.05 "$@" 2>&1)"
+  out="$(env -u GITHUB_ACTIONS FAKE_VERSION="$version" PUSH_CMD="$work/push" TRUSTED_KEY_CMD="$work/trusted-key" \
+    python3 "$publish" push "$dir" --source the-feed --trusted-publisher rask-bot --backoff 0.01 --throttle-wait 0.03 \
+    --poll 0.05 "$@" 2>&1)"
 }
 
 fresh trusted
@@ -187,6 +188,15 @@ trusted --key-life 0; status=$?
 same "a key past its life is asked for again before every level" "$status:$(wc -l < "$FAKE/exchanges.log" | xargs)" "0:4"
 check "and the publish still goes in order" before Rask.Server Rask.Postgres
 if grep -q "temp-key-" <<< "$out"; then fail "no temporary key is ever printed" "$out"; else ok "no temporary key is ever printed"; fi
+
+# On a runner the key's one appearance is the ::add-mask:: line, which the runner swallows and then masks
+# the key with everywhere; nothing else may carry it.
+fresh trusted-runner
+: > "$FAKE/exchanges.log"
+out="$(GITHUB_ACTIONS=true FAKE_VERSION="$version" PUSH_CMD="$work/push" TRUSTED_KEY_CMD="$work/trusted-key" \
+  python3 "$publish" push "$dir" --source the-feed --trusted-publisher rask-bot --backoff 0.01 --poll 0.05 2>&1)"
+same "on a runner the key is masked before it is used" "$(grep -c '^::add-mask::temp-key-1-never-printed$' <<< "$out")" "1"
+same "and appears nowhere else" "$(grep -c 'temp-key-' <<< "$out")" "1"
 
 env -u ACTIONS_ID_TOKEN_REQUEST_URL -u ACTIONS_ID_TOKEN_REQUEST_TOKEN -u TRUSTED_KEY_CMD FAKE_VERSION="$version" PUSH_CMD="$work/push" python3 "$publish" push "$dir" --source the-feed --trusted-publisher rask-bot > "$work/oidc.out" 2>&1
 same "with no OIDC token in the job it stops before pushing" "$?" "2"
