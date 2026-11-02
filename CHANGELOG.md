@@ -233,10 +233,11 @@ them until tagged releases begin.
 ### Changed
 - **BREAKING: an unkeyed list of child components no longer builds — RASK022 is an error for a component row**
   (#1243). The parent keeps a row component's instance by its position, so an event already on its way to the row in
-  place N ran on whichever record sat in place N by the time it arrived: removing a row and clicking "Delete" on the
-  next one deleted the row after it. The stale-event check cannot see that (nothing about the handler moved), so the
-  build refuses the shape instead. It covers a component that renders itself (`Render()` overridden: a row, a card,
-  any `Ui.*` part) produced in a `.Select`/`.SelectMany` projection or `.Add`ed to a component list in a loop; a
+  place N ran on whichever record sat in place N by the time it arrived: a "Delete" clicked just as the row above it was
+  removed deleted the row below it. The stale-event check cannot see that (nothing about the handler moved), so the
+  build refuses the shape instead. It covers a component that renders itself (`Render()` overridden: your row or
+  card, `Ui.Card`, `Ui.Modal`, `Ui.SelectOption` and the other `Ui.*` parts that draw their own markup) produced in
+  a `.Select`/`.SelectMany` projection or `.Add`ed to a component list in a loop; a
   plain HTML element row (`Li[…]`) stays a warning. **To change:** key the row by its record —
   `rows.Select(r => OrderRow.Order(r).Key(r.Id))`, never by its index. A list that is deliberately positional keeps
   building under `#pragma warning disable RASK022`.

@@ -377,7 +377,7 @@ in a loop) without a `Key`. Keyless items reconcile **by position**, which loses
 and emits untrusted structural diffs on insert/remove/move.
 
 For a **component row** — anything that renders itself (it overrides `Render()`: your own row or card,
-a `Ui.*` part, an island) — position also decides which instance is reused, so the row's own state and
+a `Ui.*` part that draws its own markup, an island) — position also decides which instance is reused, so the row's own state and
 its own handlers follow the slot rather than the item. That position is its order among the components
 of its type the same `Render()` writes. A row inserted at the top hands every row below it the state of
 the row above; and an event already on its way — a click on "Delete" on the second row, sent just as the
