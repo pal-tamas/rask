@@ -435,6 +435,15 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **A `Ui.Table`'s HTML is under a quarter of what it was.** Every cell wrote Flux's whole class list, some 200 characters
+  thirteen times a row, and a list of 9,730 rows came to 31.6 MB. Now what every heading and cell share — padding,
+  size, ink, dividers — is written once, in the kit's sheet, on their `data-ui-column` / `data-ui-cell` markers at no
+  weight, and a cell writes only what differs: an alignment, a strong tone, a sticky edge, your class. A row of
+  thirteen plain cells went from 2,962 characters to 557; one as a list writes it (a strong date, end-aligned
+  figures, a truncated name, an edit button) from 3,797 to 1,489. A first GET of 5,000 rows of fourteen cells sends
+  3.6 MB instead of 15.7 MB and allocates 1,385 bytes a cell instead of 3,361. It looks the same, pixel for pixel
+  against Flux, and your class on a cell or a heading now wins as it is (`ps-10`, `text-xs`, no `!`); a class that
+  contradicts the `<table>`'s own list still takes `!` (`table-auto!`).
 - **A redeploy downloads no NuGet package, npm package, Tailwind CLI or PDF browser it already has.** Every
   template's Dockerfile keeps NuGet's packages, npm's cache, the Tailwind CLI and Rask.Pdf's pinned Chrome
   headless shell in BuildKit cache mounts (`# syntax=docker/dockerfile:1`; Docker 23+ with buildx, or Podman 4+),
@@ -629,9 +638,13 @@ them until tagged releases begin.
 - **A `Ui.Table` that fits its box no longer draws a scrollbar.** Before: an `sr-only` heading at the end of a column
   that keeps to its end — the row actions' column, last in nearly every list — sat a pixel past the table's edge, and
   the scroll area scrolled sideways by that pixel: a scrollbar under rows that fitted, in Safari and wherever
-  scrollbars always show. Now every table cell is the containing block of what is placed inside it, and an `sr-only`
-  box in a table sits in its cell's first corner. A `sticky` column keeps its place; a checkbox's native input stays
-  in its own row. Nothing to change in an app.
+  scrollbars always show. Now an `sr-only` box in a table keeps to the scroll area's start edge, in its own row, so it
+  is never past an edge; the cells stay static, as Flux's are (the first fix made every cell `relative`, which Flux's
+  are not). That first fix also broke a row's `Ui.Checkbox` in a narrow column (TA, nightly .2537): the positioned
+  cell after it painted over the box and took its click; with static cells the box takes the click again. A
+  `sticky` column keeps its place; focus on a checkbox's native input still scrolls to its row. Nothing to change in
+  an app, except a ticking column with no width in a `table-fixed` table: it gets what the other columns leave, which
+  can be nothing, so give it one that holds its box and badges.
 - **`rask.sh` names the package when the Node it installed cannot start.** Node 26.13.0, the line's first LTS
   (2026-10-28), links `libatomic.so.1`, which every minimal Linux image (`debian:*-slim`, Ubuntu, Fedora containers)
   leaves out — so on a bare box the installer verified, unpacked and reported Node as installed, and the first `node`

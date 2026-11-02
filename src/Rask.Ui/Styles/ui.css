@@ -439,24 +439,68 @@
 }
 
 /*
-  WHAT A TABLE SAYS TO A SCREEN READER ALONE TAKES NO ROOM IN ITS SCROLL AREA (TA and Eszaf, 2026-10-29).
+  EVERY HEADING AND EVERY CELL OF A TABLE LOOKS THE SAME, SO THE LOOK IS WRITTEN ONCE, HERE (owner, 2026-11-02).
 
-  An `sr-only` box is a pixel square placed where its text would have started. Under a heading that keeps to its
-  end — the row actions' column, the last — that is the table's edge, and the pixel past it made the scroll area
-  scroll: every list drew a scrollbar under rows that fitted. A cell holds what it hides, then: each is the
-  containing block of what is placed inside it, and the hidden box sits in its first corner, a pixel inside it,
-  whichever way the text runs. A checkbox's native input is such a box too, so focusing one scrolls to its own row.
-  A sticky column's `sticky` is a utility, a layer above this, and keeps its place.
+  Flux writes its whole look on each cell — some 200 characters of classes, thirteen times a row — and a list of
+  9,730 rows came to 31.6 MB of HTML, most of it the same class string. Here the look Flux's cells and headings
+  share is keyed on their markers, computed exactly as Flux's classes compute (the same utilities, applied), and a
+  cell writes only what differs: its alignment, a strong tone, a sticky edge, and whatever the app adds.
+
+  Everything here weighs nothing (`:where`) and sits in `rask`, below `utilities`: a class an app writes on a cell
+  or a heading (`ps-10`, `text-xs`, `py-0`, `border-t-0`) wins as it is, and so does the cell's own variant.
+  Flux's order holds within: the box, then the first and last cell's edge, as `first:ps-0` follows `px-3`.
 */
 @layer rask {
-  :where([data-ui-table]) :where(th, td) {
-    position: relative;
+  :where([data-ui-column]) {
+    @apply py-3 px-3 text-start text-sm font-medium text-zinc-800 border-b border-zinc-800/10;
+
+    @variant dark {
+      @apply text-white border-white/20;
+    }
   }
 
-  :where([data-ui-table]) .sr-only {
-    inset-block-start: 0;
+  :where([data-ui-cell]) {
+    @apply py-3 px-3 text-sm text-zinc-500 border-zinc-800/10;
+
+    @variant dark {
+      @apply text-zinc-300 border-white/20;
+    }
+  }
+
+  /* Flux's `not-in-[tr:first-child]:border-t`: the line above every row but the first. */
+  :where([data-ui-cell]:not(tr:first-child *)) {
+    @apply border-t;
+  }
+
+  :where([data-ui-column], [data-ui-cell]):where(:first-child) {
+    @apply ps-0;
+  }
+
+  :where([data-ui-column], [data-ui-cell]):where(:last-child) {
+    @apply pe-0;
+  }
+}
+
+/*
+  WHAT A TABLE SAYS TO A SCREEN READER ALONE TAKES NO ROOM IN ITS SCROLL AREA (TA and Eszaf, 2026-10-29; 2026-11-02).
+
+  How Flux keeps it out, measured on fluxui.dev/components/table: its scroll area and its cells are static, so a box
+  placed absolutely in a cell belongs to a block OUTSIDE the scroll area and adds nothing to what it scrolls — an
+  `sr-only` heading written into the last heading of every example there leaves each area's scroll width as it was,
+  at 1280, 1013 and 390 wide. The kit's cells are static as Flux's. Its scroll area is not: it is `relative` (the
+  approved departure of 2026-10-14, so a checkbox's native input or an `sr-only` heading never scrolls a phone's
+  page sideways), and that makes such a box count. Tailwind's `sr-only` is a pixel square at its own place, pulled
+  back a pixel by its margin; under a heading that keeps to its end, the row actions', the last, flex puts that
+  square one pixel past the table's edge, and every list scrolled sideways under rows that fitted.
+
+  So, inside a table, the box keeps the scroll area's start edge across and its own row down: the start inset is
+  the area's first column, nothing past an edge, and focus on a checkbox's native input still scrolls to its row. No
+  cell is positioned and no node of Flux's changes (none of its tables holds such a box); a sticky cell is the
+  block of what it holds, and it lands at that cell's start.
+*/
+@layer rask {
+  :where([data-ui-table]) :where(.sr-only) {
     inset-inline-start: 0;
-    margin: 0;
   }
 }
 

@@ -109,12 +109,14 @@ internal sealed partial class UiTableBehaviour : Component
         ]);
 
     private static UiDocsTopic Classes() =>
-        UiDocsTopic.Key("classes").Heading("Flux's classes, and yours with !").Paragraphs([
-            "Every part writes Flux's own class list: a cell's padding, text size and colour, a heading's, the table's "
-            + "`table-fixed`, `text-zinc-800` and `whitespace-nowrap`. A class of yours that only adds (`truncate`, `w-40`, "
-            + "`align-top`, `py-0`, `whitespace-normal` on a cell) does what it says. One that contradicts a default is "
-            + "written with Tailwind's `!`, as Flux's guide says: `ps-10!` on a first cell, `dark:text-white/70!`, "
-            + "`text-xs!`, `table-auto!`. `colspan` and `scope` go through `.Attributes((\"colspan\", \"3\"))`.",
+        UiDocsTopic.Key("classes").Heading("Flux's look, and your classes").Paragraphs([
+            "Every heading and every cell looks as Flux's do, and that look is written once, in the kit's sheet, not on each "
+            + "cell: a cell writes only what differs (an alignment, a strong tone, a sticky edge), so a long list stays "
+            + "small. The shared look weighs nothing, so a class of yours on a cell or a heading wins as it is: `ps-10` on a "
+            + "first cell, `text-xs`, `py-0`, `truncate`, `whitespace-normal`. The table itself writes Flux's own list "
+            + "(`table-fixed`, `text-zinc-800`, `whitespace-nowrap`): a class that contradicts it is written with "
+            + "Tailwind's `!`, as Flux's guide says (`table-auto!`), and so is one that overrides a strong cell's ink "
+            + "(`dark:text-white/70!`). `colspan` and `scope` go through `.Attributes((\"colspan\", \"3\"))`.",
         ]);
 
     private static UiDocsTopic Frame() =>

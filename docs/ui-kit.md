@@ -486,8 +486,10 @@ reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 page keeps the sorted column, its direction and the page number (`Sortable()`, `Sorted`, `Direction`, `OnSort`, and
 `Paginate(Ui.Pagination…)` under the rows). A slow page change keeps the rows and dims them with nothing to write;
 `w-full` on the table and a width on every column but one keep the columns still from page to page
-(`ContainerClass("min-w-0")` inside a grid or a flex row). Every example, the dimming marks, the steady-columns recipe,
-sticky parts, bleed, whose class wins, and the reference of its steps:
+(`ContainerClass("min-w-0")` inside a grid or a flex row). A cell's and a heading's look is written once, in the kit's
+sheet, so a cell writes only what differs and a list of thousands of rows stays small; your class on a cell wins as it
+is (`ps-10`, `text-xs`). Every example, the dimming marks, the steady-columns recipe, sticky parts, bleed, whose class
+wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 **`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:

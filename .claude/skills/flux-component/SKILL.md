@@ -14,9 +14,10 @@ behaviour **to the pixel and to the keypress**. Its theme is Flux's alone: the z
 MIT. **Never open, read or copy that repository's Blade, CSS or JS.** Everything comes from the
 PUBLIC docs site: its markdown (`https://fluxui.dev/components/<slug>.md`, index at `/llms.txt`) and
 its live rendered examples, which `scripts/flux/measure.mjs` measures. Class strings are written from
-the measurements, never transcribed from a page's `class` attributes — except a TABLE's parts, which the
-owner ordered to write Flux's literal per-cell class lists, read off the live DOM (2026-10-28: a printed
-table's size; an app beats a table default with `!`).
+the measurements, never transcribed from a page's `class` attributes — except the TABLE element, which writes
+Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`). Its headings and cells do NOT
+(owner, 2026-11-02, a 9,730-row list was 31.6 MB): their shared look is ONE set of zero-weight rules on
+`[data-ui-column]` / `[data-ui-cell]` in `ui.css`, and a cell writes only what differs.
 
 ## 1. Read and measure
 ```bash
@@ -72,6 +73,13 @@ departure in behaviour carries none.
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
   scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets
   `position` go on that node only (`DEPARTED`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
+  What that costs, and how it is paid without a second departure (#1260, 2026-11-02): Flux keeps an absolutely placed
+  box out of its scroll area because nothing between the cell and the page is positioned (measured: an `sr-only`
+  heading written into the last heading of every example on fluxui.dev changes no area's scroll width). In the kit's
+  `relative` frame that box counts, and an `sr-only` heading at a column's end hung a pixel past the table's edge. The
+  cells stay STATIC as Flux's: an `sr-only` box inside a table takes `inset-inline-start: 0` (`ui.css`, at no weight),
+  the frame's start edge, in its own row. Never `position: relative` on the cells — parity reds.
+  `TableFitsItsBoxTests` (Server E2E) holds the TA/Eszaf shape to `scrollWidth == clientWidth`.
 - **2026-10-21 — `Ui.Modal.Lazy()`.** Flux renders a modal's content always. A lazy modal sends it only while it is
   open: closed, the dialog, its id, marks, focus placeholder and close button; the trigger opens it in the browser,
   `rask-overlay.ts` reports the opening through the shell's `data-rask-modal-shown` field, and one frame brings the
@@ -166,11 +174,14 @@ departure in behaviour carries none.
   per property and state so the kit's own rules never race each other.
   `AnAppsClassWinsTests` resolves that from the compiled sheet for every component and lists in `Known` the
   ones not written so yet, where an app writes Tailwind's `!` (Flux's own advice). Never a `!` in the kit.
-  **Tables are the exception (owner, 2026-10-28):** `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` write
-  Flux's LITERAL class lists in Flux's order (read off fluxui.dev/components/table's live DOM, the `:where`
-  only where Flux has one), so they sit in `Known` on purpose and an app overriding one writes `!`
-  (`ps-10!`, `text-xs!`); `AnAppsClassWinsTests` pins both halves. A cell's lists are built once per
-  variant × align × sticky (a table renders thousands of cells), never composed per render.
+  **Tables (owner, 2026-10-28, then 2026-11-02):** `Ui.Table` writes Flux's LITERAL list (read off
+  fluxui.dev/components/table's live DOM), sits in `Known`, and an app overriding it writes `!` (`table-auto!`).
+  What every `Ui.TableColumn` and `Ui.TableCell` shares — Flux's padding, size, weight, ink and dividers — is NOT
+  on the cell: it is one block of `:where([data-ui-column])` / `:where([data-ui-cell])` rules in `ui.css`
+  (`@layer rask`, the same utilities `@apply`'d, so it computes as Flux's classes do), and an app's class on a
+  cell or heading wins as it is. A cell writes only what differs (alignment, a strong tone, a sticky edge), its
+  lists built once per variant × align × sticky and null when empty — a plain cell writes no `class` at all.
+  A kit rule that must outweigh a UTILITY on the cell (the sort button's `-me-2`) stays a utility.
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.
