@@ -483,6 +483,13 @@ them until tagged releases begin.
   create the database file's parent directory when it is missing, so `Data Source=/tmp/rask/app.db` no longer fails a
   fresh container's first start with `SQLite Error 14: 'unable to open database file'`. An in-memory, read-only,
   `file:` URI or `|DataDirectory|` source is left alone.
+- **A save of several changes inside `Db.Transaction`, on a context made before the block, commits with it.** Before:
+  `await Db.Transaction(() => db.SaveChangesAsync())` with an insert and an update pending, on a context that had
+  read before the block, threw "The connection is already in a transaction and cannot participate in another
+  transaction": EF Core begins its own transaction for a save of several commands, the connection opening for it
+  joined the block's, and EF Core then refused the transaction it had just been handed. A save now joins before it
+  starts, so EF Core finds the block's transaction and runs inside it; a throw after it takes both rows back, and the
+  context saves on its own connection again after the block.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a
