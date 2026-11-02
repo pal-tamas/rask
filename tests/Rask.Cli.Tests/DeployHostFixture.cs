@@ -142,7 +142,11 @@ public sealed class DeployHostFixture : IAsyncLifetime
     public Task<(int Exit, string Output)> DockerAsync(params string[] arguments) =>
         DeployE2E.RunAsync("docker", [.. new[] { "-H", $"ssh://{Host}" }.Concat(arguments)], Environment);
 
-    // The fake VPS: dind (its own dockerd) + sshd, with only our throwaway key trusted.
+    // The fake VPS: dind (its own dockerd) + sshd, with only our throwaway key trusted. Its sshd is put back to
+    // OpenSSH's own defaults for forwarding — what a stock Ubuntu box runs: Alpine's packaged sshd_config says
+    // `AllowTcpForwarding no`, and sshd gates a forwarded unix socket on that too ("Received request to connect to
+    // path /var/run/docker.sock, but the request was denied"), so the deploy's one shared connection never formed.
+    // The drop-in is Included first, and sshd keeps the first value it reads.
     private void WriteImageContext(string publicKeyPath)
     {
         File.Copy(publicKeyPath, Path.Combine(_root, "authorized_keys"), overwrite: true);
@@ -168,7 +172,7 @@ public sealed class DeployHostFixture : IAsyncLifetime
             RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
             COPY authorized_keys /root/.ssh/authorized_keys
             RUN chmod 600 /root/.ssh/authorized_keys \
-             && printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nAllowStreamLocalForwarding yes\n' > /etc/ssh/sshd_config.d/rask-e2e.conf
+             && printf 'PermitRootLogin prohibit-password\nPasswordAuthentication no\nAllowStreamLocalForwarding yes\nAllowTcpForwarding yes\n' > /etc/ssh/sshd_config.d/rask-e2e.conf
             COPY entrypoint.sh /usr/local/bin/rask-vps-entrypoint.sh
             RUN chmod +x /usr/local/bin/rask-vps-entrypoint.sh
             ENTRYPOINT ["/usr/local/bin/rask-vps-entrypoint.sh"]

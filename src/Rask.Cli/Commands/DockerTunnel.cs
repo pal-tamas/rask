@@ -25,6 +25,8 @@ internal sealed class DockerTunnel : IAsyncDisposable
     private readonly CancellationTokenSource _stop;
     private readonly Task<int> _ssh;
     private readonly string _directory;
+    private string? _probeError;
+    private bool _refused;
 
     private DockerTunnel(string host, string directory, CancellationTokenSource stop, Task<int> ssh)
     {
@@ -44,8 +46,12 @@ internal sealed class DockerTunnel : IAsyncDisposable
     /// <summary>Whether the connection is still up. A tunnel that dropped is not used again.</summary>
     public bool IsOpen => !_ssh.IsCompleted;
 
-    /// <summary>The ssh that holds the forward: no command, no tty, no stdin; gives up if the forward can't be made.</summary>
-    internal static IReadOnlyList<string> BuildArguments(SshTarget target, string localSocket) =>
+    /// <summary>
+    /// The ssh that holds the forward: no command, no tty, no stdin; gives up if the forward can't be made. Its log goes
+    /// to <paramref name="logFile"/> (<c>-E</c>), not the deploy's terminal: a refused connection is read back from there
+    /// and said once, as the reason the deploy goes on without the tunnel.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildArguments(SshTarget target, string localSocket, string logFile) =>
     [
         "-n", "-N", "-T",
         "-o", "ExitOnForwardFailure=yes",
@@ -53,6 +59,7 @@ internal sealed class DockerTunnel : IAsyncDisposable
         "-o", "ServerAliveInterval=15",
         "-o", "ServerAliveCountMax=4",
         "-o", "LogLevel=ERROR",
+        "-E", logFile,
         "-L", $"{localSocket}:{RemoteSocket}",
         .. target.ConnectionArguments(freshConnection: true),
     ];
@@ -62,6 +69,8 @@ internal sealed class DockerTunnel : IAsyncDisposable
         ["-H", endpoint, "version", "--format", "{{.Server.Version}}"];
 
     internal static string SocketIn(string directory) => Path.Combine(directory, "docker.sock");
+
+    internal static string LogIn(string directory) => Path.Combine(directory, "ssh.log");
 
     /// <summary>
     /// Open the forward to <paramref name="host"/> and wait until docker answers through it. The tunnel, or why there is
@@ -80,7 +89,7 @@ internal sealed class DockerTunnel : IAsyncDisposable
         Task<int> ssh;
         try
         {
-            ssh = process.RunAsync("ssh", BuildArguments(target, SocketIn(directory)), null, stop.Token);
+            ssh = process.RunAsync("ssh", BuildArguments(target, SocketIn(directory), LogIn(directory)), null, stop.Token);
         }
         catch (Win32Exception e)
         {
@@ -94,7 +103,7 @@ internal sealed class DockerTunnel : IAsyncDisposable
         try
         {
             reached = await wait.UntilAsync(
-                async () => !tunnel.IsOpen || await tunnel.AnswersAsync(process, wait.Timeout, cancellationToken).ConfigureAwait(false),
+                async () => !tunnel.IsOpen || tunnel.WasRefused() || await tunnel.AnswersAsync(process, wait.Timeout, cancellationToken).ConfigureAwait(false),
                 cancellationToken).ConfigureAwait(false);
         }
         catch
@@ -104,14 +113,36 @@ internal sealed class DockerTunnel : IAsyncDisposable
             throw;
         }
 
-        if (reached && tunnel.IsOpen)
+        if (reached && tunnel.IsOpen && !tunnel._refused)
         {
             return (tunnel, null);
         }
 
-        var failure = tunnel.IsOpen ? $"docker did not answer through it within {StopTimeout.Format(wait.Timeout)}" : "ssh would not hold the forward";
+        // Read before the dispose: the log lives in the directory the dispose removes.
+        var failure = tunnel.Failure(wait.Timeout);
         await tunnel.DisposeAsync().ConfigureAwait(false);
         return (null, failure);
+    }
+
+    // A refused connection is final — sshd won't change its mind in twenty seconds — so the wait ends on it.
+    private bool WasRefused()
+    {
+        _refused = SshForwardLog.IsRefusal(SshForwardLog.LastLine(LogIn(_directory)));
+        return _refused;
+    }
+
+    // What went wrong, and in whose words: ssh's own last line when it said something, else what docker said last.
+    private string Failure(TimeSpan timeout)
+    {
+        var said = SshForwardLog.LastLine(LogIn(_directory));
+        if (SshForwardLog.IsRefusal(said))
+        {
+            return SshForwardLog.Explain(said);
+        }
+
+        var what = IsOpen ? $"docker did not answer through it within {StopTimeout.Format(timeout)}" : "ssh would not hold the forward";
+        var why = said ?? _probeError;
+        return why is null ? what : $"{what}: {why}";
     }
 
     // One ask, held to the whole wait: a forward that accepted the connection but carries nothing must not hang the deploy.
@@ -121,10 +152,13 @@ internal sealed class DockerTunnel : IAsyncDisposable
         bounded.CancelAfter(limit);
         try
         {
-            return (await process.CaptureAsync("docker", BuildProbeArguments(Endpoint), null, bounded.Token).ConfigureAwait(false)).ExitCode == 0;
+            var probe = await process.CaptureAsync("docker", BuildProbeArguments(Endpoint), null, bounded.Token).ConfigureAwait(false);
+            _probeError = probe.ExitCode == 0 ? null : SshForwardLog.LastNonEmpty(probe.StandardError);
+            return probe.ExitCode == 0;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
+            _probeError = $"one ask took longer than {StopTimeout.Format(limit)}";
             return false;
         }
     }
