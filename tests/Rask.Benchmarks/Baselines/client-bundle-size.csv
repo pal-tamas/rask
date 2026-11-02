@@ -570,3 +570,12 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,124335
+#
+# 2026-11-02, a bound multiple select and a bound pillbox hold their picks in the browser too (rask-list-held.ts:
+# the row switched, the count or the pills drawn, a pill's cross and Backspace taken off, as Flux's wire:model
+# sends nothing): rask-hooks.js 124,335 -> 126,365 (+2,030); rask.js 113,282 and rask.wasm.js 97,691 unchanged.
+# Measured locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on 62c7a871d plus this change.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,126365

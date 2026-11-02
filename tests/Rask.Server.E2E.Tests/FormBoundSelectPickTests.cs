@@ -75,7 +75,8 @@ public sealed class FormBoundSelectPickTests(PlaywrightFixture playwright) : ICl
         await Expect(page.Locator(Trigger)).ToHaveAttributeAsync("aria-expanded", "false");
 
         Assert.True(frames.FullPages.Count == 0, "A step was answered with the whole document:" + Environment.NewLine + frames.Trace());
-        Assert.InRange(frames.LargestReply, 1, 1_500);
+        // A bound pick sends nothing at all now (rask-list-held.ts): whatever is answered stays a few hundred bytes.
+        Assert.InRange(frames.LargestReply, 0, 1_500);
     }
 
     [Fact]

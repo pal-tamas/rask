@@ -96,7 +96,7 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
 
     [Theory]
     [InlineData("#combobox", "input[role=combobox]", "[data-ui-option]", "input[role=combobox]")]
-    [InlineData("#pillbox-typed", "input", "[data-ui-listbox-option]", "[data-ui-pillbox-trigger]")]
+    [InlineData("#pillbox-typed", "input[role=combobox]", "[data-ui-listbox-option]", "[data-ui-pillbox-trigger]")]
     public async Task Text_typed_to_narrow_a_combobox_or_a_pillbox_is_no_edit_either(string box, string input, string option, string trigger)
     {
         await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);

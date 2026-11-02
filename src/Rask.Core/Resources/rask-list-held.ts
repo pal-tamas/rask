@@ -180,10 +180,19 @@ function pills(root: Element, faces: HTMLTemplateElement, shown: readonly string
     return wrapper;
 }
 
-// A named list of several answers posts one field per answer, and one empty field for none.
-function posts(box: Element, shown: readonly string[]): void {
+// A named list of several answers posts one field per answer, and one empty field for none — in the order of the
+// list, as the page posts them, and an answer whose row a render took away after the rest.
+function posts(root: Element, box: Element, shown: readonly string[]): void {
     const name = box.getAttribute("data-name") || "";
-    box.replaceChildren(...(shown.length ? shown : [""]).map(function (value) {
+    const listed: string[] = [];
+    root.querySelectorAll("[" + VALUE + "]").forEach(function (row) {
+        const value = row.getAttribute(VALUE)!;
+        if (shown.indexOf(value) >= 0 && listed.indexOf(value) < 0) {
+            listed.push(value);
+        }
+    });
+    const posted = listed.concat(shown.filter(function (value) { return listed.indexOf(value) < 0; }));
+    box.replaceChildren(...(posted.length ? posted : [""]).map(function (value) {
         const field = box.ownerDocument.createElement("input");
         field.type = "hidden";
         field.name = name;
@@ -213,7 +222,7 @@ function draw(root: Element): void {
     const bound = boundOf(root);
     const box = root.querySelector("[data-rask-list-posts]");
     if (box) {
-        posts(box, held.shown);
+        posts(root, box, held.shown);
     } else {
         root.querySelectorAll<HTMLInputElement>("input[type=hidden][name]").forEach(function (posted) {
             if (posted !== bound) {
