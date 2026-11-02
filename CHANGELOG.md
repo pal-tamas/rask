@@ -478,7 +478,9 @@ them until tagged releases begin.
   that drew the same connection ran serializable — range locks, no read-committed snapshot — and plain reads became
   deadlock victims. The block now puts the connection back to `READ COMMITTED` once it commits, rolls back or throws,
   before it returns to the pool (one statement, only when a non-default level was asked; the contexts that joined the
-  block share that connection). PostgreSQL and SQLite were checked and do not keep the level.
+  block share that connection). PostgreSQL and SQLite were checked and do not keep the level. `UseRaskSqlServer`'s
+  per-open session batch now also starts with `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` (no extra round trip),
+  so a hand-written `BeginTransaction(IsolationLevel.Serializable)` cannot leak into the next pooled use either.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

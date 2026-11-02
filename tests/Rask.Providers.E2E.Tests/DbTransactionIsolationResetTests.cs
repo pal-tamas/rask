@@ -144,6 +144,38 @@ public sealed class SqlServerDbTransactionIsolationResetTests : IAsyncLifetime
         Assert.Equal("2", level);
     }
 
-    private static TenancyDbContext Open() =>
-        new(new DbContextOptionsBuilder<TenancyDbContext>().UseRaskSqlServerAt(SqlServer.Database(DatabaseName)).Options);
+    [Fact]
+    public async Task The_next_open_after_a_hand_written_serializable_transaction_runs_read_committed()
+    {
+        Assert.SkipUnless(SqlServer.Available, SqlServer.SkipReason);
+        string inside;
+
+        // Retrying off: a retrying strategy refuses a transaction begun outside it.
+        await using (var db = Open(retry: false))
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, TestContext.Current.CancellationToken);
+            inside = await Scalar(db, Probe.SessionId);
+            await transaction.CommitAsync(TestContext.Current.CancellationToken);
+        }
+
+        await using var next = Open();
+        await next.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
+        var after = await Scalar(next, Probe.SessionId);
+        var level = await Scalar(next, Probe.Isolation);
+
+        // The same session back from the pool, put back to read committed by the settings sent on every open.
+        Assert.Equal(inside, after);
+        Assert.Equal("2", level);
+    }
+
+    private static Task<string> Scalar(DbContext db, string sql) =>
+#pragma warning disable EF1002 // every probe is a constant of this file
+        db.Database.SqlQueryRaw<string>(sql).SingleAsync(TestContext.Current.CancellationToken);
+#pragma warning restore EF1002
+
+    private static TenancyDbContext Open(bool retry = true) =>
+        new(new DbContextOptionsBuilder<TenancyDbContext>()
+            .UseRaskSqlServerAt(SqlServer.Database(DatabaseName), s => s.Retry.Enabled = retry)
+            .Options);
 }
