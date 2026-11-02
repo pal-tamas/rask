@@ -62,7 +62,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK019](#rask019) | Error | `<head>` is a framework-managed slot |
 | [RASK020](#rask020) | Warning | Scoped-TS simple-name collision |
 | [RASK021](#rask021) | Warning | Root component must not render the page shell |
-| [RASK022](#rask022) | Warning | List item is missing a `Key` |
+| [RASK022](#rask022) | Error | List item is missing a `Key` |
 | [RASK023](#rask023) | Warning | `Img` is missing `Alt` text |
 | [RASK024](#rask024) | Warning | `UseAuthentication()` must precede `MapRask()` |
 | [RASK025](#rask025) | Warning | `InputType` conflicts with the bound `HTMLInputElement<T>` value type |
@@ -370,27 +370,40 @@ rendered body as parameters. Do **not** add a runtime `<script>`; it's auto-appe
 [the document and the `HeadAssets` override](getting-started.md#7-the-document-and-the-headassets-override).
 
 ## RASK022
-**List item is missing a `Key`** · Warning
+**List item is missing a `Key`** · Error (a plain element row: Warning)
 
 A Rask component appears in a sibling-list context (a `.Select`/`.SelectMany` projection, or `.Add`
 in a loop) without a `Key`. Keyless items reconcile **by position**, which loses focus and input state
-and emits untrusted structural diffs on insert/remove/move — and for a component, position also
-decides which instance is reused, so the row's own state follows the slot rather than the item. That
-position is its order among the components of its type the same `Render()` writes: a row inserted at the
-top hands every row below it the state of the row above.
+and emits untrusted structural diffs on insert/remove/move.
+
+For a **component row** — anything that renders itself (it overrides `Render()`: your own row or card,
+a `Ui.*` part that draws its own markup, an island) — position also decides which instance is reused, so the row's own state and
+its own handlers follow the slot rather than the item. That position is its order among the components
+of its type the same `Render()` writes. A row inserted at the top hands every row below it the state of
+the row above; and an event already on its way — a click on "Delete" on the second row, sent just as the
+first row was removed — runs on whichever record sits second **now**, deleting the wrong row (#1243).
+Nothing about the handler moved, so the runtime cannot tell, and the build refuses the shape: **a
+component row without a `Key` is an error**. A plain HTML element row (`Li[…]`) has no instance of its
+own for an event to reach by mistake, so it stays a warning.
 
 Both chain spellings are recognised — `Li[…]` and `Li.Class("c")[…]`. The chain went unreported until
 #704, when the only surface this checked was a factory call: the check matched a method named after the
 component, and a chain has none.
 
 ```csharp
-// ✗ items.Select(i => Li[ i.Name ])
+// ✗ RASK022 (error) — the row component is reused by position
+orders.Select(o => OrderRow.Order(o))
+// ✓ the instance, its state and its events stay with the record
+orders.Select(o => OrderRow.Order(o).Key(o.Id))
+
+// ✗ RASK022 (warning) — items.Select(i => Li[ i.Name ])
 // ✓ items.Select(i => Li.Key(i.Id)[ i.Name ])
 ```
 
-**Fix:** pass a stable `.Key(…)` (an entity id, not the loop index). See
-[keyed lists](getting-started.md) and the [live-rendering architecture](architecture/live-rendering.md)
-for why identity beats position.
+**Fix:** add a stable `.Key(row.Id)` — an entity id, never the loop index (an index is the position
+again). A list that is meant to be positional (a demo of exactly this, a benchmark) keeps building under
+`#pragma warning disable RASK022` with a comment saying why. See [keyed lists](getting-started.md) and
+the [live-rendering architecture](architecture/live-rendering.md) for why identity beats position.
 
 ## RASK023
 **`Img` is missing `Alt` text** · Warning

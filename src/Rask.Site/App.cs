@@ -79,7 +79,8 @@ public partial class App : Component
             .Href(LiveOptions.PathBase + "/global.css")
     ];
 
-    protected override string? BodyClass => "bg-zinc-50 dark:bg-zinc-900";
+    // `antialiased`: text smoothed as a native app smooths it, as the templates' app.css does (NATIVE FEEL).
+    protected override string? BodyClass => "bg-zinc-50 antialiased dark:bg-zinc-900";
 
     // The runtime <script> is injected into <body> automatically — no RaskRuntimeScript().
     protected override Component? Render() => Router;

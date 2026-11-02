@@ -248,11 +248,47 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **Rask.Ui: the kit parts Flux documents only in its examples are held to Flux like every other.** `flux.snapshot.json`
+  (`scripts/flux/refresh.mjs`, the `flux` follower) now also reads a part Flux writes in its examples or lists as an
+  available item but heads no Reference entry with — `flux:spacer`, `flux:navmenu`, `flux:menu.group`, the chart's
+  bar family, the editor's toolbar items — with the props and values its examples write, and `FluxConformanceTests`
+  holds each one in `Built`. Measured on fluxui.dev and made Flux's on the way:
+  - `Ui.Spacer` writes no `aria-hidden`: Flux's spacer is an empty `<div class="flex-1">` with no ARIA.
+  - `Ui.ChartGroup.Width` is gone: Flux's examples set a width on a stack and a bar, never on a group, which fills
+    nine tenths of a row's slot as before.
+  - `Ui.NavmenuItem.IconVariant` (and its `.Mini` / `.Micro` / `.Solid` / `.Outline` steps) is gone: Flux documents
+    no `icon:variant` on a navmenu's row, which draws the 20px icon.
+  - New, as Flux's profile page writes them: `Ui.NavmenuItem.Indent()` (Flux's `indent`: an icon's 28px room, empty,
+    before the words) and `Ui.NavmenuSeparator` (`flux:navmenu.separator`: a menu's line under the navmenu's marker).
+  - `Ui.MenuGroup` and `Ui.Navmenu` match Flux open, light and dark (`parity-menu.mjs dropdown`), unchanged; so do
+    the chart's bars, groups, stacks, viewports and legend indicators (`parity-chart.mjs`, `parity.mjs chart`),
+    `Ui.CheckboxIndicator`, `Ui.PillboxInput` and the editor's eighteen toolbar items (`parity.mjs`,
+    `parity-editor.mjs`).
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
   now says only stop-then-start is safe, to set `WEBSITES_CONTAINER_STOP_TIME_LIMIT` above the grace period, and
   recommends a single-instance VPS/container host, or a server database on App Service.
+- **Rask.Ui feels native on a phone.** The kit's controls — buttons, tabs, nav items, menu rows, triggers,
+  checkboxes, switches, sortable headings, calendar days — select no text and answer a tap at once
+  (`touch-action: manipulation`); a long press on a control or on an avatar or logo opens no callout, and those
+  pictures do not drag (`draggable="false"`); a modal, flyout, menu, popover or the command palette keeps its scroll
+  from the page behind; the header, sidebar, flyouts and toasts keep clear of the notch under `viewport-fit=cover`;
+  the date picker's preset select is 16px below `sm`, so iOS no longer zooms into it. Content — table cells, inputs,
+  text, headings, code, a toast's message — stays selectable, and an app's `select-text` / `touch-auto` / padding
+  wins. A new app (server, wasm, wasm-hosted) writes `viewport-fit=cover`, a light and a dark `theme-color`, and
+  antialiased text plus no bounce of an installed app in `Styles/app.css`. A departure from Flux, recorded in
+  flux-component's list; see [docs/ui-kit.md](docs/ui-kit.md#native-feel).
+- **BREAKING: an unkeyed list of child components no longer builds — RASK022 is an error for a component row**
+  (#1243). The parent keeps a row component's instance by its position, so an event already on its way to the row in
+  place N ran on whichever record sat in place N by the time it arrived: a "Delete" clicked just as the row above it was
+  removed deleted the row below it. The stale-event check cannot see that (nothing about the handler moved), so the
+  build refuses the shape instead. It covers a component that renders itself (`Render()` overridden: your row or
+  card, `Ui.Card`, `Ui.Modal`, `Ui.SelectOption` and the other `Ui.*` parts that draw their own markup) produced in
+  a `.Select`/`.SelectMany` projection or `.Add`ed to a component list in a loop; a
+  plain HTML element row (`Li[…]`) stays a warning. **To change:** key the row by its record —
+  `rows.Select(r => OrderRow.Order(r).Key(r.Id))`, never by its index. A list that is deliberately positional keeps
+  building under `#pragma warning disable RASK022`.
 - **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
   keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
   and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook
@@ -507,6 +543,12 @@ them until tagged releases begin.
   joined the block's, and EF Core then refused the transaction it had just been handed. A save now joins before it
   starts, so EF Core finds the block's transaction and runs inside it; a throw after it takes both rows back, and the
   context saves on its own connection again after the block.
+- **`BeginTransaction`, `Migrate` and `EnsureCreated` on a context inside `Db.Transaction` are refused with the
+  reason.** Before: `db.Database.BeginTransactionAsync()` on a context that had joined the block threw EF Core's
+  "The connection is already in a transaction and cannot participate in another transaction", and `Migrate()` /
+  `EnsureCreated()` ran their schema work inside a transaction the block could still roll back. Now the first says
+  the context is already inside `Db.Transaction(...)` and to remove the call or run it outside the block, and the
+  other two say to run schema work outside `Db.Transaction`. The same calls outside a block run as they always did.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a

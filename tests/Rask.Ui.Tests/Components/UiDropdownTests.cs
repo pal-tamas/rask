@@ -438,6 +438,25 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_indented_navmenu_item_keeps_an_icons_room_empty_before_its_words()
+    {
+        var indented = Ui.NavmenuItem.Href("#").Indent()["Wireable LLC"].ToHtml().AsText();
+        var plain = Ui.NavmenuItem.Href("#")["Wireable LLC"].ToHtml().AsText();
+
+        Assert.Matches("^<a [^>]*data-ui-navmenu-item=\"\"[^>]*><div class=\"w-7\"></div>Wireable LLC</a>$", indented);
+        Assert.DoesNotContain("w-7", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_navmenu_separator_is_a_menus_line_under_the_navmenus_marker()
+    {
+        var html = Ui.NavmenuSeparator.ToHtml().AsText();
+
+        Assert.Matches("^<div class=\"-mx-\\[\\.3125rem\\] my-\\[\\.3125rem\\]\" data-ui-navmenu-separator=\"\"><div[^>]* data-ui-separator", html);
+        Assert.DoesNotContain("ui-menu-separator", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_navmenu_does_not_take_the_ink_of_what_it_hangs_from()
     {
         var html = Ui.Navmenu[Ui.NavmenuItem["Team"]].ToHtml().AsText();

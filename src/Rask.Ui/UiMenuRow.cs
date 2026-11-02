@@ -88,9 +88,11 @@ internal static class UiMenuRow
     internal static Component Icon(Ui.IconName name, Ui.IconVariant? variant) =>
         UiIcon.Marked(ItemIcon, name, variant ?? Ui.IconVariant.Mini, LeadingIcon);
 
-    /// <summary>A navigation menu row's icon: the same drawing under the mark Flux gives it there, <c>data-navmenu-icon</c>.</summary>
-    internal static Component LinkIcon(Ui.IconName name, Ui.IconVariant? variant) =>
-        UiIcon.Marked(LinkMark, name, variant ?? Ui.IconVariant.Mini, LinkLeadingIcon);
+    /// <summary>
+    ///     A navigation menu row's icon: the 20px drawing under the mark Flux gives it there, <c>data-navmenu-icon</c>.
+    ///     Flux documents no <c>icon:variant</c> on a navmenu's row.
+    /// </summary>
+    internal static Component LinkIcon(Ui.IconName name) => UiIcon.Marked(LinkMark, name, Ui.IconVariant.Mini, LinkLeadingIcon);
 
     /// <summary>The icon at the end of a row.</summary>
     internal static Component IconTrailing(Ui.IconName name, Ui.IconVariant? variant) =>
@@ -111,6 +113,12 @@ internal static class UiMenuRow
     ///     stylesheet shows it then — so every row's words start at the same place.
     /// </summary>
     internal static Component Indent() => Markup.Div.Class("w-7").Data("indent", "");
+
+    /// <summary>
+    ///     The room an icon would take in a navigation menu's row that asks for it (<c>indent</c>): always drawn, as
+    ///     Flux's is (measured: 28 × 0, unmarked) — a navmenu does not look for a sibling's icon.
+    /// </summary>
+    internal static Component LinkIndent() => Markup.Div.Class("w-7");
 
     /// <summary>A checkbox or radio row's mark: always the icon's width, drawn only when the row is checked.</summary>
     internal static Component Check(bool on) =>

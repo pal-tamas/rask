@@ -547,6 +547,35 @@ Div.Class("print:hidden")[Ui.Callout["Only on screen."]]   // your own parts: Ta
 Ui.Button.Class("print:inline-flex!")["Kept on paper"]      // a kit control you want printed: an important utility
 ```
 
+## Native feel
+
+On a phone the kit's controls behave like an app's, and its content stays a web page's — a **departure from
+Flux**, which leaves all of this to the browser:
+
+- **Controls select no text.** A long press, a double tap or a drag across a row of buttons selects nothing on
+  buttons, tabs, nav items, menu rows, triggers, checkboxes, radios, switches, sortable headings, calendar days,
+  a toast's buttons, the brand and the profile. Table cells, inputs, editors, code, `Ui.Text`, `Ui.Heading`,
+  badges, callouts, a toast's message and a modal's body stay selectable. Clickables still show the pointer.
+- **A tap is a tap** (`touch-action: manipulation`): no 300 ms wait for a double-tap zoom; pinch zoom stays.
+- **No long-press callout on a control or a picture that is chrome** (an avatar, an icon, the brand's logo), and
+  those pictures do not drag (`draggable="false"`). A link keeps its preview and "open in new tab".
+- **An overlay keeps its scroll:** a modal, a flyout, the command palette, a menu and a popover do not carry the
+  scroll on into the page behind.
+- **The notch:** with `viewport-fit=cover` in the viewport (a new app has it), the header, the sidebar, a flyout and
+  the toasts keep clear of it. Without it nothing moves.
+- **No field zooms the page on iOS:** every default-size field is 16px below `sm` and 14px from it, as Flux draws
+  them; a `.Sm` field is Flux's 14px at every width.
+
+All of it weighs nothing (`:where()`, under `utilities`), so a class of yours wins:
+
+```csharp
+Ui.Button.Class("select-text")["Copy my label"]   // selectable again
+Ui.Button.Class("touch-auto")["Zoomable"]          // the browser's touch handling back
+```
+
+A new app's shell also writes `viewport-fit=cover`, a `theme-color` for each scheme, and in `Styles/app.css` smoothed
+text and no bounce of an installed app at its ends — all yours to change.
+
 ## Callouts
 
 `Ui.Callout` is [Flux's callout](https://fluxui.dev/components/callout), measured from that page and drawn the
@@ -820,7 +849,7 @@ Grouped by what each piece is for.
 
 | | |
 | --- | --- |
-| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` `Ui.Filters` `Ui.Filter` |
+| **Actions** | `Ui.Button` `Ui.ButtonGroup` `Ui.Dropdown` `Ui.Menu` `Ui.MenuItem` `Ui.MenuSubmenu` `Ui.MenuSeparator` `Ui.MenuGroup` `Ui.MenuCheckbox` `Ui.MenuCheckboxGroup` `Ui.MenuRadio` `Ui.MenuRadioGroup` `Ui.Navmenu` `Ui.NavmenuItem` `Ui.NavmenuSeparator` `Ui.Context` `Ui.Command` `Ui.CommandInput` `Ui.CommandItems` `Ui.CommandItem` `Ui.Popover` `Ui.Modal` `Ui.ModalTrigger` `Ui.ModalClose` `Ui.Confirm` `Ui.ConfirmLeave` `Ui.Filters` `Ui.Filter` |
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |

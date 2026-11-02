@@ -70,9 +70,10 @@ internal static class UiDatePickerLook
 
     internal const string PresetSelect = "sm:hidden px-4";
 
-    // The browser's own select in the input's box, as Flux draws this one: 14px at every width, a flat shadow.
+    // The browser's own select in the input's box, as Flux draws this one with a flat shadow — but 16px below `sm`,
+    // as every other field is, where Flux keeps 14px and iOS zooms the page into it on a tap (NATIVE FEEL, 2026-11-02).
     internal const string PresetSelectControl =
-        UiInputLook.Control + " h-10 py-2 ps-3 pe-10 text-sm rounded-lg shadow-2xs " + UiInputLook.Outline;
+        UiInputLook.Control + " h-10 py-2 ps-3 pe-10 text-base sm:text-sm rounded-lg shadow-2xs " + UiInputLook.Outline;
 
     internal const string PresetList = "flex flex-col gap-1 p-2 min-w-[120px]";
 

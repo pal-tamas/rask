@@ -54,7 +54,9 @@ internal sealed partial class UiDropdownBehaviour : Component
             + "The second is what it opens: a `Ui.Menu` of actions, a `Ui.Navmenu` of links, or a `Ui.Popover`.",
             "A `Ui.NavmenuItem` is a link, with no menu roles and no cursor. Without an `Href` it is a `<button>` "
             + "with `OnClick`; a string `Href` is a plain `<a>`, and a generated route navigates in the app. "
-            + "Following a link closes the dropdown and hands focus back to its trigger, as Flux's does.",
+            + "Following a link closes the dropdown and hands focus back to its trigger, as Flux's does. "
+            + "`Indent()` keeps an icon's room empty before the words of a row with no icon, and a "
+            + "`Ui.NavmenuSeparator` draws a line between runs of links.",
             "`Key` can go anywhere in a row's chain, `Ui.MenuCheckbox.Value(x).Key(\"k\")`, and a generic row such "
             + "as `Ui.MenuRadioGroup` takes one too.",
             "Style the rows from `data-active` and `data-checked`, and from `data-open` on the dropdown, its "
