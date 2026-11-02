@@ -1005,7 +1005,7 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         _diffOps!.Count == 0 && _htmlBuffers.HasPrevious && !renderCache.LastDiffForcedFullHtml;
 
     // The diff path: builds the diff frame into the write buffer and reports whether the render is answered. A diff
-    // that cannot carry the change, or that loses to the full body on size, leaves the buffer empty and returns false;
+    // that cannot carry the change, or that loses to the full body on size, leaves the buffer empty and returns false —
     // a render with nothing to say leaves it empty and returns true: the answer is no frame at all.
     private bool TryWriteDiff(SessionRenderCache renderCache, ReadOnlyMemory<char> html, PendingJsInvoke[]? jsInvokes,
         string? historyUrl, bool replace, bool commitCache, string? resume, DevErrorInfo? devError)

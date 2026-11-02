@@ -2547,7 +2547,7 @@ public static partial class RaskEndpointExtensions
         var bytesBefore = session.BytesSent;
 
         // Counted here rather than inside AttachTransport: the store owns the number, and the session has no
-        // reason to know a store exists. A connection that replaces one still attached is not counted again;
+        // reason to know a store exists. A connection that replaces one still attached is not counted again —
         // that one's cleanup will not count its detach.
         if (session.AttachTransport(transport, ct))
         {
@@ -2614,7 +2614,7 @@ public static partial class RaskEndpointExtensions
             (_, true) => "it belongs to another user",
             _ => "it has a user and the connection is anonymous",
         };
-        // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time;
+        // Anybody can ask for a session that is not theirs, as often as they like. The refusal is theirs every time —
         // the line in the log is not.
         if (!store.RefusedAttachLines.Admit())
         {

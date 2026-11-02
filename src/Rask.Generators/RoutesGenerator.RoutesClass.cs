@@ -70,7 +70,7 @@ public sealed partial class RoutesGenerator
                     node = node.Child(segment);
                 }
 
-                // Two pages with one namespace and one type name are nested types of different classes;
+                // Two pages with one namespace and one type name are nested types of different classes —
                 // the first keeps the helper, as it always has.
                 if (node.Pages.All(p => !string.Equals(p.TypeName, pages[i].TypeName, StringComparison.Ordinal)))
                 {

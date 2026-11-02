@@ -232,7 +232,7 @@ public abstract partial class Element : Component
     // Bits 4-7. The byte is SHARED with Component's own flags — 0 is FlagReadsAmbientState and 3 is
     // FlagCallbackAssigned — so these must start above the last one Component claims. Landing on bit 3
     // made setting `Hidden` mark the element as having a callback, which no test in either change could
-    // see alone: the two arrived in separate PRs and only collided once composed. This fills the byte;
+    // see alone: the two arrived in separate PRs and only collided once composed. This fills the byte —
     // the next flag needs it widened.
     private const byte FlagHiddenPresent = 1 << 4;
     private const byte FlagHiddenValue = 1 << 5;

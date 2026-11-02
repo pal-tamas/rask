@@ -10,7 +10,7 @@ public abstract partial class Component
 {
     // Backing store for Element.Ref, hoisted into the lazy LiveState so a plain element (the
     // overwhelming majority — refs are opt-in) keeps `_live` null and pays nothing for the
-    // feature. The setter only forces a LiveState allocation when an actual ref is assigned;
+    // feature. The setter only forces a LiveState allocation when an actual ref is assigned —
     // setting `default` on a ref-less element is a no-op.
     internal ElementRef? ElementRefInternal
     {

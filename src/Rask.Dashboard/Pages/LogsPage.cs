@@ -256,7 +256,7 @@ public sealed partial class LogsPage(
         // Navigate, do not merely reload (#936). The property is declared [QueryParam("q")] and the page
         // calls the result a shareable link, but assigning it and re-rendering left the address bar on
         // the previous URL — so the link in the bar answered a different question than the page on
-        // screen, and copying it lost the search. CategoryChangedAsync beside this was already right;
+        // screen, and copying it lost the search. CategoryChangedAsync beside this was already right —
         // this is the same shape.
         Query = string.IsNullOrWhiteSpace(value) ? null : value;
         Page = 1;
