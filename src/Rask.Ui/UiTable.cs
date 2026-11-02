@@ -21,10 +21,9 @@ namespace Rask;
 /// every <see cref="UiTableColumn" /> but one hold them still across pages and sort orders.
 /// </para>
 /// <para>
-/// What every heading and every cell share — Flux's padding, size, ink and dividers — is the kit sheet's, written once on
-/// their markers at no weight, so a cell writes only what differs and a class of the call site's on a cell or a heading
-/// (<c>ps-10</c>, <c>text-xs</c>) wins as it is. The table itself writes Flux's own class list: a class that contradicts
-/// it is written with Tailwind's <c>!</c> (<c>table-auto!</c>), as Flux's guide says.
+/// Every part writes Flux's own class list. A class of the call site's that contradicts one of them — a layout, a
+/// colour, a first cell's padding — is written with Tailwind's <c>!</c> (<c>table-auto!</c>, <c>ps-10!</c>), as
+/// Flux's guide says.
 /// </para>
 /// </remarks>
 public sealed partial class UiTable : UiElement, IUiHost

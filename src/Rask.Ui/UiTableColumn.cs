@@ -13,12 +13,13 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTableColumn : UiElement, IUiHost
 {
-    // Flux's heading, less what every heading shares: its box, size, weight, ink and the line under it are the kit
-    // sheet's, once (ui.css, `[data-ui-column]`). A heading writes what differs: the group its alignment names, the
-    // sortable group with the sort button's own margin taken back where it ends the heading, and the sticky edge.
+    // Flux's heading, in Flux's order: its box and look, the group its alignment names, the sortable group, the sticky
+    // edge, and the sort button's own margin taken back where it ends the heading.
+    private const string Box = "py-3 px-3 first:ps-0 last:pe-0 text-start text-sm font-medium text-zinc-800 dark:text-white "
+        + "border-b border-zinc-800/10 dark:border-white/20";
+
     private const string SortGroup = "group/sortable";
 
-    // A utility, as Flux writes it, not a sheet rule: it outweighs the sort button's own `-me-2`, which is a utility too.
     private const string SortEdge = "**:data-ui-table-sortable:last:me-0";
 
     // The label and the sort button follow the heading's alignment group, so neither has a list per alignment.
@@ -33,10 +34,10 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
 
     private const string SortHint = "opacity-0 group-hover/sortable:opacity-100";
 
-    // Every list a heading can write, built once: by alignment, sortability and stickiness. Null where there is nothing to write.
-    private static readonly string?[] Lists = [.. Enum.GetValues<Ui.Align>().SelectMany(align =>
+    // Every list a heading can write, built once: by alignment, sortability and stickiness.
+    private static readonly string[] Lists = [.. Enum.GetValues<Ui.Align>().SelectMany(align =>
         new[] { false, true }.SelectMany(sortable => new[] { false, true }.Select(sticky =>
-            UiTableBox.Join(Group(align), sortable ? SortGroup : "", sticky ? UiTableBox.Stuck : "", sortable ? SortEdge : ""))))];
+            UiTableBox.Join(Box, Group(align), sortable ? SortGroup : "", sticky ? UiTableBox.Stuck : "", SortEdge))))];
 
     private static readonly UiPartMarker Marker = new("ui-column");
 
@@ -75,7 +76,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     protected override string? TagName => null;
 
     /// <inheritdoc />
-    /// <remarks>What this heading writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
+    /// <remarks>Flux's list as it is: a class of the call site's that contradicts it is written with <c>!</c> (<c>ps-10!</c>).</remarks>
     protected override string? ResolveClass() =>
         UiTableBox.WithClass(Lists[((int)(Align ?? default) * 4) + (Sortable is true ? 2 : 0) + (Sticky is true ? 1 : 0)], Class);
 

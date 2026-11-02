@@ -14,9 +14,10 @@ behaviour **to the pixel and to the keypress**. Its theme is Flux's alone: the z
 MIT. **Never open, read or copy that repository's Blade, CSS or JS.** Everything comes from the
 PUBLIC docs site: its markdown (`https://fluxui.dev/components/<slug>.md`, index at `/llms.txt`) and
 its live rendered examples, which `scripts/flux/measure.mjs` measures. Class strings are written from
-the measurements, never transcribed from a page's `class` attributes — except a TABLE's parts, which the
-owner ordered to write Flux's literal per-cell class lists, read off the live DOM (2026-10-28: a printed
-table's size; an app beats a table default with `!`).
+the measurements, never transcribed from a page's `class` attributes — except the TABLE element, which writes
+Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`). Its headings and cells do NOT
+(owner, 2026-11-02, a 9,730-row list was 31.6 MB): their shared look is ONE set of zero-weight rules on
+`[data-ui-column]` / `[data-ui-cell]` in `ui.css`, and a cell writes only what differs.
 
 ## 1. Read and measure
 ```bash
@@ -144,11 +145,14 @@ departure in behaviour carries none.
   per property and state so the kit's own rules never race each other.
   `AnAppsClassWinsTests` resolves that from the compiled sheet for every component and lists in `Known` the
   ones not written so yet, where an app writes Tailwind's `!` (Flux's own advice). Never a `!` in the kit.
-  **Tables are the exception (owner, 2026-10-28):** `Ui.Table`, `Ui.TableColumn` and `Ui.TableCell` write
-  Flux's LITERAL class lists in Flux's order (read off fluxui.dev/components/table's live DOM, the `:where`
-  only where Flux has one), so they sit in `Known` on purpose and an app overriding one writes `!`
-  (`ps-10!`, `text-xs!`); `AnAppsClassWinsTests` pins both halves. A cell's lists are built once per
-  variant × align × sticky (a table renders thousands of cells), never composed per render.
+  **Tables (owner, 2026-10-28, then 2026-11-02):** `Ui.Table` writes Flux's LITERAL list (read off
+  fluxui.dev/components/table's live DOM), sits in `Known`, and an app overriding it writes `!` (`table-auto!`).
+  What every `Ui.TableColumn` and `Ui.TableCell` shares — Flux's padding, size, weight, ink and dividers — is NOT
+  on the cell: it is one block of `:where([data-ui-column])` / `:where([data-ui-cell])` rules in `ui.css`
+  (`@layer rask`, the same utilities `@apply`'d, so it computes as Flux's classes do), and an app's class on a
+  cell or heading wins as it is. A cell writes only what differs (alignment, a strong tone, a sticky edge), its
+  lists built once per variant × align × sticky and null when empty — a plain cell writes no `class` at all.
+  A kit rule that must outweigh a UTILITY on the cell (the sort button's `-me-2`) stays a utility.
 - **CSS only when a utility cannot say it** (a keyframe, a `:has()` chain): in `ui.css` under
   `@layer rask`, keyed on the `data-ui-*` marker.
 - Markup, ARIA and keyboard are part of "exactly": same element, same roles, same states.
