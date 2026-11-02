@@ -235,8 +235,9 @@ const DEPARTED = [
   { matches: (_, node) => marked(node, ['data-ui-icon']), keys: ['webkitTouchCallout'] },
   // …and an overlay's own scroller keeps its scroll: a modal's dialog, the command palette's list, a menu, a popover.
   { matches: (example, node) => marked(node, SCROLLERS) || (node.tag === 'dialog' && marked(parentOf(example, node) ?? { attrs: {} }, ['data-ui-modal'])), keys: ['overscrollBehaviorY'] },
-  // …and the date picker's preset <select>, which is 16px below `sm` as every other field is, where Flux's is 14px.
-  { matches: (example, node) => node.tag === 'select' && withAncestors(example, node).some(n => marked(n, ['data-ui-date-picker'])), keys: ['fontSize', 'lineHeight'] },
+  // …and the date picker's preset <select>, which is 16px below `sm` as every other field is, where Flux's is 14px —
+  // its options with it, whose gap the browser draws in ems.
+  { matches: (example, node) => withAncestors(example, node).some(n => n.tag === 'select') && withAncestors(example, node).some(n => marked(n, ['data-ui-date-picker'])), keys: ['fontSize', 'lineHeight', 'gap'] },
 ];
 
 // The markers ui.css's NATIVE FEEL block names (its first rule): a control's own root.
@@ -250,7 +251,7 @@ const CHROME = [
   'data-ui-avatar',
 ];
 // …and the parts whose BUTTONS (or days) are chrome, not the part itself.
-const CHROME_WITHIN = ['data-ui-pagination', 'data-ui-calendar', 'data-ui-toast-dialog'];
+const CHROME_WITHIN = ['data-ui-pagination', 'data-ui-calendar', 'data-rask-calendar', 'data-ui-toast-dialog'];
 const PICTURED = ['data-ui-avatar', 'data-ui-brand', 'data-ui-sidebar-brand', 'data-ui-flag'];
 const SCROLLERS = ['data-ui-command-items', 'data-ui-menu', 'data-ui-popover'];
 const marked = (node, names) => names.some(name => name in node.attrs);
@@ -440,7 +441,8 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   compareStyles(a.style, b.style, where, diffs, unheld);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+    // A pseudo-element inherits what its node departs in (a control's `user-select`).
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, departs.length ? new Set(departs) : undefined);
   }
 
   // Flux's keyframes are named `flux-*` as its markers are; Rask's are `ui-*`.

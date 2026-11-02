@@ -1695,7 +1695,7 @@
     [data-ui-datetime-picker-button], [data-ui-checkbox], [data-ui-radio], [data-ui-switch], [data-ui-toggle],
     [data-ui-checkbox-buttons], [data-ui-checkbox-pills], [data-ui-radio-buttons], [data-ui-radio-pills],
     [data-ui-radio-segmented], [data-ui-field]:has(> [data-ui-checkbox], > [data-ui-radio], > [data-ui-switch]) > [data-ui-label],
-    [data-ui-table-sortable], [data-ui-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-brand]
+    [data-ui-table-sortable], [data-ui-calendar] button, [data-rask-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-brand]
   ) {
     -webkit-user-select: none;
     user-select: none;
@@ -1708,7 +1708,7 @@
       [role^="menuitem"], [data-ui-select-button], [data-ui-pillbox-trigger], [data-ui-color-picker-trigger],
       [data-ui-color-picker-button], [data-ui-date-picker-button], [data-ui-time-picker-button],
       [data-ui-datetime-picker-button], [data-ui-checkbox], [data-ui-radio], [data-ui-switch], [data-ui-toggle],
-      [data-ui-table-sortable], [data-ui-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-avatar]
+      [data-ui-table-sortable], [data-ui-calendar] button, [data-rask-calendar] button, [data-ui-toast-dialog] button, [data-ui-profile], [data-ui-avatar]
     ):not(a[href]),
     [data-ui-icon], [data-ui-brand] img, [data-ui-sidebar-brand] img
   ) {
@@ -1719,8 +1719,14 @@
     -webkit-user-drag: none;
   }
 
+  /* The slashes between a typed date's parts are not text to copy, as Flux draws them; they are pressed by no one. */
+  :where([data-ui-date-inputs] > span) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
   /* A calendar's days, pressed again and again: no double-tap zoom between two presses. */
-  :where([data-ui-calendar] [role="gridcell"]) {
+  :where([data-ui-calendar] [role="gridcell"], [data-rask-calendar] [role="gridcell"]) {
     touch-action: manipulation;
   }
 
