@@ -462,6 +462,8 @@ them until tagged releases begin.
   through two new `Rask.External` properties: `RaskExternalSourceRoot` (`Client/`, where the islands are) and
   `RaskExternalRoot` (the app's folder, where `package.json` and `node_modules` are). Both default to the project's own
   folder. `rask dev` starts no island dev server for a wasm-hosted app; its islands rebuild with `Client/`.
+  `MapRaskSpa` now serves a WebAssembly bundle's `/_rask/external/` files from a route of its own: the operator
+  dashboard's `/_rask/{**path}` catch-all had sent the island manifest to sign-in, so no island mounted.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
