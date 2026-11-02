@@ -132,6 +132,7 @@ public sealed class KitFluxStepsTests(PlaywrightFixture playwright) : IClassFixt
         await page.ClickAsync("#ready");
         await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=0|");
 
+        await cells.Nth(5).ClickAsync();
         await page.Keyboard.TypeAsync("6");
         await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=1|123456");
         await page.ClickAsync("#ready");
