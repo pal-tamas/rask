@@ -218,10 +218,10 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
 
         await control.Locator(picks).First.ClickAsync();
         await Expect(control.Locator("[aria-selected=true], [data-selected], [aria-checked=true], [aria-pressed=true]").First).ToBeAttachedAsync();
-        // The colour picker, the calendars and a select of one answer are the browser's: a pick is an `input` on
-        // their field, which the form counts as it counts typing, and the page hears of it only with the next
-        // action. Every other family is drawn by the page, which marks the form.
-        if (family is not ("colour" or "calendar" or "date" or "listbox" or "combobox"))
+        // The colour picker, the calendars, a bound select and a bound pillbox are the browser's: a pick is an
+        // `input` on their field, which the form counts as it counts typing, and the page hears of it only with the
+        // next action. Every other family is drawn by the page, which marks the form.
+        if (family is not ("colour" or "calendar" or "date" or "listbox" or "several" or "combobox" or "pillbox" or "pillbox-typed"))
         {
             await Expect(page.Locator(Edited)).ToHaveCountAsync(1);
         }
