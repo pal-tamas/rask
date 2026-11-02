@@ -75,25 +75,13 @@ public sealed class AnAppsClassWinsTests
         ["UiError"] = "display",
         ["UiPopover"] = "display",
 
-        // The header's sides and the sidebar's parts wait on the move of their padding into the kit sheet (NATIVE FEEL).
-        ["UiHeader"] = "display, padding",
-        ["UiSidebar"] = "display, gap, padding",
-        ["UiSidebarBrand"] = "display, gap, padding",
-        ["UiSidebarCollapse"] = "display, margin",
-        ["UiSidebarGroup"] = "display",
-        ["UiSidebarHeader"] = "display, gap",
-        ["UiSidebarItem"] = "display, gap, margin, padding, rounded, text colour, width",
-        ["UiSidebarNav"] = "display",
-        ["UiSidebarProfile"] = "display, padding, rounded, width",
-        ["UiSidebarSearch"] = "display, gap, padding, rounded, text colour, text size, width",
-        ["UiSidebarToggle"] = "display, gap, margin, rounded, text colour, text size",
-
         // The current / selected / checked ink (`aria-[current=page]:`, `data-selected:`, `data-checked:`) outweighs the
         // dark scheme's resting `dark:text-…`, which is how the state keeps its ink in dark. At no weight dark would win
         // it back, so the state stays a state: an app restyles it with the same variant (`data-selected:text-…`).
         // Their resting ink weighs nothing.
         ["UiNavbarItem"] = "text colour",
         ["UiNavlistItem"] = "text colour",
+        ["UiSidebarItem"] = "text colour",
         ["UiTab"] = "text colour",
         ["UiToggle"] = "text colour",
 

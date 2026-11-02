@@ -126,6 +126,9 @@ public class RaskDbContext : DbContext, ITenantScoped
 
         // A refusal the model words as a sentence is the app's answer, not a database error to log.
         ViolationLoggingOptionsExtension.Add(optionsBuilder);
+
+        // A BeginTransaction inside Db.Transaction is refused with the reason, before EF Core's own refusal.
+        JoinedTransactionGuardOptionsExtension.Add(optionsBuilder);
         return optionsBuilder;
     }
 

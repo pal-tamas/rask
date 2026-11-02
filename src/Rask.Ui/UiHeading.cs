@@ -44,7 +44,11 @@ public sealed partial class UiHeading : UiElement
             "font-medium",
             Accent == true ? "[:where(&)]:text-accent-content" : "[:where(&)]:text-zinc-800 dark:text-white",
             SizeClass(Size),
+            NextToSubheading,
             Class);
+
+    // The 8px between a heading and the Ui.Subheading right after or before it, which the heading keeps.
+    private const string NextToSubheading = "[&:has(+[data-ui-subheading])]:mb-2 [[data-ui-subheading]+&]:mt-2";
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);

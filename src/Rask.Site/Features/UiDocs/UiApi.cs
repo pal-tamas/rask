@@ -249,9 +249,10 @@ internal static partial class UiApi
             new("Href", typeof(RouteUrl?), "Where it leads. Without one the row is a button.", "a route, or a URL string"),
             new("OnClick", typeof(Callback), "What pressing a row with no Href does.", Handler),
             new("Icon", typeof(Ui.IconName?), "An icon at the start of the row."),
-            new("IconVariant", typeof(Ui.IconVariant?), "Which drawing of the icon. Mini when unset."),
+            new("Indent", typeof(bool?), "Keeps an icon's room empty before the words, in a row with no icon."),
             new("Variant", typeof(Ui.MenuItemVariant?), "Danger for a destructive destination."),
         ]),
+        new("Ui.NavmenuSeparator", typeof(UiNavmenuSeparator), "flux:navmenu.separator", "A line between runs of links.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Heading { get; } =
@@ -262,6 +263,7 @@ internal static partial class UiApi
             new("Level", typeof(int?), "The heading level, 1 to 4. Unset, it is a <div> outside the outline."),
             new("Accent", typeof(bool?), "Draws it in the accent colour."),
         ]),
+        new("Ui.Subheading", typeof(UiSubheading), "flux:subheading", "A line of supporting text, 8px from the heading beside it.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Icon { get; } =
@@ -530,10 +532,7 @@ internal static partial class UiApi
             new("Radius", typeof(string), "How round its corners are: \"4\", or \"4 0\" for the value end and then the base."),
             new("Width", typeof(string), "How much of its slot it fills, as a percentage or in pixels: \"85%\"."),
         ]),
-        new("Ui.ChartGroup", typeof(UiChartGroup), "flux:chart.group", "Bars side by side in each row's slot.",
-        [
-            new("Width", typeof(string), "How much of a row's slot the group fills: \"90%\"."),
-        ]),
+        new("Ui.ChartGroup", typeof(UiChartGroup), "flux:chart.group", "Bars side by side in nine tenths of each row's slot.", []),
         new("Ui.ChartStack", typeof(UiChartStack), "flux:chart.stack", "Bars one on top of another in each row's slot.",
         [
             new("Width", typeof(string), "How much of a row's slot the stack fills: \"65%\"."),

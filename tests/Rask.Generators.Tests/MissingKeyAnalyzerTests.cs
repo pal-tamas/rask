@@ -150,6 +150,99 @@ public class MissingKeyAnalyzerTests
         Assert.Empty(await Diagnostics(Seeded(
             "return Ul[ _items.Select(i => Row.Item(i).Key(i.ToString())) ];")));
 
+    // #1243: a row that renders itself keeps its instance by POSITION, so an event already sent to the row in
+    // place N runs on whichever record sits there now — a delete reaches the wrong row. The runtime cannot tell
+    // (StaleEventTests pins it), so the build refuses the shape and names the fix.
+    [Fact]
+    public async Task An_unkeyed_component_row_with_a_handler_of_its_own_fails_the_build()
+    {
+        var source = Rows("return Div[ _items.Select(i => (Component)PickRow.Id(i)) ];");
+
+        var d = Assert.Single(await Diagnostics(source));
+
+        Assert.Equal(DiagnosticSeverity.Error, d.Severity);
+        Assert.Contains(".Key(row.Id)", d.GetMessage(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_unkeyed_component_row_given_children_fails_the_build()
+    {
+        var source = Rows("return Div[ _items.Select(i => PickRow.Id(i)[\"pick\"]) ];");
+
+        var d = Assert.Single(await Diagnostics(source));
+
+        Assert.Equal(DiagnosticSeverity.Error, d.Severity);
+    }
+
+    [Fact]
+    public async Task An_unkeyed_component_row_added_in_a_loop_fails_the_build()
+    {
+        var source = Rows("""
+                          var rows = new List<Component>();
+                          foreach (var i in _items) rows.Add(PickRow.Id(i));
+                          return Div[rows];
+                          """);
+
+        var d = Assert.Single(await Diagnostics(source));
+
+        Assert.Equal(DiagnosticSeverity.Error, d.Severity);
+    }
+
+    [Fact]
+    public async Task An_unkeyed_generic_component_row_fails_the_build()
+    {
+        var source = Seeded("return Ul[ _items.Select(i => Row.Item(i)) ];");
+
+        var d = Assert.Single(await Diagnostics(source));
+
+        Assert.Equal(DiagnosticSeverity.Error, d.Severity);
+    }
+
+    [Fact]
+    public async Task A_keyed_component_row_builds()
+    {
+        var source = Rows("return Div[ _items.Select(i => (Component)PickRow.Id(i).Key(i)) ];");
+
+        var diagnostics = await Diagnostics(source);
+
+        Assert.Empty(diagnostics);
+    }
+
+    // A plain element has no instance of its own for an event to reach by mistake, so it stays a warning.
+    [Fact]
+    public async Task An_unkeyed_plain_element_row_stays_a_warning()
+    {
+        var source = App("return Ul[ _items.Select(i => Li[i.ToString()]) ];");
+
+        var d = Assert.Single(await Diagnostics(source));
+
+        Assert.Equal(DiagnosticSeverity.Warning, d.Severity);
+    }
+
+    // Wraps a Render() body alongside a row component whose handler is a method of the instance.
+    private static string Rows(string body) => $$"""
+        using System.Collections.Generic;
+        using System.Linq;
+        using Rask.Core;
+        namespace Demo;
+
+        public sealed partial class PickRow : Component
+        {
+            public required int Id { get; set; }
+            protected override Component? Render() => Button.OnClick(Pick)["pick"];
+            private void Pick() { }
+        }
+
+        public sealed partial class App : Component
+        {
+            private readonly int[] _items = { 1, 2, 3 };
+            protected override Component? Render()
+            {
+                {{body}}
+            }
+        }
+        """;
+
     // Wraps a Render() body alongside a generic component, whose entry is a seed rather than a chain.
     private static string Seeded(string body) => $$"""
         using System.Collections.Generic;

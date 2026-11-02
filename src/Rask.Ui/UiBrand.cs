@@ -54,7 +54,7 @@ public sealed partial class UiBrand : Component
         null => null,
         global::Rask.Core.Components.Text { Value: var src } =>
             Div.Class("flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-sm")[
-                Img.Src(src).Alt(Alt ?? "").Class("h-6 max-w-full")
+                Img.Src(src).Alt(Alt ?? "").Class("h-6 max-w-full").Attributes(UiChromeImage.NotDragged)
             ],
         var mark =>
             Div.Class("flex h-6 min-w-6 shrink-0 items-center justify-center overflow-hidden rounded-sm", LogoClass)[mark],

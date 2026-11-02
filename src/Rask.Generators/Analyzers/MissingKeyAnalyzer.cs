@@ -10,14 +10,19 @@ using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators.Analyzers;
 
-// RASK022 — warn when a Rask factory call (an HTML element or a custom component) is produced
-// in a sibling-list context without a Key. Two idioms are flagged:
+// RASK022 — a Rask factory call (an HTML element or a custom component) produced in a sibling-list
+// context without a Key. Two idioms are flagged:
 //   * a `.Select(...)`/`.SelectMany(...)` projection whose body becomes a sibling component, and
 //   * a component added to a component collection (`List<Component>.Add(...)`) inside a loop.
 // Keyless list items reconcile by POSITION: an insert/remove/reorder falls back to a full-HTML
-// morph and loses DOM identity (focus, input state) on surviving nodes. A stable `Key:` lets
-// the diff codec match by identity and ship trusted keyed structural ops instead. Best-effort:
-// the heuristics aim for the common idioms; the warning is suppressible.
+// morph and loses DOM identity (focus, input state) on surviving nodes. A stable `Key` lets
+// the diff codec match by identity and ship trusted keyed structural ops instead.
+//
+// A COMPONENT row (a type that renders itself — it overrides Render, so it has its own state and its own
+// handlers) is an ERROR (#1243): the parent keeps its instances by position, so an event already on its
+// way to the instance in place N runs on whichever record sits in place N now — a delete reaches the
+// wrong row, and the stale-event check cannot see it because nothing about the handler moved. A plain
+// element row has no instance of its own to misdirect, so it stays a warning. Suppressible either way.
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
 {
@@ -27,16 +32,18 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rask022 = new(
         "RASK022",
         "List item is missing a Key",
-        "'{0}' is rendered in a list without a Key — name '.Key(…)' so the diff codec reconciles it by "
-        + "identity (trusted keyed structural ops) instead of by position, and so the parent keeps each "
-        + "row's own state with the row rather than with the slot",
+        "'{0}' is rendered in a list without a Key — add '.Key(row.Id)' (a stable id of the item, never its "
+        + "index) so the parent keeps each row's instance, state and events with its record rather than with "
+        + "its position, and the diff codec reconciles it by identity",
         DiagnosticHelp.Category,
-        DiagnosticSeverity.Warning,
+        DiagnosticSeverity.Error,
         true,
-        "Elements/components produced in a .Select(...) projection or added to a component collection "
-        + "in a loop should carry a stable Key (Blazor @key parity). Without it, insert/remove/reorder "
-        + "falls back to a positional full-HTML morph and loses DOM identity (focus, input state) on "
-        + "surviving nodes.",
+        "A component produced in a .Select(...) projection or added to a component collection in a loop "
+        + "must carry a stable Key (Blazor @key parity). Without it the parent reuses its instances by "
+        + "position, so an event already sent to the row in place N runs on whichever record sits there "
+        + "now — a delete reaches the wrong row. A plain element row is reported as a warning: it has no "
+        + "instance of its own, but insert/remove/reorder still falls back to a positional full-HTML morph "
+        + "and loses DOM identity (focus, input state) on surviving nodes.",
         DiagnosticHelp.Link("RASK022"));
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
@@ -70,7 +77,8 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
     {
         var node = (ExpressionSyntax)context.Node;
         var model = context.SemanticModel;
-        if (!TryReadUnkeyedConstruction(node, model, component, context.CancellationToken, out var name, out var location))
+        if (!TryReadUnkeyedConstruction(
+                node, model, component, context.CancellationToken, out var name, out var location, out var built))
         {
             return;
         }
@@ -96,7 +104,60 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(Rask022, location, name));
+        // A row that renders itself keeps its instance by position, which is what misdirects an event; a
+        // plain element does not, so it is told apart here rather than by a second id.
+        var severity = RendersItself(built ?? RowType(node, model, component, context.CancellationToken), component)
+            ? DiagnosticSeverity.Error
+            : DiagnosticSeverity.Warning;
+        context.ReportDiagnostic(Diagnostic.Create(Rask022, location, severity, null, null, name));
+    }
+
+    // The row's own type when the construction did not name it (a seed-opened chain): the chain's type, read
+    // beneath any children indexer, which hands back `Component` rather than the row.
+    private static ITypeSymbol? RowType(ExpressionSyntax node, SemanticModel model, INamedTypeSymbol component,
+        CancellationToken cancellationToken)
+    {
+        var current = node;
+        while (true)
+        {
+            var type = model.GetTypeInfo(current, cancellationToken).Type;
+            if (type is not null && !SymbolEqualityComparer.Default.Equals(type, component))
+            {
+                return type;
+            }
+
+            switch (current)
+            {
+                case ElementAccessExpressionSyntax indexer:
+                    current = indexer.Expression;
+                    continue;
+                case ParenthesizedExpressionSyntax paren:
+                    current = paren.Expression;
+                    continue;
+                default:
+                    return null;
+            }
+        }
+    }
+
+    // Whether the type draws its own subtree — some type between it and Component overrides Render — which is
+    // what gives it state and handlers of its own. A generated tag never does: it renders itself as its tag.
+    private static bool RendersItself(ITypeSymbol? type, INamedTypeSymbol component)
+    {
+        for (var t = type as INamedTypeSymbol; t is not null; t = t.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, component))
+            {
+                return false;
+            }
+
+            if (t.GetMembers("Render").Any(m => m is IMethodSymbol { IsOverride: true, Parameters.Length: 0 }))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // 1) Is this a Rask construction that COULD carry a key, and 2) does it still lack one? Two spellings.
@@ -119,10 +180,12 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol component,
         CancellationToken cancellationToken,
         out string name,
-        out Location location)
+        out Location location,
+        out ITypeSymbol? built)
     {
         name = string.Empty;
         location = Location.None;
+        built = null;
         if (node is InvocationExpressionSyntax invocation
             && model.GetSymbolInfo(invocation, cancellationToken).Symbol is IMethodSymbol method
             && method.IsStatic
@@ -132,10 +195,11 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
             // Already keyed — a Key: argument, or a Data argument carrying rask-key (back-compat).
             name = method.Name;
             location = NameLocation(invocation);
+            built = method.ReturnType;
             return !HasKeyArgument(invocation);
         }
 
-        if (BuilderEntry.TryReadChain(node, model, cancellationToken, out var entry, out _, out var steps))
+        if (BuilderEntry.TryReadChain(node, model, cancellationToken, out var entry, out built, out var steps))
         {
             // Key names the identity; a Data step carrying rask-key is the VirtualizePage-style equivalent.
             name = entry.Identifier.ValueText;

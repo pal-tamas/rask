@@ -104,7 +104,7 @@ public sealed class UiStylesheetTests
                                     && r.Body.Contains("margin:0", StringComparison.Ordinal));
     }
 
-    private static IEnumerable<(string Selector, string Body)> Rules(string css)
+    internal static IEnumerable<(string Selector, string Body)> Rules(string css)
     {
         // A selector starts at the top of the sheet or after a brace or a semicolon — never after whitespace.
         // Whitespace IS a selector's descendant combinator: starting there read `[data-rask-ui-document] *)::file-selector-button`

@@ -1036,8 +1036,9 @@ var order = await Db.Transaction(async () => await Order.Create(model));    // h
   inside the block, even when it was created before it: a LINQ read, `SaveChangesAsync`, `ExecuteSqlRawAsync`,
   `SqlQueryRaw`, `FromSqlRaw`. So its save does not wait on the locks the transaction's own reads took, a rollback
   takes its writes back, and a later `db: db` call finds it joined. It is handed back on its own connection like
-  any `db:`. No `db.Database.BeginTransactionAsync()` inside the block — the context is already in one, and EF Core
-  refuses a second:
+  any `db:`. No `db.Database.BeginTransactionAsync()` inside the block — the context is already in one, and Rask
+  refuses a second with an `InvalidOperationException` saying so; `Database.Migrate()` and `EnsureCreated()` are
+  refused the same way, since schema work belongs outside the block (at startup):
 
   ```csharp
   await using var db = await contexts.CreateDbContextAsync();

@@ -137,7 +137,7 @@ public sealed class DbTransactionRawSqlTests : IDisposable
             await using var own = await mine.Database.BeginTransactionAsync(TestContext.Current.CancellationToken);
         }, cancellationToken: TestContext.Current.CancellationToken));
 
-        Assert.Contains("already in a transaction", refused.Message, StringComparison.Ordinal);
+        Assert.Contains("already inside Db.Transaction", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]

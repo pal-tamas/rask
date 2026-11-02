@@ -137,16 +137,55 @@ internal sealed class AmbientTransaction
     /// <returns><see langword="true" /> when it joined just now, so the connection it was about to open stays closed.</returns>
     internal static bool JoinBeforeUse(DbContext? context)
     {
-        if (context is null || Current is not { } current || context.Database.CurrentTransaction is not null ||
-            !string.Equals(context.Database.GetConnectionString(), current._connectionString, StringComparison.Ordinal) ||
-            context.Database.GetDbConnection().State != ConnectionState.Closed)
+        if (Joinable(context) is not { } current)
         {
             return false;
         }
 
-        current.Admitted(context);
+        current.Admitted(context!);
         return true;
     }
+
+    /// <summary>
+    ///     Refuses a transaction of its own on <paramref name="context" /> when it is inside the transaction in progress
+    ///     — joined already, or joining at its first use — instead of EF Core's "already in a transaction".
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The context is inside <c>Db.Transaction</c>.</exception>
+    internal static void RefuseOwnTransaction(DbContext context)
+    {
+        if (Of(context) is not null || Joinable(context) is not null)
+        {
+            throw new InvalidOperationException(
+                $"This {context.GetType().Name} is already inside Db.Transaction(...), and the block's transaction is " +
+                "the one it uses, so it cannot begin another. Remove the BeginTransaction call — Db.Transaction " +
+                "commits this work with the rest, or rolls it all back — or run this outside the block.");
+        }
+    }
+
+    /// <summary>
+    ///     Refuses <c>Migrate</c>, <c>EnsureCreated</c> and the rest of EF Core's schema work on a context inside the
+    ///     transaction in progress, which would change the schema in a transaction the block may still roll back.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The context has joined <c>Db.Transaction</c>.</exception>
+    internal static void RefuseSchemaWork(DbContext? context)
+    {
+        if (Of(context) is not null)
+        {
+            throw new InvalidOperationException(
+                $"This {context!.GetType().Name} is inside Db.Transaction(...), so Migrate or EnsureCreated would " +
+                "change the schema inside a transaction the block may still roll back. Run schema work outside " +
+                "Db.Transaction — at startup, before any block begins.");
+        }
+    }
+
+    // The transaction in progress when the context would join it at its first use, else null: it is on the same
+    // database, in no transaction of its own and on no connection its owner opened.
+    private static AmbientTransaction? Joinable(DbContext? context) =>
+        context is not null && Current is { } current && context.Database.CurrentTransaction is null &&
+        string.Equals(context.Database.GetConnectionString(), current._connectionString, StringComparison.Ordinal) &&
+        context.Database.GetDbConnection().State == ConnectionState.Closed
+            ? current
+            : null;
 
     // Enlists a context the caller still holds, and remembers it to hand back once this ends.
     private void Admitted(DbContext context)

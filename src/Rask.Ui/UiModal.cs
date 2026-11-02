@@ -49,9 +49,9 @@ public sealed partial class UiModal : Component
     private const string Box = "[:where(&)]:m-auto [:where(&)]:rounded-xl [:where(&)]:p-6 [:where(&)]:min-w-xs [:where(&)]:max-w-xl";
 
     // A sheet against an edge, with a line on its page side that only dark mode draws.
-    private const string Sheet = "fixed overflow-y-auto border-transparent bg-white [:where(&)]:p-8 [:where(&)]:text-inherit dark:border-zinc-700 dark:bg-zinc-800";
+    private const string Sheet = "fixed overflow-y-auto border-transparent bg-white [:where(&)]:text-inherit dark:border-zinc-700 dark:bg-zinc-800";
 
-    private const string Floating = "fixed overflow-y-auto [:where(&)]:rounded-xl [:where(&)]:p-8";
+    private const string Floating = "fixed overflow-y-auto [:where(&)]:rounded-xl";
 
     private const string Bare = "[:where(&)]:m-auto border-0 bg-transparent [:where(&)]:p-0 [:where(&)]:text-inherit";
 

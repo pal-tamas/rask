@@ -45,6 +45,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Markup.Footer` reaches a tag your own member hid.
   FAMILIES are reached through a group class and never take a bare name: `Ui.Button`/`Ui.Color` (the UI kit, component TYPES stay `UiButton`), `Trigger.Fullscreen` (browser capabilities), `Validation.Message`/`.Summary`/`.Indicator` (form feedback), `Mui.Button` (an npm package declared with `Mui : ReactPackage`).
   The kit lives in namespace `Rask`, not `Rask.Ui`.
+  A COMPONENT ROW MADE FROM A LIST TAKES `.Key(row.Id)` — `orders.Select(o => OrderRow.Order(o).Key(o.Id))`, a stable id, never the index: without it the parent reuses row instances by position, so an event already sent runs on whichever record sits there now, and the build refuses it (RASK022, an error for a component row, a warning for a plain element like `Li`).
 - [Getting started](docs/getting-started.md): install, first app, project layout;
   the root component (`TApp`) renders into `<body>` and Rask composes the document around it — doctype, `<html lang>` from the `HtmlLang` override, a `<head>` collected from every mounted component's `HeadAssets` override plus the charset, viewport, kit stylesheet, `Styles/app.css` and scoped CSS/JS, and a `<body>` (class from `BodyClass`) holding the render output and the auto-appended runtime `<script>`;
   `Shell(head, body)` is the escape hatch for a custom document (it takes the framework's `<head>` and the rendered body as parameters, runs once per render BEFORE `Render()`, and dropping `head` loses every head asset).
@@ -1510,7 +1511,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `role="none"`, NO outer margin — `Ui.Divider` is gone);
   `Ui.Heading`, `Ui.Text` and `Ui.Link` are FLUX UI's `flux:heading`/`flux:text`/`flux:link` exactly (props, look, markup;
   zinc + accent;
-  each ONE element marked `data-ui-heading`/`data-ui-text`/`data-ui-link`): `Ui.Heading` takes `Size` (`Ui.HeadingSize` Base 14px/Lg 16px/Xl 24px/Xxl 36px = Flux's 2xl), `Level` 1-6 (`<div>` without one) and `Accent()`;
+  each ONE element marked `data-ui-heading`/`data-ui-text`/`data-ui-link`): `Ui.Heading` takes `Size` (`Ui.HeadingSize` Base 14px/Lg 16px/Xl 24px/Xxl 36px = Flux's 2xl), `Level` 1-6 (`<div>` without one) and `Accent()`; `Ui.Subheading` (Flux's `flux:subheading`, no props) is the 14px zinc-500 line under a heading, which keeps 8px from it by itself;
   `Ui.Text` takes `Size` (`Ui.TextSize` Sm/Default/Lg/Xl), `Variant` (`Ui.TextVariant` Default/Strong/Subtle), `Color` (`Ui.Color`, the 17 chromatic hues of Tailwind's 22;
   wins over the variant, and a neutral one is the variant's own ink) and `Inline()` (`<span>` instead of `<p>`);
   `Ui.Link` takes `Href` (RouteUrl), `Variant` (`Ui.LinkVariant` Default underlined/Ghost on hover/Subtle), `External()`, `As` (`Ui.LinkAs` A/Button — `Ui.Link.As(Ui.LinkAs.Button).OnClick(...)` is a `<button type="button">`) and `Accent(false)`;
