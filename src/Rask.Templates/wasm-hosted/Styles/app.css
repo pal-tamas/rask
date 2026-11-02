@@ -14,3 +14,16 @@
 
    Redefining a token in your own @theme re-skins every component without overriding a single
    rule — that is the intended way to make this yours. */
+
+/* Your app's document, drawn as a native app draws it: text smoothed in greyscale on macOS and iOS and, installed
+   to a home screen, no rubber-band bounce of the whole app at its ends (a browser tab keeps the browser's). */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (display-mode: standalone) {
+  html {
+    overscroll-behavior-y: none;
+  }
+}
