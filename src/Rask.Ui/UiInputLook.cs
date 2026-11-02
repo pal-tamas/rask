@@ -10,7 +10,7 @@ namespace Rask;
 internal static class UiInputLook
 {
     /// <summary>The wrapper: the room the icons are placed in.</summary>
-    internal const string Root = "w-full relative block";
+    internal const string Root = "[:where(&)]:w-full relative [:where(&)]:block";
 
     /// <summary>
     ///     The outlined box: white, zinc-200 with a darker bottom edge and <c>shadow-xs</c>; flat and paler
@@ -18,7 +18,7 @@ internal static class UiInputLook
     /// </summary>
     internal const string Outline =
         "border bg-white dark:bg-white/10 dark:disabled:bg-white/[7%] "
-        + "text-zinc-700 dark:text-zinc-300 disabled:text-zinc-500 dark:disabled:text-zinc-400 "
+        + "[:where(&)]:text-zinc-700 dark:text-zinc-300 disabled:text-zinc-500 dark:disabled:text-zinc-400 "
         + "placeholder:text-zinc-400 disabled:placeholder:text-zinc-400/70 dark:disabled:placeholder:text-zinc-500 "
         + "border-zinc-200 border-b-zinc-300/80 disabled:border-b-zinc-200 "
         + "dark:border-white/10 dark:border-b-white/10 dark:disabled:border-white/5 dark:disabled:border-b-white/5 "
@@ -29,12 +29,12 @@ internal static class UiInputLook
 
     /// <summary>The filled box: no border, a zinc-800/5 tint.</summary>
     internal const string Filled =
-        "border-0 dark:shadow-none bg-zinc-800/5 dark:bg-white/10 text-zinc-700 dark:text-zinc-200 "
+        "border-0 dark:shadow-none bg-zinc-800/5 dark:bg-white/10 [:where(&)]:text-zinc-700 dark:text-zinc-200 "
         + "placeholder:text-zinc-500 dark:placeholder:text-white/60 "
         + "data-invalid:border data-invalid:border-red-500";
 
     /// <summary>The <c>&lt;input&gt;</c> itself, before size and padding.</summary>
-    internal const string Control = "block w-full appearance-none";
+    internal const string Control = "[:where(&)]:block [:where(&)]:w-full appearance-none";
 
     /// <summary>A leading icon: over the box's left edge, not in the pointer's way.</summary>
     internal const string Leading =
@@ -77,7 +77,7 @@ internal static class UiInputLook
 
     /// <summary>The input drawn as a button: the same box, laid out as a row.</summary>
     internal const string AsButton =
-        "relative flex w-full h-10 py-2 text-base sm:text-sm leading-[1.375rem] rounded-lg " + Outline + " " + InputShadow;
+        "relative [:where(&)]:flex [:where(&)]:w-full h-10 [:where(&)]:py-2 [:where(&)]:text-base sm:text-sm leading-[1.375rem] [:where(&)]:rounded-lg " + Outline + " " + InputShadow;
 
     /// <summary>The placeholder of the input drawn as a button.</summary>
     internal const string AsButtonText = "block flex-1 text-start font-medium text-zinc-400 dark:text-white/40";
@@ -91,7 +91,7 @@ internal static class UiInputLook
         "absolute top-0 bottom-0 end-0 flex items-center justify-center pe-4 text-xs text-zinc-400/75";
 
     /// <summary>A file input's shell: the real input out of sight, a button and the chosen name in a row.</summary>
-    internal const string File = "relative flex items-center gap-4 cursor-auto";
+    internal const string File = "relative [:where(&)]:flex items-center [:where(&)]:gap-4 cursor-auto";
 
     /// <summary>"Choose file", drawn as Flux's outline button.</summary>
     internal const string FileButton =
@@ -159,18 +159,18 @@ internal static class UiInputLook
     /// <summary>Height, text and corners.</summary>
     internal static string Size(Ui.InputSize size) => size switch
     {
-        Ui.InputSize.Sm => "h-8 py-1.5 text-sm leading-[1.125rem] rounded-md",
-        Ui.InputSize.Xs => "h-6 py-1.5 text-xs leading-[1.125rem] rounded-md",
-        _ => "h-10 py-2 text-base sm:text-sm leading-[1.375rem] rounded-lg",
+        Ui.InputSize.Sm => "h-8 [:where(&)]:py-1.5 [:where(&)]:text-sm leading-[1.125rem] [:where(&)]:rounded-md",
+        Ui.InputSize.Xs => "h-6 [:where(&)]:py-1.5 [:where(&)]:text-xs leading-[1.125rem] [:where(&)]:rounded-md",
+        _ => "h-10 [:where(&)]:py-2 [:where(&)]:text-base sm:text-sm leading-[1.375rem] [:where(&)]:rounded-lg",
     };
 
     /// <summary>12px at a bare end, 40px at one that holds an icon or a button.</summary>
     internal static string Padding(bool leading, bool trailing) => (leading, trailing) switch
     {
-        (true, true) => "ps-10 pe-10",
-        (true, false) => "ps-10 pe-3",
-        (false, true) => "ps-3 pe-10",
-        _ => "ps-3 pe-3",
+        (true, true) => "[:where(&)]:ps-10 [:where(&)]:pe-10",
+        (true, false) => "[:where(&)]:ps-10 [:where(&)]:pe-3",
+        (false, true) => "[:where(&)]:ps-3 [:where(&)]:pe-10",
+        _ => "[:where(&)]:ps-3 [:where(&)]:pe-3",
     };
 
     /// <summary>The box by variant.</summary>

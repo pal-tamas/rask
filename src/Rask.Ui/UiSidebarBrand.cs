@@ -7,7 +7,7 @@ namespace Rask;
 public sealed partial class UiSidebarBrand : Component
 {
     private const string Root =
-        "flex h-10 min-w-0 items-center gap-2 px-2 sidebar-rail:w-full sidebar-rail:justify-center sidebar-rail:px-0 "
+        "[:where(&)]:flex h-10 [:where(&)]:min-w-0 items-center [:where(&)]:gap-2 [:where(&)]:px-2 sidebar-rail:w-full sidebar-rail:justify-center sidebar-rail:px-0 "
         + "sidebar-rail:has-[+[data-ui-sidebar-collapse]]:group-hover/sidebar:opacity-0";
 
     private const string Image = "h-6 min-w-6";

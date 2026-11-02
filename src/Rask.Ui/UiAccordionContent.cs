@@ -19,7 +19,7 @@ public sealed partial class UiAccordionContent : Component
         // As tall as the <details>' own content box, which ui.css holds at nothing while the item is closed.
         return Div.Class(scope.Transition ? "block h-full overflow-hidden group-open/accordion-item:overflow-visible" : "block h-full")
             .Data("ui-accordion-content", "")[
-            Div.Class("pt-2 text-sm text-zinc-500 dark:text-zinc-300", Class)[Children ?? []]
+            Div.Class("[:where(&)]:pt-2 [:where(&)]:text-sm [:where(&)]:text-zinc-500 dark:text-zinc-300", Class)[Children ?? []]
         ];
     }
 }

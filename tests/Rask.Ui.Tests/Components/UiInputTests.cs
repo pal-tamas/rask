@@ -38,7 +38,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
 
         var html = input.ToHtml();
 
-        Assert.StartsWith("<div class=\"w-full relative block\" data-ui-input=\"\"><input", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:w-full relative [:where(&amp;)]:block\" data-ui-input=\"\"><input", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-control", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-group-target", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-ui-field", html, StringComparison.Ordinal);
@@ -51,7 +51,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
 
         var html = input.ToHtml();
 
-        Assert.Contains("<div class=\"w-full relative block max-w-xs\"", html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"[:where(&amp;)]:w-full relative [:where(&amp;)]:block max-w-xs\"", html, StringComparison.Ordinal);
         Assert.Matches("<input[^>]*class=\"[^\"]*font-mono\"", html);
     }
 
@@ -219,7 +219,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
 
         Assert.True(html.IndexOf("<svg", StringComparison.Ordinal) < html.IndexOf("<input", StringComparison.Ordinal));
         Assert.Contains("pointer-events-none", html, StringComparison.Ordinal);
-        Assert.Contains("ps-10 pe-3", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:ps-10 [:where(&amp;)]:pe-3", html, StringComparison.Ordinal);
         Assert.Contains("viewBox=\"0 0 20 20\"", html, StringComparison.Ordinal);
     }
 
@@ -233,7 +233,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
 
         Assert.True(icon.IndexOf("<input", StringComparison.Ordinal) < icon.IndexOf("<svg", StringComparison.Ordinal));
         Assert.Contains("viewBox=\"0 0 20 20\"", icon, StringComparison.Ordinal);
-        Assert.Contains("ps-3 pe-10", icon, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:ps-3 [:where(&amp;)]:pe-10", icon, StringComparison.Ordinal);
         Assert.Contains("<span class=\"mine\">EUR</span>", content, StringComparison.Ordinal);
     }
 
@@ -396,7 +396,7 @@ public partial class UiInputTests : global::Rask.Core.RaskMarkup
 
         var (single, several) = (one.ToHtml(), many.ToHtml());
 
-        Assert.Contains("<label class=\"relative flex items-center gap-4 cursor-auto\" data-ui-input-file=\"\">", single, StringComparison.Ordinal);
+        Assert.Contains("<label class=\"relative [:where(&amp;)]:flex items-center [:where(&amp;)]:gap-4 cursor-auto\" data-ui-input-file=\"\">", single, StringComparison.Ordinal);
         Assert.Matches("<input[^>]*type=\"file\"[^>]*class=\"sr-only\"|<input[^>]*class=\"sr-only\"[^>]*type=\"file\"", single);
         Assert.Contains("Choose file<", single, StringComparison.Ordinal);
         Assert.Contains("No file chosen", single, StringComparison.Ordinal);

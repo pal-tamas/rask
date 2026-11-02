@@ -12,7 +12,7 @@ public sealed partial class UiCalloutText : UiElement
     protected override string TagName => "div";
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("text-sm", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:text-sm", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Slot.With(Data);

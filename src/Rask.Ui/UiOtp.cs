@@ -145,7 +145,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
             field.ControlId);
 
         return field.Wrap(
-            Div.Class("flex items-center gap-2 w-fit", Class)
+            Div.Class("[:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:w-fit", Class)
                 .Data(("ui-otp", ""), ("ui-control", ""), ("rask-otp", Accepts(mode)))
                 .Attributes(Submit == Ui.OtpSubmit.Auto ? SubmitsAuto : null)
                 .Role("group")

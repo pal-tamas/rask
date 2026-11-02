@@ -21,7 +21,7 @@ public sealed partial class UiChartTooltip : Component, IUiChartField
     public string? Class { get; set; }
 
     private const string Box =
-        "absolute flex flex-col overflow-hidden rounded-lg border border-zinc-200 "
+        "absolute [:where(&)]:flex flex-col overflow-hidden [:where(&)]:rounded-lg border border-zinc-200 "
         + "bg-white opacity-0 shadow-lg data-active:opacity-100 dark:border-zinc-500 dark:bg-zinc-700";
 
     // How far from the row and from the pointer Flux keeps it.

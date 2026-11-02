@@ -7,8 +7,6 @@ namespace Rask.Data;
 /// <summary>The app-wide model rules an <see cref="IRaskModel" /> states in its <c>Conventions</c>.</summary>
 public static class ModelConfigurationBuilderExtensions
 {
-    private const string SqlServer = "Microsoft.EntityFrameworkCore.SqlServer";
-
     /// <summary>
     ///     Names every primary key, foreign key, unique constraint, index and (on SQL Server) default the model did not
     ///     name explicitly: <c>c.ConstraintNames(n =&gt; $"{n.Table}_{n.Joined}_idx")</c>.
@@ -30,7 +28,7 @@ public static class ModelConfigurationBuilderExtensions
         ArgumentNullException.ThrowIfNull(name);
 
         configurationBuilder.Conventions.Add(services => new ConstraintNameConvention(
-            name, string.Equals(services.GetService<IDatabaseProvider>()?.Name, SqlServer, StringComparison.Ordinal)));
+            name, string.Equals(services.GetService<IDatabaseProvider>()?.Name, ProviderNames.SqlServer, StringComparison.Ordinal)));
         return configurationBuilder;
     }
 

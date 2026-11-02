@@ -18,7 +18,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiSidebar : Component
 {
-    private const string Base = "group/sidebar flex flex-col gap-4 [grid-area:sidebar] [:where(&)]:w-64";
+    private const string Base = "group/sidebar [:where(&)]:flex flex-col [:where(&)]:gap-4 [grid-area:sidebar] [:where(&)]:w-64";
 
     // In the page's flow it is barely lifted, as Flux's (`z-1`, measured on its profile page's sidebar).
     private const string InFlow = "z-1";

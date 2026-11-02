@@ -24,7 +24,7 @@ public sealed partial class UiChartTooltipValue : Component, IUiChartField, IUiC
 
     public string? Class { get; set; }
 
-    private const string Look = "flex items-center gap-2 p-2 text-xs text-zinc-500 dark:text-zinc-300";
+    private const string Look = "[:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:p-2 [:where(&)]:text-xs [:where(&)]:text-zinc-500 dark:text-zinc-300";
     private const string Name = "text-zinc-800 dark:text-white";
 
     private readonly UiChartLines _labels = new();

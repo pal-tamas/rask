@@ -12,7 +12,7 @@ public sealed partial class UiChartTooltipHeading : Component, IUiChartField
     public string? Class { get; set; }
 
     private const string Look =
-        "flex items-center justify-between border-b border-zinc-200 bg-zinc-50 p-2 text-xs font-medium text-zinc-800 "
+        "[:where(&)]:flex items-center justify-between border-b border-zinc-200 bg-zinc-50 [:where(&)]:p-2 [:where(&)]:text-xs font-medium [:where(&)]:text-zinc-800 "
         + "dark:border-zinc-500 dark:bg-zinc-600 dark:text-zinc-100";
 
     private readonly UiChartLines _lines = new();

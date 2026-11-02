@@ -23,7 +23,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
 {
     // 32×20, the accent when on; in dark an outline that the fill replaces. 150ms on Tailwind's default curve.
     private const string Track =
-        "group/switch relative flex h-5 w-8 min-w-8 items-center rounded-full transition "
+        "group/switch relative [:where(&)]:flex h-5 [:where(&)]:w-8 [:where(&)]:min-w-8 items-center [:where(&)]:rounded-full transition "
         + "bg-zinc-800/15 has-checked:bg-accent "
         + "dark:border dark:border-white/20 dark:bg-transparent dark:has-checked:border-0 dark:has-checked:bg-accent "
         + "has-disabled:opacity-50 dark:has-disabled:border-white/10 "

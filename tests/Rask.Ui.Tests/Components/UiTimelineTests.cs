@@ -111,7 +111,7 @@ public partial class UiTimelineTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.Color.Amber, "bg-amber-500 text-sm font-semibold text-white dark:text-zinc-950")]
+    [InlineData(Ui.Color.Amber, "bg-amber-500 [:where(&amp;)]:text-sm font-semibold [:where(&amp;)]:text-white dark:text-zinc-950")]
     [InlineData(Ui.Color.Yellow, "dark:bg-yellow-400 dark:text-zinc-950")]
     public void The_light_hues_take_dark_text_in_dark(Ui.Color color, string expected)
     {
@@ -177,7 +177,7 @@ public partial class UiTimelineTests : global::Rask.Core.RaskMarkup
 
         var html = item.ToHtml();
 
-        Assert.Contains("<div class=\"grid place-items-center rounded-full text-sm font-semibold\" data-ui-timeline-indicator>", html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"[:where(&amp;)]:grid place-items-center [:where(&amp;)]:rounded-full [:where(&amp;)]:text-sm font-semibold\" data-ui-timeline-indicator>", html, StringComparison.Ordinal);
     }
 
     [Fact]

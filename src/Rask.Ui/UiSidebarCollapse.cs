@@ -8,12 +8,12 @@ namespace Rask;
 public sealed partial class UiSidebarCollapse : Component
 {
     private const string Root =
-        "flex h-8 shrink-0 items-center justify-center "
+        "[:where(&)]:flex h-8 shrink-0 items-center justify-center "
         + "sidebar-rail:absolute sidebar-rail:opacity-0 sidebar-rail:group-hover/sidebar:opacity-100";
 
     private const string Pressable =
-        "relative flex size-10 items-center justify-center gap-2 rounded-lg text-center text-sm font-medium "
-        + "whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        "relative [:where(&)]:flex [:where(&)]:size-10 items-center justify-center [:where(&)]:gap-2 [:where(&)]:rounded-lg text-center [:where(&)]:text-sm font-medium "
+        + "whitespace-nowrap [:where(&)]:text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
         + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
 
     /// <summary>Pulls the control into its container's padding on that side. Flux's <c>inset</c>.</summary>
@@ -27,10 +27,10 @@ public sealed partial class UiSidebarCollapse : Component
 
     internal static string InsetClass(Ui.Position? inset) => inset switch
     {
-        Ui.Position.Left => "-ms-2.5",
-        Ui.Position.Right => "-me-2.5",
-        Ui.Position.Top => "-mt-2.5",
-        Ui.Position.Bottom => "-mb-2.5",
+        Ui.Position.Left => "[:where(&)]:-ms-2.5",
+        Ui.Position.Right => "[:where(&)]:-me-2.5",
+        Ui.Position.Top => "[:where(&)]:-mt-2.5",
+        Ui.Position.Bottom => "[:where(&)]:-mb-2.5",
         _ => "",
     };
 

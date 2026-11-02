@@ -29,7 +29,7 @@ public sealed partial class UiCommand : Component
 {
     private static readonly UiPartMarker Marker = new("ui-command");
 
-    private const string Look = "block w-full overflow-hidden rounded-xl border border-zinc-200 shadow-xs dark:border-zinc-600";
+    private const string Look = "[:where(&)]:block [:where(&)]:w-full overflow-hidden [:where(&)]:rounded-xl border border-zinc-200 shadow-xs dark:border-zinc-600";
 
     /// <summary>Classes for the palette: a width, the modal example's <c>border-none</c>.</summary>
     public string? Class { get; set; }

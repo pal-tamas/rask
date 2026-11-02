@@ -53,7 +53,7 @@ public sealed partial class UiProgress : UiElement
     /// <inheritdoc />
     protected override string? ResolveClass() =>
         UiClass.Compose(
-            "relative block w-full [:where(&)]:h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10",
+            "relative [:where(&)]:block [:where(&)]:w-full [:where(&)]:h-1.5 overflow-hidden [:where(&)]:rounded-full bg-zinc-200 dark:bg-white/10",
             Class);
 
     /// <inheritdoc />

@@ -12,16 +12,16 @@ internal static class UiComposerLook
     ///     red-500 invalid, the shadow kept.
     /// </summary>
     internal const string Root =
-        "grid grid-cols-[auto_1fr_1fr_auto] p-2 border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
+        "[:where(&)]:grid grid-cols-[auto_1fr_1fr_auto] [:where(&)]:p-2 border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
         + "dark:border-white/10 dark:border-b-white/10 dark:bg-white/10 "
         + "[&[disabled]]:shadow-none dark:[&[disabled]]:bg-white/[7%] "
         + "data-invalid:border-red-500 dark:data-invalid:border-red-500";
 
     /// <summary>The message box's corners.</summary>
-    internal const string Corners = "rounded-2xl";
+    internal const string Corners = "[:where(&)]:rounded-2xl";
 
     /// <summary>The corners of the other inputs (<c>variant="input"</c>).</summary>
-    internal const string InputCorners = "rounded-lg";
+    internal const string InputCorners = "[:where(&)]:rounded-lg";
 
     /// <summary>The message box rounds its buttons a step more than a small button's own corners.</summary>
     internal const string RoundButtons = "**:data-ui-button:rounded-lg";

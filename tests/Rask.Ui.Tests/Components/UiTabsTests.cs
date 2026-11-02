@@ -274,7 +274,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
 
     [Theory]
     [InlineData(Ui.TabsVariant.Default, "border-b", "data-selected:border-accent-content", "border-transparent")]
-    [InlineData(Ui.TabsVariant.Segmented, "rounded-lg", "data-selected:shadow-xs", "text-zinc-600")]
+    [InlineData(Ui.TabsVariant.Segmented, "[:where(&)]:rounded-lg", "data-selected:shadow-xs", "[:where(&)]:text-zinc-600")]
     [InlineData(Ui.TabsVariant.Pills, "h-8", "data-selected:bg-accent", "bg-zinc-800/5")]
     public void Each_variant_draws_its_row_and_paints_the_selected_tab_from_the_mark_the_browser_moves(
         Ui.TabsVariant variant, string row, string selected, string other)
@@ -310,8 +310,8 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         var (row, tab) = (page.Find("[role=\"tablist\"]"), page.Find("[aria-selected=\"true\"]"));
 
         Assert.True(row.HasClass("h-8.5"));
-        Assert.True(tab.HasClass("px-3"));
-        Assert.False(tab.HasClass("px-4"));
+        Assert.True(tab.HasClass("[:where(&)]:px-3"));
+        Assert.False(tab.HasClass("[:where(&)]:px-4"));
     }
 
     [Fact]

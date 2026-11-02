@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
+  and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
+  build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
+  connection and send every step through it; a box that refuses the forward is deployed one connection per step, as
+  before, and the deploy says why in ssh's own words — a stock Ubuntu sshd forwards, an `AllowTcpForwarding no` one
+  (it gates the socket forward too) is named and given up on at once rather than after a 20 s wait. Readiness waits (container running, `/health`, the Caddy reload, the check through the proxy) ask at once,
+  then every second for up to 60 s, and say when the app answered; the four reads before the new colour starts go
+  out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
+
 ### Added
 - **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
   `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
@@ -621,6 +631,25 @@ them until tagged releases begin.
   folder. `rask dev` starts no island dev server for a wasm-hosted app; its islands rebuild with `Client/`.
   `MapRaskSpa` now serves a WebAssembly bundle's `/_rask/external/` files from a route of its own: the operator
   dashboard's `/_rask/{**path}` catch-all had sent the island manifest to sign-in, so no island mounted.
+- **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
+  SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
+  `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read
+  that drew the same connection ran serializable — range locks, no read-committed snapshot — and plain reads became
+  deadlock victims. The block now puts the connection back to `READ COMMITTED` once it commits, rolls back or throws,
+  before it returns to the pool (one statement, only when a non-default level was asked; the contexts that joined the
+  block share that connection). PostgreSQL and SQLite were checked and do not keep the level. `UseRaskSqlServer`'s
+  per-open session batch now also starts with `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` (no extra round trip),
+  so a hand-written `BeginTransaction(IsolationLevel.Serializable)` cannot leak into the next pooled use either.
+- **An app's class now wins over 315 more kit defaults, on 100 more components.** `.Class("p-2")` on a card,
+  `.Class("text-base")` on a button or `.Class("w-auto")` on an input used to lose to the kit's own utility of equal
+  weight, and the winner was Tailwind's print order, not the call site. Those defaults are now written
+  `[:where(&)]:…`, which weighs nothing, so an app's utility wins without `!`. The look is unchanged
+  (`parity.mjs` on every touched page, at 1280 and 390). What still needs `!` is named, with its reason, in
+  `AnAppsClassWinsTests.Known` (10 components, down from 110): an empty error's and a closed popover's `hidden`
+  (a state, not a look), the current/selected/checked ink of a nav or sidebar item, a tab and a toggle (it has to
+  outweigh dark mode's resting ink), and the table's Flux class list. Two showcase demos now look as their code
+  says: the callback guide's rating stars take their `text-2xl` and amber, and the composer's "Remove picture"
+  button its `rounded-full`.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

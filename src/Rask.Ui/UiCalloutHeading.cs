@@ -25,7 +25,7 @@ public sealed partial class UiCalloutHeading : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("flex items-center gap-2 text-sm font-medium", Class).Data(Slot)[
+        Div.Class("[:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:text-sm font-medium", Class).Data(Slot)[
             CustomIcon ?? (Icon is { } name ? Ui.Icon.Name(name).Variant(IconVariant ?? Ui.IconVariant.Mini) : null),
             Children ?? []
         ];
