@@ -22,6 +22,7 @@
 //  4. NOTHING AT IDLE. One MutationObserver, filtered to the attributes below, on a page that has no hooks —
 //     where eight unfiltered ones used to run — and none at all once the bundle has been asked for.
 
+import {busy} from "./rask-busy.js";
 import {page, seam} from "./rask-owned.js";
 
 /**
@@ -123,7 +124,10 @@ function load(doc: Document, url: string, nonce: string | undefined): void {
     for (const type of KEPT) {
         doc.addEventListener(type, keep, true);
     }
+    // Busy until the hooks have run (rask-busy.ts): a press made meanwhile is held for them, not yet answered.
+    const release = busy();
     const done = function (): void {
+        release();
         for (const type of KEPT) {
             doc.removeEventListener(type, keep, true);
         }

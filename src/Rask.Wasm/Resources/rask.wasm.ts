@@ -40,6 +40,7 @@ import "../../Rask.Core/Resources/rask-events.js";
 // Says `data-rask-offline` on <html> while the browser is offline (rask-offline.ts).
 import "../../Rask.Core/Resources/rask-offline.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
+import { busy, busyUntil } from "../../Rask.Core/Resources/rask-busy.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { awaiting, tell } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
@@ -66,6 +67,30 @@ let basePath: string | null = null;
 // always commits before the following payload's ops — paths in a later diff are
 // computed against the render this one produces, so they must not be applied first.
 let _renderQueue = Promise.resolve();
+
+// The page is busy until the app has put its first frame on it (rask-busy.ts): a prerendered page looks ready long
+// before .NET has taken it over. main.js marks it before this module loads; this hold takes the mark over.
+let booting: (() => void) | null = busy();
+
+// Puts a frame's render in line. The page is busy from the moment .NET hands the frame over until its render is on
+// the page, a body held for its stylesheet included.
+function enqueueRender(apply: () => unknown): void {
+    const release = busy();
+    const run = function (): void {
+        let applied: unknown;
+        try {
+            applied = apply();
+        } catch (e) {
+            release();
+            throw e;
+        }
+        busyUntil(applied, release);
+    };
+    _renderQueue = _renderQueue.then(run, function (e) {
+        reportQueuedRenderFailure(e);
+        run();
+    });
+}
 
 // Island callbacks fired before the app took over. A prerendered page mounts its islands from real
 // HTML, so they are clickable seconds before .NET has booted, and a callback dropped there is a click
@@ -469,16 +494,17 @@ function handle(reply: RaskFrameReply | null): void {
     // through _renderQueue so a diff that defers its body for a CSS load can't be
     // overtaken by the next payload (see _renderQueue).
     if (reply.kind === "diff" && Array.isArray(reply.ops)) {
-        _renderQueue = _renderQueue.then(
-            () => { applyDiffReply(reply); },
-            (e) => { reportQueuedRenderFailure(e); applyDiffReply(reply); });
+        enqueueRender(() => applyDiffReply(reply));
     } else {
-        _renderQueue = _renderQueue.then(
-            () => { applyFullReply(reply); },
-            (e) => { reportQueuedRenderFailure(e); applyFullReply(reply); });
+        enqueueRender(() => applyFullReply(reply));
     }
     // Behind the frame, so the ids a held callback is checked against are the live page's.
     if (earlyCallbacks) _renderQueue = _renderQueue.then(flushEarlyCallbacks, flushEarlyCallbacks);
+    // The first frame is in line, and holds the page busy until it is on it: the boot is over.
+    if (booting) {
+        booting();
+        booting = null;
+    }
 }
 
 // The render queue deliberately carries on after a failed frame — one bad payload must not wedge

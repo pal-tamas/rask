@@ -18,6 +18,7 @@ import {
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
 import { isHandlerEvent } from "./rask-batch.js";
+import { busyWhile } from "./rask-busy.js";
 import { draws, isUnasked, seam, unasked } from "./rask-owned.js";
 
 /** Any element this module reads a `value` off. */
@@ -127,6 +128,22 @@ const unsent = new Set<ValueElement>();
 // What a field bound on blur was sent as, ahead of the `change` the browser has still to fire for it.
 const committed = new WeakMap<Element, string>();
 
+// What was typed and is on its way out — a live field's next frame, a pause being counted — keeps the page busy
+// (rask-busy.ts), so a test that types and waits sees the answer to what it typed. A pause held for a character
+// being composed (0) counts nothing, and a field that waits for an action is not on its way at all.
+const typing = busyWhile();
+
+function counting(timers: Map<ValueElement, number>): boolean {
+    for (const timer of timers.values()) {
+        if (timer) return true;
+    }
+    return false;
+}
+
+function noteTyping(): void {
+    typing(inputRaf !== 0 || counting(paused) || counting(asking));
+}
+
 /** Whether a control's own `change` is not sent: it waits for the next action. */
 export function waitsForAction(el: Element | null): boolean {
     return !!el && el.getAttribute(BIND_ON) === "action";
@@ -210,7 +227,9 @@ function pause(el: ValueElement): void {
     paused.set(el, window.setTimeout(function () {
         paused.delete(el);
         sendOwn(function () { sendInput(el); });
+        noteTyping();
     }, Number(el.getAttribute(PAUSE))));
+    noteTyping();
 }
 
 function ask(el: ValueElement, composing: boolean): void {
@@ -223,7 +242,9 @@ function ask(el: ValueElement, composing: boolean): void {
             seam.told!.set(el, el.value);
             sendOwn(function () { send({ id, type: "input", value: el.value }); });
         }
+        noteTyping();
     }, Number(el.getAttribute(PAUSE))));
+    noteTyping();
 }
 
 // A field the runtime itself rewrote (rask-list.ts): the pause it was counting ends, and its handler hears
@@ -237,6 +258,7 @@ seam.hear = function (el: Element, now: boolean): void {
         seam.told!.set(field, field.value);
         sendOwn(function () { send({ id, type: "input", value: field.value }); });
     }
+    noteTyping();
 };
 
 function flushInputs(): void {
@@ -244,6 +266,7 @@ function flushInputs(): void {
     const typed = Array.from(inputPending);
     inputPending.clear();
     typed.forEach(function (el) { sendFor(el, function () { sendInput(el); }); });
+    noteTyping();
 }
 
 export function flushInputsNow(): void {
@@ -267,6 +290,7 @@ export function flushInputsNow(): void {
             waiting.forEach(function (entry) { dispatchInput(entry[0], entry[1]); });
         }
     });
+    noteTyping();
 }
 
 /**
@@ -288,6 +312,7 @@ export function sendTypedFirst(payload: unknown): void {
 function queueInput(el: ValueElement): void {
     inputPending.add(el);
     if (!inputRaf) inputRaf = requestAnimationFrame(flushInputs);
+    noteTyping();
 }
 
 document.addEventListener("input", (e) => {
@@ -342,6 +367,7 @@ document.addEventListener("input", (e) => {
         if ((e as InputEvent).isComposing) {
             clearTimeout(paused.get(t));
             paused.set(t, 0);
+            noteTyping();
         } else {
             pause(t);
         }
