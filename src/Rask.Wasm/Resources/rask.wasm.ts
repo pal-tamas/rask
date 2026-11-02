@@ -51,6 +51,7 @@ import {
     invokeJs,
 } from "../../Rask.Core/Resources/rask-js-invoke.js";
 import "./rask-wasm-api.js";
+import { watchUser } from "./rask-wasm-auth.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 let dotnetExports: RaskWasmExports | null = null;
@@ -597,6 +598,13 @@ const _sendEncoder = new TextEncoder();
 // Anything else goes at once, behind what was waiting, so nothing overtakes an earlier event.
 const events = eventBatch(dispatch);
 
+// Whether the browser still carries the user the page is drawn for (rask-wasm-auth.ts): what the reader does waits
+// while that is in doubt, and is dropped when the answer is somebody else, or nobody.
+const userWatch = watchUser(() => {
+    const ask = dotnetExports?.Rask?.Wasm?.JSInterop?.AskWho;
+    return ask ? () => ask() : undefined;
+});
+
 function send(payload: unknown): Promise<void> {
     if (earlyCallbacks && isIslandCallback(payload)) {
         holdEarlyCallback(earlyCallbacks, payload);
@@ -610,7 +618,7 @@ function send(payload: unknown): Promise<void> {
     const ticket = beginLoading(fieldTarget(payload), null, false);
     // What the hooks wait on (rask-owned.ts): a handler event or a navigation, until its page is whole.
     const done = isHandlerEvent(payload) || isNavigation(payload) ? awaiting() : null;
-    const answered = leave(payload);
+    const answered = userWatch.leave(() => leave(payload));
     if (ticket || done) {
         answered.then(settled).finally(() => {
             endLoading(ticket);

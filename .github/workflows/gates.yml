@@ -110,6 +110,7 @@ jobs:
               {"set": "push", "when": "devtools",  "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
               {"set": "push", "when": "sqlite",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
               {"set": "push", "when": "datademo",  "name": "data demo E2E",      "run": "scripts/run-data-demo-e2e-local.sh", "browser": true},
+              {"set": "push", "when": "wasm",      "name": "WASM E2E",           "run": "scripts/run-wasm-e2e-local.sh", "browser": true},
               {"set": "push", "when": "bench",     "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},

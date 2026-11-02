@@ -50,6 +50,8 @@ gates=(
   "browser SQLite E2E|scripts/run-browser-sqlite-e2e-local.sh|"
   # The rask.sh data demo in a real browser: published as pages.yml publishes it (native-linked, under /demos/data/).
   "data demo E2E|scripts/run-data-demo-e2e-local.sh|"
+  # The browser host's own journeys: a WASM fixture served by an ASP.NET host that signs it in and out.
+  "WASM E2E|scripts/run-wasm-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
   # Every template's C# half scaffolded and built. The seven front ends are NOT here: each is minutes
   # (npm ci, a bundle, a published host), so CI gives each a job and by hand it is one at a time —

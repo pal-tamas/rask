@@ -72,6 +72,8 @@ expect_lacks "a site page does not reach the Rask.Server journeys" server    src
 expect_has   "a journey edit reaches its own suite"                site      tests/Rask.Site.E2E.Tests/WasmExampleTests.cs
 expect_has   "the data demo reaches its journeys"                  datademo  src/Rask.Site.DataDemo/Program.cs
 expect_has   "a devtools fixture reaches the devtools journeys"    devtools  tests/Rask.DevTools.Fixture.Wasm/Program.cs
+expect_has   "the browser host reaches its own journeys"           wasm      src/Rask.Wasm/WasmLiveSession.cs
+expect_lacks "a server change does not reach them"                 wasm      src/Rask.Server/LiveSession.cs
 
 # The byte and allocation budgets follow what they measure.
 expect_has   "the core reaches the benchmark budgets"              bench     src/Rask.Core/Component.cs

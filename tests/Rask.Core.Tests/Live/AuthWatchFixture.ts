@@ -12,7 +12,7 @@ import {
     RETRIES,
     RETRY_MS,
     type WhoAnswer,
-} from "../../../src/Rask.Server/Resources/rask-auth-watch.js";
+} from "../../../src/Rask.Core/Resources/rask-auth-watch.js";
 
 interface Tab {
     send(frame: string): void;
