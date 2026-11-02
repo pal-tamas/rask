@@ -47,7 +47,7 @@ public partial class UiClassJoinTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains(" w-full mb-8\"", first, StringComparison.Ordinal);
         Assert.Contains(" max-h-80 rounded\"", first, StringComparison.Ordinal);
-        Assert.Contains(" a b\"", first, StringComparison.Ordinal);
+        Assert.Contains("<td class=\"a b\"", first, StringComparison.Ordinal);
         Assert.All(renders, html => Assert.Equal(first, html));
     }
 }

@@ -141,6 +141,16 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         Assert.StartsWith("<th data-ui-column><div class=", html, StringComparison.Ordinal);
     }
 
+    // Eszaf's list of 9,730 rows of thirteen cells was 31.6 MB when every cell wrote Flux's ~200-character list (2,962 a row).
+    [Fact]
+    public void A_row_of_thirteen_plain_cells_writes_no_class_and_stays_under_six_hundred_characters()
+    {
+        var html = Ui.TableRow[Enumerable.Range(0, 13).Select(i => Ui.TableCell.Key(i)["x"])].ToHtml();
+
+        Assert.DoesNotContain("class=", html, StringComparison.Ordinal);
+        Assert.InRange(html.Length, 1, 599);
+    }
+
     [Fact]
     public void A_table_writes_Fluxs_class_list_as_Flux_writes_it()
     {
