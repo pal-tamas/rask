@@ -23,12 +23,12 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiKanbanCard : UiElement, IUiHost
 {
-    private const string Look = "p-3 rounded-lg bg-white shadow-xs ring-1 ring-black/7 dark:bg-zinc-700 dark:ring-zinc-700";
+    private const string Look = "[:where(&)]:p-3 [:where(&)]:rounded-lg bg-white shadow-xs ring-1 ring-black/7 dark:bg-zinc-700 dark:ring-zinc-700";
 
     // A <button> where Flux scripts a custom element: the block it fills, its words from the start, and no
     // text selection, as there. The hand over it is the kit sheet's, as on every button.
     private const string Pressed =
-        "block w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
+        "[:where(&)]:block [:where(&)]:w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
 
     private const string HeaderSlot = "flex items-center gap-1.5 mb-2";
 

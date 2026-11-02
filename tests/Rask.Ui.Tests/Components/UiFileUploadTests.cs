@@ -144,7 +144,7 @@ public partial class UiFileUploadTests : global::Rask.Core.RaskMarkup
 
         var html = dropzone.ToHtml();
 
-        Assert.StartsWith("<div class=\"flex rounded-lg border-dashed", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:flex [:where(&amp;)]:rounded-lg border-dashed", html, StringComparison.Ordinal);
         Assert.Equal(2, Count(html, "<svg"));
         Assert.Contains("animate-spin", html, StringComparison.Ordinal);
         Assert.Contains(">Drop files here or click to browse</div>", html, StringComparison.Ordinal);
@@ -169,7 +169,7 @@ public partial class UiFileUploadTests : global::Rask.Core.RaskMarkup
 
         var html = dropzone.ToHtml();
 
-        Assert.Contains("items-center border py-4 ps-4 pe-6 sm:ps-5 sm:pe-8", html, StringComparison.Ordinal);
+        Assert.Contains("items-center border [:where(&amp;)]:py-4 [:where(&amp;)]:ps-4 [:where(&amp;)]:pe-6 sm:ps-5 sm:pe-8", html, StringComparison.Ordinal);
         Assert.Contains("relative me-4", html, StringComparison.Ordinal);
         Assert.DoesNotContain("flex-col items-center justify-center", html, StringComparison.Ordinal);
     }
