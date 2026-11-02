@@ -487,6 +487,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`Ui.Tabs.Value(…)` with no `OnChange` and no `Bind` is the tab the row starts on, and the reader's choice
+  stands after it**, as a Flux tab group without `wire:model` is the browser's alone: a press sends nothing, a
+  render of the page from elsewhere does not flip it back, and only a different value from the page selects another
+  tab. The row no longer renders a hidden field nobody reads, which every render wrote back to the first value.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
