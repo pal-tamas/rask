@@ -84,6 +84,26 @@ departure in behaviour carries none.
   `Ui.Table` wraps its cells, lets its frame run on, repeats `thead` and keeps a row on one page; `Ui.Accordion`
   prints open with no chevron. Reason: Rask.Pdf (Eszaf's reports) prints app pages. Print media only, so parity
   (screen) is untouched; an app hides its own parts with `print:hidden`. `UiPrintTests` holds every rule to print.
+- **2026-11-02 — the hand over what can be pressed.** Flux keeps the arrow over its buttons, menu rows, options, tabs
+  and the rest. The kit shows `cursor: pointer` over every pressable part (buttons of every variant, menu and
+  context rows, navbar/navlist/sidebar items, tabs and segmented, listbox/autocomplete/pillbox/command options and
+  triggers, a native select, calendar/date picker days, months, years, steps and presets, time options, pagination,
+  a badge's ×, an input's clear/copy/eye, a toast's and modal's close, a kanban card, carousel arrows and dots,
+  colour swatches, accordion headings, a file input's browse and remove) and over a checkbox, radio or switch and the
+  label that toggles it (a radio card, a segmented radio). The ARROW over anything disabled (`disabled`,
+  `aria-disabled="true"`, `data-disabled`), read-only, in an `inert` subtree, or busy (`data-loading`, the submit
+  held while it is sent, `aria-busy`) — the disabled colour `SwatchButton` too, where Flux shows the hand.
+  ONE zero-specificity rule in `@layer rask` of `Styles/ui.css` does it, by what an element IS (`button`,
+  `[role=button|menuitem…|option|tab|checkbox|radio|switch]`, `summary`, `select`, `label[for]`, a label round a
+  box or radio, the clickable `input` types) — so an app's own `<button>` gets it too, and an app's own `cursor-*`
+  still wins. So it shows: no clickable kit part carries `cursor-default`/`cursor-auto` (they sit in `utilities`,
+  above the rule); text and children that are not pressed keep theirs. Not a handler: a `Div.OnClick` gets
+  nothing (no Core change). Kept as Flux: the collapsed sidebar rail's `e-resize` (`w-resize` RTL) and a modal
+  backdrop's arrow. Reason: the reader is told what can be pressed. Parity lets `cursor` go ONLY where the kit
+  computes `pointer` on a pressable node and Flux `default`/`auto` (`lib.mjs` `PRESSABLE` + `cursorDeparted`,
+  used by `parity.mjs`, `open.mjs`, `parity-menu.mjs`, `parity-modal.mjs`; `cursorDepartedLine` in
+  `parity-editor.mjs`); any other cursor difference still fails. `UiPointerCursorTests` (the rule),
+  `UiKitCursorTests` (the cursor where the pointer lands, on the running showcase).
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

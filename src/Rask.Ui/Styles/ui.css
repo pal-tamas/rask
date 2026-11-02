@@ -383,6 +383,16 @@
   :where(label:has(input:is([type="checkbox"], [type="radio"]):disabled)) {
     cursor: default;
   }
+
+  /* A kit label (Ui.Label) names a field: the arrow, as Flux draws it, though it is a label[for]... */
+  :where([data-ui-label]) {
+    cursor: default;
+  }
+
+  /* ...and the hand when the field's control is a box, a radio or a switch a press on the name ticks. */
+  :where([data-ui-field]:has(> [data-ui-control] input:is([type="checkbox"], [type="radio"]):not(:disabled)) > [data-ui-label]) {
+    cursor: pointer;
+  }
 }
 
 /*
