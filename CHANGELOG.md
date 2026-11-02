@@ -527,6 +527,10 @@ them until tagged releases begin.
 - **An open `Ui.Dropdown`'s menu or navmenu says `data-open`, as its root and trigger do**, in the same task the browser
   opens it in, with no round trip on the Server host. Flux's live dropdown page marks all three (measured 2026-11-02),
   and a style keyed on the panel's `data-open` now applies; a `Ui.Context` menu asks for none, as Flux's carries none.
+- **The daily Flux parity run no longer reads a slow machine as the kit's chevrons drawn hovered** (#1260). The
+  measurer waits for a tap to become its click, and for a page lock to land, before it reads what the pointer
+  left, instead of a fixed time; on a phone the pillbox's picks are stood in for by a real tap on the last picked
+  row rather than a row lit by hand; the datetime picker's open-to example opens on December 2026, as Flux's does.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
