@@ -69,6 +69,32 @@ public sealed partial class UiMenu : Component
         _host = Context.Get<UiPopupHost>();
         var id = _host?.PanelId ?? Id ?? "uimenu-" + _instance.ToString(CultureInfo.InvariantCulture);
 
+        // `autofocus`: the popover focusing steps move focus to it as it opens, so the arrow keys reach the menu
+        // straight from whatever opened it — with no row chosen yet, as Flux leaves it.
+        // On its own it is a menu some Ui.Context names by id, so it sits where the pointer was.
+        var style = _host?.Style ?? global::Rask.UiContext.PointerStyle(Ui.ContextPosition.BottomEnd, distance: null, (0, 0));
+
+        var menu = Div
+            .Id(id)
+            .Popover(Popover.Auto)
+            .Role("menu")
+            .TabIndex(-1)
+            .Class(UiMenuRow.Panel, Class)
+            .Data(Marks())
+            .Attributes(("autofocus", null), ("style", style));
+        if (_host?.Toggled is { } toggled)
+        {
+            // The browser opens the popover and closes it on Escape, a click outside, a pick and Tab. A page
+            // that asked to hear which is told here; one that did not is sent nothing.
+            menu = menu.OnToggle(e => toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
+        }
+
+        return menu[Context.Provide(new UiMenuLevel(new UiMenuScope(id), -1))[Children ?? []]];
+    }
+
+    // What the panel asks of the runtime, by its data-* attributes.
+    private Dictionary<string, string?> Marks()
+    {
         // The runtime keeps the cursor (rask-menu-keys.ts) and lights the row under the pointer (rask-menu.ts).
         var data = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
@@ -109,26 +135,6 @@ public sealed partial class UiMenu : Component
             data["detail"] = detail;
         }
 
-        // `autofocus`: the popover focusing steps move focus to it as it opens, so the arrow keys reach the menu
-        // straight from whatever opened it — with no row chosen yet, as Flux leaves it.
-        // On its own it is a menu some Ui.Context names by id, so it sits where the pointer was.
-        var style = _host?.Style ?? global::Rask.UiContext.PointerStyle(Ui.ContextPosition.BottomEnd, distance: null, (0, 0));
-
-        var menu = Div
-            .Id(id)
-            .Popover(Popover.Auto)
-            .Role("menu")
-            .TabIndex(-1)
-            .Class(UiMenuRow.Panel, Class)
-            .Data(data)
-            .Attributes(("autofocus", null), ("style", style));
-        if (_host?.Toggled is { } toggled)
-        {
-            // The browser opens the popover and closes it on Escape, a click outside, a pick and Tab. A page
-            // that asked to hear which is told here; one that did not is sent nothing.
-            menu = menu.OnToggle(e => toggled(string.Equals(e.NewState, "open", StringComparison.Ordinal)));
-        }
-
-        return menu[Context.Provide(new UiMenuLevel(new UiMenuScope(id), -1))[Children ?? []]];
+        return data;
     }
 }

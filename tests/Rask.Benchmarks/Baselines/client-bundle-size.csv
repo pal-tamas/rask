@@ -561,3 +561,11 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,120724
+# 2026-11-02, the context-menu opener no longer pulls a menu back inside the viewport (rask-dom.ts): the place
+# hook turns it over the pointer as Flux does (rask-place.ts), which now reads the opener's point instead of
+# hearing the right-click again: rask.js 113,282 -> 113,050 (-232), rask.wasm.js 97,691 -> 97,459 (-232),
+# rask-hooks.js 121,602 -> 121,284 (-318). Measured locally (Release, the bundle gate's recipe) on main a2dc2d64c.
+bundle,bytes
+rask.js,113050
+rask.wasm.js,97459
+rask-hooks.js,121284
