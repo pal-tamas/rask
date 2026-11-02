@@ -145,9 +145,10 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
 
         await OverAsync(page, "Popularity");
         await SeeAsync(page, "Popularity | MENU | Sort by");
-        // Out of the flyout and the menu altogether in one quick move, then still: Flux's flyout was still there
-        // 400 ms later — it hears a move per 100 ms or so, and none of this one's after its first.
-        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 5 });
+        // Out of the flyout and the menu altogether in one quick flick, then still: Flux's flyout was still there
+        // 400 ms later — it hears a move per 100 ms or so, and of this flick only the first step, still inside.
+        var popularity = (await Row(page, "Popularity").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(popularity.X + popularity.Width + 60, popularity.Y + (popularity.Height / 2), new MouseMoveOptions { Steps = 5 });
         await page.WaitForTimeoutAsync(400);
         await SeeAsync(page, " | MENU | Sort by");
         await OverAsync(page, "Delete");
@@ -156,12 +157,13 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
-    public async Task A_pointer_that_moves_on_out_of_the_menu_from_a_submenus_row_closes_its_flyout_in_the_browser()
+    public async Task A_pointer_that_moves_on_out_of_a_submenu_and_the_menu_closes_its_flyout_in_the_browser()
     {
-        // Flux UI's dropdown and context menu, 2026-11-02: the pointer leaves "Sort by" to the left, away from its
-        // flyout, at a hand's pace (a move every 130 ms). The move that leaves is not heard (Flux hears one move per
-        // 100 ms or so); the next one, outside, closes the flyout. The row is dark, focus has not moved, and nothing
-        // went over the socket.
+        // Flux UI's dropdown and context menu, 2026-11-02: the pointer goes from "Sort by" into its flyout and on out
+        // of its far side, at a hand's pace (a move every 130 ms; Flux hears one per 100 ms or so). A move heard
+        // outside the row and the flyout closes the flyout: nothing is lit, focus has not moved, and nothing went
+        // over the socket. (Leaving the row away from the flyout is the same rule — parity-menu.mjs walks it; this
+        // menu opens at the window's left edge, with no room to its left.)
         var sent = 0;
         var received = 0;
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
@@ -180,12 +182,14 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
         await OverAsync(page, "Sort by");
         await SeeAsync(page, "Sort by | MENU | Sort by");
-        var row = (await Row(page, "Sort by").BoundingBoxAsync())!;
-        var menu = (await page.Locator("[data-testid='menu'] [popover]").BoundingBoxAsync())!;
+        await OverAsync(page, "Name");
+        await SeeAsync(page, "Name | MENU | Sort by");
+        var name = (await Row(page, "Name").BoundingBoxAsync())!;
 
-        for (var x = row.X + (row.Width / 2); x > menu.X - 60; x -= 30)
+        // Along "Name" to the flyout's far edge, then past it.
+        foreach (var x in new[] { name.X + name.Width - 20, name.X + name.Width + 30, name.X + name.Width + 60, name.X + name.Width + 90 })
         {
-            await page.Mouse.MoveAsync(x, row.Y + (row.Height / 2));
+            await page.Mouse.MoveAsync(x, name.Y + (name.Height / 2));
             await page.WaitForTimeoutAsync(130);
         }
 
