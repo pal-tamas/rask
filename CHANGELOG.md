@@ -34,7 +34,9 @@ them until tagged releases begin.
   into the select's one hidden bound field (`data-rask-bind-on="action"`), which travels ahead of the reader's
   next action; the model is written, the rules run and `AfterBind` is called then, exactly as before. The clear
   button is the browser's too. A form that asks before it is left still counts the pick, a submit validates it,
-  and a message under the select still goes at the first pick after it. `.Live()`, a select whose value the page
+  and a message under the select still goes at the first pick after it — on the WebAssembly host too, whose render
+  morphs the rendered `value` back onto the hidden field: the value the page rendered last, rendered again, is no
+  news to a group the browser owns (`rask-bound.ts`), so the pick stands. `.Live()`, a select whose value the page
   holds (`.Value(…).OnChange(…)`), one whose search the page answers (`Filter(false)`), a multiple select and a
   pillbox send their picks as before. The kit-wide frame
   gate's `select-bound: pick a row` went from 1 frame to 0.
