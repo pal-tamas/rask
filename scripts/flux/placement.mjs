@@ -131,6 +131,13 @@ async function measure(browser, family, side, views, edges, hosts, inherited) {
       await page.evaluate(() => document.fonts.ready);
       // A parity page is static markup: what Flux does in script the kit asks the runtime's hooks for.
       if (hooks && !await page.evaluate(() => Boolean(globalThis.__raskHookSeam))) await withRuntime(page, 'rask-hooks.ts');
+      // The room a panel is laid out in is the same on both pages. Flux's lock puts `scrollbar-gutter: stable` on
+      // <html> under an open panel, and in a browser that hides its scrollbars (every headless one) that takes 15 px
+      // off the right of what a panel hangs in: one opened by the right edge is squeezed there (to its min-width),
+      // and lands where that width puts it. The kit's lock asks for the gutter only where a scrollbar takes room
+      // (rask-lock.ts, held by parity-menu.mjs's page behind), so here the Rask page is given Flux's declaration
+      // under the same lock: what is compared is where the placer puts a panel, not whether a gutter was kept.
+      if (hooks) await page.addStyleTag({ content: 'html[data-rask-locked]{scrollbar-gutter:stable}' });
       if (side.prepare) await side.prepare(page);
       const key = `${width}x${height} #${host.index}${host.name ? ` ${host.name}` : ''}`;
       landed[key] = [];

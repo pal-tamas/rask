@@ -428,6 +428,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A panel opened by the right edge of a page now lands where Flux's does.** Flux lays an open panel out where
+  it hangs, so a 288 px popover beside a trigger at the right edge is squeezed toward its 192 px min-width there,
+  and is turned and slid back at that width. The placement hook (`rask-place.ts`) measured the panel where nothing
+  squeezed it, so it was placed at its full width. It now measures the panel at the side and alignment it asks for,
+  places it at that size, and places it again until its width stays the same. This shows only where something
+  narrows the room a panel hangs in, such as a page gutter kept for a scrollbar. Nothing to change in an app.
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook
