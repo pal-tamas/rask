@@ -13,7 +13,7 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
         var html = heading.ToHtml();
 
         Assert.Equal(
-            "<div class=\"font-medium text-zinc-800 dark:text-white text-sm\" data-ui-heading>User profile</div>",
+            "<div class=\"font-medium [:where(&amp;)]:text-zinc-800 dark:text-white [:where(&amp;)]:text-sm\" data-ui-heading>User profile</div>",
             html);
     }
 
@@ -34,10 +34,10 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.HeadingSize.Base, "text-sm")]
-    [InlineData(Ui.HeadingSize.Lg, "text-base")]
-    [InlineData(Ui.HeadingSize.Xl, "text-2xl")]
-    [InlineData(Ui.HeadingSize.Xxl, "text-4xl")]
+    [InlineData(Ui.HeadingSize.Base, "[:where(&amp;)]:text-sm")]
+    [InlineData(Ui.HeadingSize.Lg, "[:where(&amp;)]:text-base")]
+    [InlineData(Ui.HeadingSize.Xl, "[:where(&amp;)]:text-2xl")]
+    [InlineData(Ui.HeadingSize.Xxl, "[:where(&amp;)]:text-4xl")]
     public void Each_size_writes_one_step_of_the_scale(Ui.HeadingSize size, string expected)
     {
         var heading = Ui.Heading.Size(size)["Orders"];
@@ -45,7 +45,7 @@ public partial class UiHeadingTests : global::Rask.Core.RaskMarkup
         var classes = heading.ToHtml().Split('"')[1].Split(' ');
 
         Assert.Contains(expected, classes);
-        Assert.Single(classes, name => name.StartsWith("text-", StringComparison.Ordinal) && !name.StartsWith("text-zinc", StringComparison.Ordinal));
+        Assert.Single(classes, name => name.StartsWith("[:where(&amp;)]:text-", StringComparison.Ordinal) && !name.StartsWith("[:where(&amp;)]:text-zinc", StringComparison.Ordinal));
     }
 
     [Fact]

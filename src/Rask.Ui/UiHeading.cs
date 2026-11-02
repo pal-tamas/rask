@@ -42,7 +42,7 @@ public sealed partial class UiHeading : UiElement
     protected override string? ResolveClass() =>
         UiClass.Compose(
             "font-medium",
-            Accent == true ? "text-accent-content" : "text-zinc-800 dark:text-white",
+            Accent == true ? "[:where(&)]:text-accent-content" : "[:where(&)]:text-zinc-800 dark:text-white",
             SizeClass(Size),
             Class);
 
@@ -51,10 +51,10 @@ public sealed partial class UiHeading : UiElement
 
     private static string SizeClass(Ui.HeadingSize? size) => size switch
     {
-        Ui.HeadingSize.Lg => "text-base",
-        Ui.HeadingSize.Xl => "text-2xl",
-        Ui.HeadingSize.Xxl => "text-4xl",
-        _ => "text-sm",
+        Ui.HeadingSize.Lg => "[:where(&)]:text-base",
+        Ui.HeadingSize.Xl => "[:where(&)]:text-2xl",
+        Ui.HeadingSize.Xxl => "[:where(&)]:text-4xl",
+        _ => "[:where(&)]:text-sm",
     };
 
     // For the kit's own titled components (a card, a page header), which draw their heading themselves: one

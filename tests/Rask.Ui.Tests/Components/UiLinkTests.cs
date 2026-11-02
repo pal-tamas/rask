@@ -17,7 +17,7 @@ public partial class UiLinkTests : global::Rask.Core.RaskMarkup
         var html = link.ToHtml();
 
         Assert.Equal(
-            "<a class=\"font-medium underline-offset-[6px] text-accent-content decoration-accent-content/20 "
+            "<a class=\"font-medium underline-offset-[6px] [:where(&amp;)]:text-accent-content decoration-accent-content/20 "
             + "underline hover:decoration-current\" data-ui-link href=\"https://example.test/\">Docs</a>",
             html);
     }
