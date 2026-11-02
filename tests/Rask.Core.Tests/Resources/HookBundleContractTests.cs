@@ -63,7 +63,6 @@ public partial class HookBundleContractTests
         ["data-rask-list-shows"] = "inside a data-rask-list",
         ["data-rask-list-faces"] = "inside a data-rask-list",
         ["data-rask-list-face"] = "inside a data-rask-list's data-rask-list-faces",
-        ["data-rask-list-drawn"] = "written by the list hook",
         ["data-rask-on-click"] = "the runtime's own handler mark; the list hook leaves a press on one to it",
         ["data-rask-on-pause"] = "the runtime's own pause mark (rask-input.ts); the list hook ends a pending one as it rewrites the field",
         ["data-rask-on-input"] = "the runtime's own input mark; the list hook tells such a field what it rewrote in it",

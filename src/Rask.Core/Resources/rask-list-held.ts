@@ -9,19 +9,18 @@
 // reader's next action (rask-input.ts); a form that asks before it is left counts it (rask-leave.ts).
 //
 // WHAT IS DRAWN. The rows' `aria-selected` and `data-selected`, the trigger's `data-selected`, the clear button
-// shown or hidden, a named list's posted field — each a write of an attribute the page renders too. And the
-// button's words (`data-rask-list-shows`): the page's own content there is put out of sight and a stand-in
-// stamped beside it from the list's template (`data-rask-list-faces`): its placeholder, or the picked row's
-// content copied into the box `data-rask-list-face` names the class of — as Flux copies its option. A
-// stand-in says `data-rask-managed`, so no diff counts it (rask-dom-path.ts): what the page renders keeps its
-// place, and once a render says the answer itself — the field's `value` comes back — the stand-ins go and the
-// page's content shows again. A combobox's input says its pick through rask-list.ts (`strict`).
+// shown or hidden and a named list's posted field — each an attribute the page renders too. And the button's
+// words: the box that says them (`data-rask-list-shows`) is drawn by the page once and is the browser's from
+// then on (`data-rask-opaque`: no diff and no morph goes into it). It is stamped from the list's template
+// (`data-rask-list-faces`): the placeholder; the answer the page last drew, as it drew it (`data-value`); or
+// the picked row's content copied into the box `data-rask-list-face` names the class of — as Flux copies its
+// option. When the page writes an answer of its own, the field's `value` moves and the box follows it. A
+// combobox's input says its pick through rask-list.ts (`strict`).
 
 import {announce, bind, boundOf} from "./rask-bound.js";
 
 const HELD = "[data-rask-list~=held]";
 const VALUE = "data-rask-list-value";
-const DRAWN = "data-rask-list-drawn";
 /** The clear button of a held list. */
 export const CLEAR = "data-rask-list-clear";
 
@@ -30,8 +29,6 @@ interface Held {
     shown: string[];
     /** The bound field as the page last rendered it. */
     drawn: string;
-    /** The page's own elements put out of sight while a stand-in says something else. */
-    hidden: HTMLElement[];
 }
 
 const helds = new WeakMap<Element, Held>();
@@ -54,7 +51,7 @@ function heldOf(root: Element): Held {
     if (!held) {
         const bound = boundOf(root);
         const drawn = (bound && bound.getAttribute("value")) || "[]";
-        helds.set(root, held = {shown: read(drawn), drawn, hidden: []});
+        helds.set(root, held = {shown: read(drawn), drawn});
     }
     return held;
 }
@@ -66,11 +63,11 @@ function current(root: Element): string {
     return same(held.shown, read(held.drawn)) ? held.drawn : JSON.stringify(held.shown);
 }
 
-function rowOf(root: Element, value: string): HTMLElement | null {
-    const rows = root.querySelectorAll<HTMLElement>("[" + VALUE + "]");
-    for (let i = 0; i < rows.length; i++) {
-        if (rows[i].getAttribute(VALUE) === value) {
-            return rows[i];
+// The first of `els` that says `value` in `name`.
+function find<E extends Element>(els: ArrayLike<E>, name: string, value: string): E | null {
+    for (let i = 0; i < els.length; i++) {
+        if (els[i].getAttribute(name) === value) {
+            return els[i];
         }
     }
     return null;
@@ -97,42 +94,31 @@ export function markHeld(root: Element): void {
     }
 }
 
-// The page's words in the button out of sight, and the stand-in for what is shown now beside them.
-function stamp(root: Element, held: Held): void {
-    const shows = root.querySelector("[data-rask-list-shows]");
-    const faces = root.querySelector<HTMLTemplateElement>("template[data-rask-list-faces]");
-    if (!shows || !faces) {
-        return;
+// What the button says for `shown`: the answer as the page drew it, the picked row copied, or the placeholder —
+// which is also what the page says for an answer it has nothing to show of.
+function face(root: Element, faces: HTMLTemplateElement, shown: readonly string[]): Node | null {
+    if (shown.length) {
+        const drawn = find(faces.content.querySelectorAll("[data-value]"), "data-value", shown[0]);
+        const copied = drawn ? drawn.cloneNode(true) : copy(root, faces, shown[0]);
+        if (copied) {
+            return copied;
+        }
     }
-    const face = held.shown.length ? copy(root, faces, held.shown[0]) : placeholder(faces);
-    for (let child = shows.firstElementChild; child; child = child.nextElementSibling) {
-        const own = child as HTMLElement;
-        own.style.display = "none";
-        held.hidden.push(own);
-    }
-    if (face) {
-        face.setAttribute(DRAWN, "");
-        face.setAttribute("data-rask-managed", "");
-        shows.appendChild(face);
-    }
-}
-
-function placeholder(faces: HTMLTemplateElement): Element | null {
-    const said = faces.content.querySelector("[data-ui-select-placeholder]");
-    return said ? said.cloneNode(true) as Element : null;
+    const placeholder = faces.content.querySelector("[data-ui-select-placeholder]");
+    return placeholder ? placeholder.cloneNode(true) : null;
 }
 
 // The picked row's content in the button's box, with the words it says there.
 function copy(root: Element, faces: HTMLTemplateElement, value: string): Element | null {
     const box = faces.content.querySelector("[data-rask-list-face]");
-    const row = rowOf(root, value);
+    const row = find(root.querySelectorAll("[" + VALUE + "]"), VALUE, value);
     const content = row && row.firstElementChild;
     if (!box || !content) {
         return null;
     }
-    const face = box.cloneNode(false) as Element;
-    face.removeAttribute("data-rask-list-face");
-    face.setAttribute("data-value", value);
+    const picked = box.cloneNode(false) as Element;
+    picked.removeAttribute("data-rask-list-face");
+    picked.setAttribute("data-value", value);
     const body = content.cloneNode(true) as Element;
     body.setAttribute("class", box.getAttribute("data-rask-list-face") || "");
     const says = row!.getAttribute("data-rask-list-says");
@@ -140,21 +126,13 @@ function copy(root: Element, faces: HTMLTemplateElement, value: string): Element
     if (says !== null && words) {
         words.textContent = says;
     }
-    face.appendChild(body);
-    return face;
+    picked.appendChild(body);
+    return picked;
 }
 
-// Everything the list shows of its answers, from what it holds now. What a render drew is the page's again first.
+// Everything the list shows of its answers, from what it holds now.
 function draw(root: Element): void {
     const held = heldOf(root);
-    root.querySelectorAll("[" + DRAWN + "]").forEach(function (el) { el.remove(); });
-    for (const el of held.hidden) {
-        el.style.removeProperty("display");
-        if (el.getAttribute("style") === "") {
-            el.removeAttribute("style");
-        }
-    }
-    held.hidden = [];
     const any = held.shown.length > 0;
     markHeld(root);
     const trigger = root.querySelector("[aria-haspopup=listbox]");
@@ -170,8 +148,15 @@ function draw(root: Element): void {
             posted.value = any ? held.shown[0] : "";
         }
     });
-    if (!same(held.shown, read(held.drawn))) {
-        stamp(root, held);
+    const shows = root.querySelector("[data-rask-list-shows]");
+    const faces = root.querySelector<HTMLTemplateElement>("template[data-rask-list-faces]");
+    if (shows && faces) {
+        const said = face(root, faces, held.shown);
+        if (said) {
+            shows.replaceChildren(said);
+        } else {
+            shows.replaceChildren();
+        }
     }
 }
 
@@ -203,7 +188,7 @@ bind(HELD, current, function (root, rendered) {
     held.shown = read(held.drawn);
     draw(root);
 }, undefined, function (root, rendered) {
-    // The page has drawn what the reader picked: its own content says it now.
+    // The page has heard what the reader picked: what it draws around the field says so too.
     heldOf(root).drawn = rendered || "[]";
     draw(root);
 });

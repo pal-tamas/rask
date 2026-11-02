@@ -245,11 +245,13 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         await Expect(page.Locator("#typed [role=combobox]")).ToHaveAttributeAsync("aria-expanded", "true");
     }
 
+    // A bound select of one answer holds its pick in the browser until the next action, as Flux's `wire:model`
+    // (rask-list-held.ts): it sends nothing. A pillbox still draws its pills from the page, so its pick is sent.
     [Theory]
-    [InlineData("room", "Legal services")]
-    [InlineData("found", "Legal services")]
-    [InlineData("tags", "Ruby")]
-    public async Task A_pick_is_the_one_press_the_page_hears_and_the_row_pressed_is_the_row_picked(string list, string row)
+    [InlineData("room", "Legal services", 0)]
+    [InlineData("found", "Legal services", 0)]
+    [InlineData("tags", "Ruby", 1)]
+    public async Task A_pick_is_at_most_the_one_press_the_page_hears_and_the_row_pressed_is_the_row_picked(string list, string row, int sent)
     {
         await using var session = await OpenAsync();
         var page = session.Page;
@@ -261,7 +263,7 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         await Expect(page.Locator($"#{list} [role=option][aria-selected=true]")).ToHaveTextAsync(row);
         await page.Clock.RunForAsync(1_000);
 
-        Assert.Equal(1, await SentFrames.SoFarAsync(page) - before);
+        Assert.Equal(sent, await SentFrames.SoFarAsync(page) - before);
     }
 
     [Fact]

@@ -1,3 +1,5 @@
+using Rask.Core.Forms;
+
 namespace Rask;
 
 // A pick that waits for the next action, held in the browser (`held`, rask-list-held.ts).
@@ -23,17 +25,25 @@ public abstract partial class UiSelectControl<T>
 
     // The bound field, first in the control: the answers the page drew, as form values (UiFormValues). The browser
     // writes the reader's pick into it, and it goes ahead of the next action. No name: what a form posts is the
-    // named fields after the popup (PostedValues).
-    private HTMLInputElement<string>? HeldField(View view) =>
-        Held
-            ? Input.Key("held").Value(UiFormValues.Write(Posted(view))).Type(InputType.Hidden)
-                .Attributes(UiRuntimeMarks.WaitsForAction).OnChange(HeldAsync)
-            : null;
+    // named fields after the popup (PostedValues). While a message shows under the select, the first pick says
+    // so at once (`data-rask-on-edit`), and the message goes, as it does under an input at the first key.
+    private HTMLInputElement<string>? HeldField(View view)
+    {
+        if (!Held)
+        {
+            return null;
+        }
 
-    // What the browser stamps into the button for a pick, as the page draws it: the placeholder, and the box the
-    // picked row's content is copied into (`data-rask-list-face`, the class its body takes there). Keyed by the
-    // placeholder: a template's content is no child a later diff can reach, so a new one is a new template.
-    private Component? HeldFaces(string? placeholder)
+        var edit = Bound is { } bound ? UiFormCommit.FirstEdit(ExpressionAccessor.Parse(bound), Form) : [];
+        return Input.Key("held").Value(UiFormValues.Write(Posted(view))).Type(InputType.Hidden)
+            .Attributes([.. UiRuntimeMarks.WaitsForAction, .. edit]).OnChange(HeldAsync);
+    }
+
+    // What the browser stamps into the button, as the page draws it: the placeholder, the answer the page holds
+    // now — an answer whose row a render took away is still drawn from it — and the box a picked row's content is
+    // copied into (`data-rask-list-face`, the class its body takes there). Keyed by all of it: a template's
+    // content is no child a later diff can reach, so new content is a new template.
+    private Component? HeldFaces(View view, string? placeholder)
     {
         if (!Held || IsCombobox)
         {
@@ -41,11 +51,20 @@ public abstract partial class UiSelectControl<T>
         }
 
         var shown = placeholder is null ? null : Span.Class(UiSelectLook.Placeholder).Data("ui-select-placeholder", "")[placeholder];
-        return Template.Key("faces:" + placeholder).Data("rask-list-faces", "")[
+        var answer = view.Answer is null ? null : PickedContent(view, placeholder);
+        return Template.Key("faces:" + placeholder + ":" + view.Answer?.FormValue).Data("rask-list-faces", "")[
             shown,
+            answer,
             Div.Class(UiSelectLook.Picked).Data("rask-list-face", UiListboxLook.OptionBody)
         ];
     }
+
+    // The button's words. Held, the page draws them once and they are the browser's from then on: no diff and no
+    // morph goes into them, so the pick it stamped there is not taken back by a render that has not heard it.
+    private Component Shows(Component? content) =>
+        Held
+            ? HostedElement.Tag("div").Opaque(true).Class(UiSelectLook.Selected).Data("rask-list-shows", "")[content]
+            : Div.Class(UiSelectLook.Selected)[content];
 
     // What a held row says: its form value, and the words the button or the input says once it is picked.
     private static void MarkHeld(Dictionary<string, string?> marks, UiSelectOption option)

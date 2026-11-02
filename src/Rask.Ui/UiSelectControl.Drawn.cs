@@ -17,7 +17,7 @@ public abstract partial class UiSelectControl<T>
             Trigger(view),
             Popup(view),
             .. PostedValues(view),
-            HeldFaces(view.Parts.Button?.Placeholder ?? Placeholder),
+            HeldFaces(view, view.Parts.Button?.Placeholder ?? Placeholder),
         ];
 
         return Div.Class(UiSelectLook.Root, Class).Attributes(RootMarks())[children];
@@ -107,9 +107,7 @@ public abstract partial class UiSelectControl<T>
             .Aria(TriggerAria(view))
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
-            (Held ? Div.Class(UiSelectLook.Selected).Data("rask-list-shows", "") : Div.Class(UiSelectLook.Selected))[
-                PickedContent(view, slot?.Placeholder ?? Placeholder)
-            ],
+            Shows(PickedContent(view, slot?.Placeholder ?? Placeholder)),
             // Drawn whenever it is asked for, out of sight while there is nothing to clear: its handler is numbered
             // before the rows', and a pick that shows it leaves every row wired as it was. Held, it has none: the
             // browser clears.
