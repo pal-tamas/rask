@@ -44,6 +44,16 @@ internal sealed class FakeWasmBundleDirectory : IDisposable
 
     public string Path { get; }
 
+    /// <summary>What Rask.External builds into a bundle: the island manifest, naming one chunk.</summary>
+    public const string IslandManifest = "{\"Counter\":\"/_rask/external/assets/Counter-abc123.js\"}";
+
+    /// <summary>Adds the island manifest and its one chunk.</summary>
+    public void AddIslands()
+    {
+        Write(System.IO.Path.Combine("_rask", "external", "manifest.json"), IslandManifest);
+        Write(System.IO.Path.Combine("_rask", "external", "assets", "Counter-abc123.js"), "export default {}");
+    }
+
     public void Dispose()
     {
         try

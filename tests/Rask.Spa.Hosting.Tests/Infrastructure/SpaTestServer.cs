@@ -43,7 +43,8 @@ internal sealed class SpaTestServer : IAsyncDisposable
         bool withApi = false,
         Action<SpaHostingOptions>? configure = null,
         string? contentRoot = null,
-        Dictionary<string, string?>? settings = null)
+        Dictionary<string, string?>? settings = null,
+        bool withDashboard = false)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions
         {
@@ -72,6 +73,12 @@ internal sealed class SpaTestServer : IAsyncDisposable
         {
             // Mapped before MapRaskSpa, which is the documented contract.
             app.MapGet("/api/ping", () => Results.Text("pong"));
+        }
+
+        if (withDashboard)
+        {
+            // The operator dashboard's catch-all, which sends whatever it is handed under /_rask to sign in.
+            app.MapGet("/_rask/{**path}", () => Results.Redirect("/login"));
         }
 
         app.MapRaskSpa(distPath, pathBase, configure);
