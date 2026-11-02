@@ -12,7 +12,9 @@ inputs:
     required: false
     default: ''
   nuget-cache:
-    description: Cache ~/.nuget/packages. Turn off for jobs that never restore (e.g. VSTest-direct shards).
+    description: >-
+      Cache ~/.nuget/packages (saved by main's runs, restored everywhere). Turn off for jobs that never
+      restore (e.g. VSTest-direct shards).
     required: false
     default: 'true'
   playwright:
@@ -41,13 +43,26 @@ runs:
       with:
         node-version-file: .node-version
 
+    # Keyed on the versions, not the project files: with central package management every version is in
+    # Directory.Packages.props, and a key over **/*.csproj saved a new 1.8 GB copy for every project edit.
+    # SAVED ON MAIN ONLY. Every other ref reads main's copy (a branch may read its default branch's caches)
+    # and keeps its own restore to itself: each ci/** branch used to save a copy of its own, five of them
+    # filled the repository's 10 GB, and GitHub then evicted the workload and Playwright caches every job reads.
     - name: Cache NuGet packages
-      if: inputs.nuget-cache == 'true'
+      if: inputs.nuget-cache == 'true' && github.ref == 'refs/heads/main'
       uses: actions/cache@v6
       with:
         path: ~/.nuget/packages
-        key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'Directory.Build.targets') }}
-        restore-keys: nuget-${{ runner.os }}-
+        key: nuget-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
+        restore-keys: nuget-v2-${{ runner.os }}-${{ runner.arch }}-
+
+    - name: Restore NuGet packages from main
+      if: inputs.nuget-cache == 'true' && github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@v6
+      with:
+        path: ~/.nuget/packages
+        key: nuget-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
+        restore-keys: nuget-v2-${{ runner.os }}-${{ runner.arch }}-
 
     # Resolve the SDK version so the workload cache invalidates when the SDK moves (workload packs are
     # SDK-band-specific). Only needed when we install workloads.
@@ -81,10 +96,22 @@ runs:
       # --skip-manifest-update: don't re-resolve the advertising manifests on a warm cache (the slow part).
       run: dotnet workload install ${{ inputs.workloads }} --skip-manifest-update
 
+    # The browsers are the ones Microsoft.Playwright asks for (scripts/lib/playwright.sh), and its version is
+    # in Directory.Packages.props — the E2E project file names no version, so a key over it kept a stale
+    # browser set that every job then downloaded the new one on top of, and never saved. The image is in the
+    # key too: Playwright picks its builds by the distribution it runs on.
+    - name: Resolve the Playwright version
+      if: inputs.playwright == 'true'
+      id: playwright
+      shell: bash
+      run: |
+        version="$(sed -n 's/.*Include="Microsoft.Playwright" Version="\([^"]*\)".*/\1/p' Directory.Packages.props)"
+        echo "version=${version:-unknown}" >> "$GITHUB_OUTPUT"
+        echo "image=${ImageOS:-unknown}" >> "$GITHUB_OUTPUT"   # the runner's; the env context does not carry it
+
     - name: Cache Playwright browsers
       if: inputs.playwright == 'true'
       uses: actions/cache@v6
       with:
         path: ~/.cache/ms-playwright
-        key: playwright-${{ runner.os }}-${{ hashFiles('tests/Rask.Site.E2E.Tests/Rask.Site.E2E.Tests.csproj') }}
-        restore-keys: playwright-${{ runner.os }}-
+        key: playwright-v2-${{ steps.playwright.outputs.image }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}

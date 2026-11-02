@@ -111,6 +111,30 @@ public static partial class Db
     private static async Task<(T Result, IReadOnlyList<Func<Task>> AfterCommit)> Attempt<T>(
         DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, CancellationToken cancellationToken)
     {
+        // No level asked, or one that does not outlive its transaction: no extra round trip.
+        if (IsolationReset.After(owner, isolation) is not { } reset)
+        {
+            return await InTransaction(owner, work, isolation, cancellationToken).ConfigureAwait(false);
+        }
+
+        // Held open past the transaction's end — commit, rollback or a throw — so the level it set is taken back on
+        // this connection before the owner's dispose returns it to the pool, where the next read would inherit it.
+        // The contexts the work joined share this one connection, so this covers them too.
+        await owner.Database.OpenConnectionAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await InTransaction(owner, work, isolation, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            await IsolationReset.Run(owner, reset).ConfigureAwait(false);
+            await owner.Database.CloseConnectionAsync().ConfigureAwait(false);
+        }
+    }
+
+    private static async Task<(T Result, IReadOnlyList<Func<Task>> AfterCommit)> InTransaction<T>(
+        DbContext owner, Func<Task<T>> work, IsolationLevel? isolation, CancellationToken cancellationToken)
+    {
         // No level asked, none sent: the database's own default, not one Rask picked for it.
         var transaction = isolation is { } level
             ? await owner.Database.BeginTransactionAsync(level, cancellationToken).ConfigureAwait(false)

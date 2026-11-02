@@ -81,7 +81,7 @@ public sealed class SqlServerOptionsTests
         var options = new SqlServerOptions { LockTimeout = TimeSpan.Zero };
 
         Assert.Null(Record.Exception(options.Validate));
-        Assert.Equal("SET XACT_ABORT ON;", SqlServerSessionSettings.BuildScript(options));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET XACT_ABORT ON;", SqlServerSessionSettings.BuildScript(options));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public sealed class SqlServerOptionsTests
     [Fact]
     public void The_script_sets_xact_abort_and_the_lock_timeout_in_milliseconds()
     {
-        Assert.Equal("SET XACT_ABORT ON;SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(new SqlServerOptions()));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET XACT_ABORT ON;SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(new SqlServerOptions()));
     }
 
     [Fact]
@@ -116,7 +116,17 @@ public sealed class SqlServerOptionsTests
     {
         var options = new SqlServerOptions { AbortOnError = false };
 
-        Assert.Equal("SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(options));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(options));
+    }
+
+    [Fact]
+    public void The_script_puts_the_session_back_to_read_committed_before_its_settings()
+    {
+        var options = new SqlServerOptions { LockTimeout = TimeSpan.Zero };
+
+        var script = SqlServerSessionSettings.BuildScript(options);
+
+        Assert.StartsWith("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;", script, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,7 +147,7 @@ public sealed class SqlServerOptionsTests
             LockTimeout = TimeSpan.FromTicks(TimeSpan.TicksPerMillisecond / 4),
         };
 
-        Assert.Equal("SET LOCK_TIMEOUT 1;", SqlServerSessionSettings.BuildScript(options));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET LOCK_TIMEOUT 1;", SqlServerSessionSettings.BuildScript(options));
     }
 
     [Fact]
@@ -154,7 +164,7 @@ public sealed class SqlServerOptionsTests
         {
             CultureInfo.CurrentCulture = new CultureInfo("hu-HU");
 
-            Assert.Equal("SET XACT_ABORT ON;SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(new SqlServerOptions()));
+            Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET XACT_ABORT ON;SET LOCK_TIMEOUT 10000;", SqlServerSessionSettings.BuildScript(new SqlServerOptions()));
         }
         finally
         {

@@ -255,6 +255,18 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **CI: a `ci/**` branch is scoped like a push to `main`**, measured from the newest commit `ci` or `full` passed
+  that it contains (`scripts/lib/green_base.sh`). A change to the CI, a gate script or the pins still runs the whole
+  set, and so does a `ci/release/**` branch; `gh workflow run ci.yml --ref <branch>` runs it on any branch. Fifteen
+  branches running all 26 jobs each held the account's twenty runners for hours on 2026-11-02.
+- **CI: a run on `main` that has not started a gate when a newer push's run starts is cancelled by it**
+  (`scripts/lib/cancel_superseded.sh`): both are measured from the last green commit, so the newer run's scope holds
+  the older push's change. So is a `full` run whose gates all still wait for a runner while a newer one waits
+  behind it. A run that has started a gate keeps its verdict; manual runs are never touched.
+- **CI: the NuGet cache is keyed on `Directory.Packages.props` and saved by `main` only**; every other ref restores
+  main's. Keyed on every project file, each `ci/**` branch saved its own 1.8 GB copy, five filled the repository's
+  10 GB, and GitHub evicted the workload and Playwright caches the gates read. The Playwright cache is keyed on its
+  version (the E2E project file names none, so a bump kept the old browsers and downloaded the new ones every job).
 - **Rask.Ui: the kit parts Flux documents only in its examples are held to Flux like every other.** `flux.snapshot.json`
   (`scripts/flux/refresh.mjs`, the `flux` follower) now also reads a part Flux writes in its examples or lists as an
   available item but heads no Reference entry with — `flux:spacer`, `flux:navmenu`, `flux:menu.group`, the chart's
@@ -532,6 +544,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
+  SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
+  `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read
+  that drew the same connection ran serializable — range locks, no read-committed snapshot — and plain reads became
+  deadlock victims. The block now puts the connection back to `READ COMMITTED` once it commits, rolls back or throws,
+  before it returns to the pool (one statement, only when a non-default level was asked; the contexts that joined the
+  block share that connection). PostgreSQL and SQLite were checked and do not keep the level. `UseRaskSqlServer`'s
+  per-open session batch now also starts with `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` (no extra round trip),
+  so a hand-written `BeginTransaction(IsolationLevel.Serializable)` cannot leak into the next pooled use either.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

@@ -48,6 +48,7 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-26.04
+    timeout-minutes: 10   # seconds of git, python and jq
     outputs:
       gates: ${{ steps.pick.outputs.gates }}
       mode: ${{ steps.pick.outputs.mode }}
@@ -181,7 +182,9 @@ jobs:
     needs: plan
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
-    timeout-minutes: 30   # the longest gate takes about twelve; a hung one must not hold a runner
+    # The longest gate (format src) took 25.5 minutes on 2026-11-02, so thirty timed out a slow runner's
+    # healthy run; a hung one must still not hold a runner for long.
+    timeout-minutes: 40
     strategy:
       fail-fast: false   # one red gate says nothing about the others; report all of them
       max-parallel: ${{ inputs.parallel }}
