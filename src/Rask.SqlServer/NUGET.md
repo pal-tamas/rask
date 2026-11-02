@@ -60,6 +60,9 @@ o.UseRaskSqlServer(sp, s => s.Retry.Enabled = false);
 SQL Server takes no session settings in the connection string, so `XACT_ABORT` and `LOCK_TIMEOUT` are one batch
 sent each time EF opens a connection — a round trip per open, since SqlClient resets a pooled connection's state.
 Code that opens the `DbConnection` directly skips it; open through `context.Database.OpenConnectionAsync()`.
+The same batch also sends `SET TRANSACTION ISOLATION LEVEL READ COMMITTED`: a transaction begun at another level
+(`BeginTransaction(IsolationLevel.Serializable)`) leaves that level on the session, the pool's reset does not clear
+it, and the next read on that connection would otherwise run serializable.
 
 Retrying is an execution strategy, and like every EF Core retrying strategy it refuses a transaction you opened
 yourself outside it: wrap a hand-written `BeginTransaction` in

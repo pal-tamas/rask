@@ -94,9 +94,9 @@ internal static class BulkInsertWriter
     /// <param name="columns">The columns each row binds.</param>
     internal static int RowsPerStatement(string? providerName, int columns) => providerName switch
     {
-        "Npgsql.EntityFrameworkCore.PostgreSQL" => Pack(65_535, columns),
+        ProviderNames.Postgres => Pack(65_535, columns),
         // 2,100 is the request's limit; EF's own batching leaves room for two, and so does this.
-        "Microsoft.EntityFrameworkCore.SqlServer" => Pack(2_098, columns),
+        ProviderNames.SqlServer => Pack(2_098, columns),
         "Pomelo.EntityFrameworkCore.MySql" or "MySql.EntityFrameworkCore" => Pack(65_535, columns),
         _ => 1,
     };
@@ -314,7 +314,7 @@ internal static class BulkInsertWriter
     /// </remarks>
     /// <param name="providerName">The context's <c>Database.ProviderName</c>.</param>
     internal static bool ExecutesSynchronously(string? providerName) =>
-        string.Equals(providerName, "Microsoft.EntityFrameworkCore.Sqlite", StringComparison.Ordinal);
+        string.Equals(providerName, ProviderNames.Sqlite, StringComparison.Ordinal);
 
     // AuditingInterceptor takes its TimeProvider from DI; the writer must read the same clock or a test that
     // freezes time would see two different "now"s depending on which path ran.

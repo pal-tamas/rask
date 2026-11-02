@@ -24,8 +24,6 @@ namespace Rask.Data;
 /// </remarks>
 internal static class TenantColumn
 {
-    private const string SqlServerProvider = "Microsoft.EntityFrameworkCore.SqlServer";
-
     // EF.Property<T>(entity, "TenantId") per supported type, and the readers the filter calls — each captured
     // from a real expression rather than through MakeGenericMethod, so the trimmer can follow all of them.
     private static readonly MethodInfo StoredGuid =
@@ -134,7 +132,7 @@ internal static class TenantColumn
     ///     only, whose cached plans are otherwise shared by every tenant.
     /// </summary>
     internal static bool InlinesTenant(DbContext context) =>
-        string.Equals(context.Database.ProviderName, SqlServerProvider, StringComparison.Ordinal);
+        string.Equals(context.Database.ProviderName, ProviderNames.SqlServer, StringComparison.Ordinal);
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
