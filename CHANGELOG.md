@@ -440,6 +440,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The gates ran on the Node LTS line GitHub's `setup-node` knew about, not the one Rask states.** `setup-node`
+  reads `lts/*` from its own manifest, which still named Node 24 after nodejs.org had made 26 the Active LTS, so the
+  node-lts follower that moved the build floor to 26 was refused by every build. The repo now names its Node in
+  `.node-version` (the follower writes it with `NodeRequirement.ScaffoldLine`, a test holds the two together) and
+  every workflow installs exactly that.
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook

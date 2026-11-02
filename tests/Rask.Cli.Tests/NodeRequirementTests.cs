@@ -35,6 +35,17 @@ public sealed class NodeRequirementTests
         Assert.Equal(NodeRequirement.BuildFloor, Version.Parse(declared.Groups[1].Value));
     }
 
+    // CI installs exactly this Node (setup-node reads .node-version); a line the gates do not run on is a floor nobody checked.
+    [Fact]
+    public void The_gates_install_the_Node_the_installers_put_on_a_machine()
+    {
+        var pinned = RepoPins.Text(".node-version").Trim();
+
+        var version = Version.Parse(pinned);
+
+        Assert.Equal(NodeRequirement.ScaffoldLine, version);
+    }
+
     // A front end's build runs vite too, so it takes the same floor (RASKSPA005) — one number, two enforcing files.
     [Fact]
     public void The_front_end_floor_matches_the_islands_floor()

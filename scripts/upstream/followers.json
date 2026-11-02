@@ -27,6 +27,7 @@
       "run": "scripts/upstream/node-lts.sh",
       "outputs": [
         "src/Rask.Cli/NodeRequirement.cs",
+        ".node-version",
         "rask.sh",
         "rask.ps1",
         "docs/installation.md",
