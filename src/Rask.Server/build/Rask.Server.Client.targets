@@ -150,7 +150,12 @@
     <Delete Files="@(_RaskStaleApiClient)"/>
   </Target>
 
-  <Target Name="RaskGenerateClientCompanion" Condition=" '$(RaskClient)' == 'true' ">
+  <!--
+    After GetAssemblyAttributes, because the kit's Rask.Ui.Stylesheet metadata is carried below and the target that
+    writes it (Rask.Ui's) hooks that one. A build has already run it; this is for the target asked for by name.
+  -->
+  <Target Name="RaskGenerateClientCompanion" Condition=" '$(RaskClient)' == 'true' "
+          DependsOnTargets="GetAssemblyAttributes">
 
     <!--
       How the companion references Rask mirrors how the APP references it. An app consuming the packages
@@ -173,6 +178,18 @@
       <_RaskApiClientFile Include="$(CompilerGeneratedFilesOutputPath)\**\__RaskApiClients.g.cs"/>
 
       <_RaskClientWebRoot Include="$(_RaskClientApp)\Client\wwwroot\**\*"/>
+
+      <!--
+        The ONE piece of the app's assembly metadata the browser half needs: that the kit is compiled into the
+        app's own stylesheet (Rask.Ui.Stylesheet, from Rask.Ui's targets, which look at the app's Styles/app.css).
+        The companion, inside obj\, has no such file, so without this its assembly says nothing and the booted
+        client links /css/rask-ui.css, which such an app does not ship. Nothing else crosses: the server's other
+        metadata holds build-machine paths (Rask.SpaDistDir and its kind) that must not reach a public bundle.
+        The value is escaped for XML (& < > ") and for MSBuild (% ; $ @), as the prerender companion's are.
+      -->
+      <_RaskClientMetadata Include="@(AssemblyMetadata)" Condition=" '%(Identity)' == 'Rask.Ui.Stylesheet' ">
+        <EscapedValue>$([System.String]::Copy('%(Value)').Replace('%25','%2525').Replace('%3B','%253B').Replace('%24','%2524').Replace('%40','%2540').Replace('&amp;','&amp;amp;').Replace('&lt;','&amp;lt;').Replace('&gt;','&amp;gt;').Replace('&quot;','&amp;quot;'))</EscapedValue>
+      </_RaskClientMetadata>
     </ItemGroup>
 
     <PropertyGroup>
@@ -265,6 +282,7 @@
       <_RaskClientLine Include="  &lt;/PropertyGroup&gt;"/>
       <_RaskClientLine Include="  &lt;ItemGroup&gt;"/>
       <_RaskClientLine Include="    &lt;CompilerVisibleProperty Include=&quot;RaskApiClientBaked&quot; /&gt;"/>
+      <_RaskClientLine Include="@(_RaskClientMetadata->'    &lt;AssemblyMetadata Include=&quot;%(Identity)&quot; Value=&quot;%(EscapedValue)&quot; /&gt;')"/>
       <_RaskClientLine Include="  &lt;/ItemGroup&gt;"/>
 
       <!--

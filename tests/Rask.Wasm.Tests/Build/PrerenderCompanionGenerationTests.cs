@@ -65,6 +65,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
                 <ItemGroup>
                   <AssemblyMetadata Include="Rask.Stylesheet" Value="css/app.css"/>
                   <AssemblyMetadata Include="Rask.Ui.Stylesheet" Value="compiled-in"/>
+                  <AssemblyMetadata Include="Fixture.Odd" Value="{OddValueInProject}"/>
                 </ItemGroup>
               </Target>
               <Import Project="{Path.Combine(SrcDir, "Rask.Wasm", "build", "Rask.Wasm.Prerender.targets")}"/>
@@ -311,6 +312,23 @@ public class PrerenderCompanionGenerationTests : IDisposable
         Assert.Equal(1, Occurrences(project, "Demo.cs\" LogicalName="));
         Assert.Equal(1, Occurrences(project.Replace('\\', '/'), "Link=\"Features/Notes.txt\""));
     }
+
+    [Fact]
+    public async Task A_metadata_value_reaches_the_companion_as_the_app_set_it()
+    {
+        // Written into an XML attribute that MSBuild then reads: a quote or a '<' unescaped would end the attribute
+        // or the element and leave a project that does not load, and a ';' or '$(' would read back as a list or
+        // a property rather than the value.
+        var project = await Generate();
+
+        var line = project.Split('\n').Single(l => l.Contains("\"Fixture.Odd\"", StringComparison.Ordinal));
+        var written = System.Xml.Linq.XElement.Parse(line.Trim()).Attribute("Value")!.Value;
+        Assert.Equal(OddValue, Uri.UnescapeDataString(written));
+    }
+
+    // What the app means, and the same value as its csproj has to spell it.
+    private const string OddValue = "a \"b\" <c> & d; e $(X) 50% @x";
+    private const string OddValueInProject = "a &quot;b&quot; &lt;c&gt; &amp; d%3B e %24(X) 50%25 %40x";
 
     private static int Occurrences(string haystack, string needle)
     {

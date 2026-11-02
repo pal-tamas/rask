@@ -455,6 +455,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
+  `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
+  `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
+  must not reach a public bundle. The prerender companion now escapes the metadata values it writes, so a value with
+  a quote, `<`, `&`, `;`, `$` or `@` no longer produces a malformed project or reads back as something else.
 - **docs: prerendering's limits no longer say there is "no hook yet" for parameterised routes.** `IPrerenderPaths`
   supplies them; what is still missing is one prerendered page per language.
 - **A server SQLite database in a directory that does not exist yet opens.** `UseRaskSqlite` and `AddRaskSqlite`

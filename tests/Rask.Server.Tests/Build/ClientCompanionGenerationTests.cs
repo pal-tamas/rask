@@ -430,6 +430,36 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Assert.Contains("<RaskUiWriteFonts>false</RaskUiWriteFonts>", optedOut, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_browser_app_of_an_app_that_compiles_the_kit_in_is_told_so()
+    {
+        // Rask.Ui's targets mark the APP's assembly when the kit is compiled into Styles/app.css, and the host reads
+        // that mark to link the one sheet. The companion, inside obj/, has no Styles/app.css, so its assembly said
+        // nothing and the booted client linked /css/rask-ui.css, which such an app does not ship (#1203).
+        WriteProject(clientSwitch: null, kitCompiledIn: true);
+
+        var project = await Generate();
+
+        Assert.Single(
+            AssemblyMetadataLine().Matches(project),
+            m => m.Value == "<AssemblyMetadata Include=\"Rask.Ui.Stylesheet\" Value=\"compiled-in\" />");
+    }
+
+    [Fact]
+    public async Task No_other_server_metadata_reaches_the_browser_app()
+    {
+        // The server's assembly also carries where its bundle is built (Rask.SpaDistDir and its kind): paths on the
+        // build machine, which have no business in a bundle anyone can download. And an app that links the kit's
+        // precompiled sheet says nothing at all.
+        var project = await Generate();
+
+        Assert.Empty(AssemblyMetadataLine().Matches(project));
+        Assert.DoesNotContain("Rask.Spa", project, StringComparison.Ordinal);
+    }
+
+    [GeneratedRegex("<AssemblyMetadata [^>]*/>")]
+    private static partial Regex AssemblyMetadataLine();
+
     [GeneratedRegex("<Compile Include=\"(?<path>[^\"]*\\*\\*[^\"]*)\" />")]
     private static partial Regex CompileGlob();
 
@@ -449,7 +479,14 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
 
     // The kit's targets are imported as its package would import them, and the kit is "referenced" by name
     // only: nothing here compiles, so the reference is never resolved.
-    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool? flags = null, bool? phoneEngine = null, bool? fonts = null) =>
+    private void WriteProject(bool? clientSwitch, string sdk = "Microsoft.NET.Sdk", bool? editorEngine = null, bool? flags = null, bool? phoneEngine = null, bool? fonts = null, bool kitCompiledIn = false)
+    {
+        // An app whose own Tailwind sheet imports the kit: what makes Rask.Ui mark the assembly "compiled-in".
+        if (kitCompiledIn)
+        {
+            Write("Styles/app.css", "@import \"tailwindcss\";\n@import \"./rask-ui.css\";");
+        }
+
         Write("App.csproj", $"""
             <Project Sdk="{sdk}">
               <PropertyGroup>
@@ -461,6 +498,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
                 {(flags is { } drawn ? $"<RaskUiWriteFlags>{drawn.ToString().ToLowerInvariant()}</RaskUiWriteFlags>" : "")}
                 {(phoneEngine is { } phone ? $"<RaskUiPhoneEngine>{phone.ToString().ToLowerInvariant()}</RaskUiPhoneEngine>" : "")}
                 {(fonts is { } face ? $"<RaskUiWriteFonts>{face.ToString().ToLowerInvariant()}</RaskUiWriteFonts>" : "")}
+                {(kitCompiledIn ? "<RaskTailwindInput>Styles/app.css</RaskTailwindInput>" : "")}
               </PropertyGroup>
               <ItemGroup>
                 <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="9.9.9"/>
@@ -475,6 +513,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
               <Import Project="{Path.Combine(SrcDir, "Rask.Ui", "build", "Rask.Ui.targets")}"/>
             </Project>
             """);
+    }
 
     // The generated project carries MSBuild's canonical '\\' separators, which MSBuild normalizes when it
     // evaluates them — so the file works on every platform and only these assertions care.
