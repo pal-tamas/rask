@@ -23,7 +23,7 @@ internal static class UiCalendarLook
     internal const string HeaderEnd = "flex items-center";
 
     internal const string Step =
-        "flex items-center justify-center size-8 max-sm:size-10 rounded-lg text-start cursor-auto text-zinc-400 "
+        "flex items-center justify-center size-8 max-sm:size-10 rounded-lg text-start text-zinc-400 "
         + "hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white "
         + "disabled:opacity-50 disabled:pointer-events-none";
 
@@ -37,7 +37,7 @@ internal static class UiCalendarLook
     internal const string TodayIcon = "shrink! fill-none [&>path]:fill-current";
 
     internal const string TodayNumber =
-        "absolute inset-0 mt-[3px] flex items-center justify-center text-[0.5625rem] font-semibold cursor-default";
+        "absolute inset-0 mt-[3px] flex items-center justify-center text-[0.5625rem] font-semibold";
 
     internal const string SelectHost = "text-sm font-medium text-zinc-800 dark:text-white";
 
@@ -75,12 +75,12 @@ internal static class UiCalendarLook
     // A day that cannot be picked takes no pointer, so it is never lit under one — and keeps the hover rule, as
     // Flux's does (measured on the datetime picker's min/max: a disabled day held in :hover is tinted).
     internal const string Day =
-        "flex flex-col items-center justify-center rounded-lg text-sm font-medium cursor-default "
+        "flex flex-col items-center justify-center rounded-lg text-sm font-medium "
         + "text-zinc-800 dark:text-white hover:bg-zinc-800/5 dark:hover:bg-white/5 "
         + "disabled:text-zinc-400 dark:disabled:text-zinc-400 disabled:pointer-events-none";
 
     internal const string DaySelected =
-        "flex flex-col items-center justify-center rounded-lg text-sm font-medium cursor-default "
+        "flex flex-col items-center justify-center rounded-lg text-sm font-medium "
         + "bg-accent text-accent-foreground";
 
     internal const string DayStatic = "relative flex items-center justify-center rounded-lg text-sm font-medium text-zinc-800 dark:text-white";

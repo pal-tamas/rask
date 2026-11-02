@@ -5,14 +5,14 @@ internal static class UiDatePickerLook
 {
     // The field-shaped box both triggers are drawn as.
     private const string Box =
-        "flex items-center w-full px-3 py-2 rounded-lg overflow-hidden cursor-default "
+        "flex items-center w-full px-3 py-2 rounded-lg overflow-hidden "
         + "border border-zinc-200 border-b-zinc-300/80 bg-white shadow-xs "
         + "dark:border-white/10 dark:border-b-white/10 dark:bg-white/10 "
         + "data-invalid:border-red-500 dark:data-invalid:border-red-500 data-invalid:shadow-none";
 
     internal const string Button = Box + " text-base sm:text-sm disabled:shadow-none disabled:border-b-zinc-200 dark:disabled:bg-white/[7%]";
 
-    internal const string Typed = Box + " text-base sm:text-sm leading-[1.375rem] text-zinc-700 dark:text-zinc-300 dark:shadow-none";
+    internal const string Typed = Box + " cursor-default text-base sm:text-sm leading-[1.375rem] text-zinc-700 dark:text-zinc-300 dark:shadow-none";
 
     internal const string Leading = "me-2 text-zinc-400/75 dark:text-white/60";
 
@@ -77,11 +77,11 @@ internal static class UiDatePickerLook
     internal const string PresetList = "flex flex-col gap-1 p-2 min-w-[120px]";
 
     internal const string Preset =
-        "block w-full px-2 py-1.5 rounded-lg text-sm font-medium text-start whitespace-nowrap cursor-auto "
+        "block w-full px-2 py-1.5 rounded-lg text-sm font-medium text-start whitespace-nowrap "
         + "text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-white/5 dark:hover:text-white";
 
     internal const string PresetChecked =
-        "block w-full px-2 py-1.5 rounded-lg text-sm font-medium text-start whitespace-nowrap cursor-auto "
+        "block w-full px-2 py-1.5 rounded-lg text-sm font-medium text-start whitespace-nowrap "
         + "bg-accent text-accent-foreground dark:hover:bg-white/5 dark:hover:text-white";
 
     internal const string Footer = "sm:col-start-2 flex justify-end gap-2 p-2 max-sm:p-4";

@@ -8,7 +8,11 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiLabel : Component
 {
-    private const string Look = "items-center text-sm font-medium text-zinc-800 dark:text-white cursor-default";
+    // The arrow over a name, as Flux draws it — but the hand over one that toggles: the name of a box, a radio or a
+    // switch that is not disabled, which a press ticks (an owner-approved departure from Flux, 2026-11-02).
+    private const string Look =
+        "items-center text-sm font-medium text-zinc-800 dark:text-white cursor-default "
+        + "[[data-ui-field]:has(>[data-ui-control]_input:is([type=checkbox],[type=radio]):not(:disabled))>&]:cursor-pointer";
 
     private const string BadgeLook =
         "ms-1.5 -my-1 rounded-sm px-1.5 py-1 text-xs font-medium "

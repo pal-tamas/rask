@@ -16,7 +16,7 @@ internal static class UiTimePickerLook
 
     /// <summary>The button that shows the choice: white, zinc-200 with a darker bottom edge, <c>shadow-xs</c>.</summary>
     internal const string Button =
-        "flex items-center w-full px-3 overflow-hidden cursor-default border shadow-xs disabled:shadow-none "
+        "flex items-center w-full px-3 overflow-hidden border shadow-xs disabled:shadow-none "
         + "bg-white dark:bg-white/10 dark:disabled:bg-white/[7%] "
         + "border-zinc-200 border-b-zinc-300/80 disabled:border-b-zinc-200 dark:border-white/10 dark:disabled:border-white/5 "
         + "data-invalid:border-red-500 dark:data-invalid:border-red-500";
@@ -65,7 +65,7 @@ internal static class UiTimePickerLook
     ///     then on the runtime lights it (<c>data-active</c>, rask-time-list.ts).
     /// </summary>
     internal const string Option =
-        "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-sm tabular-nums cursor-default "
+        "flex items-center justify-start gap-2 w-full px-1 py-1.5 rounded-lg text-sm tabular-nums "
         + "text-zinc-800 dark:text-white disabled:text-zinc-400 dark:disabled:text-zinc-400 "
         + "[:popover-open>&]:data-active:bg-zinc-100 dark:[:popover-open>&]:data-active:bg-zinc-600 "
         // The list opens scrolled to where it starts — the chosen time, or OpenTo — brought just into view, with
