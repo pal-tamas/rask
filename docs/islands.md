@@ -1022,7 +1022,9 @@ Serving islands from http://localhost:5174 (hot reload)…
 Nothing to configure. The dev server starts when the project has islands, dies with the host, and
 listens on **5174** — not Vite's default 5173, so another Vite project on the machine does not fight it
 for the port. Override it with
-`<RaskExternalDevServerPort>` if something else is already there.
+`<RaskExternalDevServerPort>` if something else is already there. A wasm-hosted app is the exception: its islands
+are bundled with its browser half, and an edit is rebuilt with the rest of `Client/`
+([below](#islands-in-a-wasm-hosted-app)).
 
 **Under VS Code's F5 the app starts it.** No `rask dev` runs beside an app the debugger launched, so a
 dev-session build starts the same Vite server itself once the build has written its config, and stops it with
@@ -1088,7 +1090,8 @@ nightly, a release candidate — is allowed through rather than refused. Overrid
 
 `rask new` does all of this. Naming a runtime scaffolds the pair, the dependencies, the tsconfig
 mapping that makes `@rask/<Name>.props` resolve, and the package reference, and puts the island on the
-home page (`Features/Home/HomePage.cs`), so the first `rask dev` shows it running:
+home page (`Features/Home/HomePage.cs`; on wasm-hosted, `Client/Pages/HomePage.cs` —
+[see below](#islands-in-a-wasm-hosted-app)), so the first `rask dev` shows it running:
 
 ```bash
 rask new Shop --islands react                  # one
@@ -1346,6 +1349,41 @@ Two things worth knowing:
 - A component whose C# and front-end file are in *different* projects is still not supported, and is
   reported: `ReportUnbuiltIslands` warns in the project that declares the island, because the module
   it names is not among the files being built.
+
+## Islands in a wasm-hosted app
+
+A `wasm-hosted` app is one project with two halves, and its pages are the browser half's: the build generates
+that project into `obj/` from `Client/` and `Shared/`. So an island goes where the pages are, and its packages are
+the browser half's:
+
+```xml
+<ItemGroup>
+  <RaskClientPackageReference Include="Rask.External" Version="…"/>
+</ItemGroup>
+```
+
+```
+Shop/
+  Shop.csproj          RaskClientPackageReference Rask.External
+  package.json         the islands' npm dependencies, beside the project file
+  tsconfig.json        extends obj/rask-external/tsconfig.paths.json
+  Client/
+    Pages/HomePage.cs  renders ReactCounter
+    Features/Islands/React/ReactCounter.cs + ReactCounter.tsx
+```
+
+`rask new Shop --template wasm-hosted --islands react` writes exactly this. A plain `PackageReference` would put
+`Rask.External` in the server, which renders no page, and an island outside `Client/` is a class no page can name.
+
+The browser project lives in `obj/`, where there is no island and no `package.json`, so it tells `Rask.External`
+where to look: `RaskExternalSourceRoot` is `Client/`, where the front-end files and props snapshots are found, and
+`RaskExternalRoot` is the app's own folder, where npm installs and Vite and the checkers run. Both default to the
+project's folder, which is right for every other project; set them yourself only for a project generated somewhere
+other than where its islands are. `package.json` stays at the root rather than in `Client/`, because a
+`package.json` there makes `Client/` an [npm front end](spa.md) to `Rask.Spa.Hosting`.
+
+The bundle is built with the rest of the browser app and served with it, so `rask dev` starts no island dev server
+here: an island edit is rebuilt with `Client/` and the page reloads, as for any other edit there.
 
 ## What is not here yet
 
