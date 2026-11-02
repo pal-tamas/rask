@@ -525,16 +525,16 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
-- **An app's class now wins over 279 more kit defaults, on 91 more components.** `.Class("p-2")` on a card,
+- **An app's class now wins over 315 more kit defaults, on 100 more components.** `.Class("p-2")` on a card,
   `.Class("text-base")` on a button or `.Class("w-auto")` on an input used to lose to the kit's own utility of equal
   weight, and the winner was Tailwind's print order, not the call site. Those defaults are now written
   `[:where(&)]:…`, which weighs nothing, so an app's utility wins without `!`. The look is unchanged
   (`parity.mjs` on every touched page, at 1280 and 390). What still needs `!` is named, with its reason, in
-  `AnAppsClassWinsTests.Known` (19 components, down from 110): an empty error's and a closed popover's `hidden`
-  (a state, not a look), the current/selected/checked ink of a nav item, a tab and a toggle (it has to outweigh
-  dark mode's resting ink), the table's Flux class list, and the sidebar and header until their padding moves
-  into the kit sheet. Two showcase demos now look as their code says: the callback guide's rating stars take
-  their `text-2xl` and amber, and the composer's "Remove picture" button its `rounded-full`.
+  `AnAppsClassWinsTests.Known` (10 components, down from 110): an empty error's and a closed popover's `hidden`
+  (a state, not a look), the current/selected/checked ink of a nav or sidebar item, a tab and a toggle (it has to
+  outweigh dark mode's resting ink), and the table's Flux class list. Two showcase demos now look as their code
+  says: the callback guide's rating stars take their `text-2xl` and amber, and the composer's "Remove picture"
+  button its `rounded-full`.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
