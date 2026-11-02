@@ -26,10 +26,10 @@ namespace Rask;
 public sealed partial class UiAvatar : Component, IUiTrigger
 {
     private const string Frame =
-        "relative flex shrink-0 items-center justify-center font-medium after:absolute after:inset-0 "
+        "relative [:where(&)]:flex shrink-0 items-center justify-center font-medium after:absolute after:inset-0 "
         + "after:rounded-[inherit] after:inset-ring-1 after:inset-ring-black/7 dark:after:inset-ring-white/10";
 
-    private const string Plain = "bg-zinc-200 text-zinc-800 dark:bg-zinc-600 dark:text-white";
+    private const string Plain = "bg-zinc-200 [:where(&)]:text-zinc-800 dark:bg-zinc-600 dark:text-white";
 
     private const string BadgeBase =
         "absolute z-10 flex h-3 min-w-3 items-center justify-center overflow-hidden text-[.625rem] tabular-nums ring-2 "
@@ -216,16 +216,16 @@ public sealed partial class UiAvatar : Component, IUiTrigger
 
     private static string SizeClass(Ui.AvatarSize size, bool circle) => (size, circle) switch
     {
-        (Ui.AvatarSize.Xs, false) => "size-6 rounded-sm text-xs",
-        (Ui.AvatarSize.Sm, false) => "size-8 rounded-md text-sm",
-        (Ui.AvatarSize.Lg, false) => "size-12 rounded-lg text-base",
-        (Ui.AvatarSize.Xl, false) => "size-16 rounded-xl text-base",
-        (_, false) => "size-10 rounded-lg text-sm",
-        (Ui.AvatarSize.Xs, true) => "size-6 rounded-full text-xs",
-        (Ui.AvatarSize.Sm, true) => "size-8 rounded-full text-sm",
-        (Ui.AvatarSize.Lg, true) => "size-12 rounded-full text-base",
-        (Ui.AvatarSize.Xl, true) => "size-16 rounded-full text-base",
-        (_, true) => "size-10 rounded-full text-sm",
+        (Ui.AvatarSize.Xs, false) => "[:where(&)]:size-6 [:where(&)]:rounded-sm [:where(&)]:text-xs",
+        (Ui.AvatarSize.Sm, false) => "[:where(&)]:size-8 [:where(&)]:rounded-md [:where(&)]:text-sm",
+        (Ui.AvatarSize.Lg, false) => "[:where(&)]:size-12 [:where(&)]:rounded-lg [:where(&)]:text-base",
+        (Ui.AvatarSize.Xl, false) => "[:where(&)]:size-16 [:where(&)]:rounded-xl [:where(&)]:text-base",
+        (_, false) => "[:where(&)]:size-10 [:where(&)]:rounded-lg [:where(&)]:text-sm",
+        (Ui.AvatarSize.Xs, true) => "[:where(&)]:size-6 [:where(&)]:rounded-full [:where(&)]:text-xs",
+        (Ui.AvatarSize.Sm, true) => "[:where(&)]:size-8 [:where(&)]:rounded-full [:where(&)]:text-sm",
+        (Ui.AvatarSize.Lg, true) => "[:where(&)]:size-12 [:where(&)]:rounded-full [:where(&)]:text-base",
+        (Ui.AvatarSize.Xl, true) => "[:where(&)]:size-16 [:where(&)]:rounded-full [:where(&)]:text-base",
+        (_, true) => "[:where(&)]:size-10 [:where(&)]:rounded-full [:where(&)]:text-sm",
     };
 
     private static string IconClass(Ui.AvatarSize size) => size switch
