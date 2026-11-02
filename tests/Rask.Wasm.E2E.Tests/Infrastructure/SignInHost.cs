@@ -73,7 +73,7 @@ internal sealed class SignInHost : IAsyncDisposable
         app.MapFallbackToFile("index.html", Files(files));
 
         await app.StartAsync();
-        var address = app.Services.GetRequiredService<IServer>().Features.GetRequiredFeature<IServerAddressesFeature>()
+        var address = app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!
             .Addresses.First();
         host = new SignInHost(app, address);
         return host;

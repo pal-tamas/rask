@@ -108,7 +108,7 @@ public sealed class HttpUserProvider(HttpClient http, AuthClientOptions options)
         }
     }
 
-        private void Set(ClaimsPrincipal user)
+    private void Set(ClaimsPrincipal user)
     {
         // The same user with the same rights, read again, is no change: a page asks on every return to the tab, and
         // would otherwise render again for nothing each time.
