@@ -243,7 +243,10 @@ them until tagged releases begin.
     no `icon:variant` on a navmenu's row, which draws the 20px icon.
   - New, as Flux's profile page writes them: `Ui.NavmenuItem.Indent()` (Flux's `indent`: an icon's 28px room, empty,
     before the words) and `Ui.NavmenuSeparator` (`flux:navmenu.separator`: a menu's line under the navmenu's marker).
-  - `Ui.MenuGroup` and `Ui.Navmenu` match Flux open, light and dark (`parity-menu.mjs dropdown`), unchanged.
+  - `Ui.MenuGroup` and `Ui.Navmenu` match Flux open, light and dark (`parity-menu.mjs dropdown`), unchanged; so do
+    the chart's bars, groups, stacks, viewports and legend indicators (`parity-chart.mjs`, `parity.mjs chart`),
+    `Ui.CheckboxIndicator`, `Ui.PillboxInput` and the editor's eighteen toolbar items (`parity.mjs`,
+    `parity-editor.mjs`).
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
