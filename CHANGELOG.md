@@ -476,6 +476,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **The client runtime no longer pulls a context menu back inside the viewport itself** (rask.js and rask.wasm.js
+  -232 bytes, rask-hooks.js -318): the place hook already turns a menu by an edge over the pointer, as Flux does, and
+  now reads the opener's point rather than hearing the right-click a second time.
 - **A `Ui.Table`'s HTML is under a quarter of what it was.** Every cell wrote Flux's whole class list, some 200 characters
   thirteen times a row, and a list of 9,730 rows came to 31.6 MB. Now what every heading and cell share — padding,
   size, ink, dividers — is written once, in the kit's sheet, on their `data-ui-column` / `data-ui-cell` markers at no
@@ -521,6 +524,9 @@ them until tagged releases begin.
   stands after it**, as a Flux tab group without `wire:model` is the browser's alone: a press sends nothing, a
   render of the page from elsewhere does not flip it back, and only a different value from the page selects another
   tab. The row no longer renders a hidden field nobody reads, which every render wrote back to the first value.
+- **An open `Ui.Dropdown`'s menu or navmenu says `data-open`, as its root and trigger do**, in the same task the browser
+  opens it in, with no round trip on the Server host. Flux's live dropdown page marks all three (measured 2026-11-02),
+  and a style keyed on the panel's `data-open` now applies; a `Ui.Context` menu asks for none, as Flux's carries none.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

@@ -17,6 +17,10 @@ namespace Rask;
 ///     The same place in the runtime's words, for the panel's <c>data-rask-place</c>: the side, the alignment,
 ///     the gap and the offset. The runtime keeps the open panel inside the viewport from it (rask-place.ts).
 /// </param>
+/// <param name="Marked">
+///     The panel says <c>data-open</c> while it shows, in the task the browser opens it in (rask-toggle.ts): a
+///     dropdown's does, beside its root and trigger, as Flux's does; a context menu's does not, nor does Flux's.
+/// </param>
 internal sealed record UiPopupHost(
     string PanelId,
     string Style,
@@ -24,4 +28,5 @@ internal sealed record UiPopupHost(
     string? Detail,
     Func<bool, Task>? Toggled,
     bool Hover = false,
-    string? Place = null);
+    string? Place = null,
+    bool Marked = false);

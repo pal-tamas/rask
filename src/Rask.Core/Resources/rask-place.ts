@@ -47,7 +47,7 @@
 // panel or its anchor changes size, once per frame: every open panel is measured in one pass and written in
 // one. Nothing is sent to the page.
 
-import {disown, isShown, listen, near, own, page} from "./rask-owned.js";
+import {disown, isShown, listen, own, page} from "./rask-owned.js";
 
 const PLACE = "data-rask-place";
 const PLACED = "data-rask-placed";
@@ -256,17 +256,10 @@ if (page) {
         return panel; // it names one that is not there: left where the stylesheet has it
     }
 
-    // Where the right-click that opens `panel` was. Heard here as well as read from the opener's two
-    // properties: the opener (rask-dom.ts, in the runtime every page loads) pulls a menu it finds past an edge
-    // back by moving the point it wrote, and Flux turns such a menu over the pointer instead — which takes the
-    // point the reader pressed.
-    let pressed: Box | null = null;
-    let pressedFor = "";
-
-    function pointer(panel: Element): Box | null {
-        if (pressed && pressedFor === panel.id) {
-            return pressed;
-        }
+    // Where the right-click that opens a menu was: the two properties the opener (rask-dom.ts, in the runtime
+    // every page loads) writes before it shows the menu — the point the reader pressed, or under what has focus
+    // for the ContextMenu key and Shift+F10. Only one menu is open at a time, so one point serves.
+    function pointer(): Box | null {
         const root = getComputedStyle(doc.documentElement);
         const x = parseFloat(root.getPropertyValue("--rask-context-x"));
         const y = parseFloat(root.getPropertyValue("--rask-context-y"));
@@ -293,7 +286,7 @@ if (page) {
         for (const panel of panels) {
             const held = open.get(panel)!;
             const at = held.anchor ? held.anchor.getBoundingClientRect() : null;
-            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
+            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer();
             const box = panel.getBoundingClientRect();
             said += "|" + held.n + " " + panel.getAttribute(PLACE) + " " + (a ? a.x + " " + a.y + " " + a.w + " " + a.h : "-")
                 + " " + box.left + " " + box.top + " " + box.width + " " + box.height
@@ -337,7 +330,7 @@ if (page) {
         const placing = panels.map(function (panel): Placing {
             const held = open.get(panel)!;
             const at = held.anchor ? held.anchor.getBoundingClientRect() : null;
-            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
+            const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer();
             const box = panel.getBoundingClientRect();
             return {
                 panel, n: held.n, place: panel.getAttribute(PLACE)!, anchored: !!held.anchor,
@@ -446,17 +439,6 @@ if (page) {
         queue();
         if (!open.size) {
             write("");
-        }
-    }, true);
-
-    // The ContextMenu key and Shift+F10 come with no position: the menu opens under what has focus.
-    listen("contextmenu", function (e) {
-        const area = near(e.target, "[data-rask-contextmenu]");
-        if (area) {
-            const box = (e.target as Element).getBoundingClientRect();
-            const keyed = !e.clientX && !e.clientY;
-            pressed = {x: keyed ? box.left : e.clientX, y: keyed ? box.bottom : e.clientY, w: 0, h: 0};
-            pressedFor = area.getAttribute("data-rask-contextmenu") || "";
         }
     }, true);
 
