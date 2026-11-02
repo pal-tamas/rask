@@ -185,7 +185,7 @@ public static class RaskAuthEndpointExtensions
             .ResetPasswordAsync(request.UserId, request.Token, request.Password, cancellationToken)
             .ConfigureAwait(false);
 
-        // No session is issued here, deliberately. A reset link lives in an inbox and gets forwarded;
+        // No session is issued here, deliberately. A reset link lives in an inbox and gets forwarded —
         // handing back a live cookie would make reading the email enough to be signed in, on top of the
         // password change. Signing in afterwards costs one form and proves the password was received.
         return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status400BadRequest);

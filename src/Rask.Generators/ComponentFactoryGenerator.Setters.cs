@@ -156,7 +156,7 @@ public sealed partial class ComponentFactoryGenerator
             // OwnSetterProps is everything the component does not inherit from Rask.Core's
             // Element/Component chain — its own props AND those it inherits from an intermediate base
             // (HtmlMediaElement, UiElement, a consumer's own base). The shared chain is
-            // emitted once as constrained generic extensions above and must not be duplicated per tag;
+            // emitted once as constrained generic extensions above and must not be duplicated per tag —
             // an intermediate base has no such emission, so skipping it left those props with no setter
             // at all (every kit control's Label/Size, every media element's Src). The receiver
             // stays the CONCRETE component so the chain keeps its type — a base-typed

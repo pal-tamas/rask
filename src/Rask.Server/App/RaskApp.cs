@@ -217,7 +217,7 @@ public sealed partial class RaskApp
             // the mounted console, which brings its own.
             services.AddRaskSpaHost();
 
-            // After the batteries, which have already registered the mediator the way this app configured it;
+            // After the batteries, which have already registered the mediator the way this app configured it —
             // AddRaskCqrs is idempotent, so this adds only the endpoint half.
             if (_options.Cqrs.Enabled)
             {

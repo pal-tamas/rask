@@ -203,7 +203,7 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             : rows.OrderBy(e => EF.Property<DateTime>(e, runAt)).ThenBy(e => EF.Property<long>(e, "Id"));
     }
 
-    // EF builds the model once per app and caches it, so this is a dictionary lookup after the first call;
+    // EF builds the model once per app and caches it, so this is a dictionary lookup after the first call —
     // cached per panel instance anyway to keep it off the render path.
     private bool IsMapped()
     {

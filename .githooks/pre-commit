@@ -29,3 +29,18 @@ if git diff --cached --name-only | grep -E "$front_doors" >/dev/null; then
     exit 1
   fi
 fi
+
+# A `//` comment line ending in ';' is a build break that only shows on a starved CI runner (Sonar S125
+# under its wall-clock regex timeout, #1216), so it is caught here on the staged C# files, in
+# milliseconds, as well as by scripts/tests/prose-comments.test.sh in CI.
+staged_cs=()
+while IFS= read -r -d '' f; do staged_cs+=("$f"); done \
+  < <(git diff --cached --name-only -z --diff-filter=ACMR -- 'src/*.cs')
+if [ "${#staged_cs[@]}" -gt 0 ]; then
+  pc_root="$(git rev-parse --show-toplevel)"
+  if [ -x "$pc_root/scripts/tests/prose-comments.test.sh" ] \
+     && ! "$pc_root/scripts/tests/prose-comments.test.sh" "${staged_cs[@]}" >/dev/null; then
+    echo "pre-commit: reword the comment line(s) above so they do not end in ';'." >&2
+    exit 1
+  fi
+fi

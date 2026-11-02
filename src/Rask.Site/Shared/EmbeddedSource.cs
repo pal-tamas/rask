@@ -21,7 +21,7 @@ public static class EmbeddedSource
     // memoise per file name (mirrors CodeSample's HighlightCache rationale).
     private static readonly ConcurrentDictionary<string, string> Cache = new(StringComparer.Ordinal);
 
-    // Registers an additional assembly to resolve embedded demo sources from. Idempotent;
+    // Registers an additional assembly to resolve embedded demo sources from. Idempotent.
     // call once at startup (before any CodeSample renders). Used by WASM hosts that keep
     // their WASM-only demos in the app assembly rather than in Rask.Site.
     public static void RegisterAssembly(Assembly assembly)

@@ -109,6 +109,16 @@
         re-derived. See the AdditionalFiles lines below for what went wrong without them.
       -->
       <_RaskAppScopedCss Include="@(AdditionalFiles)" Condition=" '%(AdditionalFiles.Extension)' == '.css' "/>
+
+      <!--
+        The app's assembly metadata, its values escaped twice over for the line that carries them: for XML
+        (& < > ") so a value cannot end the attribute or the element, and for MSBuild (% ; $ @) so the
+        companion reads back the value the app set rather than a property, an item or a list. (MSBuild
+        cannot quote an apostrophe inside a property function's argument, so one in a value is not kept.)
+      -->
+      <_RaskAppMetadata Include="@(AssemblyMetadata)">
+        <EscapedValue>$([System.String]::Copy('%(Value)').Replace('%25','%2525').Replace('%3B','%253B').Replace('%24','%2524').Replace('%40','%2540').Replace('&amp;','&amp;amp;').Replace('&lt;','&amp;lt;').Replace('&gt;','&amp;gt;').Replace('&quot;','&amp;quot;'))</EscapedValue>
+      </_RaskAppMetadata>
     </ItemGroup>
 
     <ItemGroup>
@@ -298,7 +308,7 @@
         /css/rask-ui.css, which such an app does not ship, and the browser got a 404 on first paint while
         the booted app, built from the real project, linked the one sheet correctly.
       -->
-      <_RaskPrerenderLine Include="@(AssemblyMetadata->'    &lt;AssemblyMetadata Include=&quot;%(Identity)&quot; Value=&quot;%(Value)&quot; /&gt;')"/>
+      <_RaskPrerenderLine Include="@(_RaskAppMetadata->'    &lt;AssemblyMetadata Include=&quot;%(Identity)&quot; Value=&quot;%(EscapedValue)&quot; /&gt;')"/>
       <_RaskPrerenderLine Include="  &lt;/ItemGroup&gt;"/>
       <_RaskPrerenderLine Include="&lt;/Project&gt;"/>
     </ItemGroup>

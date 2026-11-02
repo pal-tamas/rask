@@ -685,31 +685,59 @@ checksum, and reused by later builds. Knobs (in your project or with `-p:`):
 
 ### Deploying on Azure App Service Linux (and other ephemeral containers)
 
-This is the scenario Litestream was built for, and it works well — but SQLite has a hard constraint you
-must respect:
+**Prefer a single-instance host you control** — a VPS or one container you stop before you start its
+replacement (`rask deploy`, Docker, a systemd unit). **On Azure App Service, prefer a server database**
+(Azure SQL, PostgreSQL). SQLite + Litestream can run there, but measured on a B3 Linux plan it loses
+acknowledged writes on an ordinary restart, and nothing fails to tell you so. What was measured, with a
+client writing one row every 200 ms:
+
+| Event while writing | Acknowledged writes lost |
+| --- | --- |
+| `az webapp restart` (with or without `WEBSITE_DISABLE_OVERLAPPED_RECYCLING=1`) | 43–68 (9–15 s of writes) |
+| `az webapp stop`, then `start`, defaults | 2 |
+| `az webapp stop`, then `start`, `WEBSITES_CONTAINER_STOP_TIME_LIMIT=60` | 0 |
+| stop, zip deploy, start, with the same limit | 0 |
+
+Why:
+
+- **A restart overlaps two containers.** App Service starts the new container, waits for its warm-up
+  probe, and only then stops the old one. The new one restores from the replica when it boots while the
+  old one is still serving and writing; everything the old one acknowledges after that restore is gone.
+  An app-setting change, a deploy slot swap and a plain deploy restart the same way, and so does a
+  **platform-initiated recycle** (host maintenance, a crash-loop restart) — which is outside your
+  control entirely. `WEBSITE_DISABLE_OVERLAPPED_RECYCLING` changes nothing on Linux.
+- **The platform's default stop grace is 5 seconds.** `LitestreamOptions.ShutdownGracePeriod` defaults
+  to 10 seconds, so with the defaults the container is killed before Litestream's final flush can finish.
+  Set the two consistently: `WEBSITES_CONTAINER_STOP_TIME_LIMIT` (seconds) must be longer than
+  `ShutdownGracePeriod`, plus whatever the app's other hosted services need to stop — for example
+  `WEBSITES_CONTAINER_STOP_TIME_LIMIT=60` with the 10-second default. With `ServicesStopConcurrently`
+  (what the scaffold sets, so the pillars' grace periods overlap rather than sum), Litestream stops
+  alongside a job that is still finishing inside *its* grace, so the very last rows such a job writes may
+  not reach the replica.
+
+So the only planned change that is safe is **stop, then start** (`az webapp stop`, deploy or change
+settings, `az webapp start`) — with the downtime that implies (about 85 s measured). If you run it there
+anyway:
 
 - **Keep the database on local disk, not the mounted share.** App Service Linux mounts `/home` over a
-  network filesystem (Azure Files/CIFS) when `WEBSITES_ENABLE_APP_SERVICE_STORAGE` is on. SQLite WAL
-  needs real filesystem locking + shared memory and **does not work over a network share** — you get
-  `disk I/O error` / corruption. Put the DB on a local path (e.g. under `/tmp` or the container's own
-  filesystem) and let Litestream replicate it to durable storage.
+  network filesystem (Azure Files/CIFS, mounted `nobrl`, so byte-range locks never reach the server)
+  when `WEBSITES_ENABLE_APP_SERVICE_STORAGE` is on. SQLite WAL needs real filesystem locking + shared
+  memory and **does not work over a network share** — you get `disk I/O error` / corruption, and a
+  durable write is ~100× slower there. Put the DB on a local path (e.g. `/tmp/rask/app.db`; Rask
+  creates the missing directory) and let Litestream replicate it to durable storage.
 - **Replicate to Azure Blob** with an `abs://container/path` replica URL (Litestream reads the Azure
   credentials from environment variables).
 - **Run a single instance.** Litestream assumes one writer — set scale-out to 1. Two instances writing
   their own local databases would diverge the replica.
-- **Enable Always On** so the app isn't unloaded when idle. On every cold start / redeploy the local
-  disk is empty, and `RestoreSqliteFromLitestream()` pulls the latest replica back before the app
-  opens the database.
-- **Graceful shutdown is handled for you.** App Service recycles the container with `SIGTERM`; the
-  hosted service interrupts Litestream and lets it flush within `ShutdownGracePeriod`, so you don't lose
-  the last writes on a redeploy. One caveat worth knowing: with `ServicesStopConcurrently` (what the
-  scaffold sets, so the pillars' grace periods overlap rather than sum), Litestream stops alongside a job
-  that is still finishing inside *its* grace — so the very last rows such a job writes may not reach the
-  replica. Sequential stop wouldn't reliably help, since the order is reverse-registration; and the
-  exposure only matters if you lose the machine in those few seconds.
+- **Enable Always On** so the app isn't unloaded when idle. On every cold start the local disk is empty,
+  and `RestoreSqliteFromLitestream()` pulls the latest replica back before the app opens the database.
+- **Set `WEBSITES_CONTAINER_STOP_TIME_LIMIT`** above `ShutdownGracePeriod`, as above, and make every
+  planned change a stop, then a start — never `restart`, a slot swap, or a deploy into a running app.
 
-The same recipe applies to any ephemeral-container platform (Kubernetes, Fly.io, Container Apps):
-local-disk DB + `abs://`/`s3://` replica + single writer + restore-on-boot.
+The same constraints apply to any platform that can run the old and the new container at once
+(Kubernetes rolling updates, Container Apps revisions, Fly.io's default deploy): local-disk DB +
+`abs://`/`s3://` replica + a single writer + restore-on-boot is only safe when the old process has
+stopped, and flushed, before the new one restores.
 
 ## Scheduled snapshots
 

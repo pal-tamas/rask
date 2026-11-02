@@ -894,7 +894,7 @@ public sealed partial class ComponentFactoryGenerator
     //
     //   - the two INDEXERS are declared on the components themselves (Form, and a grid's columns), which
     //     scopes them exactly as well and costs no type parameter. An indexer cannot be constrained,
-    //     which is the only reason they ever needed a shape of their own;
+    //     which is the only reason they ever needed a shape of their own —
     //   - BIND-VERSUS-VALUE still does not compile, and needs no diagnostic to say so. The two openings
     //     are declared on the SEED and neither is emitted as a setter on the control, so taking one
     //     hands back the control and the other is simply not a member of it (CS1929). The mode types

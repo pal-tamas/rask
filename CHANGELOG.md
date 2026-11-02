@@ -231,6 +231,11 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
+  `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
+  writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
+  now says only stop-then-start is safe, to set `WEBSITES_CONTAINER_STOP_TIME_LIMIT` above the grace period, and
+  recommends a single-instance VPS/container host, or a server database on App Service.
 - **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
   keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
   and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook
@@ -450,6 +455,17 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
+  `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
+  `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
+  must not reach a public bundle. The prerender companion now escapes the metadata values it writes, so a value with
+  a quote, `<`, `&`, `;`, `$` or `@` no longer produces a malformed project or reads back as something else.
+- **docs: prerendering's limits no longer say there is "no hook yet" for parameterised routes.** `IPrerenderPaths`
+  supplies them; what is still missing is one prerendered page per language.
+- **A server SQLite database in a directory that does not exist yet opens.** `UseRaskSqlite` and `AddRaskSqlite`
+  create the database file's parent directory when it is missing, so `Data Source=/tmp/rask/app.db` no longer fails a
+  fresh container's first start with `SQLite Error 14: 'unable to open database file'`. An in-memory, read-only,
+  `file:` URI or `|DataDirectory|` source is left alone.
 - **A child a root holds by a configured column reads back to the root over that column, with no shadow `…Id1`.**
   `ForeignTaxCategory.Configure` saying `b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)`,
   over `ForeignTaxCategoryCountry : Entity<(int ForeignTaxProductCategoryId, Country)>`, gave the child's read face a

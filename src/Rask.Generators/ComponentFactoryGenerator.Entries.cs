@@ -261,7 +261,7 @@ public sealed partial class ComponentFactoryGenerator
     // An entry is a no-argument member whose name IS the component's type, so anything the caller must
     // supply at construction rules it out:
     //
-    //  * no usable constructor at all;
+    //  * no usable constructor at all,
     //  * a `required` member — the entry's `new T()` cannot even compile (CS9040).
     //
     // A RASK001-required prop (non-nullable, no member initializer) used to be the third, and no longer

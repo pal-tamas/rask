@@ -1042,7 +1042,7 @@ public sealed partial class ComponentFactoryGenerator
         !p.IsNullable && !p.HasInitializer;
 
     private static bool IsParamProperty(PropInfo p) =>
-        // A property with a constant member initializer is an optional param defaulting to that value;
+        // A property with a constant member initializer is an optional param defaulting to that value —
         // a non-constant initializer, one with no InitializerDefault, is still excluded entirely.
         !p.HasInitializer || p.InitializerDefault is not null;
 
