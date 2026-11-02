@@ -614,6 +614,8 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
     // row's component is the second row's component whatever record it is handed: its handler is the same method
     // of the same instance, and nothing about the handler moved. The event reaches the row that now sits second.
     // Keying the rows (`.Key(row.Id)`) is what ties an instance to a record, and then this click runs nothing.
+    // The shape no longer builds — RASK022 is an error for a component row (#1243) — so this pins what code that
+    // suppresses it still gets.
     [Fact]
     public async Task A_click_on_an_unkeyed_row_component_reaches_whichever_row_sits_in_its_place_now()
     {

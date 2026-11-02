@@ -74,7 +74,9 @@ Div.Class("panel")[
 > its *own* type coming or going ahead of it does not: every later one of that type moves one place,
 > and takes over the instance — and the state — of its neighbour. Nothing but a `Key` can tell those
 > apart, so key a component that is written conditionally ahead of others of its type, just as you
-> key the rows of a list. The same holds for a repeated key, and for the unkeyed children beside keyed
+> key the rows of a list — a component row made from a list without a `Key` does not build
+> ([RASK022](diagnostics.md#rask022)), because an event already on its way would reach whichever
+> record sits in its place by then. The same holds for a repeated key, and for the unkeyed children beside keyed
 > ones: among themselves they are told apart by order alone.
 >
 > `Key` is available before a component's *required* steps too, generic ones included
