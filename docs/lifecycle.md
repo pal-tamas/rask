@@ -299,9 +299,10 @@ keeps the scope for **ten seconds** more at most — a loop over a stream that n
 `DbContext` for the rest of the session — and when the session ends, every scope is disposed, whatever is still
 running.
 
-**Work a hook detaches.** A page that should go out before its slow read is back can detach the read and return —
-the first response and the navigation never wait for it. Take the provider in the hook and resolve **inside** the
-detached work, from that provider:
+**Work a hook detaches.** The scope is the hook's, as a request's is in Laravel: what the hook **awaits** keeps it,
+because the hook is not done yet, and it is disposed once the hook is. Work the hook starts and does not await — a
+page that should go out before its slow read is back — gets none of it, so it opens a scope of its own, and disposes
+it when it is done:
 
 ```csharp
 protected override async Task OnUpdated()
@@ -312,23 +313,23 @@ protected override async Task OnUpdated()
 
 private async Task LoadRows(int turn)
 {
-    var services = Current.Service<IServiceProvider>();   // the event's, lent to the work below
-    var rows = await Task.Run(() => services.GetRequiredService<ShopDb>().Rows.ToList());
-    if (turn == _turn) _rows = rows;                      // painted when it is back
+    var scopes = Current.Service<IServiceScopeFactory>();
+    var rows = await Task.Run(async () =>
+    {
+        await using var scope = scopes.CreateAsyncScope();   // the work's own, not the hook's
+        return await scope.ServiceProvider.GetRequiredService<ShopDb>().Rows.ToListAsync();
+    });
+    if (turn == _turn) _rows = rows;                         // painted when it is back
 }
 ```
 
-The provider a hook takes is its event's, wherever it is used — another thread included — and it keeps that
-event's scope until the detached work **comes back to the page** (the first await that resumes there once the hook
-itself has finished, or while the hook is still running) or **nothing holds the provider any more** — work whose
-read was already done when it awaited it goes on inline, never comes back, and lets the scope go once the hook is
-done and the collector finds the provider unreachable. Work that never comes back keeps it while it holds the
-provider, until its component has left the page (ten seconds more at most) or the session ends — so a tab closed
-mid-read, or a first response whose page never connects, lets it go with its session. Keep the provider, not just
-a service resolved from it, in the work that uses it: that is what keeps the scope. A scope is never disposed on the thread of a response or an event: a `DbContext` that waits, as
-it is disposed, for a query still running on it holds nobody up. A `Current.Service<T>()` made inside the detached
-work itself, without the provider, is not covered — it reaches whichever event is in progress then. A hook that
-awaits its work instead needs no provider: `Current.Service<T>()` in it is the event's until the hook is done.
+A scope of its own is the app's, not the session's: resolve what the work needs of the visitor (their id, their
+tenant) in the hook and hand it in. The provider a hook takes with `Current.Service<IServiceProvider>()` is the
+hook's, on whichever thread it is used, until the hook is done; asked for a scoped service after that — by work the
+hook detached — it throws an `ObjectDisposedException` saying so, instead of handing out a disposed `DbContext` or
+another event's, and so does a `Current.Service<T>()` in detached work that comes back to the page after the hook
+is done. A scope is never disposed on the thread of a response or an event: a `DbContext` that waits, as it is
+disposed, for a query still running on it holds nobody up.
 
 ### `Current.Service<T>()` — the event's own, with nothing injected
 

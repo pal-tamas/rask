@@ -27,6 +27,12 @@ namespace Rask.Core.Live;
 ///         when the last of that work is done. A hook whose component has left the page keeps it for
 ///         <see cref="TeardownGrace" /> more at most; the session's end disposes every one.
 ///     </para>
+///     <para>
+///         The scope is the hook's, as a request's is in Laravel: what the hook awaits keeps it, as the hook is not done
+///         yet; work it detached and did not await gets no more of it. Asking its part for a service once the part is
+///         done — through the provider the hook took, or by coming back through the hook's context — throws, naming
+///         the fix: await the work, or open a scope of its own.
+///     </para>
 /// </remarks>
 internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog catalog, IServiceScopeFactory scopes)
     : IKeyedServiceProvider
@@ -98,8 +104,9 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
     {
         if (serviceType == typeof(IServiceProvider))
         {
-            // A hook that takes the provider itself is about to hand it to work of its own: that work keeps the event.
-            return SynchronizationContext.Current is LifecycleSyncContext hook ? Lease(hook) : this;
+            // A hook that takes the provider itself may hand it to work of its own: bound to the hook's part, so that
+            // work is refused, never handed another event's, once the hook is done.
+            return SynchronizationContext.Current is LifecycleSyncContext hook ? ProviderOf(hook) : this;
         }
 
         return catalog.OwnsPerEvent(serviceType)
@@ -363,13 +370,22 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
     }
 
     // Under the gate. The part of the event a hook's component has in the event that started the hook — or, for a hook
-    // the session never saw start, or whose part is done, in the event in progress.
+    // the session never saw start, or one still running whose part was let go (its component left the page), in the
+    // event in progress. Work that comes back through the context of a hook that is done, after its part is, is refused.
     private EventLife OfHook(LifecycleSyncContext hook)
     {
         _byHook ??= new ConditionalWeakTable<LifecycleSyncContext, EventLife>();
-        if (_byHook.TryGetValue(hook, out var life) && !life.Done)
+        if (_byHook.TryGetValue(hook, out var life))
         {
-            return life;
+            if (!life.Done)
+            {
+                return life;
+            }
+
+            if (hook.HookDone)
+            {
+                throw OutlivedItsHook();
+            }
         }
 
         life = Current().For(hook.Component);
@@ -384,29 +400,13 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         return _current ??= new EventLives(this);
     }
 
-    // The provider handed to a hook that asked for it: held until the work it detached comes back, nothing holds the
-    // provider any more, its component has left the page, or the session ends — whichever is first.
-    private IServiceProvider Lease(LifecycleSyncContext hook)
+    // The provider handed to a hook that asked for it: its part's services, until that part is done.
+    private IServiceProvider ProviderOf(LifecycleSyncContext hook)
     {
-        EventHold hold;
-        EventLife life;
         lock (_gate)
         {
-            if (_disposed)
-            {
-                return this;
-            }
-
-            life = OfHook(hook);
-            life.Holds++;
-            hold = new EventHold(this, life);
+            return _disposed ? this : new HookServices(this, OfHook(hook));
         }
-
-        hold.OrAfter(TeardownGrace, hook.Component.CallbackLifetime);
-        HookLeases.Add(hook, hold);
-        var lease = new EventServicesLease(this, life);
-        UnreachableLease.Watch(lease, hold);
-        return lease;
     }
 
     private IServiceProvider Open()
@@ -436,9 +436,25 @@ internal sealed class EventServices(LiveSessionBase session, EventScopeCatalog c
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            if (life.Done)
+            {
+                throw OutlivedItsHook();
+            }
+
             return OpenIn(life);
         }
     }
+
+    // What work a hook detached is told when it asks for the hook's services after the hook is done: what happened, and
+    // the two ways to write it. Developer-facing, like every framework exception, so not a catalogued string.
+    private static ObjectDisposedException OutlivedItsHook() =>
+        new(
+            nameof(IServiceProvider),
+            "This work outlived the lifecycle hook that lent it its services. A hook's scoped services (its DbContext "
+            + "among them) end when the hook does, as a request's do; work the hook awaits keeps them, work it detaches "
+            + "does not. Await the work in the hook, or give it a scope of its own: "
+            + "'await using var scope = Current.Service<IServiceScopeFactory>().CreateAsyncScope();' and resolve from "
+            + "scope.ServiceProvider.");
 
     // Under the gate.
     private IServiceProvider OpenIn(EventLife life)

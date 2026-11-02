@@ -102,8 +102,9 @@ public class HookEventScopeTests
             WaitFor.True(() => gates.Read("report").First!.Disposed, "the report's scope to go once its read is back"));
     }
 
+    // The read the report detached opened a scope of its own: the tab closing ends the session, not the read.
     [Fact]
-    public async Task Closing_a_report_mid_read_disposes_its_scope_with_the_session()
+    public async Task Closing_a_report_mid_read_leaves_the_read_its_own_scope_until_it_is_back()
     {
         var (host, steps) = Host(o => o.SessionGracePeriod = TimeSpan.FromMilliseconds(200));
         var gates = host.Server.Services.GetRequiredService<HookScopeGates>();
@@ -114,12 +115,15 @@ public class HookEventScopeTests
         var db = gates.Read("report").First!;
 
         await page.Leave();
-
-        await steps.Run("wait for the scope's dispose to start", () =>
-            WaitFor.True(() => db.DisposeStarted, "the report's scope to be disposed with the session it was read for"));
+        await steps.Run("wait for the session to end", () =>
+            WaitFor.True(() => page.Session.IsDisposed, "the session to end once its grace is over"));
+        var keptPastTheSession = !db.DisposeStarted;
         page.Open("report", 1);
-        await steps.Run("wait for the scope's dispose to finish", () =>
-            WaitFor.True(() => db.Disposed, "the dispose to finish once the read it waited for is back"));
+
+        Assert.True(keptPastTheSession);
+        await steps.Run("wait for the read's scope to go", () =>
+            WaitFor.True(() => db.Disposed, "the read's own scope to go once the read is back"));
+        Assert.Null(gates.Read("report").Failure);
     }
 
     [Theory]
@@ -136,11 +140,28 @@ public class HookEventScopeTests
         await page.Shows("report row");
     }
 
-    // The work a hook detached can come back while the hook itself is still running — on a loaded machine, between
-    // the detach and the hook's return. Its lease was let go only by a return that started after the hook was done,
-    // so this one kept the event's scope for the rest of the session: the report's flake on CI, made certain here.
+    // The hook's scope is the hook's: it goes once the hook is done, though the read the hook detached is still out.
     [Fact]
-    public async Task Work_a_hook_detached_that_comes_back_before_the_hook_is_done_still_lets_its_scope_go()
+    public async Task A_hook_s_scope_goes_once_the_hook_is_done_while_the_read_it_detached_is_still_out()
+    {
+        await using var page = await OpenAsync(LiveTransportKind.WebSocket);
+
+        await page.Navigate("/hook-scope/report");
+        await page.Reached("report", 1);
+        var hook = page.Gates.Read("report hook");
+        await page.Steps.Run("wait for the hook's scope to go", () =>
+            WaitFor.True(() => hook.First!.Disposed, "the hook's scope to go once the hook is done"));
+        var readStillOut = !page.Gates.Read("report").First!.DisposeStarted;
+        page.Open("report", 1);
+
+        Assert.True(readStillOut);
+        await page.Shows("report row");
+    }
+
+    // Work a hook detached while it waits for it, synchronously, comes back through the hook's context before the hook
+    // is done: the hook is still running, so its services are still the work's, and they go with the hook.
+    [Fact]
+    public async Task Work_a_hook_detached_that_comes_back_before_the_hook_is_done_reads_through_the_hook_s_scope()
     {
         await using var page = await OpenAsync(LiveTransportKind.WebSocket);
 
@@ -151,14 +172,13 @@ public class HookEventScopeTests
         var read = page.Gates.Read("early");
         Assert.Null(read.Failure);
         await page.Steps.Run("wait for the early scope to go", () =>
-            WaitFor.True(() => read.First!.Disposed, TimeSpan.FromSeconds(10), "the scope the detached work read through to go"));
+            WaitFor.True(() => read.First!.Disposed, "the scope to go with the hook"));
     }
 
     // The same work, back before its await looks at it: the await goes on inline and nothing comes back through the
-    // hook's context. Nothing can reach the provider it was lent once the hook is done, so the scope goes then — not
-    // when the component leaves the page.
+    // hook's context. The scope still goes with the hook, not when the component leaves the page.
     [Fact]
-    public async Task Work_a_hook_detached_that_finished_before_its_await_lets_its_scope_go_once_the_hook_is_done()
+    public async Task Work_a_hook_detached_that_finished_before_its_await_lets_its_scope_go_with_the_hook()
     {
         await using var page = await OpenAsync(LiveTransportKind.WebSocket);
 
@@ -169,29 +189,26 @@ public class HookEventScopeTests
         var read = page.Gates.Read("inline");
         Assert.Null(read.Failure);
         await page.Steps.Run("wait for the inline scope to go", () =>
-            WaitFor.True(() => Collected(read.First!), TimeSpan.FromSeconds(10), "the scope the inline work read through to go"));
+            WaitFor.True(() => read.First!.Disposed, TimeSpan.FromSeconds(10), "the scope to go with the hook"));
     }
 
-    // Work that never comes back to the page but still holds the provider it was lent keeps the scope while it runs,
-    // however often the collector looks, and lets it go once it is done.
+    // Work a hook detached and did not await asks the provider the hook lent it for a service once the hook is done: it
+    // is refused, with the fix in the message, rather than handed a disposed scope or another event's.
     [Fact]
-    public async Task Work_that_never_comes_back_keeps_its_scope_while_it_holds_the_provider_and_lets_it_go_when_done()
+    public async Task Work_that_asks_for_its_hook_s_services_after_the_hook_is_done_is_told_to_open_its_own_scope()
     {
         await using var page = await OpenAsync(LiveTransportKind.WebSocket);
         await page.Navigate("/hook-scope/away");
         await page.Reached("away", 1);
-        var read = page.Gates.Read("away");
         await page.Click("nothing");
 
-        var keptWhileRunning = !Collected(read.First!) && !Collected(read.First!);
         page.Open("away", 1);
         await page.Done("away");
 
-        Assert.True(keptWhileRunning);
-        Assert.Null(read.Failure);
-        Assert.Same(read.First, read.Again);
-        await page.Steps.Run("wait for the away scope to go", () =>
-            WaitFor.True(() => Collected(read.First!), TimeSpan.FromSeconds(10), "the scope to go once the work let go of it"));
+        var failure = Assert.IsType<ObjectDisposedException>(page.Gates.Read("away").Failure);
+        Assert.Contains("outlived the lifecycle hook", failure.Message, StringComparison.Ordinal);
+        Assert.Contains("CreateAsyncScope()", failure.Message, StringComparison.Ordinal);
+        Assert.Null(page.Gates.Read("away").Again);
     }
 
     // A hook's first await can come back on another thread before the walk that started the hook has held its event.
@@ -228,14 +245,6 @@ public class HookEventScopeTests
             WaitFor.True(() => held.Disposed, "the scope to be disposed with the session"));
         page.Open("countries", 1);
         page.Open("countries", 2);
-    }
-
-    // Whether the scope has gone, once the collector has looked for providers nothing can reach any more.
-    private static bool Collected(HookScopeDb db)
-    {
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        return db.Disposed;
     }
 
     // Each host logs Rask's categories at Debug into its own trail, so a failure, however rare, names the step it
@@ -492,8 +501,7 @@ public sealed partial class HookScopeEarlyReturn : Component
     {
         var read = HookScopeDetachedRead.Read(services, "early");
 
-        // The read is back before the await looks at it — what a loaded machine did once in a hundred runs, made
-        // certain here — and it still comes back through the hook's context, which is this test's subject.
+        // The read is back before the await looks at it, and it still comes back through the hook's context.
         read.Wait(TestContext.Current.CancellationToken);
         _rows = await read.ConfigureAwait(ConfigureAwaitOptions.ContinueOnCapturedContext | ConfigureAwaitOptions.ForceYielding);
         back.Set();
@@ -545,8 +553,8 @@ public static class HookScopeDetachedRead
         });
 }
 
-// A hook that hands its provider to work of its own and returns: the work reads through it on another thread, past a
-// gate the test opens, and never comes back to the page.
+// A hook that hands its provider to work of its own and returns: the work asks it for a service once the hook is done,
+// past a gate the test opens, and never comes back to the page.
 [Route("/hook-scope/away")]
 public sealed partial class HookScopeAway : Component
 {
@@ -565,10 +573,8 @@ public sealed partial class HookScopeAway : Component
         var read = gates.Read("away");
         try
         {
-            read.First = services.GetRequiredService<HookScopeDb>();
             await gates.Pass("away", 1);
             read.Again = services.GetRequiredService<HookScopeDb>();
-            read.Again.Rows("away");
         }
         catch (ObjectDisposedException ex)
         {
@@ -620,8 +626,8 @@ public sealed partial class HookScopeBeforeHold : Component
     }
 }
 
-// The report as Eszaf writes it: the hook awaits a first read, takes its unit of work, then detaches the slow read
-// — a task of its own that reads through the event's services — and returns. Its end repaints the page by itself.
+// The report: the hook awaits a first read, takes its unit of work, then detaches the slow read — a task of its own,
+// on a scope of its own — and returns. Its end repaints the page by itself.
 [Route("/hook-scope/report")]
 public sealed partial class HookScopeReport : Component
 {
@@ -631,7 +637,7 @@ public sealed partial class HookScopeReport : Component
     protected override async Task OnUpdated()
     {
         await Task.Yield();
-        _ = Current.Service<HookScopeDb>();
+        Current.Service<HookScopeGates>().Read("report hook").First = Current.Service<HookScopeDb>();
 
         // Detached on purpose, as the app does: the page goes out without the rows, and they follow.
         _ = Run(++_turn);
@@ -650,17 +656,24 @@ public sealed partial class HookScopeReport : Component
 
     private static Task<string[]> Read()
     {
-        var services = Current.Service<IServiceProvider>();
-        var gates = services.GetRequiredService<HookScopeGates>();
+        var scopes = Current.Service<IServiceScopeFactory>();
+        var gates = Current.Service<HookScopeGates>();
         return Task.Run(async () =>
         {
-            var db = services.GetRequiredService<HookScopeDb>();
+            // The hook's services end with the hook: work it does not await opens its own.
+            await using var scope = scopes.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<HookScopeDb>();
             gates.Read("report").First = db;
             db.BeginRead();
             try
             {
                 await gates.Pass("report", 1);
                 return db.Rows("report");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                gates.Read("report").Failure = ex;
+                return [];
             }
             finally
             {
