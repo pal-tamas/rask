@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: rask\.(sh|ps1)$|docs/installation\.md$|src/Rask\.Cli/NodeRequirement\.cs$|src/Rask\.Templates/[^/]+/Dockerfile$|src/Rask\.Templates/[^/]+/client/package\.json$|Rask\.(Spa\.Hosting|External)\.props$|scripts/upstream/node-lts\.sh$
+# gate-inputs: \.node-version$|rask\.(sh|ps1)$|docs/installation\.md$|src/Rask\.Cli/NodeRequirement\.cs$|src/Rask\.Templates/[^/]+/Dockerfile$|src/Rask\.Templates/[^/]+/client/package\.json$|Rask\.(Spa\.Hosting|External)\.props$|scripts/upstream/node-lts\.sh$
 # scripts/upstream/node-lts.sh, run in a copy of the files it rewrites against a saved nodejs.org index:
 # a new LTS major moves every stated copy and the floor at once, a newer release on the same line moves the
 # newest-release copies only, and a release that is not LTS moves nothing.
@@ -14,7 +14,7 @@ root="$(git rev-parse --show-toplevel)"
 tmp="$(mktemp -d -t rask-node-lts.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
-files=(src/Rask.Cli/NodeRequirement.cs rask.sh rask.ps1 docs/installation.md scripts/upstream/node-lts.sh
+files=(src/Rask.Cli/NodeRequirement.cs .node-version rask.sh rask.ps1 docs/installation.md scripts/upstream/node-lts.sh
        src/Rask.Templates/react/Dockerfile src/Rask.Templates/server/Dockerfile src/Rask.Templates/react/client/package.json
        src/Rask.Templates/angular/client/package.json
        src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props src/Rask.External/build/Rask.External.props)
@@ -54,6 +54,7 @@ check "@types/node follows the new line"          1 "$(count "\"@types/node\": \
 check "Angular names the npm that release bundles"  1 "$(count "\"packageManager\": \"npm@99.1.0\"")"
 check "the floor is the line's first LTS release" 1 "$(count "BuildFloor = new($next, 9, 0)")"
 check "...and both build props enforce it"        2 "$(count ">$next.9.0</")"
+check "the gates install the new release"        "$next.11.2" "$(cat "$tmp/tree/.node-version")"
 
 fresh
 printf '[{"version":"v%s.3.0","lts":false},{"version":"v%s.99.0","lts":"Same"},{"version":"v%s","lts":"Same"}]' \
@@ -61,6 +62,7 @@ printf '[{"version":"v%s.3.0","lts":false},{"version":"v%s.99.0","lts":"Same"},{
 "$tmp/tree/scripts/upstream/node-lts.sh" "$tmp/same.json" >/dev/null
 check "a newer release on the line moves ScaffoldLine" 1 "$(count "ScaffoldLine = new($major, 99, 0)")"
 check "...and the installers"                      2 "$( (grep -lF -- "$major.99.0" "$tmp/tree/rask.sh" "$tmp/tree/rask.ps1" || true) | wc -l | tr -d ' ')"
+check "...and the gates"                           "$major.99.0" "$(cat "$tmp/tree/.node-version")"
 check "...but not the line, the images or the floor" "" \
   "$(for f in src/Rask.Templates/react/Dockerfile src/Rask.Templates/react/client/package.json src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props src/Rask.External/build/Rask.External.props; do cmp -s "$tmp/tree/$f" "$root/$f" || echo "$f"; done)"
 check "...and the codename is untouched"          0 "$( (grep -cF '"Same"' "$tmp/tree/src/Rask.Cli/NodeRequirement.cs" || true) | tr -d ' ')"

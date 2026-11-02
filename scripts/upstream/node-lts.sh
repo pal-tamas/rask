@@ -96,4 +96,7 @@ if [ -n "$npm" ]; then
   done
 fi
 
+# The gates install exactly this Node (setup-node reads .node-version), so it follows ScaffoldLine in the same pass.
+printf '%s\n' "$(read_version ScaffoldLine)" > .node-version
+
 echo "node lts: ${moved:-$stated is the newest release of the Active LTS line, $floor its first (nodejs.org: $latest)}."

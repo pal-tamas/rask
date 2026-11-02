@@ -72,6 +72,34 @@ public sealed class ConfirmOnLivePageTests(PlaywrightFixture playwright) : IClas
         Assert.Equal(1, asked);
     }
 
+    [Fact]
+    public async Task A_yes_whose_pages_land_long_after_the_answer_still_runs_the_delete()
+    {
+        await using var session = await HookSession.OpenAsync<ConfirmLiveFallbackPage>(
+            playwright, beforeLoad: HeldReplies.Install);
+        await session.HooksLoadedAsync();
+        var page = session.Page;
+        await OpenFlyoutAsync(page);
+        var answered = new TaskCompletionSource();
+        page.Dialog += (_, dialog) => _ = AnswerThenSayAsync(dialog, answered);
+        await HeldReplies.HoldAsync(page);
+
+        // The pages drawn while the browser asked are still on the line well past the answer: the press must
+        // wait for them, not go from the page the question was asked on, ten renders behind the server's.
+        await page.ClickAsync(Delete);
+        await answered.Task;
+        await page.WaitForTimeoutAsync(1000);
+        await HeldReplies.ReleaseAsync(page);
+
+        await SettledAsync(page, 1);
+    }
+
+    private static async Task AnswerThenSayAsync(IDialog dialog, TaskCompletionSource answered)
+    {
+        await AnswerAsync(dialog, LiveScene.Delete, yes: true);
+        answered.SetResult();
+    }
+
     // The server renders on while the browser's dialog holds the page still.
     private static async Task AnswerAsync(IDialog dialog, LiveScene meanwhile, bool yes)
     {

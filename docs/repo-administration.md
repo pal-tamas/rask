@@ -79,5 +79,9 @@ gh api -X PUT repos/pal-tamas/rask/branches/main/protection \
 ```
 
 ## Secrets used by workflows
-- `NUGET_API_KEY` — nuget.org push (used by `release.yml` and `nightly.yml`).
+- No key for the nuget.org push: `nightly.yml` and `release.yml` publish through nuget.org **trusted
+  publishing**. Two policies under the `pal-tamas` account (nuget.org → Trusted Publishing) name repository
+  owner `pal-tamas`, repository `rask`, and the workflow file `nightly.yml` and `release.yml`; the jobs carry
+  `permissions: id-token: write`. Nothing expires or has to be rotated.
+- `NUGET_API_KEY` — only the release's *Unlist superseded versions* step (needs the **Unlist** scope).
 - `GITHUB_TOKEN` — provided automatically (GitHub Packages + releases).

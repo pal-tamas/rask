@@ -7,17 +7,17 @@
     "build": "node build.mjs"
   },
   "dependencies": {
-    "@tiptap/core": "3.32.0",
-    "@tiptap/extension-highlight": "3.32.0",
-    "@tiptap/extension-link": "3.32.0",
-    "@tiptap/extension-subscript": "3.32.0",
-    "@tiptap/extension-superscript": "3.32.0",
-    "@tiptap/extension-table": "3.32.0",
-    "@tiptap/extension-text-align": "3.32.0",
-    "@tiptap/extension-underline": "3.32.0",
-    "@tiptap/extensions": "3.32.0",
-    "@tiptap/pm": "3.32.0",
-    "@tiptap/starter-kit": "3.32.0"
+    "@tiptap/core": "3.32.2",
+    "@tiptap/extension-highlight": "3.32.2",
+    "@tiptap/extension-link": "3.32.2",
+    "@tiptap/extension-subscript": "3.32.2",
+    "@tiptap/extension-superscript": "3.32.2",
+    "@tiptap/extension-table": "3.32.2",
+    "@tiptap/extension-text-align": "3.32.2",
+    "@tiptap/extension-underline": "3.32.2",
+    "@tiptap/extensions": "3.32.2",
+    "@tiptap/pm": "3.32.2",
+    "@tiptap/starter-kit": "3.32.2"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

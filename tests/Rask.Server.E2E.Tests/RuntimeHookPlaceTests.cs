@@ -166,6 +166,24 @@ public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClass
         Assert.True(await page.EvaluateAsync<bool>("() => document.getElementById('live').hasAttribute('data-rask-placed')"));
     }
 
+    // Laid out where it hangs, a panel by the right edge is narrowed to its min-width, and placed at that width: Flux's
+    // 288 px popover lands 192 px wide by the edge of a page whose gutter took the room. The page here keeps a
+    // gutter as Flux's lock does (`scrollbar-gutter: stable`, 15 px in a browser that hides its scrollbars), so its
+    // panels hang in 985 px. Under its trigger's start (870) the panel has 115 px and is 150 (its min-width), which
+    // runs past the edge: turned to the trigger's end (990), it starts at 840 and is 150 there too, three 50 px
+    // blocks to a line. Placed at its full 250 it would have started at 740.
+    [Fact]
+    public async Task A_panel_by_the_edge_is_placed_at_the_width_it_has_where_it_hangs()
+    {
+        await using var session = await HookSession.OpenAsync<PlaceHookPage>(playwright);
+        await session.HooksLoadedAsync();
+        await session.Page.EvaluateAsync("() => document.documentElement.classList.add('gutter')");
+
+        var open = await OpenedAsync(session, "edge");
+
+        Assert.Equal("840,245,150,40", open);
+    }
+
     // A pass that finds nothing moved writes nothing: measuring moves the panel to the page's corner and back, and on
     // a phone that relayout under the finger cancels the hover Chromium hands the tapped trigger ~150 ms after a tap
     // (Flux's trigger keeps it). The ResizeObserver's first report of every panel asked for exactly such a pass.
@@ -245,6 +263,9 @@ public sealed partial class PlaceHookPage : Component
           .trigger, #area { position: fixed; width: 120px; height: 40px; padding: 0 }
           [popover] { box-sizing: border-box; width: 200px; height: 100px; margin: 0; padding: 0; border: 1px solid #888 }
           #tall { height: auto }
+          html.gutter { scrollbar-gutter: stable; overflow: hidden }
+          #edge { width: auto; height: auto; min-width: 150px; max-width: 250px; border: 0 }
+          #edge span { display: inline-block; width: 50px; height: 20px; vertical-align: top }
           @media (width >= 640px) { #sheet { inset: auto; top: calc(anchor(bottom) + 5px); left: anchor(left) } }
           @media (width < 640px) { #sheet { --rask-place: none; inset: 0; margin: auto } }
         </style>
@@ -256,6 +277,8 @@ public sealed partial class PlaceHookPage : Component
         <div id="right" popover data-rask-place="bottom start 5 0" style="position-anchor:--right;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)">right</div>
         <button id="near-open" class="trigger" style="left:798px;top:300px;anchor-name:--near" popovertarget="near">near</button>
         <div id="near" popover data-rask-place="bottom start 5 0" style="position-anchor:--near;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)">near</div>
+        <button id="edge-open" class="trigger" style="left:870px;top:200px;anchor-name:--edge" popovertarget="edge">edge</button>
+        <div id="edge" popover data-rask-place="bottom start 5 0" style="position-anchor:--edge;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)"><span></span><span></span><span></span><span></span><span></span></div>
         <button id="low-open" class="trigger" style="left:400px;top:640px;anchor-name:--low" popovertarget="low">low</button>
         <div id="low" popover data-rask-place="bottom start 5 0" style="position-anchor:--low;inset:auto;top:calc(anchor(bottom) + 5px);left:anchor(left)">low</div>
         <button id="tall-open" class="trigger" style="left:100px;top:300px;anchor-name:--tall" popovertarget="tall">tall</button>
