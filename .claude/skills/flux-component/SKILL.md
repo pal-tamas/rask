@@ -87,6 +87,9 @@ departure in behaviour carries none.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
+- **A part no Reference heads** (`flux:spacer`, `flux:navmenu`, `flux:chart.bar`, the editor's toolbar items) is in the
+  snapshot all the same: `refresh.mjs` reads the attributes Flux's examples write on it (as `values`, which every one
+  must be taken and close no list) and the items a page lists as available. It goes in `Built` like any other part.
 - **Props are Flux's**, one property per documented prop: `icon:trailing` → `IconTrailing`,
   `tooltip:position` → `TooltipPosition`. Optional props are nullable; `tests/Rask.Ui.Tests/Flux/flux.snapshot.json`
   is the list.
@@ -449,8 +452,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Not Flux's yet: `data-open` on the OPEN menu (Flux writes it on `ui-menu`; the kit writes it on the dropdown
   and the trigger only); Flux's reflected element props (`position`, `gap`, `checked`, `keep-open` as plain
   attributes) are not written; the popup is `popover="auto"` + `autofocus` + `popovertarget` where Flux's is
-  `popover="manual"` and script. `Ui.MenuGroup`, `Ui.Navmenu`, `Ui.NavmenuItem` are on Flux's page but not in
-  `flux.snapshot.json`, so the conformance gate does not see them. `Ui.Profile` is still the kit's own row
+  `popover="manual"` and script. `Ui.MenuGroup`, `Ui.Navmenu`, `Ui.NavmenuItem` head no Reference entry; the
+  snapshot reads them from Flux's examples (2026-11-02) and the conformance gate holds them. `Ui.Profile` is still the kit's own row
   around the new dropdown (its `Open`/`OnToggle`/`KeepOpen` forward), until the navigation branch brings
   Flux's.
   The generic hooks in the table above EXIST and the menu components do NOT write them yet: no
@@ -504,8 +507,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   owner, 2026-10-08: a typed step for a forwarded NATIVE attribute is a translation, not an addition — a
   `Translations` row each, as `Ui.Input`'s `Min` / `Max` / `Step` / `Name`). Unmeasured, no example on Flux's pages: the INVALID look
   (the unticked box takes the input's red-500 border), a disabled switch, `Ui.Switch` with `checked` (the card
-  page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference, so
-  `Ui.CheckboxIndicator` is in no `Built` row. `flux:switch`'s `align` lists `right|start` and `left|end` as one
+  page writes it; it is `Value(true)`). `flux:checkbox.indicator` is on Flux's page and not in its reference; the
+  snapshot reads it from the example that writes it, and `Ui.CheckboxIndicator` is `Built`. `flux:switch`'s `align` lists `right|start` and `left|end` as one
   option each: two enum members, two `NotTranslated` rows.
 - Slider (2026-10-08): script-free but for `big-step`. Each thumb holds a native `<input type="range">` laid over
   the track it can reach (`NATIVE_CONTROL` in `parity.mjs`: tag and place compared, box and look the platform's),

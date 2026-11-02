@@ -7,8 +7,10 @@
 //
 // A part Flux uses in its examples but heads no Reference entry with (`flux:navmenu`, `flux:spacer`,
 // `flux:chart.bar`) is read from where Flux does document it: the attributes its examples write, and a list
-// of the items a component takes (the editor's toolbar items). Such a part's props carry the literal `values`
-// the examples write, never `options`: an example shows a value, it does not close the list.
+// of the items a component takes (the editor's toolbar items). Such a part has no `props`: it has `examples`,
+// the props written on it with the literal `values` written, never `options` (an example shows a value, it does
+// not close the list), and an empty list when it is written bare. So a reader tells it from a headed part:
+// parity.mjs holds a page to its headed parts only.
 //
 // What is kept is NAMES AND VALUES ONLY — the component, its props/slots/events, the options a prop
 // accepts and its default. No description is copied: those are Flux's prose. And this reads the DOCS,
@@ -172,10 +174,10 @@ function unlisted(markdown, slug, headed) {
   }
 
   const byName = (a, b) => a.localeCompare(b, 'en');
-  return [...found].map(([name, props]) => props.size === 0 ? { name } : {
+  return [...found].map(([name, props]) => ({
     name,
-    props: [...props.keys()].sort(byName).map(prop => props.get(prop).size
+    examples: [...props.keys()].sort(byName).map(prop => props.get(prop).size
       ? { name: prop, values: [...props.get(prop)].sort(byName) }
       : { name: prop }),
-  });
+  }));
 }

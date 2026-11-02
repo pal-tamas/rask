@@ -339,7 +339,7 @@ internal sealed class UiChartDrawing(UiChartPlot plot, UiChartParts parts, UiCha
         for (var slot = 0; slot < bars.Count; slot++)
         {
             _svg.Append("<g>");
-            Bars(bars[slot], slot, bars.Count, Share(group.Width, 0.9), Radius(bars[slot].Radius, 4), stack: null);
+            Bars(bars[slot], slot, bars.Count, Share(width: null, 0.9), Radius(bars[slot].Radius, 4), stack: null);
             _svg.Append("</g>");
         }
 

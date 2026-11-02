@@ -18,9 +18,8 @@ internal static class FluxKitScan
     // `UiNavbarItem`, `UiPaginator` — a kit type named directly.
     private static readonly Regex KitType = new(@"\bUi([A-Z][A-Za-z]*)\b", RegexOptions.Compiled);
 
-    // Flux's, but under no part of the snapshot's own (FluxConformanceTests.FluxUnlisted), and the dark-mode script
-    // every Flux page's head carries (a helper there).
-    private static readonly string[] FluxBesidesTheSnapshot = ["Navmenu", "NavmenuItem", "Spacer", "AppearanceScript"];
+    // Flux's, but no part of the snapshot: the dark-mode script every Flux page's head carries (a helper there).
+    private static readonly string[] FluxBesidesTheSnapshot = ["AppearanceScript"];
 
     // The kit's old vocabulary for things Flux says otherwise: tones, themes and breakpoints, and the class lists
     // that went with them. None may come back.

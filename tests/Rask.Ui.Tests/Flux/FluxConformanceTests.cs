@@ -103,6 +103,7 @@ public sealed class FluxConformanceTests
         ["flux:pillbox.option.empty"] = typeof(UiPillboxOptionEmpty),
         ["flux:pillbox.search"] = typeof(UiPillboxSearch),
         ["flux:pillbox.trigger"] = typeof(UiPillboxTrigger),
+        ["flux:pillbox.input"] = typeof(UiPillboxInput),
         ["flux:chart"] = typeof(UiChart),
         ["flux:chart.svg"] = typeof(UiChartSvg),
         ["flux:chart.line"] = typeof(UiChartLine),
@@ -124,10 +125,20 @@ public sealed class FluxConformanceTests
         // Flux's reference spells this heading "flux:chart.summaryvalue"; its examples write flux:chart.summary.value.
         ["flux:chart.summaryvalue"] = typeof(UiChartSummaryValue),
         ["flux:chart.legend"] = typeof(UiChartLegend),
+        // These five head no Reference entry: the snapshot reads them from the examples that write them.
+        ["flux:chart.bar"] = typeof(UiChartBar),
+        ["flux:chart.group"] = typeof(UiChartGroup),
+        ["flux:chart.stack"] = typeof(UiChartStack),
+        ["flux:chart.viewport"] = typeof(UiChartViewport),
+        ["flux:chart.legend.indicator"] = typeof(UiChartLegendIndicator),
         ["flux:dropdown"] = typeof(UiDropdown),
         ["flux:popover"] = typeof(UiPopover),
         ["flux:menu"] = typeof(UiMenu),
         ["flux:menu.item"] = typeof(UiMenuItem),
+        ["flux:menu.group"] = typeof(UiMenuGroup),
+        ["flux:navmenu"] = typeof(UiNavmenu),
+        ["flux:navmenu.item"] = typeof(UiNavmenuItem),
+        ["flux:navmenu.separator"] = typeof(UiNavmenuSeparator),
         ["flux:command"] = typeof(UiCommand),
         ["flux:command.input"] = typeof(UiCommandInput),
         ["flux:command.items"] = typeof(UiCommandItems),
@@ -142,6 +153,7 @@ public sealed class FluxConformanceTests
         ["flux:checkbox"] = typeof(UiCheckbox),
         ["flux:checkbox.group"] = typeof(UiCheckboxGroup<>),
         ["flux:checkbox.all"] = typeof(UiCheckboxAll),
+        ["flux:checkbox.indicator"] = typeof(UiCheckboxIndicator),
         ["flux:radio.group"] = typeof(UiRadioGroup<>),
         ["flux:radio"] = typeof(UiRadio),
         ["flux:radio.indicator"] = typeof(UiRadioIndicator),
@@ -177,6 +189,26 @@ public sealed class FluxConformanceTests
         ["flux:editor.toolbar"] = typeof(UiEditorToolbar),
         ["flux:editor.button"] = typeof(UiEditorButton),
         ["flux:editor.content"] = typeof(UiEditorContent),
+        // The toolbar's items: the list under "The following toolbar items are available", `|` and `~` its separator
+        // and spacer, each a flux:editor.<item> that the page's customization example writes as a tag.
+        ["flux:editor.heading"] = typeof(UiEditorHeading),
+        ["flux:editor.bold"] = typeof(UiEditorBold),
+        ["flux:editor.italic"] = typeof(UiEditorItalic),
+        ["flux:editor.strike"] = typeof(UiEditorStrike),
+        ["flux:editor.underline"] = typeof(UiEditorUnderline),
+        ["flux:editor.bullet"] = typeof(UiEditorBullet),
+        ["flux:editor.ordered"] = typeof(UiEditorOrdered),
+        ["flux:editor.blockquote"] = typeof(UiEditorBlockquote),
+        ["flux:editor.subscript"] = typeof(UiEditorSubscript),
+        ["flux:editor.superscript"] = typeof(UiEditorSuperscript),
+        ["flux:editor.highlight"] = typeof(UiEditorHighlight),
+        ["flux:editor.link"] = typeof(UiEditorLink),
+        ["flux:editor.code"] = typeof(UiEditorCode),
+        ["flux:editor.undo"] = typeof(UiEditorUndo),
+        ["flux:editor.redo"] = typeof(UiEditorRedo),
+        ["flux:editor.align"] = typeof(UiEditorAlign),
+        ["flux:editor.separator"] = typeof(UiEditorSeparator),
+        ["flux:editor.spacer"] = typeof(UiEditorSpacer),
         // `paginator` is a UiPaginator: what Laravel's paginator object knows, as a value.
         ["flux:pagination"] = typeof(UiPagination),
         ["flux:timeline"] = typeof(UiTimeline),
@@ -252,42 +284,13 @@ public sealed class FluxConformanceTests
     /// <summary>
     ///     Flux's, under a part <c>flux.snapshot.json</c> does not list at all, so the checks above cannot hold it yet. Each
     ///     is measured on fluxui.dev and moved to <see cref="Built" />, or deleted. A part Flux only writes in its examples
-    ///     is in the snapshot too (<c>scripts/flux/refresh.mjs</c> reads them), so nothing waits here for want of a heading.
+    ///     is in the snapshot too (<c>scripts/flux/refresh.mjs</c> reads them), so nothing waits here for want of a heading:
+    ///     empty since 2026-11-02, when the 29 that did were measured and built.
     /// </summary>
-    private static readonly Dictionary<Type, string> FluxUnlisted = new()
-    {
-        [typeof(UiNavmenu)] = "flux:navmenu",
-        [typeof(UiNavmenuItem)] = "flux:navmenu.item",
-        [typeof(UiMenuGroup)] = "flux:menu.group",
-        [typeof(UiPillboxInput)] = "flux:pillbox.input",
-        [typeof(UiCheckboxIndicator)] = "flux:checkbox.indicator",
-        [typeof(UiChartBar)] = "flux:chart.bar",
-        [typeof(UiChartGroup)] = "flux:chart.group",
-        [typeof(UiChartStack)] = "flux:chart.stack",
-        [typeof(UiChartViewport)] = "flux:chart.viewport",
-        [typeof(UiChartLegendIndicator)] = "flux:chart.legend.indicator",
-        [typeof(UiEditorAlign)] = "flux:editor toolbar: align",
-        [typeof(UiEditorBlockquote)] = "flux:editor toolbar: blockquote",
-        [typeof(UiEditorBold)] = "flux:editor toolbar: bold",
-        [typeof(UiEditorBullet)] = "flux:editor toolbar: bullet",
-        [typeof(UiEditorCode)] = "flux:editor toolbar: code",
-        [typeof(UiEditorHeading)] = "flux:editor toolbar: heading",
-        [typeof(UiEditorHighlight)] = "flux:editor toolbar: highlight",
-        [typeof(UiEditorItalic)] = "flux:editor toolbar: italic",
-        [typeof(UiEditorLink)] = "flux:editor toolbar: link",
-        [typeof(UiEditorOrdered)] = "flux:editor toolbar: ordered",
-        [typeof(UiEditorRedo)] = "flux:editor toolbar: redo",
-        [typeof(UiEditorSeparator)] = "flux:editor toolbar: separator",
-        [typeof(UiEditorSpacer)] = "flux:editor toolbar: spacer",
-        [typeof(UiEditorStrike)] = "flux:editor toolbar: strike",
-        [typeof(UiEditorSubscript)] = "flux:editor toolbar: subscript",
-        [typeof(UiEditorSuperscript)] = "flux:editor toolbar: superscript",
-        [typeof(UiEditorUnderline)] = "flux:editor toolbar: underline",
-        [typeof(UiEditorUndo)] = "flux:editor toolbar: undo",
-    };
+    private static readonly Dictionary<Type, string> FluxUnlisted = new();
 
     /// <summary>The ceiling <see cref="FluxUnlisted" /> is held under. Lower it with every part built or deleted; never raise it.</summary>
-    private const int FluxUnlistedCeiling = 28;
+    private const int FluxUnlistedCeiling = 0;
 
     /// <summary>Public components that are no part of their own: a shared base, a mode of a built part, a page script.</summary>
     private static readonly Dictionary<Type, string> Helpers = new()
@@ -553,11 +556,16 @@ public sealed class FluxConformanceTests
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
         ["flux:pillbox.search/Value"] = "as flux:select.search",
         ["flux:pillbox.search/OnInput"] = "as Value: the write of that `wire:model.live`",
+        ["flux:pillbox.input/Value"] = "`wire:model=\"search\"` on `flux:pillbox.input` in Flux's create, backend-search and validation examples",
+        ["flux:pillbox.input/OnInput"] = "as Value: the write of that `wire:model`",
+        ["flux:pillbox.input/Debounce"] = "as flux:select.search/Debounce",
+        ["flux:pillbox.input/Invalid"] = "the error bag's entry for the input's `wire:model`, which Flux's 'With validation' section says the input shows as invalid",
         ["flux:dropdown/Open"] = "`wire:model`, which the popover page documents for flux:dropdown: the open state",
         ["flux:dropdown/OnToggle"] = "`wire:model`'s other half: the reader opened or closed it",
         ["flux:context/Open"] = "`wire:model`: the context menu's open state",
         ["flux:context/OnToggle"] = "`wire:model`'s other half: the reader opened or closed it",
         ["flux:menu.item/OnClick"] = "`wire:click` on a row",
+        ["flux:navmenu.item/OnClick"] = "`wire:click` on a row with no `href`, which Flux draws as a <button> (its breadcrumbs page writes one)",
         // Flux's public demo, https://fluxui.dev/demo/qa.md: <flux:menu.item href="/settings/profile" icon="cog">, live an <a role="menuitem">.
         ["flux:menu.item/Href"] = "`href`, which Flux's Q&A demo sets on a menu item (drawn as an `<a role=\"menuitem\">`) and its reference omits",
         ["flux:menu.checkbox/Value"] = "`wire:model`, as every Rask form control says it (IFormControl<bool>)",
@@ -827,14 +835,15 @@ public sealed class FluxConformanceTests
     private static JsonDocument Snapshot { get; } = JsonDocument.Parse(File.ReadAllText(
         Path.Combine(RepoRoot.FullPath, "tests", "Rask.Ui.Tests", "Flux", "flux.snapshot.json")));
 
-    // `options` is a Reference's closed list of what a prop takes; `values` are what Flux's examples write on a part
-    // no Reference heads (scripts/flux/refresh.mjs): each one must be taken, but they close no list.
+    // A part a Reference heads has `props`, each with the closed list of `options` it takes. A part no Reference heads
+    // has `examples` (scripts/flux/refresh.mjs): the props Flux's examples write on it, with the `values` written —
+    // each one must be taken, but they close no list.
     private static IEnumerable<(string Name, List<(string Name, string[] Options, string[] Values)> Props)> Parts() =>
         from page in Snapshot.RootElement.GetProperty("pages").EnumerateArray()
         from part in page.GetProperty("parts").EnumerateArray()
         select (
             part.GetProperty("name").GetString()!,
-            part.TryGetProperty("props", out var props)
+            part.TryGetProperty("props", out var props) || part.TryGetProperty("examples", out props)
                 ? props.EnumerateArray().Select(prop => (
                     prop.GetProperty("name").GetString()!,
                     Strings(prop, "options"),

@@ -21,8 +21,11 @@ public sealed partial class UiNavmenuItem : Component
     /// <summary>An icon at the start of the row.</summary>
     public Ui.IconName? Icon { get; set; }
 
-    /// <summary>Which drawing of the icon to use. The 20px <see cref="Ui.IconVariant.Mini" /> unless this says otherwise.</summary>
-    public Ui.IconVariant? IconVariant { get; set; }
+    /// <summary>
+    ///     True to start the words where a sibling's icon ends: the room of an icon, empty, in a row that has none. Flux's
+    ///     <c>indent</c>, as its profile page writes it under a row with a check.
+    /// </summary>
+    public bool? Indent { get; set; }
 
     /// <summary><see cref="Ui.MenuItemVariant.Danger" /> for a destructive destination.</summary>
     public Ui.MenuItemVariant? Variant { get; set; }
@@ -32,9 +35,20 @@ public sealed partial class UiNavmenuItem : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        Component?[] content = [Icon is { } icon ? UiMenuRow.LinkIcon(icon, IconVariant) : null, .. Children ?? []];
+        Component?[] content = [Lead(), .. Children ?? []];
         var classes = UiClass.Compose(UiMenuRow.LinkClasses(Variant), Class);
         return Row(classes).Data("ui-navmenu-item", "")[content];
+    }
+
+    // What stands before the words: the icon, or the icon's room when the row asks for it.
+    private Component? Lead()
+    {
+        if (Icon is { } icon)
+        {
+            return UiMenuRow.LinkIcon(icon);
+        }
+
+        return Indent == true ? UiMenuRow.LinkIndent() : null;
     }
 
     private Element Row(string classes)

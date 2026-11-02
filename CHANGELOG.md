@@ -237,6 +237,13 @@ them until tagged releases begin.
   bar family, the editor's toolbar items — with the props and values its examples write, and `FluxConformanceTests`
   holds each one in `Built`. Measured on fluxui.dev and made Flux's on the way:
   - `Ui.Spacer` writes no `aria-hidden`: Flux's spacer is an empty `<div class="flex-1">` with no ARIA.
+  - `Ui.ChartGroup.Width` is gone: Flux's examples set a width on a stack and a bar, never on a group, which fills
+    nine tenths of a row's slot as before.
+  - `Ui.NavmenuItem.IconVariant` (and its `.Mini` / `.Micro` / `.Solid` / `.Outline` steps) is gone: Flux documents
+    no `icon:variant` on a navmenu's row, which draws the 20px icon.
+  - New, as Flux's profile page writes them: `Ui.NavmenuItem.Indent()` (Flux's `indent`: an icon's 28px room, empty,
+    before the words) and `Ui.NavmenuSeparator` (`flux:navmenu.separator`: a menu's line under the navmenu's marker).
+  - `Ui.MenuGroup` and `Ui.Navmenu` match Flux open, light and dark (`parity-menu.mjs dropdown`), unchanged.
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section

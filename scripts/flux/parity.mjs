@@ -249,7 +249,9 @@ const BOUND = ['data-rask-otp'];
 const boundField = (parent, c) => c.tag === 'input' && c.attrs.type === 'hidden' && BOUND.some(name => name in parent.attrs);
 // The markers of the parts this page documents: flux:button.group -> button-group, flux:icon.* -> icon.
 const snapshot = JSON.parse(await readFile(join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json'), 'utf8'));
+// A part no Reference heads (`examples` in place of `props`: flux:spacer, written on many pages) is no page's own.
 const OWN = new Set([slug, ...(snapshot.pages.find(p => p.slug === slug)?.parts ?? [])
+  .filter(part => !part.examples)
   .map(part => part.name.replace(/^flux:/, '').replace(/\.\*$/, '').replaceAll('.', '-'))]);
 const limit = flag('all') ? Infinity : 12;
 let failures = 0;

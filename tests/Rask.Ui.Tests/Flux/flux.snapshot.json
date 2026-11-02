@@ -60,11 +60,12 @@
           ]
         },
         {
-          "name": "flux:navmenu"
+          "name": "flux:navmenu",
+          "examples": []
         },
         {
           "name": "flux:navmenu.item",
-          "props": [
+          "examples": [
             {
               "name": "href",
               "values": [
@@ -74,7 +75,8 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         }
       ]
     },
@@ -304,7 +306,8 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         }
       ]
     },
@@ -740,7 +743,8 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         }
       ]
     },
@@ -919,11 +923,12 @@
           ]
         },
         {
-          "name": "flux:navmenu"
+          "name": "flux:navmenu",
+          "examples": []
         },
         {
           "name": "flux:navmenu.item",
-          "props": [
+          "examples": [
             {
               "name": "icon",
               "values": [
@@ -1772,14 +1777,16 @@
           ]
         },
         {
-          "name": "flux:chart.viewport"
+          "name": "flux:chart.viewport",
+          "examples": []
         },
         {
-          "name": "flux:chart.legend.indicator"
+          "name": "flux:chart.legend.indicator",
+          "examples": []
         },
         {
           "name": "flux:chart.bar",
-          "props": [
+          "examples": [
             {
               "name": "field",
               "values": [
@@ -1810,11 +1817,12 @@
           ]
         },
         {
-          "name": "flux:chart.group"
+          "name": "flux:chart.group",
+          "examples": []
         },
         {
           "name": "flux:chart.stack",
-          "props": [
+          "examples": [
             {
               "name": "width",
               "values": [
@@ -1919,7 +1927,8 @@
           ]
         },
         {
-          "name": "flux:checkbox.indicator"
+          "name": "flux:checkbox.indicator",
+          "examples": []
         }
       ]
     },
@@ -2961,11 +2970,12 @@
           ]
         },
         {
-          "name": "flux:navmenu"
+          "name": "flux:navmenu",
+          "examples": []
         },
         {
           "name": "flux:navmenu.item",
-          "props": [
+          "examples": [
             {
               "name": "href",
               "values": [
@@ -2992,7 +3002,7 @@
         },
         {
           "name": "flux:menu.group",
-          "props": [
+          "examples": [
             {
               "name": "heading",
               "values": [
@@ -3148,58 +3158,76 @@
           ]
         },
         {
-          "name": "flux:editor.heading"
+          "name": "flux:editor.heading",
+          "examples": []
         },
         {
-          "name": "flux:editor.separator"
+          "name": "flux:editor.separator",
+          "examples": []
         },
         {
-          "name": "flux:editor.bold"
+          "name": "flux:editor.bold",
+          "examples": []
         },
         {
-          "name": "flux:editor.italic"
+          "name": "flux:editor.italic",
+          "examples": []
         },
         {
-          "name": "flux:editor.strike"
+          "name": "flux:editor.strike",
+          "examples": []
         },
         {
-          "name": "flux:editor.bullet"
+          "name": "flux:editor.bullet",
+          "examples": []
         },
         {
-          "name": "flux:editor.ordered"
+          "name": "flux:editor.ordered",
+          "examples": []
         },
         {
-          "name": "flux:editor.blockquote"
+          "name": "flux:editor.blockquote",
+          "examples": []
         },
         {
-          "name": "flux:editor.link"
+          "name": "flux:editor.link",
+          "examples": []
         },
         {
-          "name": "flux:editor.align"
+          "name": "flux:editor.align",
+          "examples": []
         },
         {
-          "name": "flux:editor.spacer"
+          "name": "flux:editor.spacer",
+          "examples": []
         },
         {
-          "name": "flux:editor.underline"
+          "name": "flux:editor.underline",
+          "examples": []
         },
         {
-          "name": "flux:editor.subscript"
+          "name": "flux:editor.subscript",
+          "examples": []
         },
         {
-          "name": "flux:editor.superscript"
+          "name": "flux:editor.superscript",
+          "examples": []
         },
         {
-          "name": "flux:editor.highlight"
+          "name": "flux:editor.highlight",
+          "examples": []
         },
         {
-          "name": "flux:editor.code"
+          "name": "flux:editor.code",
+          "examples": []
         },
         {
-          "name": "flux:editor.undo"
+          "name": "flux:editor.undo",
+          "examples": []
         },
         {
-          "name": "flux:editor.redo"
+          "name": "flux:editor.redo",
+          "examples": []
         }
       ]
     },
@@ -3942,10 +3970,12 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         },
         {
-          "name": "flux:subheading"
+          "name": "flux:subheading",
+          "examples": []
         }
       ]
     },
@@ -4082,11 +4112,12 @@
           "name": "Profile switcher"
         },
         {
-          "name": "flux:navmenu"
+          "name": "flux:navmenu",
+          "examples": []
         },
         {
           "name": "flux:navmenu.item",
-          "props": [
+          "examples": [
             {
               "name": "href",
               "values": [
@@ -4403,7 +4434,7 @@
         },
         {
           "name": "flux:pillbox.input",
-          "props": [
+          "examples": [
             {
               "name": "placeholder",
               "values": [
@@ -4413,7 +4444,8 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         }
       ]
     },
@@ -4533,14 +4565,16 @@
           ]
         },
         {
-          "name": "flux:navmenu"
+          "name": "flux:navmenu",
+          "examples": []
         },
         {
-          "name": "flux:navmenu.separator"
+          "name": "flux:navmenu.separator",
+          "examples": []
         },
         {
           "name": "flux:navmenu.item",
-          "props": [
+          "examples": [
             {
               "name": "href",
               "values": [
@@ -4947,7 +4981,8 @@
           ]
         },
         {
-          "name": "flux:spacer"
+          "name": "flux:spacer",
+          "examples": []
         }
       ]
     },

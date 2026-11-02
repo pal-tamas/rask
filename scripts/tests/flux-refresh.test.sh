@@ -2,7 +2,7 @@
 # gate-inputs: ^scripts/flux/refresh\.mjs$
 # scripts/flux/refresh.mjs, the catalogue half of the `flux` follower, run against saved docs pages: a part
 # with a Reference heading of its own is read from it, and a part Flux only writes in its examples (or lists as
-# an available item) is read from there — its props with the values the examples write, never as `options`.
+# an available item) is read from there — under `examples`, the props with the values written, never `options`.
 # The daily run lands what this writes with nobody reading it, so it must write the same file every time.
 #
 # Usage:  scripts/tests/flux-refresh.test.sh   (run by scripts/run-unit-local.sh)
@@ -85,14 +85,14 @@ check "the same pages write the same file" same "$(cmp -s "$tmp/first.json" "$tm
 check "a headed part is read from its Reference" \
   '{"name":"flux:menu.item","props":[{"name":"variant","options":["default","danger"]}]}' "$(part menu flux:menu.item)"
 check "an unheaded part is read from its examples: props sorted, values literal, class and directives left out" \
-  '{"name":"flux:menu.group","props":[{"name":"heading","values":["Account"]}]}' "$(part menu flux:menu.group)"
+  '{"name":"flux:menu.group","examples":[{"name":"heading","values":["Account"]}]}' "$(part menu flux:menu.group)"
 check "...on every page that writes it" \
-  '{"name":"flux:menu.group","props":[{"name":"heading","values":["Billing"]}]}' "$(part writer flux:menu.group)"
-check "a part with no attributes is named alone" '{"name":"flux:spacer"}' "$(part menu flux:spacer)"
+  '{"name":"flux:menu.group","examples":[{"name":"heading","values":["Billing"]}]}' "$(part writer flux:menu.group)"
+check "a part written bare has no examples' props, and is still told from a headed one" '{"name":"flux:spacer","examples":[]}' "$(part menu flux:spacer)"
 check "an icon is headed by flux:icon.*" null "$(part menu flux:icon.bolt)"
 check "a part headed a dot fewer is headed" null "$(part menu flux:chart.summary.value)"
 check "markup outside a code block is no example" null "$(part menu flux:outside-code)"
-check "an available item is a part of its page's component" '{"name":"flux:writer.bold"}' "$(part writer flux:writer.bold)"
+check "an available item is a part of its page's component" '{"name":"flux:writer.bold","examples":[]}' "$(part writer flux:writer.bold)"
 check "...and only an item of that list" null "$(part writer flux:writer.nothing)"
 check "the headed parts come first, in the Reference's order" \
   'flux:menu,flux:menu.item,flux:icon.*,flux:chart.summaryvalue,flux:menu.group,flux:spacer' \
