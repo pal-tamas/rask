@@ -109,7 +109,7 @@ internal static class TemplateMaterializer
         }
 
         var written = islands is { Count: > 0 }
-            ? IslandAssembly.Apply(targetDirectory, islands, name, files)
+            ? IslandAssembly.Apply(targetDirectory, islands, name, files, PagesFolder(templateKey))
             : files;
 
         if (vsCode != VsCodeSetup.None)
@@ -123,6 +123,14 @@ internal static class TemplateMaterializer
         // RENDERED appsettings.json carries a WebPush section, so it reads the same text the app will.
         return WebPushAssembly.Apply(targetDirectory, written);
     }
+
+    /// <summary>
+    ///     The folder <paramref name="templateKey" />'s pages compile from, where its islands have to be for a page to
+    ///     name them: a wasm-hosted app's pages are its browser half's, in <c>Client/</c> (#1194); every other
+    ///     template's are the project's own.
+    /// </summary>
+    internal static string PagesFolder(string templateKey) =>
+        string.Equals(templateKey, "wasm-hosted", StringComparison.Ordinal) ? "Client" : "";
 
     /// <summary>One asset as the file it becomes: renamed, its regions resolved and its tokens replaced.</summary>
     private static ScaffoldFile Materialize(
