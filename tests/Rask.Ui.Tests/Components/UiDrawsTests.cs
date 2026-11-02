@@ -26,15 +26,19 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
         "button[aria-label=\"" + new DateOnly(2026, 1, day).ToString("D", CultureInfo.GetCultureInfo("en-US")) + "\"]";
 
     // The list itself is the browser's (`data-rask-list`, rask-list.ts): opening it, its cursor, its keys and
-    // its search have no handler to name. What is left to say of is the press that commits.
+    // its search have no handler to name. A pick that waits is the browser's too (rask-list-held.ts): the one
+    // field it is written into waits for the next action, and nothing is drawn by the page.
     [Fact]
-    public void A_listbox_that_waits_draws_a_pick_and_hears_nothing_else_of_its_list()
+    public void A_listbox_that_waits_holds_a_pick_in_the_browser_and_hears_nothing_of_its_list()
     {
         var a = new Answers();
 
         var page = Page.Render(() => Ui.Select.Bind(() => a.One).Listbox.Searchable()[Options()]);
 
-        Assert.Equal("click", Draws(page, "[data-ui-option]"));
+        Assert.Null(page.FindAll("[data-ui-option]")[0].Attribute("data-rask-on-click"));
+        Assert.Equal("Alpha", page.FindAll("[data-ui-option]")[0].Attribute("data-rask-list-value"));
+        Assert.Equal("action", page.Find("[data-ui-select] > input[type=\"hidden\"]").Attribute("data-rask-bind-on"));
+        Assert.Empty(page.FindAll("[" + Mark + "]"));
         Assert.Null(page.Find("[popover]").Attribute("data-rask-on-toggle"));
         Assert.Null(page.FindAll("[data-ui-option]")[0].Attribute("data-rask-on-mouseenter"));
         Assert.Null(page.Find("[data-ui-select-search] input").Attribute("data-rask-on-input"));
@@ -85,7 +89,7 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_combobox_and_a_pillbox_that_wait_draw_their_picks_their_crosses_and_their_clear_button()
+    public void A_combobox_that_waits_holds_its_picks_and_its_clear_in_the_browser_and_a_pillbox_draws_them()
     {
         var a = new Answers { Picked = "Alpha", Many = ["Alpha"] };
 
@@ -94,8 +98,10 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
             Div.Id("pills")[Ui.Pillbox.Bind(() => a.Many).Combobox[Words.Select(word => Ui.PillboxOption.Key(word)[word])]]
         ]);
 
-        Assert.Equal("click", Draws(page, "#combo [data-ui-option]"));
-        Assert.Equal("click", Draws(page, "#combo button[aria-label=\"Clear selected\"]"));
+        Assert.Null(page.FindAll("#combo [data-ui-option]")[0].Attribute("data-rask-on-click"));
+        Assert.Null(page.Find("#combo button[aria-label=\"Clear selected\"]").Attribute("data-rask-on-click"));
+        Assert.NotNull(page.Find("#combo button[aria-label=\"Clear selected\"]").Attribute("data-rask-list-clear"));
+        Assert.Empty(page.FindAll("#combo [" + Mark + "]"));
         Assert.Null(Draws(page, "#combo input[role=\"combobox\"]"));
         Assert.Equal("click", Draws(page, "#pills [data-value=\"Alpha\"] [data-rask-on-click]"));
         Assert.Equal("click", Draws(page, "#pills [data-ui-listbox-option]"));
