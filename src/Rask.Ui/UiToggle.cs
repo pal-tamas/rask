@@ -28,7 +28,7 @@ public sealed partial class UiToggle : Component, IDeferredBind
 {
     // Whatever it holds — an icon of the kit's or of the app's, a label — steps aside for the spinner.
     private const string Frame =
-        "group relative [:where(&)]:inline-flex items-center justify-center cursor-auto text-start font-medium whitespace-nowrap transition"
+        "group relative [:where(&)]:inline-flex items-center justify-center text-start font-medium whitespace-nowrap transition"
         + " outline-offset-2 *:transition-opacity *:duration-150 data-loading:*:opacity-0"
         + " disabled:opacity-50 disabled:cursor-default disabled:pointer-events-none disabled:shadow-none"
         + " data-loading:pointer-events-none";

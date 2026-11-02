@@ -22,8 +22,9 @@ namespace Rask.UiTests.Cascade;
 ///         Flux's own guide says to. The full findings land in <c>artifacts/kit-class-overrides.txt</c>.
 ///     </para>
 ///     <para>
-///         The table's parts are listed there on purpose (the owner, 2026-10-28): they write Flux's own class lists,
-///         and an app overrides them with <c>!</c>.
+///         The table is listed there on purpose (the owner, 2026-10-28): it writes Flux's own class list, and an app
+///         overrides it with <c>!</c>. Its headings and cells are not: their shared look is the kit sheet's, at no
+///         weight (2026-11-02).
 ///     </para>
 /// </remarks>
 public sealed class AnAppsClassWinsTests
@@ -172,8 +173,7 @@ public sealed class AnAppsClassWinsTests
         ["UiTab"] = "display, gap, margin, padding, text colour, text size",
         ["UiTabPanel"] = "padding",
         ["UiTable"] = "text colour",
-        ["UiTableCell"] = "padding, text colour, text size",
-        ["UiTableColumn"] = "padding, text colour, text size",
+        ["UiTableCell"] = "text colour",
         ["UiTabs"] = "display, gap, padding, rounded",
         ["UiText"] = "text colour, text size",
         ["UiTextarea"] = "padding, rounded, text colour, text size, width",
@@ -245,11 +245,11 @@ public sealed class AnAppsClassWinsTests
         Assert.True(known == unseen, "The components rendered alone with a class that show it on no element are now:\n" + unseen);
     }
 
-    // The owner, 2026-10-28: a table's parts write Flux's own lists, and an app that overrides one writes `!`, as
-    // Flux's guide says. Before, they were written at zero specificity so a plain class won (2026-10-09).
+    // The owner, 2026-10-28: the table writes Flux's own list, and an app that overrides one writes `!`, as Flux's
+    // guide says. Its headings and cells did too until 2026-11-02, when their shared look moved into the kit sheet: a
+    // cell now writes only what a call site asked for (a strong tone, an alignment), and that is what `!` overrides.
     [Theory]
     [InlineData(typeof(UiTable))]
-    [InlineData(typeof(UiTableColumn))]
     [InlineData(typeof(UiTableCell))]
     public void A_table_part_holds_Fluxs_defaults_and_an_apps_class_with_a_bang_beats_them(Type part)
     {
@@ -262,10 +262,12 @@ public sealed class AnAppsClassWinsTests
         Assert.Empty(lost);
     }
 
+    // A heading's and a cell's look is the kit sheet's, at no weight, below utilities (owner, 2026-11-02): ps-10 wins as it is.
     [Theory]
     [InlineData(typeof(UiTableColumns))]
     [InlineData(typeof(UiTableRows))]
     [InlineData(typeof(UiTableRow))]
+    [InlineData(typeof(UiTableColumn))]
     public void A_table_part_with_no_defaults_of_its_own_yields_to_an_apps_class(Type part)
     {
         var elements = KitRenders.Elements(part);
@@ -273,6 +275,21 @@ public sealed class AnAppsClassWinsTests
         var lost = elements.SelectMany(element => Lost(element, [.. Guarded, .. TableOnly])).Distinct().ToList();
 
         Assert.NotEmpty(elements);
+        Assert.Empty(lost);
+    }
+
+    // The look every heading and cell shares is the kit sheet's, on their markers, at no weight and below utilities.
+    [Theory]
+    [InlineData("th", "data-ui-column")]
+    [InlineData("td", "data-ui-cell")]
+    public void A_plain_heading_and_cell_take_their_look_from_the_sheet_and_yield_it_to_an_apps_class(string tag, string marker)
+    {
+        var element = new StyledElement(tag, new HashSet<string>(StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal) { [marker] = "" });
+
+        var drawn = new[] { "padding-top", "padding-right", "font-size", "color" }.Select(property => Sheet.Value.Winner(element, property)).ToList();
+        var lost = Lost(element, [.. Guarded, .. TableOnly]).ToList();
+
+        Assert.All(drawn, Assert.NotNull);
         Assert.Empty(lost);
     }
 

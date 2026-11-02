@@ -40,6 +40,38 @@ export const STYLES = [
   'fill', 'stroke', 'strokeWidth', 'backdropFilter',
 ];
 
+// What the kit shows the hand over — an owner-approved departure from Flux (2026-11-02, flux-component SKILL.md
+// "Owner-approved departures"), whose controls keep the arrow. The kit sheet's rule (src/Rask.Ui/Styles/ui.css),
+// plus the kit's own parts that are pressed but are no <button>: a picker's clear as a <div>, a pillbox trigger, a
+// select's create row.
+// Measured in the page as `node.pressable` — the element, or what it sits inside, is one of these and can be pressed now.
+export const PRESSABLE = ':is(button, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=option], '
+  + '[role=tab], [role=checkbox], [role=radio], [role=switch], summary, select, label[for], '
+  + 'label:has(input:is([type=checkbox], [type=radio])), '
+  + 'input:is([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=submit], [type=button], [type=reset]), '
+  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input))'
+  + ':not(:disabled, [aria-disabled=true], [data-disabled], [readonly], [aria-readonly=true], [data-loading], [aria-busy=true])';
+
+/**
+ * Whether `cursor` may differ between Flux's node and the kit's: only where the kit computes the hand on a pressable
+ * node (`pressable`, measured in the page with PRESSABLE) and Flux the arrow (`default`, or `auto`, which is the arrow
+ * over anything but text). Any other cursor difference is still a difference — the departure is that, and no wider.
+ */
+export function cursorDeparted(flux, rask, pressable) {
+  return !!pressable && rask === 'pointer' && (flux === 'default' || flux === 'auto');
+}
+
+/**
+ * The same, for a transcript's two lines of `key=value;…` (parity-editor.mjs): the kit's line says `cursor=pointer`
+ * and ends `;pressable`, Flux's says the arrow, and with that put back they are the same line.
+ */
+export function cursorDepartedLine(flux, rask) {
+  if (flux === undefined || rask === undefined || !rask.endsWith(';pressable')) return false;
+  const theirs = /(?:^|;| )cursor=([a-z-]+)/.exec(flux)?.[1];
+  if (!cursorDeparted(theirs, 'pointer', true)) return false;
+  return rask.slice(0, -';pressable'.length).replace(/((?:^|;| )cursor=)pointer/, `$1${theirs}`) === flux;
+}
+
 // A browser context's screen: below Tailwind's `sm` (640px) a PHONE's — touch, and the overlay scrollbars a phone
 // has. A desktop browser 390px wide is no phone: there Flux's `scrollbar-gutter: stable` reserves 15px of a
 // scrollbar nobody draws and sets its date dialog 7.5px off centre, which no reader ever sees (measured on its
@@ -107,7 +139,7 @@ async function measure(page, shots, layout = false) {
     // `data-parity-open` on that element — a press, or "hover" — and it is open while this example is measured.
     const opener = await wrapper.$('[data-parity-open]');
     if (opener) await open(page, wrapper, opener);
-    const example = await wrapper.evaluate(collect, { STYLES, index, layout });
+    const example = await wrapper.evaluate(collect, { STYLES, PRESSABLE, index, layout });
     const targets = stateTargets(example.nodes, layout);
     await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
@@ -293,7 +325,7 @@ function rest() {
 }
 
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
-function collect(wrapper, { STYLES, index, layout }) {
+function collect(wrapper, { STYLES, PRESSABLE, index, layout }) {
   window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
@@ -351,6 +383,7 @@ function collect(wrapper, { STYLES, index, layout }) {
       text: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(Boolean).join(' ').slice(0, 80),
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
+      pressable: !!el.closest(PRESSABLE),
     };
     if (layout) {
       // Not rendered: display:none, or clipped to a pixel for a screen reader alone.

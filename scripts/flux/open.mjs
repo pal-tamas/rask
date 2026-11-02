@@ -38,7 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, frames, press, root, STYLES, tapped, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, frames, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -325,7 +325,7 @@ async function measureOpen(browser, kind, url, shots, view, like) {
         }
       }
 
-      const example = await wrapper.evaluate(collect, { STYLES, index, selectors });
+      const example = await wrapper.evaluate(collect, { STYLES, PRESSABLE, index, selectors });
       await page.screenshot({ path: join(shots, scheme, `${String(index).padStart(2, '0')}-${example.section || 'intro'}.png`) });
 
       example.rows = {};
@@ -383,7 +383,7 @@ function look(el, STYLES) {
 
 // Runs in the page. The control of one example, open: every element under its root, measured from the
 // trigger's corner. lib.mjs's collect(), from another origin.
-function collect(wrapper, { STYLES, index, selectors }) {
+function collect(wrapper, { STYLES, PRESSABLE, index, selectors }) {
   for (const animation of document.getAnimations()) animation.finish?.();
   const headings = [...document.querySelectorAll('h2[id]')];
   const section = wrapper.dataset.section
@@ -416,6 +416,7 @@ function collect(wrapper, { STYLES, index, selectors }) {
       text: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(Boolean).join(' ').slice(0, 80),
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
+      pressable: !!el.closest(PRESSABLE),
     };
     for (const pseudo of ['::before', '::after']) {
       const content = getComputedStyle(el, pseudo).content;
@@ -448,10 +449,10 @@ function compareTree(kind, theirs, a, mine, b, where, diffs) {
   // Flux's script lays the open popup out with an inline `position: absolute` and pixel insets; Rask.Ui
   // anchors it in CSS, where a popover in the top layer is `fixed`. Where it ends up is the offset above.
   const placed = 'popover' in a.attrs;
-  compareStyles(a.style, b.style, where, diffs, placed ? new Set(['position']) : undefined);
+  compareStyles(a.style, b.style, where, diffs, placed ? new Set(['position']) : undefined, b.pressable);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, undefined, b.pressable);
   }
 
   // A <template> holds what Flux's script clones from; it draws nothing and Rask.Ui has no use for one.
@@ -466,9 +467,11 @@ function compareTree(kind, theirs, a, mine, b, where, diffs) {
   ca.forEach((child, i) => compareTree(kind, theirs, child, mine, cb[i], `${where} > ${child.tag}[${i}]`, diffs));
 }
 
-function compareStyles(x, y, where, diffs, let_go) {
+// `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
+function compareStyles(x, y, where, diffs, let_go, pressable = false) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || let_go?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

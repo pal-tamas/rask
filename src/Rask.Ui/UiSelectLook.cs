@@ -25,7 +25,7 @@ internal static class UiSelectLook
 
     /// <summary>The listbox's button: an input's box that holds what was picked and a chevron.</summary>
     internal const string Button =
-        "group/select-button cursor-default overflow-hidden flex items-center w-full border "
+        "group/select-button overflow-hidden flex items-center w-full border "
         + "bg-white dark:bg-white/10 disabled:shadow-none dark:disabled:bg-white/[7%] "
         + "border-zinc-200 border-b-zinc-300/80 disabled:border-b-zinc-200 "
         + "dark:border-white/10 dark:border-b-white/10 dark:disabled:border-white/5 dark:disabled:border-b-white/5 "
