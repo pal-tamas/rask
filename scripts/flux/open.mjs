@@ -38,7 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, frames, hoverSettled, press, root, STYLES, viewOf } from './lib.mjs';
+import { chromium, frames, press, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -278,17 +278,17 @@ async function measureOpen(browser, kind, url, shots, view, like) {
       if (twin) await wrapper.evaluate((w, { inherited, frame }) => Object.assign(w.style, inherited, frame), { inherited: twin.inherited, frame: view.sized ? twin.frame : {} });
       await wrapper.evaluate(w => w.scrollIntoView({ block: 'center' }));
       const trigger = await wrapper.$(kind.trigger);
-      await trigger[view.phone ? 'tap' : 'click']();
-      await page.waitForTimeout(350);
       // On a phone the hover the tap leaves is part of what is measured (a trigger's chevron, a row lit): waited
-      // on until it holds (lib.mjs's hoverSettled), as it lands late on a loaded runner.
-      if (view.phone) await trigger.evaluate(hoverSettled);
+      // on until it holds (lib.mjs's tapped), as it lands late on a loaded runner.
+      if (view.phone) await tapped(page, trigger);
+      else await trigger.click();
+      await page.waitForTimeout(350);
       // A static page has no runtime to pick with: Rask's is written with these rows already picked.
       for (const row of like ? [] : kind.pick ?? []) {
         const picked = (await wrapper.$$(kind.rows))[row];
-        await picked[view.phone ? 'tap' : 'click']();
+        if (view.phone) await tapped(page, picked);
+        else await picked.click();
         await page.waitForTimeout(350);
-        if (view.phone) await picked.evaluate(hoverSettled);
       }
 
       // A pointer under a hand never rests on one pixel: a hover that a re-render dropped (Livewire answers

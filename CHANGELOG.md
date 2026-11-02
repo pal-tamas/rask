@@ -455,6 +455,9 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The daily Flux parity run no longer reads a slow machine as the kit's chevrons drawn hovered** (#1260). The
+  measurer waits for a tap to become its click, and for a page lock to land, before it reads what the pointer
+  left, instead of a fixed time; the datetime picker's open-to example opens on December 2026, as Flux's now does.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

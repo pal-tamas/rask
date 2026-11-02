@@ -148,9 +148,8 @@ async function open(page, wrapper, opener) {
   // A hover popover is tapped by a finger that has been on the page before (FIRST_TOUCH in parity-popover.mjs).
   if (phone) {
     if (await opener.getAttribute('data-parity-open') === 'hover') await page.touchscreen.tap(4, at[1]);
-    await page.touchscreen.tap(...at);
-    // The hover a finger leaves on what it tapped (hoverSettled, below).
-    await opener.evaluate(hoverSettled);
+    // The hover a finger leaves on what it tapped (tapped, below).
+    await tapped(page, opener, at);
   }
   else if (await opener.getAttribute('data-parity-open') === 'hover') {
     // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
@@ -172,11 +171,31 @@ async function open(page, wrapper, opener) {
     // leaves the trigger under a pointer that no longer hovers it — once the browser looks again, which it does
     // on a timer of its own after the page changed: at once on a Mac, a while later on a loaded Linux runner,
     // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
-    // already is may be no move at all), so both look now.
-    await frames(page);
+    // already is may be no move at all), so both look now — once the lock is ON: it lands when the page's script
+    // gets to it (a toggle event, a hook), and a move made before that left the kit's chevron hovered on the runner
+    // (2026-11-01, #1260) where a Mac had locked in time. So the move waits for the page to stop changing.
+    await page.evaluate(locked);
     await page.mouse.move(at[0] + 1, at[1]);
   }
   await frames(page);
+}
+
+/**
+ * A finger's tap on `target` (at `at`, or its centre), waited on until the browser has made it a CLICK — the last of
+ * the mouse events it makes of a tap, so the hover they leave is in — and then until that hover holds
+ * (hoverSettled). Waited on by the event, not by a time: on a loaded Linux runner those mouse events came after
+ * hoverSettled had given up, and Flux's phone chevron was measured unhovered beside the kit's hovered one (#1260).
+ */
+export async function tapped(page, target, at) {
+  await page.evaluate(() => {
+    window.__fluxParityTapped = false;
+    document.addEventListener('click', () => { window.__fluxParityTapped = true; }, { capture: true, once: true });
+  });
+  if (at) await page.touchscreen.tap(...at);
+  else await target.tap();
+  // A tap on what takes no pointer makes no click: ten seconds, then on as before.
+  await page.waitForFunction(() => window.__fluxParityTapped, null, { timeout: 10000 }).catch(() => {});
+  await target.evaluate(hoverSettled);
 }
 
 /**
@@ -196,6 +215,32 @@ export function hoverSettled(el) {
       else requestAnimationFrame(look);
     };
     look();
+    setTimeout(done, 1500);
+  });
+}
+
+/**
+ * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (pointer-events,
+ * overflow, the scrollbar gutter) has held for ten frames, or after 1.5 s. Flux's script and the kit's hook put it
+ * there a task or two after the press, sooner or later by how loaded the machine is.
+ */
+export function locked() {
+  return new Promise(done => {
+    const read = () => {
+      const root = getComputedStyle(document.documentElement);
+      return `${root.pointerEvents} ${root.overflow} ${root.scrollbarGutter}`;
+    };
+    let last = read();
+    let held = 0;
+    let frames = 0;
+    const look = () => {
+      const now = read();
+      held = now === last ? held + 1 : 0;
+      last = now;
+      if (held >= 10 || ++frames > 90) done();
+      else requestAnimationFrame(look);
+    };
+    requestAnimationFrame(look);
     setTimeout(done, 1500);
   });
 }
