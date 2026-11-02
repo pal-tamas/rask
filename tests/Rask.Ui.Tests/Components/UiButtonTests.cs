@@ -17,8 +17,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button["Save"].ToHtml();
 
-        Assert.StartsWith("<button class=\"relative inline-flex ", html, StringComparison.Ordinal);
-        Assert.Contains(" h-10 px-4 text-sm rounded-lg gap-2 ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<button class=\"relative [:where(&amp;)]:inline-flex ", html, StringComparison.Ordinal);
+        Assert.Contains(" h-10 [:where(&amp;)]:px-4 [:where(&amp;)]:text-sm [:where(&amp;)]:rounded-lg [:where(&amp;)]:gap-2 ", html, StringComparison.Ordinal);
         Assert.Contains(" bg-white ", html, StringComparison.Ordinal);
         Assert.EndsWith(" data-ui-button data-ui-group-target type=\"button\">Save</button>", html, StringComparison.Ordinal);
     }
@@ -34,9 +34,9 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         Assert.Contains(expected, Ui.Button.Variant(variant)["Save"].ToHtml(), StringComparison.Ordinal);
 
     [Theory]
-    [InlineData(Ui.ButtonSize.Base, "h-10 px-4 text-sm rounded-lg gap-2")]
-    [InlineData(Ui.ButtonSize.Sm, "h-8 px-3 text-sm rounded-md gap-2")]
-    [InlineData(Ui.ButtonSize.Xs, "h-6 px-2 text-xs rounded-md gap-1")]
+    [InlineData(Ui.ButtonSize.Base, "h-10 [:where(&amp;)]:px-4 [:where(&amp;)]:text-sm [:where(&amp;)]:rounded-lg [:where(&amp;)]:gap-2")]
+    [InlineData(Ui.ButtonSize.Sm, "h-8 [:where(&amp;)]:px-3 [:where(&amp;)]:text-sm [:where(&amp;)]:rounded-md [:where(&amp;)]:gap-2")]
+    [InlineData(Ui.ButtonSize.Xs, "h-6 [:where(&amp;)]:px-2 [:where(&amp;)]:text-xs [:where(&amp;)]:rounded-md [:where(&amp;)]:gap-1")]
     public void Every_size_sets_its_height_padding_and_type(Ui.ButtonSize size, string expected) =>
         Assert.Contains(expected, Ui.Button.Size(size)["Save"].ToHtml(), StringComparison.Ordinal);
 
@@ -45,7 +45,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button.Filled.Sm.Blue["Save"].ToHtml();
 
-        Assert.Contains("h-8 px-3", html, StringComparison.Ordinal);
+        Assert.Contains("h-8 [:where(&amp;)]:px-3", html, StringComparison.Ordinal);
         Assert.Contains("bg-(--ui-hue-400)/20", html, StringComparison.Ordinal);
         Assert.Contains("[--ui-hue-400:var(--color-blue-400)]", html, StringComparison.Ordinal);
     }
@@ -108,7 +108,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button.Icon(Ui.IconName.ArrowDownTray)["Export"].ToHtml();
 
-        Assert.Contains("h-10 ps-3 pe-4", html, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:ps-3 [:where(&amp;)]:pe-4", html, StringComparison.Ordinal);
         Assert.Matches("<svg class=\"shrink-0 [^\"]*size-4\"[^>]*viewBox=\"0 0 16 16\"", html);
         Assert.EndsWith("</svg><span>Export</span></button>", html, StringComparison.Ordinal);
     }
@@ -118,7 +118,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button.IconTrailing(Ui.IconName.ChevronDown)["Open"].ToHtml();
 
-        Assert.Contains("h-10 ps-4 pe-3", html, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:ps-4 [:where(&amp;)]:pe-3", html, StringComparison.Ordinal);
         Assert.Contains("<span>Open</span><svg", html, StringComparison.Ordinal);
     }
 
@@ -129,7 +129,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
         var html = button.ToHtml();
 
-        Assert.Contains("h-10 ps-4 pe-3", html, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:ps-4 [:where(&amp;)]:pe-3", html, StringComparison.Ordinal);
         Assert.Matches("<span>Categories</span><div class=\"[^\"]*\" data-ui-badge", html);
         Assert.EndsWith(">3</div></button>", html, StringComparison.Ordinal);
     }
@@ -141,14 +141,14 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
 
         var html = Ui.Button.IconTrailing(nothing!)["Open"].ToHtml();
 
-        Assert.Contains("h-10 px-4", html, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:px-4", html, StringComparison.Ordinal);
         Assert.EndsWith(">Open</button>", html, StringComparison.Ordinal);
     }
 
     [Fact]
     public void An_icon_on_each_side_pads_both_sides_alike() =>
         Assert.Contains(
-            "h-10 px-3",
+            "h-10 [:where(&amp;)]:px-3",
             Ui.Button.Icon(Ui.IconName.Funnel).IconTrailing(Ui.IconName.ChevronDown)["Filter"].ToHtml(),
             StringComparison.Ordinal);
 
@@ -157,7 +157,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button.Icon(Ui.IconName.XMark).ToHtml();
 
-        Assert.Contains("h-10 w-10", html, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:w-10", html, StringComparison.Ordinal);
         Assert.Matches("<svg class=\"shrink-0 [^\"]*size-5\"[^>]*viewBox=\"0 0 20 20\"", html);
         Assert.DoesNotContain("<span", html, StringComparison.Ordinal);
     }
@@ -180,8 +180,8 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var square = Ui.Button.Square()["..."].ToHtml();
         var padded = Ui.Button.Icon(Ui.IconName.XMark).Square(false).ToHtml();
 
-        Assert.Contains("h-10 w-10", square, StringComparison.Ordinal);
-        Assert.Contains("h-10 ps-3 pe-4", padded, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:w-10", square, StringComparison.Ordinal);
+        Assert.Contains("h-10 [:where(&amp;)]:ps-3 [:where(&amp;)]:pe-4", padded, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -197,9 +197,9 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
         var html = Ui.Button.Ghost.Sm.Inset(Ui.Inset.Top | Ui.Inset.Bottom)["Edit"].ToHtml();
         var all = Ui.Button.Ghost.Inset(Ui.Inset.All)["Edit"].ToHtml();
 
-        Assert.Contains("-mt-1.5 -mb-1.5", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:-mt-1.5 [:where(&amp;)]:-mb-1.5", html, StringComparison.Ordinal);
         Assert.DoesNotContain("-ms-", html, StringComparison.Ordinal);
-        Assert.Contains("-mt-2.5 -mb-2.5 -ms-2.5 -me-2.5", all, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:-mt-2.5 [:where(&amp;)]:-mb-2.5 [:where(&amp;)]:-ms-2.5 [:where(&amp;)]:-me-2.5", all, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -487,7 +487,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Button.As(Ui.ButtonAs.Div).Disabled(true).OnClick(() => { })["Drop a file"].ToHtml();
 
-        Assert.StartsWith("<div class=\"relative inline-flex ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"relative [:where(&amp;)]:inline-flex ", html, StringComparison.Ordinal);
         Assert.EndsWith(" data-ui-button data-ui-group-target>Drop a file</div>", html, StringComparison.Ordinal);
     }
 
@@ -500,7 +500,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.ButtonGroup[Ui.Button["Oldest"], Ui.Button["Newest"]].ToHtml();
 
-        Assert.StartsWith("<div class=\"flex\" data-ui-button-group><button ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:flex\" data-ui-button-group><button ", html, StringComparison.Ordinal);
         Assert.Contains("in-data-ui-button-group:not-first:border-s-0", html, StringComparison.Ordinal);
         Assert.Contains("in-data-ui-button-group:first:rounded-s-lg", html, StringComparison.Ordinal);
     }
@@ -512,7 +512,7 @@ public partial class UiButtonTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_group_keeps_the_call_sites_classes_and_data() =>
         Assert.StartsWith(
-            "<div class=\"flex w-full\" data-ui-button-group data-testid=\"sort\">",
+            "<div class=\"[:where(&amp;)]:flex w-full\" data-ui-button-group data-testid=\"sort\">",
             Ui.ButtonGroup.Class("w-full").Data("testid", "sort")[Ui.Button["Top"]].ToHtml(),
             StringComparison.Ordinal);
 

@@ -23,28 +23,28 @@ internal static class UiButtonClasses
     // Disabled is not on the button's page; measured on the datetime picker's (its Select waits disabled): half
     // opacity, no shadow, inert.
     internal const string Base =
-        "relative inline-flex items-center font-medium whitespace-nowrap "
+        "relative [:where(&)]:inline-flex items-center font-medium whitespace-nowrap "
         + "disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none data-loading:pointer-events-none";
 
     // 12px on an icon's side and 16px on the other; nothing at all around a square's glyph. Flux's page shows
     // an icon beside text at base and sm; xs follows the same step down.
     internal static string Size(Ui.ButtonSize size, Shape shape) => (size, shape) switch
     {
-        (Ui.ButtonSize.Sm, Shape.Square) => "h-8 w-8 text-sm rounded-md gap-2",
-        (Ui.ButtonSize.Sm, Shape.IconLeading) => "h-8 ps-2 pe-3 text-sm rounded-md gap-2",
-        (Ui.ButtonSize.Sm, Shape.IconTrailing) => "h-8 ps-3 pe-2 text-sm rounded-md gap-2",
-        (Ui.ButtonSize.Sm, Shape.IconBoth) => "h-8 px-2 text-sm rounded-md gap-2",
-        (Ui.ButtonSize.Sm, _) => "h-8 px-3 text-sm rounded-md gap-2",
-        (Ui.ButtonSize.Xs, Shape.Square) => "h-6 w-6 text-xs rounded-md gap-1",
-        (Ui.ButtonSize.Xs, Shape.IconLeading) => "h-6 ps-1.5 pe-2 text-xs rounded-md gap-1",
-        (Ui.ButtonSize.Xs, Shape.IconTrailing) => "h-6 ps-2 pe-1.5 text-xs rounded-md gap-1",
-        (Ui.ButtonSize.Xs, Shape.IconBoth) => "h-6 px-1.5 text-xs rounded-md gap-1",
-        (Ui.ButtonSize.Xs, _) => "h-6 px-2 text-xs rounded-md gap-1",
-        (_, Shape.Square) => "h-10 w-10 text-sm rounded-lg gap-2",
-        (_, Shape.IconLeading) => "h-10 ps-3 pe-4 text-sm rounded-lg gap-2",
-        (_, Shape.IconTrailing) => "h-10 ps-4 pe-3 text-sm rounded-lg gap-2",
-        (_, Shape.IconBoth) => "h-10 px-3 text-sm rounded-lg gap-2",
-        _ => "h-10 px-4 text-sm rounded-lg gap-2",
+        (Ui.ButtonSize.Sm, Shape.Square) => "h-8 [:where(&)]:w-8 [:where(&)]:text-sm [:where(&)]:rounded-md [:where(&)]:gap-2",
+        (Ui.ButtonSize.Sm, Shape.IconLeading) => "h-8 [:where(&)]:ps-2 [:where(&)]:pe-3 [:where(&)]:text-sm [:where(&)]:rounded-md [:where(&)]:gap-2",
+        (Ui.ButtonSize.Sm, Shape.IconTrailing) => "h-8 [:where(&)]:ps-3 [:where(&)]:pe-2 [:where(&)]:text-sm [:where(&)]:rounded-md [:where(&)]:gap-2",
+        (Ui.ButtonSize.Sm, Shape.IconBoth) => "h-8 [:where(&)]:px-2 [:where(&)]:text-sm [:where(&)]:rounded-md [:where(&)]:gap-2",
+        (Ui.ButtonSize.Sm, _) => "h-8 [:where(&)]:px-3 [:where(&)]:text-sm [:where(&)]:rounded-md [:where(&)]:gap-2",
+        (Ui.ButtonSize.Xs, Shape.Square) => "h-6 [:where(&)]:w-6 [:where(&)]:text-xs [:where(&)]:rounded-md [:where(&)]:gap-1",
+        (Ui.ButtonSize.Xs, Shape.IconLeading) => "h-6 [:where(&)]:ps-1.5 [:where(&)]:pe-2 [:where(&)]:text-xs [:where(&)]:rounded-md [:where(&)]:gap-1",
+        (Ui.ButtonSize.Xs, Shape.IconTrailing) => "h-6 [:where(&)]:ps-2 [:where(&)]:pe-1.5 [:where(&)]:text-xs [:where(&)]:rounded-md [:where(&)]:gap-1",
+        (Ui.ButtonSize.Xs, Shape.IconBoth) => "h-6 [:where(&)]:px-1.5 [:where(&)]:text-xs [:where(&)]:rounded-md [:where(&)]:gap-1",
+        (Ui.ButtonSize.Xs, _) => "h-6 [:where(&)]:px-2 [:where(&)]:text-xs [:where(&)]:rounded-md [:where(&)]:gap-1",
+        (_, Shape.Square) => "h-10 [:where(&)]:w-10 [:where(&)]:text-sm [:where(&)]:rounded-lg [:where(&)]:gap-2",
+        (_, Shape.IconLeading) => "h-10 [:where(&)]:ps-3 [:where(&)]:pe-4 [:where(&)]:text-sm [:where(&)]:rounded-lg [:where(&)]:gap-2",
+        (_, Shape.IconTrailing) => "h-10 [:where(&)]:ps-4 [:where(&)]:pe-3 [:where(&)]:text-sm [:where(&)]:rounded-lg [:where(&)]:gap-2",
+        (_, Shape.IconBoth) => "h-10 [:where(&)]:px-3 [:where(&)]:text-sm [:where(&)]:rounded-lg [:where(&)]:gap-2",
+        _ => "h-10 [:where(&)]:px-4 [:where(&)]:text-sm [:where(&)]:rounded-lg [:where(&)]:gap-2",
     };
 
     internal static string Align(Ui.Align? align) => align switch
@@ -57,36 +57,36 @@ internal static class UiButtonClasses
     internal static string Variant(Ui.ButtonVariant variant, bool hued) => (variant, hued) switch
     {
         (Ui.ButtonVariant.Primary, _) =>
-            "bg-accent hover:bg-accent/90 text-accent-foreground border border-black/10 dark:border-0",
+            "bg-accent hover:bg-accent/90 [:where(&)]:text-accent-foreground border border-black/10 dark:border-0",
         (Ui.ButtonVariant.Danger, _) =>
-            "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 text-white",
+            "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 [:where(&)]:text-white",
         (Ui.ButtonVariant.Filled, false) =>
-            "bg-zinc-800/5 hover:bg-zinc-800/10 dark:bg-white/10 dark:hover:bg-white/20 text-zinc-800 dark:text-white",
+            "bg-zinc-800/5 hover:bg-zinc-800/10 dark:bg-white/10 dark:hover:bg-white/20 [:where(&)]:text-zinc-800 dark:text-white",
         (Ui.ButtonVariant.Filled, true) =>
             "bg-(--ui-hue-400)/20 hover:bg-(--ui-hue-400)/30 dark:bg-(--ui-hue-400)/40 dark:hover:bg-(--ui-hue-400)/50 "
-            + "text-(color:--ui-hue-700) dark:text-(color:--ui-hue-200)",
+            + "[:where(&)]:text-(color:--ui-hue-700) dark:text-(color:--ui-hue-200)",
         (Ui.ButtonVariant.Ghost, false) =>
-            "bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 text-zinc-800 dark:text-white",
+            "bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 [:where(&)]:text-zinc-800 dark:text-white",
         (Ui.ButtonVariant.Ghost, true) =>
             "bg-transparent hover:bg-(--ui-hue-400)/20 active:bg-(--ui-hue-400)/30 "
             + "dark:hover:bg-(--ui-hue-400)/40 dark:active:bg-(--ui-hue-400)/50 "
-            + "text-(color:--ui-hue-700) dark:text-(color:--ui-hue-300)",
+            + "[:where(&)]:text-(color:--ui-hue-700) dark:text-(color:--ui-hue-300)",
         (Ui.ButtonVariant.Subtle, false) =>
             "bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15 "
-            + "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white",
+            + "[:where(&)]:text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white",
         (Ui.ButtonVariant.Subtle, true) =>
             "bg-transparent hover:bg-(--ui-hue-50) dark:hover:bg-(--ui-hue-950)/72 "
-            + "text-[color:color-mix(in_oklab,var(--ui-hue-600)_54%,var(--color-zinc-500))] hover:text-(color:--ui-hue-700) "
+            + "[:where(&)]:text-[color:color-mix(in_oklab,var(--ui-hue-600)_54%,var(--color-zinc-500))] hover:text-(color:--ui-hue-700) "
             + "dark:text-[color:color-mix(in_oklab,var(--ui-hue-300)_52%,var(--color-zinc-400))] dark:hover:text-(color:--ui-hue-300)",
         (_, false) =>
-            "bg-white hover:bg-zinc-50 dark:bg-zinc-700 dark:hover:bg-zinc-600/75 text-zinc-800 dark:text-white "
+            "bg-white hover:bg-zinc-50 dark:bg-zinc-700 dark:hover:bg-zinc-600/75 [:where(&)]:text-zinc-800 dark:text-white "
             + "border border-zinc-200 border-b-zinc-300/80 hover:border-b-zinc-200 "
             + "dark:border-zinc-600 dark:border-b-zinc-600 dark:hover:border-b-zinc-600",
         // The hue is mixed into Flux's own grays: more of it on the bottom edge, more again under the pointer.
         (_, true) =>
             "bg-white hover:bg-[color-mix(in_oklab,var(--ui-hue-400)_6%,var(--color-white))] "
             + "dark:bg-zinc-700 dark:hover:bg-[color-mix(in_oklab,var(--ui-hue-accent)_10%,var(--color-zinc-700))] "
-            + "text-(color:--ui-hue-700) dark:text-(color:--ui-hue-accent) border "
+            + "[:where(&)]:text-(color:--ui-hue-700) dark:text-(color:--ui-hue-accent) border "
             + "border-[color:color-mix(in_oklab,var(--ui-hue-500)_18%,var(--color-zinc-200))] "
             + "border-b-[color:color-mix(in_oklab,color-mix(in_oklab,var(--ui-hue-500)_26%,var(--color-zinc-300))_80%,transparent)] "
             + "hover:border-[color:color-mix(in_oklab,var(--ui-hue-500)_28%,var(--color-zinc-200))] "
@@ -146,30 +146,30 @@ internal static class UiButtonClasses
 
     private static string Top(Ui.ButtonSize size) => size switch
     {
-        Ui.ButtonSize.Sm => "-mt-1.5",
-        Ui.ButtonSize.Xs => "-mt-1",
-        _ => "-mt-2.5",
+        Ui.ButtonSize.Sm => "[:where(&)]:-mt-1.5",
+        Ui.ButtonSize.Xs => "[:where(&)]:-mt-1",
+        _ => "[:where(&)]:-mt-2.5",
     };
 
     private static string Bottom(Ui.ButtonSize size) => size switch
     {
-        Ui.ButtonSize.Sm => "-mb-1.5",
-        Ui.ButtonSize.Xs => "-mb-1",
-        _ => "-mb-2.5",
+        Ui.ButtonSize.Sm => "[:where(&)]:-mb-1.5",
+        Ui.ButtonSize.Xs => "[:where(&)]:-mb-1",
+        _ => "[:where(&)]:-mb-2.5",
     };
 
     private static string Start(Ui.ButtonSize size) => size switch
     {
-        Ui.ButtonSize.Sm => "-ms-1.5",
-        Ui.ButtonSize.Xs => "-ms-1",
-        _ => "-ms-2.5",
+        Ui.ButtonSize.Sm => "[:where(&)]:-ms-1.5",
+        Ui.ButtonSize.Xs => "[:where(&)]:-ms-1",
+        _ => "[:where(&)]:-ms-2.5",
     };
 
     private static string End(Ui.ButtonSize size) => size switch
     {
-        Ui.ButtonSize.Sm => "-me-1.5",
-        Ui.ButtonSize.Xs => "-me-1",
-        _ => "-me-2.5",
+        Ui.ButtonSize.Sm => "[:where(&)]:-me-1.5",
+        Ui.ButtonSize.Xs => "[:where(&)]:-me-1",
+        _ => "[:where(&)]:-me-2.5",
     };
 
     /// <summary>Whether <paramref name="color" /> is one of the seventeen hues and not a gray.</summary>

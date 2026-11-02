@@ -32,6 +32,6 @@ public sealed partial class UiMenuGroup : Component
             global::Rask.UiMenuSeparator.Line("ui-menu-separator-bottom")
         ];
 
-        return Div.Role("group").Class("-mx-[.3125rem] px-[.3125rem]", Class).Data("ui-menu-group", "")[content];
+        return Div.Role("group").Class("[:where(&)]:-mx-[.3125rem] [:where(&)]:px-[.3125rem]", Class).Data("ui-menu-group", "")[content];
     }
 }

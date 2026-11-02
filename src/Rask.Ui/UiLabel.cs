@@ -10,7 +10,7 @@ public sealed partial class UiLabel : Component
 {
     // No cursor here: the kit sheet draws the arrow over a name, as Flux does, and the hand over one that toggles
     // (Styles/ui.css, `[data-ui-label]`) — by a rule, not a class every label would carry over the wire.
-    private const string Look = "items-center text-sm font-medium text-zinc-800 dark:text-white";
+    private const string Look = "items-center [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-800 dark:text-white";
 
     private const string BadgeLook =
         "ms-1.5 -my-1 rounded-sm px-1.5 py-1 text-xs font-medium "
@@ -35,7 +35,7 @@ public sealed partial class UiLabel : Component
     {
         var scope = Context.Get<UiFieldScope>();
         var label = Label.Id(Id ?? scope?.LabelId)
-            .Class(Trailing is null ? "inline-flex" : "flex", Look, Class)
+            .Class(Trailing is null ? "[:where(&)]:inline-flex" : "[:where(&)]:flex", Look, Class)
             .Data("ui-label", "");
 
         if ((For ?? scope?.ControlId) is { } control)

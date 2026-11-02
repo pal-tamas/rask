@@ -5,9 +5,9 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
 {
-    private const string Shape = "inline-flex items-center font-medium whitespace-nowrap text-sm py-1 rounded-md px-2";
+    private const string Shape = "[:where(&amp;)]:inline-flex items-center font-medium whitespace-nowrap [:where(&amp;)]:text-sm [:where(&amp;)]:py-1 [:where(&amp;)]:rounded-md [:where(&amp;)]:px-2";
 
-    private const string Zinc = "text-zinc-700 bg-zinc-400/15 dark:text-zinc-200 dark:bg-zinc-400/40";
+    private const string Zinc = "[:where(&amp;)]:text-zinc-700 bg-zinc-400/15 dark:text-zinc-200 dark:bg-zinc-400/40";
 
     [Fact]
     public void A_badge_is_one_zinc_div_showing_its_children()
@@ -28,9 +28,9 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.BadgeSize.Base, "text-sm py-1 ")]
-    [InlineData(Ui.BadgeSize.Sm, "text-xs py-1 ")]
-    [InlineData(Ui.BadgeSize.Lg, "text-sm py-1.5 ")]
+    [InlineData(Ui.BadgeSize.Base, "[:where(&amp;)]:text-sm [:where(&amp;)]:py-1 ")]
+    [InlineData(Ui.BadgeSize.Sm, "[:where(&amp;)]:text-xs [:where(&amp;)]:py-1 ")]
+    [InlineData(Ui.BadgeSize.Lg, "[:where(&amp;)]:text-sm [:where(&amp;)]:py-1.5 ")]
     public void A_size_sets_the_type_and_the_height(Ui.BadgeSize size, string classes)
     {
         var html = Ui.Badge.Size(size)["x"].ToHtml();
@@ -43,8 +43,8 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Badge.Rounded()["Users"].ToHtml();
 
-        Assert.Contains("rounded-full px-3", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("rounded-md", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:rounded-full [:where(&amp;)]:px-3", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("[:where(&amp;)]:rounded-md", html, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -169,9 +169,9 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.Inset.Top | Ui.Inset.Bottom, "-mt-1 -mb-1")]
-    [InlineData(Ui.Inset.Left, "-ms-2")]
-    [InlineData(Ui.Inset.Right, "-me-2")]
+    [InlineData(Ui.Inset.Top | Ui.Inset.Bottom, "[:where(&amp;)]:-mt-1 [:where(&amp;)]:-mb-1")]
+    [InlineData(Ui.Inset.Left, "[:where(&amp;)]:-ms-2")]
+    [InlineData(Ui.Inset.Right, "[:where(&amp;)]:-me-2")]
     public void An_inset_takes_the_padding_back_on_the_sides_it_names(Ui.Inset inset, string classes)
     {
         var html = Ui.Badge.Inset(inset)["New"].ToHtml();
@@ -186,7 +186,7 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
 
         var html = Ui.Badge.Lg.Rounded().Inset(all)["New"].ToHtml();
 
-        Assert.Contains("-mt-1.5 -mb-1.5 -ms-3 -me-3", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:-mt-1.5 [:where(&amp;)]:-mb-1.5 [:where(&amp;)]:-ms-3 [:where(&amp;)]:-me-3", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public partial class UiBadgeTests : global::Rask.Core.RaskMarkup
         var html = Ui.BadgeClose.ToHtml();
 
         Assert.StartsWith(
-            "<button class=\"p-1 -my-1 -me-1 opacity-50 hover:opacity-100\" data-ui-badge-close type=\"button\"><svg ",
+            "<button class=\"[:where(&amp;)]:p-1 [:where(&amp;)]:-my-1 [:where(&amp;)]:-me-1 opacity-50 hover:opacity-100\" data-ui-badge-close type=\"button\"><svg ",
             html,
             StringComparison.Ordinal);
         Assert.Contains("viewBox=\"0 0 16 16\"", html, StringComparison.Ordinal);

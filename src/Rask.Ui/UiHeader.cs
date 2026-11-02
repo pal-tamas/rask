@@ -10,7 +10,7 @@ public sealed partial class UiHeader : Component
 {
     // A header's sides are ui.css's (NATIVE FEEL: Flux's 24px, 32px from lg, or the notch's inset when that is more).
     // A container header leaves them to the box inside it, and keeps only the notch's inset on its own.
-    private const string EdgeOnly = "pl-[max(0px,env(safe-area-inset-left))] pr-[max(0px,env(safe-area-inset-right))]";
+    private const string EdgeOnly = "[:where(&)]:pl-[max(0px,env(safe-area-inset-left))] [:where(&)]:pr-[max(0px,env(safe-area-inset-right))]";
 
     /// <summary>Keeps the header at the top of the viewport while the page scrolls under it.</summary>
     public bool? Sticky { get; set; }
@@ -33,7 +33,7 @@ public sealed partial class UiHeader : Component
         }
 
         return header.Class(
-            "z-10 flex min-h-14 items-center [grid-area:header]",
+            "z-10 [:where(&)]:flex min-h-14 items-center [grid-area:header]",
             Sticky == true ? "sticky top-0" : "",
             Class)[
             Children ?? []

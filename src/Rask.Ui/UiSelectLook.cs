@@ -19,7 +19,7 @@ internal static class UiSelectLook
     ///     (<c>[data-ui-select-native]</c> in ui.css) and the placeholder's grey while it is the chosen option.
     /// </summary>
     internal const string Native =
-        "ps-3 pe-10 shadow-xs disabled:shadow-none data-invalid:shadow-none "
+        "[:where(&)]:ps-3 [:where(&)]:pe-10 shadow-xs disabled:shadow-none data-invalid:shadow-none "
         + "[&:has(option[value='']:checked)]:text-zinc-400 dark:[&:has(option[value='']:checked)]:text-zinc-400 "
         + "dark:[&_option]:bg-zinc-700 dark:[&_option]:text-white [&_optgroup]:font-normal";
 

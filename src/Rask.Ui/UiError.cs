@@ -17,7 +17,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiError : Component
 {
-    private const string Look = "mt-3 text-sm font-medium text-red-500 dark:text-red-400";
+    private const string Look = "[:where(&)]:mt-3 [:where(&)]:text-sm font-medium [:where(&)]:text-red-500 dark:text-red-400";
 
     private const string IconLook = "inline size-5 shrink-0";
 

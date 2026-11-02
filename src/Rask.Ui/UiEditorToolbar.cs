@@ -16,11 +16,11 @@ public sealed partial class UiEditorToolbar : Component
     internal const string Default = "heading | bold italic strike | bullet ordered blockquote | link | align";
 
     private const string Look =
-        "block overflow-x-auto rounded-t-[calc(var(--radius-lg)-1px)] border-b border-zinc-200 bg-zinc-50 "
+        "[:where(&)]:block overflow-x-auto [:where(&)]:rounded-t-[calc(var(--radius-lg)-1px)] border-b border-zinc-200 bg-zinc-50 "
         + "dark:border-white/10 dark:bg-white/[6%]";
 
     // In a composer the editor has no box: the bar is a rounded zinc-100 strip of its own.
-    private const string InComposer = "block overflow-x-auto rounded-lg bg-zinc-100 dark:bg-white/10";
+    private const string InComposer = "[:where(&)]:block overflow-x-auto [:where(&)]:rounded-lg bg-zinc-100 dark:bg-white/10";
 
     /// <summary>
     ///     Space-separated list of toolbar items to display; <c>|</c> is a separator and <c>~</c> a spacer.

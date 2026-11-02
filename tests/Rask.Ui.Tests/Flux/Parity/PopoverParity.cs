@@ -34,6 +34,8 @@ public sealed partial class PopoverParity : FluxParity
         // `icon:class`, `icon-trailing:class` and `label:class`: classes Flux's props hand to a part.
         + ".pp-icons-400>[data-ui-icon]{color:var(--color-zinc-400)}.pp-icons-300>[data-ui-icon]{color:var(--color-zinc-300)}"
         + ".pp-icons-75>[data-ui-icon]{opacity:.75}"
+        // `mt-3`, which the kit no longer writes plain (its error's weighs nothing), so no sheet has it.
+        + ".pp-mt-3{margin-top:.75rem}"
         + ".pp-pull{margin-right:-.25rem}.pp-nums{font-variant-numeric:tabular-nums}"
         + ".pp-icons-quiet>[data-ui-icon]{color:var(--color-zinc-400)}:where(.dark) .pp-icons-quiet>[data-ui-icon]{color:var(--color-zinc-300)}"
         + ".pp-labels>[data-ui-field]>[data-ui-label]{color:var(--color-zinc-500)}"
@@ -202,7 +204,7 @@ public sealed partial class PopoverParity : FluxParity
                 Div.Style("padding:16px")[
                     Ui.Heading["Team sync"],
                     Ui.Text.Class("mt-2")["Let's review the progress made last week and define the priorities for the next"],
-                    Ui.RadioGroup.Value("going").Id("answer").Segmented.Class("mt-3")[
+                    Ui.RadioGroup.Value("going").Id("answer").Segmented.Class("pp-mt-3")[
                         Ui.Radio.Value("going").Label("Going"),
                         Ui.Radio.Value("not-going").Label("Not going"),
                         Ui.Radio.Value("maybe").Label("Maybe")
