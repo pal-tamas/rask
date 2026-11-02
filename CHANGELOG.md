@@ -440,6 +440,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A yes to a `.Confirm` on a live page could run nothing.** The yes presses the button again on the page as it is
+  now, and on the server it went once a page had landed, or after 300 ms when none had. The browser's own dialog holds
+  the page still while the server renders on, so when the pages drawn meanwhile were still on the way at that point —
+  a slow line, a loaded machine — the press was read from the page the question was asked on, ten renders behind the
+  server's, and the server could not show its handler was the one pressed: the reader said yes and nothing was
+  deleted. Now the runtime asks the server (`{"type":"caughtUp"}`), which answers behind every page it already sent,
+  and the press goes once that answer is on screen, however long the line takes. Nothing to change in an app.
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook
