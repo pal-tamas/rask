@@ -211,7 +211,7 @@ exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A
 
 ```bash
 python3 scripts/lib/publish_packages.py plan   ./artifacts --projects src   # level, id, version — pushes nothing
-python3 scripts/lib/publish_packages.py push   ./artifacts --source … --api-key-env NUGET_API_KEY --gate-index nuget.org
+python3 scripts/lib/publish_packages.py push   ./artifacts --source … --trusted-publisher pal-tamas --gate-index nuget.org
 python3 scripts/lib/publish_packages.py verify ./artifacts                  # waits until every package is served, from this commit
 ```
 
@@ -227,8 +227,11 @@ python3 scripts/lib/publish_packages.py verify ./artifacts                  # wa
   part of an hour; removing `--gate-index` from the workflow trades it back for that window.
 - **Retry.** One package per `dotnet nuget push`, `--timeout 900`, five attempts with a doubling wait.
   A timeout, a 5xx or anything unrecognised is tried again; a 429 waits what the feed asks, or a minute;
-  a 400/401/403/413 fails at once; a duplicate is success. The API key travels in the environment and
-  is struck out of everything printed.
+  a 400/401/403/413 fails at once; a duplicate is success. The key is struck out of everything printed.
+- **Key.** `--trusted-publisher <nuget.org profile>` trades the job's GitHub OIDC token for nuget.org's
+  temporary key (trusted publishing; no secret stored, nothing to renew). That key lives one hour and the
+  gate makes a publish longer, so a new one is asked for before a level once the one in hand is older than
+  `--key-life` (40 minutes). `--api-key-env NAME` still pushes with a fixed key — GitHub Packages does.
 - **Verify.** The job is green only when the flat container — what restore reads to resolve a version
   and to download; search and registration lag it — lists every package at the new version. Otherwise
   it fails and names what is missing.
