@@ -988,11 +988,13 @@ public sealed partial class ComponentFactoryGenerator
 
     // Formats a constant initializer value as a C# default-parameter literal usable in the generated
     // file (which has no `using`s): enums cast from their underlying constant to the fully-qualified
-    // type; strings/chars use escaped literals; floating/long values carry their type suffix.
+    // type; strings/chars use escaped literals; floating/long values carry their type suffix. A null
+    // written to a non-nullable reference type (`string Id { get; set; } = null!`) keeps the `!` its
+    // declaration carried, or the generated reset `__c.Id = null` is CS8625 under warnings-as-errors.
     private static string? FormatConstantDefault(object? value, ITypeSymbol type)
     {
         if (value is null)
-            return "null";
+            return HoldsNullWithoutAnnotation(type) ? "null!" : "null";
 
         var underlying = type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } n
             ? n.TypeArguments[0]
@@ -1018,6 +1020,11 @@ public sealed partial class ComponentFactoryGenerator
             _ => Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)
         };
     }
+
+    // A reference type (or a type parameter) whose declaration does not admit null: a null written to it
+    // needs the `!`. A Nullable<T> and an annotated `T?` take a bare null.
+    private static bool HoldsNullWithoutAnnotation(ITypeSymbol type) =>
+        !type.IsValueType && type.NullableAnnotation != NullableAnnotation.Annotated;
 
     private static bool IsChildCollectionType(string typeFqn)
     {
