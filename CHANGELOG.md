@@ -472,6 +472,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A non-nullable prop declared `= null!` no longer breaks a warnings-as-errors build with CS8625.** A page's
+  `[RouteParam] public string Id { get; set; } = null!;` made the chain's reset write `__c.Id = null;` into the
+  generated setters; the reset now keeps the declaration's `!` (`null!`) for every non-nullable reference prop,
+  while a `string?` prop still resets to a plain `null`.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
