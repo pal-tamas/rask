@@ -340,7 +340,7 @@
   and busy — a button waiting on its own press (`data-loading`), a form's submit held while it is sent (`aria-busy`).
 
   The label rule takes only a label around a box, a radio or a switch: a label wrapped round a TEXT field would hand
-  its caret the hand too (cursor is inherited, and the browser sets none on an <input>).
+  its whole box the hand. One round a DISABLED box is simply not matched, and keeps the browser's `auto` — Flux's.
 */
 @layer rask {
   :where(
@@ -379,8 +379,7 @@
     label[for],
     label:has(input:is([type="checkbox"], [type="radio"])),
     input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"])
-  ):where(:disabled, [aria-disabled="true"], [data-disabled], [readonly], [aria-readonly="true"], [data-loading], [aria-busy="true"], [inert], [inert] *),
-  :where(label:has(input:is([type="checkbox"], [type="radio"]):disabled)) {
+  ):where(:disabled, [aria-disabled="true"], [data-disabled], [readonly], [aria-readonly="true"], [data-loading], [aria-busy="true"], [inert], [inert] *) {
     cursor: default;
   }
 

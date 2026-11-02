@@ -42,13 +42,14 @@ export const STYLES = [
 
 // What the kit shows the hand over — an owner-approved departure from Flux (2026-11-02, flux-component SKILL.md
 // "Owner-approved departures"), whose controls keep the arrow. The kit sheet's rule (src/Rask.Ui/Styles/ui.css),
-// plus the kit's own parts that are pressed but are no <button>: a picker's clear as a <div>, a pillbox trigger.
+// plus the kit's own parts that are pressed but are no <button>: a picker's clear as a <div>, a pillbox trigger, a
+// select's create row.
 // Measured in the page as `node.pressable` — the element, or what it sits inside, is one of these and can be pressed now.
 export const PRESSABLE = ':is(button, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=option], '
   + '[role=tab], [role=checkbox], [role=radio], [role=switch], summary, select, label[for], '
   + 'label:has(input:is([type=checkbox], [type=radio])), '
   + 'input:is([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=submit], [type=button], [type=reset]), '
-  + '[data-ui-button], [role=combobox]:not(input))'
+  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input))'
   + ':not(:disabled, [aria-disabled=true], [data-disabled], [readonly], [aria-readonly=true], [data-loading], [aria-busy=true])';
 
 /**

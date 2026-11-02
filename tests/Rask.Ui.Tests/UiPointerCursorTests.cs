@@ -51,7 +51,8 @@ public sealed class UiPointerCursorTests
         Assert.Equal("rask", rules[arrow].Layer);
         Assert.All(Alternatives(rules[arrow].Selector), part => Assert.Matches(@"^(:where\([^{]*\))+$", part));
         Assert.All(NotNow, state => Assert.Contains(state, rules[arrow].Selector, StringComparison.Ordinal));
-        Assert.Contains(":where(label:has(input:is([type=checkbox],[type=radio]):disabled))", rules[arrow].Selector, StringComparison.Ordinal);
+        // A label round a disabled box is not matched by the hand at all, and keeps the browser's `auto`, as Flux's does.
+        Assert.Contains("label:has(input:is([type=checkbox],[type=radio]):not(:disabled))", rules[hand].Selector, StringComparison.Ordinal);
     }
 
     [Fact]

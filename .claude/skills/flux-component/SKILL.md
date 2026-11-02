@@ -92,11 +92,13 @@ departure in behaviour carries none.
   colour swatches, accordion headings, a file input's browse and remove) and over a checkbox, radio or switch and the
   label that toggles it (a radio card, a segmented radio). The ARROW over anything disabled (`disabled`,
   `aria-disabled="true"`, `data-disabled`), read-only, in an `inert` subtree, or busy (`data-loading`, the submit
-  held while it is sent, `aria-busy`) — the disabled colour `SwatchButton` too, where Flux shows the hand.
+  held while it is sent, `aria-busy`) — the disabled colour `SwatchButton` too, where Flux shows the hand; a disabled
+  box's label is simply not matched and keeps the browser's `auto`, as Flux's.
   ONE zero-specificity rule in `@layer rask` of `Styles/ui.css` does it, by what an element IS (`button`,
   `[role=button|menuitem…|option|tab|checkbox|radio|switch]`, `summary`, `select`, `label[for]`, a label round a
   box or radio, the clickable `input` types) — so an app's own `<button>` gets it too, and an app's own `cursor-*`
-  still wins. So it shows: no clickable kit part carries `cursor-default`/`cursor-auto` (they sit in `utilities`,
+  still wins. A kit part no role names pressable carries `cursor-pointer` itself (a select's create row, a picker's
+  `div` clear/copy, a pillbox trigger, a file upload). So it shows: no clickable kit part carries `cursor-default`/`cursor-auto` (they sit in `utilities`,
   above the rule); text and children that are not pressed keep theirs. Not a handler: a `Div.OnClick` gets
   nothing (no Core change). Kept as Flux: the collapsed sidebar rail's `e-resize` (`w-resize` RTL) and a modal
   backdrop's arrow. Reason: the reader is told what can be pressed. Parity lets `cursor` go ONLY where the kit
