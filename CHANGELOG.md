@@ -472,6 +472,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
+  SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
+  `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read
+  that drew the same connection ran serializable — range locks, no read-committed snapshot — and plain reads became
+  deadlock victims. The block now puts the connection back to `READ COMMITTED` once it commits, rolls back or throws,
+  before it returns to the pool (one statement, only when a non-default level was asked; the contexts that joined the
+  block share that connection). PostgreSQL and SQLite were checked and do not keep the level.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
