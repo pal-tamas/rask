@@ -225,7 +225,8 @@ version — C# forbids generic indexers, and a C# 14 extension block cannot decl
 (`CS9282`).
 
 Keys still matter. [RASK022](diagnostics.md#rask022) reads a chain that ends at a step, so a list item
-without `.Key(…)` is reported in every one of the shapes above.
+without `.Key(…)` is reported in every one of the shapes above — as a build error when the item is a
+component (it renders itself), a warning when it is a plain element.
 
 ## See also
 
