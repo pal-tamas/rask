@@ -28,12 +28,19 @@ internal static class SqlServerSessionSettings
     /// <remarks>
     /// <c>LOCK_TIMEOUT</c> takes integer milliseconds, formatted invariantly so the script is identical under every
     /// culture, and every value in it is a literal this code produced — <c>SET</c> takes no parameters.
+    /// <para>
+    /// A script that sends anything also puts the session back to <c>READ COMMITTED</c>, in the same batch: a
+    /// transaction begun at another level by whoever used the pooled connection before — a hand-written
+    /// <c>BeginTransaction(IsolationLevel.Serializable)</c> — leaves that level on the session, and
+    /// <c>sp_reset_connection</c> does not clear it. With every setting turned off nothing is sent, as before.
+    /// </para>
     /// </remarks>
     internal static string BuildScript(SqlServerOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        var script = new StringBuilder();
+        var script = new StringBuilder("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;");
+        var reset = script.Length;
 
         if (options.AbortOnError)
         {
@@ -45,7 +52,8 @@ internal static class SqlServerSessionSettings
             script.Append(CultureInfo.InvariantCulture, $"SET LOCK_TIMEOUT {Milliseconds(options.LockTimeout)};");
         }
 
-        return script.ToString();
+        // Nothing configured, nothing sent: the reset rides on a round trip the settings already make, never adds one.
+        return script.Length == reset ? "" : script.ToString();
     }
 
     /// <summary>The millisecond count SQL Server is sent for a positive <paramref name="value"/>.</summary>

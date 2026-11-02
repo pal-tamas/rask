@@ -1,0 +1,35 @@
+# CodeQL once a week, not on every push: the account shares 20 concurrent runner jobs, and the
+# default setup took one per push to main. Replaces the repository's CodeQL default setup.
+name: codeql
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"   # Monday 03:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: analyze (${{ matrix.language }})
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        language: [actions, csharp, javascript-typescript, python]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
