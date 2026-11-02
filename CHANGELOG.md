@@ -231,6 +231,15 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **BREAKING: an unkeyed list of child components no longer builds — RASK022 is an error for a component row**
+  (#1243). The parent keeps a row component's instance by its position, so an event already on its way to the row in
+  place N ran on whichever record sat in place N by the time it arrived: removing a row and clicking "Delete" on the
+  next one deleted the row after it. The stale-event check cannot see that (nothing about the handler moved), so the
+  build refuses the shape instead. It covers a component that renders itself (`Render()` overridden: a row, a card,
+  any `Ui.*` part) produced in a `.Select`/`.SelectMany` projection or `.Add`ed to a component list in a loop; a
+  plain HTML element row (`Li[…]`) stays a warning. **To change:** key the row by its record —
+  `rows.Select(r => OrderRow.Order(r).Key(r.Id))`, never by its index. A list that is deliberately positional keeps
+  building under `#pragma warning disable RASK022`.
 - **BREAKING: a lifecycle hook's scope is the hook's, as a request's is in Laravel** (#1265). What a hook awaits
   keeps its scoped services (its `DbContext` among them), and they are disposed once the hook is done. Work it starts
   and does not await no longer keeps them: the provider `Current.Service<IServiceProvider>()` handed out in a hook
