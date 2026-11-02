@@ -175,7 +175,10 @@ scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
 
-On `main` every push gets its own run, started at once and never cancelled, so "which push broke it" has an answer.
+On `main` every push gets its own run, started at once, so "which push broke it" has an answer. A run that
+has not started a gate when a newer push's run starts is cancelled by it (`scripts/lib/cancel_superseded.sh`):
+the newer run is measured from the same last green commit, so its scope holds the older push's change. So is
+a `full` run whose gates all still wait for a runner while a newer one waits behind it.
 
 ### Trying a change first
 
