@@ -544,3 +544,12 @@ bundle,bytes
 rask.js,112952
 rask.wasm.js,97659
 rask-hooks.js,120177
+#
+# 2026-11-02, a confirmed press made again asks the server whether the page holds every page it sent (`caughtUp`,
+# rask.ts; rask-confirm.ts's pagesCaughtUpBy): rask.js 112,952 -> 113,282 (+330), rask.wasm.js 97,659 -> 97,691
+# (+32); rask-hooks.js 120,724 unchanged. Measured locally (Release, the bundle gate's recipe) on the tree merged
+# with main fa1bdf4ec.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,120724
