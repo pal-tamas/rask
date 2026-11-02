@@ -539,6 +539,11 @@ them until tagged releases begin.
   measurer waits for a tap to become its click, and for a page lock to land, before it reads what the pointer
   left, instead of a fixed time; on a phone the pillbox's picks are stood in for by a real tap on the last picked
   row rather than a row lit by hand; the datetime picker's open-to example opens on December 2026, as Flux's does.
+- **Three `Rask.Ui` parts now draw as Flux UI does, found once its profile and brand pages compared the real
+  header, sidebar and spacer.** `Ui.Spacer` takes `Class`, as `flux:spacer` does (`Ui.Spacer.Class("min-w-24")`).
+  A `Ui.Sidebar` that stays in the page's flow is lifted `z-1`, as Flux's; one that slides over the page keeps
+  `z-20`. A checkbox or radio CARD selects no text, as Flux's does and as every other checkbox and radio already did.
+  The profile page's dropdown is now the real `Ui.Navmenu` (`Ui.NavmenuItem.Indent()`, `Ui.NavmenuSeparator`).
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
