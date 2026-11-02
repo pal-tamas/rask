@@ -117,7 +117,8 @@ public sealed class MissingKeyAnalyzer : DiagnosticAnalyzer
     private static ITypeSymbol? RowType(ExpressionSyntax node, SemanticModel model, INamedTypeSymbol component,
         CancellationToken cancellationToken)
     {
-        for (var current = node; ; )
+        var current = node;
+        while (true)
         {
             var type = model.GetTypeInfo(current, cancellationToken).Type;
             if (type is not null && !SymbolEqualityComparer.Default.Equals(type, component))
