@@ -98,7 +98,7 @@ public sealed class UseRaskSqlServerTests
         using var db = new PlainContext(options);
         var effective = RaskSqlServerConnectionInterceptor.OptionsFor(db);
         Assert.NotNull(effective);
-        Assert.Equal("SET XACT_ABORT ON;SET LOCK_TIMEOUT 3000;", SqlServerSessionSettings.BuildScript(effective));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET XACT_ABORT ON;SET LOCK_TIMEOUT 3000;", SqlServerSessionSettings.BuildScript(effective));
     }
 
     [Fact]
@@ -247,7 +247,7 @@ public sealed class UseRaskSqlServerTests
 
         var effective = RaskSqlServerConnectionInterceptor.OptionsFor(db);
         Assert.NotNull(effective);
-        Assert.Equal("SET XACT_ABORT ON;SET LOCK_TIMEOUT 3000;", SqlServerSessionSettings.BuildScript(effective));
+        Assert.Equal("SET TRANSACTION ISOLATION LEVEL READ COMMITTED;SET XACT_ABORT ON;SET LOCK_TIMEOUT 3000;", SqlServerSessionSettings.BuildScript(effective));
     }
 
     [Fact]

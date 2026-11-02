@@ -150,8 +150,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, behind every push to `main`, one run at a time** — `full.yml`; also `ci.yml` on a `ci/**` branch | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, behind every push to `main`, one run at a time** — `full.yml` | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -183,8 +183,11 @@ a `full` run whose gates all still wait for a runner while a newer one waits beh
 ### Trying a change first
 
 Push to a `ci/**` branch to run the push set without landing anything; only the newest push to a
-branch is kept running. A `ci/release/**` branch runs the release set too — the way to find out
-before tagging rather than from a failed release.
+branch is kept running. It is scoped like a push to `main`, measured from the newest commit `ci` or
+`full` passed that the branch contains (`scripts/lib/green_base.sh`), so a change that reaches the CI
+itself, a gate script or the package pins still gets the whole set. For the whole set on any branch:
+`gh workflow run ci.yml --ref <branch>`. A `ci/release/**` branch runs the whole set and the release set
+too — the way to find out before tagging rather than from a failed release.
 
 ```bash
 git push origin HEAD:refs/heads/ci/my-change
@@ -292,8 +295,8 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 
 ### The workflows
 
-- `ci.yml` — the gates a change reaches, on every push to `main` and every pull request; the whole
-  push set on a `ci/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
+- `ci.yml` — the gates a change reaches, on every push to `main` or a `ci/**` branch and every pull
+  request; the whole set and the release set on a `ci/release/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
   (`only` is a pattern over job names: `'front end'` is all seven front ends, `'front end vue$'` one).
 - `full.yml` — the whole push set against `main`, behind every push (one run at a time, fourteen jobs
   at once so a push's own run finds runners) and hourly as the backstop. Publishing follows it.
