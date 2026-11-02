@@ -5,20 +5,20 @@
 // dialog. Only showPopover() promotes it, and nothing but a click on a <button popovertarget> calls that for
 // free. So an element names its popover by id, and the runtime shows and hides it on the pointer and the
 // keyboard, with no delay — measured on Flux UI's live tooltip and `flux:dropdown hover`, both of which open
-// in the pointerenter's own task. The tooltip closes in the pointerleave's.
+// in the pointerenter's own task.
 //
 // Both are keyed on the ROOT that wraps the trigger and its popover, so "over the root" means over either:
 // the popover is the root's descendant in the DOM even though it paints in the top layer. The pixels between
 // the two belong to neither.
 //
-// A hover PANEL does not close in the pointerleave. Measured on Flux's popover page (2026-10-12): once the
-// pointer has been over the trigger or the panel, Flux looks at a pointer move at most once in 100 ms and
-// closes the panel when the move it looks at is over neither. So a pointer that rested and then jumps into
-// the gap closes it at once; one that is MOVING crosses a 10px gap unseen and arrives (a move 83 ms after
-// the last one looked at was passed over, one 113 ms after was not). Nothing looks again on its own: a
-// pointer that stops outside after a move that was passed over leaves the panel open until it next moves.
-// The move that brought the pointer in is not one of those looked at, and coming back over the trigger or
-// the panel does not start the 100 ms again.
+// Neither closes in the pointerleave. Measured on Flux's popover page (2026-10-12) and its tooltip page
+// (2026-11-02): once the pointer has been over the trigger or the popover, Flux looks at a pointer move at most
+// once in 100 ms and closes the popover when the move it looks at is over neither. So a pointer that rested and
+// then jumps into the gap — or anywhere off the trigger — closes it at once; one that is MOVING crosses the gap
+// unseen and arrives, and may rest on a tooltip as on a panel (a move 83 ms after the last one looked at was
+// passed over, one 113 ms after was not). Nothing looks again on its own: a pointer that stops outside after a
+// move that was passed over leaves it open until it next moves. The move that brought the pointer in is not
+// one of those looked at, and coming back over the trigger or the popover does not start the 100 ms again.
 //
 // Delegated: pointerover / pointerout on the document, with the relatedTarget boundary test that turns them
 // into enter / leave (the pair that does not bubble). Nothing is attached per element, so a page with no
@@ -101,7 +101,7 @@ function showUnfocused(panel: HTMLElement | null): void {
     }
 }
 
-// The hover roots the pointer has been over and not yet been seen to leave, each with when a move was last
+// The roots — a tooltip's or a hover panel's — the pointer has been over and not yet been seen to leave, each with when a move was last
 // looked at for it and the move that brought the pointer in — which is the one move not looked at.
 interface Watch { looked: number; x: number; y: number; entered: boolean; }
 const LOOK_EVERY = 100;
@@ -130,12 +130,24 @@ function look(e: PointerEvent): void {
         at.looked = e.timeStamp;
         if (!(e.target instanceof Node && root.contains(e.target))) {
             watched.delete(root);
+            if (root.hasAttribute(TOOLTIP)) {
+                leaveTooltip(root);
+                continue;
+            }
             const panel = named(root, HOVER);
             if (panel && hoverable(root) && isShown(panel)) {
                 walkedFrom.add(panel);
                 setShown(panel, false);
             }
         }
+    }
+}
+
+// The pointer seen over neither the trigger nor the tooltip. Keyboard focus keeps it: a reader who tabbed here
+// and nudged the mouse still needs the label.
+function leaveTooltip(root: Element): void {
+    if (!focusVisibleIn(root)) {
+        tip(root, false);
     }
 }
 
@@ -158,6 +170,8 @@ if (page) {
                 touched = tooltip;
                 touchedNow = true;
                 requestAnimationFrame(function () { touchedNow = false; });
+            } else {
+                watch(tooltip, e as PointerEvent);
             }
         }
         if (touch) {
@@ -181,13 +195,10 @@ if (page) {
 
     listen("pointerout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        // A lifted finger leaves nothing.
+        // A lifted finger leaves nothing. A mouse that left may come back: a press or Escape no longer keeps the
+        // tooltip away. Whether it closes is the next move's to say (look).
         if (tooltip && crosses(tooltip, e) && (e as PointerEvent).pointerType !== "touch") {
             dismissed.delete(tooltip);
-            // Keyboard focus keeps it: a reader who tabbed here and nudged the mouse still needs the label.
-            if (!focusVisibleIn(tooltip)) {
-                tip(tooltip, false);
-            }
         }
     }, {capture: true, passive: true});
 

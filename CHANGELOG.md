@@ -525,6 +525,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Ui.Tooltip` stays shown while the pointer moves from its trigger onto it, as Flux UI's does.** It closed the
+  moment the pointer left the trigger, and the pointer could not rest on it. Like a hover panel, it now closes on the
+  first move over neither the trigger nor the tooltip that the runtime looks at (once in 100 ms), so a pointer that
+  rests and then jumps off still closes it at once.
 - **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
   SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
   `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read
