@@ -965,7 +965,9 @@ with it, which is what a native select does.
 
 A row of a drawn select that needs more than words says so on the option — `Icon`, `Avatar`, `Description`,
 or children of its own. Those are the listbox's and the combobox's: a native `<option>` holds text and
-nothing else.
+nothing else. `Avatar` takes an image's address (Flux's `avatar`), or an avatar of your own for Flux's `avatar:*`
+props — `.Avatar(Ui.Avatar.ColorAuto())` is `avatar:color="auto"`: what it states wins, and the option fills the
+rest as Flux does (extra small, round, named by the option's words).
 
 The browser owns opening and dismissal there — a press, Escape, a click elsewhere — and the runtime writes
 `aria-expanded` and `data-open` in the task the list opens or shuts, so they never trail the list by a round
@@ -995,8 +997,8 @@ keyboard, searching on the server and the reference: **[rask.sh/ui/select](https
 
 `Ui.Autocomplete` is [Flux UI's autocomplete](https://fluxui.dev/components/autocomplete): an input over a list of
 suggestions that holds the **text**. To show a name and store an id, use `Ui.Select.Combobox`. `Debounce` hands the
-page what was typed once typing has paused, for suggestions from a database; the list, its keys and the pick are the
-runtime's (`data-rask-list`). Every example, the keyboard and the reference:
+page what was typed once typing has paused, for suggestions from a database; `Money()` hands the input Flux's
+`mask:dynamic="$money($input)"`, as on `Ui.Input`; the list, its keys and the pick are the runtime's (`data-rask-list`). Every example, the keyboard and the reference:
 **[rask.sh/ui/autocomplete](https://rask.sh/ui/autocomplete/)**.
 
 ## Pillbox
@@ -1087,8 +1089,9 @@ the form post are the browser's. Every example and the reference: **[rask.sh/ui/
 
 **`Ui.Slider` is Flux UI's slider**: a number, or a range over an array of two, on real range inputs, with `BigStep`
 for Shift and ticks as children; a label is the field's. **`Ui.Otp` is Flux UI's OTP input**: a cell per character
-and the code they spell bound as one string, Flux's keys key for key, and `OnComplete` where Flux's `submit="auto"`
-submits. Every example and the reference: **[rask.sh/ui/slider](https://rask.sh/ui/slider/)** and
+and the code they spell bound as one string, Flux's keys key for key; `.Submit(Ui.OtpSubmit.Auto)` sends the
+enclosing form once every cell is filled, as Flux's `submit="auto"` does, and `OnComplete` hears the whole code in a
+form or out of one. Every example and the reference: **[rask.sh/ui/slider](https://rask.sh/ui/slider/)** and
 **[rask.sh/ui/otp-input](https://rask.sh/ui/otp-input/)**.
 
 **The opening step fixes the type argument and the mode together.** `Bind` opens a bound control and
@@ -1116,7 +1119,7 @@ would have exactly one legal argument.
 | `Ui.Checkbox` `Ui.Switch` | on or off |
 | `UiSlider<T>` | the number under the thumb, or an array of the two under a range's thumbs |
 | `Ui.Calendar` | the day |
-| `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes |
+| `Ui.Otp` | the code — `OnComplete` runs each time its last cell is filled, in both modes, and `.Submit(Ui.OtpSubmit.Auto)` sends the form then |
 
 
 **File upload is Flux UI's**: `Ui.FileUpload` around a `Ui.FileUploadDropzone`, a `<label>` around a real file input

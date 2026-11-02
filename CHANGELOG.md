@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Three Flux props the kit was missing.** `Ui.Otp.Submit(Ui.OtpSubmit.Auto)` is Flux's `submit="auto"`: once every
+  cell is filled — typed, pasted or autofilled — the runtime sends the enclosing form, as Flux does (measured: again
+  for each change while the code is whole, never for a key that empties a cell, nor for a pasted code longer than the
+  cells). `Ui.Autocomplete.Money()` hands its input Flux's `mask:dynamic="$money($input)"`, with `Ui.Input.Money()`'s
+  marks. `Ui.SelectOption.Avatar` takes an avatar of your own for Flux's `avatar:*` props —
+  `.Avatar(Ui.Avatar.ColorAuto())` — besides an image's address; what it leaves unset is the option's (extra small,
+  round, named by the option). **BREAKING (type):** `UiSelectOption.Avatar` is a `Component?` now; a string still
+  converts.
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
