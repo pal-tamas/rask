@@ -141,6 +141,8 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         string[] args = ["--host", host.Host, "--domain", "rask-e2e.test", "--app", "webapp"];
 
         Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"first domain deploy failed.\n{console.OutText}\n{console.ErrorText}");
+        // Every step went over the one forwarded SSH connection, not a login per step.
+        Assert.DoesNotContain("Could not keep one SSH connection open", console.OutText, StringComparison.Ordinal);
 
         var (_, afterFirst) = await host.DockerAsync("ps", "--format", "{{.Names}}");
         Assert.Contains("webapp-blue", afterFirst, StringComparison.Ordinal);
@@ -445,6 +447,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         {
             ReadinessDelay = TimeSpan.FromMilliseconds(500),
             ReadinessAttempts = 30,
+            ShareSshConnection = true,
         };
 
     /// <summary>
@@ -469,9 +472,11 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         console = new StringConsole();
         command = new DeployCommand(console, new SystemFileSystem(), new EnvScopedProcessRunner(host.Environment, host.Executables), project)
         {
-            // The app answers immediately; a real box's 2s×10 budget only slows the gate down.
+            // The app answers immediately; asking every half second keeps the gate quick.
             ReadinessDelay = TimeSpan.FromMilliseconds(500),
             ReadinessAttempts = 30,
+            // As the real CLI does: every docker step over one forwarded SSH connection.
+            ShareSshConnection = true,
         };
         return project;
     }

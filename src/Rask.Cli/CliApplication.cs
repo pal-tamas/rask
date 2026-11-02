@@ -30,7 +30,7 @@ internal sealed class CliApplication
             new NewCommand(console, fileSystem, process, Environment.CurrentDirectory) { Feed = PackageFeed.NuGetOrg, Npm = NpmRegistry.Public },
             new DevCommand(console, process, fileSystem, new BrowserLauncher(process), Environment.CurrentDirectory),
             new DbCommand(console, fileSystem, process, Environment.CurrentDirectory),
-            new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory),
+            new DeployCommand(console, fileSystem, process, Environment.CurrentDirectory) { ShareSshConnection = true },
             new InfoCommand(console, process),
             new DoctorCommand(console, fileSystem, process, Environment.CurrentDirectory),
         };

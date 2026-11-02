@@ -31,9 +31,9 @@ internal sealed partial class DeployCommand
     private sealed record SwitchUndo(string? Fragment, string? Base);
 
     /// <summary>Create the shared network if the box hasn't got it — under the lock, so two first deploys cannot create two.</summary>
-    private async Task<bool> EnsureNetworkAsync(string host, string slug, CancellationToken cancellationToken)
+    private async Task<bool> EnsureNetworkAsync(string host, string slug, bool exists, CancellationToken cancellationToken)
     {
-        if (await NetworkExistsAsync(host, cancellationToken).ConfigureAwait(false))
+        if (exists)
         {
             return true;
         }
@@ -333,11 +333,14 @@ internal sealed partial class DeployCommand
             return files;
         }
 
-        foreach (var app in CaddySites.AppsWithFragments(listing.StandardOutput))
+        // One read per app, asked together: a box with several apps waits for one read, not one after another.
+        var apps = CaddySites.AppsWithFragments(listing.StandardOutput).ToList();
+        var contents = await Task.WhenAll(apps.Select(app => ReadProxyFileAsync(host, CaddySites.FragmentPath(app), cancellationToken))).ConfigureAwait(false);
+        for (var i = 0; i < apps.Count; i++)
         {
-            if (await ReadProxyFileAsync(host, CaddySites.FragmentPath(app), cancellationToken).ConfigureAwait(false) is { } content)
+            if (contents[i] is { } content)
             {
-                files[app] = content;
+                files[apps[i]] = content;
             }
         }
 

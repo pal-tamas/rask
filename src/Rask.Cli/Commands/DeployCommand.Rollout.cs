@@ -29,11 +29,99 @@ internal sealed partial class DeployCommand
             return 0;
         }
 
-        if (!await PrepareHostAsync(plan, cancellationToken).ConfigureAwait(false))
+        var (prepared, tunnel) = await PrepareWithTunnelAsync(plan, cancellationToken).ConfigureAwait(false);
+        if (!prepared)
         {
             return 1;
         }
 
+        _tunnel.Tunnel = tunnel;
+        try
+        {
+            return await RunActionAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _tunnel.Tunnel = null;
+            await CloseAsync((tunnel, null)).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Get the box ready, and the one SSH connection a deploy or rollback sends its docker calls over (status and logs
+    /// make one call, so they open none). With --no-setup-host the box is never changed and nothing is asked, so the
+    /// connection opens while the box is probed rather than after: two logins at once, not one after the other.
+    /// </summary>
+    private async Task<(bool Prepared, DockerTunnel? Tunnel)> PrepareWithTunnelAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
+        var tunnels = plan.Action is null or "rollback";
+        var early = tunnels && plan.SetupMode == SetupMode.Disabled ? OpenTunnelAsync(plan.Host, cancellationToken) : null;
+        var prepared = false;
+        try
+        {
+            prepared = await PrepareHostAsync(plan, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            // Unreachable box, or the deploy stopped: the early connection has nothing to carry.
+            if (!prepared && early is not null)
+            {
+                await CloseQuietlyAsync(early).ConfigureAwait(false);
+            }
+        }
+
+        if (!prepared || !tunnels)
+        {
+            return (prepared, null);
+        }
+
+        var (tunnel, failure) = await (early ?? OpenTunnelAsync(plan.Host, cancellationToken)).ConfigureAwait(false);
+        if (tunnel is null && failure is not null)
+        {
+            Console.WriteLine($"  Could not keep one SSH connection open to {HostName(plan.Host)} ({failure}) — each docker step connects on its own, which is slower.", ConsoleStyle.Dim);
+        }
+
+        return (true, tunnel);
+    }
+
+    private static async Task CloseAsync((DockerTunnel? Tunnel, string? Failure) opened)
+    {
+        if (opened.Tunnel is not null)
+        {
+            await opened.Tunnel.DisposeAsync().ConfigureAwait(false);
+        }
+    }
+
+    // A connection opened for a deploy that isn't going ahead: closed if it opened, and whatever stopped it is not news.
+    private static async Task CloseQuietlyAsync(Task<(DockerTunnel? Tunnel, string? Failure)> opening)
+    {
+        try
+        {
+            await CloseAsync(await opening.ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            // The deploy was stopped; the open was stopped with it.
+        }
+    }
+
+    /// <summary>
+    /// The one SSH connection a deploy's docker calls share (see <see cref="DockerTunnel"/>), or why there is none — the
+    /// caller says so, and every call then connects on its own as before. No failure when sharing is off.
+    /// </summary>
+    private async Task<(DockerTunnel? Tunnel, string? Failure)> OpenTunnelAsync(string host, CancellationToken cancellationToken)
+    {
+        if (!ShareSshConnection || OperatingSystem.IsWindows())
+        {
+            return default;
+        }
+
+        var wait = new ReadinessPoll { Interval = TimeSpan.FromMilliseconds(250), Timeout = TunnelTimeout, Clock = Clock, Sleep = ReadinessSleep };
+        return await DockerTunnel.OpenAsync(_direct, host, wait, CreateTunnelDirectory, cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<int> RunActionAsync(DeployPlan plan, CancellationToken cancellationToken)
+    {
         return plan.Action switch
         {
             // A deploy and a rollback hold the app's lock throughout: two at once of one app would pick the same colour.
@@ -69,7 +157,8 @@ internal sealed partial class DeployCommand
         // Probe the box and, if it isn't ready, offer to prepare it. This replaces the old
         // `docker -H ssh:// version` reachability check rather than adding to it — same one round-trip,
         // but it can tell "Docker isn't installed" from "you're not in the docker group".
-        var setup = new HostSetup(Console, _process) { ReadinessDelay = ReadinessDelay, ReadinessAttempts = ReadinessAttempts };
+        // HostSetup counts its asks rather than keeping a deadline: twenty a second apart, the window it always had.
+        var setup = new HostSetup(Console, _process) { ReadinessDelay = ReadinessDelay, ReadinessAttempts = Math.Min(ReadinessAttempts, 20) };
         // ContainerPort rides along because the firewall has to allow the port *inside* the container:
         // Docker's DNAT rewrites the destination before any filter rule sees it. In domain mode nothing
         // but Caddy publishes a port, so there's none to pass.
@@ -293,19 +382,27 @@ internal sealed partial class DeployCommand
     {
         // The live containers are the source of truth. Read here for the current color of this app (to pick the
         // next) and the pre-checks; the switch reads them again under the lock, since this listing is stale by then.
-        if (await ListAppsAsync(host, cancellationToken).ConfigureAwait(false) is not { } apps)
+        // The four reads the pre-checks need don't depend on each other, so they are asked together, not in turn.
+        await Console.Out.WriteLineAsync($"Reading what runs on {HostName(host)}…").ConfigureAwait(false);
+        var listing = ListAppsAsync(host, cancellationToken);
+        var files = ReadAppFilesAsync(host, cancellationToken);
+        var proxyLabel = Capture(BuildCaddyDnsLabelArguments(host), cancellationToken);
+        var network = NetworkExistsAsync(host, cancellationToken);
+        await Task.WhenAll(listing, files, proxyLabel, network).ConfigureAwait(false);
+
+        if (await listing.ConfigureAwait(false) is not { } apps)
         {
             return 1;
         }
 
-        if (await NameIsTakenAsync(host, slug, domain, redirects, apps, cancellationToken).ConfigureAwait(false))
+        if (await NameIsTakenAsync(host, slug, domain, redirects, apps, await files.ConfigureAwait(false)).ConfigureAwait(false))
         {
             return 1;
         }
 
         // Which proxy this deploy needs — decided before anything starts, so a wildcard nobody can prove fails here
         // rather than after the new container is up.
-        var proxy = await PlanProxyAsync(host, slug, domain, redirects, apps, dns, dnsEnvFile, cancellationToken).ConfigureAwait(false);
+        var proxy = await PlanProxyAsync(slug, domain, redirects, apps, await proxyLabel.ConfigureAwait(false), dns, dnsEnvFile).ConfigureAwait(false);
         if (proxy is null)
         {
             return 1;
@@ -315,7 +412,7 @@ internal sealed partial class DeployCommand
         var newColor = NextColor(string.IsNullOrEmpty(current) ? null : current);
         var newContainer = $"{slug}-{newColor}";
 
-        if (!await EnsureNetworkAsync(host, slug, cancellationToken).ConfigureAwait(false)
+        if (!await EnsureNetworkAsync(host, slug, await network.ConfigureAwait(false), cancellationToken).ConfigureAwait(false)
             || !await StartAndGateAsync(host, slug, domain, newColor, containerPort, env, tag, healthEnabled, healthPath, redirects, cancellationToken).ConfigureAwait(false))
         {
             return 1;
@@ -331,6 +428,17 @@ internal sealed partial class DeployCommand
         {
             PersistConfig(host, domain, port: null, slug, project, envFile, healthEnabled, healthPath, containerPort, env, redirects);
         }
+        ReportDeployed(host, domain, redirects);
+
+        // Traffic is already on the new colour. The old one finishes its running jobs, outside the box's lock — other
+        // apps' deploys never wait out this app's drain — but under this app's, so its next deploy does.
+        await RetireOldColorsAsync(host, slug, newContainer, cancellationToken).ConfigureAwait(false);
+        return 0;
+    }
+
+    /// <summary>The "Deployed" line — said the moment traffic is on the new colour, before the old one drains.</summary>
+    private void ReportDeployed(string host, string domain, string redirects)
+    {
         var hosts = SiteDomains.Hosts(domain);
         Console.WriteLine($"Deployed. The app is live at {string.Join(", ", hosts.Select(h => $"https://{h}"))}", ConsoleStyle.Success);
         if (redirects.Length > 0)
@@ -340,11 +448,6 @@ internal sealed partial class DeployCommand
 
         var named = hosts.Concat(SiteDomains.Hosts(redirects)).ToList();
         Console.WriteLine($"  (make sure the DNS A/AAAA record{(named.Count > 1 ? "s" : "")} of {string.Join(", ", named)} point{(named.Count > 1 ? "" : "s")} at {HostName(host)})", ConsoleStyle.Dim);
-
-        // Traffic is already on the new colour. The old one finishes its running jobs, outside the box's lock — other
-        // apps' deploys never wait out this app's drain — but under this app's, so its next deploy does.
-        await RetireOldColorsAsync(host, slug, newContainer, cancellationToken).ConfigureAwait(false);
-        return 0;
     }
 
     /// <summary>
@@ -354,7 +457,7 @@ internal sealed partial class DeployCommand
     /// reload, after the new container had started; asked first, the deploy stops before anything moves.
     /// </summary>
     private async Task<bool> NameIsTakenAsync(
-        string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, CancellationToken cancellationToken)
+        string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, IReadOnlyDictionary<string, string> appFiles)
     {
         if (FindTakenHost(apps, slug, domain, redirects) is { } taken)
         {
@@ -363,7 +466,7 @@ internal sealed partial class DeployCommand
             return true;
         }
 
-        if (CaddySites.FindHostInFiles(await ReadAppFilesAsync(host, cancellationToken).ConfigureAwait(false), slug, domain, redirects) is not { } named)
+        if (CaddySites.FindHostInFiles(appFiles, slug, domain, redirects) is not { } named)
         {
             return false;
         }
@@ -383,9 +486,8 @@ internal sealed partial class DeployCommand
     /// <c>--dns</c> asks for one the proxy hasn't got, and that needs the credentials to start it with.</para>
     /// </summary>
     private async Task<ProxyPlan?> PlanProxyAsync(
-        string host, string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, DnsProvider? requested, string? dnsEnvFile, CancellationToken cancellationToken)
+        string slug, string domain, string redirects, IReadOnlyList<DeployedApp> apps, ProcessResult inspected, DnsProvider? requested, string? dnsEnvFile)
     {
-        var inspected = await Capture(BuildCaddyDnsLabelArguments(host), cancellationToken).ConfigureAwait(false);
         var running = inspected.ExitCode == 0 ? DnsProvider.Named(inspected.StandardOutput.Trim()) : null;
 
         if (running is not null && requested is not null && !ReferenceEquals(running, requested))
@@ -513,70 +615,46 @@ internal sealed partial class DeployCommand
 
     private async Task<bool> WaitUntilRunningAsync(string host, string container, CancellationToken cancellationToken)
     {
-        // The poll is otherwise silent for up to ReadinessAttempts × ReadinessDelay — show a status so an
-        // interactive user sees it's working (a no-op when stdout is redirected/piped).
-        return await Activity.RunAsync(Console, $"Waiting for {container} to become healthy…", async () =>
+        // The poll is otherwise silent until it ends — show a status so an interactive user sees it's working (a no-op
+        // when stdout is redirected/piped). Asked at once: a container that's already up costs one inspect.
+        return await Activity.RunAsync(Console, $"Waiting for {container} to become healthy…", () => Readiness.UntilAsync(async () =>
         {
-            for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
-            {
-                // Inspect first, then wait only between retries — a container that's already up returns immediately.
-                if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
-                {
-                    await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
-                }
-
-                var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
-                if (result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }).ConfigureAwait(false);
+            var result = await Capture(BuildInspectRunningArguments(host, container), cancellationToken).ConfigureAwait(false);
+            return result.ExitCode == 0 && result.StandardOutput.Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+        }, cancellationToken)).ConfigureAwait(false);
     }
 
     // Probe the app over HTTP from an ephemeral curl container sharing the target's network namespace, so
     // it works whether or not a host port is published (domain mode publishes none) and needs no HTTP client
-    // in the app image. Retried across the readiness window — the app may warm up after the container is up.
+    // in the app image. Asked at once, then every ReadinessDelay until ReadinessTimeout — the app may warm up
+    // after the container is up, and the deploy moves on the moment it answers.
     private async Task<bool> WaitUntilHealthyAsync(string host, string container, string healthPath, int containerPort, CancellationToken cancellationToken)
     {
-        for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
+        await Console.Out.WriteLineAsync($"Checking that {container} answers {healthPath}…").ConfigureAwait(false);
+        var started = Clock.GetTimestamp();
+        var healthy = await Readiness.UntilAsync(
+            async () => await Run(BuildHealthCheckArguments(host, container, healthPath, containerPort), cancellationToken).ConfigureAwait(false) == 0,
+            cancellationToken).ConfigureAwait(false);
+        if (healthy)
         {
-            // Probe first, then wait only between retries — a warm app passes on the first attempt.
-            if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
-            {
-                await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
-            }
-
-            if (await Run(BuildHealthCheckArguments(host, container, healthPath, containerPort), cancellationToken).ConfigureAwait(false) == 0)
-            {
-                return true;
-            }
+            Console.WriteLine($"  {container} answered {healthPath} after {StopTimeout.Format(TimeSpan.FromSeconds((int)Clock.GetElapsedTime(started).TotalSeconds))}.", ConsoleStyle.Dim);
         }
 
-        return false;
+        return healthy;
     }
 
-    // Run a command, retrying on a non-zero exit (with the readiness delay between tries). Used for the
-    // Caddy reload, whose admin endpoint may not be up yet the first time on a freshly-started proxy.
+    // Run a command until it exits zero, across the readiness window. Used for the Caddy reload, whose admin
+    // endpoint may not be up yet the first time on a freshly-started proxy.
     private async Task<int> RunWithRetryAsync(IReadOnlyList<string> args, CancellationToken cancellationToken)
     {
         var exit = 0;
-        for (var attempt = 0; attempt < ReadinessAttempts; attempt++)
-        {
-            if (attempt > 0 && ReadinessDelay > TimeSpan.Zero)
+        await Readiness.UntilAsync(
+            async () =>
             {
-                await Task.Delay(ReadinessDelay, cancellationToken).ConfigureAwait(false);
-            }
-
-            exit = await Run(args, cancellationToken).ConfigureAwait(false);
-            if (exit == 0)
-            {
-                return 0;
-            }
-        }
-
+                exit = await Run(args, cancellationToken).ConfigureAwait(false);
+                return exit == 0;
+            },
+            cancellationToken).ConfigureAwait(false);
         return exit;
     }
 
