@@ -266,6 +266,13 @@ them until tagged releases begin.
     the chart's bars, groups, stacks, viewports and legend indicators (`parity-chart.mjs`, `parity.mjs chart`),
     `Ui.CheckboxIndicator`, `Ui.PillboxInput` and the editor's eighteen toolbar items (`parity.mjs`,
     `parity-editor.mjs`).
+- **DevTools: the dock looks like the Flux kit, light and dark.** The corner pill is Flux's primary button (size sm)
+  and its unseen-error count Flux's solid red badge; the drawer's Bottom / Right / Close are Flux's subtle and ghost
+  buttons at size xs, the docked side drawn filled, on Flux's flyout surface and edge. Colours, radii, sizes and type
+  were measured from fluxui.dev and written into the dock's own shadow-root stylesheet, so it still needs neither the
+  kit's sheet nor anything a strict CSP refuses; they read the kit's `--color-zinc-*` / `--color-accent` when the page
+  has them, and its Inter when the page has loaded it. Dark follows the page's `dark` class (Ui.AppearanceScript),
+  else the system. Buttons show the hand, the chrome cannot be text-selected, and a tap never zooms.
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
