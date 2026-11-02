@@ -26,7 +26,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, press, root, viewOf } from './lib.mjs';
+import { chromium, cursorDepartedLine, press, PRESSABLE, root, viewOf } from './lib.mjs';
 
 const raskPage = join(root, 'artifacts', 'flux-parity', 'rask', 'editor.html');
 if (!existsSync(raskPage)) {
@@ -52,7 +52,7 @@ for (const scheme of ['light', 'dark']) {
   const length = Math.max(theirs.lines.length, mine.lines.length);
   let differing = 0;
   for (let i = 0; i < length; i++) {
-    if (theirs.lines[i] === mine.lines[i]) continue;
+    if (theirs.lines[i] === mine.lines[i] || cursorDepartedLine(theirs.lines[i], mine.lines[i])) continue;
     if (differing++ < (process.argv.includes('--all') ? Infinity : 12)) console.log(`FAIL ${scheme} step ${i}\n   Flux: ${theirs.lines[i]}\n   Rask: ${mine.lines[i]}`);
   }
 
@@ -66,7 +66,7 @@ process.exit(failures ? 1 : 0);
 
 async function transcript(scheme, url, at, inherited) {
   const context = await browser.newContext({ ...screen, colorScheme: scheme });
-  await context.addInitScript(`window.__look = ${look}; window.__states = ${states}`);
+  await context.addInitScript(`window.__pressable = ${JSON.stringify(PRESSABLE)}; window.__look = ${look}; window.__states = ${states}`);
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   await page.evaluate(() => document.fonts.ready);
@@ -398,7 +398,10 @@ function look(element, pseudo) {
   const family = c.fontFamily.includes('mono') ? 'mono' : 'text';
   // A width to a tenth of a pixel: layout snaps to 1/64px, and where it snaps is not the component's.
   const said = key => (key === 'width' && c[key].endsWith('px') ? `${Math.round(parseFloat(c[key]) * 10) / 10}px` : c[key]);
-  return keys.map(key => `${key}=${said(key)}`).join(';') + `;family=${family}` + (pseudo ? `;content=${c.content}` : '');
+  // The hand over a pressable node is the kit's owner-approved departure (lib.mjs, cursorDepartedLine): said, so the
+  // line pair can be let go on it and nothing else.
+  const pressed = c.cursor === 'pointer' && element.closest(window.__pressable) ? ';pressable' : '';
+  return keys.map(key => `${key}=${said(key)}`).join(';') + `;family=${family}` + (pseudo ? `;content=${c.content}` : '') + pressed;
 }
 
 // Runs in the page. The states a toolbar control states, under names both pages use.

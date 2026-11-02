@@ -9,13 +9,13 @@ namespace Rask;
 public sealed partial class UiSidebarGroup : Component
 {
     private const string Row =
-        "my-px flex h-10 w-full min-w-0 cursor-default text-center list-none items-center rounded-lg border border-transparent text-zinc-500 "
+        "my-px flex h-10 w-full min-w-0 text-center list-none items-center rounded-lg border border-transparent text-zinc-500 "
         + "hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:h-8 dark:text-white/80 dark:hover:bg-white/[7%] "
         + "dark:hover:text-white [&::-webkit-details-marker]:hidden";
 
     // The same row as a square around its icon: the button the rail's menu opens from.
     private const string RailRow =
-        "my-px flex h-8 w-10 cursor-default items-center justify-center gap-3 rounded-lg border border-transparent "
+        "my-px flex h-8 w-10 items-center justify-center gap-3 rounded-lg border border-transparent "
         + "px-3 text-center text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 dark:text-white/80 "
         + "dark:hover:bg-white/[7%] dark:hover:text-white";
 

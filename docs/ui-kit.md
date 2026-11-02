@@ -66,6 +66,15 @@ C# component framework that ships no script of its own:
 - **One vocabulary.** `Position` + `Align` place everything that floats, events are `On…`, `Kbd` shows a shortcut
   wherever one is shown, `Tone`/`Variant`/`Size` style everything.
 - **We style, you space.** Components bring padding, borders and colour — never an outer margin.
+- **The hand over what can be pressed.** Every pressable kit part shows `cursor: pointer` — buttons, menu rows,
+  options, tabs, calendar days, a pager's pages, a checkbox, radio or switch and the label that toggles it — and
+  the arrow while it cannot be pressed: disabled (`disabled`, `aria-disabled="true"`, `data-disabled`), read-only,
+  inside an `inert` subtree, or busy (a button waiting on its handler, a form's submit while it is sent). Flux keeps
+  the arrow; the kit departs from it on purpose. It is one zero-specificity rule in the kit's sheet (`@layer rask`),
+  keyed on what an element *is* — `button`, `[role=button]` and the other pressable roles, `summary`, `select`,
+  `label[for]`, a label round a box or a radio, and the clickable `input` types — so your own `<button>`s in a page
+  that loads the kit get it too. A `Div.OnClick(...)` does not: add `cursor-pointer` to it yourself. To opt an
+  element out, give it a cursor utility (`cursor-default`, `cursor-text`): utilities sit above `rask` and win.
 - **Its own words are translatable.** The few texts the kit writes itself — a pager's "Showing 1 to 10 of 13
   results", a select's "No results found", a date picker's "Select a date", the name of a close button — are
   `RaskString` keys. The kit speaks English and Hungarian out of the box, in the languages your app lists in

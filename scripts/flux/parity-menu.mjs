@@ -51,7 +51,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, press, root, STYLES, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, press, PRESSABLE, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -280,7 +280,7 @@ async function measureExample(page, cdp, index, prefix) {
   };
 
   const point = await open();
-  Object.assign(example, await page.evaluate(collect, { STYLES, LOCK, kind: parts.kind, point }));
+  Object.assign(example, await page.evaluate(collect, { STYLES, PRESSABLE, LOCK, kind: parts.kind, point }));
   if (!example.opened) {
     await page.evaluate(unmark);
     return example;
@@ -385,7 +385,7 @@ async function measureExample(page, cdp, index, prefix) {
     const box = await page.locator(`[data-pm-n="${example.submenu}"]`).boundingBox();
     await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
     await page.waitForTimeout(400);
-    example.flyout = await page.evaluate(collectFlyout, { STYLES, row: example.submenu });
+    example.flyout = await page.evaluate(collectFlyout, { STYLES, PRESSABLE, row: example.submenu });
     await press(page, box.x + box.width / 2, box.y + box.height / 2, true);
     await page.waitForTimeout(400);
     example.again = await page.evaluate(tapped, example.rows);
@@ -393,7 +393,7 @@ async function measureExample(page, cdp, index, prefix) {
     const box = await page.locator(`[data-pm-n="${example.submenu}"]`).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.waitForTimeout(400);
-    example.flyout = await page.evaluate(collectFlyout, { STYLES, row: example.submenu });
+    example.flyout = await page.evaluate(collectFlyout, { STYLES, PRESSABLE, row: example.submenu });
 
     // The diagonal: from the middle of the row to the far corner of its flyout, across the rows below.
     const far = await page.evaluate(row => {
@@ -440,7 +440,7 @@ function mark(wrapper, { prefix, index, INHERITED }) {
 }
 
 // Runs in the page. The open popup: every element in it, measured from the trigger (or the pointer).
-function collect({ STYLES, LOCK, kind, point }) {
+function collect({ STYLES, PRESSABLE, LOCK, kind, point }) {
   const panel = document.querySelector('[data-pm="panel"]');
   const trigger = document.querySelector('[data-pm="trigger"]');
   const opened = panel.matches(':popover-open');
@@ -455,12 +455,12 @@ function collect({ STYLES, LOCK, kind, point }) {
 
   const anchor = trigger.getBoundingClientRect();
   const origin = kind === 'context' ? { x: point[0], y: point[1] } : anchor;
-  const { nodes, rows } = tree(panel, origin, STYLES);
+  const { nodes, rows } = tree(panel, origin, STYLES, PRESSABLE);
   const sub = panel.querySelector('[data-flux-menu-submenu] > button, [data-ui-menu-submenu] > button');
   window.__pmBase = Object.fromEntries(nodes.map(n => [n.id, n.style]));
   return { opened, focus, lock, nodes, rows, submenu: sub ? Number(sub.getAttribute('data-pm-n')) : null };
 
-  function tree(top, from, styles) {
+  function tree(top, from, styles, pressable) {
     const keep = name => /^(role|aria-checked|aria-disabled|disabled|data-checked|popover)$/.test(name);
     const list = [];
     const picked = [];
@@ -476,6 +476,7 @@ function collect({ STYLES, LOCK, kind, point }) {
         text: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(Boolean).join(' ').slice(0, 80),
         box: [box.x - from.x, box.y - from.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
         style: Object.fromEntries(styles.map(k => [k, computed[k]])),
+        pressable: !!el.closest(pressable),
       };
       for (const pseudo of ['::before', '::after']) {
         const drawn = getComputedStyle(el, pseudo);
@@ -560,7 +561,7 @@ function crossing({ row, rows }) {
 }
 
 // Runs in the page. The flyout a submenu row opened, measured from that row.
-function collectFlyout({ STYLES, row }) {
+function collectFlyout({ STYLES, PRESSABLE, row }) {
   const trigger = document.querySelector(`[data-pm-n="${row}"]`);
   const flyout = trigger.parentElement.querySelector('[role=menu]');
   const from = trigger.getBoundingClientRect();
@@ -576,6 +577,7 @@ function collectFlyout({ STYLES, row }) {
       text: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(Boolean).join(' ').slice(0, 80),
       box: [box.x - from.x, box.y - from.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: Object.fromEntries(STYLES.map(k => [k, computed[k]])),
+      pressable: !!el.closest(PRESSABLE),
     };
   });
 }
@@ -764,10 +766,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
     }
   }
 
-  compareStyles(a.style, b.style, where, diffs, a === rootA);
+  compareStyles(a.style, b.style, where, diffs, a === rootA, b.pressable);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false, b.pressable);
   }
 
   const kids = (nodes, n) => nodes.filter(c => c.parent === n.id);
@@ -781,9 +783,11 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
   ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, pairs));
 }
 
-function compareStyles(x, y, where, diffs, placed) {
+// `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
+function compareStyles(x, y, where, diffs, placed, pressable = false) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || (placed && PLACED.has(key)) || same(x[key], y[key])) continue;
+    if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     const width = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
     if (width && x[`border${width}Width`] === '0px' && y[`border${width}Width`] === '0px') continue;
     // Nor the width and colour of an outline neither side draws: a focused element computes the browser's

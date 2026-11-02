@@ -33,7 +33,7 @@ public sealed partial class UiSidebarProfile : Component, IUiTrigger
     {
         var button = Button.Type(ButtonType.Button)
             .Class(
-                "group flex w-full cursor-default items-center rounded-lg p-1 hover:bg-zinc-800/5 dark:hover:bg-white/10",
+                "group flex w-full items-center rounded-lg p-1 hover:bg-zinc-800/5 dark:hover:bg-white/10",
                 Class)
             .Attributes(("data-ui-sidebar-profile", ""));
 

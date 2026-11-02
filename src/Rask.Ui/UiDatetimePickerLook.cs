@@ -29,7 +29,7 @@ internal static class UiDatetimePickerLook
 
     // A time in the column: lit under the pointer, tinted while chosen, grey and untouchable where it cannot be picked.
     internal const string Time =
-        "flex items-center gap-2 h-8 ps-2 pe-3 shrink-0 rounded-md text-sm tabular-nums cursor-default "
+        "flex items-center gap-2 h-8 ps-2 pe-3 shrink-0 rounded-md text-sm tabular-nums "
         + "text-zinc-800 dark:text-white hover:bg-zinc-800/5 dark:hover:bg-white/5 "
         + "data-selected:bg-zinc-100 dark:data-selected:bg-white/10 "
         + "disabled:text-zinc-400 dark:disabled:text-zinc-500 disabled:pointer-events-none";

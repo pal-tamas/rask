@@ -42,7 +42,7 @@ internal static class UiListboxLook
     /// </summary>
     internal const string Option =
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-start px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
+        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
         + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 "
         + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
@@ -110,10 +110,13 @@ internal static class UiListboxLook
         "data-hidden:hidden block items-center px-2 py-1.5 w-full rounded-md text-start text-sm font-medium select-none cursor-default "
         + "text-zinc-500 dark:text-zinc-300";
 
-    /// <summary>The row that makes a new option.</summary>
+    /// <summary>
+    ///     The row that makes a new option: a <c>div</c> no role names pressable, so it takes the hand itself (an
+    ///     owner-approved departure from Flux's arrow, 2026-11-02) — and the arrow while the page makes it.
+    /// </summary>
     internal const string Create =
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
+        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] cursor-pointer data-loading:cursor-default "
         + "text-zinc-800 dark:text-white "
         + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600";
 

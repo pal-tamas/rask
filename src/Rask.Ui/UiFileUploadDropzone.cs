@@ -30,7 +30,7 @@ public sealed partial class UiFileUploadDropzone : UiElement
     private const string Spinner = "absolute inset-0 text-zinc-800 opacity-0 transition dark:text-white";
 
     private const string HeadingLook =
-        "cursor-default text-sm font-medium text-zinc-800 dark:text-white [input:disabled~*_&]:opacity-75";
+        "text-sm font-medium text-zinc-800 dark:text-white [input:disabled~*_&]:opacity-75";
 
     private const string Bar = "absolute inset-0 flex items-center gap-3 opacity-0 in-data-loading:opacity-100";
 
@@ -93,8 +93,8 @@ public sealed partial class UiFileUploadDropzone : UiElement
         }
 
         var line = Div.Class(Inline == true
-            ? "relative cursor-default text-xs text-zinc-500 dark:text-white/60"
-            : "relative cursor-default text-sm text-zinc-500 dark:text-white/60");
+            ? "relative text-xs text-zinc-500 dark:text-white/60"
+            : "relative text-sm text-zinc-500 dark:text-white/60");
 
         return withBar
             ? line[

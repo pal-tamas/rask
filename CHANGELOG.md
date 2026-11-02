@@ -246,6 +246,14 @@ them until tagged releases begin.
   `await using var scope = scopes.CreateAsyncScope();` in the work, resolving from `scope.ServiceProvider` — in place
   of `var services = Current.Service<IServiceProvider>();` and `services.GetRequiredService<T>()`; or await the work
   in the hook. That scope is the app's, not the session's: hand the work what it needs of the visitor.
+- **Rask.Ui shows the hand over what can be pressed.** Before: the kit drew Flux's arrow over its buttons, menu rows,
+  options, tabs, calendar days, pager pages and toggles, so nothing said "this is clickable" until it was clicked.
+  Now every pressable kit part shows `cursor: pointer`, and the arrow while it is disabled, read-only, inert or
+  busy (a waiting button, a submit in flight). One zero-specificity rule in the kit sheet's `@layer rask`, keyed on
+  what an element is (`button`, the pressable ARIA roles, `summary`, `select`, a label that toggles, the clickable
+  `input` types), so an app's own `<button>`s in a page with the kit get it too; a `Div.OnClick` does not, and an
+  app's own `cursor-*` utility still wins. The collapsed sidebar rail keeps `e-resize`, a modal backdrop the arrow.
+  An owner-approved departure from Flux. See [Principles](docs/ui-kit.md#principles).
 - **Build: parallel branches no longer conflict on CHANGELOG.md, the bundle-size baseline or llms.txt.** Bullets
   added under one heading are both kept (`.githooks/merge-append`, set up by the first build), appended bundle-size
   blocks are both kept and the gate reads the newest-dated one, and `llms.txt` is one sentence per line; two changes

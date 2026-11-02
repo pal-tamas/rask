@@ -326,6 +326,75 @@
 }
 
 /*
+  WHAT CAN BE PRESSED SHOWS THE HAND — an owner-approved departure from Flux (2026-11-02), whose controls keep the
+  arrow. Every document whose sheet carries the kit: the kit's own parts AND the application's own controls, by
+  what they ARE (a button, a role a reader is told is pressable, a label that toggles a box), never by a handler —
+  a plain <div> with a click handler gets nothing, and an app writes `cursor-pointer` there itself.
+
+  Zero specificity (`:where()` around everything) in `rask`, below `utilities`: an app's own `cursor-*` on an
+  element still wins, and so does the kit's where it keeps another cursor on purpose — the collapsed sidebar's
+  `e-resize`, a modal backdrop's arrow, a text field's caret.
+
+  What cannot be pressed now shows the arrow, said outright so a part inside a pressable one does not inherit the
+  hand: disabled (the attribute, `aria-disabled`, Flux's `data-disabled`), read-only, inside an `inert` subtree,
+  and busy — a button waiting on its own press (`data-loading`), a form's submit held while it is sent (`aria-busy`).
+
+  The label rule takes only a label around a box, a radio or a switch: a label wrapped round a TEXT field would hand
+  its whole box the hand. One round a DISABLED box is simply not matched, and keeps the browser's `auto` — Flux's.
+*/
+@layer rask {
+  :where(
+    button,
+    [role="button"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    [role="option"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"],
+    summary,
+    select,
+    label[for],
+    label:has(input:is([type="checkbox"], [type="radio"]):not(:disabled)),
+    input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(
+    button,
+    [role="button"],
+    [role="menuitem"],
+    [role="menuitemcheckbox"],
+    [role="menuitemradio"],
+    [role="option"],
+    [role="tab"],
+    [role="checkbox"],
+    [role="radio"],
+    [role="switch"],
+    summary,
+    select,
+    label[for],
+    label:has(input:is([type="checkbox"], [type="radio"])),
+    input:is([type="checkbox"], [type="radio"], [type="file"], [type="range"], [type="color"], [type="submit"], [type="button"], [type="reset"])
+  ):where(:disabled, [aria-disabled="true"], [data-disabled], [readonly], [aria-readonly="true"], [data-loading], [aria-busy="true"], [inert], [inert] *) {
+    cursor: default;
+  }
+
+  /* A kit label (Ui.Label) names a field: the arrow, as Flux draws it, though it is a label[for]... */
+  :where([data-ui-label]) {
+    cursor: default;
+  }
+
+  /* ...and the hand when the field's control is a box, a radio or a switch a press on the name ticks. */
+  :where([data-ui-field]:has(> [data-ui-control] input:is([type="checkbox"], [type="radio"]):not(:disabled)) > [data-ui-label]) {
+    cursor: pointer;
+  }
+}
+
+/*
   A STICKY TABLE COLUMN CASTS A SHADOW ONCE SOMETHING HAS SCROLLED UNDER IT, and not before.
 
   Flux marks its scroll area from script (`data-scrolled-right`) and styles on that. The kit ships no
