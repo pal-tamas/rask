@@ -10,9 +10,11 @@ namespace Rask.Data;
 /// </summary>
 /// <remarks>
 ///     Both hooks are needed: EF Core creates a non-query's command before it opens the connection, and a query's after.
-///     A save interceptor too, only so the <c>ISaveChangesInterceptor</c> services every host already hands its contexts
-///     carry it: EF Core takes each role an interceptor implements. Outside a <c>Db.Transaction</c> it reads one
-///     <see cref="AsyncLocal{T}" /> and lets the connection open as it would.
+///     A save joins before it starts too: a save of several commands begins a transaction of its own, which opens the
+///     connection first and then refuses one the opening joined — so it must find the context joined already. Being a
+///     save interceptor is also what puts it on every context: the <c>ISaveChangesInterceptor</c> services each host
+///     already hands its contexts carry it, and EF Core takes each role an interceptor implements. Outside a
+///     <c>Db.Transaction</c> it reads one <see cref="AsyncLocal{T}" /> and lets the connection open as it would.
 /// </remarks>
 internal sealed class AmbientTransactionInterceptor
     : DbConnectionInterceptor, IDbCommandInterceptor, ISaveChangesInterceptor
@@ -37,5 +39,19 @@ internal sealed class AmbientTransactionInterceptor
     {
         AmbientTransaction.JoinBeforeUse(eventData.Context);
         return result;
+    }
+
+    InterceptionResult<int> ISaveChangesInterceptor.SavingChanges(
+        DbContextEventData eventData, InterceptionResult<int> result)
+    {
+        AmbientTransaction.JoinBeforeUse(eventData.Context);
+        return result;
+    }
+
+    ValueTask<InterceptionResult<int>> ISaveChangesInterceptor.SavingChangesAsync(
+        DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken)
+    {
+        AmbientTransaction.JoinBeforeUse(eventData.Context);
+        return new(result);
     }
 }

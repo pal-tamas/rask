@@ -34,7 +34,10 @@ public sealed class TableFitsItsBoxTests(PlaywrightFixture playwright) : IClassF
     }
 }
 
-/// <summary>A list as the apps write it: the row's actions at its end, under a heading only a screen reader says.</summary>
+/// <summary>
+///     A list as the apps write it: the row's actions at its end, under a heading only a screen reader says, and a
+///     row's name said to a screen reader after its last button, where a line that keeps to its end ends.
+/// </summary>
 public sealed partial class ActionsColumnPage : Component
 {
     protected override Component? HeadAssets => [Markup.Title["a table that fits its box"], Markup.Style[Raw.Value(UiStylesheet.Css)]];
@@ -51,7 +54,7 @@ public sealed partial class ActionsColumnPage : Component
                 Ui.TableCell[Ui.Checkbox],
                 Ui.TableCell["Kút " + id],
                 Ui.TableCell.End[(id * 10) + " l"],
-                Ui.TableCell.End[Ui.Button.Ghost.Sm.Square(true).Icon(Ui.IconName.Pencil).Aria("label", "Módosítás")]
+                Ui.TableCell.End[Ui.Button.Ghost.Sm.Square(true).Icon(Ui.IconName.Pencil).Aria("label", "Módosítás"), Span.Class("sr-only")["Kút " + id]]
             ])]
         ];
 }

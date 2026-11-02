@@ -25,10 +25,11 @@ internal static class UiOptionLook
     internal const string Native = "sr-only";
 
     /// <summary>
-    ///     The keyboard's focus ring, which Flux leaves to the browser, drawn where the input is seen — and the
-    ///     pointer Flux's element has, where a label's own would be the arrow.
+    ///     The keyboard's focus ring, which Flux leaves to the browser, drawn where the input is seen. The hand
+    ///     over the control is the kit sheet's: a label around a box or a radio that is not disabled. A disabled one
+    ///     keeps the browser's <c>auto</c> said outright, as Flux's does, whatever it sits in.
     /// </summary>
-    internal const string Focus = "cursor-auto has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color]";
+    internal const string Focus = "has-disabled:cursor-auto has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color]";
 
     /// <summary>A checkbox drawn as its box alone.</summary>
     internal const string Checkbox = "group/option flex size-[1.125rem] mt-px rounded-[.3rem] outline-offset-2 " + Focus;

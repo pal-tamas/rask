@@ -1255,8 +1255,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Class` lands on the `<table>`, `ContainerClass("max-h-80")` on the box, `Bleed()` runs the dividers through the parent's padding (`--ui-bleed`, 1.5rem by default) and `Paginate(pager)` puts a pager under the rows.
   COLUMNS THAT DO NOT MOVE WHEN A TABLE PAGES OR SORTS: `Ui.Table.Class("w-full min-w-160")` with a width on every `Ui.TableColumn` but one (`.Class("w-40")`;
   the one without takes the rest), `Ui.TableCell.Class("truncate").Title(text)[text]` for a long value — `w-full` is what makes `table-fixed` take effect, `min-w-…` keeps the columns on a phone, where the table scrolls inside its own box (as an item of a grid or flex parent it also needs `.ContainerClass("min-w-0")`, or the box grows instead of scrolling);
-  the table's parts write Flux's own class lists, so a class of yours that contradicts one is written with `!` (`ps-10!`, `text-xs!`), as Flux says;
-  one that only adds (`py-0`, `truncate`, `whitespace-normal` on a cell) needs none.
+  a heading's and a cell's shared look (padding, size, ink, dividers) is the kit sheet's, written once on their markers at no weight, so a cell writes only what differs and your class on a cell or heading wins as it is (`ps-10`, `text-xs`, `py-0`, `truncate`);
+  the `<table>` itself writes Flux's own list, so a class of yours that contradicts it is written with `!` (`table-auto!`), as Flux says.
   `Ui.TableColumns.Sticky()` holds the headings;
   `Ui.TableColumn` takes `.Start`/`.Center`/`.End`, `Sticky()`, and `Sortable().Sorted(bool).Direction(Ui.TableColumnDirection.Asc|Desc).OnSort(handler)` — the table sorts NOTHING, the page reorders its rows when `OnSort` fires.
   `Ui.TableCell` takes `.End`, `Sticky()` and `Variant(Ui.TableCellVariant.Strong)`;
