@@ -51,7 +51,7 @@ public sealed partial class KeyedListsReorderDemo : Component
         {
             var f = _items[i];
             // The keyless branch is deliberately unkeyed to demonstrate positional
-            // reconciliation; RASK022 would otherwise flag it.
+            // reconciliation, which RASK022 otherwise refuses to build for a component row (#1243).
 #pragma warning disable RASK022
             rows.Add(_useKeys
                 ? Ui.TableRow.Key(f.Id)[Row(f, i)]
