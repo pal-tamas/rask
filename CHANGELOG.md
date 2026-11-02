@@ -231,6 +231,12 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **Rask.Ui: the kit parts Flux documents only in its examples are held to Flux like every other.** `flux.snapshot.json`
+  (`scripts/flux/refresh.mjs`, the `flux` follower) now also reads a part Flux writes in its examples or lists as an
+  available item but heads no Reference entry with — `flux:spacer`, `flux:navmenu`, `flux:menu.group`, the chart's
+  bar family, the editor's toolbar items — with the props and values its examples write, and `FluxConformanceTests`
+  holds each one in `Built`. Measured on fluxui.dev and made Flux's on the way:
+  - `Ui.Spacer` writes no `aria-hidden`: Flux's spacer is an empty `<div class="flex-1">` with no ARIA.
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section

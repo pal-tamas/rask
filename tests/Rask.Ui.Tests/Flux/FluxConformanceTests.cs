@@ -219,6 +219,7 @@ public sealed class FluxConformanceTests
         ["flux:carousel"] = typeof(UiCarousel),
         ["flux:carousel.slide"] = typeof(UiCarouselSlide),
         ["flux:carousel.controls"] = typeof(UiCarouselControls),
+        ["flux:spacer"] = typeof(UiSpacer),
     };
 
     /// <summary>
@@ -249,8 +250,9 @@ public sealed class FluxConformanceTests
     };
 
     /// <summary>
-    ///     Flux's, under a part <c>flux.snapshot.json</c> does not list as a heading of its own, so the checks above cannot
-    ///     hold it to one yet. Each is measured on fluxui.dev and moved to <see cref="Built" />, or deleted.
+    ///     Flux's, under a part <c>flux.snapshot.json</c> does not list at all, so the checks above cannot hold it yet. Each
+    ///     is measured on fluxui.dev and moved to <see cref="Built" />, or deleted. A part Flux only writes in its examples
+    ///     is in the snapshot too (<c>scripts/flux/refresh.mjs</c> reads them), so nothing waits here for want of a heading.
     /// </summary>
     private static readonly Dictionary<Type, string> FluxUnlisted = new()
     {
@@ -259,7 +261,6 @@ public sealed class FluxConformanceTests
         [typeof(UiMenuGroup)] = "flux:menu.group",
         [typeof(UiPillboxInput)] = "flux:pillbox.input",
         [typeof(UiCheckboxIndicator)] = "flux:checkbox.indicator",
-        [typeof(UiSpacer)] = "flux:spacer",
         [typeof(UiChartBar)] = "flux:chart.bar",
         [typeof(UiChartGroup)] = "flux:chart.group",
         [typeof(UiChartStack)] = "flux:chart.stack",
@@ -284,6 +285,9 @@ public sealed class FluxConformanceTests
         [typeof(UiEditorUnderline)] = "flux:editor toolbar: underline",
         [typeof(UiEditorUndo)] = "flux:editor toolbar: undo",
     };
+
+    /// <summary>The ceiling <see cref="FluxUnlisted" /> is held under. Lower it with every part built or deleted; never raise it.</summary>
+    private const int FluxUnlistedCeiling = 28;
 
     /// <summary>Public components that are no part of their own: a shared base, a mode of a built part, a page script.</summary>
     private static readonly Dictionary<Type, string> Helpers = new()
@@ -736,6 +740,7 @@ public sealed class FluxConformanceTests
             "Rask.Ui holds only Flux UI's components. Map these in `Built`, or delete them:\n  " + string.Join("\n  ", unnamed));
         Assert.True(twice.Count == 0, "Named in more than one list:\n  " + string.Join("\n  ", twice));
         Assert.True(NotFluxYet.Count <= NotFluxYetCeiling, $"`NotFluxYet` only shrinks: {NotFluxYet.Count} entries over a ceiling of {NotFluxYetCeiling}.");
+        Assert.True(FluxUnlisted.Count <= FluxUnlistedCeiling, $"`FluxUnlisted` only shrinks: {FluxUnlisted.Count} entries over a ceiling of {FluxUnlistedCeiling}.");
     }
 
     [Fact]
@@ -780,7 +785,7 @@ public sealed class FluxConformanceTests
                     continue;
                 }
 
-                missing.AddRange(prop.Options
+                missing.AddRange(prop.Options.Concat(prop.Values)
                     .Where(option => !NotTranslated.ContainsKey($"{part}/{prop.Name}={option}"))
                     .Where(option => !Enum.GetNames(type).Contains(Pascal(option), StringComparer.OrdinalIgnoreCase))
                     .Select(option => $"{part}/{prop.Name}={option}: no {type.Name}.{Pascal(option)}"));
@@ -822,7 +827,9 @@ public sealed class FluxConformanceTests
     private static JsonDocument Snapshot { get; } = JsonDocument.Parse(File.ReadAllText(
         Path.Combine(RepoRoot.FullPath, "tests", "Rask.Ui.Tests", "Flux", "flux.snapshot.json")));
 
-    private static IEnumerable<(string Name, List<(string Name, string[] Options)> Props)> Parts() =>
+    // `options` is a Reference's closed list of what a prop takes; `values` are what Flux's examples write on a part
+    // no Reference heads (scripts/flux/refresh.mjs): each one must be taken, but they close no list.
+    private static IEnumerable<(string Name, List<(string Name, string[] Options, string[] Values)> Props)> Parts() =>
         from page in Snapshot.RootElement.GetProperty("pages").EnumerateArray()
         from part in page.GetProperty("parts").EnumerateArray()
         select (
@@ -830,10 +837,12 @@ public sealed class FluxConformanceTests
             part.TryGetProperty("props", out var props)
                 ? props.EnumerateArray().Select(prop => (
                     prop.GetProperty("name").GetString()!,
-                    prop.TryGetProperty("options", out var options)
-                        ? options.EnumerateArray().Select(option => option.GetString()!).ToArray()
-                        : [])).ToList()
+                    Strings(prop, "options"),
+                    Strings(prop, "values"))).ToList()
                 : []);
+
+    private static string[] Strings(JsonElement prop, string key) =>
+        prop.TryGetProperty(key, out var list) ? [.. list.EnumerateArray().Select(item => item.GetString()!)] : [];
 
     // `<x-slot name="actions">`: a named slot is a property of that name, holding a component.
     private static IEnumerable<string> Slots(string name) =>

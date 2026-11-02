@@ -429,7 +429,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   example's class, not a default. So `Ui.ConfirmLeave`'s `min-w-[22rem]` is Flux's and its `pe-8` is its own
   (its heading is a whole question); neither belongs in `Ui.Modal`. The focus placeholder stays (`autofocus` + the `ui-modal-placeholder` keyframe):
   the hook does not do it. Not written, as Flux writes none: `closedby`, `popover`, `aria-modal`, a label.
-  Parity stand-ins: Flux's spacer (the kit's `Ui.Spacer` carries no `data-ui-spacer`) and the subheading of
+  Parity stand-ins: Flux's spacer (`Ui.Spacer` is Flux's since 2026-11-02, the stand-in not swapped yet) and the subheading of
   the floating example. The Dashboard's queue sheet writes two layout
   classes (`DashboardIsKitOnlyTests.Allowed`), compiled by its own sheet.
 - Parity stand-ins still standing: none on the chart page; card page (fields, the heading/text lines whose variant was

@@ -5,12 +5,18 @@
 // serves every docs page as markdown (`<page>.md`, indexed by /llms.txt) and ends each one with a
 // "Reference" section in one regular shape, so the catalogue can be read rather than retyped.
 //
+// A part Flux uses in its examples but heads no Reference entry with (`flux:navmenu`, `flux:spacer`,
+// `flux:chart.bar`) is read from where Flux does document it: the attributes its examples write, and a list
+// of the items a component takes (the editor's toolbar items). Such a part's props carry the literal `values`
+// the examples write, never `options`: an example shows a value, it does not close the list.
+//
 // What is kept is NAMES AND VALUES ONLY — the component, its props/slots/events, the options a prop
 // accepts and its default. No description is copied: those are Flux's prose. And this reads the DOCS,
 // never the `livewire/flux` repository — that source is proprietary and Rask.Ui is written without it.
 //
-// Usage:  node scripts/flux/refresh.mjs            (fetches fluxui.dev)
-//         node scripts/flux/refresh.mjs <dir>      (reads <dir>/llms.txt and the pages saved beside it)
+// Usage:  node scripts/flux/refresh.mjs                (fetches fluxui.dev)
+//         node scripts/flux/refresh.mjs <dir>          (reads <dir>/idx-llms.txt and the pages saved beside it)
+//         node scripts/flux/refresh.mjs <dir> <out>    (and writes <out> instead of the committed snapshot)
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -18,8 +24,8 @@ import { fileURLToPath } from 'node:url';
 
 const origin = 'https://fluxui.dev';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const output = join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json');
 const cache = process.argv[2];
+const output = process.argv[3] ? resolve(process.argv[3]) : join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'flux.snapshot.json');
 
 // A page saved by hand is named after its path: components/button.md -> components-button.md.
 const read = async path => cache
@@ -31,10 +37,16 @@ const pages = [...index.matchAll(/\((?:https:\/\/fluxui\.dev)\/((components|layo
   .map(([, path, kind, slug]) => ({ path, kind, slug }));
 
 const snapshot = { source: origin, pages: [] };
+const markdowns = [];
 for (const page of pages) {
   const markdown = await read(page.path);
+  markdowns.push(markdown);
   snapshot.pages.push({ kind: page.kind, slug: page.slug, title: title(markdown), parts: reference(markdown) });
 }
+
+// Which parts no page heads is only known once every page's Reference is read.
+const headed = [...new Set(snapshot.pages.flatMap(page => page.parts.map(part => part.name)))];
+snapshot.pages.forEach((page, i) => page.parts.push(...unlisted(markdowns[i], page.slug, headed)));
 
 await mkdir(dirname(output), { recursive: true });
 await writeFile(output, JSON.stringify(snapshot, null, 2) + '\n');
@@ -109,4 +121,61 @@ function describe(name, text) {
   if (/If `(?:true|false)`/.test(text) && !entry.options) entry.boolean = true;
 
   return entry;
+}
+
+// A Reference heads a part when it names it — `flux:icon.*` names `flux:icon` and every `flux:icon.<name>` —
+// or names it with a dot fewer, as the chart page's `flux:chart.summaryvalue` names `flux:chart.summary.value`.
+function isHeaded(name, headed) {
+  const undotted = text => text.replace(/^flux:/, '').replaceAll('.', '');
+  return headed.some(heading => heading === name
+    || undotted(heading) === undotted(name)
+    || (heading.endsWith('.*') && (name === heading.slice(0, -2) || name.startsWith(heading.slice(0, -1)))));
+}
+
+// The parts a page's examples write that no Reference heads, each with the attributes written on it, and
+// the items a page lists as available for one of its components (the editor's toolbar items, each
+// `flux:editor.<item>`). Props and values are sorted, so moving an example on the page moves nothing here.
+function unlisted(markdown, slug, headed) {
+  const found = new Map();
+  const part = name => {
+    if (!found.has(name)) found.set(name, new Map());
+    return found.get(name);
+  };
+
+  const tag = /<flux:([a-z0-9.-]+)((?:\s+[^\s=>"'/]+(?:=(?:"[^"]*"|'[^']*'))?)*)\s*\/?>/g;
+  const attribute = /([^\s=>"'/]+)(?:=(?:"([^"]*)"|'([^']*)'))?/g;
+  for (const [, code] of markdown.matchAll(/^```[^\n]*\n([\s\S]*?)^```/gm)) {
+    for (const [, name, attributes] of code.matchAll(tag)) {
+      if (isHeaded(`flux:${name}`, headed)) continue;
+      const props = part(`flux:${name}`);
+      for (const [, written, double, single] of attributes.matchAll(attribute)) {
+        // A class is the app's, a directive is Livewire's or Alpine's: neither is a prop of the part.
+        if (/^(class$|wire:|x-|@)/.test(written)) continue;
+        // `:prop="$expression"` binds a PHP value: the prop is documented, the expression is no value of it.
+        const bound = written.startsWith(':');
+        const prop = bound ? written.slice(1) : written;
+        if (!props.has(prop)) props.set(prop, new Set());
+        const value = double ?? single;
+        if (!bound && value) props.get(prop).add(value);
+      }
+    }
+  }
+
+  // "The following toolbar items are available:", then one "- `name`" line per item.
+  let listing = false;
+  for (const line of markdown.split('\n')) {
+    const item = /^- `([a-z0-9-]+)`\s*$/.exec(line);
+    if (/items are available:\s*$/.test(line)) listing = true;
+    else if (listing && item) {
+      if (!isHeaded(`flux:${slug}.${item[1]}`, headed)) part(`flux:${slug}.${item[1]}`);
+    } else if (line.trim()) listing = false;
+  }
+
+  const byName = (a, b) => a.localeCompare(b, 'en');
+  return [...found].map(([name, props]) => props.size === 0 ? { name } : {
+    name,
+    props: [...props.keys()].sort(byName).map(prop => props.get(prop).size
+      ? { name: prop, values: [...props.get(prop)].sort(byName) }
+      : { name: prop }),
+  });
 }

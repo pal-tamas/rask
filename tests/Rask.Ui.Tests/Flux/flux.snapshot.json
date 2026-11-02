@@ -58,6 +58,23 @@
               "name": "default"
             }
           ]
+        },
+        {
+          "name": "flux:navmenu"
+        },
+        {
+          "name": "flux:navmenu.item",
+          "props": [
+            {
+              "name": "href",
+              "values": [
+                "#"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:spacer"
         }
       ]
     },
@@ -285,6 +302,9 @@
               "name": "default"
             }
           ]
+        },
+        {
+          "name": "flux:spacer"
         }
       ]
     },
@@ -718,6 +738,9 @@
               "name": "logo"
             }
           ]
+        },
+        {
+          "name": "flux:spacer"
         }
       ]
     },
@@ -892,6 +915,20 @@
             {
               "name": "separator",
               "default": "chevron-right"
+            }
+          ]
+        },
+        {
+          "name": "flux:navmenu"
+        },
+        {
+          "name": "flux:navmenu.item",
+          "props": [
+            {
+              "name": "icon",
+              "values": [
+                "arrow-turn-down-right"
+              ]
             }
           ]
         }
@@ -1733,6 +1770,58 @@
               "name": "default"
             }
           ]
+        },
+        {
+          "name": "flux:chart.viewport"
+        },
+        {
+          "name": "flux:chart.legend.indicator"
+        },
+        {
+          "name": "flux:chart.bar",
+          "props": [
+            {
+              "name": "field",
+              "values": [
+                "chrome",
+                "firefox",
+                "online",
+                "retail",
+                "revenue",
+                "safari",
+                "tickets",
+                "wholesale"
+              ]
+            },
+            {
+              "name": "radius",
+              "values": [
+                "0",
+                "4 0"
+              ]
+            },
+            {
+              "name": "width",
+              "values": [
+                "70%",
+                "85%"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:chart.group"
+        },
+        {
+          "name": "flux:chart.stack",
+          "props": [
+            {
+              "name": "width",
+              "values": [
+                "65%"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -1828,6 +1917,9 @@
               "name": "disabled"
             }
           ]
+        },
+        {
+          "name": "flux:checkbox.indicator"
         }
       ]
     },
@@ -2867,6 +2959,48 @@
               "name": "data-checked"
             }
           ]
+        },
+        {
+          "name": "flux:navmenu"
+        },
+        {
+          "name": "flux:navmenu.item",
+          "props": [
+            {
+              "name": "href",
+              "values": [
+                "#"
+              ]
+            },
+            {
+              "name": "icon",
+              "values": [
+                "arrow-right-start-on-rectangle",
+                "building-storefront",
+                "credit-card",
+                "trash",
+                "user"
+              ]
+            },
+            {
+              "name": "variant",
+              "values": [
+                "danger"
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:menu.group",
+          "props": [
+            {
+              "name": "heading",
+              "values": [
+                "Account",
+                "Billing"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -3012,6 +3146,60 @@
               "name": "redo"
             }
           ]
+        },
+        {
+          "name": "flux:editor.heading"
+        },
+        {
+          "name": "flux:editor.separator"
+        },
+        {
+          "name": "flux:editor.bold"
+        },
+        {
+          "name": "flux:editor.italic"
+        },
+        {
+          "name": "flux:editor.strike"
+        },
+        {
+          "name": "flux:editor.bullet"
+        },
+        {
+          "name": "flux:editor.ordered"
+        },
+        {
+          "name": "flux:editor.blockquote"
+        },
+        {
+          "name": "flux:editor.link"
+        },
+        {
+          "name": "flux:editor.align"
+        },
+        {
+          "name": "flux:editor.spacer"
+        },
+        {
+          "name": "flux:editor.underline"
+        },
+        {
+          "name": "flux:editor.subscript"
+        },
+        {
+          "name": "flux:editor.superscript"
+        },
+        {
+          "name": "flux:editor.highlight"
+        },
+        {
+          "name": "flux:editor.code"
+        },
+        {
+          "name": "flux:editor.undo"
+        },
+        {
+          "name": "flux:editor.redo"
         }
       ]
     },
@@ -3752,6 +3940,12 @@
               "name": "close()"
             }
           ]
+        },
+        {
+          "name": "flux:spacer"
+        },
+        {
+          "name": "flux:subheading"
         }
       ]
     },
@@ -3886,6 +4080,20 @@
         },
         {
           "name": "Profile switcher"
+        },
+        {
+          "name": "flux:navmenu"
+        },
+        {
+          "name": "flux:navmenu.item",
+          "props": [
+            {
+              "name": "href",
+              "values": [
+                "#"
+              ]
+            }
+          ]
         }
       ]
     },
@@ -4192,6 +4400,20 @@
               "name": "clearable"
             }
           ]
+        },
+        {
+          "name": "flux:pillbox.input",
+          "props": [
+            {
+              "name": "placeholder",
+              "values": [
+                "Choose tags..."
+              ]
+            }
+          ]
+        },
+        {
+          "name": "flux:spacer"
         }
       ]
     },
@@ -4307,6 +4529,38 @@
           "slots": [
             {
               "name": "avatar"
+            }
+          ]
+        },
+        {
+          "name": "flux:navmenu"
+        },
+        {
+          "name": "flux:navmenu.separator"
+        },
+        {
+          "name": "flux:navmenu.item",
+          "props": [
+            {
+              "name": "href",
+              "values": [
+                "/account",
+                "/dashboard",
+                "/logout",
+                "#"
+              ]
+            },
+            {
+              "name": "icon",
+              "values": [
+                "arrow-right-start-on-rectangle",
+                "check",
+                "key",
+                "user"
+              ]
+            },
+            {
+              "name": "indent"
             }
           ]
         }
@@ -4691,6 +4945,9 @@
               "default": "true"
             }
           ]
+        },
+        {
+          "name": "flux:spacer"
         }
       ]
     },
