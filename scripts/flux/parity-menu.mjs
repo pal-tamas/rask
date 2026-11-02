@@ -11,7 +11,8 @@
 //   * each row hovered by a real pointer, pressed, and under the keyboard cursor;
 //   * the POINTER'S OWN WALK: which rows are lit (`data-active`) and where focus is with the pointer on each
 //     row, and after it has left the menu; and on the diagonal from a submenu's row to the far corner of its
-//     flyout, step by step, that the flyout is still showing and no row below was lit on the way;
+//     flyout, step by step, that the flyout is still showing and no row below was lit on the way; and from that
+//     row straight out of the menu, away from its flyout, a move at a time: when the flyout closes, what is lit;
 //   * THE POINTER AND THE KEYS TOGETHER: the pointer lights a row, the first arrow lands on it, the next goes
 //     on, the pointer lights another while focus stays, the arrow after counts from the lit row, and the
 //     keyboard's row stays lit when the pointer leaves — lit rows and the focused row after every step;
@@ -409,6 +410,18 @@ async function measureExample(page, cdp, index, prefix) {
       await page.waitForTimeout(40);
       example.diagonal.push(await page.evaluate(crossing, { row: example.submenu, rows: example.rows }));
     }
+
+    // Back on the row, then straight out of the menu, away from the flyout, at a hand's pace (a move every 130 ms:
+    // Flux hears one per 100 ms or so): the flyout closes on the move after the one that left.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    await page.waitForTimeout(400);
+    const menu = await page.locator('[data-pm="panel"]').boundingBox();
+    example.away = [];
+    for (let x = box.x + box.width / 2 - 30; x > menu.x - 70; x -= 30) {
+      await page.mouse.move(x, box.y + box.height / 2);
+      await page.waitForTimeout(130);
+      example.away.push({ ...await page.evaluate(crossing, { row: example.submenu, rows: example.rows }), ...await page.evaluate(lit, example.rows) });
+    }
   }
 
   // Leaving: Escape, then a click outside.
@@ -684,6 +697,9 @@ function compareExample(theirs, mine) {
   const lights = example => example.pointer?.map(step => (theirs.kind === 'context' ? step.lit : step));
   say('the pointer lights', lights(theirs), lights(mine));
   say('the diagonal to the flyout', theirs.diagonal, mine.diagonal);
+  // Where focus is under the pointer: not on a context menu (above).
+  const away = example => example.away?.map(step => (theirs.kind === 'context' ? { ...step, focus: undefined } : step));
+  say('the pointer leaving the submenu\'s row out of the menu', away(theirs), away(mine));
   say('the pointer and the keys together', theirs.together, mine.together);
   say('a tap on each row', theirs.taps, mine.taps);
   say('the submenu\'s row tapped again', theirs.again, mine.again);

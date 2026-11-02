@@ -24,8 +24,9 @@ namespace Rask.Server.E2E.Tests;
 ///         that row, and later arrows continue from whichever row is lit;</item>
 ///         <item>a row the keyboard lit stays lit when the pointer leaves the menu; one the pointer lit does
 ///         not;</item>
-///         <item>a flyout opens under the pointer (3 ms), stays through the diagonal to it and after the pointer
-///         has left the menu altogether, and closes when another row is entered;</item>
+///         <item>a flyout opens under the pointer (3 ms), stays through the diagonal to it, and closes when another
+///         row is entered — or (2026-11-02) when the pointer moves on outside its row and the flyout, heard once
+///         per 100 ms or so: a pointer that leaves the menu and stops at once leaves it open;</item>
 ///         <item>ArrowRight goes into a flyout with its row and the flyout's first row both lit.</item>
 ///     </list>
 /// </remarks>
@@ -144,13 +145,53 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
 
         await OverAsync(page, "Popularity");
         await SeeAsync(page, "Popularity | MENU | Sort by");
-        // Out of the flyout and the menu altogether: Flux's flyout was still there 400 ms later.
+        // Out of the flyout and the menu altogether in one quick move, then still: Flux's flyout was still there
+        // 400 ms later — it hears a move per 100 ms or so, and none of this one's after its first.
         await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 5 });
         await page.WaitForTimeoutAsync(400);
         await SeeAsync(page, " | MENU | Sort by");
         await OverAsync(page, "Delete");
 
         await SeeAsync(page, "Delete | MENU | ");
+    }
+
+    [Fact]
+    public async Task A_pointer_that_moves_on_out_of_the_menu_from_a_submenus_row_closes_its_flyout_in_the_browser()
+    {
+        // Flux UI's dropdown and context menu, 2026-11-02: the pointer leaves "Sort by" to the left, away from its
+        // flyout, at a hand's pace (a move every 130 ms). The move that leaves is not heard (Flux hears one move per
+        // 100 ms or so); the next one, outside, closes the flyout. The row is dark, focus has not moved, and nothing
+        // went over the socket.
+        var sent = 0;
+        var received = 0;
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref received);
+            };
+            return Task.CompletedTask;
+        });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        await page.WaitForTimeoutAsync(300);
+        var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
+        await OverAsync(page, "Sort by");
+        await SeeAsync(page, "Sort by | MENU | Sort by");
+        var row = (await Row(page, "Sort by").BoundingBoxAsync())!;
+        var menu = (await page.Locator("[data-testid='menu'] [popover]").BoundingBoxAsync())!;
+
+        for (var x = row.X + (row.Width / 2); x > menu.X - 60; x -= 30)
+        {
+            await page.Mouse.MoveAsync(x, row.Y + (row.Height / 2));
+            await page.WaitForTimeoutAsync(130);
+        }
+
+        await SeeAsync(page, " | MENU | ");
+        Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
+        Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
     }
 
     [Fact]

@@ -28,7 +28,10 @@
 // arrow key held down send nothing to the page — which hears a row when it is PRESSED, and the popover's toggle.
 // That is how Flux UI's menu works, and the rules are the ones measured there:
 //   * the pointer lights the row it enters and does not move focus; it opens the flyout of a submenu's row and
-//     closes every flyout the row is not inside; a flyout stays open after the pointer has left the menu;
+//     closes every flyout the row is not inside; a flyout the pointer has been in closes when it MOVES outside
+//     the row, its safe area and the flyout — onto the menu's padding, or out of the menu altogether — heard at
+//     most once every 100 ms, so a pointer that leaves and stops at once leaves it open (leaving is no event of
+//     its own); a flyout the keys opened stays under a pointer moving elsewhere;
 //   * the keyboard's row is lit and focused; while it is inside a flyout the submenu's row stays lit too;
 //   * an open flyout is `data-open` on the element that holds a submenu's row and its flyout.
 // Everything is forgotten when the popover the menu sits in closes.
@@ -43,6 +46,14 @@ const KEPT = "[data-rask-menu-cursor]";
 
 // The row lit last in a kept menu, by the pointer or the keys: where the arrows count from.
 const cursors = new WeakMap<Element, HTMLElement>();
+
+// An open submenu the pointer has been in — the element holding its row and its flyout — and when a move was last
+// heard about leaving it. Measured on Flux UI's dropdown and context menu, 2026-11-02: a move off the row and its
+// flyout closes the flyout, but moves are heard once per 100 ms or so (a move 101 ms after the last one heard was
+// not, one 109 ms after was), so the move that leaves straight after another is not the one that closes it.
+const pointed = new Set<Element>();
+const HEARD_EVERY = 100;
+let heard = -Infinity;
 
 // An attribute the runtime writes on a rendered element and holds against the next render.
 function mark(el: Element, name: string, value: string | null): void {
@@ -184,7 +195,11 @@ function point(root: Element, row: HTMLElement): void {
     if (!isOff(row)) {
         setOpen(row, true);
     }
-    // Focus that was in a flyout which has just closed goes to the row that opened it, as on Flux UI.
+    refocus(root);
+}
+
+// Focus that was in a flyout which has just closed goes to the row that opened it, as on Flux UI.
+function refocus(root: Element): void {
     let held = page!.activeElement;
     while (held instanceof HTMLElement && root.contains(held) && held.matches(ROW) && !held.getClientRects().length) {
         const menu = held.closest("[role=menu]");
@@ -197,6 +212,47 @@ function point(root: Element, row: HTMLElement): void {
         opener.focus();
         held = opener;
     }
+}
+
+// Notes every open submenu around `target` the pointer is now in.
+function enter(target: EventTarget | null): void {
+    for (let open = near(target, "[data-open]"); open; open = near(open.parentElement, "[data-open]")) {
+        if (kept(open)) {
+            pointed.add(open);
+        }
+    }
+}
+
+// The pointer moved, over `target`: a submenu it has been in and is not in now closes, and its row goes dark
+// unless it has focus. As on Flux UI, the moves are heard once per HEARD_EVERY.
+function leave(target: EventTarget | null, at: number): void {
+    if (at - heard < HEARD_EVERY) {
+        return;
+    }
+    heard = at;
+    pointed.forEach(function (open) {
+        if (target instanceof Node && open.contains(target)) {
+            return;
+        }
+        pointed.delete(open);
+        const row = open.querySelector(ROW);
+        const root = kept(open);
+        if (!row || row.parentElement !== open || !open.hasAttribute("data-open") || !root) {
+            return;
+        }
+        const inner = open.querySelectorAll("[data-open]");
+        for (let i = inner.length - 1; i >= 0; i--) {
+            const opener = inner[i].querySelector(ROW);
+            if (opener && opener.parentElement === inner[i]) {
+                setOpen(opener, false);
+            }
+        }
+        setOpen(row, false);
+        refocus(root);
+        if (page!.activeElement !== row) {
+            mark(row, "data-active", null);
+        }
+    });
 }
 
 /** Forgets where the reader was in a kept menu: nothing lit, no tab stop, every flyout shut. */
@@ -299,6 +355,9 @@ if (page) {
                 point(root, row);
             }
         }
+        if ((e as PointerEvent).pointerType !== "touch") {
+            enter(e.target);
+        }
         armed = near(e.target, "[" + SAFE + "]");
     }, {capture: true, passive: true});
 
@@ -335,6 +394,9 @@ if (page) {
     }, true);
 
     listen("pointermove", function (e) {
+        if (pointed.size && e.pointerType !== "touch") {
+            leave(e.target, e.timeStamp);
+        }
         const row = armed;
         if (!row) {
             return;
