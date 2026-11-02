@@ -55,6 +55,7 @@ jobs:
   # ci/** branch, a manual run and a Dependabot pull request get.
   base:
     runs-on: ubuntu-26.04
+    timeout-minutes: 10   # a minute of git and gh; a hung API call must not hold a runner
     permissions:
       actions: read    # the last green run
       contents: read

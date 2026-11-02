@@ -30,6 +30,7 @@ jobs:
   # nothing new to publish.
   moved:
     runs-on: ubuntu-26.04
+    timeout-minutes: 10   # seconds of gh, and the minute it waits for its own cancel
     permissions:
       actions: write   # read the last green run, cancel this one
       contents: read
