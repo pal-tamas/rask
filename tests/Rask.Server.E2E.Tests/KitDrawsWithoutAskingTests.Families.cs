@@ -234,6 +234,12 @@ public abstract partial class KitDrawsWithoutAskingTests
             .. Popup("#bound", "[data-c='select-bound'] [popover]"),
             Press("pick a row", "[data-c='select-bound'] [role=option] >> nth=2", Pressing("#bound")),
         ]),
+        ["select-multiple-bound"] = On<KitSelectFramePage>("select-multiple-bound",
+        [
+            .. Popup("#multiple-bound", "[data-c='select-multiple-bound'] [popover]"),
+            Press("pick a row", "[data-c='select-multiple-bound'] [role=option] >> nth=2", Pressing("#multiple-bound")),
+            Press("pick a picked row again", "[data-c='select-multiple-bound'] [role=option] >> nth=1", Pressing("#multiple-bound")),
+        ]),
         ["select-searchable"] = On<KitSelectFramePage>("select-searchable",
         [
             .. Popup("#searchable", "[data-c='select-searchable'] [popover]"),
@@ -275,6 +281,17 @@ public abstract partial class KitDrawsWithoutAskingTests
             .. Popup("#pillbox-combobox", "[data-c='pillbox-combobox'] [popover]"),
             Typing("#pillbox-combobox", "be", "typing to filter"),
             Keys("Backspace over what was typed", TypingInto("#pillbox-combobox", "be"), "Backspace", "Backspace"),
+        ]),
+        ["pillbox-bound"] = On<KitSelectFramePage>("pillbox-bound",
+        [
+            .. Popup("#pillbox-bound", "[data-c='pillbox-bound'] [popover]"),
+            Press("pick a row", "[data-c='pillbox-bound'] [role=option] >> nth=1", Pressing("#pillbox-bound")),
+            Press("take a pill off", "[data-c='pillbox-bound'] [data-rask-list-remove]"),
+        ]),
+        ["pillbox-combobox-bound"] = On<KitSelectFramePage>("pillbox-combobox-bound",
+        [
+            Press("pick a row", "[data-c='pillbox-combobox-bound'] [role=option] >> nth=1", Pressing("#pillbox-combobox-bound")),
+            Keys("Backspace in the empty input takes the last pill off", Focusing("#pillbox-combobox-bound"), "Backspace"),
         ]),
 
         ["chart"] = On<KitChartFramePage>("chart", Across("[data-c='chart'] svg", "pointer across the plot")),

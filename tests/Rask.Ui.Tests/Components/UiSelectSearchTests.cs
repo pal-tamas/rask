@@ -112,9 +112,9 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         var roles = Acting.Render(() => Ui.Select.Bind(() => model.Roles).Listbox.Multiple()[Ui.SelectOption["admin"], Ui.SelectOption["editor"]]);
         var ids = Acting.Render(() => Ui.Select.Bind(() => model.Ids).Listbox.Multiple()[Ui.SelectOption.Value(1)["One"], Ui.SelectOption.Value(3)["Three"]]);
 
-        await tags.On("[data-ui-option]:has-text(\"ui\")").Click();
-        await roles.On("[data-ui-option]:has-text(\"editor\")").Click();
-        await ids.On("[data-ui-option]:has-text(\"Three\")").Click();
+        await HeldList.Pick(tags, "ui");
+        await HeldList.Pick(roles, "editor");
+        await HeldList.Pick(ids, "Three");
         await Acting.Act(tags);
         await Acting.Act(roles);
         await Acting.Act(ids);

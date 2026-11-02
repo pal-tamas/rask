@@ -1,26 +1,37 @@
 // A pick that waits for the next action, held in the browser: a list that says `held` (rask-list.ts).
 //
-// Flux's select under a plain `wire:model` sends nothing when an option is picked: it stamps the option into its
-// button and Livewire carries the value with the next action (measured on fluxui.dev/components/select,
-// 2026-11-02). A bound select that waits does the same. Its rows carry `data-rask-list-value` (the form value
-// they post) and no handler; a pick, or the clear button (`data-rask-list-clear`), is written here into the
-// list's ONE bound field (rask-bound.ts) — a JSON array of form values — and announced there with `input` and
-// `change`. That field says `data-rask-bind-on="action"`, so the runtime keeps it and sends it ahead of the
-// reader's next action (rask-input.ts); a form that asks before it is left counts it (rask-leave.ts).
+// Flux's select and pillbox under a plain `wire:model` send nothing when an option is picked: they stamp the
+// option into the button, or a pill for it, and Livewire carries the value with the next action (measured on
+// fluxui.dev/components/select and /pillbox, 2026-11-02). A bound list that waits does the same. Its rows carry
+// `data-rask-list-value` (the form value they post) and no handler; a pick, a pill's cross
+// (`data-rask-list-remove`) or the clear button (`data-rask-list-clear`) is written here into the list's ONE bound
+// field (rask-bound.ts) — a JSON array of form values, in the order they were picked — and announced there with
+// `input` and `change`. That field says `data-rask-bind-on="action"`, so the runtime keeps it and sends it ahead
+// of the reader's next action (rask-input.ts); a form that asks before it is left counts it (rask-leave.ts). A
+// list of several answers (`multiple`) switches the row picked; a list of one takes it.
 //
 // WHAT IS DRAWN. The rows' `aria-selected` and `data-selected`, the trigger's `data-selected`, the clear button
-// shown or hidden and a named list's posted field — each an attribute the page renders too. And the button's
-// words: the box that says them (`data-rask-list-shows`) is drawn by the page once and is the browser's from
-// then on (`data-rask-opaque`: no diff and no morph goes into it). It is stamped from the list's template
-// (`data-rask-list-faces`): the placeholder; the answer the page last drew, as it drew it (`data-value`); or
-// the picked row's content copied into the box `data-rask-list-face` names the class of — as Flux copies its
-// option. When the page writes an answer of its own, the field's `value` moves and the box follows it. A
-// combobox's input says its pick through rask-list.ts (`strict`).
+// shown or hidden and a named list's posted field — each an attribute the page renders too. And what the trigger
+// says: the boxes that say it are drawn by the page once and are the browser's from then on
+// (`data-rask-opaque`: no diff and no morph goes into them), stamped from the list's template
+// (`data-rask-list-faces`):
+//   data-rask-list-shows   a button's words: the placeholder; the answer the page last drew, as it drew it
+//                          (`data-value`); the picked row's content copied into the box `data-rask-list-face`
+//                          names the class of — as Flux copies its option; or, for several, the count
+//                          (`data-rask-list-count`: the words after it);
+//   data-rask-list-pills   a pillbox's pills, in the order they were picked: the pill the page last drew for an
+//                          answer, or the template's blank pill (`data-rask-list-pill`) given its row's words;
+//   data-rask-list-blank   a pillbox's placeholder while it holds nothing — an input among the pills says it as
+//                          its own `placeholder` instead;
+//   data-rask-list-posts   a named list of several answers: one posted field per answer, named `data-name`.
+// When the page writes an answer of its own, the field's `value` moves and the boxes follow it. A combobox's
+// input says its pick through rask-list.ts (`strict`).
 
 import {announce, bind, boundOf} from "./rask-bound.js";
 
 const HELD = "[data-rask-list~=held]";
 const VALUE = "data-rask-list-value";
+const PLACEHOLDER = "[data-ui-select-placeholder],[data-ui-pillbox-placeholder]";
 /** The clear button of a held list. */
 export const CLEAR = "data-rask-list-clear";
 
@@ -94,9 +105,16 @@ export function markHeld(root: Element): void {
     }
 }
 
-// What the button says for `shown`: the answer as the page drew it, the picked row copied, or the placeholder —
-// which is also what the page says for an answer it has nothing to show of.
+// What the button says for `shown`: a count of several, the answer as the page drew it, the picked row copied, or
+// the placeholder — which is also what the page says for an answer it has nothing to show of.
 function face(root: Element, faces: HTMLTemplateElement, shown: readonly string[]): Node | null {
+    const count = shown.length > 1 ? faces.content.querySelector("[data-rask-list-count]") : null;
+    if (count) {
+        const counted = count.cloneNode(false) as Element;
+        counted.removeAttribute("data-rask-list-count");
+        counted.textContent = shown.length + " " + count.getAttribute("data-rask-list-count");
+        return counted;
+    }
     if (shown.length) {
         const drawn = find(faces.content.querySelectorAll("[data-value]"), "data-value", shown[0]);
         const copied = drawn ? drawn.cloneNode(true) : copy(root, faces, shown[0]);
@@ -104,7 +122,11 @@ function face(root: Element, faces: HTMLTemplateElement, shown: readonly string[
             return copied;
         }
     }
-    const placeholder = faces.content.querySelector("[data-ui-select-placeholder]");
+    return placeholderOf(faces);
+}
+
+function placeholderOf(faces: HTMLTemplateElement): Node | null {
+    const placeholder = faces.content.querySelector(PLACEHOLDER);
     return placeholder ? placeholder.cloneNode(true) : null;
 }
 
@@ -130,6 +152,52 @@ function copy(root: Element, faces: HTMLTemplateElement, value: string): Element
     return picked;
 }
 
+// A pillbox's pills for `shown`, in the wrapper the page draws them in: each as the page last drew it, or the
+// blank pill given its row's words. A value with neither is no answer the list can show, and has no pill.
+function pills(root: Element, faces: HTMLTemplateElement, shown: readonly string[]): Node | null {
+    const drawn = faces.content.querySelector("[data-rask-list-pills]");
+    const blank = drawn && drawn.querySelector("[data-rask-list-pill]");
+    if (!drawn || !blank || !shown.length) {
+        return null;
+    }
+    const wrapper = drawn.cloneNode(false) as Element;
+    wrapper.removeAttribute("data-rask-list-pills");
+    const rows = root.querySelectorAll("[" + VALUE + "]");
+    for (const value of shown) {
+        const kept = find(drawn.querySelectorAll("[data-value]"), "data-value", value);
+        const row = kept ? null : find(rows, VALUE, value);
+        if (kept || row) {
+            const pill = (kept || blank).cloneNode(true) as Element;
+            pill.removeAttribute("data-rask-list-pill");
+            pill.setAttribute("data-value", value);
+            if (row && pill.firstElementChild) {
+                const says = row.getAttribute("data-rask-list-says");
+                pill.firstElementChild.textContent = says !== null ? says : (row.textContent || "").trim();
+            }
+            wrapper.appendChild(pill);
+        }
+    }
+    return wrapper;
+}
+
+// A named list of several answers posts one field per answer, and one empty field for none.
+function posts(box: Element, shown: readonly string[]): void {
+    const name = box.getAttribute("data-name") || "";
+    box.replaceChildren(...(shown.length ? shown : [""]).map(function (value) {
+        const field = box.ownerDocument.createElement("input");
+        field.type = "hidden";
+        field.name = name;
+        field.value = value;
+        return field;
+    }));
+}
+
+function fill(box: Element | null, content: Node | null): void {
+    if (box) {
+        box.replaceChildren(...(content ? [content] : []));
+    }
+}
+
 // Everything the list shows of its answers, from what it holds now.
 function draw(root: Element): void {
     const held = heldOf(root);
@@ -143,19 +211,29 @@ function draw(root: Element): void {
         clear.classList.replace(any ? "hidden" : "flex", any ? "flex" : "hidden");
     });
     const bound = boundOf(root);
-    root.querySelectorAll<HTMLInputElement>("input[type=hidden][name]").forEach(function (posted) {
-        if (posted !== bound) {
-            posted.value = any ? held.shown[0] : "";
-        }
-    });
-    const shows = root.querySelector("[data-rask-list-shows]");
+    const box = root.querySelector("[data-rask-list-posts]");
+    if (box) {
+        posts(box, held.shown);
+    } else {
+        root.querySelectorAll<HTMLInputElement>("input[type=hidden][name]").forEach(function (posted) {
+            if (posted !== bound) {
+                posted.value = any ? held.shown[0] : "";
+            }
+        });
+    }
     const faces = root.querySelector<HTMLTemplateElement>("template[data-rask-list-faces]");
-    if (shows && faces) {
-        const said = face(root, faces, held.shown);
-        if (said) {
-            shows.replaceChildren(said);
-        } else {
-            shows.replaceChildren();
+    if (!faces) {
+        return;
+    }
+    fill(root.querySelector("[data-rask-list-shows]"), face(root, faces, held.shown));
+    const pillBox = root.querySelector("[data-rask-list-pills]");
+    if (pillBox) {
+        fill(pillBox, pills(root, faces, held.shown));
+        fill(root.querySelector("[data-rask-list-blank]"), any ? null : placeholderOf(faces));
+        const input = root.querySelector<HTMLInputElement>("[data-ui-pillbox-trigger] input");
+        const placeholder = faces.content.querySelector(PLACEHOLDER);
+        if (input && placeholder) {
+            input.placeholder = any ? "" : placeholder.textContent || "";
         }
     }
 }
@@ -166,11 +244,29 @@ function hold(root: Element, values: string[]): void {
     announce(root, current(root));
 }
 
-/** A row of a held list was picked. One that posts no value is the page's own (a create row), and is left to it. */
+/**
+ * A row of a held list was picked: the answer, or — among several — switched. One that posts no value is the
+ * page's own (a create row), and is left to it.
+ */
 export function pickHeld(root: Element, row: Element): void {
     const value = row.getAttribute(VALUE);
-    if (value !== null) {
+    if (value === null) {
+        return;
+    }
+    const shown = heldOf(root).shown;
+    if (!root.matches("[data-rask-list~=multiple]")) {
         hold(root, [value]);
+    } else {
+        hold(root, shown.indexOf(value) >= 0 ? shown.filter(function (held) { return held !== value; }) : shown.concat(value));
+    }
+}
+
+/** A pill's cross was pressed: its answer goes. */
+export function removeHeld(root: Element, cross: Element): void {
+    const pill = cross.closest("[data-value]");
+    const value = pill ? pill.getAttribute("data-value") : null;
+    if (value !== null) {
+        hold(root, heldOf(root).shown.filter(function (held) { return held !== value; }));
     }
 }
 
