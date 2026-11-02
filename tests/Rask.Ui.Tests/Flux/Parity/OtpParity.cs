@@ -46,12 +46,11 @@ public sealed partial class OtpParity : FluxParity
             ]
         ]);
 
-        // submit="auto" there submits the form; here the full code arrives at OnComplete.
         yield return ("autosubmit", Div.Style("max-width:384px;margin:0 auto")[
             Raw.Value(AppUtilities),
             Form.Model(new object())[
                 Div.Style(Intro)[Heading(), Words()],
-                Div[Ui.Otp.Value("").Length(6).OnComplete(_ => { }).Class("mx-auto")]
+                Div[Ui.Otp.Value("").Length(6).Submit(Ui.OtpSubmit.Auto).Class("mx-auto")]
             ]
         ]);
 

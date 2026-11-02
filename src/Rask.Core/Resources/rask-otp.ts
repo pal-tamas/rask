@@ -15,11 +15,17 @@
 // the cells are refilled from it. The bound field and its late echo are rask-bound.ts's.
 //
 // data-rask-otp="numeric" (the default) | "alpha" | "alphanumeric" says what a cell accepts.
+//
+// data-rask-otp-submit is Flux's submit="auto": a character typed, pasted or autofilled that leaves every cell
+// filled sends the enclosing form (requestSubmit: no submitter, the form's own validation first). Measured on
+// Flux's page: it sends again for each such change while the code is whole, a key that empties a cell sends
+// nothing, and a pasted or autofilled code with more characters than there are cells fills them and sends nothing.
 
 import {announce, bind} from "./rask-bound.js";
 import {listen, page} from "./rask-owned.js";
 
 const GROUP = "[data-rask-otp]";
+const SUBMIT = "data-rask-otp-submit";
 
 function accepts(group: Element, c: string): boolean {
     const mode = group.getAttribute("data-rask-otp");
@@ -72,11 +78,21 @@ function land(cells: HTMLInputElement[], index: number): void {
     cell.select();
 }
 
-// Rewrites the whole code and puts the caret on cell `index`.
-function commit(group: Element, cells: HTMLInputElement[], value: string, index: number): void {
+// Rewrites the whole code and puts the caret on cell `index`. `sends` is false for a change that never submits.
+function commit(group: Element, cells: HTMLInputElement[], value: string, index: number, sends: boolean): void {
     fill(cells, value);
     land(cells, index);
-    announce(group, join(cells));
+    const code = join(cells);
+    // Announced first, so the form is sent with the whole code.
+    announce(group, code);
+    if (sends && code.length === cells.length && group.hasAttribute(SUBMIT)) {
+        group.closest("form")?.requestSubmit();
+    }
+}
+
+// A whole code at once may submit only when it has no more characters than the group has cells.
+function fits(group: Element, text: string, cells: HTMLInputElement[]): boolean {
+    return otpChars(text, group.getAttribute("data-rask-otp"), cells.length + 1).length <= cells.length;
 }
 
 // The page changed the code (the bound field's value moved, or the group just arrived): the cells follow it.
@@ -112,13 +128,13 @@ if (page) {
         const typed = otpChars((cell as HTMLInputElement).value, group.getAttribute("data-rask-otp"), cells.length);
         if (typed.length > 1 && (e as InputEvent).inputType !== "insertText") {
             // A whole code in one cell: the browser's one-time-code autofill, or a paste that reached here.
-            commit(group, cells, typed, typed.length);
+            commit(group, cells, typed, typed.length, fits(group, (cell as HTMLInputElement).value, cells));
             return;
         }
         // The last character typed is the cell's: typing over a filled cell replaces it.
         let value = join(cells.slice(0, index));
         value += typed.slice(-1) + join(cells.slice(index + 1));
-        commit(group, cells, value, typed ? index + 1 : index);
+        commit(group, cells, value, typed ? index + 1 : index, typed.length > 0);
     }, true);
 
     listen("keydown", function (e) {
@@ -134,7 +150,7 @@ if (page) {
             e.preventDefault();
             // Backspace steps back as it deletes; in an empty cell it only steps. Delete stays where it is.
             const next = index < value.length ? value.slice(0, index) + value.slice(index + 1) : value;
-            commit(group, cells, next, e.key === "Backspace" ? index - 1 : index);
+            commit(group, cells, next, e.key === "Backspace" ? index - 1 : index, false);
         } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
             e.preventDefault();
             land(cells, index + (e.key === "ArrowLeft" ? -1 : 1));
@@ -152,9 +168,10 @@ if (page) {
         e.preventDefault();
         const cells = cellsOf(group);
         // From the first cell, whichever one has focus, replacing what was there.
-        const code = otpChars(data.getData("text"), group.getAttribute("data-rask-otp"), cells.length);
+        const text = data.getData("text");
+        const code = otpChars(text, group.getAttribute("data-rask-otp"), cells.length);
         if (code) {
-            commit(group, cells, code, code.length);
+            commit(group, cells, code, code.length, fits(group, text, cells));
         }
     }, true);
 

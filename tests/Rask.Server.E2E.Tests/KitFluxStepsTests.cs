@@ -11,8 +11,9 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     Three of Flux's steps in a real browser: an amount grouped as it is typed and read back as a number
-///     (<c>.Money()</c>), the OTP form's message centred with no icon, and a listbox whose rows are checkboxes.
+///     Four of Flux's steps in a real browser: an amount grouped as it is typed and read back as a number
+///     (<c>.Money()</c>), the OTP form's message centred with no icon, a code that sends its form once it is whole
+///     (<c>.Submit(Ui.OtpSubmit.Auto)</c>), and a listbox whose rows are checkboxes.
 /// </summary>
 public sealed class KitFluxStepsTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -119,6 +120,26 @@ public sealed class KitFluxStepsTests(PlaywrightFixture playwright) : IClassFixt
     }
 
     [Fact]
+    public async Task A_code_whose_last_cell_is_filled_sends_its_form_once()
+    {
+        await using var session = await OpenAsync(playwright);
+        var page = session.Page;
+        var cells = page.Locator("#auto-otp input[data-ui-otp-input]");
+        await cells.Nth(0).ClickAsync();
+        await page.Keyboard.TypeAsync("12345");
+        await Expect(page.Locator("#auto-otp input[type=hidden]")).ToHaveValueAsync("12345");
+        // A round trip of its own: five cells sent nothing.
+        await page.ClickAsync("#ready");
+        await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=0|");
+
+        await page.Keyboard.TypeAsync("6");
+        await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=1|123456");
+        await page.ClickAsync("#ready");
+
+        await Expect(page.Locator("#sent")).ToHaveTextAsync("sent=1|123456");
+    }
+
+    [Fact]
     public async Task Two_rows_picked_in_a_checkbox_listbox_tick_both_boxes()
     {
         await using var session = await OpenAsync(playwright);
@@ -143,6 +164,9 @@ public sealed partial class KitFluxStepsPage : Component
 {
     private readonly Payment _payment = new();
     private readonly Verification _verification = new();
+    private readonly AutoVerification _autoVerification = new();
+    private int _sent;
+    private string _sentCode = "";
     private string _saved = "";
     private bool _ready;
     private string _resent = "";
@@ -175,6 +199,12 @@ public sealed partial class KitFluxStepsPage : Component
             Markup.Button.Id("resend").OnClick(() => { _resent = Code; Code = ""; })["Resend"],
             P.Id("resent")[$"resent={_resent}"]
         ],
+        Div.Id("auto-otp")[
+            Form.Model(_autoVerification).OnSubmit(_ => { _sent++; _sentCode = _autoVerification.Code; })[
+                Ui.Otp.Bind(() => _autoVerification.Code).Length(6).Submit(Ui.OtpSubmit.Auto)
+            ],
+            P.Id("sent")[string.Create(CultureInfo.InvariantCulture, $"sent={_sent}|{_sentCode}")]
+        ],
         Div.Id("industries")[
             Ui.Select.Bind(() => _payment.Industries).Listbox.Checkbox.Multiple().Placeholder("Choose industries...")[
                 Ui.SelectOption["Photography"], Ui.SelectOption["Design services"], Ui.SelectOption["Legal services"]
@@ -192,6 +222,11 @@ public sealed partial class KitFluxStepsPage : Component
         public decimal Local { get; set; } = 1234.56m;
 
         public List<string> Industries { get; set; } = [];
+    }
+
+    private sealed class AutoVerification
+    {
+        public string Code { get; set; } = "";
     }
 
     private sealed class Verification

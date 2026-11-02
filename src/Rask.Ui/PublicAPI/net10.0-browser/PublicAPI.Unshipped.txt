@@ -454,6 +454,9 @@ Rask.Ui.OtpMode
 Rask.Ui.OtpMode.Alpha = 2 -> Rask.Ui.OtpMode
 Rask.Ui.OtpMode.Alphanumeric = 1 -> Rask.Ui.OtpMode
 Rask.Ui.OtpMode.Numeric = 0 -> Rask.Ui.OtpMode
+Rask.Ui.OtpSubmit
+Rask.Ui.OtpSubmit.Auto = 1 -> Rask.Ui.OtpSubmit
+Rask.Ui.OtpSubmit.Default = 0 -> Rask.Ui.OtpSubmit
 Rask.Ui.PhoneSize
 Rask.Ui.PhoneSize.Base = 0 -> Rask.Ui.PhoneSize
 Rask.Ui.PhoneSize.Sm = 1 -> Rask.Ui.PhoneSize
@@ -646,6 +649,7 @@ Rask.UiAutocomplete.Live.get -> bool?
 Rask.UiAutocomplete.Live.set -> void
 Rask.UiAutocomplete.Mask.get -> string?
 Rask.UiAutocomplete.Mask.set -> void
+Rask.UiAutocomplete.Money(string! decimals = ".", string! thousands = ",", int precision = 2) -> Rask.UiAutocomplete!
 Rask.UiAutocomplete.Multiple.get -> bool?
 Rask.UiAutocomplete.Multiple.set -> void
 Rask.UiAutocomplete.OnChange.get -> Rask.Core.Callback<string!>
@@ -2339,6 +2343,8 @@ Rask.UiOtp.Private.get -> bool?
 Rask.UiOtp.Private.set -> void
 Rask.UiOtp.ShowValidation.get -> bool?
 Rask.UiOtp.ShowValidation.set -> void
+Rask.UiOtp.Submit.get -> Rask.Ui.OtpSubmit?
+Rask.UiOtp.Submit.set -> void
 Rask.UiOtp.Validate.get -> Rask.Core.Validator<string!>?
 Rask.UiOtp.Validate.set -> void
 Rask.UiOtp.Value.get -> string?
@@ -2715,7 +2721,7 @@ Rask.UiSelectMultiple<T>.Validate.set -> void
 Rask.UiSelectMultiple<T>.Value.get -> System.Collections.Generic.ICollection<T>?
 Rask.UiSelectMultiple<T>.Value.set -> void
 Rask.UiSelectOption
-Rask.UiSelectOption.Avatar.get -> string?
+Rask.UiSelectOption.Avatar.get -> Rask.Core.Component?
 Rask.UiSelectOption.Avatar.set -> void
 Rask.UiSelectOption.Class.get -> string?
 Rask.UiSelectOption.Class.set -> void
@@ -3519,6 +3525,8 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Left.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiModal!).Right.get -> Rask.UiModal!
 RaskBuilderSettersRask_Ui.extension(Rask.UiOtp!).Alpha.get -> Rask.UiOtp!
 RaskBuilderSettersRask_Ui.extension(Rask.UiOtp!).Alphanumeric.get -> Rask.UiOtp!
+RaskBuilderSettersRask_Ui.extension(Rask.UiOtp!).Auto.get -> Rask.UiOtp!
+RaskBuilderSettersRask_Ui.extension(Rask.UiOtp!).Default.get -> Rask.UiOtp!
 RaskBuilderSettersRask_Ui.extension(Rask.UiOtp!).Numeric.get -> Rask.UiOtp!
 RaskBuilderSettersRask_Ui.extension(Rask.UiPhone!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiPhone!).Base.get -> Rask.UiPhone!
@@ -4468,6 +4476,7 @@ static RaskBuilderSettersRask_Ui.Autoplay(this Rask.UiCarousel! __b) -> Rask.UiC
 static RaskBuilderSettersRask_Ui.Autoplay(this Rask.UiCarousel! __b, bool? value) -> Rask.UiCarousel!
 static RaskBuilderSettersRask_Ui.AutoplayInterval(this Rask.UiCarousel! __b, int? value) -> Rask.UiCarousel!
 static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiProfile! __b, Rask.Core.Component? value) -> Rask.UiProfile!
+static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiSelectOption! __b, Rask.Core.Component? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiSidebarProfile! __b, string? value) -> Rask.UiSidebarProfile!
 static RaskBuilderSettersRask_Ui.AvatarColor(this Rask.UiProfile! __b, Rask.Ui.Color? value) -> Rask.UiProfile!
 static RaskBuilderSettersRask_Ui.AvatarName(this Rask.UiProfile! __b, string? value) -> Rask.UiProfile!
@@ -4587,7 +4596,6 @@ static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, params
 static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, string! name) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, string! name, string? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Attributes<T>(this Rask.UiInput<T>! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> Rask.UiInput<T>!
-static RaskBuilderSettersRask_Ui.Avatar(this Rask.UiSelectOption! __b, string? value) -> Rask.UiSelectOption!
 static RaskBuilderSettersRask_Ui.Axis(this Rask.UiChartAxis! __b, Rask.Ui.ChartAxisAxis? value) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.Badge(this Rask.UiEditor! __b, string? value) -> Rask.UiEditor!
 static RaskBuilderSettersRask_Ui.Badge<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
@@ -4995,6 +5003,7 @@ static RaskBuilderSettersRask_Ui.get_Amber(Rask.UiToggle! __b) -> Rask.UiToggle!
 static RaskBuilderSettersRask_Ui.get_Area(Rask.UiChartCursor! __b) -> Rask.UiChartCursor!
 static RaskBuilderSettersRask_Ui.get_Auto(Rask.UiDatetimePicker! __b) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.get_Auto(Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!
+static RaskBuilderSettersRask_Ui.get_Auto(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Auto<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Bare(Rask.UiModal! __b) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.get_Bare(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
@@ -5097,6 +5106,7 @@ static RaskBuilderSettersRask_Ui.get_Date(Rask.UiAutocomplete! __b) -> Rask.UiAu
 static RaskBuilderSettersRask_Ui.get_DatetimeLocal(Rask.UiAutocomplete! __b) -> Rask.UiAutocomplete!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiChartAxis! __b) -> Rask.UiChartAxis!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiChartAxisMark! __b) -> Rask.UiChartAxisMark!
+static RaskBuilderSettersRask_Ui.get_Default(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiSidebarCollapse! __b) -> Rask.UiSidebarCollapse!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiSidebarToggle! __b) -> Rask.UiSidebarToggle!
 static RaskBuilderSettersRask_Ui.get_Default(Rask.UiTimelineIndicator! __b) -> Rask.UiTimelineIndicator!
@@ -5615,6 +5625,7 @@ static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatetimePickerButton! __b, Ras
 static RaskBuilderSettersRask_Ui.Size(this Rask.UiDatetimePickerRange! __b, Rask.Ui.DatetimePickerSize? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiDatetimePicker! __b, System.DayOfWeek? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.StartDay(this Rask.UiDatetimePickerRange! __b, System.DayOfWeek? value) -> Rask.UiDatetimePickerRange!
+static RaskBuilderSettersRask_Ui.Submit(this Rask.UiOtp! __b, Rask.Ui.OtpSubmit? value) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.Time(this Rask.UiDatetimePicker! __b, Rask.Ui.DatetimePickerTime? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Time(this Rask.UiDatetimePickerRange! __b, Rask.Ui.DatetimePickerTime? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.TimeFormat(this Rask.UiDatetimePicker! __b, Rask.Ui.DatetimePickerTimeFormat? value) -> Rask.UiDatetimePicker!

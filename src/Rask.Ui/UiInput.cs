@@ -209,19 +209,15 @@ public sealed partial class UiInput<T> : Component, IFormControl<T>, IUiFormCont
     /// <param name="thousands">The mark between groups of three digits, one character.</param>
     /// <param name="precision">How many decimals can be typed; 0 for whole amounts.</param>
     /// <returns>This input.</returns>
-    public UiInput<T> Money(string decimals = ".", string thousands = ",", int precision = 2)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(decimals);
-        ArgumentException.ThrowIfNullOrEmpty(thousands);
-        ArgumentOutOfRangeException.ThrowIfNegative(precision);
-        if (decimals.Length != 1 || thousands.Length != 1 || string.Equals(decimals, thousands, StringComparison.Ordinal))
-        {
-            throw new ArgumentException(
-                $"Money takes one character for each mark, and two different ones: not \"{decimals}\" and \"{thousands}\".",
-                nameof(thousands));
-        }
+    public UiInput<T> Money(string decimals = ".", string thousands = ",", int precision = 2) =>
+        Money(UiMoney.Marks(decimals, thousands, precision));
 
-        _money = new MoneyMarks(decimals[0], thousands[0], precision);
+    /// <summary>Shows an amount grouped as it is typed, with marks already checked. The kit's own chain step, for <c>Ui.Autocomplete</c>.</summary>
+    /// <param name="marks">The marks, or null for a plain field.</param>
+    internal UiInput<T> Money(MoneyMarks? marks)
+    {
+        _money = marks;
+        // What a generated step does when it writes a new value: the input is drawn again with it.
         BuilderRuntime.MarkChanged(this);
         return this;
     }

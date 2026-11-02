@@ -10,8 +10,8 @@ namespace Rask;
 /// <para>
 /// A form control over a <c>string</c> — a code is characters, and a number would lose a leading zero.
 /// <c>.Bind(() =&gt; model.Code)</c> two-way binds and drives the form's validation; <c>.Value(code)</c> with
-/// <c>OnChange</c> leaves it with the parent. <see cref="OnComplete" /> runs when the last cell is filled, which
-/// is where Flux's <c>submit="auto"</c> submits.
+/// <c>OnChange</c> leaves it with the parent. <see cref="OnComplete" /> runs when the last cell is filled;
+/// <see cref="Submit" /> sends the enclosing form then, as Flux's <c>submit="auto"</c> does.
 /// </para>
 /// <para>
 /// <see cref="Length" /> draws that many cells; or place <c>Ui.OtpInput</c>, <c>Ui.OtpSeparator</c> and
@@ -55,6 +55,13 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
 
     /// <summary>Masks what is typed, as a password input does.</summary>
     public bool? Private { get; set; }
+
+    /// <summary>
+    ///     <see cref="Ui.OtpSubmit.Auto" /> sends the enclosing form once every cell is filled — typed, pasted or
+    ///     autofilled — as if its submit button had been pressed: <c>Ui.Otp.Bind(() =&gt; m.Code).Length(6).Submit(Ui.OtpSubmit.Auto)</c>.
+    ///     Flux's <c>submit="auto"</c>. Out of a form it sends nothing; <see cref="OnComplete" /> runs either way.
+    /// </summary>
+    public Ui.OtpSubmit? Submit { get; set; }
 
     /// <summary>The first cell's <c>autocomplete</c>. <c>one-time-code</c> unless set; <c>off</c> to stop the browser offering one.</summary>
     public string? Autocomplete { get; set; }
@@ -140,6 +147,7 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
         return field.Wrap(
             Div.Class("flex items-center gap-2 w-fit", Class)
                 .Data(("ui-otp", ""), ("ui-control", ""), ("rask-otp", Accepts(mode)))
+                .Attributes(Submit == Ui.OtpSubmit.Auto ? SubmitsAuto : null)
                 .Role("group")
                 .Aria(Names(field))[
                 Input.Value(Shown(live))
@@ -157,6 +165,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
             errorIcon: ErrorIcon != false,
             errorClass: ErrorClass);
     }
+
+    // The runtime's hook sends the form (rask-otp.ts).
+    private static readonly Dictionary<string, string?> SubmitsAuto = new(StringComparer.Ordinal) { ["data-rask-otp-submit"] = null };
 
     private static string Accepts(Ui.OtpMode mode) => mode switch
     {
