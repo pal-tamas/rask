@@ -26,6 +26,9 @@ internal sealed class RaskSqliteConnectionFactory : ISqlite
         _connectionString = connectionString;
         _options = options;
         _retry = retry;
+
+        // Once, when the factory is built at startup — not on every open.
+        SqliteDatabaseDirectory.EnsureFor(connectionString);
     }
 
     public SqliteConnection Create()

@@ -35,6 +35,10 @@ public static class RaskSqliteDbContextOptionsExtensions
     /// and passes that.
     /// </para>
     /// <para>
+    /// The database file's directory is created if it is missing (SQLite creates the file, not the directories above
+    /// it), so <c>Data Source=/tmp/rask/app.db</c> opens on a fresh container.
+    /// </para>
+    /// <para>
     /// Set <c>Retry.Enabled</c> to register the fair-interval <see cref="RaskSqliteExecutionStrategy"/>
     /// so <c>SaveChanges</c> and queries retry on <c>SQLITE_BUSY</c>/<c>SQLITE_LOCKED</c>. That also turns
     /// SQLite's native busy handler off (<c>busy_timeout=0</c>) and lowers Microsoft.Data.Sqlite's own
@@ -73,6 +77,10 @@ public static class RaskSqliteDbContextOptionsExtensions
 
         var retry = options.Retry;
         Validate(options);
+
+        // A fresh container has no /tmp/rask yet, and SQLite makes the file but not its directory — so the first
+        // MigrateOnStart would fail with "unable to open database file".
+        SqliteDatabaseDirectory.EnsureFor(connectionString);
 
         // EF Core resolves exactly one IMigrationsSqlGenerator, so this is a single choice rather than two
         // replacements: registering a strict generator and a range-exclusion generator separately would keep
