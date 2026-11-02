@@ -513,6 +513,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An arrow key that shuts a submenu's flyout under a resting pointer hands the light back to that row, as Flux UI
+  does.** The flyout's safe area now goes with the flyout, so the browser reports the pointer over the row again:
+  the row is lit and its flyout opens while focus stays on the row the arrow reached. When the pointer then leaves,
+  no row stays lit. Before, the arrow's row kept the light. `parity-menu.mjs` now also allows for the kit's
+  native-feel departure in a menu (a row's `user-select`/`touch-action`, a menu's `overscroll-behavior`), as
+  `parity.mjs` already did.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

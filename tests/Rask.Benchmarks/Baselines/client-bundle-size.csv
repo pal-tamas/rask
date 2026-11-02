@@ -561,3 +561,11 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,120724
+# 2026-11-02, a submenu's safe area goes with its flyout (rask-menu.ts's setOpen: an arrow that shuts the flyout
+# under a resting pointer hands the light back to its row, as Flux UI's does): rask-hooks.js 121,602 -> 121,629
+# (+27); rask.js 113,282 and rask.wasm.js 97,691 unchanged. Measured locally (the bundle gate's esbuild 0.28.2
+# --minify recipe) on the tree at 7e9d8344c plus this change.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,121629

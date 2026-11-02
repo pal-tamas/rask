@@ -115,6 +115,12 @@ export function setOpen(row: Element, open: boolean): void {
     }
     mark(row.parentElement, "data-open", open ? "" : null);
     if (!open) {
+        // The safe area goes with the flyout, as Flux UI's does. A pointer resting on it is then over the row
+        // itself, and the browser says so (a pointerover from the triangle that is gone): the row is entered
+        // again, lit and its flyout opened — measured on Flux's dropdown with an arrow key that left the row.
+        if (shield && shield.parentNode === row) {
+            drop();
+        }
         // What was lit or focused in there is gone with it.
         const inside = flyout.querySelectorAll(ROW);
         for (let i = 0; i < inside.length; i++) {

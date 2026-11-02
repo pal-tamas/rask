@@ -81,6 +81,8 @@ const NATIVE = {
 // CSS anchor positioning and the margins that carry its gap. Where it ENDS UP is compared, as placement.
 const IGNORED = new Set(['width', 'height']);
 const PLACED = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'transform', 'zIndex']);
+// What a row lets go by the NATIVE FEEL departure (departedFrom).
+const ROW_FEEL = ['userSelect', 'webkitUserSelect', 'touchAction', 'webkitTouchCallout'];
 
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
 // What the page behind an open menu is given. The gutter is compared where there is one: measureBehind.
@@ -766,10 +768,12 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
     }
   }
 
-  compareStyles(a.style, b.style, where, diffs, a === rootA, b.pressable);
+  const departs = departedFrom(mine, b);
+  compareStyles(a.style, b.style, where, diffs, a === rootA, b.pressable, departs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false, b.pressable);
+    // A pseudo-element inherits what its node departs in (a row's `user-select`).
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false, b.pressable, departs);
   }
 
   const kids = (nodes, n) => nodes.filter(c => c.parent === n.id);
@@ -783,10 +787,24 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
   ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, pairs));
 }
 
+// The owner-approved NATIVE FEEL departure (2026-11-02, flux-component SKILL.md, ui.css), as parity.mjs lets it
+// go, in a menu: a row — an item, or a navigation menu's link — selects no text, waits for no second tap and
+// opens no long-press callout, and so does what is inside it (`user-select` inherits in Blink); a menu, the
+// popup or a flyout, keeps its own scroll. Asked of the kit's node and the tree above it; nothing of Flux's is.
+function departedFrom(nodes, node) {
+  const departs = node.attrs.role === 'menu' || 'popover' in node.attrs ? ['overscrollBehaviorY'] : [];
+  for (let n = node; n; n = nodes.find(p => p.id === n.parent)) {
+    if (n.attrs.role?.startsWith('menuitem') || n.tag === 'a') return [...departs, ...ROW_FEEL];
+  }
+
+  return departs;
+}
+
 // `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
-function compareStyles(x, y, where, diffs, placed, pressable = false) {
+// `departs`: the keys departedFrom lets go on this node.
+function compareStyles(x, y, where, diffs, placed, pressable = false, departs = []) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || (placed && PLACED.has(key)) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || (placed && PLACED.has(key)) || departs.includes(key) || same(x[key], y[key])) continue;
     if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     const width = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
     if (width && x[`border${width}Width`] === '0px' && y[`border${width}Width`] === '0px') continue;

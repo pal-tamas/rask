@@ -154,6 +154,52 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
+    public async Task An_arrow_that_closes_the_flyout_under_a_still_pointer_hands_the_light_back_to_its_row()
+    {
+        // Flux UI's dropdown, 2026-11-02: the pointer rests on a submenu's row, over its safe area. The arrow puts
+        // focus on the next row and shuts the flyout, safe area and all; the browser then has the pointer over the
+        // row itself, which is entered again — lit, its flyout open — while focus stays where the arrow put it. So
+        // when the pointer leaves, the light was the pointer's and nothing stays lit.
+        var sent = 0;
+        var received = 0;
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref received);
+            };
+            return Task.CompletedTask;
+        });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        // The toggle the page hears has gone and its answer has come: from here on the socket is watched.
+        await page.WaitForTimeoutAsync(300);
+        var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await SeeAsync(page, "Filter | Filter | ");
+        await OverAsync(page, "Sort by");
+        // A move inside the row, so the pointer is surely over the safe area that is now in it.
+        var row = (await Row(page, "Sort by").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(row.X + (row.Width / 2) + 4, row.Y + (row.Height / 2));
+        await SeeAsync(page, "Sort by | Filter | Sort by");
+
+        await page.Keyboard.PressAsync("ArrowDown");
+        await SeeAsync(page, "Sort by | Filter | Sort by");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 4 });
+        await page.WaitForTimeoutAsync(150);
+
+        // Lit rows and focus: whether the flyout outlives the pointer leaving its row is not this walk's.
+        var after = (await page.EvaluateAsync<string>(State)).Split(" | ");
+        Assert.Equal(["", "Filter"], after[..2]);
+        Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
+        Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
+    }
+
+    [Fact]
     public async Task A_tap_opens_a_submenu_and_a_second_tap_leaves_it_open_with_its_row_dark()
     {
         // Flux UI's dropdown on a phone, 2026-10-27: the first tap lights the row and opens its flyout; the next
