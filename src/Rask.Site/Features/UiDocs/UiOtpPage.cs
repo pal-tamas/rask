@@ -21,7 +21,7 @@ public sealed partial class UiOtpPage : Component
             UiDocsExample.Key("ui-otp-form").Heading("Example usage").File("OtpFormExample.cs").Demo(OtpFormExample).Testid("ui-otp-form")
                 .Blurb("A form for verifying a one-time password: the page empties the code to resend one, and the cells follow."),
             UiDocsExample.Key("ui-otp-auto").Heading("Autosubmit").File("OtpAutoSubmitExample.cs").Demo(OtpAutoSubmitExample).Testid("ui-otp-auto")
-                .Blurb("OnComplete runs as soon as the last cell is filled: verify, submit or move on from it."),
+                .Blurb("Submit(Ui.OtpSubmit.Auto) sends the form as soon as the last cell is filled."),
             UiDocsExample.Key("ui-otp-alphanumeric").Heading("Alphanumeric").File("OtpAlphanumericExample.cs").Demo(OtpAlphanumericExample).Testid("ui-otp-alphanumeric")
                 .Blurb("Letters as well as digits, upper-cased in the value. Alpha takes letters alone."),
             UiDocsExample.Key("ui-otp-private").Heading("Private").File("OtpPrivateExample.cs").Demo(OtpPrivateExample).Testid("ui-otp-private")

@@ -14,7 +14,7 @@ internal sealed record UiOptionFace(
     string FormValue,
     string Text,
     string SelectedText,
-    string? Avatar,
+    Component? Avatar,
     Ui.IconName? Icon,
     Ui.IconVariant? IconVariant,
     string? IconClass,
@@ -31,9 +31,17 @@ internal sealed record UiOptionFace(
         string.Equals(FormValue, option.FormValue, StringComparison.Ordinal)
         && string.Equals(Text, option.Text, StringComparison.Ordinal)
         && string.Equals(SelectedText, option.SelectedText, StringComparison.Ordinal)
-        && string.Equals(Avatar, option.Avatar, StringComparison.Ordinal)
+        && SameAvatar(Avatar, option.Avatar)
         && Icon == option.Icon
         && IconVariant == option.IconVariant
         && string.Equals(IconClass, option.IconClass, StringComparison.Ordinal)
         && string.Equals(Description, option.Description, StringComparison.Ordinal);
+
+    // An image's address is the same avatar when it spells the same; an avatar of the page's own, when it is the same one.
+    private static bool SameAvatar(Component? kept, Component? now) => (kept, now) switch
+    {
+        (null, null) => true,
+        (Rask.Core.Components.Text a, Rask.Core.Components.Text b) => string.Equals(a.Value, b.Value, StringComparison.Ordinal),
+        _ => ReferenceEquals(kept, now),
+    };
 }

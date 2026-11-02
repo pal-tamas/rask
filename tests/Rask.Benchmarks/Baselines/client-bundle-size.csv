@@ -569,3 +569,10 @@ bundle,bytes
 rask.js,113050
 rask.wasm.js,97459
 rask-hooks.js,121284
+# 2026-11-02, Flux's otp submit="auto" (rask-otp.ts: data-rask-otp-submit sends the enclosing form once a typed,
+# pasted or autofilled change leaves every cell filled): rask-hooks.js 121,602 -> 121,873 (+271); rask.js 113,282 and
+# rask.wasm.js 97,691 unchanged. Measured locally (Release, the bundle gate's recipe) on the tree at 3c1e3265d.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,121873

@@ -33,8 +33,10 @@ internal sealed partial class UiOtpBehaviour : Component
             + "so a plain form posts the code once. Set the bound string yourself (to clear a wrong code) and the cells "
             + "follow. The code has no gaps and holds only what the `Mode` takes: digits, or `.Alphanumeric` and "
             + "`.Alpha` with letters upper-cased in the value, as Flux's are.",
-            "`OnComplete` runs with the code each time its last cell is filled, bound or not. It stands where Flux's "
-            + "`submit=\"auto\"` submits the form; the form itself is not submitted for you.",
+            "`OnComplete` runs with the code each time its last cell is filled, bound or not. `.Submit(Ui.OtpSubmit.Auto)` "
+            + "is Flux's `submit=\"auto\"`: a character typed, pasted or autofilled that leaves every cell filled sends the "
+            + "form the cells are in, as its submit button would, and again for each such change while the code is whole. A "
+            + "key that empties a cell sends nothing, and neither does a pasted code longer than the cells.",
         ]);
 
     private static UiDocsTopic Semantics() =>
