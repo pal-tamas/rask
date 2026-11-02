@@ -86,6 +86,12 @@ public sealed partial class UiMenu : Component
             data["rask-lock"] = "";
         }
 
+        if (_host?.Marked == true)
+        {
+            // Flux's `data-open` on the open panel, which the runtime writes as the browser shows it.
+            data[UiInvoker.OpenMark] = "";
+        }
+
         if (KeepOpen == true)
         {
             // The runtime closes the popover on a pick unless the row, or something around it, says this.
