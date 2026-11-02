@@ -667,7 +667,9 @@ await Provider.Where(p => p.Id == id)
 ```
 
 A relationship configured from the other end — `b.HasMany<ProviderCountry>().WithOne().HasForeignKey(…)` in
-`Provider.Configure` — counts the same. One joined on a `HasPrincipalKey`, or on several columns, gets no navigation
+`Provider.Configure` — counts the same. The one a root holds its children by —
+`b.HasMany(c => c.Countries).WithOne().HasForeignKey(row => row.ForeignTaxProductCategoryId)` — is the child's way back to the root (`row.ForeignTaxCategory`),
+on that column, and gives it no second navigation. One joined on a `HasPrincipalKey`, or on several columns, gets no navigation
 (the read face joins on the target's key) and no guess either. When every name a configured navigation could take is
 already a column, a collection or another relationship's navigation, the build stops with
 [RASK112](diagnostics.md#rask112). Only `Configure` is read: a relationship set up in `OnModelCreating` or an

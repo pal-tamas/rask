@@ -14,8 +14,14 @@ namespace Rask.Generators.Shared;
 ///     Whether it joins on a <c>HasPrincipalKey</c> rather than the principal's key, which a read navigation cannot
 ///     carry, so the id gets none — and no guess either.
 /// </param>
+/// <param name="PrincipalCollection">
+///     The principal's collection the chain names — <c>HasMany(c =&gt; c.Countries)</c> or <c>WithMany(c =&gt; c.Countries)</c>
+///     — or null. When it is the collection a root holds its children in, the relationship is the child's way back to
+///     that root, which the read face maps already.
+/// </param>
 internal sealed record ReadRelationship(
     string DependentTypeName,
     string PrincipalTypeName,
     EquatableArray<string> ForeignKeys,
-    bool OnAlternateKey);
+    bool OnAlternateKey,
+    string? PrincipalCollection);
