@@ -44,7 +44,8 @@ Ui.Button.Primary["Save"]
 [Time picker](https://rask.sh/ui/time-picker/), [Color picker](https://rask.sh/ui/color-picker/),
 [File upload](https://rask.sh/ui/file-upload/), [Phone](https://rask.sh/ui/phone/),
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
-[Toggle](https://rask.sh/ui/toggle/), with
+[Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
+[Confirm leave](https://rask.sh/ui/confirm-leave/) and [Filters](https://rask.sh/ui/filters/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
@@ -848,7 +849,8 @@ button that says no and a danger button that says yes.
 `Ui.Confirm` is where an action's [`.Confirm("…")`](forms.md#asking-before-an-action) asks, in place of `confirm`
 and `prompt`: a short heading, the call site's question beneath it, and with `expect:` a field that holds Yes back
 until the answer is typed exactly. No, the close button, Escape and a press outside call the action off; Yes lets
-the very press or submit go. Opening, typing and closing send nothing.
+the very press or submit go. Opening, typing and closing send nothing. Every example, live, with its steps:
+**[rask.sh/ui/confirm](https://rask.sh/ui/confirm/)**.
 
 ```csharp
 Ui.Confirm                                                // "Confirm", "No" and "Yes"
@@ -858,7 +860,8 @@ Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading:
 ```
 
 `Ui.ConfirmLeave` is where a form's [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks, in
-place of `confirm` — the form's message as the heading:
+place of `confirm` — the form's message as the heading. Every example, live, with its steps:
+**[rask.sh/ui/confirm-leave](https://rask.sh/ui/confirm-leave/)**.
 
 ```csharp
 Ui.ConfirmLeave                              // "Stay" and "Leave"

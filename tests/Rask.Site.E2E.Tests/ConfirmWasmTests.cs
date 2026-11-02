@@ -5,7 +5,8 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Site.E2E.Tests;
 
 /// <summary>
-///     <c>.Confirm("…")</c> on the WebAssembly host, through the forms guide's demo and the UI tab's example: the site's
+///     <c>.Confirm("…")</c> and <c>ConfirmLeave("…")</c> on the WebAssembly host, through the forms guide's demo, the UI
+///     tab's modal example, and the UI tab's Confirm and Confirm leave pages with the demo they frame: the site's
 ///     layouts place <c>Ui.Confirm</c>, so the question is asked in that dialog before the click reaches .NET, and a
 ///     refused one changes nothing. The Server host's half is <c>ConfirmTests</c> and <c>ConfirmDialogTests</c> in
 ///     <c>Rask.Server.E2E.Tests</c>, which also hold the browser's own dialog where no layout placed one.
@@ -80,6 +81,67 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Page.ClickAsync(Yes);
 
         await Expect(state).ToHaveTextAsync("You deleted the project.", new() { Timeout = 10_000 });
+        Assert.Empty(browserDialogs);
+    });
+
+    [Fact]
+    public Task The_confirm_page_asks_before_a_delete_and_before_a_form_is_sent() => RunAsync(async () =>
+    {
+        var browserDialogs = Count();
+        await OpenUiPageAsync("confirm", "Confirm");
+        var state = Page.Locator("#uc-state");
+
+        await Page.ClickAsync("#uc-delete");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Delete project?");
+        await Page.ClickAsync(No);
+        await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
+        await Expect(state).ToHaveTextAsync("The Rask project is still there.");
+        await Page.ClickAsync("#uc-send");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Send the order?");
+        await Page.ClickAsync(Yes);
+
+        await Expect(Page.Locator("#uc-sent")).ToHaveTextAsync("Sent: Pancakes", new() { Timeout = 10_000 });
+        Assert.Empty(browserDialogs);
+    });
+
+    [Fact]
+    public Task A_layouts_own_words_name_the_dialog_and_its_buttons() => RunAsync(async () =>
+    {
+        var browserDialogs = Count();
+        await Page.GotoAsync("/demo/confirm-words/");
+        await WaitForInteractiveAsync();
+
+        await Page.ClickAsync("#uc-words-archive");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Megerősítés");
+        await Page.Locator(Dialog).GetByRole(AriaRole.Button, new() { Name = "Nem" }).ClickAsync();
+        await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
+        await Page.ClickAsync("#uc-words-delete");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Cég törlése");
+        await Page.Locator(Dialog).GetByRole(AriaRole.Button, new() { Name = "Igen" }).ClickAsync();
+
+        await Expect(Page.Locator("#uc-words-left")).ToHaveTextAsync("2 cég", new() { Timeout = 10_000 });
+        Assert.Empty(browserDialogs);
+    });
+
+    [Fact]
+    public Task The_confirm_leave_page_keeps_an_unsaved_note_when_the_reader_stays() => RunAsync(async () =>
+    {
+        var browserDialogs = Count();
+        await OpenUiPageAsync("confirm-leave", "Confirm leave");
+        var leave = Page.Locator("#ui-confirm-leave");
+
+        await Page.Locator("#ucl-input").FillAsync("remember the milk");
+        await Page.Locator("[data-ui-sidebar] nav[data-ui-navlist]").GetByRole(AriaRole.Link, new() { Name = "Modal", Exact = true }).ClickAsync();
+        await Expect(leave).ToBeVisibleAsync();
+        await Expect(leave.Locator("h2")).ToHaveTextAsync("Leave without saving your note?");
+        await leave.GetByRole(AriaRole.Button, new() { Name = "Stay" }).ClickAsync();
+        await Expect(leave).ToBeHiddenAsync();
+        await Expect(Page.Locator("#ucl-input")).ToHaveValueAsync("remember the milk");
+        Assert.Contains("/ui/confirm-leave", Page.Url, StringComparison.Ordinal);
+        await Page.ClickAsync("#ucl-save");
+
+        await Expect(Page.Locator("#ucl-saved")).ToHaveTextAsync("Saved: remember the milk", new() { Timeout = 10_000 });
+        await Expect(Page.Locator("#ucl-form")).ToHaveAttributeAsync("data-rask-saved", "1");
         Assert.Empty(browserDialogs);
     });
 

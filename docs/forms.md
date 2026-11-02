@@ -501,6 +501,8 @@ Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("D
 
 <!-- demo:form-confirm -->
 
+Every way of asking, live, with the dialog's steps: [Confirm on the UI tab](https://rask.sh/ui/confirm/).
+
 The question is asked in the browser, before anything leaves it, so it costs no round trip. Cancelled, **nothing
 is sent**: not the click or the submit, and not the fields still waiting to go with it — a bound field that
 waits for the next action keeps waiting. Both hosts ask the same way. The element carries the question as
@@ -550,6 +552,8 @@ Form.Model(_model).OnSubmit(Save)
 ```
 
 <!-- demo:form-confirm-leave -->
+
+The dialog it asks in, live, with its steps: [Confirm leave on the UI tab](https://rask.sh/ui/confirm-leave/).
 
 The form counts as **unsaved from the first thing typed or changed in it**. That is decided in the
 browser, so it holds for a value that has not reached the server yet — and it is not a comparison with

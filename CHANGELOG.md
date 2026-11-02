@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Docs: `Ui.Confirm` and `Ui.ConfirmLeave` have pages of their own on the UI tab,
+  [rask.sh/ui/confirm](https://rask.sh/ui/confirm/) and [rask.sh/ui/confirm-leave](https://rask.sh/ui/confirm-leave/).**
+  Before, the two dialogs were shown only in the forms guide's demos and in one example on the modal page. Each page
+  is marked as the kit's own, not Flux's, and has live examples — an action, a typed answer, a form, a form that asks
+  before it is left, and a layout placing the dialog in its own words (`Ui.Confirm.Heading("Megerősítés").No("Nem")
+  .Yes("Igen")`) — then its Behaviour and its steps. The UI tab's layout now places `Ui.ConfirmLeave` too.
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
