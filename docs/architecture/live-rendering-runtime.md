@@ -193,6 +193,15 @@ seq-less client gets byte-for-byte the prior frame contract (the render envelope
 unchanged — the ack is a separate tiny frame, not a payload field). See
 `tests/Rask.Server.Tests/WebSockets/PendingAckTests.cs`.
 
+**Caught up.** A `.Confirm` yes presses its button again (`rask-confirm.ts`), and it must be
+read from the page as the server has it: the browser's own `confirm()` holds the page still
+while the server renders on, and a slow line can keep those pages on the way long after the
+answer. So the client sends `{"type":"caughtUp","n":N}`; the server queues it on the handler
+chain and answers the same frame through `SendOutOfBandAsync` — behind every page already
+sent and every event read before it. The client runs the press once that answer has gone
+through the `_renderQueue`, and asks again for any question still open on a reconnect. See
+`tests/Rask.Server.Tests/WebSockets/CaughtUpTests.cs`.
+
 **Events across a reconnect.** The ack is also what tells the client an event arrived. Every
 frame carrying a seq that no ack has answered is kept (`rask-resend.ts`, at most 64) and sent
 first on the next connection, in order, over either transport — so a click sent into a socket as

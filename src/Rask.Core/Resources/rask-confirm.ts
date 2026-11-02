@@ -18,9 +18,11 @@
 // in its place is looked for by the pressed handler's id, its event read from the page the question was asked on,
 // so the host runs the handler the reader said yes to, or nothing (Component.StaleEvents.cs).
 //
-// The press goes once the page has caught up (onceCaughtUp): just after a page lands, the furthest from the next. A
-// yes in the browser's own confirm() is a press made again too: that dialog holds the page still while the host
-// renders on, so the press it held is long stale by the answer and is never sent.
+// The press goes once the page has caught up (onceCaughtUp): on the server, once every page the host sent before
+// the yes is on screen, which the host says by answering a question behind them all; a slow line can keep them on
+// the way for as long as it likes, and a press read from the page the question was asked on, ten renders behind the
+// host's, runs nothing. A yes in the browser's own confirm() is a press made again too: that dialog holds the page
+// still while the host renders on, so the press it held is long stale by the answer and is never sent.
 
 import {currentPage, readFrom} from "./rask-batch.js";
 import {seam} from "./rask-owned.js";
@@ -52,20 +54,35 @@ export function confirmed(el: Element | null, again?: () => void): boolean {
     return false;
 }
 
-// When a press made again goes, in ms: a page with no other after it for QUIET is the page as it is; a press waits at
-// most WINDOW for a page to land when none is on its way, and at most MOST on a page that never stops.
+// How the host says the page holds every page it sent: `then` runs once they are on screen. The server's runtime
+// asks the server (rask.ts); the browser's renders in the page, and its pages are timed instead.
+let caughtUpBy: ((then: () => void) => void) | null = null;
+
+/** Lets the host say when the page holds every page it sent before `then` was handed in, and runs `then` then. */
+export function pagesCaughtUpBy(ask: (then: () => void) => void): void {
+    caughtUpBy = ask;
+}
+
+// When a press made again goes on a page rendered in the browser, in ms: a page with no other after it for QUIET is
+// the page as it is; a press waits at most WINDOW for a page to land when none is on its way, and at most MOST on a
+// page that never stops.
 const QUIET = 50;
 const WINDOW = 300;
 const MOST = 1500;
 const LOOK = 16;
 
 // Runs `make` once the page has caught up. A page rendering live has its next one on the way at any moment, and a
-// press read from the page before it reaches the host after it: a handler that is a new closure in every render (a
-// row read anew) is then not one the host can show is the same, and nothing runs. So the press waits for a page to
-// land and goes just after it, the furthest from the next — or, when none lands, at the end of the window. After the
-// browser's own dialog let go, what the host sent while it was open arrives only now, a page per task, behind the
-// answer (measured: a press a task later was read from the page before them all): the press goes after the last.
+// press read from a page older than the two before the host's is not one the host can show is the same: a handler
+// that is a new closure in every render (a row read anew), and nothing runs. After the browser's own dialog let go,
+// what the host sent while it was open is still on the way, for as long as the line takes: the server answers a
+// question behind it all, and the press goes once that answer is on screen. Rendered in the browser, the press waits
+// for a page to land and goes just after it, the furthest from the next — or, when none lands, at the end of the
+// window.
 function onceCaughtUp(make: () => void): void {
+    if (caughtUpBy) {
+        caughtUpBy(make);
+        return;
+    }
     const start = performance.now();
     let seen = currentPage();
     let landed = -1;
