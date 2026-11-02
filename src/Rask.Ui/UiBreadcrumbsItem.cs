@@ -45,7 +45,7 @@ public sealed partial class UiBreadcrumbsItem : Component
             .. Children ?? [],
         ];
 
-        return Div.Class("group/breadcrumb flex items-center text-sm font-medium", Class)
+        return Div.Class("group/breadcrumb [:where(&)]:flex items-center [:where(&)]:text-sm font-medium", Class)
             .Attributes(("data-ui-breadcrumbs-item", null))[
             Step(content),
             Separator is { } separator
