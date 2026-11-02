@@ -1,6 +1,9 @@
 namespace Rask;
 
-/// <summary>What a heading cell and a data cell of a <see cref="UiTable" /> share: their sticky edge and their class join.</summary>
+/// <summary>
+///     What a heading cell and a data cell of a <see cref="UiTable" /> share: their sticky edge and their class join. Their
+///     common look is not here: it is the kit sheet's, written once on their markers (<c>ui.css</c>).
+/// </summary>
 internal static class UiTableBox
 {
     /// <summary>
@@ -15,13 +18,22 @@ internal static class UiTableBox
         + "in-data-scrolled-right:first:after:inset-shadow-[8px_0px_8px_-8px_rgba(0,0,0,0.05)] "
         + "in-data-scrolled-left:last:after:inset-shadow-[-8px_0px_8px_-8px_rgba(0,0,0,0.05)]";
 
-    /// <summary>Flux's parts, in Flux's order, joined once: the empty ones left out.</summary>
-    internal static string Join(params string[] parts) => string.Join(' ', parts.Where(part => part.Length > 0));
+    /// <summary>Flux's parts, in Flux's order, joined once: the empty ones left out, and null when every one is.</summary>
+    internal static string? Join(params string[] parts) =>
+        parts.Any(part => part.Length > 0) ? string.Join(' ', parts.Where(part => part.Length > 0)) : null;
 
     /// <summary>
-    ///     The part's own list with the call site's class after it. A table renders thousands of cells, so the list is
-    ///     handed back as it is when there is no class, and joined in one exact-size step when there is.
+    ///     The part's own list with the call site's class after it. A table renders thousands of cells, so either is
+    ///     handed back as it is when the other is missing, and the two are joined in one exact-size step when both are
+    ///     there. Null when neither is: a plain cell writes no class attribute.
     /// </summary>
-    internal static string WithClass(string list, string? @class) =>
-        string.IsNullOrWhiteSpace(@class) ? list : string.Concat(list, " ", @class.Trim());
+    internal static string? WithClass(string? list, string? @class)
+    {
+        if (string.IsNullOrWhiteSpace(@class))
+        {
+            return list;
+        }
+
+        return list is null ? @class.Trim() : string.Concat(list, " ", @class.Trim());
+    }
 }

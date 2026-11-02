@@ -8,7 +8,7 @@ public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
     private const string Card = "p-3 rounded-lg bg-white shadow-xs ring-1 ring-black/7 dark:bg-zinc-700 dark:ring-zinc-700";
 
     private const string Pressed =
-        "block w-full text-start cursor-default select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
+        "block w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
 
     private const string Heading =
         "<div class=\"font-medium text-zinc-800 dark:text-white text-sm " + UiHeadingTests.NextToSubheading + "\" data-ui-heading>";

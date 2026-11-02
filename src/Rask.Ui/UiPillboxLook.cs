@@ -68,7 +68,7 @@ internal static class UiPillboxLook
     /// </summary>
     internal const string Option =
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none cursor-default scroll-my-[.3125rem] "
+        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] "
         + "text-zinc-800 dark:text-white "
         + "[[popover]:popover-open_&]:data-active:bg-zinc-100 dark:[[popover]:popover-open_&]:data-active:bg-zinc-600 "
         + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
@@ -96,6 +96,12 @@ internal static class UiPillboxLook
 
     /// <summary>The trigger that holds an input: a text cursor, and the browser's own ring while the input has focus.</summary>
     internal const string TriggerWithInput = "cursor-text focus-within:[outline:-webkit-focus-ring-color_auto]";
+
+    /// <summary>
+    ///     The trigger with nothing to type into, which a press opens: the hand, as every pressable kit part shows
+    ///     (an owner-approved departure from Flux's arrow, 2026-11-02) — and the arrow while it is off.
+    /// </summary>
+    internal const string TriggerPressed = "cursor-pointer data-disabled:cursor-default";
 
     /// <summary>The list when it is the popup: shorter than a select's.</summary>
     internal const string Popup = "max-h-[14rem]";

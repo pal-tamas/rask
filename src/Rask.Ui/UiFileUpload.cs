@@ -24,7 +24,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiFileUpload : Component, IUiFormControl
 {
-    private const string Root = "relative block cursor-auto";
+    private const string Root = "relative block cursor-pointer has-disabled:cursor-default data-loading:cursor-default";
 
     // Out of sight at rest. Over the whole area while a drag is above it, to take the drop.
     private const string Receiver =

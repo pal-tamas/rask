@@ -34,7 +34,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, measurePage, root, screen, stateTargets, STYLES } from './lib.mjs';
+import { chromium, cursorDeparted, measurePage, root, screen, stateTargets, STYLES } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -658,7 +658,7 @@ function compareOpen(theirs, mine) {
 
   const diffs = [];
   if (!sameTag(a, b)) diffs.push(`modal: tag <${a.tag}> vs <${b.tag}>`);
-  compareStyles(a.style, b.style, 'modal', diffs);
+  compareStyles(a.style, b.style, 'modal', diffs, b.pressable);
   compareTree(theirs, da, mine, db, da, db, 'dialog', diffs);
   return diffs;
 }
@@ -745,10 +745,10 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 }
 
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs);
+  compareStyles(a.style, b.style, where, diffs, b.pressable);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, b.pressable);
   }
 
   const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
@@ -780,9 +780,11 @@ function shown(example, node) {
   return true;
 }
 
-function compareStyles(x, y, where, diffs) {
+// `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
+function compareStyles(x, y, where, diffs, pressable = false) {
   for (const key of STYLES) {
     if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }
 }

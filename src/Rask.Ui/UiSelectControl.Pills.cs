@@ -34,7 +34,7 @@ public abstract partial class UiSelectControl<T>
             .Key(TriggerKey)
             .TabIndex(PillsCombobox || off ? -1 : 0)
             .Role(plain ? "combobox" : "button")
-            .Class(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : "cursor-default", slot?.Class)
+            .Class(UiPillboxLook.Trigger, UiPillboxLook.TriggerSize(IsSmall(slot)), PillsCombobox ? UiPillboxLook.TriggerWithInput : UiPillboxLook.TriggerPressed, slot?.Class)
             .Aria(PillTriggerAria(view, plain))
             .Attributes(PillTriggerMarks(view, view.Field.Invalid || slot?.Invalid == true || view.Parts.Input?.Invalid == true, off, plain));
         if (!PillsCombobox)

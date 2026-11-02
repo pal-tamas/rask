@@ -37,7 +37,7 @@ internal static partial class UiSliderLook
     // The control itself: invisible, laid over the stretch of track its thumb can reach, with a thumb of no
     // width — so a press anywhere on it lands the value under the pointer, as a press on Flux's track does.
     internal const string Control =
-        "absolute top-0 h-full m-0 px-[50%] box-border appearance-none bg-transparent opacity-0 cursor-default "
+        "absolute top-0 h-full m-0 px-[50%] box-border appearance-none bg-transparent opacity-0 "
         + "[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-0 "
         + "[&::-moz-range-thumb]:w-0 [&::-moz-range-thumb]:border-0";
 

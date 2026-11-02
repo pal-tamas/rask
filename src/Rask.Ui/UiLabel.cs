@@ -8,7 +8,9 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiLabel : Component
 {
-    private const string Look = "items-center text-sm font-medium text-zinc-800 dark:text-white cursor-default";
+    // No cursor here: the kit sheet draws the arrow over a name, as Flux does, and the hand over one that toggles
+    // (Styles/ui.css, `[data-ui-label]`) — by a rule, not a class every label would carry over the wire.
+    private const string Look = "items-center text-sm font-medium text-zinc-800 dark:text-white";
 
     private const string BadgeLook =
         "ms-1.5 -my-1 rounded-sm px-1.5 py-1 text-xs font-medium "

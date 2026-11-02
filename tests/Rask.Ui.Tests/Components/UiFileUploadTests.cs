@@ -23,7 +23,7 @@ public partial class UiFileUploadTests : global::Rask.Core.RaskMarkup
 
         var html = upload.ToHtml();
 
-        Assert.StartsWith("<label class=\"relative block cursor-auto\" data-ui-file-upload", html, StringComparison.Ordinal);
+        Assert.StartsWith("<label class=\"relative block cursor-pointer has-disabled:cursor-default data-loading:cursor-default\" data-ui-file-upload", html, StringComparison.Ordinal);
         Assert.Contains("type=\"file\"", html, StringComparison.Ordinal);
         Assert.Contains("data-slot=\"receiver\"", html, StringComparison.Ordinal);
         Assert.EndsWith("</label>", html, StringComparison.Ordinal);
@@ -132,7 +132,7 @@ public partial class UiFileUploadTests : global::Rask.Core.RaskMarkup
 
         var html = upload.ToHtml();
 
-        Assert.Contains("class=\"relative block cursor-auto w-20\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"relative block cursor-pointer has-disabled:cursor-default data-loading:cursor-default w-20\"", html, StringComparison.Ordinal);
         Assert.Contains("<div class=\"avatar\">Pick</div></label>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-ui-file-upload-dropzone", html, StringComparison.Ordinal);
     }
