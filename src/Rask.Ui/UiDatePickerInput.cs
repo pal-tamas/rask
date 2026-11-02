@@ -155,7 +155,7 @@ public sealed partial class UiDatePickerInput : Component, IUiFieldControl
             .OnChange(text => heard(slot, text));
 
         // Bound and waiting, it is the browser's to keep until the next action, which it goes ahead of.
-        return scope.Waits ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
+        return scope.Waits ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
     }
 
     // What Flux's trigger opens the calendar from is everything in it that is not a field, and a second press

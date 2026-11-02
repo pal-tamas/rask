@@ -181,7 +181,7 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
         }
 
         field = field.OnChange(Changed);
-        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
     }
 
     private protected virtual Task CommitAsync(ExpressionAccessor.Accessor? accessor, EditContext? context, T value) =>

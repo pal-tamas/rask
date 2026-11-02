@@ -21,8 +21,8 @@ interface Kind {
     adopt(group: Element, rendered: string): void;
     /** Whether `rendered` is no news to a group the reader has made something else of: it is not shown. */
     keeps?(group: Element, rendered: string): boolean;
-    /** A late echo came back: what the same render wrote AROUND the field is as old, and is drawn again. */
-    echoed?(group: Element): void;
+    /** A late echo came back (`rendered`): what the same render wrote AROUND the field is as old, and is drawn again. */
+    echoed?(group: Element, rendered: string): void;
 }
 
 const kinds: Kind[] = [];
@@ -116,7 +116,7 @@ function refill(group: Element, kind: Kind): void {
     if (waiting && echo >= 0) {
         waiting.splice(0, echo + 1);
         write(bound, kind.current(group));
-        if (kind.echoed) kind.echoed(group);
+        if (kind.echoed) kind.echoed(group, rendered);
         return;
     }
     if (waiting) {
