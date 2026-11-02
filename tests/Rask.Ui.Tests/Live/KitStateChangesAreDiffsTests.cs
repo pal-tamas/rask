@@ -93,7 +93,7 @@ public partial class KitStateChangesAreDiffsTests : global::Rask.Core.RaskMarkup
             "src/Rask.Ui/UiButton.cs:319 — bare words become a <span> beside the icon"),
         ["avatar icon for a name"] = (on => on ? Ui.Avatar.Icon(Ui.IconName.Check) : Ui.Avatar.Name("Ada Lovelace"), 359,
             "src/Rask.Ui/UiAvatar.cs:172 — an <svg> in place of the initials' <span>"),
-        ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null), 1315,
+        ["input label and description"] = (on => Ui.Input.Value("a").Label(on ? "Name" : null).Description(on ? "As on the card." : null), 1588,
             "src/Rask.Ui/UiWithField.cs:61 — a control with a label is wrapped in a field, one without is bare"),
         ["breadcrumbs item with and without a link"] = (on => on ? Ui.BreadcrumbsItem.Href("/orders")["Orders"] : Ui.BreadcrumbsItem["Orders"], 1009,
             "src/Rask.Ui/UiBreadcrumbsItem.cs:71 — the page being shown is a <div>, a step back to it is an <a>, as Flux draws them"),

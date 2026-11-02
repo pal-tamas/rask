@@ -5,9 +5,9 @@ namespace Rask;
 internal static class UiDatetimePickerLook
 {
     // As wide as its button says, up to 288px — 320px for a range; a trigger of the page's own is its own width.
-    internal const string Root = "max-w-64 sm:max-w-72";
+    internal const string Root = "[:where(&)]:max-w-64 sm:max-w-72";
 
-    internal const string RootRange = "max-w-64 sm:max-w-80";
+    internal const string RootRange = "[:where(&)]:max-w-64 sm:max-w-80";
 
     // The calendar beside the times from `sm` up; one above the other on a phone.
     internal const string Body = "flex max-sm:flex-col";
