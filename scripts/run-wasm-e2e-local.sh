@@ -57,7 +57,8 @@ dotnet publish tests/Rask.Wasm.Fixture.Wasm/Rask.Wasm.Fixture.Wasm.csproj -c Rel
 
 if [ "$build_status" -eq 0 ]; then
   echo "==> Build the browser-journey project (Release)"
-  dotnet build "$project/Rask.Wasm.E2E.Tests.csproj" -c Release -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
+  # The literal .csproj path, which E2EGateCoverageTests looks for to know this gate runs the suite.
+  dotnet build tests/Rask.Wasm.E2E.Tests/Rask.Wasm.E2E.Tests.csproj -c Release -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee -a "$build_log" || build_status=$?
 fi
 
