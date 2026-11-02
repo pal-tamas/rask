@@ -480,7 +480,8 @@ them until tagged releases begin.
   `AnAppsClassWinsTests.Known` (19 components, down from 110): an empty error's and a closed popover's `hidden`
   (a state, not a look), the current/selected/checked ink of a nav item, a tab and a toggle (it has to outweigh
   dark mode's resting ink), the table's Flux class list, and the sidebar and header until their padding moves
-  into the kit sheet.
+  into the kit sheet. Two showcase demos now look as their code says: the callback guide's rating stars take
+  their `text-2xl` and amber, and the composer's "Remove picture" button its `rounded-full`.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that
