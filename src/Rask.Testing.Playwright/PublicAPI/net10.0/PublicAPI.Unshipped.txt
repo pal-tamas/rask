@@ -1,0 +1,4 @@
+#nullable enable
+Rask.Testing.PageSettling
+static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IFrame! frame, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IPage! page, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!

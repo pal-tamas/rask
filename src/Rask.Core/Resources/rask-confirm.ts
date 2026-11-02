@@ -25,6 +25,7 @@
 // still while the host renders on, so the press it held is long stale by the answer and is never sent.
 
 import {currentPage, readFrom} from "./rask-batch.js";
+import {busy} from "./rask-busy.js";
 import {seam} from "./rask-owned.js";
 
 const HANDLER = "data-rask-on-click";
@@ -78,7 +79,17 @@ const LOOK = 16;
 // question behind it all, and the press goes once that answer is on screen. Rendered in the browser, the press waits
 // for a page to land and goes just after it, the furthest from the next — or, when none lands, at the end of the
 // window.
-function onceCaughtUp(make: () => void): void {
+// The page is busy while the press waits (rask-busy.ts): the press itself takes its own hold as it is made, before
+// this one lets go.
+function onceCaughtUp(press: () => void): void {
+    const release = busy();
+    const make = function (): void {
+        try {
+            press();
+        } finally {
+            release();
+        }
+    };
     if (caughtUpBy) {
         caughtUpBy(make);
         return;

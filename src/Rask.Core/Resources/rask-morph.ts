@@ -69,6 +69,7 @@ function srcPath(script: HTMLScriptElement): string {
     return (script.getAttribute("src") || "").split("?")[0];
 }
 
+import {busyOwnsAttr} from "./rask-busy.js";
 import {ignoresFormattingText, isElement, isFormattingText} from "./rask-dom-path.js";
 import {runtimeOwnsAttr} from "./rask-loading.js";
 import {keepsOpen, ownsAttr, ownsChecked} from "./rask-owned.js";
@@ -630,8 +631,10 @@ function morphNode(fromNode: Node, toNode: Node): void {
         const name = fa[i].name;
         // A loading mark the runtime stamped while a dispatch is in flight is not in any render, so the
         // render that dispatch itself caused would otherwise strip the spinner mid-wait (rask-loading.ts).
-        // Nor does a render take away what the page put there itself and no render ever wrote (rask-written.ts).
-        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !browserOwnsAttr(from, name)
+        // Nor does a render take away what the page put there itself and no render ever wrote (rask-written.ts),
+        // nor the settling mark on <html> (rask-busy.ts): a full frame morphs <html> while the page is still busy.
+        if (!to.hasAttribute(name) && !runtimeOwnsAttr(from, name) && !busyOwnsAttr(from, name)
+            && !browserOwnsAttr(from, name)
             && !ownsAttr(from, name) && !pageAdded(from, name) && !keepsOpen(from, name, false)) {
             from.removeAttribute(name);
         }

@@ -13,6 +13,8 @@
 // copy of this module, so what the two must agree on is not module state: it hangs off one object on the
 // global, made by whichever copy runs first.
 
+import {busy} from "./rask-busy.js";
+
 type Heard = (e: Event) => void;
 
 interface Seam {
@@ -195,10 +197,13 @@ export function tell<T>(el: Element, name: string, send: () => T): T {
 /** The page now waits on one more answer. Call what this returns once the render that answers it is on the page. */
 export function awaiting(): () => void {
     seam.waits = (seam.waits || 0) + 1;
+    // And the page is busy until it is answered (rask-busy.ts): from now, in the task the event was raised in.
+    const release = busy();
     let done = false;
     return function () {
         if (done) return;
         done = true;
+        release();
         seam.waits = Math.max(0, (seam.waits || 1) - 1);
         if (seam.waits === 0) {
             for (const heard of seam.quiet!) heard();

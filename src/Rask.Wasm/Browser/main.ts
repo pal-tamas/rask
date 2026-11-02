@@ -4,6 +4,12 @@
 
 import {dotnet} from './_framework/dotnet.js';
 
+// The page is settling until the app has put its first frame on it (`data-rask-busy`, Rask.Core's rask-busy.ts).
+// Marked here, before the first await, so it is on <html> before the document's `load`: a browser test that opens
+// the page and waits for it (`page.WaitForRask()`) cannot look before the boot has begun. rask.wasm.js takes the
+// mark over as it loads, and takes it off once that first frame is on the page.
+document.documentElement?.setAttribute("data-rask-busy", "");
+
 // Boot progress. On a slow link the runtime + assemblies are several MB, and the
 // bare splash spinner can't be told apart from a hang. The runtime's built-in
 // onDownloadResourceProgress callback reports how many boot resources have
