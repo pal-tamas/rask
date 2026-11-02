@@ -514,7 +514,8 @@ them until tagged releases begin.
 
 ### Fixed
 - **An arrow key that shuts a submenu's flyout under a resting pointer hands the light back to that row, as Flux UI
-  does.** The flyout's safe area now goes with the flyout, so the browser reports the pointer over the row again:
+  does.** The flyout's safe area now goes with the flyout, so the browser reports the pointer over the row again
+  (from the removed area, or from the row itself, as Chrome may say it), and that counts as entering the row:
   the row is lit and its flyout opens while focus stays on the row the arrow reached. When the pointer then leaves,
   no row stays lit. Before, the arrow's row kept the light. `parity-menu.mjs` now also allows for the kit's
   native-feel departure in a menu (a row's `user-select`/`touch-action`, a menu's `overscroll-behavior`), as
