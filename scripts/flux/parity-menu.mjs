@@ -411,8 +411,12 @@ async function measureExample(page, cdp, index, prefix) {
       example.diagonal.push(await page.evaluate(crossing, { row: example.submenu, rows: example.rows }));
     }
 
-    // Back on the row, then straight out of the menu, away from the flyout, at a hand's pace (a move every 130 ms:
-    // Flux hears one per 100 ms or so): the flyout closes on the move after the one that left.
+    // In a menu opened afresh, onto the row, then straight out of the menu, away from the flyout, at a hand's pace
+    // (a move every 130 ms: Flux hears one per 100 ms or so): the flyout closes on the first move heard outside.
+    // Afresh, because the way back from the flyout's corner crosses rows Flux closes it for.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    await open();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
     await page.waitForTimeout(400);
     const menu = await page.locator('[data-pm="panel"]').boundingBox();

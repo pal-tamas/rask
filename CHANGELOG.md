@@ -521,6 +521,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A submenu's flyout closes when the pointer moves on out of the menu, as Flux UI's does.** Measured on Flux's
+  dropdown and context menu: once the pointer has been in a submenu's row or its flyout, a move outside both — onto
+  the menu's padding or off the menu altogether — closes the flyout and darkens its row (unless it has focus), in
+  the browser, with nothing sent to the page. Flux hears such a move once per 100 ms or so, and the kit too: a
+  pointer that leaves in one quick flick and stops still finds the flyout open, and a flyout the arrow keys opened
+  stays open under a pointer moving elsewhere. Before, the flyout stayed open until another row was entered.
+  `parity-menu.mjs` now walks from a submenu's row out of the menu, a move at a time.
 - **An arrow key that shuts a submenu's flyout under a resting pointer hands the light back to that row, as Flux UI
   does.** The flyout's safe area now goes with the flyout, so the browser reports the pointer over the row again
   (from the removed area, or from the row itself, as Chrome may say it), and that counts as entering the row:
