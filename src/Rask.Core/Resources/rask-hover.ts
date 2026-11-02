@@ -31,7 +31,7 @@
 // tap elsewhere. And once a finger has shown one, Flux shows no tooltip of the page to a finger again — not
 // even another one — until a mouse moves.
 
-import {disown, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
+import {disown, isReplayed, isShown, listen, named, near, own, page, setShown} from "./rask-owned.js";
 
 const TOOLTIP = "data-rask-tooltip";
 const HOVER = "data-rask-hover";
@@ -129,16 +129,32 @@ function look(e: PointerEvent): void {
         }
         at.looked = e.timeStamp;
         if (!(e.target instanceof Node && root.contains(e.target))) {
-            watched.delete(root);
-            if (root.hasAttribute(TOOLTIP)) {
-                leaveTooltip(root);
-                continue;
-            }
-            const panel = named(root, HOVER);
-            if (panel && hoverable(root) && isShown(panel)) {
-                walkedFrom.add(panel);
-                setShown(panel, false);
-            }
+            leave(root);
+        }
+    }
+}
+
+// The pointer seen over neither the root's trigger nor its popover.
+function leave(root: Element): void {
+    watched.delete(root);
+    if (root.hasAttribute(TOOLTIP)) {
+        leaveTooltip(root);
+        return;
+    }
+    const panel = named(root, HOVER);
+    if (panel && hoverable(root) && isShown(panel)) {
+        walkedFrom.add(panel);
+        setShown(panel, false);
+    }
+}
+
+// A leave the hooks missed while their bundle was on its way (isReplayed): the moves after it were not kept, so no
+// move is left to look at. Where the pointer is NOW says it — a pointer that left before the hooks arrived and
+// never came back leaves nothing open.
+function leftWhileAway(e: Event): void {
+    for (const root of Array.from(watched.keys())) {
+        if (e.target instanceof Node && root.contains(e.target) && crosses(root, e) && !root.matches(":hover")) {
+            leave(root);
         }
     }
 }
@@ -199,6 +215,9 @@ if (page) {
         // tooltip away. Whether it closes is the next move's to say (look).
         if (tooltip && crosses(tooltip, e) && (e as PointerEvent).pointerType !== "touch") {
             dismissed.delete(tooltip);
+        }
+        if (isReplayed()) {
+            leftWhileAway(e);
         }
     }, {capture: true, passive: true});
 

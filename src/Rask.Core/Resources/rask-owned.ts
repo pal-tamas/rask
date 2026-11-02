@@ -250,6 +250,8 @@ export function listen<K extends keyof DocumentEventMap>(
     listening.push({type, heard: heard as Heard, capture});
 }
 
+let replaying = false;
+
 /**
  * Hands the hooks what they missed while their bundle was on its way: each event kept by the loader, oldest
  * first, to the hooks' listeners only (the page already heard it) — the ones that listen on the way down, then
@@ -262,19 +264,32 @@ export function replayMissed(): void {
     if (!missed) {
         return;
     }
-    for (const e of missed) {
-        for (const capture of [true, false]) {
-            for (const l of listening) {
-                if (l.type === e.type && l.capture === capture) {
-                    try {
-                        l.heard(e);
-                    } catch (error) {
-                        // one hook failing on an old event must not cost the others theirs
+    replaying = true;
+    try {
+        for (const e of missed) {
+            for (const capture of [true, false]) {
+                for (const l of listening) {
+                    if (l.type === e.type && l.capture === capture) {
+                        try {
+                            l.heard(e);
+                        } catch (error) {
+                            // one hook failing on an old event must not cost the others theirs
+                        }
                     }
                 }
             }
         }
+    } finally {
+        replaying = false;
     }
+}
+
+/**
+ * Whether the event a hook is hearing is one it missed (`replayMissed`). The moves between those were not kept
+ * (rask-hook-loader.ts), so a hook that waits for the next move to decide must ask where things stand now.
+ */
+export function isReplayed(): boolean {
+    return replaying;
 }
 
 /** The nearest element from an event's target that matches `selector`. */
