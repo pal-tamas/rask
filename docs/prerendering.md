@@ -410,8 +410,13 @@ Two things worth repeating as shapes, both found here:
 
 - WASM only. A Server app already renders every request, and every one of its pages is live, so none of
   them is a cacheable document — see [Live pages](render-modes.md).
-- Parameterised and catch-all routes are never covered; there is no hook yet for supplying the
-  values to enumerate them.
+- Parameterised and catch-all routes are not enumerated on their own: the pass renders only the paths
+  an [`IPrerenderPaths`](#parameterised-routes-tell-the-pass-what-they-expand-to) supplies for them.
+  Without one, those pages ship as the empty boot shell.
+- One language per pass. `IPrerenderPaths` adds paths, not cultures: every page is rendered in the build
+  machine's culture, `<html lang>` is the boot shell's, and there are no per-language URLs, `hreflang`
+  alternates or sitemap alternates yet
+  ([#1199](https://github.com/pal-tamas/rask/issues/1199)).
 - The per-page budget is 30 seconds.
 
 ## See also

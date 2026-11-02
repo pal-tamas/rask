@@ -455,6 +455,8 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **docs: prerendering's limits no longer say there is "no hook yet" for parameterised routes.** `IPrerenderPaths`
+  supplies them; what is still missing is one prerendered page per language.
 - **A server SQLite database in a directory that does not exist yet opens.** `UseRaskSqlite` and `AddRaskSqlite`
   create the database file's parent directory when it is missing, so `Data Source=/tmp/rask/app.db` no longer fails a
   fresh container's first start with `SQLite Error 14: 'unable to open database file'`. An in-memory, read-only,
