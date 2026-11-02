@@ -26,6 +26,18 @@ them until tagged releases begin.
   ```
   Not covered: the app's own timers, and a server push that has not reached the browser yet (a page pushing a render
   every second still settles). See [Testing](docs/testing.md#waiting-for-the-page-in-browser-tests).
+- **A bound select picks in the browser and sends nothing until the next action, as Flux's `wire:model`.** Before:
+  picking an option of `Ui.Select.Bind(() => m.Room).Listbox` (searchable or not) or `.Combobox` sent the press to
+  the server, which held the value and drew the pick — a frame and a reply per pick, where Flux sends no request
+  (measured on fluxui.dev's select and pillbox pages: 0 requests under `wire:model`, 1 under `wire:model.live`).
+  Now the browser draws the pick — the button's words, the ticked row, the clear button — and writes the answer
+  into the select's one hidden bound field (`data-rask-bind-on="action"`), which travels ahead of the reader's
+  next action; the model is written, the rules run and `AfterBind` is called then, exactly as before. The clear
+  button is the browser's too. A form that asks before it is left still counts the pick, a submit validates it,
+  and a message under the select still goes at the first pick after it. `.Live()`, a select whose value the page
+  holds (`.Value(…).OnChange(…)`), one whose search the page answers (`Filter(false)`), a multiple select and a
+  pillbox send their picks as before. The kit-wide frame
+  gate's `select-bound: pick a row` went from 1 frame to 0.
 - **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
   text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or
   before it, as Flux's does, so `Ui.Heading.Lg["Update profile"], Ui.Subheading["Make changes…"]` needs no margin

@@ -269,7 +269,7 @@ public partial class UiToastTests : global::Rask.Core.RaskMarkup
             ],
             Session());
         await page.Click("Save");
-        await page.On("[data-ui-option]:has-text(\"Attic\")").Click();
+        await HeldList.Pick(page, "Attic");
 
         await page.On("[data-rask-dismiss]").Raise("click", """{"unasked":true}""");
 

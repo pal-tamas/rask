@@ -51,6 +51,15 @@ internal static class UiInputLook
         + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 "
         + "dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
 
+    /// <summary>
+    ///     <see cref="Action" /> out of sight, for the browser to show (<c>hidden</c> where it says <c>flex</c>):
+    ///     the clear button of a combobox whose pick the browser holds.
+    /// </summary>
+    internal const string ActionHidden =
+        "relative hidden items-center justify-center gap-2 size-8 -mx-1.5 rounded-md text-sm font-medium whitespace-nowrap "
+        + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 "
+        + "dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
+
     /// <summary>The clear button: gone while the input shows its placeholder, which is while it is empty.</summary>
     internal const string Clear = "[[data-ui-input]:has(input:placeholder-shown)_&]:hidden";
 

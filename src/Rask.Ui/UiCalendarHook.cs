@@ -18,9 +18,6 @@ internal static class UiCalendarHook
     /// <summary>Which end a datetime picker's time part belongs to: 0 for a moment or a range's start, 1 for its end.</summary>
     internal const string Slot = "data-rask-calendar-slot";
 
-    /// <summary>A bound field whose value waits for the reader's next action, and goes ahead of it.</summary>
-    internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
-
     /// <summary>The pair that names a part, for <c>Attributes(…)</c>.</summary>
     internal static (string, string?) Named(string part) => (Part, part);
 

@@ -1035,7 +1035,9 @@ default variant is the browser's `<select>`; `.Listbox` draws the list (icons, d
 own, a prefix, `Clearable()`), `Searchable()` filters it in the browser by text and `Keywords`, `.Listbox.Multiple()`
 over a collection picks several, and `.Combobox` is an input that filters. `Filter(false)` hands the search to the
 page, with `Debounce` on `Ui.SelectSearch` or `Ui.SelectInput` for one query a word, and `Ui.SelectOptionCreate`
-offers to make what was typed. An open list sends the page nothing until a row is picked. Every example, the
+offers to make what was typed. An open list sends the page nothing until a row is picked — and a bound select of
+one answer sends nothing at the pick either: the browser draws it and the value travels with the next action, as
+Flux's `wire:model` (`.Live()` sends it at once). Every example, the
 keyboard, searching on the server and the reference: **[rask.sh/ui/select](https://rask.sh/ui/select/)**.
 
 ## Autocomplete

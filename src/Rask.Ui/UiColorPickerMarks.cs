@@ -11,9 +11,6 @@ internal static class UiColorPickerMarks
     /// <summary>The attribute that names a part.</summary>
     internal const string Part = "data-rask-color-part";
 
-    /// <summary>A bound field whose value waits for the reader's next action, and goes ahead of it.</summary>
-    internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
-
     /// <summary>The live region the runtime says a picked swatch in.</summary>
     internal static readonly Dictionary<string, string?> Announced = new(StringComparer.Ordinal)
     {

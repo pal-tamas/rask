@@ -206,6 +206,6 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
         }
 
         field = field.OnChange(ChangedAsync);
-        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiColorPickerMarks.WaitsForAction) : field;
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
     }
 }

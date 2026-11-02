@@ -96,9 +96,10 @@ public abstract partial class UiSelectControl<T>
             .Role("option")
             .Class(RowLook(row.Option), row.Option.Class)
             .Aria(UiOptionAria.For(off, picked))
-            .Attributes(UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
+            .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
-        return (off ? item : Wired(item, row.Index, row.Value))[
+        // Held, the browser picks it (rask-list-held.ts): the page hears the answer with the next action.
+        return (off || Held ? item : Wired(item, row.Index, row.Value))[
             RowContent(row.Option)
         ];
     }
@@ -140,6 +141,11 @@ public abstract partial class UiSelectControl<T>
         if (IsCombobox && option.SelectedLabel is { } says)
         {
             marks["data-rask-list-says"] = says;
+        }
+
+        if (Held)
+        {
+            MarkHeld(marks, option);
         }
 
         return marks;

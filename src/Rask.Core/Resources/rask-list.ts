@@ -19,7 +19,8 @@
 //   strict    a closed text input says its answer again: the `value` it was rendered with;
 //   clears    a closed text input is emptied;
 //   text      the answer IS the input's text: a pick writes the row's words into it and announces them;
-//   top       after a pick emptied the search the cursor goes back to the first row.
+//   top       after a pick emptied the search the cursor goes back to the first row;
+//   held      a pick waits for the next action: the browser draws it and holds it (rask-list-held.ts).
 // A text input the page listens to (`data-rask-on-input`, or `data-rask-on-pause` for a search that waits) is
 // told what this module writes into it as it is told what the reader types — once, and only when the page
 // thinks otherwise: a search it never heard is dropped unsaid, the pause being counted for it called off.
@@ -42,6 +43,7 @@
 
 import {reveal} from "./rask-focus.js";
 import {stepFrom, typeAhead} from "./rask-menu-keys.js";
+import {CLEAR, clearHeld, markHeld, pickHeld} from "./rask-list-held.js";
 import {disown, isShown, listen, near, own, page, seam, setShown} from "./rask-owned.js";
 
 const ROOT = "[data-rask-list]";
@@ -307,6 +309,10 @@ function filter(root: Element): void {
 
 // …and puts the cursor back among the rows that are left.
 function refilter(root: Element, again: boolean = false): void {
+    if (has(root, "held")) {
+        // A render redrew the rows: they say what the browser holds, not what the page has heard.
+        markHeld(root);
+    }
     filter(root);
     place(root, again);
 }
@@ -566,6 +572,9 @@ function picked(root: Element, row: HTMLElement, pointed: boolean): void {
         return;
     }
     const create = row.hasAttribute(CREATE);
+    if (!create && has(root, "held")) {
+        pickHeld(root, row);
+    }
     const stays = has(root, "multiple") && !create;
     if (stays) {
         // Still the pointer's row when the pointer pressed it: it goes dark when the pointer leaves.
@@ -587,6 +596,19 @@ function picked(root: Element, row: HTMLElement, pointed: boolean): void {
             unsearch(root, input);
         }
     });
+}
+
+// A held list's clear button: it holds nothing, and a combobox's input says nothing until a render says otherwise.
+function cleared(root: Element): void {
+    clearHeld(root);
+    const input = inputOf(root);
+    if (input && has(root, "strict")) {
+        const state = stateOf(root);
+        state.said = "";
+        state.over = input.getAttribute("value");
+        state.typing = false;
+        rest(root, input, "", true);
+    }
 }
 
 // A choice among several — a row switched, a pill taken off — empties what was typed and leaves the list open.
@@ -738,6 +760,12 @@ if (page) {
                 state.acts = pointed && has(root, "multiple");
                 picked(root, row, pointed);
             }
+            return;
+        }
+        if (has(root, "held") && near(target, "[" + CLEAR + "]")) {
+            // Emptied here, and nothing opens: the press is the clear button's, not the trigger's it sits in.
+            e.preventDefault();
+            cleared(root);
             return;
         }
         const trigger = near(target, TRIGGER);
