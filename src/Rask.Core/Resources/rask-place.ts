@@ -18,6 +18,12 @@
 //      column of flex items takes up to fifteen pixels that way (measured on its first popover, which hangs
 //      past the 5 px, and past the edge, by that much). One whose list scrolls inside it keeps the height.
 //
+// THE SIZE it is placed at is the one it has where it HANGS — at the side and alignment it asks for — not the one it
+// has where nothing squeezes it: a panel opened by the right edge is laid out in the room left there, narrowed to
+// its min-width, and flipped and slid at that width (Flux's 288 px popover lands 192 px wide beside a trigger at the
+// right edge of a page that keeps a scrollbar's gutter). Where it lands it is measured again and placed again until
+// it keeps its width; one that grows there takes its full width at once, as the room only widens as it slides back.
+//
 // THE ANCHOR is the one the panel already names: the last element whose style says `anchor-name` with the
 // panel's `position-anchor`. A panel whose style names none is placed against what shows it: the first
 // element of the data-rask-tooltip or data-rask-toggle that names its id, or its `popovertarget` button. And
@@ -166,6 +172,42 @@ export function landing(place: string, a: Box, w: number, natural: number,
     return {x, y, cap};
 }
 
+/** One open panel while a pass places it. */
+interface Placing {
+    panel: HTMLElement;
+    n: number;
+    place: string;
+    /** It has an anchor: not one opened at the pointer. */
+    anchored: boolean;
+    /** What it is placed against; null for a panel left where the stylesheet has it. */
+    a: Box | null;
+    rtl: boolean;
+    /** Its size where nothing squeezes it, and the size it is being placed at. */
+    natural: {w: number; h: number};
+    size: {w: number; h: number};
+    /** The height the last landing held it to. */
+    cap: number | null;
+}
+
+// The inset that hangs a panel at the side and alignment it asks for, in page coordinates.
+function hangs(p: Placing, sx: number, sy: number): string {
+    const words = p.place.split(" ");
+    const at = corner(words[0], words[1] || "start", p.a!, p.natural.w, p.natural.h,
+        parseFloat(words[2]) || 0, parseFloat(words[3]) || 0, p.rtl);
+    return (at[1] + sy) + "px auto auto " + (at[0] + sx) + "px";
+}
+
+// Whether a panel placed at `size` came out another width, taking the size it is to be placed at next. A height
+// measured under a cap is the cap's, so a capped panel keeps the height it was placed with.
+function resized(p: Placing): boolean {
+    const box = p.panel.getBoundingClientRect();
+    if (Math.abs(box.width - p.size.w) < 0.5) {
+        return false;
+    }
+    p.size = box.width > p.size.w ? p.natural : {w: box.width, h: p.cap === null ? box.height : p.size.h};
+    return true;
+}
+
 if (page) {
     const doc = page;
     const view = window;
@@ -292,31 +334,52 @@ if (page) {
         write(panels.map(function (panel) { return rule(open.get(panel)!.n, "0 auto auto 0", null); }).join(""));
         const vw = doc.documentElement.clientWidth;
         const vh = doc.documentElement.clientHeight;
-        const tall: (((free: boolean) => string) | null)[] = [];
-        const rules = panels.map(function (panel, i) {
+        const placing = panels.map(function (panel): Placing {
             const held = open.get(panel)!;
-            tall[i] = null;
-            const anchor = held.anchor;
-            const at = anchor ? anchor.getBoundingClientRect() : null;
+            const at = held.anchor ? held.anchor.getBoundingClientRect() : null;
             const a = at ? {x: at.left, y: at.top, w: at.width, h: at.height} : pointer(panel);
             const box = panel.getBoundingClientRect();
-            if (!a || anchor === panel || (at && !at.width && !at.height)) {
+            return {
+                panel, n: held.n, place: panel.getAttribute(PLACE)!, anchored: !!held.anchor,
+                a: !a || held.anchor === panel || (at && !at.width && !at.height) ? null : a,
+                rtl: getComputedStyle(panel).direction === "rtl",
+                natural: {w: box.width, h: box.height}, size: {w: box.width, h: box.height}, cap: null,
+            };
+        });
+        const lands = function (p: Placing, free: boolean): string {
+            if (!p.a) {
                 return "";
             }
-            const rtl = getComputedStyle(panel).direction === "rtl";
-            const lands = function (free: boolean): string {
-                const to = landing(panel.getAttribute(PLACE)!, a, box.width, box.height, vw, vh, rtl, free || !anchor);
-                tall[i] = to.cap === null ? null : lands;
-                return rule(held.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap);
-            };
-            return lands(false);
-        });
+            const to = landing(p.place, p.a, p.size.w, p.size.h, vw, vh, p.rtl, free || !p.anchored);
+            p.cap = to.cap;
+            return rule(p.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap);
+        };
+        // Then where it HANGS, at the side and alignment it asks for: one by an edge is laid out in the room left
+        // there — squeezed, down to its min-width — and placed at the size it has there, as Flux's is.
+        let moving = placing.filter(function (p) { return p.a && p.anchored; });
+        if (moving.length) {
+            write(placing.map(function (p) {
+                return p.a && p.anchored ? rule(p.n, hangs(p, view.scrollX, view.scrollY), null) : "";
+            }).join(""));
+            for (const p of moving) {
+                const box = p.panel.getBoundingClientRect();
+                p.size = {w: box.width, h: box.height};
+            }
+        }
+        // Where it lands it may be another width again, and is placed again at the width it has there until it
+        // keeps one. One that grows there is placed at its full width at once — the room it is given only widens
+        // as it slides back from the edge — and one that shrinks goes on shrinking to where it stays.
+        let rules = placing.map(function (p) { return lands(p, false); });
+        for (let pass = 0; pass < 8 && moving.length; pass++) {
+            write(rules.join(""));
+            moving = moving.filter(resized);
+            rules = placing.map(function (p) { return lands(p, false); });
+        }
         write(rules.join(""));
         // Held to a height it scrolls in by a pixel or none: the height comes off (step 3).
-        panels.forEach(function (panel, i) {
-            const lands = tall[i];
-            if (lands && panel.scrollHeight - panel.clientHeight < 2 && /auto|scroll/.test(getComputedStyle(panel).overflowY)) {
-                rules[i] = lands(true);
+        placing.forEach(function (p, i) {
+            if (p.cap !== null && p.panel.scrollHeight - p.panel.clientHeight < 2 && /auto|scroll/.test(getComputedStyle(p.panel).overflowY)) {
+                rules[i] = lands(p, true);
             }
         });
         write(rules.join(""));

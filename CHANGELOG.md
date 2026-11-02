@@ -468,6 +468,31 @@ them until tagged releases begin.
   (`row.ForeignTaxCategory`) and nothing else; the root part spelled as the aggregate
   (`Entity<(ForeignTaxCategory, Country)>`) and a grandchild held over its child's columns read the same way. See
   [Configured relationships win](docs/data.md#configured-relationships-win).
+- **Nightly and release packages reach nuget.org through trusted publishing, with no stored key.** An expired
+  `NUGET_API_KEY` stopped every nightly after .2537 (403 at the first push). The jobs now trade their GitHub
+  OIDC token for nuget.org's one-hour key (`publish_packages.py push --trusted-publisher pal-tamas`), and ask
+  for a new one before a level once the key in hand is 40 minutes old, since the dependency gate makes a
+  publish longer than an hour. Only the release's unlist step still reads `NUGET_API_KEY`.
+- **`Ui.Editor`'s engine is on Tiptap 3.32.2** (was 3.32.0, a patch release of the whole `@tiptap/*` family).
+  `ui-editor.js` grows by 2,296 bytes (447,234 -> 449,530), which the tiptap follower leaves to the owner; approved.
+- **The gates ran on the Node LTS line GitHub's `setup-node` knew about, not the one Rask states.** `setup-node`
+  reads `lts/*` from its own manifest, which still named Node 24 after nodejs.org had made 26 the Active LTS, so the
+  node-lts follower that moved the build floor to 26 was refused by every build. The repo now names its Node in
+  `.node-version` (the follower writes it with `NodeRequirement.ScaffoldLine`, a test holds the two together) and
+  every workflow installs exactly that.
+- **A panel opened by the right edge of a page now lands where Flux's does.** Flux lays an open panel out where
+  it hangs, so a 288 px popover beside a trigger at the right edge is squeezed toward its 192 px min-width there,
+  and is turned and slid back at that width. The placement hook (`rask-place.ts`) measured the panel where nothing
+  squeezed it, so it was placed at its full width. It now measures the panel at the side and alignment it asks for,
+  places it at that size, and places it again until its width stays the same. This shows only where something
+  narrows the room a panel hangs in, such as a page gutter kept for a scrollbar. Nothing to change in an app.
+- **A yes to a `.Confirm` on a live page could run nothing.** The yes presses the button again on the page as it is
+  now, and on the server it went once a page had landed, or after 300 ms when none had. The browser's own dialog holds
+  the page still while the server renders on, so when the pages drawn meanwhile were still on the way at that point —
+  a slow line, a loaded machine — the press was read from the page the question was asked on, ten renders behind the
+  server's, and the server could not show its handler was the one pressed: the reader said yes and nothing was
+  deleted. Now the runtime asks the server (`{"type":"caughtUp"}`), which answers behind every page it already sent,
+  and the press goes once that answer is on screen, however long the line takes. Nothing to change in an app.
 - **`Current.Service<T>()` in a lifecycle hook could throw `ObjectDisposedException: IServiceProvider` right after
   the hook's first await.** On a loaded server the await came back on another thread before the render that started
   the hook had held the hook's part of its event, so an event that ended in that moment disposed the scope the hook

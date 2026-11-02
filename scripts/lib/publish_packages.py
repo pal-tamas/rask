@@ -2,7 +2,8 @@
 """Push a packed set of .nupkg files so that a feed never lists a package ahead of its dependencies.
 
     publish_packages.py plan   <dir> [--projects src]
-    publish_packages.py push   <dir> --source <feed> [--api-key-env NAME] [--gate-index nuget.org]
+    publish_packages.py push   <dir> --source <feed> [--api-key-env NAME | --trusted-publisher USER]
+                                     [--gate-index nuget.org]
                                      [--projects src] [--log push.log] [--commit <sha>]
     publish_packages.py verify <dir> [--index nuget.org] [--wait 1800]
 
@@ -24,6 +25,11 @@ Why the commit (2026-10-26): two nightlies, of 1ecef2685 and of the merge cc68a0
 the same 0.23.1-alpha.0.526. The second's pushes were "duplicates" of the first's, which counted as
 success, and `verify` saw every id listed -- so nuget.org served one version from two commits and the run
 was green. scripts/lib/nightly_version.py now keeps the versions apart; this keeps a repeat from passing.
+
+Trusted publishing (2026-11-02): with --trusted-publisher, no long-lived key is stored anywhere. The job's
+GitHub OIDC token is exchanged at nuget.org for a temporary key, which lives one hour, and one OIDC token buys
+one key. The gate makes a publish 35-75 minutes long, so the key is asked for again before a level whenever the
+one in hand is older than --key-life seconds.
 
 Exit status: 0 done, 1 a push or a wait failed, 2 the packed set itself is wrong,
              3 the feed holds the version from another commit.
@@ -325,6 +331,61 @@ def wait_until_served(packages: list[Package], index: str, wait: float, poll: fl
 
 # ------------------------------------------------------------------ commands
 
+NUGET_TOKEN_ENDPOINT = "https://www.nuget.org/api/v2/token"
+
+
+class Keys:
+    """The key a push sends: a fixed one from the environment, or nuget.org's temporary trusted-publishing key."""
+
+    def __init__(self, args: argparse.Namespace):
+        self.user = args.trusted_publisher
+        self.life = args.key_life
+        self.key = ""
+        self.taken = 0.0
+        if args.api_key_env:
+            self.key = os.environ.get(args.api_key_env, "")
+            if not self.key:
+                raise SetError(f"${args.api_key_env} is empty")
+
+    def current(self) -> str:
+        if self.user and (not self.key or time.monotonic() - self.taken > self.life):
+            self.key = self.exchange()
+            self.taken = time.monotonic()
+            if os.environ.get("GITHUB_ACTIONS") == "true":
+                # The runner hides it from every later line of the log, not only from what this script prints.
+                print(f"::add-mask::{self.key}", flush=True)
+        return self.key
+
+    def exchange(self) -> str:
+        # A stand-in for tests, as PUSH_CMD is for the push: a command that prints a key.
+        stand_in = os.environ.get("TRUSTED_KEY_CMD")
+        if stand_in:
+            return subprocess.run(shlex.split(stand_in), capture_output=True, text=True, check=True).stdout.strip()
+        request_url = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_URL")
+        request_token = os.environ.get("ACTIONS_ID_TOKEN_REQUEST_TOKEN")
+        if not request_url or not request_token:
+            raise SetError("--trusted-publisher needs the job's OIDC token: give the job `permissions: id-token: write`")
+        try:
+            oidc = json.loads(fetch_with(f"{request_url}&audience=https://www.nuget.org",
+                                         {"Authorization": f"Bearer {request_token}"}))["value"]
+            answer = json.loads(fetch_with(NUGET_TOKEN_ENDPOINT, {
+                "Authorization": f"Bearer {oidc}", "Content-Type": "application/json", "User-Agent": "rask-publish",
+            }, json.dumps({"username": self.user, "tokenType": "ApiKey"}).encode()))
+        except (urllib.error.URLError, KeyError, ValueError) as problem:
+            raise SetError(f"nuget.org gave no temporary key for {self.user} ({problem}); "
+                           "check the trusted publishing policy names this repository and workflow file") from problem
+        key = answer.get("apiKey", "")
+        if not key:
+            raise SetError(f"nuget.org's token answer for {self.user} carried no apiKey")
+        return key
+
+
+def fetch_with(url: str, headers: dict[str, str], body: bytes | None = None) -> bytes:
+    request = urllib.request.Request(url, data=body, headers=headers, method="POST" if body is not None else "GET")
+    with urllib.request.urlopen(request, timeout=60) as response:
+        return response.read()
+
+
 def summary(text: str) -> None:
     print(text, flush=True)
     target = os.environ.get("GITHUB_STEP_SUMMARY")
@@ -362,9 +423,7 @@ def cmd_push(args: argparse.Namespace) -> int:
         # Served from this one, it is a re-run finishing what an earlier attempt started.
         expected = commit_of(packages)
         refuse_mixed(packages, served_commits(packages, args.gate_index), expected, "before pushing")
-    key = os.environ.get(args.api_key_env, "") if args.api_key_env else ""
-    if args.api_key_env and not key:
-        raise SetError(f"${args.api_key_env} is empty")
+    keys = Keys(args)
 
     output = os.environ.get("GITHUB_OUTPUT")
     if output:
@@ -386,7 +445,7 @@ def cmd_push(args: argparse.Namespace) -> int:
             served.update(p.key for p in needed)
 
         print(f"==> level {number}: {', '.join(p.id for p in level)}", flush=True)
-        failed = push_all([p.path for p in level], args, key)
+        failed = push_all([p.path for p in level], args, keys.current())
         if failed:
             summary(f"**Push failed at level {number}**: " + ", ".join(f"`{name}`" for name in failed)
                     + ". Nothing that depends on them was pushed. Re-run this job to finish the version.")
@@ -416,7 +475,12 @@ def main() -> int:
 
     push = commands.add_parser("push", help="push the set, dependencies first")
     push.add_argument("--source", required=True)
-    push.add_argument("--api-key-env", help="the environment variable holding the key (never the key)")
+    key = push.add_mutually_exclusive_group()
+    key.add_argument("--api-key-env", help="the environment variable holding the key (never the key)")
+    key.add_argument("--trusted-publisher", metavar="USER",
+                     help="nuget.org profile name: a temporary key from the job's OIDC token, renewed per level")
+    push.add_argument("--key-life", type=float, default=2400,
+                      help="seconds a temporary key is used before a new one is asked for (it lives 3600)")
     push.add_argument("--gate-index", help="nuget.org, or a URL with {id}: wait here for dependencies")
     push.add_argument("--log", help="append each package's accepted push output here")
     push.add_argument("--commit", help="the commit the set must have been packed from")

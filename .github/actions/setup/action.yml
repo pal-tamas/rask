@@ -34,11 +34,12 @@ runs:
       with:
         dotnet-version: 10.0.x
 
-    # The newest Node LTS release, as the installers put on a machine: the build floor is the LTS line's
-    # first release (RASKSPA005 / RASKISLAND001), and the runner image's own Node lags behind it.
+    # The Node the repo states (.node-version = ScaffoldLine, moved by the node-lts follower), as the installers
+    # put on a machine. Not `lts/*`: setup-node reads LTS status from its own manifest, which lags nodejs.org,
+    # so a follower that moved the build floor to a new line was gated on the old one.
     - uses: actions/setup-node@v7
       with:
-        node-version: lts/*
+        node-version-file: .node-version
 
     - name: Cache NuGet packages
       if: inputs.nuget-cache == 'true'

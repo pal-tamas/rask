@@ -26,6 +26,7 @@ jobs:
     timeout-minutes: 360
     permissions:
       contents: write
+      id-token: write   # nuget.org trusted publishing (the push); the unlist step still uses NUGET_API_KEY
     steps:
       - uses: actions/checkout@v7
         with:
@@ -73,13 +74,12 @@ jobs:
       #
       # push.log is for the verify step below: only the push's own answer can tell "never pushed" from
       # "accepted, still in nuget.org's validation" (#1125).
+      # No stored key: the trusted publishing policy for pal-tamas names this repository and release.yml.
       - name: Push to nuget.org, dependencies first
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: >-
           python3 scripts/lib/publish_packages.py push ./artifacts
           --source https://api.nuget.org/v3/index.json
-          --api-key-env NUGET_API_KEY
+          --trusted-publisher pal-tamas
           --gate-index nuget.org
           --projects src
           --commit "$GITHUB_SHA"

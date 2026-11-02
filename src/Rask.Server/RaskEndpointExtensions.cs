@@ -2226,9 +2226,9 @@ public static partial class RaskEndpointExtensions
             return new(Dropped(session, root, new FrameOutcome(FrameStatus.Handled, null)));
         }
 
-        if (hasType && type.ValueEquals("navigate"u8))
+        if (hasType && QueuedBehindEvents(session, root, type, payloadLength, store, limits, metrics, ct) is { } queued)
         {
-            return new(QueueNavigation(session, root, payloadLength, store, limits, metrics, ct));
+            return new(queued);
         }
 
         if (hasType && HandledInline(session, root, type))
@@ -2285,6 +2285,28 @@ public static partial class RaskEndpointExtensions
     {
         DispatchedUploads.Dropped(session, frame);
         return outcome;
+    }
+
+    // The frames that are not events and still wait for the events read before them: a navigation, and the
+    // browser asking whether it holds every page sent to it. Null for any other frame.
+    private static FrameOutcome? QueuedBehindEvents(
+        LiveSession session,
+        JsonElement root,
+        JsonElement type,
+        int payloadLength,
+        LiveSessionStore store,
+        RaskServerLimits limits,
+        RaskMetrics? metrics,
+        CancellationToken ct)
+    {
+        if (type.ValueEquals("navigate"u8))
+        {
+            return QueueNavigation(session, root, payloadLength, store, limits, metrics, ct);
+        }
+
+        return type.ValueEquals("caughtUp"u8)
+            ? QueueCaughtUp(session, root, payloadLength, store, limits, metrics)
+            : null;
     }
 
     // A link the reader pressed, or Back: queued behind the handlers read before it, so the reader goes on

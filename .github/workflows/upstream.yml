@@ -111,7 +111,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version-file: .node-version
 
       # The scripts take any Playwright driver (RASK_FLUX_PLAYWRIGHT); the one the E2E project
       # carries would cost a build of the whole site to get at. The same release line as that one
@@ -223,7 +223,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version-file: .node-version
 
       # As the `flux` job takes it: the release line of Microsoft.Playwright in Directory.Packages.props.
       - name: Chromium
