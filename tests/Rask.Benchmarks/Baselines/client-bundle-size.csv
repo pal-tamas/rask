@@ -544,3 +544,12 @@ bundle,bytes
 rask.js,112952
 rask.wasm.js,97659
 rask-hooks.js,120177
+#
+# 2026-11-02, a panel by the edge is placed at the width it has where it hangs (rask-place.ts measures it at the side
+# and alignment it asks for, then again where it lands until its width holds): rask-hooks.js 120,177 -> 121,602
+# (+1,425); rask.js 112,952 and rask.wasm.js 97,659 unchanged. Measured locally (Release, the bundle gate's recipe)
+# on the tree at 92b57dd8c plus this change.
+bundle,bytes
+rask.js,112952
+rask.wasm.js,97659
+rask-hooks.js,121602
