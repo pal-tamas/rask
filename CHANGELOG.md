@@ -236,6 +236,22 @@ them until tagged releases begin.
   reads data. See [lifecycle](docs/lifecycle.md#a-page-that-handles-an-event).
 
 ### Changed
+- **Rask.Ui: the kit parts Flux documents only in its examples are held to Flux like every other.** `flux.snapshot.json`
+  (`scripts/flux/refresh.mjs`, the `flux` follower) now also reads a part Flux writes in its examples or lists as an
+  available item but heads no Reference entry with — `flux:spacer`, `flux:navmenu`, `flux:menu.group`, the chart's
+  bar family, the editor's toolbar items — with the props and values its examples write, and `FluxConformanceTests`
+  holds each one in `Built`. Measured on fluxui.dev and made Flux's on the way:
+  - `Ui.Spacer` writes no `aria-hidden`: Flux's spacer is an empty `<div class="flex-1">` with no ARIA.
+  - `Ui.ChartGroup.Width` is gone: Flux's examples set a width on a stack and a bar, never on a group, which fills
+    nine tenths of a row's slot as before.
+  - `Ui.NavmenuItem.IconVariant` (and its `.Mini` / `.Micro` / `.Solid` / `.Outline` steps) is gone: Flux documents
+    no `icon:variant` on a navmenu's row, which draws the 20px icon.
+  - New, as Flux's profile page writes them: `Ui.NavmenuItem.Indent()` (Flux's `indent`: an icon's 28px room, empty,
+    before the words) and `Ui.NavmenuSeparator` (`flux:navmenu.separator`: a menu's line under the navmenu's marker).
+  - `Ui.MenuGroup` and `Ui.Navmenu` match Flux open, light and dark (`parity-menu.mjs dropdown`), unchanged; so do
+    the chart's bars, groups, stacks, viewports and legend indicators (`parity-chart.mjs`, `parity.mjs chart`),
+    `Ui.CheckboxIndicator`, `Ui.PillboxInput` and the editor's eighteen toolbar items (`parity.mjs`,
+    `parity-editor.mjs`).
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section

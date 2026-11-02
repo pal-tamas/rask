@@ -8,6 +8,9 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiMenuSeparator : Component
 {
+    /// <summary>The box a menu's line sits in: edge to edge across the menu's padding, a margin above and below.</summary>
+    internal const string Box = "-mx-[.3125rem] my-[.3125rem]";
+
     /// <inheritdoc />
     protected override Component? Render() => Line();
 
@@ -18,11 +21,14 @@ public sealed partial class UiMenuSeparator : Component
     /// </summary>
     internal static Component Line(string? edge = null)
     {
-        var box = Div.Class("-mx-[.3125rem] my-[.3125rem]");
-        return (edge is null ? box.Data("ui-menu-separator", "") : box.Data(("ui-menu-separator", ""), (edge, "")))[
-            // Flux's separator, in the menu's own dark ink (zinc-600 where a page's line is white/20).
+        var box = Div.Class(Box);
+        return Ruled(edge is null ? box.Data("ui-menu-separator", "") : box.Data(("ui-menu-separator", ""), (edge, "")));
+    }
+
+    /// <summary>Flux's separator inside <paramref name="box" />, in the menu's own dark ink (zinc-600 where a page's line is white/20).</summary>
+    internal static Component Ruled(Element box) =>
+        box[
             Div.Role("none").Class("h-px w-full border-0 bg-zinc-800/15 dark:bg-zinc-600")
                 .Data(("orientation", "horizontal"), ("ui-separator", ""))
         ];
-    }
 }

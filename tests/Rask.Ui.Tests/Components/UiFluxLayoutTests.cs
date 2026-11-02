@@ -9,8 +9,8 @@ public partial class UiFluxLayoutTests : global::Rask.Core.RaskMarkup
     // ---- spacer ---------------------------------------------------------------------------------
 
     [Fact]
-    public void A_spacer_grows_and_is_hidden_from_assistive_tech() =>
-        Assert.Equal("<div class=\"flex-1\" data-ui-spacer=\"\" aria-hidden=\"true\"></div>", Ui.Spacer.ToHtml());
+    public void A_spacer_is_an_empty_div_that_grows_with_no_aria_as_Fluxs_is() =>
+        Assert.Equal("<div class=\"flex-1\" data-ui-spacer=\"\"></div>", Ui.Spacer.ToHtml());
 
     // ---- type -----------------------------------------------------------------------------------
 
