@@ -78,6 +78,7 @@ public sealed class DoctorDependencyTests
         Assert.Contains("npm", names);
         Assert.Contains("git", names);
         Assert.Contains("ssh", names);
+        Assert.Contains("docker buildx", names);
     }
 
     [Fact]
@@ -90,7 +91,7 @@ public sealed class DoctorDependencyTests
         var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        foreach (var name in new[] { "wasm-tools", "node", "npm", "git", "ssh", "docker" })
+        foreach (var name in new[] { "wasm-tools", "node", "npm", "git", "ssh", "docker", "docker buildx" })
         {
             Assert.Equal("Ok", StatusOf(console.OutText, name));
         }
@@ -277,6 +278,49 @@ public sealed class DoctorDependencyTests
 
         Assert.Equal(0, exit);
         Assert.Equal("Warn", StatusOf(console.OutText, "ssh"));
+    }
+
+    [Fact]
+    public async Task A_docker_without_buildx_warns_with_the_install_command()
+    {
+        var (console, command) = Build((exe, args) => exe == "docker" && args is ["buildx", "version"]
+            ? new ProcessResult(1, "", "docker: 'buildx' is not a docker command.")
+            : Healthy(exe, args));
+
+        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        // Warn, not Fail: only `rask deploy` builds an image, and it refuses up front with the same words.
+        Assert.Equal(0, exit);
+        Assert.Equal("Warn", StatusOf(console.OutText, "docker buildx"));
+        Assert.Contains("RUN --mount", console.OutText, StringComparison.Ordinal);
+        Assert.Contains(BuildxProbe.FixHint(), console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Podmans_docker_shim_is_fine_without_buildx()
+    {
+        var (console, command) = Build((exe, args) => (exe, args) switch
+        {
+            ("docker", ["--version"]) => new ProcessResult(0, "podman version 5.2.0", ""),
+            ("docker", _) => new ProcessResult(125, "", "unrecognized command"),
+            _ => Healthy(exe, args),
+        });
+
+        await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal("Ok", StatusOf(console.OutText, "docker buildx"));
+        Assert.Contains("Podman", ValueOf(console.OutText, "docker buildx"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task No_docker_means_no_buildx_row_to_pile_on_top_of_it()
+    {
+        var (console, command) = Build(Except("docker", NotOnPath));
+
+        await command.ExecuteAsync(["--json"], CancellationToken.None);
+
+        Assert.Equal("Warn", StatusOf(console.OutText, "docker"));
+        Assert.DoesNotContain("docker buildx", Names(console.OutText));
     }
 
     [Fact]

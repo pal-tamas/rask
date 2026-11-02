@@ -181,7 +181,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `--github-actions` writes `.github/workflows/deploy.yml` (push to main → same `rask deploy`, `--no-setup-host` so CI never provisions) + prints the two `gh secret set` lines (`RASK_SSH_PRIVATE_KEY`, `RASK_SSH_KNOWN_HOSTS`);
   host/domain come from the committed `.rask/deploy.json`.
   `rask info` reports CLI/SDK/OS (`--json` for scripts);
-  `rask doctor` runs every environment probe the other commands own — SDK, dotnet-ef, Docker, project/template/provider detection, and the `.rask/*.json` configs — read-only, warnings not failures, `--json` for CI;
+  `rask doctor` runs every environment probe the other commands own — SDK, dotnet-ef, Docker and its buildx plugin (Podman's shim needs none; `rask deploy` refuses up front without it, since every scaffolded Dockerfile uses `RUN --mount=type=cache`), project/template/provider detection, and the `.rask/*.json` configs — read-only, warnings not failures, `--json` for CI;
   `rask --version`.
   Tailwind reaches EVERY template including browser-WASM (it ships inside the host packages, build-only — no runtime assembly — and on wasm the stylesheet belongs to the browser project, because Tailwind v4 detects sources relative to where it runs).
   Rask.Query rides along with the dispatcher rather than having a flag of its own (reference AND `AddRaskQuery()`), and stays its own package depending on BOTH Rask.Cqrs and Rask.Core because it is the composition of them — Rask.Cqrs.Server and Rask.Spa.Hosting reference no Rask.Core at all.

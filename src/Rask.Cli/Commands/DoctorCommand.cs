@@ -175,6 +175,12 @@ internal sealed class DoctorCommand(
                 "Only `rask deploy` needs it — https://docs.docker.com/get-docker/")
             : new DoctorCheck("docker", DoctorStatus.Ok, docker, null));
 
+        // Only with a docker to ask: a missing one is already the row above, and its fix comes first.
+        if (docker is not null)
+        {
+            checks.Add(await BuildxCheckAsync(docker, cancellationToken).ConfigureAwait(false));
+        }
+
         return checks;
     }
 
@@ -366,6 +372,27 @@ internal sealed class DoctorCommand(
         }
 
         return new DoctorCheck("wasm-tools", DoctorStatus.Ok, "installed", null);
+    }
+
+    /// <summary>
+    ///     The buildx plugin, without which every scaffolded Dockerfile fails on its first <c>RUN --mount</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A warning like the docker row it follows: only <c>rask deploy</c> builds an image, and it refuses
+    ///     up front with the same words, before anything reaches the host.
+    /// </remarks>
+    private async Task<DoctorCheck> BuildxCheckAsync(string docker, CancellationToken cancellationToken)
+    {
+        var status = await BuildxProbe.CheckAsync(_process, docker, cancellationToken).ConfigureAwait(false);
+        return status switch
+        {
+            BuildxStatus.Present => new DoctorCheck("docker buildx", DoctorStatus.Ok, "installed", null),
+            BuildxStatus.Podman => new DoctorCheck(
+                "docker buildx", DoctorStatus.Ok, "not needed (Podman builds with Buildah)", null),
+            _ => new DoctorCheck(
+                "docker buildx", DoctorStatus.Warn, "not installed",
+                $"`rask deploy` needs it: {BuildxProbe.Problem} {BuildxProbe.FixHint()}"),
+        };
     }
 
     /// <summary>`ssh`, which `rask deploy` shells out to for its host probe and bootstrap.</summary>
