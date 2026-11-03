@@ -169,7 +169,7 @@ fi
 
 # --- the plan ---------------------------------------------------------------------------------------
 # gates.yml's own plan step, lifted out of the workflow and run as written over a throwaway repository
-# with two front ends. It is what turns one "front end" entry into a job per template, and what decides
+# with three front ends. It is what deals one "front end" entry into jobs of templates, and what decides
 # whether a Dependabot pull request is held to one — the rule dependabot-merge.yml's merge rests on.
 echo "==> the plan"
 
@@ -188,10 +188,12 @@ open(sys.argv[2] + "/plan.sh", "w", encoding="utf-8").write(textwrap.dedent("\n"
 PY
 
 repo="$sandbox/repo"
-mkdir -p "$repo/scripts" "$repo/src/Rask.Templates/vue/client" "$repo/src/Rask.Templates/react/client" "$repo/src/Rask.Templates/server"
+mkdir -p "$repo/scripts" "$repo/src/Rask.Templates/server"
 cp "$root/scripts/run-template-e2e.sh" "$repo/scripts/"
-echo '{}' > "$repo/src/Rask.Templates/vue/client/package.json"
-echo '{}' > "$repo/src/Rask.Templates/react/client/package.json"
+for front_end in angular react vue; do
+  mkdir -p "$repo/src/Rask.Templates/$front_end/client"
+  echo '{}' > "$repo/src/Rask.Templates/$front_end/client/package.json"
+done
 echo '//' > "$repo/src/Rask.Templates/server/Program.cs"
 sandbox_git() {
   git -C "$repo" -c user.name=gate -c user.email=gate@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"
@@ -228,13 +230,15 @@ plans() {
 }
 
 named='[.[].name]'
-plans "the push set has a job per front end"               "$named | index(\"front end react\") != null and index(\"front end vue\") != null" push "" ""
-plans "a job runs its own template and answers to its key" 'any(.[]; .name == "front end vue" and .run == "scripts/run-template-e2e.sh --front-end=vue" and .when == "frontend-vue")' push "" ""
-plans "only= names one front end"                          "$named == [\"front end vue\"]" push 'front end vue$' ""
-plans "a lockfile bump is held to the template it changed" "$named | index(\"front end vue\") != null and index(\"front end react\") == null" deps "" "$vue_bump~1" "$vue_bump"
+front_end_runs='[.[] | select(.name | startswith("front end")) | .run]'
+plans "the push set deals the front ends into two jobs"    "$named | index(\"front end 1/2\") != null and index(\"front end 2/2\") != null" push "" ""
+plans "...each running its templates over one packed feed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=angular,vue\", \"scripts/run-template-e2e.sh --front-end=react\"]" push "" ""
+plans "...and answering to each of its templates' keys"   'any(.[]; .name == "front end 1/2" and .when == ["frontend-angular", "frontend-vue"])' push "" ""
+plans "only= names one job"                                "$named == [\"front end 2/2\"]" push 'front end 2/2$' ""
+plans "a lockfile bump is held to the template it changed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=vue\"]" deps "" "$vue_bump~1" "$vue_bump"
 plans "...with the rest of the deps set"                   "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$vue_bump~1" "$vue_bump"
 plans "a NuGet bump is held to no front end"               "$named | any(.[]; startswith(\"front end\")) | not" deps "" "$nuget_bump~1" "$nuget_bump"
-plans "a deps run that cannot see its change takes them all" "$named | index(\"front end react\") != null and index(\"front end vue\") != null" deps "" ""
+plans "a deps run that cannot see its change takes them all" "$front_end_runs | length == 2" deps "" ""
 
 # The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
 plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""

@@ -150,8 +150,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches and the formatter over the `.cs` files it changed) always, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches and the formatter over the `.cs` files it changed) always, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the front-end templates in two jobs over one packed feed each (`run-template-e2e.sh --front-end=<key>,<key>…`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -170,7 +170,7 @@ is that command; run it in a worktree at that commit:
 ```bash
 scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | format | format-src … runs one piece)
 scripts/run-e2e-local.sh                     # the "browser E2E" jobs (RASK_E2E_SITE=publish is the "site publish" job; prebuilt drives what it published)
-scripts/run-template-e2e.sh --front-end=vue  # the "front end vue" job
+scripts/run-template-e2e.sh --front-end=vue  # one template of a "front end K/2" job (--front-end=react,vue runs several)
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
@@ -319,7 +319,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 
 - `ci.yml` — the gates a change reaches, on every push to `main` or a `ci/**` branch and every pull
   request; the whole set and the release set on a `ci/release/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
-  (`only` is a pattern over job names: `'front end'` is all seven front ends, `'front end vue$'` one).
+  (`only` is a pattern over job names: `'front end'` is both front-end jobs, `'front end 1/2'` one).
 - `full.yml` — the whole push set against `main`, once a day and by hand (fourteen jobs at once so a
   push's own run finds runners). It gates nothing.
 - `gates.yml` — the reusable list of gate jobs the others call.
@@ -450,8 +450,8 @@ True of the scripts wherever they run — a CI job or your terminal.
   app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
   manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
-- **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, one job per template:
-  `front end react`, `front end vue`, …). Scaffolds that template with every battery on and runs the one
+- **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, the templates dealt into two jobs
+  `front end 1/2` and `2/2` that pack the feed once and run `--front-end=<key>,<key>…`, a verdict per template in the log and job summary). Scaffolds that template with every battery on and runs the one
   command a deploy runs, `dotnet publish`: `npm install` (a template ships no lockfile), the typed client written
   into `client/src/rask/` from the host's message records, and the bundle. Then the client checks itself — `npm run check` (Vite+: format, lint and type check)
   and `npm test`, or Angular's `npm run lint` and `npm run format:check` — and the **published** app is started and asked for `/` (the bundle's

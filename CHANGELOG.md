@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: the front-end templates run in two jobs that pack the feed once.** The seven `front end <key>` jobs each
+  packed the local feed again (about 4.4 minutes apiece); `front end 1/2` and `2/2` each pack it once and scaffold
+  their templates one after another (`scripts/run-template-e2e.sh --front-end=angular,preact,…`), with a verdict per
+  template in the log and the job summary. A scoped or Dependabot run narrows a job to the templates it reaches.
 - **CI: the formatter checks the files a change touched, in the `build` job.** The `format`, `format src` and
   `format tests` jobs are gone (a build plus up to 603 s of `dotnet format` each); `build` runs the formatter beside
   the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
