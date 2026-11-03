@@ -35,6 +35,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, cursorDeparted, measurePage, root, screen, stateTargets, STYLES } from './lib.mjs';
+import { departedFrom, focusDepartedFrom } from './departed.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -658,7 +659,7 @@ function compareOpen(theirs, mine) {
 
   const diffs = [];
   if (!sameTag(a, b)) diffs.push(`modal: tag <${a.tag}> vs <${b.tag}>`);
-  compareStyles(a.style, b.style, 'modal', diffs, b.pressable);
+  compareStyles(a.style, b.style, 'modal', diffs, b.pressable, departedFrom(mine, b));
   compareTree(theirs, da, mine, db, da, db, 'dialog', diffs);
   return diffs;
 }
@@ -745,10 +746,13 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 }
 
 function compareLook(theirs, a, mine, b, where, diffs) {
-  compareStyles(a.style, b.style, where, diffs, b.pressable);
+  // The owner-approved departures parity.mjs lets go (departed.mjs): NATIVE FEEL's chrome and the dialog's scroll.
+  const departs = departedFrom(mine, b);
+  compareStyles(a.style, b.style, where, diffs, b.pressable, departs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, b.pressable);
+    // A pseudo-element inherits what its node departs in (a control's `user-select`).
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, b.pressable, departs);
   }
 
   const moves = n => JSON.stringify(n.animations ?? []).replaceAll('"name":"flux-', '"name":"ui-');
@@ -764,8 +768,10 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
+    // A focused field is ringed in the accent (departed.mjs, focusDepartedFrom); parity-focus.mjs holds that ring.
+    const ringed = state === 'focus-visible' ? focusDepartedFrom(b) : [];
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
-      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y })) continue;
+      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y }) || ringed.includes(key)) continue;
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
@@ -781,9 +787,10 @@ function shown(example, node) {
 }
 
 // `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
-function compareStyles(x, y, where, diffs, pressable = false) {
+// `departs`: the keys an owner-approved departure lets go on the kit's node (departed.mjs).
+function compareStyles(x, y, where, diffs, pressable = false, departs = []) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || departs.includes(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
     if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }

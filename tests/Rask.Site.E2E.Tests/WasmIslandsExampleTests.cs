@@ -15,7 +15,6 @@ namespace Rask.Site.E2E.Tests;
 // knows which host they are on — but a callback reaches C# through a [JSExport] call into this tab's
 // own runtime rather than over a WebSocket. Every assertion below would pass on the Server host for
 // reasons that say nothing about this one.
-[Collection(WasmExampleCollection.Name)]
 public sealed class WasmIslandsExampleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

@@ -9,7 +9,7 @@ namespace Rask.Site.E2E.Tests;
 ///     itself, where it hangs, focus, the pointer dragging the area and a slider, the sheet a phone gets, and
 ///     the clipboard.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
+[Collection(ClipboardCollection.Name)]
 public sealed class UiKitColorPickerTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

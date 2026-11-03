@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     into <c>wwwroot/js</c>, fetched by the page, and the number reaches the bound model with the next action.
 /// </summary>
 /// <remarks>The engine's every key is held to Flux's on a Server host, in <c>Rask.Server.E2E.Tests/UiPhoneTests</c>.</remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitPhoneTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

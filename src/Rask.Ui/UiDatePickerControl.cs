@@ -35,8 +35,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         ["ui-date-picker"] = "",
     };
 
-    private static readonly UiPartMarker FocusPlaceholder = new("ui-focus-placeholder");
-
     private static readonly Dictionary<string, string?> PopupMarks = new(StringComparer.Ordinal)
     {
         ["rask-lock"] = "",
@@ -377,11 +375,8 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             .Popover(Rask.Core.Popover.Auto)
             // The runtime holds the page still behind it while it is open, as Flux does: no scroll, no pointer.
             .Data(PopupMarks)
-            // Flux focuses nothing when its picker opens. A <dialog popover> would hand the focus to its first
-            // control (a month step, or the header's select with a ring); `autofocus` on the dialog itself keeps
-            // it on the popup — no control lit, Tab enters the calendar, Escape returns to the trigger.
-            .Attributes(("autofocus", ""), ("style", "position-anchor:--" + PopoverId))[
-            Div.Class(UiDatePickerLook.FocusPlaceholder).Data(FocusPlaceholder.With(null)).TabIndex(0),
+            .Attributes(("style", "position-anchor:--" + PopoverId))[
+            UiPickerFocusPlaceholder.Render(),
             calendar
         ];
 

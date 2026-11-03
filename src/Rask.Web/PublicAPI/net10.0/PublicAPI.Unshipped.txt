@@ -3292,6 +3292,7 @@ Rask.Web.Types.NotificationOptions.Silent.get -> bool?
 Rask.Web.Types.NotificationOptions.Silent.init -> void
 Rask.Web.Types.NotificationOptions.Tag.get -> string?
 Rask.Web.Types.NotificationOptions.Tag.init -> void
+Rask.Web.Types.OfflineAudioContext.Close() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.OTPCredentialRequestOptions
 Rask.Web.Types.OTPCredentialRequestOptions.<Clone>$() -> Rask.Web.Types.OTPCredentialRequestOptions!
 Rask.Web.Types.OTPCredentialRequestOptions.Equals(Rask.Web.Types.OTPCredentialRequestOptions? other) -> bool

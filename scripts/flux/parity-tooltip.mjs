@@ -97,6 +97,8 @@ const CONTENT = '[data-flux-tooltip-content], [data-ui-tooltip-content]';
 
 // Where the pointer rests between steps: the page's left edge, where neither page has a trigger.
 const AWAY = [2, 450];
+// Longer than the 100 ms in which Flux looks at one pointer move: a pointer still this long has come to rest.
+const LOOK = 150;
 
 const flag = name => process.argv.includes(`--${name}`);
 const view = viewOf(process.argv);
@@ -467,7 +469,9 @@ async function walkHover(page, tooltip) {
     await page.waitForFunction(() => window.__timed !== null, null, { timeout: 3000 }).catch(() => {});
     return page.evaluate(() => (window.__timed === null ? 'never' : `${window.__timed}ms`));
   };
-  const away = async () => { await page.mouse.move(...AWAY); await settle(tooltip); };
+  // From rest: Flux looks at a pointer move at most once in LOOK ms (rask-hover.ts says the same), so a move made
+  // sooner after the last one looked at is passed over, and where the walk then stands is a race against that clock.
+  const away = async () => { await page.waitForTimeout(LOOK); await page.mouse.move(...AWAY); await settle(tooltip); };
   const steps = {};
 
   await trigger.evaluate(el => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
@@ -497,10 +501,12 @@ async function walkHover(page, tooltip) {
   await settle(tooltip);
   const box = await trigger.boundingBox();
   const content = await tooltip.locator('[data-flux-tooltip-content], [data-ui-tooltip-content]').boundingBox();
-  for (let y = box.y + 3; y > content.y + content.height / 2; y -= 1) {
-    await page.mouse.move(box.x + box.width / 2, y);
-    await page.waitForTimeout(8);
-  }
+  // From rest at the trigger's edge, ONE unbroken move onto the tooltip, as a hand makes it: its steps come well
+  // inside one look, so neither page sees it over the gap. Then it rests there, longer than a look.
+  await page.waitForTimeout(LOOK);
+  await page.mouse.move(box.x + box.width / 2, box.y + 1);
+  await page.mouse.move(box.x + box.width / 2, content.y + content.height / 2, { steps: 6 });
+  await page.waitForTimeout(LOOK);
   await settle(tooltip);
   steps['pointer resting on the tooltip keeps it'] = await showing();
   await away();

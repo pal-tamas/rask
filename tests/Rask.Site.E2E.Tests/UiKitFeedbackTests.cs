@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's feedback components (callout, progress, skeleton, toast and tooltip) on their pages in the UI tab, in a
 ///     browser.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
@@ -367,11 +366,17 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
                       return [Math.round(c.left - t.right), Math.round(c.top - t.bottom), Math.round(t.left - c.right), Math.round(t.top - c.bottom)]; }";
 
         // right · below · left · above: the one that reads 5 is the side it opened on.
+        // As on Flux the bubble takes the pointer and may cover the next trigger, so the pointer comes to rest
+        // (longer than the 100 ms in which a move is looked at) and moves off before it goes on.
         foreach (var (index, side) in new[] { (0, 3), (1, 0), (2, 1), (3, 2) })
         {
+            var content = tooltips.Nth(index).Locator("[data-ui-tooltip-content]");
             await tooltips.Nth(index).Locator("button").HoverAsync();
-            await Expect(tooltips.Nth(index).Locator("[data-ui-tooltip-content]")).ToBeVisibleAsync();
+            await Expect(content).ToBeVisibleAsync();
             Assert.Equal(5, (await tooltips.Nth(index).EvaluateAsync<int[]>(Offset))[side]);
+            await Page.WaitForTimeoutAsync(150);
+            await Page.Mouse.MoveAsync(2, 2);
+            await Expect(content).ToBeHiddenAsync();
         }
     });
 

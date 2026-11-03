@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     guide's <c>Go.With</c> demo. The Server host's half is <c>QueryNavigationHistoryTests</c> in
 ///     <c>Rask.Server.E2E.Tests</c>.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class QueryNavigationHistoryWasmTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

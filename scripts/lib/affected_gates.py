@@ -13,8 +13,7 @@ This asks scripts/lib/affected_projects.py which PROJECTS the change reaches and
 its own; every FULL that script answers is FULL here. What it adds is the step from projects to
 gates, for the gates whose subject is not a test project's references:
 
-    code       anything at all reached           -> the analyzer build, the unit tests
-    cs         a .cs file changed                -> the formatter
+    code       anything at all reached           -> the analyzer build, the unit tests, the formatter
     site       the published site is reached     -> the browser journeys over it
     server     the Rask.Server journeys' project
     devtools   the devtools journeys or their fixtures
@@ -29,8 +28,11 @@ gates, for the gates whose subject is not a test project's references:
                                                  -> its "front end <key>" job
 
 The contract is the same lopsided one: a gate too many costs minutes on a runner, a gate too few
-lets a break through until the next full run. A push to main is scoped; the full set runs behind
-it (.github/workflows/full.yml), and publishing follows that run, not a scoped one.
+lets a break through until the next full run. The changed files are a run's OWN change
+(scripts/lib/green_base.sh): on main, since the newest earlier run that started its gates, green or red;
+on a ci/** branch, since its merge-base with main. A push to main is scoped, and publishing follows that
+scoped run; the full set runs once a day (.github/workflows/full.yml). Until 2026-11-03 it ran behind
+every push and publishing followed it — restore at 1.0 (docs/development-workflow.md, "Loosened until 1.0").
 """
 
 from __future__ import annotations
@@ -59,7 +61,7 @@ PROJECT_GATES = {
 # they are the longest gates there are: honoured, a scoped run would be no shorter than a whole one for
 # any framework change. What they prove is that the packages pack and a scaffold builds against them,
 # which is broken by the CLI, the templates, or how a project is built and packed — the paths below.
-# A package broken by an ordinary .cs change is found by the next whole run (full.yml), not this push;
+# A package broken by an ordinary .cs change is found by the next whole run (full.yml, daily), not this push;
 # TemplatesCompileTests, in the unit gate, compiles the templates against the assemblies on every one.
 # The kit and the Tailwind build are on the list because a scaffold COMPILES them: an app's one sheet
 # is Tailwind over the kit's class list, which is Tailwind's scan of src/Rask.Ui. A word in a kit
@@ -126,8 +128,6 @@ def reached_projects(root: Path, changed: list[str]) -> tuple[str | None, list[s
 
 def gates_for(root: Path, changed: list[str], projects: list[str]) -> list[str]:
     keys = ["code"]
-    if any(path.endswith(".cs") for path in changed):
-        keys.append("cs")
     for key, prefixes in PROJECT_GATES.items():
         if any(project.startswith(prefixes) for project in projects):
             keys.append(key)

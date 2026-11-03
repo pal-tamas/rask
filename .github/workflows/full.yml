@@ -1,20 +1,19 @@
 name: full
 
-# The whole push set against main: after every push, and every hour as the backstop.
+# The whole push set against main, unscoped: once a day as the backstop, and by hand.
 #
 # A push to main runs only the gates its change can reach (ci.yml), which is what makes that verdict
-# take minutes. This is the other half of the bargain: everything, unscoped. One run at a time, and one
-# waiting behind it — the newest push — so a burst of pushes costs two runs, not one each. pages.yml
-# deploys from a commit THIS workflow passed, never from a scoped run; nightly.yml packs the newest
-# such commit as each run here ends.
+# take minutes. This is the other half of the bargain: everything, unscoped, so a break no scoped run
+# could see is found within a day. It ran behind every push until 2026-11-03, which put two runs on every
+# commit of main (ci and this); it no longer gates publishing either — nightly.yml and pages.yml follow
+# main's ci. Restore at 1.0: the push trigger, and publishing from a commit this workflow passed
+# (docs/development-workflow.md, "Loosened until 1.0").
 #
 # A red run here with green pushes on top of it means exactly that: something a scoped run does not
 # cover is broken on main. Fix it forward; `gh run list --workflow full --branch main` is where to look.
 on:
-  push:
-    branches: [main]
   schedule:
-    - cron: '47 * * * *'   # hourly, off the hour (the top of the hour is when Actions queues)
+    - cron: '47 2 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
   workflow_dispatch:
 
 permissions:
@@ -22,15 +21,12 @@ permissions:
 
 concurrency:
   group: full
-  # A run in progress gets its verdict; the newest push waits behind it. One holding the place with every
-  # gate still waiting for a runner is cancelled by the next push's ci run (scripts/lib/cancel_superseded.sh),
-  # so the newer run, with more commits and the same gates, takes it.
+  # A run in progress gets its verdict; a dispatched one waits behind it.
   cancel-in-progress: false
 
 jobs:
-  # Has main moved since the last commit this workflow passed? If not, the run cancels itself rather
-  # than end green: a green run is what the publishing workflows wait for, and an unchanged main has
-  # nothing new to publish.
+  # Has main moved since the last commit this workflow passed? If not, the scheduled run cancels itself:
+  # an unchanged main has nothing new to tell.
   moved:
     runs-on: ubuntu-26.04
     timeout-minutes: 10   # seconds of gh, and the minute it waits for its own cancel
@@ -58,6 +54,6 @@ jobs:
     with:
       set: push
       scope: full
-      # Fourteen of the account's twenty concurrent jobs: this runs behind every push now, and the
-      # scoped run of the NEXT push is the verdict somebody is waiting for. Nobody waits for this one.
+      # Fourteen of the account's twenty concurrent jobs: the scoped run of the next push is the verdict
+      # somebody is waiting for. Nobody waits for this one.
       parallel: 14

@@ -22,7 +22,7 @@
       (Tailwind.MSBuild, the community package, defaults this to `latest` — which is exactly the
       reproducibility hazard this avoids.) Bump it deliberately.
     -->
-    <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.3</RaskTailwindVersion>
+    <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.4</RaskTailwindVersion>
 
     <!--
       `auto` prefers Tailwind's standalone binary and falls back to npm where none is published.

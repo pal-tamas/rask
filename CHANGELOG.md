@@ -8,6 +8,50 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A focused field is ringed in your accent colour, and nothing can cut the ring off.** Before: a focused
+  `Ui.Input`, textarea, select or picker trigger drew the browser's own ring — a thin blue line in Chrome, Safari's
+  thick blue glow — and inside a table's scroll frame or a flyout that glow was cut in half. After: the field's
+  border turns `--color-accent` and a 1px inset ring in the same colour lies inside it (zinc by default, your
+  `--color-accent` when you set one; an invalid field stays red), drawn inside the field so no `overflow` around it
+  can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
+  as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
+  departure from Flux UI, which leaves the field to the browser.
+- **CI: the front-end templates run in two jobs that pack the feed once.** The seven `front end <key>` jobs each
+  packed the local feed again (about 4.4 minutes apiece); `front end 1/2` and `2/2` each pack it once and scaffold
+  their templates one after another (`scripts/run-template-e2e.sh --front-end=angular,preact,…`), with a verdict per
+  template in the log and the job summary. A scoped or Dependabot run narrows a job to the templates it reaches.
+- **CI: the formatter checks the files a change touched, in the `build` job.** The `format`, `format src` and
+  `format tests` jobs are gone (a build plus up to 603 s of `dotnet format` each); `build` runs the formatter beside
+  the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
+  `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json` (`scripts/lib/format-scope.sh`). With no scope
+  base — the daily whole run, a release — nothing is formatted. Until 1.0.
+- **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
+  rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
+  in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
+  that reaches a test project also builds `Rask.Wasm`, whose `rask.wasm.js` the core tests read.
+- **CI: the site's browser journeys run side by side, in three shards.** Every class shared one xUnit collection
+  fixture, so 220-odd journeys ran one at a time despite `maxParallelThreads: 4`; the static host and the browser
+  are now assembly fixtures, each test keeps a browser context of its own, and four classes run at once. The
+  classes that read the clipboard back share a collection (a browser has one clipboard). The shards are re-dealt by
+  measured seconds, five down to three. `RASK_E2E_CPU_SLOWDOWN` now slows the site suite's pages too.
+- **CI: the site is published once per run.** A `site publish` job publishes `src/Rask.Site` and hands its
+  `wwwroot` to the browser shards as an artifact; each shard used to publish it again (five to eight minutes,
+  five times). `scripts/run-e2e-local.sh` takes `RASK_E2E_SITE=publish|prebuilt` for the two halves. Only the
+  shards wait for the publish; every other gate starts with the plan.
+- **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
+  instead of every day; every other follower stays daily. Until 1.0.
+- **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a
+  `ci/release/**` branch to run it before tagging. Until 1.0.
+- **CI: a scoped run checks its own change.** A `ci/**` branch is measured from its merge-base with `main`, so a CI
+  file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
+  earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).
+  `ci/release/**` still runs everything.
+- **CI: a nightly is pushed to nuget.org in one wave.** `publish_packages.py push --waves N` folds the dependency
+  levels into N pushes and waits for the feed only between them; `nightly.yml` takes `--waves 1 --jobs 8`, so it no
+  longer waits eight times for nuget.org's validation. `release.yml` still goes level by level. Until 1.0.
+- **CI: `main` runs once.** `full.yml` no longer runs behind every push — only once a day and by hand — and
+  `nightly.yml`, `pages.yml` and `upstream.yml`'s waiting followers follow `main`'s own `ci` push run instead.
+  Until 1.0 (see [Loosened until 1.0](docs/development-workflow.md#loosened-until-10)).
 - **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
   and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
   build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
@@ -613,6 +657,39 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `.Confirm` yes on a page redrawn every few dozen ms runs the action it was asked about.** On a board that
+  redraws while a long sending reports its progress, `Ui.Button.Danger.OnClick(remove).Confirm(…)` then "Igen"
+  closed the question and ran nothing, with nothing in the log: the press made again after the yes reached the
+  server many pages after the one it was read from — past the two an event outlives a render by — and a handler
+  that closes over a row read anew is a new closure in every one, so it could not be shown to be the same. The
+  server now keeps the whole page it tells the browser it holds as the press is made again (the `caughtUp`
+  answer), and the browser presses on exactly that page, so the yes reaches the handler pressed however far the
+  board has drawn on. A delete gone meanwhile, or another action drawn where it was, still runs nothing. Nothing to
+  change in an app. See [An event that outlived its render](docs/js-interop-runtime.md#an-event-that-outlived-its-render).
+- **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
+  popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
+  `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring
+  round the whole popup, where Flux draws none. After: as on fluxui.dev, an empty placeholder takes the focus as the
+  popup opens and is taken away (as `Ui.Modal`'s is), so focus rests on the page, nothing is ringed in any
+  stylesheet, and the first Tab still lands in the calendar. Measured, with every other control's focused look,
+  by the new `scripts/flux/parity-focus.mjs`: a mouse press and the keyboard, in Chromium and WebKit, light and
+  dark — buttons, inputs, textarea, both selects, checkbox, radio, switch, tabs, a sidebar item, a dropdown trigger
+  and the date picker's button and typed parts now draw exactly Flux's ring (or none) in every step. The open popup's
+  text is selectable as Flux's is (`user-select: text`, which Chromium gives Flux's modal `<dialog>`).
+- **A submenu's flyout closes when the pointer moves on out of the menu, as Flux UI's does.** Measured on Flux's
+  dropdown and context menu: once the pointer has been in a submenu's row or its flyout, a move outside both — onto
+  the menu's padding or off the menu altogether — closes the flyout and darkens its row (unless it has focus), in
+  the browser, with nothing sent to the page. Flux hears such a move once per 100 ms or so, and the kit too: a
+  pointer that leaves in one quick flick and stops still finds the flyout open, and a flyout the arrow keys opened
+  stays open under a pointer moving elsewhere. Before, the flyout stayed open until another row was entered.
+  `parity-menu.mjs` now walks from a submenu's row out of the menu, a move at a time.
+- **An arrow key that shuts a submenu's flyout under a resting pointer hands the light back to that row, as Flux UI
+  does.** The flyout's safe area now goes with the flyout, so the browser reports the pointer over the row again
+  (from the removed area, or from the row itself, as Chrome may say it), and that counts as entering the row:
+  the row is lit and its flyout opens while focus stays on the row the arrow reached. When the pointer then leaves,
+  no row stays lit. Before, the arrow's row kept the light. `parity-menu.mjs` now also allows for the kit's
+  native-feel departure in a menu (a row's `user-select`/`touch-action`, a menu's `overscroll-behavior`), as
+  `parity.mjs` already did.
 - **A non-nullable prop declared `= null!` no longer breaks a warnings-as-errors build with CS8625.** A page's
   `[RouteParam] public string Id { get; set; } = null!;` made the chain's reset write `__c.Id = null;` into the
   generated setters; the reset now keeps the declaration's `!` (`null!`) for every non-nullable reference prop,
@@ -642,6 +719,14 @@ them until tagged releases begin.
   folder. `rask dev` starts no island dev server for a wasm-hosted app; its islands rebuild with `Client/`.
   `MapRaskSpa` now serves a WebAssembly bundle's `/_rask/external/` files from a route of its own: the operator
   dashboard's `/_rask/{**path}` catch-all had sent the island manifest to sign-in, so no island mounted.
+- **A `Ui.Tooltip` stays shown while the pointer moves from its trigger onto it, as Flux UI's does.** It closed the
+  moment the pointer left the trigger, and the pointer could not rest on it. Like a hover panel, it now closes on the
+  first move over neither the trigger nor the tooltip that the runtime looks at (once in 100 ms), so a pointer that
+  rests and then jumps off still closes it at once. A pointer that left a tooltip or hover panel before the
+  behaviour hooks had loaded leaves it closed: with no move left to look at, the runtime asks where the pointer is now.
+- **A searchable `Ui.Select` and `Ui.Pillbox` hold their scroll on the list, and their "No results found" row selects as
+  text, as Flux UI's do.** The popup round the search field carried `overscroll-behavior: none` where Flux's list under
+  it does, and the empty row was `user-select: none` where Flux's is not.
 - **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
   SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
   `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read

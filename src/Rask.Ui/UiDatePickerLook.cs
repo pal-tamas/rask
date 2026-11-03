@@ -49,17 +49,16 @@ internal static class UiDatePickerLook
     // picker, whose name the dialog's own style states, and the runtime keeps it inside the viewport from there
     // (data-rask-place). Under `sm` it is Flux's sheet — centred over a dimmed page, where the browser puts a
     // popover that is told nothing — and the runtime leaves it there (--rask-place).
-    // The popup takes the focus as it opens (autofocus); Flux's draws no ring however it was opened.
+    // Focus rests on nothing as it opens (UiPickerFocusPlaceholder), and the popup draws no ring if a script puts
+    // it there, as Flux's draws none. Open, its text can be selected: Flux's is a modal <dialog>, which Chromium
+    // makes `user-select: text` whatever is around it; the kit's popover says so itself.
     internal const string Dialog =
         "focus:outline-hidden p-0 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-700 shadow-2xs text-inherit "
-        + "[&:popover-open]:max-w-[calc(100%-2em-6px)] overflow-visible [&:popover-open]:overflow-auto "
+        + "[&:popover-open]:max-w-[calc(100%-2em-6px)] overflow-visible [&:popover-open]:overflow-auto [&:popover-open]:select-text "
         + "sm:inset-auto sm:top-[anchor(bottom)] sm:left-[anchor(left)] sm:mx-0 sm:my-[5px] "
         + "sm:[position-try-fallbacks:flip-block,flip-inline] "
         + "max-sm:m-auto max-sm:max-h-full max-sm:border-0 max-sm:shadow-xl max-sm:backdrop:bg-black/10 "
         + "max-sm:[--rask-place:none]";
-
-    // Flux parks the dialog's initial focus on a node that is not there once it is open.
-    internal const string FocusPlaceholder = "[:popover-open>&]:hidden";
 
     internal const string Calendar = "relative grid sm:grid-cols-[auto_1fr]";
 

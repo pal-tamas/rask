@@ -35,14 +35,16 @@ concurrently on all cores under ONE shared `-m` budget, and anything serial stat
 front doors, attribution) and nothing blocks a commit or a push. AFTER the push to `main`, `ci.yml`
 runs the gates the change can REACH, each its own job (`scripts/lib/affected_gates.py` decides, and runs
 everything for whatever it cannot narrow); `full.yml` runs the whole set — build, unit, format, every
-browser E2E, CLI build, templates, a job per front-end template — behind every push (one run at a time), and
-`nightly.yml`/`pages.yml` publish only from a commit THAT run passed. Locally, build and test
+browser E2E, CLI build, templates, a job per front-end template — once a day, and `nightly.yml`/`pages.yml`
+publish only from a commit a PUSH run of `ci` passed on main (main runs once until 1.0). Locally, build and test
 ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
 — several worktrees doing that at once is what made every gate take ten minutes. A red `main`
 (`gh run list --branch main --workflow ci`, and `--workflow full` for what a scoped run cannot see) is
 fixed forward, first; a job is reproduced with the script
-it names. Risky change → push to a `ci/**` branch first (`ci/release/**` adds the release-only gates:
-watch, deploy, storage providers, installer, providers — `release.yml` runs them all before it packs).
+it names. Until 1.0 finished work lands DIRECTLY on `main` after the local targeted tests — no `ci/**`
+pre-run — except a change to CI itself, a Linux-only risk the Mac cannot check, or a release-only gate
+(`ci/release/**` adds them: watch, deploy, storage providers, installer, providers — `release.yml` runs
+them all before it packs). Restore at 1.0: risky changes go through `ci/**` first.
 **The benchmark gates run in CI** — `scripts/run-benchmarks-local.sh` is the `benchmarks` job: wire bytes,
 bundle size and the allocation budget, all exact counts; times are in no gate (a runner's clock proves nothing);
 the public installer is `rask.sh`/`rask.ps1` at the ROOT (published to Pages by `pages.yml`, gated by

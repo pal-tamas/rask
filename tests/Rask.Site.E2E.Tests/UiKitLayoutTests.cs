@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's layouts in a browser: the header and sidebar pages' framed demos, the demo pages themselves, and the
 ///     docs' own sidebar, which is the kit's.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitLayoutTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
