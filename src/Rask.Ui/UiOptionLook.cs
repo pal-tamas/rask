@@ -32,16 +32,16 @@ internal static class UiOptionLook
     internal const string Focus = "has-disabled:cursor-auto has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color]";
 
     /// <summary>A checkbox drawn as its box alone.</summary>
-    internal const string Checkbox = "group/option flex size-[1.125rem] mt-px rounded-[.3rem] outline-offset-2 " + Focus;
+    internal const string Checkbox = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-[.3rem] outline-offset-2 " + Focus;
 
     /// <summary>A radio drawn as its dot alone.</summary>
-    internal const string Radio = "group/option flex size-[1.125rem] mt-px rounded-full outline-offset-2 " + Focus;
+    internal const string Radio = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-full outline-offset-2 " + Focus;
 
     /// <summary>The box a tick is drawn in.</summary>
-    internal const string CheckboxIndicator = Box + " rounded-[.3rem]";
+    internal const string CheckboxIndicator = Box + " [:where(&)]:rounded-[.3rem]";
 
     /// <summary>The circle a radio's dot is drawn in.</summary>
-    internal const string RadioIndicator = Box + " rounded-full";
+    internal const string RadioIndicator = Box + " [:where(&)]:rounded-full";
 
     /// <summary>An indicator a card places itself, a pixel down to sit on the heading's line.</summary>
     internal const string InCard = "mt-px";
@@ -59,7 +59,7 @@ internal static class UiOptionLook
 
     /// <summary>A card: bordered, the accent border and a faint tint when chosen.</summary>
     internal const string Card =
-        "group/option relative flex flex-1 justify-between gap-3 rounded-lg border p-4 shadow-xs "
+        "group/option relative [:where(&)]:flex flex-1 justify-between [:where(&)]:gap-3 [:where(&)]:rounded-lg border [:where(&)]:p-4 shadow-xs "
         + "border-zinc-800/15 bg-white hover:border-zinc-800/20 "
         + "dark:border-white/10 dark:bg-white/10 dark:hover:border-white/10 dark:hover:bg-white/15 "
         + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
@@ -82,8 +82,8 @@ internal static class UiOptionLook
 
     /// <summary>A pill: a faint tint, filled with the accent when chosen.</summary>
     internal const string Pill =
-        "group/option flex items-center gap-2 rounded-full px-2 py-1 text-sm leading-4 font-medium whitespace-nowrap "
-        + "bg-zinc-800/6 text-zinc-800 hover:bg-zinc-800/10 "
+        "group/option [:where(&)]:flex items-center [:where(&)]:gap-2 [:where(&)]:rounded-full [:where(&)]:px-2 [:where(&)]:py-1 [:where(&)]:text-sm leading-4 font-medium whitespace-nowrap "
+        + "bg-zinc-800/6 [:where(&)]:text-zinc-800 hover:bg-zinc-800/10 "
         + "dark:bg-white/10 dark:text-white/70 dark:hover:bg-white/15 dark:hover:text-white "
         + "has-checked:bg-accent has-checked:text-accent-foreground "
         + "has-checked:hover:bg-accent has-checked:hover:text-accent-foreground "
@@ -92,9 +92,9 @@ internal static class UiOptionLook
 
     /// <summary>A button: Flux's outline button, with the accent border when chosen.</summary>
     internal const string Button =
-        "group/option relative flex h-10 items-center justify-center gap-2 rounded-lg border ps-3 pe-4 "
-        + "text-sm font-medium whitespace-nowrap shadow-xs "
-        + "border-zinc-200 border-b-zinc-300/80 bg-white text-zinc-800 hover:border-zinc-800/20 "
+        "group/option relative [:where(&)]:flex h-10 items-center justify-center [:where(&)]:gap-2 [:where(&)]:rounded-lg border [:where(&)]:ps-3 [:where(&)]:pe-4 "
+        + "[:where(&)]:text-sm font-medium whitespace-nowrap shadow-xs "
+        + "border-zinc-200 border-b-zinc-300/80 bg-white [:where(&)]:text-zinc-800 hover:border-zinc-800/20 "
         + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white dark:hover:border-zinc-500 "
         + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
         + "after:absolute after:-inset-px after:rounded-lg has-checked:after:bg-zinc-800/[2.5%] dark:has-checked:after:bg-white/10 "
@@ -106,8 +106,8 @@ internal static class UiOptionLook
 
     /// <summary>One segment of a segmented radio group: raised and white when chosen.</summary>
     internal const string Segment =
-        "group/option flex flex-1 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap "
-        + "text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white "
+        "group/option [:where(&)]:flex flex-1 items-center justify-center [:where(&)]:gap-2 [:where(&)]:rounded-md [:where(&)]:text-sm font-medium whitespace-nowrap "
+        + "[:where(&)]:text-zinc-600 hover:text-zinc-800 dark:text-white/70 dark:hover:text-white "
         + "has-checked:bg-white has-checked:text-zinc-800 has-checked:shadow-xs "
         + "dark:has-checked:bg-white/20 dark:has-checked:text-white "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
@@ -122,7 +122,7 @@ internal static class UiOptionLook
 
     // White with a zinc-300 edge and shadow-xs; the accent, edgeless and flat, when on; paler when disabled.
     private const string Box =
-        "flex size-[1.125rem] shrink-0 items-center justify-center border text-sm text-zinc-700 dark:text-zinc-800 "
+        "[:where(&)]:flex [:where(&)]:size-[1.125rem] shrink-0 items-center justify-center border [:where(&)]:text-sm [:where(&)]:text-zinc-700 dark:text-zinc-800 "
         + "border-zinc-300 bg-white shadow-xs dark:border-white/10 dark:bg-white/10 "
         + "group-has-checked/option:border-transparent group-has-checked/option:bg-accent group-has-checked/option:shadow-none "
         + "group-data-indeterminate/option:border-transparent group-data-indeterminate/option:bg-accent "
@@ -156,5 +156,5 @@ internal static class UiOptionLook
 
     /// <summary>A segment's height and side padding.</summary>
     internal static string SegmentSize(Ui.RadioGroupSize size) =>
-        size == Ui.RadioGroupSize.Sm ? "h-7 px-3" : "h-8 px-4";
+        size == Ui.RadioGroupSize.Sm ? "h-7 [:where(&)]:px-3" : "h-8 [:where(&)]:px-4";
 }

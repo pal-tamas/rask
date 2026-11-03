@@ -12,5 +12,5 @@ public sealed partial class UiNavlist : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Nav.Class("flex flex-col", Class).Attributes(("data-ui-navlist", null))[Children ?? []];
+        Nav.Class("[:where(&)]:flex flex-col", Class).Attributes(("data-ui-navlist", null))[Children ?? []];
 }

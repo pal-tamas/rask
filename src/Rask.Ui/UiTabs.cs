@@ -27,6 +27,11 @@ namespace Rask;
 ///     <c>Bind</c> travels with the reader's next action, <c>.Live()</c> and <c>OnChange</c> hear it at once.
 ///     The page still has the last word: a tab it chooses itself is the one shown.
 ///     </para>
+///     <para>
+///     A <c>.Value(…)</c> nobody listens to is where the row starts, as a Flux tab group without
+///     <c>wire:model</c> is purely the browser's: the reader's choice stands through every render after it,
+///     sends nothing and leaves no field, and only a different value from the page selects another tab.
+///     </para>
 /// </remarks>
 public sealed partial class UiTabs : Component
 {
@@ -58,7 +63,10 @@ public sealed partial class UiTabs : Component
 
     public string? Class { get; set; }
 
-    /// <summary>The selected tab's name, when the page holds it. Unset, the row keeps track itself.</summary>
+    /// <summary>
+    ///     The selected tab's name, when the page holds it. Unset, the row keeps track itself; set with no
+    ///     <c>OnChange</c>, it is the tab the row starts on and the browser keeps track after.
+    /// </summary>
     public string? Value { get; set; }
 
     /// <summary>Two-way binds the selected tab's name to a property: <c>.Bind(() =&gt; Tab)</c>.</summary>
@@ -127,12 +135,10 @@ public sealed partial class UiTabs : Component
             return Live == true ? bound.Live() : bound;
         }
 
-        if (OnChange.HasValue)
-        {
-            return Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).OnChange(ToldAsync);
-        }
-
-        return Value is null ? null : Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData);
+        // Unheard, the choice is the browser's alone: a field nobody reads would only be put back by each render.
+        return OnChange.HasValue
+            ? Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).OnChange(ToldAsync)
+            : null;
     }
 
     private async Task ToldAsync(string name)
@@ -168,10 +174,10 @@ public sealed partial class UiTabs : Component
 
     private static string ListClass(Ui.TabsVariant variant, Ui.TabsSize size, bool scrolls) => (variant, size) switch
     {
-        (Ui.TabsVariant.Segmented, Ui.TabsSize.Sm) => "inline-flex h-8.5 p-[3px] rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
-        (Ui.TabsVariant.Segmented, _) => "inline-flex h-10 p-1 rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
-        (Ui.TabsVariant.Pills, _) => "flex h-8 gap-4 cursor-default",
-        _ when scrolls => "flex h-10 gap-4 cursor-default border-b border-transparent",
-        _ => "flex h-10 gap-4 cursor-default border-b border-zinc-800/10 dark:border-white/20",
+        (Ui.TabsVariant.Segmented, Ui.TabsSize.Sm) => "[:where(&)]:inline-flex h-8.5 [:where(&)]:p-[3px] [:where(&)]:rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
+        (Ui.TabsVariant.Segmented, _) => "[:where(&)]:inline-flex h-10 [:where(&)]:p-1 [:where(&)]:rounded-lg cursor-default bg-zinc-800/5 dark:bg-white/10",
+        (Ui.TabsVariant.Pills, _) => "[:where(&)]:flex h-8 [:where(&)]:gap-4 cursor-default",
+        _ when scrolls => "[:where(&)]:flex h-10 [:where(&)]:gap-4 cursor-default border-b border-transparent",
+        _ => "[:where(&)]:flex h-10 [:where(&)]:gap-4 cursor-default border-b border-zinc-800/10 dark:border-white/20",
     };
 }

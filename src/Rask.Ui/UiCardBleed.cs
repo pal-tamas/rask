@@ -16,9 +16,9 @@ public sealed partial class UiCardBleed : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class(
-                "-mx-[calc(var(--ui-bleed-x)+1px)] overflow-hidden",
-                "first:-mt-[calc(var(--ui-bleed-top)+1px)] first:rounded-t-[calc(var(--ui-bleed-top-radius)+1px)]",
-                "last:-mb-[calc(var(--ui-bleed-bottom)+1px)] last:rounded-b-[calc(var(--ui-bleed-bottom-radius)+1px)]",
+                "[:where(&)]:-mx-[calc(var(--ui-bleed-x)+1px)] overflow-hidden",
+                "first:[:where(&)]:-mt-[calc(var(--ui-bleed-top)+1px)] first:[:where(&)]:rounded-t-[calc(var(--ui-bleed-top-radius)+1px)]",
+                "last:[:where(&)]:-mb-[calc(var(--ui-bleed-bottom)+1px)] last:[:where(&)]:rounded-b-[calc(var(--ui-bleed-bottom-radius)+1px)]",
                 Class)
             .Data("ui-card-bleed")[Children ?? []];
 }

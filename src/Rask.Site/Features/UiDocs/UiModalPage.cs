@@ -38,7 +38,7 @@ public sealed partial class UiModalPage : Component
                 .Blurb("Not Flux's, and drawn as the confirmation above: place Ui.Confirm in the layout once, and "
                        + ".Confirm(\"…\") on any button or form asks in it instead of the browser. With expect: Yes "
                        + "waits for the answer typed exactly. Opening it, typing and No send nothing; Yes lets the "
-                       + "press go."),
+                       + "press go. Every way of asking is on the Confirm page."),
             UiDocsExample.Key("ui-modal-flyout").Heading("Flyout").File("ModalFlyoutExample.cs").Demo(ModalFlyoutExample).Testid("ui-modal-flyout")
                 .Blurb("Flyout anchors it to an edge at full height, for longer forms."),
             UiDocsExample.Key("ui-modal-flyout-position").Heading("Flyout positioning").File("ModalFlyoutPositionExample.cs").Demo(ModalFlyoutPositionExample).Testid("ui-modal-flyout-position")

@@ -4,7 +4,8 @@ namespace Rask.Site.Features;
 // asks for the name to be typed. Cancelled, nothing is sent.
 //
 // The question is asked in the dialog this site's layout places once, a Ui.Confirm in ShowcaseLayout. An app
-// without one gets the browser's own confirm and prompt.
+// without one gets the browser's own confirm and prompt. Every example of that dialog, with its steps, is on the
+// UI tab: https://rask.sh/ui/confirm/
 public sealed partial class FormConfirmDemo : Component
 {
     private readonly List<string> _partners = ["Acme", "Globex", "Initech"];

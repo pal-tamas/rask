@@ -300,6 +300,26 @@ internal static partial class UiApi
         new("Ui.ModalClose", typeof(UiModalClose), "flux:modal.close", "Makes the button inside it close the modal it is in: a close, not a dismissal.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> Confirm { get; } =
+    [
+        new("Ui.Confirm", typeof(UiConfirm), NotFlux, "The dialog every .Confirm(\"…\") under its layout asks in, in place of the browser's confirm and prompt. One per page.",
+        [
+            new("Heading", typeof(string), "The short title above the question. \"Confirm\" when unset; a question's own heading: replaces it."),
+            new("No", typeof(string), "The label of the button that calls the action off. \"No\" when unset."),
+            new("Yes", typeof(string), "The label of the button that lets the action go. \"Yes\" when unset."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> ConfirmLeave { get; } =
+    [
+        new("Ui.ConfirmLeave", typeof(UiConfirmLeave), NotFlux, "The dialog a form's ConfirmLeave(\"…\") asks in before the reader leaves it unsaved, in place of the browser's confirm. One per page.",
+        [
+            new("Heading", typeof(string), "A short title above the form's question. Unset, the question itself is the title."),
+            new("Stay", typeof(string), "The label of the button that keeps the reader on the page. \"Stay\" when unset."),
+            new("Leave", typeof(string), "The label of the button that leaves, dropping what was typed. \"Leave\" when unset."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Filters { get; } =
     [
         new("Ui.Filters", typeof(UiFilters), NotFlux, "A list's filters kept in the address: a button that opens them in a lazy flyout, and badges for those in force.",
@@ -844,7 +864,7 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
+            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
             Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,

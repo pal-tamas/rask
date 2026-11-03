@@ -20,6 +20,7 @@ gates, for the gates whose subject is not a test project's references:
     devtools   the devtools journeys or their fixtures
     sqlite     the browser SQLite journeys or their fixture
     datademo   the data demo app or its journeys
+    wasm       the browser host's own journeys or their fixture
     bench      what the byte and allocation budgets measure
     packaging  the CLI, the templates, the kit and its Tailwind build, or how a project is built and
                packed (by FILE, see below)
@@ -46,6 +47,7 @@ PROJECT_GATES = {
     "devtools": ("tests/Rask.DevTools.E2E.Tests/", "tests/Rask.DevTools.Fixture.Wasm/", "tests/Rask.DevTools.Fixture.Server/"),
     "sqlite": ("tests/Rask.SQLite.Browser.E2E.Tests/", "tests/Rask.SQLite.Browser.Fixture.Wasm/"),
     "datademo": ("src/Rask.Site.DataDemo/", "tests/Rask.Site.DataDemo.E2E.Tests/"),
+    "wasm": ("tests/Rask.Wasm.E2E.Tests/", "tests/Rask.Wasm.Fixture.Wasm/"),
     # src/Rask.Wasm: ClientBundleSizeReport measures src/Rask.Wasm/Browser/rask.wasm.js, and neither
     # benchmark project references Rask.Wasm — the gate script builds it itself.
     "bench": ("tests/Rask.Benchmarks/", "tests/Rask.Benchmarks.VsBlazor/", "src/Rask.Wasm/"),

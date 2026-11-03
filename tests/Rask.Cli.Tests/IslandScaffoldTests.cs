@@ -274,9 +274,64 @@ public sealed class IslandScaffoldTests
         Assert.DoesNotContain("Rask.Blazor", csproj.Content, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_wasm_hosted_apps_islands_sit_with_its_pages_in_Client()
+    {
+        // Its pages are the browser half's, compiled from Client/ only (#1194). An island anywhere else is a
+        // class no page can name. The npm side stays at the root: a package.json in Client/ is an npm front end
+        // to Rask.Spa.Hosting, and the Blazor library is a project of its own that Client/ would compile twice.
+        var files = ScaffoldFrom("wasm-hosted", "react", "blazor");
+        var client = Path.Combine(Target, "Client", "Features", "Islands") + Path.DirectorySeparatorChar;
+
+        var islands = files.Where(f => f.Path.Contains("Islands", StringComparison.Ordinal)).ToList();
+        Assert.Equal(3, islands.Count);
+        Assert.All(islands, f => Assert.StartsWith(client, f.Path, StringComparison.Ordinal));
+        Assert.All(
+            islands.Where(f => f.Path.EndsWith(".cs", StringComparison.Ordinal)),
+            f => Assert.Contains("namespace Shop.Client.Features.Islands;", f.Content, StringComparison.Ordinal));
+        Assert.Contains(files, f => f.Path == Path.Combine(Target, "package.json"));
+        Assert.Contains(files, f => f.Path == Path.Combine(Target, IslandAssembly.ToolchainConfigFile));
+        Assert.Contains(files, f => f.Path == Path.Combine(Target, "Shop.Components", "Shop.Components.csproj"));
+        Assert.DoesNotContain(files, f => f.Path.StartsWith(Path.Combine(Target, "Client", "Shop.Components"), StringComparison.Ordinal));
+        Assert.DoesNotContain(files, f => f.Path == Path.Combine(Target, "Client", "package.json"));
+    }
+
+    [Fact]
+    public void A_wasm_hosted_app_references_its_island_packages_from_the_browser_half()
+    {
+        // A plain PackageReference is the SERVER's, which renders no page. RaskClient* items are the browser
+        // project's, generated into obj/ from Client/ — where the pages that render the islands compile.
+        var csproj = ScaffoldFrom("wasm-hosted", "react", "blazor")
+            .Single(f => f.Path == Path.Combine(Target, "Shop.csproj")).Content;
+
+        Assert.Contains("<RaskClientPackageReference Include=\"Rask.External\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<RaskClientPackageReference Include=\"Rask.Blazor\" Version=\"9.9.9\"/>", csproj, StringComparison.Ordinal);
+        Assert.Contains("<RaskClientProjectReference Include=\"Shop.Components\\Shop.Components.csproj\"/>", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("<PackageReference Include=\"Rask.External\"", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("<PackageReference Include=\"Rask.Blazor\"", csproj, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ProjectReference ", csproj, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_wasm_hosted_apps_toolchain_reaches_the_islands_in_Client()
+    {
+        // The type-check, the lint and the format all have to see Client/Features/, where the islands are.
+        var files = ScaffoldFrom("wasm-hosted", "react");
+        var tsconfig = TsConfig(files);
+        var toolchain = files.Single(f => f.Path == Path.Combine(Target, IslandAssembly.ToolchainConfigFile)).Content;
+
+        Assert.Contains(
+            tsconfig.GetProperty("include").EnumerateArray(),
+            pattern => pattern.GetString() == "Client/Features/**/*.tsx");
+        Assert.Contains(
+            "ignorePatterns: ['/*', '!/Client/', '/Client/*', '!/Client/Features/'],", toolchain, StringComparison.Ordinal);
+        Assert.Contains("'Client/Features/**/*.{js,mjs,cjs,ts,tsx,jsx,vue,svelte}'", toolchain, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
     public void The_home_page_renders_every_chosen_island(string template)
     {
         // Files nothing renders are files the user never sees working: the island has to be on the
@@ -307,6 +362,7 @@ public sealed class IslandScaffoldTests
     [Theory]
     [InlineData("server")]
     [InlineData("wasm")]
+    [InlineData("wasm-hosted")]
     public void A_project_with_no_islands_has_no_island_markup_on_its_home_page(string template)
     {
         var home = HomePage(ScaffoldFrom(template));

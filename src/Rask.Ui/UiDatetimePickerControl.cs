@@ -286,7 +286,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
         }
 
         input = input.OnChange(ChangedAsync);
-        return UiDraws.Waits(this, Bind is not null) ? input.Attributes(UiCalendarHook.WaitsForAction) : input;
+        return UiDraws.Waits(this, Bind is not null) ? input.Attributes(UiRuntimeMarks.WaitsForAction) : input;
     }
 
     private Drawn Latest => _drawn ?? throw new InvalidOperationException("The datetime picker has not been drawn.");

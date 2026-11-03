@@ -7,6 +7,9 @@ namespace Rask.Site.Features.UiDocs;
 /// </remarks>
 internal static class UiLayoutDemo
 {
-    public static Component Meta(string demo, UiDocsEntry page) =>
-        PageMeta.For(demo + " layout demo" + PageMeta.TitleSuffix, page.Description, page.Path);
+    public static Component Meta(string demo, UiDocsEntry page) => Titled(demo + " layout demo", page);
+
+    /// <summary>The head of a demo that is a layout's part rather than a layout: <paramref name="title" /> as it is.</summary>
+    public static Component Titled(string title, UiDocsEntry page) =>
+        PageMeta.For(title + PageMeta.TitleSuffix, page.Description, page.Path);
 }

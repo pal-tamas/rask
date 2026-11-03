@@ -121,9 +121,6 @@ internal static class UiTimePickerLook
         ["rask-open-mark"] = "",
     };
 
-    /// <summary>A bound field whose value waits for the reader's next action, and goes ahead of it.</summary>
-    internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
-
     internal static int NextInstance() => Interlocked.Increment(ref _instances);
 
     /// <summary>Height, text and corners of the button.</summary>

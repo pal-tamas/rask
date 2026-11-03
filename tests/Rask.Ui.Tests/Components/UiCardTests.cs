@@ -38,8 +38,8 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         var inset = Ui.Card.Inset["x"].ToHtml();
         var divided = Ui.Card.Divided["x"].ToHtml();
 
-        Assert.Contains(" p-4 ", seamless, StringComparison.Ordinal);
-        Assert.Contains(" p-1 ", inset, StringComparison.Ordinal);
+        Assert.Contains(" [:where(&amp;)]:p-4 ", seamless, StringComparison.Ordinal);
+        Assert.Contains(" [:where(&amp;)]:p-1 ", inset, StringComparison.Ordinal);
         Assert.DoesNotContain(" p-", divided, StringComparison.Ordinal);
     }
 
@@ -155,8 +155,8 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         var roomy = Ui.Card.Separated[Ui.CardHeader["h"]].ToHtml();
         var compact = Ui.Card.Separated.Xs[Ui.CardHeader.Lg["h"]].ToHtml();
 
-        Assert.Contains("px-6 py-4", roomy, StringComparison.Ordinal);
-        Assert.Contains("px-4 py-3", compact, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:px-6 [:where(&amp;)]:py-4", roomy, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:px-4 [:where(&amp;)]:py-3", compact, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -177,8 +177,8 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         var beside = Ui.CardHeader["Security"].ToHtml();
         var tight = Ui.CardHeader.Sm["Security"].ToHtml();
 
-        Assert.Contains("pt-1 pb-5", beside, StringComparison.Ordinal);
-        Assert.Contains("pt-1 pb-3", tight, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:pt-1 [:where(&amp;)]:pb-5", beside, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:pt-1 [:where(&amp;)]:pb-3", tight, StringComparison.Ordinal);
         Assert.Contains("data-ui-card-header data-ui-card-standalone", beside, StringComparison.Ordinal);
     }
 
@@ -190,7 +190,7 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         var footer = Part(card.ToHtml(), "data-ui-card-standalone>");
 
         Assert.Contains("data-ui-card-footer", footer, StringComparison.Ordinal);
-        Assert.Contains("px-5 pt-4 pb-3", footer, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:px-5 [:where(&amp;)]:pt-4 [:where(&amp;)]:pb-3", footer, StringComparison.Ordinal);
         Assert.Contains("rounded-b-", footer, StringComparison.Ordinal);
     }
 
@@ -226,7 +226,7 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
 
         Assert.StartsWith("<p ", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-card-subheading", html, StringComparison.Ordinal);
-        Assert.Contains("mt-1 text-sm text-zinc-500", html, StringComparison.Ordinal);
+        Assert.Contains("mt-1 [:where(&amp;)]:text-sm [:where(&amp;)]:text-zinc-500", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -236,15 +236,15 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
 
         var html = card.ToHtml();
 
-        Assert.Contains("row-span-2 self-start -my-1 -me-3", html, StringComparison.Ordinal);
-        Assert.Contains("self-center -my-1 -me-3", html, StringComparison.Ordinal);
+        Assert.Contains("row-span-2 self-start [:where(&amp;)]:-my-1 [:where(&amp;)]:-me-3", html, StringComparison.Ordinal);
+        Assert.Contains("self-center [:where(&amp;)]:-my-1 [:where(&amp;)]:-me-3", html, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData(Ui.CardSize.Xs, "-my-1.5 -me-2.5")]
-    [InlineData(Ui.CardSize.Sm, "-my-1.5 -me-1.5")]
-    [InlineData(Ui.CardSize.Md, "-my-1 -me-3")]
-    [InlineData(Ui.CardSize.Lg, "-my-1 -me-3")]
+    [InlineData(Ui.CardSize.Xs, "[:where(&amp;)]:-my-1.5 [:where(&amp;)]:-me-2.5")]
+    [InlineData(Ui.CardSize.Sm, "[:where(&amp;)]:-my-1.5 [:where(&amp;)]:-me-1.5")]
+    [InlineData(Ui.CardSize.Md, "[:where(&amp;)]:-my-1 [:where(&amp;)]:-me-3")]
+    [InlineData(Ui.CardSize.Lg, "[:where(&amp;)]:-my-1 [:where(&amp;)]:-me-3")]
     public void Actions_sit_as_far_from_the_side_as_from_the_top_at_every_size(Ui.CardSize size, string margins)
     {
         var card = Ui.Card.Separated.Size(size)[Ui.CardHeader[Ui.CardActions["a"]]];
@@ -262,9 +262,9 @@ public sealed partial class UiCardTests : global::Rask.Core.RaskMarkup
         var html = bleed.ToHtml();
 
         Assert.Contains("data-ui-card-bleed", html, StringComparison.Ordinal);
-        Assert.Contains("-mx-[calc(var(--ui-bleed-x)", html, StringComparison.Ordinal);
-        Assert.Contains("first:-mt-[calc(var(--ui-bleed-top)", html, StringComparison.Ordinal);
-        Assert.Contains("last:-mb-[calc(var(--ui-bleed-bottom)", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&amp;)]:-mx-[calc(var(--ui-bleed-x)", html, StringComparison.Ordinal);
+        Assert.Contains("first:[:where(&amp;)]:-mt-[calc(var(--ui-bleed-top)", html, StringComparison.Ordinal);
+        Assert.Contains("last:[:where(&amp;)]:-mb-[calc(var(--ui-bleed-bottom)", html, StringComparison.Ordinal);
     }
 
     [Fact]

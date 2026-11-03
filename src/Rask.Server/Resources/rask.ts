@@ -52,7 +52,7 @@ import {
     pageTimeout,
     type LiveConnection,
 } from "./rask-http-transport.js";
-import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "./rask-auth-watch.js";
+import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "../../Rask.Core/Resources/rask-auth-watch.js";
 import { createUnacked, newestSeq } from "./rask-resend.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
@@ -65,6 +65,7 @@ import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
 import { pagesCaughtUpBy, submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import { connectionIs } from "../../Rask.Core/Resources/rask-offline.js";
+import { busy, busyUntil, busyWhile } from "../../Rask.Core/Resources/rask-busy.js";
 import {
     createJSObjectReference,
     disposeJSObjectReferenceById,
@@ -111,6 +112,23 @@ import {
     // always commits before the following message's ops — paths in a later diff are
     // computed against the render this one produces, so they must not be applied first.
     let _renderQueue = Promise.resolve();
+
+    // Puts a frame's render in line. The page is busy from the moment the frame arrives until its render is on the
+    // page, a body held for its stylesheet included (rask-busy.ts).
+    function enqueueRender(apply: () => unknown): void {
+        const release = busy();
+        const run = function (): void {
+            let applied: unknown;
+            try {
+                applied = apply();
+            } catch (e) {
+                release();
+                throw e;
+            }
+            busyUntil(applied, release);
+        };
+        _renderQueue = _renderQueue.then(run, run);
+    }
     // What waits until the page holds every page the server sent before it was asked: a `.Confirm` yes pressing
     // its button again (rask-confirm.ts). The server answers `caughtUp` behind them all, in order, and what waits
     // runs once they are on screen — however long a slow line or the browser's own dialog kept them on the way.
@@ -387,6 +405,9 @@ import {
     // writing its value after focusing it would drop the caret rather than leave it after the text.
     applyRestoreFields();
     applyRestorePoint();
+    // Busy until the page has a connection, and again from a drop until it has one back (rask-busy.ts): what the
+    // reader does meanwhile waits, unanswered. A session that has expired is not coming back, and lets go.
+    const connecting = busyWhile();
     connect();
 
     function connect() {
@@ -398,6 +419,7 @@ import {
         }
 
         deliberateClose = false;
+        connecting(true);
         if (chooser.next() === "http") {
             connectHttp();
         } else {
@@ -439,6 +461,7 @@ import {
     // an HTTP stream names its session in the request that opened it, so there is no hello to send.
     function onConnectionOpen(sendHello: ((hello: string) => void) | null): void {
         open = true;
+        connecting(false);
         catchUpOwed = openedBefore;
         openedBefore = true;
         connectionIs(false);
@@ -688,18 +711,15 @@ import {
         // for a scoped-CSS load (see applyDiffReply) can't be overtaken by the next
         // message — paths in a later diff are computed against this render's output.
         if (data.kind === "diff" && Array.isArray(data.ops)) {
-            _renderQueue = _renderQueue.then(
-                () => { applyDiffReply(data); },
-                () => { applyDiffReply(data); });
+            enqueueRender(() => applyDiffReply(data));
             return;
         }
-        _renderQueue = _renderQueue.then(
-            () => { applyFullReply(data); },
-            () => { applyFullReply(data); });
+        enqueueRender(() => applyFullReply(data));
     }
 
     function scheduleReconnect(code?: number): void {
         if (reconnectTimer !== null || sessionExpired) return;
+        connecting(true);
         // Dropped on purpose, to be opened again with the cookie as it is now: no backoff, and nothing on screen.
         // What the reader does meanwhile waits in the queue and leaves on the new connection.
         if (authReopen) {
@@ -1152,6 +1172,7 @@ import {
         }
 
         sessionExpired = true;
+        connecting(false);
         if (reconnectTimer !== null) {
             clearTimeout(reconnectTimer);
             reconnectTimer = null;

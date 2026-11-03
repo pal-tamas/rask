@@ -35,7 +35,7 @@ internal static class UiListboxRow
         Content(face.Avatar, face.Icon, face.IconVariant, face.IconClass, face.Description, face.Text, [face.SelectedText], inList: false, checkbox: false);
 
     private static Component Content(
-        string? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string? description, string name,
+        Component? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string? description, string name,
         IEnumerable<Component?> words, bool inList, bool checkbox) =>
         Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : UiListboxLook.OptionBody)[
             Div.Class(UiListboxLook.OptionLead)[
@@ -53,19 +53,15 @@ internal static class UiListboxRow
         Div.Class(UiListboxLook.CheckboxBox)[Ui.Icon.Name(Ui.IconName.Check).Micro.Class(UiListboxLook.CheckboxTick)];
 
     // The avatar wins over the icon, as Flux says.
-    private static Component? Lead(string? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string name)
+    private static Component? Lead(Component? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string name)
     {
         if (avatar is not null)
         {
-            return Avatar(avatar, name);
+            return UiOptionAvatar.Draw(avatar, name);
         }
 
         return icon is { } drawn
             ? Ui.Icon.Name(drawn).Variant(iconVariant ?? Ui.IconVariant.Mini).Class(UiListboxLook.Icon, iconClass)
             : null;
     }
-
-    // Flux's extra-small round avatar, with the room an option leaves after it.
-    private static UiAvatar Avatar(string source, string name) =>
-        Ui.Avatar.Xs.Circle().Src(source).Name(name).Class("me-2 isolate");
 }

@@ -55,6 +55,18 @@ function el(tagName: string, props: Partial<StubElement> = {}): StubElement {
 
 let head = el("head");
 
+// <html> as far as the runtime touches it: it marks it data-rask-busy while it boots (rask-owned.ts busy()).
+function html(): object {
+    const attrs = new Map<string, string>();
+    return {
+        tagName: "HTML",
+        hasAttribute: (name: string) => attrs.has(name),
+        getAttribute: (name: string) => attrs.get(name) ?? null,
+        setAttribute: (name: string, value: string) => void attrs.set(name, String(value)),
+        removeAttribute: (name: string) => void attrs.delete(name),
+    };
+}
+
 // Only the two selectors the injector asks for, matched literally: a stub that answered anything else
 // would be testing itself.
 function querySelector(selector: string): StubElement | null {
@@ -74,7 +86,7 @@ globals.document = {
     },
     body: el("body"),
     baseURI: "https://example.com/",
-    documentElement: {tagName: "HTML", removeAttribute: () => { }},
+    documentElement: html(),
     getElementById: () => null,
     createElement: (tag: string) => el(tag),
     querySelector,

@@ -74,7 +74,8 @@ const globals = globalThis as unknown as Record<string, unknown>;
 globals.document = {
     head,
     body,
-    documentElement: {tagName: "HTML", removeAttribute: () => { }},
+    // <html> is a real element: the runtime marks it data-rask-busy while it boots (rask-owned.ts busy()).
+    documentElement: makeStubElement("html"),
     getElementById: () => null,
     createElement: (tag: string) => makeStubElement(tag),
     querySelector: (sel: string) => sel === "[data-rask-root]" ? body : null,

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
+using Rask.UiTests;
 
 namespace Rask.Site.Tests.Demos;
 
@@ -19,7 +20,8 @@ public sealed partial class FloatingLabelsDemoTests : global::Rask.Core.RaskMark
         await Fill(page, html, "ff-FullName", "Ada Lovelace");
         await Fill(page, html, "ff-Email", "ada@example.com");
         await Fill(page, html, "ff-Age", "30");
-        await page.On("[data-ui-option]:has-text(\"Pro\")").Click();
+        // The select holds its pick in the browser until the next action, as the submit is (HeldList).
+        await HeldList.Pick(page, "Pro");
 
         await page.Invoke(SubmitHandler(page.Render()));
 

@@ -56,9 +56,11 @@ public partial class UiDropdownInteractionTests : global::Rask.Core.RaskMarkup
         // No row is lit and none is a tab stop in anything a render writes: both are the runtime's.
         Assert.DoesNotContain("data-active=", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("tabindex=\"0\"", page.Html, StringComparison.Ordinal);
-        // So is the open state: the dropdown and its trigger ask for `data-open`, and the menu hears no toggle.
+        // So is the open state: the dropdown, its trigger and the menu ask for `data-open`, as all three of
+        // Flux's carry it while it shows, and the menu hears no toggle.
         Assert.Matches("<div[^>]*data-ui-dropdown=\"\"[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"", page.Html);
         Assert.Matches("<button[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"[^>]*popovertarget", page.Html);
+        Assert.Matches("<div id=\"" + Regex.Escape(panel) + "\"[^>]*data-rask-open-mark=\"\"", page.Html);
         Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
     }

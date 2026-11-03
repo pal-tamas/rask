@@ -355,6 +355,13 @@ the package reference it needs. The home page renders each one — `ReactCounter
 in `Features/Home/HomePage.cs` — so `rask dev` shows it working before you have written anything. The
 base class **is** the declaration; see [Islands](islands.md).
 
+On `wasm-hosted` the pages are the browser half's, so the islands are too: the pairs go in
+`Client/Features/Islands/`, the home page that renders them is `Client/Pages/HomePage.cs`, and `Rask.External`
+and `Rask.Blazor` are `RaskClientPackageReference` items (the Blazor class library a `RaskClientProjectReference`),
+which reach the browser project and never the server. `package.json` stays at the project root — a `package.json`
+in `Client/` would make it an npm front end — and the browser half's build installs it and bundles the islands from
+there. See [Islands in a wasm-hosted app](islands.md#islands-in-a-wasm-hosted-app).
+
 One combination is refused by name, because the build would refuse it later: **`react` and `preact`
 together.** `@vitejs/plugin-react` resolves Babel 8 while `@preact/preset-vite` pins a `@babel/core` 7
 peer, so npm will not install both. A Preact component can also be rendered by `ReactComponent` if the

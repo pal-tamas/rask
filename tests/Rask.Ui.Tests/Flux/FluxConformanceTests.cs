@@ -334,8 +334,6 @@ public sealed class FluxConformanceTests
         ["flux:editor/custom-items"] = "A Blade file under resources/views/flux/editor, named in `toolbar`. In Rask an item of the app's own is composed into Ui.EditorToolbar[…] as a Ui.EditorButton.",
         ["flux:editor/extensions"] = "`flux:editor` is a DOM event; the kit raises it as `ui:editor` on the editor, with the same registerExtension(s) / enableExtension / disableExtension / init.",
         ["flux:table/pagination:scroll-to"] = "Paginate takes the pager itself, not a paginator the table draws one from: where a page change scrolls to is that pager's own prop",
-        ["flux:autocomplete/mask:dynamic"] = "The input's `$money($input)` is its Money() step (see `Steps`); the autocomplete does not hand it to its text box yet.",
-        ["flux:select.option/avatar:*"] = "Props forwarded to Flux's avatar. Ui.Avatar is not Flux's yet; an option draws the extra-small round avatar Flux draws there.",
         ["flux:select.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:pillbox.option.create/modal"] = "Opens a Flux modal by its name through Flux's script. The row's OnClick is the page's to answer, and opening a modal is one answer.",
         ["flux:switch/align=right|start"] = "Two spellings of one side, as the reference lists them. Ui.SwitchAlign.Right is it; `start` is not a second value.",
@@ -362,7 +360,6 @@ public sealed class FluxConformanceTests
         ["flux:datetime-picker/time-format=12-hour"] = "an identifier cannot start with a digit: Ui.DatetimePickerTimeFormat.TwelveHour",
         ["flux:datetime-picker/time-format=24-hour"] = "an identifier cannot start with a digit: Ui.DatetimePickerTimeFormat.TwentyFourHour",
         ["flux:datetime-picker/name"] = "The hidden inputs of a native form post. A Rask picker is bound to its model (Bind), and its one hidden field is the runtime's, not the form's data.",
-        ["flux:otp/submit"] = "submit=\"auto\" calls requestSubmit() on the enclosing <form> the moment the last cell is filled (measured: a `submit` event with no submitter). The runtime's otp hook does not submit; it needs `data-rask-otp-submit` on the group: after a commit that leaves every cell filled, `group.closest('form')?.requestSubmit()`. Until then Ui.Otp raises OnComplete with the full code, in a form or out of one.",
         ["flux:otp.input/\u2014"] = "The reference's empty row: the part takes no props.",
         ["flux:otp.separator/\u2014"] = "The reference's empty row: the part takes no props.",
     };
@@ -374,6 +371,17 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, string> Steps = new(StringComparer.Ordinal)
     {
         ["flux:input/mask:dynamic"] = nameof(UiInput<>.Money),
+        // Not in the autocomplete's reference: Flux's autocomplete is its input, and hands it what the input takes.
+        ["flux:autocomplete/mask:dynamic"] = nameof(UiAutocomplete.Money),
+    };
+
+    /// <summary>
+    ///     <c>part/prefix:*</c> → the property that takes the component those props are forwarded to, and its type:
+    ///     <c>avatar:color="auto"</c> is <c>.Avatar(Ui.Avatar.ColorAuto())</c>.
+    /// </summary>
+    private static readonly Dictionary<string, (string Property, Type Takes)> Forwarded = new(StringComparer.Ordinal)
+    {
+        ["flux:select.option/avatar:*"] = (nameof(UiSelectOption.Avatar), typeof(UiAvatar)),
     };
 
     /// <summary>
@@ -763,6 +771,17 @@ public sealed class FluxConformanceTests
     }
 
     [Fact]
+    public void Every_step_row_names_a_method_its_part_has()
+    {
+        var gone = Steps
+            .Where(row => row.Key.Split('/') is [var part, _] && Built[part].GetMethod(row.Value, Public) is null)
+            .Select(row => $"{row.Key}: no {row.Value}(…)")
+            .ToList();
+
+        Assert.True(gone.Count == 0, "`Steps` names these, and the part has no such step:\n  " + string.Join("\n  ", gone));
+    }
+
+    [Fact]
     public void Every_built_component_takes_what_Flux_documents()
     {
         var missing = new List<string>();
@@ -776,6 +795,16 @@ public sealed class FluxConformanceTests
                     if (Built[part].GetMethod(step, Public) is null)
                     {
                         missing.Add($"{part}/{prop.Name}: no {Built[part].Name}.{step}(…)");
+                    }
+
+                    continue;
+                }
+
+                if (Forwarded.TryGetValue($"{part}/{prop.Name}", out var forwarded))
+                {
+                    if (Built[part].GetProperty(forwarded.Property, Public)?.PropertyType.IsAssignableFrom(forwarded.Takes) != true)
+                    {
+                        missing.Add($"{part}/{prop.Name}: no {Built[part].Name}.{forwarded.Property} that takes a {forwarded.Takes.Name}");
                     }
 
                     continue;

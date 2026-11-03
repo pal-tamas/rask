@@ -172,7 +172,8 @@ globals.document = {
     // standard DOM call faults on is a fixture that reports a bug in whatever touches it next, which
     // is exactly what it did: this file's own scenarios failed on a change that has nothing to do
     // with head assets.
-    documentElement: {tagName: "HTML", removeAttribute: () => { }},
+    // <html> is a real element: the runtime marks it data-rask-busy while it boots (rask-owned.ts busy()).
+    documentElement: makeStubElement("html"),
     getElementById: (id: string) => head._children.find(c => c.getAttribute("id") === id) || null,
     createElement: (tag: string) => makeStubElement(tag),
     querySelector: (sel: string) => {

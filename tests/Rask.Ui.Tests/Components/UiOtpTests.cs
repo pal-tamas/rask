@@ -46,6 +46,20 @@ public partial class UiOtpTests : global::Rask.Core.RaskMarkup
         Assert.Contains(expected, Ui.Otp.Value("").Length(6).Mode(mode).ToHtml(), StringComparison.Ordinal);
 
     [Fact]
+    public void Submit_auto_asks_the_runtime_to_send_the_form_once_every_cell_is_filled()
+    {
+        const string Asks = "[data-ui-otp][role=\"group\"][data-rask-otp-submit]";
+        var (auto, plain, stated) = (Ui.Otp.Value("").Length(6).Submit(Ui.OtpSubmit.Auto), Ui.Otp.Value("").Length(6), Ui.Otp.Value("").Length(6).Default);
+
+        var (onAuto, onPlain, onStated) = (Page.Render(auto), Page.Render(plain), Page.Render(stated));
+
+        Assert.Single(onAuto.FindAll(Asks));
+        Assert.Equal(1, Occurrences(onAuto.Html, "data-rask-otp-submit"));
+        Assert.Empty(onPlain.FindAll("[data-rask-otp-submit]"));
+        Assert.Empty(onStated.FindAll("[data-rask-otp-submit]"));
+    }
+
+    [Fact]
     public void The_cells_carry_no_value_and_no_handler_and_one_hidden_field_carries_the_code()
     {
         var html = Ui.Otp.Value("407").Length(4).ToHtml();

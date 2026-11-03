@@ -25,7 +25,7 @@ public sealed partial class UiMain : Component
     public string? Class { get; set; }
 
     private const string Panel =
-        "min-h-0 min-w-0 bg-white p-6 lg:m-2 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border lg:border-zinc-200 "
+        "min-h-0 [:where(&)]:min-w-0 bg-white [:where(&)]:p-6 lg:m-2 lg:overflow-y-auto lg:overscroll-contain lg:rounded-xl lg:border lg:border-zinc-200 "
         + "lg:p-10 lg:shadow-xs dark:bg-zinc-800 dark:lg:border-zinc-700 [grid-area:main]";
 
     /// <inheritdoc />
@@ -37,8 +37,8 @@ public sealed partial class UiMain : Component
         (true, false) => Div.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
             Children ?? []
         ],
-        (false, true) => Div.Class("mx-auto w-full p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class)
+        (false, true) => Div.Class("[:where(&)]:mx-auto [:where(&)]:w-full [:where(&)]:p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class)
             .Attributes(("data-ui-main", ""))[Children ?? []],
-        _ => Div.Class("p-6 lg:p-8 [grid-area:main]", Class).Attributes(("data-ui-main", ""))[Children ?? []],
+        _ => Div.Class("[:where(&)]:p-6 lg:p-8 [grid-area:main]", Class).Attributes(("data-ui-main", ""))[Children ?? []],
     };
 }

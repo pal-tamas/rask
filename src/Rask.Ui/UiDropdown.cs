@@ -100,11 +100,11 @@ public sealed partial class UiDropdown : Component
     {
         var parts = (Children ?? []).Where(child => child is not null).ToList();
         // The page hears of the reader opening and closing it only when it asked to: the popover is the browser's.
-        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, OnToggle.HasValue ? ToggledAsync : null, Hover == true, Place());
+        var host = new UiPopupHost(PanelId, PanelStyle(), Open, Detail: null, OnToggle.HasValue ? ToggledAsync : null, Hover == true, Place(), Marked: true);
 
         var root = Div
             // A part that owns the dropdown says how it lays out: its `hidden` must not meet a display of ours.
-            .Class(_owner is null ? "inline-flex" : "", Class)
+            .Class(_owner is null ? "[:where(&)]:inline-flex" : "", Class)
             .Style("anchor-name:--" + Prefix)
             .Data(Marks());
 

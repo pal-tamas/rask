@@ -24,7 +24,7 @@ public sealed partial class UiBadgeClose : UiElement
 
     // The negative margins give its own padding back, so the badge is no taller or wider for holding it.
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("p-1 -my-1 -me-1 opacity-50 hover:opacity-100", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:p-1 [:where(&)]:-my-1 [:where(&)]:-me-1 opacity-50 hover:opacity-100", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);

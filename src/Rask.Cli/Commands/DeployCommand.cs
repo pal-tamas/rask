@@ -29,8 +29,7 @@ namespace Rask.Cli.Commands;
 /// (default <c>/health</c>, the endpoint <c>rask new</c> scaffolds); <c>--no-health-check</c> falls back to
 /// the container-running gate only.</para>
 /// </summary>
-internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
-    : CliCommand(console)
+internal sealed partial class DeployCommand : CliCommand
 {
     /// <summary>
     /// The port an app listens on <em>inside</em> its container, unless <c>--container-port</c> says otherwise.
@@ -67,15 +66,59 @@ internal sealed partial class DeployCommand(IConsole console, IFileSystem fileSy
 
     internal const string PreviousTag = "previous";
 
-    private readonly IFileSystem _fileSystem = fileSystem;
-    // Every docker call a deploy makes is held to a deadline (DeployDeadlines), so a stalled one fails named.
-    private readonly DeadlineRunner _process = new(process);
-    private readonly string _workingDirectory = workingDirectory;
+    private readonly IFileSystem _fileSystem;
+    private readonly IProcessRunner _direct;
+    private readonly TunnelRunner _tunnel;
+    private readonly DeadlineRunner _process;
+    private readonly string _workingDirectory;
 
-    /// <summary>How long to wait between readiness polls, and how many — overridden to zero in tests.</summary>
-    internal TimeSpan ReadinessDelay { get; set; } = TimeSpan.FromSeconds(2);
+    public DeployCommand(IConsole console, IFileSystem fileSystem, IProcessRunner process, string workingDirectory)
+        : base(console)
+    {
+        _fileSystem = fileSystem;
+        _direct = process;
+        // When a deploy holds one SSH connection to the box, every docker call goes over it (DockerTunnel).
+        _tunnel = new TunnelRunner(process);
+        // Every docker call a deploy makes is held to a deadline (DeployDeadlines), so a stalled one fails named.
+        _process = new DeadlineRunner(_tunnel);
+        _workingDirectory = workingDirectory;
+    }
 
-    internal int ReadinessAttempts { get; set; } = 10;
+    /// <summary>
+    /// The pause between two readiness asks — a container running, an app answering, a reload, a route. The first ask
+    /// goes out at once; this is only the gap before the next. Zero in tests.
+    /// </summary>
+    internal TimeSpan ReadinessDelay { get; set; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>An upper bound on readiness asks besides <see cref="ReadinessTimeout"/> — one in tests.</summary>
+    internal int ReadinessAttempts { get; set; } = int.MaxValue;
+
+    /// <summary>How long a readiness wait keeps asking before the deploy gives the new version up.</summary>
+    internal TimeSpan ReadinessTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>How a readiness pause is spent — replaced in tests, so a test can count the pauses instead of sleeping them.</summary>
+    internal Func<TimeSpan, CancellationToken, Task> ReadinessSleep { get; set; } = Task.Delay;
+
+    /// <summary>
+    /// Whether every docker step of a deploy or rollback goes over one SSH connection (<see cref="DockerTunnel"/>) instead
+    /// of each opening its own. On for the real CLI; off for tests, whose fake runner has no ssh to hold open.
+    /// </summary>
+    internal bool ShareSshConnection { get; set; }
+
+    /// <summary>How long opening that connection may take before the deploy goes on without it.</summary>
+    internal TimeSpan TunnelTimeout { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>Makes the owner-only directory the forwarded socket lives in — a fixed one in tests.</summary>
+    internal Func<string> CreateTunnelDirectory { get; set; } = DockerTunnel.CreateTempDirectory;
+
+    private ReadinessPoll Readiness => new()
+    {
+        Interval = ReadinessDelay,
+        Timeout = ReadinessTimeout,
+        MaxAttempts = ReadinessAttempts,
+        Clock = Clock,
+        Sleep = ReadinessSleep,
+    };
 
     /// <summary>How long to wait after the proxy has been pointed at the new color before stopping the old
     /// one — see <see cref="ShutdownBudget.PreStopDrainSeconds"/>. Overridden to zero in tests.</summary>

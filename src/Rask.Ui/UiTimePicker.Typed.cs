@@ -55,7 +55,7 @@ public sealed partial class UiTimePicker<T>
             .OnChange(TypedAsync)
             .Key("whole")
             .Type(InputType.Hidden);
-        return UiDraws.Waits(this, Bind is not null) ? whole.Attributes(UiTimePickerLook.WaitsForAction) : whole;
+        return UiDraws.Waits(this, Bind is not null) ? whole.Attributes(UiRuntimeMarks.WaitsForAction) : whole;
     }
 
     private Task TypedAsync(string text)

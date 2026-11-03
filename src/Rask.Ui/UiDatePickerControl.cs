@@ -292,7 +292,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         }
 
         field = field.OnChange(ChangedAsync);
-        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiCalendarHook.WaitsForAction) : field;
+        return UiDraws.Waits(this, Bind is not null) ? field.Attributes(UiRuntimeMarks.WaitsForAction) : field;
     }
 
     // A typed field left with no date in it. Half filled is no date at all; emptied is nothing chosen — once

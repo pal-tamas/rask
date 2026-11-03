@@ -148,6 +148,44 @@ public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup
         Assert.Null(rows[1].Attribute("aria-disabled"));
     }
 
+    [Fact]
+    public void Money_hands_the_text_box_the_marks_it_groups_an_amount_with()
+    {
+        var autocomplete = Ui.Autocomplete.Value("1234567,5").Money(decimals: ",", thousands: " ")[Ui.AutocompleteItem["100"]];
+
+        var input = Page.Render(autocomplete).Find("input");
+
+        Assert.Equal("1 234 567,5", input.Attribute("value"));
+        Assert.Equal("text", input.Attribute("type"));
+        Assert.Equal(", 2", input.Attribute("data-rask-mask-money"));
+        Assert.Equal("combobox", input.Attribute("role"));
+    }
+
+    [Fact]
+    public async Task A_bound_autocomplete_with_money_holds_the_amount_as_it_is_shown()
+    {
+        var model = new Address();
+        var page = Page.Render(() => Form.Model(model)[Ui.Autocomplete.Bind(() => model.State).Id("amount").Money()[Ui.AutocompleteItem["1,000"]]]);
+
+        await page.On("#amount").Change("1,234,567.5");
+
+        Assert.Equal("1,234,567.5", model.State);
+        Assert.Equal(".,2", page.Find("#amount").Attribute("data-rask-mask-money"));
+    }
+
+    [Theory]
+    [InlineData("", ",")]
+    [InlineData("..", ",")]
+    [InlineData(".", ".")]
+    public void Money_takes_the_inputs_two_different_marks_of_one_character_each(string decimals, string thousands)
+    {
+        var autocomplete = Ui.Autocomplete.Value("");
+
+        var refused = Record.Exception(() => autocomplete.Money(decimals, thousands));
+
+        Assert.IsAssignableFrom<ArgumentException>(refused);
+    }
+
     private sealed class Address
     {
         public string State { get; set; } = "";

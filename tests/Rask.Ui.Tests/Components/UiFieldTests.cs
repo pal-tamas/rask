@@ -40,7 +40,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
 
         var html = field.ToHtml();
 
-        Assert.StartsWith("<div class=\"grid gap-x-3 gap-y-1.5 ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"[:where(&amp;)]:grid [:where(&amp;)]:gap-x-3 [:where(&amp;)]:gap-y-1.5 ", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
 
         var html = label.ToHtml();
 
-        Assert.Contains("class=\"flex items-center", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"[:where(&amp;)]:flex items-center", html, StringComparison.Ordinal);
         Assert.Contains("<div class=\"ms-auto\" data-ui-label-trailing=\"\"><span>75%</span></div>", html, StringComparison.Ordinal);
     }
 
@@ -125,7 +125,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
         ctx.AddValidationMessage(new FieldIdentifier(model, nameof(SignUp.Email)), "Enter an email address.");
         var after = page.Render();
 
-        Assert.Contains("class=\"hidden mt-3", before, StringComparison.Ordinal);
+        Assert.Contains("class=\"hidden [:where(&amp;)]:mt-3", before, StringComparison.Ordinal);
         Assert.Contains("role=\"alert\" aria-live=\"polite\" aria-atomic=\"true\"", before, StringComparison.Ordinal);
         Assert.DoesNotContain("class=\"hidden", after, StringComparison.Ordinal);
         Assert.Contains("</svg> Enter an email address.</div>", after, StringComparison.Ordinal);
@@ -265,7 +265,7 @@ public partial class UiFieldTests : global::Rask.Core.RaskMarkup
 
         var html = control.ToHtml();
 
-        Assert.Matches("^<div class=\"grid [^>]*><input id=\"f-i-agree\"[^>]*><label ", html);
+        Assert.Matches("^<div class=\"\\[:where\\(&amp;\\)]:grid [^>]*><input id=\"f-i-agree\"[^>]*><label ", html);
     }
 
     [Fact]

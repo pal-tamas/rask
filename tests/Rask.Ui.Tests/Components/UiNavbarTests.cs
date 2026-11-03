@@ -29,7 +29,7 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Navbar[Ui.NavbarItem.Href("/")["Home"]].ToHtml();
 
-        Assert.StartsWith("<nav class=\"flex items-center gap-[2px] py-3\" data-ui-navbar>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<nav class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-[2px] [:where(&amp;)]:py-3\" data-ui-navbar>", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-navbar-items", html, StringComparison.Ordinal);
     }
 
@@ -42,7 +42,7 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("overflow", plain, StringComparison.Ordinal);
         Assert.StartsWith(
-            "<nav class=\"flex items-center gap-[2px] py-3 overflow-x-auto overflow-y-hidden\" data-ui-navbar>", scrollable, StringComparison.Ordinal);
+            "<nav class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-[2px] [:where(&amp;)]:py-3 overflow-x-auto overflow-y-hidden\" data-ui-navbar>", scrollable, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -64,9 +64,9 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
 
         var worded = Ui.NavbarItem.Icon(Ui.IconName.Cog6Tooth).Href("#")["Settings"].ToHtml();
 
-        Assert.Contains(" px-2.5 ", iconOnly, StringComparison.Ordinal);
-        Assert.DoesNotContain(" px-3 ", iconOnly, StringComparison.Ordinal);
-        Assert.Contains(" px-3 ", worded, StringComparison.Ordinal);
+        Assert.Contains(" [:where(&amp;)]:px-2.5 ", iconOnly, StringComparison.Ordinal);
+        Assert.DoesNotContain(" [:where(&amp;)]:px-3 ", iconOnly, StringComparison.Ordinal);
+        Assert.Contains(" [:where(&amp;)]:px-3 ", worded, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
     {
         var html = Ui.Navlist[Ui.NavlistItem.Href("/")["Home"]].ToHtml();
 
-        Assert.StartsWith("<nav class=\"flex flex-col\" data-ui-navlist>", html, StringComparison.Ordinal);
+        Assert.StartsWith("<nav class=\"[:where(&amp;)]:flex flex-col\" data-ui-navlist>", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-navlist-item", html, StringComparison.Ordinal);
     }
 

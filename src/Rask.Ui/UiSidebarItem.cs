@@ -20,7 +20,7 @@ public sealed partial class UiSidebarItem : Component
     // In the rail it is a 40px square around its icon — but not in the menu a group opens from the rail,
     // which is inside the same sidebar: there it is a row of the menu, in the menu's ink.
     private const string Root =
-        "relative my-px flex h-10 items-center gap-3 rounded-lg border border-transparent text-zinc-500 "
+        "relative [:where(&)]:my-px [:where(&)]:flex h-10 items-center [:where(&)]:gap-3 [:where(&)]:rounded-lg border border-transparent [:where(&)]:text-zinc-500 "
         + "hover:bg-zinc-800/5 hover:text-zinc-800 sidebar-desktop:h-8 "
         + "sidebar-rail:justify-center sidebar-rail:not-in-data-ui-menu:w-10 sidebar-rail:not-in-data-ui-menu:px-3 "
         + "aria-[current=page]:border-zinc-200 aria-[current=page]:bg-white aria-[current=page]:text-zinc-800 "
@@ -67,7 +67,7 @@ public sealed partial class UiSidebarItem : Component
 
     private Component Link(UiMenuLevel? menu)
     {
-        var classes = UiClass.Compose(Root, Badge is null ? "px-3" : "ps-3 pe-1.5", Class);
+        var classes = UiClass.Compose(Root, Badge is null ? "[:where(&)]:px-3" : "[:where(&)]:ps-3 [:where(&)]:pe-1.5", Class);
         Component[] content =
         [
             Icon is { } icon ? Div.Class("relative")[Ui.Icon.Name(icon).Class("size-4")] : null!,
@@ -88,7 +88,7 @@ public sealed partial class UiSidebarItem : Component
     {
         if (Href is not { } url)
         {
-            return Button.Type(ButtonType.Button).Class(classes, "w-full");
+            return Button.Type(ButtonType.Button).Class(classes, "[:where(&)]:w-full");
         }
 
         // A STRING is an ordinary link, written as given with no path base added (#1070): the way out of the

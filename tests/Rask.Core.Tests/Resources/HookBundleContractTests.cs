@@ -34,7 +34,6 @@ public partial class HookBundleContractTests
         ["data-rask-place"] = "on a popover, which is what loads the hooks",
         ["data-rask-placed"] = "written by the place hook",
         ["data-rask-modal-shown"] = "a field inside a lazy data-rask-modal dialog, which is what loads the hooks",
-        ["data-rask-contextmenu"] = "the runtime's own right-click opener (rask-dom.ts); the place hook reads where it was pressed",
         ["data-rask-segment"] = "inside a data-rask-segments",
         ["data-rask-plot-area"] = "inside a data-rask-plot",
         ["data-rask-plot-row"] = "inside a data-rask-plot",
@@ -58,6 +57,11 @@ public partial class HookBundleContractTests
         ["data-rask-list-empty"] = "inside a data-rask-list",
         ["data-rask-list-group"] = "inside a data-rask-list",
         ["data-rask-list-remove"] = "inside a data-rask-list",
+        ["data-rask-list-value"] = "on a row of a data-rask-list",
+        ["data-rask-list-clear"] = "inside a data-rask-list",
+        ["data-rask-list-shows"] = "inside a data-rask-list",
+        ["data-rask-list-faces"] = "inside a data-rask-list",
+        ["data-rask-list-face"] = "inside a data-rask-list's data-rask-list-faces",
         ["data-rask-on-click"] = "the runtime's own handler mark; the list hook leaves a press on one to it",
         ["data-rask-on-pause"] = "the runtime's own pause mark (rask-input.ts); the list hook ends a pending one as it rewrites the field",
         ["data-rask-on-input"] = "the runtime's own input mark; the list hook tells such a field what it rewrote in it",
@@ -88,6 +92,7 @@ public partial class HookBundleContractTests
         ["data-rask-calendar-slot"] = "on a datetime picker's time part inside a data-rask-calendar",
         ["data-rask-loading"] = "the runtime's own loading mark (rask-loading.ts); the skeleton hook reads it on a control by a data-rask-skeleton",
         ["data-rask-on-load"] = "the runtime's own handler mark (rask-events.ts); on a data-rask-lazy here",
+        ["data-rask-otp-submit"] = "on a data-rask-otp group, which is what loads the hooks",
     };
 
     [Fact]

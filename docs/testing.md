@@ -608,3 +608,61 @@ up a real host and a browser — so reserve it for paths a unit test genuinely c
 
 Everything else — rendering, attribute order, binding, validation, lifecycle ordering, event-handler
 dispatch — is faster and more reliable as a unit test.
+
+### Waiting for the page in browser tests
+
+A browser test clicks, then asserts — and in between the page is settling: the click's event is on its way to the
+app, its render is on its way back, a navigation is landing, a debounced field has not sent what was typed. Rask's
+client runtime knows exactly when all of that is done, and says so on `<html>`: **`data-rask-busy`** is there while
+the page is settling and gone once it has settled. The `Rask.Testing.Playwright` package waits for it:
+
+```bash
+dotnet add package Rask.Testing.Playwright
+```
+
+```csharp
+using Rask.Testing;
+
+await page.GotoAsync(baseUrl + "/orders");
+await page.WaitForRask();                         // connected (Server) or booted (WASM)
+
+await page.GetByRole(AriaRole.Button, new() { Name = "Ship" }).ClickAsync();
+await page.WaitForRask();                         // the click answered and its render on the page
+
+Assert.Equal("Shipped", await page.Locator("#status").TextContentAsync());
+```
+
+`WaitForRask(this IPage page, TimeSpan? timeout = null)` waits at most `timeout` (the page's default timeout when
+null — Playwright's 30 seconds unless the test set it), and throws Playwright's `TimeoutException` when the page is
+still settling then. `frame.WaitForRask()` does the same for a Rask app in an iframe. Laravel Dusk's
+`waitForLivewire()` is the same idea.
+
+The page is **busy** while any of these holds, on both hosts:
+
+| Busy while… | Ends when… |
+|---|---|
+| a handler event (click, submit, key, change) has been sent | the render answering it is on the page (Server: its ack, then the render queue; WASM: the dispatch and the reads it started) |
+| a navigation (a link, Back/Forward, `Navigator.Go`) is in flight | its page is on screen |
+| a frame has arrived and is not applied | its render is on the page — a body held for its new stylesheet included |
+| a live or debounced field has text not yet sent | it is sent (the next animation frame, or the pause) |
+| a `.Confirm` yes waits for the page to catch up | the press is made again |
+| the connection is opening, or re-opening after a drop (Server) | it is open — or the session has expired |
+| the app is booting (WASM) | its first frame is on the page |
+| the behaviour-hooks bundle is loading | it has run |
+
+**Idle** is the moment nothing in that table holds. The mark goes on **in the same task** as the click or key that
+caused it — Playwright's `ClickAsync` returns after the page's listeners ran — so a wait that starts after the click
+never looks too early. It comes off a microtask after the last hold lets go, so one hold handing over to the next
+(an ack to the render it answers) never shows as idle in between. Nothing is sent for it; while the page is idle
+it costs nothing.
+
+**What it does not cover.** The app's own timers, a `fetch` a script started, and a render the server *pushes* that
+has not reached the browser yet: a push that arrives later is a busy period of its own. So a page that pushes a
+render every second (a clock, a progress bar, a notification bell) still settles — each push is applied in the
+task it arrives in — but a test that waits for a pushed value should assert it with Playwright's retrying
+`Expect(...)`, not with `WaitForRask`. A field bound with plain `.Bind(…)` waits for the reader's next action by
+design, so what is typed into it is not busy until that action is taken.
+
+This replaces a hand-rolled "settled" helper — counting sent and acknowledged events, waiting for
+`[aria-busy=true]` or a skeleton to go, and a "DOM quiet for 300 ms" window, which never settles on a live page and
+settles too early on a slow one.

@@ -92,6 +92,94 @@ public sealed class HttpUserProviderTests
         Assert.Equal("/internal/auth/me", handler.LastPath);
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.NotFound)]
+    public async Task A_refresh_the_server_could_not_answer_keeps_the_user_it_had(HttpStatusCode status)
+    {
+        var replies = new Replies((HttpStatusCode.OK, Ana));
+        var provider = Provider(replies);
+        await provider.EnsureLoaded();
+
+        replies.Next = (status, null);
+        await provider.Refresh();
+
+        Assert.Equal("a@b.c", provider.Current.Identity?.Name);
+    }
+
+    [Fact]
+    public async Task A_refresh_that_cannot_reach_the_endpoint_keeps_the_user_it_had()
+    {
+        var replies = new Replies((HttpStatusCode.OK, Ana));
+        var provider = Provider(replies);
+        await provider.EnsureLoaded();
+
+        replies.Offline = true;
+        await provider.Refresh();
+
+        Assert.Equal("a@b.c", provider.Current.Identity?.Name);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NoContent)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task A_refresh_that_says_nobody_reads_as_anonymous(HttpStatusCode status)
+    {
+        var replies = new Replies((HttpStatusCode.OK, Ana));
+        var provider = Provider(replies);
+        await provider.EnsureLoaded();
+
+        replies.Next = (status, null);
+        await provider.Refresh();
+
+        Assert.False(provider.Current.Identity?.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task Reading_the_same_user_again_raises_no_Changed()
+    {
+        var provider = Provider(new Replies((HttpStatusCode.OK, Ana)));
+        await provider.EnsureLoaded();
+        var raised = 0;
+        provider.Changed += (_, _) => raised++;
+
+        await provider.Refresh();
+
+        Assert.Equal(0, raised);
+    }
+
+    private const string Ana = """{"id":"u1","email":"a@b.c","roles":["admin"]}""";
+
+    private static HttpUserProvider Provider(Replies replies) =>
+        new(new HttpClient(replies) { BaseAddress = new Uri("https://localhost") }, new AuthClientOptions());
+
+    // Answers each request with whatever the test set last, or fails as an unreachable host does.
+    private sealed class Replies((HttpStatusCode Status, string? Json) first) : HttpMessageHandler
+    {
+        public (HttpStatusCode Status, string? Json) Next { get; set; } = first;
+
+        public bool Offline { get; set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (Offline)
+            {
+                throw new HttpRequestException("no route to host");
+            }
+
+            var response = new HttpResponseMessage(Next.Status);
+            if (Next.Json is { } json)
+            {
+                response.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            }
+
+            return Task.FromResult(response);
+        }
+    }
+
     private static HttpUserProvider Provider(HttpStatusCode status, string? json = null) =>
         new(
             new HttpClient(new StubHandler(status, json)) { BaseAddress = new Uri("https://localhost") },

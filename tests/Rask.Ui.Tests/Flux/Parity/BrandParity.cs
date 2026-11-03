@@ -7,8 +7,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// </summary>
 /// <remarks>
 ///     Flux's page draws its image examples twice — one logo for light, one for dark, each hidden in the other
-///     scheme — and so do these. The last example sits in Flux's header, which the layouts own: a plain
-///     <c>&lt;header&gt;</c> of the same box stands in for it, and what is inside it is compared in full.
+///     scheme — and so do these. The last example sits in Flux's header, the real <c>Ui.Header</c> here.
 /// </remarks>
 public sealed partial class BrandParity : FluxParity
 {
@@ -36,13 +35,14 @@ public sealed partial class BrandParity : FluxParity
         ]));
 
         yield return ("examples", Row(Div[
-            Header.Class("stand-in-bar").Style("z-index:10").Attributes(("data-ui-header", null))[
+            Raw.Value("<style>.parity-min-w-24{min-width:6rem}</style>"),
+            Ui.Header.Class("parity-bar")[
                 Ui.Brand.Href("#").Name("Acme Inc.").Logo(I.Style(NavigationStandIns.Bold)["A"]).LogoClass("logo-accent"),
                 Ui.Navbar[
                     Ui.NavbarItem.Href("#").Current(true)["Home"],
                     Ui.NavbarItem.Href("#").Badge("12")["Inbox"]
                 ],
-                Div.Style("flex:1 1 0%;min-width:96px").Attributes(("data-ui-spacer", null)),
+                Ui.Spacer.Class("parity-min-w-24"),
                 Ui.Profile.Circle().Chevron(false).Avatar(NavigationStandIns.Caleb)
             ]
         ]));

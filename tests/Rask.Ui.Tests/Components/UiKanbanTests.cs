@@ -5,13 +5,13 @@ namespace Rask.UiTests.Components;
 /// </summary>
 public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
 {
-    private const string Card = "p-3 rounded-lg bg-white shadow-xs ring-1 ring-black/7 dark:bg-zinc-700 dark:ring-zinc-700";
+    private const string Card = "[:where(&amp;)]:p-3 [:where(&amp;)]:rounded-lg bg-white shadow-xs ring-1 ring-black/7 dark:bg-zinc-700 dark:ring-zinc-700";
 
     private const string Pressed =
-        "block w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
+        "[:where(&amp;)]:block [:where(&amp;)]:w-full text-start select-none hover:bg-zinc-50 dark:hover:bg-zinc-700 dark:hover:ring-zinc-600";
 
     private const string Heading =
-        "<div class=\"font-medium text-zinc-800 dark:text-white text-sm " + UiHeadingTests.NextToSubheading + "\" data-ui-heading>";
+        "<div class=\"font-medium [:where(&amp;)]:text-zinc-800 dark:text-white [:where(&amp;)]:text-sm " + UiHeadingTests.NextToSubheading + "\" data-ui-heading>";
 
     private const string Muted = "text-sm text-zinc-500 dark:text-white/70";
 
@@ -22,7 +22,7 @@ public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
 
         var html = board.ToHtml();
 
-        Assert.Equal("<div class=\"flex gap-4\" data-ui-kanban><span>columns</span></div>", html);
+        Assert.Equal("<div class=\"[:where(&amp;)]:flex [:where(&amp;)]:gap-4\" data-ui-kanban><span>columns</span></div>", html);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
         var html = header.ToHtml();
 
         Assert.Equal(
-            "<div class=\"flex flex-col p-2\" data-ui-kanban-column-header>"
+            "<div class=\"[:where(&amp;)]:flex flex-col [:where(&amp;)]:p-2\" data-ui-kanban-column-header>"
             + "<div class=\"flex items-center justify-between min-h-8\">"
             + $"<div class=\"flex items-center gap-1.5 px-3\">{Heading}Planned</div><div class=\"{Muted}\">6</div></div>"
             + "<div class=\"flex items-center gap-1\"></div>"
@@ -114,8 +114,8 @@ public partial class UiKanbanTests : global::Rask.Core.RaskMarkup
         var cards = Ui.KanbanColumnCards["a"].ToHtml();
         var footer = Ui.KanbanColumnFooter["b"].ToHtml();
 
-        Assert.Equal("<div class=\"flex flex-col gap-2 px-2 pb-2\" data-ui-kanban-column-cards>a</div>", cards);
-        Assert.Equal("<div class=\"flex flex-col gap-2 px-2 pb-2\" data-ui-kanban-column-footer>b</div>", footer);
+        Assert.Equal("<div class=\"[:where(&amp;)]:flex flex-col [:where(&amp;)]:gap-2 [:where(&amp;)]:px-2 [:where(&amp;)]:pb-2\" data-ui-kanban-column-cards>a</div>", cards);
+        Assert.Equal("<div class=\"[:where(&amp;)]:flex flex-col [:where(&amp;)]:gap-2 [:where(&amp;)]:px-2 [:where(&amp;)]:pb-2\" data-ui-kanban-column-footer>b</div>", footer);
     }
 
     [Fact]

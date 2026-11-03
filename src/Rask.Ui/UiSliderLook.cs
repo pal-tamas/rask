@@ -18,7 +18,7 @@ namespace Rask;
 internal static partial class UiSliderLook
 {
     internal const string Root =
-        "flex flex-col justify-center w-full min-h-4 [--ui-slider-thumb:1rem] has-[input:disabled]:opacity-50";
+        "[:where(&)]:flex flex-col justify-center [:where(&)]:w-full min-h-4 [--ui-slider-thumb:1rem] has-[input:disabled]:opacity-50";
 
     internal const string Wrapper = "flex flex-col justify-center";
 
@@ -47,13 +47,13 @@ internal static partial class UiSliderLook
     internal const string TicksInside = "absolute inset-0 grid cursor-default";
 
     internal const string Tick =
-        "relative col-start-1 row-start-1 flex flex-col items-center justify-center w-4 min-w-4 min-h-4 -translate-x-1/2 "
-        + "text-xs font-medium whitespace-nowrap cursor-default";
+        "relative col-start-1 row-start-1 [:where(&)]:flex flex-col items-center justify-center [:where(&)]:w-4 [:where(&)]:min-w-4 min-h-4 -translate-x-1/2 "
+        + "[:where(&)]:text-xs font-medium whitespace-nowrap cursor-default";
 
-    internal const string TickBelow = "text-zinc-400 data-active:text-zinc-500 dark:text-white/70 dark:data-active:text-white";
+    internal const string TickBelow = "[:where(&)]:text-zinc-400 data-active:text-zinc-500 dark:text-white/70 dark:data-active:text-white";
 
     // On the track: over the fill while the fill reaches it, over the bare track past the thumb.
-    internal const string TickInside = "text-black/25 data-active:text-white/50 dark:text-white/25 dark:data-active:text-white/50";
+    internal const string TickInside = "[:where(&)]:text-black/25 data-active:text-white/50 dark:text-white/25 dark:data-active:text-white/50";
 
     internal const string TickLine = "block w-px h-1 bg-black/25 dark:bg-white/25";
 

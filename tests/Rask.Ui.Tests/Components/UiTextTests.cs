@@ -12,7 +12,7 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
 
         var html = text.ToHtml();
 
-        Assert.Equal("<p class=\"text-sm text-zinc-500 dark:text-white/70 [:where(&amp;)]:font-normal\" data-ui-text>Body</p>", html);
+        Assert.Equal("<p class=\"[:where(&amp;)]:text-sm [:where(&amp;)]:text-zinc-500 dark:text-white/70 [:where(&amp;)]:font-normal\" data-ui-text>Body</p>", html);
     }
 
     [Fact]
@@ -27,23 +27,23 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
     }
 
     [Theory]
-    [InlineData(Ui.TextVariant.Default, "text-zinc-500 dark:text-white/70")]
-    [InlineData(Ui.TextVariant.Strong, "text-zinc-800 dark:text-white")]
-    [InlineData(Ui.TextVariant.Subtle, "text-zinc-400 dark:text-white/50")]
+    [InlineData(Ui.TextVariant.Default, "[:where(&amp;)]:text-zinc-500 dark:text-white/70")]
+    [InlineData(Ui.TextVariant.Strong, "[:where(&amp;)]:text-zinc-800 dark:text-white")]
+    [InlineData(Ui.TextVariant.Subtle, "[:where(&amp;)]:text-zinc-400 dark:text-white/50")]
     public void A_variant_is_an_ink(Ui.TextVariant variant, string expected)
     {
         var text = Ui.Text.Variant(variant)["Body"];
 
         var html = text.ToHtml();
 
-        Assert.Contains("\"text-sm " + expected + " ", html, StringComparison.Ordinal);
+        Assert.Contains("\"[:where(&amp;)]:text-sm " + expected + " ", html, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData(Ui.TextSize.Sm, "text-xs")]
-    [InlineData(Ui.TextSize.Default, "text-sm")]
-    [InlineData(Ui.TextSize.Lg, "text-base")]
-    [InlineData(Ui.TextSize.Xl, "text-lg")]
+    [InlineData(Ui.TextSize.Sm, "[:where(&amp;)]:text-xs")]
+    [InlineData(Ui.TextSize.Default, "[:where(&amp;)]:text-sm")]
+    [InlineData(Ui.TextSize.Lg, "[:where(&amp;)]:text-base")]
+    [InlineData(Ui.TextSize.Xl, "[:where(&amp;)]:text-lg")]
     public void A_size_is_one_step_of_the_scale(Ui.TextSize size, string expected)
     {
         var text = Ui.Text.Size(size)["Body"];
@@ -77,7 +77,7 @@ public partial class UiTextTests : global::Rask.Core.RaskMarkup
             .Select(hue => Enum.GetName(hue)!.ToLowerInvariant())
             .Where(hue => !Ui.Text.Color(Enum.Parse<Ui.Color>(hue, ignoreCase: true))["x"].ToHtml()
                     .Contains($"text-{hue}-600 dark:text-{hue}-400", StringComparison.Ordinal)
-                || !UiStylesheet.Css.Contains($".text-{hue}-600", StringComparison.Ordinal)
+                || !UiStylesheet.Css.Contains($"\\:text-{hue}-600", StringComparison.Ordinal)
                 || !UiStylesheet.Css.Contains($"text-{hue}-400", StringComparison.Ordinal))
             .ToList();
 

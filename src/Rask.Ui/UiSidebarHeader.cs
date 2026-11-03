@@ -8,6 +8,6 @@ public sealed partial class UiSidebarHeader : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("flex min-h-10 items-center justify-between gap-2", Class)
+        Div.Class("[:where(&)]:flex min-h-10 items-center justify-between [:where(&)]:gap-2", Class)
             .Attributes(("data-ui-sidebar-header", ""))[Children ?? []];
 }

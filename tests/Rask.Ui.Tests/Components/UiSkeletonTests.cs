@@ -51,8 +51,8 @@ public partial class UiSkeletonTests : global::Rask.Core.RaskMarkup
         var line = Ui.SkeletonLine.ToHtml();
         var large = Ui.SkeletonLine.Lg.ToHtml();
 
-        Assert.Equal("<div class=\"py-[3px]\" data-ui-skeleton-line=\"\"><div class=\"h-3.5 rounded-sm bg-zinc-400/20\"></div></div>", line);
-        Assert.Equal("<div class=\"py-1\" data-ui-skeleton-line=\"\"><div class=\"h-4 rounded-sm bg-zinc-400/20\"></div></div>", large);
+        Assert.Equal("<div class=\"[:where(&amp;)]:py-[3px]\" data-ui-skeleton-line=\"\"><div class=\"h-3.5 rounded-sm bg-zinc-400/20\"></div></div>", line);
+        Assert.Equal("<div class=\"[:where(&amp;)]:py-1\" data-ui-skeleton-line=\"\"><div class=\"h-4 rounded-sm bg-zinc-400/20\"></div></div>", large);
     }
 
     [Fact]

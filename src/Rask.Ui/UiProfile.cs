@@ -17,7 +17,7 @@ namespace Rask;
 public sealed partial class UiProfile : Component, IUiTrigger
 {
     private const string Base =
-        "group flex items-center p-1 hover:bg-zinc-800/5 dark:hover:bg-white/15";
+        "group [:where(&)]:flex items-center [:where(&)]:p-1 hover:bg-zinc-800/5 dark:hover:bg-white/15";
 
     private const string Ink =
         "text-zinc-400 group-hover:text-zinc-800 dark:text-white/80 dark:group-hover:text-white";
@@ -69,7 +69,7 @@ public sealed partial class UiProfile : Component, IUiTrigger
     {
         // The marker first: `Attributes` replaces the bag, and what makes the row a dropdown's trigger is in it.
         var button = Button.Type(ButtonType.Button)
-            .Class(Base, Circle == true ? "rounded-full" : "rounded-lg", Class)
+            .Class(Base, Circle == true ? "[:where(&)]:rounded-full" : "[:where(&)]:rounded-lg", Class)
             .Attributes(("data-ui-profile", null));
 
         return (_invoked is { } invoked ? invoked.On(button) : button)[

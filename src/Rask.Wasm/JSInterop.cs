@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop.Infrastructure;
 using Rask.Core.Diagnostics;
 using Rask.Core.Routing;
+using Rask.Wasm.Authentication;
 using Rask.Wasm.Files;
 
 namespace Rask.Wasm;
@@ -79,6 +80,14 @@ internal static partial class JSInterop
     /// </summary>
     [JSExport]
     public static Task ReadsSettled() => _session?.ReadsSettledAsync() ?? Task.CompletedTask;
+
+    /// <summary>
+    ///     Asks who the browser carries now, for the tab's user watch (<c>rask-wasm-auth.ts</c>): the answer
+    ///     <c>WasmUserWatch</c> gives, or none before the page is up.
+    /// </summary>
+    [JSExport]
+    public static Task<string> AskWho() =>
+        _session?.Services.GetService<WasmUserWatch>()?.Ask() ?? Task.FromResult(WasmUserWatch.Unanswered);
 
     /// <summary>
     ///     Inbound result for an <c>IJSRuntime.InvokeAsync</c> call. <paramref name="arguments" />
