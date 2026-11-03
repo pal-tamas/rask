@@ -170,6 +170,54 @@ public sealed class HandlerWaitFramesTests : ResettingTestBase, IDisposable
         Assert.Contains("rows of 2", painted[^1], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_busy_buttons_handler_that_only_awaits_a_read_inside_an_ambient_scope_never_paints_that_scope()
+    {
+        var app = new HeldPagingApp { CountsMissing = true };
+        var (session, click) = await Open(app, Brief);
+
+        var dispatch = session.DispatchAsync(Click(click));
+        await WaitFor.True(() => Painted() == 1, "the paint at the budget");
+        app.Release();
+        await dispatch;
+
+        // No StateHasChanged anywhere: what is painted while it waits is the budget's paint and the repaints around
+        // the continuations of its reads, which the scope is open in.
+        var painted = PaintedSoFar();
+        Assert.DoesNotContain(painted, p => p.Contains("no partner", StringComparison.Ordinal));
+        Assert.Contains("rows of 2", painted[^1], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_page_redrawn_from_outside_while_a_handler_awaits_inside_an_ambient_scope_never_paints_that_scope()
+    {
+        using var ticker = new HeldTicker();
+        var app = new HeldPagingApp { CountsMissing = true, Board = ticker };
+        var (session, click) = await Open(app, Brief);
+
+        var dispatch = session.DispatchAsync(Click(click));
+        await WaitFor.True(() => Painted() == 1, "the paint at the budget");
+        ticker.Start(TimeSpan.FromMilliseconds(5));
+        await WaitFor.True(() => ticker.Ticks >= 3, "the board to be redrawn from outside while the read is held");
+        app.Release();
+        await dispatch;
+        ticker.Stop();
+
+        // The board's redraws wait for the handler, and the repaints around its continuations paint them: inside the
+        // scope, as those continuations are, the board drew for no partner.
+        var painted = PaintedSoFar();
+        Assert.DoesNotContain(painted, p => p.Contains("no partner", StringComparison.Ordinal));
+        Assert.Contains("rows of 2", painted[^1], StringComparison.Ordinal);
+    }
+
+    private string[] PaintedSoFar()
+    {
+        lock (_painted)
+        {
+            return [.. _painted];
+        }
+    }
+
     private int Painted()
     {
         lock (_painted)
@@ -230,12 +278,20 @@ internal sealed class HeldPagingApp : Component
     // The handler reads inside an ambient scope, as Tenant.Across() opens one, through a helper that leaves its context.
     public bool ReadsAcross { get; init; }
 
+    // The handler is one awaited call and nothing else — no StateHasChanged — and the call reads twice inside the
+    // scope, as a data layer's Tenant.Across() query does.
+    public bool CountsMissing { get; init; }
+
+    // A board beside the pager, redrawn on every tick of this timer: what a page redrawn from outside looks like.
+    public HeldTicker? Board { get; init; }
+
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
         Main[
-            P[Across.IsOpen ? "no partner" : "for the partner"],
+            P[HeldAcross.IsOpen ? "no partner" : "for the partner"],
             P[$"pager at {_page}"],
+            Board is { } ticker ? new HeldBoard { Ticker = ticker } : null,
             Button.OnClick(Next)["next"],
             RowsAreAChilds ? new HeldPagingRows { App = this, Page = _page } : P[$"rows of {_rowsOf}"]
         ];
@@ -248,9 +304,15 @@ internal sealed class HeldPagingApp : Component
             return;
         }
 
+        if (CountsMissing)
+        {
+            _rowsOf = await MissingAt();
+            return;
+        }
+
         if (ReadsAcross)
         {
-            using (Across.Enter())
+            using (HeldAcross.Enter())
             {
                 await ReadLeavingTheContext();
 
@@ -267,26 +329,91 @@ internal sealed class HeldPagingApp : Component
         _rowsOf = _page;
     }
 
-    private async Task ReadLeavingTheContext() => await Read().ConfigureAwait(false);
-
-    // An ambient scope on an AsyncLocal, which nothing outside the block it is opened in may see.
-    private static class Across
+    // The app's own awaits come back on the handler's context; the reads under them leave it, as EF's do.
+    private async Task<int> MissingAt()
     {
-        private static readonly AsyncLocal<bool> Open = new();
-
-        public static bool IsOpen => Open.Value;
-
-        public static IDisposable Enter()
+        using (HeldAcross.Enter())
         {
-            Open.Value = true;
-            return new Scope();
+            await ReadLeavingTheContext();
+            await ReadLeavingTheContext();
         }
 
-        private sealed class Scope : IDisposable
+        return _page;
+    }
+
+    private async Task ReadLeavingTheContext() => await Read().ConfigureAwait(false);
+}
+
+// An ambient scope on an AsyncLocal, which nothing outside the block it is opened in may see.
+internal static class HeldAcross
+{
+    private static readonly AsyncLocal<bool> Open = new();
+
+    public static bool IsOpen => Open.Value;
+
+    public static IDisposable Enter()
+    {
+        Open.Value = true;
+        return new Scope();
+    }
+
+    private sealed class Scope : IDisposable
+    {
+        public void Dispose() => Open.Value = false;
+    }
+}
+
+// What redraws a page from outside every few milliseconds, as a board of pumps does while another pump talks: a timer
+// of its own, never started by a handler.
+internal sealed class HeldTicker : IDisposable
+{
+    private Timer? _timer;
+    private int _ticks;
+
+    public event EventHandler? Ticked;
+
+    public int Ticks => Volatile.Read(ref _ticks);
+
+    public void Start(TimeSpan every)
+    {
+        // Its own flow, as a service's timer has: nothing the test holds rides into its ticks.
+        using (ExecutionContext.SuppressFlow())
         {
-            public void Dispose() => Open.Value = false;
+            _timer = new Timer(_ => Tick(), null, every, every);
         }
     }
+
+    public void Stop() => Interlocked.Exchange(ref _timer, null)?.Dispose();
+
+    public void Dispose() => Stop();
+
+    private void Tick()
+    {
+        Interlocked.Increment(ref _ticks);
+        Ticked?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+// Redrawn on every tick, and draws for no partner inside the scope, as the page does.
+[SkipFactory]
+internal sealed class HeldBoard : Component
+{
+    public HeldTicker? Ticker { get; set; }
+
+    protected override Task OnMount()
+    {
+        Ticker!.Ticked += StateHasChanged;
+        return Task.CompletedTask;
+    }
+
+    protected override Task OnUnmount()
+    {
+        Ticker!.Ticked -= StateHasChanged;
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() =>
+        P[$"board {(HeldAcross.IsOpen ? "no partner" : "for the partner")} at tick {Ticker!.Ticks}"];
 }
 
 [SkipFactory]

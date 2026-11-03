@@ -341,3 +341,98 @@ public sealed partial class HandlerWaitAcrossPage(HandlerWaitStore store) : Comp
 
     private static async Task ReadAcross(HandlerWaitStore store) => await store.Save().ConfigureAwait(false);
 }
+
+/// <summary>
+///     What redraws a page from outside every few milliseconds, as a board of pumps does while another pump talks: a
+///     timer of its own, never started by a handler, whose ticks each component listening redraws itself on.
+/// </summary>
+public sealed class HandlerWaitTicker : IDisposable
+{
+    private Timer? _timer;
+    private int _ticks;
+
+    public event EventHandler? Ticked;
+
+    public int Ticks => Volatile.Read(ref _ticks);
+
+    public void Start(TimeSpan every)
+    {
+        // Its own flow, as a service's timer has: nothing the test holds rides into its ticks.
+        using (ExecutionContext.SuppressFlow())
+        {
+            _timer = new Timer(_ => Tick(), null, every, every);
+        }
+    }
+
+    public void Stop() => Interlocked.Exchange(ref _timer, null)?.Dispose();
+
+    public void Dispose() => Stop();
+
+    private void Tick()
+    {
+        Interlocked.Increment(ref _ticks);
+        Ticked?.Invoke(this, EventArgs.Empty);
+    }
+}
+
+/// <summary>A board redrawn on every tick, which draws for no partner inside the scope, as the page does.</summary>
+public sealed partial class HandlerWaitBoard(HandlerWaitTicker ticker) : Component
+{
+    public string? Pump { get; set; }
+
+    protected override Task OnMount()
+    {
+        ticker.Ticked += StateHasChanged;
+        return Task.CompletedTask;
+    }
+
+    protected override Task OnUnmount()
+    {
+        ticker.Ticked -= StateHasChanged;
+        return Task.CompletedTask;
+    }
+
+    protected override Component? Render() =>
+        P.Id("board")[$"pump {Pump} {(HandlerWaitAcross.IsOpen ? "no partner" : "for the partner")} at tick {ticker.Ticks}"];
+}
+
+/// <summary>
+///     A busy button whose handler is one awaited call and nothing else — no <c>StateHasChanged</c> — and the call
+///     reads twice inside the scope, as a data layer's <c>Tenant.Across()</c> query does, beside a board redrawn from
+///     outside.
+/// </summary>
+[Route("/w/missing")]
+public sealed partial class HandlerWaitMissingPage(HandlerWaitStore store) : Component
+{
+    private bool _busy;
+    private int? _missing;
+
+    protected override Component? Render() =>
+    [
+        P.Id("partner")[HandlerWaitAcross.IsOpen ? "no partner" : "for the partner"],
+        HandlerWaitBoard.Pump("2"),
+        Button.Id("show").OnClick(ShowMissing)[_busy ? "busy" : "show missing"],
+        P.Id("missing")[_missing is { } missing ? $"missing {missing}" : "not counted"],
+    ];
+
+    private async Task ShowMissing()
+    {
+        _busy = true;
+        _missing = await MissingAt();
+        _busy = false;
+    }
+
+    // The app's own awaits come back on the handler's context; the reads under them leave it, as EF's do.
+    private async Task<int> MissingAt()
+    {
+        using (HandlerWaitAcross.Enter())
+        {
+            await ReadAcross(store);
+            await ReadAcross(store);
+        }
+
+        return 2;
+    }
+
+    private static async Task ReadAcross(HandlerWaitStore store) => await store.Save().ConfigureAwait(false);
+}
