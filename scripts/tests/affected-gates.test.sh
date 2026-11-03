@@ -59,7 +59,6 @@ echo "==> affected_gates.py"
 # The core reaches everything that is drawn with it.
 expect_has   "the core reaches the site's browser journeys"        site      src/Rask.Core/Component.cs
 expect_has   "the core reaches the Rask.Server journeys"           server    src/Rask.Server/RaskServerOptions.cs
-expect_has   "a .cs change reaches the formatter"                  cs        src/Rask.Mail/Mail.cs
 expect_has   "any change reaches the build and the unit tests"     code      src/Rask.Mail/Mail.cs
 
 # A battery nobody draws with does not pay for a browser.
@@ -127,8 +126,6 @@ expect_full  "a gate script"                                       scripts/run-u
 expect_full  "the package pins"                                    Directory.Packages.props
 expect_full  "nothing at all"                                      ""
 
-# A non-.cs change does not start the formatter.
-expect_lacks "a stylesheet does not start the formatter"           cs        src/Rask.Site/wwwroot/global.css
 
 # --- the bargain a scoped push rests on -----------------------------------------------------------
 # A push is scoped only because a whole run follows it and publishing waits for THAT run. Each half
@@ -241,6 +238,18 @@ plans "a deps run that cannot see its change takes them all" "$named | index(\"f
 
 # The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
 plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
+plans "...and so does the formatter"                       'all(.[]; ((.part // "") | startswith("format") | not) and (.name | startswith("format") | not))' push "" ""
+plans "a Dependabot bump formats what it changed, in build" 'any(.[]; .name == "build") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+
+# The range the formatter checks: a pull request run with no scope base still has one, its own diff.
+checked=$((checked + 1))
+pr_range="$(PLAN_OUTPUT=range planned deps "" "$(sandbox_git rev-parse "$nuget_bump~1")" "$nuget_bump")"
+if [ "$pr_range" = "$(sandbox_git rev-parse "$nuget_bump~1")..$nuget_bump" ]; then
+  printf '  ok   %s\n' "an unscoped pull request hands the formatter its own diff"
+else
+  printf '  FAIL %s -> %s\n' "an unscoped pull request hands the formatter its own diff" "${pr_range:-(none)}" >&2
+  failures=$((failures + 1))
+fi
 
 # The site is published once, by a job only the gates that drive it wait for: those are planned apart.
 plans "no gate that waits for nothing drives the site"     'all(.[]; (.site // false) | not) and any(.[]; .name == "build")' push "" ""

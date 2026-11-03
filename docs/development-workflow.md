@@ -36,7 +36,7 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `format src` and `format tests` jobs run the same verify after the push.
+   `build` job runs the same verify after the push, over the files the change touched (every file when it changed the rules).
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -150,8 +150,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches) always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, format (two halves) (`run-unit-local.sh`), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches and the formatter over the `.cs` files it changed) always, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -226,6 +226,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | Flux UI is followed weekly, not daily: `flux` and `flux-parity` run Mondays (and by hand). | `upstream.yml` (the `'41 4 * * 1'` schedule) | both jobs on the daily schedule, with the followers |
 | No soak: the release set no longer runs against `main` every three hours (`soak.yml` deleted), so an image or a download that disappears is found on a `ci/release/**` branch or at the release. | — | `soak.yml` (`schedule: '23 */3 * * *'`, `gates.yml` with `set: release`), from the history |
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
+| The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `build` job; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `build` part), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
 
 ### How a version reaches nuget.org
 

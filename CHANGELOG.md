@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: the formatter checks the files a change touched, in the `build` job.** The `format`, `format src` and
+  `format tests` jobs are gone (a build plus up to 603 s of `dotnet format` each); `build` runs the formatter beside
+  the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
+  `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json` (`scripts/lib/format-scope.sh`). With no scope
+  base — the daily whole run, a release — nothing is formatted. Until 1.0.
 - **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
   rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
   in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
