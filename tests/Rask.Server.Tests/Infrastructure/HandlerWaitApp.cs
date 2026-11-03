@@ -283,3 +283,61 @@ public sealed partial class HandlerWaitCheckedPage : Component
         }
     }
 }
+
+/// <summary>
+///     An ambient scope a handler opens around its reads, as <c>Tenant.Across()</c> does: it flows on an
+///     <see cref="AsyncLocal{T}" />, and nothing outside the block it is opened in may see it.
+/// </summary>
+public static class HandlerWaitAcross
+{
+    private static readonly AsyncLocal<bool> Open = new();
+
+    public static bool IsOpen => Open.Value;
+
+    public static IDisposable Enter()
+    {
+        Open.Value = true;
+        return new Scope();
+    }
+
+    private sealed class Scope : IDisposable
+    {
+        public void Dispose() => Open.Value = false;
+    }
+}
+
+/// <summary>
+///     A page whose render branches on that scope — inside one there is no partner to draw for — and a handler that
+///     reads inside one, through a helper that leaves the handler's context as a data layer does.
+/// </summary>
+[Route("/w/across")]
+public sealed partial class HandlerWaitAcrossPage(HandlerWaitStore store) : Component
+{
+    private bool _showing;
+    private int _shown;
+
+    protected override Component? Render() =>
+    [
+        P.Id("partner")[HandlerWaitAcross.IsOpen ? "no partner" : "for the partner"],
+        Button.Id("show").OnClick(Show)[_showing ? "showing" : "show"],
+        P.Id("shown")[$"shown {_shown}"],
+    ];
+
+    private async Task Show()
+    {
+        _showing = true;
+        using (HandlerWaitAcross.Enter())
+        {
+            await ReadAcross(store);
+
+            // Halfway: the page is drawn again by the repaint that follows this continuation, as a busy button is.
+            StateHasChanged();
+            await ReadAcross(store);
+        }
+
+        _showing = false;
+        _shown++;
+    }
+
+    private static async Task ReadAcross(HandlerWaitStore store) => await store.Save().ConfigureAwait(false);
+}

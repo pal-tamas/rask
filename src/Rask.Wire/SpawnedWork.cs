@@ -43,4 +43,46 @@ internal static class SpawnedWork
             left?.Dispose();
         }
     }
+
+    /// <summary>
+    ///     Starts <paramref name="start" /> in <paramref name="flow" /> rather than its starter's, and outside the unit
+    ///     of work in progress there (<see cref="Start{TState}" />). What it runs after its first wait keeps that flow.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         For work a handler's own code sets off while the handler is inside a scope of its own — a repaint between
+    ///         its awaits, made from the continuation that came back. Inherited, the repaint saw every
+    ///         <see cref="AsyncLocal{T}" /> the handler had opened: inside <c>Tenant.Across()</c> the page rendered
+    ///         with no tenant, and showed its "no tenant" branch for one frame on every click. Started in the flow the
+    ///         handler was dispatched in, it sees what the render after the handler sees: the session's tenant, user and
+    ///         services. One mechanism for every <see cref="AsyncLocal{T}" />, Rask's or the app's.
+    ///     </para>
+    ///     <para>
+    ///         A null <paramref name="flow" />, or one the starter is already in, starts as <see cref="Start{TState}" />
+    ///         does: switching costs nothing when nothing would change, and the render path allocates nothing either way.
+    ///     </para>
+    /// </remarks>
+    /// <param name="flow">The flow to start in — captured where the work's owner was dispatched — or null for the starter's.</param>
+    /// <param name="start">What to start.</param>
+    /// <param name="state">What it is started with.</param>
+    /// <returns>The started work.</returns>
+    internal static Task StartIn<TState>(ExecutionContext? flow, Func<TState, Task> start, TState state)
+    {
+        // Null when the starter suppressed its flow: there is then nothing to come back to, so nothing is switched.
+        var here = ExecutionContext.Capture();
+        if (flow is null || here is null || ReferenceEquals(flow, here))
+        {
+            return Start(start, state);
+        }
+
+        ExecutionContext.Restore(flow);
+        try
+        {
+            return Start(start, state);
+        }
+        finally
+        {
+            ExecutionContext.Restore(here);
+        }
+    }
 }

@@ -416,6 +416,23 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         Assert.Contains(">saving<", atTheBudget, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_repaint_while_a_handler_awaits_inside_an_ambient_scope_is_drawn_outside_that_scope()
+    {
+        await using var page = await Page.Open("/w/across", output, Brief);
+        page.Store.Hold();
+
+        await page.Press("show");
+        var atTheBudget = await page.Next();
+        page.Store.Release();
+        var after = await page.UpTo("shown 1");
+
+        // The handler's reads ran in the scope; every frame — those between its awaits too — is the page's own.
+        Assert.Contains(">showing<", atTheBudget, StringComparison.Ordinal);
+        Assert.DoesNotContain(after.Prepend(atTheBudget), f => f.Contains("no partner", StringComparison.Ordinal));
+        Assert.Contains("for the partner", after[^1], StringComparison.Ordinal);
+    }
+
     // Every frame is a whole page here, so the page a frame shows — and the handlers on it — can be read from it.
     private sealed class Page(RaskTestHost host, WebSocket ws, ITestOutputHelper output, string html, string sessionId)
         : IAsyncDisposable
@@ -501,6 +518,19 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
             while (!frame.Contains(text, StringComparison.Ordinal));
 
             return frame;
+        }
+
+        // Every frame up to and including the first that contains text.
+        public async Task<List<string>> UpTo(string text)
+        {
+            var frames = new List<string>();
+            do
+            {
+                frames.Add(await Next());
+            }
+            while (!frames[^1].Contains(text, StringComparison.Ordinal));
+
+            return frames;
         }
 
         // Every frame sent before the ack of the event stamped seq.

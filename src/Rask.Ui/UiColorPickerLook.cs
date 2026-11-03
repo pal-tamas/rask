@@ -63,7 +63,7 @@ internal static class UiColorPickerLook
     internal const string Layout = "flex flex-col gap-3";
 
     /// <summary>The saturation and brightness area: three to two, never scrolled by the finger on it.</summary>
-    internal const string Area = "relative w-full aspect-[3/2] rounded-lg touch-none";
+    internal const string Area = "relative w-full aspect-[3/2] rounded-lg touch-none select-none";
 
     /// <summary>One layer of the area: the hue, then white from the left, then black from below.</summary>
     internal const string AreaLayer = "absolute inset-0 rounded-lg overflow-hidden";
@@ -80,7 +80,7 @@ internal static class UiColorPickerLook
         + "outline-offset-2 shadow-[0_0_0_1px_rgba(0,0,0,0.15)]";
 
     /// <summary>A slider's root.</summary>
-    internal const string Slider = "flex flex-col justify-center w-full min-h-4 touch-none [--ui-slider-thumb:1rem] max-sm:[--ui-slider-thumb:1.25rem]";
+    internal const string Slider = "flex flex-col justify-center w-full min-h-4 touch-none select-none [--ui-slider-thumb:1rem] max-sm:[--ui-slider-thumb:1.25rem]";
 
     /// <summary>The row the track sits in.</summary>
     internal const string SliderRow = "flex flex-col justify-center h-full";

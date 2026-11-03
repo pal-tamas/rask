@@ -25,6 +25,22 @@ public interface IRenderHandle
     internal Task RenderInScopeAsync() => Task.CompletedTask;
 
     /// <summary>
+    ///     A handler dispatched in <paramref name="flow" /> has started: its repaints are made in that flow rather than
+    ///     in the flow of the continuation that asks for them (<see cref="SpawnedWork.StartIn{TState}" />). A handle
+    ///     that does not repaint mid-handler keeps nothing.
+    /// </summary>
+    /// <param name="flow">The flow the handler was dispatched in.</param>
+    internal void HandlerStarted(ExecutionContext? flow)
+    {
+    }
+
+    /// <summary>The handler <see cref="HandlerStarted" /> was told of with <paramref name="flow" /> has ended.</summary>
+    /// <param name="flow">The flow it was dispatched in.</param>
+    internal void HandlerEnded(ExecutionContext? flow)
+    {
+    }
+
+    /// <summary>
     ///     How long a handler runs before what it has changed so far is shown. Within it nothing is repainted
     ///     between its awaits, so one that finishes in time is one frame: the last. Zero repaints at every await.
     /// </summary>
