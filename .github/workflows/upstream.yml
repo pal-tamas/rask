@@ -23,7 +23,7 @@ name: upstream
 #
 # Every source keeps ONE issue, opened only when a person is needed and closed by its next green run.
 # A follower the gates refused for a red main already has waits instead (upstream-waits/<follower>): when
-# full.yml next passes on main, this workflow runs again for the waiting followers alone.
+# main's ci next passes on a push, this workflow runs again for the waiting followers alone.
 #
 # Unlike a hand push, this is gated BEFORE it lands: a red main waits for whoever pushed it, and
 # nobody pushed this.
@@ -31,7 +31,7 @@ on:
   schedule:
     - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
   workflow_run:
-    workflows: [full]
+    workflows: [ci]
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -44,7 +44,7 @@ on:
 permissions:
   contents: read
 
-# A group holds ONE pending run, and a newer one cancels it. Every full.yml on main ends in a workflow_run run
+# A group holds ONE pending run, and a newer one cancels it. Every ci.yml run on main ends in a workflow_run run
 # here — usually nothing waits, and it ends at once — so sharing the daily run's group cancelled the daily run
 # whenever it was queued behind another (2026-10-27). The two kinds queue apart; a follower is followed by one
 # run at a time through the follow job's own group.
@@ -53,10 +53,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Daily, every follower. After a green full.yml, only those waiting for main — usually none, and the
-  # run ends here.
+  # Daily, every follower. After main's ci passes on a push, only those waiting for main — usually none,
+  # and the run ends here. A pull request or manual ci run says nothing about main.
   followers:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name != 'workflow_run'
+      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-26.04
     outputs:
       names: ${{ steps.list.outputs.names }}

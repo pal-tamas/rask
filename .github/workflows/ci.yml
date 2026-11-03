@@ -5,11 +5,13 @@ name: ci
 # later, whether it should have. A red main is fixed forward.
 #
 # A push to main or a ci/** branch and a pull request are SCOPED: they run the gates the change can
-# reach, measured from the newest commit this workflow or full.yml passed that the push descends from
+# reach, measured from the newest commit this workflow passed on main that the push descends from
 # (scripts/lib/green_base.sh finds it, scripts/lib/affected_gates.py decides, and refuses to narrow
 # whatever it cannot reason about — a change to the CI itself, a gate script, the package pins). That is what makes the verdict take minutes.
 # What it buys it with: a break a scoped run cannot see is found by the next whole run instead —
-# full.yml, on a schedule — which is why nightly.yml and pages.yml publish from THAT run, not this one.
+# full.yml, once a day. Main runs ONCE per push: nightly.yml and pages.yml publish from a commit THIS
+# workflow passed on a push to main (until 2026-11-03 they followed full.yml, which ran behind every push
+# too). Restore at 1.0: see docs/development-workflow.md, "Loosened until 1.0".
 #
 # A ci/** branch runs the push set without landing anything, scoped like main: push there to try a
 # change first. (It ran the whole set until 2026-11-02, and fifteen branches of 26 jobs each held the
@@ -87,14 +89,12 @@ jobs:
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             sha="$ASKED_BASE"
           elif [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
-            # The newest green commit of the two workflows that can call main green. Only a PUSH run of
-            # this one counts: a manual run may have been narrowed to a single gate.
-            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push" "full.yml/runs?branch=main")"
+            # The newest green commit of main's push runs: a manual run may have been narrowed to a single gate.
+            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push")"
           elif [ "$EVENT" = "push" ] && [[ "$REF" != refs/heads/ci/release/* ]]; then
             # A ci/** branch: main's green commits it contains, or its own last green push.
             branch="$(jq -rn --arg ref "${REF#refs/heads/}" '$ref | @uri')"
-            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push" "full.yml/runs?branch=main" \
-              "ci.yml/runs?branch=$branch&event=push")"
+            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push" "ci.yml/runs?branch=$branch&event=push")"
           fi
 
           if [ -n "$sha" ]; then

@@ -5,7 +5,7 @@
 #   green_base.sh  where a scoped run measures from — the newest green commit HEAD descends from, so a
 #                  ci/** branch cut from an older main is scoped, and a commit off HEAD's history never counts.
 #   cancel_superseded.sh  which older main runs a push's run cancels — only those that have not started a
-#                  gate, never a manual one, and a full run only when a newer one waits behind it.
+#                  gate, never a manual one, and never a full.yml run.
 #
 # Reading these wrong is lopsided like affected_gates.py: a base too far back costs gates, a base that is
 # not an ancestor would scope a run against a diff that is not its change; a cancel too many throws a
@@ -90,20 +90,16 @@ reply "repos/o/r/actions/workflows/$MAIN" "$(runs 10:in_progress:push 11:queued:
 jobs 10 'base=completed/success' 'gates / plan=completed/success' 'gates / build=in_progress'
 jobs 11
 jobs 12 'base=completed/success' 'gates / plan=completed/success' 'gates / build=queued' 'gates / unit=queued'
-reply "repos/o/r/actions/workflows/$FULL" "$(runs 20:in_progress:push)"
 check "older ci runs with no gate started go, a started one stays" "11 12" "$(supersede 13)"
 
+reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:in_progress:push 12:queued:workflow_dispatch)"
+jobs 12
+check "a manual run is never cancelled"                            ""      "$(supersede 13)"
+
 reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:in_progress:push)"
-reply "repos/o/r/actions/workflows/$FULL" "$(runs 21:pending:push 20:in_progress:push 19:queued:workflow_dispatch)"
+reply "repos/o/r/actions/workflows/$FULL" "$(runs 21:pending:schedule 20:in_progress:schedule)"
 jobs 20 'moved=completed/success' 'gates / plan=completed/success' 'gates / build=queued'
-check "a full run whose gates all wait gives way to the newer one" "20" "$(supersede 13)"
-
-jobs 20 'moved=completed/success' 'gates / plan=completed/success' 'gates / build=completed/failure'
-check "a full run that has run a gate is left to finish"           ""   "$(supersede 13)"
-
-reply "repos/o/r/actions/workflows/$FULL" "$(runs 20:in_progress:schedule)"
-jobs 20 'moved=completed/success' 'gates / plan=queued'
-check "the only full run is never cancelled"                       ""   "$(supersede 13)"
+check "a full run is never cancelled: it runs on its own clock"    ""      "$(supersede 13)"
 
 if [ "$failures" -gt 0 ]; then
   echo "ci runs: $failures check(s) failed" >&2

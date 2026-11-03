@@ -150,8 +150,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` or `full` passed; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, behind every push to `main`, one run at a time** — `full.yml` | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` passed on `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -177,14 +177,13 @@ scripts/run-all-gates.sh --list              # every gate, and what it needs
 
 On `main` every push gets its own run, started at once, so "which push broke it" has an answer. A run that
 has not started a gate when a newer push's run starts is cancelled by it (`scripts/lib/cancel_superseded.sh`):
-the newer run is measured from the same last green commit, so its scope holds the older push's change. So is
-a `full` run whose gates all still wait for a runner while a newer one waits behind it.
+the newer run is measured from a commit before the older push, so its scope holds the older push's change.
 
 ### Trying a change first
 
 Push to a `ci/**` branch to run the push set without landing anything; only the newest push to a
-branch is kept running. It is scoped like a push to `main`, measured from the newest commit `ci` or
-`full` passed that the branch contains (`scripts/lib/green_base.sh`), so a change that reaches the CI
+branch is kept running. It is scoped like a push to `main`, measured from the newest commit `ci` passed
+on `main` that the branch contains (`scripts/lib/green_base.sh`), so a change that reaches the CI
 itself, a gate script or the package pins still gets the whole set. For the whole set on any branch:
 `gh workflow run ci.yml --ref <branch>`. A `ci/release/**` branch runs the whole set and the release set
 too — the way to find out before tagging rather than from a failed release.
@@ -197,18 +196,27 @@ git push origin --delete ci/my-change
 
 ### What a red `main` stops
 
-Publishing. `pages.yml` triggers when `full` completes on `main` and does nothing unless it concluded
-`success`; `nightly.yml` triggers on the same completion and packs the newest commit `full` passed, once (an hourly
-schedule is its backstop). So neither a
-prerelease package nor rask.sh is built from a commit the WHOLE set did not pass — a scoped run's green
-publishes nothing. `full` runs behind every push, one run at a time with the newest push waiting, so a
-site change is live about twenty minutes after its push. A package takes longer: its publish waits for
-nuget.org level by level ([below](#how-a-version-reaches-nugetorg)).
+Publishing. `pages.yml` triggers when a PUSH run of `ci` completes on `main` and does nothing unless it
+concluded `success`, then deploys the newest commit such a run passed; `nightly.yml` triggers on the same
+completion and packs that commit, once (an hourly schedule is its backstop). A pull request or a manual
+`ci` run says nothing about `main` and publishes nothing. Main runs ONCE: until 2026-11-03 publishing
+followed `full`, the whole set, which ran a second time behind every push — see
+[Loosened until 1.0](#loosened-until-10).
 
-The price of a scoped push is named here once: a break the scoped run could not see is found by the
-next whole run, minutes later, with green pushes on top of it. `full` red and `ci` green means
-exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
+The price of a scoped push is named here once: a break the scoped run could not see is published, and
+found by the next whole run — `full`, once a day — with green pushes on top of it. `full` red and `ci`
+green means exactly that. `release.yml`'s `publish` job needs its `gates` job (both sets). A manual
 `workflow_dispatch` of `nightly` or `pages` publishes whatever `main` holds, verdict or not.
+
+### Loosened until 1.0
+
+Until 1.0, CI speed comes before caution (decided 2026-11-03: 15,473 runner-minutes in 48 hours). Every
+loosening is marked `restore at 1.0` where it is made, and listed here so the 1.0 release puts each back:
+
+| Loosened | Where | Restore at 1.0 |
+|---|---|---|
+| `main` runs once: `full.yml` no longer runs behind every push, only daily and by hand. | `full.yml` | the `push: branches: [main]` trigger (and its half of `scripts/lib/cancel_superseded.sh`) |
+| Publishing follows `main`'s scoped `ci` run, not the whole set. | `nightly.yml`, `pages.yml`, `upstream.yml`, `scripts/upstream/main-already-red.sh` | `workflow_run` of `full`, and `pick` querying `full.yml`'s green runs |
 
 ### How a version reaches nuget.org
 
@@ -288,7 +296,7 @@ more while `Rask`, `Rask.Ui`, `Rask.Data` and the rest were still at `.271`. Eve
 | No retry, and the CLI's 300-second default: one stalled request ended the publish where it stood. | A push per package, a longer timeout, bounded retries; a failure stops below everything that depends on it. |
 | "Done" meant the push command exited. Nothing asked whether the version was whole, and no run said which version or commit it was. | The verify step, the summary on the run page, and a `nightly` release that moves only after both. |
 
-The rule that a nightly comes only from a commit `full` passed held throughout, on the schedule as on
+The rule that a nightly comes only from a commit `full` passed (the rule until 2026-11-03) held throughout, on the schedule as on
 the completed run: both ask the same question in the `pick` job. The scheduled run that looked like a
 publish from a red commit had published nothing — the commit had passed `full` on a second, scheduled
 try three days earlier, and its nightly already existed. `pick` now writes what it decided on the run page.
@@ -298,15 +306,15 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `ci.yml` — the gates a change reaches, on every push to `main` or a `ci/**` branch and every pull
   request; the whole set and the release set on a `ci/release/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
   (`only` is a pattern over job names: `'front end'` is all seven front ends, `'front end vue$'` one).
-- `full.yml` — the whole push set against `main`, behind every push (one run at a time, fourteen jobs
-  at once so a push's own run finds runners) and hourly as the backstop. Publishing follows it.
+- `full.yml` — the whole push set against `main`, once a day and by hand (fourteen jobs at once so a
+  push's own run finds runners). It gates nothing.
 - `gates.yml` — the reusable list of gate jobs the others call.
 - `soak.yml` — the release set against `main` every three hours, so an image or a download that
   disappears is found within hours and not on the day of a release.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
-- `nightly.yml` — prerelease publish from a commit `full` passed.
-- `pages.yml` — rask.sh, from a commit `full` passed.
+- `nightly.yml` — prerelease publish from a commit a push run of `ci` passed on `main`.
+- `pages.yml` — rask.sh, from a commit a push run of `ci` passed on `main`.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
@@ -316,7 +324,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
   commit is gated by what it can reach and THEN landed on `main`, with nobody watching — so a release
   the gates refuse holds back that source only. A refusal for a gate `main` is already red on
   (`scripts/upstream/main-already-red.sh`) is not upstream's: the commit waits on
-  `upstream-waits/<follower>` and is followed again when `full` next passes. Its `front-ends` matrix scaffolds every
+  `upstream-waits/<follower>` and is followed again when `main`'s `ci` next passes on a push. Its `front-ends` matrix scaffolds every
   front-end template on the newest npm set `rask new` chooses and runs
   `scripts/run-template-e2e.sh --front-end=<key>` on it. Every source keeps ONE issue, opened only
   when it needs a person — the gates refused what it shipped, a template no longer builds on the

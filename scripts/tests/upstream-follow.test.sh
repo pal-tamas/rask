@@ -62,7 +62,7 @@ check "--close closes the open one"           "issue close 8 --comment Followed"
 verdict() {
   rm -rf "$FAKE"
   reply repos/o/r/actions/runs/1/jobs "$1"
-  reply repos/o/r/actions/workflows/full.yml/runs "{\"workflow_runs\":[{\"id\":2,\"conclusion\":\"cancelled\"},{\"id\":3,\"conclusion\":\"$2\"}]}"
+  reply repos/o/r/actions/workflows/ci.yml/runs "{\"workflow_runs\":[{\"id\":2,\"conclusion\":\"cancelled\"},{\"id\":3,\"conclusion\":\"$2\"}]}"
   reply repos/o/r/actions/runs/3/jobs "$3"
   if "$root/scripts/upstream/main-already-red.sh" 1 "mdn / " >/dev/null; then echo main; else echo upstream; fi
 }

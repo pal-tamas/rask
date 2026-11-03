@@ -8,6 +8,9 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: `main` runs once.** `full.yml` no longer runs behind every push — only once a day and by hand — and
+  `nightly.yml`, `pages.yml` and `upstream.yml`'s waiting followers follow `main`'s own `ci` push run instead.
+  Until 1.0 (see [Loosened until 1.0](docs/development-workflow.md#loosened-until-10)).
 - **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
   and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
   build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
