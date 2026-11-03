@@ -26,8 +26,6 @@ namespace Rask;
 /// <typeparam name="T">What is chosen: a moment or a range.</typeparam>
 public abstract partial class UiDatetimePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind
 {
-    private static readonly UiPartMarker FocusPlaceholder = new("ui-focus-placeholder");
-
     private static readonly Dictionary<string, string?> PopupMarks = new(StringComparer.Ordinal)
     {
         ["rask-lock"] = "",
@@ -318,9 +316,8 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
             .Class(UiDatePickerLook.Dialog)
             .Popover(Rask.Core.Popover.Auto)
             .Data(PopupMarks)
-            // Flux focuses nothing when its picker opens: `autofocus` on the dialog keeps the focus on the popup.
-            .Attributes(("autofocus", ""), ("style", "position-anchor:--" + _popover))[
-            Div.Class(UiDatePickerLook.FocusPlaceholder).Data(FocusPlaceholder.With(null)).TabIndex(0),
+            .Attributes(("style", "position-anchor:--" + _popover))[
+            UiPickerFocusPlaceholder.Render(),
             Div.Class(UiDatetimePickerLook.Body)[
                 UiCalendarGrid.Render(options with { Id = _popover + "-calendar", InPopup = true }, Picks(committed), UiDatetimePickerLook.Calendar, marked: false),
                 listed ? UiDatetimePickerTimes.Column(times, ends[0].Day, ends[0].Time) : null

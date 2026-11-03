@@ -50,6 +50,17 @@ public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void An_open_datetime_picker_gives_the_focus_to_its_placeholder_rather_than_the_popup_or_a_control_in_it()
+    {
+        var picker = One(Jan(27, 10, 30));
+
+        var html = picker.ToHtml();
+
+        Assert.Matches(UiDateModeTests.FocusPlaceholderFirst, html);
+        Assert.DoesNotMatch("<(dialog|button|select)[^>]*\\bautofocus\\b", html);
+    }
+
+    [Fact]
     public void A_chosen_moment_reads_as_the_date_then_a_grey_at_then_the_time()
     {
         var picker = One(Jan(27, 10, 30));

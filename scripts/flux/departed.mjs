@@ -53,3 +53,28 @@ function chrome(example, node) {
 export function departedFrom(example, node) {
   return DEPARTED.filter(d => d.matches(example, node)).flatMap(d => d.keys);
 }
+
+// 2026-11-03, A FOCUSED FIELD (ui.css): the kit rings a focused field in the accent — no outline, the border and an
+// inset 1px ring in `--color-accent` — where Flux leaves the browser's own outline. parity-focus.mjs holds these of
+// its cases to that ring in every step where Flux's field draws one; a button, tab, checkbox, radio or switch is
+// not among them and keeps Flux's ring.
+export const FOCUS_ACCENT = new Set(['input', 'textarea', 'select (native)', 'select (listbox)', 'date picker', 'date picker (input)']);
+
+// …and what a FORCED :focus-visible may change differently on those fields (parity.mjs, parity-modal.mjs): Flux's
+// browser outline against the kit's border and inset ring in the accent; a typed date or time part's outline.
+const FOCUS_FIELDS = ['data-ui-select-button', 'data-ui-date-picker-button', 'data-ui-time-picker-button',
+  'data-ui-datetime-picker-button', 'data-ui-color-picker-button', 'data-ui-color-picker-popover-input', 'data-ui-pillbox-trigger',
+  // the inputs inside a ringed box, which draw nothing of their own
+  'data-ui-color-picker-input', 'data-ui-pillbox-input'];
+const FOCUS_PARTS = ['data-ui-month-input', 'data-ui-day-input', 'data-ui-year-input', 'data-ui-hour-input', 'data-ui-minute-input',
+  'data-ui-second-input', 'data-ui-meridiem-input'];
+const UNTYPED = new Set(['checkbox', 'radio', 'range', 'file', 'color', 'hidden']);
+const FOCUS_KEYS = ['outlineStyle', 'outlineWidth', 'outlineColor', 'outlineOffset', 'boxShadow',
+  'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor'];
+
+/** The style keys whose `:focus-visible` change may differ from Flux's on the kit's `node` — a field ringed in the accent. */
+export function focusDepartedFrom(node) {
+  const field = (['input', 'textarea', 'select'].includes(node.tag) && 'data-ui-control' in node.attrs && !UNTYPED.has(node.attrs.type))
+    || marked(node, FOCUS_FIELDS) || marked(node, FOCUS_PARTS);
+  return field ? FOCUS_KEYS : [];
+}

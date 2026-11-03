@@ -127,6 +127,18 @@ departure in behaviour carries none.
   inside it, `webkitUserDrag` on chrome images, `overscrollBehaviorY` on those scrollers, and `fontSize`/`lineHeight`
   on that select and its options, plus `gap` (`DEPARTED` in `scripts/flux/departed.mjs`); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
   restyling, context-menu blocking, overscroll in a browser tab. `UiNativeFeelTests`, `UiKitNativeFeelTests` (E2E).
+- **2026-11-03 — a focused field is ringed in the ACCENT (`A FOCUSED FIELD` in `Styles/ui.css`, `@layer
+  rask-ui-corrections`).** Flux leaves a focused field to the browser: Chrome's thin blue ring, Safari's thick blue
+  glow, which a table's scroll frame or a flyout cuts in half (TA, Safari). The kit's text input (any text or number
+  type, OTP cells), textarea, native select and the triggers that stand for a field (listbox, date, time, datetime,
+  colour picker, pillbox) draw `outline: none`, `border-color: var(--color-accent)` and an INSET 1px ring in the
+  accent at `:focus-visible` — inside their own box, so no `overflow` around them clips it; red stays red when
+  invalid. A box holding a typed field (date/time typed parts, colour picker, pillbox) is ringed while its input
+  has focus; a typed date/time part is lit by a 1px accent outline inside the box. Buttons, tabs, checkboxes, radios
+  and switches keep the browser's keyboard ring, as Flux's; a trigger pressed by the mouse draws nothing, as Flux's.
+  `parity-focus.mjs` holds those steps to the accent ring instead of Flux's outline (`FOCUS_ACCENT` in
+  `scripts/flux/departed.mjs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
+  (Server E2E: a field in a table row in a flyout, unclipped).
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

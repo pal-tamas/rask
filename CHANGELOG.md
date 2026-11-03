@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A focused field is ringed in your accent colour, and nothing can cut the ring off.** Before: a focused
+  `Ui.Input`, textarea, select or picker trigger drew the browser's own ring — a thin blue line in Chrome, Safari's
+  thick blue glow — and inside a table's scroll frame or a flyout that glow was cut in half. After: the field's
+  border turns `--color-accent` and a 1px inset ring in the same colour lies inside it (zinc by default, your
+  `--color-accent` when you set one; an invalid field stays red), drawn inside the field so no `overflow` around it
+  can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
+  as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
+  departure from Flux UI, which leaves the field to the browser.
 - **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
   instead of every day; every other follower stays daily. Until 1.0.
 - **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a
@@ -616,6 +624,16 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
+  popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
+  `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring
+  round the whole popup, where Flux draws none. After: as on fluxui.dev, an empty placeholder takes the focus as the
+  popup opens and is taken away (as `Ui.Modal`'s is), so focus rests on the page, nothing is ringed in any
+  stylesheet, and the first Tab still lands in the calendar. Measured, with every other control's focused look,
+  by the new `scripts/flux/parity-focus.mjs`: a mouse press and the keyboard, in Chromium and WebKit, light and
+  dark — buttons, inputs, textarea, both selects, checkbox, radio, switch, tabs, a sidebar item, a dropdown trigger
+  and the date picker's button and typed parts now draw exactly Flux's ring (or none) in every step. The open popup's
+  text is selectable as Flux's is (`user-select: text`, which Chromium gives Flux's modal `<dialog>`).
 - **A submenu's flyout closes when the pointer moves on out of the menu, as Flux UI's does.** Measured on Flux's
   dropdown and context menu: once the pointer has been in a submenu's row or its flyout, a move outside both — onto
   the menu's padding or off the menu altogether — closes the flyout and darkens its row (unless it has focus), in
