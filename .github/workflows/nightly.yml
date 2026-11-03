@@ -106,9 +106,15 @@ jobs:
 
       # Early, the pack runs ahead of ci's verdict, so a commit that does not compile fails it too: that is
       # ci's to report. It is this run's failure only when the build then passes (the last step).
+      # ONE pack, for the whole solution — see release.yml for why the hand-written list went.
+      # MinVerVersionOverride stamps the package AND assembly versions, as MinVer would have.
+      # RunAnalyzers=false: the analyzers change no byte of a package, and ci's `analyzers` job runs them
+      # over the same commit. Restore at 1.0 (docs/development-workflow.md, "Loosened until 1.0").
       - id: pack
         continue-on-error: ${{ needs.pick.outputs.wait == 'true' }}
-        run: '"$RUNNER_TEMP/publisher/scripts/lib/nightly_pack.sh" ./artifacts'
+        run: |
+          version="$("$RUNNER_TEMP/publisher/scripts/lib/nightly_pack.sh")"
+          dotnet pack Rask.slnx -c Release -o ./artifacts -p:MinVerVersionOverride="$version" -p:RunAnalyzers=false
 
       # Before the push, so a publish that fails still leaves the packages it was pushing on the run.
       - if: steps.pack.outcome == 'success'
