@@ -9,8 +9,8 @@ name: upstream-follow
 #   land     that commit onto main.
 #   report   the follower's own issue: closed when it lands (or has nothing to land), opened when it cannot.
 #            A gate main is already red on is NOT upstream's (scripts/upstream/main-already-red.sh): the
-#            commit waits on upstream-waits/<follower>, and upstream.yml follows it again when full.yml
-#            passes on main.
+#            commit waits on upstream-waits/<follower>, and upstream.yml follows it again when main's ci
+#            passes on a push.
 on:
   workflow_call:
     inputs:
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # the upstream-waits/ marker
-      actions: read     # the jobs of this run and of full.yml
+      actions: read     # the jobs of this run and of main's ci
       issues: write
     env:
       GH_TOKEN: ${{ github.token }}
@@ -179,7 +179,7 @@ jobs:
             refs="repos/$GITHUB_REPOSITORY/git/refs"
             gh api -X POST "$refs" -f ref="refs/heads/upstream-waits/$FOLLOWER" -f sha="$SHA" >/dev/null 2>&1 ||
               gh api -X PATCH "$refs/heads/upstream-waits/$FOLLOWER" -f sha="$SHA" -F force=true >/dev/null
-            echo "::notice::$FOLLOWER waits for main: every gate it failed is red on main too. upstream.yml follows it again when full.yml passes."
+            echo "::notice::$FOLLOWER waits for main: every gate it failed is red on main too. upstream.yml follows it again when main's ci passes."
             exit 0
           fi
 

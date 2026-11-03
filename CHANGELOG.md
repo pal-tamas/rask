@@ -8,6 +8,20 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
+  instead of every day; every other follower stays daily. Until 1.0.
+- **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a
+  `ci/release/**` branch to run it before tagging. Until 1.0.
+- **CI: a scoped run checks its own change.** A `ci/**` branch is measured from its merge-base with `main`, so a CI
+  file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
+  earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).
+  `ci/release/**` still runs everything.
+- **CI: a nightly is pushed to nuget.org in one wave.** `publish_packages.py push --waves N` folds the dependency
+  levels into N pushes and waits for the feed only between them; `nightly.yml` takes `--waves 1 --jobs 8`, so it no
+  longer waits eight times for nuget.org's validation. `release.yml` still goes level by level. Until 1.0.
+- **CI: `main` runs once.** `full.yml` no longer runs behind every push — only once a day and by hand — and
+  `nightly.yml`, `pages.yml` and `upstream.yml`'s waiting followers follow `main`'s own `ci` push run instead.
+  Until 1.0 (see [Loosened until 1.0](docs/development-workflow.md#loosened-until-10)).
 - **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
   and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
   build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH

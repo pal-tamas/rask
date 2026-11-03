@@ -6,16 +6,16 @@ name: nightly
 # commit under it the same 0.23.1-alpha.0.526, 2026-10-26). Stable releases (no -prerelease suffix)
 # still come only from tagging via release.yml.
 #
-# Runs AFTER full.yml — the whole push set — and packs the newest commit it has passed on main, once.
-# Own work lands on main ungated and a push is gated by a SCOPED run (ci.yml), so the whole run is the
-# door a red commit stops at. It follows that run and not a clock: Actions started the hourly schedule
-# this used to wait for every four to seven hours (2026-10-08/09), which is how long a fix sat green
-# and unpublished. The whole run is one at a time, so this is a version every twenty minutes at most.
-# The schedule stays as the backstop for a completion event that never arrives.
+# Runs AFTER main's ci run — the gates a push could reach, scoped (ci.yml) — and packs the newest commit
+# such a run passed, once. Until 2026-11-03 it followed full.yml, the whole push set, which ran a second
+# time behind every push; main now runs once. Restore at 1.0: follow full.yml again
+# (docs/development-workflow.md, "Loosened until 1.0"). It follows a run and not a clock: Actions started
+# the hourly schedule this used to wait for every four to seven hours (2026-10-08/09), which is how long a
+# fix sat green and unpublished. The schedule stays as the backstop for a completion event that never arrives.
 # workflow_dispatch publishes whatever main holds, verdict or not.
 on:
   workflow_run:
-    workflows: [full]
+    workflows: [ci]
     types: [completed]
     branches: [main]
   schedule:
@@ -31,13 +31,17 @@ concurrency:
   cancel-in-progress: false   # a publish in progress finishes: half a version's packages is worse than a late one
 
 jobs:
-  # The commit to publish: the newest one the whole run passed, unless the rolling "nightly" release was
-  # already cut from it. Empty publishes nothing.
+  # The commit to publish: the newest one main's ci passed on a push, unless the rolling "nightly" release
+  # was already cut from it. Empty publishes nothing. A completed pull request or manual ci run is no
+  # verdict on main: a manual one may have been narrowed to a single gate.
   pick:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event_name != 'workflow_run'
+      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+          && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-26.04
     permissions:
-      actions: read    # the last green whole run
+      actions: read    # the last green ci run on main
       contents: read   # the release the last nightly left
     outputs:
       sha: ${{ steps.find.outputs.sha }}
@@ -53,22 +57,21 @@ jobs:
             say="Nothing published: a nightly is packed from main only, and this run was dispatched on \`$GITHUB_REF\`."
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             sha="$GITHUB_SHA"
-            say="Publishing \`$sha\` by hand: no whole run was asked about it."
+            say="Publishing \`$sha\` by hand: no ci run was asked about it."
           else
-            # The same question on a schedule and on a completed whole run: neither publishes a commit
-            # no `full` run passed. A run that passed on a second try counts -- the schedule in
-            # full.yml runs a commit again while it is not green.
-            read -r green run <<< "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/full.yml/runs?branch=main&status=success&per_page=1" \
+            # The same question on a schedule and on a completed ci run: neither publishes a commit no
+            # push run of ci passed on main. A run that passed on a re-run counts.
+            read -r green run <<< "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" \
               --jq '.workflow_runs[0] | "\(.head_sha) \(.html_url)"' 2>/dev/null || true)"
             published="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
               --jq '.target_commitish // empty' 2>/dev/null || true)"
             if [ -z "$green" ] || [ "$green" = "null" ]; then
-              green=""; say="Nothing published: no whole run has passed on main."
+              green=""; say="Nothing published: no ci run has passed on main."
             elif [ "$green" = "$published" ]; then
-              say="Nothing published: \`$green\` is the newest commit the whole run passed ($run), and the last nightly is already cut from it."
+              say="Nothing published: \`$green\` is the newest commit ci passed on main ($run), and the last nightly is already cut from it."
             else
               sha="$green"
-              say="Publishing \`$green\`, which the whole run passed: $run (the last nightly is ${published:-none})."
+              say="Publishing \`$green\`, which ci passed on main: $run (the last nightly is ${published:-none})."
             fi
           fi
           # On the run page, because the run list shows main's head -- not the commit that is packed,
@@ -86,7 +89,7 @@ jobs:
       packages: write   # push prerelease packages to GitHub Packages
       id-token: write   # nuget.org trusted publishing: the job's OIDC token buys a one-hour key, no stored secret
     env:
-      SHA: ${{ needs.pick.outputs.sha }}   # the commit the whole run passed
+      SHA: ${{ needs.pick.outputs.sha }}   # the commit main's ci passed
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,25 +138,26 @@ jobs:
           path: .publisher
           sparse-checkout: scripts/lib
 
-      # Dependencies first, and a package only once nuget.org SERVES what it depends on -- so whatever
-      # stops this step, nothing is listed ahead of its dependencies (2026-10-12: Rask.Server was, for
-      # every app floating `0.*-*`). Each push is retried; a re-run of this job packs the same commit,
-      # so it gets the same version and --skip-duplicate picks up where it stopped.
-      # Before the first push, a version nuget.org already serves from ANOTHER commit is refused (exit 3),
-      # and each gate refuses one that turns up mid-publish: a version is one commit's.
-      # The gate is the slow part: nuget.org validates for minutes and the set is eight levels deep.
-      # Drop --gate-index to push without waiting, at the price of a package being served before a
-      # dependency of it for as long as validation happens to take.
+      # ONE wave: every package at once, eight pushes at a time, each retried; nothing waits for nuget.org
+      # until the verify step below. Level by level, the gate waited for validation eight times over
+      # (~6.5 min each, most of a nightly's three hours); release.yml still does. The price: for as long as
+      # validation takes, or until a re-run finishes a failed push, a package can be served ahead of a
+      # dependency (2026-10-12: Rask.Server was, for every app floating `0.*-*`). Restore at 1.0: drop
+      # --waves/--jobs (docs/development-workflow.md, "Loosened until 1.0").
+      # A re-run of this job packs the same commit, so it gets the same version and --skip-duplicate picks
+      # up where it stopped. --gate-index stays for the check before the first push: a version nuget.org
+      # already serves from ANOTHER commit is refused (exit 3) — a version is one commit's.
       # No key is stored: nuget.org's trusted publishing policy for pal-tamas names this repository and
-      # nightly.yml, and the script trades the job's OIDC token for a one-hour key, again before a level
-      # when the one in hand has aged (the gate makes a publish longer than an hour).
-      - name: Push prerelease to nuget.org, dependencies first
+      # nightly.yml, and the script trades the job's OIDC token for a one-hour key.
+      - name: Push prerelease to nuget.org, all at once
         id: push
         run: >-
           python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
           --source https://api.nuget.org/v3/index.json
           --trusted-publisher pal-tamas
           --gate-index nuget.org
+          --waves 1
+          --jobs 8
           --projects src
           --commit "$SHA"
 

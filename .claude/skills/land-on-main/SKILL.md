@@ -69,11 +69,11 @@ git push origin HEAD:main
   (`-f set=all` to reach a release-only gate).
 - **A push is gated by a SCOPED run.** `ci.yml` runs the gates the change reaches; a change to the CI
   itself, a script, or the package pins runs everything. The CLI build and template gates run on a push
-  only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, behind the push,
+  only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, once a day,
   runs them.
-- **A red `main` publishes nothing, and neither does a scoped green.** `nightly.yml` and `pages.yml` run
-  only from a commit `full.yml` passed: it runs behind every push, so a site change is live about twenty
-  minutes later and a package is on nuget.org about as soon.
+- **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit a push run of
+  `ci.yml` passed on `main` (scoped — until 1.0 `main` runs once), so a site change is live minutes after
+  its run goes green.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.
