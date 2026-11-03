@@ -8,6 +8,9 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: a nightly is pushed to nuget.org in one wave.** `publish_packages.py push --waves N` folds the dependency
+  levels into N pushes and waits for the feed only between them; `nightly.yml` takes `--waves 1 --jobs 8`, so it no
+  longer waits eight times for nuget.org's validation. `release.yml` still goes level by level. Until 1.0.
 - **CI: `main` runs once.** `full.yml` no longer runs behind every push — only once a day and by hand — and
   `nightly.yml`, `pages.yml` and `upstream.yml`'s waiting followers follow `main`'s own `ci` push run instead.
   Until 1.0 (see [Loosened until 1.0](docs/development-workflow.md#loosened-until-10)).

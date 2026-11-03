@@ -138,25 +138,26 @@ jobs:
           path: .publisher
           sparse-checkout: scripts/lib
 
-      # Dependencies first, and a package only once nuget.org SERVES what it depends on -- so whatever
-      # stops this step, nothing is listed ahead of its dependencies (2026-10-12: Rask.Server was, for
-      # every app floating `0.*-*`). Each push is retried; a re-run of this job packs the same commit,
-      # so it gets the same version and --skip-duplicate picks up where it stopped.
-      # Before the first push, a version nuget.org already serves from ANOTHER commit is refused (exit 3),
-      # and each gate refuses one that turns up mid-publish: a version is one commit's.
-      # The gate is the slow part: nuget.org validates for minutes and the set is eight levels deep.
-      # Drop --gate-index to push without waiting, at the price of a package being served before a
-      # dependency of it for as long as validation happens to take.
+      # ONE wave: every package at once, eight pushes at a time, each retried; nothing waits for nuget.org
+      # until the verify step below. Level by level, the gate waited for validation eight times over
+      # (~6.5 min each, most of a nightly's three hours); release.yml still does. The price: for as long as
+      # validation takes, or until a re-run finishes a failed push, a package can be served ahead of a
+      # dependency (2026-10-12: Rask.Server was, for every app floating `0.*-*`). Restore at 1.0: drop
+      # --waves/--jobs (docs/development-workflow.md, "Loosened until 1.0").
+      # A re-run of this job packs the same commit, so it gets the same version and --skip-duplicate picks
+      # up where it stopped. --gate-index stays for the check before the first push: a version nuget.org
+      # already serves from ANOTHER commit is refused (exit 3) — a version is one commit's.
       # No key is stored: nuget.org's trusted publishing policy for pal-tamas names this repository and
-      # nightly.yml, and the script trades the job's OIDC token for a one-hour key, again before a level
-      # when the one in hand has aged (the gate makes a publish longer than an hour).
-      - name: Push prerelease to nuget.org, dependencies first
+      # nightly.yml, and the script trades the job's OIDC token for a one-hour key.
+      - name: Push prerelease to nuget.org, all at once
         id: push
         run: >-
           python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
           --source https://api.nuget.org/v3/index.json
           --trusted-publisher pal-tamas
           --gate-index nuget.org
+          --waves 1
+          --jobs 8
           --projects src
           --commit "$SHA"
 

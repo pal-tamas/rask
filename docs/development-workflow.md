@@ -217,6 +217,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 |---|---|---|
 | `main` runs once: `full.yml` no longer runs behind every push, only daily and by hand. | `full.yml` | the `push: branches: [main]` trigger (and its half of `scripts/lib/cancel_superseded.sh`) |
 | Publishing follows `main`'s scoped `ci` run, not the whole set. | `nightly.yml`, `pages.yml`, `upstream.yml`, `scripts/upstream/main-already-red.sh` | `workflow_run` of `full`, and `pick` querying `full.yml`'s green runs |
+| A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 
 ### How a version reaches nuget.org
 
@@ -239,6 +240,10 @@ python3 scripts/lib/publish_packages.py verify ./artifacts                  # wa
   served: validation takes four to eleven minutes and finishes in no particular order, so without the
   gate `Rask.Server` can be restorable before `Rask` is. This is what makes a publish take the better
   part of an hour; removing `--gate-index` from the workflow trades it back for that window.
+- **Waves.** `--waves N` folds the levels into at most N pushes, and the gate waits only between them.
+  `--waves 1` pushes the whole set at once (`--jobs` at a time) and waits for nothing until `verify` —
+  the check before the first push and the verify still refuse a version from another commit. `nightly.yml`
+  publishes that way until 1.0 ([Loosened until 1.0](#loosened-until-10)); `release.yml` goes level by level.
 - **Retry.** One package per `dotnet nuget push`, `--timeout 900`, five attempts with a doubling wait.
   A timeout, a 5xx or anything unrecognised is tried again; a 429 waits what the feed asks, or a minute;
   a 400/401/403/413 fails at once; a duplicate is success. The key is struck out of everything printed.
