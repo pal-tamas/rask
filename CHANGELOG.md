@@ -8,6 +8,8 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a
+  `ci/release/**` branch to run it before tagging. Until 1.0.
 - **CI: a scoped run checks its own change.** A `ci/**` branch is measured from its merge-base with `main`, so a CI
   file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
   earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).

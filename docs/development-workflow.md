@@ -155,7 +155,7 @@ free for a public repository and nobody waits on it.
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
-The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml`, `full.yml`, `soak.yml`
+The list of gates lives once, in `.github/workflows/gates.yml`, which `ci.yml`, `full.yml`
 and `release.yml` all call, so they cannot drift. Jobs do not fail fast: one red gate says nothing about the others, and
 every one reports.
 
@@ -223,6 +223,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | `main` runs once: `full.yml` no longer runs behind every push, only daily and by hand. | `full.yml` | the `push: branches: [main]` trigger (and its half of `scripts/lib/cancel_superseded.sh`) |
 | Publishing follows `main`'s scoped `ci` run, not the whole set. | `nightly.yml`, `pages.yml`, `upstream.yml`, `scripts/upstream/main-already-red.sh` | `workflow_run` of `full`, and `pick` querying `full.yml`'s green runs |
 | `main`'s run is measured from the newest earlier run that STARTED its gates, red or green — a red gate is not run again under the pushes after it. | `scripts/lib/green_base.sh main` | measure from the newest GREEN push run (`status=success`) |
+| No soak: the release set no longer runs against `main` every three hours (`soak.yml` deleted), so an image or a download that disappears is found on a `ci/release/**` branch or at the release. | — | `soak.yml` (`schedule: '23 */3 * * *'`, `gates.yml` with `set: release`), from the history |
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 
 ### How a version reaches nuget.org
@@ -320,8 +321,6 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `full.yml` — the whole push set against `main`, once a day and by hand (fourteen jobs at once so a
   push's own run finds runners). It gates nothing.
 - `gates.yml` — the reusable list of gate jobs the others call.
-- `soak.yml` — the release set against `main` every three hours, so an image or a download that
-  disappears is found within hours and not on the day of a release.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
 - `nightly.yml` — prerelease publish from a commit a push run of `ci` passed on `main`.

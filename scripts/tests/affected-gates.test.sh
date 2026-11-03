@@ -163,11 +163,11 @@ wired "the gates ask affected_gates.py"              gates.yml   'scripts/lib/af
 wired "a release is never scoped"                    release.yml '^      set: all$'
 
 checked=$((checked + 1))
-if grep -qE '^      scope:' "$root/.github/workflows/release.yml" "$root/.github/workflows/soak.yml"; then
-  printf '  FAIL %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)" >&2
+if grep -qE '^      scope:' "$root/.github/workflows/release.yml"; then
+  printf '  FAIL %s\n' "release.yml passes no scope (the default is the whole set)" >&2
   failures=$((failures + 1))
 else
-  printf '  ok   %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)"
+  printf '  ok   %s\n' "release.yml passes no scope (the default is the whole set)"
 fi
 
 # --- the plan ---------------------------------------------------------------------------------------
