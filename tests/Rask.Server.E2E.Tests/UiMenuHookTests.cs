@@ -24,8 +24,9 @@ namespace Rask.Server.E2E.Tests;
 ///         that row, and later arrows continue from whichever row is lit;</item>
 ///         <item>a row the keyboard lit stays lit when the pointer leaves the menu; one the pointer lit does
 ///         not;</item>
-///         <item>a flyout opens under the pointer (3 ms), stays through the diagonal to it and after the pointer
-///         has left the menu altogether, and closes when another row is entered;</item>
+///         <item>a flyout opens under the pointer (3 ms), stays through the diagonal to it, and closes when another
+///         row is entered — or (2026-11-02) when the pointer moves on outside its row and the flyout, heard once
+///         per 100 ms or so: a pointer that leaves the menu and stops at once leaves it open;</item>
 ///         <item>ArrowRight goes into a flyout with its row and the flyout's first row both lit.</item>
 ///     </list>
 /// </remarks>
@@ -176,13 +177,103 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
 
         await OverAsync(page, "Popularity");
         await SeeAsync(page, "Popularity | MENU | Sort by");
-        // Out of the flyout and the menu altogether: Flux's flyout was still there 400 ms later.
-        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 5 });
+        // Out of the flyout and the menu altogether in one quick flick, then still: Flux's flyout was still there
+        // 400 ms later — it hears a move per 100 ms or so, and of this flick only the first step, still inside.
+        var popularity = (await Row(page, "Popularity").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(popularity.X + popularity.Width + 60, popularity.Y + (popularity.Height / 2), new MouseMoveOptions { Steps = 5 });
         await page.WaitForTimeoutAsync(400);
         await SeeAsync(page, " | MENU | Sort by");
         await OverAsync(page, "Delete");
 
         await SeeAsync(page, "Delete | MENU | ");
+    }
+
+    [Fact]
+    public async Task A_pointer_that_moves_on_out_of_a_submenu_and_the_menu_closes_its_flyout_in_the_browser()
+    {
+        // Flux UI's dropdown and context menu, 2026-11-02: the pointer goes from "Sort by" into its flyout and on out
+        // of its far side, at a hand's pace (a move every 130 ms; Flux hears one per 100 ms or so). A move heard
+        // outside the row and the flyout closes the flyout: nothing is lit, focus has not moved, and nothing went
+        // over the socket. (Leaving the row away from the flyout is the same rule — parity-menu.mjs walks it; this
+        // menu opens at the window's left edge, with no room to its left.)
+        var sent = 0;
+        var received = 0;
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref received);
+            };
+            return Task.CompletedTask;
+        });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        await page.WaitForTimeoutAsync(300);
+        var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
+        await OverAsync(page, "Sort by");
+        await SeeAsync(page, "Sort by | MENU | Sort by");
+        await OverAsync(page, "Name");
+        await SeeAsync(page, "Name | MENU | Sort by");
+        var name = (await Row(page, "Name").BoundingBoxAsync())!;
+
+        // Along "Name" to the flyout's far edge, then past it.
+        foreach (var x in new[] { name.X + name.Width - 20, name.X + name.Width + 30, name.X + name.Width + 60, name.X + name.Width + 90 })
+        {
+            await page.Mouse.MoveAsync(x, name.Y + (name.Height / 2));
+            await page.WaitForTimeoutAsync(130);
+        }
+
+        await SeeAsync(page, " | MENU | ");
+        Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
+        Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
+    }
+
+    [Fact]
+    public async Task An_arrow_that_closes_the_flyout_under_a_still_pointer_hands_the_light_back_to_its_row()
+    {
+        // Flux UI's dropdown, 2026-11-02: the pointer rests on a submenu's row, over its safe area. The arrow puts
+        // focus on the next row and shuts the flyout, safe area and all; the browser then has the pointer over the
+        // row itself, which is entered again — lit, its flyout open — while focus stays where the arrow put it. So
+        // when the pointer leaves, the light was the pointer's and nothing stays lit.
+        var sent = 0;
+        var received = 0;
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
+        {
+            page.WebSocket += (_, socket) =>
+            {
+                socket.FrameSent += (_, _) => Interlocked.Increment(ref sent);
+                socket.FrameReceived += (_, _) => Interlocked.Increment(ref received);
+            };
+            return Task.CompletedTask;
+        });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.ClickAsync("#options");
+        // The toggle the page hears has gone and its answer has come: from here on the socket is watched.
+        await page.WaitForTimeoutAsync(300);
+        var (sentBefore, receivedBefore) = (Volatile.Read(ref sent), Volatile.Read(ref received));
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await page.Keyboard.PressAsync("ArrowDown");
+        await SeeAsync(page, "Filter | Filter | ");
+        await OverAsync(page, "Sort by");
+        // A move inside the row, so the pointer is surely over the safe area that is now in it.
+        var row = (await Row(page, "Sort by").BoundingBoxAsync())!;
+        await page.Mouse.MoveAsync(row.X + (row.Width / 2) + 4, row.Y + (row.Height / 2));
+        await SeeAsync(page, "Sort by | Filter | Sort by");
+
+        await page.Keyboard.PressAsync("ArrowDown");
+        await SeeAsync(page, "Sort by | Filter | Sort by");
+        await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 4 });
+        await page.WaitForTimeoutAsync(150);
+
+        // Lit rows and focus: whether the flyout outlives the pointer leaving its row is not this walk's.
+        var after = (await page.EvaluateAsync<string>(State)).Split(" | ");
+        Assert.Equal(["", "Filter"], after[..2]);
+        Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
+        Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
     }
 
     [Fact]
