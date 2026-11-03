@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gate-inputs: .*\.csproj$|\.github/workflows/|src/Rask\.Templates/[^/]+/client/package\.json$
+# gate-inputs: Directory\.Build\.targets$|.*\.csproj$|\.github/workflows/|src/Rask\.Templates/[^/]+/client/package\.json$
 # Table test for scripts/lib/affected_gates.py — which CI gates a change reaches on a push to main —
 # and for the plan step in gates.yml that turns that answer, or a pull request's diff, into jobs.
 #
@@ -132,9 +132,11 @@ expect_full  "nothing at all"                                      ""
 # is one line in a workflow, and losing either turns "fast" into "unchecked" without anything failing.
 echo "==> wiring"
 
+# wired <name> <a workflow (*.yml), or a path from the root> <ERE>
 wired() {
   checked=$((checked + 1))
-  if grep -qE -- "$3" "$root/.github/workflows/$2"; then
+  case "$2" in *.yml) wired_file="$root/.github/workflows/$2" ;; *) wired_file="$root/$2" ;; esac
+  if grep -qE -- "$3" "$wired_file"; then
     printf '  ok   %s\n' "$1"
   else
     printf '  FAIL %s (no match for %s in %s)\n' "$1" "$3" "$2" >&2
@@ -151,6 +153,9 @@ wired "nightly starts when main's ci starts"         nightly.yml '^    types: \[
 wired "nightly asks nightly_pick.sh what to publish" nightly.yml 'run: scripts/lib/nightly_pick\.sh$'
 wired "nightly pushes only after the build passed"   nightly.yml "if: needs\.prepare\.outputs\.go == 'true'"
 wired "the build job keeps the name nightly waits on" gates.yml  '"name": "build", +"run": "scripts/run-unit-local\.sh --lane-slots \$\(nproc\)", "part": "build"'
+wired "the shards are the ones the build knows"      Directory.Build.targets "'[$]\\(RaskAnalyzerShard\\)' != 'site' AND '[$]\\(RaskAnalyzerShard\\)' != 'rest'"
+wired "the rest shard is the one that formats"      scripts/run-unit-local.sh 'if \[ "\$unit_part" = "analyzers" \] \|\| \[ "\$unit_part" = "analyzers-rest" \]; then'
+wired "the site shard skips a scope without the site" scripts/run-unit-local.sh 'nothing to analyse\."$'
 wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
 wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
@@ -246,9 +251,14 @@ plans "a deps run that cannot see its change takes them all" "$front_end_runs | 
 plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
 plans "...and so does the formatter"                       'all(.[]; ((.part // "") | startswith("format") | not) and (.name | startswith("format") | not))' push "" ""
 # The analyzers have a job of their own beside it, so the nightly (which waits for build) does not wait for them.
-plans "the analyzers run beside the build, not ahead of it" 'any(.[]; .name == "analyzers" and .part == "analyzers") and any(.[]; .name == "build" and .part == "build")' push "" ""
-plans "...in a Dependabot bump's set too"                  'any(.[]; .name == "analyzers")' deps "" "$nuget_bump~1" "$nuget_bump"
-plans "a Dependabot bump formats what it changed, in analyzers" 'any(.[]; .name == "analyzers" and .part == "analyzers") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+plans "the analyzers run beside the build, not ahead of it" 'any(.[]; .name == "analyzers" and .part == "analyzers-rest") and any(.[]; .name == "build" and .part == "build")' push "" ""
+plans "...in a Dependabot bump's set too"                  'any(.[]; .name == "analyzers") and any(.[]; .name == "analyzers site")' deps "" "$nuget_bump~1" "$nuget_bump"
+plans "a Dependabot bump formats what it changed, in analyzers" 'any(.[]; .name == "analyzers" and .part == "analyzers-rest") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+# The analyzer build is two shards by project, and between them they cover every project: one shard
+# per value Directory.Build.targets knows, each in its own job, no third part that analyses nothing.
+plans "the analyzers are two shards, the site and the rest" '[.[] | select((.part // "") | startswith("analyzers")) | .part] | sort == ["analyzers-rest", "analyzers-site"]' push "" ""
+plans "...the site shard selected by what reaches the site" 'any(.[]; .name == "analyzers site" and .when == "site")' push "" ""
+plans "...and the rest by any change, as the build is"     'any(.[]; .name == "analyzers" and .when == "code")' push "" ""
 
 # The range the formatter checks: a pull request run with no scope base still has one, its own diff.
 checked=$((checked + 1))

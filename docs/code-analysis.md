@@ -24,6 +24,9 @@ Tests and benchmarks keep the SDK's default set, which keeps the one-minute comm
   Rask gets Rask's own analyzers and none of these.
 - `Directory.Build.props` — `AnalysisLevel` `latest-recommended` for `src/`, with code style and naming left to the
   severities in `.editorconfig`.
+- `Directory.Build.targets` also cuts CI's analyzer build in two by project: `-p:RaskAnalyzerShard=site` analyses
+  `src/Rask.Site` alone and `=rest` everything else (the `analyzers site` and `analyzers` jobs); a build without it
+  analyses every project. It turns no rule off.
 - `BannedSymbols.txt` — each banned API with the reason and what to call instead:
   the clock is read through `TimeProvider`, never `DateTime.Now`/`DateTimeOffset.Now`/`DateTime.Today`; no
   `Thread.Sleep`, no `Environment.Exit`, no `GC.Collect`.
