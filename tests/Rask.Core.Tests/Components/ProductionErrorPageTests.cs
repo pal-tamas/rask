@@ -136,6 +136,40 @@ public partial class ProductionErrorPageTests
     }
 
     [Fact]
+    public void A_refusal_on_the_error_page_says_its_own_message_in_place_of_the_reference()
+    {
+        var refused = new RefusedException("The invoice is already closed.");
+
+        var (html, logged) = Reported(refused, () => new DefaultErrorPage(refused, isDevelopment: false).ToHtml());
+
+        Assert.Contains("The invoice is already closed.", html, StringComparison.Ordinal);
+        Assert.DoesNotMatch(Reference(), html);
+        Assert.Empty(logged);
+    }
+
+    [Fact]
+    public void A_boundary_notes_a_refusal_once_at_information_with_no_reference()
+    {
+        var refused = new RefusedException("The invoice is already closed.");
+        var boundary = new ErrorBoundary();
+        boundary.SetProps([], fallback: null);
+
+        var lines = Lines(() =>
+        {
+            boundary.TripInRender(refused);
+            boundary.TripInRender(refused);
+            return boundary.ToHtml();
+        }, "The invoice is already closed.");
+
+        var line = Assert.Single(lines.Logged);
+        Assert.Equal(RaskLogLevel.Information, line.Level);
+        Assert.Equal("Rask.Errors", line.Category);
+        Assert.Equal("A refusal reached an error boundary from a render: The invoice is already closed.", line.Message);
+        Assert.Contains("The invoice is already closed.", lines.Html, StringComparison.Ordinal);
+        Assert.DoesNotMatch(Reference(), lines.Html);
+    }
+
+    [Fact]
     public void A_development_page_shows_the_type_the_message_the_cause_and_the_stack_as_before()
     {
         var html = new DefaultErrorPage(Leaking(), isDevelopment: true).ToHtml();
@@ -172,6 +206,32 @@ public partial class ProductionErrorPageTests
         catch (InvalidOperationException ex)
         {
             return ex;
+        }
+    }
+
+    // What was logged mentioning `text` while `act` ran: a refusal's line carries its sentence and no exception.
+    private static (string Html, List<RaskDiagnosticEvent> Logged) Lines(Func<string> act, string text)
+    {
+        var captured = new List<RaskDiagnosticEvent>();
+        var previous = RaskDiagnostics.Sink;
+        RaskDiagnostics.Sink = line =>
+        {
+            lock (captured)
+            {
+                captured.Add(line);
+            }
+        };
+        try
+        {
+            var html = act();
+            lock (captured)
+            {
+                return (html, captured.Where(line => line.Message.Contains(text, StringComparison.Ordinal)).ToList());
+            }
+        }
+        finally
+        {
+            RaskDiagnostics.Sink = previous;
         }
     }
 

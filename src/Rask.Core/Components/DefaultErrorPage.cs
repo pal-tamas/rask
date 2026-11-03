@@ -10,7 +10,9 @@ namespace Rask.Core.Components;
 /// <summary>
 ///     The built-in error page, rendered when a request fails. In Development it shows the exception: type,
 ///     message, causes, stack and source. Anywhere else it shows a heading, the actions and a reference that
-///     is also in the Error log line beside the exception — and nothing of the exception itself.
+///     is also in the Error log line beside the exception — and nothing of the exception itself, unless it is a
+///     <see cref="RefusedException" />, whose message is written for the visitor and is shown in place of the
+///     reference.
 /// </summary>
 [SkipFactory]
 public sealed class DefaultErrorPage : Component
@@ -142,7 +144,12 @@ public sealed class DefaultErrorPage : Component
             .Data(new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reload"] = "" })[
                 RaskStrings.Get(RaskString.ErrorReload, "Reload this page")]);
 
-        children.Add(P.Style(ReferenceStyle)[ErrorReference.Sentence(_error)]);
+        // A refusal is the app saying no to the visitor, in its own words (RefusedException); anything else is a
+        // fault, said only as the reference its log line carries.
+        children.Add(P.Style(ReferenceStyle)[
+            Messaging.Refusal.Find(_error) is { } refusal
+                ? Messaging.Refusal.Sentence(refusal)
+                : ErrorReference.Sentence(_error)]);
 
         // The exception itself — its type, its message, what caused it, where it was thrown — is written
         // for the person who can read the code. A visitor in Production gets the reference above and nothing

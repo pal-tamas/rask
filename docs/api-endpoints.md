@@ -214,6 +214,11 @@ holding rules about the request as a whole — the same map `RemoteDispatchExcep
 is the one failure whose text is safe to show: a validation message was authored for whoever sent the
 request, which is why it crosses the wire when handler exception text does not.
 
+On the server, an endpoint or an action that throws needs no handler of the app's own: outside Development it
+answers an RFC 9457 problem — a 500 that carries only a `reference` to the `Rask.Errors` log line, a
+`RefusedException` a 400 whose `detail` is its message, and the app's own exceptions whatever
+`server.Answer<T>(status)` says. See [a request that is not a page](lifecycle.md#a-request-that-is-not-a-page).
+
 `ApiClientOptions.ConfigureRequest` is the hook for a bearer token or a tenant header. It receives
 the *request* rather than the `HttpClient`, deliberately: a token on the client is ambient state shared
 by everything that resolves it, while a token here is scoped to the call being made.

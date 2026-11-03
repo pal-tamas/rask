@@ -43,6 +43,28 @@ internal static class ErrorReference
         return fresh;
     }
 
+    /// <summary>
+    ///     Logs <paramref name="thrown" /> once, as <paramref name="reached" /> took it: a refusal at Information with
+    ///     its sentence — it is no fault, and its sentence is what the visitor is shown — anything else at Error with
+    ///     its reference.
+    /// </summary>
+    internal static void Record(Exception thrown, string reached)
+    {
+        if (Messaging.Refusal.Find(thrown) is not { } refusal)
+        {
+            Of(thrown, reached);
+            return;
+        }
+
+        // The same once-per-exception rule as a reference, with no reference to remember.
+        if (Known.TryAdd(thrown, string.Empty))
+        {
+            RaskDiagnostics.Report(
+                RaskLogLevel.Information, Category,
+                $"A refusal reached {reached}: {Messaging.Refusal.Sentence(refusal)}");
+        }
+    }
+
     /// <summary>What a visitor reads in place of <paramref name="thrown" />: that it was recorded, and its reference.</summary>
     internal static string Sentence(Exception thrown, string reached = "an error page") =>
         Globalization.RaskStrings.Get(Globalization.RaskString.ErrorReference, English, Of(thrown, reached));

@@ -373,6 +373,19 @@ public static partial class RaskCqrsEndpointExtensions
             await RefusedAsync(context, ex).ConfigureAwait(false);
             return (false, null);
         }
+        catch (Exception ex) when (ex is IFieldFailures { Failures.Count: > 0 } refusal)
+        {
+            // The app saying no in sentences written for the caller — a RefusedException, a rule the store
+            // enforces: a 400 that says them, with the `errors` a client's form places under its fields.
+            await ProblemAsync(
+                context,
+                StatusCodes.Status400BadRequest,
+                "Refused",
+                string.Join(' ', refusal.Failures.Select(static failure => failure.Message).Distinct(StringComparer.Ordinal)),
+                ValidationProblemType,
+                FieldFailureMap.ToDictionary(refusal.Failures)).ConfigureAwait(false);
+            return (false, null);
+        }
         catch (Exception ex)
         {
             // Opaque outside Development: an exception message is written for an operator, not for a

@@ -489,6 +489,73 @@ that never says — a hand-wired host with no `IHostEnvironment`, a component re
 A browser (WASM) app has no such variables, so it shows the Production page unless its own startup sets
 `LiveOptions.IsDevelopment = true`; the exception is in the browser console either way.
 
+### A refusal is shown: `RefusedException`
+
+Every message above is hidden because it was written for the log. When the app says no **on purpose**, to the
+person who asked, throw a `RefusedException` (namespace `Rask`, in the core package, so a page, a handler, a
+command and an endpoint all see it) — its message is the one that is shown:
+
+```csharp
+if (invoice.IsClosed)
+{
+    throw new RefusedException("A számla már le van zárva.");
+}
+```
+
+| Where it is thrown | What the person reads |
+|---|---|
+| a handler (a click, a change) | the message in the error toast, in place of `That did not work…`; the page stays |
+| a form's submit handler | the message in the form's own messages, or a toast when it draws none |
+| a `Render` or a lifecycle hook, or a handler with no toasts drawn | the error page — the root one, or an `ErrorBoundary` with no `Fallback` — with the message in place of the reference sentence; the first request answers **400** |
+| a request that is not a page | a **400** problem document whose `detail` is the message ([below](#a-request-that-is-not-a-page)) |
+
+It is no fault: there is no reference to quote, and it is logged **once at Information** on `Rask.Errors`
+(`A refusal reached … : <the message>`), never at Error. Any exception that names the failures it is about
+(`IFieldFailures`, which `RefusedException` and a validation failure both are) is treated the same way. Derive the app's
+own refusal from it to give it a status of its own and keep the message shown — `server.Answer<InvoiceClosed>(409)`.
+
+### A request that is not a page
+
+A page's fault never reaches ASP.NET: Rask draws the error page and answers for it. Everything else the host serves
+— a minimal endpoint, a controller, a sign-in endpoint — is answered **by default**, outside Development, with an
+[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) problem document. `AddRask` registers ASP.NET's own
+`AddProblemDetails()` and a Rask `IExceptionHandler`, and `MapRask` (or `RaskApp`) puts `UseExceptionHandler` in the
+pipeline, so a host wired by hand gets it with no call of its own:
+
+```http
+HTTP/1.1 500 Internal Server Error
+Content-Type: application/problem+json
+
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.6.1","title":"An error occurred while processing your request.",
+ "status":500,"reference":"K7WQ2MZP","traceId":"00-…"}
+```
+
+```http
+HTTP/1.1 400 Bad Request
+Content-Type: application/problem+json
+
+{"type":"https://tools.ietf.org/html/rfc9110#section-15.5.1","title":"Bad Request","status":400,
+ "detail":"A számla már le van zárva.","traceId":"00-…"}
+```
+
+A 500 never carries the exception's message: it carries the **same reference** the error page would show for it and
+the `Rask.Errors` log line beside the exception. The status comes from **one table**, from the exception to the
+status:
+
+| Exception | Status |
+|---|---|
+| what the app answers — `services.AddRask(configureServer: s => s.Answer<InvoiceClosed>(409))`, or `c.Server.Configure(s => s.Answer<InvoiceClosed>(409))` on `RaskApp` | its own, matched on the type and then each type it derives from |
+| `RefusedException`, `RaskValidationException`, any `IFieldFailures` | 400, the message as `detail`; failures that name fields also in `errors` |
+| `ForbiddenException` | 403, or 401 when nobody was signed in |
+| `BadRequestException`, ASP.NET's `BadHttpRequestException` | the status they carry |
+| anything else | 500, the reference and nothing of the exception |
+
+Only a refusal's message is ever shown, whatever status the app gives it. On `RaskApp` a browser's navigation (a GET
+that accepts `text/html`) is still re-executed onto `ErrorPath` (`/error`) as before; every other request gets the
+problem document — a POST is never re-executed, since a page that answers GET alone would answer it 405. An
+`IExceptionHandler` of the app's own, registered before `AddRask`, is asked first. In **Development** the developer
+exception page answers instead, as ASP.NET's always has.
+
 **Your own `Fallback` is handed the exception — do not print it.** `ex.Message` and `ex.GetType().Name` on a page are
 exactly what the built-in page no longer shows. Say what the visitor can do, as the example above does, and branch on
 the exception's type if the wording depends on it. It is already in the log.

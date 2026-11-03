@@ -307,9 +307,10 @@ public sealed partial class RaskApp
         // 307 to a port nothing is listening on and fail the blue-green gate.
         app.UseHealthChecks(_options.HealthPath);
 
+        // A request that is not a page answers a problem document; a browser's navigation re-executes the error page.
+        Rask.Server.Errors.ProblemAnswers.Use(app, _options.ErrorPath);
         if (!app.Environment.IsDevelopment())
         {
-            app.UseExceptionHandler(_options.ErrorPath);
             app.UseHsts();
         }
 

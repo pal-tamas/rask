@@ -48,6 +48,16 @@ event and job. `Current.Tenant` is no longer a `Guid`: compare `Current.Tenant?.
 the aggregate (`await Tenant.Find(Current.RequiredTenant.Id)`) and save it. See
 [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant).
 
+## Errors an app means the user to read
+
+An assistant should never print `ex.Message` to a visitor, nor write a `catch` on every page to show one. When the
+app refuses something on purpose — a closed invoice, a full trailer — it throws
+`new RefusedException("…")`, and Rask says that sentence where the person is reading: the handler's toast, the
+form's messages, the error page, or the `detail` of a 400 problem on an endpoint. Every other exception stays
+hidden, and a request that is not a page answers an RFC 9457 problem by default, with a reference in place of the
+message; the app gives its own exceptions a status with `server.Answer<T>(status)`. See
+[a refusal is shown](lifecycle.md#a-refusal-is-shown-refusedexception).
+
 ## How to use it
 
 1. Scaffold: `rask new MyApp`.

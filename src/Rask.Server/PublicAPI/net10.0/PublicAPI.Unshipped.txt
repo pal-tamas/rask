@@ -55,6 +55,7 @@ Rask.Server.RaskDataHostExtensions
 Rask.Server.RaskEndpointExtensions
 Rask.Server.RaskPwaExtensions
 Rask.Server.RaskServerOptions
+Rask.Server.RaskServerOptions.Answer<TException>(int status) -> Rask.Server.RaskServerOptions!
 Rask.Server.RaskServerOptions.CompressPageHtml.get -> bool
 Rask.Server.RaskServerOptions.CompressPageHtml.set -> void
 Rask.Server.RaskServerOptions.HandlerQuiescenceTimeout.get -> System.TimeSpan

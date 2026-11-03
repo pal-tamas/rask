@@ -196,6 +196,36 @@ public partial class HandlerFaultTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_RefusedException_from_a_handler_is_its_message_in_the_toast_in_place_of_the_failed_sentence()
+    {
+        const string sentence = "The invoice is already closed.";
+        var page = new TrailerApp(new global::Rask.RefusedException(sentence));
+        using var toasts = Toast.Fake();
+
+        var reported = await Reported(page.Delete);
+
+        toasts.Shown(sentence).Once();
+        toasts.Shown(sentence).As(ToastLevel.Error);
+        Assert.DoesNotContain("rask-error-boundary", page.Html, StringComparison.Ordinal);
+        Assert.Equal(RaskLogLevel.Information, Assert.Single(reported).Level);
+    }
+
+    [Fact]
+    public async Task A_RefusedException_in_a_session_that_draws_no_toasts_is_its_message_on_the_error_page()
+    {
+        const string sentence = "The invoice is already closed.";
+        var services = new ServiceCollection().AddSingleton<IToaster>(new Toaster()).BuildServiceProvider();
+        var page = new TrailerApp(new global::Rask.RefusedException(sentence), services: services);
+
+        var reported = await Reported(page.Delete);
+
+        Assert.Contains("rask-error-boundary", page.Html, StringComparison.Ordinal);
+        Assert.Contains(sentence, page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain(Recorded, page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain(reported, static line => line.Level == RaskLogLevel.Error);
+    }
+
+    [Fact]
     public async Task A_cancelled_handler_under_the_hosts_boundary_stays_silent_and_goes_to_the_host()
     {
         var page = new TrailerApp(new OperationCanceledException());

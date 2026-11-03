@@ -22,6 +22,8 @@ public sealed class ErrorBoundary : Component
     ///         exception text can name internal paths, query shapes and credentials, so never print
     ///         <c>ex.Message</c> or its type to a visitor. The boundary has already logged it at Error with a
     ///         reference, and with no fallback at all the built-in page shows only that reference in Production.
+    ///         The one message written for the visitor is a <see cref="RefusedException" />'s: with no fallback,
+    ///         the built-in page shows it in place of the reference.
     ///     </para>
     /// </summary>
     public Fn<Exception, Action, Component>? Fallback { get; set; }
@@ -72,12 +74,13 @@ public sealed class ErrorBoundary : Component
     /// </summary>
     internal void TripInRender(Exception ex) => Record(ex, ErrorSource.Render);
 
-    // Every exception a boundary takes is logged with its reference, whatever the fallback then shows of it.
+    // Every exception a boundary takes is logged with its reference, whatever the fallback then shows of it — a
+    // refusal at Information, with no reference, since it is no fault.
     private void Record(Exception ex, ErrorSource source)
     {
         Error = ex;
         Source = source;
-        ErrorReference.Of(ex, source switch
+        ErrorReference.Record(ex, source switch
         {
             ErrorSource.Action => "an error boundary from an event handler",
             ErrorSource.Lifecycle => "an error boundary from a lifecycle hook",
