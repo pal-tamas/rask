@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's select on its page in the UI tab, in a browser: the native select, the listbox's keys and placement,
 ///     searching in the browser and on the server, several answers, the combobox and its create row.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

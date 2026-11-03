@@ -61,19 +61,22 @@ git push origin HEAD:main
   `--workflow full` — and if your
   push is the red one, fixing it forward is the next thing you do (`gh run view <id> --log-failed`,
   then the script the failing job names, filtered to the failing test).
-- **Not sure it will pass?** Push to a `ci/<name>` branch first
-  (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
+- **Until 1.0, land it directly.** Finished work goes straight to `main` once its local targeted tests
+  pass — no `ci/**` pre-run, even when unsure (restore at 1.0: risky changes go through `ci/**` first;
+  docs/development-workflow.md, "Loosened until 1.0"). The exceptions: a change to CI itself, a
+  Linux-only risk the Mac cannot check, and a release-only gate. For those, push to a `ci/<name>` branch
+  first (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
   `ci/release/<name>` adds the release-only gates. Delete the branch afterwards. That is a full round
   of jobs on runners `main` is waiting for, so when one gate is the question, run that one: push the
   branch under any other name and `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
   (`-f set=all` to reach a release-only gate).
 - **A push is gated by a SCOPED run.** `ci.yml` runs the gates the change reaches; a change to the CI
   itself, a script, or the package pins runs everything. The CLI build and template gates run on a push
-  only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, behind the push,
+  only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, once a day,
   runs them.
-- **A red `main` publishes nothing, and neither does a scoped green.** `nightly.yml` and `pages.yml` run
-  only from a commit `full.yml` passed: it runs behind every push, so a site change is live about twenty
-  minutes later and a package is on nuget.org about as soon.
+- **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit a push run of
+  `ci.yml` passed on `main` (scoped — until 1.0 `main` runs once), so a site change is live minutes after
+  its run goes green.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.

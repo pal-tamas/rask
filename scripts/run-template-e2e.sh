@@ -3,8 +3,8 @@
 #
 # Opt-in, like every other heavyweight here (CLI build, watch, deploy, installer) and for the same
 # reason: it packs this commit's Rask packages, then restores and builds each scaffolded project, which is
-# minutes. CI runs it as its "templates" job, and once per front end as "front end <key>"
-# (.github/workflows/gates.yml); run it by hand to reproduce either.
+# minutes. CI runs it as its "templates" job, and as two "front end K/2" jobs that each take half the
+# front ends (.github/workflows/gates.yml); run it by hand to reproduce either.
 #
 # Three tiers, because the costs differ by an order of magnitude:
 #
@@ -13,7 +13,9 @@
 #   scripts/run-template-e2e.sh --front-end=<key>  ONE front-end template (react, vue, …) end to end:
 #                                                  npm ci and the bundle through `dotnet publish`, lint,
 #                                                  format check, then the published app's page and its
-#                                                  starter query. Minutes each — CI gives each its own job.
+#                                                  starter query. Minutes each. A comma-separated list
+#                                                  (--front-end=react,vue) runs them one after another
+#                                                  over ONE packed feed, with a verdict per front end.
 #   scripts/run-template-e2e.sh --front-end        everything: the first tier, every front end one after
 #                                                  another, and the server journey in a browser
 #
@@ -42,15 +44,22 @@ for arg in "$@"; do
     --front-end)   front_end=1 ;;
     --front-end=*) only="${arg#--front-end=}" ;;
     --filter=*)    filter="${arg#--filter=}" ;;
-    *) echo "usage: $0 [--front-end[=<key>]] [--list-front-ends] [--filter=<vstest filter>]" >&2; exit 2 ;;
+    *) echo "usage: $0 [--front-end[=<key>[,<key>…]]] [--list-front-ends] [--filter=<vstest filter>]" >&2; exit 2 ;;
   esac
 done
 
 # Captured first: `front_ends | grep -q` under pipefail fails on the SIGPIPE grep's early exit sends.
 known="$(front_ends)"
-if [ -n "$only" ] && ! grep -qxF -- "$only" <<<"$known"; then
-  echo "$0: '$only' is not a front-end template. Known: $(tr '\n' ' ' <<<"$known")" >&2
-  exit 2
+# --front-end=<key>[,<key>…]: several front ends in ONE test run, so the feed is packed once for all
+# of them (CliBuildE2E.LocalFeed is per process) and they are scaffolded one after another. CI's two
+# "front end" jobs run that way; each used to be a job of its own that packed the feed again.
+if [ -n "$only" ]; then
+  for key in ${only//,/ }; do
+    if ! grep -qxF -- "$key" <<<"$known"; then
+      echo "$0: '$key' is not a front-end template. Known: $(tr '\n' ' ' <<<"$known")" >&2
+      exit 2
+    fi
+  done
 fi
 
 # shellcheck source=lib/node-path.sh
@@ -74,7 +83,7 @@ if [ -n "$only" ]; then
   # Read by the theory data (TemplateSelection): a VSTest filter cannot name one case of a theory.
   export RASK_TEMPLATE_ONLY="$only"
   filter="${filter:-FullyQualifiedName~.FrontEndBuildE2ETests}"
-  echo "==> Template gate, the $only front end: publish with its client, lint, format check, serve."
+  echo "==> Template gate, front end(s) $only: publish with its client, lint, format check, serve."
 elif [ "$front_end" -eq 1 ]; then
   export RASK_TEMPLATE_FRONTEND_E2E=1
   echo "==> Template gate (build + every front end in turn + the server journey in a browser)."
@@ -90,5 +99,36 @@ if [ -n "$filter" ]; then
   echo "    filter: $filter (NOT the full gate)"
 fi
 
-dotnet "${args[@]}"
-echo "==> Template gate passed."
+if [ -z "$only" ]; then
+  dotnet "${args[@]}"
+  echo "==> Template gate passed."
+  exit 0
+fi
+
+# One verdict per front end, as each used to have a job of its own: read off the theory's cases, printed
+# last, and written to the job's summary on CI. A front end with no line did not run at all (the pack, or
+# the run, failed before it), which is red too.
+test_log="$(mktemp -t rask-template-e2e.XXXXXX)"
+trap 'rm -f "$test_log"' EXIT
+set +e
+dotnet "${args[@]}" 2>&1 | tee "$test_log"
+status=${PIPESTATUS[0]}
+set -e
+
+summary="| Front end | Verdict |
+|---|---|"
+for key in ${only//,/ }; do
+  case_line="$(grep -E "^ *(Passed|Failed|Skipped) .*\(key: \"$key\"\)" "$test_log" | tail -1 || true)"
+  verdict="$(awk '{ print $1 }' <<<"$case_line")"
+  verdict="${verdict:-did not run}"
+  if [ "$verdict" != "Passed" ] && [ "$status" -eq 0 ]; then status=1; fi
+  echo "==> front end $key: $verdict"
+  summary="$summary
+| \`$key\` | $verdict |"
+done
+if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+  printf '%s\n' "$summary" >>"$GITHUB_STEP_SUMMARY"
+fi
+
+[ "$status" -eq 0 ] && echo "==> Template gate passed."
+exit "$status"

@@ -12,7 +12,6 @@ namespace Rask.Site.E2E.Tests;
 ///     What a unit test cannot see: that the browser places the panel beside its trigger, that the runtime's
 ///     hooks lock the page, follow the pointer and keep Tab honest, and that the page hears each of it.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitPopoverTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

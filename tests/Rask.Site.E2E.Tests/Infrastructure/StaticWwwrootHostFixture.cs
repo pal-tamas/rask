@@ -51,8 +51,10 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
             [".md"] = "text/markdown; charset=utf-8"
         };
 
-    private CancellationTokenSource? _cts;
-    private HttpListener? _listener;
+    private readonly Lazy<Hosted> _hosted;
+
+    protected StaticWwwrootHostFixture() =>
+        _hosted = new Lazy<Hosted>(Start, LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>Repo-relative path of the WASM project whose published wwwroot is served.</summary>
     protected abstract string ProjectRelativePath { get; }
@@ -65,62 +67,81 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     protected virtual string MountPath => string.Empty;
 
     /// <summary>
-    ///     The loopback port this fixture's host is listening on, assigned by the OS at
-    ///     <see cref="InitializeAsync" /> — see <see cref="BindEphemeral" /> for why it is not a constant.
+    ///     The loopback port this fixture's host is listening on, assigned by the OS when the host starts —
+    ///     see <see cref="BindEphemeral" /> for why it is not a constant.
     /// </summary>
-    protected int Port { get; private set; }
+    protected int Port => _hosted.Value.Port;
 
-    protected string Wwwroot { get; private set; } = string.Empty;
+    protected string Wwwroot => _hosted.Value.Wwwroot;
 
+    /// <summary>
+    ///     The host's origin. The FIRST read starts it — finds the published bundle (or throws, saying how to
+    ///     publish it) and binds the port — so a test that never asks for it never needs the bundle.
+    /// </summary>
+    /// <remarks>
+    ///     Lazy because Rask.Site.E2E.Tests holds its host as an ASSEMBLY fixture, which xUnit creates before
+    ///     any test in the assembly runs: started in <see cref="InitializeAsync" />, it failed every test in the
+    ///     assembly — the convention tests the unit gate runs without publishing the site among them.
+    /// </remarks>
     public string BaseUrl => $"http://localhost:{Port}";
 
     public string ServerLog => $"in-process static-file host over published wwwroot: {Wwwroot}";
 
-    public async ValueTask InitializeAsync()
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
+
+    public ValueTask DisposeAsync()
     {
-        var repoRoot = Repository.Root;
-        Wwwroot = Path.Combine(repoRoot, ProjectRelativePath, "bin", Configuration,
-            "net10.0-browser", "publish", "wwwroot");
-        if (!File.Exists(Path.Combine(Wwwroot, "index.html")))
+        if (!_hosted.IsValueCreated)
         {
-            throw new InvalidOperationException(MissingBundleMessage(Wwwroot));
+            return ValueTask.CompletedTask;
         }
 
-        OnBundleLocated(Wwwroot);
+        var hosted = _hosted.Value;
+        try { hosted.Cts.Cancel(); }
+        catch
+        {
+            /* ignore */
+        }
 
-        _cts = new CancellationTokenSource();
-        (_listener, var port) = BindEphemeral(GetType().Name);
-        Port = port;
-        var mount = MountPath.TrimEnd('/');
-        _ = Task.Run(() => ServeLoopAsync(_listener, Wwwroot, mount, _cts.Token));
+        try { hosted.Listener.Stop(); }
+        catch
+        {
+            /* ignore */
+        }
 
-        await WaitForReadyAsync(TimeSpan.FromSeconds(30));
+        // Guarded like its siblings: xUnit reports a fixture-cleanup throw as a failed *run*, so an
+        // unguarded teardown could fail a suite in which every test passed and name no test as the cause.
+        try { hosted.Listener.Close(); }
+        catch
+        {
+            /* ignore */
+        }
+
+        hosted.Cts.Dispose();
+        return ValueTask.CompletedTask;
     }
 
-    public async ValueTask DisposeAsync()
+    /// <summary>
+    ///     Locates the bundle and starts serving it. Synchronous on purpose: <c>HttpListener.Start()</c> has
+    ///     bound the socket by the time it returns, so the host answers from then on and there is nothing to
+    ///     await — which is what lets <see cref="BaseUrl" /> start it from a plain property read.
+    /// </summary>
+    private Hosted Start()
     {
-        try { _cts?.Cancel(); }
-        catch
+        var wwwroot = Path.Combine(Repository.Root, ProjectRelativePath, "bin", Configuration,
+            "net10.0-browser", "publish", "wwwroot");
+        if (!File.Exists(Path.Combine(wwwroot, "index.html")))
         {
-            /* ignore */
+            throw new InvalidOperationException(MissingBundleMessage(wwwroot));
         }
 
-        try { _listener?.Stop(); }
-        catch
-        {
-            /* ignore */
-        }
+        OnBundleLocated(wwwroot);
 
-        // Guarded like its siblings: xUnit reports a collection-cleanup throw as a failed *run*, so an
-        // unguarded teardown could fail a suite in which every test passed and name no test as the cause.
-        try { _listener?.Close(); }
-        catch
-        {
-            /* ignore */
-        }
-
-        _cts?.Dispose();
-        await Task.CompletedTask;
+        var cts = new CancellationTokenSource();
+        var (listener, port) = BindEphemeral(GetType().Name);
+        var mount = MountPath.TrimEnd('/');
+        _ = Task.Run(() => ServeLoopAsync(listener, wwwroot, mount, cts.Token));
+        return new Hosted(listener, cts, port, wwwroot);
     }
 
     /// <summary>
@@ -282,32 +303,5 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
         }
     }
 
-    private async Task WaitForReadyAsync(TimeSpan timeout)
-    {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-        var deadline = DateTime.UtcNow + timeout;
-        while (DateTime.UtcNow < deadline)
-        {
-            try
-            {
-                using var resp = await http.GetAsync($"{BaseUrl}{MountPath.TrimEnd('/')}/index.html");
-                if ((int)resp.StatusCode < 500)
-                {
-                    return;
-                }
-            }
-            catch (HttpRequestException)
-            {
-                /* not yet listening */
-            }
-            catch (TaskCanceledException)
-            {
-                /* per-request timeout */
-            }
-
-            await Task.Delay(100);
-        }
-
-        throw new TimeoutException($"Static host did not respond on {BaseUrl} within {timeout}.");
-    }
+    private sealed record Hosted(HttpListener Listener, CancellationTokenSource Cts, int Port, string Wwwroot);
 }

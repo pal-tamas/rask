@@ -12,7 +12,6 @@ namespace Rask.Site.E2E.Tests;
 /// <remarks>
 ///     A handler on this host answers inside the mark's 200 ms delay, so the mark itself is rarely there to see.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class FieldBusyMarkWasmTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

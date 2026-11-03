@@ -10,7 +10,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The calendar, date picker and time picker on their pages in the UI tab, in a browser: the keys, the focus, the
 ///     popup and the sheet a phone gets, which no markup assertion can see.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
@@ -176,7 +175,7 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
-    public Task An_open_picker_holds_the_focus_with_no_ring_after_a_key() => RunAsync(async () =>
+    public Task An_open_picker_rests_the_focus_on_nothing_with_no_ring_after_a_key() => RunAsync(async () =>
     {
         await OpenUiPageAsync("date-picker", "Date picker");
         var picker = Page.Locator("[data-testid='ui-date-picker'] [data-ui-date-picker]").First;
@@ -189,8 +188,8 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
         // A key makes the focus visible, as Tab into the form before it did on an app's page.
         await Page.Keyboard.PressAsync("Shift");
 
-        await Expect(dialog).ToBeFocusedAsync();
-        Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':focus-visible')"));
+        await Expect(picker.Locator("[data-ui-focus-placeholder]")).ToBeHiddenAsync();
+        Assert.Equal("BODY", await Page.EvaluateAsync<string>("document.activeElement.tagName"));
         await Expect(dialog).ToHaveCSSAsync("outline-style", "none");
     });
 

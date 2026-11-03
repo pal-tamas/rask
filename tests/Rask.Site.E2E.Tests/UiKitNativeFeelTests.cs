@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     text and waits for no second tap, the page's content stays text, a picture that is chrome does not drag, an
 ///     overlay keeps its scroll, and no field is small enough for iOS to zoom the page into it on a tap.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitNativeFeelTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
@@ -200,6 +199,7 @@ public sealed class UiKitNativeFeelTests(WasmExampleAppFixture app, PlaywrightFi
         await phone.RouteAsync("**://fonts.googleapis.com/**", route => route.AbortAsync());
         await phone.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
         Page = await phone.NewPageAsync();
+        await SlowMachine.ApplyAsync(Page);
         try
         {
             await body();

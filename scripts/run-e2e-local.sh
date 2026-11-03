@@ -101,7 +101,7 @@ rask_e2e_refuse_before_build
 # (scripts/run-unit-local.sh, its own CI job on the same push). The one thing this gate builds that
 # the unit gate does not is the WASM bundle (the unit gate passes -p:RaskWasm=false) — and that IS the
 # site publish below, which is the artifact the suite actually drives.
-echo "==> Publish the site the E2E fixtures boot (Release, serial, prebuilt WASM runtime)"
+echo "==> The site the E2E fixtures boot (Release, serial, prebuilt WASM runtime)"
 # The one app the browser suite drives: the published site bundle, served by a plain static host the
 # way GitHub Pages serves it. It used to be eight publishes across eight samples; there is one site now.
 #
@@ -149,13 +149,43 @@ case "$suite" in
   *) echo "run-e2e-local: RASK_E2E_SUITE must be site or server, not '$suite'." >&2; exit 1 ;;
 esac
 
+# RASK_E2E_SITE splits the site suite's publish from its journeys, so CI publishes the site ONCE and
+# every browser shard drives that one bundle (.github/workflows/gates.yml: the `site` job uploads it,
+# each shard downloads it to where the publish writes it). Each shard used to publish it again: five to
+# eight minutes, five times over, for the same bytes.
+#
+#   publish    publish the site and stop: no test project, no browser, no journey
+#   prebuilt   skip the publish and drive the bundle already at src/Rask.Site/bin/Release/net10.0-browser/publish
+#   (unset)    both, which is what a hand run wants
+site_step="${RASK_E2E_SITE:-}"
+case "$site_step" in
+  ""|publish|prebuilt) ;;
+  *) echo "run-e2e-local: RASK_E2E_SITE must be publish or prebuilt, not '$site_step'." >&2; exit 1 ;;
+esac
+site_wwwroot="src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot"
+
 # RunAnalyzers=false on all three: the unit gate's `build` part is the one job that pays for the
 # analyzers, warnings-as-errors, over this same source. Here they bought a second verdict for about a
 # minute of every shard (Rask.Core for the browser: 67 s with them, 22 s without, on a CI runner).
 # Source generators are not analyzers and still run; so does the trimmer, whose IL warnings are its own.
-if [ "$suite" != "server" ]; then
+if [ "$suite" != "server" ] && [ "$site_step" = "prebuilt" ]; then
+  if [ ! -f "$site_wwwroot/index.html" ]; then
+    echo "run-e2e-local: RASK_E2E_SITE=prebuilt, but there is no published site at $site_wwwroot." >&2
+    echo "             Publish it first: RASK_E2E_SITE=publish scripts/run-e2e-local.sh" >&2
+    exit 1
+  fi
+  echo "    (RASK_E2E_SITE=prebuilt: driving the site already published at $site_wwwroot)"
+elif [ "$suite" != "server" ]; then
   dotnet publish src/Rask.Site -c Release -m:"${RASK_BUILD_SLOTS:-1}" -p:WasmBuildNative=false -p:MinVerSkip=true -p:RunAnalyzers=false --nologo 2>&1 \
     | tee "$build_log" || build_status=$?
+fi
+
+if [ "$site_step" = "publish" ]; then
+  if [ "$build_status" -ne 0 ] && [ "${RASK_GATE_WRAPPED:-}" != "1" ]; then
+    rask_explain_build_failure "$(rask_build_failure_kind "$build_log")" "E2E gate" "FAILED — the site does not publish."
+  fi
+  [ "$build_status" -eq 0 ] && echo "==> Site published to $site_wwwroot (RASK_E2E_SITE=publish: no journeys run)."
+  exit "$build_status"
 fi
 
 if [ "$build_status" -eq 0 ] && [ "$suite" != "server" ]; then

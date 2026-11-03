@@ -59,7 +59,6 @@ echo "==> affected_gates.py"
 # The core reaches everything that is drawn with it.
 expect_has   "the core reaches the site's browser journeys"        site      src/Rask.Core/Component.cs
 expect_has   "the core reaches the Rask.Server journeys"           server    src/Rask.Server/RaskServerOptions.cs
-expect_has   "a .cs change reaches the formatter"                  cs        src/Rask.Mail/Mail.cs
 expect_has   "any change reaches the build and the unit tests"     code      src/Rask.Mail/Mail.cs
 
 # A battery nobody draws with does not pay for a browser.
@@ -127,8 +126,6 @@ expect_full  "a gate script"                                       scripts/run-u
 expect_full  "the package pins"                                    Directory.Packages.props
 expect_full  "nothing at all"                                      ""
 
-# A non-.cs change does not start the formatter.
-expect_lacks "a stylesheet does not start the formatter"           cs        src/Rask.Site/wwwroot/global.css
 
 # --- the bargain a scoped push rests on -----------------------------------------------------------
 # A push is scoped only because a whole run follows it and publishing waits for THAT run. Each half
@@ -148,28 +145,31 @@ wired() {
 wired "the whole run is unscoped"                    full.yml    '^      scope: full$'
 wired "the whole run is the push set"                full.yml    '^      set: push$'
 wired "the whole run is on a schedule"               full.yml    '^    - cron: '
-wired "the whole run follows a push"                 full.yml    '^    branches: \[main\]$'
 wired "the whole run leaves runners for a push"      full.yml    '^      parallel: [0-9]+$'
-wired "nightly publishes what the whole run passed"  nightly.yml 'workflows/full\.yml/runs\?branch=main&status=success'
-wired "nightly follows the whole run"                nightly.yml '^    workflows: \[full\]$'
-wired "pages publishes from the whole run"           pages.yml   '^    workflows: \[full\]$'
+wired "nightly publishes what main's ci passed"     nightly.yml 'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
+wired "nightly follows main's ci"                    nightly.yml '^    workflows: \[ci\]$'
+wired "nightly follows a push run, not a manual one" nightly.yml "github\.event\.workflow_run\.event == 'push'"
+wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
+wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
+wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
 wired "a push hands its base to the gates"           ci.yml      '^      base: \$\{\{ needs\.base\.outputs\.sha \}\}$'
-wired "a ci/** branch is scoped like main"          ci.yml      '"ci\.yml/runs\?branch=\$branch&event=push"'
+wired "main is measured from its last started run"   ci.yml      'scripts/lib/green_base\.sh main "\$GITHUB_RUN_ID"'
+wired "a ci/** branch is measured by its own commits" ci.yml     'scripts/lib/green_base\.sh branch\)'
 wired "a ci/release/** branch is never scoped"       ci.yml      '"\$REF" != refs/heads/ci/release/\*'
 wired "the gates ask affected_gates.py"              gates.yml   'scripts/lib/affected_gates\.py'
 wired "a release is never scoped"                    release.yml '^      set: all$'
 
 checked=$((checked + 1))
-if grep -qE '^      scope:' "$root/.github/workflows/release.yml" "$root/.github/workflows/soak.yml"; then
-  printf '  FAIL %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)" >&2
+if grep -qE '^      scope:' "$root/.github/workflows/release.yml"; then
+  printf '  FAIL %s\n' "release.yml passes no scope (the default is the whole set)" >&2
   failures=$((failures + 1))
 else
-  printf '  ok   %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)"
+  printf '  ok   %s\n' "release.yml passes no scope (the default is the whole set)"
 fi
 
 # --- the plan ---------------------------------------------------------------------------------------
 # gates.yml's own plan step, lifted out of the workflow and run as written over a throwaway repository
-# with two front ends. It is what turns one "front end" entry into a job per template, and what decides
+# with three front ends. It is what deals one "front end" entry into jobs of templates, and what decides
 # whether a Dependabot pull request is held to one — the rule dependabot-merge.yml's merge rests on.
 echo "==> the plan"
 
@@ -188,10 +188,12 @@ open(sys.argv[2] + "/plan.sh", "w", encoding="utf-8").write(textwrap.dedent("\n"
 PY
 
 repo="$sandbox/repo"
-mkdir -p "$repo/scripts" "$repo/src/Rask.Templates/vue/client" "$repo/src/Rask.Templates/react/client" "$repo/src/Rask.Templates/server"
+mkdir -p "$repo/scripts" "$repo/src/Rask.Templates/server"
 cp "$root/scripts/run-template-e2e.sh" "$repo/scripts/"
-echo '{}' > "$repo/src/Rask.Templates/vue/client/package.json"
-echo '{}' > "$repo/src/Rask.Templates/react/client/package.json"
+for front_end in angular react vue; do
+  mkdir -p "$repo/src/Rask.Templates/$front_end/client"
+  echo '{}' > "$repo/src/Rask.Templates/$front_end/client/package.json"
+done
 echo '//' > "$repo/src/Rask.Templates/server/Program.cs"
 sandbox_git() {
   git -C "$repo" -c user.name=gate -c user.email=gate@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"
@@ -210,7 +212,7 @@ planned() {
   [ -z "${4:-}" ] || sandbox_git checkout -q "$4"
   ( cd "$repo" && SET="$1" ONLY="$2" SCOPE=full BASE="" PR_BASE="$3" GATES="$(cat "$sandbox/gates.json")" \
       GITHUB_OUTPUT="$sandbox/output" bash -eo pipefail "$sandbox/plan.sh" >/dev/null 2>&1 )
-  sed -n 's/^gates=//p' "$sandbox/output"
+  sed -n "s/^${PLAN_OUTPUT:-gates}=//p" "$sandbox/output"
   : > "$sandbox/output"
 }
 
@@ -228,13 +230,35 @@ plans() {
 }
 
 named='[.[].name]'
-plans "the push set has a job per front end"               "$named | index(\"front end react\") != null and index(\"front end vue\") != null" push "" ""
-plans "a job runs its own template and answers to its key" 'any(.[]; .name == "front end vue" and .run == "scripts/run-template-e2e.sh --front-end=vue" and .when == "frontend-vue")' push "" ""
-plans "only= names one front end"                          "$named == [\"front end vue\"]" push 'front end vue$' ""
-plans "a lockfile bump is held to the template it changed" "$named | index(\"front end vue\") != null and index(\"front end react\") == null" deps "" "$vue_bump~1" "$vue_bump"
+front_end_runs='[.[] | select(.name | startswith("front end")) | .run]'
+plans "the push set deals the front ends into two jobs"    "$named | index(\"front end 1/2\") != null and index(\"front end 2/2\") != null" push "" ""
+plans "...each running its templates over one packed feed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=angular,vue\", \"scripts/run-template-e2e.sh --front-end=react\"]" push "" ""
+plans "...and answering to each of its templates' keys"   'any(.[]; .name == "front end 1/2" and .when == ["frontend-angular", "frontend-vue"])' push "" ""
+plans "only= names one job"                                "$named == [\"front end 2/2\"]" push 'front end 2/2$' ""
+plans "a lockfile bump is held to the template it changed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=vue\"]" deps "" "$vue_bump~1" "$vue_bump"
 plans "...with the rest of the deps set"                   "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$vue_bump~1" "$vue_bump"
 plans "a NuGet bump is held to no front end"               "$named | any(.[]; startswith(\"front end\")) | not" deps "" "$nuget_bump~1" "$nuget_bump"
-plans "a deps run that cannot see its change takes them all" "$named | index(\"front end react\") != null and index(\"front end vue\") != null" deps "" ""
+plans "a deps run that cannot see its change takes them all" "$front_end_runs | length == 2" deps "" ""
+
+# The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
+plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
+plans "...and so does the formatter"                       'all(.[]; ((.part // "") | startswith("format") | not) and (.name | startswith("format") | not))' push "" ""
+plans "a Dependabot bump formats what it changed, in build" 'any(.[]; .name == "build") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+
+# The range the formatter checks: a pull request run with no scope base still has one, its own diff.
+checked=$((checked + 1))
+pr_range="$(PLAN_OUTPUT=range planned deps "" "$(sandbox_git rev-parse "$nuget_bump~1")" "$nuget_bump")"
+if [ "$pr_range" = "$(sandbox_git rev-parse "$nuget_bump~1")..$nuget_bump" ]; then
+  printf '  ok   %s\n' "an unscoped pull request hands the formatter its own diff"
+else
+  printf '  FAIL %s -> %s\n' "an unscoped pull request hands the formatter its own diff" "${pr_range:-(none)}" >&2
+  failures=$((failures + 1))
+fi
+
+# The site is published once, by a job only the gates that drive it wait for: those are planned apart.
+plans "no gate that waits for nothing drives the site"     'all(.[]; (.site // false) | not) and any(.[]; .name == "build")' push "" ""
+PLAN_OUTPUT=site_gates plans "the browser shards drive the published site" \
+  'length > 0 and all(.[]; .site == true and .suite == "site" and (.name | startswith("browser E2E")))' push "" ""
 
 echo
 if [ "$failures" -gt 0 ]; then

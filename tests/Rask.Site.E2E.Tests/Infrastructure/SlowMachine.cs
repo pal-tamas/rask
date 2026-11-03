@@ -1,7 +1,7 @@
 using System.Globalization;
 using Microsoft.Playwright;
 
-namespace Rask.Server.E2E.Tests.Infrastructure;
+namespace Rask.Site.E2E.Tests.Infrastructure;
 
 /// <summary>
 ///     The page's processor slowed to a fraction of this machine's, when <c>RASK_E2E_CPU_SLOWDOWN</c> says by how
