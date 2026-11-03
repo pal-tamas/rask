@@ -11,7 +11,8 @@
 //   * each row hovered by a real pointer, pressed, and under the keyboard cursor;
 //   * the POINTER'S OWN WALK: which rows are lit (`data-active`) and where focus is with the pointer on each
 //     row, and after it has left the menu; and on the diagonal from a submenu's row to the far corner of its
-//     flyout, step by step, that the flyout is still showing and no row below was lit on the way;
+//     flyout, step by step, that the flyout is still showing and no row below was lit on the way; and from that
+//     row straight out of the menu, away from its flyout, a move at a time: when the flyout closes, what is lit;
 //   * THE POINTER AND THE KEYS TOGETHER: the pointer lights a row, the first arrow lands on it, the next goes
 //     on, the pointer lights another while focus stays, the arrow after counts from the lit row, and the
 //     keyboard's row stays lit when the pointer leaves — lit rows and the focused row after every step;
@@ -81,6 +82,8 @@ const NATIVE = {
 // CSS anchor positioning and the margins that carry its gap. Where it ENDS UP is compared, as placement.
 const IGNORED = new Set(['width', 'height']);
 const PLACED = new Set(['position', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'transform', 'zIndex']);
+// What a row lets go by the NATIVE FEEL departure (departedFrom).
+const ROW_FEEL = ['userSelect', 'webkitUserSelect', 'touchAction', 'webkitTouchCallout'];
 
 const INHERITED = ['color', 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing'];
 // What the page behind an open menu is given. The gutter is compared where there is one: measureBehind.
@@ -407,6 +410,22 @@ async function measureExample(page, cdp, index, prefix) {
       await page.waitForTimeout(40);
       example.diagonal.push(await page.evaluate(crossing, { row: example.submenu, rows: example.rows }));
     }
+
+    // In a menu opened afresh, onto the row, then straight out of the menu, away from the flyout, at a hand's pace
+    // (a move every 130 ms: Flux hears one per 100 ms or so): the flyout closes on the first move heard outside.
+    // Afresh, because the way back from the flyout's corner crosses rows Flux closes it for.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(150);
+    await open();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    await page.waitForTimeout(400);
+    const menu = await page.locator('[data-pm="panel"]').boundingBox();
+    example.away = [];
+    for (let x = box.x + box.width / 2 - 30; x > menu.x - 70; x -= 30) {
+      await page.mouse.move(x, box.y + box.height / 2);
+      await page.waitForTimeout(130);
+      example.away.push({ ...await page.evaluate(crossing, { row: example.submenu, rows: example.rows }), ...await page.evaluate(lit, example.rows) });
+    }
   }
 
   // Leaving: Escape, then a click outside.
@@ -682,6 +701,9 @@ function compareExample(theirs, mine) {
   const lights = example => example.pointer?.map(step => (theirs.kind === 'context' ? step.lit : step));
   say('the pointer lights', lights(theirs), lights(mine));
   say('the diagonal to the flyout', theirs.diagonal, mine.diagonal);
+  // Where focus is under the pointer: not on a context menu (above).
+  const away = example => example.away?.map(step => (theirs.kind === 'context' ? { ...step, focus: undefined } : step));
+  say('the pointer leaving the submenu\'s row out of the menu', away(theirs), away(mine));
   say('the pointer and the keys together', theirs.together, mine.together);
   say('a tap on each row', theirs.taps, mine.taps);
   say('the submenu\'s row tapped again', theirs.again, mine.again);
@@ -766,10 +788,12 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
     }
   }
 
-  compareStyles(a.style, b.style, where, diffs, a === rootA, b.pressable);
+  const departs = departedFrom(mine, b);
+  compareStyles(a.style, b.style, where, diffs, a === rootA, b.pressable, departs);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false, b.pressable);
+    // A pseudo-element inherits what its node departs in (a row's `user-select`).
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, false, b.pressable, departs);
   }
 
   const kids = (nodes, n) => nodes.filter(c => c.parent === n.id);
@@ -783,10 +807,24 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, pairs) {
   ca.forEach((child, i) => compareTree(theirs, child, mine, cb[i], rootA, rootB, `${where} > ${child.tag}[${i}]`, diffs, pairs));
 }
 
+// The owner-approved NATIVE FEEL departure (2026-11-02, flux-component SKILL.md, ui.css), as parity.mjs lets it
+// go, in a menu: a row — an item, or a navigation menu's link — selects no text, waits for no second tap and
+// opens no long-press callout, and so does what is inside it (`user-select` inherits in Blink); a menu, the
+// popup or a flyout, keeps its own scroll. Asked of the kit's node and the tree above it; nothing of Flux's is.
+function departedFrom(nodes, node) {
+  const departs = node.attrs.role === 'menu' || 'popover' in node.attrs ? ['overscrollBehaviorY'] : [];
+  for (let n = node; n; n = nodes.find(p => p.id === n.parent)) {
+    if (n.attrs.role?.startsWith('menuitem') || n.tag === 'a') return [...departs, ...ROW_FEEL];
+  }
+
+  return departs;
+}
+
 // `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
-function compareStyles(x, y, where, diffs, placed, pressable = false) {
+// `departs`: the keys departedFrom lets go on this node.
+function compareStyles(x, y, where, diffs, placed, pressable = false, departs = []) {
   for (const key of STYLES) {
-    if (IGNORED.has(key) || (placed && PLACED.has(key)) || same(x[key], y[key])) continue;
+    if (IGNORED.has(key) || (placed && PLACED.has(key)) || departs.includes(key) || same(x[key], y[key])) continue;
     if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     const width = /^border(Top|Right|Bottom|Left)Color$/.exec(key)?.[1];
     if (width && x[`border${width}Width`] === '0px' && y[`border${width}Width`] === '0px') continue;
