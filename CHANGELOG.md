@@ -538,7 +538,8 @@ them until tagged releases begin.
 - **A `Ui.Tooltip` stays shown while the pointer moves from its trigger onto it, as Flux UI's does.** It closed the
   moment the pointer left the trigger, and the pointer could not rest on it. Like a hover panel, it now closes on the
   first move over neither the trigger nor the tooltip that the runtime looks at (once in 100 ms), so a pointer that
-  rests and then jumps off still closes it at once.
+  rests and then jumps off still closes it at once. A pointer that left a tooltip or hover panel before the
+  behaviour hooks had loaded leaves it closed: with no move left to look at, the runtime asks where the pointer is now.
 - **A searchable `Ui.Select` and `Ui.Pillbox` hold their scroll on the list, and their "No results found" row selects as
   text, as Flux UI's do.** The popup round the search field carried `overscroll-behavior: none` where Flux's list under
   it does, and the empty row was `user-select: none` where Flux's is not.
