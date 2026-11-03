@@ -160,24 +160,32 @@ fi
 # RASK_UNIT_PART cuts this gate into pieces CI runs on separate machines (.github/workflows/gates.yml);
 # a hand run leaves it unset and gets everything.
 #
-#   build          CI's one job for this gate: the gate script tests, the warnings-as-errors build with
-#                  the analyzers on, then the unit tests over that same output (no second build) and,
-#                  alongside them, the formatter over the files the change touched (below)
+#   build          the warnings-as-errors build with the analyzers OFF (-p:RunAnalyzers=false; the source
+#                  generators still run), then the unit tests over that output. The nightly is pushed the
+#                  moment this job is green (scripts/lib/nightly_wait.sh), so it carries nothing else.
+#   analyzers      the gate script tests, the same build with the analyzers ON, and the formatter over the
+#                  files the change touched (below); no tests.
 #
 # The tests had jobs of their own until 2026-11-03 (`tests`, `tests-1/2`, `tests-2/2`), and so did the
 # formatter (`format`, `format-src`, `format-tests`), each rebuilding the solution the `build` job had
-# just built: about 45% of a whole run's runner minutes went on building the same source again. With
-# RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what `build` compiles and tests.
+# just built: about 45% of a whole run's runner minutes went on building the same source again. Then, the
+# same day, the analyzers went to a job of their own: they are most of a compile — SonarAnalyzer alone
+# 585 of the 800 analyzer-seconds of a Rask.Site build — and the nightly waited for them. Restore at 1.0:
+# one `build` job, analyzers on, ahead of the tests (docs/development-workflow.md, "Loosened until 1.0").
+# With RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what each part compiles.
 unit_part="${RASK_UNIT_PART:-}"
 case "$unit_part" in
-  ""|build) ;;
+  ""|build|analyzers) ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be build (or unset), not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be build or analyzers (or unset), not '$unit_part'." >&2
     exit 1
     ;;
 esac
+# The analyzers part runs no tests; the build part runs no analyzers, formatter or gate script tests.
+analyzer_flags=""
+[ "$unit_part" != "build" ] || analyzer_flags="-p:RunAnalyzers=false"
 
-# What the `build` part's formatter checks: the .cs files changed since the scope base
+# What the `analyzers` part's formatter checks: the .cs files changed since the scope base
 # (RASK_FORMAT_SCOPE=range over RASK_SCOPE_RANGE), or every file when the change moves the rules
 # themselves — scripts/lib/format-scope.sh says which changes do. With no scope base (the daily whole
 # run, a release, a manual run without one) it checks nothing: every change was formatted in the run
@@ -189,7 +197,7 @@ esac
 # CS0246 for code that compiles), so a rule change widens a scoped build to the whole solution.
 format_all=""
 format_files=""
-if [ "$unit_part" = "build" ] && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
+if [ "$unit_part" = "analyzers" ] && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
   # shellcheck source=lib/format-scope.sh
   . "$root/scripts/lib/format-scope.sh"
   # Every path, deletions too: a deleted .editorconfig changes the rules as much as an edited one.
@@ -228,7 +236,10 @@ gate_tests_failed=0
 # (an ERE over repo-relative paths) -- the public-API prober's is src/Rask.Cache and the MSBuild
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
+#
+# None in the `build` part: the `analyzers` job runs them, off the nightly's way.
 rask_gate_test_applies() {
+  [ "$unit_part" != "build" ] || return 1
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -256,14 +267,18 @@ if [ -e "$serial_test" ] && rask_gate_test_applies "$serial_test"; then
   fi
 fi
 
-echo "==> Gate script tests (concurrent)"
+if [ "$unit_part" = "build" ]; then
+  echo "==> Gate script tests: not in the build part — the analyzers job runs them."
+else
+  echo "==> Gate script tests (concurrent)"
+fi
 gate_test_pids=""
 gate_test_names=""
 for t in scripts/tests/*.test.sh; do
   [ -e "$t" ] || continue
   if [ "$t" = "$serial_test" ]; then continue; fi   # already run, alone, above
   if ! rask_gate_test_applies "$t"; then
-    echo "    skipped $t -- nothing it covers changed"
+    [ "$unit_part" = "build" ] || echo "    skipped $t -- nothing it covers changed"
     continue
   fi
   bash "$t" >"${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$t" .test.sh).log" 2>&1 &
@@ -324,14 +339,15 @@ if [ -n "$scope_projects" ]; then
     echo '</Project>'
   } >"$scope_proj"
 
-  echo "==> Build (Release; affected projects only)"
+  echo "==> Build (Release; affected projects only${analyzer_flags:+; analyzers off})"
+  # shellcheck disable=SC2086  # deliberate word split: no flag at all when the analyzers run
   dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
     -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-    -p:RaskSpaBuild=false
+    -p:RaskSpaBuild=false $analyzer_flags
   rm -f "$scope_proj"
 else
 
-echo "==> Build once (Release; no WASM bundle)"
+echo "==> Build once (Release; no WASM bundle${analyzer_flags:+; analyzers off})"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
 # logical core, and three of these running from three worktrees is how the machine reached 35 worker
 # nodes on 14 cores, load average 98, 0.0% idle -- at which point every timing-sensitive test in all
@@ -340,9 +356,10 @@ echo "==> Build once (Release; no WASM bundle)"
 # RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
 # WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
 # run and `dotnet format --verify-no-changes` are about 90% of a warm run.
+# shellcheck disable=SC2086  # deliberate word split: no flag at all when the analyzers run
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-  -p:RaskSpaBuild=false
+  -p:RaskSpaBuild=false $analyzer_flags
 
 fi
 rask_phase "build (Release)"
@@ -423,8 +440,13 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  # The `build` part: what was decided before the build (format_all / format_files, at RASK_UNIT_PART).
+  # The `build` part formats nothing: the `analyzers` part does, off the nightly's way.
   if [ "$unit_part" = "build" ]; then
+    echo "==> Formatting check: not in the build part — the analyzers job runs it."
+    return 0
+  fi
+  # The `analyzers` part: what was decided before the build (format_all / format_files, at RASK_UNIT_PART).
+  if [ "$unit_part" = "analyzers" ]; then
     if [ -n "$format_all" ]; then
       echo "==> Formatting check over every file: $format_all changed, and with it the rules."
       rask_start_whole_format
@@ -550,7 +572,10 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ -n "$scope_projects" ]; then
+if [ "$unit_part" = "analyzers" ]; then
+  echo "==> Tests: not in the analyzers part — the build job runs them."
+  unit_status=0
+elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
   # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
   # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so

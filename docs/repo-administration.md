@@ -28,8 +28,9 @@ already there. It runs the format check, the warnings-as-errors build, the unit 
 E2E journeys, the CLI build and the template gate on every push to `main` and on every pull request,
 and a red `main` is fixed forward. See [development-workflow.md](development-workflow.md#ci).
 
-**What a red run does stop is publishing.** `pages.yml` and `nightly.yml` trigger on `full`'s (the whole run's) completion,
-and both publish only from a commit it passed; `release.yml` runs every gate, the release-only
+**What a red run does stop is publishing.** `pages.yml` publishes only from a commit a push run of `ci` on
+`main` passed, and `nightly.yml` only from one whose run has a green `build` job (until 1.0; see
+[Loosened until 1.0](development-workflow.md#loosened-until-10)); `release.yml` runs every gate, the release-only
 ones included, before it packs. That is in the workflows, not in a branch setting, so it needs
 nothing configured here.
 

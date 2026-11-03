@@ -6,151 +6,198 @@ name: nightly
 # commit under it the same 0.23.1-alpha.0.526, 2026-10-26). Stable releases (no -prerelease suffix)
 # still come only from tagging via release.yml.
 #
-# Runs AFTER main's ci run — the gates a push could reach, scoped (ci.yml) — and packs the newest commit
-# such a run passed, once. Until 2026-11-03 it followed full.yml, the whole push set, which ran a second
-# time behind every push; main now runs once. Restore at 1.0: follow full.yml again
-# (docs/development-workflow.md, "Loosened until 1.0"). It follows a run and not a clock: Actions started
-# the hourly schedule this used to wait for every four to seven hours (2026-10-08/09), which is how long a
-# fix sat green and unpublished. The schedule stays as the backstop for a completion event that never arrives.
-# workflow_dispatch publishes whatever main holds, verdict or not.
+# EARLY: it starts when main's push run of ci STARTS, packs the commit while that run builds it, and pushes
+# as soon as the run's `build` job (the build and the unit tests) is green — GitHub Packages first, usable
+# within seconds, then nuget.org, which validates for five to twenty-five minutes. Browser E2E, templates and
+# the CLI build may still be running, and a red one there is fixed forward by the next push. Until
+# 2026-11-03 it waited for the whole run, and before that for full.yml. Restore at 1.0: follow the whole run
+# of full.yml again (docs/development-workflow.md, "Loosened until 1.0"). scripts/lib/nightly_pick.sh says
+# which commit, and why; the completed run and the hourly schedule are the backstop for an early nightly
+# that never came or did not finish. workflow_dispatch publishes whatever main holds, verdict or not.
 on:
   workflow_run:
     workflows: [ci]
-    types: [completed]
+    types: [requested, completed]
     branches: [main]
   schedule:
     - cron: '17 * * * *'   # hourly, off the hour
   workflow_dispatch:
 
+# The run list shows main's head otherwise -- not the commit a nightly packs.
+run-name: >-
+  ${{ github.event_name == 'workflow_run'
+      && format('nightly {0} ({1} {2})', github.event.workflow_run.head_sha, github.event.workflow_run.event, github.event.action)
+      || format('nightly ({0})', github.event_name) }}
+
 permissions:
-  contents: write   # update the rolling "nightly" prerelease
-  packages: write   # push prerelease packages to GitHub Packages
+  contents: read
 
-concurrency:
-  group: nightly
-  cancel-in-progress: false   # a publish in progress finishes: half a version's packages is worse than a late one
-
+# No run-wide group: each stage has its own (below). A newer commit's `prepare` cancels an older one that
+# is still packing or waiting for its build -- it has pushed nothing, and the newer one supersedes it. A
+# push in progress always finishes (half a version's packages is worse than a late one); a push waiting
+# behind it is replaced by a newer one. The verify-and-release stage of an older version is cancelled by a
+# newer one's: the newer release is the one that counts.
 jobs:
-  # The commit to publish: the newest one main's ci passed on a push, unless the rolling "nightly" release
-  # was already cut from it. Empty publishes nothing. A completed pull request or manual ci run is no
-  # verdict on main: a manual one may have been narrowed to a single gate.
   pick:
+    # A completed run is a backstop only when it passed; a failed one published early if its build passed.
     if: >-
       github.event_name != 'workflow_run'
-      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
-          && github.event.workflow_run.head_branch == 'main')
+      || github.event.action == 'requested'
+      || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-26.04
+    timeout-minutes: 10
     permissions:
-      actions: read    # the last green ci run on main
+      actions: read    # main's ci runs and their jobs; the other nightly runs
       contents: read   # the release the last nightly left
     outputs:
       sha: ${{ steps.find.outputs.sha }}
+      run: ${{ steps.find.outputs.run }}
+      wait: ${{ steps.find.outputs.wait }}
     steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/lib
+
       - id: find
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT: ${{ github.event_name }}
-        run: |
-          sha=""
-          if [ "$EVENT" = "workflow_dispatch" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
-            # Run by hand from another branch -- a ci/** one, say -- it would publish that branch's head.
-            say="Nothing published: a nightly is packed from main only, and this run was dispatched on \`$GITHUB_REF\`."
-          elif [ "$EVENT" = "workflow_dispatch" ]; then
-            sha="$GITHUB_SHA"
-            say="Publishing \`$sha\` by hand: no ci run was asked about it."
-          else
-            # The same question on a schedule and on a completed ci run: neither publishes a commit no
-            # push run of ci passed on main. A run that passed on a re-run counts.
-            read -r green run <<< "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" \
-              --jq '.workflow_runs[0] | "\(.head_sha) \(.html_url)"' 2>/dev/null || true)"
-            published="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/nightly" \
-              --jq '.target_commitish // empty' 2>/dev/null || true)"
-            if [ -z "$green" ] || [ "$green" = "null" ]; then
-              green=""; say="Nothing published: no ci run has passed on main."
-            elif [ "$green" = "$published" ]; then
-              say="Nothing published: \`$green\` is the newest commit ci passed on main ($run), and the last nightly is already cut from it."
-            else
-              sha="$green"
-              say="Publishing \`$green\`, which ci passed on main: $run (the last nightly is ${published:-none})."
-            fi
-          fi
-          # On the run page, because the run list shows main's head -- not the commit that is packed,
-          # and not whether anything was.
-          echo "$say" | tee -a "$GITHUB_STEP_SUMMARY"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          ACTION: ${{ github.event.action }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CI_RUN: ${{ github.event.workflow_run.id }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
+        run: scripts/lib/nightly_pick.sh
 
-  publish-nightly:
+  # Pack, then wait for the build: the pack takes about five minutes, the build longer, so the two overlap.
+  prepare:
     needs: pick
     if: needs.pick.outputs.sha != ''
     runs-on: ubuntu-26.04
-    timeout-minutes: 180   # a publish that hangs must end, or `nightly` (one at a time) never runs again
+    timeout-minutes: 90   # the pack, then up to an hour for the build (scripts/lib/nightly_wait.sh)
+    concurrency:
+      group: nightly-prepare
+      cancel-in-progress: true
     permissions:
-      contents: write   # update the rolling "nightly" prerelease
-      packages: write   # push prerelease packages to GitHub Packages
-      id-token: write   # nuget.org trusted publishing: the job's OIDC token buys a one-hour key, no stored secret
+      actions: read    # the ci run's build job
+      contents: read
     env:
-      SHA: ${{ needs.pick.outputs.sha }}   # the commit main's ci passed
+      SHA: ${{ needs.pick.outputs.sha }}
+    outputs:
+      version: ${{ steps.pack.outputs.version }}
+      # Packed, and (early) its build passed. A skipped wait -- a backstop or a manual run -- leaves it to the pack.
+      go: ${{ steps.pack.outcome == 'success' && (steps.wait.outputs.go || 'true') || 'false' }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.SHA }}
-          fetch-depth: 0   # MinVer needs full history + tags
+          fetch-depth: 0   # the version counts the history
 
       - uses: ./.github/actions/setup
         with:
           workloads: wasm-tools
 
-      - name: Restore
-        run: dotnet restore Rask.slnx
-
-      # The version, from main's script (this workflow's commit) read out of the history the checkout
-      # already holds, so nothing lands in the tree being packed. MinVer's own height can repeat across a
-      # merge that lands a worktree branch; this one is distinct for every commit of main, and only grows.
-      # A re-run packs the same commit, so it is the same version, and the publish resumes.
-      - name: Version
-        id: version
+      # The scripts as of THIS workflow file, which is main's -- the tree above is the commit being packed,
+      # which can be older than them. Read out of the history the checkout already holds, so nothing lands
+      # in the tree being packed.
+      - name: Main's scripts
         run: |
-          git show "$GITHUB_SHA:scripts/lib/nightly_version.py" > "$RUNNER_TEMP/nightly_version.py"
-          version="$(python3 -I "$RUNNER_TEMP/nightly_version.py" . --commit "$SHA")"
-          echo "Packing \`$SHA\` as **$version**." | tee -a "$GITHUB_STEP_SUMMARY"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mkdir -p "$RUNNER_TEMP/publisher"
+          git archive "$GITHUB_SHA" scripts/lib | tar -x -C "$RUNNER_TEMP/publisher"
 
-      # ONE pack, for the whole solution -- see release.yml for why the hand-written list went.
-      # Keeping the two in step by hand is what let 16 projects reach nightly and never reach a stable
-      # release (#1044); neither has a list now, so neither can drift from the other.
+      # Early, the pack runs ahead of ci's verdict, so a commit that does not compile fails it too: that is
+      # ci's to report. It is this run's failure only when the build then passes (the last step).
+      # ONE pack, for the whole solution — see release.yml for why the hand-written list went.
       # MinVerVersionOverride stamps the package AND assembly versions, as MinVer would have.
-      - name: Pack (prerelease)
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: dotnet pack Rask.slnx -c Release -o ./artifacts -p:MinVerVersionOverride="$VERSION"
+      # RunAnalyzers=false: the analyzers change no byte of a package, and ci's `analyzers` job runs them
+      # over the same commit. Restore at 1.0 (docs/development-workflow.md, "Loosened until 1.0").
+      - id: pack
+        continue-on-error: ${{ needs.pick.outputs.wait == 'true' }}
+        run: |
+          version="$("$RUNNER_TEMP/publisher/scripts/lib/nightly_pack.sh")"
+          dotnet pack Rask.slnx -c Release -o ./artifacts -p:MinVerVersionOverride="$version" -p:RunAnalyzers=false
 
       # Before the push, so a publish that fails still leaves the packages it was pushing on the run.
-      - name: Upload packages as workflow artifact
+      - if: steps.pack.outcome == 'success'
         uses: actions/upload-artifact@v7
         with:
           name: nightly-packages
           path: ./artifacts/*.nupkg
+          if-no-files-found: error
 
-      # The publish script as of THIS workflow file, which is main's -- the tree above is the commit
-      # being packed, which can be older than the script's arguments. After the pack on purpose.
+      - id: wait
+        if: needs.pick.outputs.wait == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ needs.pick.outputs.run }}
+        run: '"$RUNNER_TEMP/publisher/scripts/lib/nightly_wait.sh" "$RUN"'
+
+      - name: A pack that failed where the build passed
+        if: steps.pack.outcome == 'failure' && steps.wait.outputs.go == 'true'
+        run: |
+          echo "::error::ci's build passed for $SHA, but the pack failed (see the pack step above): nothing was published."
+          exit 1
+
+  push:
+    needs: [pick, prepare]
+    if: needs.prepare.outputs.go == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60   # pushes only; a hung one must end, or the next nightly's push waits forever
+    concurrency:
+      group: nightly-push
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write   # GitHub Packages
+      id-token: write   # nuget.org trusted publishing: the job's OIDC token buys a one-hour key, no stored secret
+    env:
+      SHA: ${{ needs.pick.outputs.sha }}
+    steps:
+      # The packed commit's src/ (the script checks the set against its packable projects) ...
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      # ... and the publish script as of THIS workflow file, which is main's.
       - uses: actions/checkout@v7
         with:
           path: .publisher
           sparse-checkout: scripts/lib
 
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: nightly-packages
+          path: ./artifacts
+
+      # FIRST: GitHub Packages serves a package the moment it is pushed — no validation — so this is the
+      # feed the peer apps restore a nightly from minutes after the push (docs/installation.md, "Nightly
+      # builds"). Same one wave as nuget.org below; --skip-duplicate makes a re-run finish what is missing.
+      - name: Push prerelease to GitHub Packages
+        env:
+          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
+          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+          --api-key-env GITHUB_PACKAGES_TOKEN
+          --waves 1
+          --jobs 8
+          --projects src
+          --commit "$SHA"
+
       # ONE wave: every package at once, eight pushes at a time, each retried; nothing waits for nuget.org
-      # until the verify step below. Level by level, the gate waited for validation eight times over
+      # until the verify in `release`. Level by level, the gate waited for validation eight times over
       # (~6.5 min each, most of a nightly's three hours); release.yml still does. The price: for as long as
       # validation takes, or until a re-run finishes a failed push, a package can be served ahead of a
       # dependency (2026-10-12: Rask.Server was, for every app floating `0.*-*`). Restore at 1.0: drop
       # --waves/--jobs (docs/development-workflow.md, "Loosened until 1.0").
-      # A re-run of this job packs the same commit, so it gets the same version and --skip-duplicate picks
-      # up where it stopped. --gate-index stays for the check before the first push: a version nuget.org
-      # already serves from ANOTHER commit is refused (exit 3) — a version is one commit's.
+      # --gate-index stays for the check before the first push: a version nuget.org already serves from
+      # ANOTHER commit is refused (exit 3) — a version is one commit's.
       # No key is stored: nuget.org's trusted publishing policy for pal-tamas names this repository and
       # nightly.yml, and the script trades the job's OIDC token for a one-hour key.
       - name: Push prerelease to nuget.org, all at once
-        id: push
         run: >-
           python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
           --source https://api.nuget.org/v3/index.json
@@ -161,30 +208,50 @@ jobs:
           --projects src
           --commit "$SHA"
 
-      # Not done until every package of the version can be restored, and every one served is THIS commit's
-      # (its nuspec's <repository commit>) -- listed alone passed .526 with packages from two commits.
-      # The summary on the run page names the version and the commit: the run list shows main's head.
+  # Not done until nuget.org serves every package of the version, each THIS commit's; only then does the
+  # rolling release move -- `pick` reads it to know what is published, so a publish that failed above is
+  # tried again by the next run.
+  release:
+    needs: [pick, prepare, push]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    concurrency:
+      group: nightly-release
+      cancel-in-progress: true
+    permissions:
+      contents: write   # the rolling "nightly" prerelease
+    env:
+      SHA: ${{ needs.pick.outputs.sha }}
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # nightly_anchor.sh walks the packed commit's history
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: nightly-packages
+          path: ./artifacts
+
       - name: Wait until nuget.org serves the whole version
-        run: python3 .publisher/scripts/lib/publish_packages.py verify ./artifacts
+        run: python3 scripts/lib/publish_packages.py verify ./artifacts
 
-      - name: Push prerelease to GitHub Packages (mirror)
-        env:
-          GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: >-
-          python3 .publisher/scripts/lib/publish_packages.py push ./artifacts
-          --source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-          --api-key-env GITHUB_PACKAGES_TOKEN
-
-      # Last, and only after the version is whole: `pick` reads this release to know what is published,
-      # so a publish that failed above is tried again by the next run.
+      # The tag goes where the workflow token may put it (scripts/lib/nightly_anchor.sh: GitHub refuses it a
+      # ref on a commit that changes a workflow -- nightly 41608821292, 2026-11-03); the title names the
+      # commit packed either way. Created before the old one is deleted would be a second release on one tag,
+      # so the delete comes first -- and a create that fails leaves no release, which `pick` reads as
+      # "publish again".
       - name: Update rolling "nightly" prerelease
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.push.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          anchor="$(scripts/lib/nightly_anchor.sh "$SHA")"
+          anchor="${anchor:-$SHA}"
+          notes="Automated prerelease $VERSION, packed from main @ $SHA and published to GitHub Packages and nuget.org."
+          [ "$anchor" = "$SHA" ] || notes="$notes The \`nightly\` tag is on $anchor, the newest commit under it that changes no workflow: GitHub does not let a workflow tag a commit that does."
           gh release delete nightly --yes --cleanup-tag || true
           gh release create nightly ./artifacts/*.nupkg \
             --prerelease \
-            --target "$SHA" \
+            --target "$anchor" \
             --title "Nightly $VERSION ($SHA)" \
-            --notes "Automated prerelease $VERSION, packed from main @ $SHA and published to nuget.org."
+            --notes "$notes"

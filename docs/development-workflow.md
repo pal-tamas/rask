@@ -93,9 +93,13 @@ sentences of a guide merge; keep new text that way.
   push — `release.yml` runs every gate, the release-only ones included, and only then packs the
   NuGets and publishes to nuget.org + a GitHub release (the `cut-release` skill). Try those gates
   ahead of the tag on a `ci/release/**` branch.
-- **Nightly:** `nightly.yml` runs when `full` (the whole run) ends, and takes the newest commit it has passed on `main` — it packs
-  `X.Y.(Z+1)-alpha.0.N` and publishes it to nuget.org (prerelease) and GitHub Packages. A commit
-  `full` did not pass publishes nothing, and neither does a run dispatched by hand on any branch but `main`.
+- **Nightly:** `nightly.yml` starts when a push run of `ci` on `main` starts, packs that commit as
+  `X.Y.(Z+1)-alpha.0.N` while the run builds it, and pushes it the moment the run's `build` job (the
+  build and the unit tests) is green — to GitHub Packages first, restorable within seconds
+  ([Nightly builds](installation.md#nightly-builds-from-github-packages)), then to nuget.org (prerelease),
+  which validates for another five to twenty-five minutes. A commit whose build did not pass publishes
+  nothing, and neither does a run dispatched by hand on any branch but `main`; the completed run and an
+  hourly schedule are the backstop (`scripts/lib/nightly_pick.sh`).
   `N` is [`scripts/lib/nightly_version.py`](../scripts/lib/nightly_version.py)'s, handed to the pack as
   `MinVerVersionOverride` — see [One version, one commit](#one-version-one-commit).
 - **Both publish through one script, dependencies first** —
@@ -150,8 +154,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches and the formatter over the `.cs` files it changed) always, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the front-end templates in two jobs over one packed feed each (`run-template-e2e.sh --front-end=<key>,<key>…`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers` (the gate script tests, the same build with the analyzers on, and the formatter over the `.cs` files it changed) always, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the front-end templates in two jobs over one packed feed each (`run-template-e2e.sh --front-end=<key>,<key>…`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -168,7 +172,7 @@ you); bypass one with `--no-verify`.
 is that command; run it in a worktree at that commit:
 
 ```bash
-scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | format | format-src … runs one piece)
+scripts/run-unit-local.sh                    # the build and analyzers jobs (RASK_UNIT_PART=build | analyzers runs one of them)
 scripts/run-e2e-local.sh                     # the "browser E2E" jobs (RASK_E2E_SITE=publish is the "site publish" job; prebuilt drives what it published)
 scripts/run-template-e2e.sh --front-end=vue  # one template of a "front end K/2" job (--front-end=react,vue runs several)
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
@@ -202,8 +206,11 @@ git push origin --delete ci/my-change
 ### What a red `main` stops
 
 Publishing. `pages.yml` triggers when a PUSH run of `ci` completes on `main` and does nothing unless it
-concluded `success`, then deploys the newest commit such a run passed; `nightly.yml` triggers on the same
-completion and packs that commit, once (an hourly schedule is its backstop). A pull request or a manual
+concluded `success`, then deploys the newest commit such a run passed. `nightly.yml` does not wait that
+long: it starts with the run, packs while it builds, and publishes once the run's `build` job is green
+(`scripts/lib/nightly_wait.sh`) — a later red gate is fixed forward by the next push. A newer push's
+nightly cancels an older one that has not started pushing. The completed run and an hourly schedule are
+its backstop. A pull request or a manual
 `ci` run says nothing about `main` and publishes nothing. Main runs ONCE: until 2026-11-03 publishing
 followed `full`, the whole set, which ran a second time behind every push — see
 [Loosened until 1.0](#loosened-until-10).
@@ -228,6 +235,8 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 | Finished work lands directly on `main` after its local targeted tests — no `ci/**` pre-run, however risky — except a change to CI itself, a Linux-only risk the Mac cannot check, and the release-only gates (`ci/release/**`). | `CLAUDE.md`, the `land-on-main` and `rask-ship` skills | risky changes go through a `ci/**` branch first |
 | The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `build` job; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `build` part), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
+| A nightly is pushed the moment `main`'s `ci` run has a green `build` job, not when the run has passed: browser E2E, templates, front ends and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
+| The `build` job builds with the analyzers off (`-p:RunAnalyzers=false`) and runs the unit tests; the analyzers, the formatter and the gate script tests are the `analyzers` job beside it, which no publish waits for. The nightly pack skips the analyzers too. | `gates.yml` (`build`, `analyzers`), `scripts/run-unit-local.sh` (`RASK_UNIT_PART`), `scripts/lib/nightly_pack.sh` | one `build` job, analyzers on, ahead of the tests; the pack with the analyzers |
 
 ### How a version reaches nuget.org
 
@@ -281,7 +290,7 @@ places say it:
 ```bash
 # the package itself: <repository commit="…"> in its nuspec
 curl -s https://api.nuget.org/v3-flatcontainer/rask/0.23.1-alpha.0.271/rask.nuspec | grep -o 'commit="[^"]*"'
-gh release view nightly --json name,targetCommitish     # the newest nightly: "Nightly <version> (<sha>)"
+gh release view nightly --json name                     # the newest nightly: "Nightly <version> (<sha>)" (the tag may sit below <sha>: scripts/lib/nightly_anchor.sh)
 gh run view <run-id>                                    # the run's summary: version, commit, and why it was picked
 ```
 
@@ -326,7 +335,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `gates.yml` — the reusable list of gate jobs the others call.
 - `commitlint.yml` — Conventional Commits and the attribution guard on PRs: the commits and the PR
   title, which is the squash subject and passes through no local hook.
-- `nightly.yml` — prerelease publish from a commit a push run of `ci` passed on `main`.
+- `nightly.yml` — prerelease publish of a commit whose push run of `ci` on `main` has a green `build` job: GitHub Packages, then nuget.org.
 - `pages.yml` — rask.sh, from a commit a push run of `ci` passed on `main`.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily (Flux UI weekly, Mondays: `flux` and `flux-parity`); follows what Rask is generated from. `scripts/upstream/follow.sh` moves the

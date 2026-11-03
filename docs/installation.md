@@ -222,6 +222,53 @@ dotnet workload install wasm-tools     # browser-wasm builds
 
 `rask doctor` reports what it finds either way.
 
+## Nightly builds from GitHub Packages
+
+Every push to `main` whose build and unit tests pass is published as a prerelease
+(`X.Y.Z-alpha.0.N`): to **GitHub Packages first**, where it can be restored within seconds, and then
+to nuget.org, which takes another five to twenty-five minutes to validate and list it. To pick up a
+fix minutes after it lands, restore Rask from GitHub Packages.
+
+GitHub Packages asks for a token even for a public package: a **classic personal access token with
+the `read:packages` scope** (github.com → Settings → Developer settings → Personal access tokens →
+Tokens (classic)). Keep it out of the repository — in an environment variable here:
+
+```xml
+<!-- nuget.config, beside your solution -->
+<configuration>
+  <packageSources>
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+    <add key="rask-nightly" value="https://nuget.pkg.github.com/pal-tamas/index.json" />
+  </packageSources>
+  <packageSourceCredentials>
+    <rask-nightly>
+      <add key="Username" value="%RASK_NIGHTLY_USER%" />
+      <add key="ClearTextPassword" value="%RASK_NIGHTLY_TOKEN%" />
+    </rask-nightly>
+  </packageSourceCredentials>
+  <!-- Rask from the nightly feed, everything else from nuget.org. -->
+  <packageSourceMapping>
+    <packageSource key="rask-nightly">
+      <package pattern="Rask" />
+      <package pattern="Rask.*" />
+    </packageSource>
+    <packageSource key="nuget.org">
+      <package pattern="*" />
+    </packageSource>
+  </packageSourceMapping>
+</configuration>
+```
+
+```bash
+export RASK_NIGHTLY_USER=<your GitHub user name> RASK_NIGHTLY_TOKEN=<the token>
+dotnet add package Rask.Server --prerelease       # or Version="0.*-*" to float to the newest nightly
+```
+
+In CI, set the two variables from secrets (in GitHub Actions, a workflow in another repository needs
+the PAT too; its own `GITHUB_TOKEN` cannot read another owner's packages). The same version on both
+feeds is the same commit, so switching back to nuget.org later changes nothing but the source.
+`gh release view nightly --repo pal-tamas/rask` names the newest nightly and the commit it was packed from.
+
 ## Next
 
 - [Getting started](getting-started.md) — the first project, end to end.

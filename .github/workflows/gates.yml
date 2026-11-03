@@ -70,13 +70,16 @@ jobs:
           # "mode" (no gate sets it today) ties a gate to whole runs ("full") or scoped ones ("scoped").
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
-          # The unit gate: "build" is the gate script tests, the warnings-as-errors build with the
-          # analyzers, and then the unit tests over that same output — in a scoped run the projects the
-          # change reaches, otherwise all of them — with the formatter alongside them over the .cs
-          # files the change touched (every file when it touched the rules: scripts/lib/format-scope.sh).
-          # The tests and the formatter had five jobs of their own until 2026-11-03, each building the
-          # solution again. run-unit-local.sh says why at RASK_UNIT_PART. Restore at 1.0: the whole tree
-          # formatted in the daily full run (docs/development-workflow.md, "Loosened until 1.0").
+          # The unit gate, in two jobs that build the same projects — in a scoped run the ones the change
+          # reaches, otherwise all of them. "build" is the warnings-as-errors build with the analyzers OFF
+          # and then the unit tests over that output: the nightly is pushed the moment it is green
+          # (nightly.yml, scripts/lib/nightly_wait.sh — keep its name). "analyzers" is the gate script
+          # tests, the same build with the analyzers on, and the formatter over the .cs files the change
+          # touched (every file when it touched the rules: scripts/lib/format-scope.sh). The tests and the
+          # formatter had five jobs of their own until 2026-11-03, each building the solution again, and
+          # then one job with the analyzers ahead of the tests. run-unit-local.sh says why at
+          # RASK_UNIT_PART. Restore at 1.0: one job, analyzers on, and the whole tree formatted in the
+          # daily full run (docs/development-workflow.md, "Loosened until 1.0").
           #
           # The browser suite runs four classes at a time (one browser, a context per test), and is cut
           # three ways by class over the ONE site the `site` job publishes. Shards 1-2 NAME their
@@ -104,6 +107,7 @@ jobs:
           GATES: >-
             [
               {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
+              {"set": "push", "deps": true, "when": "code",                    "name": "analyzers",          "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "analyzers"},
               {"set": "push", "when": "site",      "name": "browser E2E 1/3",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.WasmExampleTests|FullyQualifiedName~.UiKitCursorTests|FullyQualifiedName~.UiKitPickersTests|FullyQualifiedName~.UiKitSelectTests|FullyQualifiedName~.UiKitLayoutTests"},
               {"set": "push", "when": "site",      "name": "browser E2E 2/3",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitDataDisplayTests|FullyQualifiedName~.UiKitFormControlsTests|FullyQualifiedName~.UiKitRichInputsTests|FullyQualifiedName~.UiKitNativeFeelTests"},
               {"set": "push", "when": "site",      "name": "browser E2E 3/3",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitCursorTests&FullyQualifiedName!~.UiKitPickersTests&FullyQualifiedName!~.UiKitSelectTests&FullyQualifiedName!~.UiKitLayoutTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitDataDisplayTests&FullyQualifiedName!~.UiKitFormControlsTests&FullyQualifiedName!~.UiKitRichInputsTests&FullyQualifiedName!~.UiKitNativeFeelTests"},
@@ -233,7 +237,7 @@ jobs:
     if: needs.plan.outputs.gates != '[]'
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
-    # The longest gate (build: the analyzer build, then every unit test) is about twenty minutes on a whole run, so thirty would time out a slow runner's
+    # The longest gate (analyzers: the analyzer build of every project, then the formatter) is about twenty minutes on a whole run, so thirty would time out a slow runner's
     # healthy run; a hung one must still not hold a runner for long.
     timeout-minutes: 40
     strategy:
