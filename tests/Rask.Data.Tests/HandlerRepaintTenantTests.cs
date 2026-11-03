@@ -11,6 +11,7 @@ namespace Rask.Data.Tests;
 ///     that asked for it, the page rendered with no tenant and showed its "no tenant" branch for one frame on every
 ///     click, though the handler's own reads were right and the log was clean.
 /// </summary>
+[Collection(DataDbCollection.Name)]
 public sealed class HandlerRepaintTenantTests
 {
     private static readonly Guid Acme = Guid.NewGuid();
