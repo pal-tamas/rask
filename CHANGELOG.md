@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A focused field is ringed in your accent colour, and nothing can cut the ring off.** Before: a focused
+  `Ui.Input`, textarea, select or picker trigger drew the browser's own ring — a thin blue line in Chrome, Safari's
+  thick blue glow — and inside a table's scroll frame or a flyout that glow was cut in half. After: the field's
+  border turns `--color-accent` and a 1px inset ring in the same colour lies inside it (zinc by default, your
+  `--color-accent` when you set one; an invalid field stays red), drawn inside the field so no `overflow` around it
+  can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
+  as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
+  departure from Flux UI, which leaves the field to the browser.
 - **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
   instead of every day; every other follower stays daily. Until 1.0.
 - **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a

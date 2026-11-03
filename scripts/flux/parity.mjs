@@ -26,7 +26,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
-import { departedFrom } from './departed.mjs';
+import { departedFrom, focusDepartedFrom } from './departed.mjs';
 import { chromium, cursorDeparted, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -415,8 +415,10 @@ function compareLook(theirs, a, mine, b, where, diffs) {
   for (const state of ['hover', 'active', 'focus-visible']) {
     const x = theirs.states.find(s => s.node === a.id && s.state === state)?.changed ?? {};
     const y = mine.states.find(s => s.node === b.id && s.state === state)?.changed ?? {};
+    // A focused field is ringed in the accent (departed.mjs, focusDepartedFrom); parity-focus.mjs holds that ring.
+    const ringed = state === 'focus-visible' ? focusDepartedFrom(b) : [];
     for (const key of new Set([...Object.keys(x), ...Object.keys(y)])) {
-      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y })) continue;
+      if (undrawn(key, { ...a.style, ...x }, { ...b.style, ...y }) || ringed.includes(key)) continue;
       if (!same(x[key], y[key])) diffs.push(`${where}:${state} ${key}: ${x[key] ?? '(unchanged)'} vs ${y[key] ?? '(unchanged)'}`);
     }
   }
