@@ -1,7 +1,7 @@
 {
  "schema": 1,
  "sources": {
-  "@mdn/browser-compat-data": "8.1.7",
+  "@mdn/browser-compat-data": "8.1.8",
   "@webref/css": "8.7.8",
   "@webref/elements": "2.9.2",
   "@webref/events": "1.27.1",
@@ -4803,6 +4803,7 @@
   "DragEvent",
   "DynamicsCompressorNode",
   "EXT_blend_minmax",
+  "EXT_clip_control",
   "EXT_color_buffer_float",
   "EXT_color_buffer_half_float",
   "EXT_disjoint_timer_query_webgl2",
@@ -4814,6 +4815,7 @@
   "EXT_texture_compression_bptc",
   "EXT_texture_compression_rgtc",
   "EXT_texture_filter_anisotropic",
+  "EXT_texture_mirror_clamp_to_edge",
   "EXT_texture_norm16",
   "EditContext",
   "Element",
@@ -31059,6 +31061,40 @@
    "spec": "https://registry.khronos.org/webgl/extensions/EXT_blend_minmax/",
    "members": []
   },
+  "EXT_clip_control": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "122",
+    "firefox": "159",
+    "safari": "17.4"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/EXT_clip_control/",
+   "members": [
+    {
+     "kind": "operation",
+     "name": "clipControlEXT",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "origin",
+       "type": "unsigned long"
+      },
+      {
+       "name": "depth",
+       "type": "unsigned long"
+      }
+     ],
+     "support": {
+      "chrome": "122",
+      "firefox": "159",
+      "safari": "17.4"
+     },
+     "spec": "https://registry.khronos.org/webgl/extensions/EXT_clip_control/"
+    }
+   ]
+  },
   "EXT_color_buffer_float": {
    "parent": null,
    "abstract": true,
@@ -31242,6 +31278,18 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/EXT_texture_filter_anisotropic",
    "spec": "https://registry.khronos.org/webgl/extensions/EXT_texture_filter_anisotropic/",
+   "members": []
+  },
+  "EXT_texture_mirror_clamp_to_edge": {
+   "parent": null,
+   "abstract": true,
+   "exposed": true,
+   "support": {
+    "chrome": "124",
+    "firefox": "160",
+    "safari": "18"
+   },
+   "spec": "https://registry.khronos.org/webgl/extensions/EXT_texture_mirror_clamp_to_edge/",
    "members": []
   },
   "EXT_texture_norm16": {
@@ -38462,7 +38510,7 @@
       "chrome": "89"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/HIDConnectionEvent/HIDConnectionEvent",
-     "spec": "https://hid.spec.whatwg.org/#dom-hidconnectionevent-constructor"
+     "spec": "https://hid.spec.whatwg.org/#dom-hidconnectionevent-hidconnectionevent"
     }
    ]
   },
@@ -64322,6 +64370,17 @@
      "spec": "https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-suspend"
     },
     {
+     "kind": "operation",
+     "name": "close",
+     "returns": "Promise<undefined>",
+     "args": [],
+     "experimental": true,
+     "support": {
+      "chrome": "158"
+     },
+     "spec": "https://webaudio.github.io/web-audio-api/#dom-offlineaudiocontext-close"
+    },
+    {
      "kind": "attribute",
      "name": "length",
      "type": "unsigned long?",
@@ -68469,6 +68528,28 @@
     },
     {
      "kind": "attribute",
+     "name": "styleDuration",
+     "type": "double",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "chrome": "158"
+     },
+     "spec": "https://w3c.github.io/long-animation-frames/#dom-performancelonganimationframetiming-styleduration"
+    },
+    {
+     "kind": "attribute",
+     "name": "layoutDuration",
+     "type": "double",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "chrome": "158"
+     },
+     "spec": "https://w3c.github.io/long-animation-frames/#dom-performancelonganimationframetiming-layoutduration"
+    },
+    {
+     "kind": "attribute",
      "name": "blockingDuration",
      "type": "double",
      "readonly": true,
@@ -69533,6 +69614,28 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/PerformanceScriptTiming/forcedStyleAndLayoutDuration",
      "spec": "https://www.w3.org/TR/long-animation-frames/#dom-performancescripttiming-forcedstyleandlayoutduration"
+    },
+    {
+     "kind": "attribute",
+     "name": "forcedStyleDuration",
+     "type": "double",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "chrome": "158"
+     },
+     "spec": "https://w3c.github.io/long-animation-frames/#dom-performancescripttiming-forcedstyleduration"
+    },
+    {
+     "kind": "attribute",
+     "name": "forcedLayoutDuration",
+     "type": "double",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "chrome": "158"
+     },
+     "spec": "https://w3c.github.io/long-animation-frames/#dom-performancescripttiming-forcedlayoutduration"
     },
     {
      "kind": "attribute",
@@ -79736,7 +79839,8 @@
    "exposed": true,
    "secure": true,
    "support": {
-    "chrome": "139"
+    "chrome": "139",
+    "firefox": "160"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition",
    "spec": "https://webaudio.github.io/web-speech-api/#speechreco-section",
@@ -79747,7 +79851,8 @@
      "type": "SpeechGrammarList",
      "secure": true,
      "support": {
-      "chrome": "33"
+      "chrome": "33",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/grammars",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-grammars"
@@ -79759,6 +79864,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/lang",
@@ -79771,6 +79877,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "17"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/continuous",
@@ -79783,6 +79890,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/interimResults",
@@ -79793,9 +79901,9 @@
      "name": "unspokenPunctuation",
      "type": "boolean",
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "151"
+      "chrome": "151",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/unspokenPunctuation",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-unspokenpunctuation"
@@ -79807,6 +79915,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/maxAlternatives",
@@ -79817,9 +79926,9 @@
      "name": "processLocally",
      "type": "boolean",
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/processLocally",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-processlocally"
@@ -79829,9 +79938,9 @@
      "name": "phrases",
      "type": "ObservableArray<SpeechRecognitionPhrase>",
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "142"
+      "chrome": "142",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/phrases",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-phrases"
@@ -79844,6 +79953,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/start",
@@ -79865,6 +79975,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/stop",
@@ -79878,6 +79989,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/abort",
@@ -79889,7 +80001,8 @@
      "args": [],
      "secure": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/SpeechRecognition",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-speechrecognition"
@@ -79907,9 +80020,9 @@
       }
      ],
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/available_static",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-available"
@@ -79925,9 +80038,9 @@
       }
      ],
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognition/install_static",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-install"
@@ -79987,6 +80100,7 @@
    "secure": true,
    "support": {
     "chrome": "33",
+    "firefox": "160",
     "safari": "14.1"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative",
@@ -80000,6 +80114,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/transcript",
@@ -80013,6 +80128,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionAlternative/confidence",
@@ -80027,6 +80143,7 @@
    "secure": true,
    "support": {
     "chrome": "139",
+    "firefox": "160",
     "safari": "14.1"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionErrorEvent",
@@ -80040,6 +80157,7 @@
      "secure": true,
      "support": {
       "chrome": "77",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionErrorEvent/error",
@@ -80053,6 +80171,7 @@
      "secure": true,
      "support": {
       "chrome": "77",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionErrorEvent/message",
@@ -80074,6 +80193,7 @@
      "secure": true,
      "support": {
       "chrome": "139",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionErrorEvent/SpeechRecognitionErrorEvent",
@@ -80088,6 +80208,7 @@
    "secure": true,
    "support": {
     "chrome": "139",
+    "firefox": "160",
     "safari": "14.1"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionEvent",
@@ -80135,6 +80256,7 @@
      "secure": true,
      "support": {
       "chrome": "139",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionEvent/SpeechRecognitionEvent",
@@ -80147,9 +80269,9 @@
    "abstract": true,
    "exposed": true,
    "secure": true,
-   "experimental": true,
    "support": {
-    "chrome": "142"
+    "chrome": "142",
+    "firefox": "160"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionPhrase",
    "spec": "https://webaudio.github.io/web-speech-api/#speechrecognitionphrase",
@@ -80160,9 +80282,9 @@
      "type": "DOMString",
      "readonly": true,
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "142"
+      "chrome": "142",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionPhrase/phrase",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognitionphrase-phrase"
@@ -80173,9 +80295,9 @@
      "type": "float",
      "readonly": true,
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "142"
+      "chrome": "142",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionPhrase/boost",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognitionphrase-boost"
@@ -80195,9 +80317,9 @@
       }
      ],
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "142"
+      "chrome": "142",
+      "firefox": "160"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionPhrase/SpeechRecognitionPhrase",
      "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognitionphrase-speechrecognitionphrase"
@@ -80211,6 +80333,7 @@
    "secure": true,
    "support": {
     "chrome": "33",
+    "firefox": "160",
     "safari": "14.1"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult",
@@ -80224,6 +80347,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/length",
@@ -80242,6 +80366,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/item",
@@ -80255,6 +80380,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResult/isFinal",
@@ -80269,6 +80395,7 @@
    "secure": true,
    "support": {
     "chrome": "33",
+    "firefox": "160",
     "safari": "14.1"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList",
@@ -80282,6 +80409,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/length",
@@ -80300,6 +80428,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionResultList/item",
@@ -113341,8 +113470,8 @@
      "name": "anticipatedConcurrentIncomingUnidirectionalStreams",
      "type": "unsigned short?",
      "secure": true,
-     "experimental": true,
      "support": {
+      "chrome": "158",
       "safari": "26.4"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingunidirectionalstreams"
@@ -113352,8 +113481,8 @@
      "name": "anticipatedConcurrentIncomingBidirectionalStreams",
      "type": "unsigned short?",
      "secure": true,
-     "experimental": true,
      "support": {
+      "chrome": "158",
       "safari": "26.4"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingbidirectionalstreams"
@@ -113364,9 +113493,9 @@
      "type": "Headers?",
      "readonly": true,
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "157"
+      "chrome": "157",
+      "firefox": "160"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-responseheaders"
     },
@@ -113405,6 +113534,7 @@
      "readonly": true,
      "secure": true,
      "support": {
+      "chrome": "158",
       "firefox": "155",
       "safari": "26.4"
      },
@@ -113701,9 +113831,9 @@
      "name": "incomingMaxBufferedDatagrams",
      "type": "unsigned long",
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "151"
+      "chrome": "151",
+      "firefox": "160"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-incomingmaxbuffereddatagrams"
     },
@@ -113712,9 +113842,9 @@
      "name": "outgoingMaxBufferedDatagrams",
      "type": "unsigned long",
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "151"
+      "chrome": "151",
+      "firefox": "160"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-outgoingmaxbuffereddatagrams"
     }
@@ -139131,8 +139261,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end"
     ],
@@ -139155,8 +139283,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end",
      "stretch",
@@ -143570,8 +143696,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end",
      "left",
@@ -143597,8 +143721,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end",
      "left",
@@ -145386,8 +145508,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end"
     ],
@@ -145414,8 +145534,6 @@
      "end",
      "self-start",
      "self-end",
-     "flow-start",
-     "flow-end",
      "flex-start",
      "flex-end",
      "stretch",
