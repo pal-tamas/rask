@@ -139,6 +139,26 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
     /// <summary>False to leave the bound member's message to a <c>Ui.Error</c> placed elsewhere.</summary>
     public bool? ShowValidation { get; set; }
 
+    // Flux's `mask:dynamic="$money($input)"`, when the chain says `.Money()`: handed to the text box.
+    private MoneyMarks? _money;
+
+    /// <summary>
+    ///     Shows an amount grouped as it is typed — Flux's <c>mask:dynamic="$money($input)"</c>, which the
+    ///     autocomplete hands to its input: <c>Ui.Autocomplete.Bind(() =&gt; m.Amount).Money()</c> shows
+    ///     <c>1234.56</c> as <c>1,234.56</c>, and <c>.Money(decimals: ",", thousands: " ")</c> as <c>1 234,56</c>.
+    /// </summary>
+    /// <remarks>The text is what is held, grouped as it is shown, as with Flux's <c>wire:model</c>.</remarks>
+    /// <param name="decimals">The decimal mark, one character.</param>
+    /// <param name="thousands">The mark between groups of three digits, one character.</param>
+    /// <param name="precision">How many decimals can be typed; 0 for whole amounts.</param>
+    /// <returns>This autocomplete.</returns>
+    public UiAutocomplete Money(string decimals = ".", string thousands = ",", int precision = 2)
+    {
+        _money = UiMoney.Marks(decimals, thousands, precision);
+        BuilderRuntime.MarkChanged(this);
+        return this;
+    }
+
     private string Prefixed => "uiac-" + _instance.ToString(CultureInfo.InvariantCulture);
 
     private string PanelId => Prefixed + "-items";
@@ -173,6 +193,7 @@ public sealed partial class UiAutocomplete : Component, IFormControl<string>, ID
             .InputClass(InputClass)
             .ShowValidation(ShowValidation)
             .Class(Class)
+            .Money(_money)
             .HostedBy(new UiInputHost
             {
                 Bound = Bind,

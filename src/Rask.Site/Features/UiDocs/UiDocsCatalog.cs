@@ -369,6 +369,18 @@ internal static class UiDocsCatalog
         + "Enter, growing a line at a time.",
         "composer");
 
+    public static UiDocsEntry Confirm { get; } = new(
+        Routes.UiConfirmPage(), "Confirm", Components,
+        "Confirm dialog in C#: Ui.Confirm",
+        "A styled dialog in place of window.confirm: placed once in a layout, it asks every .Confirm(\"…\") on the "
+        + "page, and can wait for a name typed exactly.");
+
+    public static UiDocsEntry ConfirmLeave { get; } = new(
+        Routes.UiConfirmLeavePage(), "Confirm leave", Components,
+        "Unsaved changes dialog in C#: Ui.ConfirmLeave",
+        "The dialog a form with unsaved changes asks in before the reader leaves the page: placed once in a layout, "
+        + "in your words, in place of the browser's confirm.");
+
     public static UiDocsEntry DatePicker { get; } = new(
         Routes.UiDatePickerPage(), "Date picker", Components,
         "Date picker and range picker in C#: Ui.DatePicker",
@@ -431,7 +443,7 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
         Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];

@@ -51,6 +51,12 @@ public sealed partial class UiNavmenu : Component
             data["rask-lock"] = "";
         }
 
+        if (_host?.Marked == true)
+        {
+            // Flux's `data-open` on the open panel, which the runtime writes as the browser shows it.
+            data[UiInvoker.OpenMark] = "";
+        }
+
         if (_host?.Controlled is { } controlled)
         {
             // The runtime shows or hides the popover to match whenever this changes (rask-dom.ts).

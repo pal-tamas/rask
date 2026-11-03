@@ -46,8 +46,15 @@ public partial class UiChosenBindTimingTests : global::Rask.Core.RaskMarkup
             Ui.SelectOption.Key("Basement")["Basement"]
         ];
 
+    // A listbox that waits is picked in the browser (HeldList); a live one hears the press itself.
     private static async Task Pick(Page page, string room)
     {
+        if (page.FindAll("[data-rask-list-value]").Count > 0)
+        {
+            await HeldList.Pick(page, room);
+            return;
+        }
+
         await page.On($"[data-ui-option]:has-text(\"{room}\")").Click();
     }
 

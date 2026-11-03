@@ -38,7 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, cursorDeparted, frames, hoverSettled, press, PRESSABLE, root, STYLES, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, frames, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -278,17 +278,17 @@ async function measureOpen(browser, kind, url, shots, view, like) {
       if (twin) await wrapper.evaluate((w, { inherited, frame }) => Object.assign(w.style, inherited, frame), { inherited: twin.inherited, frame: view.sized ? twin.frame : {} });
       await wrapper.evaluate(w => w.scrollIntoView({ block: 'center' }));
       const trigger = await wrapper.$(kind.trigger);
-      await trigger[view.phone ? 'tap' : 'click']();
-      await page.waitForTimeout(350);
       // On a phone the hover the tap leaves is part of what is measured (a trigger's chevron, a row lit): waited
-      // on until it holds (lib.mjs's hoverSettled), as it lands late on a loaded runner.
-      if (view.phone) await trigger.evaluate(hoverSettled);
+      // on until it holds (lib.mjs's tapped), as it lands late on a loaded runner.
+      if (view.phone) await tapped(page, trigger);
+      else await trigger.click();
+      await page.waitForTimeout(350);
       // A static page has no runtime to pick with: Rask's is written with these rows already picked.
       for (const row of like ? [] : kind.pick ?? []) {
         const picked = (await wrapper.$$(kind.rows))[row];
-        await picked[view.phone ? 'tap' : 'click']();
+        if (view.phone) await tapped(page, picked);
+        else await picked.click();
         await page.waitForTimeout(350);
-        if (view.phone) await picked.evaluate(hoverSettled);
       }
 
       // A pointer under a hand never rests on one pixel: a hover that a re-render dropped (Livewire answers
@@ -308,6 +308,14 @@ async function measureOpen(browser, kind, url, shots, view, like) {
       }, kind.popup);
       // …none to hear the pointer leave the list after those picks, which is where Flux's cursor goes out…
       if (like && kind.pick) await wrapper.evaluate(w => w.querySelectorAll('[data-active]').forEach(row => row.removeAttribute('data-active')));
+      // On a phone Flux's last pick was a finger's TAP on that row: the trigger is no longer under it, and whether
+      // the row is lit is the page's own doing (lit on a Mac, not on the Linux runner, #1260). The Rask side is given
+      // the same tap on the same row (already picked on this static page, which has no server to pick with), and
+      // lights what its runtime lights: neither the trigger's hover nor the row is written by hand.
+      if (like && kind.pick && view.phone) {
+        const last = (await wrapper.$$(kind.rows))[kind.pick.at(-1)];
+        if (last) await tapped(page, last);
+      }
       // …and none to hand focus where Flux's script hands it.
       for (const selector of like ? kind.focused ?? [] : []) {
         const target = await wrapper.$(selector);
@@ -315,10 +323,6 @@ async function measureOpen(browser, kind, url, shots, view, like) {
           await target.focus();
           break;
         }
-      }
-      // On a phone no pointer left the list: the last tap's mouse events lit the row it picked, and it stays lit.
-      if (like && kind.pick && view.phone) {
-        await wrapper.evaluate((w, { rows, last }) => w.querySelectorAll(rows)[last]?.setAttribute('data-active', ''), { rows: kind.rows, last: kind.pick.at(-1) });
       }
 
       const example = await wrapper.evaluate(collect, { STYLES, PRESSABLE, index, selectors });

@@ -4261,6 +4261,7 @@ div .[:where(&amp;)]:mt-3 .[:where(&amp;)]:text-red-500 .[:where(&amp;)]:text-sm
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .block
+input
 button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:shadow-none .flex .group/select-button .h-10 .items-center .overflow-hidden .pe-3 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
 div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .flex-1 .gap-2 .group-disabled/select-button:text-zinc-500 .min-w-0 .text-start .text-zinc-700
 span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
@@ -4291,6 +4292,9 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
+template
+span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
+div .min-w-0 .truncate
 div .[:where(&amp;)]:mt-3 .[:where(&amp;)]:text-red-500 .[:where(&amp;)]:text-sm .dark:text-red-400 .font-medium .hidden
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
@@ -7156,6 +7160,7 @@ div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&g
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-500 .dark:text-white/60
 div .block
+input
 button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:shadow-none .flex .group/select-button .h-10 .items-center .overflow-hidden .pe-3 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
 div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .flex-1 .gap-2 .group-disabled/select-button:text-zinc-500 .min-w-0 .text-start .text-zinc-700
 span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
@@ -7186,6 +7191,9 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
+template
+span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
+div .min-w-0 .truncate
 div .[:where(&amp;)]:mt-3 .[:where(&amp;)]:text-red-500 .[:where(&amp;)]:text-sm .dark:text-red-400 .font-medium .hidden
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
@@ -7972,6 +7980,7 @@ div
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .block
+input
 button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:shadow-none .flex .group/select-button .h-10 .items-center .overflow-hidden .pe-3 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
 div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .flex-1 .gap-2 .group-disabled/select-button:text-zinc-500 .min-w-0 .text-start .text-zinc-700
 span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
@@ -8002,6 +8011,9 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
+template
+span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
+div .min-w-0 .truncate
 div
 button .[:where(&amp;)]:gap-2 .[:where(&amp;)]:inline-flex .[:where(&amp;)]:pe-4 .[:where(&amp;)]:ps-3 .[:where(&amp;)]:rounded-lg .[:where(&amp;)]:text-accent-foreground .[:where(&amp;)]:text-sm .bg-accent .border .border-black/10 .dark:border-0 .data-loading:pointer-events-none .disabled:opacity-50 .disabled:pointer-events-none .disabled:shadow-none .font-medium .h-10 .hover:bg-accent/90 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .items-center .justify-center .relative .shadow-[inset_0px_1px_color-mix(in_oklab,var(--color-white)_20%,transparent)] .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
@@ -8554,6 +8566,7 @@ div
 div .[&amp;&gt;*:not([data-ui-label])&#x2B;[data-ui-description]]:mt-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mb-3 .[&amp;&gt;[data-ui-label]&#x2B;[data-ui-description]]:mt-0 .[&amp;&gt;[data-ui-label]:has(&#x2B;[data-ui-description])]:mb-2 .[&amp;&gt;[data-ui-label]]:mb-3 .[&amp;:not(:has([data-ui-field])):has([data-ui-control][disabled])&gt;[data-ui-label]]:opacity-50 .min-w-0
 label .[:where(&amp;)]:inline-flex .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .dark:text-white .font-medium .items-center
 div .block
+input
 button .bg-white .border .border-b-zinc-300/80 .border-zinc-200 .dark:bg-white/10 .dark:border-b-white/10 .dark:border-white/10 .dark:data-invalid:border-red-500 .dark:disabled:bg-white/[7%] .dark:disabled:border-b-white/5 .dark:disabled:border-white/5 .data-invalid:border-red-500 .data-invalid:shadow-none .disabled:border-b-zinc-200 .disabled:data-invalid:border-red-500 .disabled:shadow-none .flex .group/select-button .h-10 .items-center .overflow-hidden .pe-3 .ps-3 .py-2 .rounded-lg .shadow-xs .sm:text-sm .text-base .w-full
 div .dark:group-disabled/select-button:text-zinc-400 .dark:text-zinc-300 .flex .flex-1 .gap-2 .group-disabled/select-button:text-zinc-500 .min-w-0 .text-start .text-zinc-700
 span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
@@ -8584,6 +8597,9 @@ svg .[:where(&amp;)]:size-5 .group-data-selected/option:block .hidden .shrink-0 
 path
 div .flex .flex-col .gap-1 .min-w-0
 div .[[data-ui-select-button]_&amp;]:truncate
+template
+span .block .dark:group-disabled/select-button:text-zinc-500 .group-disabled/select-button:text-zinc-400/70 .text-zinc-400 .truncate
+div .min-w-0 .truncate
 div
 button .[:where(&amp;)]:gap-2 .[:where(&amp;)]:inline-flex .[:where(&amp;)]:pe-4 .[:where(&amp;)]:ps-3 .[:where(&amp;)]:rounded-lg .[:where(&amp;)]:text-accent-foreground .[:where(&amp;)]:text-sm .bg-accent .border .border-black/10 .dark:border-0 .data-loading:pointer-events-none .disabled:opacity-50 .disabled:pointer-events-none .disabled:shadow-none .font-medium .h-10 .hover:bg-accent/90 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .items-center .justify-center .relative .shadow-[inset_0px_1px_color-mix(in_oklab,var(--color-white)_20%,transparent)] .whitespace-nowrap
 div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity

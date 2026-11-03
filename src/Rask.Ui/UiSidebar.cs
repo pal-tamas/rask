@@ -18,11 +18,15 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiSidebar : Component
 {
-    private const string Base = "group/sidebar z-20 [:where(&)]:flex flex-col [:where(&)]:gap-4 [grid-area:sidebar] [:where(&)]:w-64";
+    private const string Base = "group/sidebar [:where(&)]:flex flex-col [:where(&)]:gap-4 [grid-area:sidebar] [:where(&)]:w-64";
+
+    // In the page's flow it is barely lifted, as Flux's (`z-1`, measured on its profile page's sidebar).
+    private const string InFlow = "z-1";
 
     // Below the breakpoint it is over the page and off-screen until opened; from it up it is in the grid.
+    // Over the page, it is lifted over what it covers (Flux's demos: `z-20!`).
     private const string PutAway =
-        "fixed inset-y-0 start-0 max-h-dvh min-h-dvh overflow-y-auto overscroll-contain transition-transform "
+        "z-20 fixed inset-y-0 start-0 max-h-dvh min-h-dvh overflow-y-auto overscroll-contain transition-transform "
         + "-translate-x-full rtl:translate-x-full sidebar-open:translate-x-0 "
         + "sidebar-desktop:min-h-[auto] sidebar-desktop:translate-x-0";
 
@@ -77,7 +81,7 @@ public sealed partial class UiSidebar : Component
         var sidebar = Div
             .Class(
                 Base,
-                putAway ? PutAway : "",
+                putAway ? PutAway : InFlow,
                 Docked(Sticky == true, putAway),
                 rails ? Rail : "",
                 Class)

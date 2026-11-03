@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The browser host's own journeys in a real Chromium: the fixture app in tests/Rask.Wasm.Fixture.Wasm, published by
+    scripts/run-wasm-e2e-local.sh before this assembly is built, served from an ASP.NET host in this process that also
+    issues the cookie and answers the API — what a WASM app's own server does. Its own gate, because no other publishes
+    the fixture.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Wasm.E2E.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- One browser install and launch story for every browser suite. -->
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\Repository.cs" Link="Infrastructure\Repository.cs"/>
+  </ItemGroup>
+
+  <!-- The fixture's publish, which the host serves. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\Rask.Wasm.Fixture.Wasm\**\*"/>
+  </ItemGroup>
+
+</Project>

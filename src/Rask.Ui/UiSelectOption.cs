@@ -40,8 +40,12 @@ public sealed partial class UiSelectOption : Component
     /// <summary>Classes for the icon.</summary>
     public string? IconClass { get; set; }
 
-    /// <summary>The address of a picture drawn as an avatar before the words. It wins over <see cref="Icon" />.</summary>
-    public string? Avatar { get; set; }
+    /// <summary>
+    ///     An avatar before the words; it wins over <see cref="Icon" />. A string is the picture's address, Flux's
+    ///     <c>avatar</c>. A <c>Ui.Avatar</c> of your own is Flux's <c>avatar:*</c>, the props handed to that avatar —
+    ///     <c>.Avatar(Ui.Avatar.ColorAuto())</c>; what it leaves unset is the option's: extra small, round, named by its words.
+    /// </summary>
+    public Component? Avatar { get; set; }
 
     /// <summary>A line under the words, in the list only: the select does not repeat it once picked.</summary>
     public string? Description { get; set; }

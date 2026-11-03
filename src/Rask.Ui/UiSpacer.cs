@@ -11,6 +11,9 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiSpacer : Component
 {
+    /// <summary>Classes for the call site, added to the spacer's own (Flux's brand page: <c>min-w-24</c>).</summary>
+    public string? Class { get; set; }
+
     /// <inheritdoc />
-    protected override Component? Render() => Div.Class("flex-1").Data("ui-spacer", "");
+    protected override Component? Render() => Div.Class("flex-1", Class).Data("ui-spacer", "");
 }

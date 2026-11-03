@@ -25,11 +25,11 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
 
     private static readonly Dictionary<string, (Type Control, Func<Answers, Component> Draw, Func<Page, Task> Change)> Controls = new(StringComparer.Ordinal)
     {
-        ["listbox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Listbox[Options()], PickOption),
+        ["listbox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Listbox[Options()], HeldList.PickFirst),
         ["listbox, live"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Listbox.Live()[Options()], PickOption),
         ["listbox the page holds"] = (typeof(UiSelect<>), a => Ui.Select.Value(a.One).OnChange(one => a.One = one).Listbox[Options()], PickOption),
-        ["listbox, cleared"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.Picked).Listbox.Clearable()[Options()], page => page.On("[aria-label=\"Clear selected\"]").Click()),
-        ["combobox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Combobox[Options()], PickOption),
+        ["listbox, cleared"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.Picked).Listbox.Clearable()[Options()], HeldList.Clear),
+        ["combobox"] = (typeof(UiSelect<>), a => Ui.Select.Bind(() => a.One).Combobox[Options()], HeldList.PickFirst),
         ["multiple listbox"] = (typeof(UiSelectMultiple<>), a => Ui.Select.Bind(() => a.Many).Listbox.Multiple()[Options()], PickOption),
         ["pillbox"] = (typeof(UiPillbox<>), a => Ui.Pillbox.Bind(() => a.Many)[Words.Select(word => Ui.PillboxOption.Key(word)[word])], page => First(page, "[data-ui-listbox-option]", "click")),
         ["pillbox, a pill removed"] = (typeof(UiPillbox<>), a => Ui.Pillbox.Bind(() => a.Chosen)[Words.Select(word => Ui.PillboxOption.Key(word)[word])], page => page.On("[data-value=\"Alpha\"] [data-rask-on-click]").Click()),
@@ -124,7 +124,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     public async Task A_submit_the_rules_refuse_leaves_the_form_edited()
     {
         var page = Draw(new Answers { Before = null! }, Controls["listbox"].Draw);
-        await PickOption(page);
+        await HeldList.PickFirst(page);
 
         await page.On("form").Submit();
 
@@ -136,10 +136,10 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     public async Task A_choice_made_after_a_save_marks_the_form_again()
     {
         var page = Draw(new Answers(), Controls["listbox"].Draw);
-        await PickOption(page);
+        await HeldList.Pick(page, "Alpha");
         await page.On("form").Submit();
 
-        await PickOption(page);
+        await HeldList.Pick(page, "Beta");
 
         Assert.NotNull(page.Find("form").Attribute(Edited));
     }
@@ -185,7 +185,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         var answers = new Answers();
         var page = Page.Render(() => Form.Model(answers).OnSubmit(() => { })[Ui.Select.Bind(() => answers.One).Listbox[Options()]]);
 
-        await PickOption(page);
+        await HeldList.PickFirst(page);
 
         Assert.Null(page.Find("form").Attribute(Edited));
     }

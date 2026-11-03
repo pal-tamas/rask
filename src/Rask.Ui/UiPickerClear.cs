@@ -21,20 +21,20 @@ internal abstract partial class UiPickerClear : global::Rask.Core.RaskMarkup
         + "text-zinc-500 hover:text-zinc-800 hover:bg-zinc-800/5 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
 
     /// <summary>The × to write in the trigger before its chevron, keyed so its coming and going is an insert or a removal.</summary>
-    /// <param name="clear">Empties the picker.</param>
+    /// <param name="clear">Empties the picker; <see langword="null" /> where the browser empties it, sending nothing.</param>
     /// <param name="shown">Whether there is something to empty; a runtime that draws the picker may show it later.</param>
     /// <param name="label">Its accessible name; "Clear" unless given.</param>
     /// <param name="marks">What a runtime that draws the picker calls it, or the frames its press may send.</param>
     internal static global::Rask.Core.Component Inside(
-        Func<Task> clear, bool shown = true, string? label = null, params (string Name, string? Value)[] marks)
+        Func<Task>? clear, bool shown = true, string? label = null, params (string Name, string? Value)[] marks)
     {
         var x = Div
             .Key("clear")
             .TabIndex(-1)
             .Class(shown ? Shown : Hidden)
             .Aria("label", label ?? RaskStrings.Get(RaskString.PickerClear, "Clear"))
-            .Data("ui-button", "")
-            .OnClick(clear);
+            .Data("ui-button", "");
+        x = clear is null ? x : x.OnClick(clear);
         return (marks.Length > 0 ? x.Attributes(marks) : x)[Ui.Icon.Name(Ui.IconName.XMark).Micro];
     }
 }

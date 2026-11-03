@@ -33,6 +33,8 @@ internal static partial class UiApi
             new("Invalid", typeof(bool?), "Error styling the form did not ask for."),
             new("Multiple", typeof(bool?), "For a file input: several files."),
             new("Mask", typeof(string), "A pattern the text is laid into: 99/99/9999."),
+            new("Money", typeof(string), "Groups an amount as it is typed, 1,234.56, as the input's own Money(): Flux's $money($input).",
+                "decimals: \".\", thousands: \",\", precision: 2"),
             new("Icon", typeof(UiInputIcon?), "An icon, or content, at the start of the input.", "Ui.IconName, or a component"),
             new("IconTrailing", typeof(UiInputIcon?), "An icon, or content, at the end of the input.", "Ui.IconName, or a component"),
             new("Kbd", typeof(string), "A keyboard shortcut shown at the end of the input."),

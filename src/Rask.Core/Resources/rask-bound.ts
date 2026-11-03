@@ -10,6 +10,13 @@
 // attribute, and it comes back LATE: the echo of "12" arrives when the group already says "1234". An echo is
 // therefore recognised (it is one of the values still waiting) and ignored, and the field is put back to what
 // the group says. Anything else in that attribute is the page changing the value, and the group adopts it.
+//
+// A RENDER THAT SAYS NOTHING NEW. A hidden input's `value` is its attribute, so what the group wrote there stands
+// in for what the page rendered. A diff that did not change the field sends nothing for it, but a morph (every
+// render of the WebAssembly host, a whole-page reply of the Server's) puts the rendered value back on every
+// field. The value the page rendered last, rendered again, is no news — the morph's own rule for a field — and
+// the group keeps what the reader made of it: a pick held for the next action was wiped by the render that
+// took a message away from under it.
 
 import {page, seam} from "./rask-owned.js";
 
@@ -21,12 +28,14 @@ interface Kind {
     adopt(group: Element, rendered: string): void;
     /** Whether `rendered` is no news to a group the reader has made something else of: it is not shown. */
     keeps?(group: Element, rendered: string): boolean;
-    /** A late echo came back: what the same render wrote AROUND the field is as old, and is drawn again. */
-    echoed?(group: Element): void;
+    /** A late echo came back (`rendered`): what the same render wrote AROUND the field is as old, and is drawn again. */
+    echoed?(group: Element, rendered: string): void;
 }
 
 const kinds: Kind[] = [];
 const sent = new WeakMap<Element, string[]>();
+/** What the page last rendered into each bound field. */
+const rendered = new WeakMap<Element, string>();
 let watcher: MutationObserver | null = null;
 
 /** The group's bound field. */
@@ -110,24 +119,29 @@ function refill(group: Element, kind: Kind): void {
     if (!bound) {
         return;
     }
-    const rendered = bound.getAttribute("value") || "";
+    const value = bound.getAttribute("value") || "";
+    if (rendered.get(bound) === value) {
+        write(bound, kind.current(group));
+        return;
+    }
+    rendered.set(bound, value);
     const waiting = sent.get(bound);
-    const echo = waiting ? waiting.indexOf(rendered) : -1;
+    const echo = waiting ? waiting.indexOf(value) : -1;
     if (waiting && echo >= 0) {
         waiting.splice(0, echo + 1);
         write(bound, kind.current(group));
-        if (kind.echoed) kind.echoed(group);
+        if (kind.echoed) kind.echoed(group, value);
         return;
     }
     if (waiting) {
         waiting.length = 0;
     }
-    if (kind.keeps && kind.keeps(group, rendered)) {
+    if (kind.keeps && kind.keeps(group, value)) {
         write(bound, kind.current(group));
         return;
     }
-    if (kind.current(group) !== rendered) {
-        kind.adopt(group, rendered);
+    if (kind.current(group) !== value) {
+        kind.adopt(group, value);
     }
     write(bound, kind.current(group));
 }

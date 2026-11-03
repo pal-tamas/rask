@@ -107,8 +107,8 @@
          its own bundle, which the companion publishes into wwwroot. -->
     <Content Remove="Client\**"/>
     <!-- dotnet watch reacts to Compile items and to Watch items. Client/ is no longer the server's Compile,
-         so an edit there would reach nothing without these. -->
-    <Watch Include="Client\**\*.cs;Client\**\*.css;Client\**\*.ts;Client\wwwroot\**\*;Shared\**\*.cs"
+         so an edit there would reach nothing without these. An island's front end is a .tsx, .vue or .svelte. -->
+    <Watch Include="Client\**\*.cs;Client\**\*.css;Client\**\*.ts;Client\**\*.tsx;Client\**\*.vue;Client\**\*.svelte;Client\wwwroot\**\*;Shared\**\*.cs"
            Exclude="Client\**\node_modules\**"/>
   </ItemGroup>
 
@@ -247,6 +247,13 @@
       <_RaskClientLine Include="    &lt;RaskScopedTsGlob&gt;false&lt;/RaskScopedTsGlob&gt;"/>
       <_RaskClientLine Include="    &lt;RaskScopedTsRootDir&gt;$(_RaskClientApp)\Client&lt;/RaskScopedTsRootDir&gt;"/>
       <!--
+        Islands (#1194), for the app whose Client/ holds them and that adds Rask.External to RaskClientPackageReference:
+        the front-end files and props snapshots are found in Client/, and npm, Vite and the checkers run where the
+        app's package.json and node_modules are — its own folder, not this one inside obj\. Inert without Rask.External.
+      -->
+      <_RaskClientLine Include="    &lt;RaskExternalRoot&gt;$(_RaskClientApp)&lt;/RaskExternalRoot&gt;"/>
+      <_RaskClientLine Include="    &lt;RaskExternalSourceRoot&gt;$(_RaskClientApp)\Client&lt;/RaskExternalSourceRoot&gt;"/>
+      <!--
         Belt and braces against CS0101. The companion compiles the client the server generated, so a
         generator running HERE too would declare every client type a second time. This makes that a
         property rather than a coincidence, for the app that adds Rask.Api to RaskClientPackageReference.
@@ -298,13 +305,10 @@
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.css&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
       <!--
-        A package island's committed props snapshot, beside the class it generates chain steps for.
-        Rask.External globs `*.props.json` from the COMPANION's own directory, inside obj\, where none lives,
-        so without these the island compiles with no steps and the browser half fails on its first one as
-        CS1929. Rooted at Client/ and Shared/, so no obj/bin/node_modules removals are needed.
+        A package island's committed props snapshot, beside the class it generates chain steps for. Rask.External
+        finds Client/'s itself, from RaskExternalSourceRoot above; Shared/ is outside that tree, so its are named
+        here, or such an island compiles with no steps and the browser half fails on its first one as CS1929.
       -->
-      <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\%2A%2A\%2A.props.json&quot; /&gt;"/>
-      <_RaskClientLine Include="    &lt;AdditionalFiles Remove=&quot;$(_RaskClientApp)\Client\wwwroot\%2A%2A&quot; /&gt;"/>
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Shared\%2A%2A\%2A.props.json&quot; /&gt;"/>
       <!-- The browser app's translation catalogs, Client/Resources/Strings.{culture}.json, for the same reason. -->
       <_RaskClientLine Include="    &lt;AdditionalFiles Include=&quot;$(_RaskClientApp)\Client\Resources\%2A%2A\%2A.json&quot; /&gt;"/>

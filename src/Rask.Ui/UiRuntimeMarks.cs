@@ -13,4 +13,10 @@ internal static class UiRuntimeMarks
 
     /// <summary>The same mark as the one pair an <c>Attributes(…)</c> call takes.</summary>
     internal static readonly (string, string?) NotFormData = (Unguarded, null);
+
+    /// <summary>
+    ///     On a bound field whose value waits for the reader's next action and goes ahead of it, as Livewire's
+    ///     <c>wire:model</c> does (<c>rask-input.ts</c>).
+    /// </summary>
+    internal static readonly (string, string?)[] WaitsForAction = [("data-rask-bind-on", "action")];
 }

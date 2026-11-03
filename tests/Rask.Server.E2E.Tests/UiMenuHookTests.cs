@@ -76,6 +76,38 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
+    public async Task A_dropdown_its_trigger_and_its_menu_say_data_open_in_the_task_the_menu_opens_and_closes_in()
+    {
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+
+        // One task: what is read between the press and the close is what the open menu's first frame is drawn
+        // with — the server, a round trip away, has had no say. As on Flux's live dropdown page on 2026-11-02:
+        // the ui-dropdown, its button and the menu (or navmenu) all carry it; nothing else does.
+        const string Marks = """
+            testid => {
+                const root = document.querySelector(`[data-testid='${testid}'] [data-ui-dropdown]`);
+                const parts = [root, root.querySelector('[popovertarget]'), root.querySelector('[popover]')];
+                const read = () => parts.map(el => el.hasAttribute('data-open') ? 1 : 0).join('');
+                parts[1].click();
+                const open = read();
+                const others = [...document.querySelectorAll('[data-open]')].filter(el => !parts.includes(el)).length;
+                parts[2].hidePopover();
+                return [open, String(others), read()].join(' ');
+            }
+            """;
+        var menu = await page.EvaluateAsync<string>(Marks, "menu");
+        var nav = await page.EvaluateAsync<string>(Marks, "nav");
+        await page.ClickAsync("#area", new PageClickOptions { Button = MouseButton.Right });
+        await Expect(page.Locator("[data-testid='context'] [popover]")).ToBeVisibleAsync();
+
+        Assert.Equal("111 0 000", menu);
+        Assert.Equal("111 0 000", nav);
+        Assert.Null(await page.GetAttributeAsync("[data-testid='context'] [popover]", "data-open"));
+    }
+
+    [Fact]
     public async Task The_pointer_lights_a_row_without_taking_focus_and_the_first_arrow_lands_on_that_row()
     {
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright);

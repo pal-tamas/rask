@@ -13,9 +13,11 @@ public abstract partial class UiSelectControl<T>
         // live diff ships.
         List<Component?> children =
         [
+            HeldField(view),
             Trigger(view),
             Popup(view),
             .. PostedValues(view),
+            HeldFaces(view, view.Parts.Button?.Placeholder ?? Placeholder),
         ];
 
         return Div.Class(UiSelectLook.Root, Class).Attributes(RootMarks())[children];
@@ -72,6 +74,11 @@ public abstract partial class UiSelectControl<T>
             words.Add("clears");
         }
 
+        if (Held)
+        {
+            words.Add("held");
+        }
+
         return string.Join(' ', words);
     }
 
@@ -100,12 +107,11 @@ public abstract partial class UiSelectControl<T>
             .Aria(TriggerAria(view))
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
-            Div.Class(UiSelectLook.Selected)[PickedContent(view, slot?.Placeholder ?? Placeholder)],
+            Shows(PickedContent(view, slot?.Placeholder ?? Placeholder)),
             // Drawn whenever it is asked for, out of sight while there is nothing to clear: its handler is numbered
-            // before the rows', and a pick that shows it leaves every row wired as it was.
-            AsksToClear(view)
-                ? UiPickerClear.Inside(ClearAsync, Clears(view), RaskStrings.Get(RaskString.SelectClear, "Clear selected"), UiDraws.Pairs(("click", CommitDraws)))
-                : null,
+            // before the rows', and a pick that shows it leaves every row wired as it was. Held, it has none: the
+            // browser clears.
+            AsksToClear(view) ? ButtonClear(view) : null,
             Ui.Icon.Name(Ui.IconName.ChevronDown).Mini.Class(UiSelectLook.Chevron)
         ];
     }
@@ -168,7 +174,7 @@ public abstract partial class UiSelectControl<T>
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
-                Clears(view) ? ClearButton() : null,
+                InputClear(view),
                 Filter == false ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
                 Button
                     .Key("chevron")
@@ -262,19 +268,42 @@ public abstract partial class UiSelectControl<T>
         return marks;
     }
 
+    private Component ButtonClear(View view)
+    {
+        var label = RaskStrings.Get(RaskString.SelectClear, "Clear selected");
+
+        return Held
+            ? UiPickerClear.Inside(null, Clears(view), label, (HeldClear, null))
+            : UiPickerClear.Inside(ClearAsync, Clears(view), label, UiDraws.Pairs(("click", CommitDraws)));
+    }
+
+    // Held, the combobox's clear button is there whenever it is asked for, out of sight while there is nothing to
+    // clear, for the browser to show; otherwise it comes and goes with the answer.
+    private Component? InputClear(View view)
+    {
+        if (Held)
+        {
+            return AsksToClear(view) ? ClearButton(Clears(view)) : null;
+        }
+
+        return Clears(view) ? ClearButton() : null;
+    }
+
     // Out of the tab order, as the input's own clear button is: Backspace and Escape reach the same end.
-    private Component ClearButton() =>
-        Button
+    private Component ClearButton(bool shown = true)
+    {
+        var button = Button
             .Key("clear")
             .Type(ButtonType.Button)
             .TabIndex(-1)
-            .Class(UiInputLook.Action)
+            .Class(shown ? UiInputLook.Action : UiInputLook.ActionHidden)
             .Aria("label", RaskStrings.Get(RaskString.SelectClear, "Clear selected"))
-            .Data("ui-button", "")
-            .Attributes(UiDraws.Marks(("click", CommitDraws)))
-            .OnClick(ClearAsync)[
+            .Data("ui-button", "");
+
+        return (Held ? button.Attributes((HeldClear, null)) : button.Attributes(UiDraws.Marks(("click", CommitDraws))).OnClick(ClearAsync))[
             Ui.Icon.Name(Ui.IconName.XMark).Mini
         ];
+    }
 
     // The drawn variants post nothing by themselves, so a named select carries its answer in hidden inputs.
     private IEnumerable<Component?> PostedValues(View view) =>

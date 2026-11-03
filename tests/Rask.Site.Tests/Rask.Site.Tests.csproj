@@ -56,6 +56,11 @@
     did before the merge. Program.cs is excluded because it is top-level statements: including it would
     give this assembly a second entry point.
   -->
+  <!-- How a test picks from a list the browser holds (one copy, shared with Rask.Ui.Tests). -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Ui.Tests\HeldList.cs" Link="Shared/HeldList.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\..\src\Rask.Site\**\*.cs">
       <Link>Site/%(RecursiveDir)%(Filename)%(Extension)</Link>

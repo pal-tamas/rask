@@ -344,9 +344,10 @@ public sealed class DeferredBindTests(PlaywrightFixture playwright) : IClassFixt
         // Six picks drew themselves; nothing the page wrote ran for any of them, and the page was not drawn.
         Assert.Equal("writes=0|after=0|handlers=0", heardBeforeSave);
         Assert.Equal("model=||", modelBeforeSave);
-        // Each member written once, by the frame that carried the submit and nothing else.
+        // Each member written once, by the frame that carried the submit and nothing else: the room the browser held
+        // goes in it as its bound field's change, ahead of the press (rask-list-held.ts).
         await Expect(page.Locator("#heard")).ToHaveTextAsync("writes=3|after=3|handlers=1");
-        Assert.Equal(1, await SentAsync(page) - before);
+        Assert.Equal(2, await SentAsync(page) - before);
         Assert.Equal(1, await FramesAsync(page) - framesBefore);
     }
 

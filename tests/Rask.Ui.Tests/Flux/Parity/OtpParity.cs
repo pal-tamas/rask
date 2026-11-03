@@ -7,10 +7,6 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <para>
 ///     The values are the rendered page's: the licence key there holds <c>L49R4</c> and the PIN <c>1234</c>.
 ///     </para>
-///     <para>
-///     Flux's button is another page's component and not rebuilt yet, so the two in the first form are stand-ins
-///     marked <c>data-parity-skip</c>: the room each takes on Flux's page, held to its place and size.
-///     </para>
 /// </remarks>
 public sealed partial class OtpParity : FluxParity
 {
@@ -48,12 +44,11 @@ public sealed partial class OtpParity : FluxParity
             ]
         ]);
 
-        // submit="auto" there submits the form; here the full code arrives at OnComplete.
         yield return ("autosubmit", Div.Style("max-width:384px;margin:0 auto")[
             Raw.Value(AppUtilities),
             Form.Model(new object())[
                 Div.Style(Intro)[Heading(), Words()],
-                Div[Ui.Otp.Value("").Length(6).OnComplete(_ => { }).Class("mx-auto")]
+                Div[Ui.Otp.Value("").Length(6).Submit(Ui.OtpSubmit.Auto).Class("mx-auto")]
             ]
         ]);
 

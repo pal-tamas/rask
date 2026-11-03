@@ -3,10 +3,6 @@ using Rask.Core;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>fluxui.dev/components/switch, example by example.</summary>
-/// <remarks>
-///     The separators between the switches of the fieldset are another page's component, not rebuilt yet:
-///     stand-ins marked <c>data-parity-skip</c>, held to their place and size.
-/// </remarks>
 public sealed partial class SwitchParity : FluxParity
 {
     public override string Page => "switch";
@@ -53,5 +49,5 @@ public sealed partial class SwitchParity : FluxParity
         Ui.Switch.Value(false).Label(label).Description(description);
 
     // <flux:separator variant="subtle" />
-    private static Component Separator() => Div.Data("parity-skip", "").Style("height:1px");
+    private static Component Separator() => Ui.Separator.Subtle;
 }

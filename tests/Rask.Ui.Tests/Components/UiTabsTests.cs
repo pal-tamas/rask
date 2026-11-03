@@ -97,7 +97,7 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         {
             Page.Render(Three(Ui.Tabs.Bind(() => settings.Tab))),
             Page.Render(Three(Ui.Tabs.OnChange(_ => { }))),
-            Page.Render(Three(Ui.Tabs.Value("account"))),
+            Page.Render(Three(Ui.Tabs.Value("account").OnChange(_ => { }))),
         }.Select(page => page.Find("[role=\"tablist\"] > input[type=\"hidden\"]"));
 
         Assert.All(fields, field => Assert.True(field.Attributes.ContainsKey("data-rask-unguarded")));
@@ -127,6 +127,34 @@ public partial class UiTabsTests : global::Rask.Core.RaskMarkup
         Assert.Empty(page.FindAll("[role=\"tablist\"] input"));
         Assert.DoesNotContain("data-rask-on-", page.Html, StringComparison.Ordinal);
         Assert.Equal(["profile", "account", "billing"], page.FindAll("[role=\"tab\"]").Select(tab => tab.Attribute("data-rask-tab")));
+    }
+
+    [Fact]
+    public async Task A_row_given_a_value_nobody_listens_to_starts_on_it_and_leaves_the_rest_to_the_browser()
+    {
+        var ticks = 0;
+        var page = Page.Render(() => Div[Button.Id("tick").OnClick(() => ticks++)[$"{ticks}"], Three(Ui.Tabs.Value("account"))]);
+
+        await page.On("#tick").Click();
+
+        // No field to be written back over the reader's choice, no handler, and the page's word has not moved.
+        Assert.Equal(1, ticks);
+        Assert.Equal("Account", Selected(page));
+        Assert.Empty(page.FindAll("[role=\"tablist\"] input"));
+        Assert.DoesNotContain("data-rask-on-change", page.Html, StringComparison.Ordinal);
+        Assert.Equal("0 account", page.Find("[role=\"tablist\"]").Attribute("data-rask-tabs"));
+    }
+
+    [Fact]
+    public async Task A_value_nobody_listens_to_that_the_page_changes_selects_the_new_tab_with_a_new_turn()
+    {
+        var tab = "account";
+        var page = Page.Render(() => Div[Button.Id("open").OnClick(() => tab = "billing")["Billing"], Three(Ui.Tabs.Value(tab))]);
+
+        await page.On("#open").Click();
+
+        Assert.Equal("Billing", Selected(page));
+        Assert.Equal("1 billing", page.Find("[role=\"tablist\"]").Attribute("data-rask-tabs"));
     }
 
     [Fact]
