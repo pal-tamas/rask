@@ -74,9 +74,9 @@ git push origin HEAD:main
   itself, a script, or the package pins runs everything. The CLI build and template gates run on a push
   only when the CLI, a template or a project/props/targets file changed — otherwise `full.yml`, once a day,
   runs them.
-- **A red `main` publishes nothing.** `nightly.yml` and `pages.yml` run only from a commit a push run of
-  `ci.yml` passed on `main` (scoped — until 1.0 `main` runs once), so a site change is live minutes after
-  its run goes green.
+- **A red `main` publishes nothing.** `pages.yml` runs only from a commit a push run of `ci.yml` passed on
+  `main` (scoped — until 1.0 `main` runs once), so a site change is live minutes after its run goes green;
+  `nightly.yml` publishes once that run's `build` job is green (until 1.0), GitHub Packages first.
 
 If the push is rejected as non-fast-forward, someone landed first: `git fetch origin main` and redo
 step 2 — never `--force` `main`.

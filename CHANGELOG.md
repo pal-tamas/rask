@@ -46,6 +46,14 @@ them until tagged releases begin.
   file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
   earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).
   `ci/release/**` still runs everything.
+- **CI: a nightly minutes after the push, on GitHub Packages first.** `nightly.yml` starts with `main`'s `ci` run,
+  packs the commit while it builds, and pushes the moment the run's `build` job (the build and the unit tests) is
+  green — to GitHub Packages first, restorable within seconds, then to nuget.org. The `build` job runs with the
+  analyzers off; a new `analyzers` job beside it runs them, the formatter and the gate script tests. To restore a
+  nightly from GitHub Packages, see [Nightly builds](docs/installation.md#nightly-builds-from-github-packages).
+  Until 1.0. Fixed with it: the rolling `nightly` release was lost whenever the packed commit changed a workflow
+  (GitHub refuses the workflow token a tag on such a commit, HTTP 403); the tag now goes on the newest commit under
+  it that changes none, and the release title names the commit packed.
 - **CI: a nightly is pushed to nuget.org in one wave.** `publish_packages.py push --waves N` folds the dependency
   levels into N pushes and waits for the feed only between them; `nightly.yml` takes `--waves 1 --jobs 8`, so it no
   longer waits eight times for nuget.org's validation. `release.yml` still goes level by level. Until 1.0.

@@ -36,7 +36,7 @@ front doors, attribution) and nothing blocks a commit or a push. AFTER the push 
 runs the gates the change can REACH, each its own job (`scripts/lib/affected_gates.py` decides, and runs
 everything for whatever it cannot narrow); `full.yml` runs the whole set — build, unit, format, every
 browser E2E, CLI build, templates, a job per front-end template — once a day, and `nightly.yml`/`pages.yml`
-publish only from a commit a PUSH run of `ci` passed on main (main runs once until 1.0). Locally, build and test
+publish only from a PUSH run of `ci` on main — `pages` once it passed, `nightly` once its `build` job is green (until 1.0). Locally, build and test
 ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
 — several worktrees doing that at once is what made every gate take ten minutes. A red `main`
 (`gh run list --branch main --workflow ci`, and `--workflow full` for what a scoped run cannot see) is

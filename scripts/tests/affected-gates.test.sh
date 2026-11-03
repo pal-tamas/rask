@@ -146,9 +146,11 @@ wired "the whole run is unscoped"                    full.yml    '^      scope: 
 wired "the whole run is the push set"                full.yml    '^      set: push$'
 wired "the whole run is on a schedule"               full.yml    '^    - cron: '
 wired "the whole run leaves runners for a push"      full.yml    '^      parallel: [0-9]+$'
-wired "nightly publishes what main's ci passed"     nightly.yml 'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
 wired "nightly follows main's ci"                    nightly.yml '^    workflows: \[ci\]$'
-wired "nightly follows a push run, not a manual one" nightly.yml "github\.event\.workflow_run\.event == 'push'"
+wired "nightly starts when main's ci starts"         nightly.yml '^    types: \[requested, completed\]$'
+wired "nightly asks nightly_pick.sh what to publish" nightly.yml 'run: scripts/lib/nightly_pick\.sh$'
+wired "nightly pushes only after the build passed"   nightly.yml "if: needs\.prepare\.outputs\.go == 'true'"
+wired "the build job keeps the name nightly waits on" gates.yml  '"name": "build", +"run": "scripts/run-unit-local\.sh --lane-slots \$\(nproc\)", "part": "build"'
 wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
 wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
@@ -243,7 +245,10 @@ plans "a deps run that cannot see its change takes them all" "$front_end_runs | 
 # The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
 plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
 plans "...and so does the formatter"                       'all(.[]; ((.part // "") | startswith("format") | not) and (.name | startswith("format") | not))' push "" ""
-plans "a Dependabot bump formats what it changed, in build" 'any(.[]; .name == "build") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+# The analyzers have a job of their own beside it, so the nightly (which waits for build) does not wait for them.
+plans "the analyzers run beside the build, not ahead of it" 'any(.[]; .name == "analyzers" and .part == "analyzers") and any(.[]; .name == "build" and .part == "build")' push "" ""
+plans "...in a Dependabot bump's set too"                  'any(.[]; .name == "analyzers")' deps "" "$nuget_bump~1" "$nuget_bump"
+plans "a Dependabot bump formats what it changed, in analyzers" 'any(.[]; .name == "analyzers" and .part == "analyzers") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
 
 # The range the formatter checks: a pull request run with no scope base still has one, its own diff.
 checked=$((checked + 1))
