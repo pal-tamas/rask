@@ -20,7 +20,8 @@
 //   clears    a closed text input is emptied;
 //   text      the answer IS the input's text: a pick writes the row's words into it and announces them;
 //   top       after a pick emptied the search the cursor goes back to the first row;
-//   held      a pick waits for the next action: the browser draws it and holds it (rask-list-held.ts).
+//   held      a pick, a pill taken off, the clear button wait for the next action: the browser draws them and
+//             holds the answers (rask-list-held.ts).
 // A text input the page listens to (`data-rask-on-input`, or `data-rask-on-pause` for a search that waits) is
 // told what this module writes into it as it is told what the reader types — once, and only when the page
 // thinks otherwise: a search it never heard is dropped unsaid, the pause being counted for it called off.
@@ -43,11 +44,12 @@
 
 import {reveal} from "./rask-focus.js";
 import {stepFrom, typeAhead} from "./rask-menu-keys.js";
-import {CLEAR, clearHeld, markHeld, pickHeld} from "./rask-list-held.js";
+import {CLEAR, clearHeld, markHeld, pickHeld, removeHeld} from "./rask-list-held.js";
 import {disown, isShown, listen, near, own, page, seam, setShown} from "./rask-owned.js";
 
 const ROOT = "[data-rask-list]";
 const CREATE = "data-rask-list-create";
+const REMOVE = "[data-rask-list-remove]";
 const OPTION = "[role=option],[" + CREATE + "]";
 const TRIGGER = "[aria-haspopup=listbox]";
 // What an open list keeps from the page behind it and from a form around it.
@@ -768,13 +770,24 @@ if (page) {
             cleared(root);
             return;
         }
+        const cross = has(root, "held") ? near(target, REMOVE) : null;
+        if (cross) {
+            // A pill taken off here, and nothing opens. Flux empties what was typed with it, as at a pick.
+            e.preventDefault();
+            removeHeld(root, cross);
+            const typedIn = inputOf(root);
+            if (typedIn && typedIn.value !== "" && !has(root, "stay")) {
+                unsearch(root, typedIn);
+            }
+            return;
+        }
         const trigger = near(target, TRIGGER);
         // A button that names the popover toggles it by itself.
         if (!trigger || trigger.hasAttribute("popovertarget") || disabled(trigger)) {
             return;
         }
         // Something on the trigger with a press of its own: a pill's remove, the clear button.
-        const inner = near(target, "[data-rask-on-click],[data-rask-list-remove]");
+        const inner = near(target, "[data-rask-on-click]," + REMOVE);
         const input = inputOf(root);
         if (inner && inner !== trigger && trigger.contains(inner)) {
             if (input && input.value !== "" && inner.hasAttribute("data-rask-list-remove") && !has(root, "stay")) {
@@ -820,7 +833,7 @@ if (page) {
 
         if (input && key === "Backspace" && input.value === "") {
             // In an empty input among the pills, Backspace takes the last pill off.
-            const pills = root.querySelectorAll<HTMLElement>("[data-rask-list-remove]");
+            const pills = root.querySelectorAll<HTMLElement>(REMOVE);
             if (pills.length) {
                 pills[pills.length - 1].click();
             }

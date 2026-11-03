@@ -45,15 +45,14 @@ public abstract partial class UiSelectControl<T>
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
         return trigger[
             Div.Key("picked").Class(UiPillboxLook.Selected)[
-                PillsCombobox ? null : Div.Class(UiPillboxLook.Contents)[PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholder)],
+                PillsCombobox ? null : Box(UiPillboxLook.Contents, "rask-list-blank", PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholder)),
                 Div.Class(UiPillboxLook.Pills)[
-                    Div.Class(UiPillboxLook.Contents)[
-                        pills.Length > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(answer => Pill(answer, off))] : null
-                    ],
+                    Box(UiPillboxLook.Contents, "rask-list-pills",
+                        pills.Length > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(answer => Pill(answer, off))] : null),
                     PillsCombobox ? PillInput(view, pills.Length, off) : null
                 ]
             ],
-            Clears(view) ? ClearButton() : null,
+            InputClear(view),
             PillsCombobox
                 ? Button.Key("chevron").Type(ButtonType.Button).TabIndex(-1).Class(UiPillboxLook.InputChevron).Data("ui-button", "")[
                     Ui.Icon.Name(Ui.IconName.ChevronUpDown).Mini.Class(UiPillboxLook.InputChevronIcon)
@@ -72,17 +71,34 @@ public abstract partial class UiSelectControl<T>
 
     // One pill for each answer that has a face (Remember), in the order they were picked, as Flux shows them —
     // not the order the options are written in, and whether or not the option is among the rows now.
+    // Held, its cross is the browser's (rask-list-held.ts).
     private Component Pill(Answer answer, bool off)
     {
         var value = answer.Value;
+
+        return PillOf(answer.Face.FormValue, answer.Face.SelectedText, off, Held ? null : () => RemoveAsync(value));
+    }
+
+    // A pill: of the answer that posts `value`, or the blank one the browser fills (no value). `remove` is the
+    // page's own press on the cross; none where the browser takes the pill off.
+    private Component PillOf(string? value, string words, bool off, Func<Task>? remove)
+    {
         var small = IsSmall(Pills!.Trigger);
-        var remove = Div.Class(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small));
+        var cross = Div.Class(UiPillboxLook.Remove, UiPillboxLook.RemoveSize(small));
+        if (!off)
+        {
+            cross = remove is null
+                ? cross.Attributes(UiPillboxLook.RemoveMarks)
+                : cross.Attributes(UiDraws.With(UiPillboxLook.RemoveMarks, ("click", CommitDraws))).OnClick(remove);
+        }
+
+        var pill = Div.Class(UiPillboxLook.Pill, UiPillboxLook.PillSize(small));
 
         // The option's words, never its content: Flux's pill is text, whatever the row draws beside it.
         // Backspace in the empty input presses the last cross (`data-rask-list-remove`, rask-list.ts).
-        return Div.Key(answer.Face.FormValue).Class(UiPillboxLook.Pill, UiPillboxLook.PillSize(small)).Data("value", answer.Face.FormValue)[
-            Div.Class(UiPillboxLook.PillWords)[answer.Face.SelectedText],
-            (off ? remove : remove.Attributes(UiDraws.With(UiPillboxLook.RemoveMarks, ("click", CommitDraws))).OnClick(() => RemoveAsync(value)))[Ui.Icon.Name(Ui.IconName.XMark).Micro]
+        return (value is null ? pill.Data("rask-list-pill", "") : pill.Key(value).Data("value", value))[
+            Div.Class(UiPillboxLook.PillWords)[words],
+            cross[Ui.Icon.Name(Ui.IconName.XMark).Micro]
         ];
     }
 

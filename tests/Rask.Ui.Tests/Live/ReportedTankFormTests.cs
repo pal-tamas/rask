@@ -48,7 +48,8 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
         var said = new List<string>();
         foreach (var option in new[] { "option 1", "option 2", "option 2", "option 1" })
         {
-            await page.On($"[data-ui-option]:has-text(\"{option}\")").Click();
+            // Bound, the browser holds the pick (rask-list-held.ts); held by the page, the press is sent.
+            await (bound ? HeldList.Switch(page, option) : page.On($"[data-ui-option]:has-text(\"{option}\")").Click());
 
             // A bound list writes its member with the next action, so the page acts before it is read.
             await Acting.Act(page);
@@ -67,7 +68,7 @@ public partial class ReportedTankFormTests : global::Rask.Core.RaskMarkup
         var said = new List<string>();
         foreach (var pistol in new[] { "Glock", "Beretta", "Beretta", "Glock" })
         {
-            await page.On($"[data-ui-option]:has-text(\"{pistol}\")").Click();
+            await HeldList.Switch(page, pistol);
             said.Add(page.TextOf("[data-ui-select-button]"));
         }
 

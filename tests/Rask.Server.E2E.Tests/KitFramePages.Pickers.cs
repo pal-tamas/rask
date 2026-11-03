@@ -48,6 +48,12 @@ public sealed partial class KitSelectFramePage : KitFramePage
         public string? Fruit { get; set; } = "b";
 
         public string State { get; set; } = string.Empty;
+
+        public List<string> Fruits { get; set; } = ["b"];
+
+        public List<string> Tags { get; set; } = ["Alpha"];
+
+        public List<string> TypedTags { get; set; } = ["Alpha"];
     }
 
     protected override Component? Render() =>
@@ -55,6 +61,7 @@ public sealed partial class KitSelectFramePage : KitFramePage
             Part("select-native", Ui.Select.Value(_fruit).Id("native").OnChange(v => _fruit = v)[Options()]),
             Part("select", Ui.Select.Value(_fruit).Listbox.Id("listbox").Placeholder("Choose…").OnChange(v => _fruit = v)[Options()]),
             Part("select-bound", Ui.Select.Bind(() => _answers.Fruit).Listbox.Id("bound").Placeholder("Choose…")[Options()]),
+            Part("select-multiple-bound", Ui.Select.Bind(() => _answers.Fruits).Listbox.Multiple().Id("multiple-bound").Placeholder("Choose…")[Options()]),
             Part("select-searchable", Ui.Select.Value(_city).Listbox.Searchable().Id("searchable").Placeholder("Choose…").OnChange(v => _city = v)[Options()]),
             Part("select-searched", Ui.Select.Value(_found).Listbox.Searchable().Filter(false).Id("searched").Placeholder("Choose…").OnChange(v => _found = v)[
                 Ui.SelectSearch.OnInput(text => _sought = text).Debounce(500.Milliseconds),
@@ -71,6 +78,12 @@ public sealed partial class KitSelectFramePage : KitFramePage
                 Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
             ]),
             Part("pillbox-combobox", Ui.Pillbox.Values(_typedTags).Combobox.Id("pillbox-combobox").Placeholder("Choose…").OnChange(v => _typedTags = [.. v])[
+                Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
+            ]),
+            Part("pillbox-bound", Ui.Pillbox.Bind(() => _answers.Tags).Id("pillbox-bound").Placeholder("Choose…")[
+                Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
+            ]),
+            Part("pillbox-combobox-bound", Ui.Pillbox.Bind(() => _answers.TypedTags).Combobox.Id("pillbox-combobox-bound").Placeholder("Choose…")[
                 Ui.PillboxOption["Alpha"], Ui.PillboxOption["Beta"], Ui.PillboxOption["Gamma"]
             ])
         ];

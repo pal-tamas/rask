@@ -88,6 +88,17 @@ them until tagged releases begin.
   into the select's one hidden bound field (`data-rask-bind-on="action"`), which travels ahead of the reader's
   next action; the model is written, the rules run and `AfterBind` is called then, exactly as before. The clear
   button is the browser's too. A form that asks before it is left still counts the pick, a submit validates it,
+  and a message under the select still goes at the first pick after it. `.Live()`, a select whose value the page
+  holds (`.Value(…).OnChange(…)`) and one whose search the page answers (`Filter(false)`) send their picks as
+  before. The kit-wide frame gate's `select-bound: pick a row` went from 1 frame to 0.
+- **A bound multiple select and a bound pillbox hold their picks in the browser too, as Flux's `wire:model`.** Before:
+  every pick of `Ui.Select.Bind(() => m.Tags).Listbox.Multiple()` and of `Ui.Pillbox.Bind(() => m.Tags)`, and every
+  pill taken off by its cross or by Backspace in a pillbox's empty input, sent a frame. Now the browser switches the
+  row, draws the count ("2 selected") or the pills in the order they were picked, takes a pill off, and holds the
+  answers in the list's one bound field — a JSON array of form values — until the reader's next action. A named
+  multiple select still posts one field per answer. `.Live()`, `.Values(…).OnChange(…)` and `Filter(false)` still
+  send each pick. The frame gate's new `select-multiple-bound`, `pillbox-bound` and `pillbox-combobox-bound` rows
+  went from 1 frame a pick, a pill taken off and a Backspace to 0.
   and a message under the select still goes at the first pick after it — on the WebAssembly host too, whose render
   morphs the rendered `value` back onto the hidden field: the value the page rendered last, rendered again, is no
   news to a group the browser owns (`rask-bound.ts`), so the pick stands. `.Live()`, a select whose value the page
@@ -654,6 +665,15 @@ them until tagged releases begin.
   the handler was dispatched in — what the render after the handler sees — so no `AsyncLocal` the handler opens
   (`Tenant.Across()`/`Tenant.None()`/`Tenant.Use(…)`, `Db.Transaction`, an app's own) reaches a frame, and the
   handler itself keeps its scope. Nothing to change in an app.
+- **A `.Confirm` yes on a page redrawn every few dozen ms runs the action it was asked about.** On a board that
+  redraws while a long sending reports its progress, `Ui.Button.Danger.OnClick(remove).Confirm(…)` then "Igen"
+  closed the question and ran nothing, with nothing in the log: the press made again after the yes reached the
+  server many pages after the one it was read from — past the two an event outlives a render by — and a handler
+  that closes over a row read anew is a new closure in every one, so it could not be shown to be the same. The
+  server now keeps the whole page it tells the browser it holds as the press is made again (the `caughtUp`
+  answer), and the browser presses on exactly that page, so the yes reaches the handler pressed however far the
+  board has drawn on. A delete gone meanwhile, or another action drawn where it was, still runs nothing. Nothing to
+  change in an app. See [An event that outlived its render](docs/js-interop-runtime.md#an-event-that-outlived-its-render).
 - **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
   popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
   `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring
