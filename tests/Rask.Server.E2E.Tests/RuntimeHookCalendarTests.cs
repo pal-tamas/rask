@@ -327,12 +327,14 @@ public sealed class RuntimeHookCalendarTests(PlaywrightFixture playwright) : ICl
         await page.Keyboard.PressAsync("Enter");
         await Expect(page.Locator("#arrival-box [popover]")).ToBeVisibleAsync();
         await Expect(page.Locator("#arrival-box [data-ui-focus-placeholder]")).ToBeHiddenAsync();
-        var rested = await page.EvaluateAsync<string>("document.activeElement.tagName");
+        // The browser lets go of a focused element that stops being drawn on its own time, not in that frame.
+        var rested = await page.WaitForFunctionAsync("() => document.activeElement === document.body", null, new() { Timeout = 3000 })
+            .ContinueWith(waited => waited.IsCompletedSuccessfully, TaskScheduler.Default);
         var ringed = await page.EvaluateAsync<int>(
             "() => [...document.querySelectorAll('#arrival-box [popover], #arrival-box [popover] *')].filter(e => getComputedStyle(e).outlineStyle !== 'none').length");
         await page.Keyboard.PressAsync("Tab");
 
-        Assert.Equal("BODY", rested);
+        Assert.True(rested, "the focus is still on the placeholder, or on something else");
         Assert.Equal(0, ringed);
         Assert.Equal("Previous month", await page.EvaluateAsync<string?>("document.activeElement?.getAttribute('aria-label')"));
     }
