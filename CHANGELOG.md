@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
+  rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
+  in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
+  that reaches a test project also builds `Rask.Wasm`, whose `rask.wasm.js` the core tests read.
 - **CI: the site's browser journeys run side by side, in three shards.** Every class shared one xUnit collection
   fixture, so 220-odd journeys ran one at a time despite `maxParallelThreads: 4`; the static host and the browser
   are now assembly fixtures, each test keeps a browser context of its own, and four classes run at once. The

@@ -239,6 +239,9 @@ plans "...with the rest of the deps set"                   "$named | index(\"tem
 plans "a NuGet bump is held to no front end"               "$named | any(.[]; startswith(\"front end\")) | not" deps "" "$nuget_bump~1" "$nuget_bump"
 plans "a deps run that cannot see its change takes them all" "$named | index(\"front end react\") != null and index(\"front end vue\") != null" deps "" ""
 
+# The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
+plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""
+
 # The site is published once, by a job only the gates that drive it wait for: those are planned apart.
 plans "no gate that waits for nothing drives the site"     'all(.[]; (.site // false) | not) and any(.[]; .name == "build")' push "" ""
 PLAN_OUTPUT=site_gates plans "the browser shards drive the published site" \

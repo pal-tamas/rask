@@ -67,13 +67,15 @@ jobs:
           SCOPE: ${{ inputs.scope }}
           BASE: ${{ inputs.base }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
-          # "mode" says which kind of run a gate belongs to: the whole set cuts the unit tests and the
-          # formatter in two, a scoped run has little enough of either for one job each.
+          # "mode" says which kind of run a gate belongs to: the whole set cuts the formatter in two,
+          # a scoped run has little enough of it for one job.
           # "when" is the key from scripts/lib/affected_gates.py that selects the gate in a scoped run.
           #
-          # The unit gate: "build" is the warnings-as-errors build with the analyzers and the gate
-          # script tests; the "unit" and "format" jobs build without analyzers and then run tests or
-          # the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
+          # The unit gate: "build" is the gate script tests, the warnings-as-errors build with the
+          # analyzers, and then the unit tests over that same output — in a scoped run the projects the
+          # change reaches, otherwise all of them. The tests had three jobs of their own until
+          # 2026-11-03, each building the solution again. The "format" jobs build without analyzers and
+          # then run the formatter. run-unit-local.sh says why at RASK_UNIT_PART.
           #
           # The browser suite runs four classes at a time (one browser, a context per test), and is cut
           # three ways by class over the ONE site the `site` job publishes. Shards 1-2 NAME their
@@ -98,9 +100,6 @@ jobs:
           GATES: >-
             [
               {"set": "push", "deps": true, "when": "code",                    "name": "build",              "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "build"},
-              {"set": "push",               "when": "code", "mode": "scoped",  "name": "unit",               "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests"},
-              {"set": "push", "deps": true,                 "mode": "full",    "name": "unit 1/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-1/2"},
-              {"set": "push", "deps": true,                 "mode": "full",    "name": "unit 2/2",           "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "tests-2/2"},
               {"set": "push",               "when": "cs",   "mode": "scoped",  "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},

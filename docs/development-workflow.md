@@ -150,8 +150,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the analyzer build, then the unit tests it reaches) always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, format (two halves) (`run-unit-local.sh`), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -168,7 +168,7 @@ you); bypass one with `--no-verify`.
 is that command; run it in a worktree at that commit:
 
 ```bash
-scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | tests-1/2 | format-src … runs one piece)
+scripts/run-unit-local.sh                    # the build, unit and format jobs (RASK_UNIT_PART=build | format | format-src … runs one piece)
 scripts/run-e2e-local.sh                     # the "browser E2E" jobs (RASK_E2E_SITE=publish is the "site publish" job; prebuilt drives what it published)
 scripts/run-template-e2e.sh --front-end=vue  # the "front end vue" job
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
@@ -575,7 +575,7 @@ matter most are asserted by an offline unit test rather than by a comment:
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
-They need no network and run in the ordinary unit gate — CI's `unit` jobs, on every push and
+They need no network and run in the ordinary unit gate — CI's `build` job, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
