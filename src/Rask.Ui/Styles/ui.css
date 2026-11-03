@@ -727,8 +727,8 @@
   the trigger is, and a Toggleable one is its button's `popovertarget`. This sheet says where it goes once
   it is open.
 
-  Measured on Flux and kept: the pointer cannot rest on the tooltip (it is gone the moment the pointer leaves
-  the trigger, hence pointer-events).
+  Measured on Flux (2026-11-02): a pointer that walks from the trigger onto the tooltip may rest there, as on a
+  hover panel — the runtime looks at a move once in 100 ms (rask-hover.ts) — so the tooltip takes the pointer.
 
   Two things still show it in place, with no top layer and no Escape. A Toggleable tooltip around something
   that is not a button, which has no `popovertarget`: the wrapper takes the focus a tap gives. And a page
@@ -759,10 +759,6 @@
     position: fixed;
     overflow: auto;
   }
-  [data-ui-tooltip]:not([data-toggleable]) > [data-ui-tooltip-content] {
-    pointer-events: none;
-  }
-
   @media (scripting: none) {
     [data-ui-tooltip][data-rask-tooltip]:hover > [data-ui-tooltip-content],
     [data-ui-tooltip][data-rask-tooltip]:has(> :first-child:focus-visible, > :first-child :focus-visible)

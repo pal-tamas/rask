@@ -123,9 +123,9 @@ departure in behaviour carries none.
   the command list, menus and popovers `overscroll-behavior: contain`; header/sidebar/flyout/toast insets
   `max(the kit's padding, env(safe-area-inset-*))` (equal to Flux's without `viewport-fit=cover`); the date picker's
   preset `<select>` `text-base sm:text-sm` (Flux: 14px always) so iOS does not zoom. CONTENT keeps full parity.
-  `parity.mjs` lets go `userSelect`, `webkitUserSelect`, `touchAction`, `webkitTouchCallout` on chrome and what is
+  `parity.mjs` and `parity-modal.mjs` let go `userSelect`, `webkitUserSelect`, `touchAction`, `webkitTouchCallout` on chrome and what is
   inside it, `webkitUserDrag` on chrome images, `overscrollBehaviorY` on those scrollers, and `fontSize`/`lineHeight`
-  on that select and its options, plus `gap` (`DEPARTED`); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
+  on that select and its options, plus `gap` (`DEPARTED` in `scripts/flux/departed.mjs`); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
   restyling, context-menu blocking, overscroll in a browser tab. `UiNativeFeelTests`, `UiKitNativeFeelTests` (E2E).
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is

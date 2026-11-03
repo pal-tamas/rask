@@ -11,10 +11,18 @@ namespace Rask;
 /// </remarks>
 internal static class UiListboxLook
 {
+    /// <summary>
+    ///     What Flux's <c>ui-options</c> says of a scroll that reaches its end, on whichever box is the list: the
+    ///     popup when it is the list, the list under the search field when there is one (measured: Flux's popup round
+    ///     a searched list is <c>overscroll-behavior: auto</c>, the list in it <c>none</c>).
+    /// </summary>
+    internal const string ListOverscroll = "overscroll-y-none";
+
+    // The popup's corners, shadow, border and fill.
+    private const string Frame = "rounded-lg shadow-xs border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-start";
+
     /// <summary>The popup's border, fill and padding, before its width: a control that sets a width of its own (the phone's picker) starts here.</summary>
-    internal const string Look =
-        "p-[.3125rem] overscroll-y-none rounded-lg shadow-xs "
-        + "border border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700 text-start";
+    internal const string Look = "p-[.3125rem] " + ListOverscroll + " " + Frame;
 
     /// <summary>The popup's box: white, as wide as what it hangs from, at most twenty rem tall.</summary>
     internal const string Box = "[:where(&)]:max-h-[20rem] " + Look;
@@ -27,7 +35,7 @@ internal static class UiListboxLook
     ///     (<see cref="UiSelectLook.SearchedList" />), so the popup is that and the field: measured on Flux with
     ///     more options than fit, 362px where a plain list is 320.
     /// </summary>
-    internal const string PopupOverList = "[:where(&)]:min-w-48 " + Look;
+    internal const string PopupOverList = "[:where(&)]:min-w-48 p-[.3125rem] " + Frame;
 
     /// <summary>The popup when it is the list itself, and scrolls.</summary>
     internal const string Scrolls = "overflow-y-auto";
@@ -99,15 +107,15 @@ internal static class UiListboxLook
     /// <summary>The line between two groups.</summary>
     internal const string GroupSeparator = "-mx-[.3125rem] my-[.3125rem] h-px border-0 bg-zinc-800/5 dark:bg-white/10";
 
-    /// <summary>The "no results" row.</summary>
     /// <summary>
     ///     The keys an open list answers, for <c>data-rask-contain-keys</c> on the text field they are typed into:
     ///     the browser does nothing of its own with them there.
     /// </summary>
     internal const string ListKeys = "Enter ArrowUp ArrowDown Home End PageUp PageDown";
 
+    /// <summary>The "no results" row: words to read, not a control, so its text selects as Flux's does.</summary>
     internal const string Empty =
-        "data-hidden:hidden block items-center px-2 py-1.5 w-full rounded-md text-start text-sm font-medium select-none cursor-default "
+        "data-hidden:hidden block items-center px-2 py-1.5 w-full rounded-md text-start text-sm font-medium cursor-default "
         + "text-zinc-500 dark:text-zinc-300";
 
     /// <summary>

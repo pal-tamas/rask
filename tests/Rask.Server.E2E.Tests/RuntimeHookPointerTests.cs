@@ -134,6 +134,49 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_pointer_moving_off_a_tooltips_trigger_crosses_the_gap_unseen_and_may_rest_on_the_tooltip()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+        await page.HoverAsync("#tip-trigger");
+
+        // Leaving the trigger for the gap, in one task: the move before it was looked at, the one after it is not.
+        var crossing = await page.EvaluateAsync<bool>(
+            """
+            () => {
+                const trigger = document.querySelector('#tip-trigger');
+                trigger.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 1, clientY: 1 }));
+                trigger.dispatchEvent(new PointerEvent('pointerout', { bubbles: true, relatedTarget: document.body }));
+                document.body.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 2, clientY: 2 }));
+                return document.querySelector('#bubble').matches(':popover-open');
+            }
+            """);
+        await page.WaitForTimeoutAsync(150);
+        await page.HoverAsync("#bubble");
+        var resting = await session.ShownAsync("#bubble");
+        await page.WaitForTimeoutAsync(150);
+        await page.Mouse.MoveAsync(900, 600);
+
+        // Flux's tooltip, walked from its trigger onto itself, stays; the first move off both closes it.
+        Assert.True(crossing, "leaving the trigger closed the tooltip before a move was looked at");
+        Assert.True(resting, "the pointer resting on the tooltip closed it");
+        Assert.False(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
+    public async Task A_pointer_that_came_to_rest_closes_a_tooltip_with_its_first_move_into_the_gap()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);
+        var page = session.Page;
+
+        await page.HoverAsync("#tip-trigger");
+        var box = await page.Locator("#tip-trigger").BoundingBoxAsync();
+        await page.Mouse.MoveAsync(box!.X + 5, box.Y + box.Height + 5);
+
+        Assert.False(await session.ShownAsync("#bubble"));
+    }
+
+    [Fact]
     public async Task A_hover_panel_opens_at_once_over_its_trigger_stays_over_itself_and_closes_over_neither()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright);

@@ -45,6 +45,22 @@ public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup
         page.FindAll("[data-ui-option]").Where(row => row.Attribute("data-hidden") is null).Select(row => row.TextContent.Trim());
 
     [Fact]
+    public void The_list_under_the_search_field_holds_its_scroll_and_its_no_results_row_is_text_to_select()
+    {
+        var page = Page.Render(Searchable);
+
+        var popup = page.Find("[data-ui-options]").Attribute("class")!.Split(' ');
+        var list = page.Find("[data-ui-options] > [role=\"listbox\"]").Attribute("class")!.Split(' ');
+        var empty = page.Find("[data-ui-listbox-empty]").Attribute("class")!.Split(' ');
+
+        // Measured on Flux: the popup round a searched list is overscroll-behavior auto, the list in it none, and
+        // its "No results found" row selects as text does — no control, so no NATIVE FEEL departure.
+        Assert.DoesNotContain("overscroll-y-none", popup);
+        Assert.Contains("overscroll-y-none", list);
+        Assert.DoesNotContain("select-none", empty);
+    }
+
+    [Fact]
     public void The_search_field_sits_over_a_list_of_its_own_inside_the_popover()
     {
         var page = Page.Render(Searchable);

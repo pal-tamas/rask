@@ -103,6 +103,12 @@ async function walkOne(url, walk, rask) {
 
   const scope = (await page.$$('[data-preview-wrapper]'))[walk.example];
   await scope.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  // The page holds still under the keys. Home and End in an EMPTY box are the browser's, which scrolls the page —
+  // on both palettes (measured: neither prevents them) — and fluxui.dev scrolls smoothly, sweeping its examples
+  // under the pointer the walk left on the box: it crosses a command, lights it, leaves it and lights none, as a
+  // palette should. That is the docs page's layout walked under the pointer, not the palette's keys, and the pointer
+  // walk holds the palette to Flux's under a moving pointer. Script still scrolls (scrollIntoView, Playwright's own).
+  await page.addStyleTag({ content: 'html { overflow: hidden !important; }' });
   const palette = '[data-flux-command], [data-ui-command]';
   // The palette a step acts on: the open modal's, else the example's.
   const current = async () => (await page.$(`dialog[open] :is(${palette})`)) ?? scope.$(palette);
