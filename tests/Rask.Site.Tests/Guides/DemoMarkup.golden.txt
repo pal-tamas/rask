@@ -526,8 +526,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 div
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
@@ -909,8 +909,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 span .text-zinc-400
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
@@ -7262,8 +7262,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 div
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
@@ -7572,8 +7572,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 div
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
@@ -8656,8 +8656,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 div
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
@@ -8965,8 +8965,8 @@ div .dark:text-zinc-300 .flex .flex-1 .gap-2 .overflow-hidden .text-start .text-
 div
 svg .-me-1 .[:hover&gt;&amp;]:text-zinc-800 .[:where(&amp;)]:size-5 .dark:[:hover&gt;&amp;]:text-white .dark:text-white/60 .ms-2 .shrink-0 .text-zinc-400/75
 path
-dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
-div .[:popover-open&gt;&amp;]:hidden
+dialog .[&amp;:popover-open]:max-w-[calc(100%-2em-6px)] .[&amp;:popover-open]:overflow-auto .[&amp;:popover-open]:select-text .bg-white .border .border-zinc-200 .dark:bg-zinc-700 .dark:border-white/10 .focus:outline-hidden .max-sm:[--rask-place:none] .max-sm:backdrop:bg-black/10 .max-sm:border-0 .max-sm:m-auto .max-sm:max-h-full .max-sm:shadow-xl .overflow-visible .p-0 .rounded-xl .shadow-2xs .sm:[position-try-fallbacks:flip-block,flip-inline] .sm:inset-auto .sm:left-[anchor(left)] .sm:mx-0 .sm:my-[5px] .sm:top-[anchor(bottom)] .text-inherit
+div
 div .grid .relative .sm:grid-cols-[auto_1fr]
 div .sm:row-span-3
 div .relative
