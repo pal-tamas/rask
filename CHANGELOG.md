@@ -646,6 +646,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A frame drawn while a handler is still awaiting no longer sees the handler's own `Tenant.Across()`.** Before: a
+  handler that read inside `using (Tenant.Across()) { await … }` past the handler budget had the frames between its
+  awaits (the one that shows the button busy, the one after each read comes back) drawn in that scope, so
+  `Current.Tenant` was null in `Render()` and a page that branches on it flashed its "no tenant" state for one frame
+  on every click, on both hosts, with a clean log. Every repaint made while a handler runs is now drawn in the flow
+  the handler was dispatched in — what the render after the handler sees — so no `AsyncLocal` the handler opens
+  (`Tenant.Across()`/`Tenant.None()`/`Tenant.Use(…)`, `Db.Transaction`, an app's own) reaches a frame, and the
+  handler itself keeps its scope. Nothing to change in an app.
 - **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
   popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
   `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring

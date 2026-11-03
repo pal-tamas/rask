@@ -535,6 +535,10 @@ Query<Page<Order>> Orders => field ??= QueryClient.Query(() => new GetOrders(_pa
   rest follows when it arrives. So a slow page change shows the
   pager ahead of the old rows for a while, and a long save shows its "Saving…" — at 150 ms rather than at
   once. Past the budget every later `await` repaints as it lands, as before.
+- **Every frame is drawn as the page, never inside the handler's scopes.** A repaint between two awaits is
+  made in the flow the handler was dispatched in, so a handler that reads inside `using (Tenant.Across())` or a
+  `Db.Transaction` keeps them for its own code, while `Render()` still sees the session's `Current.Tenant`,
+  user and services — the same as the render after the handler.
 - **The reader is told the event is done only when the rows are there.** The pressed control's busy mark
   (200 ms) and the bar across the top (300 ms) end with the server's acknowledgement, and that is sent after
   the reads the page went without — so a slow sort by `Go.With` is busy until its rows arrive, where the mark

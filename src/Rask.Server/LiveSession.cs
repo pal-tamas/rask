@@ -505,10 +505,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     //     call, and until it does no state the handler only passes through is shown.
     //   * after it, from code on the handler's context: nothing either. The repaint that follows that
     //     continuation carries the call, with everything the continuation went on to change.
-    //   * after it, from code that left the context: the page as it stands, now, with the call.
+    //   * after it, from code that left the context: the page as it stands, now, with the call — drawn in the flow
+    //     the handler was dispatched in, not in the scope that code is in (RepaintMidHandler).
     private Task SendWhatTheHandlerWaitsOnAsync() =>
         _repaintedMidFlight && JsInvokes.HasPending && SynchronizationContext.Current is not HandlerSyncContext
-            ? RenderInScopeCoreAsync()
+            ? RepaintMidHandler()
             : Task.CompletedTask;
 
     // The page of the dispatch in hand has gone out once while its handler was still working. Until then the
