@@ -10,7 +10,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The calendar, date picker and time picker on their pages in the UI tab, in a browser: the keys, the focus, the
 ///     popup and the sheet a phone gets, which no markup assertion can see.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

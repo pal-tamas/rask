@@ -21,7 +21,6 @@ namespace Rask.Site.E2E.Tests;
 ///         state change.
 ///     </para>
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

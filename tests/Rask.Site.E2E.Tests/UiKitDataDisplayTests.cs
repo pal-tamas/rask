@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's data display components on their pages in the UI tab, in a browser — the size check no markup
 ///     assertion can make, and the state changes no static render can show.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

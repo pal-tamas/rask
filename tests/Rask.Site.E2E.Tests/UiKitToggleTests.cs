@@ -11,7 +11,6 @@ namespace Rask.Site.E2E.Tests;
 ///     What a unit test cannot see: that Space and Enter turn it as a press does, that the stylesheet swaps the
 ///     drawing on <c>data-checked</c>, that a bound toggle that saves waits visibly, and that its tooltip names it.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitToggleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

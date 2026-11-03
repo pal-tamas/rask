@@ -10,7 +10,6 @@ namespace Rask.Site.E2E.Tests;
 ///     Server host's half, with held replies and a page that pushes every second, is <c>WaitForRaskTests</c> in
 ///     <c>Rask.Server.E2E.Tests</c>.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class WaitForRaskWasmTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

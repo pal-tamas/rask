@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     Flux's flag on the running site: the drawings are files the build copied into <c>wwwroot/flags</c>,
 ///     so what only a browser can show is that each one is really served and really drawn.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitFlagTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

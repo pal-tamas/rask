@@ -11,7 +11,6 @@ namespace Rask.Site.E2E.Tests;
 ///     What a unit test cannot see: that the track scrolls and snaps, and that the runtime's carousel hook keeps
 ///     the arrows, the slides' marks and the indicators in step with it — with nothing sent to the page.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitCarouselTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

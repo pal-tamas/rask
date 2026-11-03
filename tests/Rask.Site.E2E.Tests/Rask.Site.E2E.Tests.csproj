@@ -52,11 +52,10 @@
 
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Caps cross-collection parallelism for LOCAL full-suite runs (see xunit.runner.json).
-         Each browser-host collection fixture boots a full `dotnet run` host plus a Chromium
-         page, so unbounded parallelism over-subscribes a small box. This cap is the ONLY thing
-         bounding that: the suite runs as ONE process via scripts/run-e2e-local.sh, on a developer
-         machine and in CI's "browser E2E" job alike; there is no sharded job to spread it. -->
+    <!-- How many test classes run at once (xunit.runner.json), each with a page of its own in the ONE
+         browser and over the ONE static host the assembly fixtures share (Infrastructure/ExampleAppCollections.cs).
+         Four: a CI runner has four cores, and a page booting the WASM runtime takes most of one. A
+         class's own tests still run one after another. -->
     <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

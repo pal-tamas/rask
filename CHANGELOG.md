@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: the site's browser journeys run side by side, in three shards.** Every class shared one xUnit collection
+  fixture, so 220-odd journeys ran one at a time despite `maxParallelThreads: 4`; the static host and the browser
+  are now assembly fixtures, each test keeps a browser context of its own, and four classes run at once. The
+  classes that read the clipboard back share a collection (a browser has one clipboard). The shards are re-dealt by
+  measured seconds, five down to three. `RASK_E2E_CPU_SLOWDOWN` now slows the site suite's pages too.
 - **CI: the site is published once per run.** A `site publish` job publishes `src/Rask.Site` and hands its
   `wwwroot` to the browser shards as an artifact; each shard used to publish it again (five to eight minutes,
   five times). `scripts/run-e2e-local.sh` takes `RASK_E2E_SITE=publish|prebuilt` for the two halves. Only the

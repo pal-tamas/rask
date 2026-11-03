@@ -8,7 +8,7 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's basic form controls (field, input, textarea, checkbox, radio, switch, slider and OTP input) on their
 ///     pages in the UI tab, in a browser: what the runtime and the browser do that no markup assertion can see.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
+[Collection(ClipboardCollection.Name)]
 public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

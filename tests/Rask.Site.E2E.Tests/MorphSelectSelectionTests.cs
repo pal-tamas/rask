@@ -30,7 +30,6 @@ namespace Rask.Site.E2E.Tests;
 ///         full-document morph on boot and navigation, and the redeploy reload.
 ///     </para>
 /// </remarks>
-[Collection(BrowserOnlyCollection.Name)]
 public sealed class MorphSelectSelectionTests(PlaywrightFixture playwright)
 {
     // No whitespace between the options, deliberately. HtmlSerializer emits none, and a stray text node
@@ -133,6 +132,7 @@ public sealed class MorphSelectSelectionTests(PlaywrightFixture playwright)
     private async Task<IPage> OpenAsync(string html)
     {
         var page = await playwright.Browser.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         await page.SetContentAsync(html);
 
         // The real morph, bundled from BrowserFixtures/morph-select.ts by the build and published on

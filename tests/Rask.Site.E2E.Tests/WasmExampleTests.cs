@@ -8,7 +8,7 @@ namespace Rask.Site.E2E.Tests;
 // The Wasm.Host journey: the WASM bundle served by an ASP.NET host with a SPA fallback, so
 // deep-link + refresh and slow-3G apply. There is no server WebSocket to drop, so the
 // offline→reconnect step is off.
-[Collection(WasmExampleCollection.Name)]
+[Collection(ClipboardCollection.Name)]
 public sealed class WasmExampleTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

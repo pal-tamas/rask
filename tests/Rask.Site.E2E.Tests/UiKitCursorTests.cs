@@ -14,7 +14,6 @@ namespace Rask.Site.E2E.Tests;
 ///     but whose label, icon or day number says <c>cursor-default</c> shows the arrow under the pointer — the
 ///     unit test of the sheet rule cannot see that, nor whether a utility on the part outranks it.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitCursorTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

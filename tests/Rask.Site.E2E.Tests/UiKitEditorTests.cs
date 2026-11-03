@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's rich text editor, in a browser: the engine arriving only when an editor is on the page, the
 ///     value crossing to C# and back, and a re-render leaving what was typed alone.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

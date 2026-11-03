@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's navigation components (brand, breadcrumbs, navbar, navlist, pagination, profile and tabs) on their pages in
 ///     the UI tab, in a browser: where a link is actually a link.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitNavigationTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
