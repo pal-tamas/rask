@@ -10,11 +10,15 @@
 //   4. docking right is remembered by the next install;
 //   5. with storage blocked the dock still installs and docks, and nothing throws;
 //   6. with no panel URL, opening creates no frame;
-//   7. with a frame document instead (the WASM host), one srcdoc frame, and onFrame once, with the frame attached.
+//   7. with a frame document instead (the WASM host), one srcdoc frame, and onFrame once, with the frame attached,
+//   8. the pill's alert count,
+//   9. the light or dark the page states (scheme.ts): its `dark` class, else light on a kit page, else the system's,
+//      followed on the host element as the class changes.
 //
 // The C# test (HostDockTests) runs this and asserts the single JSON line on stdout.
 
 import {DOCK_STORAGE_KEY, installDock} from "../../../src/Rask.DevTools/Resources/host/dock.js";
+import {followPageScheme, pageScheme} from "../../../src/Rask.DevTools/Resources/host/scheme.js";
 
 type Handler = (e: unknown) => void;
 
@@ -197,7 +201,40 @@ const dotCapped = dot.textContent;
 alerting.setAlert(0);
 const dotCleared = dot.hidden && alertPill.getAttribute("aria-label") === "Rask DevTools";
 
+// 9. The page's scheme. A stub document that has what pageScheme reads: <html>'s classes and the kit's appearance script.
+function schemeDocument(classes: string[], kit: boolean) {
+    return {
+        documentElement: {classList: {contains: (c: string) => classes.includes(c)}},
+        querySelector: (selector: string) => kit && selector === "script[data-rask-appearance]" ? {} : null,
+    } as unknown as Document;
+}
+const schemes = [
+    pageScheme(schemeDocument(["dark"], true)),
+    pageScheme(schemeDocument([], true)),
+    pageScheme(schemeDocument(["dark"], false)),
+    pageScheme(schemeDocument([], false)),
+].map(s => s ?? "system");
+
+// Followed: a stub MutationObserver whose callback the scenario fires after flipping <html>'s class.
+const htmlClasses: string[] = [];
+const observed: (() => void)[] = [];
+globals.MutationObserver = class {
+    readonly callback: () => void;
+    constructor(callback: () => void) { this.callback = callback; }
+    observe() { observed.push(this.callback); }
+};
+globals.document = schemeDocument(htmlClasses, true);
+const host = new StubElement("rask-devtools");
+(host as unknown as {removeAttribute(name: string): void}).removeAttribute = (name: string) => host.attributes.delete(name);
+followPageScheme(host as unknown as HTMLElement);
+const followed = [host.getAttribute("data-scheme")];
+htmlClasses.push("dark");
+observed.forEach(fire => fire());
+followed.push(host.getAttribute("data-scheme"));
+delete globals.MutationObserver;
+
 process.stdout.write(JSON.stringify({
+    schemes, followed, observers: observed.length,
     dotAtStart, dotShut, alertLabel, dotHiddenWhileOpen, dotBackWhenShut, dotCapped, dotCleared,
     mountedAfterBody, managed, closedAtStart, framesAtStart, sideAtStart, shortcutListenerIsCapture,
     openAfterPill, frameCount: frames.length, frameSrc,

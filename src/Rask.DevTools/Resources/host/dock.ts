@@ -1,13 +1,15 @@
 // The devtools' place on the page: a corner pill that opens a drawer docked to the bottom or the right edge.
 //
 // Everything lives in an open shadow root on a <rask-devtools> element appended to <html>, after <body>:
-//   * the app's stylesheets cannot reach inside it, whatever they select;
-//   * data-rask-managed keeps the morph from removing it on a full frame;
+//   * the app's stylesheets cannot reach inside it, whatever they select,
+//   * data-rask-managed keeps the morph from removing it on a full frame,
 //   * <body> keeps its place among <html>'s children, which the diff's positional paths walk through.
 // DOM APIs only, never innerHTML, so a strict Content-Security-Policy changes nothing. Nothing covers the page until
 // the drawer is opened, and the panel iframe is not created until then either.
 //
 // The pill sits bottom-LEFT: bottom-right is the hot-reload pill's, and the dev-error panel spans the bottom centre.
+
+import {followPageScheme} from "./scheme.js";
 
 export type Dock = "bottom" | "right";
 
@@ -45,25 +47,73 @@ export interface DockHandle {
     setSide(side: Dock): void;
 }
 
+// Flux UI's look, measured from fluxui.dev's own buttons and badges (2026-11-02) and written out here, because the kit's
+// stylesheet may not be on the page the dock is drawn in. The colours read the kit's own variables first, which reach
+// into a shadow root by inheritance, so an app that re-points its zinc scale or its accent re-skins the dock too; each
+// falls back to Tailwind's value, which is what Flux draws without a theme. The font is the kit's Inter when the page
+// has it (a shadow root uses the document's faces, it cannot declare its own), else the system's sans.
+const ZINC = (step: number, value: string) => `var(--color-zinc-${step},${value})`;
+const Z200 = ZINC(200, "oklch(.92 .004 286.32)");
+const Z400 = ZINC(400, "oklch(.705 .015 286.067)");
+const Z500 = ZINC(500, "oklch(.552 .016 285.938)");
+const Z700 = ZINC(700, "oklch(.37 .013 285.805)");
+const Z800 = ZINC(800, "oklch(.274 .006 286.033)");
+
+// Light, then what dark changes: Flux's `dark:` side of the same classes.
+const LIGHT =
+    "color-scheme:light;" +
+    `--fg:${Z800};--muted:${Z500};--line:${Z200};--surface:#fff;` +
+    `--accent:var(--color-accent,${Z800});--accent-fg:var(--color-accent-foreground,#fff);` +
+    "--accent-line:rgb(0 0 0/.1);--wash:color-mix(in oklab," + Z800 + " 5%,transparent);" +
+    "--wash-strong:color-mix(in oklab," + Z800 + " 10%,transparent);" +
+    "--badge:var(--color-red-500,oklch(.637 .237 25.331));";
+const DARK =
+    "color-scheme:dark;" +
+    `--fg:#fff;--muted:${Z400};--line:${Z700};--surface:${Z800};` +
+    `--accent:var(--color-accent,#fff);--accent-fg:var(--color-accent-foreground,${Z800});` +
+    "--accent-line:transparent;--wash:rgb(255 255 255/.1);--wash-strong:rgb(255 255 255/.15);" +
+    "--badge:var(--color-red-600,oklch(.577 .245 27.325));";
+// Tailwind's shadow-lg, which Flux gives what floats above the page (a modal's panel, a dropdown).
+const FLOAT = "0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)";
+const FONT = 'Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+
 const CSS =
-    ":host{all:initial}" +
-    ".pill{position:fixed;left:12px;bottom:12px;z-index:2147483647;padding:5px 12px;border-radius:999px;" +
-    "border:1px solid rgba(255,255,255,.28);background:#1d1b26;color:#fff;cursor:pointer;" +
-    "font:600 12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3)}" +
-    ".pill:focus-visible,.btn:focus-visible{outline:2px solid #8b7cf6;outline-offset:2px}" +
-    ".dot{display:inline-block;min-width:16px;margin-left:6px;padding:0 4px;border-radius:999px;background:#e5484d;" +
-    "color:#fff;font-size:10px;line-height:16px;text-align:center;box-sizing:border-box}" +
+    ":host{all:initial;" + LIGHT + "}" +
+    // Dark when the page says so (scheme.ts), or when it says nothing and the system is dark.
+    ":host([data-scheme=dark]){" + DARK + "}" +
+    "@media (prefers-color-scheme:dark){:host(:not([data-scheme=light])){" + DARK + "}}" +
+    // Native-feel defaults the kit's sheet would give, said here because the sheet may be absent: no text selection on
+    // the chrome, no double-tap zoom or grey tap flash on a button, the hand on what presses and the arrow on what cannot.
+    ".pill,.bar{-webkit-user-select:none;user-select:none}" +
+    "button{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}" +
+    "button:disabled,button[aria-busy=true]{cursor:default}" +
+    // The pill: Flux's primary button at size sm, lifted off the page by the shadow Flux gives what floats.
+    ".pill{position:fixed;left:12px;bottom:12px;z-index:2147483647;box-sizing:border-box;display:inline-flex;" +
+    "align-items:center;justify-content:center;gap:8px;height:32px;margin:0;padding:0 12px;border-radius:6px;" +
+    "border:1px solid var(--accent-line);background:var(--accent);color:var(--accent-fg);white-space:nowrap;" +
+    "font:500 14px/20px " + FONT + ";box-shadow:inset 0 1px rgb(255 255 255/.2)," + FLOAT + "}" +
+    ".pill:hover{background:color-mix(in oklab,var(--accent),transparent 10%)}" +
+    // The unseen-error count: Flux's solid red badge at size sm.
+    ".dot{display:inline-flex;align-items:center;padding:4px 8px;border-radius:6px;background:var(--badge);" +
+    "color:#fff;font:500 12px/16px " + FONT + ";white-space:nowrap}" +
     ".dot[hidden]{display:none}" +
-    ".drawer{position:fixed;z-index:2147483647;display:flex;flex-direction:column;background:#15141c;color:#ece9f5;" +
-    "font:12px/1.4 system-ui,-apple-system,Segoe UI,sans-serif;box-shadow:0 0 24px rgba(0,0,0,.35)}" +
+    // The drawer: the edge of Flux's flyout — its surface, its line on the side that meets the page, and a lift.
+    ".drawer{position:fixed;z-index:2147483647;display:flex;flex-direction:column;box-sizing:border-box;" +
+    "background:var(--surface);color:var(--fg);font:400 14px/20px " + FONT + ";box-shadow:" + FLOAT + "}" +
     ".drawer[hidden]{display:none}" +
-    ".drawer[data-side=bottom]{left:0;right:0;bottom:0;height:40vh;border-top:1px solid #34313f}" +
-    ".drawer[data-side=right]{top:0;right:0;bottom:0;width:min(440px,92vw);border-left:1px solid #34313f}" +
-    ".bar{display:flex;align-items:center;gap:6px;padding:4px 8px;border-bottom:1px solid #34313f}" +
-    ".title{font-weight:600;margin-right:auto}" +
-    ".btn{border:1px solid #4a4658;background:transparent;color:inherit;border-radius:6px;padding:2px 8px;" +
-    "font:inherit;cursor:pointer}" +
-    ".btn[aria-pressed=true]{background:#34313f}" +
+    ".drawer[data-side=bottom]{left:0;right:0;bottom:0;height:40vh;border-top:1px solid var(--line)}" +
+    ".drawer[data-side=right]{top:0;right:0;bottom:0;width:min(440px,92vw);border-left:1px solid var(--line)}" +
+    ".bar{display:flex;align-items:center;gap:4px;padding:4px 4px 4px 12px;border-bottom:1px solid var(--line)}" +
+    // Flux's heading at its default size.
+    ".title{margin-right:auto;font-weight:500;color:var(--fg)}" +
+    // Flux's subtle button at size xs; the side the drawer is docked to is drawn as its filled button, and Close as ghost.
+    ".btn{box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;height:24px;margin:0;" +
+    "padding:0 8px;border:0;border-radius:6px;background:transparent;color:var(--muted);" +
+    "font:500 12px/16px " + FONT + ";white-space:nowrap}" +
+    ".btn:hover{background:var(--wash);color:var(--fg)}" +
+    ".btn[aria-pressed=true]{background:var(--wash);color:var(--fg)}" +
+    ".btn[aria-pressed=true]:hover{background:var(--wash-strong)}" +
+    ".btn.close{color:var(--fg)}" +
     ".frame{flex:1;border:0;width:100%;background:#fff}";
 
 function readSide(): Dock {
@@ -136,7 +186,7 @@ export function installDock(options: DockOptions): DockHandle {
     title.textContent = "Rask DevTools";
     const toBottom = button("btn", "Bottom", "Dock to the bottom");
     const toRight = button("btn", "Right", "Dock to the right");
-    const close = button("btn", "Close", "Close Rask DevTools");
+    const close = button("btn close", "Close", "Close Rask DevTools");
     bar.appendChild(title);
     bar.appendChild(toBottom);
     bar.appendChild(toRight);
@@ -217,6 +267,7 @@ export function installDock(options: DockOptions): DockHandle {
     }, true);
 
     applySide();
+    followPageScheme(element);
     shadow.appendChild(style);
     shadow.appendChild(pill);
     shadow.appendChild(drawer);

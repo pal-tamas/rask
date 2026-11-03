@@ -11,8 +11,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     dialog nobody sees, and again with each example's trigger pressed — the open dialog is the component.
 ///     </para>
 ///     <para>
-///     What a modal holds is the real thing — headings, text, inputs, buttons — except what is not rebuilt
-///     yet: Flux's spacer and its subheading.
+///     What a modal holds is the real thing — headings, text, inputs, buttons, the spacer and the subheading.
 ///     </para>
 /// </remarks>
 public sealed partial class ModalParity : FluxParity

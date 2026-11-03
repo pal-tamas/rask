@@ -73,5 +73,11 @@ public sealed class HostDockTests
         Assert.True(Bool("dotBackWhenShut"));
         Assert.Equal("99+", Str("dotCapped"));
         Assert.True(Bool("dotCleared"));
+
+        // 9. The dock's light or dark: the page's `dark` class where it has one, light on a kit page without it, and the
+        // system's (no attribute, the stylesheet's media query) on a page that states nothing; followed as the class flips.
+        Assert.Equal(["dark", "light", "dark", "system"], r.GetProperty("schemes").EnumerateArray().Select(e => e.GetString() ?? ""));
+        Assert.Equal(["light", "dark"], r.GetProperty("followed").EnumerateArray().Select(e => e.GetString() ?? ""));
+        Assert.Equal(1, Int("observers"));
     }
 }

@@ -12,5 +12,5 @@ public sealed partial class UiBreadcrumbs : Component
 
     /// <inheritdoc />
     protected override Component? Render() =>
-        Div.Class("flex", Class).Attributes(("data-ui-breadcrumbs", null))[Children ?? []];
+        Div.Class("[:where(&)]:flex", Class).Attributes(("data-ui-breadcrumbs", null))[Children ?? []];
 }

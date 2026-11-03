@@ -15,8 +15,8 @@ namespace Rask;
 public sealed partial class UiSidebarSearch : Component
 {
     private const string Root =
-        "relative flex h-10 w-full items-center gap-3 rounded-lg bg-zinc-800/5 px-3 py-2 "
-        + "text-base leading-[1.375rem] text-zinc-700 sm:text-sm sm:leading-[1.375rem] sidebar-rail:justify-center sidebar-rail:px-0 dark:bg-white/10 dark:text-zinc-200 dark:shadow-none";
+        "relative [:where(&)]:flex h-10 [:where(&)]:w-full items-center [:where(&)]:gap-3 [:where(&)]:rounded-lg bg-zinc-800/5 [:where(&)]:px-3 [:where(&)]:py-2 "
+        + "[:where(&)]:text-base leading-[1.375rem] [:where(&)]:text-zinc-700 sm:text-sm sm:leading-[1.375rem] sidebar-rail:justify-center sidebar-rail:px-0 dark:bg-white/10 dark:text-zinc-200 dark:shadow-none";
 
     /// <summary>The words shown while nothing has been typed.</summary>
     public string? Placeholder { get; set; }

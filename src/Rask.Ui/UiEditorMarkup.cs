@@ -15,7 +15,7 @@ internal static class UiEditorMarkup
 {
     /// <summary>A toolbar button's look: 24px square around a 20px icon.</summary>
     internal const string ButtonClass =
-        "flex items-center justify-center p-0.5 rounded-sm text-sm font-medium text-zinc-400 "
+        "[:where(&)]:flex items-center justify-center [:where(&)]:p-0.5 [:where(&)]:rounded-sm [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-400 "
         + "hover:text-zinc-800 hover:bg-zinc-200 focus:text-zinc-800 "
         + "dark:hover:text-white dark:hover:bg-white/10 dark:focus:text-white "
         + "disabled:opacity-75 " + ButtonStates;

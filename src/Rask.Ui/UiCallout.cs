@@ -23,7 +23,7 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiCallout : Component
 {
-    private const string Frame = "@container flex p-2 border rounded-xl";
+    private const string Frame = "@container [:where(&)]:flex [:where(&)]:p-2 border [:where(&)]:rounded-xl";
 
     private const string Content = "flex-1 flex flex-col justify-center gap-2 py-2 pe-3 @md:pe-4";
 

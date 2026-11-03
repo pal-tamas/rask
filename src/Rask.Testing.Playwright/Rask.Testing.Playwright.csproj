@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>true</IsPackable>
+
+    <PackageId>Rask.Testing.Playwright</PackageId>
+    <Title>Rask.Testing.Playwright — wait for a Rask page to settle in Playwright browser tests</Title>
+    <Description>await page.WaitForRask() in a Playwright for .NET test waits until a Rask page has settled: every event answered and its render on the page, every navigation landed, the connection open, what was typed sent. No sleeps, no DOM-quiet windows, no polling for spinners, and it settles on a live page that keeps pushing renders. Reads the runtime's data-rask-busy mark on html, on both the Server and the WebAssembly host. The Rask answer to Livewire's waitForLivewire() for Laravel Dusk.</Description>
+    <PackageTags>rask playwright e2e end-to-end browser-testing testing wait settle livewire dotnet net10</PackageTags>
+  </PropertyGroup>
+
+  <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview
+       that Directory.Build.props packs by default; PackageReadmeFile=NUGET.md is inherited. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
+    <None Remove="NUGET.md" />
+    <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The one dependency: the browser driver the test project already uses. No Rask assembly: the contract is
+         the data-rask-busy mark on the page, so this works against any Rask version that writes it. -->
+    <PackageReference Include="Microsoft.Playwright"/>
+  </ItemGroup>
+
+</Project>

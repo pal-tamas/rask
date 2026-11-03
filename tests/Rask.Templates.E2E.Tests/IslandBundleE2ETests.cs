@@ -68,4 +68,41 @@ public sealed class IslandBundleE2ETests
             CliBuildE2E.TryDeleteDirectory(work);
         }
     }
+
+    [Fact]
+    public async Task A_wasm_hosted_apps_island_bundles_into_its_browser_half()
+    {
+        // Its pages are the browser half's, a project generated into obj/ from Client/ (#1194). That build finds
+        // the island in Client/, installs the root package.json and bundles it into the half's own wwwroot, which
+        // is what the host serves and a publish copies.
+        Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
+        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
+        const string Name = "BundleHosted";
+        var work = TemplateBuildE2ETests.NewWorkingDirectory();
+        var projectDirectory = Path.Combine(work, Name);
+        var companions = Path.Combine(projectDirectory, "obj", "rask-client");
+
+        try
+        {
+            var result = await TemplateBuildE2ETests.ScaffoldWithChosenVersions("wasm-hosted", projectDirectory, Name, version, ["react"]);
+            TemplateBuildE2ETests.Write(result, projectDirectory, feed);
+
+            var (exit, output) = await CliBuildE2E.RunDotnet(
+                $"build \"{Path.Combine(projectDirectory, Name + ".csproj")}\" -warnaserror -m:1");
+
+            Assert.True(exit == 0, $"--template wasm-hosted --islands react does not build:\n{CliBuildE2E.Diagnostics(output)}");
+            var manifest = Directory.GetFiles(companions, "manifest.json", SearchOption.AllDirectories)
+                .SingleOrDefault(path => path.Contains($"{Path.DirectorySeparatorChar}_rask{Path.DirectorySeparatorChar}external{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                                         && !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal));
+            Assert.True(manifest is not null, $"the browser half's island build wrote no manifest under '{companions}'.");
+            using var table = JsonDocument.Parse(await File.ReadAllTextAsync(manifest, TestContext.Current.CancellationToken));
+            Assert.True(
+                table.RootElement.TryGetProperty("ReactCounter", out _),
+                $"the manifest does not list 'ReactCounter': {table.RootElement.GetRawText()}");
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(work);
+        }
+    }
 }

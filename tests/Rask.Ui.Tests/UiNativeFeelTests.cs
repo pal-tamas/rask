@@ -49,6 +49,17 @@ public sealed partial class UiNativeFeelTests
     }
 
     [Fact]
+    public void A_checkbox_or_radio_card_selects_no_text_as_Flux_draws_it()
+    {
+        var unselectable = NativeFeel().Where(r => r.Body.Contains("user-select:none", StringComparison.Ordinal)).ToList();
+
+        var subjects = unselectable.SelectMany(r => Subjects(r.Selector)).ToList();
+
+        Assert.Contains("[data-ui-checkbox-cards]", subjects);
+        Assert.Contains("[data-ui-radio-cards]", subjects);
+    }
+
+    [Fact]
     public void A_link_keeps_its_long_press_preview()
     {
         var callouts = NativeFeel().Where(r => r.Body.Contains("touch-callout", StringComparison.Ordinal)).ToList();

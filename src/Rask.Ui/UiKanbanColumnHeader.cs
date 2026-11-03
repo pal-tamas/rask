@@ -43,7 +43,7 @@ public sealed partial class UiKanbanColumnHeader : UiElement, IUiHost
     protected override string? TagName => null;
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("flex flex-col p-2", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:flex flex-col [:where(&)]:p-2", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);

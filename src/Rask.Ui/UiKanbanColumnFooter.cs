@@ -11,7 +11,7 @@ public sealed partial class UiKanbanColumnFooter : UiElement
     protected override string TagName => "div";
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose("flex flex-col gap-2 px-2 pb-2", Class);
+    protected override string? ResolveClass() => UiClass.Compose("[:where(&)]:flex flex-col [:where(&)]:gap-2 [:where(&)]:px-2 [:where(&)]:pb-2", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);

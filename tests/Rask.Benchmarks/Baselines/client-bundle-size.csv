@@ -561,6 +561,39 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,120724
+# 2026-11-02, the context-menu opener no longer pulls a menu back inside the viewport (rask-dom.ts): the place
+# hook turns it over the pointer as Flux does (rask-place.ts), which now reads the opener's point instead of
+# hearing the right-click again: rask.js 113,282 -> 113,050 (-232), rask.wasm.js 97,691 -> 97,459 (-232),
+# rask-hooks.js 121,602 -> 121,284 (-318). Measured locally (Release, the bundle gate's recipe) on main a2dc2d64c.
+bundle,bytes
+rask.js,113050
+rask.wasm.js,97459
+rask-hooks.js,121284
+# 2026-11-02, Flux's otp submit="auto" (rask-otp.ts: data-rask-otp-submit sends the enclosing form once a typed,
+# pasted or autofilled change leaves every cell filled): rask-hooks.js 121,602 -> 121,873 (+271); rask.js 113,282 and
+# rask.wasm.js 97,691 unchanged. Measured locally (Release, the bundle gate's recipe) on the tree at 3c1e3265d.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,121873
+# 2026-11-02, a WebAssembly tab follows its user (rask-wasm-auth.ts, wiring the Server runtime's rask-auth-watch.ts,
+# now in Rask.Core/Resources and shared): it asks .NET's user provider again on visibility/focus/pageshow, when
+# another tab tells it, and before an event after the answer went stale, holding what the reader does meanwhile.
+# rask.wasm.js 97,691 -> 99,650 (+1,959); rask.js 113,282 and rask-hooks.js 121,602 unchanged. Measured locally
+# (Release, the bundle gate's recipe).
+bundle,bytes
+rask.js,113282
+rask.wasm.js,99650
+rask-hooks.js,121602
+# 2026-11-02, `data-rask-busy` on <html> while the page settles (rask-busy.ts: a hold per unanswered event, queued
+# frame, unsent typing, waiting confirm press, connection or boot, hooks load; what Rask.Testing.Playwright's
+# WaitForRask reads): rask.js 113,282 -> 114,276 (+994), rask.wasm.js 97,691 -> 98,644 (+953), rask-hooks.js
+# 121,602 -> 121,676 (+74). Measured locally with the bundle gate's esbuild recipe on the tree at 7e9d8344c plus
+# this change.
+bundle,bytes
+rask.js,114276
+rask.wasm.js,98644
+rask-hooks.js,121676
 #
 # 2026-11-02, a bound select of one answer holds its pick in the browser until the next action (rask-list-held.ts:
 # the pick drawn and written into the list's one bound field, as Flux's wire:model sends nothing): rask-hooks.js

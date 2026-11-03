@@ -15,6 +15,6 @@ public sealed partial class UiDescription : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Id(Id ?? Context.Get<UiFieldScope>()?.DescriptionId)
-            .Class("text-sm text-zinc-500 dark:text-white/60", Class)
+            .Class("[:where(&)]:text-sm [:where(&)]:text-zinc-500 dark:text-white/60", Class)
             .Data("ui-description", "")[Children ?? []];
 }

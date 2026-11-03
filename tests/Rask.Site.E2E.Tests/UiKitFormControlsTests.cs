@@ -490,7 +490,7 @@ public sealed class UiKitFormControlsTests(WasmExampleAppFixture app, Playwright
     });
 
     [Fact]
-    public Task A_complete_one_time_code_runs_its_completion_handler() => RunAsync(async () =>
+    public Task A_complete_one_time_code_sends_its_form() => RunAsync(async () =>
     {
         await OpenUiPageAsync("otp-input", "OTP input");
         var verified = Page.Locator("[data-testid='ui-otp-verified']");

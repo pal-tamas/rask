@@ -47,6 +47,23 @@
     <CompilerVisibleProperty Include="RaskExternalManifestUrl"/>
   </ItemGroup>
 
+  <!--
+    Where the islands live, which is not always where the project file is (#1194).
+
+    RaskExternalRoot is the folder holding package.json and node_modules: npm installs there, Vite and every
+    checker run from there, and the tsconfig fragment the app's tsconfig.json extends is written under its
+    obj/rask-external. RaskExternalSourceRoot is the tree the front-end files and props snapshots are found in.
+
+    Both are the project's own folder, except for a project that is GENERATED somewhere else: a wasm-hosted
+    app's browser half is a project Rask.Server writes into obj/, and its islands sit in the app's Client/
+    with the app's package.json above them. The build output stays the project's own (wwwroot, obj), because
+    that is what the project serves and publishes.
+  -->
+  <PropertyGroup>
+    <RaskExternalRoot Condition="'$(RaskExternalRoot)' == ''">$(MSBuildProjectDirectory)</RaskExternalRoot>
+    <RaskExternalSourceRoot Condition="'$(RaskExternalSourceRoot)' == ''">$(RaskExternalRoot)</RaskExternalSourceRoot>
+  </PropertyGroup>
+
   <PropertyGroup>
     <!--
       ABSOLUTE, deliberately. IntermediateOutputPath is relative to the project, and these paths are
@@ -74,7 +91,7 @@
       The mapping inside it still points into the configuration's own types directory; only the file
       naming it is stable.
     -->
-    <_RaskExternalStableObj>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)/obj/rask-external'))\</_RaskExternalStableObj>
+    <_RaskExternalStableObj>$([System.IO.Path]::GetFullPath('$(RaskExternalRoot)/obj/rask-external'))\</_RaskExternalStableObj>
     <_RaskExternalOut>$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskExternalOutputDir)'))</_RaskExternalOut>
     <_RaskExternalManifest>$(_RaskExternalOut)\manifest.json</_RaskExternalManifest>
 
@@ -94,7 +111,7 @@
       now, which is the only reason the sentence stays. (The flag is not spelled out here because an
       XML comment may not contain two consecutive hyphens.)
     -->
-    <_RaskExternalBundlable Condition="Exists('$(MSBuildProjectDirectory)/package.json')">true</_RaskExternalBundlable>
+    <_RaskExternalBundlable Condition="Exists('$(RaskExternalRoot)/package.json')">true</_RaskExternalBundlable>
 
     <!-- Design-time builds are excluded everywhere below: an IDE reloading the project must never
          shell out to npm. -->
@@ -137,8 +154,8 @@
     for a front-end file no component has claimed yet, or a hand-written <RaskExternal> item.
   -->
   <ItemGroup>
-    <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx"
-                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+    <_RaskExternalFile Include="$(RaskExternalSourceRoot)/**/*.tsx;$(RaskExternalSourceRoot)/**/*.jsx"
+                     Exclude="$(RaskExternalSourceRoot)/obj/**/*;$(RaskExternalSourceRoot)/bin/**/*;$(RaskExternalSourceRoot)/node_modules/**/*;$(RaskExternalSourceRoot)/wwwroot/**/*">
       <IslandName>%(Filename)</IslandName>
       <Runtime>react</Runtime>
     </_RaskExternalFile>
@@ -146,14 +163,14 @@
     <!-- A single-file component needs no .cs-sibling filter the way a Lit .ts does: the extension is
          the framework's own and belongs to nothing else in a .NET project, so the glob is already as
          narrow as the pairing rule would make it. -->
-    <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.vue"
-                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+    <_RaskExternalFile Include="$(RaskExternalSourceRoot)/**/*.vue"
+                     Exclude="$(RaskExternalSourceRoot)/obj/**/*;$(RaskExternalSourceRoot)/bin/**/*;$(RaskExternalSourceRoot)/node_modules/**/*;$(RaskExternalSourceRoot)/wwwroot/**/*">
       <IslandName>%(Filename)</IslandName>
       <Runtime>vue</Runtime>
     </_RaskExternalFile>
 
-    <_RaskExternalFile Include="$(MSBuildProjectDirectory)/**/*.svelte"
-                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*">
+    <_RaskExternalFile Include="$(RaskExternalSourceRoot)/**/*.svelte"
+                     Exclude="$(RaskExternalSourceRoot)/obj/**/*;$(RaskExternalSourceRoot)/bin/**/*;$(RaskExternalSourceRoot)/node_modules/**/*;$(RaskExternalSourceRoot)/wwwroot/**/*">
       <IslandName>%(Filename)</IslandName>
       <Runtime>svelte</Runtime>
     </_RaskExternalFile>
@@ -163,8 +180,8 @@
          its module by _RaskExternalPairLitFiles below, which reads the C# rather than the file name:
          `Name.ts` beside `Name.cs` is ALSO how scoped TypeScript is spelled, and only the base class
          separates them (#938). -->
-    <_RaskExternalLitCandidate Include="$(MSBuildProjectDirectory)/**/*.ts"
-                     Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*;$(MSBuildProjectDirectory)/**/*.d.ts"/>
+    <_RaskExternalLitCandidate Include="$(RaskExternalSourceRoot)/**/*.ts"
+                     Exclude="$(RaskExternalSourceRoot)/obj/**/*;$(RaskExternalSourceRoot)/bin/**/*;$(RaskExternalSourceRoot)/node_modules/**/*;$(RaskExternalSourceRoot)/wwwroot/**/*;$(RaskExternalSourceRoot)/**/*.d.ts"/>
 
     <!-- Still available for a file convention cannot reach — the build-side counterpart of overriding
          Module in C#. The two have to agree; nothing checks that they do. -->
@@ -184,8 +201,8 @@
 
       Kept out of @(Content) by pattern, so the web SDK never publishes one.
     -->
-    <_RaskExternalSnapshot Include="$(MSBuildProjectDirectory)/**/*.props.json"
-                           Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*;$(MSBuildProjectDirectory)/wwwroot/**/*"/>
+    <_RaskExternalSnapshot Include="$(RaskExternalSourceRoot)/**/*.props.json"
+                           Exclude="$(RaskExternalSourceRoot)/obj/**/*;$(RaskExternalSourceRoot)/bin/**/*;$(RaskExternalSourceRoot)/node_modules/**/*;$(RaskExternalSourceRoot)/wwwroot/**/*"/>
     <AdditionalFiles Include="@(_RaskExternalSnapshot)"/>
     <Content Remove="**/*.props.json"/>
   </ItemGroup>
@@ -302,7 +319,7 @@
                                 IslandAssemblyPath="@(IntermediateAssembly->'%(FullPath)')"
                                 FrontEndFiles="@(_RaskExternalFile)"
                                 PackageIslandsScanned="$(_RaskExternalBundlable)"
-                                ProjectDirectory="$(MSBuildProjectDirectory)"/>
+                                ProjectDirectory="$(RaskExternalRoot)"/>
     <MakeDir Directories="$(_RaskExternalObj)" Condition="'$(_RaskExternalTaskStale)' != 'true'"/>
     <Touch Files="$(_RaskExternalObj)types.stamp" AlwaysCreate="true" Condition="'$(_RaskExternalTaskStale)' != 'true'"/>
   </Target>
@@ -367,7 +384,7 @@
              Text="Rask islands: skipping the prop type-check — Rask.Core's TypeScript toolchain is not imported in this project, so tsgo cannot be resolved."/>
 
     <PropertyGroup>
-      <_RaskExternalDepsMissing Condition="Exists('$(MSBuildProjectDirectory)/package.json') AND !Exists('$(MSBuildProjectDirectory)/node_modules')">true</_RaskExternalDepsMissing>
+      <_RaskExternalDepsMissing Condition="Exists('$(RaskExternalRoot)/package.json') AND !Exists('$(RaskExternalRoot)/node_modules')">true</_RaskExternalDepsMissing>
 
     </PropertyGroup>
 
@@ -383,8 +400,8 @@
       and the only file in there whose timestamp means anything.
     -->
     <ItemGroup>
-      <_RaskExternalManifest Include="$(MSBuildProjectDirectory)/package.json"/>
-      <_RaskExternalInstallReceipt Include="$(MSBuildProjectDirectory)/node_modules/.package-lock.json"/>
+      <_RaskExternalManifest Include="$(RaskExternalRoot)/package.json"/>
+      <_RaskExternalInstallReceipt Include="$(RaskExternalRoot)/node_modules/.package-lock.json"/>
     </ItemGroup>
 
     <PropertyGroup>
@@ -445,25 +462,25 @@
     -->
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.check.json&quot;"
           Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.check.json')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
 
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.solid.json&quot;"
           Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.solid.json')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
 
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.preact.json&quot;"
           Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.preact.json')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
 
     <Exec Command="&quot;$(_RaskExternalTsgoPath)&quot; --project &quot;$(_RaskExternalObj)tsconfig.angular.json&quot;"
           Condition="'$(_RaskExternalTsgoPath)' != '' AND Exists('$(_RaskExternalObj)tsconfig.angular.json')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
 
@@ -484,8 +501,8 @@
       still says it type-checked the islands.
     -->
     <PropertyGroup>
-      <_RaskVueTsc Condition="'$(_RaskVueTsc)' == ''">$(MSBuildProjectDirectory)/node_modules/.bin/vue-tsc</_RaskVueTsc>
-      <_RaskSvelteCheck Condition="'$(_RaskSvelteCheck)' == ''">$(MSBuildProjectDirectory)/node_modules/.bin/svelte-check</_RaskSvelteCheck>
+      <_RaskVueTsc Condition="'$(_RaskVueTsc)' == ''">$(RaskExternalRoot)/node_modules/.bin/vue-tsc</_RaskVueTsc>
+      <_RaskSvelteCheck Condition="'$(_RaskSvelteCheck)' == ''">$(RaskExternalRoot)/node_modules/.bin/svelte-check</_RaskSvelteCheck>
       <_RaskVueTsc Condition="'$(OS)' == 'Windows_NT'">$(_RaskVueTsc).cmd</_RaskVueTsc>
       <_RaskSvelteCheck Condition="'$(OS)' == 'Windows_NT'">$(_RaskSvelteCheck).cmd</_RaskSvelteCheck>
     </PropertyGroup>
@@ -498,7 +515,7 @@
     <Exec Command="&quot;$(_RaskVueTsc)&quot; --noEmit --project &quot;$(_RaskExternalObj)tsconfig.vue.json&quot;"
           Condition="Exists('$(_RaskExternalObj)tsconfig.vue.json') AND '$(_RaskExternalDepsMissing)' != 'true'
                      AND Exists('$(_RaskVueTsc)')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"
           CustomErrorRegularExpression="error TS[0-9]+"/>
 
@@ -515,7 +532,7 @@
     <Exec Command="&quot;$(_RaskSvelteCheck)&quot; --tsconfig &quot;$(_RaskExternalObj)tsconfig.svelte.json&quot; --output machine"
           Condition="Exists('$(_RaskExternalObj)tsconfig.svelte.json') AND '$(_RaskExternalDepsMissing)' != 'true'
                      AND Exists('$(_RaskSvelteCheck)')"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
@@ -648,15 +665,15 @@
     </PropertyGroup>
     <CheckExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
                                      Reason="$(_RaskExternalNoExtract)"
-                                     LockFile="$(MSBuildProjectDirectory)/package-lock.json"/>
+                                     LockFile="$(RaskExternalRoot)/package-lock.json"/>
   </Target>
 
   <PropertyGroup>
     <_RaskExternalPropsStamp>$(_RaskExternalObj)props-$(RaskExternalTypeScriptVersion)-$(RaskExternalPropsLocked).stamp</_RaskExternalPropsStamp>
     <!-- npm's install receipt, only where it exists: a MISSING input makes MSBuild run the target on every build,
          and under npm workspaces or pnpm node_modules is not laid out here at all. -->
-    <_RaskExternalPropsInstallReceipt Condition="Exists('$(MSBuildProjectDirectory)/node_modules/.package-lock.json')">$(MSBuildProjectDirectory)/node_modules/.package-lock.json</_RaskExternalPropsInstallReceipt>
-    <_RaskExternalPropsInstallReceipt Condition="'$(_RaskExternalPropsInstallReceipt)' == '' AND Exists('$(MSBuildProjectDirectory)/package-lock.json')">$(MSBuildProjectDirectory)/package-lock.json</_RaskExternalPropsInstallReceipt>
+    <_RaskExternalPropsInstallReceipt Condition="Exists('$(RaskExternalRoot)/node_modules/.package-lock.json')">$(RaskExternalRoot)/node_modules/.package-lock.json</_RaskExternalPropsInstallReceipt>
+    <_RaskExternalPropsInstallReceipt Condition="'$(_RaskExternalPropsInstallReceipt)' == '' AND Exists('$(RaskExternalRoot)/package-lock.json')">$(RaskExternalRoot)/package-lock.json</_RaskExternalPropsInstallReceipt>
   </PropertyGroup>
 
   <!--
@@ -667,7 +684,7 @@
   <Target Name="_RaskExternalExtractProps"
           DependsOnTargets="ResolveProjectReferences;_RaskExternalProbeNode;_RaskExternalInstallCore"
           Condition="'@(_RaskExternalPackageIsland)' != '' AND '$(_RaskExternalCanExtract)' == 'true'"
-          Inputs="@(_RaskExternalPackageIsland->'%(DeclaringFile)');@(_RaskExternalPackageIsland);$(MSBuildProjectDirectory)/package.json;$(_RaskExternalPropsInstallReceipt);$(MSBuildThisFileDirectory)rask-extract-props.mjs"
+          Inputs="@(_RaskExternalPackageIsland->'%(DeclaringFile)');@(_RaskExternalPackageIsland);$(RaskExternalRoot)/package.json;$(_RaskExternalPropsInstallReceipt);$(MSBuildThisFileDirectory)rask-extract-props.mjs"
           Outputs="$(_RaskExternalPropsStamp)">
     <ResolveTypeScriptToolTask Tool="typescript"
                                Version="$(RaskExternalTypeScriptVersion)"
@@ -681,13 +698,13 @@
     <Delete Files="$(_RaskExternalObj)props/result.json"/>
     <WriteExternalPropsRequestTask Islands="@(_RaskExternalPackageIsland)"
                                    TypeScriptPath="$(_RaskExternalTypeScriptPath)"
-                                   ProjectDirectory="$(MSBuildProjectDirectory)"
+                                   ProjectDirectory="$(RaskExternalRoot)"
                                    OutputDirectory="$(_RaskExternalObj)props"
                                    RequestPath="$(_RaskExternalObj)props/request.json"/>
 
     <Message Importance="high" Text="Rask islands: reading the props of @(_RaskExternalPackageIsland->Count()) package island(s)"/>
     <Exec Command="node &quot;$(MSBuildThisFileDirectory)rask-extract-props.mjs&quot; &quot;$(_RaskExternalObj)props/request.json&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"/>
 
     <SyncExternalPropsSnapshotsTask Islands="@(_RaskExternalPackageIsland)"
@@ -787,14 +804,14 @@
   <Target Name="_RaskExternalInstallCore"
           DependsOnTargets="_RaskExternalProbeNode"
           Condition="'$(_RaskExternalEnabled)' == 'true' AND '@(_RaskExternalFile)' != ''"
-          Inputs="$(MSBuildProjectDirectory)/package.json"
+          Inputs="$(RaskExternalRoot)/package.json"
           Outputs="$(IntermediateOutputPath)rask-external.install.stamp">
     <PropertyGroup>
-      <_RaskExternalInstall Condition="Exists('$(MSBuildProjectDirectory)/package-lock.json')">$(RaskExternalInstallCommand)</_RaskExternalInstall>
+      <_RaskExternalInstall Condition="Exists('$(RaskExternalRoot)/package-lock.json')">$(RaskExternalInstallCommand)</_RaskExternalInstall>
       <_RaskExternalInstall Condition="'$(_RaskExternalInstall)' == ''">$(RaskExternalFirstInstallCommand)</_RaskExternalInstall>
     </PropertyGroup>
-    <Message Importance="high" Text="Rask islands: $(_RaskExternalInstall) in $(MSBuildProjectDirectory)"/>
-    <Exec Command="$(_RaskExternalInstall)" WorkingDirectory="$(MSBuildProjectDirectory)"
+    <Message Importance="high" Text="Rask islands: $(_RaskExternalInstall) in $(RaskExternalRoot)"/>
+    <Exec Command="$(_RaskExternalInstall)" WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"/>
     <MakeDir Directories="$(IntermediateOutputPath)"/>
     <Touch Files="$(IntermediateOutputPath)rask-external.install.stamp" AlwaysCreate="true"/>
@@ -811,7 +828,7 @@
     A RaskExternalBuildCommand the project sets is its own bundler, and is not second-guessed here.
   -->
   <Target Name="_RaskExternalRequireVitePlus" Condition="'$(RaskExternalBuildCommand)' == ''">
-    <Error Condition="!Exists('$(MSBuildProjectDirectory)/node_modules/.bin/vp')"
+    <Error Condition="!Exists('$(RaskExternalRoot)/node_modules/.bin/vp')"
            Code="RASKISLAND019"
            Text="Rask islands: $(MSBuildProjectName) bundles its islands with Vite+, but its package.json does not install it (no node_modules/.bin/vp after the install). Add it, with vite aliased to its core so every plugin resolves the same one: npm install -D vite-plus vite@npm:@voidzero-dev/vite-plus-core, then add &quot;overrides&quot;: { &quot;vite&quot;: &quot;npm:@voidzero-dev/vite-plus-core@&lt;the same version&gt;&quot; } to package.json. `rask new --islands` writes all of this."/>
   </Target>
@@ -953,7 +970,7 @@
     </PropertyGroup>
     <Message Importance="high" Text="Rask islands: bundling @(_RaskExternalFile->Count()) island(s) ($(Configuration))"/>
     <Exec Command="$(_RaskExternalBuildCmd) &quot;$(_RaskExternalConfig)&quot;"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
+          WorkingDirectory="$(RaskExternalRoot)"
           IgnoreStandardErrorWarningFormat="true"/>
     <Error Condition="!Exists('$(_RaskExternalManifest)')"
            Code="RASKISLAND002"

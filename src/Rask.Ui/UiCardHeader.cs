@@ -29,24 +29,24 @@ public sealed partial class UiCardHeader : Component
     // Start actions, the heading and what sits under it, end actions. Everything that is not an action is the
     // middle column, so a subheading lands under its heading without the caller wrapping the two.
     internal const string Grid =
-        "grid grid-cols-[auto_minmax(0,1fr)_auto] items-center [&>:not([data-ui-card-actions])]:col-start-2";
+        "[:where(&)]:grid grid-cols-[auto_minmax(0,1fr)_auto] items-center [&>:not([data-ui-card-actions])]:col-start-2";
 
     private static string Padding(UiCardScope scope) => scope.Edge switch
     {
-        null => scope.Roomy ? "pt-1 pb-5" : "pt-1 pb-3",
-        Ui.CardBodyVariant.Seamless => scope.Roomy ? "pb-6" : "pb-4",
+        null => scope.Roomy ? "[:where(&)]:pt-1 [:where(&)]:pb-5" : "[:where(&)]:pt-1 [:where(&)]:pb-3",
+        Ui.CardBodyVariant.Seamless => scope.Roomy ? "[:where(&)]:pb-6" : "[:where(&)]:pb-4",
         // The card's own hairline of padding is already around it.
         Ui.CardBodyVariant.Inset => scope.Size switch
         {
-            Ui.CardSize.Xs => "rounded-t-[calc(var(--ui-card-radius)-5px)] px-3 pt-2 pb-3",
-            Ui.CardSize.Sm => "rounded-t-[calc(var(--ui-card-radius)-5px)] px-3 pt-3 pb-4",
-            _ => "rounded-t-[calc(var(--ui-card-radius)-5px)] px-5 pt-3 pb-4",
+            Ui.CardSize.Xs => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-3 [:where(&)]:pt-2 [:where(&)]:pb-3",
+            Ui.CardSize.Sm => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-3 [:where(&)]:pt-3 [:where(&)]:pb-4",
+            _ => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-5px)] [:where(&)]:px-5 [:where(&)]:pt-3 [:where(&)]:pb-4",
         },
         _ => scope.Size switch
         {
-            Ui.CardSize.Xs => "rounded-t-[calc(var(--ui-card-radius)-1px)] px-4 py-3",
-            Ui.CardSize.Sm => "rounded-t-[calc(var(--ui-card-radius)-1px)] p-4",
-            _ => "rounded-t-[calc(var(--ui-card-radius)-1px)] px-6 py-4",
+            Ui.CardSize.Xs => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-1px)] [:where(&)]:px-4 [:where(&)]:py-3",
+            Ui.CardSize.Sm => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-1px)] [:where(&)]:p-4",
+            _ => "[:where(&)]:rounded-t-[calc(var(--ui-card-radius)-1px)] [:where(&)]:px-6 [:where(&)]:py-4",
         },
     };
 

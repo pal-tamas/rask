@@ -20,7 +20,7 @@ namespace Rask;
 public sealed partial class UiNavbarItem : Component, IUiTrigger
 {
     private const string Base =
-        "relative flex h-8 items-center rounded-lg text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        "relative [:where(&)]:flex h-8 items-center [:where(&)]:rounded-lg [:where(&)]:text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
         + "dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white "
         + "aria-[current=page]:after:absolute aria-[current=page]:after:inset-x-0 aria-[current=page]:after:-bottom-3 "
         + "aria-[current=page]:after:h-[2px] hover:aria-[current=page]:bg-zinc-800/10 "
@@ -95,7 +95,7 @@ public sealed partial class UiNavbarItem : Component, IUiTrigger
         ];
 
         // An item that is only an icon is 10px either side of it (40px wide), as Flux draws one.
-        var padding = Icon is not null && Children is null ? "px-2.5" : "px-3";
+        var padding = Icon is not null && Children is null ? "[:where(&)]:px-2.5" : "[:where(&)]:px-3";
         return UiNavItemMarkup.Element(
             Href, Current,
             UiClass.Compose(Base, padding, Accent == false ? PlainCurrent : AccentCurrent, Class),

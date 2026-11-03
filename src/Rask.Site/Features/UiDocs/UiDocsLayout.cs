@@ -36,7 +36,9 @@ public sealed partial class UiDocsLayout : Component
                 Main.Class("page-main mx-auto max-w-[920px]")[Outlet]
             ]
         ],
-        // Once, for every page of the tab: where an action's .Confirm("…") asks, in place of `confirm`.
+        // Once, for every page of the tab: where an action's .Confirm("…") asks, and where a form's
+        // ConfirmLeave("…") does, each in place of `confirm`.
+        Ui.ConfirmLeave,
         Ui.Confirm
     ];
 

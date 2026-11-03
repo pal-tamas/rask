@@ -1260,8 +1260,8 @@ export function applyFrameInvokes(
 // open at a time — an auto popover closes the others — so one pair is enough.
 //
 // The ContextMenu key and Shift+F10 fire the same event with no pointer position, so the menu opens at the
-// element that has focus instead. After it is shown the panel is measured and pulled back inside the viewport,
-// since a right-click near an edge would otherwise open a menu half off the screen.
+// element that has focus instead. Keeping the open menu inside the viewport is the place hook's (rask-place.ts,
+// data-rask-place): it turns a menu by an edge over the pointer, as Flux UI does, rather than sliding it.
 //
 // An engine without the popover API keeps the browser's own menu: nothing is prevented that cannot be replaced.
 (function installRaskContextMenu() {
@@ -1270,8 +1270,6 @@ export function applyFrameInvokes(
         return;
     }
     window.__raskContextMenu = true;
-
-    const EDGE = 4;
 
     document.addEventListener("contextmenu", function (e: MouseEvent) {
         const target = e.target instanceof Element ? e.target : null;
@@ -1343,20 +1341,9 @@ export function applyFrameInvokes(
             }
             place(x, y);
             panel.showPopover!();
-        } catch (err) {
-            return; // not connected, or mid-transition
+        } catch {
+            // not connected, or mid-transition: nothing to show
         }
-
-        // Which corner of the menu sits on the pointer is the panel's own style, so it is pulled back by where it
-        // landed rather than by where it was asked to go.
-        const menu = panel.getBoundingClientRect();
-        let fitX = x;
-        if (menu.left < EDGE) fitX += EDGE - menu.left;
-        else if (menu.right > window.innerWidth - EDGE) fitX += window.innerWidth - EDGE - menu.right;
-        let fitY = y;
-        if (menu.bottom > window.innerHeight - EDGE) fitY += window.innerHeight - EDGE - menu.bottom;
-        else if (menu.top < EDGE) fitY += EDGE - menu.top;
-        place(fitX, fitY);
     }
 })();
 

@@ -438,6 +438,31 @@ reloading tab is served the page it asked for.
 A visitor who never signed in is not part of this: nothing is asked about them, and a public page goes on
 serving them.
 
+### In WebAssembly
+
+A WebAssembly tab has no socket whose cookie can be stale — every request it makes carries the cookie as it is now,
+and your server decides each one. What can be stale is the page: it read its user once, at boot, from
+`IUserProvider`. So it asks again, at the same moments and within the same bounds as a Server tab — as it becomes
+the reader's again (visible, focused, back from the back/forward cache), when another tab says the credential
+changed, and before the first event after 30 seconds in the focused window (2 seconds in another) — by calling the
+provider's `Refresh()` (`AddRaskAuthClient()`'s reads `/api/auth/me`). What the reader does meanwhile waits for the
+answer, one second at most:
+
+| The provider now reads | The tab |
+|---|---|
+| the same user with the same rights | goes on; what waited is sent |
+| another user | draws the page for them, under its route guard; what waited for the user before is dropped |
+| nobody, where there was somebody | goes to the sign-in page with the way back, `/login?returnUrl=…`, from any page, with no message; what waited is dropped, and the service worker's offline cache is emptied as a sign-out here empties it |
+
+A `401` from the page's own origin — Rask's own API, or any endpoint of your server, called through the host's
+`HttpClient` — makes a tab that had a user ask at once, so a cookie that lapsed is found at the call it refused. The
+`401` still reaches the caller; the render its handler ends with is already the sign-in page. A `401` to a tab that had
+nobody — a wrong password on the sign-in form — asks nothing, and one from another origin is not about this app's
+user. No answer — offline, a server error — is no change: the provider keeps the user it has (`HttpUserProvider` reads
+anonymous only when its first read fails). An app with no page at `/login` has nowhere to send the reader, and draws
+the page for nobody under its own guard. Nothing in your app takes part; an app that registers an `HttpClient` of its
+own keeps the questions on return and on a pause, and decides itself what its `401`s mean.
+
 ### On a host you wire yourself
 
 All of it rests on one thing: `HttpContext.User` must be the user on the page's `GET`, on the socket's upgrade

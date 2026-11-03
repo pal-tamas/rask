@@ -152,6 +152,11 @@ public static class RaskSpaEndpointExtensions
         }
 
         UseBundleFiles(app, fileProvider, prefix, options, dev, wasm);
+        if (wasm)
+        {
+            MapIslandFiles(endpoints, fileProvider, prefix, options);
+        }
+
         MapIndexDocument(endpoints, prefix, options, wasm, IndexPath(fileProvider, options, devManifest, resolved));
         return endpoints;
     }
@@ -194,6 +199,57 @@ public static class RaskSpaEndpointExtensions
             ApplySecurityHeaders(context.Response.Headers);
             await context.Response.SendFileAsync(indexPath, context.RequestAborted).ConfigureAwait(false);
         });
+
+    /// <summary>The folder a WebAssembly bundle's islands are built into, beside its manifest (Rask.External).</summary>
+    private const string IslandFolder = "_rask/external";
+
+    /// <summary>
+    ///     Serves the bundle's islands from an endpoint of their own, when it has any (#1194).
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Static files are middleware, and middleware runs after routing has chosen an endpoint — and skips the
+    ///         request when one was chosen. The operator dashboard maps <c>/_rask/{**path}</c>, so every island
+    ///         chunk and its manifest went to the dashboard's sign-in instead, and the island failed to mount. A
+    ///         route with the literal <c>_rask/external</c> outranks that catch-all; it clears the endpoint so the
+    ///         same static-file handling serves the file, and answers 404 for one the bundle does not have.
+    ///     </para>
+    ///     <para>
+    ///         Mapped only when the bundle has an island manifest, so an app without islands gains no route.
+    ///     </para>
+    /// </remarks>
+    private static void MapIslandFiles(
+        IEndpointRouteBuilder endpoints,
+        IFileProvider fileProvider,
+        string prefix,
+        SpaHostingOptions options)
+    {
+        if (!fileProvider.GetFileInfo(IslandFolder + "/manifest.json").Exists)
+        {
+            return;
+        }
+
+        var files = endpoints.CreateApplicationBuilder()
+            .Use(next => context =>
+            {
+                context.SetEndpoint(null);
+                return next(context);
+            })
+            .UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = fileProvider,
+                RequestPath = prefix,
+                ContentTypeProvider = _contentTypes,
+                OnPrepareResponse = context => PrepareResponse(context, prefix, options, wasm: true),
+            });
+        files.Run(context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return Task.CompletedTask;
+        });
+
+        endpoints.MapMethods($"{prefix}/{IslandFolder}/{{**path}}", [HttpMethods.Get, HttpMethods.Head], files.Build());
+    }
 
     private static void MapDevSession(IEndpointRouteBuilder endpoints, string prefix, string devManifest, bool wasm)
     {

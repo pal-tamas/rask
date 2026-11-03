@@ -55,6 +55,26 @@ public sealed class UiTabsBrowserTests(PlaywrightFixture playwright) : IClassFix
     }
 
     [Fact]
+    public async Task A_row_given_a_value_and_no_callback_keeps_the_readers_tab_when_the_page_is_rendered_again()
+    {
+        await using var watched = await Watched.OpenAsync(playwright);
+        var page = watched.Session.Page;
+        await page.ClickAsync("#valued [role=tab] >> nth=1");
+        var pressed = watched.Frames();
+
+        await page.ClickAsync("#tick");
+        await Expect(page.Locator("#tick")).ToHaveTextAsync("Ticked 1");
+        await page.ClickAsync("#tick");
+
+        // The value is where the row starts; the press is the browser's, and two renders of the page later it stands.
+        Assert.Equal((0, 0), pressed);
+        await Expect(page.Locator("#tick")).ToHaveTextAsync("Ticked 2");
+        Assert.Equal("false true false|-1 0 -1|", await page.EvaluateAsync<string>(Row, "valued"));
+        await Expect(page.Locator("#valued [role=tabpanel]:not([hidden])")).ToHaveTextAsync("Your email, 2.");
+        await Expect(page.Locator("#valued [role=tabpanel][data-selected]")).ToHaveCountAsync(1);
+    }
+
+    [Fact]
     public async Task A_bound_row_says_nothing_until_the_readers_next_action_and_then_the_page_has_the_tab()
     {
         await using var watched = await Watched.OpenAsync(playwright);
@@ -269,6 +289,12 @@ public sealed partial class TabsBrowserPage : Component
                 Ui.TabPanel.Name("profile")["Your name."],
                 Ui.TabPanel.Name("account")["Your email."],
                 Ui.TabPanel.Name("billing")["Your plan."]
+            ]],
+            Div.Id("valued")[Ui.TabGroup.Key("valued")[
+                Ui.Tabs.Value("profile")[Ui.Tab.Name("profile")["Profile"], Ui.Tab.Name("account")["Account"], Ui.Tab.Name("billing")["Billing"]],
+                Ui.TabPanel.Name("profile")[$"Your name, {_ticks}."],
+                Ui.TabPanel.Name("account")[$"Your email, {_ticks}."],
+                Ui.TabPanel.Name("billing")[$"Your plan, {_ticks}."]
             ]],
             Div.Id("bound")[Views(Ui.Tabs.Key("bound").Segmented.Bind(() => _view.Deferred))],
             P.Id("bound-says")[_view.Deferred],

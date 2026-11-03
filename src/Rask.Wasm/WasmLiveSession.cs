@@ -8,6 +8,7 @@ using Rask.Core.Authorization;
 using Rask.Core.Diagnostics;
 using Rask.Core.Live;
 using Rask.Core.Routing;
+using Rask.Wasm.Authentication;
 
 namespace Rask.Wasm;
 
@@ -76,7 +77,16 @@ internal sealed class WasmLiveSession : LiveSessionBase
             _userProvider = userProvider;
             userProvider.Changed += OnUserChanged;
         }
+
+        if (services.GetService<WasmUserWatch>() is { } userWatch)
+        {
+            _userWatch = userWatch;
+            userWatch.SignInEnded += OnUserChanged;
+        }
     }
+
+    // Held for the same symmetric unsubscribe as _userProvider; it also says when the sign-in ended (GuardRouteAsync).
+    private readonly WasmUserWatch? _userWatch;
 
     // Browser WebAssembly runtime — in-process in the browser page (shell stays Web, platform None).
     protected override RenderEngine EngineCore => RenderEngine.Wasm;
@@ -98,6 +108,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
         if (_userProvider is not null)
         {
             _userProvider.Changed -= OnUserChanged;
+        }
+
+        if (_userWatch is not null)
+        {
+            _userWatch.SignInEnded -= OnUserChanged;
         }
 
         // Same for the culture service, which is a root singleton here and outlives every session: left
@@ -462,6 +477,14 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return NoFrame;
         }
 
+        // The tab's sign-in ended (WasmUserWatch): what the reader did was done on a page that is going, for a user
+        // who has gone. It runs nothing, and the render that answers it is the sign-in page — as a Server session
+        // drops an event once its sign-in ended.
+        if (_userWatch is { HasEnded: true })
+        {
+            return RenderEndedAsync(copyFrame);
+        }
+
         if (string.Equals(type, "batch", StringComparison.Ordinal))
         {
             return root.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array
@@ -482,6 +505,19 @@ internal sealed class WasmLiveSession : LiveSessionBase
     {
         using var doc = JsonDocument.Parse(json.AsMemory());
         return doc.RootElement.Clone();
+    }
+
+    // The answer to an event of a page whose sign-in ended: no handler, the page arrived at again in its own place —
+    // and the guard of that arrival sends it on to the sign-in page (SignInAgain).
+    private Task<byte[]> RenderEndedAsync(bool copyFrame)
+    {
+        var routeState = Services.GetRequiredService<RouteState>();
+        var here = QueryString.Build(routeState.Path, routeState.Query);
+        var at = here.IndexOf('?', StringComparison.Ordinal);
+        _arrivals.Read();
+        return at < 0
+            ? NavigateAsync(here, string.Empty, replace: true, copyFrame)
+            : NavigateAsync(here[..at], here[at..], replace: true, copyFrame);
     }
 
     private async Task<byte[]> DispatchHandlerAsync(string handlerId, JsonElement root, bool copyFrame)
@@ -886,6 +922,11 @@ internal sealed class WasmLiveSession : LiveSessionBase
     private async Task<string?> GuardRouteAsync()
     {
         var routeState = Services.GetRequiredService<RouteState>();
+        if (SignInAgain(routeState) is { } signIn)
+        {
+            return signIn;
+        }
+
         if (!RouteResolver.TryResolve(routeState.Path, out var chain))
         {
             return null;
@@ -914,6 +955,34 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return then;
         }
 
+        return ToSignIn(routeState);
+    }
+
+    // A tab whose sign-in ended goes to the sign-in page with the way back, whatever page it is on, once — as a Server
+    // session does (RaskEndpointExtensions.SignInAgainAsync). An app with no sign-in page of its own has nowhere to
+    // send it: the page is drawn for nobody, and its guard decides as for any visitor. So is one already there, or
+    // signed in again meanwhile.
+    private string? SignInAgain(RouteState routeState)
+    {
+        if (_userWatch is not { HasEnded: true } watch)
+        {
+            return null;
+        }
+
+        watch.HasEnded = false;
+        if (Services.GetService<IUserProvider>()?.Current is { } user && PrincipalRights.IsSignedIn(user)
+            || string.Equals(routeState.Path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase)
+            || !RouteResolver.TryResolve(RouteAuthorizationGuard.ChallengePath, out _, out var notFound)
+            || notFound)
+        {
+            return null;
+        }
+
+        return ToSignIn(routeState);
+    }
+
+    private static string ToSignIn(RouteState routeState)
+    {
         var returnUrl = "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(routeState.Path, routeState.Query));
         routeState.Path = RouteAuthorizationGuard.ChallengePath;
         routeState.Query = QueryString.Parse(returnUrl);

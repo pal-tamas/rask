@@ -34,7 +34,7 @@ public sealed partial class UiBrand : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var classes = UiClass.Compose(Name is null ? "me-4 flex h-10 items-center" : "me-4 flex h-10 items-center gap-2", Class);
+        var classes = UiClass.Compose(Name is null ? "[:where(&)]:me-4 [:where(&)]:flex h-10 items-center" : "[:where(&)]:me-4 [:where(&)]:flex h-10 items-center [:where(&)]:gap-2", Class);
         Component?[] content =
         [
             Mark(),

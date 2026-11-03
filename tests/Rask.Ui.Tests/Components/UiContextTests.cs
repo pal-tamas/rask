@@ -128,6 +128,8 @@ public partial class UiContextTests : global::Rask.Core.RaskMarkup
         Assert.Matches("<div[^>]*data-ui-context=\"\"[^>]*data-rask-open-mark=\"" + Regex.Escape(panel) + "\"", page.Html);
         Assert.DoesNotContain("data-open", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-on-toggle", page.Html, StringComparison.Ordinal);
+        // The menu itself asks for nothing: Flux's context menu carries no `data-open` while it shows.
+        Assert.DoesNotContain("data-rask-open-mark=\"\"", page.Html, StringComparison.Ordinal);
         // The same menu, so the same cursor: the runtime's, in the browser.
         Assert.Matches("<div[^>]*role=\"menu\"[^>]* data-rask-menu-cursor=\"\"|<div[^>]* data-rask-menu-cursor=\"\"[^>]*role=\"menu\"", page.Html);
     }

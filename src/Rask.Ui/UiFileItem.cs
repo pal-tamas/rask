@@ -10,13 +10,13 @@ namespace Rask;
 public sealed partial class UiFileItem : Component
 {
     private const string Frame =
-        "flex min-h-10 cursor-default items-start overflow-hidden rounded-lg border border-zinc-200 "
-        + "border-b-zinc-300/80 bg-white text-base sm:text-sm shadow-xs dark:border-white/10 dark:bg-white/10";
+        "[:where(&)]:flex min-h-10 cursor-default items-start overflow-hidden [:where(&)]:rounded-lg border border-zinc-200 "
+        + "border-b-zinc-300/80 bg-white [:where(&)]:text-base sm:text-sm shadow-xs dark:border-white/10 dark:bg-white/10";
 
     // No example on Flux's page draws an invalid item, so this is its invalid input's border, not a measurement.
     private const string InvalidFrame =
-        "flex min-h-10 cursor-default items-start overflow-hidden rounded-lg border border-red-500 "
-        + "bg-white text-base sm:text-sm shadow-xs dark:border-red-400 dark:bg-white/10";
+        "[:where(&)]:flex min-h-10 cursor-default items-start overflow-hidden [:where(&)]:rounded-lg border border-red-500 "
+        + "bg-white [:where(&)]:text-base sm:text-sm shadow-xs dark:border-red-400 dark:bg-white/10";
 
     private const string Preview =
         "relative me-1 size-11 overflow-hidden rounded-sm after:absolute after:inset-0 after:rounded-sm "

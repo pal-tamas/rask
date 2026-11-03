@@ -48,6 +48,7 @@
         <Project Path="src/Rask.SQLite.Browser/Rask.SQLite.Browser.csproj" />
         <Project Path="src/Rask.Validation.FluentValidation/Rask.Validation.FluentValidation.csproj" />
         <Project Path="src/Rask.Testing/Rask.Testing.csproj" />
+        <Project Path="src/Rask.Testing.Playwright/Rask.Testing.Playwright.csproj" />
         <Project Path="src/Rask.Web/Rask.Web.csproj" />
         <Project Path="src/Rask.WebPush/Rask.WebPush.csproj" />
         <Project Path="src/Rask.Xlsx/Rask.Xlsx.csproj" />
@@ -130,6 +131,8 @@
         <Project Path="tests/Rask.Web.Tests/Rask.Web.Tests.csproj" />
         <Project Path="tests/Rask.WebPush.Tests/Rask.WebPush.Tests.csproj" />
         <Project Path="tests/Rask.Xlsx.Tests/Rask.Xlsx.Tests.csproj" />
+        <Project Path="tests/Rask.Wasm.E2E.Tests/Rask.Wasm.E2E.Tests.csproj" />
+        <Project Path="tests/Rask.Wasm.Fixture.Wasm/Rask.Wasm.Fixture.Wasm.csproj" />
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj" />
         <Project Path="tests/Rask.Wire.Tests/Rask.Wire.Tests.csproj" />

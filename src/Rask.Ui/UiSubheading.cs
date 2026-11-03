@@ -16,7 +16,7 @@ public sealed partial class UiSubheading : UiElement
 
     /// <inheritdoc />
     protected override string? ResolveClass() =>
-        UiClass.Compose("text-sm [:where(&)]:text-zinc-500 [:where(&)]:dark:text-white/70", Class);
+        UiClass.Compose("[:where(&)]:text-sm [:where(&)]:text-zinc-500 [:where(&)]:dark:text-white/70", Class);
 
     /// <inheritdoc />
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);

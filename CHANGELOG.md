@@ -7,7 +7,35 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **`rask deploy` logs in to the box once.** Every docker step was `docker -H ssh://…`, a fresh SSH login each —
+  and on a box where a login costs ~5 s (PAM, motd scripts, a far-away CI runner) a deploy's forty-odd steps and the
+  build's own dials were two idle minutes. A deploy and a rollback now forward the box's Docker socket over one SSH
+  connection and send every step through it; a box that refuses the forward is deployed one connection per step, as
+  before, and the deploy says why in ssh's own words — a stock Ubuntu sshd forwards, an `AllowTcpForwarding no` one
+  (it gates the socket forward too) is named and given up on at once rather than after a 20 s wait. Readiness waits (container running, `/health`, the Caddy reload, the check through the proxy) ask at once,
+  then every second for up to 60 s, and say when the app answered; the four reads before the new colour starts go
+  out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
+
 ### Added
+- **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
+  `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
+  browser tests hand-rolled "settled" — counting sent against acknowledged events, waiting for `[aria-busy=true]` and
+  skeletons to go, then a "DOM quiet for 300 ms" window that never settles on a page pushing renders and settles too
+  early on a slow one. Now the runtime itself says it: `data-rask-busy` is on `<html>` while an event is unanswered or
+  its render not on the page, a navigation is in flight, a frame is queued, a live or debounced field has unsent
+  text, a `.Confirm` press waits to be made again, the connection is opening or re-opening (Server), the app is
+  booting (WASM) or the hooks bundle is loading — on both hosts, client-side only, nothing sent for it. The mark goes
+  on in the same task as the click that caused it, so the wait cannot look too early:
+  ```csharp
+  using Rask.Testing;
+
+  await page.GetByRole(AriaRole.Button, new() { Name = "Ship" }).ClickAsync();
+  await page.WaitForRask();               // WaitForRask(this IPage page, TimeSpan? timeout = null); also on IFrame
+  Assert.Equal("Shipped", await page.Locator("#status").TextContentAsync());
+  ```
+  Not covered: the app's own timers, and a server push that has not reached the browser yet (a page pushing a render
+  every second still settles). See [Testing](docs/testing.md#waiting-for-the-page-in-browser-tests).
 - **A bound select picks in the browser and sends nothing until the next action, as Flux's `wire:model`.** Before:
   picking an option of `Ui.Select.Bind(() => m.Room).Listbox` (searchable or not) or `.Combobox` sent the press to
   the server, which held the value and drew the pick — a frame and a reply per pick, where Flux sends no request
@@ -27,11 +55,42 @@ them until tagged releases begin.
   multiple select still posts one field per answer. `.Live()`, `.Values(…).OnChange(…)` and `Filter(false)` still
   send each pick. The frame gate's new `select-multiple-bound`, `pillbox-bound` and `pillbox-combobox-bound` rows
   went from 1 frame a pick, a pill taken off and a Backspace to 0.
+  and a message under the select still goes at the first pick after it — on the WebAssembly host too, whose render
+  morphs the rendered `value` back onto the hidden field: the value the page rendered last, rendered again, is no
+  news to a group the browser owns (`rask-bound.ts`), so the pick stands. `.Live()`, a select whose value the page
+  holds (`.Value(…).OnChange(…)`), one whose search the page answers (`Filter(false)`), a multiple select and a
+  pillbox send their picks as before. The kit-wide frame
+  gate's `select-bound: pick a row` went from 1 frame to 0.
 - **`Ui.Subheading`** — Flux UI's `flux:subheading`, measured on its modal page: a `<div>` of 14px zinc-500 supporting
   text (white at 70% in dark) that an app can recolour. `Ui.Heading` now keeps 8px from a subheading right after or
   before it, as Flux's does, so `Ui.Heading.Lg["Update profile"], Ui.Subheading["Make changes…"]` needs no margin
   class. The `/ui/modal` floating flyout uses it. The Flux parity pages of modal, input, OTP, editor, checkbox,
   card, table and timeline now compare the real `Ui.*` components where they used to hold a stand-in box.
+- **Three Flux props the kit was missing.** `Ui.Otp.Submit(Ui.OtpSubmit.Auto)` is Flux's `submit="auto"`: once every
+  cell is filled — typed, pasted or autofilled — the runtime sends the enclosing form, as Flux does (measured: again
+  for each change while the code is whole, never for a key that empties a cell, nor for a pasted code longer than the
+  cells). `Ui.Autocomplete.Money()` hands its input Flux's `mask:dynamic="$money($input)"`, with `Ui.Input.Money()`'s
+  marks. `Ui.SelectOption.Avatar` takes an avatar of your own for Flux's `avatar:*` props —
+  `.Avatar(Ui.Avatar.ColorAuto())` — besides an image's address; what it leaves unset is the option's (extra small,
+  round, named by the option). **BREAKING (type):** `UiSelectOption.Avatar` is a `Component?` now; a string still
+  converts.
+- **Docs: `Ui.Confirm` and `Ui.ConfirmLeave` have pages of their own on the UI tab,
+  [rask.sh/ui/confirm](https://rask.sh/ui/confirm/) and [rask.sh/ui/confirm-leave](https://rask.sh/ui/confirm-leave/).**
+  Before, the two dialogs were shown only in the forms guide's demos and in one example on the modal page. Each page
+  is marked as the kit's own, not Flux's, and has live examples — an action, a typed answer, a form, a form that asks
+  before it is left, and a layout placing the dialog in its own words (`Ui.Confirm.Heading("Megerősítés").No("Nem")
+  .Yes("Igen")`) — then its Behaviour and its steps. The UI tab's layout now places `Ui.ConfirmLeave` too.
+- **A WebAssembly tab follows its user, as a Server tab does.** Before: a WASM page read `IUserProvider` once, at
+  boot — sign out in another tab, let the cookie lapse, and it went on drawing the page for whoever it booted with,
+  and an API call refused with `401` was an exception and nothing more. Now the tab asks the provider again
+  (`Refresh()`) as it becomes the reader's (visible, focused, back from the bfcache), when another tab says the
+  credential changed, and before the first event after 30 s focused / 2 s unfocused — the Server host's
+  `rask-auth-watch.ts`, now shared by both runtimes. Another user: the page is drawn for them. Nobody where there was
+  somebody: `/login?returnUrl=…` from any page, no message, and what the reader pressed meanwhile runs nothing. A
+  `401` from the page's own origin through the host's `HttpClient` asks at once. `HttpUserProvider` keeps the user it
+  has when a refresh gets no answer (offline, `5xx`), and no longer raises `Changed` for the same user read again.
+  New gate: `scripts/run-wasm-e2e-local.sh`. See
+  [In WebAssembly](docs/authentication.md#in-webassembly).
 - **`rask doctor` and `rask deploy` check for Docker's buildx plugin.** Every scaffolded Dockerfile uses
   `RUN --mount=type=cache`, which a docker CLI without buildx (Homebrew's `docker` formula, say) sends to the legacy
   builder — and the deploy failed mid-build, after the context had gone up to the host, in words naming neither.
@@ -283,6 +342,13 @@ them until tagged releases begin.
     the chart's bars, groups, stacks, viewports and legend indicators (`parity-chart.mjs`, `parity.mjs chart`),
     `Ui.CheckboxIndicator`, `Ui.PillboxInput` and the editor's eighteen toolbar items (`parity.mjs`,
     `parity-editor.mjs`).
+- **DevTools: the dock looks like the Flux kit, light and dark.** The corner pill is Flux's primary button (size sm)
+  and its unseen-error count Flux's solid red badge; the drawer's Bottom / Right / Close are Flux's subtle and ghost
+  buttons at size xs, the docked side drawn filled, on Flux's flyout surface and edge. Colours, radii, sizes and type
+  were measured from fluxui.dev and written into the dock's own shadow-root stylesheet, so it still needs neither the
+  kit's sheet nor anything a strict CSP refuses; they read the kit's `--color-zinc-*` / `--color-accent` when the page
+  has them, and its Inter when the page has loaded it. Dark follows the page's `dark` class (Ui.AppearanceScript),
+  else the system. Buttons show the hand, the chrome cannot be text-selected, and a tap never zooms.
 - **docs: SQLite + Litestream on Azure App Service no longer claims it "works well".** Measured on a B3 Linux plan, an
   `az webapp restart` (or a deploy, a setting change, a platform recycle) overlaps two containers and loses acknowledged
   writes, and the platform's 5-second stop grace is shorter than `LitestreamOptions.ShutdownGracePeriod`. The section
@@ -507,6 +573,9 @@ them until tagged releases begin.
   template, so a scaffold keeps its look when the plugin goes. See [the CLI](docs/cli.md#rask-new--scaffold-a-project).
 
 ### Performance
+- **The client runtime no longer pulls a context menu back inside the viewport itself** (rask.js and rask.wasm.js
+  -232 bytes, rask-hooks.js -318): the place hook already turns a menu by an edge over the pointer, as Flux does, and
+  now reads the opener's point rather than hearing the right-click a second time.
 - **A `Ui.Table`'s HTML is under a quarter of what it was.** Every cell wrote Flux's whole class list, some 200 characters
   thirteen times a row, and a list of 9,730 rows came to 31.6 MB. Now what every heading and cell share — padding,
   size, ink, dividers — is written once, in the kit's sheet, on their `data-ui-column` / `data-ui-cell` markers at no
@@ -544,6 +613,35 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A non-nullable prop declared `= null!` no longer breaks a warnings-as-errors build with CS8625.** A page's
+  `[RouteParam] public string Id { get; set; } = null!;` made the chain's reset write `__c.Id = null;` into the
+  generated setters; the reset now keeps the declaration's `!` (`null!`) for every non-nullable reference prop,
+  while a `string?` prop still resets to a plain `null`.
+- **`Ui.Tabs.Value(…)` with no `OnChange` and no `Bind` is the tab the row starts on, and the reader's choice
+  stands after it**, as a Flux tab group without `wire:model` is the browser's alone: a press sends nothing, a
+  render of the page from elsewhere does not flip it back, and only a different value from the page selects another
+  tab. The row no longer renders a hidden field nobody reads, which every render wrote back to the first value.
+- **An open `Ui.Dropdown`'s menu or navmenu says `data-open`, as its root and trigger do**, in the same task the browser
+  opens it in, with no round trip on the Server host. Flux's live dropdown page marks all three (measured 2026-11-02),
+  and a style keyed on the panel's `data-open` now applies; a `Ui.Context` menu asks for none, as Flux's carries none.
+- **The daily Flux parity run no longer reads a slow machine as the kit's chevrons drawn hovered** (#1260). The
+  measurer waits for a tap to become its click, and for a page lock to land, before it reads what the pointer
+  left, instead of a fixed time; on a phone the pillbox's picks are stood in for by a real tap on the last picked
+  row rather than a row lit by hand; the datetime picker's open-to example opens on December 2026, as Flux's does.
+- **Three `Rask.Ui` parts now draw as Flux UI does, found once its profile and brand pages compared the real
+  header, sidebar and spacer.** `Ui.Spacer` takes `Class`, as `flux:spacer` does (`Ui.Spacer.Class("min-w-24")`).
+  A `Ui.Sidebar` that stays in the page's flow is lifted `z-1`, as Flux's; one that slides over the page keeps
+  `z-20`. A checkbox or radio CARD selects no text, as Flux's does and as every other checkbox and radio already did.
+  The profile page's dropdown is now the real `Ui.Navmenu` (`Ui.NavmenuItem.Indent()`, `Ui.NavmenuSeparator`).
+- **`rask new --template wasm-hosted --islands …` scaffolds islands a page can render** (#1194). The pairs went into
+  the server project, which renders no page; they now go in `Client/Features/Islands/` beside the browser app's pages,
+  `Client/Pages/HomePage.cs` renders them, and `Rask.External`/`Rask.Blazor` (and the Blazor class library) are
+  `RaskClientPackageReference`/`RaskClientProjectReference` items. The browser project generated into `obj/` finds them
+  through two new `Rask.External` properties: `RaskExternalSourceRoot` (`Client/`, where the islands are) and
+  `RaskExternalRoot` (the app's folder, where `package.json` and `node_modules` are). Both default to the project's own
+  folder. `rask dev` starts no island dev server for a wasm-hosted app; its islands rebuild with `Client/`.
+  `MapRaskSpa` now serves a WebAssembly bundle's `/_rask/external/` files from a route of its own: the operator
+  dashboard's `/_rask/{**path}` catch-all had sent the island manifest to sign-in, so no island mounted.
 - **A `Db.Transaction` at a non-default isolation no longer leaves its pooled SQL Server connection at that level.**
   SQL Server keeps `SET TRANSACTION ISOLATION LEVEL` on the session after the transaction ends and the pool's
   `sp_reset_connection` does not clear it, so after an `isolation: IsolationLevel.Serializable` block every later read
@@ -553,6 +651,16 @@ them until tagged releases begin.
   block share that connection). PostgreSQL and SQLite were checked and do not keep the level. `UseRaskSqlServer`'s
   per-open session batch now also starts with `SET TRANSACTION ISOLATION LEVEL READ COMMITTED` (no extra round trip),
   so a hand-written `BeginTransaction(IsolationLevel.Serializable)` cannot leak into the next pooled use either.
+- **An app's class now wins over 315 more kit defaults, on 100 more components.** `.Class("p-2")` on a card,
+  `.Class("text-base")` on a button or `.Class("w-auto")` on an input used to lose to the kit's own utility of equal
+  weight, and the winner was Tailwind's print order, not the call site. Those defaults are now written
+  `[:where(&)]:…`, which weighs nothing, so an app's utility wins without `!`. The look is unchanged
+  (`parity.mjs` on every touched page, at 1280 and 390). What still needs `!` is named, with its reason, in
+  `AnAppsClassWinsTests.Known` (10 components, down from 110): an empty error's and a closed popover's `hidden`
+  (a state, not a look), the current/selected/checked ink of a nav or sidebar item, a tab and a toggle (it has to
+  outweigh dark mode's resting ink), and the table's Flux class list. Two showcase demos now look as their code
+  says: the callback guide's rating stars take their `text-2xl` and amber, and the composer's "Remove picture"
+  button its `rounded-full`.
 - **A one-project WebAssembly app that compiles the UI kit into its own sheet no longer has its booted client link
   `/css/rask-ui.css`** (#1203). The browser companion generated into `obj/` now carries the app's
   `Rask.Ui.Stylesheet` assembly metadata, and only that: the server's other metadata names build-machine paths that

@@ -109,7 +109,8 @@ public abstract partial class DatetimePickerExamples : FluxParity
 
         yield return ("calendar-options", One().WithToday().SelectableHeader().WeekNumbers());
 
-        yield return ("open-to", One().OpenTo(At(now.AddDays(10), 9, 0)));
+        // Flux's page writes this one as a literal, not from now() (measured 2026-11-02: it opens on December 2026).
+        yield return ("open-to", One().OpenTo(new DateTime(2026, 12, 1, 9, 0, 0, DateTimeKind.Unspecified)));
 
         yield return ("localization", One(At(now.AddDays(3), 14, 0)).Locale("fr-FR"));
 

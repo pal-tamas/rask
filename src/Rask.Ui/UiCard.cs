@@ -87,16 +87,16 @@ public sealed partial class UiCard : Component
 
     private static string Radius(Ui.CardSize size) => size switch
     {
-        Ui.CardSize.Lg => "rounded-2xl [--ui-card-radius:var(--radius-2xl)]",
-        Ui.CardSize.Md => "rounded-xl [--ui-card-radius:var(--radius-xl)]",
-        _ => "rounded-lg [--ui-card-radius:var(--radius-lg)]",
+        Ui.CardSize.Lg => "[:where(&)]:rounded-2xl [--ui-card-radius:var(--radius-2xl)]",
+        Ui.CardSize.Md => "[:where(&)]:rounded-xl [--ui-card-radius:var(--radius-xl)]",
+        _ => "[:where(&)]:rounded-lg [--ui-card-radius:var(--radius-lg)]",
     };
 
     // Seamless pads everything evenly; inset leaves a hairline of card around the panel; the rest pad per part.
     private static string Padding(UiCardScope scope) => scope.Body switch
     {
-        Ui.CardBodyVariant.Seamless => scope.Roomy ? "p-6" : "p-4",
-        Ui.CardBodyVariant.Inset => "p-1",
+        Ui.CardBodyVariant.Seamless => scope.Roomy ? "[:where(&)]:p-6" : "[:where(&)]:p-4",
+        Ui.CardBodyVariant.Inset => "[:where(&)]:p-1",
         _ => "",
     };
 

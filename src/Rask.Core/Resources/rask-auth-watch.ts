@@ -25,6 +25,11 @@
 // again; a tab that dropped its connection whenever the server was slow would drop it exactly when it is loaded.
 //
 // The HTTP transport needs none of it: every post carries the cookie, and the server adopts what it brings.
+//
+// BOTH HOSTS. The Server runtime (rask.ts) asks /_rask/auth/who and opens its connection again. The WASM runtime
+// (rask-wasm-auth.ts) has no connection whose cookie can be stale — every request carries the one there is now — but
+// it has a page drawn for the user it booted with: it asks .NET, which asks its user provider again, and "not the
+// same" drops what the page held and draws it for whoever the browser carries now.
 
 /** How long an answer is trusted in the window that has the focus. */
 export const FRESH_FOCUSED_MS = 30_000;

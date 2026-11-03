@@ -48,6 +48,10 @@ interface Seam {
     waits?: number;
     /** What runs each time the last of them is answered (`whenQuiet`). */
     quiet?: (() => void)[];
+    /** How many holds keep the page busy (`busy`). */
+    holds?: number;
+    /** Whether a microtask to take the busy mark off is already queued. */
+    clearing?: boolean;
 }
 
 /**
@@ -185,6 +189,43 @@ export function tell<T>(el: Element, name: string, send: () => T): T {
     return answer!;
 }
 
+// ----- Whether the page is still settling -------------------------------------------------------------
+//
+// `data-rask-busy` on <html> (rask-busy.ts says when, and builds the runtime's own sources on this). The hold
+// itself lives HERE, on the seam, because both bundles take holds — the loader while the hooks are on their way,
+// `awaiting` below for both hosts — and a count each bundle kept for itself would clear the mark while the other
+// still held it.
+
+/** The mark on <html> while the page is settling. */
+export const BUSY_MARK = "data-rask-busy";
+
+function root(): Element | null {
+    return typeof document === "undefined" ? null : document.documentElement;
+}
+
+function settle(): void {
+    seam.clearing = false;
+    const el = root();
+    if (!seam.holds && el) el.removeAttribute(BUSY_MARK);
+}
+
+/** Holds the page busy until the returned function is called; calling it again does nothing. */
+export function busy(): () => void {
+    seam.holds = (seam.holds || 0) + 1;
+    const el = root();
+    if (el && !el.hasAttribute(BUSY_MARK)) el.setAttribute(BUSY_MARK, "");
+    let held = true;
+    return function (): void {
+        if (!held) return;
+        held = false;
+        seam.holds = Math.max(0, (seam.holds || 1) - 1);
+        if (seam.holds === 0 && !seam.clearing) {
+            seam.clearing = true;
+            queueMicrotask(settle);
+        }
+    };
+}
+
 // ----- What the page is waiting on --------------------------------------------------------------------
 //
 // A hook that shows something the moment the reader asks — a table's skeleton rows (rask-skeleton.ts) — takes
@@ -195,10 +236,13 @@ export function tell<T>(el: Element, name: string, send: () => T): T {
 /** The page now waits on one more answer. Call what this returns once the render that answers it is on the page. */
 export function awaiting(): () => void {
     seam.waits = (seam.waits || 0) + 1;
+    // And the page is busy until it is answered (rask-busy.ts): from now, in the task the event was raised in.
+    const release = busy();
     let done = false;
     return function () {
         if (done) return;
         done = true;
+        release();
         seam.waits = Math.max(0, (seam.waits || 1) - 1);
         if (seam.waits === 0) {
             for (const heard of seam.quiet!) heard();

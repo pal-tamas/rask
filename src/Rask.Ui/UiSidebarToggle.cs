@@ -8,8 +8,8 @@ namespace Rask;
 public sealed partial class UiSidebarToggle : Component
 {
     private const string Root =
-        "relative flex size-10 shrink-0 items-center justify-center gap-2 rounded-lg text-center text-sm "
-        + "font-medium whitespace-nowrap text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
+        "relative [:where(&)]:flex [:where(&)]:size-10 shrink-0 items-center justify-center [:where(&)]:gap-2 [:where(&)]:rounded-lg text-center [:where(&)]:text-sm "
+        + "font-medium whitespace-nowrap [:where(&)]:text-zinc-500 hover:bg-zinc-800/5 hover:text-zinc-800 "
         + "dark:text-zinc-400 dark:hover:bg-white/15 dark:hover:text-white";
 
     /// <summary>The icon drawn. <see cref="Ui.IconName.Bars2" /> unless this says otherwise.</summary>

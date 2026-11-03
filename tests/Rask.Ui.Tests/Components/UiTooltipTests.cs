@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 public partial class UiTooltipTests : global::Rask.Core.RaskMarkup
 {
     private const string Look =
-        "m-0 rounded-md border-0 bg-zinc-800 px-2.5 py-2 text-xs font-medium text-white "
+        "[:where(&amp;)]:m-0 [:where(&amp;)]:rounded-md border-0 bg-zinc-800 [:where(&amp;)]:px-2.5 [:where(&amp;)]:py-2 [:where(&amp;)]:text-xs font-medium [:where(&amp;)]:text-white "
         + "[position-anchor:--ui-tooltip] dark:border dark:border-white/10 dark:bg-zinc-700";
 
     [Fact]

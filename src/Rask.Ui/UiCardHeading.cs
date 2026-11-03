@@ -22,7 +22,7 @@ public sealed partial class UiCardHeading : Component
     {
         var size = Size ?? Ui.CardHeadingSize.Base;
         var roomy = Context.Get<UiCardScope>()?.Roomy ?? true;
-        var classes = UiClass.Compose("font-medium text-zinc-800 dark:text-white", Type(size, roomy), Class);
+        var classes = UiClass.Compose("font-medium [:where(&)]:text-zinc-800 dark:text-white", Type(size, roomy), Class);
         var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["ui-card-heading"] = null,
@@ -35,9 +35,9 @@ public sealed partial class UiCardHeading : Component
 
     private static string Type(Ui.CardHeadingSize size, bool roomy) => size switch
     {
-        Ui.CardHeadingSize.Lg => "text-base/6",
-        Ui.CardHeadingSize.Xl => "text-2xl/8",
-        _ => roomy ? "text-sm/6" : "text-sm/5",
+        Ui.CardHeadingSize.Lg => "[:where(&)]:text-base/6",
+        Ui.CardHeadingSize.Xl => "[:where(&)]:text-2xl/8",
+        _ => roomy ? "[:where(&)]:text-sm/6" : "[:where(&)]:text-sm/5",
     };
 
     private static string Name(Ui.CardHeadingSize size) => size switch

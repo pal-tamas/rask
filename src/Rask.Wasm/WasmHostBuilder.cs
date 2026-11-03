@@ -69,6 +69,17 @@ public sealed class WasmHostBuilder
         // WASM-only set that needs a live document, a device chooser or a user gesture.
         Services.AddCoreBrowserApis(ServiceLifetime.Singleton);
         Services.AddWasmBrowserApis(ServiceLifetime.Singleton);
+        AddUserServices();
+        Services.AddAuthorizationCore();
+        // IJSRuntime backed by the WASM JSImport/JSExport bridge. Singleton — one
+        // runtime per app instance. JSInterop.Init(...) binds it to the bridge.
+        Services.AddSingleton<WasmJSRuntime>();
+        Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<WasmJSRuntime>());
+    }
+
+    // Who the tab is for, the sign-in it can end, and the client it reaches its own server with.
+    private void AddUserServices()
+    {
         Services.TryAddSingleton<IUserProvider, AnonymousUserProvider>();
         // WasmAuthSignIn posts sign-out to the server, so it needs an HttpClient. Registering the sign-in
         // service without one made IAuthSignIn — a contract Rask.Core promises on every host — resolvable on
@@ -80,16 +91,18 @@ public sealed class WasmHostBuilder
         // only answers after Run has imported it. Resolving before then (or off-browser, in a test)
         // yields a relative "/" — not a legal HttpClient.BaseAddress — so leave it unset in that case rather
         // than throwing out of a service factory.
-        Services.TryAddSingleton(_ =>
+        //
+        // A 401 from the page's own origin makes a tab that had a user ask who the browser carries now
+        // (SignInRefusals, WasmUserWatch): Rask's own API refusing the tab is how a sign-in that ended elsewhere shows.
+        Services.TryAddSingleton(sp =>
             Uri.TryCreate(BaseAddress, UriKind.Absolute, out var origin)
-                ? new HttpClient { BaseAddress = origin }
+                ? new HttpClient(new SignInRefusals(sp, origin) { InnerHandler = new HttpClientHandler() })
+                {
+                    BaseAddress = origin
+                }
                 : new HttpClient());
+        Services.TryAddSingleton<WasmUserWatch>();
         Services.TryAddSingleton<IAuthSignIn, WasmAuthSignIn>();
-        Services.AddAuthorizationCore();
-        // IJSRuntime backed by the WASM JSImport/JSExport bridge. Singleton — one
-        // runtime per app instance. JSInterop.Init(...) binds it to the bridge.
-        Services.AddSingleton<WasmJSRuntime>();
-        Services.AddSingleton<IJSRuntime>(sp => sp.GetRequiredService<WasmJSRuntime>());
     }
 
     private WebAppManifest? _manifest;

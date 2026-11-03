@@ -14,15 +14,15 @@ namespace Rask;
 public sealed partial class UiFileUploadDropzone : UiElement
 {
     private const string Frame =
-        "flex rounded-lg border-dashed border-zinc-200 bg-zinc-50 transition-colors "
+        "[:where(&)]:flex [:where(&)]:rounded-lg border-dashed border-zinc-200 bg-zinc-50 transition-colors "
         + "dark:border-white/10 dark:bg-white/10 "
         + "in-data-dragging:border-zinc-300 in-data-dragging:bg-zinc-100 "
         + "dark:in-data-dragging:border-white/20 dark:in-data-dragging:bg-white/15 "
         + "peer-disabled:pointer-events-none peer-disabled:opacity-75";
 
-    private const string Stacked = "flex-col items-center justify-center border-2 px-6 py-5 sm:px-16 sm:py-10";
+    private const string Stacked = "flex-col items-center justify-center border-2 [:where(&)]:px-6 [:where(&)]:py-5 sm:px-16 sm:py-10";
 
-    private const string Beside = "items-center border py-4 ps-4 pe-6 sm:ps-5 sm:pe-8";
+    private const string Beside = "items-center border [:where(&)]:py-4 [:where(&)]:ps-4 [:where(&)]:pe-6 sm:ps-5 sm:pe-8";
 
     private const string Glyph =
         "text-zinc-400 transition dark:text-white/60 in-data-dragging:text-zinc-800 dark:in-data-dragging:text-white";

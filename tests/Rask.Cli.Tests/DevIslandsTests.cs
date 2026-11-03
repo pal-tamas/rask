@@ -35,6 +35,23 @@ public class DevIslandsTests
     }
 
     [Fact]
+    public void A_wasm_hosted_apps_client_islands_start_no_dev_server()
+    {
+        // Its islands are the browser half's, bundled by the project the build generates into obj/ (#1194). A
+        // dev server would wait minutes for a pointer that build never writes, and keep the app off its .test host.
+        var fs = new FakeFileSystem();
+        fs.Seed("/app/App.csproj", ServerCsproj);
+        fs.Seed("/app/Client/Program.cs", "");
+        fs.Seed("/app/package.json", "{}");
+        fs.Seed("/app/Client/Features/Islands/React/ReactCounter.tsx", "export default () => null");
+
+        var target = DevTarget.Detect(fs, "/app", null);
+
+        Assert.Equal(DevTemplateKind.WasmHosted, target!.Kind);
+        Assert.False(target.HasIslands);
+    }
+
+    [Fact]
     public void A_project_with_no_package_json_wants_nothing()
     {
         // The same gate the targets use. Without a package.json the bundler cannot run at all, so

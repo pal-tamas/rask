@@ -34,7 +34,7 @@ public sealed partial class UiToggle : Component, IDeferredBind
         + " data-loading:pointer-events-none";
 
     private const string Ink =
-        "text-zinc-600/85 data-checked:text-zinc-800 dark:text-zinc-300/95 dark:data-checked:text-white";
+        "[:where(&)]:text-zinc-600/85 data-checked:text-zinc-800 dark:text-zinc-300/95 dark:data-checked:text-white";
 
     private const string IconInk = "text-zinc-500/85 dark:text-zinc-300/80";
 
@@ -273,7 +273,7 @@ public sealed partial class UiToggle : Component, IDeferredBind
         (Ui.ToggleVariant.Ghost, _) =>
             Ink + " bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15",
         (Ui.ToggleVariant.Subtle, _) =>
-            "text-zinc-500/85 hover:text-zinc-500 data-checked:text-zinc-500 dark:text-zinc-400/80 dark:hover:text-zinc-300"
+            "[:where(&)]:text-zinc-500/85 hover:text-zinc-500 data-checked:text-zinc-500 dark:text-zinc-400/80 dark:hover:text-zinc-300"
             + " dark:data-checked:text-zinc-400 bg-transparent hover:bg-zinc-800/5 dark:hover:bg-white/15",
         (_, Ui.ToggleSize.Xs) =>
             Ink + " border border-zinc-200 border-b-zinc-300/80 bg-white shadow-none hover:bg-zinc-50 hover:border-b-zinc-200"

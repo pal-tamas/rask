@@ -21,7 +21,7 @@ internal static class UiMenuRow
     ///     breadcrumb is black on white (white on zinc-700 in dark), not the grey of the crumb it hangs from.
     /// </remarks>
     internal const string Box =
-        "min-w-48 overflow-auto rounded-lg border border-zinc-200 bg-white p-[.3125rem] text-black shadow-xs "
+        "[:where(&)]:min-w-48 overflow-auto [:where(&)]:rounded-lg border border-zinc-200 bg-white [:where(&)]:p-[.3125rem] [:where(&)]:text-black shadow-xs "
         + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white";
 
     /// <summary>A menu row's leading icon: quieter than the words until the row is lit.</summary>
@@ -49,18 +49,18 @@ internal static class UiMenuRow
     /// <summary>The words at the end of a row: a shortcut, a count.</summary>
     internal const string Trailing = "ms-auto text-xs text-zinc-400";
 
-    private const string RowBox = "group/row flex w-full items-center rounded-md px-2 ";
+    private const string RowBox = "group/row [:where(&)]:flex [:where(&)]:w-full items-center [:where(&)]:rounded-md [:where(&)]:px-2 ";
 
     private const string RowInk =
-        " text-start text-sm font-medium "
+        " text-start [:where(&)]:text-sm font-medium "
         + "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 "
-        + "text-zinc-800 dark:text-white";
+        + "[:where(&)]:text-zinc-800 dark:text-white";
 
-    private const string Row = RowBox + "py-1.5" + RowInk;
+    private const string Row = RowBox + "[:where(&)]:py-1.5" + RowInk;
 
     // Measured on Flux at 390, 640, 768, 1023 and 1024 wide: a navmenu's row is 36px tall under 1024 and 32px
     // from there on. A menu's row is 32px at every width.
-    private const string LinkRow = RowBox + "py-2 lg:py-1.5" + RowInk;
+    private const string LinkRow = RowBox + "[:where(&)]:py-2 lg:py-1.5" + RowInk;
 
     private const string Lit = " data-active:bg-zinc-50 dark:data-active:bg-zinc-600";
 

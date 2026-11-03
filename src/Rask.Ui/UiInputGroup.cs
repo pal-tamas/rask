@@ -20,7 +20,7 @@ namespace Rask;
 public sealed partial class UiInputGroup : Component, IUiFieldControl
 {
     // A target is the bordered element: the <input> inside its wrapper, or a direct child that is one.
-    private const string Look = "flex w-full " + Fuse;
+    private const string Look = "[:where(&)]:flex [:where(&)]:w-full " + Fuse;
 
     /// <summary>Joins the bordered elements of a row into one box: inner corners square, one line between two.</summary>
     internal const string Fuse =

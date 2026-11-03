@@ -8,8 +8,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     That page shows no toast until a button is pressed, so what it loads as is ten examples of
-///     <c>flux:button</c> — a component from another page. Each is a stand-in here, marked and held to the
-///     size Flux measured (<c>data-parity-skip</c>), until <c>Ui.Button</c> is Flux's; then these become
+///     <c>flux:button</c>: the real <c>Ui.Button</c> here, which an app writes as
 ///     <c>Ui.Button.OnClick(() =&gt; Toast.Success("…"))["Save changes"]</c>.
 ///     </para>
 ///     <para>
