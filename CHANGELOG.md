@@ -646,6 +646,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The pickers and the autocomplete select and scroll as Flux UI's do.** `Ui.TimePicker`'s typed trigger selects no
+  text and its list of times scrolls no page past its end (`overscroll-behavior: none`, as the select's list);
+  `Ui.DatetimePicker`'s column of times keeps its scroll (`contain`); `Ui.ColorPicker`'s area and sliders select no
+  text while dragged; `Ui.Autocomplete`'s suggestions are selectable text again. Each is what fluxui.dev computes.
 - **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
   popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
   `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring

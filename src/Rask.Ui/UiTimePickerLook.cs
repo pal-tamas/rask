@@ -37,7 +37,7 @@ internal static class UiTimePickerLook
 
     /// <summary>The typed trigger: the input's box, holding three fields in a row.</summary>
     internal const string InputBox =
-        "flex items-center w-full px-3 cursor-default " + UiInputLook.Outline + " " + UiInputLook.InputShadow;
+        "flex items-center w-full px-3 cursor-default select-none " + UiInputLook.Outline + " " + UiInputLook.InputShadow;
 
     internal const string InputIcon = "me-2 text-zinc-400/75 dark:text-white/60";
 
@@ -56,7 +56,7 @@ internal static class UiTimePickerLook
 
     /// <summary>The list of times, in the top layer under its trigger.</summary>
     internal const string Options =
-        "m-0 p-[5px] min-w-48 max-h-80 overflow-auto scroll-py-[5px] rounded-lg border shadow-xs text-inherit "
+        "m-0 p-[5px] min-w-48 max-h-80 overflow-auto " + UiListboxLook.ListOverscroll + " scroll-py-[5px] rounded-lg border shadow-xs text-inherit "
         + "border-zinc-200 dark:border-zinc-600 bg-white dark:bg-zinc-700";
 
     /// <summary>
