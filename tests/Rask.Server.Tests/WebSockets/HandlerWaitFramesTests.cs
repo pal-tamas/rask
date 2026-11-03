@@ -433,6 +433,43 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         Assert.Contains("for the partner", after[^1], StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task A_busy_buttons_handler_that_only_awaits_a_read_inside_an_ambient_scope_never_draws_that_scope()
+    {
+        await using var page = await Page.Open("/w/missing", output, Brief);
+        page.Store.Hold();
+
+        await page.Press("show");
+        var atTheBudget = await page.Next();
+        page.Store.Release();
+        var after = await page.UpTo("missing 2");
+
+        // No StateHasChanged anywhere: what is drawn while it waits is the budget's frame and the repaints around
+        // the continuations of its reads, which the scope is open in.
+        Assert.Contains(">busy<", atTheBudget, StringComparison.Ordinal);
+        Assert.DoesNotContain(after.Prepend(atTheBudget), f => f.Contains("no partner", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_page_redrawn_from_outside_while_a_handler_awaits_inside_an_ambient_scope_never_draws_that_scope()
+    {
+        await using var page = await Page.Open("/w/missing", output, Brief);
+        page.Store.Hold();
+
+        await page.Press("show");
+        var atTheBudget = await page.Next();
+        page.Ticker.Start(TimeSpan.FromMilliseconds(5));
+        await WaitFor.True(() => page.Ticker.Ticks >= 3, "the board to be redrawn from outside while the read is held");
+        page.Store.Release();
+        var after = await page.UpTo("missing 2");
+        page.Ticker.Stop();
+
+        // The board's redraws wait for the handler, and the repaints around its continuations draw them: inside the
+        // scope, as those continuations are, the board drew for no partner.
+        Assert.Contains(">busy<", atTheBudget, StringComparison.Ordinal);
+        Assert.DoesNotContain(after.Prepend(atTheBudget), f => f.Contains("no partner", StringComparison.Ordinal));
+    }
+
     // Every frame is a whole page here, so the page a frame shows — and the handlers on it — can be read from it.
     private sealed class Page(RaskTestHost host, WebSocket ws, ITestOutputHelper output, string html, string sessionId)
         : IAsyncDisposable
@@ -440,6 +477,8 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
         private string _html = html;
 
         public HandlerWaitStore Store => host.Server.Services.GetRequiredService<HandlerWaitStore>();
+
+        public HandlerWaitTicker Ticker => host.Server.Services.GetRequiredService<HandlerWaitTicker>();
 
         public LiveSession Session => host.Store.Peek(sessionId)!;
 
@@ -451,6 +490,7 @@ public sealed class HandlerWaitFramesTests(ITestOutputHelper output)
                     services.AddRaskCqrs();
                     services.AddRaskQuery();
                     services.AddSingleton<HandlerWaitStore>();
+                    services.AddSingleton<HandlerWaitTicker>();
                 },
                 configureServer: configure,
                 diffMode: LiveDiffMode.DisabledFull);
