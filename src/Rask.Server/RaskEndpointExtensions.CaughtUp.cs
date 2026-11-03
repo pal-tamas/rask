@@ -44,8 +44,9 @@ public static partial class RaskEndpointExtensions
         try
         {
             await previous.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
-            // Out of band, under the render lock: it leaves after the page being sent now, if one is.
-            await session.SendOutOfBandAsync(buffer.AsMemory(0, WriteCaughtUp(buffer, asked))).ConfigureAwait(false);
+            // Out of band, under the render lock: it leaves after the page being sent now, if one is, and that page
+            // is kept for the press the browser makes again from it.
+            await session.AnswerCaughtUpAsync(buffer.AsMemory(0, WriteCaughtUp(buffer, asked))).ConfigureAwait(false);
         }
         catch (Exception ex) when (ex is OperationCanceledException or ObjectDisposedException)
         {

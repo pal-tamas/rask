@@ -602,6 +602,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `.Confirm` yes on a page redrawn every few dozen ms runs the action it was asked about.** On a board that
+  redraws while a long sending reports its progress, `Ui.Button.Danger.OnClick(remove).Confirm(…)` then "Igen"
+  closed the question and ran nothing, with nothing in the log: the press made again after the yes reached the
+  server many pages after the one it was read from — past the two an event outlives a render by — and a handler
+  that closes over a row read anew is a new closure in every one, so it could not be shown to be the same. The
+  server now keeps the whole page it tells the browser it holds as the press is made again (the `caughtUp`
+  answer), and the browser presses on exactly that page, so the yes reaches the handler pressed however far the
+  board has drawn on. A delete gone meanwhile, or another action drawn where it was, still runs nothing. Nothing to
+  change in an app. See [An event that outlived its render](docs/js-interop-runtime.md#an-event-that-outlived-its-render).
 - **A submenu's flyout closes when the pointer moves on out of the menu, as Flux UI's does.** Measured on Flux's
   dropdown and context menu: once the pointer has been in a submenu's row or its flyout, a move outside both — onto
   the menu's padding or off the menu altogether — closes the flyout and darkens its row (unless it has focus), in
