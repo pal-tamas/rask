@@ -1035,9 +1035,9 @@ default variant is the browser's `<select>`; `.Listbox` draws the list (icons, d
 own, a prefix, `Clearable()`), `Searchable()` filters it in the browser by text and `Keywords`, `.Listbox.Multiple()`
 over a collection picks several, and `.Combobox` is an input that filters. `Filter(false)` hands the search to the
 page, with `Debounce` on `Ui.SelectSearch` or `Ui.SelectInput` for one query a word, and `Ui.SelectOptionCreate`
-offers to make what was typed. An open list sends the page nothing until a row is picked — and a bound select of
-one answer sends nothing at the pick either: the browser draws it and the value travels with the next action, as
-Flux's `wire:model` (`.Live()` sends it at once). Every example, the
+offers to make what was typed. An open list sends the page nothing until a row is picked — and a bound select
+sends nothing at the pick either, one answer or several: the browser draws it (the words, the count, the ticked rows)
+and the value travels with the next action, as Flux's `wire:model` (`.Live()` sends it at once). Every example, the
 keyboard, searching on the server and the reference: **[rask.sh/ui/select](https://rask.sh/ui/select/)**.
 
 ## Autocomplete
@@ -1053,8 +1053,9 @@ page what was typed once typing has paused, for suggestions from a database; `Mo
 `Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list, each a
 pill that can be taken off again, bound to a collection. `Searchable()`, `.Combobox`, `Ui.PillboxOptionCreate` and
 `Filter(false)` with `Debounce` for options found on the server; the pills stay when a search's rows no longer hold
-them. It is the select's list under another trigger, so its keys are the runtime's. Every example, the keyboard and
-the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
+them. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
+Backspace in the empty input send nothing: the browser draws the pills and the answers travel with the next action,
+as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboard and the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
 
 ## Form controls
 

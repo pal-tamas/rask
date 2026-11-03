@@ -350,7 +350,10 @@ Three cases are worth knowing:
   on its way through three such renders (a page that ticks several times a second on a slow link) is dropped.
   A render that changed nothing the browser shows is not sent, and is not one of the three.
   Handlers that are methods of the component (`.OnClick(Save)`), and lambdas that capture only the component,
-  are the same handler in every render and are never dropped for this.
+  are the same handler in every render and are never dropped for this. A `.Confirm` yes is not dropped either:
+  the server keeps the whole page the browser was told it holds as the press is made again from it, so the delete
+  the reader said yes to runs however many pages a board redrawn every few dozen ms has drawn since — still only
+  when the page now has that same handler.
 - **A list longer than 4,096 handlers in one component** is not searched for a handler that moved.
 
 A dropped event is counted in the `rask.handlers.stale` metric ([observability](observability.md)), and in

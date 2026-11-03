@@ -197,10 +197,16 @@ unchanged — the ack is a separate tiny frame, not a payload field). See
 read from the page as the server has it: the browser's own `confirm()` holds the page still
 while the server renders on, and a slow line can keep those pages on the way long after the
 answer. So the client sends `{"type":"caughtUp","n":N}`; the server queues it on the handler
-chain and answers the same frame through `SendOutOfBandAsync` — behind every page already
-sent and every event read before it. The client runs the press once that answer has gone
-through the `_renderQueue`, and asks again for any question still open on a reconnect. See
-`tests/Rask.Server.Tests/WebSockets/CaughtUpTests.cs`.
+chain and answers the same frame through `AnswerCaughtUpAsync` — behind every page already
+sent and every event read before it. Under the same render lock it keeps that page's handler
+table (`Component.KeepPageForPress`, `Component.KeptPage.cs`). The client runs the press at the
+answer's place in the `_renderQueue` — on exactly that page, before any page sent after it — and
+asks again for any question still open on a reconnect. A press read from the kept page finds the
+handler pressed through it however many pages the server drew since (a board redrawn every
+30 ms is far past the two pages a slot remembers by the time it arrives), and runs the handler
+of the page now that is the same as it, or nothing. The kept page is let go once an event read
+from a later page arrives. See `tests/Rask.Server.Tests/WebSockets/CaughtUpTests.cs`,
+`StaleClickFromAKeptPageTests` and `ConfirmOnLivePageTests` (E2E).
 
 **Events across a reconnect.** The ack is also what tells the client an event arrived. Every
 frame carrying a seq that no ack has answered is kept (`rask-resend.ts`, at most 64) and sent

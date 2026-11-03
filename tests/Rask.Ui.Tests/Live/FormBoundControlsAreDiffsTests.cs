@@ -147,7 +147,7 @@ public partial class FormBoundControlsAreDiffsTests : global::Rask.Core.RaskMark
         var said = new List<string>();
         foreach (var word in new[] { "Alpha", "Beta", "Beta", "Alpha" })
         {
-            await page.On($"[data-ui-option]:has-text(\"{word}\")").Click();
+            await HeldList.Switch(page, word);
 
             // The list shows the pick at once. The member hears it with the next action, and its rule then.
             await page.On("#act").Click();

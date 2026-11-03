@@ -814,6 +814,15 @@ public abstract partial class Component
         /// <summary>Every id this root has minted, and the component and slot it belongs to.</summary>
         public Dictionary<string, (Component Component, int Slot)>? Slots;
 
+        /// <summary>
+        ///     Every handler of the page the browser was told it holds, kept for a press made again from it
+        ///     (Component.KeptPage.cs): null when no such page is kept.
+        /// </summary>
+        public Dictionary<string, (Component Owner, Delegate Handler)>? Kept;
+
+        /// <summary>The <see cref="Version" /> of the page in <see cref="Kept" />.</summary>
+        public int KeptVersion;
+
         // ---- a component that renders handlers ----
 
         /// <summary>

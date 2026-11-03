@@ -1157,7 +1157,15 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     the render lock so we don't interleave with an in-flight SendAsync.
     /// </summary>
     /// <returns><c>false</c> when no connection was open to send it to.</returns>
-    internal async Task<bool> SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
+    internal Task<bool> SendOutOfBandAsync(ReadOnlyMemory<byte> payload) => SendOutOfBandCoreAsync(payload, keepPage: false);
+
+    /// <summary>
+    ///     Tells the browser it holds every page sent to it (<paramref name="payload" /> is the <c>caughtUp</c>
+    ///     answer), and keeps that page's handlers for the press it makes again from it (Component.KeptPage.cs).
+    /// </summary>
+    internal Task<bool> AnswerCaughtUpAsync(ReadOnlyMemory<byte> payload) => SendOutOfBandCoreAsync(payload, keepPage: true);
+
+    private async Task<bool> SendOutOfBandCoreAsync(ReadOnlyMemory<byte> payload, bool keepPage)
     {
         if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
@@ -1170,6 +1178,12 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             if (Volatile.Read(ref _transport) is not { IsOpen: true })
             {
                 return false;
+            }
+
+            // Under the render lock: the page kept is the last one sent, the one this answer follows.
+            if (keepPage)
+            {
+                View.KeepPageForPress();
             }
 
             await SendGuardedAsync(payload).ConfigureAwait(false);

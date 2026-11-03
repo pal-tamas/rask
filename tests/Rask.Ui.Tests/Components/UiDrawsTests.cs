@@ -89,7 +89,7 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_combobox_that_waits_holds_its_picks_and_its_clear_in_the_browser_and_a_pillbox_draws_them()
+    public void A_combobox_and_a_pillbox_that_wait_hold_their_picks_pills_and_clear_in_the_browser()
     {
         var a = new Answers { Picked = "Alpha", Many = ["Alpha"] };
 
@@ -103,8 +103,9 @@ public partial class UiDrawsTests : global::Rask.Core.RaskMarkup
         Assert.NotNull(page.Find("#combo button[aria-label=\"Clear selected\"]").Attribute("data-rask-list-clear"));
         Assert.Empty(page.FindAll("#combo [" + Mark + "]"));
         Assert.Null(Draws(page, "#combo input[role=\"combobox\"]"));
-        Assert.Equal("click", Draws(page, "#pills [data-value=\"Alpha\"] [data-rask-on-click]"));
-        Assert.Equal("click", Draws(page, "#pills [data-ui-listbox-option]"));
+        Assert.Null(page.Find("#pills [data-ui-pillbox-trigger] [data-value=\"Alpha\"] [data-rask-list-remove]").Attribute("data-rask-on-click"));
+        Assert.Empty(page.FindAll("#pills [data-ui-listbox-option][data-rask-on-click]"));
+        Assert.Empty(page.FindAll("#pills [" + Mark + "]"));
         Assert.Null(Draws(page, "#pills input"));
     }
 

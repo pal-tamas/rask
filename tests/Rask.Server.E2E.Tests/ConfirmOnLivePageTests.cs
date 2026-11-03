@@ -25,6 +25,11 @@ public sealed class ConfirmOnLivePageTests(PlaywrightFixture playwright) : IClas
     // Long enough for ten renders: far past the two pages an event outlives a render by.
     private const int Asked = 2000;
 
+    // How late what the page sends reaches the server on a slow line, in ms: six renders, so the press made again
+    // after a yes arrives far past the two pages an event outlives a render by — as it does on a board redrawn every
+    // few dozen ms while a long sending reports its progress, however fast the line.
+    private const int SlowLine = 1200;
+
     [Theory]
     [InlineData(LiveScene.Delete, true, 1)]
     [InlineData(LiveScene.Delete, false, 0)]
@@ -92,6 +97,32 @@ public sealed class ConfirmOnLivePageTests(PlaywrightFixture playwright) : IClas
         await HeldReplies.ReleaseAsync(page);
 
         await SettledAsync(page, 1);
+    }
+
+    [Theory]
+    [InlineData(LiveScene.Delete, 1)]
+    [InlineData(LiveScene.Gone, 0)]
+    [InlineData(LiveScene.Archive, 0)]
+    public async Task A_yes_that_reaches_the_server_pages_later_runs_the_pressed_delete_and_nothing_else(
+        LiveScene meanwhile, int deleted)
+    {
+        await using var session = await HookSession.OpenAsync<ConfirmLiveDialogPage>(
+            playwright, beforeLoad: SlowUplink.Install);
+        await session.HooksLoadedAsync();
+        var page = session.Page;
+        await OpenFlyoutAsync(page);
+        await page.ClickAsync(Delete);
+        await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
+        ConfirmLiveScene.Now = meanwhile;
+        await RendersAsync(page);
+
+        // The press is made again on the page the server said the browser holds, and arrives six renders later.
+        await SlowUplink.SlowAsync(page, SlowLine);
+        await page.ClickAsync(Yes);
+        await Expect(page.Locator(Dialog)).ToBeHiddenAsync();
+
+        await SettledAsync(page, deleted);
+        Assert.Empty(session.PageErrors);
     }
 
     private static async Task AnswerThenSayAsync(IDialog dialog, TaskCompletionSource answered)
