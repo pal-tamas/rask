@@ -25,7 +25,7 @@ internal static class UiDatetimePickerLook
 
     internal const string ColumnScroll = "relative flex-1";
 
-    internal const string Times = "absolute inset-0 flex flex-col gap-px p-1.5 overflow-auto";
+    internal const string Times = "absolute inset-0 flex flex-col gap-px p-1.5 overflow-auto overscroll-contain";
 
     // A time in the column: lit under the pointer, tinted while chosen, grey and untouchable where it cannot be picked.
     internal const string Time =

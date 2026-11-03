@@ -27,7 +27,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
 import { departedFrom, focusDepartedFrom } from './departed.mjs';
-import { chromium, cursorDeparted, layoutDemos, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
+import { chromium, cursorDeparted, layoutDemos, sameArrow, measureLayouts, measurePage, root, stateTargets, STYLES } from './lib.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -389,7 +389,7 @@ function compareTree(theirs, a, mine, b, rootA, rootB, where, diffs, free = '') 
 
 // What one node looks like: computed styles, pseudo-elements, animations, and what each forced state changes.
 function compareLook(theirs, a, mine, b, where, diffs) {
-  const departs = departedFrom(mine, b);
+  const departs = [...departedFrom(mine, b), ...(sameArrow(a, b) ? ['cursor'] : [])];
   const unheld = placed(a, b) ? new Set([...PLACEMENT, ...departs]) : (departs.length ? new Set(departs) : undefined);
   compareStyles(a.style, b.style, where, diffs, unheld, b.pressable);
   for (const pseudo of ['::before', '::after']) {

@@ -38,6 +38,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { departedFrom, focusDepartedFrom } from './departed.mjs';
 import { chromium, cursorDeparted, frames, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
@@ -417,6 +418,7 @@ function collect(wrapper, { STYLES, PRESSABLE, index, selectors }) {
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
       pressable: !!el.closest(PRESSABLE),
+      focused: el === document.activeElement,
     };
     for (const pseudo of ['::before', '::after']) {
       const content = getComputedStyle(el, pseudo).content;
@@ -448,8 +450,11 @@ function compareTree(kind, theirs, a, mine, b, where, diffs) {
 
   // Flux's script lays the open popup out with an inline `position: absolute` and pixel insets; Rask.Ui
   // anchors it in CSS, where a popover in the top layer is `fixed`. Where it ends up is the offset above.
+  // The owner-approved departures (departed.mjs) are let go here as in parity.mjs: native feel on chrome, and the
+  // accent ring on a field that HAS focus — an open list's search or combobox input is focused at rest.
   const placed = 'popover' in a.attrs;
-  compareStyles(a.style, b.style, where, diffs, placed ? new Set(['position']) : undefined, b.pressable);
+  const letGo = new Set([...(placed ? ['position'] : []), ...departedFrom(mine, b), ...(b.focused ? focusDepartedFrom(b) : [])]);
+  compareStyles(a.style, b.style, where, diffs, letGo, b.pressable);
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
     else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, undefined, b.pressable);

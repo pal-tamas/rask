@@ -665,6 +665,10 @@ them until tagged releases begin.
   the handler was dispatched in — what the render after the handler sees — so no `AsyncLocal` the handler opens
   (`Tenant.Across()`/`Tenant.None()`/`Tenant.Use(…)`, `Db.Transaction`, an app's own) reaches a frame, and the
   handler itself keeps its scope. Nothing to change in an app.
+- **The pickers and the autocomplete select and scroll as Flux UI's do.** `Ui.TimePicker`'s typed trigger selects no
+  text and its list of times scrolls no page past its end (`overscroll-behavior: none`, as the select's list);
+  `Ui.DatetimePicker`'s column of times keeps its scroll (`contain`); `Ui.ColorPicker`'s area and sliders select no
+  text while dragged; `Ui.Autocomplete`'s suggestions are selectable text again. Each is what fluxui.dev computes.
 - **A `.Confirm` yes on a page redrawn every few dozen ms runs the action it was asked about.** On a board that
   redraws while a long sending reports its progress, `Ui.Button.Danger.OnClick(remove).Confirm(…)` then "Igen"
   closed the question and ran nothing, with nothing in the log: the press made again after the yes reached the

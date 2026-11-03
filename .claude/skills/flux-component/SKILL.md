@@ -110,7 +110,8 @@ departure in behaviour carries none.
   above the rule); text and children that are not pressed keep theirs. Not a handler: a `Div.OnClick` gets
   nothing (no Core change). Kept as Flux: the collapsed sidebar rail's `e-resize` (`w-resize` RTL) and a modal
   backdrop's arrow. Reason: the reader is told what can be pressed. Parity lets `cursor` go ONLY where the kit
-  computes `pointer` on a pressable node and Flux `default`/`auto` (`lib.mjs` `PRESSABLE` + `cursorDeparted`,
+  computes `pointer` on a pressable node and Flux `default`/`auto`, or the arrow on a HELD one (`lib.mjs` `HELD`,
+  measured `pressable: 'held'`) where Flux keeps the hand (`lib.mjs` `PRESSABLE` + `cursorDeparted`,
   used by `parity.mjs`, `open.mjs`, `parity-menu.mjs`, `parity-modal.mjs`; `cursorDepartedLine` in
   `parity-editor.mjs`); any other cursor difference still fails. `UiPointerCursorTests` (the rule),
   `UiKitCursorTests` (the cursor where the pointer lands, on the running showcase).
@@ -125,7 +126,8 @@ departure in behaviour carries none.
   preset `<select>` `text-base sm:text-sm` (Flux: 14px always) so iOS does not zoom. CONTENT keeps full parity.
   `parity.mjs` and `parity-modal.mjs` let go `userSelect`, `webkitUserSelect`, `touchAction`, `webkitTouchCallout` on chrome and what is
   inside it, `webkitUserDrag` on chrome images, `overscrollBehaviorY` on those scrollers, and `fontSize`/`lineHeight`
-  on that select and its options, plus `gap` (`DEPARTED` in `scripts/flux/departed.mjs`); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
+  on that select and its options, plus `gap` (`DEPARTED` in `scripts/flux/departed.mjs`, read by `parity.mjs`, `parity-modal.mjs` and `open.mjs` — which also lets
+  the accent ring go on the field that HAS focus in an open list); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
   restyling, context-menu blocking, overscroll in a browser tab. `UiNativeFeelTests`, `UiKitNativeFeelTests` (E2E).
 - **2026-11-03 — a focused field is ringed in the ACCENT (`A FOCUSED FIELD` in `Styles/ui.css`, `@layer
   rask-ui-corrections`).** Flux leaves a focused field to the browser: Chrome's thin blue ring, Safari's thick blue
