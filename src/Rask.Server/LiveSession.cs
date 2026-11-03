@@ -1000,14 +1000,15 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     }
 
     /// <summary>
-    ///     Whether the last render fell back to the framework's error page rather than the app.
+    ///     What the last render fell back to the framework's error page for, or null when it rendered the app.
     /// </summary>
     /// <remarks>
     ///     The root boundary catches the exception, so a crashed page returns perfectly ordinary HTML
     ///     and the GET used to answer <c>200 OK</c> — telling every cache, crawler and uptime check that
     ///     the page was fine (#607).
     /// </remarks>
-    internal bool LastRenderFaulted => View is RootErrorBoundary { RenderedFallback: true };
+    internal Exception? LastRenderFault =>
+        View is RootErrorBoundary { RenderedFallback: true, FallbackError: { } fault } ? fault : null;
 
     /// <summary>Attaches a WebSocket — the transport a browser is served first.</summary>
     /// <returns>See <see cref="AttachTransport" />.</returns>

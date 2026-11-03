@@ -16,6 +16,8 @@ public sealed record SignedInOnly : ICommand;
 
 public sealed record Explodes : IQuery<int>;
 
+public sealed record Refuses : ICommand;
+
 public sealed record Uploaded(string Note, IRaskFile File) : ICommand<string>;
 
 public sealed record Export : IQuery<FileDownload>;
@@ -87,6 +89,11 @@ public sealed class ExplodesHandler : IQueryHandler<Explodes, int>
 {
     public Task<int> Handle(Explodes query) =>
         throw new InvalidOperationException("connection string is Server=db;Password=hunter2");
+}
+
+public sealed class RefusesHandler : ICommandHandler<Refuses>
+{
+    public Task Handle(Refuses command) => throw new RefusedException("The invoice is already closed.");
 }
 
 public sealed class UploadedHandler : ICommandHandler<Uploaded, string>

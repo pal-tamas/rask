@@ -25,8 +25,11 @@ internal static class Refusal
     /// <summary>Says <paramref name="failures" /> in one error toast, and whether a session drawing toasts took it.</summary>
     // One toast, each different sentence once and in order: the kit shows a single toast at a time, so a
     // toast per failure would leave only the last one to be read.
-    internal static bool Say(IEnumerable<FieldFailure> failures) =>
-        Toast.TryError(string.Join(' ', failures.Select(failure => failure.Message).Distinct(StringComparer.Ordinal)));
+    internal static bool Say(IEnumerable<FieldFailure> failures) => Toast.TryError(Sentence(failures));
+
+    /// <summary>What <paramref name="failures" /> say, as one line: each different sentence once and in order.</summary>
+    internal static string Sentence(IEnumerable<FieldFailure> failures) =>
+        string.Join(' ', failures.Select(failure => failure.Message).Distinct(StringComparer.Ordinal));
 
     /// <summary>What each failure came from, for the log: the rule or index it names, else its fields.</summary>
     internal static string Sources(IEnumerable<FieldFailure> failures) =>

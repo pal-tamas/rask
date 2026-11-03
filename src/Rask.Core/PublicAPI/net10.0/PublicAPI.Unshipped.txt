@@ -4608,6 +4608,11 @@ Rask.Core.Virtualization.VirtualizationState.TotalCount.get -> int
 Rask.Core.Virtualization.VirtualizationState.VisibleIndices.get -> System.Collections.Generic.IReadOnlyList<int>!
 Rask.Core.Virtualization.VirtualizationState.VisiblePlaceholders.get -> System.Collections.Generic.IReadOnlyList<bool>!
 Rask.Core.Virtualization.VirtualizationState.VisibleValues.get -> System.Collections.Generic.IReadOnlyList<object?>!
+Rask.RefusedException
+Rask.RefusedException.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
+Rask.RefusedException.RefusedException() -> void
+Rask.RefusedException.RefusedException(string! message) -> void
+Rask.RefusedException.RefusedException(string! message, System.Exception! innerException) -> void
 RaskBuilderSettersRask_Core
 RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!)
 RaskBuilderSettersRask_Core.extension<T>(Rask.Core.HTMLInputElement<T>!).Button.get -> Rask.Core.HTMLInputElement<T>!

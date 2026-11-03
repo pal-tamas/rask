@@ -254,6 +254,40 @@ public sealed class RaskServerOptions
     public string? SignInPath { get; set; }
 
     /// <summary>
+    ///     Answers <typeparamref name="TException" />, and every exception derived from it, with
+    ///     <paramref name="status" /> when it reaches a request that is not a page — a minimal endpoint, a
+    ///     controller, a sign-in endpoint.
+    ///     <code>server.Answer&lt;InvoiceClosedException&gt;(409);</code>
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Outside Development such a request is answered with a problem document (RFC 9457). The app's own
+    ///         answers win, matched on the exception's type and then on each type it derives from. Below them,
+    ///         Rask's: a <see cref="RefusedException" /> — and any exception that names the failures it is about,
+    ///         as a validation failure does — answers 400 with its message as the <c>detail</c>; a
+    ///         <c>ForbiddenException</c> 403, or 401 when nobody was signed in; a <c>BadRequestException</c> and
+    ///         ASP.NET's <c>BadHttpRequestException</c> the status they carry. Anything else is a fault: a 500 that
+    ///         says nothing of the exception and carries the reference its <c>Rask.Errors</c> log line does.
+    ///     </para>
+    ///     <para>
+    ///         Only a <see cref="RefusedException" />'s message is shown at any status. Derive the app's refusal
+    ///         from it to give it a status of its own and keep its message.
+    ///     </para>
+    /// </remarks>
+    /// <param name="status">An HTTP error status, from 400 to 599.</param>
+    /// <typeparam name="TException">The exception to answer.</typeparam>
+    /// <returns>These options, to answer another.</returns>
+    public RaskServerOptions Answer<TException>(int status)
+        where TException : Exception
+    {
+        Errors.Answer(typeof(TException), status);
+        return this;
+    }
+
+    // Not a property the configuration binder can see: the table is code's, not appsettings'.
+    internal ErrorStatuses Errors { get; } = new();
+
+    /// <summary>
     ///     Throws <see cref="InvalidOperationException" /> if any value is out of range. Run by the
     ///     options validation <c>AddRask</c> registers — after <c>Rask:Server</c> is bound and the
     ///     caller's <c>configureServer</c> runs, and validated on start — so a bad value (a negative

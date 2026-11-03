@@ -62,6 +62,21 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Errors by default: `RefusedException`, and a problem document for every request that is not a page** (#1266).
+  Before: there was no way to say "this message is for the user" — the error page and the handler toast hid every
+  message, so an app threw its own exception and caught it by hand on every page — and a hand-wired host's
+  endpoint answered whatever the app wired: ASP.NET's empty 500, or a handler that wrote the exception's message.
+  Now `throw new RefusedException("A számla már le van zárva.")` (core package, namespace `Rask`) is shown: in the
+  handler's toast in place of "That did not work", in a form's messages, on the error page in place of the
+  reference (the first GET answers 400), and as the `detail` of a 400 problem; it is logged at Information, never
+  as an error. And `AddRask` registers ASP.NET's `AddProblemDetails()` with a Rask `IExceptionHandler`, which
+  `MapRask` and `RaskApp` put in the pipeline outside Development: a minimal endpoint, a controller or a sign-in
+  endpoint that throws answers RFC 9457 — a 500 with no word of the exception and the same `reference` the error
+  page and the `Rask.Errors` line carry. The status comes from one table: `server.Answer<InvoiceClosed>(409)` on
+  `RaskServerOptions` first, then `RefusedException` 400, `ForbiddenException` 403/401, `BadRequestException` its
+  own. Remote CQRS answers a handler's refusal 400 with `detail` and `errors`, so a WASM form shows it too.
+  RaskApp still re-executes `/error` for a browser's navigation. See
+  [a refusal is shown](docs/lifecycle.md#a-refusal-is-shown-refusedexception).
 - **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
   `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
   browser tests hand-rolled "settled" — counting sent against acknowledged events, waiting for `[aria-busy=true]` and

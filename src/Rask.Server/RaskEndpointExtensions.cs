@@ -156,6 +156,10 @@ public static partial class RaskEndpointExtensions
         // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
         Http.AppStylesheet.Register(services);
 
+        // Errors by default: a request that is not a page — an endpoint, a controller — answers a problem document
+        // when it throws, with a status from RaskServerOptions.Answer's table. MapRask puts the handler in the pipeline.
+        Errors.ProblemAnswers.Add(services);
+
         // What Rask.Pdf prints a page through: the first GET's own render, for a given user, without a socket.
         services.TryAddSingleton<Printing.ServerPrintablePages>();
         services.TryAddSingleton<Core.Printing.IPrintablePages>(static sp => sp.GetRequiredService<Printing.ServerPrintablePages>());
@@ -498,6 +502,9 @@ public static partial class RaskEndpointExtensions
             Console.WriteLine($"Rask {RaskVersion.Current} (Server) starting");
 
         WarnOnTightShutdownLadder(app.Services, logger);
+
+        // Outside Development, and once: RaskApp has already put it in front, with its error page.
+        Errors.ProblemAnswers.Use(app);
 
         app.UseWebSockets();
     }

@@ -82,7 +82,7 @@ internal static class PageRender
             PageRenderKind.Rendered,
             html,
             RedirectLocation: null,
-            PageStatus.Of(session.LastRenderFaulted, pageResponse.Status, notFoundMounted, input.Forbidden is not null));
+            PageStatus.Of(session.LastRenderFault, pageResponse.Status, notFoundMounted, input.Forbidden is not null));
     }
 
     // Where the page sent the reader as it rendered, as the response that takes them there; null when it stayed.
