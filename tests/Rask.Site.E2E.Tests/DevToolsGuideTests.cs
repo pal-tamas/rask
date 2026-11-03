@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The DevTools guide, in a browser: the one guide that shows pictures, so the one place a picture that the site does
 ///     not actually serve would show up as a broken image rather than as a green unit test about its path.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class DevToolsGuideTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

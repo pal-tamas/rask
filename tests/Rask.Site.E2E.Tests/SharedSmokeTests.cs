@@ -100,6 +100,8 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         await _ctx.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
 
         Page = await _ctx.NewPageAsync();
+
+        await SlowMachine.ApplyAsync(Page);
         // Capture the browser console + uncaught page errors so a failing test can surface
         // the real client-side cause (e.g. a scoped-JS "Could not find … on target" force-fault
         // that trips RootErrorBoundary) in the CI log — the C# stack alone only shows the wait

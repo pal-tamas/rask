@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The format + unit/integration gate.
 #
-# CI runs this script as its build, unit and format jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
+# CI runs this script as its build and format jobs (RASK_UNIT_PART) on every push (.github/workflows/gates.yml), and it
 # runs the same way by hand. No git hook runs it. Steps: build once, run the FULL formatter
 # (whitespace + style + analyzers), then run every test EXCEPT the browser E2E (that's its own gate —
 # see run-e2e-local.sh).
@@ -160,64 +160,56 @@ fi
 # RASK_UNIT_PART cuts this gate into pieces CI runs on separate machines (.github/workflows/gates.yml);
 # a hand run leaves it unset and gets everything.
 #
-#   build          the gate script tests and the warnings-as-errors build, analyzers on — nothing else
-#   tests          a build without analyzers, then the tests
-#   tests-K/N      the same build, then shard K of N of the test projects (dealt round-robin from a
-#                  sorted list, so a new project joins a shard by existing)
-#   format         a build without analyzers, then the formatter. A scoped CI run calls it with
-#                  RASK_FORMAT_SCOPE=range: the changed .cs files only, over a build of the projects
-#                  the change reaches
-#   format-src     a build without analyzers, then the formatter over src/
-#   format-tests   a build without analyzers, then the formatter over tests/
+#   build          CI's one job for this gate: the gate script tests, the warnings-as-errors build with
+#                  the analyzers on, then the unit tests over that same output (no second build) and,
+#                  alongside them, the formatter over the files the change touched (below)
 #
-# Every piece builds, because the tests need the assemblies and the formatter resolves types the build
-# generates (the site's scoped-TypeScript types; without them it reports CS0246 for code that
-# compiles). Only `build` pays for the analyzers. The formatter is the slowest single step and decides
-# per document, so its two halves cover exactly what the whole does. A test shard builds the WHOLE
-# solution and narrows only what it runs: narrowing the build as well left tests that read a build
-# product of a project they do not reference (rask.wasm.js) with nothing to read.
+# The tests had jobs of their own until 2026-11-03 (`tests`, `tests-1/2`, `tests-2/2`), and so did the
+# formatter (`format`, `format-src`, `format-tests`), each rebuilding the solution the `build` job had
+# just built: about 45% of a whole run's runner minutes went on building the same source again. With
+# RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what `build` compiles and tests.
 unit_part="${RASK_UNIT_PART:-}"
-format_include=""
-test_shard=""
 case "$unit_part" in
-  ""|build|tests|format) ;;
-  tests-[0-9]*/[0-9]*)
-    test_shard="${unit_part#tests-}"
-    unit_part="tests"
-    ;;
-  format-src) format_include="src/" ;;
-  format-tests) format_include="tests/" ;;
+  ""|build) ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be build, tests, tests-K/N, format, format-src or format-tests, not '$unit_part'." >&2
+    echo "run-unit-local: RASK_UNIT_PART must be build (or unset), not '$unit_part'." >&2
     exit 1
     ;;
 esac
 
-# With RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what a part RUNS and what
-# `build` compiles. A tests part still builds the whole solution, for the reason above, so its scope is
-# set aside here and applied after the build.
+# What the `build` part's formatter checks: the .cs files changed since the scope base
+# (RASK_FORMAT_SCOPE=range over RASK_SCOPE_RANGE), or every file when the change moves the rules
+# themselves — scripts/lib/format-scope.sh says which changes do. With no scope base (the daily whole
+# run, a release, a manual run without one) it checks nothing: every change was formatted in the run
+# that brought it. Restore at 1.0: the whole tree in the daily full run (docs/development-workflow.md,
+# "Loosened until 1.0"). A hand run (no part) keeps RASK_FORMAT_SCOPE's own meaning, below.
 #
-# A format part keeps the narrowed build when the formatter is narrowed to the same change: it decides
-# per document, and every project a changed document compiles against is in the affected build, being
-# what the projects that changed depend on. The whole-solution build was 198 s of a 292 s job that
-# formatted two files. Asked for every document, the formatter still gets the whole solution.
-tests_scope=""
-skip_tests=0
-format_follows_scope=0
-case "${RASK_FORMAT_SCOPE:-}" in
-  range)  [ -n "${RASK_SCOPE_RANGE:-}" ] && format_follows_scope=1 ;;
-  staged) [ -z "${RASK_SCOPE_RANGE:-}" ] && format_follows_scope=1 ;;
-esac
-case "$unit_part" in
-  ""|build) ;;
-  format)
-    [ "$format_follows_scope" -eq 1 ] || scope_projects=""
-    ;;
-  *)
-    tests_scope="$scope_projects"
-    scope_projects=""
-    ;;
-esac
+# Decided BEFORE the build, because checking every file needs every project built: the formatter
+# resolves types the build generates (the site's scoped-TypeScript types; without them it reports
+# CS0246 for code that compiles), so a rule change widens a scoped build to the whole solution.
+format_all=""
+format_files=""
+if [ "$unit_part" = "build" ] && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
+  # shellcheck source=lib/format-scope.sh
+  . "$root/scripts/lib/format-scope.sh"
+  # Every path, deletions too: a deleted .editorconfig changes the rules as much as an edited one.
+  format_answer="$(git diff --name-only "$RASK_SCOPE_RANGE" | rask_format_scope)"
+  case "$format_answer" in
+    ALL*)
+      format_all="$(printf '%s' "$format_answer" | cut -f2-)"
+      if [ -n "$scope_projects" ]; then
+        echo "==> Scope: the whole solution after all — $format_all changed, so the formatter checks every file."
+        scope_projects=""
+      fi
+      ;;
+    *)
+      while IFS= read -r format_file; do
+        [ -f "$format_file" ] && format_files="$format_files$format_file
+"
+      done <<<"$format_answer"
+      ;;
+  esac
+fi
 
 rask_phase "scope"
 
@@ -237,7 +229,6 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 rask_gate_test_applies() {
-  case "$unit_part" in ""|build) ;; *) return 1 ;; esac   # the `build` part runs these
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -299,12 +290,6 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
-# Only `build` pays for the analyzers: it runs them over this same source on another machine at the
-# same moment, and the tests and the formatter need the assemblies, not a second verdict. Source
-# generators are not analyzers and still run.
-build_analyzers=""
-case "$unit_part" in ""|build) ;; *) build_analyzers="-p:RunAnalyzers=false" ;; esac
-
 if [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
   # has edges inside it, and two concurrent builds of a project that both depend on a third race on
@@ -312,10 +297,19 @@ if [ -n "$scope_projects" ]; then
   # up the repo's Directory.Build.props — each csproj still imports its own chain from its own
   # location, which is the only chain that should apply to it.
   scope_proj="${TMPDIR:-/tmp}/rask-affected-$$.proj"
+  # Tests read build products of projects they do not reference: Rask.Core.Tests reads the WASM
+  # runtime bundle, src/Rask.Wasm/Browser/rask.wasm.js, which only Rask.Wasm's browser build writes.
+  # A change that reaches the tests and not Rask.Wasm (one to Rask.Server, say) would build no bundle
+  # on a fresh runner, so whenever a test project is in the set, Rask.Wasm is too.
+  scope_build="$scope_projects"
+  # shellcheck disable=SC2086  # deliberate word split: the set is one project per word
+  if printf '%s\n' $scope_projects | grep -qE '\.Tests/[^/]+\.csproj$'; then
+    scope_build="$(printf '%s\n' $scope_projects src/Rask.Wasm/Rask.Wasm.csproj | LC_ALL=C sort -u)"
+  fi
   {
     echo '<Project DefaultTargets="Build">'
     echo '  <ItemGroup>'
-    printf '%s\n' $scope_projects | while read -r p; do
+    printf '%s\n' $scope_build | while read -r p; do
       [ -n "$p" ] && echo "    <ScopedProject Include=\"$root/$p\" />"
     done
     echo '  </ItemGroup>'
@@ -331,10 +325,9 @@ if [ -n "$scope_projects" ]; then
   } >"$scope_proj"
 
   echo "==> Build (Release; affected projects only)"
-  # shellcheck disable=SC2086  # empty unless set above
   dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
     -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-    -p:RaskSpaBuild=false $build_analyzers
+    -p:RaskSpaBuild=false
   rm -f "$scope_proj"
 else
 
@@ -347,33 +340,12 @@ echo "==> Build once (Release; no WASM bundle)"
 # RaskWasm / RaskSpaBuild off: this gate runs UNIT tests, and not one of them needs a published
 # WebAssembly bundle — the browser E2E gate publishes those. The gate's real cost is elsewhere — the test
 # run and `dotnet format --verify-no-changes` are about 90% of a warm run.
-# shellcheck disable=SC2086  # empty unless set above
 dotnet build Rask.slnx -c Release -m:"$lane_slots" \
   -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
-  -p:RaskSpaBuild=false $build_analyzers
+  -p:RaskSpaBuild=false
 
 fi
 rask_phase "build (Release)"
-
-# A tests part: the build above was the whole solution; from here on only this shard's projects run,
-# and of those only the ones the scope reaches.
-if [ "$unit_part" = "tests" ] && { [ -n "$test_shard" ] || [ -n "$tests_scope" ]; }; then
-  part_tests="$(ls tests/*/*.csproj | grep -E '\.Tests/[^/]+\.csproj$' | grep -v '\.E2E\.Tests/' | LC_ALL=C sort)"
-  if [ -n "$test_shard" ]; then
-    part_tests="$(printf '%s\n' "$part_tests" | awk -v k="${test_shard%/*}" -v n="${test_shard#*/}" 'NR % n == k % n')"
-  fi
-  if [ -n "$tests_scope" ]; then
-    part_tests="$(printf '%s\n' "$part_tests" | grep -xF "$tests_scope" || true)"
-  fi
-  if [ -z "$part_tests" ]; then
-    skip_tests=1
-    echo "==> Tests: the change reaches no test project in this part."
-  else
-    scope_projects="$part_tests"
-    scope_changed="${scope_changed:-}"
-    echo "==> Tests in this part: $(printf '%s\n' "$scope_projects" | grep -c .) project(s)"
-  fi
-fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
@@ -451,12 +423,23 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  case "$unit_part" in
-    build|tests)
-      echo "==> Formatting check: not in the '$unit_part' part — the format parts run it."
-      return 0
-      ;;
-  esac
+  # The `build` part: what was decided before the build (format_all / format_files, at RASK_UNIT_PART).
+  if [ "$unit_part" = "build" ]; then
+    if [ -n "$format_all" ]; then
+      echo "==> Formatting check over every file: $format_all changed, and with it the rules."
+      rask_start_whole_format
+    elif [ -n "$format_files" ]; then
+      rask_start_file_format "$format_files" "the .cs files changed since the scope base"
+    elif [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
+      echo "==> Formatting check skipped — no .cs file changed since the scope base."
+    else
+      # Restore at 1.0: the whole tree in the daily full run (docs/development-workflow.md).
+      echo "==> Formatting check skipped — no scope base to measure a change from; every change was"
+      echo "    formatted in the run that brought it (restore at 1.0: the whole tree in the daily full run)."
+    fi
+    return 0
+  fi
+
   # `range` is `staged` for commits that already exist: the files are the ones RASK_SCOPE_RANGE
   # changed. Same soundness argument as above, over the same range the tests are scoped to.
   if [ "${RASK_FORMAT_SCOPE:-}" = "staged" ] || { [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; }; then
@@ -473,30 +456,37 @@ rask_start_format() {
       return 0
     fi
 
-    rask_build_debug_generators
-    format_label="Formatting check (changed .cs files only — RASK_FORMAT_SCOPE=$RASK_FORMAT_SCOPE)"
-    echo "==> $format_label — running alongside the tests"
-    (
-      set +e   # the seconds are written on a red run too
-      format_began=$SECONDS
-      # shellcheck disable=SC2086
-      printf '%s\n' "$staged_cs" | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
-      format_exit=$?
-      echo "$((SECONDS - format_began))" >"$format_log.secs"
-      exit "$format_exit"
-    ) >"$format_log" 2>&1 &
-    format_pid=$!
+    rask_start_file_format "$staged_cs" "RASK_FORMAT_SCOPE=$RASK_FORMAT_SCOPE"
     return 0
   fi
 
+  rask_start_whole_format
+}
+
+# rask_start_file_format <.cs files, one per line> <why these>
+rask_start_file_format() {
+  rask_build_debug_generators
+  format_label="Formatting check (changed .cs files only — $2)"
+  echo "==> $format_label — running alongside the tests"
+  (
+    set +e   # the seconds are written on a red run too
+    format_began=$SECONDS
+    printf '%s\n' "$1" | grep . | tr '\n' ' ' | xargs dotnet format Rask.slnx --verify-no-changes --include
+    format_exit=$?
+    echo "$((SECONDS - format_began))" >"$format_log.secs"
+    exit "$format_exit"
+  ) >"$format_log" 2>&1 &
+  format_pid=$!
+}
+
+rask_start_whole_format() {
   rask_build_debug_generators
   format_label="Formatting check (dotnet format --verify-no-changes: whitespace + style + analyzers)"
   echo "==> $format_label — running alongside the tests"
   (
     set +e   # the seconds are written on a red run too
     format_began=$SECONDS
-    # shellcheck disable=SC2086  # empty on a whole run, one path in a format part
-    dotnet format Rask.slnx --verify-no-changes ${format_include:+--include $format_include}
+    dotnet format Rask.slnx --verify-no-changes
     format_exit=$?
     echo "$((SECONDS - format_began))" >"$format_log.secs"
     exit "$format_exit"
@@ -560,12 +550,7 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ -n "$unit_part" ] && [ "$unit_part" != "tests" ]; then
-  echo "==> Tests: not in the '$unit_part' part — the 'tests' part runs them."
-  unit_status=0
-elif [ "$skip_tests" -eq 1 ]; then
-  unit_status=0
-elif [ -n "$scope_projects" ]; then
+if [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked
   # per project so each assembly keeps its own testhost and therefore its own runtimeconfig.json —
   # the MetadataUpdaterSupport point above applies here exactly as it does to the solution run, so

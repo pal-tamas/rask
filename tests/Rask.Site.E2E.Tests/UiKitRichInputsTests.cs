@@ -8,7 +8,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The composer, autocomplete, pillbox and file upload on their pages in the UI tab, in a browser: what the runtime
 ///     and the browser do in place of Flux's script, which no markup assertion can see.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

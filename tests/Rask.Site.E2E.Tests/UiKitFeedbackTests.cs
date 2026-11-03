@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's feedback components (callout, progress, skeleton, toast and tooltip) on their pages in the UI tab, in a
 ///     browser.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

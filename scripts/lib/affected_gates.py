@@ -13,8 +13,7 @@ This asks scripts/lib/affected_projects.py which PROJECTS the change reaches and
 its own; every FULL that script answers is FULL here. What it adds is the step from projects to
 gates, for the gates whose subject is not a test project's references:
 
-    code       anything at all reached           -> the analyzer build, the unit tests
-    cs         a .cs file changed                -> the formatter
+    code       anything at all reached           -> the analyzer build, the unit tests, the formatter
     site       the published site is reached     -> the browser journeys over it
     server     the Rask.Server journeys' project
     devtools   the devtools journeys or their fixtures
@@ -129,8 +128,6 @@ def reached_projects(root: Path, changed: list[str]) -> tuple[str | None, list[s
 
 def gates_for(root: Path, changed: list[str], projects: list[str]) -> list[str]:
     keys = ["code"]
-    if any(path.endswith(".cs") for path in changed):
-        keys.append("cs")
     for key, prefixes in PROJECT_GATES.items():
         if any(project.startswith(prefixes) for project in projects):
             keys.append(key)

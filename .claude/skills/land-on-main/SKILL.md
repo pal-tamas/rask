@@ -61,8 +61,11 @@ git push origin HEAD:main
   `--workflow full` — and if your
   push is the red one, fixing it forward is the next thing you do (`gh run view <id> --log-failed`,
   then the script the failing job names, filtered to the failing test).
-- **Not sure it will pass?** Push to a `ci/<name>` branch first
-  (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
+- **Until 1.0, land it directly.** Finished work goes straight to `main` once its local targeted tests
+  pass — no `ci/**` pre-run, even when unsure (restore at 1.0: risky changes go through `ci/**` first;
+  docs/development-workflow.md, "Loosened until 1.0"). The exceptions: a change to CI itself, a
+  Linux-only risk the Mac cannot check, and a release-only gate. For those, push to a `ci/<name>` branch
+  first (`git push origin HEAD:refs/heads/ci/<name>`): same gates, nothing lands, nothing is published.
   `ci/release/<name>` adds the release-only gates. Delete the branch afterwards. That is a full round
   of jobs on runners `main` is waiting for, so when one gate is the question, run that one: push the
   branch under any other name and `gh workflow run ci.yml --ref <branch> -f only='CLI build'`

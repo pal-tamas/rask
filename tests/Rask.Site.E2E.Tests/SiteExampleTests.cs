@@ -12,7 +12,6 @@ namespace Rask.Site.E2E.Tests;
 ///     live counter and install tabs are genuine stateful Rask components (click → diff → re-render), and
 ///     that the docs link points at the nested sub-app.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class SiteExampleTests
 {
     private readonly WasmExampleAppFixture _app;
@@ -29,6 +28,7 @@ public sealed class SiteExampleTests
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.GotoAsync("/index.html");
@@ -243,6 +243,7 @@ public sealed class SiteExampleTests
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.GotoAsync(path);
@@ -343,6 +344,7 @@ public sealed class SiteExampleTests
             ViewportSize = new ViewportSize { Width = width, Height = 900 },
         });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             if (fallbackFont)
@@ -395,6 +397,7 @@ public sealed class SiteExampleTests
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.GotoAsync("/index.html");
@@ -434,6 +437,7 @@ public sealed class SiteExampleTests
     {
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.GotoAsync("/index.html");
@@ -479,6 +483,7 @@ public sealed class SiteExampleTests
         // already has one, so it reports a clean boot it never observed.
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.AddInitScriptAsync("""
@@ -538,6 +543,7 @@ public sealed class SiteExampleTests
         // Loaded at /docs/, the URL a reader lands on (GitHub Pages 301s /docs to it), not /docs/index.html.
         var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         try
         {
             await page.AddInitScriptAsync("""

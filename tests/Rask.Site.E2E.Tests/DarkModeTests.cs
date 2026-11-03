@@ -13,7 +13,6 @@ namespace Rask.Site.E2E.Tests;
 ///     None of this is reachable from a unit test: whether the page IS dark is a question about the
 ///     cascade, a media query and <c>localStorage</c>, three things only a browser has.
 /// </remarks>
-[Collection(WasmExampleCollection.Name)]
 public sealed partial class DarkModeTests
 {
     private const string Moon = "header button[data-appearance-toggle]";
@@ -34,6 +33,7 @@ public sealed partial class DarkModeTests
     {
         var context = await NewContextAsync(scheme);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
 
         await page.GotoAsync("/index.html");
         await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
@@ -66,6 +66,7 @@ public sealed partial class DarkModeTests
     {
         var context = await NewContextAsync(ColorScheme.Light);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         await page.GotoAsync("/index.html");
         await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
@@ -108,6 +109,7 @@ public sealed partial class DarkModeTests
     {
         var context = await NewContextAsync(ColorScheme.Light);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         await page.GotoAsync("/index.html");
         await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
@@ -141,6 +143,7 @@ public sealed partial class DarkModeTests
     {
         var context = await NewContextAsync(ColorScheme.Light);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
         await page.GotoAsync("/index.html");
         await Expect(page.Locator("h1")).ToContainTextAsync("The whole stack");
 
@@ -165,6 +168,7 @@ public sealed partial class DarkModeTests
     {
         var context = await NewContextAsync(ColorScheme.Light);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
 
         await page.GotoAsync(path);
 
@@ -199,6 +203,7 @@ public sealed partial class DarkModeTests
         // and every card on this page computed rgb(255, 255, 255) in dark mode.
         var context = await NewContextAsync(ColorScheme.Dark);
         var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
 
         // Reached the way a reader reaches it: the guides index, the bar's UI tab, then the card in its sidebar.
         await page.GotoAsync("/docs/");

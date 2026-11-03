@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     online and offline state. The Server host's half, which also follows its socket, is
 ///     <c>OfflineAndReconnectTests</c> in <c>Rask.Server.E2E.Tests</c>.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class OfflineMarkWasmTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

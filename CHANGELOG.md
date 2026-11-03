@@ -16,6 +16,28 @@ them until tagged releases begin.
   can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
   as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
   departure from Flux UI, which leaves the field to the browser.
+- **CI: the front-end templates run in two jobs that pack the feed once.** The seven `front end <key>` jobs each
+  packed the local feed again (about 4.4 minutes apiece); `front end 1/2` and `2/2` each pack it once and scaffold
+  their templates one after another (`scripts/run-template-e2e.sh --front-end=angular,preact,…`), with a verdict per
+  template in the log and the job summary. A scoped or Dependabot run narrows a job to the templates it reaches.
+- **CI: the formatter checks the files a change touched, in the `build` job.** The `format`, `format src` and
+  `format tests` jobs are gone (a build plus up to 603 s of `dotnet format` each); `build` runs the formatter beside
+  the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
+  `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json` (`scripts/lib/format-scope.sh`). With no scope
+  base — the daily whole run, a release — nothing is formatted. Until 1.0.
+- **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
+  rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
+  in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
+  that reaches a test project also builds `Rask.Wasm`, whose `rask.wasm.js` the core tests read.
+- **CI: the site's browser journeys run side by side, in three shards.** Every class shared one xUnit collection
+  fixture, so 220-odd journeys ran one at a time despite `maxParallelThreads: 4`; the static host and the browser
+  are now assembly fixtures, each test keeps a browser context of its own, and four classes run at once. The
+  classes that read the clipboard back share a collection (a browser has one clipboard). The shards are re-dealt by
+  measured seconds, five down to three. `RASK_E2E_CPU_SLOWDOWN` now slows the site suite's pages too.
+- **CI: the site is published once per run.** A `site publish` job publishes `src/Rask.Site` and hands its
+  `wwwroot` to the browser shards as an artifact; each shard used to publish it again (five to eight minutes,
+  five times). `scripts/run-e2e-local.sh` takes `RASK_E2E_SITE=publish|prebuilt` for the two halves. Only the
+  shards wait for the publish; every other gate starts with the plan.
 - **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
   instead of every day; every other follower stays daily. Until 1.0.
 - **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a

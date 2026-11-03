@@ -9,7 +9,6 @@ namespace Rask.Site.E2E.Tests;
 ///     The kit's filters on the running site, in the browser's own WebAssembly app: the panel opened by its button,
 ///     a pick that moves the address and arrives as a badge, and the badges taken off again.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class UiKitFiltersTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {

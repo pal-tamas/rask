@@ -11,7 +11,6 @@ namespace Rask.Site.E2E.Tests;
 ///     refused one changes nothing. The Server host's half is <c>ConfirmTests</c> and <c>ConfirmDialogTests</c> in
 ///     <c>Rask.Server.E2E.Tests</c>, which also hold the browser's own dialog where no layout placed one.
 /// </summary>
-[Collection(WasmExampleCollection.Name)]
 public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixture pw)
     : SharedSmokeTests(pw)
 {
