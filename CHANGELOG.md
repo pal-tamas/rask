@@ -610,7 +610,8 @@ them until tagged releases begin.
   stylesheet, and the first Tab still lands in the calendar. Measured, with every other control's focused look,
   by the new `scripts/flux/parity-focus.mjs`: a mouse press and the keyboard, in Chromium and WebKit, light and
   dark — buttons, inputs, textarea, both selects, checkbox, radio, switch, tabs, a sidebar item, a dropdown trigger
-  and the date picker's button and typed parts now draw exactly Flux's ring (or none) in every step.
+  and the date picker's button and typed parts now draw exactly Flux's ring (or none) in every step. The open popup's
+  text is selectable as Flux's is (`user-select: text`, which Chromium gives Flux's modal `<dialog>`).
 - **A submenu's flyout closes when the pointer moves on out of the menu, as Flux UI's does.** Measured on Flux's
   dropdown and context menu: once the pointer has been in a submenu's row or its flyout, a move outside both — onto
   the menu's padding or off the menu altogether — closes the flyout and darkens its row (unless it has focus), in
