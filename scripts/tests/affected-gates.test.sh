@@ -148,23 +148,26 @@ wired() {
 wired "the whole run is unscoped"                    full.yml    '^      scope: full$'
 wired "the whole run is the push set"                full.yml    '^      set: push$'
 wired "the whole run is on a schedule"               full.yml    '^    - cron: '
-wired "the whole run follows a push"                 full.yml    '^    branches: \[main\]$'
 wired "the whole run leaves runners for a push"      full.yml    '^      parallel: [0-9]+$'
-wired "nightly publishes what the whole run passed"  nightly.yml 'workflows/full\.yml/runs\?branch=main&status=success'
-wired "nightly follows the whole run"                nightly.yml '^    workflows: \[full\]$'
-wired "pages publishes from the whole run"           pages.yml   '^    workflows: \[full\]$'
+wired "nightly publishes what main's ci passed"     nightly.yml 'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
+wired "nightly follows main's ci"                    nightly.yml '^    workflows: \[ci\]$'
+wired "nightly follows a push run, not a manual one" nightly.yml "github\.event\.workflow_run\.event == 'push'"
+wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
+wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
+wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
 wired "a push hands its base to the gates"           ci.yml      '^      base: \$\{\{ needs\.base\.outputs\.sha \}\}$'
-wired "a ci/** branch is scoped like main"          ci.yml      '"ci\.yml/runs\?branch=\$branch&event=push"'
+wired "main is measured from its last started run"   ci.yml      'scripts/lib/green_base\.sh main "\$GITHUB_RUN_ID"'
+wired "a ci/** branch is measured by its own commits" ci.yml     'scripts/lib/green_base\.sh branch\)'
 wired "a ci/release/** branch is never scoped"       ci.yml      '"\$REF" != refs/heads/ci/release/\*'
 wired "the gates ask affected_gates.py"              gates.yml   'scripts/lib/affected_gates\.py'
 wired "a release is never scoped"                    release.yml '^      set: all$'
 
 checked=$((checked + 1))
-if grep -qE '^      scope:' "$root/.github/workflows/release.yml" "$root/.github/workflows/soak.yml"; then
-  printf '  FAIL %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)" >&2
+if grep -qE '^      scope:' "$root/.github/workflows/release.yml"; then
+  printf '  FAIL %s\n' "release.yml passes no scope (the default is the whole set)" >&2
   failures=$((failures + 1))
 else
-  printf '  ok   %s\n' "release.yml and soak.yml pass no scope (the default is the whole set)"
+  printf '  ok   %s\n' "release.yml passes no scope (the default is the whole set)"
 fi
 
 # --- the plan ---------------------------------------------------------------------------------------

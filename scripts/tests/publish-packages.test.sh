@@ -258,6 +258,46 @@ same "an unserved dependency stops the levels above it" \
   "$status:$(grep -cE "^Rask\.(Server|Dashboard|Postgres)\." "$FAKE/attempts.log")" "1:0"
 check "and is named" grep -q "Stopped before level 2.*Rask.Ui" <<< "$out"
 
+echo "==> publish_packages: --waves folds the levels (nightly.yml: one wave until 1.0)"
+
+fresh onewave
+mkdir -p "$FAKE/feed"; : > "$FAKE/unserved/Rask.Ui"   # accepted, still in validation: one wave does not wait for it
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 0.3 --waves 1 --jobs 8; status=$?
+same "one wave pushes the whole set without waiting for the feed" "$status:$(sort -u "$FAKE/pushed.log" | wc -l | xargs)" "0:7"
+same "every package once" "$(wc -l < "$FAKE/attempts.log" | xargs)" "7"
+check "and says it was one wave, not dependencies first" grep -q "Pushed .*in 1 wave\." <<< "$out"
+if grep -q "waiting for" <<< "$out"; then fail "nothing waits for the feed between levels" "$out"; else ok "nothing waits for the feed between levels"; fi
+
+fresh onewave-stall
+echo "2 error: Pushing took too long. You can change the default timeout of 300 seconds by using the --timeout <seconds> option." > "$FAKE/fail/Rask.$version.nupkg"
+push --waves 1 --jobs 8; status=$?
+same "one wave still retries a stalled push" "$status:$(attempts Rask)" "0:3"
+
+fresh onewave-down
+echo "99 Response status code does not indicate success: 503 (Service Unavailable)." > "$FAKE/fail/Rask.Ui.$version.nupkg"
+push --waves 1 --attempts 2; status=$?
+same "one wave fails the job when a push never goes through" "$status:$(attempts Rask.Ui)" "1:2"
+check "and names it" grep -q "Push failed at wave 0.*Rask.Ui.$version.nupkg" <<< "$out"
+
+fresh onewave-mixed
+# The feed already serves Rask.Data at this version, packed from another commit.
+mkdir -p "$FAKE/feed/rask.data/$version"; echo "{\"versions\":[\"$version\"]}" > "$FAKE/feed/rask.data/index.json"
+unzip -p "$dir/Rask.Data.$version.nupkg" '*.nuspec' | sed 's/commit="[^"]*"/commit="2222222222222222222222222222222222222222"/' \
+  > "$FAKE/feed/rask.data/$version/rask.data.nuspec"
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 5 --waves 1 --commit "$commit"; status=$?
+same "one wave still refuses a version served from another commit before pushing" \
+  "$status:$(wc -l < "$FAKE/attempts.log" | xargs)" "3:0"
+
+fresh twowaves
+mkdir -p "$FAKE/feed"; : > "$FAKE/unserved/Rask.Ui"
+push --gate-index "file://$FAKE/feed/{id}/index.json" --wait 0.3 --waves 2; status=$?
+same "two waves: levels 0-1, then 2-3, the gate between them" \
+  "$status:$(grep -cE "^Rask\.(Ui|Data)\." "$FAKE/attempts.log"):$(grep -cE "^Rask\.(Server|Dashboard|Postgres)\." "$FAKE/attempts.log")" "1:2:0"
+check "and the wait is named by its wave" grep -q "Stopped before wave 1.*Rask.Ui" <<< "$out"
+same "the plan's order is the same whatever the waves" \
+  "$(python3 "$publish" plan "$dir" | cut -f1,2 | tr '\t' ':' | xargs)" \
+  "0:Rask 0:Rask.Cli 1:Rask.Data 1:Rask.Ui 2:Rask.Dashboard 2:Rask.Server 3:Rask.Postgres"
+
 echo "==> publish_packages: the publish is not done until the feed serves the whole set"
 
 verify() {

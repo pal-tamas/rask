@@ -3,7 +3,7 @@
 
     publish_packages.py plan   <dir> [--projects src]
     publish_packages.py push   <dir> --source <feed> [--api-key-env NAME | --trusted-publisher USER]
-                                     [--gate-index nuget.org]
+                                     [--gate-index nuget.org] [--waves N]
                                      [--projects src] [--log push.log] [--commit <sha>]
     publish_packages.py verify <dir> [--index nuget.org] [--wait 1800]
 
@@ -17,6 +17,12 @@ What `push` does about it:
           Accepted is not served: nuget.org validates for minutes, in no particular order.
   retry   one package per push command, retried with backoff; a duplicate is success, so a re-run
           resumes where the last one stopped.
+  waves   by default every level is a wave of its own. --waves N folds the levels into N waves, and the
+          gate waits only BETWEEN waves: --waves 1 pushes the whole set at once (bounded by --jobs), and
+          nothing waits for the feed until `verify`. That trades the order back for time -- for as long as
+          validation takes, or until a re-run finishes a failed push, a package can be served ahead of a
+          dependency (the 2026-10-12 window). nightly.yml takes it until 1.0 (restore at 1.0: drop
+          --waves 1, docs/development-workflow.md "Loosened until 1.0"); release.yml never does.
   commit  a version is one commit's. Before anything is pushed, every package the feed already serves at
           the version must have been packed from THIS commit (its nuspec's <repository commit>); the gate
           and `verify` ask the same of every package they wait for.
@@ -186,6 +192,15 @@ def levels_of(packages: list[Package]) -> list[list[Package]]:
     for package in packages:
         levels[package.level].append(package)
     return levels
+
+
+def waves_of(packages: list[Package], waves: int) -> list[list[Package]]:
+    """The levels folded into at most `waves` consecutive pushes, deepest dependencies first; 0 is a wave per level."""
+    levels = levels_of(packages)
+    if waves <= 0 or waves >= len(levels):
+        return levels
+    size = -(-len(levels) // waves)   # ceiling: the first waves take the extra level
+    return [[p for level in levels[start:start + size] for p in level] for start in range(0, len(levels), size)]
 
 
 # ------------------------------------------------------------------ one push, retried
@@ -432,26 +447,34 @@ def cmd_push(args: argparse.Namespace) -> int:
     summary(f"Publishing {describe(packages)} to `{args.source}`.")
 
     served: set[str] = set()
-    # Level after level, never two at once: the order IS the guarantee.
-    for number, level in enumerate(levels_of(packages)):
-        if args.gate_index and number > 0:
-            needed = [p for p in packages if p.key not in served and any(p.key in q.depends_on for q in level)]
-            missing = wait_until_served(needed, args.gate_index, args.wait, args.poll, f"level {number}", expected)
+    pushed: set[str] = set()
+    waves = waves_of(packages, args.waves)
+    unit = "level" if len(waves) == len(levels_of(packages)) else "wave"
+    # Wave after wave, never two at once: the order IS the guarantee. By default a wave is one level.
+    for number, wave in enumerate(waves):
+        # What this wave depends on that an EARLIER wave pushed; a dependency inside the wave cannot be waited for.
+        needed = [p for p in packages if p.key in pushed and p.key not in served
+                  and any(p.key in q.depends_on for q in wave)]
+        if args.gate_index and needed:
+            missing = wait_until_served(needed, args.gate_index, args.wait, args.poll, f"{unit} {number}", expected)
             if missing:
-                summary(f"**Stopped before level {number}**: after {args.wait:g} s the feed still does not serve "
+                summary(f"**Stopped before {unit} {number}**: after {args.wait:g} s the feed still does not serve "
                         + ", ".join(f"`{p.id}`" for p in missing)
                         + ". Nothing that depends on them was pushed. Re-run this job to finish the version.")
                 return 1
             served.update(p.key for p in needed)
 
-        print(f"==> level {number}: {', '.join(p.id for p in level)}", flush=True)
-        failed = push_all([p.path for p in level], args, keys.current())
+        print(f"==> {unit} {number}: {', '.join(p.id for p in wave)}", flush=True)
+        failed = push_all([p.path for p in wave], args, keys.current())
         if failed:
-            summary(f"**Push failed at level {number}**: " + ", ".join(f"`{name}`" for name in failed)
-                    + ". Nothing that depends on them was pushed. Re-run this job to finish the version.")
+            summary(f"**Push failed at {unit} {number}**: " + ", ".join(f"`{name}`" for name in failed)
+                    + (". Nothing that depends on them was pushed." if len(waves) > 1 else ".")
+                    + " Re-run this job to finish the version.")
             return 1
+        pushed.update(p.key for p in wave)
 
-    summary(f"Pushed {describe(packages)}, dependencies first.")
+    order = "dependencies first" if unit == "level" else f"in {len(waves)} wave{'s' if len(waves) > 1 else ''}"
+    summary(f"Pushed {describe(packages)}, {order}.")
     return 0
 
 
@@ -489,7 +512,10 @@ def main() -> int:
     push.add_argument("--backoff", type=float, default=15, help="seconds before the second attempt; doubles")
     push.add_argument("--throttle-wait", type=float, default=60, help="floor after a 429 with no Retry-After")
     push.add_argument("--max-wait", type=float, default=600, help="ceiling on any one retry wait")
-    push.add_argument("--jobs", type=int, default=4, help="pushes at once inside one level")
+    push.add_argument("--jobs", type=int, default=4, help="pushes at once inside one wave")
+    push.add_argument("--waves", type=int, default=0,
+                      help="fold the levels into N pushes, the gate waiting only between them; 1 pushes the "
+                           "whole set at once; 0 (the default) is a wave per level")
     push.set_defaults(run=cmd_push)
 
     verify = commands.add_parser("verify", help="wait until the feed serves every package of the set")

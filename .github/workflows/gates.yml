@@ -1,7 +1,7 @@
 name: gates
 
-# The gates, as jobs. Called by ci.yml (every push), full.yml (the whole push set, on a schedule),
-# soak.yml and release.yml — ONE list, so they cannot drift. Each job runs the same script a developer
+# The gates, as jobs. Called by ci.yml (every push), full.yml (the whole push set, once a day)
+# and release.yml — ONE list, so they cannot drift. Each job runs the same script a developer
 # runs by hand, which keeps a red job reproducible with one command.
 #
 #   push     what a push to main is held to

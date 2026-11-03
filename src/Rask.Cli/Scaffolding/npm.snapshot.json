@@ -1,5 +1,5 @@
 {
-  "followed": "2026-11-02",
+  "followed": "2026-11-03",
   "packages": {
     "@analogjs/vite-plugin-angular": {
       "versions": {
@@ -198,18 +198,18 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/core": "21.2.25",
+            "@angular/core": "21.2.26",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/core": "20.3.34",
+            "@angular/core": "20.3.35",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
@@ -235,12 +235,12 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
@@ -276,18 +276,18 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/compiler": "21.2.25",
+            "@angular/compiler": "21.2.26",
             "typescript": ">=5.9 <6.1"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/compiler": "20.3.34",
+            "@angular/compiler": "20.3.35",
             "typescript": ">=5.8 <6.0"
           },
           "engines": {
@@ -325,18 +325,18 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/compiler": "21.2.25",
+            "@angular/compiler": "21.2.26",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/compiler": "20.3.34",
+            "@angular/compiler": "20.3.35",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
@@ -380,22 +380,22 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/common": "21.2.25",
-            "@angular/core": "21.2.25",
-            "@angular/platform-browser": "21.2.25",
+            "@angular/common": "21.2.26",
+            "@angular/core": "21.2.26",
+            "@angular/platform-browser": "21.2.26",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/common": "20.3.34",
-            "@angular/core": "20.3.34",
-            "@angular/platform-browser": "20.3.34",
+            "@angular/common": "20.3.35",
+            "@angular/core": "20.3.35",
+            "@angular/platform-browser": "20.3.35",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
@@ -433,19 +433,19 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/common": "21.2.25",
-            "@angular/core": "21.2.25"
+            "@angular/common": "21.2.26",
+            "@angular/core": "21.2.26"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/common": "20.3.34",
-            "@angular/core": "20.3.34"
+            "@angular/common": "20.3.35",
+            "@angular/core": "20.3.35"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
@@ -488,22 +488,22 @@
             "node": "^22.22.3 || ^24.15.0 || >=26.0.0"
           }
         },
-        "21.2.25": {
+        "21.2.26": {
           "peerDependencies": {
-            "@angular/common": "21.2.25",
-            "@angular/core": "21.2.25",
-            "@angular/platform-browser": "21.2.25",
+            "@angular/common": "21.2.26",
+            "@angular/core": "21.2.26",
+            "@angular/platform-browser": "21.2.26",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
             "node": "^20.19.0 || ^22.12.0 || >=24.0.0"
           }
         },
-        "20.3.34": {
+        "20.3.35": {
           "peerDependencies": {
-            "@angular/common": "20.3.34",
-            "@angular/core": "20.3.34",
-            "@angular/platform-browser": "20.3.34",
+            "@angular/common": "20.3.35",
+            "@angular/core": "20.3.35",
+            "@angular/platform-browser": "20.3.35",
             "rxjs": "^6.5.3 || ^7.4.0"
           },
           "engines": {
@@ -2445,6 +2445,15 @@
     },
     "vitest": {
       "versions": {
+        "5.1.0": {
+          "peerDependencies": {
+            "jsdom": "*",
+            "vite": "^6.4.0 || ^7.0.0 || ^8.0.0"
+          },
+          "engines": {
+            "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
+          }
+        },
         "5.0.5": {
           "peerDependencies": {
             "jsdom": "*",
