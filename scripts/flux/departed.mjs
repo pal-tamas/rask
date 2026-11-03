@@ -1,5 +1,5 @@
 // The owner-approved departures from Flux in LOOK (flux-component SKILL.md "Owner-approved departures"), let go by
-// every script that compares the kit's computed styles with Flux's (parity.mjs, parity-modal.mjs): each names the
+// every script that compares the kit's computed styles with Flux's (parity.mjs, parity-modal.mjs, open.mjs): each names the
 // node by where it sits, and only the named properties are let go there.
 // `matches(example, node)` is a predicate on the kit's node and the tree above it; nothing of Flux's is asked.
 const holds = tag => (example, node) => example.nodes.some(c => c.parent === node.id && c.tag === tag);

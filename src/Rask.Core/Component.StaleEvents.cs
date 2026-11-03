@@ -100,6 +100,7 @@ public abstract partial class Component
 
         ref var slot = ref SlotAt(state, at.Slot);
         var seen = (long)version + root.Floor;
+        ForgetKeptPageBefore(root, seen);
         if (seen < root.Version)
         {
             // More from that page are likely on their way: the next walks keep every slot's history connected.
@@ -112,6 +113,11 @@ public abstract partial class Component
         if (current && map.TryGetValue(id, out entry))
         {
             return true;
+        }
+
+        if (TryFindFromKeptPage(id, seen, root, state, at.Slot, map, out entry) is { } fromKept)
+        {
+            return fromKept || (!asking && Missed(at.Component, at.Slot, version, root));
         }
 
         return ((current ? slot.Handler : HeldAt(ref slot, seen, root)) is { } sought
@@ -129,9 +135,7 @@ public abstract partial class Component
         HandlerState state, Dictionary<string, (Component Owner, Delegate Handler)> map, Delegate sought, long seen,
         HandlerState root, out (Component Owner, Delegate Handler) entry)
     {
-        entry = default;
         var then = new List<Delegate>();
-        var now = new List<(Component Owner, Delegate Handler)>();
         var issued = Math.Min(1 + (state.Rest?.Length ?? 0), MaxSlotsSearched);
         for (var i = 0; i < issued; i++)
         {
@@ -141,7 +145,43 @@ public abstract partial class Component
             {
                 then.Add(held);
             }
+        }
 
+        return TryPickAmongSiblings(state, map, sought, then, out entry);
+    }
+
+    // The same, with what the slots held then read from a page kept whole (Component.KeptPage.cs).
+    private static bool TryFindAmongSiblings(
+        HandlerState state, Dictionary<string, (Component Owner, Delegate Handler)> map, Delegate sought,
+        Dictionary<string, (Component Owner, Delegate Handler)> kept, out (Component Owner, Delegate Handler) entry)
+    {
+        var then = new List<Delegate>();
+        var issued = Math.Min(1 + (state.Rest?.Length ?? 0), MaxSlotsSearched);
+        for (var i = 0; i < issued; i++)
+        {
+            if (IssuedSlotId(state, i) is { } id
+                && kept.TryGetValue(id, out var held)
+                && HandlerSameness.FromOneLambda(sought, held.Handler))
+            {
+                then.Add(held.Handler);
+            }
+        }
+
+        return TryPickAmongSiblings(state, map, sought, then, out entry);
+    }
+
+    // Which handler of the page now, among those one lambda made in this component, is the one `sought` was among
+    // `then`, the handlers that lambda made on the page it was read from.
+    private static bool TryPickAmongSiblings(
+        HandlerState state, Dictionary<string, (Component Owner, Delegate Handler)> map, Delegate sought,
+        List<Delegate> then, out (Component Owner, Delegate Handler) entry)
+    {
+        entry = default;
+        var now = new List<(Component Owner, Delegate Handler)>();
+        var issued = Math.Min(1 + (state.Rest?.Length ?? 0), MaxSlotsSearched);
+        for (var i = 0; i < issued; i++)
+        {
+            ref var slot = ref i == 0 ? ref state.Slot0 : ref state.Rest![i - 1];
             if (i < state.LocalCount
                 && slot.Id is { } id
                 && map.TryGetValue(id, out var here)

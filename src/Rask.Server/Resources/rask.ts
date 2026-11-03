@@ -132,6 +132,9 @@ import {
     // What waits until the page holds every page the server sent before it was asked: a `.Confirm` yes pressing
     // its button again (rask-confirm.ts). The server answers `caughtUp` behind them all, in order, and what waits
     // runs once they are on screen — however long a slow line or the browser's own dialog kept them on the way.
+    // It runs on exactly that page, before any page sent after the answer: the server kept that page's handlers as
+    // it answered, so a press read from it reaches the handler pressed however many pages the server has drawn
+    // since — a board redrawn every few dozen ms is always further on than the press can catch up with.
     const caughtUpWaits = new Map<number, () => void>();
     let caughtUpAsked = 0;
     pagesCaughtUpBy(function (then: () => void): void {
@@ -139,18 +142,6 @@ import {
         caughtUpWaits.set(n, then);
         send({type: "caughtUp", n});
     });
-
-    // Runs `then` once every page received so far is on screen — the answer's, and any that arrived with it: a line
-    // that held the server's frames hands them over together, and a press read from a page before the newest of
-    // them is read from a page the server is already past.
-    function onceReceivedApplied(then: () => void): void {
-        const tail = _renderQueue;
-        const next = function (): void {
-            if (_renderQueue === tail) then();
-            else onceReceivedApplied(then);
-        };
-        tail.then(next, next);
-    }
     // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
     // browser (the navigate message carries only path+query, and the server's history
     // url has no hash), so we stash it here on click and consume it when the matching
@@ -690,7 +681,7 @@ import {
             const then = caughtUpWaits.get(data.n);
             if (then) {
                 caughtUpWaits.delete(data.n);
-                onceReceivedApplied(then);
+                _renderQueue = _renderQueue.then(then, then);
             }
             return;
         }

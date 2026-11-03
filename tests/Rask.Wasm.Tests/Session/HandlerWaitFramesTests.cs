@@ -147,6 +147,29 @@ public sealed class HandlerWaitFramesTests : ResettingTestBase, IDisposable
         Assert.True(session.ReadsSettledAsync().IsCompletedSuccessfully);
     }
 
+    [Fact]
+    public async Task A_paint_while_a_handler_awaits_inside_an_ambient_scope_is_drawn_outside_that_scope()
+    {
+        var app = new HeldPagingApp { ReadsAcross = true };
+        var (session, click) = await Open(app, Brief);
+
+        var dispatch = session.DispatchAsync(Click(click));
+        await WaitFor.True(() => Painted() == 1, "the paint at the budget");
+        app.Release();
+        await dispatch;
+
+        // The handler's read ran in the scope; every paint — those between its awaits too — is the page's own.
+        string[] painted;
+        lock (_painted)
+        {
+            painted = [.. _painted];
+        }
+
+        Assert.True(painted.Length > 1, "a paint between the handler's awaits");
+        Assert.DoesNotContain(painted, p => p.Contains("no partner", StringComparison.Ordinal));
+        Assert.Contains("rows of 2", painted[^1], StringComparison.Ordinal);
+    }
+
     private int Painted()
     {
         lock (_painted)
@@ -204,10 +227,14 @@ internal sealed class HeldPagingApp : Component
         return held.Task;
     }
 
+    // The handler reads inside an ambient scope, as Tenant.Across() opens one, through a helper that leaves its context.
+    public bool ReadsAcross { get; init; }
+
     protected override string? HtmlLang => null;
 
     protected override Component? Render() =>
         Main[
+            P[Across.IsOpen ? "no partner" : "for the partner"],
             P[$"pager at {_page}"],
             Button.OnClick(Next)["next"],
             RowsAreAChilds ? new HeldPagingRows { App = this, Page = _page } : P[$"rows of {_rowsOf}"]
@@ -221,8 +248,44 @@ internal sealed class HeldPagingApp : Component
             return;
         }
 
-        await Read();
+        if (ReadsAcross)
+        {
+            using (Across.Enter())
+            {
+                await ReadLeavingTheContext();
+
+                // Halfway: the page is drawn again by the repaint that follows this continuation, as a busy button is.
+                StateHasChanged();
+                await ReadLeavingTheContext();
+            }
+        }
+        else
+        {
+            await Read();
+        }
+
         _rowsOf = _page;
+    }
+
+    private async Task ReadLeavingTheContext() => await Read().ConfigureAwait(false);
+
+    // An ambient scope on an AsyncLocal, which nothing outside the block it is opened in may see.
+    private static class Across
+    {
+        private static readonly AsyncLocal<bool> Open = new();
+
+        public static bool IsOpen => Open.Value;
+
+        public static IDisposable Enter()
+        {
+            Open.Value = true;
+            return new Scope();
+        }
+
+        private sealed class Scope : IDisposable
+        {
+            public void Dispose() => Open.Value = false;
+        }
     }
 }
 

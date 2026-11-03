@@ -644,40 +644,18 @@ public abstract partial class Component
         var ctx = new HandlerSyncContext(
             handle.RenderInScopeAsync,
             withheld ? Stopwatch.GetTimestamp() + (long)(budget.TotalSeconds * Stopwatch.Frequency) : 0);
+
+        // The flow the handler is dispatched in, before it opens a scope of its own: every repaint made while it runs
+        // is made in this one, never in the flow of the continuation that asked for it (SpawnedWork.StartIn).
+        var dispatchedIn = ExecutionContext.Capture();
+        handle.HandlerStarted(dispatchedIn);
         SynchronizationContext.SetSynchronizationContext(ctx);
         try
         {
             var userTask = invoke();
-            ExceptionDispatchInfo? repaintFault = null;
-            if (!userTask.IsCompleted)
-            {
-                // HandlerSyncContext is suspended for the render-and-send: Kestrel's WebSocket.SendAsync has
-                // awaits without ConfigureAwait(false), and a flush continuation posted to this context would
-                // start another render-and-send on the same socket, racing the one in flight.
-                SynchronizationContext.SetSynchronizationContext(prev);
-                try
-                {
-                    // Still running when the budget is spent: the state as it stands goes out, once — a long
-                    // save shows its "Saving…" then, and each continuation after it repaints as it lands.
-                    if (!withheld || !await FinishedWithin(userTask, budget).ConfigureAwait(false))
-                    {
-                        // Before the repaint: a continuation that ends before it has its call drained by it, and
-                        // one that ends after it is repainted itself — never neither (HandlerSyncContext.OpenRepaints).
-                        ctx.OpenRepaints();
-                        await handle.RenderInScopeAsync().ConfigureAwait(false);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // Thrown once the handler has ended, as a repaint between two of its awaits is: leaving
-                    // now would hand its session to the next event while it is still running.
-                    repaintFault = ExceptionDispatchInfo.Capture(ex);
-                }
-                finally
-                {
-                    SynchronizationContext.SetSynchronizationContext(ctx);
-                }
-            }
+            var repaintFault = userTask.IsCompleted
+                ? null
+                : await RepaintAtTheBudgetAsync(handle, ctx, prev, userTask, budget).ConfigureAwait(false);
 
             await userTask.ConfigureAwait(false);
             repaintFault?.Throw();
@@ -685,7 +663,49 @@ public abstract partial class Component
         finally
         {
             SynchronizationContext.SetSynchronizationContext(prev);
-            await ctx.DrainAsync().ConfigureAwait(false);
+            try
+            {
+                await ctx.DrainAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                handle.HandlerEnded(dispatchedIn);
+            }
+        }
+    }
+
+    // The repaint of a handler still running when its budget is spent (at once for a budget of zero), and the fault
+    // it threw, which is the caller's to throw once the handler has ended.
+    private static async Task<ExceptionDispatchInfo?> RepaintAtTheBudgetAsync(
+        IRenderHandle handle, HandlerSyncContext ctx, SynchronizationContext? prev, Task userTask, TimeSpan budget)
+    {
+        // HandlerSyncContext is suspended for the render-and-send: Kestrel's WebSocket.SendAsync has
+        // awaits without ConfigureAwait(false), and a flush continuation posted to this context would
+        // start another render-and-send on the same socket, racing the one in flight.
+        SynchronizationContext.SetSynchronizationContext(prev);
+        try
+        {
+            // Still running when the budget is spent: the state as it stands goes out, once — a long
+            // save shows its "Saving…" then, and each continuation after it repaints as it lands.
+            if (budget <= TimeSpan.Zero || !await FinishedWithin(userTask, budget).ConfigureAwait(false))
+            {
+                // Before the repaint: a continuation that ends before it has its call drained by it, and
+                // one that ends after it is repainted itself — never neither (HandlerSyncContext.OpenRepaints).
+                ctx.OpenRepaints();
+                await handle.RenderInScopeAsync().ConfigureAwait(false);
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            // Thrown once the handler has ended, as a repaint between two of its awaits is: leaving
+            // now would hand its session to the next event while it is still running.
+            return ExceptionDispatchInfo.Capture(ex);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(ctx);
         }
     }
 
@@ -813,6 +833,15 @@ public abstract partial class Component
 
         /// <summary>Every id this root has minted, and the component and slot it belongs to.</summary>
         public Dictionary<string, (Component Component, int Slot)>? Slots;
+
+        /// <summary>
+        ///     Every handler of the page the browser was told it holds, kept for a press made again from it
+        ///     (Component.KeptPage.cs): null when no such page is kept.
+        /// </summary>
+        public Dictionary<string, (Component Owner, Delegate Handler)>? Kept;
+
+        /// <summary>The <see cref="Version" /> of the page in <see cref="Kept" />.</summary>
+        public int KeptVersion;
 
         // ---- a component that renders handlers ----
 

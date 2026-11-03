@@ -57,12 +57,16 @@ export const STYLES = [
 // plus the kit's own parts that are pressed but are no <button>: a picker's clear as a <div>, a pillbox trigger, a
 // select's create row.
 // Measured in the page as `node.pressable` — the element, or what it sits inside, is one of these and can be pressed now.
-export const PRESSABLE = ':is(button, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=option], '
+const PRESSABLE_PARTS = ':is(button, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=option], '
   + '[role=tab], [role=checkbox], [role=radio], [role=switch], summary, select, label[for], '
   + 'label:has(input:is([type=checkbox], [type=radio])), '
   + 'input:is([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=submit], [type=button], [type=reset]), '
-  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input))'
-  + ':not(:disabled, [aria-disabled=true], [data-disabled], [readonly], [aria-readonly=true], [data-loading], [aria-busy=true])';
+  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input))';
+const HELD_STATES = ':is(:disabled, [aria-disabled=true], [data-disabled], [readonly], [aria-readonly=true], [data-loading], [aria-busy=true])';
+export const PRESSABLE = `${PRESSABLE_PARTS}:not(${HELD_STATES})`;
+// …and what could be pressed but is held now (disabled, read-only, busy): the kit shows the ARROW there, the same
+// departure, also where Flux keeps the hand (its disabled colour swatch). Measured as `node.pressable === 'held'`.
+export const HELD = `${PRESSABLE_PARTS}${HELD_STATES}`;
 
 /**
  * Whether `cursor` may differ between Flux's node and the kit's: only where the kit computes the hand on a pressable
@@ -70,7 +74,18 @@ export const PRESSABLE = ':is(button, [role=button], [role=menuitem], [role=menu
  * over anything but text). Any other cursor difference is still a difference — the departure is that, and no wider.
  */
 export function cursorDeparted(flux, rask, pressable) {
+  if (pressable === 'held') return rask === 'default' && flux === 'pointer';
   return !!pressable && rask === 'pointer' && (flux === 'default' || flux === 'auto');
+}
+
+/**
+ * Whether two nodes show the same cursor though they compute different keywords: `auto` IS the arrow over anything
+ * but text, so on a node that draws no text of its own `auto` and `default` are one cursor. Flux's disabled calendar
+ * arrow is its own element and stays `auto`; the kit's is a disabled `<button>`, whose arrow is `default`.
+ */
+export function sameArrow(a, b) {
+  const arrow = cursor => cursor === 'auto' || cursor === 'default';
+  return !a.text && !b.text && arrow(a.style.cursor) && arrow(b.style.cursor);
 }
 
 /**
@@ -151,7 +166,7 @@ async function measure(page, shots, layout = false) {
     // `data-parity-open` on that element — a press, or "hover" — and it is open while this example is measured.
     const opener = await wrapper.$('[data-parity-open]');
     if (opener) await open(page, wrapper, opener);
-    const example = await wrapper.evaluate(collect, { STYLES, PRESSABLE, index, layout });
+    const example = await wrapper.evaluate(collect, { STYLES, PRESSABLE, HELD, index, layout });
     const targets = stateTargets(example.nodes, layout);
     await page.evaluate(baseline, { STYLES, targets });
     await wrapper.scrollIntoViewIfNeeded();
@@ -337,7 +352,7 @@ function rest() {
 }
 
 // Runs in the page. Every element of one example: where it is, what it is, how it computed.
-function collect(wrapper, { STYLES, PRESSABLE, index, layout }) {
+function collect(wrapper, { STYLES, PRESSABLE, HELD, index, layout }) {
   window.__fluxRest();
   // Flux's page names a section with the heading above it; a Rask parity page states it on the wrapper.
   const headings = [...document.querySelectorAll('h2[id]')];
@@ -395,7 +410,7 @@ function collect(wrapper, { STYLES, PRESSABLE, index, layout }) {
       text: [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).filter(Boolean).join(' ').slice(0, 80),
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
-      pressable: !!el.closest(PRESSABLE),
+      pressable: el.closest(PRESSABLE) ? true : el.closest(HELD) ? 'held' : false,
     };
     if (layout) {
       // Not rendered: display:none, or clipped to a pixel for a screen reader alone.

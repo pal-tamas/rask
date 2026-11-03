@@ -96,7 +96,7 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
 
     [Theory]
     [InlineData("#combobox", "input[role=combobox]", "[data-ui-option]", "input[role=combobox]")]
-    [InlineData("#pillbox-typed", "input", "[data-ui-listbox-option]", "[data-ui-pillbox-trigger]")]
+    [InlineData("#pillbox-typed", "input[role=combobox]", "[data-ui-listbox-option]", "[data-ui-pillbox-trigger]")]
     public async Task Text_typed_to_narrow_a_combobox_or_a_pillbox_is_no_edit_either(string box, string input, string option, string trigger)
     {
         await using var session = await HookSession.OpenAsync<PickerFormPage>(playwright);
@@ -218,10 +218,10 @@ public sealed class PickerFormJourneyTests(PlaywrightFixture playwright) : IClas
 
         await control.Locator(picks).First.ClickAsync();
         await Expect(control.Locator("[aria-selected=true], [data-selected], [aria-checked=true], [aria-pressed=true]").First).ToBeAttachedAsync();
-        // The colour picker, the calendars and a select of one answer are the browser's: a pick is an `input` on
-        // their field, which the form counts as it counts typing, and the page hears of it only with the next
-        // action. Every other family is drawn by the page, which marks the form.
-        if (family is not ("colour" or "calendar" or "date" or "listbox" or "combobox"))
+        // The colour picker, the calendars, a bound select and a bound pillbox are the browser's: a pick is an
+        // `input` on their field, which the form counts as it counts typing, and the page hears of it only with the
+        // next action. Every other family is drawn by the page, which marks the form.
+        if (family is not ("colour" or "calendar" or "date" or "listbox" or "several" or "combobox" or "pillbox" or "pillbox-typed"))
         {
             await Expect(page.Locator(Edited)).ToHaveCountAsync(1);
         }

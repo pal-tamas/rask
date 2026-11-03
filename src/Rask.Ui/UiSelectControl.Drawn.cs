@@ -17,7 +17,7 @@ public abstract partial class UiSelectControl<T>
             Trigger(view),
             Popup(view),
             .. PostedValues(view),
-            HeldFaces(view, view.Parts.Button?.Placeholder ?? Placeholder),
+            HeldFaces(view),
         ];
 
         return Div.Class(UiSelectLook.Root, Class).Attributes(RootMarks())[children];
@@ -306,11 +306,15 @@ public abstract partial class UiSelectControl<T>
     }
 
     // The drawn variants post nothing by themselves, so a named select carries its answer in hidden inputs.
+    // Held, several answers are posted from a box the browser fills (HeldPosts).
     private IEnumerable<Component?> PostedValues(View view) =>
-        Name is { } name
-            ? Posted(view).DefaultIfEmpty(string.Empty)
-                .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name))
-            : [];
+        (Name, Held && IsMultiple) switch
+        {
+            (null, _) => [],
+            ({ } name, true) => [HeldPosts(name, Posted(view))],
+            ({ } name, false) => Posted(view).DefaultIfEmpty(string.Empty)
+                .Select(value => Input.Value(value).Key("posted:" + value).Type(InputType.Hidden).Name(name)),
+        };
 
     // An answer whose row a render took away is still an answer, and still posted: after the ones among the rows.
     private static IEnumerable<string> Posted(View view) =>

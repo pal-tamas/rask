@@ -586,9 +586,27 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
         }
     }
 
-    // A handler's repaint runs while the handler's work is still open, and from its continuations' flow (SpawnedWork).
-    Task IRenderHandle.RenderInScopeAsync() =>
-        SpawnedWork.Start(static session => session.RenderInScopeCoreAsync(), this);
+    // A handler's repaint runs while the handler's work is still open, and is asked for from its continuations' flow —
+    // inside whatever scope the handler opened there: a Db.Transaction, a Tenant.Across(), a Current.Service scope. It is
+    // made in the flow the handler was dispatched in instead, which is the one the render after the handler is made in
+    // (SpawnedWork.StartIn): a frame between two awaits never shows the page as the handler's scope would draw it.
+    Task IRenderHandle.RenderInScopeAsync() => RepaintMidHandler();
+
+    /// <summary>A repaint of the handler in progress, made in the flow it was dispatched in (<see cref="IRenderHandle.HandlerStarted" />).</summary>
+    /// <returns>The repaint.</returns>
+    protected Task RepaintMidHandler() =>
+        SpawnedWork.StartIn(Volatile.Read(ref _handlerFlow), static session => session.RenderInScopeCoreAsync(), this);
+
+    void IRenderHandle.HandlerStarted(ExecutionContext? flow) => Volatile.Write(ref _handlerFlow, flow);
+
+    // Only the handler that set it clears it: one past its budget runs on beside the next event's, and the one of the
+    // two that ends first must not take the flow from the other. Every handler of a session is dispatched in that
+    // session's flow, so whichever of them is kept answers for both.
+    void IRenderHandle.HandlerEnded(ExecutionContext? flow) =>
+        Interlocked.CompareExchange(ref _handlerFlow, null, flow);
+
+    // Written as a handler starts and ends, read by the repaints of its continuations on other threads.
+    private ExecutionContext? _handlerFlow;
 
     TimeSpan IRenderHandle.HandlerRepaintBudget => HandlerBudget;
 

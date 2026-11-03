@@ -505,10 +505,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     //     call, and until it does no state the handler only passes through is shown.
     //   * after it, from code on the handler's context: nothing either. The repaint that follows that
     //     continuation carries the call, with everything the continuation went on to change.
-    //   * after it, from code that left the context: the page as it stands, now, with the call.
+    //   * after it, from code that left the context: the page as it stands, now, with the call — drawn in the flow
+    //     the handler was dispatched in, not in the scope that code is in (RepaintMidHandler).
     private Task SendWhatTheHandlerWaitsOnAsync() =>
         _repaintedMidFlight && JsInvokes.HasPending && SynchronizationContext.Current is not HandlerSyncContext
-            ? RenderInScopeCoreAsync()
+            ? RepaintMidHandler()
             : Task.CompletedTask;
 
     // The page of the dispatch in hand has gone out once while its handler was still working. Until then the
@@ -1157,7 +1158,15 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     the render lock so we don't interleave with an in-flight SendAsync.
     /// </summary>
     /// <returns><c>false</c> when no connection was open to send it to.</returns>
-    internal async Task<bool> SendOutOfBandAsync(ReadOnlyMemory<byte> payload)
+    internal Task<bool> SendOutOfBandAsync(ReadOnlyMemory<byte> payload) => SendOutOfBandCoreAsync(payload, keepPage: false);
+
+    /// <summary>
+    ///     Tells the browser it holds every page sent to it (<paramref name="payload" /> is the <c>caughtUp</c>
+    ///     answer), and keeps that page's handlers for the press it makes again from it (Component.KeptPage.cs).
+    /// </summary>
+    internal Task<bool> AnswerCaughtUpAsync(ReadOnlyMemory<byte> payload) => SendOutOfBandCoreAsync(payload, keepPage: true);
+
+    private async Task<bool> SendOutOfBandCoreAsync(ReadOnlyMemory<byte> payload, bool keepPage)
     {
         if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
@@ -1170,6 +1179,12 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
             if (Volatile.Read(ref _transport) is not { IsOpen: true })
             {
                 return false;
+            }
+
+            // Under the render lock: the page kept is the last one sent, the one this answer follows.
+            if (keepPage)
+            {
+                View.KeepPageForPress();
             }
 
             await SendGuardedAsync(payload).ConfigureAwait(false);
