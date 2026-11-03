@@ -57,6 +57,8 @@ public sealed class ConfirmOnLivePageTests(PlaywrightFixture playwright) : IClas
     {
         await using var session = await OpenAsync<ConfirmLiveFallbackPage>();
         var page = session.Page;
+        var t0 = System.Diagnostics.Stopwatch.StartNew();
+        page.Console += (_, m) => { if (m.Text.StartsWith("DIAG", StringComparison.Ordinal)) File.AppendAllText("/tmp/confirm-loop/diag.log", $"{t0.ElapsedMilliseconds} {meanwhile} {yes} {m.Text}\n"); };
         await OpenFlyoutAsync(page);
         var asked = 0;
         page.Dialog += (_, dialog) =>
@@ -65,8 +67,12 @@ public sealed class ConfirmOnLivePageTests(PlaywrightFixture playwright) : IClas
             _ = AnswerAsync(dialog, meanwhile, yes);
         };
 
+        var missedBefore = typeof(Component).Assembly.GetType("Rask.Core.Live.StaleEvents")!.GetProperty("Missed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null);
+        File.AppendAllText("/tmp/confirm-loop/diag.log", $"{t0.ElapsedMilliseconds} {meanwhile} {yes} DIAG missed before={missedBefore}\n");
         await page.ClickAsync(Delete);
         await page.WaitForTimeoutAsync(Asked + 300);
+        var missed = typeof(Component).Assembly.GetType("Rask.Core.Live.StaleEvents")!.GetProperty("Missed", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null);
+        File.AppendAllText("/tmp/confirm-loop/diag.log", $"{t0.ElapsedMilliseconds} {meanwhile} {yes} DIAG asked={asked} server missed so far={missed} deleted={await page.Locator("#deleted").TextContentAsync()}\n");
 
         await SettledAsync(page, deleted);
         Assert.Equal(1, asked);

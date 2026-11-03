@@ -121,6 +121,7 @@ function pressAgain(el: Element): () => void {
     return function (): void {
         onceCaughtUp(function (): void {
             const same = sameButton(el, keys, asked, id !== null);
+            console.log("DIAG press again: same=" + !!same + " connected=" + el.isConnected + " page=" + currentPage());
             if (same) {
                 press(same);
                 return;

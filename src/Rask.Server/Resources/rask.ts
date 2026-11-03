@@ -143,11 +143,11 @@ import {
     // Runs `then` once every page received so far is on screen — the answer's, and any that arrived with it: a line
     // that held the server's frames hands them over together, and a press read from a page before the newest of
     // them is read from a page the server is already past.
-    function onceReceivedApplied(then: () => void): void {
+    function onceReceivedApplied(then: () => void, round = 0, t0 = performance.now()): void {
         const tail = _renderQueue;
         const next = function (): void {
-            if (_renderQueue === tail) then();
-            else onceReceivedApplied(then);
+            if (_renderQueue === tail) { console.log("DIAG caughtUp applied after " + round + " rounds, " + Math.round(performance.now() - t0) + "ms"); then(); }
+            else { if (round % 5 === 0) console.log("DIAG chase round " + round + " " + Math.round(performance.now() - t0) + "ms"); onceReceivedApplied(then, round + 1, t0); }
         };
         tail.then(next, next);
     }
@@ -687,6 +687,7 @@ import {
             return;
         }
         if (data.type === "caughtUp") {
+            console.log("DIAG caughtUp answer arrived");
             const then = caughtUpWaits.get(data.n);
             if (then) {
                 caughtUpWaits.delete(data.n);

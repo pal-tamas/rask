@@ -93,6 +93,7 @@ export function eventBatch(ship: (frame: unknown) => unknown): EventBatch {
             }
             const mine = answer;
             (event as { v?: number }).v = pinned ?? pageVersion;
+            if ((event as {type?: string}).type === "click") console.log("DIAG click event " + JSON.stringify({id: (event as {id?: unknown}).id, v: (event as {v?: unknown}).v, trusted: (event as {isTrusted?: unknown}).isTrusted, ticks: document.getElementById("ticks")?.textContent}));
             held.push(event);
             if (held.length >= MAX_BATCH) {
                 flush();

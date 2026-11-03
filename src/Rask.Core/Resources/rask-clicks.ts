@@ -76,6 +76,7 @@ export function handlerClick(e: MouseEvent): Element | null {
     // A second press on a control still visibly waiting on its first is the double submit a spinner
     // exists to prevent (rask-loading.ts). Before the spinner shows — a fast double-click on a fast
     // handler — it goes through, which keeps a rapid stepper working.
+    if (t.hasAttribute("data-rask-confirm")) console.log("DIAG handlerClick confirm-button loading=" + isVisiblyLoading(loadingTarget(t)));
     if (isVisiblyLoading(loadingTarget(t))) {
         if (!invoker) { e.preventDefault(); }
         return null;

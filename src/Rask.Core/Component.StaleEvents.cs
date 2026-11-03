@@ -236,6 +236,9 @@ public abstract partial class Component
     private bool Missed(Component? component, int slot, int sent, HandlerState? root)
     {
         StaleEvents.CountMissed();
+#pragma warning disable
+        System.IO.File.AppendAllText("/tmp/confirm-loop/diag.log", $"SERVER missed component={component?.GetType().Name} slot={slot} sent={sent} now={(root is null ? -1 : root.Version - root.Floor)} unsent={root?.Unsent}\n");
+#pragma warning restore
         if (RenderHandle?.IsDevelopment ?? HostMode.IsDevelopmentInScope)
         {
             var handler = component is null
