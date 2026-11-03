@@ -223,6 +223,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | `main` runs once: `full.yml` no longer runs behind every push, only daily and by hand. | `full.yml` | the `push: branches: [main]` trigger (and its half of `scripts/lib/cancel_superseded.sh`) |
 | Publishing follows `main`'s scoped `ci` run, not the whole set. | `nightly.yml`, `pages.yml`, `upstream.yml`, `scripts/upstream/main-already-red.sh` | `workflow_run` of `full`, and `pick` querying `full.yml`'s green runs |
 | `main`'s run is measured from the newest earlier run that STARTED its gates, red or green — a red gate is not run again under the pushes after it. | `scripts/lib/green_base.sh main` | measure from the newest GREEN push run (`status=success`) |
+| Flux UI is followed weekly, not daily: `flux` and `flux-parity` run Mondays (and by hand). | `upstream.yml` (the `'41 4 * * 1'` schedule) | both jobs on the daily schedule, with the followers |
 | No soak: the release set no longer runs against `main` every three hours (`soak.yml` deleted), so an image or a download that disappears is found on a `ci/release/**` branch or at the release. | — | `soak.yml` (`schedule: '23 */3 * * *'`, `gates.yml` with `set: release`), from the history |
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 
@@ -326,7 +327,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `nightly.yml` — prerelease publish from a commit a push run of `ci` passed on `main`.
 - `pages.yml` — rask.sh, from a commit a push run of `ci` passed on `main`.
 - `release.yml` — tag-triggered: every gate, then the stable publish.
-- `upstream.yml` — daily; follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
+- `upstream.yml` — daily (Flux UI weekly, Mondays: `flux` and `flux-parity`); follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
   (`scripts/public-api/record.py`), moves the stated Node line to the Active LTS, and moves every pin
   Dependabot cannot read to its newest stable release (the followers listed under *What updates

@@ -8,6 +8,8 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
+  instead of every day; every other follower stays daily. Until 1.0.
 - **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a
   `ci/release/**` branch to run it before tagging. Until 1.0.
 - **CI: a scoped run checks its own change.** A `ci/**` branch is measured from its merge-base with `main`, so a CI

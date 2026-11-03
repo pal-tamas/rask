@@ -1,6 +1,6 @@
 name: upstream
 
-# Follows everything Rask is generated from, every day, with nobody watching.
+# Follows everything Rask is generated from, every day, with nobody watching — Flux UI every week.
 #
 #   follow   a job per follower (scripts/upstream/follow.sh --list), each a call of upstream-follow.yml:
 #            regenerate, gate what that commit can reach, land it, and keep that source's own issue — so
@@ -10,11 +10,11 @@ name: upstream
 #            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, the npm
 #            releases `rask new` falls back on offline, and Unicode CLDR's date-time joins.
 #            Nothing moved: that job ends green. Dependabot keeps the rest (.github/dependabot.yml).
-#   flux     scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
+#   flux     (weekly) scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
 #            platform, or taken by measuring code that has changed since) re-measures every look and
 #            lands the lock instead of reporting them.
-#   flux-parity  scripts/flux/parity-all.sh — does Rask.Ui still match Flux UI? Every page's look on a desktop
+#   flux-parity  (weekly) scripts/flux/parity-all.sh — does Rask.Ui still match Flux UI? Every page's look on a desktop
 #            and a phone and every walk the behaviour scripts take, Rask's page beside Flux's live one on this
 #            runner: no lock, so a red check is Flux having moved since main matched it.
 #   front-ends  every front-end template scaffolded on the newest npm set `rask new` chooses, installed,
@@ -29,7 +29,11 @@ name: upstream
 # nobody pushed this.
 on:
   schedule:
-    - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues)
+    - cron: '41 3 * * *'   # daily, off the hour (the top of the hour is when Actions queues): every follower
+    # Weekly, Mondays: flux and flux-parity alone. They ran daily until 2026-11-03 — two hours of browsers a
+    # day for a catalogue that moves a few times a month. Restore at 1.0: daily, with the followers
+    # (docs/development-workflow.md, "Loosened until 1.0"). The jobs below name this exact string.
+    - cron: '41 4 * * 1'
   workflow_run:
     workflows: [ci]
     types: [completed]
@@ -49,7 +53,7 @@ permissions:
 # whenever it was queued behind another (2026-10-27). The two kinds queue apart; a follower is followed by one
 # run at a time through the follow job's own group.
 concurrency:
-  group: upstream-${{ github.event_name == 'workflow_run' && 'waits' || 'daily' }}
+  group: upstream-${{ github.event_name == 'workflow_run' && 'waits' || github.event.schedule == '41 4 * * 1' && 'weekly' || 'daily' }}
   cancel-in-progress: false
 
 jobs:
@@ -57,7 +61,7 @@ jobs:
   # and the run ends here. A pull request or manual ci run says nothing about main.
   followers:
     if: >-
-      github.event_name != 'workflow_run'
+      (github.event_name != 'workflow_run' && github.event.schedule != '41 4 * * 1')
       || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
           && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-26.04
@@ -99,7 +103,7 @@ jobs:
       follower: ${{ matrix.follower }}
 
   flux:
-    if: github.event_name != 'workflow_run'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '41 4 * * 1'
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, for the lock a baseline measured
@@ -209,7 +213,7 @@ jobs:
   # sees Flux move against a lock taken on this platform; this one sees Rask.Ui stop matching, which is the
   # question a person acts on — and it needs no lock, because both pages are measured here, now.
   flux-parity:
-    if: github.event_name != 'workflow_run'
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '41 4 * * 1'
     runs-on: ubuntu-26.04
     timeout-minutes: 120
     permissions:
@@ -300,7 +304,7 @@ jobs:
   # released overnight is what the next scaffold gets. This proves that set, on main as it is, every day —
   # scaffolded, installed from the live registry, built, linted and served — rather than when a template changes.
   front-end-keys:
-    if: github.event_name != 'workflow_run'
+    if: github.event_name != 'workflow_run' && github.event.schedule != '41 4 * * 1'
     runs-on: ubuntu-26.04
     outputs:
       keys: ${{ steps.list.outputs.keys }}

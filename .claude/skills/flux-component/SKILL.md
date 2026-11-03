@@ -279,7 +279,7 @@ Never key on `[data-ui-card]` from another component.
    opens the page as a phone (touch, overlay scrollbars) — a desktop browser that narrow is no phone, and there
    Flux's `scrollbar-gutter: stable` reserves 15px for a scrollbar nobody draws. Before landing, the whole suite:
    `scripts/flux/parity-all.sh` (every page on both widths, every behaviour script, the chart's pinned load —
-   concurrent, `exit 2` names what differs). The daily `upstream.yml` runs it as `flux-parity` and opens an issue
+   concurrent, `exit 2` names what differs). The weekly (Monday) `upstream.yml` run runs it as `flux-parity` and opens an issue
    when Rask.Ui stops matching Flux; a new behaviour script goes in its list.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
@@ -423,7 +423,7 @@ One commit per component, the solution building throughout:
 Then the `rask-ship` gate and `land-on-main`. Screenshot the showcase demo in light and dark
 (`run-rask`) before landing.
 
-When the daily run reports that Flux moved: `flux.lock.json` is CI's, measured on its Linux runner, so
+When the weekly run reports that Flux moved: `flux.lock.json` is CI's, measured on its Linux runner, so
 a local `node scripts/flux/sync.mjs <slug>` measures for `parity.mjs` but compares nothing. Match the
 component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 
