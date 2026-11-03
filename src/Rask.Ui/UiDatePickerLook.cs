@@ -58,9 +58,6 @@ internal static class UiDatePickerLook
         + "max-sm:m-auto max-sm:max-h-full max-sm:border-0 max-sm:shadow-xl max-sm:backdrop:bg-black/10 "
         + "max-sm:[--rask-place:none]";
 
-    // Flux parks the dialog's initial focus on a node that is not there once it is open.
-    internal const string FocusPlaceholder = "[:popover-open>&]:hidden";
-
     internal const string Calendar = "relative grid sm:grid-cols-[auto_1fr]";
 
     internal const string Aside = "sm:row-span-3";

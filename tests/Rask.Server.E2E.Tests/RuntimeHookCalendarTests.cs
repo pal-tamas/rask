@@ -318,6 +318,26 @@ public sealed class RuntimeHookCalendarTests(PlaywrightFixture playwright) : ICl
     }
 
     [Fact]
+    public async Task A_picker_opened_from_the_keyboard_rests_the_focus_on_nothing_and_rings_nothing_and_Tab_enters_the_calendar()
+    {
+        await using var session = await OpenAsync();
+        var page = session.Page;
+        await page.FocusAsync("#arrival");
+
+        await page.Keyboard.PressAsync("Enter");
+        await Expect(page.Locator("#arrival-box [popover]")).ToBeVisibleAsync();
+        await Expect(page.Locator("#arrival-box [data-ui-focus-placeholder]")).ToBeHiddenAsync();
+        var rested = await page.EvaluateAsync<string>("document.activeElement.tagName");
+        var ringed = await page.EvaluateAsync<int>(
+            "() => [...document.querySelectorAll('#arrival-box [popover], #arrival-box [popover] *')].filter(e => getComputedStyle(e).outlineStyle !== 'none').length");
+        await page.Keyboard.PressAsync("Tab");
+
+        Assert.Equal("BODY", rested);
+        Assert.Equal(0, ringed);
+        Assert.Equal("Previous month", await page.EvaluateAsync<string?>("document.activeElement?.getAttribute('aria-label')"));
+    }
+
+    [Fact]
     public async Task The_cross_in_the_button_empties_the_picker_without_opening_it_and_Tab_passes_it_by()
     {
         await using var session = await OpenAsync();

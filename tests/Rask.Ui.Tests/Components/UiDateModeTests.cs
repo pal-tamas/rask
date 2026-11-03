@@ -119,15 +119,19 @@ public partial class UiDateModeTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void An_open_date_picker_keeps_the_focus_on_the_popup_rather_than_a_control_in_it()
+    public void An_open_date_picker_gives_the_focus_to_its_placeholder_rather_than_the_popup_or_a_control_in_it()
     {
         var picker = Ui.DatePicker.Value(Jan(20)).SelectableHeader().Locale("en-US").On(Today);
 
         var html = picker.ToHtml();
 
-        Assert.Matches("<dialog[^>]*\\bautofocus\\b", html);
-        Assert.DoesNotMatch("<(button|select)[^>]*\\bautofocus\\b", html);
+        Assert.Matches(FocusPlaceholderFirst, html);
+        Assert.DoesNotMatch("<(dialog|button|select)[^>]*\\bautofocus\\b", html);
     }
+
+    // The popup's first child: an empty element in the Tab order that takes the focus as the popup opens.
+    internal const string FocusPlaceholderFirst =
+        "<dialog[^>]*>\\s*<div(?=[^>]*\\bdata-ui-focus-placeholder\\b)(?=[^>]*\\btabindex=\"0\")(?=[^>]*\\bautofocus\\b)[^>]*></div>";
 
     // An element ref's id is a fresh GUID per instance.
     private static string WithoutRefs(string html) =>

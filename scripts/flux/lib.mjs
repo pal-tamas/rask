@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 export const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-export function chromium() {
-  // RASK_FLUX_PLAYWRIGHT names a driver directly: a fresh worktree has not built the E2E project yet.
+// RASK_FLUX_PLAYWRIGHT names a driver directly: a fresh worktree has not built the E2E project yet.
+function playwright() {
   const driver = [process.env.RASK_FLUX_PLAYWRIGHT, ...['Release', 'Debug']
     .map(cfg => join(root, 'tests', 'Rask.Site.E2E.Tests', 'bin', cfg, 'net10.0', '.playwright', 'package'))]
     .find(path => path && existsSync(path));
@@ -17,12 +17,22 @@ export function chromium() {
     process.exit(1);
   }
 
+  return createRequire(import.meta.url)(driver);
+}
+
+export function chromium() {
   // Text at the font's own advances, on every platform. Chromium on Linux hints a face and rounds each glyph's
   // advance to a whole pixel (a Mac does not), so a word is 174px there and 172.13px here: whatever Rask.Ui draws
   // from widths measured once — a chart's tick labels (inter-metrics.mjs), a docs monospace stand-in — and every
   // box written at the size Flux gave it then sat a pixel or two off on the runner alone.
-  const { chromium } = createRequire(import.meta.url)(driver);
+  const { chromium } = playwright();
   return { launch: (options = {}) => chromium.launch({ ...options, args: [...(options.args ?? []), '--font-render-hinting=none'] }) };
+}
+
+// Safari's engine where the driver has it installed (`playwright install webkit`), null where it has not.
+export function webkit() {
+  const { webkit } = playwright();
+  return existsSync(webkit.executablePath()) ? webkit : null;
 }
 
 export const STYLES = [

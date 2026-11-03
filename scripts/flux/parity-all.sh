@@ -52,6 +52,7 @@ parity-date.mjs time-picker --refresh
 parity-date.mjs datetime-picker --refresh
 parity-editor.mjs
 parity-editor.mjs --view 390x844
+parity-focus.mjs --webkit
 parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh
 parity-menu.mjs dropdown --refresh --view 390x844

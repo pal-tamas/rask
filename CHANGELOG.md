@@ -602,6 +602,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An open `Ui.DatePicker` or `Ui.DatetimePicker` rests the focus where Flux's does: on nothing.** Before: the
+  popup itself took the focus as it opened (`autofocus` on the `<dialog>`), drawn with no ring by the kit's own
+  `focus:outline-hidden` — but an application stylesheet with its own `:focus-visible` outline drew a blue ring
+  round the whole popup, where Flux draws none. After: as on fluxui.dev, an empty placeholder takes the focus as the
+  popup opens and is taken away (as `Ui.Modal`'s is), so focus rests on the page, nothing is ringed in any
+  stylesheet, and the first Tab still lands in the calendar. Measured, with every other control's focused look,
+  by the new `scripts/flux/parity-focus.mjs`: a mouse press and the keyboard, in Chromium and WebKit, light and
+  dark — buttons, inputs, textarea, both selects, checkbox, radio, switch, tabs, a sidebar item, a dropdown trigger
+  and the date picker's button and typed parts now draw exactly Flux's ring (or none) in every step.
 - **A non-nullable prop declared `= null!` no longer breaks a warnings-as-errors build with CS8625.** A page's
   `[RouteParam] public string Id { get; set; } = null!;` made the chain's reset write `__c.Id = null;` into the
   generated setters; the reset now keeps the declaration's `!` (`null!`) for every non-nullable reference prop,
