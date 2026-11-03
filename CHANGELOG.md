@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **CI: the site is published once per run.** A `site publish` job publishes `src/Rask.Site` and hands its
+  `wwwroot` to the browser shards as an artifact; each shard used to publish it again (five to eight minutes,
+  five times). `scripts/run-e2e-local.sh` takes `RASK_E2E_SITE=publish|prebuilt` for the two halves. Only the
+  shards wait for the publish; every other gate starts with the plan.
 - **CI: Flux UI is followed weekly.** `upstream.yml`'s `flux` and `flux-parity` jobs run on Mondays (and by hand)
   instead of every day; every other follower stays daily. Until 1.0.
 - **CI: `soak.yml` is gone.** The release set no longer runs against `main` every three hours; push a

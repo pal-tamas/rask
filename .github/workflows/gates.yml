@@ -51,6 +51,7 @@ jobs:
     timeout-minutes: 10   # seconds of git, python and jq
     outputs:
       gates: ${{ steps.pick.outputs.gates }}
+      site_gates: ${{ steps.pick.outputs.site_gates }}
       mode: ${{ steps.pick.outputs.mode }}
       range: ${{ steps.pick.outputs.range }}
     steps:
@@ -102,11 +103,11 @@ jobs:
               {"set": "push",               "when": "cs",   "mode": "scoped",  "name": "format",             "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format src",         "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-src"},
               {"set": "push", "deps": true,                 "mode": "full",    "name": "format tests",       "run": "scripts/run-unit-local.sh --lane-slots $(nproc)", "part": "format-tests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 1/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.WasmExampleTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 2/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitDataDisplayTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 3/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitPickersTests|FullyQualifiedName~.UiKitSelectTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 4/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName~.UiKitFormControlsTests|FullyQualifiedName~.UiKitRichInputsTests"},
-              {"set": "push", "when": "site",      "name": "browser E2E 5/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitDataDisplayTests&FullyQualifiedName!~.UiKitPickersTests&FullyQualifiedName!~.UiKitSelectTests&FullyQualifiedName!~.UiKitFormControlsTests&FullyQualifiedName!~.UiKitRichInputsTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 1/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.WasmExampleTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 2/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.UiKitActionsTests|FullyQualifiedName~.UiKitDataDisplayTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 3/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.UiKitPickersTests|FullyQualifiedName~.UiKitSelectTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 4/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName~.UiKitFormControlsTests|FullyQualifiedName~.UiKitRichInputsTests"},
+              {"set": "push", "when": "site",      "name": "browser E2E 5/5",    "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "site", "site": true, "filter": "FullyQualifiedName!~.WasmExampleTests&FullyQualifiedName!~.UiKitActionsTests&FullyQualifiedName!~.UiKitDataDisplayTests&FullyQualifiedName!~.UiKitPickersTests&FullyQualifiedName!~.UiKitSelectTests&FullyQualifiedName!~.UiKitFormControlsTests&FullyQualifiedName!~.UiKitRichInputsTests"},
               {"set": "push", "when": "server",    "name": "server E2E",         "run": "scripts/run-e2e-local.sh", "browser": true, "suite": "server"},
               {"set": "push", "when": "devtools",  "name": "devtools E2E",       "run": "scripts/run-devtools-e2e-local.sh", "browser": true},
               {"set": "push", "when": "sqlite",    "name": "browser SQLite E2E", "run": "scripts/run-browser-sqlite-e2e-local.sh", "browser": true},
@@ -173,14 +174,52 @@ jobs:
           [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
 
           echo "gates: $(jq -r '[.[].name] | join(", ")' <<<"$gates")"
+          # The gates that drive the published site wait for the one job that publishes it; no other
+          # gate waits for anything.
+          site_gates="$(jq -c '[.[] | select(.site)]' <<<"$gates")"
+          gates="$(jq -c '[.[] | select(.site | not)]' <<<"$gates")"
           {
+            echo "site_gates=$site_gates"
             echo "gates=$gates"
             echo "mode=$mode"
             echo "range=$range"
           } >> "$GITHUB_OUTPUT"
 
+  # The site the browser shards drive, published once and handed to each of them as an artifact. Each
+  # shard published it again until 2026-11-03: five to eight minutes, five times, for the same bytes.
+  # Only the shards wait for this job; every other gate starts with the plan.
+  site:
+    needs: plan
+    if: needs.plan.outputs.site_gates != '[]'
+    name: site publish
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30   # about eight minutes; a hung publish must not hold the shards back for long
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0   # the guides' history and the sitemap's lastmod are read from the log
+
+      - uses: ./.github/actions/setup
+        with:
+          workloads: wasm-tools
+
+      - name: Publish the site
+        env:
+          RASK_E2E_SITE: publish
+          RASK_BUILD_SLOTS: 4
+        run: scripts/run-e2e-local.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: site-wwwroot
+          path: src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+          retention-days: 1   # read by this run's shards, minutes from now, and by nothing else
+          if-no-files-found: error
+
   gate:
     needs: plan
+    if: needs.plan.outputs.gates != '[]'
     name: ${{ matrix.gate.name }}
     runs-on: ubuntu-26.04
     # The longest gate (format src) took 25.5 minutes on 2026-11-02, so thirty timed out a slow runner's
@@ -191,7 +230,7 @@ jobs:
       max-parallel: ${{ inputs.parallel }}
       matrix:
         gate: ${{ fromJSON(needs.plan.outputs.gates) }}
-    steps:
+    steps: &gate-steps
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
@@ -202,11 +241,21 @@ jobs:
           workloads: wasm-tools
           playwright: ${{ matrix.gate.browser && 'true' || 'false' }}
 
+      # A browser shard drives the site the `site` job published, put back exactly where the publish
+      # writes it; scripts/run-e2e-local.sh then skips its own publish (RASK_E2E_SITE=prebuilt).
+      - name: The published site
+        if: matrix.gate.site
+        uses: actions/download-artifact@v8
+        with:
+          name: site-wwwroot
+          path: src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+
       # The gate scripts install Chromium themselves; the system libraries it links are the runner's.
       - name: ${{ matrix.gate.name }}
         env:
           RASK_E2E_FILTER: ${{ matrix.gate.filter }}
           RASK_E2E_SUITE: ${{ matrix.gate.suite }}
+          RASK_E2E_SITE: ${{ matrix.gate.site && 'prebuilt' || '' }}
           RASK_UNIT_PART: ${{ matrix.gate.part }}
           RASK_BUILD_SLOTS: 4   # the browser gates publish on one core unless told otherwise
           # A scoped run: the unit gate builds, tests and formats what the range reaches. Empty on a
@@ -215,3 +264,17 @@ jobs:
           RASK_FORMAT_SCOPE: ${{ needs.plan.outputs.mode == 'scoped' && 'range' || '' }}
           RASK_SCOPE_RANGE: ${{ needs.plan.outputs.range }}
         run: ${{ matrix.gate.run }}
+
+  # The browser shards: the same steps as every gate (one YAML anchor, so the two cannot drift), started
+  # once the site they drive is published.
+  site-gate:
+    needs: [plan, site]
+    name: ${{ matrix.gate.name }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.parallel }}
+      matrix:
+        gate: ${{ fromJSON(needs.plan.outputs.site_gates) }}
+    steps: *gate-steps

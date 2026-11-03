@@ -213,7 +213,7 @@ planned() {
   [ -z "${4:-}" ] || sandbox_git checkout -q "$4"
   ( cd "$repo" && SET="$1" ONLY="$2" SCOPE=full BASE="" PR_BASE="$3" GATES="$(cat "$sandbox/gates.json")" \
       GITHUB_OUTPUT="$sandbox/output" bash -eo pipefail "$sandbox/plan.sh" >/dev/null 2>&1 )
-  sed -n 's/^gates=//p' "$sandbox/output"
+  sed -n "s/^${PLAN_OUTPUT:-gates}=//p" "$sandbox/output"
   : > "$sandbox/output"
 }
 
@@ -238,6 +238,11 @@ plans "a lockfile bump is held to the template it changed" "$named | index(\"fro
 plans "...with the rest of the deps set"                   "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$vue_bump~1" "$vue_bump"
 plans "a NuGet bump is held to no front end"               "$named | any(.[]; startswith(\"front end\")) | not" deps "" "$nuget_bump~1" "$nuget_bump"
 plans "a deps run that cannot see its change takes them all" "$named | index(\"front end react\") != null and index(\"front end vue\") != null" deps "" ""
+
+# The site is published once, by a job only the gates that drive it wait for: those are planned apart.
+plans "no gate that waits for nothing drives the site"     'all(.[]; (.site // false) | not) and any(.[]; .name == "build")' push "" ""
+PLAN_OUTPUT=site_gates plans "the browser shards drive the published site" \
+  'length > 0 and all(.[]; .site == true and .suite == "site" and (.name | startswith("browser E2E")))' push "" ""
 
 echo
 if [ "$failures" -gt 0 ]; then
