@@ -1072,6 +1072,66 @@
 }
 
 /*
+  A FOCUSED FIELD IS RINGED IN THE ACCENT — a departure from Flux (owner, 2026-11-03; flux-component's list).
+
+  Flux leaves a focused field to the browser: Chrome's thin blue ring, Safari's thick blue glow, which an
+  `overflow` around the field (a table's scroll frame, a flyout) cuts in half. Here the field draws its own: its
+  border turns the accent and an INSET 1px ring in the accent lies inside it — two calm pixels in the app's own
+  colour (zinc by default, amber in an app that says so), drawn inside the field's own box, where no frame
+  around it can clip them. Red stays red on an invalid field.
+
+  - Fields: the text input (any type that takes text or a number, the OTP cells too), the textarea, the native
+    select, and the triggers that stand where a field stands — the listbox's, the date, time and datetime
+    pickers', the colour picker's and the pillbox's. A box that holds a typed field (the date and time pickers'
+    typed parts, the colour picker's and the pillbox's input) is ringed while what it holds has the focus; a typed
+    part inside it is lit by the accent's outline of its own, inside the box.
+  - `:focus-visible`, as the browser judges it: a text field is ringed however it was focused, a trigger only
+    from the keyboard — a press on one draws nothing, as Flux's draws nothing.
+  - Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring, as Flux's do.
+
+  In `rask-ui-corrections`, the one layer above `utilities`: it replaces the border colour the field's own classes
+  give it. An app recolours it by its accent (`--color-accent`), which is the point.
+*/
+@layer rask-ui-corrections {
+  :where(
+    input[data-ui-control]:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="hidden"]),
+    textarea[data-ui-control], select[data-ui-control],
+    [data-ui-select-button], [data-ui-date-picker-button], [data-ui-time-picker-button], [data-ui-datetime-picker-button],
+    [data-ui-color-picker-button], [data-ui-color-picker-popover-input], [data-ui-pillbox-trigger]
+  ):focus-visible,
+  :where(
+    [data-ui-date-picker] [data-ui-group-target]:not(button), [data-ui-time-picker] [data-ui-group-target]:not(button),
+    [data-ui-color-picker-trigger], [data-ui-pillbox-trigger]
+  ):has(:is(input, [role="spinbutton"], [contenteditable]):focus-visible) {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: inset 0 0 0 1px var(--color-accent);
+  }
+
+  :where(
+    input[data-ui-control], textarea[data-ui-control], select[data-ui-control], [data-ui-select-button],
+    [data-ui-date-picker-button], [data-ui-time-picker-button], [data-ui-datetime-picker-button],
+    [data-ui-color-picker-button], [data-ui-pillbox-trigger], [data-ui-color-picker-trigger],
+    [data-ui-date-picker] [data-ui-group-target], [data-ui-time-picker] [data-ui-group-target]
+  ):is([data-invalid], :has([data-invalid])):is(:focus-visible, :has(:focus-visible)) {
+    border-color: var(--color-red-500);
+    box-shadow: inset 0 0 0 1px var(--color-red-500);
+  }
+
+  /* What a ringed box holds draws no ring of its own; a typed date's or time's part is lit inside the box. */
+  :where([data-ui-date-picker], [data-ui-time-picker], [data-ui-color-picker-trigger], [data-ui-pillbox-trigger])
+    :where(input, [role="spinbutton"], [contenteditable]):not([data-ui-control]):focus-visible {
+    outline: none;
+  }
+
+  :is([data-ui-month-input], [data-ui-day-input], [data-ui-year-input], [data-ui-hour-input], [data-ui-minute-input],
+    [data-ui-second-input], [data-ui-meridiem-input]):focus-visible {
+    outline: 1px solid var(--color-accent);
+    outline-offset: 0;
+  }
+}
+
+/*
   AN ACCORDION ITEM IS A <details>, AND ITS HEIGHT IS THE BROWSER'S OWN CONTENT SLOT.
 
   ::details-content is the box a <details> puts everything but its <summary> in. Closed, it is kept out of

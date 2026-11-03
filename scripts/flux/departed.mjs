@@ -53,3 +53,9 @@ function chrome(example, node) {
 export function departedFrom(example, node) {
   return DEPARTED.filter(d => d.matches(example, node)).flatMap(d => d.keys);
 }
+
+// 2026-11-03, A FOCUSED FIELD (ui.css): the kit rings a focused field in the accent — no outline, the border and an
+// inset 1px ring in `--color-accent` — where Flux leaves the browser's own outline. parity-focus.mjs holds these of
+// its cases to that ring in every step where Flux's field draws one; a button, tab, checkbox, radio or switch is
+// not among them and keeps Flux's ring.
+export const FOCUS_ACCENT = new Set(['input', 'textarea', 'select (native)', 'select (listbox)', 'date picker', 'date picker (input)']);

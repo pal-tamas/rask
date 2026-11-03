@@ -26,6 +26,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { chromium, root, webkit } from './lib.mjs';
+import { FOCUS_ACCENT } from './departed.mjs';
 import { withRuntime } from './runtime.mjs';
 
 const args = process.argv.slice(2);
@@ -90,7 +91,7 @@ await Promise.all(Array.from({ length: Math.min(jobs, steps.length) }, async () 
     const at = next++;
     const { engineName, scheme, test, mode } = steps[at];
     const [theirs, mine] = await Promise.all(['flux', 'rask'].map(side => walk(browsers[engineName], scheme, test, mode, side, engineName)));
-    results[at] = { ...steps[at], theirs, mine, diffs: compare(theirs, mine, engineName) };
+    results[at] = { ...steps[at], theirs, mine, diffs: FOCUS_ACCENT.has(test.name) && theirs.rings.length ? accented(theirs, mine) : compare(theirs, mine, engineName) };
   }
 }));
 await Promise.all(Object.values(browsers).map(browser => browser.close()));
@@ -239,7 +240,12 @@ function drawn(control, RING) {
     });
   }
 
-  return { where, focusVisible: Boolean(active && active !== document.body && active.matches(':focus-visible')), rings };
+  // The accent, resolved to the colour the browser writes: what an accent ring is drawn in (FOCUS_ACCENT).
+  const probe = document.body.appendChild(document.createElement('i'));
+  probe.style.color = 'var(--color-accent)';
+  const accent = getComputedStyle(probe).color;
+  probe.remove();
+  return { where, focusVisible: Boolean(active && active !== document.body && active.matches(':focus-visible')), rings, accent };
 }
 
 function describe(m) {
@@ -250,6 +256,26 @@ function describe(m) {
 
 // What differs: where focus is, :focus-visible, and the rings, by what each draws (not by the element that
 // draws it: Flux's checkbox is a custom element where the kit's is a native input inside its box).
+// A FOCUSED FIELD (departed.mjs FOCUS_ACCENT): where Flux's field draws its outline, the kit's draws the accent —
+// no outline of the browser's anywhere, the field's border and an inset 1px ring in the accent, and nothing else
+// drawn in any other colour. Where focus is, and :focus-visible, are still Flux's.
+function accented(flux, mine) {
+  const diffs = [];
+  const kind = where => where.replace(/ > .*/, '').replace(/^control part$/, 'control');
+  if (kind(flux.where) !== kind(mine.where)) diffs.push(`focus is on: flux ${flux.where} · rask ${mine.where}`);
+  if (flux.focusVisible !== mine.focusVisible) diffs.push(`:focus-visible: flux ${flux.focusVisible} · rask ${mine.focusVisible}`);
+  const ring = `${mine.accent} 0px 0px 0px 1px inset`;
+  if (!mine.rings.some(r => r.border === mine.accent && r.boxShadow === ring)) diffs.push(`no accent ring (border and ${ring})`);
+  for (const r of mine.rings) {
+    const outline = r.outline === 'none' || (r.outline.startsWith(`solid 1px ${mine.accent} `));
+    const shadow = r.boxShadow === '(unchanged)' || r.boxShadow === ring;
+    const border = r.border === '(unchanged)' || r.border === mine.accent;
+    if (!outline || !shadow || !border) diffs.push(`not the accent ring on ${r.on}: ${r.outline} | ${r.boxShadow} | ${r.border}`);
+  }
+
+  return diffs;
+}
+
 // WebKit draws an `auto` outline as the platform's focus ring, whatever width and colour it computes (the
 // kit's checkbox ring computes 1px and the focus-ring colour where the browser's own computes 3px and
 // currentcolor, and the two are the same pixels), so there only its style and offset are compared.
