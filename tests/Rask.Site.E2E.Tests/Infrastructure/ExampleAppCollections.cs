@@ -9,6 +9,9 @@ using Rask.Site.E2E.Tests.Infrastructure;
 // collection fixture puts every class that shares it into ONE collection, and xUnit runs a collection's
 // tests one at a time — this suite ran 220-odd journeys serially that way with maxParallelThreads at 4.
 // Now each class is a collection of its own and xunit.runner.json's thread count applies.
+//
+// Both start LAZILY, on a test's first read of BaseUrl / Browser: xUnit creates an assembly fixture before ANY
+// test runs, and the unit gate runs this assembly's convention tests with no published site and no browser.
 [assembly: AssemblyFixture(typeof(WasmExampleAppFixture))]
 [assembly: AssemblyFixture(typeof(PlaywrightFixture))]
 
