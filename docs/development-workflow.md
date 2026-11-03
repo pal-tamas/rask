@@ -150,7 +150,7 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the last commit `ci` passed on `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` and `unit` always, `format` when a `.cs` changed, the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template's own job when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
 | **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build, unit (two shards), format (two halves) (`run-unit-local.sh`), browser E2E in five shards and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), each front-end template as a job of its own (`run-template-e2e.sh --front-end=<key>`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
@@ -175,16 +175,21 @@ scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
 
-On `main` every push gets its own run, started at once, so "which push broke it" has an answer. A run that
-has not started a gate when a newer push's run starts is cancelled by it (`scripts/lib/cancel_superseded.sh`):
-the newer run is measured from a commit before the older push, so its scope holds the older push's change.
+On `main` every push gets its own run, started at once, so "which push broke it" has an answer. Each run
+checks its own push and only it: it is measured from the head of the newest earlier run that started its
+gates, green or red (`scripts/lib/green_base.sh main`), so a red push is named once and fixed forward, not
+run again under every push after it. A run that has not started a gate when a newer push's run starts is
+cancelled by it (`scripts/lib/cancel_superseded.sh`): the newer run is measured from before it, so its scope
+holds the older push's change.
 
 ### Trying a change first
 
 Push to a `ci/**` branch to run the push set without landing anything; only the newest push to a
-branch is kept running. It is scoped like a push to `main`, measured from the newest commit `ci` passed
-on `main` that the branch contains (`scripts/lib/green_base.sh`), so a change that reaches the CI
-itself, a gate script or the package pins still gets the whole set. For the whole set on any branch:
+branch is kept running. It is scoped by its OWN commits, measured from `git merge-base origin/main HEAD`
+(`scripts/lib/green_base.sh branch`) — what `main` did since is `main`'s runs' business, so a CI file
+changed on `main` does not send every branch to the whole set (60% of the runner minutes until
+2026-11-03). A change of the branch's own that reaches the CI itself, a gate script or the package pins
+still gets the whole set. For the whole set on any branch:
 `gh workflow run ci.yml --ref <branch>`. A `ci/release/**` branch runs the whole set and the release set
 too — the way to find out before tagging rather than from a failed release.
 
@@ -217,6 +222,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 |---|---|---|
 | `main` runs once: `full.yml` no longer runs behind every push, only daily and by hand. | `full.yml` | the `push: branches: [main]` trigger (and its half of `scripts/lib/cancel_superseded.sh`) |
 | Publishing follows `main`'s scoped `ci` run, not the whole set. | `nightly.yml`, `pages.yml`, `upstream.yml`, `scripts/upstream/main-already-red.sh` | `workflow_run` of `full`, and `pick` querying `full.yml`'s green runs |
+| `main`'s run is measured from the newest earlier run that STARTED its gates, red or green — a red gate is not run again under the pushes after it. | `scripts/lib/green_base.sh main` | measure from the newest GREEN push run (`status=success`) |
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 
 ### How a version reaches nuget.org

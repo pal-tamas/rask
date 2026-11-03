@@ -29,7 +29,9 @@ gates, for the gates whose subject is not a test project's references:
                                                  -> its "front end <key>" job
 
 The contract is the same lopsided one: a gate too many costs minutes on a runner, a gate too few
-lets a break through until the next full run. A push to main is scoped, and publishing follows that
+lets a break through until the next full run. The changed files are a run's OWN change
+(scripts/lib/green_base.sh): on main, since the newest earlier run that started its gates, green or red;
+on a ci/** branch, since its merge-base with main. A push to main is scoped, and publishing follows that
 scoped run; the full set runs once a day (.github/workflows/full.yml). Until 2026-11-03 it ran behind
 every push and publishing followed it — restore at 1.0 (docs/development-workflow.md, "Loosened until 1.0").
 """

@@ -4,18 +4,20 @@ name: ci
 # workflow blocks a commit or a push: own work lands on main directly and this says, a few minutes
 # later, whether it should have. A red main is fixed forward.
 #
-# A push to main or a ci/** branch and a pull request are SCOPED: they run the gates the change can
-# reach, measured from the newest commit this workflow passed on main that the push descends from
-# (scripts/lib/green_base.sh finds it, scripts/lib/affected_gates.py decides, and refuses to narrow
+# A push to main or a ci/** branch and a pull request are SCOPED: they run the gates their OWN change can
+# reach — on main, measured from the head of main's newest earlier run that started its gates, green or
+# red; on a ci/** branch, from where it left main (scripts/lib/green_base.sh finds it,
+# scripts/lib/affected_gates.py decides, and refuses to narrow
 # whatever it cannot reason about — a change to the CI itself, a gate script, the package pins). That is what makes the verdict take minutes.
 # What it buys it with: a break a scoped run cannot see is found by the next whole run instead —
 # full.yml, once a day. Main runs ONCE per push: nightly.yml and pages.yml publish from a commit THIS
 # workflow passed on a push to main (until 2026-11-03 they followed full.yml, which ran behind every push
 # too). Restore at 1.0: see docs/development-workflow.md, "Loosened until 1.0".
 #
-# A ci/** branch runs the push set without landing anything, scoped like main: push there to try a
-# change first. (It ran the whole set until 2026-11-02, and fifteen branches of 26 jobs each held the
-# account's twenty runners for hours.) A ci/release/** branch runs the whole set and the release-only
+# A ci/** branch runs the push set without landing anything, scoped by its own commits: push there to try
+# a change first. (It ran the whole set until 2026-11-02, and fifteen branches of 26 jobs each held the
+# account's twenty runners for hours; then, measured from main's last green commit, every CI file main had
+# touched since sent it to the whole set anyway — 60% of the runner minutes, 2026-11-03.) A ci/release/** branch runs the whole set and the release-only
 # gates (see gates.yml), which have no key to be scoped by — how to find out before tagging rather than
 # from a failed release.
 on:
@@ -64,7 +66,7 @@ jobs:
     runs-on: ubuntu-26.04
     timeout-minutes: 10   # a minute of git and gh; a hung API call must not hold a runner
     permissions:
-      actions: write   # the last green run; cancel the runs this push supersedes
+      actions: write   # main's earlier runs; cancel the runs this push supersedes
       contents: read
     outputs:
       scope: ${{ steps.find.outputs.scope }}
@@ -72,7 +74,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          fetch-depth: 0   # is the green commit an ancestor of this one?
+          fetch-depth: 0   # the base must be an ancestor of this commit, and a branch's merge-base with main
 
       - id: find
         env:
@@ -89,12 +91,12 @@ jobs:
           elif [ "$EVENT" = "workflow_dispatch" ]; then
             sha="$ASKED_BASE"
           elif [ "$EVENT" = "push" ] && [ "$REF" = "refs/heads/main" ]; then
-            # The newest green commit of main's push runs: a manual run may have been narrowed to a single gate.
-            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push")"
+            # The head of main's newest earlier push run that started its gates, green or red: each run checks
+            # its own push. A manual run may have been narrowed to a single gate, so only push runs count.
+            sha="$(scripts/lib/green_base.sh main "$GITHUB_RUN_ID")"
           elif [ "$EVENT" = "push" ] && [[ "$REF" != refs/heads/ci/release/* ]]; then
-            # A ci/** branch: main's green commits it contains, or its own last green push.
-            branch="$(jq -rn --arg ref "${REF#refs/heads/}" '$ref | @uri')"
-            sha="$(scripts/lib/green_base.sh "ci.yml/runs?branch=main&event=push" "ci.yml/runs?branch=$branch&event=push")"
+            # A ci/** branch: its own commits only, from where it left main.
+            sha="$(scripts/lib/green_base.sh branch)"
           fi
 
           if [ -n "$sha" ]; then

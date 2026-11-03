@@ -2,8 +2,9 @@
 # On main, a newer ci run makes an older one that has not started a gate redundant: cancel it.
 #
 # Every push gets its own run, so a red one names its push. A run still waiting for its first gate when a
-# newer push's run starts names nothing yet, and the newer run's scope already holds its change: the
-# commit it is measured from (scripts/lib/green_base.sh) is never the waiting one's. Runs that have started a gate are left to finish, so a verdict being worked on is never
+# newer push's run starts names nothing yet, and the newer run's scope already holds its change: it is
+# measured from the newest earlier run that STARTED its gates (scripts/lib/green_base.sh), never from the
+# waiting one. Runs that have started a gate are left to finish, so a verdict being worked on is never
 # thrown away. (full.yml had a half here too until 2026-11-03, when it stopped running behind every push.)
 #
 # Manual runs are never touched: they ask their own question. Cancelling is best effort; a run that slips
@@ -11,25 +12,20 @@
 #
 # Usage:  scripts/lib/cancel_superseded.sh <this ci run id>   (needs GITHUB_REPOSITORY and gh, actions: write)
 set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=SCRIPTDIR/ci_runs.sh
+. "$here/ci_runs.sh"
 
 self="$1"
 repo="$GITHUB_REPOSITORY"
 active='.status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending" or .status == "requested"'
-
-# started <run id> -> true when a gate job of the run (not the plan) is running or has run.
-started() {
-  [ "$(gh api --paginate "repos/$repo/actions/runs/$1/jobs?per_page=100" --jq '[.jobs[]
-      | select((.name | startswith("gates / ")) and .name != "gates / plan")
-      | select(.status == "in_progress" or (.status == "completed" and .conclusion != "skipped"))] | length' \
-    | awk '{ n += $1 } END { print n + 0 }')" -gt 0 ]
-}
 
 # cancel_older <runs query> <newest id>: every active run of the listing older than <newest> with no gate started.
 cancel_older() {
   local id
   for id in $(gh api "repos/$repo/actions/workflows/$1&per_page=50" \
                 --jq ".workflow_runs[] | select(.id < $2 and .event != \"workflow_dispatch\") | select($active) | .id"); do
-    if started "$id"; then
+    if gates_started "$id"; then
       echo "supersede: run $id has started its gates — left to finish"
     else
       echo "supersede: run $id has not started a gate and run $2 covers it — cancelling"

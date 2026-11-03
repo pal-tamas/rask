@@ -156,7 +156,8 @@ wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
 wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
 wired "a push hands its base to the gates"           ci.yml      '^      base: \$\{\{ needs\.base\.outputs\.sha \}\}$'
-wired "a ci/** branch is scoped like main"          ci.yml      '"ci\.yml/runs\?branch=\$branch&event=push"'
+wired "main is measured from its last started run"   ci.yml      'scripts/lib/green_base\.sh main "\$GITHUB_RUN_ID"'
+wired "a ci/** branch is measured by its own commits" ci.yml     'scripts/lib/green_base\.sh branch\)'
 wired "a ci/release/** branch is never scoped"       ci.yml      '"\$REF" != refs/heads/ci/release/\*'
 wired "the gates ask affected_gates.py"              gates.yml   'scripts/lib/affected_gates\.py'
 wired "a release is never scoped"                    release.yml '^      set: all$'
