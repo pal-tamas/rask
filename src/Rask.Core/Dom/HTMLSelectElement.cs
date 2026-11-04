@@ -28,6 +28,10 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     // Non-null only for a multi-select bound to a collection, where the render has to mark every picked
     // option rather than the one _selectedValue names.
     private IReadOnlySet<string>? _selectedValues;
+
+    // What this render's options offer, read as the options are walked: a live select's change handler takes
+    // only those (OfferedGuard). Null outside a live render, where no handler is wired.
+    private OfferedOptions? _offered;
     /// <summary>The name submitted with the form. A bound select defaults it to the bound member's name.</summary>
     public string? Name { get; set; }
 
@@ -98,6 +102,11 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
     protected override IDisposable? EnterChildrenScope()
     {
+        if (_offered is not null)
+        {
+            _offered.Read(Children ?? []);
+        }
+
         if (_bound && Children is not null)
         {
             Children = MarkSelected(Children, new Selection(_selectedValue, _selectedValues));
@@ -236,7 +245,7 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
 
         if (acc is not null)
         {
-            WireBound(sb, ctx, acc, bindCtx);
+            WireBound(sb, ctx, acc, bindCtx, name);
         }
         else if (SelectionHandler() is { } picked)
         {
@@ -247,7 +256,8 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         }
         else if (((IFormControl<T>)this).ControlledChangeHandler() is { } change)
         {
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            AppendAttr(sb, "data-rask-on-change",
+                ctx.RegisterHandler(OfferedGuard.One((Func<string, Task>)change, Offering(), name)));
         }
     }
 
@@ -268,7 +278,8 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         }
     }
 
-    private void WireBound(StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx)
+    private void WireBound(
+        StringBuilder sb, LiveRenderContext ctx, ExpressionAccessor.Accessor acc, EditContext? bindCtx, string? name)
     {
         var fid = acc.Field;
         var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
@@ -278,11 +289,15 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         // option, so binding it converged the model on one option out of however many were picked.
         // A multi-select bound to a scalar keeps the single-value handler: that is a control whose
         // model can hold one answer, and silently widening it would be the more surprising change.
+        // Either takes only what this render's options offer: a value no option sent is not the reader's.
         var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
-            ? BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind)
-            : (Delegate)BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
+            ? OfferedGuard.Many(BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind), Offering(), name)
+            : (Delegate)OfferedGuard.One(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind), Offering(), name);
         WriteChosenBind(sb, ctx, Live is true, handler, bindCtx, fid);
     }
+
+    // The options this render offers, read once its children are walked (EnterChildrenScope).
+    private OfferedOptions Offering() => _offered = new OfferedOptions();
 
     // The values-shaped change handler, or null when none was wired. Handed over as the caller's own
     // delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike for this

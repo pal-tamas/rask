@@ -2051,6 +2051,17 @@ them until tagged releases begin.
 
 ### Security
 
+- **A bound select takes only a value one of its options offered (#1268).** Before: `Select.Bind(() => m.CompanyId)`
+  and the native `Ui.Select.Bind(…)` (no `.Listbox`/`.Combobox`) parsed whatever string the change event carried
+  into the member, so a reader could post `"999"` or another tenant's id they were never shown, and only the app's
+  own validation stood in the way. Now a value is taken only when an enabled `<option>` the select drew sends it,
+  compared as the render wrote it (an option in a disabled `<optgroup>`, or a disabled one, offers nothing; an
+  option with no `value` offers its text). Anything else is refused: nothing is written, no rule runs, the field
+  keeps its value, and `Rask.Forms` logs one warning that never repeats the value. A multi-select drops the values
+  no option offered; a controlled `Select.Value(…).OnChange(…)` is not called for one. The held `Ui.Select.Listbox`
+  kept this rule already. An empty placeholder option a nullable member clears through still clears it. Nothing to
+  change in an app whose options are written under the select or an `<optgroup>`.
+
 - **The session id no longer appears in request URLs.** The question a live tab asks about its credential
   (`/_rask/auth/who`) and its file uploads (`/_rask/upload`) name the session in the `Rask-Session` header, as the
   HTTP fallback already does. A download, which the browser navigates to and so cannot carry a header, is now

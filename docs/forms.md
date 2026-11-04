@@ -258,6 +258,14 @@ way: `Ui.DatePicker` for a date, `Ui.TimePicker` for a time (the two side by sid
 
 <!-- demo:binding-textarea -->
 
+#### A select takes only what it offered
+
+A bound or controlled `Select` (and the native `Ui.Select`) accepts a posted value only when one of the
+enabled `<option>`s it drew — written under it or under an `<optgroup>` — sends it, compared as the render
+wrote it. Any other value (an id the reader was never shown) is refused: the model keeps its value and a
+warning goes to the `Rask.Forms` log. It is not an authorization check: the options you draw are the ones you
+decided this reader may pick.
+
 ### Empty value handling
 
 When the user clears an input, `BindingHelpers.TrySetTyped` decides what the empty string maps to:
