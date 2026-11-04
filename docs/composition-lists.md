@@ -216,11 +216,17 @@ Nested boundaries — the innermost one catches, leaving its siblings untouched:
 
 ### A handler that refuses
 
-Not every exception is a fault. When the app's own code says no in a sentence written for the reader — an
-exception that carries field failures (`IFieldFailures`, which `RaskValidationException` is) or a
-`System.ComponentModel.DataAnnotations.ValidationException` — a handler that lets it through is answered
-with that sentence as an error toast. No boundary is tripped, nothing is logged as an error, the page keeps
-whatever the handler changed before it threw, and the next click is answered:
+Not every exception is a fault. When the app says no on purpose, to the person who asked, it throws a
+`RefusedException` (namespace `Rask`, in the core package) whose message is written for them — and that message
+is the one shown. A handler that lets it through is answered with that sentence as an error toast. No boundary
+is tripped, nothing is logged as an error, there is no reference to quote, the page keeps whatever the handler
+changed before it threw, and the next click is answered. Press the button twice:
+
+<!-- demo:refused-handler -->
+
+Any exception that carries field failures is a refusal the same way: `IFieldFailures`, which
+`RefusedException` and `RaskValidationException` both are, or a
+`System.ComponentModel.DataAnnotations.ValidationException`. The store's own refusals arrive like that:
 
 ```csharp
 // The confirm button of a list's bin. The store refuses: "The trailer cannot be deleted: a waybill refers to it."
@@ -238,6 +244,12 @@ it goes there). The exception is recognised inside an `AggregateException` or a 
 too; a class of your own derived from `ValidationException` is not a refusal. Every other exception trips
 the boundary you wrote around it, or is [a handler that fails](#a-handler-that-fails). A refusal in a
 hand-wired host whose layout draws no toasts goes to the boundary too — there would be nowhere to read it.
+
+The same `RefusedException` thrown from a `Render` or a lifecycle hook shows its message on the error page (the
+first request answers 400), and on a request that is not a page — an endpoint, a controller — it is a **400**
+problem document whose `detail` is the message. Every other exception there answers a problem document too, by
+default, carrying a reference and nothing of the exception ([a request that is not a
+page](lifecycle.md#a-request-that-is-not-a-page)).
 
 ### A handler that fails
 

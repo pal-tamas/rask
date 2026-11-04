@@ -84,7 +84,8 @@ them until tagged releases begin.
   `RaskServerOptions` first, then `RefusedException` 400, `ForbiddenException` 403/401, `BadRequestException` its
   own. Remote CQRS answers a handler's refusal 400 with `detail` and `errors`, so a WASM form shows it too.
   RaskApp still re-executes `/error` for a browser's navigation. See
-  [a refusal is shown](docs/lifecycle.md#a-refusal-is-shown-refusedexception).
+  [a refusal is shown](docs/lifecycle.md#a-refusal-is-shown-refusedexception); rask.sh's Composition guide
+  ("A handler that refuses") now leads with it and runs it live — press "Close the invoice" twice.
 - **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
   `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
   browser tests hand-rolled "settled" — counting sent against acknowledged events, waiting for `[aria-busy=true]` and

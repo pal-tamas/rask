@@ -1,4 +1,5 @@
 using System.Reflection;
+using Rask.Core.Messaging;
 using Rask.Site.Features;
 using Rask.Site.Tests.Infrastructure;
 
@@ -56,6 +57,22 @@ public sealed partial class BoomPageTests : global::Rask.Core.RaskMarkup
         Assert.Contains("boom-nested-outer-healthy", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("kaboom", page.Html, StringComparison.Ordinal);
         Assert.DoesNotContain("InvalidOperationException", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_refused_click_shows_the_refusals_own_sentence_and_keeps_what_the_first_click_did()
+    {
+        var page = Page.Render(() => RefusedHandlerDemo, TestServices.Default());
+        using var toasts = Toast.Fake();
+
+        await page.On("#refused-close").Click();
+        await page.On("#refused-close").Click();
+
+        toasts.Shown("The invoice is already closed.").Once();
+        toasts.Shown("The invoice is already closed.").As(ToastLevel.Error);
+        Assert.Contains(">Closed<", page.Html, StringComparison.Ordinal);
+        Assert.Contains("refused-close", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("RefusedException", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -6556,6 +6556,36 @@ path .opacity-75
 span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
 p .mb-0
 
+=== refused-handler ===
+div .bg-white .border .border-zinc-200 .dark:bg-zinc-800 .dark:border-white/10 .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
+div .min-w-0 .relative .sample-code-col
+div .bg-zinc-50 .border-b .border-zinc-200 .dark:bg-zinc-900 .dark:border-white/10 .flex .gap-2 .items-center .min-h-11 .px-3 .py-1.5 .sample-code-header
+span .dark:text-white/70 .font-mono .sample-code-label .text-xs .text-zinc-500 .truncate
+button .[&amp;.copied]:text-green-600 .[:where(&amp;)]:gap-2 .[:where(&amp;)]:inline-flex .[:where(&amp;)]:pe-3 .[:where(&amp;)]:ps-2 .[:where(&amp;)]:rounded-md .[:where(&amp;)]:text-sm .[:where(&amp;)]:text-zinc-800 .bg-transparent .dark:[&amp;.copied]:text-green-400 .dark:hover:bg-white/15 .dark:text-white .data-loading:pointer-events-none .disabled:opacity-50 .disabled:pointer-events-none .disabled:shadow-none .font-medium .h-8 .hover:bg-zinc-800/5 .items-center .justify-center .ms-auto .relative .sample-copy .shrink-0 .whitespace-nowrap
+div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
+svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+circle .opacity-25
+path .opacity-75
+svg .[:where(&amp;)]:size-4 .[[data-loading]&gt;&amp;]:opacity-0 .shrink-0 .size-4 .transition-opacity
+path
+path
+span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
+span .sample-copy-text
+pre .bg-(--rask-ink) .leading-relaxed .m-0 .overflow-x-auto .px-5 .py-4 .rounded-none .sample-code .text-[#e7e3ff] .text-[0.82rem]
+code .language-csharp
+div .bg-white .border-t .border-zinc-200 .dark:bg-zinc-800 .dark:border-white/10 .flex .flex-col .p-4 .sample-result-col
+div .font-mono .gap-2 .inline-flex .items-center .mb-3 .sample-result-label .text-[0.68rem] .text-accent-content .tracking-[0.12em] .uppercase
+span .bg-accent .motion-safe:animate-pulse .rounded-full .sample-dot .size-2
+div .flex-1 .sample-result-body
+div .flex .flex-wrap .gap-3 .items-center
+button .[:where(&amp;)]:gap-2 .[:where(&amp;)]:inline-flex .[:where(&amp;)]:px-4 .[:where(&amp;)]:rounded-lg .[:where(&amp;)]:text-accent-foreground .[:where(&amp;)]:text-sm .bg-accent .border .border-black/10 .dark:border-0 .data-loading:pointer-events-none .disabled:opacity-50 .disabled:pointer-events-none .disabled:shadow-none .font-medium .h-10 .hover:bg-accent/90 .in-data-ui-button-group:first:rounded-s-lg .in-data-ui-button-group:last:rounded-e-lg .in-data-ui-button-group:not-first:border-s-0 .in-data-ui-button-group:rounded-none .items-center .justify-center .relative .shadow-[inset_0px_1px_color-mix(in_oklab,var(--color-white)_20%,transparent)] .whitespace-nowrap
+div .[[data-loading]&gt;&amp;]:opacity-100 .absolute .flex .inset-0 .items-center .justify-center .opacity-0 .transition-opacity
+svg .[:where(&amp;)]:size-4 .animate-spin .shrink-0
+circle .opacity-25
+path .opacity-75
+span .[[data-loading]&gt;&amp;]:opacity-0 .transition-opacity
+div .[:where(&amp;)]:inline-flex .[:where(&amp;)]:px-2 .[:where(&amp;)]:py-1 .[:where(&amp;)]:rounded-md .[:where(&amp;)]:text-green-800 .[:where(&amp;)]:text-sm .bg-green-400/20 .dark:bg-green-400/40 .dark:text-green-200 .font-medium .items-center .whitespace-nowrap
+
 === routing-navigator ===
 div .bg-white .border .border-zinc-200 .dark:bg-zinc-800 .dark:border-white/10 .flex .flex-col .mb-4 .overflow-hidden .rounded-xl .sample-card .shadow-xs
 div .min-w-0 .relative .sample-code-col
