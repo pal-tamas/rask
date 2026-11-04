@@ -117,6 +117,9 @@
          shell out to npm. -->
     <_RaskExternalEnabled Condition="'$(RaskExternalBuild)' != 'false' AND '$(DesignTimeBuild)' != 'true' AND '$(_RaskExternalBundlable)' == 'true'">true</_RaskExternalEnabled>
 
+    <!-- Defaulted here, after the project body, so the port a project sets is the one the URL carries. -->
+    <RaskExternalDevServerUrl Condition="'$(RaskExternalDevServerUrl)' == ''">http://localhost:$(RaskExternalDevServerPort)</RaskExternalDevServerUrl>
+
     <!-- Non-empty only under `rask dev`. Everything dev-server-shaped keys off this one property, so
          an ordinary build cannot half-enter the mode. -->
     <_RaskExternalDevUrl Condition="'$(RaskExternalDevServer)' == 'true'">$(RaskExternalDevServerUrl)</_RaskExternalDevUrl>
@@ -938,9 +941,20 @@
 
     It carries the config's real path rather than a recipe for computing one, so the CLI stays out of
     the business of knowing how Rask lays out obj/.
+
+    It is written only once the install has run: the pointer is the readers' signal to run `vp dev`
+    through npx, and written straight after the inputs (as it once was) it sent them to a `vp` that was
+    not there yet on a fresh clone ("npx canceled due to missing packages"), so that first `rask dev`
+    served no islands (#1197). _RaskExternalServeDev orders the two; this target cannot depend on
+    the install itself while it hangs off the inputs, because the install depends on the inputs.
   -->
+  <Target Name="_RaskExternalServeDev"
+          AfterTargets="CoreCompile"
+          DependsOnTargets="_RaskExternalInstall;_RaskExternalAnnounceDevServer"
+          Condition="'$(_RaskExternalDevUrl)' != '' AND '@(_RaskExternalFile)' != ''
+                     AND '$(_RaskExternalEnabled)' == 'true'"/>
+
   <Target Name="_RaskExternalAnnounceDevServer"
-          AfterTargets="_RaskExternalWriteInputs"
           Condition="'$(_RaskExternalDevUrl)' != '' AND '@(_RaskExternalFile)' != ''
                      AND '$(_RaskExternalEnabled)' == 'true' AND '$(_RaskExternalConfig)' != ''">
     <Message Importance="high"

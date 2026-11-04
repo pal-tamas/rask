@@ -21,8 +21,11 @@ async lifecycle hook shows over the running app, which stays mounted with its st
 
 The framework side of that loop has its own gate, `scripts/run-watch-e2e.sh` — it scaffolds an app, runs
 it under a real `dotnet watch`, edits a file, and asserts the change reached the open live session
-without it being torn down. Run it when you touch the hot-reload coordinator, the scoped-asset
-registry, the generated registries, or `rask dev`. CI runs it before a release and on a
+without it being torn down. It covers islands too, on a Server and on a WASM app scaffolded with
+`--islands react`: the manifest names the Vite dev server under `$dev`, the island loads from that
+server through its loopback-only CORS rule, and a `.tsx` edit arrives on Vite's HMR socket as a
+`js-update`, not a full reload. Run it when you touch the hot-reload coordinator, the scoped-asset
+registry, the generated registries, the island dev server, or `rask dev`. CI runs it before a release and on a
 `ci/release/**` branch, not on every push (see [CI](#ci)).
 
 There used to be a browser half, `scripts/run-wasm-watch-e2e.sh`, driving a WASM sample under

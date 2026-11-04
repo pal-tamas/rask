@@ -838,7 +838,7 @@ public class ExternalBuildPlanTests
             "/app/wwwroot/_rask/external/manifest.json",
             "/_rask/external/");
 
-    private static string? ResolveNode()
+    internal static string? ResolveNode()
     {
         var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
         var separator = OperatingSystem.IsWindows() ? ';' : ':';

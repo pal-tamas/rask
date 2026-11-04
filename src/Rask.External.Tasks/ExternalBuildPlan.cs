@@ -196,7 +196,7 @@ internal static class ExternalBuildPlan
         var used = UsedPlugins(islands);
         var pluginImports = string.Concat(used.Select(r => $"import {r.PluginImport}\n"));
         var pluginCalls = string.Concat(used.Select(r => $"{PluginCall(r, used, islands, tsConfigPath)}, "));
-        var server = ServerBlock(devServerUrl);
+        var server = ServerBlock(devServerUrl, entryDirectory);
         var resolve = routesModule is null
             ? string.Empty
             : $"  resolve: {{ alias: {{ '@rask/routes': {Literal(Posix(routesModule))} }} }},{Environment.NewLine}";
@@ -204,7 +204,7 @@ internal static class ExternalBuildPlan
         return $$"""
             {{Header}}
             import { defineConfig } from 'vite'
-            import { writeFileSync, mkdirSync } from 'node:fs'
+            import { writeFileSync, mkdirSync, realpathSync } from 'node:fs'
             import { dirname } from 'node:path'
             {{pluginImports}}
             const input = {
@@ -370,8 +370,18 @@ internal static class ExternalBuildPlan
     ///         Vite pick the next free one would leave the page importing from a port nothing is
     ///         listening on, and the only symptom would be islands that never mount.
     ///     </para>
+    ///     <para>
+    ///         <strong>The project's build output is not watched</strong>, except the directory Rask
+    ///         generates the entries, prop types and <c>@rask/routes</c> into. Vite watches its whole
+    ///         root, and answers a changed <c>tsconfig.json</c> or <c>.html</c> with a full page reload:
+    ///         a WASM build copies <c>tsconfig.json</c> into <c>bin/</c> and writes HTML placeholders
+    ///         under <c>obj/</c>, so every rebuild under <c>rask dev</c> reloaded the page and threw away
+    ///         the state Fast Refresh exists to keep (#1197). Relative to the dev server's working
+    ///         directory, which is the project's: an ancestor folder that happens to be called
+    ///         <c>bin</c> must not switch watching off for the whole project.
+    ///     </para>
     /// </remarks>
-    private static string ServerBlock(string? devServerUrl)
+    private static string ServerBlock(string? devServerUrl, string entryDirectory)
     {
         if (string.IsNullOrEmpty(devServerUrl))
         {
@@ -389,6 +399,21 @@ internal static class ExternalBuildPlan
                 // browser could read files from under their workspace root.
                 cors: { origin: /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/ },
                 origin: {{Literal(devServerUrl!.TrimEnd('/'))}},
+                // The build's own output (bin/, obj/) is not source, and a rebuild that rewrites a
+                // tsconfig.json or an .html there makes Vite reload the page. Rask's generated modules
+                // live under obj/ too, so that one directory, and the path down to it, stays watched.
+                watch: {
+                  ignored: ((keep, root) => (file) => {
+                    const path = file.replace(/\\/g, '/')
+                    const local = path.startsWith(root) ? path.slice(root.length) : ''
+                    if (!/^(bin|obj)(\/|$)/.test(local)) return false
+                    return !(path === keep || keep.startsWith(path + '/') || path.startsWith(keep + '/'))
+                  })(
+                    // Resolved: the watcher reports paths under the dev server's REAL working directory.
+                    ((dir) => { try { return realpathSync(dir).replace(/\\/g, '/') } catch { return dir } })(
+                      {{Literal(Posix(Path.GetDirectoryName(entryDirectory) ?? entryDirectory))}}),
+                    process.cwd().replace(/\\/g, '/') + '/'),
+                },
               },
 
             """;

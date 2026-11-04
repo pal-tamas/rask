@@ -104,7 +104,10 @@
       no symptom but islands that never appear.
     -->
     <RaskExternalDevServerPort Condition="'$(RaskExternalDevServerPort)' == ''">5174</RaskExternalDevServerPort>
-    <RaskExternalDevServerUrl Condition="'$(RaskExternalDevServerUrl)' == ''">http://localhost:$(RaskExternalDevServerPort)</RaskExternalDevServerUrl>
+    <!-- RaskExternalDevServerUrl is defaulted in Rask.External.targets, not here: a .props is evaluated
+         BEFORE the project body, so a URL built here would read 5174 even in a project that sets
+         <RaskExternalDevServerPort> — the build would serve one port while `rask dev` (which reads the
+         csproj) points the app at another. -->
 
     <RaskExternalInstallCommand Condition="'$(RaskExternalInstallCommand)' == ''">npm ci</RaskExternalInstallCommand>
     <RaskExternalFirstInstallCommand Condition="'$(RaskExternalFirstInstallCommand)' == ''">npm install</RaskExternalFirstInstallCommand>

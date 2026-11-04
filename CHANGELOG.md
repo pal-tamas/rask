@@ -722,7 +722,17 @@ them until tagged releases begin.
   per island. After: a fingerprinted file name yields the base like the plain one, and a runtime served from any
   other path logs a console error naming its URL before it falls back to the root. Browser journeys now mount an
   island under a path base on Rask.Server and on a WASM app, navigate from an island with `@rask/routes` on both
-  hosts, and pin the Server host's `__raskHost.navigate` bridge.
+  hosts, and pin the Server host's `__raskHost.navigate` bridge. The watch gate (`scripts/run-watch-e2e.sh`) now
+  runs islands under `rask dev` on a Server and a WASM app: the manifest names the Vite dev server under `$dev`, the
+  island loads from it through its loopback-only CORS rule, and a `.tsx` edit is pushed over Vite's HMR socket as a
+  `js-update` rather than a full reload. Writing that gate found three `rask dev` bugs, all fixed: on a WASM app
+  the island dev server watched the build's own output, and a rebuild copying `tsconfig.json` into `bin/` (or an
+  `.html` placeholder into `obj/`) made Vite reload the whole page instead of hot-replacing the island, so it now
+  ignores `bin/` and `obj/` except the directory Rask generates its island modules into; the build
+  announced the dev server before installing the island packages, so the first `rask dev` of a fresh clone failed
+  with "npx canceled due to missing packages" and served no islands; and `<RaskExternalDevServerPort>` in the csproj
+  never reached the dev-server URL (it was defaulted in the `.props`, before the project body), so the build served
+  5174 while `rask dev` pointed the app at the port you set.
 - **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
   phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
   across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —
