@@ -26,6 +26,14 @@ them until tagged releases begin.
   can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
   as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
   departure from Flux UI, which leaves the field to the browser.
+- **CI: each analyzer shard formats its own projects' files.** A change to the rules (`.editorconfig`,
+  `Directory.*.props`/`.targets`, `global.json`) made `analyzers 1/4` build the whole solution and run one
+  `dotnet format` over every file — 431 s of build and 1140 s of formatter, 29 minutes, beside shards of 5 to 8.
+  Every `analyzers K/N` job now formats the files in the directories of the projects it already builds and
+  analyses, and shard 1 also the files in no project's directory (`scripts/lib/format-scope.sh`); a change's own
+  `.cs` files are dealt the same way. Every file is still checked, once. On a rule change a shard runs
+  `dotnet format whitespace` and `style` side by side and skips the `analyzers` pass — the analyzer build the same
+  job has just run, warnings as errors, and most of the formatter's time (316 of 550 s on shard 2).
 - **CI: the front-end templates run in two jobs that pack the feed once.** The seven `front end <key>` jobs each
   packed the local feed again (about 4.4 minutes apiece); `front end 1/2` and `2/2` each pack it once and scaffold
   their templates one after another (`scripts/run-template-e2e.sh --front-end=angular,preact,…`), with a verdict per
