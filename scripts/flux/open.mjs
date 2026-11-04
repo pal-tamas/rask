@@ -39,7 +39,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { departedFrom, focusDepartedFrom } from './departed.mjs';
-import { chromium, cursorDeparted, frames, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, frames, looked, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -281,8 +281,14 @@ async function measureOpen(browser, kind, url, shots, view, like) {
       const trigger = await wrapper.$(kind.trigger);
       // On a phone the hover the tap leaves is part of what is measured (a trigger's chevron, a row lit): waited
       // on until it holds (lib.mjs's tapped), as it lands late on a loaded runner.
-      if (view.phone) await tapped(page, trigger);
-      else await trigger.click();
+      // …and then made to hit-test the finger's place again (lib.mjs's looked), on both pages alike: whether the
+      // browser looks again by itself once the list is up is down to what lays the page out next, and on Linux the
+      // kit's phone field kept its trigger hovered in one run and not in the next (2026-11-04, #1260).
+      if (view.phone) {
+        await tapped(page, trigger);
+        const box = await trigger.boundingBox();
+        if (box) await page.evaluate(looked, [box.x + box.width / 2, box.y + box.height / 2]);
+      } else await trigger.click();
       await page.waitForTimeout(350);
       // A static page has no runtime to pick with: Rask's is written with these rows already picked.
       for (const row of like ? [] : kind.pick ?? []) {
