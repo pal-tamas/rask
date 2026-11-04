@@ -168,8 +168,9 @@ fi
 #   analyzers-K    the analyzers of shard K's projects alone (scripts/lib/analyzer-shards.txt;
 #                  -p:RaskAnalyzerShard=K, Directory.Build.targets): it builds only those projects, so
 #                  their references compile with the analyzers off, and ends at once on a scoped run that
-#                  reaches none of them. Shard 1 (every project the list does not name) also runs the gate
-#                  script tests and the formatter, and builds the projects of the files it formats.
+#                  reaches none of them. Each shard also runs the formatter over its own projects' files
+#                  (scripts/lib/format-scope.sh deals them), and shard 1 (every project the list does
+#                  not name, and the files in no project's directory) the gate script tests.
 #                  Each shard prints its projects' analyzer seconds, which is what the list is dealt by.
 #
 # The shards split the analyzer build by project on 2026-11-03: one job with every analyzer on was the
@@ -201,8 +202,8 @@ case "$unit_part" in
     fi
     ;;
 esac
-# Whether this part runs the gate script tests and the formatter: a hand run, `analyzers` and shard 1 do;
-# `build` and every other shard do not.
+# Whether this part runs the gate script tests: a hand run, `analyzers` and shard 1 do; `build` and
+# every other shard do not. The formatter runs in every part but `build`, each shard over its own files.
 runs_checks=1
 [ "$unit_part" != "build" ] || runs_checks=0
 [ -z "$analyzer_shard" ] || [ "$analyzer_shard" = 1 ] || runs_checks=0
@@ -226,80 +227,82 @@ fi
 # that brought it. Restore at 1.0: the whole tree in the daily full run (docs/development-workflow.md,
 # "Loosened until 1.0"). A hand run (no part) keeps RASK_FORMAT_SCOPE's own meaning, below.
 #
-# Decided BEFORE the build, because checking every file needs every project built: the formatter
+# Decided BEFORE the build, because the files it checks need their projects built: the formatter
 # resolves types the build generates (the site's scoped-TypeScript types; without them it reports
-# CS0246 for code that compiles), so a rule change widens a scoped build to the whole solution.
+# CS0246 for code that compiles), so a rule change widens a scoped build to every project.
+#
+# An analyzer shard checks only its own share (scripts/lib/format-scope.sh, rask_format_owner): the
+# files in its projects' directories, and in shard 1 the files in no project's directory too. On a rule
+# change that is every file of the projects it builds anyway (format_dirs), so the whole tree is checked
+# once, a quarter in each shard, and no shard builds the solution for it.
+# shellcheck source=lib/format-scope.sh
+. "$root/scripts/lib/format-scope.sh"
+# Every solution project, its directory and its shard, for a shard's build and its formatter alike.
+format_deal="${TMPDIR:-/tmp}/rask-format-deal-$$.txt"
+rask_format_deal "$shard_list" "$root/Rask.slnx" >"$format_deal"
+# rask_format_mine: the paths on stdin this part formats — all of them, unless it is an analyzer shard.
+rask_format_mine() {
+  if [ -z "$analyzer_shard" ]; then cat; return 0; fi
+  rask_format_shard_files "$format_deal" "$analyzer_shard"
+}
 format_all=""
 format_files=""
-if { [ "$unit_part" = "analyzers" ] || [ "$unit_part" = "analyzers-1" ]; } && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
-  # shellcheck source=lib/format-scope.sh
-  . "$root/scripts/lib/format-scope.sh"
+format_dirs=""
+if { [ "$unit_part" = "analyzers" ] || [ -n "$analyzer_shard" ]; } && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
   # Every path, deletions too: a deleted .editorconfig changes the rules as much as an edited one.
   format_answer="$(git diff --name-only "$RASK_SCOPE_RANGE" | rask_format_scope)"
   case "$format_answer" in
     ALL*)
       format_all="$(printf '%s' "$format_answer" | cut -f2-)"
       if [ -n "$scope_projects" ]; then
-        echo "==> Scope: the whole solution after all — $format_all changed, so the formatter checks every file."
+        echo "==> Scope: every project after all — $format_all changed, so the formatter checks every file."
         scope_projects=""
+      fi
+      if [ -n "$analyzer_shard" ]; then
+        # This shard's project directories, and in shard 1 the files no project's directory holds.
+        format_share="$(git ls-files '*.cs' | rask_format_share "$format_deal" "$analyzer_shard")"
+        format_dirs="$(printf '%s\n' "$format_share" | awk -F'\t' '$1 == "dir" { print $2 }')"
+        format_files="$(printf '%s\n' "$format_share" | awk -F'\t' '$1 == "file" { print $2 }')"
       fi
       ;;
     *)
       while IFS= read -r format_file; do
         [ -f "$format_file" ] && format_files="$format_files$format_file
 "
-      done <<<"$format_answer"
+      done < <(printf '%s\n' "$format_answer" | grep . | rask_format_mine)
       ;;
   esac
 fi
 
 # A shard builds its own projects (the ones the scope reaches, on a scoped run) and nothing else: their
-# references compile with the analyzers off, which they need anyway. Shard 1 also builds the projects of
-# the files its formatter checks (the formatter resolves the types their build generates; every project
-# when it checks every file). A shard left with nothing to build has nothing to analyse.
+# references compile with the analyzers off, which they need anyway. It also builds the solution
+# projects of the files its formatter checks (the formatter resolves the types their build generates),
+# which are its own: a file's shard is its project's. A shard left with nothing to build has nothing to
+# analyse.
 shard_build=""
 if [ -n "$analyzer_shard" ]; then
   # The solution's projects in this shard: listed with its number, or (shard 1) not listed at all.
-  shard_build="$(awk -v shard="$analyzer_shard" '
-    FNR == NR { if ($0 !~ /^#/ && NF >= 2) listed[$1] = $2; next }
-    match($0, /Path="[^"]*\.csproj"/) {
-      path = substr($0, RSTART + 6, RLENGTH - 7); name = path
-      sub(/.*\//, "", name); sub(/\.csproj$/, "", name)
-      if ((name in listed ? listed[name] : 1) == shard) print path
-    }' "$shard_list" "$root/Rask.slnx")"
+  shard_build="$(awk -F'\t' -v shard="$analyzer_shard" '$1 == shard { print $3 }' "$format_deal")"
   if [ -n "$scope_projects" ]; then
     # shellcheck disable=SC2086  # deliberate word split: the set is one project per word
     shard_build="$(printf '%s\n' "$shard_build" | grep -xF -f <(printf '%s\n' $scope_projects) || true)"
   fi
-  if [ -n "$format_all" ]; then
-    shard_build="ALL"
-  elif [ -n "$format_files" ]; then
-    while IFS= read -r format_file; do
-      [ -n "$format_file" ] || continue
-      format_dir="$(dirname "$format_file")"
-      while [ "$format_dir" != "." ] && [ "$format_dir" != "/" ]; do
-        format_owner="$(find "$root/$format_dir" -maxdepth 1 -name '*.csproj' | head -1)"
-        if [ -n "$format_owner" ]; then
-          shard_build="$shard_build
-${format_owner#"$root/"}"
-          break
-        fi
-        format_dir="$(dirname "$format_dir")"
-      done
-    done <<<"$format_files"
-    shard_build="$(printf '%s\n' "$shard_build" | grep . | LC_ALL=C sort -u || true)"
+  if [ -z "$format_all" ] && [ -n "$format_files" ]; then
+    shard_build="$(printf '%s\n' "$shard_build" \
+      "$(printf '%s\n' "$format_files" | rask_format_owner "$format_deal" | cut -f3)" | grep . | LC_ALL=C sort -u || true)"
   fi
   if [ -z "$shard_build" ] && [ "$runs_checks" = 0 ]; then
     echo "==> Analyzers (shard $analyzer_shard of $shard_count): the change reaches none of its projects — nothing to analyse."
+    rm -f "$format_deal"
     exit 0
   fi
   case "$shard_build" in
-    ALL) echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — its projects analysed, every project built (the formatter checks every file)." ;;
     "")  echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — the change reaches none of its projects; nothing to build." ;;
     *)   echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — $(printf '%s\n' "$shard_build" | grep -c .) project(s) built, its own analysed:"
          printf '        %s\n' "$shard_build" ;;
   esac
 fi
+rm -f "$format_deal"
 
 rask_phase "scope"
 
@@ -387,12 +390,11 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
-# A shard builds the set it chose above; ALL is the whole solution, the unscoped path below.
+# A shard builds the set it chose above.
 skip_build=0
 if [ -n "$analyzer_shard" ]; then
   case "$shard_build" in
     "") skip_build=1 ;;
-    ALL) scope_projects="" ;;
     *) scope_projects="$shard_build" ;;
   esac
 fi
@@ -548,20 +550,26 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  # The `build` part and analyzer shards 2..N format nothing: shard 1 does, off the nightly's way.
-  if [ "$runs_checks" = 0 ]; then
-    echo "==> Formatting check: not in the $unit_part part — analyzer shard 1 runs it."
+  # The `build` part formats nothing: the analyzer shards do, off the nightly's way.
+  if [ "$unit_part" = "build" ]; then
+    echo "==> Formatting check: not in the build part — the analyzer shards run it."
     return 0
   fi
-  # The `analyzers` part: what was decided before the build (format_all / format_files, at RASK_UNIT_PART).
-  if [ "$unit_part" = "analyzers" ] || [ "$unit_part" = "analyzers-1" ]; then
-    if [ -n "$format_all" ]; then
+  # The `analyzers` part and its shards: what was decided before the build (format_all, format_dirs,
+  # format_files, at RASK_UNIT_PART).
+  if [ "$unit_part" = "analyzers" ] || [ -n "$analyzer_shard" ]; then
+    format_whose=""
+    [ -z "$analyzer_shard" ] || format_whose=" in shard $analyzer_shard's projects"
+    if [ -n "$format_all" ] && [ -n "$analyzer_shard" ]; then
+      echo "==> Formatting check over every file of shard $analyzer_shard's projects: $format_all changed, and with it the rules."
+      rask_start_shard_format
+    elif [ -n "$format_all" ]; then
       echo "==> Formatting check over every file: $format_all changed, and with it the rules."
       rask_start_whole_format
     elif [ -n "$format_files" ]; then
-      rask_start_file_format "$format_files" "the .cs files changed since the scope base"
+      rask_start_file_format "$format_files" "the .cs files changed since the scope base$format_whose"
     elif [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
-      echo "==> Formatting check skipped — no .cs file changed since the scope base."
+      echo "==> Formatting check skipped — no .cs file$format_whose changed since the scope base."
     else
       # Restore at 1.0: the whole tree in the daily full run (docs/development-workflow.md).
       echo "==> Formatting check skipped — no scope base to measure a change from; every change was"
@@ -622,6 +630,45 @@ rask_start_whole_format() {
     exit "$format_exit"
   ) >"$format_log" 2>&1 &
   format_pid=$!
+}
+
+# A shard's share of a rule change: every file in its projects' directories (format_dirs), and in
+# shard 1 the files in no project's directory (format_files), each the full pass over the one solution
+# workspace. The workspace is the whole solution, but `dotnet format` analyses only the projects that
+# hold a file it was given: the shard's own, and any that links one of their files in. At diagnostic
+# verbosity, for the timings it prints:
+# rask_format_timings reads them back, pass by pass, for the next re-deal of analyzer-shards.txt.
+rask_start_shard_format() {
+  rask_build_debug_generators
+  format_label="Formatting check (dotnet format --verify-no-changes over shard $analyzer_shard's projects: whitespace + style + analyzers)"
+  echo "==> $format_label — running alongside the tests"
+  (
+    set +e   # the seconds are written on a red run too
+    format_began=$SECONDS
+    format_exit=0
+    echo "--- dotnet format: the $(printf '%s\n' "$format_dirs" | grep -c .) project directories of shard $analyzer_shard"
+    # shellcheck disable=SC2086  # deliberate word split: one directory per word
+    dotnet format Rask.slnx --verify-no-changes -v diag --include $format_dirs \
+      | grep -v ' is using configuration from '
+    [ "${PIPESTATUS[0]}" -eq 0 ] || format_exit=1
+    if [ -n "$format_files" ]; then
+      echo "--- dotnet format: the $(printf '%s\n' "$format_files" | grep -c .) .cs files in no project's directory"
+      printf '%s\n' "$format_files" | grep . | tr '\n' ' ' \
+        | xargs dotnet format Rask.slnx --verify-no-changes -v diag --include \
+        | grep -v ' is using configuration from '
+      [ "${PIPESTATUS[3]}" -eq 0 ] || format_exit=1
+    fi
+    echo "$((SECONDS - format_began))" >"$format_log.secs"
+    exit "$format_exit"
+  ) >"$format_log" 2>&1 &
+  format_pid=$!
+}
+
+# The timings a diagnostic-verbosity `dotnet format` printed into the log: the workspace load, each
+# pass, the projects each pass analysed, and the total.
+rask_format_timings() {
+  grep -E '^--- dotnet format|Complete in [0-9]+ms|^Running .* analysis\.|Running [0-9]+ analyzers on|Formatted [0-9]+ of|Format complete in' "$1" \
+    | sed 's/^/    /' || true
 }
 
 rask_start_format
@@ -797,6 +844,10 @@ fi
 set -e
 
 if [ -n "$format_pid" ]; then
+  if grep -q '^--- dotnet format' "$format_log" 2>/dev/null; then
+    echo "==> Where the formatter's time went"
+    rask_format_timings "$format_log"
+  fi
   if [ "$format_status" -eq 0 ]; then
     echo "==> $format_label passed."
     rm -f "$format_log"
