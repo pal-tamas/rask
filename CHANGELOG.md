@@ -8,6 +8,8 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **The test project `rask new` scaffolds moves to Microsoft.NET.Test.Sdk 18.11.0, xunit.v3 4.0.2 and
+  xunit.runner.visualstudio 4.0.1** — the versions this repo's own tests now run on (#1247).
 - **A date, range or time typed outside a picker's limits is not taken, and the field says why (#1273).** Before: a
   date typed into a `Ui.DatePicker`'s own field was stored whatever its `Min`/`Max`/`Unavailable`, a range of any
   length got through `MinRange`/`MaxRange` from the calendar's typed inputs, a `Ui.TimePicker` typed time ignored
