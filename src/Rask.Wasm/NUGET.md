@@ -12,6 +12,8 @@ markup and router as the server host — and publishes to a static folder any we
   `host.Configure(c => c.Query.Off())` is how an app does without one.
 - Opt in with `<RaskPrerender>true</RaskPrerender>` and every route is prerendered to real HTML at publish,
   with a `sitemap.xml`, so visitors and crawlers get the page instead of a boot spinner.
+  `host.UseCulture(c => c.UrlPrefix = true)` publishes every page once per language (`/rolunk`, `/en/rolunk`),
+  each in its own, with `hreflang` alternates in the page and the sitemap.
 
 ## Install
 

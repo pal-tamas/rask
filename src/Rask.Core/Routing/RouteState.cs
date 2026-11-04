@@ -1,3 +1,5 @@
+using Rask.Core.Live;
+
 namespace Rask.Core.Routing;
 
 /// <summary>
@@ -111,6 +113,69 @@ public sealed class RouteState
             Changed?.Invoke(this, EventArgs.Empty);
         }
     }
+
+    /// <summary>
+    ///     The page being shown, in <paramref name="language" /> — the link a language switcher writes:
+    ///     <c>Ui.Link.Href(route.In("de"))["Deutsch"]</c>, in an app that puts languages in its URLs
+    ///     (<c>UseCulture(c =&gt; c.UrlPrefix = true)</c>).
+    /// </summary>
+    /// <remarks>
+    ///     The same path and query, with the language prefix swapped: on <c>/en/about?tab=2</c>,
+    ///     <c>route.In("de")</c> is <c>/de/about?tab=2</c> and <c>route.In("hu")</c>, for a default of
+    ///     <c>hu</c>, is <c>/about?tab=2</c>. A component that writes one renders again when the page changes.
+    ///     Another page in another language is <c>Routes.Contact().In("de")</c>.
+    /// </remarks>
+    /// <param name="language">A language the app ships, as a BCP&#160;47 tag: <c>"de"</c>.</param>
+    public RouteUrl In(string language)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+
+        var path = RoutePath;
+        var page = RouteResolver.TryResolve(CurrentTable, path, out var chain, out var notFound) && !notFound && chain.Count > 0
+            ? chain[^1]
+            : null;
+        var here = QueryString.Build(path, Query);
+        var at = here.IndexOf('?', StringComparison.Ordinal);
+        return new RouteUrl(path, at < 0 ? null : here[at..], page) { Language = language };
+    }
+
+    /// <summary>
+    ///     The languages this session writes into its URLs, or <c>null</c> when it keeps them out. Set by the host
+    ///     from <see cref="Globalization.RaskCultureOptions.UrlPrefix" />, before the first render.
+    /// </summary>
+    internal UrlLanguages? Languages { get; set; }
+
+    /// <summary>The language <see cref="Path" /> is in, or <c>null</c> when the session keeps languages out of its URLs.</summary>
+    internal string? Language => Split()?.Language;
+
+    /// <summary>
+    ///     <see cref="Path" /> without its language prefix: what the routes are matched against.
+    /// </summary>
+    internal string RoutePath => Split()?.RoutePath ?? _path;
+
+    // The path's language and route, worked out once per path: the router asks every frame and every link on the
+    // page asks again. One reference, so a reader on another thread sees a whole answer or the previous one.
+    private PathSplit? _split;
+
+    private PathSplit? Split()
+    {
+        if (Languages is not { } languages)
+        {
+            return null;
+        }
+
+        var path = _path;
+        if (_split is { } known && ReferenceEquals(known.Path, path) && ReferenceEquals(known.Languages, languages))
+        {
+            return known;
+        }
+
+        var (language, routePath) = languages.Split(path);
+        return _split = new PathSplit(path, languages, language, routePath);
+    }
+
+    private sealed record PathSplit(string Path, UrlLanguages Languages, string Language, string RoutePath);
 
     /// <summary>The title as the pages of each walk declare it; the router and the render root drive it.</summary>
     internal RouteTitle TitleSource => _title;

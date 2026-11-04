@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.Json;
 using Rask.Core.Diagnostics;
 using Rask.Core.Globalization;
+using Rask.Core.Routing;
 
 namespace Rask.Wasm;
 
@@ -29,15 +30,24 @@ internal static class WasmCultureSeeder
     ///     Negotiates from the browser and seeds the app's culture, or — when no languages are configured —
     ///     pins the document's own (see <see cref="PinWhenUnconfigured" />).
     /// </summary>
-    public static void Seed(IServiceProvider services)
+    /// <remarks>
+    ///     An app that puts languages in its URLs takes the language off the address instead, and asks the browser
+    ///     only on a first visit to the bare root (<see cref="UrlCulture.Arrive" />). The route is then moved to the
+    ///     address it is sent on to, and that address is returned for the first frame to replace the browser's with.
+    /// </remarks>
+    /// <returns>The address the first render replaces the browser's with, or <c>null</c> to keep it.</returns>
+    public static string? Seed(IServiceProvider services)
     {
         if (!IsConfigured(services, out var options))
         {
             PinDocumentLanguage();
-            return;
+            return null;
         }
 
-        var negotiation = Negotiate(JSInterop.GetCultureSignals(options.CookieName, options.QueryKey), options);
+        var route = services.GetService(typeof(RouteState)) as RouteState;
+        var (negotiation, sendTo) = route?.Languages is { } languages
+            ? UrlCulture.Arrive(route.Path, languages, options, () => Negotiate(Signals(options), options))
+            : (Negotiate(Signals(options), options), null);
 
         if (services.GetService(typeof(IRaskCulture)) is SessionCulture culture)
         {
@@ -45,7 +55,19 @@ internal static class WasmCultureSeeder
         }
 
         PinSessionCulture(services);
+
+        if (sendTo is null || route is null)
+        {
+            return null;
+        }
+
+        var query = QueryString.Build(string.Empty, route.Query);
+        route.Path = sendTo;
+        return sendTo + query;
     }
+
+    private static string Signals(RaskCultureOptions options) =>
+        JSInterop.GetCultureSignals(options.CookieName, options.QueryKey);
 
     /// <summary>
     ///     Pins the process to the app's culture when it configured languages, so work outside a render or a

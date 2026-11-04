@@ -104,6 +104,26 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
+  shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
+  prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after
+  boot the page re-rendered into the negotiated language, so a German browser on a Hungarian URL watched it flip;
+  `Resources/Strings.*.json` were unusable for exactly that site, which read the language off `RouteState.Path` and
+  kept its own text records. After:
+  ```csharp
+  host.UseCulture(c => c.UrlPrefix = true);        // Rask:Cultures: [ "hu", "en", "de" ]
+  A.Href(Routes.About())                           // on /en/contact: /en/rolunk — the page's language, implicitly
+  A.Href(Routes.About().In("de"))                  // /de/rolunk
+  Ui.Link.Href(route.In("hu"))["Magyar"]           // the page being shown, query included, in Hungarian: /rolunk
+  ```
+  The default language is at the root (`/`, `/rolunk`), every other under its tag (`/en`, `/en/rolunk`), the slug
+  the same in each; a page still declares `[Route("/rolunk")]` once. The URL always wins: a deep link boots in its
+  language, nothing renegotiates after boot, and negotiation only redirects a first visit to the bare root (`/` →
+  `/en`). Following a link into another language switches the session's culture and remembers it. `RaskPrerender`
+  writes every page once per language (`en/rolunk/index.html`), each rendered in its own, with its own
+  `<html lang>`, a `canonical` to itself, `hreflang` alternates for every language plus `x-default` (the root's),
+  and `xhtml:link` alternates in `sitemap.xml`. New: `RaskCultureOptions.UrlPrefix`, `RouteUrl.In(language)`,
+  `RouteState.In(language)`. WebAssembly only for now; translated slugs are not supported.
 - **Errors by default: `RefusedException`, and a problem document for every request that is not a page** (#1266).
   Before: there was no way to say "this message is for the user" — the error page and the handler toast hid every
   message, so an app threw its own exception and caught it by hand on every page — and a hand-wired host's
@@ -715,6 +735,22 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Translated text works in a WASM app that ships no ICU (#1199).** Before: with `InvariantGlobalization` the build
+  left `PredefinedCulturesOnly` on, so `GetCultureInfo("hu")` threw, the resolver also refused any culture without
+  data, `IRaskCulture.Supported` came out empty and every `Strings.*` lookup fell to the neutral catalog — contrary
+  to what docs/localization.md promised. After: the build turns `PredefinedCulturesOnly` off under invariant
+  globalization too, a culture without data resolves by its name, and negotiation matches tags as strings (`hu-HU`
+  still finds `hu` without ICU's parent chain); only date and number formatting is invariant, warned once.
+- **A prerendered page of an app with languages says its own `<html lang>`.** Before: the boot shell's `lang="en"`
+  won over the render's, so a Hungarian app's baked pages all claimed English. After: once `Rask:Cultures` is
+  configured, the page's `lang` and `dir` win; an app with none keeps the shell's.
+- **A pillbox row a finger picked is no longer lit again from where the finger lifted (#1260).** Before: on a phone,
+  after a tap picked a row of an open `Ui.Pillbox` (or any list that stays open for more picks), the render the pick
+  brought made the runtime look up the row under the tap's place and light it, though Chromium on Linux says, as it
+  lays the page out, that no mouse is there and leaves the row for the page. After: a finger's place is never looked
+  up; the row is the browser's to light, as on Flux UI (dark on Linux, lit on a Mac, which keeps the tap's hover). A
+  mouse resting on rows a new pill pushes down is unchanged. The Flux parity harness lays the static picked page out
+  once more after its stand-in tap, as the render that answers Flux's pick does. Nothing to change in an app.
 - **Islands find their path base when the runtime script is fingerprinted, and say so when they cannot (#1197).**
   Before: the island runtime read the app's path base off its own URL only when that URL ended in exactly
   `/_content/Rask.External/rask-external.js`; served as `rask-external.<hash>.js`, or from anywhere else, it took the

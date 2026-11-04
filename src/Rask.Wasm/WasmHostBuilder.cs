@@ -283,9 +283,17 @@ public sealed class WasmHostBuilder
 
         // The render path looks for a culture only once some host has named one. The options exist only
         // now, so this is the first point it can be told — before the first render either path makes.
-        if (provider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
+        if (provider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 } cultures)
         {
             RaskCulture.IsEnabled = true;
+
+            // The languages the app writes into its URLs, on the one route the whole app shares — so the router,
+            // every generated link and the prerender pass read the same list.
+            if (UrlLanguages.From(cultures) is { } languages)
+            {
+                UrlLanguages.IsEnabled = true;
+                provider.GetRequiredService<RouteState>().Languages = languages;
+            }
         }
 
         return provider;
@@ -324,9 +332,7 @@ public sealed class WasmHostBuilder
         RouteSeeder.Seed(JSInterop.GetLocation(), routeState);
         Console.WriteLine($"[Rask.Wasm] initial path={routeState.Path}");
 
-        // The visitor's language, settled before the first render for the same reason the route is:
-        // painting in the wrong one and correcting it afterwards is a flash the visitor sees.
-        WasmCultureSeeder.Seed(provider);
+        var arrival = SettleCulture(provider, routeState);
 
         await LoadUserAsync(provider).ConfigureAwait(false);
 
@@ -344,13 +350,28 @@ public sealed class WasmHostBuilder
 
         // InitialRenderAsync builds and pushes the first frame to JS itself (zero-copy applyRender), and
         // the returned bytes are just for the diagnostic below.
-        var payload = await session.InitialRenderAsync().ConfigureAwait(false);
+        var payload = await session.InitialRenderAsync(arrival).ConfigureAwait(false);
         Console.WriteLine($"[Rask.Wasm] first render payload bytes={payload.Length}");
         Console.WriteLine("[Rask.Wasm] first render applied");
 
         await ApplyManifestAsync(provider).ConfigureAwait(false);
 
         await StartHostedServicesAsync(provider).ConfigureAwait(false);
+    }
+
+    // The visitor's language, settled before the first render for the same reason the route is: painting in the
+    // wrong one and correcting it afterwards is a flash the visitor sees. Under URL languages the address decides
+    // it — now and on every navigation after — and a first visit to the bare root may be sent on to its language's
+    // root, whose address is returned for the first frame to put in the browser's.
+    private static string? SettleCulture(IServiceProvider provider, RouteState routeState)
+    {
+        var arrival = WasmCultureSeeder.Seed(provider);
+        if (provider.GetService<IRaskCulture>() is { } culture)
+        {
+            UrlCulture.Follow(routeState, culture);
+        }
+
+        return arrival;
     }
 
     // Registered IHostedServices — the browser analogue of the generic host starting them, so an

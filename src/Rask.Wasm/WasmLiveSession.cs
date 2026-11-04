@@ -361,7 +361,12 @@ internal sealed class WasmLiveSession : LiveSessionBase
         }
     }
 
-    public async Task<byte[]> InitialRenderAsync()
+    /// <summary>Renders the first page and hands it to the browser.</summary>
+    /// <param name="arrivalUrl">
+    ///     The address the browser's is replaced with as the first frame lands, or <c>null</c> to keep it: a first
+    ///     visit to the bare root sent on to its language's root.
+    /// </param>
+    public async Task<byte[]> InitialRenderAsync(string? arrivalUrl = null)
     {
         using var work = EnterWorkScope();
         if (!await EnterAsync().ConfigureAwait(false))
@@ -383,7 +388,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
             // The first page may send the reader on as it mounts; the address then changes in place. Like any
             // page reached in place it is shown at once, and its loads follow.
             using var navigating = Services.GetRequiredService<Navigator>().EnterHandler();
-            if (!await BuildPayloadCoalescingRerendersAsync(null, true, arriving: true).ConfigureAwait(false)
+            if (!await BuildPayloadCoalescingRerendersAsync(arrivalUrl, true, arriving: true).ConfigureAwait(false)
                 || !await TryEmitFrameAsync(true).ConfigureAwait(false))
             {
                 return Array.Empty<byte>();
@@ -927,7 +932,7 @@ internal sealed class WasmLiveSession : LiveSessionBase
             return signIn;
         }
 
-        if (!RouteResolver.TryResolve(routeState.Path, out var chain))
+        if (!RouteResolver.TryResolve(routeState.RoutePath, out var chain))
         {
             return null;
         }

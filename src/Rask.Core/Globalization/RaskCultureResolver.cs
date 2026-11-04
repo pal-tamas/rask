@@ -15,8 +15,9 @@ namespace Rask.Core.Globalization;
 ///     supports Hungarian" into a blank page rather than into English text.
 ///     <para>
 ///         So the contract is: an unavailable culture is a <c>false</c>, never an exception, and the
-///         caller carries on with what it already had. An app that asked for cultures it cannot have is
-///         told once, at startup, by <see cref="SessionCulture" /> — not once per render.
+///         caller carries on with what it already had. A culture the runtime can name but has no data for
+///         resolves — its name is all translated text needs — and an app that configured such cultures is
+///         told once, at startup, by <see cref="SessionCulture" /> that they format as the invariant culture.
 ///     </para>
 /// </remarks>
 public static class RaskCultureResolver
@@ -57,16 +58,13 @@ public static class RaskCultureResolver
         try
         {
             // GetCultureInfo rather than the constructor, so repeated lookups hit the BCL's own cache.
-            var resolved = CultureInfo.GetCultureInfo(name.Trim());
-
-            // Under a runtime with no culture data a lookup can still succeed and hand back something
-            // invariant wearing the requested name, which would let "hu-HU" pose as real support.
-            if (!IsGlobalizationSupported && !resolved.Equals(CultureInfo.InvariantCulture))
-            {
-                return false;
-            }
-
-            culture = resolved;
+            //
+            // Under a runtime with no culture data (and PredefinedCulturesOnly off, which a Rask WASM build
+            // sets) this hands back a culture that carries the requested NAME over the invariant culture's
+            // data. That is accepted on purpose: the name is what text is looked up by — the generated
+            // Strings switch over it — so three languages need no ICU at all, and only dates and numbers
+            // fall back. The app is told that once, at startup, by SessionCulture.
+            culture = CultureInfo.GetCultureInfo(name.Trim());
             return true;
         }
         catch (CultureNotFoundException)
