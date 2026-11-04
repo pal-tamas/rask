@@ -635,3 +635,11 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,128223
+# 2026-11-04, a CORRECTION, not growth: the #1260 block just above (c4c1f7971) moved rask-hooks.js but copied
+# rask.js and rask.wasm.js from an OLDER block (113,282 / 97,691) instead of the baseline then in force (114,276 /
+# 99,650), and as the newest block it became the gate's — so main went red on a00e15c26 with nothing grown. CI's
+# own measurement on a0fc35373, which this block takes: rask.js 114,018, rask.wasm.js 100,401, rask-hooks.js 128,223.
+bundle,bytes
+rask.js,114018
+rask.wasm.js,100401
+rask-hooks.js,128223
