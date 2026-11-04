@@ -708,6 +708,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Islands find their path base when the runtime script is fingerprinted, and say so when they cannot (#1197).**
+  Before: the island runtime read the app's path base off its own URL only when that URL ended in exactly
+  `/_content/Rask.External/rask-external.js`; served as `rask-external.<hash>.js`, or from anywhere else, it took the
+  base to be "" and asked for the manifest and every chunk at the site root, silently — on a sub-path deploy, a 404
+  per island. After: a fingerprinted file name yields the base like the plain one, and a runtime served from any
+  other path logs a console error naming its URL before it falls back to the root. Browser journeys now mount an
+  island under a path base on Rask.Server and on a WASM app, navigate from an island with `@rask/routes` on both
+  hosts, and the watch gate covers island hot reload.
 - **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
   phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
   across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —

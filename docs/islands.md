@@ -1218,7 +1218,9 @@ another origin fails the build.
 the runtime script is written as `/shop/_content/Rask.External/rask-external.js`, and the client reads
 the base back off that URL and asks for the manifest and every chunk under it — on Rask.Server and on a
 WASM app alike. The manifest itself is unchanged: its chunk URLs are baked at build, before anyone knows
-where the app will be deployed, so one bundle serves any base.
+where the app will be deployed, so one bundle serves any base. A host that fingerprints the file
+(`rask-external.<hash>.js`, same folder) is read the same way; served from any other path, the runtime cannot know
+the base and says so in the console, naming its URL, before it asks for the islands at the site root.
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it
 lives somewhere that pairing cannot reach — the build-side counterpart of overriding `Module`:
