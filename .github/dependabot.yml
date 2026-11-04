@@ -145,6 +145,24 @@ updates:
         patterns:
           - "*"
 
+  # The island bundler of the WASM fixture the browser host's journeys serve (tests/Rask.Wasm.Fixture.Wasm/package.json).
+  - package-ecosystem: npm
+    directory: "/tests/Rask.Wasm.Fixture.Wasm"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    ignore:
+      # Moved as one, by hand, for the reason given for /src/Rask.Site above.
+      - dependency-name: "vite-plus"
+      - dependency-name: "vite"
+    groups:
+      wasm-fixture:
+        patterns:
+          - "*"
+
   # The rename tool (scripts/tools/RaskRename): cut off from central package management on purpose, so
   # its references are its own csproj's.
   - package-ecosystem: nuget
