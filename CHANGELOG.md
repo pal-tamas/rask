@@ -708,6 +708,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A pillbox row a finger picked is no longer lit again from where the finger lifted (#1260).** Before: on a phone,
+  after a tap picked a row of an open `Ui.Pillbox` (or any list that stays open for more picks), the render the pick
+  brought made the runtime look up the row under the tap's place and light it, though Chromium on Linux says, as it
+  lays the page out, that no mouse is there and leaves the row for the page. After: a finger's place is never looked
+  up; the row is the browser's to light, as on Flux UI (dark on Linux, lit on a Mac, which keeps the tap's hover). A
+  mouse resting on rows a new pill pushes down is unchanged. The Flux parity harness lays the static picked page out
+  once more after its stand-in tap, as the render that answers Flux's pick does. Nothing to change in an app.
 - **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
   phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
   across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —

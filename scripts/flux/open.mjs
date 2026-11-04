@@ -39,7 +39,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { departedFrom, focusDepartedFrom } from './departed.mjs';
-import { chromium, cursorDeparted, frames, looked, press, PRESSABLE, root, STYLES, tapped, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, frames, looked, press, PRESSABLE, redrawn, root, STYLES, tapped, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -319,9 +319,15 @@ async function measureOpen(browser, kind, url, shots, view, like) {
       // the row is lit is the page's own doing (lit on a Mac, not on the Linux runner, #1260). The Rask side is given
       // the same tap on the same row (already picked on this static page, which has no server to pick with), and
       // lights what its runtime lights: neither the trigger's hover nor the row is written by hand.
+      // A pick is answered by a render that lays the page out (a pill added), which this static page has not: it is
+      // laid out once more away from the finger (lib.mjs's redrawn), so it is read as the browser has Flux's after
+      // its pick — the row lit on a Mac, left for the page's corner on Linux (searchable, #1260).
       if (like && kind.pick && view.phone) {
         const last = (await wrapper.$$(kind.rows))[kind.pick.at(-1)];
-        if (last) await tapped(page, last);
+        if (last) {
+          await tapped(page, last);
+          await page.evaluate(redrawn);
+        }
       }
       // …and none to hand focus where Flux's script hands it.
       for (const selector of like ? kind.focused ?? [] : []) {

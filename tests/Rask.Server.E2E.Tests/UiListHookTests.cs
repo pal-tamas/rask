@@ -40,9 +40,22 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
         }
         """;
 
-    private async Task<HookSession> OpenAsync()
+    // What Linux Chromium does once a pick has laid the page out under a finger's tap: it hit-tests the place it last
+    // knew a MOUSE at, the page's corner, and the row the tap lit is left for the root.
+    private const string LeftForTheCorner = """
+        words => {
+            const row = [...document.querySelectorAll('#tags [role=option]')].find(el => el.textContent.trim() === words);
+            const root = document.documentElement;
+            row.dispatchEvent(new MouseEvent('mouseout', { bubbles: true, relatedTarget: root, clientX: 0, clientY: 0 }));
+            root.dispatchEvent(new MouseEvent('mouseover', { bubbles: true, relatedTarget: row, clientX: 0, clientY: 0 }));
+        }
+        """;
+
+    private static readonly BrowserNewContextOptions Phone = new() { ViewportSize = new() { Width = 390, Height = 844 }, HasTouch = true };
+
+    private async Task<HookSession> OpenAsync(BrowserNewContextOptions? options = null)
     {
-        var session = await HookSession.OpenAsync<ListHookPage>(playwright, beforeLoad: async page =>
+        var session = await HookSession.OpenAsync<ListHookPage>(playwright, options, beforeLoad: async page =>
         {
             await SentFrames.Count(page);
             await PageClock.Install(page);
@@ -286,6 +299,27 @@ public sealed class UiListHookTests(PlaywrightFixture playwright) : IClassFixtur
 
         Assert.Equal(0, atPick);
         await Expect(page.Locator("#model")).ToContainTextAsync("|Nevada");
+    }
+
+    // A finger's pick leaves no pointer at rest: what is under it after the render a pick brings is the browser's to
+    // say, and the list does not light the row the finger lifted from by itself (Flux's searchable pillbox on a
+    // phone goes dark there on Linux, #1260; a Mac keeps the tap's hover, and the row with it).
+    [Fact]
+    public async Task A_row_a_finger_picked_is_not_lit_again_from_where_the_finger_lifted_once_the_page_has_rendered()
+    {
+        await using var session = await OpenAsync(Phone);
+        var page = session.Page;
+        await page.Locator("#tags [role=combobox]").First.TapAsync();
+        await page.Locator("#tags [role=option]").Filter(new() { HasText = "Ruby" }).TapAsync();
+
+        await page.EvaluateAsync(LeftForTheCorner, "Ruby");
+        await page.EvaluateAsync("() => document.getElementById('ready').click()");
+        await Expect(page.Locator("#renders")).ToHaveTextAsync("renders=2");
+        await page.Clock.RunForAsync(1_000);
+
+        Assert.Equal(string.Empty, Lit(await SeeAsync(page, "tags")));
+        await Expect(page.Locator("#tags [role=option][aria-selected=true]")).ToHaveTextAsync("Ruby");
+        await Expect(page.Locator("#tags [popover]")).ToBeVisibleAsync();
     }
 
     private static string Lit(string state) => state.Split(" | ")[1];

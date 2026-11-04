@@ -95,6 +95,11 @@ let watcher: MutationObserver | null = null;
 // Where the pointer last MOVED to. A row that slides under a pointer at rest is entered at this very point.
 let pointerX = NaN;
 let pointerY = NaN;
+// That place is where a finger lifted, not a pointer at rest: no browser keeps a mouse there. After a layout one
+// hit-tests the place it last knew a MOUSE at, and on Linux Chromium that is the page's corner, so a row a tap lit
+// goes dark when the pick's render lays out (Flux's searchable pillbox on a phone, #1260); the row is the browser's
+// to say, by its own mouseover, and never looked up at this place.
+let fingered = false;
 let typed = "";
 let typedAt = 0;
 // This module is writing into a text input: not the reader typing.
@@ -433,7 +438,7 @@ function watch(): void {
 
 // Lights the row the pointer is resting on, when it is one of this list's.
 function under(root: Element): void {
-    const at = open.has(root) && pointerX === pointerX ? page!.elementFromPoint(pointerX, pointerY) : null;
+    const at = open.has(root) && pointerX === pointerX && !fingered ? page!.elementFromPoint(pointerX, pointerY) : null;
     const row = at ? at.closest<HTMLElement>(OPTION) : null;
     if (row && row.closest(ROOT) === root && !skips(row) && stateOf(root).cursor !== row) {
         light(root, row, true);
@@ -691,6 +696,15 @@ if (page) {
     listen("mousemove", function (e) {
         pointerX = e.clientX;
         pointerY = e.clientY;
+    }, {capture: true, passive: true});
+
+    // A finger's press comes as the pointer's events, then the mouse's a browser makes of it; a mouse's own move
+    // as the pointer's too: which one the mouse's place is a stand-in for.
+    listen("pointerdown", function (e) {
+        fingered = e.pointerType === "touch";
+    }, {capture: true, passive: true});
+    listen("pointermove", function (e) {
+        fingered = e.pointerType === "touch";
     }, {capture: true, passive: true});
 
     listen("mouseover", function (e) {
