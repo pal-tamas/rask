@@ -50,6 +50,17 @@ public partial class UiSliderTests : global::Rask.Core.RaskMarkup
         Assert.Contains("data-ui-slider-thumb", html, StringComparison.Ordinal);
     }
 
+    // Flux's slider selects no text and takes every touch itself (measured on fluxui.dev, 2026-11-04, #1260).
+    [Fact]
+    public void A_slider_selects_no_text_and_keeps_a_finger_for_itself()
+    {
+        var html = Ui.Slider.Value(30).ToHtml();
+
+        var root = html[..html.IndexOf("data-ui-slider=\"\"", StringComparison.Ordinal)];
+
+        Assert.Contains(" select-none touch-none ", root, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_thumb_and_the_fill_sit_where_the_value_is()
     {

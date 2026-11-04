@@ -744,6 +744,10 @@ them until tagged releases begin.
 - **A prerendered page of an app with languages says its own `<html lang>`.** Before: the boot shell's `lang="en"`
   won over the render's, so a Hungarian app's baked pages all claimed English. After: once `Rask:Cultures` is
   configured, the page's `lang` and `dir` win; an app with none keeps the shell's.
+- **`Ui.Slider` selects no text and keeps a finger for itself, as Flux UI's slider now does (#1260).** Flux's slider
+  became `user-select: none` and `touch-action: none` (measured on fluxui.dev, 2026-11-04); the kit's root is
+  `select-none touch-none`, so dragging its thumb on a phone no longer scrolls the page or selects the label.
+  Nothing to change in an app.
 - **A pillbox row a finger picked is no longer lit again from where the finger lifted (#1260).** Before: on a phone,
   after a tap picked a row of an open `Ui.Pillbox` (or any list that stays open for more picks), the render the pick
   brought made the runtime look up the row under the tap's place and light it, though Chromium on Linux says, as it

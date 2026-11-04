@@ -18,7 +18,7 @@ namespace Rask;
 internal static partial class UiSliderLook
 {
     internal const string Root =
-        "[:where(&)]:flex flex-col justify-center [:where(&)]:w-full min-h-4 [--ui-slider-thumb:1rem] has-[input:disabled]:opacity-50";
+        "[:where(&)]:flex flex-col justify-center [:where(&)]:w-full min-h-4 [--ui-slider-thumb:1rem] select-none touch-none has-[input:disabled]:opacity-50";
 
     internal const string Wrapper = "flex flex-col justify-center";
 
