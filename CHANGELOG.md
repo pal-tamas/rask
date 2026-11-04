@@ -735,6 +735,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Behind `rask deploy`'s proxy a `RaskApp` sees the visitor's scheme and address.** Before: `BehindProxy` (and
+  `Rask:BehindProxy`, which `rask deploy` sets) wired `UseForwardedHeaders` with ASP.NET's default trust list, which
+  is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,
+  `Request.Scheme` stayed `http` (no HSTS, http redirects) and `RemoteIpAddress` was the proxy's. Now turning
+  `BehindProxy` on trusts the proxy wherever it runs, as the setting already promised.
 - **Translated text works in a WASM app that ships no ICU (#1199).** Before: with `InvariantGlobalization` the build
   left `PredefinedCulturesOnly` on, so `GetCultureInfo("hu")` threw, the resolver also refused any culture without
   data, `IRaskCulture.Supported` came out empty and every `Strings.*` lookup fell to the neutral catalog — contrary
