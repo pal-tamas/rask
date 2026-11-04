@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Rask.Core;
+using Rask.Core.Live;
 
 namespace Rask.Blazor;
 
@@ -14,19 +15,33 @@ internal sealed record BlazorHandler(
 {
     private bool CarriesValue => EventName is "change" or "input";
 
+    private bool Submits => EventName is "submit";
+
     /// <summary>Whether the args the handler takes can be built from what Rask receives for the event.</summary>
-    public bool CanBind => CarriesValue
-        ? ArgsType == typeof(ChangeEventArgs) || ArgsType == typeof(EventArgs)
-        : BlazorEventArgs.CanMap(ArgsType);
+    /// <remarks>Blazor declares <c>onsubmit</c> with plain <see cref="EventArgs" />, which is all a submit hands over.</remarks>
+    public bool CanBind => this switch
+    {
+        { Submits: true } => ArgsType == typeof(EventArgs),
+        { CarriesValue: true } => ArgsType == typeof(ChangeEventArgs) || ArgsType == typeof(EventArgs),
+        _ => BlazorEventArgs.CanMap(ArgsType),
+    };
 
     /// <summary>The Rask handler that builds the args from an inbound frame and hands them to <paramref name="dispatch" />.</summary>
     /// <remarks>
     ///     Rask routes a frame by the delegate's SHAPE, so the shape is the choice: a string or a list of
     ///     strings rides the value channel (which is what carries <c>@bind</c>), an <see cref="Event" />
-    ///     takes the DOM event's fields, and a handler that reads nothing asks for nothing.
+    ///     takes the DOM event's fields, a handler that reads nothing asks for nothing, and a submit takes the
+    ///     form channel's <see cref="FormData" /> — the only shape a <c>submit</c> frame is routed to.
     /// </remarks>
     public Delegate Bind(Func<EventArgs, Task> dispatch)
     {
+        // What was posted is not handed over: Blazor's submit carries no fields, and the bound values have
+        // arrived already, each through its control's own `change`, which the browser fires before the submit.
+        if (Submits)
+        {
+            return (Func<FormData, Task>)(_ => dispatch(EventArgs.Empty));
+        }
+
         if (!CarriesValue)
         {
             return ArgsType == typeof(EventArgs)
@@ -35,7 +50,8 @@ internal sealed record BlazorHandler(
         }
 
         // Blazor's binder casts rather than parses: a checkbox wants a bool, a multi-select a string[].
-        // Only on `change` — that is the frame the client sends either on.
+        // Only on `change` — that is the frame the client sends either on, and the one BlazorFrameWriter writes
+        // an `input` handler on such a control as.
         return (EventName, ValueKind) switch
         {
             ("change", BlazorValueKind.Checked) => (Func<string, Task>)(

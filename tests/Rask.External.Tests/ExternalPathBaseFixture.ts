@@ -4,14 +4,18 @@
 // The runtime learns the app's path base from the URL it was itself loaded from, so it cannot be
 // imported the way the other fixtures do it: bundled into this file it would report this file's URL.
 // It is read off disk instead (argv[2]) and served to node by a load hook, once from the root and once
-// from under /shop — the two deploys of one app. Chunks are served the same way, so what is recorded is
-// the address the runtime really asked for.
+// from under /shop — the two deploys of one app — and then from two URLs a host might serve it under
+// instead: a fingerprinted file name, and a path that is not the package's at all. Chunks are served the
+// same way, so what is recorded is the address the runtime really asked for.
 
 import {readFileSync} from "node:fs";
 import {registerHooks} from "node:module";
 
 const ORIGIN = "https://app.test";
 const RUNTIME = "/_content/Rask.External/rask-external.js";
+const FINGERPRINTED = "/_content/Rask.External/rask-external.3fa9c1d2.js";
+const ELSEWHERE = "/js/islands.js";
+const isRuntime = (url) => [RUNTIME, FINGERPRINTED, ELSEWHERE].some((path) => url.endsWith(path));
 const DEV_CHUNK = "http://localhost:5174/@fs/app/Live.entry.ts";
 
 const runtimeSource = readFileSync(process.argv[2], "utf8");
@@ -25,12 +29,12 @@ registerHooks({
         if (!specifier.startsWith(ORIGIN)) return next(specifier, context);
 
         // Recorded here, not in `load`: node loads a module once, and both deploys can ask for the same one.
-        if (!specifier.endsWith(RUNTIME)) imported.push(new URL(specifier).pathname);
+        if (!isRuntime(specifier)) imported.push(new URL(specifier).pathname);
         return {url: specifier, shortCircuit: true};
     },
     load(url, context, next) {
         if (!url.startsWith(ORIGIN)) return next(url, context);
-        if (url.endsWith(RUNTIME)) return {format: "module", source: runtimeSource, shortCircuit: true};
+        if (isRuntime(url)) return {format: "module", source: runtimeSource, shortCircuit: true};
 
         const path = new URL(url).pathname;
         const island = JSON.stringify(path.slice(path.lastIndexOf("/") + 1, -".js".length));
@@ -61,8 +65,8 @@ function island(name, manifestUrl) {
     return {isConnected: true, firstChild: null, getAttribute: (n) => attrs[n] ?? null};
 }
 
-// One deploy: the runtime served from under `base`, a page with three islands on it.
-async function deploy(base) {
+// One deploy: the runtime served from under `base` at `runtimePath`, a page with three islands on it.
+async function deploy(base, runtimePath = RUNTIME) {
     imported = [];
     fetched = [];
     globalThis.__raskMounted = [];
@@ -72,7 +76,7 @@ async function deploy(base) {
     const consoleError = console.error;
     console.error = (...args) => errors.push(args.map(String).join(" "));
 
-    const runtime = await import(ORIGIN + base + RUNTIME);
+    const runtime = await import(ORIGIN + base + runtimePath);
     runtime.__internals.hydrate(island("Chart"));
     runtime.__internals.hydrate(island("Already"));
     runtime.__internals.hydrate(island("Chart", "/_content/Acme.Ui/manifest.json"));
@@ -82,7 +86,7 @@ async function deploy(base) {
 
     console.error = consoleError;
     return {
-        base: runtime.__internals.pathBaseOf(ORIGIN + base + RUNTIME),
+        base: runtime.__internals.pathBaseOf(ORIGIN + base + runtimePath),
         fetched,
         imported,
         mounted: globalThis.__raskMounted,
@@ -91,4 +95,9 @@ async function deploy(base) {
     };
 }
 
-process.stdout.write(JSON.stringify({root: await deploy(""), shop: await deploy("/shop")}) + "\n");
+process.stdout.write(JSON.stringify({
+    root: await deploy(""),
+    shop: await deploy("/shop"),
+    fingerprinted: await deploy("/shop", FINGERPRINTED),
+    elsewhere: await deploy("/shop", ELSEWHERE),
+}) + "\n");

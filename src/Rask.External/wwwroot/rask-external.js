@@ -17,8 +17,11 @@ const HOST_TAG = "RASK-EXTERNAL";
  */
 const DEFAULT_MANIFEST_URL = "/_rask/external/manifest.json";
 
-/** Where this file is served from, under the app's path base. */
-const RUNTIME_PATH = "/_content/Rask.External/rask-external.js";
+/**
+ * Where this file is served from, under the app's path base: the base, then the package's static-asset
+ * folder, then this file's name, fingerprinted (`rask-external.3fa9c1.js`) or not.
+ */
+const RUNTIME_PATH = /^(.*)\/_content\/Rask\.External\/rask-external(?:\.[\w-]+)?\.js$/;
 
 /**
  * The app's path base ("" or "/shop"), read off the URL this module was loaded from.
@@ -26,19 +29,38 @@ const RUNTIME_PATH = "/_content/Rask.External/rask-external.js";
  * Chunk URLs are baked into the manifest at build, before anyone knows where the app will be deployed,
  * so the base is applied here. From the module's own URL and never from `<base href>`: markup can
  * inject a `<base>`, and it cannot change where a script that already loaded came from.
+ *
+ * Null when a web server served this file from anywhere else. The base cannot be read off such a URL,
+ * and guessing "" would ask for every island at the site root: on a sub-path deploy that is a 404 per
+ * chunk, or another app's chunks, with nothing said. A URL no server answered (a `file:` module) has
+ * no base to be under, so it is "".
  */
 function pathBaseOf(moduleUrl) {
-    let path;
+    let url;
     try {
-        path = new URL(moduleUrl).pathname;
+        url = new URL(moduleUrl);
     } catch {
         return "";
     }
 
-    return path.endsWith(RUNTIME_PATH) ? path.slice(0, -RUNTIME_PATH.length) : "";
+    if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+    return RUNTIME_PATH.exec(url.pathname)?.[1] ?? null;
 }
 
-const PATH_BASE = pathBaseOf(import.meta.url);
+/** The base this page's islands load under, said out loud when it cannot be known. */
+function runtimePathBase(moduleUrl) {
+    const base = pathBaseOf(moduleUrl);
+    if (base !== null) return base;
+
+    console.error(
+        `Rask islands: the island runtime was loaded from ${moduleUrl}, not from ` +
+        "<path base>/_content/Rask.External/rask-external.js, so the app's path base cannot be read off " +
+        "its URL. The manifest and every chunk are asked for from the site root, which is wrong for an " +
+        "app served under a sub-path. Serve the runtime from the URL the islands' <script> names.");
+    return "";
+}
+
+const PATH_BASE = runtimePathBase(import.meta.url);
 
 /** A root-relative `url` under the path base. Anything else, and one already under it, is returned as is. */
 function underPathBase(url, base = PATH_BASE) {

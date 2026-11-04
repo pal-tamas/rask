@@ -101,6 +101,38 @@ public partial class ExternalPathBaseTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain(imported, path => path!.StartsWith("/shop/shop/", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void A_fingerprinted_runtime_file_still_yields_the_path_base()
+    {
+        if (Deploys() is not { } deploys)
+        {
+            return;
+        }
+
+        var fingerprinted = deploys.GetProperty("fingerprinted");
+
+        Assert.Equal("/shop", fingerprinted.GetProperty("base").GetString());
+        Assert.Contains("/shop/_rask/external/manifest.json", Strings(fingerprinted, "fetched"));
+        Assert.Contains("/shop/_rask/external/assets/Chart.js", Strings(fingerprinted, "imported"));
+        Assert.Empty(Strings(fingerprinted, "errors"));
+    }
+
+    [Fact]
+    public void A_runtime_served_from_anywhere_else_says_its_path_base_cannot_be_read()
+    {
+        if (Deploys() is not { } deploys)
+        {
+            return;
+        }
+
+        var elsewhere = deploys.GetProperty("elsewhere");
+
+        Assert.Equal(JsonValueKind.Null, elsewhere.GetProperty("base").ValueKind);
+        var error = Assert.Single(Strings(elsewhere, "errors"), e => e!.Contains("path base cannot be read", StringComparison.Ordinal));
+        Assert.Contains("https://app.test/shop/js/islands.js", error, StringComparison.Ordinal);
+        Assert.Contains("/_rask/external/manifest.json", Strings(elsewhere, "fetched"));
+    }
+
     private static JsonElement? Deploys() => NodeFixture.Run(
         "ExternalPathBaseFixture",
         Path.Combine(IslandBuild.RepoRoot(), "src", "Rask.External", "wwwroot", "rask-external.js"));

@@ -628,3 +628,10 @@ bundle,bytes
 rask.js,113282
 rask.wasm.js,97691
 rask-hooks.js,126365
+# 2026-11-04, a row a finger picked is never looked up again at the place the finger lifted from (rask-list.ts,
+# #1260): rask-hooks.js 128,050 -> 128,223 (+173); rask.js and rask.wasm.js unchanged. Measured locally (the
+# bundle gate's esbuild 0.28.2 with its flags, --minify) on c2ad94747 plus this change.
+bundle,bytes
+rask.js,113282
+rask.wasm.js,97691
+rask-hooks.js,128223

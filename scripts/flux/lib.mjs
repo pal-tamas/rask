@@ -307,6 +307,32 @@ export function looked(at) {
 }
 
 /**
+ * Runs in the page, on a static page standing in for one a pick redrew: lays the page out once more, away from any
+ * finger, as the render that answers a pick does, and waits until the browser has looked again. After a layout the
+ * browser hit-tests the place it last knew a mouse at — on a Mac where the tap's mouse events were (the row tapped,
+ * so nothing changes), on Linux the page's corner (0,0), so the row a tap lit is left for the root and goes dark
+ * (measured on Flux's searchable pillbox, a mouseout to <html> at 0,0 ten ms after its pick laid out a pill; the
+ * kit in an app lays out the same pill). A box added off the screen and taken away is what a render is to both: a
+ * layout to the browser, nodes added to the kit's list (rask-list.ts looks at its rows again), and no place a
+ * pointer could be.
+ */
+export function redrawn() {
+  const frames = n => new Promise(done => {
+    const step = () => (--n <= 0 ? done() : requestAnimationFrame(step));
+    requestAnimationFrame(step);
+    setTimeout(done, 500);
+  });
+  return (async () => {
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:-20px;top:-20px;width:4px;height:4px';
+    document.documentElement.append(box);
+    await frames(3);
+    box.remove();
+    await frames(3);
+  })();
+}
+
+/**
  * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (pointer-events,
  * overflow, the scrollbar gutter) has held for ten frames, or after 1.5 s. Flux's script and the kit's hook put it
  * there a task or two after the press, sooner or later by how loaded the machine is.
