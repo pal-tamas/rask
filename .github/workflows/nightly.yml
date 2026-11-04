@@ -249,16 +249,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           twice() { "$@" || { echo "retrying in 30 s: $*"; sleep 30; "$@"; }; }
-          anchor="$(scripts/lib/nightly_anchor.sh "$SHA")"
-          anchor="${anchor:-$SHA}"
-          notes="Automated prerelease $VERSION, packed from main @ $SHA and published to GitHub Packages and nuget.org."
-          [ "$anchor" = "$SHA" ] || notes="$notes The \`nightly\` tag is on $anchor, the newest commit under it that changes no workflow: GitHub does not let a workflow tag a commit that does."
+          # Candidates, best first: the newest commit whose workflows are main's as it is NOW (both 403s of
+          # 2026-11-04 tagged one whose workflows differed from main's), the packed commit, the old anchor.
+          git fetch -q origin main
+          candidates="$(scripts/lib/nightly_anchor.sh "$SHA" --like origin/main) $SHA $(scripts/lib/nightly_anchor.sh "$SHA")"
           probe="refs/tags/nightly-probe-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          if ! twice gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="$probe" -f sha="$anchor" >/dev/null; then
-            echo "::error::GitHub refused a tag on $anchor; the previous nightly is kept (#1275)."
+          anchor=""
+          # shellcheck disable=SC2086  # deliberate word split: one candidate per word, duplicates dropped
+          for candidate in $(printf '%s\n' $candidates | awk '!seen[$0]++'); do
+            if twice gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="$probe" -f sha="$candidate" >/dev/null; then
+              gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/$probe" || true
+              anchor="$candidate"
+              break
+            fi
+            echo "GitHub refused a tag on $candidate; trying the next candidate."
+          done
+          if [ -z "$anchor" ]; then
+            echo "::error::GitHub refused a tag on every candidate ($candidates); the previous nightly is kept (#1275)."
             exit 1
           fi
-          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/$probe" || true
+          echo "The nightly tag goes on $anchor."
+          notes="Automated prerelease $VERSION, packed from main @ $SHA and published to GitHub Packages and nuget.org."
+          [ "$anchor" = "$SHA" ] || notes="$notes The \`nightly\` tag is on $anchor, an older commit under it: GitHub does not let a workflow put a tag on a commit whose workflows differ from main's."
           gh release delete nightly --yes --cleanup-tag || true
           twice gh release create nightly ./artifacts/*.nupkg \
             --prerelease \

@@ -13,11 +13,28 @@
 # <sha> either way, and that is what scripts/lib/nightly_pick.sh reads. Prints nothing when no such commit
 # is found in the last 200; the caller then tags <sha> and lets GitHub decide.
 #
-# Usage:  scripts/lib/nightly_anchor.sh <sha>   (needs the history)
+# --like <ref> picks instead the newest commit of that line whose .github/workflows tree EQUALS <ref>'s (the
+# default branch as it is now). Both refusals of 2026-11-04 (#1275: nightly runs 41790959318 and 41803112719)
+# tagged an anchor below <sha> whose workflows differed from main's, while every tag on a commit whose
+# workflows matched main's was accepted — so GitHub appears to judge a new ref by its workflows against the
+# default branch. The release step tries this candidate first and probes each before it deletes anything.
+#
+# Usage:  scripts/lib/nightly_anchor.sh <sha> [--like <ref>]   (needs the history)
 set -euo pipefail
 
-sha="${1:?usage: nightly_anchor.sh <sha>}"
+sha="${1:?usage: nightly_anchor.sh <sha> [--like <ref>]}"
 tree() { git rev-parse -q --verify "$1:.github/workflows" 2>/dev/null || echo none; }
+
+if [ "${2:-}" = "--like" ]; then
+  want="$(tree "${3:?usage: nightly_anchor.sh <sha> --like <ref>}")"
+  for commit in $(git rev-list --first-parent --max-count=200 "$sha"); do
+    if [ "$(tree "$commit")" = "$want" ]; then
+      echo "$commit"
+      exit 0
+    fi
+  done
+  exit 0
+fi
 
 for commit in $(git rev-list --first-parent --max-count=200 "$sha"); do
   own="$(tree "$commit")"

@@ -158,6 +158,10 @@ check "a commit that changes no workflow is its own anchor" "$c3" "$(anchor "$c3
 check "one that changes a workflow anchors at its parent" "$c1" "$(anchor "$c2")"
 check "a merge that brings a workflow change anchors below it" "$c4" "$(anchor "$m")"
 : "$b1"
+like() { ( cd "$repo" && "$root/scripts/lib/nightly_anchor.sh" "$1" --like "$2" ); }
+check "--like: the commit itself when its workflows are the branch's" "$m" "$(like "$m" main)"
+check "--like: the newest commit below whose workflows are the reference's" "$c4" "$(like "$m" "$c4")"
+check "--like: nothing when no commit of the line has the reference's workflows" "" "$(like "$c4" "$m")"
 
 echo
 if [ "$failures" -gt 0 ]; then
