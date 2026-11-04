@@ -239,18 +239,28 @@ jobs:
       # The tag goes where the workflow token may put it (scripts/lib/nightly_anchor.sh: GitHub refuses it a
       # ref on a commit that changes a workflow -- nightly 41608821292, 2026-11-03); the title names the
       # commit packed either way. Created before the old one is deleted would be a second release on one tag,
-      # so the delete comes first -- and a create that fails leaves no release, which `pick` reads as
-      # "publish again".
+      # so the delete comes first -- but only once a tag on the anchor is PROVEN creatable: a scratch tag goes
+      # there first, and a refusal ends the step with the previous nightly still listed (#1275: run
+      # 41790959318 deleted it, then was refused 403 on an anchor that changed no workflow, and no nightly was
+      # listed for half an hour). Each GitHub write is tried twice, 30 s apart. A create that still fails
+      # leaves no release, which `pick` reads as "publish again".
       - name: Update rolling "nightly" prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          twice() { "$@" || { echo "retrying in 30 s: $*"; sleep 30; "$@"; }; }
           anchor="$(scripts/lib/nightly_anchor.sh "$SHA")"
           anchor="${anchor:-$SHA}"
           notes="Automated prerelease $VERSION, packed from main @ $SHA and published to GitHub Packages and nuget.org."
           [ "$anchor" = "$SHA" ] || notes="$notes The \`nightly\` tag is on $anchor, the newest commit under it that changes no workflow: GitHub does not let a workflow tag a commit that does."
+          probe="refs/tags/nightly-probe-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          if ! twice gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="$probe" -f sha="$anchor" >/dev/null; then
+            echo "::error::GitHub refused a tag on $anchor; the previous nightly is kept (#1275)."
+            exit 1
+          fi
+          gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/$probe" || true
           gh release delete nightly --yes --cleanup-tag || true
-          gh release create nightly ./artifacts/*.nupkg \
+          twice gh release create nightly ./artifacts/*.nupkg \
             --prerelease \
             --target "$anchor" \
             --title "Nightly $VERSION ($SHA)" \
