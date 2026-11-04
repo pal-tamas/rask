@@ -127,28 +127,14 @@ public static class WasmPrerender
         // route that threw or timed out is not written at all, and listing it would send a crawler to a
         // URL answering with the boot shell — the thing prerendering exists to stop it seeing. A route
         // that renders a noindex page IS written, and must still not be listed.
-        var writtenPaths = new List<SitemapEntry>(paths.Count);
-        var written = 0;
-        var trailingSlash = HostServesTrailingSlash();
-        foreach (var path in paths)
-        {
-            if (await RenderPageAsync<TApp>(services, path, trailingSlash, budget).ConfigureAwait(false) is not { } rendered)
-            {
-                continue;
-            }
-
-            var html = await WritePageAsync(outputDirectory, path, shell, rendered, writtenFiles).ConfigureAwait(false);
-            written++;
-
-            if (SitemapEntryFor(html, path) is { } entry)
-            {
-                writtenPaths.Add(entry);
-            }
-        }
+        var pass = new PagePass(outputDirectory, shell, writtenFiles, new List<SitemapEntry>(paths.Count), budget);
+        var languages = PrerenderedLanguages.For(services);
+        var written = await WritePagesAsync<TApp>(services, paths, languages, pass).ConfigureAwait(false);
+        var writtenPaths = pass.Listed;
 
         Console.WriteLine($"[Rask.Prerender] wrote {written} page(s) to {outputDirectory}");
 
-        WriteSitemap(outputDirectory, writtenPaths, writtenFiles);
+        WriteSitemap(outputDirectory, writtenPaths, writtenFiles, languages);
 
         // Last, because it reads back every file the pass wrote — including the sitemap and robots.txt
         // above, which a static host compresses just like a page.
@@ -158,6 +144,55 @@ public static class WasmPrerender
         return written;
     }
 
+    // Writes every page once per language when the app puts languages in its URLs, as /about and /en/about, each
+    // in its own language, and once in the default when it does not. Answers how many it wrote.
+    private static async Task<int> WritePagesAsync<
+        [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+            System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
+        IServiceProvider services, IReadOnlyList<string> paths, PrerenderedLanguages languages, PagePass pass)
+        where TApp : Component
+    {
+        if (languages.Languages is { } urlLanguages)
+        {
+            Console.WriteLine(
+                $"[Rask.Prerender]   each in {urlLanguages.All.Count} language(s): {string.Join(", ", urlLanguages.All)}"
+                + $" ({urlLanguages.Default} at the root)");
+        }
+
+        var trailingSlash = HostServesTrailingSlash();
+        var origin = SiteOrigin();
+        var written = 0;
+        foreach (var path in paths)
+        {
+            foreach (var language in languages.Each)
+            {
+                var address = languages.Address(language, path);
+                languages.Enter(language);
+                if (await RenderPageAsync<TApp>(services, address, languages.Languages, trailingSlash, pass.Budget)
+                        .ConfigureAwait(false) is not { } rendered)
+                {
+                    continue;
+                }
+
+                var merged = pass.Shell is null ? rendered : PrerenderShell.Merge(pass.Shell, rendered, languages.KnowsLanguage);
+                var html = languages.Annotate(merged, path, language, origin, trailingSlash);
+                await WritePageAsync(pass.OutputDirectory, address, html, pass.WrittenFiles).ConfigureAwait(false);
+                written++;
+
+                if (SitemapEntryFor(html, address) is { } entry)
+                {
+                    pass.Listed.Add(entry with { Language = language, Page = path });
+                }
+            }
+        }
+
+        return written;
+    }
+
+    // Where a pass writes, what it splices into, and what it has written and listed so far.
+    private sealed record PagePass(
+        string OutputDirectory, string? Shell, List<string> WrittenFiles, List<SitemapEntry> Listed, TimeSpan Budget);
+
     // A second line, for the build rather than for a reader. The build cannot ask the filesystem
     // whether this pass produced anything: the root route's output IS index.html, which the boot
     // shell already occupies, so "a page exists" is true before the pass runs and stays true when
@@ -166,19 +201,15 @@ public static class WasmPrerender
     private static void ReportForTheBuild(int written, int skipped) =>
         Console.WriteLine($"{SummaryPrefix}written={written} skipped={skipped}");
 
-    private static async Task<string> WritePageAsync(
-        string outputDirectory, string path, string? shell, string rendered, List<string> writtenFiles)
+    // The page, already spliced into the shell rather than written over it. The shell carries the fingerprinted
+    // import map, the SRI-pinned preload, the <base href> and the script that boots the bundle, so replacing the
+    // file would publish real markup that can never become interactive.
+    private static async Task WritePageAsync(string outputDirectory, string path, string html, List<string> writtenFiles)
     {
-        // Spliced into the shell rather than written over it. The shell carries the fingerprinted
-        // import map, the SRI-pinned preload, the <base href> and the script that boots the bundle, so
-        // replacing the file would publish real markup that can never become interactive.
-        var html = shell is null ? rendered : PrerenderShell.Merge(shell, rendered);
-
         var file = OutputPathFor(outputDirectory, path);
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
         await File.WriteAllTextAsync(file, html).ConfigureAwait(false);
         writtenFiles.Add(file);
-        return html;
     }
 
     // Written, but not necessarily LISTED. Both reasons are read off the page's own rendered
@@ -259,19 +290,24 @@ public static class WasmPrerender
     private static async Task<string?> RenderPageAsync<
         [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
             System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors)] TApp>(
-        IServiceProvider services, string path, bool trailingSlash, TimeSpan budget)
+        IServiceProvider services, string path, UrlLanguages? languages, bool trailingSlash, TimeSpan budget)
         where TApp : Component
     {
         // A scope per page, as a request would get: a page that injects something scoped must not
         // see the previous page's instance.
         using var scope = services.CreateScope();
+        var route = scope.ServiceProvider.GetRequiredService<RouteState>();
+
+        // The page's language is the first segment of its address, as the browser's will be, so the router finds
+        // /about's page at /en/about/ and every link on it stays in English.
+        route.Languages = languages;
 
         // The path the BROWSER will report for this file, not the route template's spelling. The page
         // is written to {route}/index.html, which GitHub Pages serves at /docs/ — so once the bundle
         // boots, RouteState.Path is "/docs/". Seeding the bare "/docs" here baked a document that
         // disagreed with its own hydrated render, and anything that prints or compares the path
         // (a breadcrumb, a "path:" badge) visibly jumped the moment the runtime took over.
-        scope.ServiceProvider.GetRequiredService<RouteState>().Path = SiteUrlPath(path, trailingSlash);
+        route.Path = SiteUrlPath(path, trailingSlash);
 
         var app = ActivatorUtilities.CreateInstance<TApp>(scope.ServiceProvider);
         var result = await RaskPrerender

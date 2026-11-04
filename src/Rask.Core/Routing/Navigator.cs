@@ -60,6 +60,9 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
     /// </summary>
     public static Navigator? Current => _current.Value;
 
+    /// <summary>The route this navigator moves.</summary>
+    internal RouteState Route => routeState;
+
     /// <summary>
     ///     <see cref="Current" />, or a throw with the same actionable message the instance methods raise when
     ///     used outside an event handler.
@@ -95,7 +98,9 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
         lock (Moving)
         {
             BeforeNavigating();
-            routeState.Path = url.Path;
+            // The address, not the route path: under URL languages it carries the language the link names, or
+            // the one this page is in (RouteUrl.AddressIn).
+            routeState.Path = url.AddressIn(routeState);
             routeState.Query = string.IsNullOrEmpty(url.QueryString)
                 ? QueryCollection.Empty
                 : QueryString.Parse(url.QueryString);

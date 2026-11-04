@@ -31,6 +31,26 @@ public sealed class RaskCultureOptions
     /// </summary>
     public string? DefaultCulture { get; set; }
 
+    /// <summary>
+    ///     Whether every page has a URL per language: the default language at the root (<c>/</c>,
+    ///     <c>/about</c>) and each other one under its tag (<c>/en</c>, <c>/en/about</c>). Default <c>false</c>.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         <b>The URL then decides the language</b>, and nothing renegotiates it: a deep link opens in the
+    ///         language it names, whatever the visitor's cookie or browser says. Negotiation (query, cookie,
+    ///         browser) only sends a first visit to the bare root on to its language's root.
+    ///     </para>
+    ///     <para>
+    ///         Generated links keep the language of the page they are on — <c>Routes.About()</c> on
+    ///         <c>/en/contact</c> is <c>/en/about</c> — and a language switcher asks for another with
+    ///         <c>.In("de")</c>, or for the page being shown in it with <c>route.In("de")</c>. A prerendered
+    ///         WebAssembly app writes every page once per language, with <c>hreflang</c> alternates in each
+    ///         page and in the sitemap. The slug is the same in every language. WebAssembly only, for now.
+    ///     </para>
+    /// </remarks>
+    public bool UrlPrefix { get; set; }
+
     /// <summary>Whether <c>?culture=</c> in the URL may override the stored preference. Default <c>true</c>.</summary>
     /// <remarks>
     ///     On so that a link can carry a language — which is what makes a culture switcher shareable and

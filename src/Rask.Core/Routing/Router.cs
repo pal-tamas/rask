@@ -106,7 +106,8 @@ public sealed class Router : Component
 
     protected override Component? Render()
     {
-        var path = _state.Path;
+        // Without its language prefix, when the app puts languages in its URLs: /en/about is /about's page.
+        var path = _state.RoutePath;
         if (!ReferenceEquals(_matchedLeaves, _leaves)
             || !string.Equals(_matchedPath, path, StringComparison.Ordinal))
         {

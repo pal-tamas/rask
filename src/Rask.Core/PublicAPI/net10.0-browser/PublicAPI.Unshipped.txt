@@ -3897,6 +3897,8 @@ Rask.Core.Globalization.RaskCultureOptions.UseClientPreference.get -> bool
 Rask.Core.Globalization.RaskCultureOptions.UseClientPreference.set -> void
 Rask.Core.Globalization.RaskCultureOptions.UseCookie.get -> bool
 Rask.Core.Globalization.RaskCultureOptions.UseCookie.set -> void
+Rask.Core.Globalization.RaskCultureOptions.UrlPrefix.get -> bool
+Rask.Core.Globalization.RaskCultureOptions.UrlPrefix.set -> void
 Rask.Core.Globalization.RaskCultureOptions.UseQueryString.get -> bool
 Rask.Core.Globalization.RaskCultureOptions.UseQueryString.set -> void
 Rask.Core.Globalization.RaskCultureResolver
@@ -4491,6 +4493,7 @@ Rask.Core.Routing.RouteState.Query.get -> Rask.Core.Routing.IQueryCollection!
 Rask.Core.Routing.RouteState.Query.set -> void
 Rask.Core.Routing.RouteState.RouteState() -> void
 Rask.Core.Routing.RouteState.Title.get -> string?
+Rask.Core.Routing.RouteState.In(string! language) -> Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteUrl.Deconstruct(out string! Path, out string? QueryString, out System.Type? PageType) -> void
 Rask.Core.Routing.RouteUrl.Equals(Rask.Core.Routing.RouteUrl other) -> bool
@@ -18017,6 +18020,7 @@ Rask.Core.Go
 Rask.Core.GoTo
 Rask.Core.GoTo.Replacing() -> void
 Rask.Core.Routing.RouteUrl.Go() -> Rask.Core.GoTo!
+Rask.Core.Routing.RouteUrl.In(string! language) -> Rask.Core.Routing.RouteUrl
 static Rask.Core.Download.File(string! filename, System.IO.Stream! stream, string? contentType = null) -> void
 static Rask.Core.Download.File(string! filename, byte[]! bytes, string? contentType = null) -> void
 static Rask.Core.Go.Out(string! path) -> void

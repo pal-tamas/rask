@@ -177,8 +177,9 @@ public sealed partial class NavLink : Element
 
         return (ActiveMatch ?? NavLinkMatch.Exact) switch
         {
-            NavLinkMatch.Exact => MatchExact(route, target.Value.Path, target.Value.QueryString),
-            NavLinkMatch.Prefix => MatchPrefix(route.Path, target.Value.Path),
+            // The address, which carries the language prefix RouteState.Path does when the app puts languages in its URLs.
+            NavLinkMatch.Exact => MatchExact(route, target.Value.AddressIn(route), target.Value.QueryString),
+            NavLinkMatch.Prefix => MatchPrefix(route.Path, target.Value.AddressIn(route)),
             _ => false
         };
     }

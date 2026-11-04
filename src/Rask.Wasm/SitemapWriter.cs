@@ -25,9 +25,9 @@ internal static class SitemapWriter
     ///     </para>
     /// </remarks>
     internal static void WriteSitemap(
-        string outputDirectory, List<SitemapEntry> paths, List<string> writtenFiles)
+        string outputDirectory, List<SitemapEntry> paths, List<string> writtenFiles, PrerenderedLanguages? languages = null)
     {
-        var origin = Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/');
+        var origin = SiteOrigin();
         if (string.IsNullOrEmpty(origin))
         {
             // Said out loud. A missing sitemap is invisible in a browser and would be invisible in the
@@ -47,18 +47,26 @@ internal static class SitemapWriter
         }
 
         var sitemap = Path.Combine(outputDirectory, SitemapFileName);
-        File.WriteAllText(sitemap, SitemapXml(origin, paths));
+        File.WriteAllText(sitemap, SitemapXml(origin, paths, languages));
         writtenFiles.Add(sitemap);
         Console.WriteLine($"[Rask.Prerender] wrote {SitemapFileName} with {paths.Count} URL(s)");
 
         WriteRobots(outputDirectory, $"{origin}{LiveOptions.PathBase}/{SitemapFileName}", writtenFiles);
     }
 
-    private static string SitemapXml(string origin, List<SitemapEntry> paths)
+    private static string SitemapXml(string origin, List<SitemapEntry> paths, PrerenderedLanguages? languages)
     {
+        // A page's other languages, by the route they are all of — only the ones that reached the sitemap, since
+        // an alternate is a promise of the same page in another language, and a skipped one has none.
+        var siblings = paths
+            .Where(entry => entry is { Page: not null, Language: not null })
+            .GroupBy(entry => entry.Page!, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.DistinctBy(entry => entry.Language, StringComparer.Ordinal).ToList(), StringComparer.Ordinal);
+
         var builder = new StringBuilder();
         builder.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-        builder.AppendLine("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+        builder.Append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\"");
+        builder.AppendLine(siblings.Count > 0 ? " xmlns:xhtml=\"http://www.w3.org/1999/xhtml\">" : ">");
         var trailingSlash = HostServesTrailingSlash();
 
         foreach (var entry in paths)
@@ -72,12 +80,45 @@ internal static class SitemapWriter
                 builder.Append("<lastmod>").Append(XmlEscape(lastModified)).Append("</lastmod>");
             }
 
+            if (entry.Page is { } page && languages is not null && siblings.TryGetValue(page, out var others))
+            {
+                AppendAlternates(builder, origin, others, languages, trailingSlash);
+            }
+
             builder.AppendLine("</url>");
         }
 
         builder.AppendLine("</urlset>");
         return builder.ToString();
     }
+
+    // Every language the page was listed in, the entry's own included — the protocol asks each <url> to name all
+    // of them — and x-default for the root's.
+    private static void AppendAlternates(
+        StringBuilder builder, string origin, List<SitemapEntry> siblings, PrerenderedLanguages languages, bool trailingSlash)
+    {
+        foreach (var sibling in siblings)
+        {
+            AppendAlternate(builder, sibling.Language!, origin + LiveOptions.PathBase + SiteUrlPath(sibling.Path, trailingSlash));
+        }
+
+        if (languages.Languages is { } urlLanguages
+            && siblings.Exists(sibling => string.Equals(sibling.Language, urlLanguages.Default, StringComparison.Ordinal)))
+        {
+            AppendAlternate(
+                builder,
+                PrerenderedLanguages.XDefault,
+                languages.Url(origin, urlLanguages.Default, siblings[0].Page!, trailingSlash));
+        }
+    }
+
+    private static void AppendAlternate(StringBuilder builder, string hreflang, string href) =>
+        builder.Append("<xhtml:link rel=\"alternate\" hreflang=\"").Append(XmlEscape(hreflang))
+            .Append("\" href=\"").Append(XmlEscape(href)).Append("\"/>");
+
+    /// <summary>The origin the app says it is served from, without a trailing slash, or <c>null</c>.</summary>
+    internal static string? SiteOrigin() =>
+        Environment.GetEnvironmentVariable(SiteUrlVariable)?.Trim().TrimEnd('/') is { Length: > 0 } origin ? origin : null;
 
     internal static void WriteRobots(string outputDirectory, string sitemapUrl, List<string> writtenFiles)
     {
@@ -158,6 +199,16 @@ internal static class SitemapWriter
             .Replace("\"", "&quot;", StringComparison.Ordinal)
             .Replace("'", "&apos;", StringComparison.Ordinal);
 
-    /// <summary>One URL the sitemap lists, and the date its page says it last changed.</summary>
-    internal readonly record struct SitemapEntry(string Path, string? LastModified);
+    /// <summary>
+    ///     One URL the sitemap lists, and the date its page says it last changed — and, for an app with languages in
+    ///     its URLs, which language it is in and which route it is of, so its siblings can be named.
+    /// </summary>
+    internal readonly record struct SitemapEntry(string Path, string? LastModified)
+    {
+        /// <summary>The page's language, or <c>null</c> when the app keeps languages out of its URLs.</summary>
+        public string? Language { get; init; }
+
+        /// <summary>The route the page is of, the same in every language: <c>/about</c> for <c>/en/about</c>.</summary>
+        public string? Page { get; init; }
+    }
 }

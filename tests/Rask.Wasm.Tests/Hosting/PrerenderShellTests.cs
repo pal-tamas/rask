@@ -518,6 +518,34 @@ public class PrerenderShellTests
                ?? throw new InvalidOperationException($"Could not locate Rask.slnx above {AppContext.BaseDirectory}");
     }
 
+    [Fact]
+    public void A_page_that_knows_its_language_says_it_over_the_shells()
+    {
+        // The shell is one file for every page; its lang="en" on a Hungarian page, or on /de/about, is the
+        // thing that does not know (#1199).
+        const string German = "<!doctype html><html lang=\"de\" dir=\"ltr\"><head></head><body><p>Hallo</p></body></html>";
+
+        var merged = PrerenderShell.Merge(Shell, German, documentLanguage: true);
+
+        var tag = merged[merged.IndexOf("<html", StringComparison.Ordinal)..];
+        tag = tag[..(tag.IndexOf('>', StringComparison.Ordinal) + 1)];
+        Assert.Contains("lang=\"de\"", tag, StringComparison.Ordinal);
+        Assert.Contains("dir=\"ltr\"", tag, StringComparison.Ordinal);
+        Assert.Equal(1, CountOf(tag, "lang="));
+        Assert.Contains(PrerenderShell.PrerenderedAttribute, tag, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_page_of_an_app_with_no_languages_keeps_the_shells_lang()
+    {
+        const string German = "<!doctype html><html lang=\"de\"><head></head><body><p>Hallo</p></body></html>";
+
+        var merged = PrerenderShell.Merge(Shell, German);
+
+        Assert.Contains("<html lang=\"en\"", merged, StringComparison.Ordinal);
+        Assert.DoesNotContain("lang=\"de\"", merged, StringComparison.Ordinal);
+    }
+
     private static int CountOf(string haystack, string needle)
     {
         var count = 0;

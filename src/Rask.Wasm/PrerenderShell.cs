@@ -96,7 +96,13 @@ internal static class PrerenderShell
     ///     own pass may have no shell at all, and a prerendered page with no boot script is still worth
     ///     more than a failed publish. The callers that DO have a shell are the ones that would notice.
     /// </remarks>
-    internal static string Merge(string shell, string document)
+    /// <param name="shell">The published boot shell.</param>
+    /// <param name="document">The rendered page.</param>
+    /// <param name="documentLanguage">
+    ///     Whether the document's <c>lang</c> and <c>dir</c> win over the shell's: true for an app that configured
+    ///     its languages, whose render knows which language each page is in. The shell is one file for them all.
+    /// </param>
+    internal static string Merge(string shell, string document, bool documentLanguage = false)
     {
         ArgumentNullException.ThrowIfNull(shell);
         ArgumentNullException.ThrowIfNull(document);
@@ -128,7 +134,7 @@ internal static class PrerenderShell
         // saving in this class put together.
         var shellHeadStripped = StripComments(shellHeadInner);
 
-        builder.Append(MergeHtmlAttributes(shell[..shellHead.InnerStart], document));
+        builder.Append(MergeHtmlAttributes(shell[..shellHead.InnerStart], document, documentLanguage));
         builder.Append(HasTitle(documentHeadInner) ? RemoveTitle(shellHeadStripped) : shellHeadStripped);
         builder.Append(StripShellOwnedTags(documentHeadInner));
         AppendBetweenHeadAndBody(
@@ -220,13 +226,18 @@ internal static class PrerenderShell
     ///         published page. Layout survives that, which is what makes it so quiet.
     ///     </para>
     ///     <para>
-    ///         The shell wins on conflict. Its <c>lang</c> and any attribute a sub-path publish rewrote
-    ///         are the ones that were computed for THIS publish, and a render that disagrees is a render
-    ///         that did not know about it.
+    ///         The shell wins on conflict: any attribute a sub-path publish rewrote is the one computed for
+    ///         THIS publish, and a render that disagrees is a render that did not know about it. Except the
+    ///         language, once the app configured its languages: the shell is one file for every page, and its
+    ///         <c>lang="en"</c> on a Hungarian page — or on <c>/de/about</c> — is the thing that does not know.
     ///     </para>
     /// </remarks>
-    private static string MergeHtmlAttributes(string shellPrefix, string document) =>
-        MergeOpenTagAttributes(shellPrefix, document, "html", stampPrerendered: true);
+    private static string MergeHtmlAttributes(string shellPrefix, string document, bool documentLanguage) =>
+        MergeOpenTagAttributes(
+            shellPrefix, document, "html", stampPrerendered: true, documentLanguage ? LanguageAttributes : []);
+
+    // What the document says over the shell on <html>, when it knows the page's language.
+    private static readonly string[] LanguageAttributes = ["lang", "dir"];
 
     /// <summary>
     ///     Carries the rendered document's <c>&lt;body&gt;</c> attributes onto the shell's, on the same
@@ -239,9 +250,10 @@ internal static class PrerenderShell
     ///     without it, and at hydration it visibly restyled: on a slow device, seconds after first paint.
     /// </remarks>
     private static string MergeBodyAttributes(string shellRegion, string document) =>
-        MergeOpenTagAttributes(shellRegion, document, "body", stampPrerendered: false);
+        MergeOpenTagAttributes(shellRegion, document, "body", stampPrerendered: false, []);
 
-    private static string MergeOpenTagAttributes(string shellPrefix, string document, string tag, bool stampPrerendered)
+    private static string MergeOpenTagAttributes(
+        string shellPrefix, string document, string tag, bool stampPrerendered, string[] documentWins)
     {
         var shellOpen = IndexOfTag(shellPrefix, tag);
         if (shellOpen < 0)
@@ -257,6 +269,14 @@ internal static class PrerenderShell
 
         var nameEnd = 1 + tag.Length;
         var shellAttrs = shellPrefix.Substring(shellOpen + nameEnd, shellGt - nameEnd).Trim().TrimEnd('/').Trim();
+
+        if (WithoutWhatTheDocumentSays(shellAttrs, document, tag, documentWins) is { } kept)
+        {
+            // Rewritten rather than spliced: the shell's own value has to go, not just be joined by another.
+            var rewritten = shellPrefix[..(shellOpen + nameEnd)] + (kept.Length == 0 ? string.Empty : " " + kept)
+                            + shellPrefix[(shellOpen + shellGt)..];
+            return MergeOpenTagAttributes(rewritten, document, tag, stampPrerendered, []);
+        }
 
         var added = new StringBuilder();
 
@@ -288,19 +308,42 @@ internal static class PrerenderShell
         return shellPrefix[..insertAt] + added + shellPrefix[insertAt..];
     }
 
-    // The document's attributes on its opening tag that the shell's does not already carry.
-    private static void AppendDocumentAttributes(StringBuilder added, string document, string tag, string shellAttrs)
+    // The shell's attributes minus those of documentWins the document also carries, or null when that removes none.
+    private static string? WithoutWhatTheDocumentSays(string shellAttrs, string document, string tag, string[] documentWins)
     {
-        var documentOpen = IndexOfTag(document, tag);
-        var documentGt = documentOpen < 0 ? -1 : document.AsSpan(documentOpen).IndexOf('>');
-        if (documentOpen < 0 || documentGt <= 0)
+        if (documentWins.Length == 0 || OpenTagAttributes(document, tag) is not { } documentAttrs)
         {
-            return;
+            return null;
+        }
+
+        var shell = SplitAttributes(shellAttrs);
+        var removed = shell.RemoveAll(attribute =>
+            Array.Exists(documentWins, name => string.Equals(AttributeName(attribute), name, StringComparison.OrdinalIgnoreCase))
+            && HasAttribute(documentAttrs, AttributeName(attribute)));
+        return removed == 0 ? null : string.Join(' ', shell);
+    }
+
+    // The attributes on a document's opening tag, or null when it has none of that tag.
+    private static string? OpenTagAttributes(string document, string tag)
+    {
+        var open = IndexOfTag(document, tag);
+        var gt = open < 0 ? -1 : document.AsSpan(open).IndexOf('>');
+        if (open < 0 || gt <= 0)
+        {
+            return null;
         }
 
         var nameEnd = 1 + tag.Length;
-        var documentAttrs = document
-            .Substring(documentOpen + nameEnd, documentGt - nameEnd).Trim().TrimEnd('/').Trim();
+        return document.Substring(open + nameEnd, gt - nameEnd).Trim().TrimEnd('/').Trim();
+    }
+
+    // The document's attributes on its opening tag that the shell's does not already carry.
+    private static void AppendDocumentAttributes(StringBuilder added, string document, string tag, string shellAttrs)
+    {
+        if (OpenTagAttributes(document, tag) is not { } documentAttrs)
+        {
+            return;
+        }
 
         foreach (var attribute in SplitAttributes(documentAttrs))
         {
