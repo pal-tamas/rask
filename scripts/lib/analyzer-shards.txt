@@ -1,0 +1,24 @@
+# The analyzer shards: which CI job analyses which project (.github/workflows/gates.yml, "analyzers K/N").
+#
+# One line per project: its name (the .csproj without the extension), then its shard number. A project
+# not listed is in shard 1, so a new project is analysed without an edit here; shard 1 also runs the
+# formatter and the gate script tests, so it is kept the lightest. Every shard number used here must have
+# its "analyzers K/N" job, and N is the highest number below (scripts/tests/affected-gates.test.sh).
+#
+# Read by Directory.Build.targets (-p:RaskAnalyzerShard=K leaves the analyzers on only for shard K's
+# projects) and scripts/run-unit-local.sh (RASK_UNIT_PART=analyzers-K builds only shard K's projects, so
+# their references compile with the analyzers off). Dealt by measured analyzer seconds, the heaviest
+# first onto the lightest shard; every shard job prints its projects' analyzer seconds at the end, so
+# re-deal from a CI log when one drifts.
+
+Rask.Site 4
+
+Rask.Core 3
+Rask.Generators 3
+Rask.Server 3
+
+Rask.Ui 2
+Rask.Cli 2
+Rask.Data 2
+Rask.Web 2
+Rask.Batteries.Generators 2

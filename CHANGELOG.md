@@ -46,11 +46,13 @@ them until tagged releases begin.
   file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
   earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).
   `ci/release/**` still runs everything.
-- **CI: the analyzers are two jobs.** The `analyzers` job analysed every project in one build and was the run's
-  longest job; `src/Rask.Site` alone is about 45% of the analyzer time, so it is now a job of its own,
-  `analyzers site` (`-p:RaskAnalyzerShard=site`, `RASK_UNIT_PART=analyzers-site`), skipped by a scoped run that does
-  not reach the site, and `analyzers` analyses everything else, with the formatter and the gate script tests. No
-  rule is turned off; a hand run of `scripts/run-unit-local.sh` still analyses every project. Until 1.0.
+- **CI: the analyzers are four jobs.** The `analyzers` job analysed every project in one build and was the run's
+  longest job. It is now `analyzers 1/4` … `analyzers 4/4`, cut by project in `scripts/lib/analyzer-shards.txt`
+  (dealt by measured analyzer seconds; `src/Rask.Site` alone is about 45% of them and has a shard of its own).
+  Each builds only its own projects with the analyzers on (`-p:RaskAnalyzerShard=K`,
+  `RASK_UNIT_PART=analyzers-K`), their references with them off, skips a scoped run that reaches none of them,
+  and prints each project's analyzer seconds to re-deal by; shard 1 also runs the formatter and the gate script
+  tests. No rule is turned off; a hand run of `scripts/run-unit-local.sh` still analyses every project. Until 1.0.
 - **CI: a nightly minutes after the push, on GitHub Packages first.** `nightly.yml` starts with `main`'s `ci` run,
   packs the commit while it builds, and pushes the moment the run's `build` job (the build and the unit tests) is
   green — to GitHub Packages first, restorable within seconds, then to nuget.org. The `build` job runs with the
