@@ -158,6 +158,8 @@ wired "...and refuses a shard the list does not name" Directory.Build.targets '<
 wired "every shard formats"                          scripts/run-unit-local.sh 'if \[ "\$unit_part" = "analyzers" \] \|\| \[ -n "\$analyzer_shard" \]; then'
 wired "...its own share of a rule change"            scripts/run-unit-local.sh '^      rask_start_shard_format$'
 wired "...dealt by the shared deal"                  scripts/run-unit-local.sh 'rask_format_share "\$format_deal" "\$analyzer_shard"'
+wired "...whitespace over the whole share"           scripts/run-unit-local.sh 'dotnet format whitespace Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \$format_files'
+wired "...style over its projects' directories only" scripts/run-unit-local.sh 'dotnet format style Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \\$'
 wired "a shard skips a scope without its projects"   scripts/run-unit-local.sh 'nothing to analyse\."$'
 wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'

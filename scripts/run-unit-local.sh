@@ -633,31 +633,46 @@ rask_start_whole_format() {
 }
 
 # A shard's share of a rule change: every file in its projects' directories (format_dirs), and in
-# shard 1 the files in no project's directory (format_files), each the full pass over the one solution
-# workspace. The workspace is the whole solution, but `dotnet format` analyses only the projects that
-# hold a file it was given: the shard's own, and any that links one of their files in. At diagnostic
-# verbosity, for the timings it prints:
-# rask_format_timings reads them back, pass by pass, for the next re-deal of analyzer-shards.txt.
+# shard 1 the files in no project's directory (format_files). Two passes, side by side, over the one
+# solution workspace, and not the third:
+#
+#   whitespace  every file of the share. No analysis: each document on its own, so a source-linked file
+#               costs only itself.
+#   style       the projects' directories: import ordering (which only `dotnet format` checks, #584)
+#               and the code-style fixers. It analyses each project holding a file it was given — the
+#               shard's own, and any that links one of their files in — so the source-linked files in no
+#               project's directory stay out of it: with them it analysed some 100 projects, 206 s on one
+#               shard (CI run 41785916921). Their code-style rules are the build's (EnforceCodeStyleInBuild),
+#               in every project that compiles them.
+#   analyzers   not run. It is the analyzer build this same job has just run over the same projects,
+#               warnings as errors, a second time: 316 of a 550-second formatter on shard 2, 105 of 254 on
+#               shard 3, 389 of 644 for the files in no project's directory (run 41785916921).
+#
+# At diagnostic verbosity, for the timings rask_format_timings reads back for the next re-deal.
 rask_start_shard_format() {
   rask_build_debug_generators
-  format_label="Formatting check (dotnet format --verify-no-changes over shard $analyzer_shard's projects: whitespace + style + analyzers)"
+  format_label="Formatting check (dotnet format whitespace + style --verify-no-changes over shard $analyzer_shard's projects; the analyzers ran in its build)"
   echo "==> $format_label — running alongside the tests"
   (
     set +e   # the seconds are written on a red run too
     format_began=$SECONDS
     format_exit=0
-    echo "--- dotnet format: the $(printf '%s\n' "$format_dirs" | grep -c .) project directories of shard $analyzer_shard"
+    (
+      echo "--- dotnet format whitespace: the $(printf '%s\n' "$format_dirs" | grep -c .) project directories of shard $analyzer_shard and $(printf '%s\n' "$format_files" | grep -c .) .cs files in no project's directory"
+      # shellcheck disable=SC2086  # deliberate word split: one path per word
+      dotnet format whitespace Rask.slnx --verify-no-changes -v diag --include $format_dirs $format_files \
+        | grep -v ' is using configuration from '
+      exit "${PIPESTATUS[0]}"
+    ) >"$format_log.whitespace" 2>&1 &
+    whitespace_pid=$!
+    echo "--- dotnet format style: the $(printf '%s\n' "$format_dirs" | grep -c .) project directories of shard $analyzer_shard"
     # shellcheck disable=SC2086  # deliberate word split: one directory per word
-    dotnet format Rask.slnx --verify-no-changes -v diag --include $format_dirs \
+    dotnet format style Rask.slnx --verify-no-changes -v diag --include $format_dirs \
       | grep -v ' is using configuration from '
     [ "${PIPESTATUS[0]}" -eq 0 ] || format_exit=1
-    if [ -n "$format_files" ]; then
-      echo "--- dotnet format: the $(printf '%s\n' "$format_files" | grep -c .) .cs files in no project's directory"
-      printf '%s\n' "$format_files" | grep . | tr '\n' ' ' \
-        | xargs dotnet format Rask.slnx --verify-no-changes -v diag --include \
-        | grep -v ' is using configuration from '
-      [ "${PIPESTATUS[3]}" -eq 0 ] || format_exit=1
-    fi
+    wait "$whitespace_pid" || format_exit=1
+    cat "$format_log.whitespace"
+    rm -f "$format_log.whitespace"
     echo "$((SECONDS - format_began))" >"$format_log.secs"
     exit "$format_exit"
   ) >"$format_log" 2>&1 &

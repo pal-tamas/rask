@@ -75,7 +75,8 @@ jobs:
           # and then the unit tests over that output: the nightly is pushed the moment it is green
           # (nightly.yml, scripts/lib/nightly_wait.sh — keep its name). "analyzers" is the gate script
           # tests, the same build with the analyzers on, and the formatter over the .cs files the change
-          # touched (every file when it touched the rules: scripts/lib/format-scope.sh). The tests and the
+          # touched (every file when it touched the rules), each shard over its own projects' files
+          # (scripts/lib/format-scope.sh). The tests and the
           # formatter had five jobs of their own until 2026-11-03, each building the solution again, and
           # then one job with the analyzers ahead of the tests. run-unit-local.sh says why at
           # RASK_UNIT_PART. Restore at 1.0: one job, analyzers on, and the whole tree formatted in the
@@ -85,8 +86,8 @@ jobs:
           # uses, N the highest (scripts/tests/affected-gates.test.sh holds the two together). Each builds
           # only its own projects, their references with the analyzers off, and ends at once when the
           # scope reaches none of them (so every shard is "code": the script, not the plan, knows which
-          # projects are its own). Shard 1 holds every project the list does not name, and the gate
-          # script tests and the formatter.
+          # projects are its own). Shard 1 holds every project the list does not name, the gate script
+          # tests, and the formatting of the files in no project's directory.
           #
           # The browser suite runs four classes at a time (one browser, a context per test), and is cut
           # three ways by class over the ONE site the `site` job publishes. Shards 1-2 NAME their
