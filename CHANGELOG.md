@@ -97,6 +97,26 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
+  shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
+  prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after
+  boot the page re-rendered into the negotiated language, so a German browser on a Hungarian URL watched it flip;
+  `Resources/Strings.*.json` were unusable for exactly that site, which read the language off `RouteState.Path` and
+  kept its own text records. After:
+  ```csharp
+  host.UseCulture(c => c.UrlPrefix = true);        // Rask:Cultures: [ "hu", "en", "de" ]
+  A.Href(Routes.About())                           // on /en/contact: /en/rolunk — the page's language, implicitly
+  A.Href(Routes.About().In("de"))                  // /de/rolunk
+  Ui.Link.Href(route.In("hu"))["Magyar"]           // the page being shown, query included, in Hungarian: /rolunk
+  ```
+  The default language is at the root (`/`, `/rolunk`), every other under its tag (`/en`, `/en/rolunk`), the slug
+  the same in each; a page still declares `[Route("/rolunk")]` once. The URL always wins: a deep link boots in its
+  language, nothing renegotiates after boot, and negotiation only redirects a first visit to the bare root (`/` →
+  `/en`). Following a link into another language switches the session's culture and remembers it. `RaskPrerender`
+  writes every page once per language (`en/rolunk/index.html`), each rendered in its own, with its own
+  `<html lang>`, a `canonical` to itself, `hreflang` alternates for every language plus `x-default` (the root's),
+  and `xhtml:link` alternates in `sitemap.xml`. New: `RaskCultureOptions.UrlPrefix`, `RouteUrl.In(language)`,
+  `RouteState.In(language)`. WebAssembly only for now; translated slugs are not supported.
 - **Errors by default: `RefusedException`, and a problem document for every request that is not a page** (#1266).
   Before: there was no way to say "this message is for the user" — the error page and the handler toast hid every
   message, so an app threw its own exception and caught it by hand on every page — and a hand-wired host's
@@ -708,6 +728,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Translated text works in a WASM app that ships no ICU (#1199).** Before: with `InvariantGlobalization` the build
+  left `PredefinedCulturesOnly` on, so `GetCultureInfo("hu")` threw, the resolver also refused any culture without
+  data, `IRaskCulture.Supported` came out empty and every `Strings.*` lookup fell to the neutral catalog — contrary
+  to what docs/localization.md promised. After: the build turns `PredefinedCulturesOnly` off under invariant
+  globalization too, a culture without data resolves by its name, and negotiation matches tags as strings (`hu-HU`
+  still finds `hu` without ICU's parent chain); only date and number formatting is invariant, warned once.
+- **A prerendered page of an app with languages says its own `<html lang>`.** Before: the boot shell's `lang="en"`
+  won over the render's, so a Hungarian app's baked pages all claimed English. After: once `Rask:Cultures` is
+  configured, the page's `lang` and `dir` win; an app with none keeps the shell's.
 - **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
   phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
   across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —

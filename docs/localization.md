@@ -52,7 +52,7 @@ being honoured.
 by the time script could read `navigator.language`, the page has already painted — and if it painted in
 the wrong language the visitor would watch it change.
 
-### Why the URL has no language in it
+### Why the URL has no language in it — by default
 
 `/products/42` is the same page for everyone. That is a deliberate trade:
 
@@ -60,9 +60,8 @@ the wrong language the visitor would watch it change.
 - the router, the generated `Url()` / `Go()` helpers and every route value stay culture-neutral
 - nothing in your app has to thread a culture through link generation
 
-The cost is that you do not get per-language URLs for search engines. If you need those, you need more
-than a prefix — canonical tags, `hreflang` pairs, and a sitemap per language — which is a different
-feature with a different design, not a switch to flip.
+The cost is that a search engine sees one language per page. A site that wants every page indexed in
+every language turns on [a URL per language](#a-url-per-language).
 
 ### The cookie
 
@@ -76,6 +75,55 @@ It is deliberately readable from script — the WASM host reads it before the ru
 A choice made with `Set` is written by `Rask.Web.CookieCulturePersistence`, through `document.cookie`
 (`Document.SetCookie`), so it is remembered over plain HTTP too. Both hosts register it, so there is nothing to
 write; register your own `IRaskCulturePersistence` first to store the choice elsewhere.
+
+## A URL per language
+
+A site that ships its pages in several languages and wants each indexed in each — a brochure site, a docs
+site, anything [prerendered](prerendering.md) for a static host — puts the language in the URL:
+
+```csharp
+// Program.cs — the languages themselves still come from Rask:Cultures: [ "hu", "en", "de" ]
+host.UseCulture(c => c.UrlPrefix = true);
+```
+
+| Page | `hu` (the default) | `en` | `de` |
+| --- | --- | --- | --- |
+| home | `/` | `/en` | `/de` |
+| about | `/rolunk` | `/en/rolunk` | `/de/rolunk` |
+
+The default language lives at the root and every other one under its tag. The slug is the same in every
+language — a page still declares its route once, `[Route("/rolunk")]`, and answers all three.
+
+**The URL decides the language, and nothing renegotiates it.** A deep link opens in the language it names,
+whatever the visitor's cookie or browser says, so a German browser on `/rolunk` reads Hungarian rather than
+watching the page change language under an address that did not. Negotiation (`?culture=`, the cookie,
+`navigator.languages`) is asked only when a visitor arrives at the bare root `/`, and its answer is a redirect
+to that language's root (`/en`) — never a deep link.
+
+**Links keep the language of the page they are on.** `Routes.About()` on `/en/contact` is `/en/rolunk`, with
+nothing threaded through. A language switcher asks for another one:
+
+```csharp
+public sealed partial class LanguageMenu(RouteState route) : Component
+{
+    protected override Component Render() =>
+        Nav[
+            Ui.Link.Href(route.In("hu"))["Magyar"],   // this page, in Hungarian: /rolunk
+            Ui.Link.Href(route.In("en"))["English"],  // /en/rolunk
+            Ui.Link.Href(route.In("de"))["Deutsch"]   // /de/rolunk
+        ];
+}
+```
+
+`route.In("de")` is the page being shown, with its query, in German; another page in German is
+`Routes.Contact().In("de")`. Following either switches the session's language and remembers it in the cookie,
+so the visitor's next visit to `/` lands in German too. A language the app does not ship is the root's.
+
+A [prerendered](prerendering.md#one-page-per-language) app writes every page once per language, each in its own,
+with its `<html lang>`, a `canonical` to itself, `hreflang` alternates for every language plus `x-default` (the
+root's), and the same alternates in `sitemap.xml`.
+
+> **WebAssembly only, for now.** On a Server app the option changes nothing yet.
 
 ## Translating your text
 
@@ -214,6 +262,10 @@ public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 
 `Set` switches the session, remembers the choice, and repaints. No reload.
 
+In an app with [a URL per language](#a-url-per-language) the switcher is links instead — `route.In("de")` —
+because there the address is the language: `Set` alone would leave the URL saying another one, and the next
+navigation would put the URL's language back.
+
 **No template scaffolds this, deliberately** ([#854](https://github.com/pal-tamas/rask/issues/854)).
 A new project starts with English in `Rask:Cultures`; adding a language is another
 entry there. That is the whole configuration surface — there is
@@ -316,13 +368,14 @@ and `System.Private.CoreLib`, because turning globalization on brings back runti
 mode trims away. That is why it follows the list rather than being on for every browser app; on `server`
 the runtime already carries ICU and it costs nothing.
 
-Without it every culture formats identically and only the invariant culture resolves — and because
-Rask's resolver refuses to let a culture *pose* as supported when the data isn't there, an app that
-configures languages without ICU starts with an empty supported-language list and says so once at
-startup rather than once per render.
+Without it every culture formats dates and numbers identically, and the app says so once at startup
+rather than once per render.
 
 **Translated text works either way** — lookup is keyed on a language tag rather than a `CultureInfo`,
-so an app can ship three languages with no ICU at all. Only date/number *formatting* falls back.
+so an app can ship three languages with no ICU at all. A runtime without culture data can still *name*
+a culture (the build turns `PredefinedCulturesOnly` off for that), and negotiation matches tags as
+strings, so `hu-HU` still finds your `hu`. Only date/number *formatting* falls back to the invariant
+culture's.
 
 **The prerender bakes with the culture data the bundle ships.** An English-only app has no ICU, so in the
 browser `"en"` formats with the invariant culture's data — `03/14/2026`, `2026 March`, `¤1,234.50` — while the
@@ -334,9 +387,10 @@ browser format with real culture data.
 
 One property covers all three halves of this, because each default is a trap on its own:
 
-- `PredefinedCulturesOnly` otherwise stays `true`, and `CultureInfo.GetCultureInfo("hu-HU")` **throws**
-  rather than falling back
-- the runtime otherwise has **no culture data at all**, so no named culture resolves
+- `PredefinedCulturesOnly` would otherwise default to `true` under invariant globalization, and
+  `CultureInfo.GetCultureInfo("hu-HU")` **throws** rather than falling back — so the build turns it off
+  whether ICU ships or not (a culture without data still has a name, which is all its text needs)
+- the runtime otherwise has **no culture data at all**, so every named culture formats as the invariant one
 
 ### What ships, and the one thing to know about it
 

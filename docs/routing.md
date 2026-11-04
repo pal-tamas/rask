@@ -664,8 +664,30 @@ public sealed partial class CurrentLocation(RouteState route) : Component
 - `route.Path` — the current path, always starting with `/` (defaults to `"/"`).
 - `route.Query` — the parsed query string as an `IQueryCollection` (defaults to empty).
 - `route.Title` — what the current page calls itself, or `null`; see [A page's title](#a-pages-title--pagetitle-and-routetitle).
+- `route.In("de")` — the page being shown in another language, for a language switcher in an app with
+  [a URL per language](#a-url-per-language).
 
 Mutate `RouteState` through `Go`, not by setting `Path`/`Query` directly, so browser history stays in sync.
+
+### A URL per language
+
+With `UseCulture(c => c.UrlPrefix = true)` ([Localization](localization.md#a-url-per-language)) the language is the
+path's first segment — none for the default, `/en/…` for the others — and the prefix is to a route what the
+deploy's `PathBase` is: part of the address, never part of the route. A page declares `[Route("/rolunk")]` once and
+answers `/rolunk`, `/en/rolunk` and `/de/rolunk`; `route.Path` is the address, `/en/rolunk`.
+
+Generated URLs keep the language of the page they are rendered on, and `.In` asks for another:
+
+```csharp
+A.Href(Routes.About())                // on /en/contact: /en/rolunk
+A.Href(Routes.About().In("de"))       // /de/rolunk
+A.Href(AboutPage.Url().In("hu"))      // the default language: /rolunk
+Ui.Link.Href(route.In("de"))["DE"]    // the page being shown, query included, in German
+Routes.About().In("de").Go();         // navigate, and switch the session's language with it
+```
+
+A string used as a URL (`"/rolunk"`) is used as written. A route whose first segment is a language tag the app
+ships is shadowed by the prefix, so do not name a route `/en`.
 
 ### Reacting to navigation — `RouteState.Changed`
 

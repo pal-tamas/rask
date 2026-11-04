@@ -43,6 +43,28 @@ a server's first response uses, so **a page whose `OnMount` loads build-time dat
 data, not its placeholder**. Each page gets its own DI scope, as a request would, so a page
 injecting something scoped never sees the previous page's instance.
 
+### One page per language
+
+An app with [a URL per language](localization.md#a-url-per-language) (`host.UseCulture(c => c.UrlPrefix = true)`)
+gets every page written once per language — the default at the root, every other one under its tag:
+
+| Route | `hu` (default) | `en` |
+| --- | --- | --- |
+| `/` | `wwwroot/index.html` | `wwwroot/en/index.html` |
+| `/rolunk` | `wwwroot/rolunk/index.html` | `wwwroot/en/rolunk/index.html` |
+
+Each is rendered **in its own language** — the session's culture is set to it before the render, so its text,
+its dates and the links on it are that language's — and each says so: its `<html lang>` (the page's, not the
+boot shell's), a `canonical` to itself unless it declares one, and a `<link rel="alternate" hreflang>` for
+every language plus `x-default` for the root's, unless it writes its own. The [sitemap](#sitemapxml-and-robotstxt)
+lists every one with the same alternates as `xhtml:link`. Both need the origin, so both follow `RaskSiteUrl`.
+
+Paths an `IPrerenderPaths` supplies are route paths, without a language — `Routes.GuidePage(slug)` — and are
+written in every language like the rest.
+
+An app that keeps languages out of its URLs gets one pass in its default language, with that language's
+`<html lang>`, whatever the build machine's locale.
+
 ## What is skipped, and why you are told
 
 ### Parameterised routes: tell the pass what they expand to
@@ -413,10 +435,8 @@ Two things worth repeating as shapes, both found here:
 - Parameterised and catch-all routes are not enumerated on their own: the pass renders only the paths
   an [`IPrerenderPaths`](#parameterised-routes-tell-the-pass-what-they-expand-to) supplies for them.
   Without one, those pages ship as the empty boot shell.
-- One language per pass. `IPrerenderPaths` adds paths, not cultures: every page is rendered in the build
-  machine's culture, `<html lang>` is the boot shell's, and there are no per-language URLs, `hreflang`
-  alternates or sitemap alternates yet
-  ([#1199](https://github.com/pal-tamas/rask/issues/1199)).
+- Translated slugs (`/en/about` beside `/rolunk`) are not written: a page has the same slug in every
+  language ([one page per language](#one-page-per-language)).
 - The per-page budget is 30 seconds.
 
 ## See also
