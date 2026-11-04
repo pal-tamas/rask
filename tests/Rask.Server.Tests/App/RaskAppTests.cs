@@ -434,6 +434,34 @@ public sealed class RaskAppTests
     }
 
     [Fact]
+    public async Task A_proxy_in_another_container_is_believed_about_the_scheme_and_the_visitor()
+    {
+        // Caddy under `rask deploy` reaches the app from its own container's address, never loopback, which is
+        // all ASP.NET trusts by default (TA, 2026-11-04). The middleware itself, fed that request.
+        string? scheme = null;
+        IPAddress? visitor = null;
+        var middleware = new Microsoft.AspNetCore.HttpOverrides.ForwardedHeadersMiddleware(
+            ctx =>
+            {
+                scheme = ctx.Request.Scheme;
+                visitor = ctx.Connection.RemoteIpAddress;
+                return Task.CompletedTask;
+            },
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance,
+            Microsoft.Extensions.Options.Options.Create(RaskApp.ProxyHeaders()));
+        var request = new DefaultHttpContext();
+        request.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.3");
+        request.Request.Scheme = "http";
+        request.Request.Headers["X-Forwarded-Proto"] = "https";
+        request.Request.Headers["X-Forwarded-For"] = "203.0.113.7";
+
+        await middleware.Invoke(request);
+
+        Assert.Equal("https", scheme);
+        Assert.Equal(IPAddress.Parse("203.0.113.7"), visitor);
+    }
+
+    [Fact]
     public async Task The_setting_rask_deploy_writes_trusts_the_proxy_with_no_code()
     {
         // `rask deploy` puts Caddy in front and sets Rask__BehindProxy=true; the scaffold's Program.cs says nothing.

@@ -289,6 +289,23 @@ public sealed partial class RaskApp
         }
     }
 
+    /// <summary>
+    /// What a proxy in front may say about the request. ASP.NET trusts only a LOOPBACK sender by default, and the
+    /// proxy `rask deploy` puts in front (Caddy) runs in another container, so its headers were dropped: the scheme
+    /// stayed <c>http</c> and the client was the proxy. Turning BehindProxy on already states that every request
+    /// comes through a proxy (an app exposed directly must leave it off), so the sender is trusted wherever it is.
+    /// </summary>
+    internal static ForwardedHeadersOptions ProxyHeaders()
+    {
+        var options = new ForwardedHeadersOptions
+        {
+            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+        };
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+        return options;
+    }
+
     private void UseHostPipeline(WebApplication app)
     {
         // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
@@ -296,10 +313,7 @@ public sealed partial class RaskApp
         // because trusting these from an arbitrary client lets it forge its own IP.
         if (_options.BehindProxy || app.Configuration.GetValue<bool>("Rask:BehindProxy"))
         {
-            app.UseForwardedHeaders(new ForwardedHeadersOptions
-            {
-                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-            });
+            app.UseForwardedHeaders(ProxyHeaders());
         }
 
         // Terminal middleware, so it short-circuits before UseHttpsRedirection and answers over plain HTTP.
