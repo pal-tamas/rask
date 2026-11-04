@@ -1218,7 +1218,9 @@ another origin fails the build.
 the runtime script is written as `/shop/_content/Rask.External/rask-external.js`, and the client reads
 the base back off that URL and asks for the manifest and every chunk under it — on Rask.Server and on a
 WASM app alike. The manifest itself is unchanged: its chunk URLs are baked at build, before anyone knows
-where the app will be deployed, so one bundle serves any base.
+where the app will be deployed, so one bundle serves any base. A host that fingerprints the file
+(`rask-external.<hash>.js`, same folder) is read the same way; served from any other path, the runtime cannot know
+the base and says so in the console, naming its URL, before it asks for the islands at the site root.
 
 A `.ts` is picked up when a `.cs` of the same name sits beside it. Declare one explicitly only when it
 lives somewhere that pairing cannot reach — the build-side counterpart of overriding `Module`:
@@ -1297,10 +1299,17 @@ islands page of the site (`src/Rask.Site`): Vue, React, Svelte, Solid and a Lit-
 mount and take their C# props; a Vue and a Lit callback re-enter C# through a `[JSExport]` call into
 this tab's runtime; a prop change reconciles rather than remounting, each component keeping its own
 state; and a package island (react-colorful) nested inside the React island calls back into C#.
+The site is served at the origin root, so the sub-path case is `tests/Rask.Wasm.E2E.Tests/IslandsUnderASubPathTests.cs`:
+a WASM app under `/app`, on a host that answers nothing outside it, loads the runtime, the manifest and
+the chunk under `/app/`, and a Lit-runtime island's `Routes.DeskPage().Go()` from `@rask/routes` goes to
+`/app/desk` without a reload.
 
 **Server, in a browser** — narrower. `tests/Rask.DevTools.E2E.Tests/ServerIslandJourneyTests.cs`
 mounts a Lit-runtime island on the Server host and reads the props C# passed, reports one that fails to
-mount, and clicks a [Blazor island](blazor-components.md)'s own `@onclick` through to its callback. No
+mount, and clicks a [Blazor island](blazor-components.md)'s own `@onclick` through to its callback.
+`tests/Rask.Server.E2E.Tests/IslandUnderAPathBaseTests.cs` mounts one under the path base `/shop`, with the
+runtime, the manifest and the chunk asked for under `/shop/`, and its `@rask/routes` `Go()` navigating without
+a reload; `HostNavigateBridgeTests.cs` beside it pins the Server host's `__raskHost.navigate` itself. No
 browser test drives a React, Vue, Svelte, Solid, Preact or Angular island, or a JS island's callback,
 on the Server host — what covers those there is the unit suites: the React, Preact, Solid, Vue and Lit
 adapters under Node (`tests/Rask.External.Tests`) and the handler channel they share with every DOM handler

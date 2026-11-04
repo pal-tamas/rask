@@ -20,7 +20,7 @@
     "vue": "latest"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.0.0",
     "@vitejs/plugin-vue": "latest",
     "@vue/tsconfig": "latest",
     "typescript": "~6.0.3",

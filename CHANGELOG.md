@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A hosted Blazor `<EditForm>` submits (#1195).** Before: `@onsubmit` inside a `BlazorComponent<T>` rendered no
+  attribute, so an `EditForm` never submitted and `OnValidSubmit`/`OnInvalidSubmit`/`OnSubmit` never ran. After: the
+  form renders with `data-rask-on-submit` and its submit rides Rask's form channel into the hosted component, which
+  validates and runs its callbacks with the values its `InputText`, `InputCheckbox`, … were bound to. And
+  `@bind:event="oninput"` on a checkbox or a `<select multiple>` now hands the binder a `bool` / `string[]` instead
+  of a string: the island writes it as `data-rask-on-change`, the frame that carries the checked state and the
+  whole selection (unless the control has an `@onchange` of its own).
 - **The test project `rask new` scaffolds moves to Microsoft.NET.Test.Sdk 18.11.0, xunit.v3 4.0.2 and
   xunit.runner.visualstudio 4.0.1** — the versions this repo's own tests now run on (#1247).
 - **A date, range or time typed outside a picker's limits is not taken, and the field says why (#1273).** Before: a
@@ -715,6 +722,14 @@ them until tagged releases begin.
   up; the row is the browser's to light, as on Flux UI (dark on Linux, lit on a Mac, which keeps the tap's hover). A
   mouse resting on rows a new pill pushes down is unchanged. The Flux parity harness lays the static picked page out
   once more after its stand-in tap, as the render that answers Flux's pick does. Nothing to change in an app.
+- **Islands find their path base when the runtime script is fingerprinted, and say so when they cannot (#1197).**
+  Before: the island runtime read the app's path base off its own URL only when that URL ended in exactly
+  `/_content/Rask.External/rask-external.js`; served as `rask-external.<hash>.js`, or from anywhere else, it took the
+  base to be "" and asked for the manifest and every chunk at the site root, silently — on a sub-path deploy, a 404
+  per island. After: a fingerprinted file name yields the base like the plain one, and a runtime served from any
+  other path logs a console error naming its URL before it falls back to the root. Browser journeys now mount an
+  island under a path base on Rask.Server and on a WASM app, navigate from an island with `@rask/routes` on both
+  hosts, and pin the Server host's `__raskHost.navigate` bridge.
 - **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
   phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
   across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —

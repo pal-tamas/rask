@@ -1090,7 +1090,9 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   EVERY DOM event is wired and the hosted handler receives REAL args, built without reflection from the same payload a Rask `OnKeyDown(e => …)` reads: `MouseEventArgs`/`PointerEventArgs`/`WheelEventArgs`/`DragEventArgs`, `KeyboardEventArgs` (`e.Key` is the key), `TouchEventArgs`, `FocusEventArgs`/`ClipboardEventArgs`;
   `ProgressEventArgs`/`ErrorEventArgs` carry only `Type`;
   a handler taking `EventArgs` or nothing asks the browser for no payload.
-  NOT wired, and so no attribute: an args type outside that set (a library's custom `[EventHandler]` args — one logged warning names the island, event and type) and `@onsubmit`.
+  NOT wired, and so no attribute: an args type outside that set (a library's custom `[EventHandler]` args — one logged warning names the island, event and type).
+  `@onsubmit` rides Rask's FORM channel (`data-rask-on-submit`), so an `<EditForm>` submits, validates and runs `OnValidSubmit`/`OnInvalidSubmit`/`OnSubmit`, its inputs already bound by their own `change`;
+  `@bind:event="oninput"` on a checkbox or a `<select multiple>` is written as `data-rask-on-change`, so the binder gets its `bool`/`string[]`.
   Each event is one round trip, which matters for `@onpointermove`/`@onwheel`.
   **A Blazor island is a LEAF**: writing Rask children into a hosted component is a compile error (RASK062) — unlike a JS island, which takes children of its own runtime.
   No single crossing was right for all four `RenderFragment` shapes, and every wrong one failed silently or at render time.

@@ -37,8 +37,9 @@ Read this table before anything else — it is the whole shape of the feature.
 | `[Inject]` services — `IJSRuntime`, `NavigationManager`, Rask's browser APIs | ✅ (see [services](#services)) |
 | `OnAfterRenderAsync` | ✅ — **once**, after the first paint (see [services](#services)) |
 | `ElementReference`, and anything that takes one | ❌ — captures are discarded |
-| Its own `@onsubmit`, or an event whose args are a library's own type | ❌ — see [events](#events) |
+| An event whose args are a library's own type | ❌ — see [events](#events) |
 | `@bind` writing a value back | ✅ (see [binding](#binding)) |
+| `<EditForm>`, its `@onsubmit`, `OnValidSubmit` / `OnInvalidSubmit` / `OnSubmit` | ✅ (see [forms](#forms)) |
 | WebAssembly, published **trimmed** | ✅ annotated for it, but not gated end to end — see [both hosts](#both-hosts) |
 
 ## A worked example
@@ -263,13 +264,13 @@ the args type the hosted handler declares:
 | `ProgressEventArgs`, `ErrorEventArgs` | `Type` only: Rask models these two as a plain event |
 | `EventArgs`, or a handler that takes nothing | nothing is asked of the browser at all |
 
-Two things are not wired, and both render **no attribute** rather than pretending — a component that
-looks wired and does nothing on the first click is the failure this package exists to avoid:
+One thing is not wired, and it renders **no attribute** rather than pretending — a component that
+looks wired and does nothing on the first click is the failure this package exists to avoid: **an args
+type outside that table** — a component library's own `[EventHandler]` args. Building one would take
+reflection, which a trimmed WebAssembly publish does not survive. The island logs one warning naming
+the island, the event and the type.
 
-- **An args type outside that table** — a component library's own `[EventHandler]` args. Building one
-  would take reflection, which a trimmed WebAssembly publish does not survive. The island logs one
-  warning naming the island, the event and the type.
-- **`@onsubmit`.** A form's submit travels Rask's form channel, which the island does not bridge.
+`@onsubmit` is wired too, through Rask's form channel rather than its DOM-event one — see [forms](#forms).
 
 **A disabled control takes no event, as a Rask one does not.** A `button`, `input`, `select` or `textarea` the
 hosted component draws disabled — `<button disabled @onclick="Save">`, `disabled="@Busy"` while `Busy` is true, or
@@ -311,9 +312,31 @@ text input or a single select, a `bool` for `<input type="checkbox">`, a `string
 <select multiple @bind="Tags">…</select>
 ```
 
-One limit: `@bind:event="oninput"` on a checkbox or a multi-select still receives a string, because
-only the `change` frame carries the checked state and the whole selection. Leave those two on the
-default event.
+`@bind:event="oninput"` on those two gets the same `bool` and `string[]`: the browser fires `input` and
+`change` together on a checkbox and a select, and only the `change` frame carries the checked state and
+the whole selection, so the island writes that handler as `data-rask-on-change`. The one exception is a
+control with an `@onchange` of its own beside it, which that attribute already belongs to — there the
+`oninput` binder receives the value as a string.
+
+## Forms
+
+An `<EditForm>` submits. Its `<form @onsubmit>` renders with `data-rask-on-submit`, the attribute a
+Rask form carries, so the browser's submit travels Rask's form channel and the island hands it to the
+`EditForm`, which validates and runs `OnValidSubmit`, `OnInvalidSubmit` or `OnSubmit` as it would in a
+circuit.
+
+```razor
+<EditForm Model="Model" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <InputText @bind-Value="Model.Name" />
+    <InputCheckbox @bind-Value="Model.Agreed" />
+    <button type="submit">Sign up</button>
+</EditForm>
+```
+
+The values are already in `Model` when the submit arrives: each input is bound on its own `change`,
+which the browser fires before the form submits, so the posted fields themselves are not read. A plain
+`<form @onsubmit="Handler">` works the same way.
 
 ## An island takes no children
 
@@ -508,7 +531,7 @@ The Blazor features a hosted component may reach for, and where each stands:
   fine diff, so scroll position and text selection inside the island are lost when a prop changes.
 - **No `RenderFragment` parameter gets a chain step** — not `ChildContent`, not a named one, not a
   templated `RenderFragment<T>`. See [children](#an-island-takes-no-children).
-- **`@onsubmit`, and an event whose args are a library's own type**, emit no attribute. See
+- **An event whose args are a library's own type** emits no attribute. See
   [events](#events).
 - **Circuit mode.** There is none: a hosted component never gets a Blazor circuit of its own.
 

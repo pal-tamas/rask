@@ -21,6 +21,7 @@ namespace Rask.Server.E2E.Tests.Infrastructure;
 ///     <para>
 ///         <paramref name="staticFiles" /> serves <c>wwwroot</c> as an app's static-file middleware does — off by
 ///         default, because most journeys here have no file to serve and one proves what a missing file does.
+///         <paramref name="islands" /> serves what a page's islands load, under the path base (<see cref="IslandAssets" />).
 ///     </para>
 ///     <para>
 ///         Port 0, read back from the server, so a run cannot collide with a dev server or another worktree's gate.
@@ -48,7 +49,7 @@ internal sealed class LiveServerHost : IAsyncDisposable
         bool cookieSignIn = false, string pathBase = "", Action<WebApplication>? beside = null,
         string? environment = null, bool endpointRouting = false, Action<RaskServerOptions>? server = null,
         Action<Rask.Core.Globalization.RaskCultureOptions>? cultures = null,
-        Action<IServiceCollection>? services = null)
+        Action<IServiceCollection>? services = null, bool islands = false)
         where TApp : Component
     {
         // The wwwroot the build copied beside the tests: what a web project serves from its own folder.
@@ -95,6 +96,11 @@ internal sealed class LiveServerHost : IAsyncDisposable
         if (staticFiles)
         {
             app.UseStaticFiles();
+        }
+
+        if (islands)
+        {
+            IslandAssets.Serve(app, pathBase);
         }
 
         app.UseRouting();
