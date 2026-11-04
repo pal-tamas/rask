@@ -312,6 +312,34 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
+    public async Task A_finger_swiping_the_locked_page_or_out_of_the_open_menu_leaves_it_open_and_a_tap_outside_closes_it()
+    {
+        // Flux UI's popover page on a phone, 2026-11-04 (#1260): a swipe closes nothing, a tap outside closes it. The
+        // finger is sent as touch events: where the page under an overlay cannot scroll, Chromium on Linux lifts such
+        // a finger with a pointerup (no pointercancel), which the browser's light dismiss used to close the menu on.
+        var phone = new BrowserNewContextOptions { ViewportSize = new() { Width = 390, Height = 844 }, IsMobile = true, HasTouch = true };
+        await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, phone);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        const string panel = "[data-testid='menu'] [popover]";
+        var finger = await page.Context.NewCDPSessionAsync(page);
+        await TapAsync(page, page.Locator("#options"));
+        await Expect(page.Locator(panel)).ToBeVisibleAsync();
+        var menu = (await page.Locator(panel).BoundingBoxAsync())!;
+
+        await SwipeAsync(page, finger, (195, 790), (195, 640));
+        var afterThePage = await session.ShownAsync(panel);
+        await SwipeAsync(page, finger, (menu.X + (menu.Width / 2), menu.Y + (menu.Height / 2)), (menu.X + (menu.Width / 2), 800));
+        var afterTheMenu = await session.ShownAsync(panel);
+        await page.Touchscreen.TapAsync(195, 800);
+        await page.WaitForFunctionAsync("p => !document.querySelector(p).matches(':popover-open')", panel, new() { Timeout = 5_000 });
+
+        Assert.True(afterThePage);
+        Assert.True(afterTheMenu);
+        Assert.False(await session.ShownAsync(panel));
+    }
+
+    [Fact]
     public async Task Following_a_navigation_menus_link_closes_the_dropdown_and_hands_focus_back_to_its_trigger()
     {
         // Flux UI's dropdown, 2026-10-27, clicked and tapped alike.
@@ -487,6 +515,22 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     // A finger on the middle of the element.
+    // A finger put down at `from`, drawn to `to` in steps and lifted, as touch events.
+    private static async Task SwipeAsync(IPage page, ICDPSession finger, (double X, double Y) from, (double X, double Y) to)
+    {
+        await finger.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchStart", ["touchPoints"] = new[] { Point(from.X, from.Y) } });
+        for (var step = 1; step <= 6; step++)
+        {
+            var at = (X: from.X + ((to.X - from.X) * step / 6), Y: from.Y + ((to.Y - from.Y) * step / 6));
+            await finger.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchMove", ["touchPoints"] = new[] { Point(at.X, at.Y) } });
+        }
+
+        await finger.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
+        await page.WaitForTimeoutAsync(300);
+    }
+
+    private static Dictionary<string, object> Point(double x, double y) => new() { ["x"] = x, ["y"] = y };
+
     private static async Task TapAsync(IPage page, ILocator target)
     {
         var box = (await target.BoundingBoxAsync())!;

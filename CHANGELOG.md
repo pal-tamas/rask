@@ -706,6 +706,15 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A swipe no longer closes an open popover, dropdown or menu; a tap outside still does (#1260).** Before: on a
+  phone, a finger put down outside an open `Ui.Popover`, `Ui.Dropdown`, `Ui.Context`, select or picker list and drawn
+  across the screen closed it when it lifted wherever the page behind could not scroll (an overlay's page lock) —
+  the browser's light dismiss answers the finger's lift, and Chromium on Linux and Android lift such a finger
+  without cancelling it. After: once the finger has moved past a tap's slop the runtime hands it to the open popover,
+  so it lifts inside it and nothing closes, as on Flux UI, whose popovers close on a click outside. A tap outside, a
+  mouse press outside and a real scroll are unchanged. The Flux parity harness holds the chart's tick positions to
+  0.5 px (Chromium on Linux widens a label's box by its glyph overhang, which Flux lays its axes out around).
+  Nothing to change in an app.
 - **`Ui.Phone`'s list of countries, `Ui.Editor`'s toolbar and a submenu under a resting pointer match Flux UI again
   (#1260).** The phone's searched country list holds its own scroll (`overscroll-behavior: none`) and the popup round
   it no longer does, as a searched `Ui.Select`'s already did; every editor toolbar button is

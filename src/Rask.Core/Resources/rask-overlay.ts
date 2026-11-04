@@ -19,6 +19,8 @@
 //     it (`html:has(dialog[data-open])`) without knowing how it was opened.
 //   * A LAZY DIALOG (a field of its own with data-rask-modal-shown). The page sends what it holds only while it is
 //     open, so the field says "true" or "false" each time data-open comes or goes, and the page hears it change.
+//   * A SWIPE CLOSES NOTHING. A finger that starts outside an open popover and moves on leaves it open; a tap
+//     outside closes it, as Flux UI's do (installSwipeKeepsOpen).
 //   * INVOKER COMMANDS where the engine has none: command="show-modal | close | request-close" with commandfor.
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
@@ -107,6 +109,64 @@ function installPopoverFocus(doc: Document): void {
             }
         }
     }, true);
+}
+
+// ----- A swipe closes nothing ---------------------------------------------------------------------------
+
+// How far a finger may move and still be a tap: Chromium's touch slop.
+const SLOP = 15;
+
+// An open auto popover — the last in the document, which is the innermost of nested ones — or null.
+function topmost(doc: Document): Element | null {
+    const open = doc.querySelectorAll("[popover]");
+    for (let i = open.length - 1; i >= 0; i--) {
+        if (isAuto(open[i]) && isShown(open[i])) {
+            return open[i];
+        }
+    }
+    return null;
+}
+
+// A finger that comes down outside an open auto popover and moves on is a swipe or a scroll, and Flux UI's popovers,
+// dropdowns and menus stay open under one: they close on a CLICK outside, which a swipe never makes (measured on its
+// popover page, 2026-11-04, #1260). The browser's light dismiss closes an auto popover on the pointerup instead, and
+// where the page cannot scroll (an overlay's lock) the finger lifts with a pointerup rather than a pointercancel —
+// so a swipe across the locked page closed the kit's. Once the finger has moved past a tap's slop, the popover takes
+// its pointer (setPointerCapture): the pointerup then lands inside it, and light dismiss has nothing to close. A tap
+// outside, a mouse press outside and a real scroll (the browser cancels the pointer) are untouched.
+function installSwipeKeepsOpen(doc: Document): void {
+    let finger = -1;
+    let fromX = 0;
+    let fromY = 0;
+    listen("pointerdown", function (e) {
+        const p = e as PointerEvent;
+        const panel = p.pointerType === "mouse" ? null : topmost(doc);
+        finger = panel && !(p.target instanceof Node && panel.contains(p.target)) ? p.pointerId : -1;
+        fromX = p.clientX;
+        fromY = p.clientY;
+    }, {capture: true, passive: true});
+    listen("pointermove", function (e) {
+        const p = e as PointerEvent;
+        if (p.pointerId !== finger || Math.abs(p.clientX - fromX) + Math.abs(p.clientY - fromY) <= SLOP) {
+            return;
+        }
+        finger = -1;
+        const panel = topmost(doc);
+        if (panel) {
+            try {
+                panel.setPointerCapture(p.pointerId);
+            } catch (err) {
+                // the pointer is gone already: nothing to hold
+            }
+        }
+    }, {capture: true, passive: true});
+    const done = function (e: Event): void {
+        if ((e as PointerEvent).pointerId === finger) {
+            finger = -1;
+        }
+    };
+    listen("pointerup", done, {capture: true, passive: true});
+    listen("pointercancel", done, {capture: true, passive: true});
 }
 
 // ----- Modal dialogs ---------------------------------------------------------------------------------
@@ -294,5 +354,6 @@ function installModal(doc: Document): void {
 
 if (page) {
     installPopoverFocus(page);
+    installSwipeKeepsOpen(page);
     installModal(page);
 }
