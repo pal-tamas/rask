@@ -113,6 +113,14 @@ async function transcript(scheme, url, at, inherited) {
   const select = name => `[data-editor=${name}] button`;
   const linkButton = '[data-editor=link] button:not([data-editor])';
   const linkPanel = '[data-editor=link] > [popover]';
+  // The link panel is open once its address field has focus. Flux hands it focus a task or more after the press
+  // (20 ms here, 130 ms at a sixth of the CPU, past 300 ms on a loaded runner, where Escape then found focus still
+  // on the button and the panel shut with it there: `focus=link`, #1260); the kit does it in the press. Waited on, on
+  // both pages, as long as it takes — and ten seconds at most, then on as before.
+  const linkOpened = async () => {
+    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.activeElement?.dataset?.editor === 'link:url', null, { timeout: 10000 }).catch(() => {});
+  };
   await editor.evaluate(el => {
     window.__events = [];
     for (const type of ['input', 'change']) el.addEventListener(type, event => window.__events.push(`${type}${event.bubbles ? '^' : ''}`));
@@ -276,7 +284,7 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
   await hit(editor.locator(linkButton));
-  await page.waitForTimeout(300);
+  await linkOpened();
   note('link open', `${await state(linkButton)} panel ${await placed(linkPanel, linkButton)} focus=${await focus()}`);
   note('link panel look', await editor.evaluate((el, at) => {
     const q = selector => getComputedStyle(el.querySelector(selector));
@@ -290,13 +298,13 @@ async function transcript(scheme, url, at, inherited) {
   await settle();
   note('link Enter', `${await value()} ${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
   await hit(editor.locator(linkButton));
-  await page.waitForTimeout(300);
+  await linkOpened();
   note('link reopened', await editor.locator('[data-editor="link:url"]').inputValue());
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by its button', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
   await hit(editor.locator(linkButton));
-  await page.waitForTimeout(300);
+  await linkOpened();
   await hit(editor.locator('[data-editor="link:unlink"]'));
   await page.waitForTimeout(200);
   note('unlink', `${await value()} ${await state(linkButton)} focus=${await focus()}`);
@@ -305,13 +313,13 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
   await page.keyboard.press('ControlOrMeta+k');
-  await page.waitForTimeout(300);
+  await linkOpened();
   note('link by shortcut', `panel ${await placed(linkPanel, linkButton)} focus=${await focus()}`);
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by the shortcut', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
   await hit(editor.locator(linkButton));
-  await page.waitForTimeout(300);
+  await linkOpened();
   await editor.locator('[data-editor="link:url"]').fill('https://x.y');
   await hit(editor.locator('[data-editor="link:insert"]'));
   await page.waitForTimeout(200);
