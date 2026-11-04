@@ -36,7 +36,8 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
 1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `build` job runs the same verify after the push, over the files the change touched (every file when it changed the rules).
+   `analyzers K/N` jobs run the same verify after the push, each over the files the change touched in its own
+   projects (every file of its projects when the change touched the rules).
 2. **Clean build, warnings-as-errors** —
    `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
@@ -154,7 +155,7 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; shard 1 also runs the gate script tests and the formatter over the `.cs` files it changed), the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
 | **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the front-end templates in two jobs over one packed feed each (`run-template-e2e.sh --front-end=<key>,<key>…`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
@@ -234,7 +235,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | No soak: the release set no longer runs against `main` every three hours (`soak.yml` deleted), so an image or a download that disappears is found on a `ci/release/**` branch or at the release. | — | `soak.yml` (`schedule: '23 */3 * * *'`, `gates.yml` with `set: release`), from the history |
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 | Finished work lands directly on `main` after its local targeted tests — no `ci/**` pre-run, however risky — except a change to CI itself, a Linux-only risk the Mac cannot check, and the release-only gates (`ci/release/**`). | `CLAUDE.md`, the `land-on-main` and `rask-ship` skills | risky changes go through a `ci/**` branch first |
-| The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `build` job; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `build` part), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
+| The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `analyzers K/N` jobs, each over its own projects' files; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `analyzers-K` parts), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
 | A nightly is pushed the moment `main`'s `ci` run has a green `build` job, not when the run has passed: browser E2E, templates, front ends and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
 | The `build` job builds with the analyzers off (`-p:RunAnalyzers=false`) and runs the unit tests; the analyzers, the formatter and the gate script tests are the `analyzers K/N` jobs beside it, which no publish waits for, cut by project (`scripts/lib/analyzer-shards.txt`, `-p:RaskAnalyzerShard=K` in `Directory.Build.targets`) so none is longer than `build`. The nightly pack skips the analyzers too. | `gates.yml` (`build`, `analyzers K/N`), `scripts/run-unit-local.sh` (`RASK_UNIT_PART`), `Directory.Build.targets` (`RaskAnalyzerShard`), `scripts/lib/analyzer-shards.txt`, `scripts/lib/nightly_pack.sh` | one `build` job, analyzers on, ahead of the tests; the pack with the analyzers |
 
@@ -370,6 +371,22 @@ True of the scripts wherever they run — a CI job or your terminal.
   source generator runs and the routing tests fail to bind with CS1503. The gate's own bash tests
   (`scripts/tests/*.test.sh`) run first, and every run ends with one line per phase saying where the
   time went.
+- **In CI each analyzer shard formats its own share.** `scripts/lib/format-scope.sh` deals a file to the
+  shard of the project whose directory holds it — the projects that shard already builds and analyses,
+  by the same `scripts/lib/analyzer-shards.txt` — and a file in no project's directory (the source-linked
+  `src/*.Shared/` and `tests/Shared*/` files) to shard 1. A change that touches the rules
+  (`.editorconfig`, `Directory.*.props`/`.targets`, `global.json`) has every shard check every file of
+  its projects, so the tree is checked once, a part in each job: it was one 1140-second
+  `dotnet format` over the whole solution in shard 1, after a whole-solution build (29 minutes). There a
+  shard runs `dotnet format whitespace` over its share and `dotnet format style` (import ordering and the
+  code-style fixers) over its projects' directories, side by side, and not the `analyzers` pass: that is
+  the analyzer build the same job has just run over the same projects, warnings as errors, and it was
+  most of the formatter's time (316 of 550 s on shard 2, 476 of 687 on shard 4, CI run 41785916921).
+  The source-linked files in no project's directory get the whitespace pass only: `dotnet format`
+  analyses every project that compiles a file it is given, and the style pass over them analysed about
+  100 projects (206 s); their code-style rules are the build's, in every project that compiles them.
+  Those runs print the formatter's workspace load and per-pass timings; `scripts/tests/format-scope.test.sh`
+  holds that every shard has a share and that between them they hold every project in `Rask.slnx`.
 - **`dotnet format` never gets `--no-restore`.** With it,
   `dotnet format Rask.slnx --verify-no-changes` **modified 57 files it was only asked to check**:
   without a restore the workspace cannot resolve the source generators, every generated symbol goes

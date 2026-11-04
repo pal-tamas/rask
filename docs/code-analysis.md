@@ -26,7 +26,10 @@ Tests and benchmarks keep the SDK's default set, which keeps the one-minute comm
   severities in `.editorconfig`.
 - `Directory.Build.targets` also cuts CI's analyzer build by project: `-p:RaskAnalyzerShard=K` analyses only the
   projects `scripts/lib/analyzer-shards.txt` deals to shard K (an unlisted project is in shard 1) — the
-  `analyzers K/N` jobs; a build without it analyses every project. It turns no rule off.
+  `analyzers K/N` jobs; a build without it analyses every project. It turns no rule off. Each of those jobs also checks the
+  formatting of the same projects' files (`scripts/lib/format-scope.sh`; shard 1 takes the files in no project's
+  directory), so a change to the rules is formatted in four parts, not one. On such a change a shard runs
+  `dotnet format whitespace` and `style`, not `analyzers`: its own analyzer build has just enforced those rules.
 - `BannedSymbols.txt` — each banned API with the reason and what to call instead:
   the clock is read through `TimeProvider`, never `DateTime.Now`/`DateTimeOffset.Now`/`DateTime.Today`; no
   `Thread.Sleep`, no `Environment.Exit`, no `GC.Collect`.
