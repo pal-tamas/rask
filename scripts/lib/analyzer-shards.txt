@@ -15,14 +15,15 @@
 # Rask.Site.Tests 49, Rask.Cli 48, Rask.Batteries.Generators 44, Rask.Web 41, Rask.Generators 40,
 # Rask.Data 34, nothing else over 11. A shard costs the compile of what it builds as much as its
 # analyzers, so the big test projects go with the projects they test (already in that shard's build):
-# left in shard 1 they made it compile the whole solution.
+# left in shard 1 they made it compile the whole solution. Not the site's: Rask.Site.Tests compiles the
+# site's own source again and Rask.Site.E2E.Tests bundles its browser fixtures, and beside Rask.Site
+# they took its shard from 282 to 851 seconds of build (run 41777677199), so they go where there is room.
+# Shard 1 (unlisted) keeps Rask.Site.E2E.Tests and the data demo.
 
 Rask.Site 4
-Rask.Site.Tests 4
-Rask.Site.E2E.Tests 4
-Rask.Site.DataDemo 4
-Rask.Site.DataDemo.E2E.Tests 4
-Rask.Wasm.Tests 4
+
+Rask.Site.Tests 2
+Rask.Wasm.Tests 3
 
 Rask.Core 3
 Rask.Generators 3
