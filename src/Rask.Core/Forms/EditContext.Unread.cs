@@ -6,20 +6,27 @@ namespace Rask.Core.Forms;
 // has a value to judge: until a value arrives that can be read, the field says the one sentence about what
 // was typed — ahead of "required" and of the app's own rule, whichever validators the form has — and no save
 // goes through. The first keystroke of a correction takes the sentence away, as it does any message; the field
-// stays unread until the correction itself arrives, which is before whatever the reader does next.
+// stays unread until the correction itself arrives, which is before whatever the reader does next. A value read and
+// still not taken — a date typed outside a picker's limits (#1273) — is held the same way, with a sentence of its own.
 public sealed partial class EditContext
 {
-    private Dictionary<FieldIdentifier, RaskString>? _unread;
+    private Dictionary<FieldIdentifier, string>? _unread;
 
     /// <summary>Notes that what was typed into <paramref name="field" /> could not be read, and says so under it.</summary>
-    internal void NoteUnread(FieldIdentifier field, RaskString sentence)
+    internal void NoteUnread(FieldIdentifier field, RaskString sentence) => NoteUnread(field, UnreadValue.Say(sentence));
+
+    /// <summary>
+    ///     Notes that what was typed into <paramref name="field" /> was not taken, and says <paramref name="said" />
+    ///     under it — already in the reader's language — until a value that is taken arrives.
+    /// </summary>
+    internal void NoteUnread(FieldIdentifier field, string said)
     {
-        (_unread ??= [])[field] = sentence;
+        (_unread ??= [])[field] = said;
         var state = GetOrCreate(field);
         state.Modified = true;
         state.Touched = true;
         ClearMessages(field);
-        AddValidationMessage(field, UnreadValue.Say(sentence));
+        AddValidationMessage(field, said);
     }
 
     /// <summary>A value arrived for <paramref name="field" /> that could be read.</summary>
@@ -30,12 +37,12 @@ public sealed partial class EditContext
     // What validating one field comes to while it is unread: its sentence, and no rule asked.
     private bool SayUnread(FieldIdentifier field)
     {
-        if (_unread is not { Count: > 0 } unread || !unread.TryGetValue(field, out var sentence))
+        if (_unread is not { Count: > 0 } unread || !unread.TryGetValue(field, out var said))
         {
             return false;
         }
 
-        AddValidationMessage(field, UnreadValue.Say(sentence));
+        AddValidationMessage(field, said);
         return true;
     }
 
@@ -47,9 +54,9 @@ public sealed partial class EditContext
             return;
         }
 
-        foreach (var (field, sentence) in unread)
+        foreach (var (field, said) in unread)
         {
-            AddValidationMessage(field, UnreadValue.Say(sentence));
+            AddValidationMessage(field, said);
         }
     }
 }

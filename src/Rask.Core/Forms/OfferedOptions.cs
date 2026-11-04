@@ -13,19 +13,11 @@ namespace Rask.Core.Forms;
 //
 // A select's options are read where its selection is marked (HTMLSelectElement.EnterChildrenScope): written
 // straight under it or under an <optgroup>. A control of one part says what it sends (Choice), a row of them names
-// each part as it renders (Offer: a tab row's tabs). A bound control drawn disabled offers nothing at all, not even an
-// empty selection (Disabled, #1271): the browser sends no event for it, so whatever arrives was written by hand.
+// each part as it renders (Offer: a tab row's tabs). A control drawn disabled is refused before it is asked anything:
+// every handler it registers is (DisabledHandler, #1273).
 internal sealed class OfferedOptions(string control, string? name)
 {
     private readonly List<string> _values = [];
-
-    /// <summary>Whether the control is drawn disabled, so that it takes nothing whatever it is sent.</summary>
-    internal bool Closed { get; private init; }
-
-    /// <summary>What a bound control drawn disabled offers: nothing, whatever its options or its parts say.</summary>
-    /// <param name="control">What the control is called in the log: <c>input</c>, <c>textarea</c>, <c>select</c>.</param>
-    /// <param name="name">The name it posts under, or null.</param>
-    internal static OfferedOptions Disabled(string control, string? name) => new(control, name) { Closed = true };
 
     /// <summary>What one part of a choice offers: what it sends while the reader can use it, nothing while disabled.</summary>
     /// <param name="control">What the control is called in the log: <c>radio</c>, <c>checkbox</c>.</param>
@@ -44,7 +36,7 @@ internal sealed class OfferedOptions(string control, string? name)
     }
 
     /// <summary>Whether the render drew an option the reader could pick that sends <paramref name="value" />.</summary>
-    internal bool Offers(string value) => !Closed && _values.Contains(value, StringComparer.Ordinal);
+    internal bool Offers(string value) => _values.Contains(value, StringComparer.Ordinal);
 
     /// <summary>Adds what one part of the choice sends, as that part renders.</summary>
     internal void Offer(string value) => _values.Add(value);
@@ -53,11 +45,6 @@ internal sealed class OfferedOptions(string control, string? name)
     internal void Read(IEnumerable<Component?> children)
     {
         _values.Clear();
-        if (Closed)
-        {
-            return;
-        }
-
         foreach (var child in children)
         {
             if (child is HTMLOptionElement option)
@@ -81,9 +68,7 @@ internal sealed class OfferedOptions(string control, string? name)
     internal void Refused() =>
         RaskDiagnostics.Report(
             RaskLogLevel.Warning, "Rask.Forms",
-            Closed
-                ? $"Rask forms: the {control} '{name ?? "(unnamed)"}' is drawn disabled, so the browser sends nothing for it, but it was sent a value; it was refused and the field keeps its value. See https://rask.sh/docs/guides/forms#a-choice-takes-only-what-it-offered"
-                : $"Rask forms: the {control} '{name ?? "(unnamed)"}' was sent a value none of its choices offered; it was refused and the field keeps its value. See https://rask.sh/docs/guides/forms#a-choice-takes-only-what-it-offered");
+            $"Rask forms: the {control} '{name ?? "(unnamed)"}' was sent a value none of its choices offered; it was refused and the field keeps its value. See https://rask.sh/docs/guides/forms#a-choice-takes-only-what-it-offered");
 
     private void Take(HTMLOptionElement option)
     {

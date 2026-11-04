@@ -13,8 +13,15 @@ namespace Rask.Core;
 ///     A multi-line text field typed by the value it edits. Unlike <c>input</c>, its value is its text content,
 ///     and it is resizable by default — <c>Rows</c> and <c>Cols</c> only set the initial size.
 /// </summary>
-public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>
+public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>, IFormControlElement
 {
+    // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
+    string IFormControlElement.Control => "textarea";
+
+    bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
+
+    string? IFormControlElement.PostsUnder => DrawnDisabled.PostsUnder(Name, Bind);
+
     // A bound control writes back and re-renders through its own handle, unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
 
@@ -148,11 +155,11 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
             if (Disabled is true)
             {
-                // Drawn disabled, it takes nothing: the browser sends no event for it (OfferedOptions.Disabled).
-                var refused = OfferedGuard.One(
-                    BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind),
-                    OfferedOptions.Disabled("textarea", name));
-                WriteChosenBind(sb, ctx, !_timing.WaitsForAction, refused, bindCtx, acc.Field);
+                // Drawn disabled, it takes nothing — every handler it registers is refused (#1273) — and wires no
+                // keystroke write: it is written, like a choice, only when it is chosen.
+                WriteChosenBind(
+                    sb, ctx, !_timing.WaitsForAction,
+                    BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind), bindCtx, acc.Field);
                 return;
             }
 
@@ -165,24 +172,21 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
         WirePlain(sb, ctx);
     }
 
-    // Plain / controlled. Drawn disabled, it takes nothing either (#1272): the browser sends no event for a disabled
-    // field, so whatever arrives was written by hand, and is refused behind its guard.
+    // Plain / controlled.
     private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
     {
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(Closed(ArgumentIgnoringHandler<string>.Fed(input))));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
         }
 
         var change = ((IFormControl<T>)this).ControlledChangeHandler();
         if (change is not null)
         {
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(Closed(change)));
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
-
-    private Delegate Closed(Delegate handler) => Disabled is true ? OfferedGuard.Refusing(handler, "textarea", Name) : handler;
 
     protected override IEnumerable<Component?> RenderChildren() =>
         _content is not null ? [_content] : base.RenderChildren();

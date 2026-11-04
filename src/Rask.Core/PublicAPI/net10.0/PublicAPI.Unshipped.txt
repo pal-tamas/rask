@@ -19452,3 +19452,10 @@ Rask.Core.Routing.GuestAttribute.Then.set -> void
 static Rask.Core.Authorization.RouteAuthorizationResult.Redirect(string! url) -> Rask.Core.Authorization.RouteAuthorizationResult!
 Rask.Core.Globalization.RaskString.ValidationDuplicateRow = 199 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationNotFound = 198 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationDateMin = 200 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationDateMax = 201 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationUnavailable = 202 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationRangeMin = 203 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationRangeMax = 204 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTimeMin = 205 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTimeMax = 206 -> Rask.Core.Globalization.RaskString

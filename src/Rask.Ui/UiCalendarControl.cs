@@ -172,10 +172,18 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
                 return Task.CompletedTask;
             }
 
-            if (!Picks(value).DrawnBy(options))
+            var picks = Picks(value);
+            if (!picks.DrawnBy(options))
             {
                 UiRefusals.Unoffered(this, accessor);
                 return Task.CompletedTask;
+            }
+
+            // A range typed into its own inputs is not held to its length there: here it is, and said (#1273). What
+            // the field shows is read as the handler runs, so the handler stays the same one from render to render.
+            if (picks.LengthRefusal(options) is { } said)
+            {
+                return UiFormCommit.UnreadAsync(this, accessor, context, accessor is null ? default : UiFormCommit.Shown(this, accessor), said);
             }
 
             _own = (Bind is null, value, Value);

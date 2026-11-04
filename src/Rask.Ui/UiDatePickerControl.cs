@@ -253,14 +253,14 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Clearable = Clearable == true,
             Clear = ClearAsync,
             Dates = Dates(committed),
-            Typed = (slot, date) => Commit(Typed(committed, slot, date)),
+            Typed = (slot, date) => TypedAsync(slot, date, committed),
             Heard = HeardAsync,
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
             FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
             Waits = UiDraws.Waits(this, Bind is not null),
         };
 
-        _drawn = new Drawn(Commit, scope, acc, ctx, options);
+        _drawn = new Drawn(Commit, scope, acc, ctx, options, committed);
         var picks = Picks(committed);
         var config = UiCalendarHook.Config(options, picks.Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder));
 
@@ -333,13 +333,28 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         }
 
         var drawn = Latest;
-        if (Picks(value).DrawnBy(drawn.Options))
+        var picks = Picks(value);
+        if (!picks.DrawnBy(drawn.Options))
         {
-            return drawn.Commit(value);
+            UiRefusals.Unoffered(this, drawn.Accessor);
+            return Task.CompletedTask;
         }
 
-        UiRefusals.Unoffered(this, drawn.Accessor);
-        return Task.CompletedTask;
+        // A range typed into the calendar's own inputs is not held to its length there: here it is, and said (#1273).
+        return picks.LengthRefusal(drawn.Options) is { } said
+            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, drawn.Committed, said)
+            : drawn.Commit(value);
+    }
+
+    // A date typed into one of the trigger's fields: taken within the limits; outside them it is not, and the field
+    // says why under it (#1273) — the reader typed it, so it is no refusal to log.
+    private Task TypedAsync(int slot, DateOnly date, T? committed)
+    {
+        var drawn = Latest;
+        var value = Typed(committed, slot, date);
+        return Picks(value).Refusal(drawn.Options) is { } said
+            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, committed, said)
+            : drawn.Commit(value);
     }
 
     // A typed field's date, read against the fields as last drawn.
@@ -453,5 +468,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         };
     }
 
-    private sealed record Drawn(Func<T, Task> Commit, UiDatePickerScope Scope, ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiCalendarOptions Options);
+    private sealed record Drawn(
+        Func<T, Task> Commit, UiDatePickerScope Scope, ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiCalendarOptions Options, T? Committed);
 }

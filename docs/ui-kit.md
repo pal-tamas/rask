@@ -1193,6 +1193,8 @@ ends. Min and max, unavailable days, week numbers, inputs over the months, the k
 (`Ui.DatePicker.Range`), typed in parts with `Type(Ui.DatePickerType.Input)`, `Ui.DatePickerInput` or
 `WithInputs()` (the browser's own date fields with `.Native` and `WithInputs(Ui.DatePickerInputVariant.Native)`),
 with presets, `Clearable()`, and Flux's sheet on a phone. A half-filled date is no date, by the owner's decision.
+A date typed outside `Min`/`Max`/`Unavailable`, or a range outside `MinRange`/`MaxRange`, is not taken, and the field
+says why ("Choose a date on or after Mar 1, 2026.") — see [forms](forms.md#a-choice-takes-only-what-it-offered).
 Every example and the reference: **[rask.sh/ui/date-picker](https://rask.sh/ui/date-picker/)**.
 
 ### Datetime picker
@@ -1203,13 +1205,15 @@ time from one field — the calendar with a list of times beside it, or the time
 as a `datetime-local` field holds them: nothing is converted between time zones. `Min`/`Max`, `MinTime`/`MaxTime`,
 `Unavailable` days and times (`UiDatetimeSlot`), `DefaultTime`, `WithConfirmation()`, `Clearable()`, a trigger of
 your own and the date picker's calendar options; a sheet on a phone.
-`Ui.DatetimePicker.Bind(() => m.StartsAt).MinTime(new(9, 0)).MaxTime(new(17, 0))`. Every example, the keyboard and the
+`Ui.DatetimePicker.Bind(() => m.StartsAt).MinTime(new(9, 0)).MaxTime(new(17, 0))`. A time outside those limits, or in
+an unavailable slot, is not taken and the field says why ("Choose a time at or after 9:00 AM."). Every example, the keyboard and the
 reference: **[rask.sh/ui/datetime-picker](https://rask.sh/ui/datetime-picker/)**.
 
 ### Time picker
 
 `Ui.TimePicker` is Flux UI's time picker: a button over a list of times, or hour and minute typed in parts. A
-`TimeOnly?` picks one or none and a collection of `TimeOnly` several. Every example, the keyboard and the reference:
+`TimeOnly?` picks one or none and a collection of `TimeOnly` several. A time typed before `Min`, after `Max` or in an
+`Unavailable` stretch is not taken and the field says why. Every example, the keyboard and the reference:
 **[rask.sh/ui/time-picker](https://rask.sh/ui/time-picker/)**.
 
 ### Color picker

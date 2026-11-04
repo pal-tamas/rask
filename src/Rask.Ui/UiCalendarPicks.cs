@@ -27,4 +27,17 @@ internal abstract class UiCalendarPicks
     ///     nothing is a clear, which every calendar offers.
     /// </summary>
     internal virtual bool DrawnBy(UiCalendarOptions options) => Days.All(options.Offers);
+
+    /// <summary>
+    ///     What the field says of this choice when the reader typed it outside the limits (#1273) — a day before
+    ///     <c>Min</c>, after <c>Max</c> or <c>Unavailable</c> — or null when every day of it is one the calendar offers.
+    /// </summary>
+    internal virtual string? Refusal(UiCalendarOptions options) =>
+        Days.Select(day => UiPickerLimits.Day(day, options)).FirstOrDefault(said => said is not null);
+
+    /// <summary>
+    ///     What the field says of a choice the calendar drew whose length it does not hold to <c>MinRange</c> and
+    ///     <c>MaxRange</c> — a range typed into its own inputs — or null: only a range has a length.
+    /// </summary>
+    internal virtual string? LengthRefusal(UiCalendarOptions options) => null;
 }

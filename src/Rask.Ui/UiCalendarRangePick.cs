@@ -30,4 +30,12 @@ internal sealed class UiCalendarRangePick(UiDateRange chosen) : UiCalendarPicks
         var spans = UiDateRange.Of(preset, options.Today, options.StartDay, options.Min);
         return spans.Start == chosen.Start && spans.End == chosen.End;
     }
+
+    // Its ends within the limits, and its length within MinRange and MaxRange.
+    internal override string? Refusal(UiCalendarOptions options) => base.Refusal(options) ?? LengthRefusal(options);
+
+    // The calendar's own typed inputs do not hold a range to MinRange and MaxRange (rask-calendar.ts), so one that
+    // breaks them can be the reader's. A preset is the page's, and spans what it spans.
+    internal override string? LengthRefusal(UiCalendarOptions options) =>
+        chosen.Preset is { } preset && preset != Ui.DateRangePreset.Custom ? null : UiPickerLimits.Length(chosen, options);
 }

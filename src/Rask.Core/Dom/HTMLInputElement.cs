@@ -19,8 +19,15 @@ namespace Rask.Core;
 ///     An <c>&lt;input&gt;</c> typed by the value it edits: <c>Bind</c> takes an expression naming the field, and
 ///     Rask parses, validates and writes back the value for you. Every input needs a <c>label</c>.
 /// </summary>
-public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>
+public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>, IFormControlElement
 {
+    // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
+    string IFormControlElement.Control => "input";
+
+    bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
+
+    string? IFormControlElement.PostsUnder => DrawnDisabled.PostsUnder(Name, Bind);
+
     // A bound control writes back and re-renders through its own handle, unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
 
@@ -301,14 +308,15 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
         ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
 
-        // Drawn disabled, it takes nothing; a field that takes only some values (the kit's tab row), only those. Either
-        // is a choice behind its guard, written when it is chosen.
-        if ((Disabled is true ? OfferedOptions.Disabled("input", Name ?? acc.PropertyName) : _offered) is { } offered)
+        // A field that takes only some values (the kit's tab row) takes only those, behind its guard; one drawn
+        // disabled takes nothing — every handler it registers is refused (#1273) — and is written, like a choice,
+        // only when it is chosen: it wires no keystroke write.
+        if (_offered is not null || Disabled is true)
         {
-            var write = isCheckbox
+            Func<string, Task> write = isCheckbox
                 ? BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)
                 : BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
-            WriteChosenBind(sb, ctx, !_timing.WaitsForAction, OfferedGuard.One(write, offered), bindCtx, fid);
+            WriteChosenBind(sb, ctx, !_timing.WaitsForAction, _offered is { } offered ? OfferedGuard.One(write, offered) : write, bindCtx, fid);
             return;
         }
 
@@ -353,22 +361,19 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         });
     }
 
-    // Plain / controlled. Drawn disabled, it takes nothing either (#1272): the browser sends no event for a disabled
-    // field, so whatever arrives was written by hand, and is refused behind its guard.
+    // Plain / controlled.
     private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
     {
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(Closed(ArgumentIgnoringHandler<string>.Fed(input))));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
         }
 
         var change = Spelled(((IFormControl<T>)this).ControlledChangeHandler());
         if (change is not null)
         {
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(Closed(change)));
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
         }
     }
-
-    private Delegate Closed(Delegate handler) => Disabled is true ? OfferedGuard.Refusing(handler, "input", Name) : handler;
 }

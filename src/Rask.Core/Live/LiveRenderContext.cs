@@ -308,11 +308,14 @@ public sealed class LiveRenderContext : IDisposable
     // Every data-rask-on-* attribute in the document is minted through here.
     public string RegisterHandler(Delegate handler) => RegisterHandlerCore(handler);
 
+    // A disabled form control's handlers are refused as they are registered (DisabledWalk, DisabledHandler): one check
+    // for every other element, so an enabled control registers exactly what it was handed.
     private string RegisterHandlerCore(Delegate handler) =>
         // Owner = the component currently rendering (top of parent stack). The root stores
         // every handler in its dictionary (TryInvokeHandlerAsync runs on the root), but the
         // owner association is what lets the post-handler dirty-mark land on the right node.
-        _root.RegisterHandler(handler, CurrentParent);
+        _root.RegisterHandler(
+            DisabledWalk.Refusing is { } control ? DisabledHandler.For(handler, control, CurrentParent) : handler, CurrentParent);
 
     // The handler map lives on the root; the clean-subtree frame cache has to re-establish a skipped
     // walk's registrations in it, and only this context knows which root that is. The slot ids come

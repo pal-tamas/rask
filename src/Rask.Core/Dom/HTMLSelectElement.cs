@@ -14,8 +14,15 @@ namespace Rask.Core;
 ///     A drop-down or list box of <c>option</c> children, optionally grouped by <c>optgroup</c>, typed by the
 ///     value it picks: <c>Bind</c> writes the chosen value straight back to your model.
 /// </summary>
-public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormControl<T>
+public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormControl<T>, IFormControlElement
 {
+    // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
+    string IFormControlElement.Control => "select";
+
+    bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
+
+    string? IFormControlElement.PostsUnder => DrawnDisabled.PostsUnder(Name, Bind);
+
     // A bound control writes back and re-renders through its own handle, unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
 
@@ -302,10 +309,9 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         WriteChosenBind(sb, ctx, Live is true, handler, bindCtx, fid);
     }
 
-    // The options this render offers, read once its children are walked (EnterChildrenScope).
-    // A bound select drawn disabled offers none of them: the browser sends no event for it.
-    private OfferedOptions Offering(string? name) =>
-        _offered = Bind is not null && Disabled is true ? OfferedOptions.Disabled("select", name) : new OfferedOptions("select", name);
+    // The options this render offers, read once its children are walked (EnterChildrenScope). One drawn disabled takes
+    // none of them: every handler it registers is refused (#1273).
+    private OfferedOptions Offering(string? name) => _offered = new OfferedOptions("select", name);
 
     // The values-shaped change handler, or null when none was wired: the caller's own delegate (an Action or a
     // Func of the values), fed the argument when it was written without one. OfferedGuard.Many takes either.

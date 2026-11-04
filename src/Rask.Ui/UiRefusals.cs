@@ -23,7 +23,7 @@ internal static class UiRefusals
             return false;
         }
 
-        OfferedOptions.Disabled(Called(control), accessor?.PropertyName ?? locked.Name).Refused();
+        DisabledHandler.Say(Called(control), accessor?.PropertyName ?? locked.Name);
         return true;
     }
 
@@ -39,8 +39,12 @@ internal static class UiRefusals
     internal static void Unoffered(object control, ExpressionAccessor.Accessor? accessor) =>
         new OfferedOptions(Called(control), accessor?.PropertyName ?? (control as IUiLockable)?.Name).Refused();
 
-    // The kit's name for the control, as a page opens its chain: Ui.Slider, Ui.DatePickerRange.
-    private static string Called(object control)
+    /// <summary>The name a kit control posts under, as the log says it: the bound member's, else its own <c>Name</c>.</summary>
+    internal static string? PostsUnder(IUiLockable control) =>
+        control is IUiFieldControl { Bound: { } bound } ? ExpressionAccessor.Parse(bound).PropertyName : control.Name;
+
+    /// <summary>The kit's name for the control, as a page opens its chain: <c>Ui.Slider</c>, <c>Ui.DatePickerRange</c>.</summary>
+    internal static string Called(object control)
     {
         var type = control.GetType().Name;
         var arity = type.IndexOf('`', StringComparison.Ordinal);

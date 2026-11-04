@@ -18,9 +18,9 @@ public abstract partial class Component
     internal bool TryReplayCleanSubtree(HtmlWriter html, FrameWriter frames, LiveRenderContext? liveCtx)
     {
         var cached = _live?.Cached;
-        if (cached is null
-            || Live.PropsDirty || Live.StateDirty
-            || BypassRenderCache || _readsAmbientState)
+        // Inside a disabled fieldset, walked: its controls refuse their handlers (#1273), which a snapshot may not.
+        if (cached is null || Live.PropsDirty || Live.StateDirty || BypassRenderCache || _readsAmbientState
+            || (liveCtx is not null && DisabledWalk.InDisabledFieldset(liveCtx)))
         {
             return false;
         }
@@ -126,6 +126,7 @@ public abstract partial class Component
             || BypassRenderCache
             || _readsAmbientState
             || CachedHeadInternal is not null
+            || (liveCtx is not null && DisabledWalk.InDisabledFieldset(liveCtx)) // refused handlers (#1273) outlive no fieldset
             || count <= 0)
         {
             // This component just walked (first render or a dirty re-render) into something we won't

@@ -439,6 +439,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Write no rule for it.
   The browser's native bubble for such a field is replaced by that sentence;
   `Ui.DatePicker`/`Ui.TimePicker` typed half way say the date/time sentence;
+  a date/range/time typed outside the picker's own limits (`Min`/`Max`/`Unavailable`, `MinRange`/`MaxRange`, a datetime's `MinTime`/`MaxTime`) is not taken and says "Choose a date on or after …" / "Choose a range of at most 7 days." / "Choose a time at or after …" / "… is not available." (`RaskString.ValidationDateMin`/`ValidationDateMax`/`ValidationUnavailable`/`ValidationRangeMin`/`ValidationRangeMax`/`ValidationTimeMin`/`ValidationTimeMax`) — write no rule for a limit the picker already has;
+  EVERY handler on a disabled form control (`Button`/`Input` incl. `OnFiles`/`Select`/`Textarea`/`Ui.Button`, or one inside a `Fieldset.Disabled(true)` outside its first `Legend`) is refused in Core and logged once on `Rask.Forms` naming the control — a browser sends it no event;
   a comma in a number sent as text is read in the session's culture (`12,5` = 12.5 under `hu`) or refused, never as thousands.
 - [Validation](docs/validation.md): a form's rules are written inline with `.Validate(…)` (previous entry);
   WHICH ONE TO WRITE ([docs](docs/validation.md#which-one-do-i-write)): one field → an attribute on the aggregate's property (copied onto its generated model);

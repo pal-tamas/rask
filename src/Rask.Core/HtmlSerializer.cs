@@ -422,7 +422,7 @@ internal static class HtmlSerializer
             opaque) ?? -1;
 
         html.Append('<').Append(tagName);
-        html.WriteAttributes(el);
+        WriteElementAttributes(el, html, live);
 
         AppendFrameworkMarkers(html, opaque, isShell ? null : scopeId);
 
@@ -439,10 +439,7 @@ internal static class HtmlSerializer
             live.BodyWritten = false;
         }
 
-        using (el.EnterChildrenScopeInternal())
-        {
-            SerializeElementChildren(el, opaque, live, html);
-        }
+        SerializeElementChildrenIn(el, opaque, live, html);
 
         if (live is not null && string.Equals(tagName, "head", StringComparison.Ordinal))
         {
@@ -464,6 +461,44 @@ internal static class HtmlSerializer
         {
             elementDevTools.ComponentWalked(
                 el, live?.WalkParent, 0, elementFrameIdx, frames?.Count ?? -1);
+        }
+    }
+
+    // A form control drawn disabled registers its handlers refused (#1273, DisabledWalk.Refuses): armed for its
+    // own attributes only, so what its children register is theirs.
+    private static void WriteElementAttributes(Component el, HtmlWriter html, LiveRenderContext? live)
+    {
+        if (live is null || !DisabledWalk.Refuses(live, el, out var before))
+        {
+            html.WriteAttributes(el);
+            return;
+        }
+
+        try
+        {
+            html.WriteAttributes(el);
+        }
+        finally
+        {
+            DisabledWalk.Disarm(before);
+        }
+    }
+
+    // The element's children, inside its own scope and, for a disabled fieldset or its first legend, inside what that
+    // makes of the controls in them (DisabledWalk.Enter).
+    private static void SerializeElementChildrenIn(Component el, bool opaque, LiveRenderContext? live, HtmlWriter html)
+    {
+        var fieldset = live is null ? default : DisabledWalk.Enter(live, el);
+        try
+        {
+            using (el.EnterChildrenScopeInternal())
+            {
+                SerializeElementChildren(el, opaque, live, html);
+            }
+        }
+        finally
+        {
+            DisabledWalk.Leave(fieldset);
         }
     }
 

@@ -27,7 +27,7 @@ public sealed partial class DisabledKitWritesTests : global::Rask.Core.RaskMarku
         var reported = await Reported(() => page.Invoke(page.HandlerIds("input")[0], Sent("80")));
 
         Assert.Equal(30, m.Volume);
-        Refusal(reported, "80");
+        Assert.Contains("Ui.Slider 'Volume'", Refusal(reported, "80").Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -51,7 +51,31 @@ public sealed partial class DisabledKitWritesTests : global::Rask.Core.RaskMarku
         var reported = await Reported(() => page.Invoke(page.HandlerId("input")!, Sent("4321")));
 
         Assert.Equal("", code);
-        Assert.Contains("'pin'", Refusal(reported, "4321").Message, StringComparison.Ordinal);
+        Assert.Contains("Ui.Otp 'pin'", Refusal(reported, "4321").Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_disabled_kit_button_refuses_a_click_sent_by_hand()
+    {
+        var clicks = 0;
+        var page = Page.Render(() => Ui.Button.Disabled().OnClick(() => clicks++)["Save"]);
+
+        var reported = await Reported(() => page.Invoke(page.HandlerId("click")!));
+
+        Assert.Equal(0, clicks);
+        Assert.Contains("Ui.Button", Assert.Single(reported, e => e.Category == "Rask.Forms").Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_enabled_kit_button_still_takes_a_click()
+    {
+        var clicks = 0;
+        var page = Page.Render(() => Ui.Button.OnClick(() => clicks++)["Save"]);
+
+        var reported = await Reported(() => page.Invoke(page.HandlerId("click")!));
+
+        Assert.Equal(1, clicks);
+        Assert.DoesNotContain(reported, e => e.Category == "Rask.Forms");
     }
 
     [Fact]

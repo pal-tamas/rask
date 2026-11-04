@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A date, range or time typed outside a picker's limits is not taken, and the field says why (#1273).** Before: a
+  date typed into a `Ui.DatePicker`'s own field was stored whatever its `Min`/`Max`/`Unavailable`, a range of any
+  length got through `MinRange`/`MaxRange` from the calendar's typed inputs, a `Ui.TimePicker` typed time ignored
+  `Min`/`Max` (and an unavailable one was dropped without a word), and a `Ui.DatetimePicker`'s time was held to no
+  time limit server-side. After: none of them is stored; in a form the field says "Choose a date on or after Mar 1,
+  2026.", "Choose a date on or before …", "… is not available.", "Choose a range of at least/at most N days.",
+  "Choose a time at or after/at or before …" and the save waits for a value within the limits, as for a date typed
+  half way — the same on Server and WASM. Seven new `RaskString` sentences (`ValidationDateMin`, `ValidationDateMax`,
+  `ValidationUnavailable`, `ValidationRangeMin`, `ValidationRangeMax`, `ValidationTimeMin`, `ValidationTimeMax`),
+  Hungarian in Rask.Ui. A controlled picker's `OnChange` is not called for such a value.
 - **A focused field is ringed in your accent colour, and nothing can cut the ring off.** Before: a focused
   `Ui.Input`, textarea, select or picker trigger drew the browser's own ring — a thin blue line in Chrome, Safari's
   thick blue glow — and inside a table's scroll frame or a flyout that glow was cut in half. After: the field's
@@ -2058,6 +2068,17 @@ them until tagged releases begin.
   the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
 
 ### Security
+
+- **Every handler on a disabled form control is refused, in one place (#1273).** Before: a disabled `Button` (and a
+  `Ui.Button.Disabled()`) kept its `OnClick` wired, a disabled file input its `OnFiles`, a disabled controlled
+  `Select` its `OnChange`, and nothing at all held a control inside a `Fieldset.Disabled(true)` — so a hand-written
+  frame could press or write what the reader was shown disabled. After: Core refuses every handler a `Button`,
+  `Input`, `Select`, `Textarea` or `Ui.Button` registers while it is drawn disabled — `.Disabled(true)`, a
+  `disabled` written through `Attributes`, or inside a disabled fieldset outside its first `Legend`, as a browser
+  rules it — where its handlers are registered: nothing runs, and one `Rask.Forms` warning names the control (a kit
+  control by its kit name, `Ui.Slider 'Volume'`, `Ui.Otp 'pin'`), never what it carried. The markup is unchanged;
+  an enabled control registers exactly what it did (allocation unchanged). The per-control guards of #1271/#1272 on
+  `Input`, `Textarea` and `Select` are gone into it.
 
 - **A disabled kit control writes nothing, and a calendar takes only a day it drew (#1272).** Before: the kit
   controls that write through a handler of their own stayed wired while drawn `.Disabled()`, so a hand-written frame

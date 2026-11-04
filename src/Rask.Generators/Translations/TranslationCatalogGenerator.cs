@@ -244,6 +244,13 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("DatetimePickerSelect", 0),
         ("ValidationNotFound", 0),
         ("ValidationDuplicateRow", 0),
+        ("ValidationDateMin", 1),
+        ("ValidationDateMax", 1),
+        ("ValidationUnavailable", 1),
+        ("ValidationRangeMin", 1),
+        ("ValidationRangeMax", 1),
+        ("ValidationTimeMin", 1),
+        ("ValidationTimeMax", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>
