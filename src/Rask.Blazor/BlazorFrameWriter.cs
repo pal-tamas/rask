@@ -257,13 +257,29 @@ internal static class BlazorFrameWriter
         // Rask matches an inbound frame to a handler by the delegate's shape, and refuses a
         // mismatch — so emitting the attribute anyway would render a component that looks wired
         // and does nothing on the first click, which is the failure this package exists to avoid.
-        if (!ValueEvents.Contains(eventName) && !HandlerFrameShape.FeedsParameterless(eventName))
+        // A submit is not a DOM event to Rask but its FORM channel's, which BlazorHandler bridges.
+        if (!ValueEvents.Contains(eventName) && eventName is not "submit" && !HandlerFrameShape.FeedsParameterless(eventName))
         {
             return;
         }
 
-        // Only `change` reports a checkbox's state or a whole selection; `input` sends the value as text.
-        var valueKind = eventName is "change" ? ValueKindOf(frames, element) : BlazorValueKind.Text;
+        // Only `change` reports a checkbox's state or a whole selection; `input` sends the value as text. On those two
+        // controls the browser fires `input` and `change` together, so `@bind:event="oninput"` there rides `change`
+        // and its binder is handed the bool or the string[] it casts to — unless the control has an `@onchange` of its
+        // own, which that one attribute is then already taken by.
+        var valueKind = ValueEvents.Contains(eventName) ? ValueKindOf(frames, element) : BlazorValueKind.Text;
+        if (eventName is "input" && valueKind is not BlazorValueKind.Text)
+        {
+            if (Attribute(frames, element, "onchange") is { } own && frames.Array[own].AttributeEventHandlerId != 0)
+            {
+                valueKind = BlazorValueKind.Text;
+            }
+            else
+            {
+                eventName = "change";
+            }
+        }
+
         if (walk.Register(frame.AttributeEventHandlerId, eventName, valueKind, control) is not { } raskId)
         {
             return;
