@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A hosted Blazor `<EditForm>` submits (#1195).** Before: `@onsubmit` inside a `BlazorComponent<T>` rendered no
+  attribute, so an `EditForm` never submitted and `OnValidSubmit`/`OnInvalidSubmit`/`OnSubmit` never ran. After: the
+  form renders with `data-rask-on-submit` and its submit rides Rask's form channel into the hosted component, which
+  validates and runs its callbacks with the values its `InputText`, `InputCheckbox`, … were bound to. And
+  `@bind:event="oninput"` on a checkbox or a `<select multiple>` now hands the binder a `bool` / `string[]` instead
+  of a string: the island writes it as `data-rask-on-change`, the frame that carries the checked state and the
+  whole selection (unless the control has an `@onchange` of its own).
 - **The test project `rask new` scaffolds moves to Microsoft.NET.Test.Sdk 18.11.0, xunit.v3 4.0.2 and
   xunit.runner.visualstudio 4.0.1** — the versions this repo's own tests now run on (#1247).
 - **A date, range or time typed outside a picker's limits is not taken, and the field says why (#1273).** Before: a
