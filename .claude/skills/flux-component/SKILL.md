@@ -414,7 +414,11 @@ charts are redrawn once the fonts are in), writes the rows each chart drew to
 `parity.mjs chart` caches it — on a desktop AND at 390x844, from the same document, with the box each drawing
 got in each view (`--remeasure` measures the pinned document again, no new numbers). Then `parity.mjs chart` for
 boxes and styles and `parity-chart.mjs` for geometry: every number of every `d`, `x1…y2`, `cx/cy/r` and
-`translate()`, to 0.05px; each takes `--view 390x844`, against `ChartPhoneParity`'s page (`chart@390x844.html`,
+`translate()`, to 0.05px — a tick's `transform` to 0.5px, in both chart scripts and nowhere else (owner, 2026-11-04,
+#1260: Flux lays its axes out around each label's getBBox(), which Chromium on Linux widens by the glyph overhang
+where a Mac gives the advance — same Inter file and features, measured — so on the runner its ticks sit up to
+0.24px off the kit's, which match the Mac's exactly; on Linux the grid lines and the series' paths move with them, so
+there `parity-chart.mjs` holds every number to 0.5px); each takes `--view 390x844`, against `ChartPhoneParity`'s page (`chart@390x844.html`,
 every chart drawn at Flux's phone box — a static page has no server to draw it again). Flux's rules were found by handing
 its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
 new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.

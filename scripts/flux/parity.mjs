@@ -438,12 +438,27 @@ function shown(example, node) {
   return true;
 }
 
+// THE CHART'S TICKS, and nothing else: a `transform` on the chart's page is the same within 0.5 px (owner,
+// 2026-11-04, #1260). Flux lays its axes out around each tick label's getBBox(), which Chromium on Linux widens by the
+// glyph's overhang where a Mac gives the advance — the same Inter, the same 34.078 px "Nov 4" on both — so on the
+// runner Flux's ticks sit up to 0.24 px from where the kit's (and Flux's on a Mac) do. parity-chart.mjs says the same.
+// (Function declarations: the comparison runs from the top of the module, above them.)
+function matrix(value) {
+  return /^matrix\(([^)]*)\)$/.exec(value ?? '')?.[1].split(',').map(Number) ?? null;
+}
+
+function nearTransform(x, y) {
+  const [a, b] = [matrix(x), matrix(y)];
+  return !!a && !!b && a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= (i >= 4 ? 0.5 : 1e-6));
+}
+
 // `pressable`: the kit's node shows the hand by the owner-approved departure (lib.mjs, cursorDeparted).
 function compareStyles(x, y, where, diffs, unheld = undefined, pressable = false) {
   for (const key of STYLES) {
     // A Flux measurement kept from before STYLES named a key says nothing about it: `--refresh` measures it.
     if (!(key in x)) continue;
     if (IGNORED.has(key) || unheld?.has(key) || undrawn(key, x, y) || same(x[key], y[key])) continue;
+    if (slug === 'chart' && key === 'transform' && nearTransform(x[key], y[key])) continue;
     if (key === 'cursor' && cursorDeparted(x[key], y[key], pressable)) continue;
     diffs.push(`${where}: ${key}: ${x[key]} vs ${y[key]}`);
   }

@@ -39,7 +39,16 @@ const URL = 'https://fluxui.dev/components/chart';
 const out = join(root, 'artifacts', 'flux-parity');
 const fluxDir = join(out, 'flux', 'chart');
 const dataFile = join(root, 'tests', 'Rask.Ui.Tests', 'Flux', 'Parity', 'ChartParity.data.json');
-const TOLERANCE = 0.05;   // px, on every number of every geometry attribute
+const TOLERANCE = 0.05;   // px, on every number of every geometry attribute but a `transform`'s
+// …and on a node's `transform` (a tick's translate()): 0.5 px (owner, 2026-11-04, #1260). Flux lays its axes out
+// around each tick label's getBBox(), and Chromium on Linux puts a label's glyph overhang in that box where on a
+// Mac it is the advance: the same Inter file, features and size on both (measured: "Nov 4" at 12px is 34.078 px
+// long on both, its box 34.191 px wide on Linux, 34.078 px on a Mac), so on the runner Flux's plot ends 0.11 px
+// short of where the kit's does and every tick of it moves by up to that. The kit lays out from the advances and
+// matches the Mac to the 1/1000 px. On Linux the same narrower plot moves the grid lines and the series' paths by
+// as much (0.11–0.25 px measured), so there every number gets that tolerance; on a Mac the rest keep TOLERANCE.
+const TRANSFORM_TOLERANCE = 0.5;
+const allowed = name => (name === 'transform' || process.platform === 'linux' ? TRANSFORM_TOLERANCE : TOLERANCE);
 // Where the pointer goes, as shares of the drawing's box: across the plot, up and down it, and off it.
 const ACROSS = [[0.03, 0.5], [0.2, 0.5], [0.35, 0.5], [0.5, 0.5], [0.65, 0.5], [0.8, 0.5], [0.97, 0.5], [0.5, 0.2], [0.5, 0.75], [0.5, 0.97]];
 const ROUND = [[0.6, 0.3], [0.3, 0.7], [0.75, 0.6], [0.5, 0.5], [0.03, 0.03]];
@@ -191,7 +200,7 @@ function compare(theirs, mine) {
 
         const off = Math.max(0, ...x.values.map((v, k) => Math.abs(v - y.values[k])));
         worst = Math.max(worst, off);
-        if (off > TOLERANCE) diffs.push(`${where}: ${name} is off by ${off.toFixed(3)}px`);
+        if (off > allowed(name)) diffs.push(`${where}: ${name} is off by ${off.toFixed(3)}px`);
       }
     });
   });
