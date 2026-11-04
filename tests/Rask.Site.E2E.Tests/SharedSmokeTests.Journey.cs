@@ -943,7 +943,10 @@ public abstract partial class SharedSmokeTests
         await calls.Locator("button:has-text('Half the window')").ClickAsync();
         await Expect(status).ToContainTextAsync("Half:", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await calls.Locator("button:has-text('Count down from 5')").ClickAsync();
-        await Expect(status).ToContainTextAsync("4 left", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        // Any tick below 5 — or the end — proves the callback re-entered C# and repainted. Not "4 left" exactly:
+        // a tick a second shows it for one second, and a busy runner's repaint can land after the next.
+        await Expect(status).ToContainTextAsync(new Regex("[0-4] left|Done!"),
+            new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await calls.Locator("button:has-text('Stop')").ClickAsync();
         await Expect(status).ToContainTextAsync("Stopped", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         Assert.Equal(1, await Page.Locator(cssLinkSel).CountAsync());
