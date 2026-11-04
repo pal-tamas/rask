@@ -59,15 +59,19 @@ public sealed class NodeRequirementTests
     }
 
     /// <summary>
-    ///     The scaffold line is ABOVE the build floor, which is the whole point of having two numbers.
+    ///     The scaffold line is never BELOW the build floor: the installers put the LTS line's newest release on a
+    ///     machine, the build enforces its first. The two are equal on the day a new line goes LTS — its first release
+    ///     is then its newest (Node 26.13.0, 2026-11-03) — and part from the next release on.
     /// </summary>
     [Fact]
-    public void The_scaffold_line_is_higher_than_the_build_floor()
+    public void The_scaffold_line_is_never_below_the_build_floor()
     {
-        Assert.True(
-            NodeRequirement.ScaffoldLine > NodeRequirement.BuildFloor,
-            $"the scaffold line ({NodeRequirement.ScaffoldLine}) must exceed the build floor "
-            + $"({NodeRequirement.BuildFloor}) — the installers put the LTS line on a machine, not the bare floor.");
+        var line = NodeRequirement.ScaffoldLine;
+
+        var floor = NodeRequirement.BuildFloor;
+
+        Assert.True(line >= floor, $"the scaffold line ({line}) is below the build floor ({floor}).");
+        Assert.Equal(floor.Major, line.Major);
     }
 
     /// <summary>

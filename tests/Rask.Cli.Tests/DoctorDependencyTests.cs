@@ -32,7 +32,7 @@ public sealed class DoctorDependencyTests
         {
             ("dotnet", "workload") => new ProcessResult(0, "Installed Workload Id\n---\nwasm-tools\n", ""),
             ("dotnet", _) => new ProcessResult(0, "10.0.302", ""),
-            ("node", _) => new ProcessResult(0, "v24.20.0", ""),
+            ("node", _) => new ProcessResult(0, $"v{NodeRequirement.ScaffoldLine}", ""),
             ("npm", _) => new ProcessResult(0, "11.19.0", ""),
             ("git", _) => new ProcessResult(0, "git version 2.50.1", ""),
             // OpenSSH prints its banner to STDERR and leaves stdout empty. This is the shape that made
