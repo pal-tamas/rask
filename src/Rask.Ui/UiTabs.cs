@@ -89,10 +89,17 @@ public sealed partial class UiTabs : Component
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var held = Bind is { } bind ? ExpressionAccessor.Parse(bind).Getter() as string : Value;
+        var bound = Bind is { } bind ? ExpressionAccessor.Parse(bind) : null;
+        var held = bound is not null ? bound.Getter() as string : Value;
         var variant = Variant ?? Ui.TabsVariant.Default;
         var chosen = string.IsNullOrEmpty(held) ? _selected : held;
-        var scope = new UiTabScope(variant, Size ?? Ui.TabsSize.Base, chosen, chosen is null && AnyTabSaysSelected());
+
+        // The field takes only the name of a tab this render drew enabled, filled in as the tabs take their places.
+        var offered = new OfferedOptions("tabs", bound?.PropertyName);
+        var scope = new UiTabScope(variant, Size ?? Ui.TabsSize.Base, chosen, chosen is null && AnyTabSaysSelected())
+        {
+            Offered = offered,
+        };
 
         if (Context.Get<UiTabGroupScope>() is { } group)
         {
@@ -104,7 +111,7 @@ public sealed partial class UiTabs : Component
             .Class(ListClass(variant, scope.Size, scrolls), Class)
             .Data(Marker.With(null, "rask-tabs", Says(chosen)))
             .Role("tablist")[
-            Field(chosen),
+            Field(chosen, offered),
             Context.Provide(scope)[Children ?? []]
         ];
 
@@ -126,18 +133,21 @@ public sealed partial class UiTabs : Component
     }
 
     // The one field the page reads the selected tab from, written by the runtime as a tab is chosen. A tab
-    // chosen is never data the reader would lose, so a form that asks before it is left does not count it.
-    private HTMLInputElement<string>? Field(string? chosen)
+    // chosen is never data the reader would lose, so a form that asks before it is left does not count it. It takes
+    // only the name of a tab the reader could press (#1271): a forged one, or a disabled tab's, is refused.
+    private HTMLInputElement<string>? Field(string? chosen, OfferedOptions offered)
     {
         if (Bind is { } bind)
         {
-            var bound = Input.Bind(bind).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).AfterBind(ToldAsync);
+            var bound = Input.Bind(bind).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).AfterBind(ToldAsync)
+                .TakingOnly(offered);
             return Live == true ? bound.Live() : bound;
         }
 
         // Unheard, the choice is the browser's alone: a field nobody reads would only be put back by each render.
         return OnChange.HasValue
-            ? Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData).OnChange(ToldAsync)
+            ? Input.Value(chosen ?? string.Empty).Type(InputType.Hidden).Attributes(UiRuntimeMarks.NotFormData)
+                .OnChange(new Callback<string>(OfferedGuard.One(ToldAsync, offered)))
             : null;
     }
 

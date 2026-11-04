@@ -146,6 +146,16 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             // Bound: the model is written when the field's timing says (Component.BindTiming.cs).
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            if (Disabled is true)
+            {
+                // Drawn disabled, it takes nothing: the browser sends no event for it (OfferedOptions.Disabled).
+                var refused = OfferedGuard.One(
+                    BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind),
+                    OfferedOptions.Disabled("textarea", name));
+                WriteChosenBind(sb, ctx, !_timing.WaitsForAction, refused, bindCtx, acc.Field);
+                return;
+            }
+
             WriteTypedBind(
                 sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
                 secret: SecretField.Is(null, Autocomplete, Data));

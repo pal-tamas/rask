@@ -303,7 +303,9 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     }
 
     // The options this render offers, read once its children are walked (EnterChildrenScope).
-    private OfferedOptions Offering(string? name) => _offered = new OfferedOptions("select", name);
+    // A bound select drawn disabled offers none of them: the browser sends no event for it.
+    private OfferedOptions Offering(string? name) =>
+        _offered = Bind is not null && Disabled is true ? OfferedOptions.Disabled("select", name) : new OfferedOptions("select", name);
 
     // The values-shaped change handler, or null when none was wired: the caller's own delegate (an Action or a
     // Func of the values), fed the argument when it was written without one. OfferedGuard.Many takes either.

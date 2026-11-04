@@ -267,7 +267,12 @@ latest render drew it, sends that value — compared as the render wrote it:
   `<option>` written under it or under an `<optgroup>`;
 - a `Ui.RadioGroup` in every variant (list, `.Segmented`, `.Cards`, `.Pills`, `.Buttons`): an enabled `Ui.Radio`,
   which sends its own `Value`;
-- a `Ui.CheckboxGroup`'s `Ui.Checkbox`, and a `Ui.Toggle`: only while it is enabled.
+- a `Ui.CheckboxGroup`'s `Ui.Checkbox`, and a `Ui.Toggle`: only while it is enabled;
+- a `Ui.Tabs` (bound or with `OnChange`): the `Name` of a `Ui.Tab` it drew enabled;
+- any bound `Input`, `Textarea` or `Select` drawn `.Disabled(true)`, and every kit control that binds through one
+  (a standalone `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, the native `Ui.Select`, …):
+  nothing at all, an empty selection included. A browser sends no event for a disabled control. Its rules still
+  run when the form is submitted.
 
 Anything else (an id the reader was never shown, a disabled choice) is refused: the model keeps its value, no
 rule runs, `AfterBind` and `OnChange` are not called, and a warning that names the control — never the value —

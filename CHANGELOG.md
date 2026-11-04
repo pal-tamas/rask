@@ -2059,6 +2059,17 @@ them until tagged releases begin.
 
 ### Security
 
+- **A disabled bound control, and a `Ui.Tabs`, take only what the reader could send (#1271).** Before: a bound
+  `Input`, `Textarea` or `Select` drawn `.Disabled(true)` (and every kit control that binds through one: a standalone
+  `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, the native `Ui.Select`) still wired its write, so
+  a hand-written frame could write a field the reader was shown disabled; and a `Ui.Tabs` (bound or with
+  `OnChange`) took any name it was sent, a disabled tab's included. Now a disabled bound control takes nothing, an
+  empty selection included (a browser sends no event for one), and a tab row only the `Name` of a tab it drew
+  enabled. Both are refused as #1270's choices are: nothing written, no rule, no `AfterBind`, one `Rask.Forms`
+  warning naming the control and never the value. A disabled field's rules still run on submit. A disabled bound
+  text field is now wired on `change` only, and a `.Live()` bound `Ui.Tabs` writes on `change` rather than at
+  `input`. Nothing to change in an app.
+
 - **A radio group, a checkbox group, a toggle and `Select.OnSelect` take only what they offered (#1270).** Before:
   each `Ui.Radio` of a `Ui.RadioGroup` (every variant) committed its value for any change event sent to it, a
   disabled one included, and so did a disabled `Ui.Checkbox` of a `Ui.CheckboxGroup` and a disabled `Ui.Toggle` —

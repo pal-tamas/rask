@@ -148,6 +148,19 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     /// </summary>
     internal MoneyMarks? Money { get; set; }
 
+    // The only values a bound field takes, when the kit draws what it may be sent (TakingOnly).
+    private OfferedOptions? _offered;
+
+    /// <summary>
+    ///     Takes only what <paramref name="offered" /> offers, when the kit draws what the field may be sent (a tab
+    ///     row's enabled tabs): anything else is refused (<see cref="OfferedGuard" />).
+    /// </summary>
+    internal HTMLInputElement<T> TakingOnly(OfferedOptions offered)
+    {
+        _offered = offered;
+        return this;
+    }
+
 
     protected override void WriteAttributes(StringBuilder sb)
     {
@@ -287,6 +300,18 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var fid = acc.Field;
         var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
         ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+
+        // Drawn disabled, it takes nothing; a field that takes only some values (the kit's tab row), only those. Either
+        // is a choice behind its guard, written when it is chosen.
+        if ((Disabled is true ? OfferedOptions.Disabled("input", Name ?? acc.PropertyName) : _offered) is { } offered)
+        {
+            var write = isCheckbox
+                ? BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)
+                : BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
+            WriteChosenBind(sb, ctx, !_timing.WaitsForAction, OfferedGuard.One(write, offered), bindCtx, fid);
+            return;
+        }
+
         if (isCheckbox)
         {
             WriteChosenBind(sb, ctx, !_timing.WaitsForAction, BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind), bindCtx, fid);

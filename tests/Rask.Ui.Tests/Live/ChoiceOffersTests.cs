@@ -137,6 +137,102 @@ public sealed partial class ChoiceOffersTests : global::Rask.Core.RaskMarkup
         Assert.False(on);
     }
 
+    [Fact]
+    public async Task A_bound_tab_row_refuses_a_name_none_of_its_tabs_drew()
+    {
+        var view = new View();
+        using var session = new OlderPage(Tabs(view));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "admin"));
+
+        Assert.Equal("list", view.Tab);
+        var refused = Assert.Single(reported, e => e.Category == "Rask.Forms");
+        Assert.Equal(RaskLogLevel.Warning, refused.Level);
+        Assert.Contains("tabs 'Tab'", refused.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("admin", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_bound_tab_row_refuses_the_name_of_its_disabled_tab()
+    {
+        var view = new View();
+        using var session = new OlderPage(Tabs(view));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "archive"));
+
+        Assert.Equal("list", view.Tab);
+        Assert.Single(reported, e => e.Category == "Rask.Forms" && e.Level == RaskLogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task A_bound_tab_row_takes_the_name_of_a_tab_it_drew()
+    {
+        var view = new View();
+        using var session = new OlderPage(Tabs(view));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "board"));
+
+        Assert.Equal("board", view.Tab);
+        Assert.DoesNotContain(reported, e => e.Category == "Rask.Forms");
+    }
+
+    [Fact]
+    public async Task A_controlled_tab_row_does_not_hear_a_name_none_of_its_tabs_drew()
+    {
+        var heard = new List<string>();
+        using var session = new OlderPage(new StubComponent(() => Ui.Tabs.Value("list").OnChange(heard.Add)[
+            Ui.Tab.Name("list")["List"], Ui.Tab.Name("board")["Board"]]));
+        var field = session.Id("change");
+
+        await Reported(() => session.TypedAsync(field, "admin"));
+        await Reported(() => session.TypedAsync(field, "board"));
+
+        Assert.Equal(["board"], heard);
+    }
+
+    [Fact]
+    public async Task A_disabled_bound_switch_refuses_a_flip()
+    {
+        var view = new View();
+        using var session = new OlderPage(new StubComponent(() => Ui.Switch.Bind(() => view.Compact).Live().Disabled()));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "true"));
+
+        Assert.False(view.Compact);
+        Assert.Single(reported, e => e.Category == "Rask.Forms" && e.Level == RaskLogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task A_disabled_bound_kit_input_refuses_what_it_is_sent()
+    {
+        var view = new View();
+        using var session = new OlderPage(new StubComponent(() => Ui.Input.Bind(() => view.Tab).Disabled()));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "forged"));
+
+        Assert.Equal("list", view.Tab);
+        Assert.Single(reported, e => e.Category == "Rask.Forms" && e.Level == RaskLogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task A_disabled_standalone_bound_checkbox_refuses_a_tick()
+    {
+        var view = new View();
+        using var session = new OlderPage(new StubComponent(() => Ui.Checkbox.Bind(() => view.Compact).Live().Disabled()));
+
+        var reported = await Reported(() => session.TypedAsync(session.Id("change"), "true"));
+
+        Assert.False(view.Compact);
+        Assert.Single(reported, e => e.Category == "Rask.Forms" && e.Level == RaskLogLevel.Warning);
+    }
+
+    private static StubComponent Tabs(View view) =>
+        new(() => Ui.Tabs.Bind(() => view.Tab)[
+            Ui.Tab.Name("list")["List"],
+            Ui.Tab.Name("board")["Board"],
+            Ui.Tab.Name("archive").Disabled()["Archive"]
+        ]);
+
     private static StubComponent Plans(Order order, Ui.RadioGroupVariant variant) =>
         new(() => Ui.RadioGroup.Bind(() => order.Plan).Live().AfterBind(_ => order.AfterBinds++).Variant(variant)[
             Ui.Radio.Value("free").Label("Free"),
@@ -166,6 +262,13 @@ public sealed partial class ChoiceOffersTests : global::Rask.Core.RaskMarkup
         public string Plan { get; set; } = "free";
 
         public int AfterBinds { get; set; }
+    }
+
+    private sealed class View
+    {
+        public string Tab { get; set; } = "list";
+
+        public bool Compact { get; set; }
     }
 
     private sealed class Seats

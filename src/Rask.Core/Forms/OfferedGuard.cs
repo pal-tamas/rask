@@ -36,7 +36,9 @@ internal sealed class OfferedGuard(Delegate inner, OfferedOptions offered) : IHa
     private Task ManyAsync(IReadOnlyList<string> values)
     {
         var picked = values;
-        if (!values.All(offered.Offers))
+
+        // A disabled control takes no selection, an empty one included: clearing is a write too.
+        if (offered.Closed || !values.All(offered.Offers))
         {
             offered.Refused();
             picked = [.. values.Where(offered.Offers)];

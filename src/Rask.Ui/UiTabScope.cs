@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core.Forms;
 
 namespace Rask;
 
@@ -24,6 +25,12 @@ internal sealed class UiTabScope(
 
     internal Ui.TabsSize Size => size;
 
+    /// <summary>
+    ///     The names the row's field takes: each enabled tab's, added as it takes its place. A browser sends only
+    ///     the name of a tab the reader could press, so anything else is refused (<c>OfferedGuard</c>).
+    /// </summary>
+    internal OfferedOptions? Offered { get; init; }
+
     /// <summary>The selected tab's name, as far as the tabs rendered so far say.</summary>
     internal string? Selected => chosen ?? _shown;
 
@@ -33,12 +40,19 @@ internal sealed class UiTabScope(
     /// <param name="name">The tab's own name; a tab without one is known by its place, <c>"0"</c>, <c>"1"</c>…</param>
     /// <param name="selected">The tab's own <c>Selected</c>, which counts until a tab has been chosen.</param>
     /// <param name="first">
-    ///     Whether this tab may be the one shown when nothing says which is: a disabled tab may not.
+    ///     Whether this tab may be the one shown when nothing says which is, and a name the row's field takes: a
+    ///     disabled tab is neither.
     /// </param>
     internal (string Name, bool Selected) Place(string? name, bool selected, bool first)
     {
         var known = name ?? _count.ToString(CultureInfo.InvariantCulture);
         _count++;
+
+        // A tab that may be shown is one the reader can press: a disabled tab offers nothing.
+        if (first)
+        {
+            Offered?.Offer(known);
+        }
 
         if (chosen is not null)
         {
