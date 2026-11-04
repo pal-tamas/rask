@@ -52,7 +52,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium, cursorDeparted, press, PRESSABLE, root, STYLES, viewOf } from './lib.mjs';
+import { chromium, cursorDeparted, frames, press, PRESSABLE, root, STYLES, viewOf } from './lib.mjs';
 import { landings } from './placement.mjs';
 import { withRuntime } from './runtime.mjs';
 
@@ -342,12 +342,25 @@ async function measureExample(page, cdp, index, prefix) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(150);
     await open();
+    let pointer = [0, 0];
     const over = async index => {
       const box = await page.locator(`[data-pm-n="${example.rows[index]}"]`).boundingBox();
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+      pointer = [box.x + box.width / 2, box.y + box.height / 2];
+      await page.mouse.move(...pointer, { steps: 3 });
     };
-    const steps = [() => over(1), () => page.keyboard.press('ArrowDown'), () => page.keyboard.press('ArrowDown'), () => over(0),
-      () => page.keyboard.press('ArrowDown'), () => page.mouse.move(3, 3, { steps: 3 })];
+    // An arrow that closes the flyout of the row the pointer rests on takes its safe area away from under the
+    // pointer, and the browser tells the page the pointer is over the row again (the row is entered, lit and its
+    // flyout opened, on both kits) only when it next hit-tests the resting pointer: a timer of its own after the
+    // page changed, at once on a Mac and past this walk's wait on a loaded Linux runner — where Flux's page and the
+    // kit's were read on either side of it (2026-11-04, #1260). So the pointer is moved by a pixel after each key,
+    // still on its row: the browser looks now, as it would a moment later, and both pages are read in that state.
+    const key = async name => {
+      await page.keyboard.press(name);
+      await frames(page);
+      if (pointer[0] > 0) await page.mouse.move(pointer[0] + 1, pointer[1]);
+    };
+    const steps = [() => over(1), () => key('ArrowDown'), () => key('ArrowDown'), () => over(0),
+      () => key('ArrowDown'), () => page.mouse.move(3, 3, { steps: 3 })];
     example.together = [];
     for (const step of steps) {
       await step();

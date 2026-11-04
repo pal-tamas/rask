@@ -93,7 +93,7 @@ internal static class UiPhoneLook
     };
 
     /// <summary>The list: at least eighteen rem wide, a column whose list scrolls under the search field.</summary>
-    internal const string Popup = "[:where(&)]:min-w-72 max-w-[calc(100vw-2rem)] " + UiListboxLook.Look + " " + UiListboxLook.Column;
+    internal const string Popup = "[:where(&)]:min-w-72 max-w-[calc(100vw-2rem)] " + UiListboxLook.LookOverList + " " + UiListboxLook.Column;
 
     /// <summary>The number's half of the group: what is left of the row, and allowed to be narrower than its text.</summary>
     internal const string NumberHalf = "w-full relative block grow min-w-0";

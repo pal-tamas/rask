@@ -112,7 +112,7 @@ internal static class UiPhonePicker
                 ["data-rask-place"] = UiAnchor.Place(null, null),
             })[
             Search(disabled),
-            Div.Id(list).Role("listbox").TabIndex(-1).Aria("multiselectable", "true").Class(UiSelectLook.SearchedList)[
+            Div.Id(list).Role("listbox").TabIndex(-1).Aria("multiselectable", "true").Class(UiSelectLook.SearchedList, UiListboxLook.ListOverscroll)[
                 Div.Class(UiListboxLook.Empty).Data("ui-listbox-empty", "")[RaskStrings.Get(RaskString.SelectEmpty, "No results found")],
                 // The row every country's is made from, by the engine.
                 Template.Data("ui-phone-option", "")[Row(null, list)],

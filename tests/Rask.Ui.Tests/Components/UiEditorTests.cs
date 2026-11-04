@@ -157,6 +157,20 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Every_toolbar_button_waits_for_no_second_tap_as_Fluxs_do()
+    {
+        var html = Ui.Editor.ToHtml();
+
+        var buttons = Regex.Matches(Regex.Match(html, "role=\"toolbar\".*?<div data-rask-opaque>", RegexOptions.Singleline).Value, "<button (?=[^>]*data-editor=)(?=[^>]*tabindex=)[^>]*class=\"([^\"]*)\"")
+            .Select(match => match.Groups[1].Value.Split(' '))
+            .ToList();
+
+        // Measured on fluxui.dev/components/editor (parity.mjs editor): touch-action manipulation on each of them.
+        Assert.NotEmpty(buttons);
+        Assert.All(buttons, classes => Assert.Contains("touch-manipulation", classes));
+    }
+
+    [Fact]
     public void The_toolbar_controls_the_editable_area_by_its_id()
     {
         var html = Ui.Editor.Id("notes").ToHtml();

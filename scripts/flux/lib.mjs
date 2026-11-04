@@ -55,13 +55,13 @@ export const STYLES = [
 // What the kit shows the hand over — an owner-approved departure from Flux (2026-11-02, flux-component SKILL.md
 // "Owner-approved departures"), whose controls keep the arrow. The kit sheet's rule (src/Rask.Ui/Styles/ui.css),
 // plus the kit's own parts that are pressed but are no <button>: a picker's clear as a <div>, a pillbox trigger, a
-// select's create row.
+// select's create row, a file upload (the <label> round its file input; the arrow there while it is disabled).
 // Measured in the page as `node.pressable` — the element, or what it sits inside, is one of these and can be pressed now.
 const PRESSABLE_PARTS = ':is(button, [role=button], [role=menuitem], [role=menuitemcheckbox], [role=menuitemradio], [role=option], '
   + '[role=tab], [role=checkbox], [role=radio], [role=switch], summary, select, label[for], '
   + 'label:has(input:is([type=checkbox], [type=radio])), '
   + 'input:is([type=checkbox], [type=radio], [type=file], [type=range], [type=color], [type=submit], [type=button], [type=reset]), '
-  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input))';
+  + '[data-ui-button], [data-ui-option-create], [role=combobox]:not(input), [data-ui-file-upload]:not(:has(input:disabled)))';
 const HELD_STATES = ':is(:disabled, [aria-disabled=true], [data-disabled], [readonly], [aria-readonly=true], [data-loading], [aria-busy=true])';
 export const PRESSABLE = `${PRESSABLE_PARTS}:not(${HELD_STATES})`;
 // …and what could be pressed but is held now (disabled, read-only, busy): the kit shows the ARROW there, the same
@@ -225,6 +225,7 @@ async function open(page, wrapper, opener) {
       setTimeout(done, 1000);
     }));
   } else {
+    const before = await page.evaluate(lockState);
     await page.mouse.click(...at);
     // A popup that takes the pointer from the page (pointer-events: none on <html>, Flux's and rask-lock.ts's)
     // leaves the trigger under a pointer that no longer hovers it — once the browser looks again, which it does
@@ -232,8 +233,11 @@ async function open(page, wrapper, opener) {
     // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
     // already is may be no move at all), so both look now — once the lock is ON: it lands when the page's script
     // gets to it (a toggle event, a hook), and a move made before that left the kit's chevron hovered on the runner
-    // (2026-11-01, #1260) where a Mac had locked in time. So the move waits for the page to stop changing.
-    await page.evaluate(locked);
+    // (2026-11-01, #1260) where a Mac had locked in time. So the move waits for the page to stop changing — and
+    // first for it to CHANGE from how it was before the press: on a runner loaded enough that a page draws a frame or
+    // two a second, a root that had not changed YET held still for the whole wait, and Flux's chevron was measured
+    // hovered (2026-11-04, #1260).
+    await page.evaluate(locked, before);
     await page.mouse.move(at[0] + 1, at[1]);
   }
   await frames(page);
@@ -278,12 +282,19 @@ export function hoverSettled(el) {
   });
 }
 
+/** Runs in the page: what a page lock writes on the root — pointer-events, overflow, the scrollbar gutter. */
+export function lockState() {
+  const root = getComputedStyle(document.documentElement);
+  return `${root.pointerEvents} ${root.overflow} ${root.scrollbarGutter}`;
+}
+
 /**
- * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (pointer-events,
- * overflow, the scrollbar gutter) has held for ten frames, or after 1.5 s. Flux's script and the kit's hook put it
- * there a task or two after the press, sooner or later by how loaded the machine is.
+ * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (lockState) differs
+ * from `before`, the root as it was before the press, and has then held for ten frames — or after 5 s for a popup
+ * that locks nothing. Flux's script and the kit's hook put it there a task or two after the press, sooner or later
+ * by how loaded the machine is. Without `before`, the root holding still for ten frames is enough.
  */
-export function locked() {
+export function locked(before) {
   return new Promise(done => {
     const read = () => {
       const root = getComputedStyle(document.documentElement);
@@ -296,11 +307,11 @@ export function locked() {
       const now = read();
       held = now === last ? held + 1 : 0;
       last = now;
-      if (held >= 10 || ++frames > 90) done();
+      if ((held >= 10 && (before === undefined || now !== before)) || ++frames > 300) done();
       else requestAnimationFrame(look);
     };
     requestAnimationFrame(look);
-    setTimeout(done, 1500);
+    setTimeout(done, 5000);
   });
 }
 

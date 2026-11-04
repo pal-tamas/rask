@@ -75,6 +75,20 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void The_list_under_the_search_field_holds_its_scroll_and_the_popup_round_it_does_not()
+    {
+        var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();
+
+        var popup = Regex.Match(html, "<div(?=[^>]*data-ui-options)[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
+        var list = Regex.Match(html, "<div(?=[^>]*role=\"listbox\")[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
+
+        // Measured on Flux's phone (parity-phone.mjs): the popup round the searched countries is overscroll-behavior
+        // auto, the list in it none — as a searched select's (UiSelectSearchTests).
+        Assert.DoesNotContain("overscroll-y-none", popup);
+        Assert.Contains("overscroll-y-none", list);
+    }
+
+    [Fact]
     public void The_list_carries_no_handler_so_opening_and_searching_it_send_nothing()
     {
         var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();

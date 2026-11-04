@@ -418,7 +418,8 @@ function collect(wrapper, { STYLES, PRESSABLE, index, selectors }) {
       box: [box.x - origin.x, box.y - origin.y, box.width, box.height].map(v => Math.round(v * 100) / 100),
       style: style(el),
       pressable: !!el.closest(PRESSABLE),
-      focused: el === document.activeElement,
+      // …or holds what has it: a pillbox's trigger is ringed while the combobox input in it is focused.
+      focused: el.matches(':focus-within'),
     };
     for (const pseudo of ['::before', '::after']) {
       const content = getComputedStyle(el, pseudo).content;
@@ -451,13 +452,15 @@ function compareTree(kind, theirs, a, mine, b, where, diffs) {
   // Flux's script lays the open popup out with an inline `position: absolute` and pixel insets; Rask.Ui
   // anchors it in CSS, where a popover in the top layer is `fixed`. Where it ends up is the offset above.
   // The owner-approved departures (departed.mjs) are let go here as in parity.mjs: native feel on chrome, and the
-  // accent ring on a field that HAS focus — an open list's search or combobox input is focused at rest.
+  // accent ring on a field that HAS focus, or holds it — an open list's search or combobox input is focused at rest.
   const placed = 'popover' in a.attrs;
   const letGo = new Set([...(placed ? ['position'] : []), ...departedFrom(mine, b), ...(b.focused ? focusDepartedFrom(b) : [])]);
   compareStyles(a.style, b.style, where, diffs, letGo, b.pressable);
+  // A pseudo-element inherits what its node departs in (a control's `user-select`), as in parity.mjs.
+  const departs = new Set(departedFrom(mine, b));
   for (const pseudo of ['::before', '::after']) {
     if (!a[pseudo] !== !b[pseudo]) diffs.push(`${where}${pseudo}: ${a[pseudo] ? 'only in Flux' : 'only in Rask'}`);
-    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, undefined, b.pressable);
+    else if (a[pseudo]) compareStyles(a[pseudo], b[pseudo], `${where}${pseudo}`, diffs, departs, b.pressable);
   }
 
   // A <template> holds what Flux's script clones from; it draws nothing and Rask.Ui has no use for one.

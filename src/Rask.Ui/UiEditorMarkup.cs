@@ -18,7 +18,7 @@ internal static class UiEditorMarkup
         "[:where(&)]:flex items-center justify-center [:where(&)]:p-0.5 [:where(&)]:rounded-sm [:where(&)]:text-sm font-medium [:where(&)]:text-zinc-400 "
         + "hover:text-zinc-800 hover:bg-zinc-200 focus:text-zinc-800 "
         + "dark:hover:text-white dark:hover:bg-white/10 dark:focus:text-white "
-        + "disabled:opacity-75 " + ButtonStates;
+        + "disabled:opacity-75 touch-manipulation " + ButtonStates;
 
     // Measured in use: an open control and one whose formatting the caret is in are inked — the link button matches
     // without being pressed, the blockquote button says neither. A fill is the pointer's alone (`hover:`): a pressed
