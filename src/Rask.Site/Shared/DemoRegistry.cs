@@ -201,6 +201,7 @@ public static partial class DemoRegistry
             ["boom-handler"] = () => CodeSample.Files(["BoomHandlerDemo.cs"]).Result(BoomHandlerDemo),
             ["boom-render"] = () => CodeSample.Files(["BoomRenderDemo.cs"]).Result(BoomRenderDemo),
             ["boom-nested"] = () => CodeSample.Files(["BoomNestedDemo.cs"]).Result(BoomNestedDemo),
+            ["refused-handler"] = () => CodeSample.Files(["RefusedHandlerDemo.cs"]).Result(RefusedHandlerDemo),
 
             // --- Subscriptions guide: a publisher, two boards subscribed to every order, and a tracker watching one. ---
             ["subscription-orders"] = () => CodeSample

@@ -566,7 +566,7 @@ public abstract partial class SharedSmokeTests
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
-        await AssertGuideDemosAsync(10, "composition-lists");
+        await AssertGuideDemosAsync(11, "composition-lists");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the page still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -582,6 +582,16 @@ public abstract partial class SharedSmokeTests
         await Expect(stuck).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await stuck.Locator("[data-rask-dismiss]").ClickAsync();
         await Expect(stuck).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
+
+        // A refusal: the second press throws RefusedException, and its own sentence is the error toast —
+        // not "That did not work" — while the page keeps the first press's "Closed".
+        await Page.Locator("#refused-close").ClickAsync();
+        await Expect(Page.Locator("#refused-state")).ToHaveTextAsync("Closed",
+            new LocatorAssertionsToHaveTextOptions { Timeout = 10_000 });
+        await Page.Locator("#refused-close").ClickAsync();
+        var refusal = Page.Locator("[data-ui-toast-dialog][data-variant=danger]:has-text(\"The invoice is already closed.\")");
+        await Expect(refusal).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(Page.Locator("#refused-state")).ToHaveTextAsync("Closed");
 
         // Virtualize: the windowed list pins its sticky header on the <th> cells (static check).
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First

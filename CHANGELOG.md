@@ -46,6 +46,13 @@ them until tagged releases begin.
   file changed on `main` no longer sends every branch to the whole set; a push to `main` is measured from the newest
   earlier run that started its gates, green or red, not from the last green one (`scripts/lib/green_base.sh`).
   `ci/release/**` still runs everything.
+- **CI: the analyzers are four jobs.** The `analyzers` job analysed every project in one build and was the run's
+  longest job. It is now `analyzers 1/4` … `analyzers 4/4`, cut by project in `scripts/lib/analyzer-shards.txt`
+  (dealt by measured analyzer seconds, each big test project in the shard of what it tests).
+  Each builds only its own projects with the analyzers on (`-p:RaskAnalyzerShard=K`,
+  `RASK_UNIT_PART=analyzers-K`), their references with them off, skips a scoped run that reaches none of them,
+  and prints each project's analyzer seconds to re-deal by; shard 1 also runs the formatter and the gate script
+  tests. No rule is turned off; a hand run of `scripts/run-unit-local.sh` still analyses every project. Until 1.0.
 - **CI: a nightly minutes after the push, on GitHub Packages first.** `nightly.yml` starts with `main`'s `ci` run,
   packs the commit while it builds, and pushes the moment the run's `build` job (the build and the unit tests) is
   green — to GitHub Packages first, restorable within seconds, then to nuget.org. The `build` job runs with the
@@ -84,7 +91,8 @@ them until tagged releases begin.
   `RaskServerOptions` first, then `RefusedException` 400, `ForbiddenException` 403/401, `BadRequestException` its
   own. Remote CQRS answers a handler's refusal 400 with `detail` and `errors`, so a WASM form shows it too.
   RaskApp still re-executes `/error` for a browser's navigation. See
-  [a refusal is shown](docs/lifecycle.md#a-refusal-is-shown-refusedexception).
+  [a refusal is shown](docs/lifecycle.md#a-refusal-is-shown-refusedexception); rask.sh's Composition guide
+  ("A handler that refuses") now leads with it and runs it live — press "Close the invoice" twice.
 - **`await page.WaitForRask()` — wait for a Rask page to settle in a Playwright test** (new package
   `Rask.Testing.Playwright`; Livewire's `waitForLivewire()` for Laravel Dusk is the same idea). Before: every app's
   browser tests hand-rolled "settled" — counting sent against acknowledged events, waiting for `[aria-busy=true]` and
