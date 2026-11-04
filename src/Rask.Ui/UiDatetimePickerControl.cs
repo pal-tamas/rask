@@ -24,7 +24,7 @@ namespace Rask;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a moment or a range.</typeparam>
-public abstract partial class UiDatetimePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind
+public abstract partial class UiDatetimePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind, IUiLockable
 {
     private static readonly Dictionary<string, string?> PopupMarks = new(StringComparer.Ordinal)
     {
@@ -140,6 +140,9 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
     /// <summary>Prevents the reader from opening the picker.</summary>
     public bool? Disabled { get; set; }
 
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
+
     /// <inheritdoc cref="IUiFormControl.Invalid" />
     public bool? Invalid { get; set; }
 
@@ -219,6 +222,12 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
 
         Task Commit(T value)
         {
+            // Locked, it keeps even its own choice: what it was sent was written by hand (#1272).
+            if (UiRefusals.Locked(this, acc))
+            {
+                return Task.CompletedTask;
+            }
+
             _own = (Bind is null, value, Value);
             return UiFormCommit.CommitAsync(this, acc, ctx, value);
         }
@@ -236,7 +245,7 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
             Clear = ClearAsync,
         };
 
-        _drawn = new Drawn(Commit, acc, ctx);
+        _drawn = new Drawn(Commit, acc, ctx, options);
         var config = UiCalendarHook.Config(options, Picks(committed).Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder), json => Write(json, times, options.Culture));
 
         return field.Wrap(
@@ -289,11 +298,32 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
 
     private Drawn Latest => _drawn ?? throw new InvalidOperationException("The datetime picker has not been drawn.");
 
-    private Task ChangedAsync(string text) => TryRead(text, out var value) ? Latest.Commit(value) : Task.CompletedTask;
+    // What the calendar announced: only a choice it could have drawn, of days the reader can press (#1272).
+    private Task ChangedAsync(string text)
+    {
+        if (!TryRead(text, out var value))
+        {
+            return Task.CompletedTask;
+        }
+
+        var drawn = Latest;
+        if (Picks(value).DrawnBy(drawn.Options))
+        {
+            return drawn.Commit(value);
+        }
+
+        UiRefusals.Unoffered(this, drawn.Accessor);
+        return Task.CompletedTask;
+    }
 
     // Nothing chosen: null where the bound member can say so, the type's unset value where it cannot.
     private Task ClearAsync()
     {
+        if (UiRefusals.Locked(this, Latest.Accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         _own = (Bind is null, default, Value);
         return UiFormCommit.ClearAsync(this, Latest.Accessor, Latest.Context);
     }
@@ -462,5 +492,5 @@ public abstract partial class UiDatetimePickerControl<T> : Component, IFormContr
     /// <summary>What the button shows for <paramref name="current" />; nothing while it is unset.</summary>
     private protected abstract (string Before, string Between, string After)? Text(T? current, UiDatetimeTimes times, DateOnly today);
 
-    private sealed record Drawn(Func<T, Task> Commit, ExpressionAccessor.Accessor? Accessor, EditContext? Context);
+    private sealed record Drawn(Func<T, Task> Commit, ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiCalendarOptions Options);
 }

@@ -19,6 +19,10 @@ namespace Rask;
 /// It follows <c>docs/building-form-controls.md</c> §2 exactly; the point here is that it follows it in
 /// one place.
 /// </para>
+/// <para>
+/// A control drawn disabled (<see cref="IUiLockable" />) writes nothing through any of them (#1272): each refuses,
+/// and says so once (<see cref="UiRefusals.Locked(object, ExpressionAccessor.Accessor?)" />).
+/// </para>
 /// </remarks>
 internal static class UiFormCommit
 {
@@ -73,6 +77,11 @@ internal static class UiFormCommit
         EditContext? context,
         T value)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
@@ -100,6 +109,11 @@ internal static class UiFormCommit
     /// </summary>
     internal static Task ClearAsync<T>(IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
@@ -130,6 +144,11 @@ internal static class UiFormCommit
     internal static Task UnreadAsync<T>(
         IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, RaskString sentence)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null || context is null)
         {
@@ -195,6 +214,11 @@ internal static class UiFormCommit
         EditContext? context,
         IReadOnlyList<T> picked)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {

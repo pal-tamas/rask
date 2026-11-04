@@ -16,6 +16,16 @@ internal sealed class OfferedGuard(Delegate inner, OfferedOptions offered) : IHa
         new OfferedGuard(handler, offered).OneAsync;
 
     /// <summary>
+    ///     The handler of a control drawn disabled, whatever its shape: never run, since the browser sends no event for
+    ///     a disabled control, and what arrives anyway is refused and said once.
+    /// </summary>
+    /// <param name="handler">The handler the control would run while enabled.</param>
+    /// <param name="control">What the control is called in the log: <c>input</c>, <c>textarea</c>.</param>
+    /// <param name="name">The name it posts under, or null.</param>
+    public static Func<string, Task> Refusing(Delegate handler, string control, string? name) =>
+        new OfferedGuard(handler, OfferedOptions.Disabled(control, name)).OneAsync;
+
+    /// <summary>
     ///     A handler that takes a whole selection — an <c>Action</c> or a <c>Func</c> of the values: run with the values
     ///     the choice offered, the rest dropped, and not at all for a selection of nothing but values it never offered.
     /// </summary>

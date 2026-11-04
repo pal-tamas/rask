@@ -23,7 +23,7 @@ namespace Rask;
 ///     renders the rows and hears a pick.
 ///     </para>
 /// </remarks>
-public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind
+public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind, IUiLockable
 {
     private readonly int _instance = UiInstanceCounter.Next();
 
@@ -90,6 +90,9 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <summary>True for a select that cannot be opened or changed.</summary>
     public bool? Disabled { get; set; }
 
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
+
     /// <summary>
     ///     Writes the model as soon as it is chosen, and validates then:
     ///     <c>Ui.Select.Bind(() =&gt; m.Plan).Live()</c>. Flux's <c>wire:model.live</c>. Without it the choice is
@@ -123,6 +126,9 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
 
     /// <summary>The expression the select is bound with, when it is.</summary>
     private protected abstract LambdaExpression? Bound { get; }
+
+    // What a refusal names the select by: the member it is bound to, or its Name while controlled.
+    private ExpressionAccessor.Accessor? Accessor => Bound is { } bound ? ExpressionAccessor.Parse(bound) : null;
 
     /// <summary>Whether the select holds a collection of answers rather than one.</summary>
     private protected abstract bool HoldsMany { get; }

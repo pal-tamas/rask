@@ -27,7 +27,7 @@ namespace Rask;
 ///     keeps a thumb under it every frame and tells the page through one bound field a surface.
 ///     </para>
 /// </remarks>
-public sealed partial class UiColorPicker : Component, IFormControl<string>, IUiFormControl, IDeferredBind
+public sealed partial class UiColorPicker : Component, IFormControl<string>, IUiFormControl, IDeferredBind, IUiLockable
 {
     private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal)
     {
@@ -102,6 +102,9 @@ public sealed partial class UiColorPicker : Component, IFormControl<string>, IUi
 
     /// <summary>True for a picker that cannot be opened or changed.</summary>
     public bool? Disabled { get; set; }
+
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
 
     /// <summary>True for error styling the form did not ask for. A bound picker is invalid while its member holds a message.</summary>
     public bool? Invalid { get; set; }

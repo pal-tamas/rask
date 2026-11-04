@@ -8,4 +8,6 @@ internal sealed class UiCalendarSinglePick(DateOnly chosen) : UiCalendarPicks
     internal override string Mode => "single";
 
     internal override UiCalendarMarks Marks(DateOnly day) => new(chosen != default && day == chosen, false, false, false, false);
+
+    private protected override IEnumerable<DateOnly> Days => chosen == default ? [] : [chosen];
 }

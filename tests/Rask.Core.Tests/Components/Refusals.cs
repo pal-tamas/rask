@@ -9,12 +9,15 @@ namespace Rask.Core.Tests.Components;
 internal static class Refusals
 {
     /// <summary>Renders the page live and sends its one change handler <paramref name="frame" />.</summary>
-    public static async Task Change(Component view, string frame)
+    public static Task Change(Component view, string frame) => Send(view, "change", frame);
+
+    /// <summary>Renders the page live and sends its one handler of <paramref name="domEvent" /> <paramref name="frame" />.</summary>
+    public static async Task Send(Component view, string domEvent, string frame)
     {
         var html = view.RenderAsLiveRoot();
-        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
+        var id = MarkupAssert.Attr(html, "data-rask-on-" + domEvent);
         using var doc = JsonDocument.Parse(frame);
-        Assert.True(await view.TryInvokeHandlerAsync(changeId!, doc.RootElement));
+        Assert.True(await view.TryInvokeHandlerAsync(id!, doc.RootElement));
     }
 
     /// <summary>What <paramref name="act" /> reported to the diagnostics sink.</summary>

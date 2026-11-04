@@ -53,6 +53,10 @@ internal sealed record UiCalendarOptions(
     internal bool InPopup { get; init; }
 
 
+    /// <summary>Whether the reader can press <paramref name="day" />: within the limits, and not unavailable.</summary>
+    internal bool Offers(DateOnly day) =>
+        (Min is not { } min || day >= min) && (Max is not { } max || day <= max) && Unavailable?.Contains(day) != true;
+
     /// <summary>The clock a calendar reads today from. A test that snapshots markup pins it.</summary>
     internal static TimeProvider Clock { get; set; } = TimeProvider.System;
 

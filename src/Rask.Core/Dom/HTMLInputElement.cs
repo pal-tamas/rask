@@ -353,19 +353,22 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         });
     }
 
-    // Plain / controlled.
+    // Plain / controlled. Drawn disabled, it takes nothing either (#1272): the browser sends no event for a disabled
+    // field, so whatever arrives was written by hand, and is refused behind its guard.
     private void WirePlain(StringBuilder sb, LiveRenderContext ctx)
     {
         var input = OnInput.Handler;
         if (input is not null)
         {
-            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(ArgumentIgnoringHandler<string>.Fed(input)));
+            AppendAttr(sb, "data-rask-on-input", ctx.RegisterHandler(Closed(ArgumentIgnoringHandler<string>.Fed(input))));
         }
 
         var change = Spelled(((IFormControl<T>)this).ControlledChangeHandler());
         if (change is not null)
         {
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(change));
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(Closed(change)));
         }
     }
+
+    private Delegate Closed(Delegate handler) => Disabled is true ? OfferedGuard.Refusing(handler, "input", Name) : handler;
 }

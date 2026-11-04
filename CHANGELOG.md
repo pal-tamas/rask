@@ -2059,6 +2059,19 @@ them until tagged releases begin.
 
 ### Security
 
+- **A disabled kit control writes nothing, and a calendar takes only a day it drew (#1272).** Before: the kit
+  controls that write through a handler of their own stayed wired while drawn `.Disabled()`, so a hand-written frame
+  could still move a `Ui.Slider`, fill a `Ui.Otp`, pick in a `Ui.DatePicker` (`.Range`, typed or not),
+  `Ui.DatetimePicker` or `Ui.TimePicker`, pick, clear or create in a held `Ui.Select.Listbox`/`.Combobox` or
+  `Ui.Pillbox`, and change a `Ui.Editor`; so could a controlled `Input`/`Textarea` drawn `.Disabled(true)`. A
+  `Ui.Calendar`, `Ui.DatePicker` and `Ui.DatetimePicker` took any day, outside `Min`/`Max` or `Unavailable` too, and
+  a held list sent only values it never drew cleared its answer. Now every write of a disabled kit control is
+  refused in one place (`UiFormCommit` asks `IUiLockable`), a disabled controlled field's handlers are behind the
+  #1271 guard, and a calendar's choice is held to the days the reader could press (a preset range to what it spans
+  today). Each is refused as #1270/#1271 are: nothing written, one `Rask.Forms` warning naming the control, never the
+  value. A disabled `Ui.ColorPicker` already registered no handler; one heard from an older page now says so too. A
+  date or time typed into a picker's own field is still not held to the limits. Nothing to change in an app.
+
 - **A disabled bound control, and a `Ui.Tabs`, take only what the reader could send (#1271).** Before: a bound
   `Input`, `Textarea` or `Select` drawn `.Disabled(true)` (and every kit control that binds through one: a standalone
   `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, the native `Ui.Select`) still wired its write, so

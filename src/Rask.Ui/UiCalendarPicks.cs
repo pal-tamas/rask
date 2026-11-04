@@ -17,4 +17,14 @@ internal abstract class UiCalendarPicks
 
     /// <summary>What the calendar's own inputs show (<c>with-inputs</c>): the day, or a range's start and end.</summary>
     internal virtual IReadOnlyList<DateOnly?> Typed => [First];
+
+    /// <summary>Every day chosen: none, one, several, or a range's start and end.</summary>
+    private protected abstract IEnumerable<DateOnly> Days { get; }
+
+    /// <summary>
+    ///     Whether the calendar could have drawn this choice (#1272): every day of it one the reader can press, within
+    ///     <c>Min</c> and <c>Max</c> and not <c>Unavailable</c>, as <c>rask-calendar.ts</c> rules them. A choice of
+    ///     nothing is a clear, which every calendar offers.
+    /// </summary>
+    internal virtual bool DrawnBy(UiCalendarOptions options) => Days.All(options.Offers);
 }

@@ -272,14 +272,25 @@ latest render drew it, sends that value — compared as the render wrote it:
 - any bound `Input`, `Textarea` or `Select` drawn `.Disabled(true)`, and every kit control that binds through one
   (a standalone `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, the native `Ui.Select`, …):
   nothing at all, an empty selection included. A browser sends no event for a disabled control. Its rules still
-  run when the form is submitted.
+  run when the form is submitted;
+- a controlled `Input` or `Textarea` (`.Value(…).OnChange(…)` / `.OnInput(…)`) drawn `.Disabled(true)`: nothing —
+  neither handler is called;
+- a kit control that writes through a handler of its own, drawn `.Disabled()`: nothing — `Ui.Slider`, `Ui.Otp`,
+  `Ui.DatePicker` (`.Range`, typed or not), `Ui.DatetimePicker`, `Ui.TimePicker` (list and typed),
+  `Ui.ColorPicker`, `Ui.Select.Listbox`/`.Combobox` (a pick, its clear, its create row), `Ui.Pillbox` and
+  `Ui.Editor`;
+- a `Ui.Calendar`, `Ui.DatePicker` and `Ui.DatetimePicker`, from their calendar: only days it drew the reader able
+  to press — within `Min` and `Max`, not `Unavailable` — or a preset range exactly as it spans today;
+- a held `Ui.Select.Listbox`/`.Combobox` and `Ui.Pillbox`: an enabled row's value, or an answer it still shows. Sent
+  nothing else, it keeps its answer.
 
 Anything else (an id the reader was never shown, a disabled choice) is refused: the model keeps its value, no
 rule runs, `AfterBind` and `OnChange` are not called, and a warning that names the control — never the value —
 goes to the `Rask.Forms` log. `Select.OnSelect` drops the values no option offered and is not called for a
 selection of nothing else. It is not an authorization check: the choices you draw are the ones you decided
-this reader may pick. The held `Ui.Select.Listbox`/`.Combobox`, `Ui.Pillbox` and the menu's radios and
-checkboxes keep the same rule.
+this reader may pick. The menu's radios and checkboxes keep the same rule. A date typed into a `Ui.DatePicker`'s
+own field, and a time typed into a `Ui.TimePicker`'s, is the reader's to type and is not held to the limits here:
+give the model a rule when it must be.
 
 ### Empty value handling
 

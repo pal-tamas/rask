@@ -133,6 +133,12 @@ public abstract partial class UiSelectControl<T>
     // The create row is about what the field holds: heard at every key, or carried ahead of this press.
     private async Task CreateAsync()
     {
+        // A disabled select makes nothing of a press it could not have been sent (#1272).
+        if (UiRefusals.Locked(this, Bound))
+        {
+            return;
+        }
+
         var view = Latest;
         if (view.Parts.Create is not { } create || view.Skips(view.CreateIndex))
         {

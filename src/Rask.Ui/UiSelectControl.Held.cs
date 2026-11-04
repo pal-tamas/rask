@@ -117,30 +117,54 @@ public abstract partial class UiSelectControl<T>
 
     // The answers the browser held, sent ahead of the next action: each form value is the row that posts it, or
     // an answer the select still shows though a render took its row away. One no row and no answer posts is not
-    // the reader's, and is dropped; so is one said twice. A select of one answer takes the first.
+    // the reader's, and is dropped, and said once (#1272); so is one said twice. Sent nothing but what it never
+    // offered, the select keeps its answer: a browser sends no such list. A select of one answer takes the first.
     private Task HeldAsync(string field)
     {
+        if (UiRefusals.Locked(this, Bound))
+        {
+            return Task.CompletedTask;
+        }
+
         var view = Latest;
         var picked = new List<T>();
+        var unoffered = false;
         foreach (var value in UiFormValues.Read(field))
         {
-            if (view.Parts.Rows.Find(row => string.Equals(row.Option.FormValue, value, StringComparison.Ordinal)) is { } row)
+            if (!TryOffered(view, value, out var answer))
             {
-                if (row.Option.Disabled != true && !picked.Exists(held => Same(held, row.Value)))
-                {
-                    picked.Add(row.Value);
-                }
-
-                continue;
+                unoffered = true;
             }
-
-            if (Array.Find(view.Answers, answer => string.Equals(answer.Face.FormValue, value, StringComparison.Ordinal)) is { Face: not null } kept
-                && !picked.Exists(held => Same(held, kept.Value)))
+            else if (!picked.Exists(held => Same(held, answer)))
             {
-                picked.Add(kept.Value);
+                picked.Add(answer);
+            }
+        }
+
+        if (unoffered)
+        {
+            UiRefusals.Unoffered(this, Accessor);
+            if (picked.Count == 0)
+            {
+                return Task.CompletedTask;
             }
         }
 
         return CommitAsync(!IsMultiple && picked.Count > 1 ? [picked[0]] : picked);
     }
+
+    // The answer a form value is: an enabled row's, or an answer the select still shows.
+    private static bool TryOffered(View view, string value, out T answer)
+    {
+        if (view.Parts.Rows.Find(row => string.Equals(row.Option.FormValue, value, StringComparison.Ordinal)) is { } row)
+        {
+            answer = row.Value;
+            return row.Option.Disabled != true;
+        }
+
+        var kept = Array.Find(view.Answers, held => string.Equals(held.Face.FormValue, value, StringComparison.Ordinal));
+        answer = kept.Value;
+        return kept.Face is not null;
+    }
+
 }

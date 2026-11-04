@@ -26,7 +26,7 @@ namespace Rask;
 ///     <c>Raw</c>.
 ///     </para>
 /// </remarks>
-public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
+public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, IDeferredBind
 {
     private static readonly UiPartMarker Marker = new UiPartMarker("ui-editor").And("ui-control");
 
@@ -115,6 +115,9 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
 
     private bool Locked => Disabled == true || Host?.Disabled == true;
 
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Locked;
+
     /// <summary>Makes this editor the box of a composer. The kit's own chain step.</summary>
     /// <param name="host">What the composer hands the editor.</param>
     internal UiEditor HostedBy(UiEditorHost host)
@@ -202,9 +205,16 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IDeferredBind
         }
     }
 
-    // The browser's editor changed: the model first, so OnChange sees it already holding the new HTML.
-    private async Task Changed(string html)
+    // The browser's editor changed: the model first, so OnChange sees it already holding the new HTML. A locked
+    // editor is not editable, so a change it hears was written by hand: refused, and the editor keeps its HTML.
+    // Internal: the engine's callback, which a test sends a change through as the browser would.
+    internal async Task Changed(string html)
     {
+        if (UiRefusals.Locked(this, Bound))
+        {
+            return;
+        }
+
         _shown = html;
         ReaderEdits.Note(this);
         if (Bound is { } bind)

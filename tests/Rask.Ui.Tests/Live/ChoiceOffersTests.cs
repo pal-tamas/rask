@@ -1,6 +1,7 @@
 using Rask.Core;
 using Rask.Core.Diagnostics;
 using Rask.TestSupport;
+using static Rask.UiTests.Live.Reports;
 
 #pragma warning disable RASK014 // the test owns the root it re-renders; there is no parent to build it
 
@@ -239,23 +240,6 @@ public sealed partial class ChoiceOffersTests : global::Rask.Core.RaskMarkup
             Ui.Radio.Value("pro").Label("Pro"),
             Ui.Radio.Value("team").Label("Team").Disabled()
         ]);
-
-    private static async Task<List<RaskDiagnosticEvent>> Reported(Func<Task> act)
-    {
-        var captured = new List<RaskDiagnosticEvent>();
-        var previous = RaskDiagnostics.Sink;
-        RaskDiagnostics.Sink = captured.Add;
-        try
-        {
-            await act();
-        }
-        finally
-        {
-            RaskDiagnostics.Sink = previous;
-        }
-
-        return captured;
-    }
 
     private sealed class Order
     {

@@ -25,7 +25,7 @@ namespace Rask;
 /// Flux's shows the capital — the runtime's hook does not change case.
 /// </para>
 /// </remarks>
-public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormControl, IDeferredBind
+public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormControl, IDeferredBind, IUiLockable
 {
     // What the hidden field last reported, as it was typed. It is rendered back unchanged while it still spells
     // the code: the runtime tells its own value coming back from a new one by the exact text.
@@ -71,6 +71,9 @@ public sealed partial class UiOtp : Component, IFormControl<string>, IUiFormCont
 
     /// <inheritdoc cref="UiInput{T}.Disabled" />
     public bool? Disabled { get; set; }
+
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
 
     /// <summary>Classes for the row of cells: <c>mx-auto</c>.</summary>
     public string? Class { get; set; }
