@@ -51,6 +51,24 @@ public sealed class GlobalizationPropertyTests
     }
 
     [Fact]
+    public void Shipping_no_ICU_still_lets_a_language_be_named_so_its_text_is_translated()
+    {
+        // Without it PredefinedCulturesOnly defaults to true under invariant globalization, GetCultureInfo("hu")
+        // throws, no configured language resolves, and Strings fell back to the neutral catalog (#1199). Off, the
+        // name resolves over the invariant culture's data: text by tag, dates and numbers invariant.
+        var block = Between(
+            "'$(RaskGlobalization)' != 'true'\n                             AND '$(WasmBuildNative)' != 'false' \">",
+            "</PropertyGroup>",
+            _targets.Replace("\r\n", "\n"));
+
+        Assert.Contains("<InvariantGlobalization>true</InvariantGlobalization>", block, StringComparison.Ordinal);
+        Assert.Contains(
+            "<PredefinedCulturesOnly Condition=\" '$(PredefinedCulturesOnly)' == '' \">false</PredefinedCulturesOnly>",
+            block,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_fast_unit_gates_build_mode_is_still_exempt()
     {
         // InvariantGlobalization=true forces a native relink, which conflicts with the no-native build
@@ -74,13 +92,14 @@ public sealed class GlobalizationPropertyTests
             "'$(_RaskAppInvariantGlobalization)' == 'true'", _targets, StringComparison.Ordinal);
     }
 
-    private static string Between(string start, string end)
+    private static string Between(string start, string end, string? text = null)
     {
-        var from = _targets.IndexOf(start, StringComparison.Ordinal);
+        text ??= _targets;
+        var from = text.IndexOf(start, StringComparison.Ordinal);
         Assert.True(from >= 0, $"expected to find {start} in Rask.Wasm.targets");
-        var to = _targets.IndexOf(end, from, StringComparison.Ordinal);
+        var to = text.IndexOf(end, from, StringComparison.Ordinal);
         Assert.True(to > from, $"expected {end} after {start}");
-        return _targets[from..to];
+        return text[from..to];
     }
 
     private static string LocateRepoRoot()

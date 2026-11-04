@@ -331,6 +331,13 @@
   <PropertyGroup Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' != 'true'
                              AND '$(WasmBuildNative)' != 'false' ">
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!--
+      Off here too, so a culture can still be NAMED without its data: GetCultureInfo("hu") then answers a culture
+      called "hu" that formats as the invariant one, rather than throwing. Translated text is looked up by that
+      name (the generated Strings switch over the tag), so an app ships its languages' text with no ICU at all and
+      only dates and numbers fall back (#1199). Left alone, it defaults to true here and no language resolves.
+    -->
+    <PredefinedCulturesOnly Condition=" '$(PredefinedCulturesOnly)' == '' ">false</PredefinedCulturesOnly>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(RaskWasm)' == 'true' AND '$(RaskGlobalization)' == 'true' ">

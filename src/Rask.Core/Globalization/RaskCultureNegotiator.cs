@@ -9,12 +9,13 @@ namespace Rask.Core.Globalization;
 /// <remarks>
 ///     <para>
 ///         Order: <b>URL → cookie → client preference → default</b>. An explicit act beats a remembered
-///         one, which beats an inferred one. Nothing here inspects the route: <b>Rask keeps culture out
-///         of the URL path</b>, so one link is the same page for everyone and the router, the generated
-///         <c>Url()</c>/<c>Go()</c> helpers, and every route value stay culture-neutral.
+///         one, which beats an inferred one. Nothing here inspects the route path: by default <b>Rask keeps
+///         culture out of it</b>, so one link is the same page for everyone. An app that puts the language in
+///         its URLs (<see cref="RaskCultureOptions.UrlPrefix" />) reads it off the path instead, and asks this
+///         only for a first visit to the bare root.
 ///     </para>
 ///     <para>
-///         Matching walks <see cref="CultureInfo.Parent" /> (<c>hu-HU</c> → <c>hu</c>) and will also
+///         Matching walks the tag's subtags (<c>hu-HU</c> → <c>hu</c>) and will also
 ///         accept a sibling region — <c>hu</c> matches a supported <c>hu-HU</c> — because a visitor
 ///         asking for a language the app has in another region wants that language, not English.
 ///     </para>
@@ -111,62 +112,12 @@ public static class RaskCultureNegotiator
     ///     The supported culture that best serves <paramref name="requested" />, or <c>null</c>.
     /// </summary>
     /// <remarks>
-    ///     Two passes. The first walks the request's own parent chain, so <c>hu-HU</c> is served by a
-    ///     supported <c>hu-HU</c> and then by a supported <c>hu</c>. The second compares the neutral
-    ///     language of each side, so a request for <c>hu</c> is served by a supported <c>hu-HU</c> —
-    ///     the app has the language, just in a region the visitor did not name.
+    ///     Matched on the tags (<see cref="LanguageTag.Match" />), and only the winner is turned into a
+    ///     culture: a runtime with no culture data gives every culture the invariant one as its parent, so a
+    ///     walk over <see cref="CultureInfo.Parent" /> never reached a supported <c>hu</c> from <c>hu-HU</c>.
     /// </remarks>
-    private static CultureInfo? Match(string? requested, IList<string>? supported)
-    {
-        if (supported is null || supported.Count == 0 || !RaskCultureResolver.TryResolve(requested, out var wanted))
-        {
-            return null;
-        }
-
-        for (var candidate = wanted; !candidate.Equals(CultureInfo.InvariantCulture); candidate = candidate.Parent)
-        {
-            foreach (var name in supported)
-            {
-                if (string.Equals(name, candidate.Name, StringComparison.OrdinalIgnoreCase)
-                    && RaskCultureResolver.TryResolve(name, out var exact))
-                {
-                    return exact;
-                }
-            }
-
-            // Parent of a neutral culture is the invariant culture, which ends the walk.
-            if (candidate.Parent.Equals(candidate))
-            {
-                break;
-            }
-        }
-
-        var wantedNeutral = Neutral(wanted);
-        foreach (var name in supported)
-        {
-            if (RaskCultureResolver.TryResolve(name, out var supportedCulture)
-                && string.Equals(
-                    Neutral(supportedCulture).Name, wantedNeutral.Name, StringComparison.OrdinalIgnoreCase))
-            {
-                return supportedCulture;
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>The neutral (language-only) culture behind a specific one: <c>hu-HU</c> → <c>hu</c>.</summary>
-    private static CultureInfo Neutral(CultureInfo culture)
-    {
-        var current = culture;
-        while (!current.IsNeutralCulture
-               && !current.Equals(CultureInfo.InvariantCulture)
-               && !current.Parent.Equals(current)
-               && !current.Parent.Equals(CultureInfo.InvariantCulture))
-        {
-            current = current.Parent;
-        }
-
-        return current;
-    }
+    private static CultureInfo? Match(string? requested, IList<string>? supported) =>
+        LanguageTag.Match(requested, supported) is { } name && RaskCultureResolver.TryResolve(name, out var culture)
+            ? culture
+            : null;
 }

@@ -28,16 +28,19 @@ public sealed class SessionCulture : IRaskCulture
 
         var supported = new List<CultureInfo>(options.SupportedCultures.Count);
         var missing = false;
+        var hasData = RaskCultureResolver.IsGlobalizationSupported;
         foreach (var name in options.SupportedCultures)
         {
+            // Without culture data a language still resolves by name — its text is looked up by the tag — but
+            // formats as the invariant culture. English is what such a runtime formats in anyway, which is why a
+            // WASM app that names only English ships no ICU, so its absence is nothing to report.
             if (RaskCultureResolver.TryResolve(name, out var culture))
             {
                 supported.Add(culture);
+                missing |= !hasData && !IsEnglish(name);
             }
             else
             {
-                // English is what a runtime without culture data formats in anyway, which is why a WASM app
-                // that names only English ships no ICU — so its absence is nothing to report.
                 missing |= !IsEnglish(name);
             }
         }
@@ -55,7 +58,7 @@ public sealed class SessionCulture : IRaskCulture
                 "Rask.Globalization",
                 static () =>
                     "This app configures cultures, but the runtime was built without culture data, so "
-                    + "every culture formats identically and only the invariant culture resolves. Set "
+                    + "its text is translated but every culture formats dates and numbers identically. Set "
                     + "<RaskGlobalization>true</RaskGlobalization> in the app's project file to ship ICU "
                     + "(roughly a megabyte in a WASM bundle), or name the language in Rask:Cultures, which ships "
                     + "it for you.");
