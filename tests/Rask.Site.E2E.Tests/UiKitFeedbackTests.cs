@@ -323,14 +323,17 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         await Page.Locator("#toast-layout-stack").ClickAsync();
         var toasts = Page.Locator("[data-ui-toast-group] > [data-ui-toast-dialog]");
 
-        // Two one-second toasts, and the pointer on the front one before either has run out.
-        await Page.Locator("#toast-brief").ClickAsync();
-        await Page.Locator("#toast-brief").ClickAsync();
+        // Two five-second toasts, and the pointer on the front one well before either has run out. Not the
+        // one-second toast: on a slow runner the two clicks and the hover outlast it, and the older one is caught
+        // part-way through its fade, where the pointer rightly holds it.
+        await Page.Locator("#toast-plain").ClickAsync();
+        await Page.Locator("#toast-plain").ClickAsync();
         await Expect(toasts).ToHaveCountAsync(2, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
         await toasts.Nth(0).Locator("> div").HoverAsync();
-        await Page.WaitForTimeoutAsync(3000);
+        await Page.WaitForTimeoutAsync(6000);
 
-        // Three seconds on, both are there and neither has faded: the one the pointer is not on is held too.
+        // Past both countdowns and their fades, both are there and neither has faded: the one the pointer is not on
+        // is held too.
         await Expect(toasts).ToHaveCountAsync(2);
         Assert.Equal(
             ["1", "1"],
