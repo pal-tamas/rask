@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # The browser host's own journeys in a real Chromium, by hand: tests/Rask.Wasm.Fixture.Wasm — a page drawn for the
-# signed-in user, an API of its own server, a sign-in page — served from an ASP.NET host inside the test process that
-# issues the cookie (tests/Rask.Wasm.E2E.Tests). Two tabs of one browser: a sign-out in one, a refused API call in the
-# other.
+# signed-in user, an API of its own server, a sign-in page, a page with an island — served from an ASP.NET host inside
+# the test process that issues the cookie (tests/Rask.Wasm.E2E.Tests). Two tabs of one browser: a sign-out in one, a
+# refused API call in the other; and the same publish under a sub-path, where the island loads and navigates. The
+# publish bundles the island with npm (the fixture's package.json), so node is ensured first.
 #
 #   scripts/run-wasm-e2e-local.sh
 #   RASK_E2E_FILTER='FullyQualifiedName~SignInEndedElsewhereTests' scripts/run-wasm-e2e-local.sh

@@ -1297,6 +1297,10 @@ islands page of the site (`src/Rask.Site`): Vue, React, Svelte, Solid and a Lit-
 mount and take their C# props; a Vue and a Lit callback re-enter C# through a `[JSExport]` call into
 this tab's runtime; a prop change reconciles rather than remounting, each component keeping its own
 state; and a package island (react-colorful) nested inside the React island calls back into C#.
+The site is served at the origin root, so the sub-path case is `tests/Rask.Wasm.E2E.Tests/IslandsUnderASubPathTests.cs`:
+a WASM app under `/app`, on a host that answers nothing outside it, loads the runtime, the manifest and
+the chunk under `/app/`, and a Lit-runtime island's `Routes.DeskPage().Go()` from `@rask/routes` goes to
+`/app/desk` without a reload.
 
 **Server, in a browser** — narrower. `tests/Rask.DevTools.E2E.Tests/ServerIslandJourneyTests.cs`
 mounts a Lit-runtime island on the Server host and reads the props C# passed, reports one that fails to

@@ -2,8 +2,9 @@
 
   <!--
     The browser-WASM app the browser host's own journeys (tests/Rask.Wasm.E2E.Tests) drive: a page that says who it
-    is drawn for and calls its own server's API, and a sign-in page. Published by scripts/run-wasm-e2e-local.sh; the
-    journeys serve the publish from an ASP.NET host in their own process, which also issues and takes the cookie.
+    is drawn for and calls its own server's API, a sign-in page, and a page with a Lit-runtime island on it. Published
+    by scripts/run-wasm-e2e-local.sh; the journeys serve the publish from an ASP.NET host in their own process, which
+    also issues and takes the cookie — at the origin root, and under a sub-path for the island journeys.
     The same shape as the `wasm` template, minus its styling.
   -->
   <PropertyGroup>
@@ -30,6 +31,9 @@
     <!-- PrivateAssets="all" from the above, so an in-repo app names them itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
+    <!-- The islands page: the island base classes, and the build layer that bundles their front-end files (which is
+         why package.json sits beside this file) into wwwroot/_rask/external. -->
+    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

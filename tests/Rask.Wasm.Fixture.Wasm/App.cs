@@ -1,6 +1,7 @@
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
+using Rask.Wasm.Fixture.Wasm.Islands;
 
 namespace Rask.Wasm.Fixture.Wasm;
 
@@ -48,4 +49,14 @@ public sealed partial class DeskPage(IUserProvider users, HttpClient http, IAuth
 public sealed partial class SignInPage : Component
 {
     protected override Component? Render() => P.Id("sign-in-page")["sign in here"];
+}
+
+/// <summary>
+///     A page with one island on it, whose button goes to the desk with the app's typed routes. The sub-path journeys
+///     serve it under a base: the island must load and navigate under that base, as the app's own links do.
+/// </summary>
+[Route("/islands")]
+public sealed partial class IslandsPage : Component
+{
+    protected override Component? Render() => Section.Id("islands")[DeskLink.Label("to the desk")];
 }
