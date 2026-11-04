@@ -48,13 +48,13 @@
       <_RaskLsBinary>$(_RaskLsCacheDir)litestream$(_RaskLsExeSuffix)</_RaskLsBinary>
 
       <!-- Pinned SHA-256s for the default version. A user-supplied RaskLitestreamSha256 always wins. -->
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-x86_64'">cfb371176d164437ae869f8351cfde49bd1804ae71c61923f75c9cba9c9c006d</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-arm64'">f8ca4a050095c1efbda2c4365172e61bf9d955ea0d9ac42f448b52e51819baa5</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-armv7'">81b109c9e94a494b4802e02747233be87adec1142848c726ac4f80676b1c8c7d</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-x86_64'">891875af09db152e93a4b31a8a79f538ce7ce702c132803cfe0a831e7cb1b7db</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-arm64'">e211f68ff7658d19f193f2914417afdf8f89a053ff8f263e5d6b3b1d3bbc7b08</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-x86_64'">6f5532687d71c452e0099a9087e51da65f9935664fb11549abc0a5a34cb1d34e</_RaskLsSha>
-      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.17' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-arm64'">4760c629b43539e212fc6caf0d9c28d96f33f9a2878fd2edcd85cfebf21cea8f</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-x86_64'">d3687b9fd0f2e9426bbd3da828429ff3f1dfc5c9b74d54fdf028e4ee510e7dea</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-arm64'">922a09e6a7ac67f2095571894dc6382e94e1dd4cdd9674883ddf1a8e74ab982d</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'linux-armv7'">cca21d9c7178da6acc6ac16c9eb8ede48989be5209868a4035a4211451cc39f6</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-x86_64'">25846be4fc4a4e0b4fd9ac5d0e019c10ec70a4dc12fe84255f5607b8b9a520e0</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'darwin-arm64'">6d3e0875e5416628ef3d274e8f7bb0ecc2a19cbbe76b9ba43efe9901d82a5c84</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-x86_64'">7cc9115cb3ff2ee4800d476a328ffca6e8f3504da15e010b8c9c8ef1b9ab811f</_RaskLsSha>
+      <_RaskLsSha Condition="'$(RaskLitestreamVersion)' == '0.5.18' and '$(_RaskLsOs)-$(_RaskLsArch)' == 'windows-arm64'">8b896d6c2143766d98e063b234dac7c7dae4e6ddaa6036a0ebe329270910a584</_RaskLsSha>
       <_RaskLsSha Condition="'$(RaskLitestreamSha256)' != ''">$(RaskLitestreamSha256)</_RaskLsSha>
     </PropertyGroup>
   </Target>
