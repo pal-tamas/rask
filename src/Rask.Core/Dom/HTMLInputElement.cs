@@ -22,7 +22,7 @@ namespace Rask.Core;
 public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>, IFormControlElement
 {
     // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
-    string IFormControlElement.Control => "input";
+    string IFormControlElement.Control => DisabledControls.Input;
 
     bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
 

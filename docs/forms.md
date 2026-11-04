@@ -276,7 +276,10 @@ latest render drew it, sends that value — compared as the render wrote it:
   no event to a disabled control, so whatever arrives was written by hand. The markup is an enabled control's, and
   every kit control that draws one (a standalone `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`,
   the native `Ui.Select`, a `Ui.Slider` thumb, a `Ui.Otp` cell, …) inherits it — the warning names the kit control,
-  `Ui.Slider 'Volume'`. Its rules still run when the form is submitted;
+  `Ui.Slider 'Volume'`. Its rules still run when the form is submitted. A hosted Blazor component's own
+  `<button disabled @onclick>` — or any control in its `<fieldset disabled>` — is refused by the same rule
+  ([Blazor components](blazor-components.md#events)); an island's callbacks are the app's to check
+  ([islands](islands.md#a-disabled-control-in-an-island-is-yours-to-check));
 - a kit control that writes through a hidden field or an engine of its own, drawn `.Disabled()`: nothing —
   `Ui.DatePicker` (`.Range`, typed or not), `Ui.DatetimePicker`, `Ui.TimePicker` (list and typed),
   `Ui.ColorPicker`, `Ui.Select.Listbox`/`.Combobox` (a pick, its clear, its create row), `Ui.Pillbox` and

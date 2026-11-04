@@ -2077,6 +2077,18 @@ them until tagged releases begin.
 
 ### Security
 
+- **A disabled control inside a hosted Blazor component takes no event either (#1274).** Before: a
+  `<button disabled @onclick="…">` in a component hosted through `BlazorComponent<T>` (a MudBlazor or Radzen one, or
+  your own RCL's), and every `@onclick`/`@onchange`/`@bind` inside a hosted `<fieldset disabled>`, kept its handler,
+  because the island registers its handlers itself and #1273's rule sat in Rask's own serializer — so a hand-written
+  frame ran what the reader was shown disabled. After: the island applies the same rule to the hosted component's
+  render frames — a `button`, `input`, `select` or `textarea` whose `disabled` is written (Blazor's `false` and
+  `null` leave it out; `"false"` as a string disables, as the browser reads it), or inside a hosted or Rask
+  `<fieldset disabled>` outside its first `<legend>` — and its handlers are refused: nothing reaches Blazor, and one
+  `Rask.Forms` warning names the control. The markup is unchanged, and a Rask page's own render allocates exactly
+  what it did. An island's (`ReactComponent`, `LitComponent`, …) callbacks are not DOM handlers Rask can judge:
+  check your own state in the C# callback (`docs/islands.md`).
+
 - **Every handler on a disabled form control is refused, in one place (#1273).** Before: a disabled `Button` (and a
   `Ui.Button.Disabled()`) kept its `OnClick` wired, a disabled file input its `OnFiles`, a disabled controlled
   `Select` its `OnChange`, and nothing at all held a control inside a `Fieldset.Disabled(true)` — so a hand-written

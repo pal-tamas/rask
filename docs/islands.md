@@ -649,6 +649,27 @@ A callback that is not wired omits its key entirely, so the front end sees `unde
 key that still looks callable. A **data** prop set to null stays a JSON `null`, because "never set"
 and "set to nothing" are different facts.
 
+### A disabled control in an island is yours to check
+
+Rask refuses every handler of a control it draws disabled — its own `Button.Disabled(true)`, a control in a
+`Fieldset.Disabled(true)`, a hosted Blazor component's `<button disabled>` ([forms](forms.md#a-choice-takes-only-what-it-offered)) —
+because it writes that element and can see it is disabled. An island's DOM is the front end's: a callback is a prop
+of the island, not a handler on an element Rask writes, so Rask cannot tell whether the `<button disabled>` that
+calls it was drawn disabled. A hand-written frame can therefore call any callback the island was handed. Check the
+state the callback acts on in C# — the same reason the button was disabled:
+
+```csharp
+Editor.OnSave(async () =>
+{
+    if (!_canSave)   // the island drew Save disabled for this reason; the server decides again
+    {
+        return;
+    }
+
+    await Save();
+})
+```
+
 ### An island is already inside your session
 
 There is nothing to wire for [authentication](authentication.md), and that follows from the sentence

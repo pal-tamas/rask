@@ -6,7 +6,7 @@ namespace Rask.Core;
 // then is refused (#1273, IFormControlElement).
 public sealed partial class HTMLButtonElement : IFormControlElement
 {
-    string IFormControlElement.Control => "button";
+    string IFormControlElement.Control => DisabledControls.Button;
 
     bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
 

@@ -16,7 +16,7 @@ namespace Rask.Core;
 public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>, IFormControlElement
 {
     // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
-    string IFormControlElement.Control => "textarea";
+    string IFormControlElement.Control => DisabledControls.Textarea;
 
     bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
 

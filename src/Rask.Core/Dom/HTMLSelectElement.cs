@@ -17,7 +17,7 @@ namespace Rask.Core;
 public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormControl<T>, IFormControlElement
 {
     // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
-    string IFormControlElement.Control => "select";
+    string IFormControlElement.Control => DisabledControls.Select;
 
     bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
 
