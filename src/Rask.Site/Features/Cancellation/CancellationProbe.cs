@@ -4,6 +4,10 @@ namespace Rask.Site.Features;
 
 public sealed partial class CancellationProbe : Component
 {
+    // Long enough that a reader (or a browser test on a busy runner) presses Unmount before the work ends by itself:
+    // at 2.5 s a slow CI machine handled the press after the probe had already completed.
+    private const long RunsFor = 10_000;
+
     private readonly Stopwatch _watch = new();
     private int _logged;
     private string _status = "pending";
@@ -54,7 +58,7 @@ public sealed partial class CancellationProbe : Component
         // always resume the await — polling at every slice boundary guarantees
         // we notice the cancellation within ~100ms of it being requested even
         // when the Register callback above somehow missed.
-        while (_watch.ElapsedMilliseconds < 2500)
+        while (_watch.ElapsedMilliseconds < RunsFor)
         {
             await Task.Delay(100);
             if (token.IsCancellationRequested)
@@ -86,7 +90,7 @@ public sealed partial class CancellationProbe : Component
             Span.Class($"{pillClass} cancel-probe-pill")[$"#{InstanceId} {_status}"],
             Span.Class("text-zinc-500 dark:text-white/70 text-sm")[
                 _status is "running"
-                    ? "Awaiting Task.Delay(2500ms, CancellationToken). Click Unmount to abort."
+                    ? "Awaiting ten seconds of work, cancelled by CancellationToken. Click Unmount to abort."
                     : "Awaited task settled — probe is still alive."
             ]
         ];
