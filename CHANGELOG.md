@@ -48,7 +48,7 @@ them until tagged releases begin.
   `ci/release/**` still runs everything.
 - **CI: the analyzers are four jobs.** The `analyzers` job analysed every project in one build and was the run's
   longest job. It is now `analyzers 1/4` … `analyzers 4/4`, cut by project in `scripts/lib/analyzer-shards.txt`
-  (dealt by measured analyzer seconds; `src/Rask.Site` alone is about 45% of them and has a shard of its own).
+  (dealt by measured analyzer seconds, each big test project in the shard of what it tests).
   Each builds only its own projects with the analyzers on (`-p:RaskAnalyzerShard=K`,
   `RASK_UNIT_PART=analyzers-K`), their references with them off, skips a scoped run that reaches none of them,
   and prints each project's analyzer seconds to re-deal by; shard 1 also runs the formatter and the gate script

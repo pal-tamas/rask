@@ -259,8 +259,6 @@ shard_n="$(awk '!/^#/ && NF >= 2 && $2 > n { n = $2 } END { print n + 0 }' "$sha
 [ "$shard_n" -ge 1 ] || shard_n=1
 shard_parts="$(seq 1 "$shard_n" | jq -R '"analyzers-" + .' | jq -sc 'sort')"
 shard_names="$(seq 1 "$shard_n" | jq -R --arg n "$shard_n" '"analyzers " + . + "/" + $n' | jq -sc 'sort')"
-site_shard="$(awk '$1 == "Rask.Site" { print $2 }' "$shard_list")"
-site_shard="${site_shard:-1}"
 # The analyzers have jobs of their own beside it, so the nightly (which waits for build) does not wait for them.
 plans "the analyzers run beside the build, not ahead of it" 'any(.[]; .name == "analyzers 1/'"$shard_n"'" and .part == "analyzers-1") and any(.[]; .name == "build" and .part == "build")' push "" ""
 plans "...in a Dependabot bump's set too, every shard"     '[.[] | select((.part // "") | startswith("analyzers")) | .part] | sort == '"$shard_parts" deps "" "$nuget_bump~1" "$nuget_bump"
@@ -268,12 +266,9 @@ plans "a Dependabot bump formats what it changed, in shard 1" 'any(.[]; .part ==
 plans "one analyzer job per shard the list deals"          '[.[] | select((.part // "") | startswith("analyzers")) | .part] | sort == '"$shard_parts" push "" ""
 plans "...each named for its shard"                         '[.[] | select((.part // "") | startswith("analyzers")) | .name] | sort == '"$shard_names" push "" ""
 plans "...each running the unit script"                     'all(.[] | select((.part // "") | startswith("analyzers")); .run == "scripts/run-unit-local.sh --lane-slots $(nproc)")' push "" ""
-if [ "$site_shard" = 1 ]; then
-  plans "...Rask.Site in shard 1, which any change selects" 'any(.[]; .part == "analyzers-1" and .when == "code")' push "" ""
-else
-  plans "...the site shard selected by what reaches the site" 'any(.[]; .part == "analyzers-'"$site_shard"'" and .when == "site")' push "" ""
-  plans "...and the others by any change, as the build is" 'all(.[] | select((.part // "") | startswith("analyzers")) | select(.part != "analyzers-'"$site_shard"'"); .when == "code")' push "" ""
-fi
+# Selected by any change, as the build is: a shard skips a scope that misses its projects by itself, and
+# a narrower key would miss a change that reaches one of them and not the key's own projects.
+plans "...each selected by any change"                      'all(.[] | select((.part // "") | startswith("analyzers")); .when == "code")' push "" ""
 # A name the list deals that is no project of the solution is a typo: that project sits in shard 1.
 checked=$((checked + 1))
 shard_strays="$(awk '!/^#/ && NF >= 2 { print $1 }' "$shard_list" | while read -r shard_project; do

@@ -11,14 +11,34 @@
 # first onto the lightest shard; every shard job prints its projects' analyzer seconds at the end, so
 # re-deal from a CI log when one drifts.
 
+# Measured on CI run 41774177101 (2026-11-04), analyzer seconds: Rask.Core 144, Rask.Site 125, Rask.Ui 83,
+# Rask.Site.Tests 49, Rask.Cli 48, Rask.Batteries.Generators 44, Rask.Web 41, Rask.Generators 40,
+# Rask.Data 34, nothing else over 11. A shard costs the compile of what it builds as much as its
+# analyzers, so the big test projects go with the projects they test (already in that shard's build):
+# left in shard 1 they made it compile the whole solution.
+
 Rask.Site 4
+Rask.Site.Tests 4
+Rask.Site.E2E.Tests 4
+Rask.Site.DataDemo 4
+Rask.Site.DataDemo.E2E.Tests 4
+Rask.Wasm.Tests 4
 
 Rask.Core 3
 Rask.Generators 3
 Rask.Server 3
+Rask.Core.Tests 3
+Rask.Generators.Tests 3
+Rask.Server.Tests 3
+Rask.Server.E2E.Tests 3
 
 Rask.Ui 2
 Rask.Cli 2
 Rask.Data 2
 Rask.Web 2
 Rask.Batteries.Generators 2
+Rask.Ui.Tests 2
+Rask.Cli.Tests 2
+Rask.Cli.E2E.Tests 2
+Rask.Data.Tests 2
+Rask.Batteries.Generators.Tests 2

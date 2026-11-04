@@ -38,7 +38,8 @@ def main() -> int:
                     else:
                         projects.setdefault(current, start.group(1))
             total = TOTAL.search(line)
-            if total and current:
+            # A reference compiled with the analyzers off still reports a zero total: not this shard's.
+            if total and current and float(total.group(1).replace(",", ".")) > 0:
                 name = Path(projects.get(current, current)).stem
                 seconds[name] += float(total.group(1).replace(",", "."))
 
