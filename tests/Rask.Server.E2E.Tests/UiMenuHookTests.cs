@@ -47,6 +47,19 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         }
         """;
 
+    // Whether the browser's first word of the pointer over "Sort by" from here on comes from outside that row.
+    private const string Entered = """
+        () => {
+            window.__entered = null;
+            const row = [...document.querySelectorAll("[data-testid='menu'] [role^=menuitem]")].find(r => r.textContent.trim().startsWith('Sort by'));
+            addEventListener('pointerover', e => {
+                if (window.__entered === null && row.contains(e.target)) {
+                    window.__entered = !(e.relatedTarget instanceof Node && row.contains(e.relatedTarget));
+                }
+            }, true);
+        }
+        """;
+
     private const string Lock = "() => { const s = getComputedStyle(document.documentElement); return s.overflow + '|' + s.pointerEvents; }";
 
     [Fact]
@@ -231,12 +244,13 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
     }
 
     [Fact]
-    public async Task An_arrow_that_closes_the_flyout_under_a_still_pointer_hands_the_light_back_to_its_row()
+    public async Task An_arrow_that_closes_the_flyout_under_a_still_pointer_hands_the_light_back_to_its_row_where_the_browser_says_it_entered()
     {
-        // Flux UI's dropdown, 2026-11-02: the pointer rests on a submenu's row, over its safe area. The arrow puts
-        // focus on the next row and shuts the flyout, safe area and all; the browser then has the pointer over the
-        // row itself, which is entered again — lit, its flyout open — while focus stays where the arrow put it. So
-        // when the pointer leaves, the light was the pointer's and nothing stays lit.
+        // Flux UI's dropdown, 2026-11-02 and 2026-11-04 (#1260): the pointer rests on a submenu's row, over its safe
+        // area. The arrow puts focus on the next row and shuts the flyout, safe area and all; the browser then has the
+        // pointer over the row itself, and says so as it says it: Chromium on a Mac from the safe area that is gone —
+        // the row is entered again, lit, its flyout open, focus where the arrow put it, and when the pointer leaves
+        // nothing stays lit; Chromium on Linux from the row itself — nothing is entered, and the arrow's row stays lit.
         var sent = 0;
         var received = 0;
         await using var session = await HookSession.OpenAsync<MenuHookPage>(playwright, beforeLoad: page =>
@@ -263,15 +277,18 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         var row = (await Row(page, "Sort by").BoundingBoxAsync())!;
         await page.Mouse.MoveAsync(row.X + (row.Width / 2) + 4, row.Y + (row.Height / 2));
         await SeeAsync(page, "Sort by | Filter | Sort by");
+        await page.EvaluateAsync(Entered);
 
         await page.Keyboard.PressAsync("ArrowDown");
-        await SeeAsync(page, "Sort by | Filter | Sort by");
+        await page.WaitForFunctionAsync("() => window.__entered !== null", null, new PageWaitForFunctionOptions { Timeout = 5_000 });
+        var entered = await page.EvaluateAsync<bool>("() => window.__entered");
+        await SeeAsync(page, entered ? "Sort by | Filter | Sort by" : "Filter | Filter | ");
         await page.Mouse.MoveAsync(900, 650, new MouseMoveOptions { Steps = 4 });
         await page.WaitForTimeoutAsync(150);
 
         // Lit rows and focus: whether the flyout outlives the pointer leaving its row is not this walk's.
         var after = (await page.EvaluateAsync<string>(State)).Split(" | ");
-        Assert.Equal(["", "Filter"], after[..2]);
+        Assert.Equal(entered ? ["", "Filter"] : ["Filter", "Filter"], after[..2]);
         Assert.Equal(0, Volatile.Read(ref sent) - sentBefore);
         Assert.Equal(0, Volatile.Read(ref received) - receivedBefore);
     }

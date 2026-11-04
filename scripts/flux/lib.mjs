@@ -209,6 +209,7 @@ async function open(page, wrapper, opener) {
     if (await opener.getAttribute('data-parity-open') === 'hover') await page.touchscreen.tap(4, at[1]);
     // The hover a finger leaves on what it tapped (tapped, below).
     await tapped(page, opener, at);
+    if (await opener.getAttribute('data-parity-open') !== 'hover') await page.evaluate(looked, at);
   }
   else if (await opener.getAttribute('data-parity-open') === 'hover') {
     // A pointer comes from somewhere: Flux's page now and then does not open under one whose first move ever
@@ -225,7 +226,6 @@ async function open(page, wrapper, opener) {
       setTimeout(done, 1000);
     }));
   } else {
-    const before = await page.evaluate(lockState);
     await page.mouse.click(...at);
     // A popup that takes the pointer from the page (pointer-events: none on <html>, Flux's and rask-lock.ts's)
     // leaves the trigger under a pointer that no longer hovers it — once the browser looks again, which it does
@@ -233,11 +233,8 @@ async function open(page, wrapper, opener) {
     // where the two pages were measured on either side of it. The pointer is moved by a pixel (a move to where it
     // already is may be no move at all), so both look now — once the lock is ON: it lands when the page's script
     // gets to it (a toggle event, a hook), and a move made before that left the kit's chevron hovered on the runner
-    // (2026-11-01, #1260) where a Mac had locked in time. So the move waits for the page to stop changing — and
-    // first for it to CHANGE from how it was before the press: on a runner loaded enough that a page draws a frame or
-    // two a second, a root that had not changed YET held still for the whole wait, and Flux's chevron was measured
-    // hovered (2026-11-04, #1260).
-    await page.evaluate(locked, before);
+    // (2026-11-01, #1260) where a Mac had locked in time. So the move waits for the page to stop changing.
+    await page.evaluate(locked);
     await page.mouse.move(at[0] + 1, at[1]);
   }
   await frames(page);
@@ -282,19 +279,39 @@ export function hoverSettled(el) {
   });
 }
 
-/** Runs in the page: what a page lock writes on the root — pointer-events, overflow, the scrollbar gutter. */
-export function lockState() {
-  const root = getComputedStyle(document.documentElement);
-  return `${root.pointerEvents} ${root.overflow} ${root.scrollbarGutter}`;
+/**
+ * Runs in the page, after a finger opened a popup by a press at `at`: makes the browser hit-test the place the finger
+ * lifted from again, and waits until it has. A tap's hover is left where the finger was, and whether a browser looks
+ * again once the popup is up — and its page lock takes the pointer from what is behind it — is up to the browser and
+ * to whatever lays the page out next: on Linux the kit's open date picker laid out once more 35 ms after the tap's
+ * hover landed and lost it, Flux's did not and kept it, so Flux's chevron was measured hovered behind its sheet and
+ * the kit's not (2026-11-04, #1260); a Mac looks again on neither. A box laid under the finger and taken away is
+ * content changing under the pointer, which the browser answers by hit-testing it: both pages are then read as the
+ * browser has them once anything moves. Not for a popup the pointer holds open (a hover trigger): the box would be
+ * a place the pointer went to.
+ */
+export function looked(at) {
+  const frames = n => new Promise(done => {
+    const step = () => (--n <= 0 ? done() : requestAnimationFrame(step));
+    requestAnimationFrame(step);
+    setTimeout(done, 500);
+  });
+  return (async () => {
+    const box = document.createElement('div');
+    box.style.cssText = `position:fixed;left:${at[0] - 2}px;top:${at[1] - 2}px;width:4px;height:4px;pointer-events:auto;z-index:2147483647`;
+    document.documentElement.append(box);
+    await frames(3);
+    box.remove();
+    await frames(3);
+  })();
 }
 
 /**
- * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (lockState) differs
- * from `before`, the root as it was before the press, and has then held for ten frames — or after 5 s for a popup
- * that locks nothing. Flux's script and the kit's hook put it there a task or two after the press, sooner or later
- * by how loaded the machine is. Without `before`, the root holding still for ten frames is enough.
+ * Runs in the page, after a press opened a popup: done once what a page lock writes on the root (pointer-events,
+ * overflow, the scrollbar gutter) has held for ten frames, or after 1.5 s. Flux's script and the kit's hook put it
+ * there a task or two after the press, sooner or later by how loaded the machine is.
  */
-export function locked(before) {
+export function locked() {
   return new Promise(done => {
     const read = () => {
       const root = getComputedStyle(document.documentElement);
@@ -307,11 +324,11 @@ export function locked(before) {
       const now = read();
       held = now === last ? held + 1 : 0;
       last = now;
-      if ((held >= 10 && (before === undefined || now !== before)) || ++frames > 300) done();
+      if (held >= 10 || ++frames > 90) done();
       else requestAnimationFrame(look);
     };
     requestAnimationFrame(look);
-    setTimeout(done, 5000);
+    setTimeout(done, 1500);
   });
 }
 

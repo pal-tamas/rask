@@ -343,11 +343,13 @@ if (page) {
         const menu = row ? row.closest("[role=menu]") : null;
         const from = (e as PointerEvent).relatedTarget;
         // On ENTERING the row, not on moving about inside it: with the arrows gone on to another row, Flux's
-        // pointer takes the light back only by leaving and coming in again. Coming "from" the element it is now
-        // over is entering too: what it was over inside the row has been taken out (a safe area that went with
-        // its flyout), and a browser may name the parent in its place.
+        // pointer takes the light back only by leaving and coming in again. What the pointer was over inside the
+        // row may have been taken out (a safe area that went with its flyout): a browser that names the removed
+        // element (Chromium on a Mac) reports it from outside the row, which is entering, and one that names the
+        // row in its place (Chromium on Linux) reports the row coming from itself, which is not — measured on Flux
+        // UI's dropdown on both, 2026-11-04 (#1260): its row lights again on the first, and stays dark on the second.
         if (row && menu && menu.matches(POINTER) && row.getAttribute("aria-disabled") !== "true"
-            && !(from instanceof Node && from !== e.target && row.contains(from))) {
+            && !(from instanceof Node && row.contains(from))) {
             light(menu, row);
             const root = kept(menu);
             // A touch reports one enter for the tap that follows it, which is not hovering.

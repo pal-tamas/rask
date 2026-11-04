@@ -688,15 +688,18 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
-- **`Ui.Phone`'s list of countries and `Ui.Editor`'s toolbar match Flux UI again (#1260).** The phone's searched
-  country list holds its own scroll (`overscroll-behavior: none`) and the popup round it no longer does, as a
-  searched `Ui.Select`'s already did; every editor toolbar button is `touch-action: manipulation`, as Flux's now
-  are, so a phone waits for no second tap on it. The Flux parity harness waits for an opened popup's page lock to
-  LAND before it reads the trigger's hover, moves the pointer a pixel after each key of the menu's pointer-and-keys
-  walk so both pages are read once the browser has hit-tested again, lets a pseudo-element go by its control's
-  native-feel departure in the open-list scripts as `parity.mjs` does, lets the accent focus ring go on a field that
-  holds focus (a pillbox trigger round its focused input), and counts `Ui.FileUpload` as pressable (the owner-approved
-  pointer). Nothing to change in an app.
+- **`Ui.Phone`'s list of countries, `Ui.Editor`'s toolbar and a submenu under a resting pointer match Flux UI again
+  (#1260).** The phone's searched country list holds its own scroll (`overscroll-behavior: none`) and the popup round
+  it no longer does, as a searched `Ui.Select`'s already did; every editor toolbar button is
+  `touch-action: manipulation`, as Flux's now are, so a phone waits for no second tap on it. An arrow key that shuts a
+  submenu's flyout under a pointer at rest lights that submenu's row again only where the browser says the pointer
+  came from outside it (Chromium on a Mac), and leaves the arrow's row lit where it says the row came from itself
+  (Chromium on Linux) — what Flux's dropdown does on each. The Flux parity harness: after a finger opens a picker on a
+  phone the browser is made to hit-test the finger's place again before the open picker is read (Linux kept Flux's
+  chevron hovered behind its sheet and not the kit's); the open-list scripts let a pseudo-element go by its
+  control's native-feel departure as `parity.mjs` does and the accent focus ring on a field that holds focus (a
+  pillbox trigger round its focused input); `Ui.FileUpload` counts as pressable (the owner-approved pointer).
+  Nothing to change in an app.
 - **A frame drawn while a handler is still awaiting no longer sees the handler's own `Tenant.Across()`.** Before: a
   handler that read inside `using (Tenant.Across()) { await … }` past the handler budget had the frames between its
   awaits (the one that shows the button busy, the one after each read comes back) drawn in that scope, so
