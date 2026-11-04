@@ -28,7 +28,7 @@ namespace Rask;
 /// <see cref="UiField" /> with its <see cref="UiError" />, as Flux's shorthand does.
 /// </para>
 /// </remarks>
-public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
+public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind, IUiLockable
 {
     private readonly int _instance = UiTimePickerLook.NextInstance();
     private string? _ownId;
@@ -82,6 +82,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     /// <summary>Takes no input and is skipped by the keyboard.</summary>
     public bool? Disabled { get; set; }
+
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
 
     /// <summary>
     ///     Draws the error state. A bound picker is invalid on its own while its form holds a message for it.
@@ -285,6 +288,12 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     private async Task CommitAsync(Bound bound, List<TimeOnly> picked)
     {
+        // Several times are written here, not through UiFormCommit, so this asks as it would (#1272).
+        if (UiRefusals.Locked(this, bound.Accessor))
+        {
+            return;
+        }
+
         if (!UiTimePickerValue.Several<T>())
         {
             var one = UiTimePickerValue.Single<T>(picked.Count > 0 ? picked[0] : null);

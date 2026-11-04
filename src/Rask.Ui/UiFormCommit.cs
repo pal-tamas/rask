@@ -19,6 +19,10 @@ namespace Rask;
 /// It follows <c>docs/building-form-controls.md</c> §2 exactly; the point here is that it follows it in
 /// one place.
 /// </para>
+/// <para>
+/// A control drawn disabled (<see cref="IUiLockable" />) writes nothing through any of them (#1272): each refuses,
+/// and says so once (<see cref="UiRefusals.Locked(object, ExpressionAccessor.Accessor?)" />).
+/// </para>
 /// </remarks>
 internal static class UiFormCommit
 {
@@ -73,6 +77,11 @@ internal static class UiFormCommit
         EditContext? context,
         T value)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
@@ -100,6 +109,11 @@ internal static class UiFormCommit
     /// </summary>
     internal static Task ClearAsync<T>(IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {
@@ -128,8 +142,22 @@ internal static class UiFormCommit
     /// that says <c>.Live()</c>. A controlled control's parent hears nothing, as it hears of no value.
     /// </summary>
     internal static Task UnreadAsync<T>(
-        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, RaskString sentence)
+        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, RaskString sentence) =>
+        UnreadAsync(control, accessor, context, shown, UnreadValue.Say(sentence));
+
+    /// <inheritdoc cref="UnreadAsync{T}(IFormControl{T}, ExpressionAccessor.Accessor?, EditContext?, T, RaskString)" />
+    /// <remarks>
+    /// For a value read and still not taken — a date typed outside a picker's limits (#1273) — with what the field
+    /// says, <paramref name="said" />, already in the reader's language.
+    /// </remarks>
+    internal static Task UnreadAsync<T>(
+        IFormControl<T> control, ExpressionAccessor.Accessor? accessor, EditContext? context, T? shown, string said)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null || context is null)
         {
@@ -140,7 +168,7 @@ internal static class UiFormCommit
 
         bool Note()
         {
-            context.NoteUnread(accessor.Field, sentence);
+            context.NoteUnread(accessor.Field, said);
             return false;
         }
     }
@@ -195,6 +223,11 @@ internal static class UiFormCommit
         EditContext? context,
         IReadOnlyList<T> picked)
     {
+        if (UiRefusals.Locked(control, accessor))
+        {
+            return;
+        }
+
         ReaderEdits.Note((Component)control);
         if (accessor is null)
         {

@@ -70,7 +70,10 @@ public sealed partial class UiTimePicker<T>
                 : UiFormCommit.UnreadAsync(this, bound.Accessor, bound.Context, Current(bound), RaskString.ValidationTime);
         }
 
-        return Off(time) ? Task.CompletedTask : CommitAsync(bound, [time]);
+        // Before Min, after Max or unavailable, it is not taken, and the field says why (#1273).
+        return UiPickerLimits.Time(time, Min, Max, Off(time), Written) is { } said
+            ? UiFormCommit.UnreadAsync(this, bound.Accessor, bound.Context, Current(bound), said)
+            : CommitAsync(bound, [time]);
     }
 
     private static T Current(Bound bound) => UiTimePickerValue.Single<T>(bound.Chosen.Count > 0 ? bound.Chosen[0] : null);

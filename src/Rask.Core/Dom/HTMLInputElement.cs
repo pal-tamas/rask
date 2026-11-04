@@ -19,8 +19,15 @@ namespace Rask.Core;
 ///     An <c>&lt;input&gt;</c> typed by the value it edits: <c>Bind</c> takes an expression naming the field, and
 ///     Rask parses, validates and writes back the value for you. Every input needs a <c>label</c>.
 /// </summary>
-public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>
+public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl<T>, IFormControlElement
 {
+    // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
+    string IFormControlElement.Control => DisabledControls.Input;
+
+    bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
+
+    string? IFormControlElement.PostsUnder => DrawnDisabled.PostsUnder(Name, Bind);
+
     // A bound control writes back and re-renders through its own handle, unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
 
@@ -147,6 +154,19 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
     ///     them, and what it sends is read with them. The kit's <c>Ui.Input.Money()</c>.
     /// </summary>
     internal MoneyMarks? Money { get; set; }
+
+    // The only values a bound field takes, when the kit draws what it may be sent (TakingOnly).
+    private OfferedOptions? _offered;
+
+    /// <summary>
+    ///     Takes only what <paramref name="offered" /> offers, when the kit draws what the field may be sent (a tab
+    ///     row's enabled tabs): anything else is refused (<see cref="OfferedGuard" />).
+    /// </summary>
+    internal HTMLInputElement<T> TakingOnly(OfferedOptions offered)
+    {
+        _offered = offered;
+        return this;
+    }
 
 
     protected override void WriteAttributes(StringBuilder sb)
@@ -287,6 +307,19 @@ public sealed partial class HTMLInputElement<T> : HTMLInputElement, IFormControl
         var fid = acc.Field;
         var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
         ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+
+        // A field that takes only some values (the kit's tab row) takes only those, behind its guard; one drawn
+        // disabled takes nothing — every handler it registers is refused (#1273) — and is written, like a choice,
+        // only when it is chosen: it wires no keystroke write.
+        if (_offered is not null || Disabled is true)
+        {
+            Func<string, Task> write = isCheckbox
+                ? BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind)
+                : BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind);
+            WriteChosenBind(sb, ctx, !_timing.WaitsForAction, _offered is { } offered ? OfferedGuard.One(write, offered) : write, bindCtx, fid);
+            return;
+        }
+
         if (isCheckbox)
         {
             WriteChosenBind(sb, ctx, !_timing.WaitsForAction, BindingHelpers.BoolSetHandler(acc, bindCtx, fid, afterBind), bindCtx, fid);

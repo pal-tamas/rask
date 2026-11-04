@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A date, range or time typed outside a picker's limits is not taken, and the field says why (#1273).** Before: a
+  date typed into a `Ui.DatePicker`'s own field was stored whatever its `Min`/`Max`/`Unavailable`, a range of any
+  length got through `MinRange`/`MaxRange` from the calendar's typed inputs, a `Ui.TimePicker` typed time ignored
+  `Min`/`Max` (and an unavailable one was dropped without a word), and a `Ui.DatetimePicker`'s time was held to no
+  time limit server-side. After: none of them is stored; in a form the field says "Choose a date on or after Mar 1,
+  2026.", "Choose a date on or before …", "… is not available.", "Choose a range of at least/at most N days.",
+  "Choose a time at or after/at or before …" and the save waits for a value within the limits, as for a date typed
+  half way — the same on Server and WASM. Seven new `RaskString` sentences (`ValidationDateMin`, `ValidationDateMax`,
+  `ValidationUnavailable`, `ValidationRangeMin`, `ValidationRangeMax`, `ValidationTimeMin`, `ValidationTimeMax`),
+  Hungarian in Rask.Ui. A controlled picker's `OnChange` is not called for such a value.
 - **A focused field is ringed in your accent colour, and nothing can cut the ring off.** Before: a focused
   `Ui.Input`, textarea, select or picker trigger drew the browser's own ring — a thin blue line in Chrome, Safari's
   thick blue glow — and inside a table's scroll frame or a flyout that glow was cut in half. After: the field's
@@ -16,6 +26,14 @@ them until tagged releases begin.
   can clip it. A listbox, date, time, datetime, colour picker or pillbox trigger shows it from the keyboard only,
   as before. Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring. An owner-approved
   departure from Flux UI, which leaves the field to the browser.
+- **CI: each analyzer shard formats its own projects' files.** A change to the rules (`.editorconfig`,
+  `Directory.*.props`/`.targets`, `global.json`) made `analyzers 1/4` build the whole solution and run one
+  `dotnet format` over every file — 431 s of build and 1140 s of formatter, 29 minutes, beside shards of 5 to 8.
+  Every `analyzers K/N` job now formats the files in the directories of the projects it already builds and
+  analyses, and shard 1 also the files in no project's directory (`scripts/lib/format-scope.sh`); a change's own
+  `.cs` files are dealt the same way. Every file is still checked, once. On a rule change a shard runs
+  `dotnet format whitespace` and `style` side by side and skips the `analyzers` pass — the analyzer build the same
+  job has just run, warnings as errors, and most of the formatter's time (316 of 550 s on shard 2).
 - **CI: the front-end templates run in two jobs that pack the feed once.** The seven `front end <key>` jobs each
   packed the local feed again (about 4.4 minutes apiece); `front end 1/2` and `2/2` each pack it once and scaffold
   their templates one after another (`scripts/run-template-e2e.sh --front-end=angular,preact,…`), with a verdict per
@@ -2070,6 +2088,53 @@ them until tagged releases begin.
   the page's echo of a rounded colour. Nothing changes at the call site. `rask-hooks.js` +14,040 bytes.
 
 ### Security
+
+- **A disabled control inside a hosted Blazor component takes no event either (#1274).** Before: a
+  `<button disabled @onclick="…">` in a component hosted through `BlazorComponent<T>` (a MudBlazor or Radzen one, or
+  your own RCL's), and every `@onclick`/`@onchange`/`@bind` inside a hosted `<fieldset disabled>`, kept its handler,
+  because the island registers its handlers itself and #1273's rule sat in Rask's own serializer — so a hand-written
+  frame ran what the reader was shown disabled. After: the island applies the same rule to the hosted component's
+  render frames — a `button`, `input`, `select` or `textarea` whose `disabled` is written (Blazor's `false` and
+  `null` leave it out; `"false"` as a string disables, as the browser reads it), or inside a hosted or Rask
+  `<fieldset disabled>` outside its first `<legend>` — and its handlers are refused: nothing reaches Blazor, and one
+  `Rask.Forms` warning names the control. The markup is unchanged, and a Rask page's own render allocates exactly
+  what it did. An island's (`ReactComponent`, `LitComponent`, …) callbacks are not DOM handlers Rask can judge:
+  check your own state in the C# callback (`docs/islands.md`).
+
+- **Every handler on a disabled form control is refused, in one place (#1273).** Before: a disabled `Button` (and a
+  `Ui.Button.Disabled()`) kept its `OnClick` wired, a disabled file input its `OnFiles`, a disabled controlled
+  `Select` its `OnChange`, and nothing at all held a control inside a `Fieldset.Disabled(true)` — so a hand-written
+  frame could press or write what the reader was shown disabled. After: Core refuses every handler a `Button`,
+  `Input`, `Select`, `Textarea` or `Ui.Button` registers while it is drawn disabled — `.Disabled(true)`, a
+  `disabled` written through `Attributes`, or inside a disabled fieldset outside its first `Legend`, as a browser
+  rules it — where its handlers are registered: nothing runs, and one `Rask.Forms` warning names the control (a kit
+  control by its kit name, `Ui.Slider 'Volume'`, `Ui.Otp 'pin'`), never what it carried. The markup is unchanged;
+  an enabled control registers exactly what it did (allocation unchanged). The per-control guards of #1271/#1272 on
+  `Input`, `Textarea` and `Select` are gone into it.
+
+- **A disabled kit control writes nothing, and a calendar takes only a day it drew (#1272).** Before: the kit
+  controls that write through a handler of their own stayed wired while drawn `.Disabled()`, so a hand-written frame
+  could still move a `Ui.Slider`, fill a `Ui.Otp`, pick in a `Ui.DatePicker` (`.Range`, typed or not),
+  `Ui.DatetimePicker` or `Ui.TimePicker`, pick, clear or create in a held `Ui.Select.Listbox`/`.Combobox` or
+  `Ui.Pillbox`, and change a `Ui.Editor`; so could a controlled `Input`/`Textarea` drawn `.Disabled(true)`. A
+  `Ui.Calendar`, `Ui.DatePicker` and `Ui.DatetimePicker` took any day, outside `Min`/`Max` or `Unavailable` too, and
+  a held list sent only values it never drew cleared its answer. Now every write of a disabled kit control is
+  refused in one place (`UiFormCommit` asks `IUiLockable`), a disabled controlled field's handlers are behind the
+  #1271 guard, and a calendar's choice is held to the days the reader could press (a preset range to what it spans
+  today). Each is refused as #1270/#1271 are: nothing written, one `Rask.Forms` warning naming the control, never the
+  value. A disabled `Ui.ColorPicker` already registered no handler; one heard from an older page now says so too. A
+  date or time typed into a picker's own field is still not held to the limits. Nothing to change in an app.
+
+- **A disabled bound control, and a `Ui.Tabs`, take only what the reader could send (#1271).** Before: a bound
+  `Input`, `Textarea` or `Select` drawn `.Disabled(true)` (and every kit control that binds through one: a standalone
+  `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`, the native `Ui.Select`) still wired its write, so
+  a hand-written frame could write a field the reader was shown disabled; and a `Ui.Tabs` (bound or with
+  `OnChange`) took any name it was sent, a disabled tab's included. Now a disabled bound control takes nothing, an
+  empty selection included (a browser sends no event for one), and a tab row only the `Name` of a tab it drew
+  enabled. Both are refused as #1270's choices are: nothing written, no rule, no `AfterBind`, one `Rask.Forms`
+  warning naming the control and never the value. A disabled field's rules still run on submit. A disabled bound
+  text field is now wired on `change` only, and a `.Live()` bound `Ui.Tabs` writes on `change` rather than at
+  `input`. Nothing to change in an app.
 
 - **A radio group, a checkbox group, a toggle and `Select.OnSelect` take only what they offered (#1270).** Before:
   each `Ui.Radio` of a `Ui.RadioGroup` (every variant) committed its value for any change event sent to it, a

@@ -25,7 +25,7 @@ namespace Rask;
 /// <c>Ui.SliderTick</c> children mark values under the track, or on it with <see cref="TickPosition" />.
 /// </para>
 /// </remarks>
-public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind
+public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind, IUiLockable
 {
     private string? _ownId;
 
@@ -64,6 +64,9 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
 
     /// <inheritdoc cref="UiInput{T}.Disabled" />
     public bool? Disabled { get; set; }
+
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
 
     /// <summary>Classes for the slider: widths and margins.</summary>
     public string? Class { get; set; }

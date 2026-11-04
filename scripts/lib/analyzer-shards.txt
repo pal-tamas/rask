@@ -2,7 +2,8 @@
 #
 # One line per project: its name (the .csproj without the extension), then its shard number. A project
 # not listed is in shard 1, so a new project is analysed without an edit here; shard 1 also runs the
-# formatter and the gate script tests, so it is kept the lightest. Every shard number used here must have
+# gate script tests, so it is kept the lightest. Each shard formats its own projects' files too
+# (scripts/lib/format-scope.sh), so a deal here moves that project's formatting with it. Every shard number used here must have
 # its "analyzers K/N" job, and N is the highest number below (scripts/tests/affected-gates.test.sh).
 #
 # Read by Directory.Build.targets (-p:RaskAnalyzerShard=K leaves the analyzers on only for shard K's

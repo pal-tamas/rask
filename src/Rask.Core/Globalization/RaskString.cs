@@ -635,4 +635,25 @@ public enum RaskString
 
     /// <summary>What a form's list of rows says when two of its rows have the same key.</summary>
     ValidationDuplicateRow,
+
+    /// <summary>What a date picker says of a date typed before its earliest, written into its <c>{0}</c>.</summary>
+    ValidationDateMin,
+
+    /// <summary>What a date picker says of a date typed after its latest, written into its <c>{0}</c>.</summary>
+    ValidationDateMax,
+
+    /// <summary>What a date or time picker says of a date or time typed that cannot be picked, written into its <c>{0}</c>.</summary>
+    ValidationUnavailable,
+
+    /// <summary>What a range picker says of a range shorter than its fewest days, written into its <c>{0}</c>.</summary>
+    ValidationRangeMin,
+
+    /// <summary>What a range picker says of a range longer than its most days, written into its <c>{0}</c>.</summary>
+    ValidationRangeMax,
+
+    /// <summary>What a time or datetime picker says of a time typed before its earliest, written into its <c>{0}</c>.</summary>
+    ValidationTimeMin,
+
+    /// <summary>What a time or datetime picker says of a time typed after its latest, written into its <c>{0}</c>.</summary>
+    ValidationTimeMax,
 }

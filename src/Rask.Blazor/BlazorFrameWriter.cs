@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Components.RenderTree;
 using Rask.Core;
+using Rask.Core.Forms;
 using Rask.Core.Live;
 
 namespace Rask.Blazor;
@@ -71,17 +72,18 @@ internal static class BlazorFrameWriter
     /// <param name="renderer">The island's renderer, used to reach nested components' frames.</param>
     /// <param name="componentId">The root to write.</param>
     /// <param name="registerEvent">
-    ///     Turns a Blazor handler id — with its event, and what a change on its element reports — into
+    ///     Turns a Blazor handler id — with its event, what a change on its element reports, and the
+    ///     control it is on (null for an element that is not a button, input, select or textarea) — into
     ///     the Rask handler id to write. Returning null omits the attribute, which is what happens when
     ///     there is no live session to dispatch through or the handler's args cannot be built.
     /// </param>
     public static string Write(
         BlazorIslandRenderer renderer,
         int componentId,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent)
+        Func<ulong, string, BlazorValueKind, BlazorControl?, string?> registerEvent)
     {
         var sb = new StringBuilder();
-        WriteComponent(renderer, componentId, sb, registerEvent);
+        WriteComponent(renderer, componentId, sb, new BlazorDisabledWalk(registerEvent));
         return sb.ToString();
     }
 
@@ -89,10 +91,10 @@ internal static class BlazorFrameWriter
         BlazorIslandRenderer renderer,
         int componentId,
         StringBuilder sb,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent)
+        BlazorDisabledWalk walk)
     {
         var frames = renderer.FramesFor(componentId);
-        WriteRange(renderer, frames, 0, frames.Count, sb, registerEvent);
+        WriteRange(renderer, frames, 0, frames.Count, sb, walk);
     }
 
     private static void WriteRange(
@@ -101,7 +103,7 @@ internal static class BlazorFrameWriter
         int start,
         int end,
         StringBuilder sb,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent)
+        BlazorDisabledWalk walk)
     {
         var i = start;
         while (i < end)
@@ -110,7 +112,7 @@ internal static class BlazorFrameWriter
             switch (frame.FrameType)
             {
                 case RenderTreeFrameType.Element:
-                    i = WriteElement(renderer, frames, i, sb, registerEvent);
+                    i = WriteElement(renderer, frames, i, sb, walk);
                     break;
 
                 case RenderTreeFrameType.Text:
@@ -127,13 +129,13 @@ internal static class BlazorFrameWriter
                 case RenderTreeFrameType.Component:
                 {
                     // A nested Blazor component keeps its own frame buffer.
-                    WriteComponent(renderer, frame.ComponentId, sb, registerEvent);
+                    WriteComponent(renderer, frame.ComponentId, sb, walk);
                     i += frame.ComponentSubtreeLength;
                     break;
                 }
 
                 case RenderTreeFrameType.Region:
-                    WriteRange(renderer, frames, i + 1, i + frame.RegionSubtreeLength, sb, registerEvent);
+                    WriteRange(renderer, frames, i + 1, i + frame.RegionSubtreeLength, sb, walk);
                     i += frame.RegionSubtreeLength;
                     break;
 
@@ -153,7 +155,7 @@ internal static class BlazorFrameWriter
         ArrayRange<RenderTreeFrame> frames,
         int i,
         StringBuilder sb,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent)
+        BlazorDisabledWalk walk)
     {
         ref var frame = ref frames.Array[i];
         var name = frame.ElementName;
@@ -161,11 +163,18 @@ internal static class BlazorFrameWriter
 
         sb.Append('<').Append(name);
 
+        // A button, input, select or textarea drawn disabled — itself, or by a fieldset — hands its handlers over to
+        // be refused (#1274): the browser sends it no event, so whatever arrives for one was written by hand.
+        var disabled = HasWritten(frames, i, "disabled");
+        BlazorControl? control = DisabledControls.IsControl(name)
+            ? new BlazorControl(name, AttributeText(frames, i, "name"), disabled || walk.InDisabledFieldset)
+            : null;
+
         // Attributes are the frames immediately after the element, before its children.
         var child = i + 1;
         while (child < subtreeEnd && frames.Array[child].FrameType == RenderTreeFrameType.Attribute)
         {
-            WriteAttribute(name, ref frames.Array[child], sb, registerEvent, frames, i);
+            WriteAttribute(name, ref frames.Array[child], sb, walk, control, frames, i);
             child++;
         }
 
@@ -176,7 +185,9 @@ internal static class BlazorFrameWriter
         else
         {
             sb.Append('>');
-            WriteRange(renderer, frames, child, subtreeEnd, sb, registerEvent);
+            var scope = walk.Enter(renderer, frames, i, disabled);
+            WriteRange(renderer, frames, child, subtreeEnd, sb, walk);
+            walk.Leave(scope);
             sb.Append("</").Append(name).Append('>');
         }
 
@@ -187,7 +198,8 @@ internal static class BlazorFrameWriter
         string element,
         ref RenderTreeFrame frame,
         StringBuilder sb,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent,
+        BlazorDisabledWalk walk,
+        BlazorControl? control,
         ArrayRange<RenderTreeFrame> frames,
         int elementFrame)
     {
@@ -221,7 +233,7 @@ internal static class BlazorFrameWriter
 
         if (frame.AttributeEventHandlerId != 0)
         {
-            WriteEventHandler(ref frame, name, sb, registerEvent, frames, elementFrame);
+            WriteEventHandler(ref frame, name, sb, walk, control, frames, elementFrame);
             return;
         }
 
@@ -232,7 +244,8 @@ internal static class BlazorFrameWriter
         ref RenderTreeFrame frame,
         string name,
         StringBuilder sb,
-        Func<ulong, string, BlazorValueKind, string?> registerEvent,
+        BlazorDisabledWalk walk,
+        BlazorControl? control,
         ArrayRange<RenderTreeFrame> frames,
         int element)
     {
@@ -251,7 +264,7 @@ internal static class BlazorFrameWriter
 
         // Only `change` reports a checkbox's state or a whole selection; `input` sends the value as text.
         var valueKind = eventName is "change" ? ValueKindOf(frames, element) : BlazorValueKind.Text;
-        if (registerEvent(frame.AttributeEventHandlerId, eventName, valueKind) is not { } raskId)
+        if (walk.Register(frame.AttributeEventHandlerId, eventName, valueKind, control) is not { } raskId)
         {
             return;
         }
@@ -294,11 +307,36 @@ internal static class BlazorFrameWriter
                     : BlazorValueKind.Text;
             }
 
-            return attribute.AttributeValue is null or false ? BlazorValueKind.Text : BlazorValueKind.Values;
+            return IsWritten(attribute.AttributeValue) ? BlazorValueKind.Values : BlazorValueKind.Text;
         }
 
         return BlazorValueKind.Text;
     }
+
+    // Whether the element at frames[element] carries `attribute` as written: present, and not Blazor's false or null,
+    // which leave it out (WriteAttributeValue) — so `disabled="false"` disables, as the browser reads the HTML.
+    private static bool HasWritten(ArrayRange<RenderTreeFrame> frames, int element, string attribute) =>
+        Attribute(frames, element, attribute) is { } at && IsWritten(frames.Array[at].AttributeValue);
+
+    private static string? AttributeText(ArrayRange<RenderTreeFrame> frames, int element, string attribute) =>
+        Attribute(frames, element, attribute) is { } at ? frames.Array[at].AttributeValue as string : null;
+
+    // The index of the element's `attribute` frame, or null; its attributes are the frames right after it.
+    private static int? Attribute(ArrayRange<RenderTreeFrame> frames, int element, string attribute)
+    {
+        for (var i = element + 1; i < frames.Count && frames.Array[i].FrameType == RenderTreeFrameType.Attribute; i++)
+        {
+            if (string.Equals(frames.Array[i].AttributeName, attribute, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+
+        return null;
+    }
+
+    // Blazor's convention, which WriteAttributeValue writes: false and null leave the attribute out.
+    private static bool IsWritten(object? value) => value is not (null or false);
 
     private static bool IsInlineMedia(string element, string attribute) =>
         attribute.ToUpperInvariant() switch

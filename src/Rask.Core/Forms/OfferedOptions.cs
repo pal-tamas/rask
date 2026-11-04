@@ -12,7 +12,9 @@ namespace Rask.Core.Forms;
 // nothing, since the browser never sends one.
 //
 // A select's options are read where its selection is marked (HTMLSelectElement.EnterChildrenScope): written
-// straight under it or under an <optgroup>. A control of one part says what it sends (Choice).
+// straight under it or under an <optgroup>. A control of one part says what it sends (Choice), a row of them names
+// each part as it renders (Offer: a tab row's tabs). A control drawn disabled is refused before it is asked anything:
+// every handler it registers is (DisabledHandler, #1273).
 internal sealed class OfferedOptions(string control, string? name)
 {
     private readonly List<string> _values = [];
@@ -35,6 +37,9 @@ internal sealed class OfferedOptions(string control, string? name)
 
     /// <summary>Whether the render drew an option the reader could pick that sends <paramref name="value" />.</summary>
     internal bool Offers(string value) => _values.Contains(value, StringComparer.Ordinal);
+
+    /// <summary>Adds what one part of the choice sends, as that part renders.</summary>
+    internal void Offer(string value) => _values.Add(value);
 
     /// <summary>Takes the options of one render, in place of any read before.</summary>
     internal void Read(IEnumerable<Component?> children)

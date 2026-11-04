@@ -155,7 +155,11 @@ wired "nightly pushes only after the build passed"   nightly.yml "if: needs\.pre
 wired "the build job keeps the name nightly waits on" gates.yml  '"name": "build", +"run": "scripts/run-unit-local\.sh --lane-slots \$\(nproc\)", "part": "build"'
 wired "the build reads the shards from the list"    Directory.Build.targets 'scripts/lib/analyzer-shards\.txt'
 wired "...and refuses a shard the list does not name" Directory.Build.targets '<Error Text="RaskAnalyzerShard must be a shard'
-wired "shard 1 is the one that formats"              scripts/run-unit-local.sh 'if \[ "\$unit_part" = "analyzers" \] \|\| \[ "\$unit_part" = "analyzers-1" \]; then'
+wired "every shard formats"                          scripts/run-unit-local.sh 'if \[ "\$unit_part" = "analyzers" \] \|\| \[ -n "\$analyzer_shard" \]; then'
+wired "...its own share of a rule change"            scripts/run-unit-local.sh '^      rask_start_shard_format$'
+wired "...dealt by the shared deal"                  scripts/run-unit-local.sh 'rask_format_share "\$format_deal" "\$analyzer_shard"'
+wired "...whitespace over the whole share"           scripts/run-unit-local.sh 'dotnet format whitespace Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \$format_files'
+wired "...style over its projects' directories only" scripts/run-unit-local.sh 'dotnet format style Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \\$'
 wired "a shard skips a scope without its projects"   scripts/run-unit-local.sh 'nothing to analyse\."$'
 wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
@@ -262,7 +266,7 @@ shard_names="$(seq 1 "$shard_n" | jq -R --arg n "$shard_n" '"analyzers " + . + "
 # The analyzers have jobs of their own beside it, so the nightly (which waits for build) does not wait for them.
 plans "the analyzers run beside the build, not ahead of it" 'any(.[]; .name == "analyzers 1/'"$shard_n"'" and .part == "analyzers-1") and any(.[]; .name == "build" and .part == "build")' push "" ""
 plans "...in a Dependabot bump's set too, every shard"     '[.[] | select((.part // "") | startswith("analyzers")) | .part] | sort == '"$shard_parts" deps "" "$nuget_bump~1" "$nuget_bump"
-plans "a Dependabot bump formats what it changed, in shard 1" 'any(.[]; .part == "analyzers-1") and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
+plans "a Dependabot bump formats what it changed, in the shards" '([.[] | select((.part // "") | startswith("analyzers-")) | .part] | sort == '"$shard_parts"') and all(.[]; .name | startswith("format") | not)' deps "" "$nuget_bump~1" "$nuget_bump"
 plans "one analyzer job per shard the list deals"          '[.[] | select((.part // "") | startswith("analyzers")) | .part] | sort == '"$shard_parts" push "" ""
 plans "...each named for its shard"                         '[.[] | select((.part // "") | startswith("analyzers")) | .name] | sort == '"$shard_names" push "" ""
 plans "...each running the unit script"                     'all(.[] | select((.part // "") | startswith("analyzers")); .run == "scripts/run-unit-local.sh --lane-slots $(nproc)")' push "" ""

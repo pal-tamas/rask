@@ -8,7 +8,9 @@ namespace Rask.Blazor;
 /// <param name="EventName">The DOM event, without the <c>on</c> prefix.</param>
 /// <param name="ArgsType">The event args the handler takes; <see cref="EventArgs" /> when it takes none.</param>
 /// <param name="ValueKind">What a <c>change</c> on its element reports.</param>
-internal sealed record BlazorHandler(ulong Id, string EventName, Type ArgsType, BlazorValueKind ValueKind)
+/// <param name="Control">The button, input, select or textarea it is on, or null for any other element.</param>
+internal sealed record BlazorHandler(
+    ulong Id, string EventName, Type ArgsType, BlazorValueKind ValueKind, BlazorControl? Control = null)
 {
     private bool CarriesValue => EventName is "change" or "input";
 

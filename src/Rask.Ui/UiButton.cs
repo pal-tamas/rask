@@ -20,7 +20,7 @@ namespace Rask;
 ///     a glyph, so name it: <c>.Aria("label", "Close")</c>, or a <see cref="Tooltip" />, which names it too.
 ///     </para>
 /// </remarks>
-public sealed partial class UiButton : UiElement, IUiHost
+public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IFormControlElement
 {
     private static readonly UiPartMarker Marker = new("ui-button");
 
@@ -175,6 +175,14 @@ public sealed partial class UiButton : UiElement, IUiHost
     private RouteUrl? Link => Href is { Path: not null } ? Href : null;
 
     private bool IsButton => Link is null && As is null or Ui.ButtonAs.Button;
+
+    // Drawn disabled, it is a <button disabled>: the browser sends it no event, and Core refuses every handler it
+    // registers (#1273) — its OnClick, a hand-written frame's only way in.
+    string Rask.Core.Forms.IFormControlElement.Control => "Ui.Button";
+
+    bool Rask.Core.Forms.IFormControlElement.DrawnDisabled => IsButton && Rask.Core.Forms.DrawnDisabled.Is(Disabled, this);
+
+    string? Rask.Core.Forms.IFormControlElement.PostsUnder => Id;
 
     private Ui.ButtonSize Sized => Size ?? Ui.ButtonSize.Base;
 

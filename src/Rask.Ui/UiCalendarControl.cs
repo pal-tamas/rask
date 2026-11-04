@@ -141,7 +141,7 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
         var options = Options();
         var picks = Picks(current);
 
-        return UiCalendarGrid.Render(options, picks, hook: (UiCalendarHook.Config(options, picks.Mode), Field(current, acc, ctx)));
+        return UiCalendarGrid.Render(options, picks, hook: (UiCalendarHook.Config(options, picks.Mode), Field(current, acc, ctx, options)));
     }
 
     /// <summary>What "chosen" means for this calendar, over the value as it stands.</summary>
@@ -156,7 +156,7 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
     // The one field the page hears the choice through, first in the calendar: on change, or as it is chosen for a
     // bound calendar that says `.Live()`; bound and waiting, it goes ahead of the reader's next action. A calendar
     // that keeps its own choice, or is only looked at, hears nothing.
-    private HTMLInputElement<string> Field(T? current, ExpressionAccessor.Accessor? accessor, EditContext? context)
+    private HTMLInputElement<string> Field(T? current, ExpressionAccessor.Accessor? accessor, EditContext? context, UiCalendarOptions options)
     {
         var field = Input.Value(Written(current)).Type(InputType.Hidden);
         if (Static == true || (Bind is null && !OnChange.HasValue))
@@ -164,11 +164,26 @@ public abstract partial class UiCalendarControl<T> : Component, IFormControl<T>,
             return field;
         }
 
+        // What the calendar announced: only a choice it could have drawn, of days the reader can press (#1272).
         Task Changed(string text)
         {
             if (!TryRead(text, out var value))
             {
                 return Task.CompletedTask;
+            }
+
+            var picks = Picks(value);
+            if (!picks.DrawnBy(options))
+            {
+                UiRefusals.Unoffered(this, accessor);
+                return Task.CompletedTask;
+            }
+
+            // A range typed into its own inputs is not held to its length there: here it is, and said (#1273). What
+            // the field shows is read as the handler runs, so the handler stays the same one from render to render.
+            if (picks.LengthRefusal(options) is { } said)
+            {
+                return UiFormCommit.UnreadAsync(this, accessor, context, accessor is null ? default : UiFormCommit.Shown(this, accessor), said);
             }
 
             _own = (Bind is null, value, Value);

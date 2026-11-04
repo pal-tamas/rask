@@ -13,8 +13,15 @@ namespace Rask.Core;
 ///     A multi-line text field typed by the value it edits. Unlike <c>input</c>, its value is its text content,
 ///     and it is resizable by default — <c>Rows</c> and <c>Cols</c> only set the initial size.
 /// </summary>
-public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>
+public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormControl<T>, IFormControlElement
 {
+    // Drawn disabled — itself or by its fieldset — it takes no event: every handler it registers is refused (#1273).
+    string IFormControlElement.Control => DisabledControls.Textarea;
+
+    bool IFormControlElement.DrawnDisabled => DrawnDisabled.Is(Disabled, this);
+
+    string? IFormControlElement.PostsUnder => DrawnDisabled.PostsUnder(Name, Bind);
+
     // A bound control writes back and re-renders through its own handle, unlike a plain tag.
     private protected override bool OwnsRenderHandle => true;
 
@@ -146,6 +153,16 @@ public sealed partial class HTMLTextAreaElement<T> : HTMLTextAreaElement, IFormC
             // Bound: the model is written when the field's timing says (Component.BindTiming.cs).
             var afterBind = BindingHelpers.BuildAfterBind(acc, AfterBind);
             ((IFormControl<T>)this).RegisterValidator(acc, bindCtx);
+            if (Disabled is true)
+            {
+                // Drawn disabled, it takes nothing — every handler it registers is refused (#1273) — and wires no
+                // keystroke write: it is written, like a choice, only when it is chosen.
+                WriteChosenBind(
+                    sb, ctx, !_timing.WaitsForAction,
+                    BindingHelpers.TouchAndValidateHandler(acc, bindCtx, acc.Field, true, afterBind), bindCtx, acc.Field);
+                return;
+            }
+
             WriteTypedBind(
                 sb, ctx, _timing, acc, bindCtx, afterBind, BindingHelpers.IsImmediateUpdateType(typeof(T)),
                 secret: SecretField.Is(null, Autocomplete, Data));

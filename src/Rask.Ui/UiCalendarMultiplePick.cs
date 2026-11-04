@@ -8,4 +8,6 @@ internal sealed class UiCalendarMultiplePick(ICollection<DateOnly> chosen) : UiC
     internal override string Mode => "multiple";
 
     internal override UiCalendarMarks Marks(DateOnly day) => new(chosen.Contains(day), false, false, false, false);
+
+    private protected override IEnumerable<DateOnly> Days => chosen;
 }

@@ -111,7 +111,7 @@ internal static class HandlerFrameShape
 
     // The Values arm is last on purpose: IReadOnlyList<string> is the widest match, and every narrower shape
     // above it must win first.
-    private static Shape ShapeOf(Delegate handler) => handler switch
+    internal static Shape ShapeOf(Delegate handler) => handler switch
     {
         Action<string> or Func<string, Task> => Shape.Value,
         Action<FormData> or Func<FormData, Task> => Shape.Form,

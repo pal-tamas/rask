@@ -222,5 +222,12 @@
   "FiltersClose": "Bezárás",
   "FilterRemove": "{0} szűrő törlése",
   "ValidationNotFound": "Az itt kiválasztott elem nem létezik.",
-  "ValidationDuplicateRow": "Ugyanaz a sor kétszer szerepel a listában."
+  "ValidationDuplicateRow": "Ugyanaz a sor kétszer szerepel a listában.",
+  "ValidationDateMin": "Válasszon {0} vagy későbbi dátumot.",
+  "ValidationDateMax": "Válasszon {0} vagy korábbi dátumot.",
+  "ValidationUnavailable": "{0} nem választható.",
+  "ValidationRangeMin": "Legalább {0} napos időszakot válasszon.",
+  "ValidationRangeMax": "Legfeljebb {0} napos időszakot válasszon.",
+  "ValidationTimeMin": "Válasszon {0} vagy későbbi időpontot.",
+  "ValidationTimeMax": "Válasszon {0} vagy korábbi időpontot."
 }

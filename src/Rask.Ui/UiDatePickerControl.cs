@@ -27,7 +27,7 @@ namespace Rask;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day or a range.</typeparam>
-public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind
+public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind, IUiLockable
 {
     private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal)
     {
@@ -146,6 +146,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <summary>Prevents the reader from opening the picker.</summary>
     public bool? Disabled { get; set; }
 
+    /// <inheritdoc />
+    bool IUiLockable.Locked => Disabled == true;
+
     /// <inheritdoc cref="IUiFormControl.Invalid" />
     public bool? Invalid { get; set; }
 
@@ -225,6 +228,12 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
         Task Commit(T value)
         {
+            // Locked, it keeps even its own choice: what it was sent was written by hand (#1272).
+            if (UiRefusals.Locked(this, acc))
+            {
+                return Task.CompletedTask;
+            }
+
             _own = (Bind is null, value, Value);
             _emptied = 0;
             return UiFormCommit.CommitAsync(this, acc, ctx, value);
@@ -244,14 +253,14 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
             Clearable = Clearable == true,
             Clear = ClearAsync,
             Dates = Dates(committed),
-            Typed = (slot, date) => Commit(Typed(committed, slot, date)),
+            Typed = (slot, date) => TypedAsync(slot, date, committed),
             Heard = HeardAsync,
             Untyped = (slot, half, fields) => UntypedAsync(slot, half, fields, acc, ctx, committed),
             FirstEdit = UiFormCommit.FirstEdit(acc, ctx),
             Waits = UiDraws.Waits(this, Bind is not null),
         };
 
-        _drawn = new Drawn(Commit, scope, acc, ctx);
+        _drawn = new Drawn(Commit, scope, acc, ctx, options, committed);
         var picks = Picks(committed);
         var config = UiCalendarHook.Config(options, picks.Mode, new UiCalendarHook.Picker(Confirms, scope.Placeholder));
 
@@ -298,6 +307,11 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     private Task UntypedAsync(
         int slot, bool half, int fields, ExpressionAccessor.Accessor? accessor, EditContext? context, T? committed)
     {
+        if (UiRefusals.Locked(this, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         var every = (1 << fields) - 1;
         _emptied = half ? _emptied & ~(1 << slot) : _emptied | (1 << slot);
         if (half || (_emptied & every) != every)
@@ -310,7 +324,38 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private Drawn Latest => _drawn ?? throw new InvalidOperationException("The date picker has not been drawn.");
 
-    private Task ChangedAsync(string text) => TryRead(text, out var value) ? Latest.Commit(value) : Task.CompletedTask;
+    // What the calendar announced: only a choice it could have drawn, of days the reader can press (#1272).
+    private Task ChangedAsync(string text)
+    {
+        if (!TryRead(text, out var value))
+        {
+            return Task.CompletedTask;
+        }
+
+        var drawn = Latest;
+        var picks = Picks(value);
+        if (!picks.DrawnBy(drawn.Options))
+        {
+            UiRefusals.Unoffered(this, drawn.Accessor);
+            return Task.CompletedTask;
+        }
+
+        // A range typed into the calendar's own inputs is not held to its length there: here it is, and said (#1273).
+        return picks.LengthRefusal(drawn.Options) is { } said
+            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, drawn.Committed, said)
+            : drawn.Commit(value);
+    }
+
+    // A date typed into one of the trigger's fields: taken within the limits; outside them it is not, and the field
+    // says why under it (#1273) — the reader typed it, so it is no refusal to log.
+    private Task TypedAsync(int slot, DateOnly date, T? committed)
+    {
+        var drawn = Latest;
+        var value = Typed(committed, slot, date);
+        return Picks(value).Refusal(drawn.Options) is { } said
+            ? UiFormCommit.UnreadAsync(this, drawn.Accessor, drawn.Context, committed, said)
+            : drawn.Commit(value);
+    }
 
     // A typed field's date, read against the fields as last drawn.
     private Task HeardAsync(int slot, string text) => UiDatePickerInput.Hear(Latest.Scope, slot, text);
@@ -327,6 +372,11 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     // where the bound member can say so, the type's unset value where it cannot.
     private Task EmptyAsync(ExpressionAccessor.Accessor? accessor, EditContext? context)
     {
+        if (UiRefusals.Locked(this, accessor))
+        {
+            return Task.CompletedTask;
+        }
+
         _own = (Bind is null, default, Value);
         return UiFormCommit.ClearAsync(this, accessor, context);
     }
@@ -418,5 +468,6 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
         };
     }
 
-    private sealed record Drawn(Func<T, Task> Commit, UiDatePickerScope Scope, ExpressionAccessor.Accessor? Accessor, EditContext? Context);
+    private sealed record Drawn(
+        Func<T, Task> Commit, UiDatePickerScope Scope, ExpressionAccessor.Accessor? Accessor, EditContext? Context, UiCalendarOptions Options, T? Committed);
 }

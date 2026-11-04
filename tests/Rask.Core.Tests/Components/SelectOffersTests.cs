@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Rask.Core.Diagnostics;
+using static Rask.Core.Tests.Components.Refusals;
 
 #pragma warning disable RASK014 // test-defined Component subclasses have no generated factories
 
@@ -208,31 +208,6 @@ public partial class SelectOffersTests : global::Rask.Core.RaskMarkup
         await Reported(() => Change(view, "{\"value\":\"10\"}"));
 
         Assert.Equal([10], heard);
-    }
-
-    private static async Task Change(StubComponent view, string frame)
-    {
-        var html = view.RenderAsLiveRoot();
-        var changeId = MarkupAssert.Attr(html, "data-rask-on-change");
-        using var doc = JsonDocument.Parse(frame);
-        Assert.True(await view.TryInvokeHandlerAsync(changeId!, doc.RootElement));
-    }
-
-    private static async Task<List<RaskDiagnosticEvent>> Reported(Func<Task> act)
-    {
-        var captured = new List<RaskDiagnosticEvent>();
-        var previous = RaskDiagnostics.Sink;
-        RaskDiagnostics.Sink = captured.Add;
-        try
-        {
-            await act();
-        }
-        finally
-        {
-            RaskDiagnostics.Sink = previous;
-        }
-
-        return captured;
     }
 
     private sealed class CompanyModel

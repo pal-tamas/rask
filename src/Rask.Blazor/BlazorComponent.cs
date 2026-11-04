@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rask.Core;
 using Rask.Core.Components;
+using Rask.Core.Forms;
 using Rask.Core.Live;
 
 namespace Rask.Blazor;
@@ -326,7 +327,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
         var html = BlazorFrameWriter.Write(
             renderer,
             _componentId,
-            (blazorId, eventName, valueKind) =>
+            (blazorId, eventName, valueKind, control) =>
             {
                 // No live session to dispatch through, so no attribute at all: markup advertising a
                 // handler that cannot be delivered is worse than inert markup.
@@ -337,7 +338,7 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
 
                 // What the handler takes is asked HERE, once per markup: this is the renderer's
                 // dispatcher, the one place its handler table may be read.
-                var handler = new BlazorHandler(blazorId, eventName, renderer.ArgsTypeFor(blazorId), valueKind);
+                var handler = new BlazorHandler(blazorId, eventName, renderer.ArgsTypeFor(blazorId), valueKind, control);
                 if (!handler.CanBind)
                 {
                     WarnUnwired(handler);
@@ -412,6 +413,14 @@ public abstract partial class BlazorComponent<[DynamicallyAccessedMembers(Hosted
             // inbound frame by — so a hosted @onkeydown is handed the key and @bind the value.
             var handler = hosted.Bind(
                 args => renderer.Dispatcher.InvokeAsync(() => renderer.DispatchAsync(hosted.Id, args)));
+
+            // A control drawn disabled — by its own frames, by a hosted fieldset, or by a Rask fieldset the island
+            // sits in — takes no event from the browser, so what arrives for one is refused as Rask refuses its own
+            // (#1274): the markup is an enabled control's, the handler never runs, Rask.Forms says so once.
+            if (hosted.Control is { } control && (control.Disabled || DisabledWalk.InDisabledFieldset(context)))
+            {
+                handler = DisabledHandler.For(handler, control, this);
+            }
 
             // RegisterHandlerFor, never owner.RegisterHandler: that overload treats its receiver as
             // the render ROOT and restarts the id sequence at zero, so the handler would collide with

@@ -36,6 +36,7 @@ internal sealed class OfferedGuard(Delegate inner, OfferedOptions offered) : IHa
     private Task ManyAsync(IReadOnlyList<string> values)
     {
         var picked = values;
+
         if (!values.All(offered.Offers))
         {
             offered.Refused();

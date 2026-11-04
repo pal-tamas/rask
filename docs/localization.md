@@ -577,6 +577,13 @@ they say when you set nothing.
 | `ValidationTime` | Validation | `Enter a valid time.` |
 | `ValidationNotFound` | Validation — a form's list of ids or rows (Rask.Data) | `Something chosen here does not exist.` |
 | `ValidationDuplicateRow` | Validation — a form's list of rows | `The same row is in this list twice.` |
+| `ValidationDateMin` | Validation — a date typed into a picker before its `Min` | `Choose a date on or after {0}.` |
+| `ValidationDateMax` | Validation — a date typed into a picker after its `Max` | `Choose a date on or before {0}.` |
+| `ValidationUnavailable` | Validation — a date or time typed into a picker that is `Unavailable` | `{0} is not available.` |
+| `ValidationRangeMin` | Validation — a range shorter than its picker's `MinRange` | `Choose a range of at least {0} days.` |
+| `ValidationRangeMax` | Validation — a range longer than its picker's `MaxRange` | `Choose a range of at most {0} days.` |
+| `ValidationTimeMin` | Validation — a time typed before its picker's earliest | `Choose a time at or after {0}.` |
+| `ValidationTimeMax` | Validation — a time typed after its picker's latest | `Choose a time at or before {0}.` |
 | `FormSaveFailed` | Form | `The save failed. Please try again.` |
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |

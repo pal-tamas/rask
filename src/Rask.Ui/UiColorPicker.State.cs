@@ -58,9 +58,10 @@ public sealed partial class UiColorPicker
 
     // What the browser announced through the picker's one field: a colour in the picker's format, nothing (the
     // colour cleared), or text that is no colour, which only a picker bound in a form is sent (RefuseAsync).
+    // A disabled picker takes none of it, and says so (#1272).
     private Task ChangedAsync(string text)
     {
-        if (Off)
+        if (UiRefusals.Locked(this, _bound.Accessor))
         {
             return Task.CompletedTask;
         }

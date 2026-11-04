@@ -267,14 +267,46 @@ latest render drew it, sends that value — compared as the render wrote it:
   `<option>` written under it or under an `<optgroup>`;
 - a `Ui.RadioGroup` in every variant (list, `.Segmented`, `.Cards`, `.Pills`, `.Buttons`): an enabled `Ui.Radio`,
   which sends its own `Value`;
-- a `Ui.CheckboxGroup`'s `Ui.Checkbox`, and a `Ui.Toggle`: only while it is enabled.
+- a `Ui.CheckboxGroup`'s `Ui.Checkbox`, and a `Ui.Toggle`: only while it is enabled;
+- a `Ui.Tabs` (bound or with `OnChange`): the `Name` of a `Ui.Tab` it drew enabled;
+- a form control drawn disabled — a `Button`, `Input` (its `OnFiles` too), `Select` or `Textarea` with
+  `.Disabled(true)` or a `disabled` written through `Attributes`, a `Ui.Button.Disabled()`, or any of them inside a
+  `Fieldset.Disabled(true)` outside its first `Legend` — takes no event at all: every handler it registers is refused
+  in one place in Core, a click as much as a value, bound or controlled, an empty selection included. A browser sends
+  no event to a disabled control, so whatever arrives was written by hand. The markup is an enabled control's, and
+  every kit control that draws one (a standalone `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`,
+  the native `Ui.Select`, a `Ui.Slider` thumb, a `Ui.Otp` cell, …) inherits it — the warning names the kit control,
+  `Ui.Slider 'Volume'`. Its rules still run when the form is submitted. A hosted Blazor component's own
+  `<button disabled @onclick>` — or any control in its `<fieldset disabled>` — is refused by the same rule
+  ([Blazor components](blazor-components.md#events)); an island's callbacks are the app's to check
+  ([islands](islands.md#a-disabled-control-in-an-island-is-yours-to-check));
+- a kit control that writes through a hidden field or an engine of its own, drawn `.Disabled()`: nothing —
+  `Ui.DatePicker` (`.Range`, typed or not), `Ui.DatetimePicker`, `Ui.TimePicker` (list and typed),
+  `Ui.ColorPicker`, `Ui.Select.Listbox`/`.Combobox` (a pick, its clear, its create row), `Ui.Pillbox` and
+  `Ui.Editor`;
+- a `Ui.Calendar`, `Ui.DatePicker` and `Ui.DatetimePicker`, from their calendar: only days it drew the reader able
+  to press — within `Min` and `Max`, not `Unavailable` — or a preset range exactly as it spans today;
+- a held `Ui.Select.Listbox`/`.Combobox` and `Ui.Pillbox`: an enabled row's value, or an answer it still shows. Sent
+  nothing else, it keeps its answer.
 
 Anything else (an id the reader was never shown, a disabled choice) is refused: the model keeps its value, no
 rule runs, `AfterBind` and `OnChange` are not called, and a warning that names the control — never the value —
 goes to the `Rask.Forms` log. `Select.OnSelect` drops the values no option offered and is not called for a
 selection of nothing else. It is not an authorization check: the choices you draw are the ones you decided
-this reader may pick. The held `Ui.Select.Listbox`/`.Combobox`, `Ui.Pillbox` and the menu's radios and
-checkboxes keep the same rule.
+this reader may pick. The menu's radios and checkboxes keep the same rule.
+
+A date, range or time the READER typed outside a picker's limits is not taken either, but it is the reader's, so
+it is said rather than logged: a date typed into a `Ui.DatePicker`'s own field before `Min`, after `Max` or
+`Unavailable`; a range (`Ui.DatePicker.Range`, `Ui.DatetimePicker.Range`, `Ui.Calendar.Range`) shorter than
+`MinRange` or longer than `MaxRange`, typed or announced; a time typed into a `Ui.TimePicker` before `Min`, after
+`Max` or in an `Unavailable` stretch; a `Ui.DatetimePicker`'s time outside `MinTime`/`MaxTime`, before `Min` or after
+`Max` on their own day, or in an unavailable slot. The model keeps its value, and in a form the field says why
+under it — "Choose a date on or after Mar 1, 2026.", "Choose a range of at most 7 days.", "Choose a time at or
+after 9:00 AM.", "Mar 13, 2026 is not available." — and the save is refused until a value within the limits
+arrives, exactly as for a date typed half way (`RaskString.ValidationDateMin`/`ValidationDateMax`/
+`ValidationUnavailable`/`ValidationRangeMin`/`ValidationRangeMax`/`ValidationTimeMin`/`ValidationTimeMax`,
+Hungarian in Rask.Ui). A controlled picker's `OnChange` is not called. Server-side, the same in Server and WASM:
+write no rule for the limits you already gave the picker.
 
 ### Empty value handling
 

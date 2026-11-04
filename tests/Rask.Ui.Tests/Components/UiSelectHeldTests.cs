@@ -97,7 +97,7 @@ public partial class UiSelectHeldTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_form_value_no_row_posts_and_a_disabled_row_are_no_answer_of_the_readers()
+    public async Task A_form_value_no_row_posts_and_a_disabled_row_are_no_answer_and_leave_the_one_held()
     {
         var trip = new Trip { Room = "attic" };
         var page = Acting.Render(() => Ui.Select.Bind(() => trip.Room).Listbox[Rooms()]);
@@ -106,7 +106,7 @@ public partial class UiSelectHeldTests : global::Rask.Core.RaskMarkup
         await page.Invoke(field, "{\"value\":\"[\\\"garage\\\",\\\"hall\\\"]\"}");
         await Acting.Act(page);
 
-        Assert.Null(trip.Room);
+        Assert.Equal("attic", trip.Room);
     }
 
     [Fact]

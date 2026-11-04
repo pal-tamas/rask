@@ -271,6 +271,16 @@ looks wired and does nothing on the first click is the failure this package exis
   warning naming the island, the event and the type.
 - **`@onsubmit`.** A form's submit travels Rask's form channel, which the island does not bridge.
 
+**A disabled control takes no event, as a Rask one does not.** A `button`, `input`, `select` or `textarea` the
+hosted component draws disabled — `<button disabled @onclick="Save">`, `disabled="@Busy"` while `Busy` is true, or
+anything inside a `<fieldset disabled>` outside its first `<legend>`, the hosted component's or a Rask
+`Fieldset.Disabled(true)` around the island — keeps its `data-rask-on-*` attribute, but its handler is refused: the
+browser sends no event to a disabled control, so one that arrives was written by hand. Nothing reaches Blazor, and a
+`Rask.Forms` warning names the control (`button 'save'`), never what it carried — the rule
+[forms](forms.md#a-choice-takes-only-what-it-offered) describes for Rask's own controls. Blazor's own convention
+decides what is written: `disabled="@false"` leaves the attribute out and the control enabled, while the string
+`disabled="false"` writes it, and the browser disables the control.
+
 Each event is one round trip to .NET, as it is for any Rask handler. That is nothing for a click and
 worth a thought for `@onpointermove`, `@onmousemove` or `@onwheel`, which fire many times a second.
 
