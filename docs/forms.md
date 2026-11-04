@@ -258,13 +258,23 @@ way: `Ui.DatePicker` for a date, `Ui.TimePicker` for a time (the two side by sid
 
 <!-- demo:binding-textarea -->
 
-#### A select takes only what it offered
+#### A choice takes only what it offered
 
-A bound or controlled `Select` (and the native `Ui.Select`) accepts a posted value only when one of the
-enabled `<option>`s it drew — written under it or under an `<optgroup>` — sends it, compared as the render
-wrote it. Any other value (an id the reader was never shown) is refused: the model keeps its value and a
-warning goes to the `Rask.Forms` log. It is not an authorization check: the options you draw are the ones you
-decided this reader may pick.
+A control that offers choices accepts a posted value only when a part of it the reader could pick, as the
+latest render drew it, sends that value — compared as the render wrote it:
+
+- a bound or controlled `Select` (and the native `Ui.Select`), and `Select.OnSelect`'s raw values: an enabled
+  `<option>` written under it or under an `<optgroup>`;
+- a `Ui.RadioGroup` in every variant (list, `.Segmented`, `.Cards`, `.Pills`, `.Buttons`): an enabled `Ui.Radio`,
+  which sends its own `Value`;
+- a `Ui.CheckboxGroup`'s `Ui.Checkbox`, and a `Ui.Toggle`: only while it is enabled.
+
+Anything else (an id the reader was never shown, a disabled choice) is refused: the model keeps its value, no
+rule runs, `AfterBind` and `OnChange` are not called, and a warning that names the control — never the value —
+goes to the `Rask.Forms` log. `Select.OnSelect` drops the values no option offered and is not called for a
+selection of nothing else. It is not an authorization check: the choices you draw are the ones you decided
+this reader may pick. The held `Ui.Select.Listbox`/`.Combobox`, `Ui.Pillbox` and the menu's radios and
+checkboxes keep the same rule.
 
 ### Empty value handling
 

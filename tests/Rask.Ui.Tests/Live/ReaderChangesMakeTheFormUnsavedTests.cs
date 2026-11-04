@@ -45,7 +45,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["slider"] = (typeof(UiSlider<>), a => Ui.Slider.Bind(() => a.Volume), page => First(page, "input[type=\"range\"]", "input", "40")),
         ["otp"] = (typeof(UiOtp), a => Ui.Otp.Bind(() => a.Text).Length(6), page => First(page, "input[type=\"hidden\"][data-rask-on-input]", "input", "12")),
         ["checkbox group"] = (typeof(UiCheckboxGroup<>), a => Ui.CheckboxGroup.Bind(() => a.Many).Id("many")[Words.Select(word => Ui.Checkbox.Key(word).Value(word).Label(word))], page => page.On("#many-beta").Change("true")),
-        ["radio group"] = (typeof(UiRadioGroup<>), a => Ui.RadioGroup.Bind(() => a.One).Name("one")[Words.Select(word => Ui.Radio.Key(word).Value(word).Label(word))], page => First(page, "input[type=\"radio\"]", "change", "on")),
+        ["radio group"] = (typeof(UiRadioGroup<>), a => Ui.RadioGroup.Bind(() => a.One).Name("one")[Words.Select(word => Ui.Radio.Key(word).Value(word).Label(word))], page => First(page, "input[type=\"radio\"]", "change", Words[0])),
         ["menu checkbox"] = (typeof(UiMenuCheckbox), a => Ui.Menu[Ui.MenuCheckbox.Bind(() => a.Alerts)["Alerts"]], page => page.On("[data-rask-on-click]").Click()),
         ["menu radio group"] = (typeof(UiMenuRadioGroup<>), a => Ui.Menu[Ui.MenuRadioGroup.Bind(() => a.One)[Words.Select(word => Ui.MenuRadio.Key(word).Value(word)[word])]], page => First(page, "[data-rask-on-click]", "click")),
         ["toggle"] = (typeof(UiToggle), a => Ui.Toggle.Bind(() => a.Alerts).Icon(Ui.IconName.Bolt), page => page.On("[role=\"switch\"]").Click()),

@@ -171,6 +171,13 @@ public sealed partial class UiToggle : Component, IDeferredBind
     /// <summary>Turns it: what a click, Space or Enter does.</summary>
     internal Task TurnAsync()
     {
+        // A disabled toggle is never pressed — the browser sends no click for it — so a press that arrives is not
+        // the reader's, and turns nothing (a disabled menu checkbox wires no press at all).
+        if (Disabled == true)
+        {
+            return Task.CompletedTask;
+        }
+
         var (accessor, context, on) = Read();
         var next = !on;
 

@@ -142,6 +142,62 @@ public partial class SelectOffersTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public async Task A_bound_multi_select_sent_only_values_no_option_offered_keeps_what_it_held()
+    {
+        var model = new TagsModel { Tags = ["a"] };
+        var view = new StubComponent(() => Form.Model(model)[
+            Select.Bind(() => model.Tags).Multiple(true)[Option.Value("a"), Option.Value("b")]
+        ]);
+
+        var reported = await Reported(() => Change(view, "{\"value\":\"x\",\"values\":[\"x\",\"y\"]}"));
+
+        Assert.Equal(["a"], model.Tags);
+        Assert.Single(reported, e => e.Category == "Rask.Forms" && e.Level == RaskLogLevel.Warning);
+    }
+
+    [Fact]
+    public async Task On_select_is_not_called_with_a_value_no_option_offered()
+    {
+        var heard = new List<IReadOnlyList<string>>();
+        var view = new StubComponent(() =>
+            Select.Value("a").OnSelect(heard.Add)[Option.Value("a"), Option.Value("b")]);
+
+        var reported = await Reported(() => Change(view, "{\"value\":\"999\"}"));
+        await Reported(() => Change(view, "{\"value\":\"b\"}"));
+
+        Assert.Equal(["b"], Assert.Single(heard));
+        var refused = Assert.Single(reported, e => e.Category == "Rask.Forms");
+        Assert.Equal(RaskLogLevel.Warning, refused.Level);
+        Assert.DoesNotContain("999", refused.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task On_select_of_a_multi_select_hears_only_the_values_its_options_offered()
+    {
+        var heard = new List<IReadOnlyList<string>>();
+        var view = new StubComponent(() =>
+            Select.Value("a").Multiple(true).OnSelect(heard.Add)[
+                Option.Value("a"), Option.Value("b"), Option.Value("c").Disabled(true)]);
+
+        await Reported(() => Change(view, "{\"value\":\"b\",\"values\":[\"b\",\"c\",\"other-tenant\"]}"));
+
+        Assert.Equal(["b"], Assert.Single(heard));
+    }
+
+    [Fact]
+    public async Task On_select_written_without_the_values_is_still_not_called_for_a_value_no_option_offered()
+    {
+        var calls = 0;
+        var view = new StubComponent(() =>
+            Select.Value("a").OnSelect(() => calls++)[Option.Value("a"), Option.Value("b")]);
+
+        await Reported(() => Change(view, "{\"value\":\"999\"}"));
+        await Reported(() => Change(view, "{\"value\":\"b\"}"));
+
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
     public async Task A_controlled_select_does_not_call_its_change_with_a_value_no_option_offered()
     {
         var heard = new List<int>();

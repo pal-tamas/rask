@@ -68,6 +68,11 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
     ///         Controlled mode only, and it takes precedence over <see cref="OnChange" />: both write the
     ///         one <c>data-rask-on-change</c> attribute, so a control cannot have two.
     ///     </para>
+    ///     <para>
+    ///         Only values an enabled option of the render the event was read from sends arrive here; the rest
+    ///         are dropped and logged on <c>Rask.Forms</c>, and a selection of nothing else is not delivered at
+    ///         all. A control mapping the strings through its own options can rely on finding each one.
+    ///     </para>
     /// </remarks>
     public Callback<IReadOnlyList<string>> OnSelect { get; set; }
 
@@ -251,13 +256,14 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         {
             // Before ControlledChangeHandler, not after: both write `data-rask-on-change` and an element
             // has one, so the wider shape wins. ControlledChangeHandler parses ONE string into T, which
-            // is exactly what a control taking the raw values does not want.
-            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(picked));
+            // is exactly what a control taking the raw values does not want. The raw values are still only the
+            // ones this render's options offer: a control mapping them back need not check them again.
+            AppendAttr(sb, "data-rask-on-change", ctx.RegisterHandler(OfferedGuard.Many(picked, Offering(name))));
         }
         else if (((IFormControl<T>)this).ControlledChangeHandler() is { } change)
         {
             AppendAttr(sb, "data-rask-on-change",
-                ctx.RegisterHandler(OfferedGuard.One((Func<string, Task>)change, Offering(), name)));
+                ctx.RegisterHandler(OfferedGuard.One((Func<string, Task>)change, Offering(name))));
         }
     }
 
@@ -291,18 +297,16 @@ public sealed partial class HTMLSelectElement<T> : HTMLSelectElement, IFormContr
         // model can hold one answer, and silently widening it would be the more surprising change.
         // Either takes only what this render's options offer: a value no option sent is not the reader's.
         var handler = Multiple is true && BindingHelpers.IsBindableSelectionType<T>()
-            ? OfferedGuard.Many(BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind), Offering(), name)
-            : (Delegate)OfferedGuard.One(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind), Offering(), name);
+            ? OfferedGuard.Many(BindingHelpers.MultiSelectSetHandler<T>(acc, bindCtx, fid, afterBind), Offering(name))
+            : (Delegate)OfferedGuard.One(BindingHelpers.TouchAndValidateHandler(acc, bindCtx, fid, true, afterBind), Offering(name));
         WriteChosenBind(sb, ctx, Live is true, handler, bindCtx, fid);
     }
 
     // The options this render offers, read once its children are walked (EnterChildrenScope).
-    private OfferedOptions Offering() => _offered = new OfferedOptions();
+    private OfferedOptions Offering(string? name) => _offered = new OfferedOptions("select", name);
 
-    // The values-shaped change handler, or null when none was wired. Handed over as the caller's own
-    // delegate rather than wrapped: HandlerFrameShape.ShapeOf matches Action and Func alike for this
-    // shape, and Component's dispatch has an arm for each, so wrapping would only cost an allocation and
-    // a frame. The carrier holds exactly one of them, so there is no longer a pair to pick between.
+    // The values-shaped change handler, or null when none was wired: the caller's own delegate (an Action or a
+    // Func of the values), fed the argument when it was written without one. OfferedGuard.Many takes either.
     private Delegate? SelectionHandler() =>
         OnSelect.Handler is { } picked ? ArgumentIgnoringHandler<IReadOnlyList<string>>.Fed(picked) : null;
 }

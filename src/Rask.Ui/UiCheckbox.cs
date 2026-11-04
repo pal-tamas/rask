@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 
 namespace Rask;
 
@@ -204,9 +205,18 @@ public sealed partial class UiCheckbox : Component, IUiFormControl, IDeferredBin
             Input.Value(UiOptionLook.Posted(Value))
                 .Type(InputType.Checkbox)
                 .Checked(on && !mixed)
-                .OnChange(Changed),
+                .OnChange(Hears()),
             field);
     }
+
+    // The box takes only what it offered (OfferedGuard): its state, while it can be ticked — the browser sends no
+    // change for a disabled box, so one that arrives was not the reader's. Made only for a render a page hears.
+    private Callback<string> Hears() =>
+        LiveRenderContext.CurrentSync is null
+            ? default
+            : new Callback<string>(OfferedGuard.One(
+                Changed,
+                OfferedOptions.Choice("checkbox", Name ?? _group?.GroupId, Disabled == true || _group?.Disabled == true, "true", "false")));
 
     private HTMLInputElement<T> Finish<T>(HTMLInputElement<T> input, UiWithField field) =>
         input

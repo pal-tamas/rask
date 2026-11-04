@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using Rask.Core.Components;
 using Rask.Core.Forms;
+using Rask.Core.Live;
 
 namespace Rask;
 
@@ -146,7 +147,6 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
         return RaskMarkup.Label.Class(look, Class).Attributes(marks);
     }
 
-    // The change event of a radio only ever says "chosen": the value to commit is this radio's own.
     private HTMLInputElement<string> Native(UiWithField field, bool on) =>
         Input.Value(UiOptionLook.Posted(Value))
             .Type(InputType.Radio)
@@ -154,11 +154,25 @@ public sealed partial class UiRadio : Component, IUiFormControl, IDeferredBind
             .Name(Attributes?.ContainsKey("name") == true ? null : Name ?? _group?.Name)
             .Checked(on)
             .Disabled(Disabled == true)
-            .OnChange(_ => _group?.Choose(Value) ?? Task.CompletedTask)
+            .OnChange(Hears())
             .Aria(field.Aria)
             // In a group that waits, the choice is held: the radio's `change` only draws it.
             .Attributes(UiDraws.With(UiOptionLook.Marks(Attributes), ("change", _group?.Draws == true)))
             .Class(UiOptionLook.Native);
+
+    // Every variant's radio hears its change here. The radio takes only what it offered (OfferedGuard): its own
+    // value, as the render wrote it, and nothing while disabled — the browser sends neither anything else nor a
+    // disabled radio's change, so whatever else arrives was not the reader's choice. Made only for a render a page
+    // hears; one without registers no handler.
+    private Callback<string> Hears() =>
+        LiveRenderContext.CurrentSync is null
+            ? default
+            : new Callback<string>(OfferedGuard.One(
+                ChosenAsync,
+                OfferedOptions.Choice("radio", Name ?? _group?.Name, Disabled == true, UiOptionLook.Posted(Value) ?? "on")));
+
+    // The change event of a radio only ever says "chosen": the value to commit is this radio's own.
+    private Task ChosenAsync(string _) => _group?.Choose(Value) ?? Task.CompletedTask;
 
     private object? Words() => Children?.Any() == true ? Children : Label;
 

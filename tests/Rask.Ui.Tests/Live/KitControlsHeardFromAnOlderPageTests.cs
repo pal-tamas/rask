@@ -119,9 +119,9 @@ public sealed partial class KitControlsHeardFromAnOlderPageTests : global::Rask.
         var ids = session.Ids("change");
 
         var heard = true;
-        foreach (var id in ids.Skip(1))
+        foreach (var (id, value) in ids.Zip("abcde").Skip(1))
         {
-            heard = await session.TypedAsync(id, "on");
+            heard = await session.TypedAsync(id, value.ToString());
         }
 
         Assert.True(heard);
@@ -289,9 +289,9 @@ public sealed partial class KitControlsHeardFromAnOlderPageTests : global::Rask.
         var ids = session.Ids("change");
 
         var heard = true;
-        foreach (var id in ids.Skip(1))
+        foreach (var (id, value) in ids.Zip("abcde").Skip(1))
         {
-            heard = await session.TypedAsync(id, "on");
+            heard = await session.TypedAsync(id, value.ToString());
         }
 
         Assert.True(heard);

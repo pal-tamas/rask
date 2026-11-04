@@ -2051,6 +2051,18 @@ them until tagged releases begin.
 
 ### Security
 
+- **A radio group, a checkbox group, a toggle and `Select.OnSelect` take only what they offered (#1270).** Before:
+  each `Ui.Radio` of a `Ui.RadioGroup` (every variant) committed its value for any change event sent to it, a
+  disabled one included, and so did a disabled `Ui.Checkbox` of a `Ui.CheckboxGroup` and a disabled `Ui.Toggle` —
+  a hand-written frame could choose what the reader was shown but could not pick. `Select.OnSelect` handed its
+  raw strings over unchecked, leaving every control mapping them to check them itself. Now a radio takes only
+  its own value as the render wrote it, and nothing while disabled; a checkbox and a toggle nothing while
+  disabled; `OnSelect` only the values an enabled option sends (it is not called for a selection of nothing
+  else). Anything else is refused as #1268's select refuses it: nothing written, no rule, no `AfterBind`, one
+  `Rask.Forms` warning that never repeats the value. A bound multi-select sent nothing but values no option
+  offered now keeps what it held rather than emptying. docs/forms.md's section is now "A choice takes only what
+  it offered" (the log links its new anchor). Nothing to change in an app.
+
 - **A bound select takes only a value one of its options offered (#1268).** Before: `Select.Bind(() => m.CompanyId)`
   and the native `Ui.Select.Bind(…)` (no `.Listbox`/`.Combobox`) parsed whatever string the change event carried
   into the member, so a reader could post `"999"` or another tenant's id they were never shown, and only the app's
