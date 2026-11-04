@@ -164,7 +164,17 @@ fi
 #                  generators still run), then the unit tests over that output. The nightly is pushed the
 #                  moment this job is green (scripts/lib/nightly_wait.sh), so it carries nothing else.
 #   analyzers      the gate script tests, the same build with the analyzers ON, and the formatter over the
-#                  files the change touched (below); no tests.
+#                  files the change touched (below); no tests. CI runs it as the shards below.
+#   analyzers-K    the analyzers of shard K's projects alone (scripts/lib/analyzer-shards.txt;
+#                  -p:RaskAnalyzerShard=K, Directory.Build.targets): it builds only those projects, so
+#                  their references compile with the analyzers off, and ends at once on a scoped run that
+#                  reaches none of them. Shard 1 (every project the list does not name) also runs the gate
+#                  script tests and the formatter, and builds the projects of the files it formats.
+#                  Each shard prints its projects' analyzer seconds, which is what the list is dealt by.
+#
+# The shards split the analyzer build by project on 2026-11-03: one job with every analyzer on was the
+# run's critical path (17 minutes of build against 6 with them off), and Rask.Site alone is about 45% of
+# the analyzer time. Between them the shards analyse every project, and no rule is turned off.
 #
 # The tests had jobs of their own until 2026-11-03 (`tests`, `tests-1/2`, `tests-2/2`), and so did the
 # formatter (`format`, `format-src`, `format-tests`), each rebuilding the solution the `build` job had
@@ -174,16 +184,40 @@ fi
 # one `build` job, analyzers on, ahead of the tests (docs/development-workflow.md, "Loosened until 1.0").
 # With RASK_TEST_SCOPE=affected as well (a scoped CI run), the scope narrows what each part compiles.
 unit_part="${RASK_UNIT_PART:-}"
+shard_list="$root/scripts/lib/analyzer-shards.txt"
+# The highest shard the list names: shards 1..N exist, one "analyzers K/N" job each in gates.yml.
+shard_count="$(awk '!/^#/ && NF >= 2 && $2 > n { n = $2 } END { print n + 0 }' "$shard_list")"
+[ "$shard_count" -ge 1 ] || shard_count=1
+analyzer_shard=""
+case "$unit_part" in
+  analyzers-[1-9]|analyzers-[1-9][0-9]) analyzer_shard="${unit_part#analyzers-}" ;;
+esac
 case "$unit_part" in
   ""|build|analyzers) ;;
   *)
-    echo "run-unit-local: RASK_UNIT_PART must be build or analyzers (or unset), not '$unit_part'." >&2
-    exit 1
+    if [ -z "$analyzer_shard" ] || [ "$analyzer_shard" -gt "$shard_count" ]; then
+      echo "run-unit-local: RASK_UNIT_PART must be build, analyzers or analyzers-1..analyzers-$shard_count (or unset), not '$unit_part'." >&2
+      exit 1
+    fi
     ;;
 esac
-# The analyzers part runs no tests; the build part runs no analyzers, formatter or gate script tests.
+# Whether this part runs the gate script tests and the formatter: a hand run, `analyzers` and shard 1 do;
+# `build` and every other shard do not.
+runs_checks=1
+[ "$unit_part" != "build" ] || runs_checks=0
+[ -z "$analyzer_shard" ] || [ "$analyzer_shard" = 1 ] || runs_checks=0
+# The analyzer parts run no tests; the build part runs no analyzers, formatter or gate script tests. A
+# shard reports its analyzer seconds per project (-p:ReportAnalyzer, read back out of a binary log).
 analyzer_flags=""
+analyzer_binlog=""
 [ "$unit_part" != "build" ] || analyzer_flags="-p:RunAnalyzers=false"
+build_note=""
+[ "$unit_part" != "build" ] || build_note="; analyzers off"
+if [ -n "$analyzer_shard" ]; then
+  analyzer_binlog="${TMPDIR:-/tmp}/rask-analyzers-$$.binlog"
+  analyzer_flags="-p:RaskAnalyzerShard=$analyzer_shard -p:ReportAnalyzer=true -bl:$analyzer_binlog"
+  build_note="; analyzers on for shard $analyzer_shard's projects only"
+fi
 
 # What the `analyzers` part's formatter checks: the .cs files changed since the scope base
 # (RASK_FORMAT_SCOPE=range over RASK_SCOPE_RANGE), or every file when the change moves the rules
@@ -197,7 +231,7 @@ analyzer_flags=""
 # CS0246 for code that compiles), so a rule change widens a scoped build to the whole solution.
 format_all=""
 format_files=""
-if [ "$unit_part" = "analyzers" ] && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
+if { [ "$unit_part" = "analyzers" ] || [ "$unit_part" = "analyzers-1" ]; } && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [ -n "${RASK_SCOPE_RANGE:-}" ]; then
   # shellcheck source=lib/format-scope.sh
   . "$root/scripts/lib/format-scope.sh"
   # Every path, deletions too: a deleted .editorconfig changes the rules as much as an edited one.
@@ -219,6 +253,54 @@ if [ "$unit_part" = "analyzers" ] && [ "${RASK_FORMAT_SCOPE:-}" = "range" ] && [
   esac
 fi
 
+# A shard builds its own projects (the ones the scope reaches, on a scoped run) and nothing else: their
+# references compile with the analyzers off, which they need anyway. Shard 1 also builds the projects of
+# the files its formatter checks (the formatter resolves the types their build generates; every project
+# when it checks every file). A shard left with nothing to build has nothing to analyse.
+shard_build=""
+if [ -n "$analyzer_shard" ]; then
+  # The solution's projects in this shard: listed with its number, or (shard 1) not listed at all.
+  shard_build="$(awk -v shard="$analyzer_shard" '
+    FNR == NR { if ($0 !~ /^#/ && NF >= 2) listed[$1] = $2; next }
+    match($0, /Path="[^"]*\.csproj"/) {
+      path = substr($0, RSTART + 6, RLENGTH - 7); name = path
+      sub(/.*\//, "", name); sub(/\.csproj$/, "", name)
+      if ((name in listed ? listed[name] : 1) == shard) print path
+    }' "$shard_list" "$root/Rask.slnx")"
+  if [ -n "$scope_projects" ]; then
+    # shellcheck disable=SC2086  # deliberate word split: the set is one project per word
+    shard_build="$(printf '%s\n' "$shard_build" | grep -xF -f <(printf '%s\n' $scope_projects) || true)"
+  fi
+  if [ -n "$format_all" ]; then
+    shard_build="ALL"
+  elif [ -n "$format_files" ]; then
+    while IFS= read -r format_file; do
+      [ -n "$format_file" ] || continue
+      format_dir="$(dirname "$format_file")"
+      while [ "$format_dir" != "." ] && [ "$format_dir" != "/" ]; do
+        format_owner="$(find "$root/$format_dir" -maxdepth 1 -name '*.csproj' | head -1)"
+        if [ -n "$format_owner" ]; then
+          shard_build="$shard_build
+${format_owner#"$root/"}"
+          break
+        fi
+        format_dir="$(dirname "$format_dir")"
+      done
+    done <<<"$format_files"
+    shard_build="$(printf '%s\n' "$shard_build" | grep . | LC_ALL=C sort -u || true)"
+  fi
+  if [ -z "$shard_build" ] && [ "$runs_checks" = 0 ]; then
+    echo "==> Analyzers (shard $analyzer_shard of $shard_count): the change reaches none of its projects — nothing to analyse."
+    exit 0
+  fi
+  case "$shard_build" in
+    ALL) echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — its projects analysed, every project built (the formatter checks every file)." ;;
+    "")  echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — the change reaches none of its projects; nothing to build." ;;
+    *)   echo "==> Scope: analyzer shard $analyzer_shard of $shard_count — $(printf '%s\n' "$shard_build" | grep -c .) project(s) built, its own analysed:"
+         printf '        %s\n' "$shard_build" ;;
+  esac
+fi
+
 rask_phase "scope"
 
 # Cheap and first: the gates' own shared logic. rask_build_failure_kind decides whether a red gate tells
@@ -237,9 +319,9 @@ gate_tests_failed=0
 # imports. An unscoped or FULL run executes every one. This was the costliest step a narrow commit
 # paid for: ~45 s, nearly all of it the prober's four builds, on changes that could not affect it.
 #
-# None in the `build` part: the `analyzers` job runs them, off the nightly's way.
+# None in the `build` part or analyzer shards 2..N: shard 1 runs them, off the nightly's way.
 rask_gate_test_applies() {
-  [ "$unit_part" != "build" ] || return 1
+  [ "$runs_checks" = 1 ] || return 1
   [ -z "$scope_projects" ] && return 0
   inputs="$(sed -n 's/^# gate-inputs: //p' "$1" | head -1)"
   printf '%s\n' "$scope_changed" | grep -E "^(scripts/|\.githooks/)${inputs:+|$inputs}" >/dev/null
@@ -267,8 +349,8 @@ if [ -e "$serial_test" ] && rask_gate_test_applies "$serial_test"; then
   fi
 fi
 
-if [ "$unit_part" = "build" ]; then
-  echo "==> Gate script tests: not in the build part — the analyzers job runs them."
+if [ "$runs_checks" = 0 ]; then
+  echo "==> Gate script tests: not in the $unit_part part — analyzer shard 1 runs them."
 else
   echo "==> Gate script tests (concurrent)"
 fi
@@ -278,7 +360,7 @@ for t in scripts/tests/*.test.sh; do
   [ -e "$t" ] || continue
   if [ "$t" = "$serial_test" ]; then continue; fi   # already run, alone, above
   if ! rask_gate_test_applies "$t"; then
-    [ "$unit_part" = "build" ] || echo "    skipped $t -- nothing it covers changed"
+    [ "$runs_checks" = 0 ] || echo "    skipped $t -- nothing it covers changed"
     continue
   fi
   bash "$t" >"${TMPDIR:-/tmp}/rask-gate-test-$$-$(basename "$t" .test.sh).log" 2>&1 &
@@ -305,7 +387,19 @@ done
 rask_phase "gate script tests"
 [ "$gate_tests_failed" -eq 0 ] || exit 1
 
-if [ -n "$scope_projects" ]; then
+# A shard builds the set it chose above; ALL is the whole solution, the unscoped path below.
+skip_build=0
+if [ -n "$analyzer_shard" ]; then
+  case "$shard_build" in
+    "") skip_build=1 ;;
+    ALL) scope_projects="" ;;
+    *) scope_projects="$shard_build" ;;
+  esac
+fi
+
+if [ "$skip_build" = 1 ]; then
+  echo "==> Build: none — this shard has no project the change reaches."
+elif [ -n "$scope_projects" ]; then
   # ONE MSBuild invocation over the affected set, not a loop of `dotnet build` per project. The set
   # has edges inside it, and two concurrent builds of a project that both depend on a third race on
   # that third one's obj/ and bin/. The traversal file lives in TMPDIR precisely so it does NOT pick
@@ -339,7 +433,7 @@ if [ -n "$scope_projects" ]; then
     echo '</Project>'
   } >"$scope_proj"
 
-  echo "==> Build (Release; affected projects only${analyzer_flags:+; analyzers off})"
+  echo "==> Build (Release; affected projects only$build_note)"
   # shellcheck disable=SC2086  # deliberate word split: no flag at all when the analyzers run
   dotnet build "$scope_proj" -c Release -m:"$lane_slots" \
     -p:RaskWasm=false -p:WasmBuildNative=false -p:MinVerSkip=true \
@@ -347,7 +441,7 @@ if [ -n "$scope_projects" ]; then
   rm -f "$scope_proj"
 else
 
-echo "==> Build once (Release; no WASM bundle${analyzer_flags:+; analyzers off})"
+echo "==> Build once (Release; no WASM bundle$build_note)"
 # -m:$lane_slots is the lever that actually bounds this gate. Left at MSBuild's default it takes every
 # logical core, and three of these running from three worktrees is how the machine reached 35 worker
 # nodes on 14 cores, load average 98, 0.0% idle -- at which point every timing-sensitive test in all
@@ -363,6 +457,20 @@ dotnet build Rask.slnx -c Release -m:"$lane_slots" \
 
 fi
 rask_phase "build (Release)"
+
+# What each analysed project cost, out of the shard's binary log replayed at the verbosity that carries
+# the compiler's -p:ReportAnalyzer table: scripts/lib/analyzer-shards.txt is dealt by these numbers.
+if [ -n "$analyzer_binlog" ] && [ -f "$analyzer_binlog" ]; then
+  echo "==> Analyzer seconds per project, shard $analyzer_shard of $shard_count (re-deal scripts/lib/analyzer-shards.txt by these)"
+  analyzer_log="${analyzer_binlog%.binlog}.log"
+  if dotnet msbuild "$analyzer_binlog" -noconlog "-flp:logfile=$analyzer_log;verbosity=detailed" >/dev/null; then
+    python3 "$root/scripts/lib/analyzer_report.py" "$analyzer_log" || true
+  else
+    echo "    (the binary log did not replay; no report)"
+  fi
+  rm -f "$analyzer_binlog" "$analyzer_log"
+  rask_phase "analyzer report"
+fi
 
 # Built ONLY on the paths that go on to run `dotnet format`, which is the only consumer: the formatter
 # evaluates the solution in the DEFAULT configuration (Debug) and resolves the OutputItemType="Analyzer"
@@ -440,13 +548,13 @@ format_pid=""
 format_label=""
 
 rask_start_format() {
-  # The `build` part formats nothing: the `analyzers` part does, off the nightly's way.
-  if [ "$unit_part" = "build" ]; then
-    echo "==> Formatting check: not in the build part — the analyzers job runs it."
+  # The `build` part and analyzer shards 2..N format nothing: shard 1 does, off the nightly's way.
+  if [ "$runs_checks" = 0 ]; then
+    echo "==> Formatting check: not in the $unit_part part — analyzer shard 1 runs it."
     return 0
   fi
   # The `analyzers` part: what was decided before the build (format_all / format_files, at RASK_UNIT_PART).
-  if [ "$unit_part" = "analyzers" ]; then
+  if [ "$unit_part" = "analyzers" ] || [ "$unit_part" = "analyzers-1" ]; then
     if [ -n "$format_all" ]; then
       echo "==> Formatting check over every file: $format_all changed, and with it the rules."
       rask_start_whole_format
@@ -572,8 +680,8 @@ test_slots="$lane_slots"
 # `The_feature_switch_is_on_in_this_assembly` — guards that exist so those files cannot pass vacuously
 # with the switch off. They did their job on this experiment.
 
-if [ "$unit_part" = "analyzers" ]; then
-  echo "==> Tests: not in the analyzers part — the build job runs them."
+if [ "$unit_part" != "" ] && [ "$unit_part" != "build" ]; then
+  echo "==> Tests: not in the $unit_part part — the build job runs them."
   unit_status=0
 elif [ -n "$scope_projects" ]; then
   # The affected TEST projects, handed to the same traversal shape as the build. VSTest is invoked

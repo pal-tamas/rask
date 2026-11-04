@@ -212,6 +212,33 @@
   </ItemGroup>
 
   <!--
+    The analyzer shards: CI's analyzer build is one job per shard of projects (.github/workflows/gates.yml,
+    "analyzers K/N"; scripts/run-unit-local.sh at RASK_UNIT_PART), because one build with every analyzer on
+    was the run's critical path — SonarAnalyzer is most of a compile, and src/Rask.Site alone about 45% of it.
+    -p:RaskAnalyzerShard=K leaves RunAnalyzers on only for the projects scripts/lib/analyzer-shards.txt puts
+    in shard K (an unlisted project is in shard 1); every other project the build reaches compiles with them
+    off (the source generators run either way). Unset, as on any hand build, nothing changes. No rule is
+    turned off: between them the shards analyse every project. A global -p:RunAnalyzers=false still wins.
+  -->
+  <PropertyGroup Condition=" '$(RaskAnalyzerShard)' != '' ">
+    <_RaskAnalyzerShardList>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)scripts/lib/analyzer-shards.txt'))</_RaskAnalyzerShardList>
+    <_RaskAnalyzerShardName>$(MSBuildProjectName.Replace('.', '\.'))</_RaskAnalyzerShardName>
+    <_RaskAnalyzerShardListed>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_RaskAnalyzerShardList)', '(?m)^$(_RaskAnalyzerShardName)[ \t]+[0-9]+[ \t]*\r?$'))</_RaskAnalyzerShardListed>
+    <_RaskAnalyzerShardMine>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_RaskAnalyzerShardList)', '(?m)^$(_RaskAnalyzerShardName)[ \t]+$(RaskAnalyzerShard)[ \t]*\r?$'))</_RaskAnalyzerShardMine>
+    <_RaskAnalyzerShardMine Condition=" '$(RaskAnalyzerShard)' == '1' AND '$(_RaskAnalyzerShardListed)' == 'False' ">True</_RaskAnalyzerShardMine>
+    <RunAnalyzers Condition=" '$(_RaskAnalyzerShardMine)' != 'True' ">false</RunAnalyzers>
+    <!-- A shard is 1 or a number some project is listed in. -->
+    <_RaskAnalyzerShardKnown>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_RaskAnalyzerShardList)', '(?m)^[^#\s][^ \t]*[ \t]+$(RaskAnalyzerShard)[ \t]*\r?$'))</_RaskAnalyzerShardKnown>
+    <_RaskAnalyzerShardKnown Condition=" '$(RaskAnalyzerShard)' == '1' ">True</_RaskAnalyzerShardKnown>
+  </PropertyGroup>
+
+  <!-- A misspelt shard would switch the analyzers off everywhere and pass: refuse it. -->
+  <Target Name="RaskCheckAnalyzerShard" BeforeTargets="CoreCompile"
+          Condition=" '$(RaskAnalyzerShard)' != '' AND '$(_RaskAnalyzerShardKnown)' != 'True' ">
+    <Error Text="RaskAnalyzerShard must be a shard scripts/lib/analyzer-shards.txt names (1, or a number a project is listed in), or unset — not '$(RaskAnalyzerShard)'."/>
+  </Target>
+
+  <!--
     Which baseline folder a build reads: its own framework's, PublicAPI\net10.0 or PublicAPI\net10.0-browser.
 
     A project that builds a second .NET version from the same source points that build at the existing
