@@ -1,7 +1,7 @@
 {
  "release": "v2.21.0",
  "measuredOn": "linux",
- "measuredWith": "d1c478393af285a4",
+ "measuredWith": "b3c45bf6a10380d7",
  "pages": {
   "header": {
    "light/header@1280#0": "1931f8863ab00f4f",
@@ -34,7 +34,7 @@
    "light/secondary-header@1280#0": "727804ef5b4be19f",
    "light/secondary-header@390#0": "e410434ec5aefba6",
    "light/secondary-header@390-open#0": "03e9a89474978526",
-   "light/collapsible-sidebar@1280#0": "ba5b127c390459be",
+   "light/collapsible-sidebar@1280#0": "unstable",
    "light/collapsible-sidebar@1280-rail#0": "0ed8432c391b0c80",
    "light/collapsible-sidebar@390#0": "b32ea931c7513a7d",
    "light/collapsible-sidebar@390-open#0": "4f48e9155905592a",
@@ -48,7 +48,7 @@
    "dark/secondary-header@1280#0": "4c49e213879b47df",
    "dark/secondary-header@390#0": "636716d6ed9ecfda",
    "dark/secondary-header@390-open#0": "1b1a1dda0935e481",
-   "dark/collapsible-sidebar@1280#0": "8e04e1191aeccf86",
+   "dark/collapsible-sidebar@1280#0": "unstable",
    "dark/collapsible-sidebar@1280-rail#0": "f54c1052872a9ec7",
    "dark/collapsible-sidebar@390#0": "481339a6d7ca5165",
    "dark/collapsible-sidebar@390-open#0": "6f92a28f45714c18"
@@ -291,7 +291,7 @@
    "light/intro#0": "159ce73b0afbf237",
    "light/line-chart#0": "unstable",
    "light/area-chart#0": "unstable",
-   "light/multiple-lines#0": "7d0f1324629bc65c",
+   "light/multiple-lines#0": "unstable",
    "light/bar-chart#0": "unstable",
    "light/bar-chart#1": "unstable",
    "light/horizontal-charts#0": "unstable",
@@ -308,7 +308,7 @@
    "dark/intro#0": "eb53c40a2baaf002",
    "dark/line-chart#0": "unstable",
    "dark/area-chart#0": "unstable",
-   "dark/multiple-lines#0": "e2843478e05ad86e",
+   "dark/multiple-lines#0": "unstable",
    "dark/bar-chart#0": "unstable",
    "dark/bar-chart#1": "unstable",
    "dark/horizontal-charts#0": "unstable",
