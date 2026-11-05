@@ -79,6 +79,13 @@ public sealed partial class UiSelectPage : Component
         UiDocsExample.Key("ui-select-store").Heading("Backend search in a listbox").File("SelectListboxSearchExample.cs").Demo(SelectListboxSearchExample).Testid("ui-select-store")
             .Blurb("The same in a searchable listbox, through Ui.SelectSearch. The rows drawn stay until the answer is "
                    + "here, and a row picked while the pause runs is the row you pressed."),
+        UiDocsExample.Key("ui-select-server").Heading("Search on the server").File("SelectServerSearchExample.cs").Demo(SelectServerSearchExample).Testid("ui-select-server")
+            .Blurb("Search hands the select the question itself: it asks for the first few when it mounts and for what was "
+                   + "typed once typing pauses, says it is loading meanwhile and when nothing is found, and keeps the "
+                   + "chosen partner in the list whatever a search finds. The option written as a child names it before "
+                   + "anything is found."),
+        UiDocsExample.Key("ui-select-server-many").Heading("Several, searched on the server").File("SelectServerSearchMultipleExample.cs").Demo(SelectServerSearchMultipleExample).Testid("ui-select-server-many")
+            .Blurb("The same on a multi-select: every partner picked stays in the list, first, while a search does not find it."),
         UiDocsExample.Key("ui-select-create").Heading("Create option").File("SelectCreateExample.cs").Demo(SelectCreateExample).Testid("ui-select-create")
             .Blurb("Type a name no project has: the create row offers to make it, from two characters on."),
         UiDocsExample.Key("ui-select-create-search").Heading("With backend search").File("SelectCreateSearchExample.cs").Demo(SelectCreateSearchExample).Testid("ui-select-create-search")

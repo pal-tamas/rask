@@ -220,8 +220,9 @@ public static partial class BuilderRuntime
         // subscription and anything else it holds itself are exactly what position was losing (#685).
         //
         // Elements are where `Div.Class(…).Key(i)` is written in their hundreds, and none of them needs
-        // claiming.
-        if (target is Element)
+        // claiming. Nor does a component keyed in the list of whoever it is handed to (a select's option, #1284):
+        // it holds nothing, and its key is that list's to read.
+        if (target is Element or IKeyedInItsList)
         {
             return target;
         }

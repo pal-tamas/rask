@@ -173,14 +173,27 @@ public abstract partial class UiSelectControl<T>
     private Component EmptyRow(View view)
     {
         var slot = view.Parts.Empty;
-        var others = view.Parts.Rows.Count > 0 || (view.Parts.Create is not null && !HidesRows && view.CreateShown);
+        var others = view.Found > 0 || (view.Parts.Create is not null && !HidesRows && view.CreateShown);
         var marks = RowMarks("data-ui-listbox-empty", picked: false, hidden: others);
         marks["data-rask-list-empty"] = null;
 
-        return Div.Key("ui:empty").Class(UiListboxLook.Empty, slot?.Class).Attributes(marks)[
-            _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
+        // A list the page answers: the row says Flux's `when-loading` words instead while a field of the select waits on
+        // the answer — the runtime marks it `data-loading` once the question has gone 200 ms unanswered (rask-loading.ts).
+        // Measured on fluxui.dev's backend search (2026-11-05): the rows drawn stay until the answer is here, the row only
+        // shows, as ever, when no other does, and its words are its own text — so the loading ones are drawn over them
+        // by CSS from `data-rask-list-loading`, and the row holds nothing more than Flux's.
+        if (!HidesRows)
+        {
+            marks["data-rask-list-loading"] = Loading(slot);
+        }
+
+        return Div.Key("ui:empty").Class(UiListboxLook.Empty, HidesRows ? null : UiListboxLook.EmptyWhileAsked, slot?.Class).Attributes(marks)[
+            _busy ? [Loading(slot)] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
+
+    private static string Loading(UiSelectOptionEmpty? slot) =>
+        slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...");
 
     // Offered by the browser, at every key, once what is typed is long enough and names no option; a list with
     // nothing to type into always has it. A list the page filters is told by the page.

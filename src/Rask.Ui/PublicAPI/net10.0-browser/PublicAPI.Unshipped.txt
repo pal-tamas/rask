@@ -9020,3 +9020,14 @@ static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiPageHeader! __b, string?
 Rask.UiPageHeader.Level.get -> int?
 Rask.UiPageHeader.Level.set -> void
 static RaskBuilderSettersRask_Ui.Level(this Rask.UiPageHeader! __b, int? value) -> Rask.UiPageHeader!
+Rask.UiPillbox<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?
+Rask.UiPillbox<T>.Search.set -> void
+Rask.UiSelectControl<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?
+Rask.UiSelectControl<T>.Search.set -> void
+override Rask.UiSelectControl<T>.OnMount() -> System.Threading.Tasks.Task!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiPillbox<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!

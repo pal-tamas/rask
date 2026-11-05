@@ -125,6 +125,16 @@ internal static class UiListboxLook
         + "text-zinc-500 dark:text-zinc-300";
 
     /// <summary>
+    ///     The empty row of a list the page answers, while a field of its select waits on the answer (<c>data-loading</c>,
+    ///     written by the runtime): its own words drawn at no size, and Flux's <c>when-loading</c> words
+    ///     (<c>data-rask-list-loading</c>) drawn before them in their place.
+    /// </summary>
+    internal const string EmptyWhileAsked =
+        "in-[[data-rask-list]:has(input[role=combobox][data-loading])]:text-[0px] "
+        + "in-[[data-rask-list]:has(input[role=combobox][data-loading])]:before:text-sm "
+        + "in-[[data-rask-list]:has(input[role=combobox][data-loading])]:before:content-[attr(data-rask-list-loading)]";
+
+    /// <summary>
     ///     The row that makes a new option: a <c>div</c> no role names pressable, so it takes the hand itself (an
     ///     owner-approved departure from Flux's arrow, 2026-11-02) — and the arrow while the page makes it.
     /// </summary>
@@ -132,6 +142,9 @@ internal static class UiListboxLook
         "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
         + "text-start text-sm font-medium select-none scroll-my-[.3125rem] cursor-pointer data-loading:cursor-default "
         + "text-zinc-800 dark:text-white "
+        // Out of reach while a field of the select waits on the page's answer, as Flux's (measured 2026-11-05: zinc-400).
+        + "in-[[data-rask-list]:has(input[role=combobox][data-loading])]:text-zinc-400 dark:in-[[data-rask-list]:has(input[role=combobox][data-loading])]:text-zinc-400 "
+        + "in-[[data-rask-list]:has(input[role=combobox][data-loading])]:pointer-events-none "
         + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600";
 
     /// <summary>The plus before the create row's words.</summary>

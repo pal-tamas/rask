@@ -145,6 +145,7 @@ internal static partial class UiApi
             new("Indicator", typeof(Ui.SelectIndicator?), "A checkmark beside the picked rows, or a checkbox beside every row. The listbox's; a checkmark when unset."),
             new("Searchable", typeof(bool?), "A search field over the listbox's options."),
             new("Filter", typeof(bool?), "False leaves every option in the list whatever is typed: the page filters, from the search's OnInput."),
+            new("Search", typeof(Fn<string, Task<IEnumerable<Component?>>>?), "The options for what is typed, answered by the page: asked on mount and once typing pauses. Picked options stay in the list."),
             new("Empty", typeof(string), "What a search that matches nothing says. \"No results found\" when unset."),
             new("Clearable", typeof(bool?), "A button that clears the answer, shown while there is one."),
             new("Prefix", typeof(string), "Words that stay in the button before the chosen option: \"Compare to\"."),

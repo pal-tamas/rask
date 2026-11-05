@@ -76,6 +76,14 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
     /// </summary>
     public bool? Filter { get; set; }
 
+    /// <summary>
+    ///     The options for what is typed, answered by the page:
+    ///     <c>.Search(async typed =&gt; (await Tag.Named(typed, 20)).Select(t =&gt; Ui.PillboxOption.Value(t.Id)[t.Name]))</c>.
+    ///     As on <see cref="UiSelectControl{T}.Search" />: asked for <c>""</c> when the pillbox mounts and once typing
+    ///     pauses, and every picked option stays in the list while a search does not find it.
+    /// </summary>
+    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set; }
+
     /// <summary>True for a pillbox that cannot be opened or changed.</summary>
     public bool? Disabled { get; set; }
 
@@ -131,6 +139,7 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
             .Size(Size == Ui.PillboxSize.Sm ? Ui.SelectSize.Sm : null)
             .Searchable(Searchable == true || search is not null)
             .Filter(Filter)
+            .Search(Search)
             .Disabled(Disabled)
             .Invalid(Invalid)
             .Id(Id)

@@ -65,7 +65,12 @@ internal static class UiSelectLook
         + "dark:text-zinc-400 dark:hover:text-white dark:hover:bg-white/15";
 
     /// <summary>The spinner beside the chevron while the page answers a search it filters itself.</summary>
-    internal const string InputBusy = "hidden [[data-loading]>&]:block text-zinc-400 animate-spin";
+    // Measured on fluxui.dev's backend search (2026-11-05): a size-5 spinner in zinc-400 left of the chevron while the
+    // input waits on its answer, and the input's end padding grows to pe-16 to make room.
+    internal const string InputBusy = "hidden [[data-ui-input]:has(>input[data-loading])_&]:block text-zinc-400 animate-spin";
+
+    /// <summary>The combobox input's end padding while it waits on the answer to a search the page filters.</summary>
+    internal const string InputBusyPadding = "data-loading:pe-16";
 
     /// <summary>The chevron inside the input's button.</summary>
     internal const string InputChevronIcon =
@@ -102,6 +107,8 @@ internal static class UiSelectLook
     /// <summary>The search field's clear button: there while the field holds text.</summary>
     internal const string SearchClear =
         "absolute top-0 bottom-0 end-0 flex items-center justify-center pe-1 transition-opacity "
+        // Faded while the field waits on the page's answer, as Flux's (measured 2026-11-05).
+        + "[[data-ui-select-search]:has([data-loading])_&]:opacity-0 [[data-ui-pillbox-search]:has([data-loading])_&]:opacity-0 "
         + "[[data-ui-select-search]:has(input:placeholder-shown)_&]:hidden "
         + "[[data-ui-pillbox-search]:has(input:placeholder-shown)_&]:hidden";
 

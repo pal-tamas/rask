@@ -17,7 +17,8 @@ namespace Rask;
 ///     the listbox's and the combobox's; a native <c>&lt;option&gt;</c> holds text and nothing else.
 ///     </para>
 /// </remarks>
-public sealed partial class UiSelectOption : Component
+// Keyed in its select's list, not among everything the page writes: two selects may key their options alike (#1284).
+public sealed partial class UiSelectOption : Component, IKeyedInItsList
 {
     /// <summary>What picking this option stores. Unset, the option's own text.</summary>
     public object? Value { get; set; }

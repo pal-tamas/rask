@@ -5,9 +5,9 @@ namespace Rask;
 // The two drawn variants: a button (listbox) or a text input (combobox), and the list either opens.
 public abstract partial class UiSelectControl<T>
 {
-    private Component Drawn(UiWithField field, Parts parts)
+    private Component Drawn(UiWithField field, Parts parts, IReadOnlyList<T> picked)
     {
-        var view = Read(field, parts);
+        var view = Read(field, parts, picked);
 
         // Every child is keyed: the posted values change in number. Keyed, each is an insert or a removal the
         // live diff ships.
@@ -169,13 +169,14 @@ public abstract partial class UiSelectControl<T>
                     UiInputLook.Size(size),
                     UiInputLook.Padding(leading: false, trailing: true),
                     UiInputLook.Variant(Ui.InputVariant.Outline),
+                    HidesRows ? null : UiSelectLook.InputBusyPadding,
                     slot?.Class)
                 .Aria(TriggerAria(view, autocompletes: true))
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
                 InputClear(view),
-                Filter == false ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
+                !HidesRows ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Mini.Class(UiSelectLook.InputBusy) : null,
                 Button
                     .Key("chevron")
                     .Type(ButtonType.Button)

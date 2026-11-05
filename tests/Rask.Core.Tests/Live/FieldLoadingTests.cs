@@ -34,6 +34,20 @@ public sealed class FieldLoadingTests
     }
 
     [Fact]
+    public void A_search_sent_at_its_pause_names_the_field_that_waits_on_the_answer()
+    {
+        if (Run() is not { } root)
+        {
+            return;
+        }
+
+        var target = root.GetProperty("target");
+
+        Assert.True(target.GetProperty("paused").GetBoolean());
+        Assert.True(target.GetProperty("pausedChange").GetBoolean());
+    }
+
+    [Fact]
     public void A_field_is_marked_after_the_delay_without_aria_busy_and_clear_once_it_is_answered()
     {
         if (Run() is not { } root)

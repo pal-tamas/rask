@@ -28,17 +28,18 @@ public abstract partial class UiSelectControl<T>
     private string SearchId => Prefixed + "-search";
 
     /// <summary>Whether the browser hides the rows a search leaves out; otherwise the page answers the search.</summary>
-    private bool HidesRows => Searches && Filter != false;
+    private bool HidesRows => Searches && Filter != false && !Asks;
 
     // ----- What is typed -------------------------------------------------------------------------------
 
     // Who hears what is typed, and after how long a pause: the input's slot where one is typed into, else the
-    // search field's.
+    // search field's. A select that asks the page itself (Search) always hears it, after a pause unless told none.
     private void ReadSearch(Parts parts)
     {
         var typed = IsCombobox || PillsCombobox;
         _hears = (typed ? parts.Input?.OnInput : parts.Search?.OnInput) ?? default;
-        _pause = UiSearchPause.Of(_hears, typed ? parts.Input?.Debounce : parts.Search?.Debounce);
+        var debounce = typed ? parts.Input?.Debounce : parts.Search?.Debounce;
+        _pause = Asks ? UiSearchPause.Of(debounce ?? UiSearchPause.Asked) : UiSearchPause.Of(_hears, debounce);
     }
 
     // The page's own search: every keystroke, the text a pause ended on, or what the browser wrote into the
@@ -47,7 +48,7 @@ public abstract partial class UiSelectControl<T>
     private async Task HearAsync(string text)
     {
         _search = text;
-        if (!_hears.HasValue || (_pause > 0 && string.Equals(text, _heard, StringComparison.Ordinal)))
+        if ((!_hears.HasValue && !Asks) || (_pause > 0 && string.Equals(text, _heard, StringComparison.Ordinal)))
         {
             return;
         }
@@ -57,6 +58,7 @@ public abstract partial class UiSelectControl<T>
         try
         {
             await _hears.Invoke(text).ConfigureAwait(false);
+            await AnswerAsync(text).ConfigureAwait(false);
         }
         finally
         {
@@ -78,7 +80,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         var hearing = UiSearchPause.Over(marks, _pause, HearAsync);
-        if (_pause == 0 && _hears.HasValue)
+        if (_pause == 0 && (_hears.HasValue || Asks))
         {
             hearing = new Dictionary<string, string?>(marks, StringComparer.Ordinal)
             {

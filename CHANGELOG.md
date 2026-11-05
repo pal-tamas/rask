@@ -122,6 +122,26 @@ them until tagged releases begin.
   the actions at the end as Flux's demos lay out a heading and its actions — they go under the title on a phone. Also
   held now by `AnAppSizesTheKitTests`: a `Ui.TimePicker.Class("w-28")` is 112px wide with either trigger, and a heading
   only a screen reader says adds no scrollbar under a list whose actions are held at its edge.
+- **`Ui.Select` and `Ui.Pillbox` ask the page what was typed: `.Search(async typed => …)` (#1284).** Before: a list
+  too long to send whole meant `Filter(false)`, a `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)`, a
+  field for the rows found, a first search on mount, and the picked option written back among the rows so the button
+  could still name it — TA and Eszaf each kept a picker of their own for it (`PickerSearch`, `PickerMany`,
+  `MultiPicker`), and each prefixed every option's `Key` with the bound member because two pickers on one page
+  clashed. After:
+  `Ui.Select.Bind(() => m.PartnerId).Search(async typed => (await Partner.Where(p => p.Name.Contains(typed)).Take(20).ToList()).Select(p => Ui.SelectOption.Key(p.Id).Value(p.Id)[p.Name]))`
+  — a searchable listbox (or `.Combobox`) that asks for `""` when it mounts and for the trimmed text once typing
+  pauses (250 ms; `Ui.SelectSearch.Debounce(…)` changes it), drops an answer to an older question, waits as Flux's
+  backend search does (measured on fluxui.dev: the rows drawn stay, the search field's clear button fades, a
+  combobox shows its spinner, a create row greys out, and the empty row — when no row shows — says "Loading..."),
+  says "No results found" when nothing is found (the catalog's, "Betöltés…"/"Nincs találat" in Hungarian;
+  `Ui.SelectOptionEmpty.WhenLoading(…)[…]` words them), and keeps every picked option first in the list
+  while a search does not find it. The option children are the rows until the first answer — write the one the
+  value holds and the button names it at once. The same step on a multi-select and on `Ui.Pillbox`. And an option's
+  `Key` is now scoped inside its select (`Ui.SelectOption`/`Ui.PillboxOption` no longer claim a page-wide identity),
+  so two selects on one page key their options by the same ids without the page's repeated-key warning. The runtime
+  now marks a search field `data-loading` for a search sent at its pause too, and the combobox's spinner, which never
+  showed (it looked for the mark on the wrong element), now shows beside the chevron with the input's padding grown to
+  make room, as Flux's — under `Filter(false)` + `Debounce` too.
 - **Rask.Ui: a form's buttons, a row's actions and a list's column widths, from the kit (#1298).** Not Flux's: additions
   the owner approved, which both list apps kept a near-copy of. Before: each app wrote a `FormButtons`, a `RowActions`
   and a `ListTable` of its own — `FormButtons.For(list, Remove, "Szállító törlése", "Biztos törli?")`,
