@@ -36,8 +36,8 @@ if (!existsSync(raskPage)) {
 
 const engine = await readFile(join(root, 'src', 'Rask.Ui', 'Resources', 'ui-editor.js'), 'utf8');
 // Where each page keeps the same thing: Flux's custom elements, and the native ones the kit writes.
-const FLUX = { editor: 'ui-editor', list: 'ui-options', option: 'ui-option', value: 'value', shown: 'ui-selected > div', link: '[data-flux-editor-link]', disabled: ['disabled', ''] };
-const RASK = { editor: '[data-ui-editor]', list: '[role=listbox]', option: '[role=option]', value: 'data-value', shown: 'button[role=combobox] [data-value]', link: '[data-ui-editor-link]', disabled: ['aria-disabled', 'true'] };
+const FLUX = { editor: 'ui-editor', list: 'ui-options', option: 'ui-option', value: 'value', shown: 'ui-selected > div', link: '[data-flux-editor-link]', disabled: ['disabled', ''], linkTip: '[data-editor=link] > ui-tooltip > [role=tooltip]' };
+const RASK = { editor: '[data-ui-editor]', list: '[role=listbox]', option: '[role=option]', value: 'data-value', shown: 'button[role=combobox] [data-value]', link: '[data-ui-editor-link]', disabled: ['aria-disabled', 'true'], linkTip: null };
 const DOCUMENT = '<h1>One</h1><h2>Two</h2><h3>Three</h3><p>Para <strong>b</strong> <em>i</em> <s>s</s> <u>u</u> <code>c</code> <mark>m</mark> x<sub>sub</sub> y<sup>sup</sup> <a href="https://a.b">link</a></p>'
   + '<ul><li><p>a</p><ul><li><p>nested</p></li></ul></li><li><p>b</p></li></ul><ol><li><p>one</p></li><li><p>two</p></li></ol>'
   + '<blockquote><p>quote</p><p>quote2</p></blockquote><pre><code class="language-js">let a = 1;</code></pre><p style="text-align:center">centered</p><p>last</p>';
@@ -142,6 +142,20 @@ async function transcript(scheme, url, at, inherited) {
   // on the button and the panel shut with it there: `focus=link`, #1260); the kit does it in the press. Waited on, on
   // both pages, as long as it takes — and ten seconds at most, then on as before. Looked at on a timer, not on the
   // page's frames: a headless page may paint none (lib.mjs `frames`), and a frame-polled wait then waits it all out.
+  // The link button pressed as a person's mouse presses it: on it first, its tooltip showing, then the press (which
+  // shuts the tooltip). Moved and pressed at once, Flux's tooltip came up a task AFTER the press, beside the open
+  // panel, and Escape then put focus in the document; with nothing showing it gives it back to the button. Which one
+  // happened was a race: the document on a Mac and in a container, the button on the loaded runner (#1260). A tap
+  // has no rest on the button, so a phone still taps at once. (The kit's tooltip runtime is not on its page.)
+  const pressLink = async () => {
+    const button = editor.locator(linkButton);
+    if (!phone && at.linkTip) {
+      await button.hover();
+      await page.waitForFunction(([tip]) => document.querySelector(tip)?.matches(':popover-open'), [`${at.editor} ${at.linkTip}`], { polling: 50, timeout: 10000 }).catch(() => {});
+    }
+
+    await hit(button);
+  };
   const linkOpened = async () => {
     await page.waitForTimeout(300);
     await page.waitForFunction(() => document.activeElement?.dataset?.editor === 'link:url', null, { polling: 50, timeout: 10000 }).catch(() => {});
@@ -312,7 +326,7 @@ async function transcript(scheme, url, at, inherited) {
   await settle();
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
-  await hit(editor.locator(linkButton));
+  await pressLink();
   await linkOpened();
   note('link open', `${await state(linkButton)} panel ${await placed(linkPanel, linkButton)} focus=${await focus()}`);
   note('link panel look', await editor.evaluate((el, at) => {
@@ -326,13 +340,21 @@ async function transcript(scheme, url, at, inherited) {
   if (!phone) await page.mouse.move(640, 4);
   await settle();
   note('link Enter', `${await value()} ${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await hit(editor.locator(linkButton));
+  await pressLink();
   await linkOpened();
   note('link reopened', await editor.locator('[data-editor="link:url"]').inputValue());
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by its button', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await hit(editor.locator(linkButton));
+  // By the keyboard: Enter on the focused button, the pointer elsewhere.
+  if (!phone) await page.mouse.move(640, 4);
+  await editor.locator(linkButton).focus();
+  await page.keyboard.press('Enter');
+  await linkOpened();
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(150);
+  note('link Escape, opened by Enter on its button', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
+  await pressLink();
   await linkOpened();
   await hit(editor.locator('[data-editor="link:unlink"]'));
   await page.waitForTimeout(200);
@@ -347,7 +369,7 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('Escape');
   await page.waitForTimeout(150);
   note('link Escape, opened by the shortcut', `${await state(linkButton)} panel ${await display(linkPanel)} focus=${await focus()}`);
-  await hit(editor.locator(linkButton));
+  await pressLink();
   await linkOpened();
   await editor.locator('[data-editor="link:url"]').fill('https://x.y');
   await hit(editor.locator('[data-editor="link:insert"]'));

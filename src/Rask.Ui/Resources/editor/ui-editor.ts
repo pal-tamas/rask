@@ -329,17 +329,21 @@ class Mounted {
     const panel = link.querySelector<HTMLElement>(':scope > [popover]')!;
     const trigger = [...link.querySelectorAll<HTMLButtonElement>('button')].find(button => !panel.contains(button))!;
     const url = panel.querySelector<HTMLInputElement>('[data-editor="link:url"]')!;
-    let byButton = false;
+    // What opened the panel: the button (by a mouse or a key), a finger on it, or the shortcut.
+    let opener: 'button' | 'touch' | 'shortcut' = 'shortcut';
+    let pressedBy = '';
     const close = () => this.shut(panel, [trigger, panel]);
-    // Measured on Flux: Escape gives focus back to the document when the button opened the panel, and to
-    // nothing at all when the shortcut did.
+    // Measured on Flux (#1260): Escape gives focus back to the button when a mouse or a key (Enter, Space) pressed
+    // it, to the document when a finger did — a tap ends with the button's tooltip showing, and Flux then leaves
+    // the button — and to nothing at all when the shortcut opened the panel.
     const dismiss = () => {
       close();
-      if (byButton) this.editor.view.focus();
+      if (opener === 'button') trigger.focus();
+      else if (opener === 'touch') this.editor.view.focus();
       else url.blur();
     };
-    const show = (button = false) => {
-      byButton = button;
+    const show = (by: typeof opener) => {
+      opener = by;
       url.value = this.editor.getAttributes('link').href ?? '';
       this.show(panel, trigger, [trigger, panel], 'center', close);
       url.focus();
@@ -351,7 +355,12 @@ class Mounted {
       close();
     };
 
-    trigger.addEventListener('click', () => (panel.hasAttribute('data-open') ? close() : show(true)), { signal });
+    // A click a key raised carries no press count (`detail` 0); one from a pointer follows that pointer's press.
+    trigger.addEventListener('pointerdown', event => (pressedBy = event.pointerType), { signal });
+    trigger.addEventListener('click', event => {
+      if (panel.hasAttribute('data-open')) close();
+      else show(event.detail > 0 && pressedBy === 'touch' ? 'touch' : 'button');
+    }, { signal });
     url.addEventListener('keydown', event => {
       if (event.key === 'Enter') insert();
       else if (event.key === 'Escape') dismiss();
@@ -367,7 +376,7 @@ class Mounted {
     this.editor.view.dom.addEventListener('keydown', event => {
       if (event.key.toLowerCase() !== 'k' || !(event.metaKey || event.ctrlKey) || event.shiftKey || event.altKey) return;
       event.preventDefault();
-      show();
+      show('shortcut');
     }, { signal });
   }
 

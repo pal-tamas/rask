@@ -118,6 +118,27 @@ public sealed class UiKitEditorTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task Escape_in_the_link_panel_gives_focus_back_to_the_button_a_mouse_or_a_key_pressed() => RunAsync(async () =>
+    {
+        await OpenAsync();
+        var editor = Editors.First;
+        var button = editor.Locator("[data-editor='link'] button:not([data-editor])");
+        var url = editor.Locator("[data-editor='link:url']");
+        await editor.Locator("[data-slot='content']").ClickAsync();
+
+        await button.ClickAsync();
+        await Expect(url).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(button).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Enter");
+        await Expect(url).ToBeFocusedAsync();
+        await Page.Keyboard.PressAsync("Escape");
+
+        await Expect(editor.Locator("[data-editor='link'] > [popover]")).ToBeHiddenAsync();
+        await Expect(button).ToBeFocusedAsync();
+    });
+
+    [Fact]
     public Task A_button_of_the_apps_own_runs_csharp_and_the_render_it_causes_leaves_the_typing_alone() => RunAsync(async () =>
     {
         await OpenAsync();

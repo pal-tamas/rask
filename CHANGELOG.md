@@ -748,6 +748,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Escape in `Ui.Editor`'s link panel gives focus back to the link button, as Flux's does (#1260).** Before: it
+  always went into the document. Measured on Flux: a mouse press or Enter/Space on the button gets focus back on
+  Escape; a tap still leaves it in the document (Flux's tooltip is showing after a tap), and the ⌘K shortcut still
+  leaves it nowhere. The earlier measurement had moved the mouse and pressed in one go, so Flux's tooltip came up
+  after the press and took the tap's path. `ui-editor.js` grows by 154 bytes (449,530 -> 449,684).
 - **Behind `rask deploy`'s proxy a `RaskApp` sees the visitor's scheme and address.** Before: `BehindProxy` (and
   `Rask:BehindProxy`, which `rask deploy` sets) wired `UseForwardedHeaders` with ASP.NET's default trust list, which
   is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,
