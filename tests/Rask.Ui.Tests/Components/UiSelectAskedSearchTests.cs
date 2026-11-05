@@ -46,6 +46,12 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
     private Component Several() =>
         Ui.Select.Values(_several).OnChange(values => _several = values).Listbox.Multiple().Search(Find).Placeholder("Choose…");
 
+    // The empty row's "no results" words.
+    private static string NoResults(Page page) => page.TextOf("[data-ui-listbox-empty]");
+
+    // What the empty row says while the answer is on its way.
+    private static string? WhenLoading(Page page) => page.Find("[data-ui-listbox-empty]").Attribute("data-rask-list-loading");
+
     private static string[] Rows(Page page) => [.. page.FindAll("[role=\"option\"]").Select(row => row.TextContent.Trim())];
 
     private static Task Pause(Page page, string text, string field = Field) =>
@@ -161,20 +167,24 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(["Glock"], Rows(page));
         Assert.Null(page.Find("[data-ui-listbox-empty]").Attribute("data-hidden"));
-        Assert.Equal("No results found", page.TextOf("[data-ui-listbox-empty]"));
+        Assert.Equal("No results found", NoResults(page));
     }
 
+    // Measured on fluxui.dev's backend search: the rows drawn stay while the answer is on its way, and the empty row —
+    // shown only when no other is — says `when-loading` meanwhile.
     [Fact]
-    public void The_list_has_a_loading_row_the_waiting_field_shows_and_the_no_results_row_steps_aside_for()
+    public void The_empty_row_says_it_is_loading_while_a_field_of_the_select_waits_on_the_answer()
     {
         var page = Acting.Render(One);
 
-        var loading = page.Find("[data-ui-listbox-loading]");
+        var empty = page.Find("[data-ui-listbox-empty]");
+        var look = empty.Attribute("class")!.Split(' ');
 
-        Assert.Equal("Loading...", page.TextOf("[data-ui-listbox-loading]"));
-        Assert.Contains("hidden", loading.Attribute("class")!.Split(' '));
-        Assert.Contains("in-[[data-rask-list]:has(input[data-loading])]:block", loading.Attribute("class")!.Split(' '));
-        Assert.Contains("in-[[data-rask-list]:has(input[data-loading])]:hidden", page.Find("[data-ui-listbox-empty]").Attribute("class")!.Split(' '));
+        Assert.Equal("Loading...", empty.Attribute("data-rask-list-loading"));
+        Assert.Equal("No results found", NoResults(page));
+        Assert.Empty(page.FindAll("[data-ui-listbox-empty] *"));
+        Assert.Contains("in-[[data-rask-list]:has(input[role=combobox][data-loading])]:text-[0px]", look);
+        Assert.Contains("in-[[data-rask-list]:has(input[role=combobox][data-loading])]:before:content-[attr(data-rask-list-loading)]", look);
     }
 
     [Fact]
@@ -185,8 +195,8 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
                 Ui.SelectOptionEmpty.WhenLoading("Looking for partners...")["No partner found."]
             ]);
 
-        var loading = page.TextOf("[data-ui-listbox-loading]");
-        var empty = page.TextOf("[data-ui-listbox-empty]");
+        var loading = WhenLoading(page);
+        var empty = NoResults(page);
 
         Assert.Equal("Looking for partners...", loading);
         Assert.Equal("No partner found.", empty);
@@ -199,8 +209,8 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Render(() => Raw.Value(html));
 
-        Assert.Equal("Betöltés…", page.TextOf("[data-ui-listbox-loading]"));
-        Assert.Equal("Nincs találat", page.TextOf("[data-ui-listbox-empty]"));
+        Assert.Equal("Betöltés…", WhenLoading(page));
+        Assert.Equal("Nincs találat", NoResults(page));
     }
 
     [Fact]
@@ -226,6 +236,11 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
         Assert.False(page.Exists(Field));
         Assert.Equal("250", page.Find(input).Attribute("data-rask-debounce"));
         Assert.Equal(["Walther"], Rows(page));
+        // Flux's spinner beside the chevron, and room for it, while the input waits on the answer.
+        Assert.Contains("data-loading:pe-16", page.Find(input).Attribute("class")!.Split(' '));
+        Assert.Contains(
+            "[[data-ui-input]:has(>input[data-loading])_&]:block",
+            page.FindAll("[data-ui-input] svg").Select(svg => svg.Attribute("class") ?? "").SelectMany(c => c.Split(' ')));
     }
 
     [Fact]

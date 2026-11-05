@@ -48,11 +48,6 @@ public abstract partial class UiSelectControl<T>
             yield return EmptyRow(view);
         }
 
-        if (Searches && !HidesRows)
-        {
-            yield return LoadingRow(view);
-        }
-
         // Written before the options, drawn before them: the pillbox's "Create new" that opens a form.
         if (view.Parts.Create is { } leading && view.Parts.CreateLeads)
         {
@@ -182,19 +177,19 @@ public abstract partial class UiSelectControl<T>
         var marks = RowMarks("data-ui-listbox-empty", picked: false, hidden: others);
         marks["data-rask-list-empty"] = null;
 
+        // A list the page answers: the row says Flux's `when-loading` words instead while a field of the select waits on
+        // the answer — the runtime marks it `data-loading` once the question has gone 200 ms unanswered (rask-loading.ts).
+        // Measured on fluxui.dev's backend search (2026-11-05): the rows drawn stay until the answer is here, the row only
+        // shows, as ever, when no other does, and its words are its own text — so the loading ones are drawn over them
+        // by CSS from `data-rask-list-loading`, and the row holds nothing more than Flux's.
+        if (!HidesRows)
+        {
+            marks["data-rask-list-loading"] = Loading(slot);
+        }
+
         return Div.Key("ui:empty").Class(UiListboxLook.Empty, HidesRows ? null : UiListboxLook.EmptyWhileAsked, slot?.Class).Attributes(marks)[
             _busy ? [Loading(slot)] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
-    }
-
-    // A list the page answers says it is loading while the field typed into waits on that answer — the runtime marks
-    // the field `data-loading` once the question has gone 200 ms unanswered (rask-loading.ts) — and the "no results"
-    // row stands aside meanwhile: Flux's `when-loading`. The rows drawn stay until the answer is here.
-    private static Component LoadingRow(View view)
-    {
-        var slot = view.Parts.Empty;
-
-        return Div.Key("ui:loading").Class(UiListboxLook.Loading, slot?.Class).Data("ui-listbox-loading", "")[Loading(slot)];
     }
 
     private static string Loading(UiSelectOptionEmpty? slot) =>

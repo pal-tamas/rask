@@ -173,9 +173,11 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(field).ToBeFocusedAsync();
         await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
 
+        // While the slow store answers, the field waits and its clear button fades; the rows drawn stay, as on Flux.
         await field.FillAsync("berl");
-        await Expect(scope.Locator("[data-ui-listbox-loading]")).ToBeVisibleAsync();
-        await Expect(scope.Locator("[data-ui-listbox-loading]")).ToBeHiddenAsync();
+        await Expect(field).ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
+        await Expect(field).Not.ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
         // The partner the value holds stays first, whatever the search found.
         await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
         // Typing lit the first row, as on Flux; the arrow goes on to the next and Enter picks it.
@@ -188,8 +190,19 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await button.ClickAsync();
         await field.FillAsync("zzz");
         await Expect(scope.Locator("[data-ui-listbox-empty]")).ToBeVisibleAsync();
-        await Expect(scope.Locator("[data-ui-listbox-empty]")).ToHaveTextAsync("No results found");
+        var empty = scope.Locator("[data-ui-listbox-empty]");
+        await Expect(empty).ToHaveTextAsync("No results found");
         await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Berlin Cargo"]);
+
+        // With no row to show, the empty row says Flux's `when-loading` words while the next answer is on its way: drawn
+        // over its own words, which take no room meanwhile.
+        await field.PressSequentiallyAsync("q");
+        await Expect(field).ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        Assert.Equal("\"Loading...\"", await empty.EvaluateAsync<string>("el => getComputedStyle(el, '::before').content"));
+        Assert.Equal("0px", await empty.EvaluateAsync<string>("el => getComputedStyle(el).fontSize"));
+        await Expect(field).Not.ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        Assert.Equal("none", await empty.EvaluateAsync<string>("el => getComputedStyle(el, '::before').content"));
+        await Expect(empty).ToBeVisibleAsync();
     });
 
     [Fact]

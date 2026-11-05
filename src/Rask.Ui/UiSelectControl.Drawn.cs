@@ -169,13 +169,14 @@ public abstract partial class UiSelectControl<T>
                     UiInputLook.Size(size),
                     UiInputLook.Padding(leading: false, trailing: true),
                     UiInputLook.Variant(Ui.InputVariant.Outline),
+                    HidesRows ? null : UiSelectLook.InputBusyPadding,
                     slot?.Class)
                 .Aria(TriggerAria(view, autocompletes: true))
                 .Attributes(InputMarks(view, view.Field.Invalid || slot?.Invalid == true)),
             // Keyed, all three: the clear button comes and goes before the chevron, and is no chevron to patch into one.
             Div.Class(UiInputLook.Trailing)[
                 InputClear(view),
-                !HidesRows ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Class(UiSelectLook.InputBusy) : null,
+                !HidesRows ? Ui.Icon.Key("busy").Name(Ui.IconName.Loading).Mini.Class(UiSelectLook.InputBusy) : null,
                 Button
                     .Key("chevron")
                     .Type(ButtonType.Button)

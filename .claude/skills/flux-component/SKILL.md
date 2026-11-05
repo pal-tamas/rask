@@ -150,9 +150,13 @@ departure in behaviour carries none.
 - **2026-11-04 — `Search` on `Ui.Select` and `Ui.Pillbox` (#1284).** Flux's backend search is the page's `$search`, a
   query over it and `:filter="false"`. The kit holds it: `.Search(async typed => …)` asks for "" on mount and the trimmed
   text at a 250 ms pause, drops an answer to an older question, keeps every picked option FIRST in the list while a search
-  misses it (Flux leaves that to the query), and shows Flux's `when-loading` words in a row of their own while the
-  field is `data-loading` (the runtime now marks a field whose search went at its pause too). Look of every row
-  unchanged. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
+  misses it (Flux leaves that to the query), and runs the first search on mount even for a select never opened (owner,
+  2026-11-05: keep). Only those two depart. Waiting is Flux's, measured 2026-11-05 on its backend-search examples
+  (`/select` #15, `/pillbox` #6, answers held back 2.5 s): the rows drawn stay; a combobox shows a size-5 zinc-400 spinner
+  left of its chevron and its input grows to `pe-16`; a select search field's clear button fades (`opacity-0`); a create
+  row greys to zinc-400 and takes no press; the empty row, shown only when no other row is, says `when-loading` — drawn
+  by CSS from `data-rask-list-loading` so the row's text stays Flux's. The runtime marks a field whose search went at
+  its pause `data-loading` too. `parity-select.mjs` holds the open lists. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
   `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
