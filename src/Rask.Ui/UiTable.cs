@@ -1,4 +1,5 @@
 using System.Text;
+using Rask.Core.Live;
 using Rask.Querying;
 
 namespace Rask;
@@ -29,6 +30,13 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiTable : UiElement, IUiHost
 {
+    /// <summary>
+    ///     The direction a sorted column runs backwards, as <see cref="SortIn(string)" /> writes it into the address: a
+    ///     page reads its own <c>[QueryParam("dir")] string? Dir</c> with <c>Dir == UiTable.Descending</c>. Ascending
+    ///     leaves the key out.
+    /// </summary>
+    public const string Descending = "desc";
+
     // Flux's table, in Flux's order.
     private const string Base =
         "[:where(&)]:min-w-full table-fixed border-separate border-spacing-0 isolate text-zinc-800 whitespace-nowrap "
@@ -59,6 +67,9 @@ public sealed partial class UiTable : UiElement, IUiHost
     private static readonly UiPartMarker Marker = new("ui-table");
 
     private IQueryState? _query;
+
+    // What the table keeps in the page's address, once SortIn, PageIn or Empty is asked for.
+    private UiTableAddress? _address;
 
     /// <summary>
     ///     Runs the row dividers through the horizontal padding of the box the table sits in, while the first
@@ -183,9 +194,19 @@ public sealed partial class UiTable : UiElement, IUiHost
             marks["ui-table-bleed"] = "";
         }
 
+        // A list keeping its sort and page in the address renders again whenever the address moves.
+        var route = _address is null ? null : UiTableAddress.Route();
+        if (_address is { } address)
+        {
+            LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+            address.Sort(Children, route);
+            StepBack(route);
+        }
+
+        var pager = Paginate ?? _address?.Pager(route);
         if (_query is { } query)
         {
-            UiTableSkeleton.Fill(query, Children, Paginate);
+            UiTableSkeleton.Fill(query, Children, pager, _address?.Says(route, Filters));
             marks["rask-skeleton"] = UiTableSkeleton.Word(query);
         }
 
@@ -199,7 +220,7 @@ public sealed partial class UiTable : UiElement, IUiHost
             Div.Class(ScrollArea)[
                 HostedElement.Tag("table").Owner(this)[Children ?? []]
             ],
-            Paginate
+            pager
         ];
     }
 

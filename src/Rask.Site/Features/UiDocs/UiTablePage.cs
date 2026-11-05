@@ -15,7 +15,8 @@ public sealed partial class UiTablePage : Component
         UiComponentDoc
             .Entry(UiDocsCatalog.Table)
             .Lead("Columns, rows and cells, part for part as Flux's. The table sorts nothing and pages nothing: the "
-                  + "page keeps the sorted column, its direction and the page number, and the table draws them.")
+                  + "page keeps the sorted column, its direction and the page number, and the table draws them — or "
+                  + "keeps them in the address for a list page, with SortIn and PageIn.")
             .Api(UiApi.Table)[
             UiDocsExample.Key("ui-table-intro").Heading("Table").File("TableExample.cs").Demo(TableExample).Testid("ui-table-intro")
                 .Blurb("A heading row and a row per record. A cell holding a badge drops its own vertical padding."),
@@ -39,6 +40,10 @@ public sealed partial class UiTablePage : Component
                     .Blurb("Nothing changes until the next page has its rows. Make the read slow and the pager moves "
                            + "first, the rows you have dim, and the new ones take their place when they arrive.")
             ],
+            UiDocsExample.Key("ui-table-list").Heading("A list page").File("TableListPageExample.cs").Demo(TableListPageExample).Testid("ui-table-list")
+                .Blurb("SortIn and PageIn keep the sort and the page in the address: sort, page, then copy the URL. Delete "
+                       + "the last row of the last page and the list steps back a page. Empty says \"nothing yet\" of an "
+                       + "empty list, and \"nothing matches\" while the search narrows it."),
             UiTableBehaviour
         ];
 }

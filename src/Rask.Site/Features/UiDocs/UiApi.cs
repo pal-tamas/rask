@@ -490,6 +490,12 @@ internal static partial class UiApi
             new("Of", typeof(Rask.Querying.Query<>), "Skeleton rows while a Rask.Query query loads, and a row saying there is nothing when it holds none.",
                 "a Query, and up to two more it waits for"),
             new("Loading", typeof(bool), "Skeleton rows while the page's own rows are on their way.", "a bool: _rows is null"),
+            new("SortIn", typeof(string), "Keeps the sorted column and its direction in the address: a heading's press writes them, and the list starts at its first page.",
+                "the direction's query key, or the column's and the direction's: \"sort\", \"dir\""),
+            new("PageIn", typeof(string), "Keeps the page in the address: a pager of links (always, as Flux), and a step back once the last row of the last page is deleted.",
+                "the page's query key, the total, and rows a page (UiPaginator.DefaultPerPage, 15)"),
+            new("Empty", typeof(Component), "What the one row of an empty list says: nothing yet, or — while the address or the filters narrow it — nothing matches.",
+                "what to say of nothing yet, and of no match"),
         ]),
         new("Ui.TableColumns", typeof(UiTableColumns), "flux:table.columns", "The heading row: the <thead>.",
         [

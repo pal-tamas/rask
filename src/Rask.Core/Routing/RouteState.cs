@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Primitives;
 using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
@@ -131,13 +132,48 @@ public sealed class RouteState
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
         LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
 
+        return Here(Query) with { Language = language };
+    }
+
+    /// <summary>
+    ///     The page being shown with <paramref name="changes" /> written into its query — a pair with no value takes its
+    ///     key out, every other key stays: where a pager's link or a sort leads.
+    /// </summary>
+    /// <param name="changes">The keys to write, matched without regard to case.</param>
+    /// <returns>An in-app link to this page, in the language of the page it is used on.</returns>
+    internal RouteUrl With(IEnumerable<KeyValuePair<string, string?>> changes)
+    {
+        var query = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in Query)
+        {
+            query[key] = value;
+        }
+
+        foreach (var (key, value) in changes)
+        {
+            if (value is null)
+            {
+                query.Remove(key);
+            }
+            else
+            {
+                query[key] = value;
+            }
+        }
+
+        return Here(new QueryCollection(query));
+    }
+
+    // This page under the query given: its page type makes it an in-app link.
+    private RouteUrl Here(IEnumerable<KeyValuePair<string, StringValues>> query)
+    {
         var path = RoutePath;
         var page = RouteResolver.TryResolve(CurrentTable, path, out var chain, out var notFound) && !notFound && chain.Count > 0
             ? chain[^1]
             : null;
-        var here = QueryString.Build(path, Query);
+        var here = QueryString.Build(path, query);
         var at = here.IndexOf('?', StringComparison.Ordinal);
-        return new RouteUrl(path, at < 0 ? null : here[at..], page) { Language = language };
+        return new RouteUrl(path, at < 0 ? null : here[at..], page);
     }
 
     /// <summary>

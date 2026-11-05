@@ -141,6 +141,12 @@ departure in behaviour carries none.
   `parity-focus.mjs` holds those steps to the accent ring instead of Flux's outline (`FOCUS_ACCENT` in
   `scripts/flux/departed.mjs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
   (Server E2E: a field in a table row in a flyout, unclipped).
+- **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the
+  paginator. The kit can keep them in the address: a heading's press writes the sorted column and direction (Flux's
+  cycle — another column ascending, the sorted one turned round), `PageIn` draws `Ui.Pagination` of links (always, as
+  Flux's, one page too) and steps back past the list's end, and `Empty` says "nothing yet" or "nothing matches" in the kit's empty row.
+  Steps, not props, so `FluxConformanceTests` has nothing to list; the look is Flux's table, heading and pager
+  unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
