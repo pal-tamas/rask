@@ -223,6 +223,10 @@ async function transcript(scheme, url, at, inherited) {
   await page.keyboard.press('ControlOrMeta+a');
   await settle();
   await events();
+  // Both editors' history joins changes less than 500 ms apart into one undo, and the document set above was
+  // ~450 ms ago: undo took the typing alone on one run and the typing with the set document on the next, on
+  // either page (`<p><sup>Hello world</sup></p>`, the shortcut before it). Typed past that, undo is the typing.
+  await page.waitForTimeout(600);
   await page.keyboard.type('ab');
   note('two characters typed', `${await value()} events=${await events()}`);
   await page.keyboard.press('ControlOrMeta+z');
