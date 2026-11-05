@@ -113,6 +113,14 @@ them until tagged releases begin.
   the user id, keeps the loaded user for `.Keep(…)` across every page of theirs (nothing kept by default), and drops
   what it keeps the moment a save of `.ForgetOnSave<T>()`'s type commits in this process — from a page, a request or a
   background job. Server host.
+- **A hand-wired host's migrations own its schema in one line, and take over a database that predates them (#1282).**
+  Before: `AddRaskData<TContext>(…)` never migrated, so an app moving onto Rask (TA, Eszaf) carried a `SchemaOwner` of
+  its own — `sp_getapplock`, an `OBJECT_ID` check, a hand-built `__EFMigrationsHistory` row, `SetCommandTimeout` —
+  called after `Build()`. After: `builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(c)).OwnsSchema(s =>
+  s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes))`. As the host starts it takes EF
+  Core's migration lock (any provider, SQLite included), writes the first migration down as applied when the database
+  already has its schema, then applies the rest with that command timeout; a fresh database is made as usual.
+  `AddRaskData<TContext>(o => …)` now returns `DataBuilder<TContext>` (`.Services` for the collection).
 - **`var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` awaits a job's answer in its lane (#1281).**
   Before: work that had to wait its turn at a pump AND hand the caller an answer needed a named lock of its own — a raw
   `sp_getapplock` held while the work ran — beside a lane for the work that did not wait, two mechanisms that did not

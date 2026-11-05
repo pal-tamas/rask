@@ -93,8 +93,8 @@ RaskBuilderSettersRask_Server
 const Rask.Server.Diagnostics.RaskTelemetry.ActivitySourceName = "Rask.Server" -> string!
 const Rask.Server.Diagnostics.RaskTelemetry.MeterName = "Rask.Server" -> string!
 static Rask.Server.Diagnostics.RaskHealthCheckExtensions.AddRaskLiveSessions(this Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder! builder, string! name = "rask_live_sessions", Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus? failureStatus = null, System.Collections.Generic.IEnumerable<string!>? tags = null) -> Microsoft.Extensions.DependencyInjection.IHealthChecksBuilder!
-static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
-static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<System.IServiceProvider!, Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Rask.Server.DataBuilder<TContext!>!
+static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<System.IServiceProvider!, Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Rask.Server.DataBuilder<TContext!>!
 static Rask.Server.RaskDataHostExtensions.UseRaskData(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 static Rask.Server.RaskEndpointExtensions.AddRask(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configureCulture = null, string? culture = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Server.RaskEndpointExtensions.AddRaskServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
@@ -194,3 +194,10 @@ Rask.Server.SessionRevalidatorBuilder.ForgetOnSave<TEntity>() -> Rask.Server.Ses
 Rask.Server.SessionRevalidatorBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Server.SessionRevalidatorExtensions
 static Rask.Server.SessionRevalidatorExtensions.AddSessionRevalidator<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Rask.Server.SessionRevalidatorBuilder!
+Rask.Server.DataBuilder<TContext>
+Rask.Server.DataBuilder<TContext>.OwnsSchema(System.Action<Rask.Server.SchemaOwnership!>? configure = null) -> Rask.Server.DataBuilder<TContext!>!
+Rask.Server.DataBuilder<TContext>.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Server.SchemaOwnership
+Rask.Server.SchemaOwnership.Patience(System.TimeSpan timeout) -> Rask.Server.SchemaOwnership!
+Rask.Server.SchemaOwnership.TakesOverFrom(string! migration) -> Rask.Server.SchemaOwnership!
+Rask.Server.SchemaOwnership.WhenTable(string! table) -> Rask.Server.SchemaOwnership!

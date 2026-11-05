@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Rask.Server;
 
 namespace Rask;
 
@@ -17,11 +18,16 @@ namespace Rask;
 /// never starts it touches no database.
 /// </para>
 /// <para>
-/// Two instances starting together are EF Core's to settle: <c>Migrate</c> takes a database lock on PostgreSQL and
-/// SQL Server, and a SQLite app is one process.
+/// Two instances starting together are EF Core's to settle: <c>Migrate</c> takes its migration lock on every provider.
+/// A hand-wired host gets this service from <c>AddRaskData&lt;TContext&gt;(…).OwnsSchema(…)</c>, whose
+/// <see cref="SchemaOwnership"/> can take over a schema that predates the migrations (see <see cref="SchemaTakeover"/>)
+/// and give each migration command a longer timeout.
 /// </para>
 /// </remarks>
-internal sealed class MigrateOnStart<TContext>(IDbContextFactory<TContext> contexts, ILoggerFactory loggers)
+internal sealed class MigrateOnStart<TContext>(
+    IDbContextFactory<TContext> contexts,
+    ILoggerFactory loggers,
+    OwnedSchema<TContext>? owned = null)
     : IHostedLifecycleService
     where TContext : DbContext
 {
@@ -58,6 +64,11 @@ internal sealed class MigrateOnStart<TContext>(IDbContextFactory<TContext> conte
                     + "applies the new migration itself.");
             }
 
+            if (owned is not null)
+            {
+                await owned.Prepare(db, _log, cancellationToken).ConfigureAwait(false);
+            }
+
             var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
             if (pending.Count == 0)
             {
@@ -76,7 +87,9 @@ internal sealed class MigrateOnStart<TContext>(IDbContextFactory<TContext> conte
                 throw new InvalidOperationException(
                     $"Applying {names} to the database failed, so the app did not start: {e.Message} Fix the cause "
                     + "and start again. If a release step applies migrations instead, turn this off with "
-                    + "app.Configure(c => c.MigrateOnStart = false) or Rask__Database__MigrateOnStart=false.",
+                    + (owned is null
+                        ? "app.Configure(c => c.MigrateOnStart = false) or Rask__Database__MigrateOnStart=false."
+                        : "by dropping OwnsSchema(…) from AddRaskData<" + context + ">(…)."),
                     e);
             }
         }
