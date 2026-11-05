@@ -110,7 +110,7 @@ them until tagged releases begin.
   last row of the last page went, and an empty sentence that told "nothing yet" from "nothing matches" — TA in 9 files,
   Eszaf in 21 — and wrote 15 rows a page as a constant of its own. After: the table keeps the sorted column, its
   direction and the page in the address under the keys named (the default column, ascending and the first page by
-  leaving them out; a sort starts at the first page), draws a pager of links once the rows run past a page, steps back
+  leaving them out; a sort starts at the first page), draws a pager of links under the rows (always, as Flux), steps back
   to the last page there is when the address names one past it, and says `noMatch` while a key that is not its own (a
   filter, a tab, a search) or a `Ui.Filters` filter narrows the list. The page reads the same keys as `[QueryParam]`s:
   `Dir == UiTable.Descending`, `Page ?? 1`, and the new public `UiPaginator.DefaultPerPage` (15). Not Flux's — approved

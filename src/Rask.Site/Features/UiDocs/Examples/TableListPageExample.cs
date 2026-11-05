@@ -46,7 +46,9 @@ public sealed partial class TableListPageExample(RouteState route) : Component
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate")[supplier.Name],
                         Ui.TableCell[supplier.City],
                         Ui.TableCell.End.Class("py-0")[
-                            Ui.Button.Ghost.Sm.Icon(Ui.IconName.Trash).AriaLabel($"Delete {supplier.Name}").OnClick(() => { _suppliers.Remove(supplier); })
+                            // Flux's row action — a ghost, small, square button — with the outline drawing in the muted ink.
+                            Ui.Button.Ghost.Sm.Icon(Ui.IconName.Trash).IconVariant(Ui.IconVariant.Outline)
+                                .Class("text-zinc-400 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white").AriaLabel($"Delete {supplier.Name}").OnClick(() => { _suppliers.Remove(supplier); })
                         ]
                     ])
                 ]

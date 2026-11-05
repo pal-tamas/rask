@@ -537,7 +537,7 @@ Ui.Table.Loading(_rows is null)[
 2026-11-04). `SortIn("sort", "dir")` keeps the sorted column (by its heading's `Key`) and its direction in the address:
 a press on a heading writes them — another column ascending, the sorted one turned round, as Flux's — and takes the
 list to its first page; `SortIn("dir")` keeps the direction alone, for a list sorted by one column. `PageIn("page",
-total)` draws a pager of links once the rows run past a page (`UiPaginator.DefaultPerPage`, 15, unless a third
+total)` draws a pager of links under the rows — always, as Flux does, "Showing 1 to 3 of 3 results" on one page (`UiPaginator.DefaultPerPage`, 15, unless a third
 argument says otherwise), and steps back to the last page there is when the address names one past it — which is what
 deleting the last row of the last page leaves. The column the list sorts by unless asked, ascending, and the first page
 are each named by leaving their key out. `Empty(nothingYet, noMatch)` is what the one row of an empty list says:

@@ -169,13 +169,23 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void A_list_that_fits_on_one_page_draws_no_pager()
+    public void A_list_that_fits_on_one_page_still_draws_its_pager_as_Flux_does()
     {
         AddressedSuppliers.Names.RemoveRange(2, 3);
 
         var page = Page.Visit("/ui-table-address/suppliers");
 
-        Assert.DoesNotContain("data-ui-pagination ", page.Html, StringComparison.Ordinal);
+        Assert.Contains("Showing 1 to 2 of 2 results", page.Html, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\">1</div>", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_empty_list_draws_no_pager_under_its_one_row()
+    {
+        AddressedSuppliers.Names.Clear();
+
+        var page = Page.Visit("/ui-table-address/suppliers");
+
         Assert.DoesNotContain("Showing", page.Html, StringComparison.Ordinal);
     }
 

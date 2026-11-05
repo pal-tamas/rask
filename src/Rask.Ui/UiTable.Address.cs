@@ -77,8 +77,8 @@ public sealed partial class UiTable
 
     /// <summary>
     ///     Keeps the page of the list in the page's address, under <paramref name="page" />: a pager of links under the
-    ///     rows once they run past one page, and — when the address names a page past the list's end, as it does once
-    ///     the last row of the last page is deleted — a step back to the last page there is.
+    ///     rows, drawn as Flux draws it even when they fit on one page, and — when the address names a page past the
+    ///     list's end, as it does once the last row of the last page is deleted — a step back to the last page there is.
     /// </summary>
     /// <remarks>
     ///     Not Flux's: an addition the owner approved (2026-11-04) for a list page. The first page is named by leaving the

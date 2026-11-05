@@ -52,9 +52,12 @@ internal sealed class UiTableAddress
     internal int? StepBack(RouteState? route) =>
         PageKey is not null && Total is { } total && Page(route) > LastPage(total) ? LastPage(total) : null;
 
-    /// <summary>The pager under the rows: a link per page, and none while every row fits on one page.</summary>
+    /// <summary>
+    ///     The pager under the rows, a link per page: drawn as Flux draws it, a list on one page included ("Showing 1 to 3
+    ///     of 3 results"). None while the total is unknown, or for an empty list, whose one row says why.
+    /// </summary>
     internal Component? Pager(RouteState? route) =>
-        PageKey is null || Total is not { } total || total <= Size
+        PageKey is null || Total is not { } total || total <= 0
             ? null
             : Ui.Pagination.Paginator(new UiPaginator { Page = Page(route), PerPage = Size, Total = total }).Href(page => Link(route, page));
 
