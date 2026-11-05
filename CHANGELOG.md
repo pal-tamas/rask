@@ -104,6 +104,14 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`AddRask(culture: "hu")` — a single-language server app's culture in one line (#1289).** Before, a hand-wired host
+  wrote `AddRask(configureCulture: c => { c.SupportedCultures.Add("hu"); c.DefaultCulture = "hu"; })`. After:
+  `builder.Services.AddRask(culture: "hu")` — the language joins `Rask:Cultures` and becomes the default, so every
+  request renders in it whatever the browser asks, and the kit's texts and a form's validation messages come from the
+  Hungarian catalog. Automatic validation is left as it is (on by default; an app that set
+  `RaskValidation.AutoValidate = false` keeps it off). A `RaskApp` gives the same options for `c.Cultures.Add("hu")`,
+  whose first entry is now also the `DefaultCulture` ahead of any language appsettings lists, and a language named
+  both in appsettings and in code is listed once.
 - **`Current.Claim(type)` and `Current.IsInRole(role)` (#1288).** Before: reading a claim or a role with nothing
   injected meant `Current.Principal?.FindFirst("department")?.Value` and
   `Current.Principal?.IsInRole("Admin") ?? false` — or an app-wide wrapper of your own around them. After:

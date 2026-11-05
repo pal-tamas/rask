@@ -1858,6 +1858,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
 - [Localization](docs/localization.md): ship in more than one language.
   Configured in appsettings.json — `"Rask": { "Cultures": [ "en", "hu" ] }` (env `Rask__Cultures__0=en`), the FIRST entry being the default;
   an `AddRask(configureCulture: c => c.SupportedCultures.Add("hu"))` callback APPENDS to the configured list rather than replacing it;
+  a single-language hand-wired host writes `AddRask(culture: "hu")`: the language joins the list AND becomes the default (every request renders in it, the kit's texts and form validation messages from its RaskStrings catalog; `RaskValidation.AutoValidate` untouched) — on RaskApp `c.Cultures.Add("hu")` gives the same options;
   a browser-WASM app lists them in the same section, read by its BUILD (`wwwroot/appsettings.json`, or the host's appsettings.json for wasm-hosted — one list for both halves), baked into the bundle and in force before the first render and in the prerender;
   `host.UseCulture(…)` adds to it.
   There is NO --culture flag and no --no-localization (#854): a scaffolded server app already lists "en" there and adding a language is an entry in that list, so a flag would only restate at scaffold time what the file goes on being the truth about.
