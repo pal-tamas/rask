@@ -231,6 +231,12 @@ public sealed partial class RaskApp
 
     private WebApplication BuildHost(Action<IServiceCollection> hostServices)
     {
+        // BehindProxy in code says what Rask:BehindProxy says in configuration; the one startup filter reads the setting.
+        if (_options.BehindProxy)
+        {
+            _builder.Configuration[Rask.Server.Http.ProxyHeaders.Setting] = "true";
+        }
+
         AddLiveRuntime();
 
         // The batteries, LAST — after every Configure block and after anything Program.cs registered
@@ -289,32 +295,10 @@ public sealed partial class RaskApp
         }
     }
 
-    /// <summary>
-    /// What a proxy in front may say about the request. ASP.NET trusts only a LOOPBACK sender by default, and the
-    /// proxy `rask deploy` puts in front (Caddy) runs in another container, so its headers were dropped: the scheme
-    /// stayed <c>http</c> and the client was the proxy. Turning BehindProxy on already states that every request
-    /// comes through a proxy (an app exposed directly must leave it off), so the sender is trusted wherever it is.
-    /// </summary>
-    internal static ForwardedHeadersOptions ProxyHeaders()
-    {
-        var options = new ForwardedHeadersOptions
-        {
-            ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-        };
-        options.KnownIPNetworks.Clear();
-        options.KnownProxies.Clear();
-        return options;
-    }
-
     private void UseHostPipeline(WebApplication app)
     {
-        // FIRST: rewrite Request.Scheme and RemoteIpAddress from the proxy's headers, so everything below
-        // — HSTS, redirects, the app's own logging — sees the request the visitor actually made. Opt-in,
-        // because trusting these from an arbitrary client lets it forge its own IP.
-        if (_options.BehindProxy || app.Configuration.GetValue<bool>("Rask:BehindProxy"))
-        {
-            app.UseForwardedHeaders(ProxyHeaders());
-        }
+        // The proxy's headers are not read here: AddRask's startup filter (Http.ProxyHeaders) puts them ahead of
+        // everything, for a hand-wired host too, and BuildHost has written BehindProxy into the setting it reads.
 
         // Terminal middleware, so it short-circuits before UseHttpsRedirection and answers over plain HTTP.
         // `rask deploy` probes this internally with no X-Forwarded-Proto, where a redirected endpoint would

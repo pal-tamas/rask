@@ -10,7 +10,8 @@ namespace Rask.Server.Tests.App;
 public sealed partial class HandWiredDataHostTests
 {
     // Each event of one live page works as a request would: its own DbContext, the principal the session revalidated
-    // for it, the tenant that principal names, and a write stamped with that tenant.
+    // for it — its claims and roles, as Current.Claim and Current.IsInRole read them — the tenant that principal names,
+    // and a write stamped with that tenant.
     [Fact]
     public async Task An_event_after_the_user_s_rights_changed_gets_a_new_context_with_its_user_and_tenant()
     {
@@ -28,6 +29,7 @@ public sealed partial class HandWiredDataHostTests
         Assert.NotSame(log.Seen[0].Context, log.Seen[1].Context);
         Assert.True(log.Seen[0].ContextDisposed());
         Assert.Equal(["7", "8"], log.Seen.Select(static s => s.Partner));
+        Assert.Equal([false, true], log.Seen.Select(static s => s.PartnerEight));
         Assert.Equal(
             [new Guid("00000000-0000-0000-0000-000000000007"), new Guid("00000000-0000-0000-0000-000000000008")],
             log.Seen.Select(static s => s.Tenant));
@@ -52,7 +54,7 @@ public sealed class EventWitnessLog
 {
     private int _written;
 
-    public List<(LegacyTerminalContext Context, string? Partner, Guid? Tenant, Func<bool> ContextDisposed)> Seen { get; } = [];
+    public List<(LegacyTerminalContext Context, string? Partner, bool PartnerEight, Guid? Tenant, Func<bool> ContextDisposed)> Seen { get; } = [];
 
     public int Written => Volatile.Read(ref _written);
 
@@ -64,7 +66,7 @@ public sealed class EventWitness(LegacyTerminalContext db, EventWitnessLog log)
 {
     public int See()
     {
-        log.Seen.Add((db, Current.Principal?.FindFirst("partner")?.Value, Tenant.Key, () => Disposed(db)));
+        log.Seen.Add((db, Current.Claim("partner"), Current.IsInRole("partner-8"), Tenant.Key, () => Disposed(db)));
         log.Wrote();
         return log.Seen.Count;
     }

@@ -1647,6 +1647,8 @@ public sealed class Product : Aggregate<Guid>
 | `Current.UserId` | the signed-in user's id (`Guid?`), or `null` when the work is for nobody |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
+| `Current.Claim(type)` | the value of the principal's first `type` claim (`string?`), or `null` when it has none or nobody is signed in |
+| `Current.IsInRole(role)` | whether the signed-in user holds `role`; `false` when nobody is signed in |
 | `Current.User` / `Current.RequiredUser` | the signed-in user's own row — your `User`'s read face — once it says `IUser` (below) |
 | `Current.Tenant` / `Current.RequiredTenant` | the tenant's own row, once your tenant aggregate says `ITenant` — see [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant) |
 | `Current.UseUser(id)` | a scope that runs the work for `id` — a test, or a tool acting for a user |
