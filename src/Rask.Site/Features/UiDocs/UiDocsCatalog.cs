@@ -201,6 +201,18 @@ internal static class UiDocsCatalog
         "List filters kept in the page's address: a Filters button opening a flyout of fields that apply as chosen, "
         + "and a badge for each filter in force.");
 
+    public static UiDocsEntry FormButtons { get; } = new(
+        Routes.UiFormButtonsPage(), "Form buttons", Components,
+        "Form buttons in C#: Ui.FormButtons",
+        "A form's footer in one line: Delete that asks first, Cancel back to the list and Save, drawn as Flux draws a form's "
+        + "footer and worded in the reader's language.");
+
+    public static UiDocsEntry RowActions { get; } = new(
+        Routes.UiRowActionsPage(), "Row actions", Components,
+        "Table row actions in C#: Ui.RowActions",
+        "A list row's pencil and bin in one line: edit opens the row, delete asks first, in Flux's ghost row button with "
+        + "the muted outline icons.");
+
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,
         "Kanban board in C#: Ui.Kanban",
@@ -443,8 +455,8 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, Heading, Icon,
-        Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, Select,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, FormButtons,
+        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

@@ -19513,3 +19513,10 @@ Rask.Core.Authentication.AuthSignIn.SignInWithToken(string! token, string? retur
 Rask.Core.Authentication.IAuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
 static Rask.Core.Auth.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null) -> System.Threading.Tasks.Task!
 static Rask.Core.Auth.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Globalization.RaskString.FormButtonsCancel = 225 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FormButtonsSave = 226 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FormButtonsRemove = 227 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RowActionsEdit = 228 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RowActionsRemove = 229 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RowActionsHeading = 230 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RemoveQuestion = 231 -> Rask.Core.Globalization.RaskString

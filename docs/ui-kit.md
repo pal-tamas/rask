@@ -45,7 +45,8 @@ Ui.Button.Primary["Save"]
 [File upload](https://rask.sh/ui/file-upload/), [Phone](https://rask.sh/ui/phone/),
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
-[Confirm leave](https://rask.sh/ui/confirm-leave/) and [Filters](https://rask.sh/ui/filters/), with
+[Confirm leave](https://rask.sh/ui/confirm-leave/), [Filters](https://rask.sh/ui/filters/),
+[Form buttons](https://rask.sh/ui/form-buttons/) and [Row actions](https://rask.sh/ui/row-actions/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
@@ -577,6 +578,53 @@ Ui.Table.Of(Listed)
 
 A heading the page gives its own `OnSort` keeps it. A table that is not drawn from a query takes `Empty` too: its one
 row shows when it has no rows.
+
+### Column widths, row actions and a form's buttons
+
+**Three pieces every list app copied, now the kit's** (not Flux's: additions the owner approved, 2026-11-04, #1298).
+
+`Ui.TableColumn.Width(Ui.ColumnWidth.…)` says what a column holds, and that alone sizes it — `Day` and `Number` 7rem,
+`Code` 8, `Moment` and `Text` 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, and the `Rest` (or a heading with
+no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
+they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
+a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. An `Actions`
+heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
+with an ellipsis, the whole of it in the cell's tooltip.
+
+`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's pencil and bin, as Flux draws a row's action —
+a ghost, small, square button in a `py-0` cell — in the muted outline. The bin asks in the layout's
+[`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs the delete only on yes; a null delete draws no bin. What you put inside it stands
+before the pencil. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
+one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
+drops what was typed — and Save, the form's submit. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+`RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
+
+```csharp
+// Before: each app kept a FormButtons, a RowActions and a ListTable of its own.
+ListTable.Of([ColumnWidth.Rest, ColumnWidth.Day, ColumnWidth.Actions])[
+    Ui.TableColumns[ListTable.Column(ColumnWidth.Rest, "Supplier"), ListTable.Column(ColumnWidth.Day, "Since"), ListTable.Actions()],
+    Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
+        ListTable.Strong(s.Name), Ui.TableCell[Format.Day(s.Since)],
+        Ui.TableCell.End[RowActions.For(Routes.EditSupplierPage(s.Id), () => Remove(s), "Szállító törlése", "Biztos törli?")]])]
+]
+FormButtons.For(Routes.SuppliersPage(), Remove, "Szállító törlése", "Biztos törli?")
+
+// After: the kit's.
+Ui.Table[
+    Ui.TableColumns[
+        Ui.TableColumn.Width(Ui.ColumnWidth.Rest)["Supplier"],
+        Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Since"],
+        Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+    ],
+    Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
+        Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
+        Ui.TableCell.End.Class("py-0")[Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")]])]
+]
+Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése", "Biztos törli?")
+```
+
+Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**
+and the column widths on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 ## Printing
 

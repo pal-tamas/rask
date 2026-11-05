@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Rask;
 
 /// <summary>
@@ -16,10 +18,15 @@ public sealed partial class UiTableCell : UiElement
 
     private static readonly UiPartMarker Marker = new("ui-cell");
 
-    // Every list a cell can write, built once: by variant, alignment and stickiness. Null where there is nothing to write.
+    // A value too long for its column ends in an ellipsis on one line; the cell's title says the whole of it.
+    private const string Cuts = "truncate";
+
+    // Every list a cell can write, built once: by variant, alignment, stickiness and whether it cuts its value short.
+    // Null where there is nothing to write.
     private static readonly string?[] Lists = [.. Enum.GetValues<Ui.TableCellVariant>().SelectMany(variant =>
         Enum.GetValues<Ui.Align>().SelectMany(align =>
-            new[] { false, true }.Select(sticky => UiTableBox.Join(Alignment(align), Tone(variant), sticky ? UiTableBox.Stuck : ""))))];
+            new[] { false, true }.SelectMany(sticky => new[] { false, true }.Select(cut =>
+                UiTableBox.Join(Alignment(align), Tone(variant), sticky ? UiTableBox.Stuck : "", cut ? Cuts : "")))))];
 
     /// <summary>Where the value sits in its column. Start unless this says otherwise.</summary>
     public Ui.Align? Align { get; set; }
@@ -31,17 +38,57 @@ public sealed partial class UiTableCell : UiElement
     /// <remarks>Give it a background as well — <c>.Class("bg-white dark:bg-zinc-900")</c>.</remarks>
     public bool? Sticky { get; set; }
 
+    /// <summary>
+    ///     The cell's value as text, on one line: cut short with an ellipsis where the column ends, and the whole of it in
+    ///     the cell's tooltip. <c>Ui.TableCell.Cut(supplier.Name)</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Not Flux's: an addition the owner approved (2026-11-04), for the columns a <see cref="UiTableColumn.Width" />
+    ///     holds still. A cell given children as well shows them, and the text is its tooltip. A <c>Title</c> of the call
+    ///     site's wins. On paper the whole value is printed, wrapped.
+    /// </remarks>
+    public string? Cut { get; set; }
+
     /// <inheritdoc />
     protected override string TagName => "td";
 
     /// <inheritdoc />
     /// <remarks>What this cell writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
-    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true), Class);
+    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true, Cut is not null), Class);
+
+    /// <inheritdoc />
+    /// <remarks>A cut value is the cell's title for the length of the walk, unless the call site wrote one.</remarks>
+    protected override void WriteAttributes(StringBuilder sb)
+    {
+        if (Cut is null || Title is not null)
+        {
+            base.WriteAttributes(sb);
+            return;
+        }
+
+        Title = Cut;
+        try
+        {
+            base.WriteAttributes(sb);
+        }
+        finally
+        {
+            Title = null;
+        }
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    ///     The serializer walks an indexer's array as it stands and asks this only when there is none: a cell given
+    ///     nothing but <see cref="Cut" /> shows that text.
+    /// </remarks>
+    protected override IEnumerable<Component?> RenderChildren() =>
+        Children is null && Cut is { } text ? [(Component)text] : base.RenderChildren();
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
-    private static string? List(Ui.TableCellVariant? variant, Ui.Align? align, bool sticky) =>
-        Lists[((((int)(variant ?? default) * Aligns) + (int)(align ?? default)) * 2) + (sticky ? 1 : 0)];
+    private static string? List(Ui.TableCellVariant? variant, Ui.Align? align, bool sticky, bool cut) =>
+        Lists[((((((int)(variant ?? default) * Aligns) + (int)(align ?? default)) * 2) + (sticky ? 1 : 0)) * 2) + (cut ? 1 : 0)];
 
     private static string Tone(Ui.TableCellVariant variant) => variant switch
     {

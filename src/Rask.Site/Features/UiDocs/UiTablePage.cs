@@ -40,6 +40,11 @@ public sealed partial class UiTablePage : Component
                     .Blurb("Nothing changes until the next page has its rows. Make the read slow and the pager moves "
                            + "first, the rows you have dim, and the new ones take their place when they arrive.")
             ],
+            UiDocsExample.Key("ui-table-widths").Heading("Column widths").File("TableColumnWidthsExample.cs").Demo(TableColumnWidthsExample).Testid("ui-table-widths")
+                .Blurb("Width(Ui.ColumnWidth.Day) and the rest say what each column holds, and that alone sizes it: the table "
+                       + "fills its box, never shrinks below its columns together, and a phone scrolls it. Numbers and the row "
+                       + "actions keep to the end. Cut(text) ends a long value in an ellipsis with all of it in its tooltip. "
+                       + "Not Flux's: the kit's own."),
             UiDocsExample.Key("ui-table-list").Heading("A list page").File("TableListPageExample.cs").Demo(TableListPageExample).Testid("ui-table-list")
                 .Blurb("SortIn and PageIn keep the sort and the page in the address: sort, page, then copy the URL. Delete "
                        + "the last row of the last page and the list steps back a page. Empty says \"nothing yet\" of an "

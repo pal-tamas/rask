@@ -334,6 +334,32 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> FormButtons { get; } =
+    [
+        new("Ui.FormButtons", typeof(UiFormButtons), NotFlux, "A form's footer as Flux draws one: Delete at the start, then Cancel back to the list and Save.",
+        [
+            new("Back", typeof(Rask.Core.Routing.RouteUrl), "The list Cancel goes back to. Required, and taken first.", "a route: Routes.SuppliersPage()"),
+            new("Remove", typeof(Func<Task>), "A Delete button that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
+                "the delete, then the question's heading and the question (the catalog's when null)"),
+            new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
+            new("RemoveHeading", typeof(string), "The title over the delete's question. \"Delete\" when unset."),
+            new("RemoveQuestion", typeof(string), "The question the delete asks first."),
+        ]),
+    ];
+
+    public static IReadOnlyList<UiApiPart> RowActions { get; } =
+    [
+        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's pencil and bin, as Flux draws a row's action: ghost, small, square, in the muted outline.",
+        [
+            new("Edit", typeof(Rask.Core.Routing.RouteUrl), "Where the pencil opens the row to be edited. Required, and taken first.", "a route: Routes.EditSupplierPage(id)"),
+            new("Remove", typeof(Func<Task>), "A bin after the pencil that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
+                "the delete, then the question's heading and the question (the catalog's when null)"),
+            new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
+            new("RemoveHeading", typeof(string), "The title over the bin's question. \"Delete\" when unset."),
+            new("RemoveQuestion", typeof(string), "The question the bin asks first."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Popover { get; } =
     [
         new("Ui.Popover", typeof(UiPopover), "flux:popover", "The panel a Ui.Dropdown opens beside its trigger, for what is not a menu. Where it opens is the dropdown's.", []),
@@ -503,7 +529,10 @@ internal static partial class UiApi
         ]),
         new("Ui.TableColumn", typeof(UiTableColumn), "flux:table.column", "One heading: the <th>. Its children are its label.",
         [
-            new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset."),
+            new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset; the end for a Width of numbers or actions."),
+            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Code, Flag, Text, Name, Actions, Buttons, or the Rest. "
+                                                  + "The table fills its box and is never narrower than its columns together (40rem at least). Not Flux's.",
+                "Ui.ColumnWidth, each a step too (.Day)"),
             new("Sortable", typeof(bool?), "Makes the heading a button with a chevron that asks for this column to be sorted."),
             new("Sorted", typeof(bool?), "Whether the rows are sorted by this column now: its chevron stays visible."),
             new("Direction", typeof(Ui.TableColumnDirection?), "Which way the sorted column runs. Ascending when unset."),
@@ -520,6 +549,7 @@ internal static partial class UiApi
             new("Align", typeof(Ui.Align?), "Where the value sits in its column. Start when unset."),
             new("Variant", typeof(Ui.TableCellVariant?), "How much the cell stands out. Muted when unset."),
             new("Sticky", typeof(bool?), "Keeps the cell in view while the others scroll sideways. Give it a background too."),
+            new("Cut", typeof(string), "The value as text on one line, cut short with an ellipsis where the column ends, the whole of it in the cell's tooltip. Not Flux's."),
         ]),
     ];
 
@@ -871,8 +901,8 @@ internal static partial class UiApi
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
-            Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
-            Radio, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
+            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();
 }

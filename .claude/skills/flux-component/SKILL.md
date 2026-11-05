@@ -147,6 +147,14 @@ departure in behaviour carries none.
   Flux's, one page too) and steps back past the list's end, and `Empty` says "nothing yet" or "nothing matches" in the kit's empty row.
   Steps, not props, so `FluxConformanceTests` has nothing to list; the look is Flux's table, heading and pager
   unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
+- **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
+  Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
+  primary Save, a danger Delete at the start), `Ui.RowActions` Flux's row button (ghost, sm, square, in a `py-0` cell) as
+  a pencil and a bin in the muted outline (`text-zinc-400 hover:text-zinc-800 dark:hover:text-white`); both deletes ask
+  in `Ui.Confirm`, words from the catalog. `Width(Ui.ColumnWidth.…)` sizes a heading (`[:where(&)]:w-*`, wraps, gives way
+  on paper) and the table takes `[:where(&)]:w-full min-w-(--ui-table-least)` with the sum (40rem floor) and its box
+  `min-w-0`. Approved types and `Translations` rows in `FluxConformanceTests`; `UiFormButtonsTests`, `UiRowActionsTests`,
+  `UiTableWidthTests`, the site's `UiKitListActionsTests`.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

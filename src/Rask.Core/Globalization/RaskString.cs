@@ -716,4 +716,25 @@ public enum RaskString
 
     /// <summary>The question a form's <c>.ConfirmLeave()</c> asks when it is given none of its own.</summary>
     ConfirmLeaveQuestion,
+
+    /// <summary>A form's button back to its list, in <c>Ui.FormButtons</c>.</summary>
+    FormButtonsCancel,
+
+    /// <summary>A form's button that saves it, in <c>Ui.FormButtons</c>.</summary>
+    FormButtonsSave,
+
+    /// <summary>A form's button that deletes its record, in <c>Ui.FormButtons</c>, and the title of the question it asks first.</summary>
+    FormButtonsRemove,
+
+    /// <summary>The tooltip of a list row's pencil, in <c>Ui.RowActions</c>: the row opens to be edited.</summary>
+    RowActionsEdit,
+
+    /// <summary>The tooltip of a list row's bin, in <c>Ui.RowActions</c>, and the title of the question it asks first.</summary>
+    RowActionsRemove,
+
+    /// <summary>What the heading of a list's row actions column says to a screen reader, where the page gives it no words.</summary>
+    RowActionsHeading,
+
+    /// <summary>What a delete in <c>Ui.FormButtons</c> or <c>Ui.RowActions</c> asks when it is given no question of its own.</summary>
+    RemoveQuestion,
 }

@@ -271,6 +271,8 @@ public sealed class FluxConformanceTests
         [typeof(UiConfirm)] = "the owner, 2026-10-21",
         [typeof(UiFilters)] = "the owner, 2026-10-21: a list's filters kept in the address, in a lazy flyout, with badges (TA gap B6)",
         [typeof(UiFilter)] = "the owner, 2026-10-21: the filter a UiFilters cannot read from a control by itself",
+        [typeof(UiFormButtons)] = "the owner, 2026-11-04: a form's Delete, Cancel back to the list and Save, as Flux draws a form's footer (#1298)",
+        [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's pencil and bin, as Flux draws a row's action (#1298)",
     };
 
     /// <summary>
@@ -469,6 +471,10 @@ public sealed class FluxConformanceTests
         ["flux:chart.cursor/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.cursor/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:table.column/OnSort"] = "`wire:click=\"sort('…')\"` on a sortable column",
+        ["flux:table.column/Width"] = "nothing of Flux's: an owner-approved addition (2026-11-04, #1298) — a column as wide as what it holds, "
+                                      + "so a list's columns hold still while its rows change; Flux leaves a width to the column's class",
+        ["flux:table.cell/Cut"] = "nothing of Flux's: an owner-approved addition (2026-11-04, #1298) — a value cut short on one line with the "
+                                  + "whole of it in the cell's title; Flux leaves it to the cell's `truncate` class",
         // The five form controls: `wire:model` is Bind (or Value with OnChange), and what a Livewire component
         // does around it — rules, an `updated` hook, where its message shows — is said on the control.
         ["flux:input/Bind"] = "`wire:model`, two-way: written with the next action",

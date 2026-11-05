@@ -709,6 +709,13 @@ they say when you set nothing.
 | `ConfirmLeaveStay` | Confirm leave | `Stay` |
 | `ConfirmLeaveLeave` | Confirm leave | `Leave` |
 | `ConfirmLeaveQuestion` | A form's `.ConfirmLeave()` with no question of its own | `Leave without saving?` |
+| `FormButtonsCancel` | Form buttons | `Cancel` |
+| `FormButtonsSave` | Form buttons | `Save` |
+| `FormButtonsRemove` | Form buttons (the button, and the title of its question) | `Delete` |
+| `RowActionsEdit` | Row actions (the pencil's tooltip) | `Edit` |
+| `RowActionsRemove` | Row actions (the bin's tooltip, and the title of its question) | `Delete` |
+| `RowActionsHeading` | A table's row actions column with no words of its own, for a screen reader | `Actions` |
+| `RemoveQuestion` | Form buttons and row actions: a delete given no question of its own | `Are you sure you want to delete it?` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |

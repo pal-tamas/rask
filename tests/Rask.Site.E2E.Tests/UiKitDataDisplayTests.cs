@@ -19,7 +19,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-list")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]

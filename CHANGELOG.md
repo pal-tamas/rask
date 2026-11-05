@@ -110,6 +110,21 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Ui: a form's buttons, a row's actions and a list's column widths, from the kit (#1298).** Not Flux's: additions
+  the owner approved, which both list apps kept a near-copy of. Before: each app wrote a `FormButtons`, a `RowActions`
+  and a `ListTable` of its own — `FormButtons.For(list, Remove, "Szállító törlése", "Biztos törli?")`,
+  `Ui.TableCell.End[RowActions.For(edit, () => Remove(s), …)]`, `ListTable.Column(ColumnWidth.Day, "since")`,
+  `ListTable.Cell(s.Name)`. After: `Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése",
+  "Biztos törli?")` draws Flux's form footer — Delete at the start asking in `Ui.Confirm`, Cancel back to the list,
+  Save; `Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), …)` draws Flux's ghost row button
+  as a pencil and a bin in the muted outline (`text-zinc-400`, darker under the pointer), each named in its tooltip;
+  `Ui.TableColumn.Width(Ui.ColumnWidth.Day)` (`Rest`, `Day`, `Moment`, `Number`, `Code`, `Flag`, `Text`, `Name`,
+  `Actions`, `Buttons`) sizes a column by what it holds, and a table whose headings name widths fills its box and is
+  never narrower than they take together (40rem at least, `--ui-table-least`), lifted on paper; `Ui.TableCell.Cut(text)`
+  cuts a value short on one line with the whole of it in the cell's title. Seven new `RaskString` keys
+  (`FormButtonsCancel`, `FormButtonsSave`, `FormButtonsRemove`, `RowActionsEdit`, `RowActionsRemove`,
+  `RowActionsHeading`, `RemoveQuestion`), Hungarian in Rask.Ui: Mégse, Mentés, Törlés, Módosítás, Műveletek, "Biztos
+  törölni szeretné?". Live on rask.sh/ui/form-buttons, /ui/row-actions and /ui/table.
 - **A list page in four steps: `Ui.Table.Of(listed).SortIn("sort", "dir").PageIn("page", total).Empty(nothingYet,
   noMatch)` (#1294).** Before: every list page wrote its own sortable headings (`Sorted`, `Direction` and an `OnSort`
   that built the next address), its pager's `Href`, the step back to the previous page in its delete handler once the
