@@ -7,8 +7,8 @@ public sealed partial class PageHeaderTitleExample : Component
         Div.Class("p-6 lg:p-8")[
             Ui.PageHeader.Heading("New supplier").Class("mb-8"),
             Div.Class("grid max-w-sm gap-6")[
-                Ui.Input.Label("Name").Placeholder("Aminoff Freight"),
-                Ui.Input.Label("City").Placeholder("Oslo")
+                Ui.Input.Value("Aminoff Freight").Label("Name"),
+                Ui.Input.Value("Oslo").Label("City")
             ]
         ];
 }
