@@ -918,6 +918,11 @@ public static class LivePayload
                 writer.WriteString("returnUrl", auth.ReturnUrl);
             }
 
+            if (auth.LoadsPage)
+            {
+                writer.WriteBoolean("load", true);
+            }
+
             writer.WriteEndObject();
         }
 

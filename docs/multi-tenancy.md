@@ -422,6 +422,39 @@ in](#writes-stamp-it-and-it-never-moves), so saving one loaded before the switch
 principal's claim, so a resolver that reads `Current.Principal` sees it; one that names a *different* tenant
 refuses the request, as for any claim that disagrees with it.
 
+### With your own sign-in
+
+An app that signs its users in itself — a refresh-token cookie, a JWT — has no Rask session row to keep the
+choice on, so it says where the choice goes and Rask does the rest. Map the choice before `MapRask`:
+
+```csharp
+// A cookie tied to the sign-in (read back by your scheme or a resolver)
+app.MapRaskTenantChoice(
+    find: (Guid id, HttpContext http) => Partners.Find(http, id),          // null: no such tenant (400)
+    onChosen: (http, partner) =>
+    {
+        PartnerCookie.Write(http, partner);                               // null partner: the admin left
+        return Task.CompletedTask;
+    });
+
+// A numbered tenant in a reissued token
+app.MapRaskTenantChoice(
+    find: (long id, HttpContext http) => Partners.Find(http, (int)id),
+    onChosen: async (http, partner) => TokenCookie.Write(http, await Tokens.Issue(http.User, partner)),
+    configure: o => o.BelongsToTenant = user => user.HasClaim(c => c.Type == "ownTenant"));
+```
+
+Rask owns the endpoint — `POST /api/tenant` (`o.Path`) with `{ "tenant": "…" }`, the `X-Rask-Auth` header,
+`403` when the browser says another site sent it — and who may choose, by the same rules as Rask.Auth: a signed-in
+user who holds `o.Role` (`admin`; read with `IsInRole`) and does not `o.BelongsToTenant` (nobody, by default —
+answer from the account, not the tenant chosen now). The id is a `Guid` or a number; `find` turns it into your
+tenant, and `onChosen` runs only for an allowed choice. Leaving posts `null` and hands `onChosen` a `null` tenant.
+
+A live page chooses exactly as with Rask.Auth — `Auth.ActInTenant(partner.Id, returnUrl: "/orders")`,
+`Auth.LeaveTenant(returnUrl: "/tenants")` — and the choice is handed to `onChosen` on the browser's own request
+(the sign-in relay's single-use ticket), which then loads `returnUrl` in the new tenant. From WebAssembly or a
+TypeScript front end, post to the path yourself.
+
 ### A scope of your own
 
 An admin page that works in a tenant for one piece of work, rather than for the whole sign-in, opens a scope

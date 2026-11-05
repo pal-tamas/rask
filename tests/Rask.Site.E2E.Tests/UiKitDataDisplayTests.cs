@@ -19,7 +19,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
@@ -688,5 +688,39 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
             new PageAssertionsToHaveURLOptions { Timeout = 30_000 });
         await Expect(Page.Locator("main h1")).ToContainTextAsync(heading,
             new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
+    });
+
+    [Fact]
+    public Task A_list_page_keeps_its_sort_and_page_in_the_address_and_steps_back_past_its_end() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+        var scope = Page.Locator("[data-testid='ui-table-list']");
+        var rows = scope.Locator("#ui-suppliers tbody tr");
+        var deletes = scope.Locator("button[aria-label^='Delete ']");
+        await scope.ScrollIntoViewIfNeededAsync();
+
+        await scope.Locator("th", new() { HasText = "City" }).Locator("button").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"\?sort=city$"), new() { Timeout = 15_000 });
+        await scope.Locator("th", new() { HasText = "City" }).Locator("button").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"^(?=.*[?&]sort=city)(?=.*[?&]dir=desc)(?!.*page=)"), new() { Timeout = 15_000 });
+        await Expect(rows.First).ToContainTextAsync("Tirana");
+        await scope.Locator("[data-ui-pagination] a[aria-label^='Next']:visible").ClickAsync();
+        await scope.Locator("[data-ui-pagination] a[aria-label^='Next']:visible").ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"^(?=.*[?&]sort=city)(?=.*[?&]dir=desc).*[?&]page=3$"), new() { Timeout = 15_000 });
+        await Expect(rows).ToHaveCountAsync(2);
+        await deletes.First.ClickAsync();
+        await Expect(rows).ToHaveCountAsync(1);
+        await deletes.First.ClickAsync();
+        await Expect(Page).ToHaveURLAsync(new Regex(@"^(?=.*[?&]sort=city)(?=.*[?&]dir=desc).*[?&]page=2$"), new() { Timeout = 15_000 });
+        await Expect(rows).ToHaveCountAsync(5);
+
+        await scope.Locator("input[placeholder='Search suppliers']").FillAsync("zzz");
+        await scope.Locator("input[placeholder='Search suppliers']").PressAsync("Tab");
+        await Expect(rows).ToHaveTextAsync(["No supplier matches the search."], new() { Timeout = 15_000 });
+        Assert.DoesNotContain("page=", Page.Url, StringComparison.Ordinal);
+        await scope.Locator("input[placeholder='Search suppliers']").FillAsync("");
+        await scope.Locator("input[placeholder='Search suppliers']").PressAsync("Tab");
+        await scope.GetByRole(AriaRole.Button, new() { Name = "Delete all" }).ClickAsync();
+        await Expect(rows).ToHaveTextAsync(["No suppliers yet."], new() { Timeout = 15_000 });
     });
 }

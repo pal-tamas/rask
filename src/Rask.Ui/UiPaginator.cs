@@ -20,8 +20,14 @@ public sealed record UiPaginator
     /// <summary>The page being shown, counted from one.</summary>
     public int Page { get; init; } = 1;
 
-    /// <summary>How many results a page holds. Fifteen, as Laravel's is.</summary>
-    public int PerPage { get; init; } = 15;
+    /// <summary>
+    ///     How many results a page holds unless a list says otherwise: fifteen, as Laravel's. A page reads its rows with it —
+    ///     <c>store.Page(Page ?? 1, UiPaginator.DefaultPerPage)</c> — so its pages and the pager's agree.
+    /// </summary>
+    public const int DefaultPerPage = 15;
+
+    /// <summary>How many results a page holds. <see cref="DefaultPerPage" />, as Laravel's is.</summary>
+    public int PerPage { get; init; } = DefaultPerPage;
 
     /// <summary>How many results there are in all. Unset makes this the simple paginator.</summary>
     public int? Total { get; init; }

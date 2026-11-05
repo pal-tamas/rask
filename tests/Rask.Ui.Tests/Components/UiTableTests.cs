@@ -239,7 +239,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         Assert.Matches("<th class=\"[^\"]*group/sortable[^\"]*\"", html);
         Assert.Matches("<button [^>]*data-ui-table-sortable=\"\" type=\"button\"><div>Date</div>", html);
-        Assert.Contains("<div class=\"opacity-0 group-hover/sortable:opacity-100\"><svg ", html, StringComparison.Ordinal);
+        Assert.Matches("<div [^>]*class=\"opacity-0 group-hover/sortable:opacity-100\"[^>]*><svg ", html);
     }
 
     [Fact]

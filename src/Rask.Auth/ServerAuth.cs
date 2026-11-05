@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
 using Rask.Core.Routing;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -191,7 +192,7 @@ internal sealed class ServerAuth<TUser>(
 
     public Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
         tenant > 0
-            ? ChooseTenantAsync(TenantChoice.Of(tenant), returnUrl)
+            ? ChooseTenantAsync(TenantChoosing.Of(tenant), returnUrl)
             : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed, "Tenants are numbered from one."));
 
     public Task<AuthResult> LeaveTenant(string? returnUrl = null) => ChooseTenantAsync(null, returnUrl);

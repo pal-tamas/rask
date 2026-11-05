@@ -51,7 +51,9 @@ the aggregate (`await Tenant.Find(Current.RequiredTenant.Id)`) and save it. See
 An administrator (a user of no tenant) who switches partner calls `await auth.ActInTenant(id, returnUrl)` —
 never a hand-written "chosen partner" cookie or `GET /partner/{id}` endpoint. The choice lives on the sign-in's
 session, so `Current.Tenant` answers it on every later request, reconnect and live event, and sign-out drops it
-([acting in a tenant](multi-tenancy.md#acting-in-a-tenant)).
+([acting in a tenant](multi-tenancy.md#acting-in-a-tenant)). An app with its own sign-in maps
+`app.MapRaskTenantChoice(find, onChosen)` and writes the chosen tenant into its cookie or token in `onChosen`; the
+same `Auth.ActInTenant` call then reaches it ([with your own sign-in](multi-tenancy.md#with-your-own-sign-in)).
 
 ## Errors an app means the user to read
 

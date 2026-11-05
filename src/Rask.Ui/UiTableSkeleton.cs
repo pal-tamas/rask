@@ -32,7 +32,11 @@ internal static class UiTableSkeleton
     internal static string Word(IQueryState query) => query.IsLoading || query.IsPlaceholderData ? Loading : "";
 
     /// <summary>Puts skeleton rows, or the empty row, in the table's row group when the query calls for them.</summary>
-    internal static void Fill(IQueryState query, IEnumerable<Component?>? parts, Component? pager)
+    /// <param name="query">What the rows come from.</param>
+    /// <param name="parts">The table's parts: its headings and its rows.</param>
+    /// <param name="pager">The pager under the rows, which says how many a page holds.</param>
+    /// <param name="empty">What the empty row says; the kit's "No results." when nothing.</param>
+    internal static void Fill(IQueryState query, IEnumerable<Component?>? parts, Component? pager, Component? empty)
     {
         UiTableRows? rows = null;
         var columns = 1;
@@ -65,7 +69,7 @@ internal static class UiTableSkeleton
         shown.Value = Count<UiTableRow>(rows.Children);
         if (shown.Value == 0 && !query.IsPlaceholderData)
         {
-            rows.Children = [Empty(columns)];
+            rows.Children = [Empty(columns, empty)];
         }
     }
 
@@ -78,7 +82,7 @@ internal static class UiTableSkeleton
     };
 
     // A table with no pager under it: a page of UiPaginator's own default size.
-    private const int WithoutPager = 15;
+    private const int WithoutPager = UiPaginator.DefaultPerPage;
 
     private static Component[] Placeholders(int count, int columns) =>
     [
@@ -87,10 +91,10 @@ internal static class UiTableSkeleton
         ]),
     ];
 
-    private static Component Empty(int columns) =>
+    private static Component Empty(int columns, Component? says) =>
         Ui.TableRow.Key("ui-empty")[
             Ui.TableCell.Class("text-center").Attributes(("colspan", columns.ToString(CultureInfo.InvariantCulture)))[
-                RaskStrings.Get(RaskString.TableEmpty, "No results.")
+                says ?? (Component)RaskStrings.Get(RaskString.TableEmpty, "No results.")
             ]
         ];
 

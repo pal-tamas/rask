@@ -124,7 +124,11 @@ public sealed partial class UiFilters : Component
     }
 
     /// <summary>The table the set drives, handed over as it is built: the first after the set.</summary>
-    internal void Drives(UiTable table) => _table ??= table;
+    internal void Drives(UiTable table)
+    {
+        _table ??= table;
+        table.Filters = this;
+    }
 
     // A new render: the table and the badge buttons are this render's to find again.
     private UiFilters Waiting()
@@ -264,7 +268,7 @@ public sealed partial class UiFilters : Component
     internal Task Narrow(params KeyValuePair<string, string?>[] filters)
     {
         var pager = _table?.Paginate as UiPagination;
-        KeyValuePair<string, string?>[] move = [.. filters, .. UiFilterFirstPage.Keys(pager)];
+        KeyValuePair<string, string?>[] move = [.. filters, .. UiFilterFirstPage.Keys(pager), .. _table?.FirstPage() ?? []];
         if (move.Length > 0)
         {
             Go.With(move);

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -161,7 +162,7 @@ public static class RaskAuthEndpointExtensions
             return MissingRequestHeader();
         }
 
-        if (!IsSameOrigin(context))
+        if (!TenantChoosing.FromThisSite(context.Request))
         {
             return Refuse(
                 AuthResult.Fail(AuthError.NotAllowed, "The tenant is chosen only from this app's own pages."),
@@ -173,7 +174,7 @@ public static class RaskAuthEndpointExtensions
             return Results.Unauthorized();
         }
 
-        if (!TenantChoice.TryRead(request.Tenant, out var tenant))
+        if (!TenantChoosing.TryRead(request.Tenant, out var tenant))
         {
             return Refuse(
                 AuthResult.Fail(AuthError.NotAllowed, "The tenant is a Guid or a number from one up."),
@@ -183,11 +184,6 @@ public static class RaskAuthEndpointExtensions
         var result = await accounts.ActInTenantAsync(context.User, tenant, cancellationToken).ConfigureAwait(false);
         return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status403Forbidden);
     }
-
-    // Fetch Metadata: a browser says where a request came from, and only "same-origin" is this app's own page.
-    private static bool IsSameOrigin(HttpContext context) =>
-        context.Request.Headers["Sec-Fetch-Site"] is not { Count: > 0 } site
-        || string.Equals(site.ToString(), "same-origin", StringComparison.Ordinal);
 
     /// <summary>Emails a reset link. Answers the same way whether or not the address has an account.</summary>
     private static async Task<IResult> ForgotPasswordAsync(

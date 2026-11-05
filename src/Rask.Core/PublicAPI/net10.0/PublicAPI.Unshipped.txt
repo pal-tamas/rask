@@ -19509,3 +19509,7 @@ static Rask.Rules.Text(string? value, int max) -> System.Collections.Generic.IEn
 static Rask.Rules.TooLong(int max) -> string!
 static Rask.Core.BuilderRuntime.ConfirmLeave<TModel>(this Rask.Core.HTMLFormElement<TModel>! form) -> Rask.Core.HTMLFormElement<TModel>!
 static Rask.Core.Forms.DataAnnotationsFieldValidator.Message(System.ComponentModel.DataAnnotations.ValidationAttribute! check, object? value, string! said) -> string!
+Rask.Core.Authentication.AuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!

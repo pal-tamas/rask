@@ -22,6 +22,9 @@ public partial class Page : IRenderHandle
     private readonly Lock _renderLock = new();
     private bool _renderRequested;
 
+    // What hooks asked to navigate to, made between walks (IRenderHandle.TryNavigate).
+    private readonly Queue<Action> _navigations = new();
+
     // A hook that signals on every render would otherwise spin here. A real host has the same hazard and
     // the same answer: drain a bounded number, then let the next explicit render carry on.
     private const int MaxQueuedRenders = 8;
@@ -60,6 +63,7 @@ public partial class Page : IRenderHandle
         lock (_renderLock)
         {
             _renderRequested = false;
+            Navigate();
             Html = Walk();
 
             // Drain renders the walk itself asked for — a lifecycle hook calling StateHasChanged
@@ -68,6 +72,7 @@ public partial class Page : IRenderHandle
             for (var i = 0; i < MaxQueuedRenders && _renderRequested; i++)
             {
                 _renderRequested = false;
+                Navigate();
                 Html = Walk();
             }
 
@@ -112,6 +117,28 @@ public partial class Page : IRenderHandle
     // already in progress when a hook signals synchronously, and it renders halfway through a multicast
     // event, before the later subscribers of the same event (a Router and its Outlet both listen to
     // RouteState.Changed) have updated the state that render would read.
+    // A navigation a hook asked for with no dispatch waiting for it — from a render nothing dispatched, or a hook past
+    // its first await. A live session makes it once the walk is over, as a handler would; so does this page.
+    bool IRenderHandle.TryNavigate(Action navigate)
+    {
+        lock (_renderLock)
+        {
+            _navigations.Enqueue(navigate);
+            _renderRequested = true;
+        }
+
+        return true;
+    }
+
+    private void Navigate()
+    {
+        while (_navigations.TryDequeue(out var navigate))
+        {
+            using var handling = ((Navigator)_services.GetService(typeof(Navigator))!).EnterHandler();
+            navigate();
+        }
+    }
+
     Task IRenderHandle.RequestRender()
     {
         lock (_renderLock)

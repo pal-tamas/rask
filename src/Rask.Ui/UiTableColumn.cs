@@ -126,11 +126,12 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
             Div.Class(SortIcon)[Indicator()]
         ];
 
-    // A sorted column shows which way it runs; any other shows, on hover, the chevron a click would bring.
+    // A sorted column shows which way it runs; any other shows, on hover, the chevron a click would bring. Keyed, so a
+    // sort that moves to another column swaps the one for the other rather than sending the heading again.
     private Component Indicator() =>
         Sorted is true
-            ? Chevron(down: Direction is Ui.TableColumnDirection.Desc)
-            : Div.Class(SortHint)[Chevron(down: true)];
+            ? Chevron(down: Direction is Ui.TableColumnDirection.Desc).Key("sorted")
+            : Div.Key("hint").Class(SortHint)[Chevron(down: true)];
 
     private static UiIcon Chevron(bool down) =>
         Ui.Icon.Name(down ? Ui.IconName.ChevronDown : Ui.IconName.ChevronUp).Variant(Ui.IconVariant.Micro);

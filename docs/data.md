@@ -2002,7 +2002,7 @@ public sealed class AppModel : IRaskModel
             ConstraintKind.Default    => $"{n.Table}_{n.Columns[0]}_df",
         });
         c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction);
-        c.TextOrder("Hungarian_100_CI_AS");
+        c.OrderTextBy("Hungarian_100_CI_AS");
     }
 
     public static void Model(ModelBuilder m) => m.HasDefaultSchema("dbo");
@@ -2020,24 +2020,27 @@ public sealed class AppModel : IRaskModel
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
   usually has.
-- **`TextOrder(collation)`** is the order the database puts text in. On SQL Server every string column — the
-  batteries' too — is declared with that collation, so `OrderBy(x => x.Name)` puts `Cu` before `Cs` and `O` before `Ö`
-  with no `EF.Functions.Collate` in the query, and the next migration writes it into the schema. The name is SQL
-  Server's, so on every other database it changes nothing: an app on SQLite in development keeps its schema as it
-  was. A list already in memory orders the same way with `TextOrder.In("hu")` (see
-  [Localization](localization.md#dates-numbers-and-text-order)).
+- **`OrderTextBy(collation)`** names the order the database puts text in when a query asks for it with
+  `InTextOrder()`. On SQL Server `OrderBy(x => x.Name.InTextOrder())` is written
+  `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` — in the `ORDER BY` only: no column is given the collation, so the
+  schema needs no migration, and a `Where` on the same column compares as it always did (under the Hungarian
+  collation `c` would stop finding `Csaba`). The name is SQL Server's, so on every other database `InTextOrder()`
+  orders by the column as it is, and an app on SQLite in development keeps working. It runs in the database — through
+  `ToList`, `Count` and a grid's paging alike; a list already in memory orders the same way with `TextOrder.In("hu")`
+  (see [Localization](localization.md#dates-numbers-and-text-order)).
 
   ```csharp
-  // before — in every query, and a comparer of the app's own for lists in memory
+  // before — the collation repeated in every query
   .OrderBy(x => EF.Functions.Collate(x.Name, "Hungarian_100_CI_AS"))
-  // after — once, in Conventions; the queries say what they mean
-  c.TextOrder("Hungarian_100_CI_AS");
-  .OrderBy(x => x.Name)
+  // after — named once, in Conventions; the query says what it means
+  c.OrderTextBy("Hungarian_100_CI_AS");
+  .OrderBy(x => x.Name.InTextOrder())
   ```
-- All three are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
-  a `HasDatabaseName`, `HasConstraintName`, `OnDelete` or `UseCollation` written there is kept as written. A unique index's
-  [message](#what-a-unique-indexs-violation-says) and a [referenced delete's sentence](#what-deleting-a-referenced-row-says)
-  find their index or key under the name the rule gave it.
+- `ConstraintNames` and `DeleteBehavior` are applied as the model is finalized, so they see every table — **and an
+  entity's `Configure` still wins**: a `HasDatabaseName`, `HasConstraintName` or `OnDelete` written there is kept as
+  written. A unique index's [message](#what-a-unique-indexs-violation-says) and a
+  [referenced delete's sentence](#what-deleting-a-referenced-row-says) find their index or key under the name the rule
+  gave it.
 - A battery states the length of every text column it owns (a job's payload, a mail's body are unbounded), so an
   app-wide `HaveMaxLength` never cuts one off.
 
