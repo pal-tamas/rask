@@ -356,7 +356,10 @@ Without `SHOP_TEST_DB` the test reports *skipped — SHOP_TEST_DB is not set, so
   is behind and never created or dropped, and each test holds a lock file for as long as it runs, so test runs on
   one machine — in one process or in several — take turns at it. The default lock is one per connection string in
   the temporary directory; `o.LockFile = "/tmp/shop-test-db.lock"` names it, and since it is the lock `lockf` and
-  `flock` take, a script that runs under `lockf /tmp/shop-test-db.lock …` and these tests wait for each other.
+  `flock` take, another script that runs under `lockf /tmp/shop-test-db.lock …` (a reseed, a restore) and these
+  tests wait for each other. **Never wrap the test run itself in that lock** (`lockf /tmp/shop-test-db.lock dotnet
+  test …`): the test process takes the file on its own, so it would wait for its own parent until the timeout.
+  Drop such a wrapper when the tests move to `Shared = true`.
 
 ```csharp
 await using var database = await TestDatabase.FromEnvironment<ShopContext>(

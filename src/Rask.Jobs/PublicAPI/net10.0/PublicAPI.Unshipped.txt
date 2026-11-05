@@ -61,7 +61,6 @@ Rask.Background.Job.WaitingKey.get -> string?
 Rask.Background.JobBacklog<TContext>
 Rask.Background.JobBacklog<TContext>.Add(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 Rask.Background.JobBacklog<TContext>.AddUnlessWaiting(Rask.Background.IJob! job, System.DateTimeOffset? at, System.TimeSpan? after, string? lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
-Rask.Background.JobBacklog<TContext>.JobBacklog(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider) -> void
 Rask.Background.JobConfiguration
 Rask.Background.JobConfiguration.Configure(Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Rask.Background.Job!>! builder) -> void
 Rask.Background.JobConfiguration.JobConfiguration() -> void
@@ -349,3 +348,43 @@ static Rask.Background.RecurringJobStateReadAccess.get_All() -> Rask.Data.ModelQ
 Rask.Background.Job.UserClaims.get -> string?
 Rask.Background.JobRead.UserClaims.get -> string?
 Rask.Background.JobRead.UserClaims.init -> void
+Rask.Background.IJob<TResult>
+Rask.Background.IJobHandler<TJob, TResult>
+Rask.Background.IJobHandler<TJob, TResult>.Handle(TJob job) -> System.Threading.Tasks.Task<TResult>!
+Rask.Background.IJobs.Run(Rask.Background.IJob! job, string? lane, System.TimeSpan? within, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.IJobs.Run<TResult>(Rask.Background.IJob<TResult>! job, string? lane, System.TimeSpan? within, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Background.Job.Awaited.get -> bool
+Rask.Background.Job.Result.get -> string?
+Rask.Background.JobBacklog<TContext>.JobBacklog(Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>! contextFactory, System.TimeProvider! timeProvider, Rask.Background.JobsOptions! options) -> void
+Rask.Background.JobBacklog<TContext>.Run(Rask.Background.IJob! job, string? lane, System.TimeSpan? within, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Background.JobBacklog<TContext>.Run<TResult>(Rask.Background.IJob<TResult>! job, string? lane, System.TimeSpan? within, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TResult>!
+Rask.Background.JobFailedException
+Rask.Background.JobFailedException.JobFailedException() -> void
+Rask.Background.JobFailedException.JobFailedException(string! message, System.Exception! innerException) -> void
+Rask.Background.JobFailedException.JobFailedException(string! message) -> void
+Rask.Background.JobFailedException.JobType.get -> string?
+Rask.Background.JobFailedException.JobType.init -> void
+Rask.Background.JobRead.Awaited.get -> bool
+Rask.Background.JobRead.Awaited.init -> void
+Rask.Background.JobRead.Result.get -> string?
+Rask.Background.JobRead.Result.init -> void
+Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!).Run(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running
+Rask.Background.JobsExtensions.extension(Rask.Background.IJobs!).Run<TResult>(Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>
+Rask.Background.Running
+Rask.Background.Running.AsTask() -> System.Threading.Tasks.Task!
+Rask.Background.Running.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable
+Rask.Background.Running.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Background.Running.InLane(string! lane) -> Rask.Background.Running
+Rask.Background.Running.Running() -> void
+Rask.Background.Running.Within(System.TimeSpan wait) -> Rask.Background.Running
+Rask.Background.Running<TResult>
+Rask.Background.Running<TResult>.AsTask() -> System.Threading.Tasks.Task<TResult>!
+Rask.Background.Running<TResult>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<TResult>
+Rask.Background.Running<TResult>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<TResult>
+Rask.Background.Running<TResult>.InLane(string! lane) -> Rask.Background.Running<TResult>
+Rask.Background.Running<TResult>.Running() -> void
+Rask.Background.Running<TResult>.Within(System.TimeSpan wait) -> Rask.Background.Running<TResult>
+static Rask.Background.Jobs.Run(Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running
+static Rask.Background.Jobs.Run<TResult>(Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>
+static Rask.Background.JobsExtensions.Run(this Rask.Background.IJobs! jobs, Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running
+static Rask.Background.JobsExtensions.Run<TResult>(this Rask.Background.IJobs! jobs, Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>

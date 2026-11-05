@@ -198,11 +198,28 @@ public sealed partial class JobProcessor<TContext>(
         using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
-            do
+            // The next poll comes at the timer's tick, or sooner when a job a caller awaits is written. A PeriodicTimer
+            // allows one wait at a time, so a tick still pending when the wake wins is kept for the next round.
+            Task<bool>? tick = null;
+            while (true)
             {
+                // Taken before the poll, so a job a caller awaits that is written during it still wakes the next one.
+                var woken = options.Signals.Woken;
                 await RunCycleAsync(stoppingToken).ConfigureAwait(false);
+                tick ??= timer.WaitForNextTickAsync(stoppingToken).AsTask();
+                if (await Task.WhenAny(tick, woken.WaitAsync(stoppingToken)).ConfigureAwait(false) != tick)
+                {
+                    stoppingToken.ThrowIfCancellationRequested();
+                    continue;
+                }
+
+                if (!await tick.ConfigureAwait(false))
+                {
+                    break;
+                }
+
+                tick = null;
             }
-            while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false));
         }
         catch (OperationCanceledException)
         {
@@ -361,6 +378,12 @@ public sealed partial class JobProcessor<TContext>(
                 return;
             }
 
+            if (IsMissingColumn(ex, nameof(Job.Awaited)) || IsMissingColumn(ex, nameof(Job.Result)))
+            {
+                ResultColumnsMissing(logger, ex);
+                return;
+            }
+
             CycleFailed(logger, ex);
         }
     }
@@ -443,6 +466,10 @@ public sealed partial class JobProcessor<TContext>(
                 }
 
                 await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+                if (job.Awaited)
+                {
+                    options.Signals.Saved(job.Id);
+                }
             }
 
             return true;
@@ -477,7 +504,7 @@ public sealed partial class JobProcessor<TContext>(
         _inFlight[job.Id] = (job.Type, startedAt);
         try
         {
-            await DispatchAsync(job, command, graceToken).ConfigureAwait(false);
+            job.Answered(await DispatchAsync(job, command, graceToken).ConfigureAwait(false));
             job.Completed(timeProvider.GetUtcNow().UtcDateTime);
             job.Release();
             metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
@@ -517,7 +544,8 @@ public sealed partial class JobProcessor<TContext>(
         return true;
     }
 
-    private async Task DispatchAsync(Job job, ICommand command, CancellationToken graceToken)
+    // Answers what the handler returned, as the JSON the row keeps for a caller awaiting it (Jobs.Run).
+    private async Task<string?> DispatchAsync(Job job, ICommand command, CancellationToken graceToken)
     {
         // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
         var scope = scopeFactory.CreateAsyncScope();
@@ -551,7 +579,16 @@ public sealed partial class JobProcessor<TContext>(
 
         using var ambient = Ambient.Enter(scope.ServiceProvider);
 
+        // So a job that awaits a job of its own lane is refused rather than waiting for itself forever.
+        using var lane = JobInFlight.Enter(job.Lane);
+
+        if (command is IJob runnable)
+        {
+            return await runnable.SendThrough(dispatcher, graceToken).ConfigureAwait(false);
+        }
+
         await dispatcher.Send(command, graceToken).ConfigureAwait(false);
+        return null;
     }
 
     /// <summary>
@@ -587,6 +624,12 @@ public sealed partial class JobProcessor<TContext>(
     {
         job.Failed(error, timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts));
         job.Release();
+        if (job.Awaited)
+        {
+            // Its caller is told it failed; a retry later would do the work behind the back of one who may run it again.
+            job.GaveUp(options.MaxAttempts);
+        }
+
         metrics.Failed(job.Type);
         if (job.Attempts >= options.MaxAttempts)
         {
@@ -860,6 +903,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added a UserClaims column (the rights a job's user had when they enqueued it, which it never exceeds) that this database does not have. "
             + "Run: rask db add AddJobUserClaims && rask db update.")]
     private static partial void UserClaimsColumnMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added Awaited and Result columns (what lets a caller await a job's answer with Jobs.Run) that this database does not have. "
+            + "Run: rask db add AddJobResult && rask db update.")]
+    private static partial void ResultColumnsMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

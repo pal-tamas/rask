@@ -53,6 +53,11 @@ work by polling and writing sequentially. Need a job to commit atomically with a
 **Lanes.** `Jobs.Enqueue(job).InLane(pump.Id)`: jobs of one lane run one at a time, different lanes side by side - a
 ten-minute job holds up its own lane only. Adds the `Lane` column: `rask db add AddJobLane && rask db update`.
 
+**Await a job's answer.** `var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` stores the job (an
+`IJob<Done>`, handled by an `IJobHandler<AtPump, Done>`), runs it in its lane on whichever host, and hands back its
+answer - or throws `JobFailedException` with its error; it is tried once. Cancelling the wait (or `.Within(2.Minutes)`
+running out) stops the waiting, never the job. Adds two columns: `rask db add AddJobResult && rask db update`.
+
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the

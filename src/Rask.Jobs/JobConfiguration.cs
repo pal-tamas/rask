@@ -19,7 +19,7 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
 
         // Unbounded on purpose, and SAID so: an app-wide string length (IRaskModel's Conventions) applies to every column
         // that states none, and would otherwise cut these off.
-        foreach (var text in new[] { nameof(Job.Payload), nameof(Job.Error), nameof(Job.UserClaims) })
+        foreach (var text in new[] { nameof(Job.Payload), nameof(Job.Error), nameof(Job.UserClaims), nameof(Job.Result) })
         {
             builder.Property(text).Metadata.SetMaxLength(null);
         }
@@ -50,5 +50,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // unique index on a nullable column to `[WaitingKey] IS NOT NULL`, so there it indexes waiting rows alone.
         builder.Property(x => x.WaitingKey).HasMaxLength(JobWaitingKey.Length);
         builder.HasIndex(x => x.WaitingKey).IsUnique();
+
+        // Defaulted in the database too, so a host still on a Rask.Jobs from before Jobs.Run - a blue/green switch runs
+        // both - inserts rows that know nothing of the column, and they are ordinary jobs.
+        builder.Property(x => x.Awaited).HasDefaultValue(false);
     }
 }

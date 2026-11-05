@@ -115,6 +115,37 @@ them until tagged releases begin.
   lennie.* / *Biztos elhagyja mentés nélkül az oldalt?* in Hungarian, from the kit's catalog. New `RaskString` keys
   `ValidationTooLong` and `ConfirmLeaveQuestion`. An app's own `Rules` class in a namespace it imports beside
   `Rask` is now ambiguous (CS0104): delete it, or qualify it.
+- **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` re-checks a live page's
+  user from the app's OWN user type, kept a few seconds (#1287).** Before: an app with its own users wrote a whole
+  `ISessionRevalidator` — reading the claims, loading the account, building the principal — and, to avoid a read
+  per click, its own cache plus a `SaveChangesInterceptor` that forgot a user when their row was saved. After: it
+  derives from `SessionRevalidator<TUser>` and writes the two halves only, `Load(userId)` and
+  `Principal(user, principal)` (`null` = no longer signed in, other claims = new rights at the next event). Rask finds
+  the user id, keeps the loaded user for `.Keep(…)` across every page of theirs (nothing kept by default), and drops
+  what it keeps the moment a save of `.ForgetOnSave<T>()`'s type commits in this process — from a page, a request or a
+  background job. Server host.
+- **A hand-wired host's migrations own its schema in one line, and take over a database that predates them (#1282).**
+  Before: `AddRaskData<TContext>(…)` never migrated, so an app moving onto Rask (TA, Eszaf) carried a `SchemaOwner` of
+  its own — `sp_getapplock`, an `OBJECT_ID` check, a hand-built `__EFMigrationsHistory` row, `SetCommandTimeout` —
+  called after `Build()`. After: `builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(c)).OwnsSchema(s =>
+  s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes))`. As the host starts it takes EF
+  Core's migration lock (any provider, SQLite included), writes the first migration down as applied when the database
+  already has its schema, then applies the rest with that command timeout; a fresh database is made as usual.
+  `AddRaskData<TContext>(o => …)` now returns `DataBuilder<TContext>` (`.Services` for the collection).
+- **`var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` awaits a job's answer in its lane (#1281).**
+  Before: work that had to wait its turn at a pump AND hand the caller an answer needed a named lock of its own — a raw
+  `sp_getapplock` held while the work ran — beside a lane for the work that did not wait, two mechanisms that did not
+  see each other. After: the job is an `IJob<Done>` with an `IJobHandler<AtPump, Done>` (`Task<Done> Handle(AtPump job)`);
+  `Jobs.Run` stores it and runs it like any lane job — one at a time with that lane's other jobs, on every host — and
+  the await hands back its answer, kept as JSON on the new `Job.Result` column so any host may run it. It is tried
+  once: a failure throws `JobFailedException` with the handler's error and the row is a dead letter, never a retry
+  behind the caller's back. Cancelling the wait, or `.Within(2.Minutes)` running out (`TimeoutException`), stops the
+  waiting, never the job; a caller that dies leaves the job running. A job awaiting a job of its own lane, and
+  `Jobs.Run` inside `Db.Transaction`, throw rather than wait forever. A plain `IJob` can be awaited too, `IJobs` gains
+  the `Run` primitives (an app with its own `IJobs` implements them), `JobBacklog` takes `JobsOptions`, and
+  `Jobs.Fake()` runs an awaited job at once through its handler. **Upgrading adds the `Awaited` and `Result` columns:
+  `rask db add AddJobResult && rask db update`** (until then the processor logs exactly that). See
+  [Background jobs](docs/jobs.md#await-a-jobs-answer-jobsrun).
 - **`TestDatabase.FromEnvironment<TContext>("VAR", (o, cs) => o.UseSqlServer(cs))` — a real database server for the
   tests that need one, skipped where there is none (#1291).** Before: an app testing against SQL Server carried its
   own fixture — read a variable, fail (or silently pass) without it, create and drop a database or `lockf` a standing

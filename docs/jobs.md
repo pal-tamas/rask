@@ -143,6 +143,53 @@ The column is nullable and every existing row leaves it empty, so adding it rewr
 index is filtered to rows that carry a key, so it starts empty, and on SQLite and PostgreSQL the build is one
 pass over the table. Until the migration runs, the processor logs exactly that command.
 
+### Await a job's answer: `Jobs.Run`
+
+Some work belongs in a lane **and** has a caller waiting for it — an operator presses "send to pump" and wants to see
+the pump's answer, but nothing else may talk to that pump while it is busy. `Jobs.Run` stores the job and runs it like
+any lane job, and the await hands back what its handler answered:
+
+```csharp
+public sealed record AtPump(Guid Pump, Settings Settings) : IJob<Done>;          // a job that answers a Done
+
+public sealed class AtPumpHandler : IJobHandler<AtPump, Done>
+{
+    public async Task<Done> Handle(AtPump job) => await PumpLink.Send(job.Pump, job.Settings, Current.Cancellation);
+}
+
+var done = await Jobs.Run(new AtPump(pump.Id, settings)).InLane(pump.Id);        // waits for this pump's turn, then for the answer
+```
+
+Before, the same thing took a named lock and a queue of your own — `sp_getapplock` on a raw connection, held while the
+work ran, and a second mechanism for the work that did not wait. Now it is one lane: the awaited job and the enqueued
+ones for that pump take turns, on every host.
+
+- **It is a job.** A row in the `Job` table, in its lane, one at a time with every other job of that lane on every host,
+  run as the user and tenant who awaited it. A job of `IJob<TResult>` answers a `TResult`; one of plain `IJob` can be
+  awaited too — `await Jobs.Run(new Calibrate(pump.Id)).InLane(pump.Id)` returns once it has run.
+- **The answer travels on the row** (`Job.Result`, JSON), so the host that awaits need not be the host that runs it.
+  In process the processor is woken the moment the job is written and says the moment it is saved; across hosts the
+  caller reads the row every `PollInterval`.
+- **Tried once.** A failure throws `JobFailedException` at the caller, its message the error the handler threw, and the
+  row is a dead letter at once — never retried later behind the back of a caller who was told it failed and may run it
+  again. (A shutdown that interrupts it is not a failure: it runs again on the next boot, as any job does.)
+- **Cancelling the wait cancels the wait, not the job.** The caller's token — or the ambient one of the request or
+  render it runs in — stops the await with an `OperationCanceledException`; the job still runs, and keeps its answer on
+  its row.
+- **`.Within(2.Minutes)` bounds the wait the same way** and throws `TimeoutException`; the job still runs. There is no
+  default bound: the wait ends with the work it runs in.
+- **If the awaiting process dies, the job still runs**, its answer kept on its row until `Retention` purges it. Nobody
+  hears it; design the job so that is fine, as you would any job.
+- **It cannot wait for itself.** A job awaiting a job of its own lane would wait forever — the lane runs one at a time —
+  so it throws `InvalidOperationException` instead; so does `Jobs.Run` inside `Db.Transaction`, whose row nobody could
+  see before the commit that waits for it. Enqueue the job there instead.
+- `Jobs.Fake()` runs an awaited job at once through its real handler and hands back its answer (or lets its exception
+  out); `jobs.Enqueued<AtPump>().InLane(id).Once()` sees it, and `jobs.Run()` does not run it again.
+
+Upgrading adds the `Awaited` and `Result` columns: `rask db add AddJobResult && rask db update`. `Awaited` defaults to
+false in the database too, so a host still on an older Rask.Jobs during a blue/green switch keeps enqueuing ordinary
+jobs. Until the migration runs, the processor logs exactly that command.
+
 ## Inside `Db.Transaction`
 
 A job enqueued inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) is a row in
