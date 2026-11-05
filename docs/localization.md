@@ -248,6 +248,56 @@ repaints it. **That is why you should read `Culture` rather than `CultureInfo.Cu
 ambient value is pinned to the same culture during a render, so it formats correctly, but the cache
 cannot see that you read it.
 
+## Dates, numbers and text order
+
+Three things every page of a one-language app writes the same way, each said once.
+
+**The clock on the wall.** A server usually runs on UTC; the people using the app do not. Name their zone once and
+`Clock.Wall` is what their clock shows:
+
+```csharp
+builder.Services.AddRask(culture: "hu", timeZone: "Europe/Budapest");   // a hand-wired host
+app.Configure(c => c.TimeZone = "Europe/Budapest");                     // a RaskApp
+host.UseTimeZone("Europe/Budapest");                                    // a browser (WebAssembly) app
+```
+
+| Before | After |
+| --- | --- |
+| `TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"))` | `Clock.Wall` |
+| `DateOnly.FromDateTime(…that…)` | `Clock.Today` |
+
+`Clock.Wall` is a `DateTime` of kind `Unspecified` — a wall-clock time — and follows `Clock.Now`, so a test's
+`Clock.Fake(at: …)` freezes it too, across a change to or from summer time. `Clock.Zone` is the zone itself. Without a
+zone named, the wall clock is the machine's (in a browser app, the browser's). A zone the machine does not know fails
+the line that named it; a container image needs its `tzdata` package (the template images have it).
+
+**Values for a person to read.** `Format` writes in the visitor's culture, and marks the component as depending on it
+as `Culture` does:
+
+```csharp
+Td[Format.Day(order.Placed)]        // 2026. 10. 09.        10/9/2026
+Td[Format.Moment(fueling.At)]       // 2026. 10. 09. 14:35  10/9/2026 2:35 PM
+Td[Format.Number(litres)]           // 1 764,6              1,764.6   — no column padding zeros
+Td[Format.Number(amount, 2)]        // 1 764,60             1,764.60
+```
+
+A UTC moment — a `DateTimeOffset`, or a `DateTime` of kind `Utc` — is written as the wall clock showed it; an
+unspecified `DateTime` is a wall-clock time already and is written as it is.
+
+> An app with a `Format` class of its own keeps working while its namespace encloses the page; where it is imported
+> with a `using` beside `Rask`, the two are ambiguous (CS0104) — delete the app's, or name it.
+
+**Text in the language's order.** An ordinal sort puts every accented letter after `Z`. `TextOrder` orders a list in
+memory as the language does — Hungarian puts `Á` with `A`, `Cs` after `Cu` and `Ö` after every `O`, whatever the case:
+
+```csharp
+var names = drivers.Select(d => d.Name).Order(TextOrder.Current);   // the visitor's language
+var rows  = rows.OrderBy(r => r.Name, TextOrder.In("hu"));          // a named one
+```
+
+A query orders by the column's collation instead, which the model states once — `c.TextOrder("Hungarian_100_CI_AS")`
+in its `IRaskModel` (see [Data](data.md#app-wide-model-rules-one-iraskmodel)).
+
 ## What stays culture-neutral, on purpose
 
 These are **wire formats**, not display formats, and they do not follow the visitor:

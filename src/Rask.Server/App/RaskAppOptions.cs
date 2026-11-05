@@ -184,6 +184,16 @@ public sealed class RaskAppOptions
     /// </remarks>
     public IList<string> Cultures { get; } = [];
 
+    /// <summary>
+    /// The zone of the clock on the app's wall, as an IANA id: <c>c.TimeZone = "Europe/Budapest"</c>. Unset — the
+    /// default — the wall clock is the machine's.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Clock.Wall" /> and <see cref="Clock.Today" /> read it, and <c>Format.Day</c>/<c>Format.Moment</c> show a
+    /// UTC moment on it — the same as <c>AddRask(timeZone: …)</c> on a host wired by hand.
+    /// </remarks>
+    public string? TimeZone { get; set; }
+
     /// <summary>The live-runtime options — diff mode, session cap, path base: <c>c.Live.Configure(o =&gt; …)</c>.</summary>
     public Configurable<RaskLiveOptions> Live { get; } = new();
 

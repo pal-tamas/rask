@@ -104,6 +104,19 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **The clock on the app's wall, values written in the visitor's culture, and text in its language's order (#1290).**
+  Before: an app kept a `LocalTime` helper with `TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest")` (or repeated
+  the zone in every page that needed it), a `Format` class pinned to `hu-HU`, and a `Sorting` class with
+  `"Hungarian_100_CI_AS"` passed to `EF.Functions.Collate` in each query plus a `StringComparer.Create(hu-HU)` for
+  lists in memory. After: `AddRask(timeZone: "Europe/Budapest")` (a `RaskApp`'s `c.TimeZone`, a browser app's
+  `host.UseTimeZone(…)`) names the zone once, and `Clock.Wall` / `Clock.Today` / `Clock.Zone` read it, following
+  `Clock.Now` — so a frozen test clock moves them too, across a summer-time change. `Format.Day(x)`,
+  `Format.Moment(x)` and `Format.Number(x)` / `Format.Number(x, decimals)` write a value in the visitor's culture
+  (`2026. 10. 09.`, `2026. 10. 09. 14:35`, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
+  `c.TextOrder("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` gives every text column that collation on
+  SQL Server (an explicit `UseCollation` wins; other databases are left as they were), and `TextOrder.In("hu")` /
+  `TextOrder.Current` order a list in memory as the language does — `Cu` before `Cs`, `O` before `Ö`. An app that
+  keeps its own `Format` class and imports its namespace beside `Rask` names one of the two (CS0104).
 - **A hand-wired host's migrations own its schema in one line, and take over a database that predates them (#1282).**
   Before: `AddRaskData<TContext>(…)` never migrated, so an app moving onto Rask (TA, Eszaf) carried a `SchemaOwner` of
   its own — `sp_getapplock`, an `OBJECT_ID` check, a hand-built `__EFMigrationsHistory` row, `SetCommandTimeout` —

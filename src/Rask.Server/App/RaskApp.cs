@@ -264,7 +264,8 @@ public sealed partial class RaskApp
             // The same shape AddRask(culture: …) gives a host wired by hand: the first language named is the default.
             configureCulture: _options.Cultures.Count == 0
                 ? null
-                : c => AppLanguages.Apply(c, [.. _options.Cultures]));
+                : c => AppLanguages.Apply(c, [.. _options.Cultures]),
+            timeZone: _options.TimeZone);
     }
 
     private void BindAppServices(WebApplication app)

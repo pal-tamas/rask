@@ -73,6 +73,7 @@ internal static class PayrollRules
         c.Properties<string>().HaveMaxLength(1000);
         c.Properties<decimal>().HaveColumnType("decimal(32, 16)");
         c.Conventions.Remove(typeof(ForeignKeyIndexConvention));
+        c.TextOrder("Hungarian_100_CI_AS");
         c.ConstraintNames(n => n.Kind switch
         {
             ConstraintKind.PrimaryKey => $"{n.Table}_pkey",
@@ -134,6 +135,16 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
     private IEntityType Payroll => fixture.Model.FindEntityType(typeof(Payroll))!;
 
     private IEntityType Payslip => fixture.Model.FindEntityType(typeof(Payslip))!;
+
+    [Fact]
+    public void On_SQLite_the_app_s_text_order_leaves_every_column_s_collation_as_it_was()
+    {
+        var payroll = Payroll;
+
+        var collations = payroll.GetProperties().Where(p => p.ClrType == typeof(string)).Select(p => p.GetCollation());
+
+        Assert.All(collations, Assert.Null);
+    }
 
     [Fact]
     public void Every_string_and_decimal_is_mapped_under_the_app_s_conventions()

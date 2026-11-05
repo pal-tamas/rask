@@ -19463,3 +19463,17 @@ Rask.Core.Globalization.RaskString.ValidationRangeMin = 203 -> Rask.Core.Globali
 Rask.Core.Globalization.RaskString.ValidationRangeMax = 204 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMin = 205 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMax = 206 -> Rask.Core.Globalization.RaskString
+Rask.Format
+Rask.TextOrder
+static Rask.Format.Day(System.DateOnly day) -> string!
+static Rask.Format.Day(System.DateTime moment) -> string!
+static Rask.Format.Day(System.DateTimeOffset moment) -> string!
+static Rask.Format.Moment(System.DateTime moment) -> string!
+static Rask.Format.Moment(System.DateTimeOffset moment) -> string!
+static Rask.Format.Number(decimal value) -> string!
+static Rask.Format.Number(decimal value, int decimals) -> string!
+static Rask.Format.Number(double value) -> string!
+static Rask.Format.Number(double value, int decimals) -> string!
+static Rask.Format.Number(long value) -> string!
+static Rask.TextOrder.Current.get -> System.StringComparer!
+static Rask.TextOrder.In(string! culture) -> System.StringComparer!

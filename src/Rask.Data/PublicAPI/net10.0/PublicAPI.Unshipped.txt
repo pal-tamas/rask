@@ -399,3 +399,4 @@ Rask.Data.TestDatabaseOptions.Shared.get -> bool
 Rask.Data.TestDatabaseOptions.Shared.set -> void
 Rask.Data.TestDatabaseOptions.TestDatabaseOptions() -> void
 static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!, string!>! configure, System.Action<Rask.Data.TestDatabaseOptions!>? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!
+static Rask.Data.ModelConfigurationBuilderExtensions.TextOrder(this Microsoft.EntityFrameworkCore.ModelConfigurationBuilder! configurationBuilder, string! collation) -> Microsoft.EntityFrameworkCore.ModelConfigurationBuilder!

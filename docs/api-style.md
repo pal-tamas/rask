@@ -204,7 +204,9 @@ What the rules above settled, so a new package has one place to look rather than
 | Cached reads | `QueryClient` (static) / `IQueryClient` | `Query`, `Load`, `Warm`, `Send`, `Command`, `Invalidate` |
 | Durable log | `ILogs` | `Search`, `Categories`, `Count`, `Trim().OlderThan(30.Days)` |
 | SQLite connections | `ISqlite` | `InImmediateTransaction` |
-| Time | `Clock` (static) | `Now`; `Clock.Fake(at:)` + `Advance` in tests |
+| Time | `Clock` (static) | `Now`, `Wall`, `Today`, `Zone`; `Clock.Fake(at:)` + `Advance` in tests |
+| Values for people | `Format` (static) | `Day`, `Moment`, `Number` — in the visitor's culture |
+| Text order | `TextOrder` (static) | `Current`, `In("hu")`; `c.TextOrder(collation)` in the model |
 | Durations and sizes | `Units` (ambient) | `3.Seconds`, `1.Hour`, `50.Megabytes`, `3.Days.Ago`, `2.Hours.FromNow` |
 | Web Push | `Push` (static) / `IPush` | `Subscribe`, `Send`, `Unsubscribe` |
 | Is the battery running | every static | `IsOn` |
