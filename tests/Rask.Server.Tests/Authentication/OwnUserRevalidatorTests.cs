@@ -1,13 +1,14 @@
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core.Authentication;
 using Rask.Server.Authentication;
 using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Authentication;
 
 /// <summary>
-///     <c>AddSessionRevalidator&lt;T&gt;()</c> on a live page: the app says how its own user is loaded and what
-///     principal they act under, and every event of the page acts for the user as the store has them.
+///     <c>AddSessionRevalidator&lt;T&gt;()</c> on a live page: the app's one method says who its own user acts as now,
+///     and every event of the page acts for the user as the store has them.
 /// </summary>
 public sealed class OwnUserRevalidatorTests
 {
@@ -97,16 +98,17 @@ public sealed class OwnUserRevalidatorTests
 
     internal sealed record Account(bool Disabled, string? Role);
 
-    // The app's own revalidator: a disabled account has ended, a role the principal lacks is added to it.
-    private sealed class AccountCheck(Accounts accounts) : SessionRevalidator<Account>
+    // The app's own revalidator, one method: a disabled account has ended, a role the principal lacks is added to it.
+    private sealed class AccountCheck(Accounts accounts) : ISessionRevalidator
     {
-        protected override Task<Account?> Load(string userId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(accounts.Find(userId));
-
-        protected override ClaimsPrincipal? Principal(Account user, ClaimsPrincipal principal) =>
-            user.Disabled ? null
-            : user.Role is null || principal.IsInRole(user.Role) ? principal
-            : new ClaimsPrincipal(new ClaimsIdentity(
-                principal.Claims.Append(new Claim(ClaimTypes.Role, user.Role)), "TestCookie"));
+        public ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default) =>
+            new(accounts.Find(principal.FindFirstValue(ClaimTypes.NameIdentifier)!) switch
+            {
+                null or { Disabled: true } => null,
+                { Role: null } => principal,
+                { Role: var role } when principal.IsInRole(role) => principal,
+                { Role: var role } => new ClaimsPrincipal(new ClaimsIdentity(
+                    principal.Claims.Append(new Claim(ClaimTypes.Role, role)), "TestCookie")),
+            });
     }
 }

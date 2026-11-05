@@ -104,15 +104,14 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
-- **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` re-checks a live page's
-  user from the app's OWN user type, kept a few seconds (#1287).** Before: an app with its own users wrote a whole
-  `ISessionRevalidator` — reading the claims, loading the account, building the principal — and, to avoid a read
-  per click, its own cache plus a `SaveChangesInterceptor` that forgot a user when their row was saved. After: it
-  derives from `SessionRevalidator<TUser>` and writes the two halves only, `Load(userId)` and
-  `Principal(user, principal)` (`null` = no longer signed in, other claims = new rights at the next event). Rask finds
-  the user id, keeps the loaded user for `.Keep(…)` across every page of theirs (nothing kept by default), and drops
-  what it keeps the moment a save of `.ForgetOnSave<T>()`'s type commits in this process — from a page, a request or a
-  background job. Server host.
+- **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` keeps a live page's
+  revalidation answer a few seconds and forgets it when the user is saved (#1287).** Before: an app whose
+  `ISessionRevalidator` read its own users on every click wrote its own cache and a `SaveChangesInterceptor` that
+  forgot a user when their row was saved. After: the same one-method `ISessionRevalidator`, registered with
+  `AddSessionRevalidator<T>()` instead of `AddSingleton`; Rask keeps its answer for `.Keep(…)` (nothing by default)
+  under the user's id and every claim of the principal but `iat`/`nbf` — so another `exp` or another chosen tenant is
+  asked for itself — and drops every kept answer the moment a save of `.ForgetOnSave<T>()`'s type commits in this
+  process, from a page, a request or a background job. Server host.
 - **A hand-wired host's migrations own its schema in one line, and take over a database that predates them (#1282).**
   Before: `AddRaskData<TContext>(…)` never migrated, so an app moving onto Rask (TA, Eszaf) carried a `SchemaOwner` of
   its own — `sp_getapplock`, an `OBJECT_ID` check, a hand-built `__EFMigrationsHistory` row, `SetCommandTimeout` —
