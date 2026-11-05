@@ -828,6 +828,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Ui.Chart` with dates down to their first and last label keeps the first clear of the left edge, as Flux's does
+  (#1260).** Before: neither end held the plot in, so a first tick on the first row hung half its label past the
+  gutter (Flux's phone area chart, on a load whose first hour fell on the first point: 14.7px). The last label still
+  hangs past the right edge, as Flux's does.
 - **Escape in `Ui.Editor`'s link panel gives focus back to the link button, as Flux's does (#1260).** Before: it
   always went into the document. Measured on Flux: a mouse press or Enter/Space on the button gets focus back on
   Escape; a tap still leaves it in the document (Flux's tooltip is showing after a tap), and the ⌘K shortcut still
