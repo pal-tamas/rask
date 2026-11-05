@@ -512,3 +512,16 @@ static Rask.Wire.PushSubscription.operator !=(Rask.Wire.PushSubscription? left, 
 static Rask.Wire.PushSubscription.operator ==(Rask.Wire.PushSubscription? left, Rask.Wire.PushSubscription? right) -> bool
 ~override Rask.Length.Equals(object obj) -> bool
 ~override Rask.Percentage.Equals(object obj) -> bool
+Rask.Wire.ActInTenantRequest
+Rask.Wire.ActInTenantRequest.<Clone>$() -> Rask.Wire.ActInTenantRequest!
+Rask.Wire.ActInTenantRequest.ActInTenantRequest(string? Tenant) -> void
+Rask.Wire.ActInTenantRequest.Deconstruct(out string? Tenant) -> void
+Rask.Wire.ActInTenantRequest.Equals(Rask.Wire.ActInTenantRequest? other) -> bool
+Rask.Wire.ActInTenantRequest.Tenant.get -> string?
+Rask.Wire.ActInTenantRequest.Tenant.init -> void
+const Rask.Wire.AuthApi.Tenant = "/tenant" -> string!
+override Rask.Wire.ActInTenantRequest.Equals(object? obj) -> bool
+override Rask.Wire.ActInTenantRequest.GetHashCode() -> int
+override Rask.Wire.ActInTenantRequest.ToString() -> string!
+static Rask.Wire.ActInTenantRequest.operator !=(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool
+static Rask.Wire.ActInTenantRequest.operator ==(Rask.Wire.ActInTenantRequest? left, Rask.Wire.ActInTenantRequest? right) -> bool

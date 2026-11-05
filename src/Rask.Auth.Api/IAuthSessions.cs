@@ -30,6 +30,12 @@ internal interface IAuthSessions
     ValueTask<ClaimsPrincipal?> RevalidateAsync(
         Guid sessionId, ClaimsPrincipal held, bool used, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Records <paramref name="tenant" /> as the tenant <paramref name="sessionId" /> acts in, or clears it with
+    /// <see langword="null" />. False when the session has ended or expired.
+    /// </summary>
+    Task<bool> ActInTenantAsync(Guid sessionId, Guid? tenant, CancellationToken cancellationToken = default);
+
     /// <summary>Ends one session.</summary>
     Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default);
 

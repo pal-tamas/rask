@@ -138,7 +138,7 @@
     <RaskPreactFixtureVersion Condition="'$(RaskPreactFixtureVersion)' == ''">11.1.1</RaskPreactFixtureVersion>
     <RaskHappyDomFixtureVersion Condition="'$(RaskHappyDomFixtureVersion)' == ''">21.0.4</RaskHappyDomFixtureVersion>
     <RaskReactFixtureVersion Condition="'$(RaskReactFixtureVersion)' == ''">19.3.1</RaskReactFixtureVersion>
-    <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.44</RaskVueFixtureVersion>
+    <RaskVueFixtureVersion Condition="'$(RaskVueFixtureVersion)' == ''">3.5.45</RaskVueFixtureVersion>
     <RaskSolidFixtureVersion Condition="'$(RaskSolidFixtureVersion)' == ''">1.9.18</RaskSolidFixtureVersion>
     <RaskSvelteFixtureVersion Condition="'$(RaskSvelteFixtureVersion)' == ''">5.57.3</RaskSvelteFixtureVersion>
     <!-- One number for @angular/core, compiler, common and platform-browser: Angular refuses a mixed set. -->

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Rask.Core.Authentication;
 using Rask.Core.Browser;
+using Rask.Core.Routing;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -185,6 +186,29 @@ internal sealed class ServerAuth<TUser>(
         AuthPrincipal.UserId(users.Current) is { } userId
             ? accounts.RemovePasskeyAsync(userId, id)
             : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed));
+
+    public Task<AuthResult> ActInTenant(Guid tenant, string? returnUrl = null) => ChooseTenantAsync(tenant, returnUrl);
+
+    public Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
+        tenant > 0
+            ? ChooseTenantAsync(TenantChoice.Of(tenant), returnUrl)
+            : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed, "Tenants are numbered from one."));
+
+    public Task<AuthResult> LeaveTenant(string? returnUrl = null) => ChooseTenantAsync(null, returnUrl);
+
+    // Kept on the session row, so nothing needs a cookie written: the page loads afresh and its GET, its socket and
+    // every other page of this sign-in read the choice back from the row.
+    private async Task<AuthResult> ChooseTenantAsync(Guid? tenant, string? returnUrl)
+    {
+        var result = await accounts.ActInTenantAsync(users.Current, tenant).ConfigureAwait(false);
+
+        if (result.Succeeded && Navigator.Current is { } navigator)
+        {
+            navigator.NavigateOut(LocalUrl.Sanitize(returnUrl));
+        }
+
+        return result;
+    }
 
     private async Task<AuthResult> RegisterCoreAsync(
         string email, string password, Action<TUser>? apply, string? returnUrl, string? firstRunToken)

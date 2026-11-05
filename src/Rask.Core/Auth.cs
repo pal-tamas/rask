@@ -72,6 +72,17 @@ public static class Auth
     /// <inheritdoc cref="IAuth.RemovePasskey(Guid)" />
     public static Task<AuthResult> RemovePasskey(Guid id) => Resolve().RemovePasskey(id);
 
+    /// <inheritdoc cref="IAuth.ActInTenant(Guid, string?)" />
+    public static Task<AuthResult> ActInTenant(Guid tenant, string? returnUrl = null) =>
+        Resolve().ActInTenant(tenant, returnUrl);
+
+    /// <inheritdoc cref="IAuth.ActInTenant(long, string?)" />
+    public static Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
+        Resolve().ActInTenant(tenant, returnUrl);
+
+    /// <inheritdoc cref="IAuth.LeaveTenant(string?)" />
+    public static Task<AuthResult> LeaveTenant(string? returnUrl = null) => Resolve().LeaveTenant(returnUrl);
+
     private static IAuth Resolve() =>
         Ambient.Require("Auth", "Inject IAuth there instead.").GetRequiredService<IAuth>();
 }

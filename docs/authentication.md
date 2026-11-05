@@ -621,7 +621,7 @@ app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
 | Piece | What it is |
 |---|---|
 | `Passkey` | One registered credential: the account, the credential id, the public key, what the person called it, and when it was last used. Rask adds and removes them; read them like sessions. |
-| `IAuth` | The flows: `Register` / `SignIn` / `SignOut`, `SignOutOtherDevices` / `SignOutEverywhere`, `AddPasskey` / `SignInWithPasskey` / `RemovePasskey`, plus `SendPasswordReset` / `ResetPassword` / `ConfirmEmail`. The same injected type on every host, or the static `Auth` facade with nothing injected (`await Auth.SignIn(email, password)`) — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
+| `IAuth` | The flows: `Register` / `SignIn` / `SignOut`, `SignOutOtherDevices` / `SignOutEverywhere`, `AddPasskey` / `SignInWithPasskey` / `RemovePasskey`, `ActInTenant` / `LeaveTenant`, plus `SendPasswordReset` / `ResetPassword` / `ConfirmEmail`. The same injected type on every host, or the static `Auth` facade with nothing injected (`await Auth.SignIn(email, password)`) — the server implementation validates against the account store and drives the handshake below; the browser one posts to `/api/auth`. |
 | `IUserProvider` | Scoped source of the current `ClaimsPrincipal` (`Current`), a `Changed` event, `EnsureLoaded`/`Refresh`, and `IsLoading`. Server: `SessionUserProvider` (seeded from `HttpContext.User`). WASM: `HttpUserProvider`, from `AddRaskAuthClient()`. |
 | Injecting `IUserProvider` | Inject it via the constructor and read `.Current` — the never-null `ClaimsPrincipal` for the active render scope. Gate in `Render()` on `provider.Current.Identity?.IsAuthenticated` / `provider.Current.IsInRole(...)`. |
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal`, `Current.Claim("department")` (the first such claim's value, or `null`) and `Current.IsInRole("Admin")` (`false` when nobody is signed in) — answered the same on the first GET and inside a live event, from the principal the session revalidated for it — and `Current.User` / `RequiredUser`, the user's own row (its read face, `UserRead`), which `Authenticatable` gives your `User` with no line of its own — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |
@@ -679,7 +679,11 @@ tenant and a partitioned table refuses a row without one. That shapes three rule
   It is refused, logged as an error for the operator to resolve, and answered as ordinary invalid credentials,
   so the response says nothing about which addresses exist.
 - **An administrator carries no tenant claim**, so a tenant-scoped read throws until they say which tenant
-  they are acting in (`Tenant.Use(id)`). Reading across every tenant is a deliberate `Tenant.Across()`.
+  they are acting in. `await auth.ActInTenant(partnerId)` says it for the whole sign-in: the choice is kept on
+  the session row, so the next request, a reconnect and the user's other live pages carry it as the claim, and
+  signing out drops it — see [acting in a tenant](multi-tenancy.md#acting-in-a-tenant). Only a user of no
+  tenant who holds `AuthOptions.ActInTenantRole` (`admin`) may; `null` turns it off. `Tenant.Use(id)` scopes
+  one piece of work instead, and reading across every tenant is a deliberate `Tenant.Across()`.
 
 ---
 

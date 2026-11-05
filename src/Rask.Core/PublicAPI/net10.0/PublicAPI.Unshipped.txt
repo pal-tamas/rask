@@ -19463,6 +19463,12 @@ Rask.Core.Globalization.RaskString.ValidationRangeMin = 203 -> Rask.Core.Globali
 Rask.Core.Globalization.RaskString.ValidationRangeMax = 204 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMin = 205 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMax = 206 -> Rask.Core.Globalization.RaskString
+Rask.Core.Authentication.IAuth.ActInTenant(System.Guid tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.ActInTenant(long tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.LeaveTenant(string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ActInTenant(System.Guid tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ActInTenant(long tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.LeaveTenant(string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Format
 Rask.TextOrder
 static Rask.Format.Day(System.DateOnly day) -> string!

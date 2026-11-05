@@ -48,6 +48,11 @@ event and job. `Current.Tenant` is no longer a `Guid`: compare `Current.Tenant?.
 the aggregate (`await Tenant.Find(Current.RequiredTenant.Id)`) and save it. See
 [your tenant row](multi-tenancy.md#your-tenant-row-currenttenant).
 
+An administrator (a user of no tenant) who switches partner calls `await auth.ActInTenant(id, returnUrl)` —
+never a hand-written "chosen partner" cookie or `GET /partner/{id}` endpoint. The choice lives on the sign-in's
+session, so `Current.Tenant` answers it on every later request, reconnect and live event, and sign-out drops it
+([acting in a tenant](multi-tenancy.md#acting-in-a-tenant)).
+
 ## Errors an app means the user to read
 
 An assistant should never print `ex.Message` to a visitor, nor write a `catch` on every page to show one. When the

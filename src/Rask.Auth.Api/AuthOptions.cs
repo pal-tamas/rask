@@ -166,6 +166,17 @@ public sealed class AuthOptions
     public bool FirstUserIsAdmin { get; set; } = true;
 
     /// <summary>
+    /// The role that may choose a tenant to act in (<c>IAuth.ActInTenant</c>). <see cref="RaskRoles.Admin" /> by
+    /// default; <see langword="null" /> turns choosing off.
+    /// </summary>
+    /// <remarks>
+    /// Only a user who belongs to no tenant of their own may choose, whatever roles they hold: somebody signed in to
+    /// one customer never acts in another. The role is read from the user's row at every request, so taking it away
+    /// takes the chosen tenant with it.
+    /// </remarks>
+    public string? ActInTenantRole { get; set; } = RaskRoles.Admin;
+
+    /// <summary>
     /// Whether the <b>first</b> registration must present the first-run token. On by default.
     /// </summary>
     /// <remarks>

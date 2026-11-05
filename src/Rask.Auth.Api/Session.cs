@@ -36,6 +36,17 @@ public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, Soft
     /// <summary>Whether the sign-in asked to be remembered, so the cookie outlives the browser.</summary>
     public bool Persistent { get; private set; }
 
+    /// <summary>
+    /// The tenant an administrator chose to act in on this device (<c>IAuth.ActInTenant</c>), or <see langword="null" />.
+    /// </summary>
+    /// <remarks>
+    /// Kept on the session rather than on the user, so it lasts exactly as long as this sign-in: a reconnect resumes it,
+    /// another device chooses for itself, and signing out ends it with the row. It reaches the principal as the
+    /// <c>rask:tenant</c> claim only while the user may still choose (<c>AuthOptions.ActInTenantRole</c>) and belongs
+    /// to no tenant of their own.
+    /// </remarks>
+    public Guid? ActingInTenant { get; private set; }
+
     /// <summary>The longest a user agent is kept, in characters.</summary>
     internal const int UserAgentLength = 512;
 
@@ -74,6 +85,8 @@ public sealed class Session : Aggregate<Guid, Timestamps, Versioned, Model, Soft
             ExpiresAt = now + lifetime;
         }
     }
+
+    internal void ActIn(Guid? tenant) => ActingInTenant = tenant;
 
     internal void End(DateTime now)
     {
