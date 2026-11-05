@@ -219,6 +219,35 @@ public sealed class JobsFakeTests
     }
 
     // The handlers and nothing else: no queue, no processor, no database.
+    [Fact]
+    public async Task An_awaited_job_runs_at_once_through_its_handler_and_is_recorded_already_run()
+    {
+        await using var app = App(out var recorder);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+
+        var total = await Jobs.Run(new ReadTotal("pump-7", 40, 2), TestContext.Current.CancellationToken).InLane("pump-7");
+        await Jobs.Run(new Calibrate("pump-7"), TestContext.Current.CancellationToken).InLane("pump-7");
+        await jobs.Run(TestContext.Current.CancellationToken);
+
+        Assert.Equal(new PumpTotal(42, "pump-7"), total);
+        Assert.Equal(["calibrated:pump-7"], recorder.Values);
+        jobs.Enqueued<ReadTotal>().InLane("pump-7").Once();
+    }
+
+    [Fact]
+    public async Task An_awaited_job_that_throws_lets_its_exception_out_at_the_caller()
+    {
+        await using var app = App(out _);
+        using var work = Ambient.Enter(app);
+        using var jobs = Jobs.Fake();
+
+        var run = () => Jobs.Run(new UnreachablePump(), TestContext.Current.CancellationToken).AsTask();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(run);
+        Assert.Equal("pump 7 did not answer", error.Message);
+    }
+
     private static ServiceProvider App(out Recorder recorder)
     {
         recorder = new Recorder();

@@ -1600,6 +1600,11 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   it derives from Rask.Cqrs `ICommandHandler<TJob>`, so an older `ICommandHandler<TJob>` handler keeps working — write `IJobHandler`, and never both for one job: RASK028).
   `await Jobs.Enqueue(job)` (run asap) / `.In(24.Hours)` / `.At(runAt)` (delayed), with `IJobs` injectable where there is no ambient scope — writes one `Job` row (Type name + JSON payload + RunAt) via IDbContextFactory (its OWN transaction — not atomic with a business change;
   use Rask.Outbox for that).
+  AWAITED LANE JOB: `var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` — the job is an `IJob<Done>` handled by `IJobHandler<AtPump, Done>` (`Task<Done> Handle(AtPump job)`), stored and run like any lane job (one at a time per lane, across hosts), its answer kept as JSON on `Job.Result` and handed back to the awaiting caller;
+  tried ONCE (failure = `JobFailedException` with the handler's error, row dead-lettered, no retry);
+  cancelling the wait or `.Within(2.Minutes)` (TimeoutException) stops the WAIT, never the job; a dead caller's job still runs;
+  refused inside `Db.Transaction` and from a job of the same lane (would wait forever);
+  plain `IJob` can be awaited too (`await Jobs.Run(job).InLane(id)`); migration `rask db add AddJobResult`.
   The hosted `JobProcessor<TContext>` (BackgroundService, PeriodicTimer poll) claims due jobs (ProcessedAt==null && Attempts<MaxAttempts && RunAt<=now, oldest first, BatchSize), dispatches each via IDispatcher.Send((ICommand)job) in a fresh scope, stamps ProcessedAt;
   on failure Attempts++/Error and pushes RunAt out by exponential backoff (BaseRetryDelay×2^(n-1) capped at MaxRetryDelay) up to MaxAttempts (default 25) → then a dead letter kept for inspection;
   completed jobs purged after Retention (default 7d, Zero=keep).

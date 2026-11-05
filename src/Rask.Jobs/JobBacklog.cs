@@ -12,7 +12,7 @@ namespace Rask.Background;
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the jobs table.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider) : IJobs
+public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, JobsOptions options) : IJobs
     where TContext : DbContext
 {
     /// <inheritdoc/>
@@ -64,6 +64,49 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
             },
             verifySucceeded: null,
             cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <inheritdoc/>
+    public async Task<TResult> Run<TResult>(IJob<TResult> job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default)
+    {
+        // A null answer is "nothing kept", never a null result (that is the JSON "null"): the job ran on a host whose
+        // Rask.Jobs predates Jobs.Run, as a blue/green switch can arrange.
+        var answer = await RunAndWait(job, lane, within, cancellationToken).ConfigureAwait(false)
+            ?? throw new InvalidOperationException(
+                $"{JobSerializerRegistry.TypeName(job.GetType())} ran, but on a host that keeps no answer: update every host to the "
+                + "same Rask.Jobs.");
+        return JobSerializerRegistry.DeserializeResult<TResult>(answer);
+    }
+
+    /// <inheritdoc/>
+    public Task Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default) =>
+        RunAndWait(job, lane, within, cancellationToken);
+
+    // Its own write, never the ambient transaction's: inside Db.Transaction the row would be invisible to the processor
+    // until a commit that waits for this very await. So that case is refused, naming what to write instead.
+    private async Task<string?> RunAndWait(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        if (AmbientTransaction.Current is not null)
+        {
+            throw new InvalidOperationException(
+                "Jobs.Run cannot be awaited inside Db.Transaction: the job's row commits with the transaction, which would "
+                + "wait for the job it has not let anyone see. Await it after the transaction, or Jobs.Enqueue(job) inside it.");
+        }
+
+        var (type, payload) = JobSerializerRegistry.Serialize(job);
+        var row = Job.ForAwaiting(type, payload, timeProvider.GetUtcNow().UtcDateTime, lane);
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            db.Set<Job>().Add(row);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        options.Signals.Wake();
+        return await new JobWait<TContext>(contextFactory, options, timeProvider)
+            .For(row.Id, type, within, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // The look, then the insert — refused by the unique index when another host wrote the same work in between.

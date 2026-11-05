@@ -104,6 +104,20 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` awaits a job's answer in its lane (#1281).**
+  Before: work that had to wait its turn at a pump AND hand the caller an answer needed a named lock of its own — a raw
+  `sp_getapplock` held while the work ran — beside a lane for the work that did not wait, two mechanisms that did not
+  see each other. After: the job is an `IJob<Done>` with an `IJobHandler<AtPump, Done>` (`Task<Done> Handle(AtPump job)`);
+  `Jobs.Run` stores it and runs it like any lane job — one at a time with that lane's other jobs, on every host — and
+  the await hands back its answer, kept as JSON on the new `Job.Result` column so any host may run it. It is tried
+  once: a failure throws `JobFailedException` with the handler's error and the row is a dead letter, never a retry
+  behind the caller's back. Cancelling the wait, or `.Within(2.Minutes)` running out (`TimeoutException`), stops the
+  waiting, never the job; a caller that dies leaves the job running. A job awaiting a job of its own lane, and
+  `Jobs.Run` inside `Db.Transaction`, throw rather than wait forever. A plain `IJob` can be awaited too, `IJobs` gains
+  the `Run` primitives (an app with its own `IJobs` implements them), `JobBacklog` takes `JobsOptions`, and
+  `Jobs.Fake()` runs an awaited job at once through its handler. **Upgrading adds the `Awaited` and `Result` columns:
+  `rask db add AddJobResult && rask db update`** (until then the processor logs exactly that). See
+  [Background jobs](docs/jobs.md#await-a-jobs-answer-jobsrun).
 - **`MapRaskVersion()` says which build is running (#1292).** Before: an app that wanted its version over HTTP wrote
   the endpoint itself — read the assembly's informational version, serialize it, remember `AllowAnonymous` and
   `no-store`. After: `app.MapEndpoints(e => e.MapRaskVersion())` (or `app.MapRaskVersion("/api/version")` on a
