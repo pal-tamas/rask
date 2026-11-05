@@ -29,6 +29,18 @@ rather than replaced, so a language added in code joins the configured ones:
 builder.Services.AddRask(configureCulture: c => c.SupportedCultures.Add("hu"));
 ```
 
+An app written in **one** language says so in one line on a host wired by hand — the language joins the list and
+becomes the default, so every request renders in it whatever the browser asks for, and the kit's texts and a form's
+validation messages come from that language's catalog (`Rask.Ui` ships Hungarian):
+
+```csharp
+builder.Services.AddRask(culture: "hu");
+```
+
+It leaves automatic validation as it is: on by default, and off only where the app set
+`RaskValidation.AutoValidate = false` itself. On `RaskApp` the same line is `app.Configure(c => c.Cultures.Add("hu"))`
+— the first language named in code is the default there too.
+
 A browser (WebAssembly) app lists them in the same section, read by its **build** — see
 [WebAssembly apps](#webassembly-apps).
 

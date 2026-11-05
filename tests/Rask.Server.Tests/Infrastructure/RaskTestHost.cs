@@ -78,7 +78,8 @@ internal sealed class RaskTestHost : IDisposable
         LiveDiffMode diffMode = LiveDiffMode.Auto,
         string? environment = null,
         Action<RaskCultureOptions>? configureCulture = null,
-        bool endpointRouting = false)
+        bool endpointRouting = false,
+        string? culture = null)
         where TApp : Component
     {
         RunsAloneUnderAPathBase(pathBase);
@@ -110,7 +111,8 @@ internal sealed class RaskTestHost : IDisposable
                 o.ShutdownDrainTimeout = TimeSpan.FromMilliseconds(200);
                 configureServer?.Invoke(o);
             },
-            configureCulture: configureCulture);
+            configureCulture: configureCulture,
+            culture: culture);
         configureServices?.Invoke(builder.Services);
 
         var app = builder.Build();

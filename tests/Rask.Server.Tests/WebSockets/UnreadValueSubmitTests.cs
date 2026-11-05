@@ -74,14 +74,14 @@ public class UnreadValueSubmitTests
         Assert.Contains("stored=6500|27.5|2026-10-12;", html, StringComparison.Ordinal);
     }
 
-    private static async Task<(string Page, ILiveTestConnection Ws)> OpenAsync(RaskTestHost host)
+    internal static async Task<(string Page, ILiveTestConnection Ws)> OpenAsync(RaskTestHost host)
     {
         var page = await (await host.Http.GetAsync("/")).Content.ReadAsStringAsync();
         var ws = await LiveTestConnection.OpenAsync(host, LiveTransportKind.WebSocket, MarkupAssert.SessionId(page));
         return (page, ws);
     }
 
-    private static object Change(string page, string field, string value) =>
+    internal static object Change(string page, string field, string value) =>
         new { id = HandlerOf(page, field), type = "change", value };
 
     // What rask-input.ts sends for a number or date input holding text it reports as "".
@@ -95,11 +95,11 @@ public class UnreadValueSubmitTests
         return id.Groups[1].Value;
     }
 
-    private static object Submit(string page, int seq) =>
+    internal static object Submit(string page, int seq) =>
         new { id = MarkupAssert.Attr(page, "data-rask-on-submit"), type = "submit", form = new { }, seq };
 
     // The page as the last render before the ack left it.
-    private static async Task<string> ReadUntilAckAsync(ILiveTestConnection ws)
+    internal static async Task<string> ReadUntilAckAsync(ILiveTestConnection ws)
     {
         var html = string.Empty;
         while (true)

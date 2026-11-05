@@ -113,6 +113,14 @@ them until tagged releases begin.
   turns across processes through a lock file (`o.LockFile`, the lock `lockf`/`flock` take). It hands out the same
   fixture as `TestDatabase.Start<TContext>` plus `database.Factory`, an `IDbContextFactory<TContext>` — which
   `Start<TContext>` now offers too. Provider-neutral: SQL Server, PostgreSQL and SQLite alike.
+- **`AddRask(culture: "hu")` — a single-language server app's culture in one line (#1289).** Before, a hand-wired host
+  wrote `AddRask(configureCulture: c => { c.SupportedCultures.Add("hu"); c.DefaultCulture = "hu"; })`. After:
+  `builder.Services.AddRask(culture: "hu")` — the language joins `Rask:Cultures` and becomes the default, so every
+  request renders in it whatever the browser asks, and the kit's texts and a form's validation messages come from the
+  Hungarian catalog. Automatic validation is left as it is (on by default; an app that set
+  `RaskValidation.AutoValidate = false` keeps it off). A `RaskApp` gives the same options for `c.Cultures.Add("hu")`,
+  whose first entry is now also the `DefaultCulture` ahead of any language appsettings lists, and a language named
+  both in appsettings and in code is listed once.
 - **`MapRaskVersion()` says which build is running (#1292).** Before: an app that wanted its version over HTTP wrote
   the endpoint itself — read the assembly's informational version, serialize it, remember `AllowAnonymous` and
   `no-store`. After: `app.MapEndpoints(e => e.MapRaskVersion())` (or `app.MapRaskVersion("/api/version")` on a

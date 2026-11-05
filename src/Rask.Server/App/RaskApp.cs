@@ -261,15 +261,10 @@ public sealed partial class RaskApp
         _builder.Services.AddRask(
             configure: o => _options.Live.Apply(o),
             configureServer: o => _options.Server.Apply(o),
+            // The same shape AddRask(culture: …) gives a host wired by hand: the first language named is the default.
             configureCulture: _options.Cultures.Count == 0
                 ? null
-                : c =>
-                {
-                    foreach (var culture in _options.Cultures)
-                    {
-                        c.SupportedCultures.Add(culture);
-                    }
-                });
+                : c => AppLanguages.Apply(c, [.. _options.Cultures]));
     }
 
     private void BindAppServices(WebApplication app)
