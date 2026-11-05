@@ -3,14 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Rask.Server;
 
 /// <summary>
-///     The steps after <c>AddSessionRevalidator&lt;T&gt;()</c>: how long a loaded user is kept, and which saves drop
-///     them.
+///     The steps after <c>AddSessionRevalidator&lt;T&gt;()</c>: how long the app's answer about a principal is kept,
+///     and which saves drop it.
 /// </summary>
 /// <remarks>
 ///     <code>
 /// builder.Services.AddSessionRevalidator&lt;AccountCheck&gt;().Keep(5.Seconds).ForgetOnSave&lt;User&gt;();
 ///     </code>
-///     With neither step every event of a live page loads its user, as Rask.Auth's own revalidator does.
+///     With neither step every event of a live page asks the app, as Rask.Auth's own revalidator is asked.
 /// </remarks>
 public sealed class SessionRevalidatorBuilder
 {
@@ -26,8 +26,8 @@ public sealed class SessionRevalidatorBuilder
     public IServiceCollection Services { get; }
 
     /// <summary>
-    ///     Keeps a loaded user for <paramref name="duration" />: within it, every event of every page of theirs is
-    ///     answered without reading the store again.
+    ///     Keeps the app's answer for <paramref name="duration" />: within it, every event of every page whose
+    ///     principal carries the same claims (<c>iat</c> and <c>nbf</c> aside) is answered without asking the app again.
     /// </summary>
     /// <param name="duration">How long — <c>5.Seconds</c>. Zero keeps nothing.</param>
     /// <returns>The same builder.</returns>
@@ -45,9 +45,9 @@ public sealed class SessionRevalidatorBuilder
     }
 
     /// <summary>
-    ///     Drops every kept user the moment a save of a <typeparamref name="TEntity" /> commits in this process —
-    ///     from a page, a request or a background job — so a user disabled or given another role here is loaded
-    ///     afresh at their next event.
+    ///     Drops every kept answer the moment a save of a <typeparamref name="TEntity" /> commits in this process —
+    ///     from a page, a request or a background job — so a user disabled or given another role here is asked
+    ///     about afresh at their next event.
     /// </summary>
     /// <typeparam name="TEntity">
     ///     The app's user aggregate (or what is saved when a user changes). A child entity is reported as its aggregate,

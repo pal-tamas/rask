@@ -119,6 +119,38 @@ them until tagged releases begin.
   `X-Rask-Auth` header and answers `403` to a browser request another site sent (`Sec-Fetch-Site` other than
   `same-origin`). **Migration:** `RaskAuthSession` gets a nullable `ActingInTenant` column — `rask db add
   AddActingInTenant`.
+- **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` keeps a live page's
+  revalidation answer a few seconds and forgets it when the user is saved (#1287).** Before: an app whose
+  `ISessionRevalidator` read its own users on every click wrote its own cache and a `SaveChangesInterceptor` that
+  forgot a user when their row was saved. After: the same one-method `ISessionRevalidator`, registered with
+  `AddSessionRevalidator<T>()` instead of `AddSingleton`; Rask keeps its answer for `.Keep(…)` (nothing by default)
+  under the user's id and every claim of the principal but `iat`/`nbf` — so another `exp` or another chosen tenant is
+  asked for itself — and drops every kept answer the moment a save of `.ForgetOnSave<T>()`'s type commits in this
+  process, from a page, a request or a background job. Server host.
+- **The clock on the app's wall, values written in the visitor's culture, and text in its language's order (#1290).**
+  Before: an app kept a `LocalTime` helper with `TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest")` (or repeated
+  the zone in every page that needed it), a `Format` class pinned to `hu-HU`, and a `Sorting` class with
+  `"Hungarian_100_CI_AS"` passed to `EF.Functions.Collate` in each query plus a `StringComparer.Create(hu-HU)` for
+  lists in memory. After: `AddRask(timeZone: "Europe/Budapest")` (a `RaskApp`'s `c.TimeZone`, a browser app's
+  `host.UseTimeZone(…)`) names the zone once, and `Clock.Wall` / `Clock.Today` / `Clock.Zone` read it, following
+  `Clock.Now` — so a frozen test clock moves them too, across a summer-time change. `Format.Day(x)`,
+  `Format.Moment(x)` and `Format.Number(x)` / `Format.Number(x, decimals)` write a value in the visitor's culture
+  (`2026. 10. 09.`, `2026. 10. 09. 14:35`, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
+  `c.TextOrder("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` gives every text column that collation on
+  SQL Server (an explicit `UseCollation` wins; other databases are left as they were), and `TextOrder.In("hu")` /
+  `TextOrder.Current` order a list in memory as the language does — `Cu` before `Cs`, `O` before `Ö`. An app that
+  keeps its own `Format` class and imports its namespace beside `Rask` names one of the two (CS0104).
+- **`Rules.Text(value, max)`, `Rules.Optional`, `Rules.Given`, `Rules.Required`, `Rules.TooLong(max)` — a form's
+  common rules in the reader's language, and `.ConfirmLeave()` with the framework's own question (#1299).** Before:
+  an app wrote its own copy of the sentences, in its own language —
+  `public static string? Text(string? v, int max) => string.IsNullOrWhiteSpace(v) ? "Kötelező kitölteni." : v.Length > max ? $"Maximum {max} karakter hosszúnak kell lennie." : null;`
+  and `.ConfirmLeave(Layout.UnsavedChanges)` on every form. After:
+  `public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);` and
+  `Form.Model(m).OnSubmit(Save).ConfirmLeave()[…]`, which ask "This field is required." / "Enter at most 100
+  characters." / "Leave without saving?" — and *Kötelező kitölteni.* / *Maximum 100 karakter hosszúnak kell
+  lennie.* / *Biztos elhagyja mentés nélkül az oldalt?* in Hungarian, from the kit's catalog. New `RaskString` keys
+  `ValidationTooLong` and `ConfirmLeaveQuestion`. An app's own `Rules` class in a namespace it imports beside
+  `Rask` is now ambiguous (CS0104): delete it, or qualify it.
 - **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` re-checks a live page's
   user from the app's OWN user type, kept a few seconds (#1287).** Before: an app with its own users wrote a whole
   `ISessionRevalidator` — reading the claims, loading the account, building the principal — and, to avoid a read
@@ -811,6 +843,25 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **Escape in `Ui.Editor`'s link panel gives focus back to the link button, as Flux's does (#1260).** Before: it
+  always went into the document. Measured on Flux: a mouse press or Enter/Space on the button gets focus back on
+  Escape; a tap still leaves it in the document (Flux's tooltip is showing after a tap), and the ⌘K shortcut still
+  leaves it nowhere. The earlier measurement had moved the mouse and pressed in one go, so Flux's tooltip came up
+  after the press and took the tap's path. `ui-editor.js` grows by 154 bytes (449,530 -> 449,684).
+- **A DataAnnotations attribute with no `ErrorMessage` speaks the reader's language (#1300).** Before: under
+  `AddRask(culture: "hu")` a bare `[Required]`, `[StringLength(100)]` or `[Range(1, 30)]` said .NET's English — "The
+  Name field is required.", "The field Name must be a string with a maximum length of 100." — because .NET ships no
+  Hungarian for them, so an app turned the automatic validators off and wrote every rule by hand:
+  `RaskValidation.AutoValidate = false;`. After: Rask words every built-in attribute's failure from the `RaskStrings`
+  catalog with the attribute's numbers filled in — *Kötelező kitölteni.*, *Maximum 100 karakter hosszúnak kell
+  lennie.*, *Az értéknek 1 és 30 között kell lennie.* — in a form, a field checked as it is typed, a dispatched
+  request and a Rask.Data model's generated rules, on Server and WASM alike; so that line can go. An attribute's own
+  `ErrorMessage`/`ErrorMessageResourceType`, and an attribute class of the app's, still say what they say, and an
+  English reader reads .NET's text word for word. Sixteen new `RaskString` keys (`ValidationTooShort`,
+  `ValidationLength`, `ValidationTooMany`, `ValidationTooFew`, `ValidationCount`, `ValidationBetween`,
+  `ValidationEmail`, `ValidationPhone`, `ValidationUrl`, `ValidationCreditCard`, `ValidationPattern`,
+  `ValidationMatch`, `ValidationFileType`, `ValidationNotAllowed`, `ValidationBase64`, `ValidationInvalid`), Hungarian
+  in Rask.Ui; `DataAnnotationsFieldValidator.Message(check, value, said)` words an attribute run by hand.
 - **Behind `rask deploy`'s proxy a `RaskApp` sees the visitor's scheme and address.** Before: `BehindProxy` (and
   `Rask:BehindProxy`, which `rask deploy` sets) wired `UseForwardedHeaders` with ASP.NET's default trust list, which
   is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,

@@ -8,7 +8,7 @@ namespace Rask.Data;
 ///     <para>
 ///         <see cref="IDataChanges" /> is the session's own and hears nothing a background job writes; this is the
 ///         host's, a singleton beside <c>DataChangesInterceptor</c>, for what the host keeps across sessions — the
-///         users a session revalidator keeps, dropped when a user is saved.
+///         answers a session revalidator keeps, dropped when a user is saved.
 ///     </para>
 ///     <para>
 ///         Called after the commit, as <see cref="IDataChanges.Saved" /> is, never on a rollback; a child entity is

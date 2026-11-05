@@ -159,6 +159,23 @@ public sealed class WasmHostBuilder
         return this;
     }
 
+    /// <summary>
+    ///     The zone of the clock on the app's wall, as an IANA id — what <c>AddRask(timeZone: …)</c> is on a server:
+    ///     <c>host.UseTimeZone("Europe/Budapest")</c>. Without it the wall clock is the browser's.
+    /// </summary>
+    /// <param name="timeZone">An IANA zone id, such as <c>"Europe/Budapest"</c>.</param>
+    /// <returns>The same builder.</returns>
+    /// <remarks>
+    ///     <see cref="Clock.Wall" /> and <see cref="Clock.Today" /> read it, and <c>Format.Day</c>/<c>Format.Moment</c> show a
+    ///     UTC moment on it — so a visitor abroad sees the times the app's own users see.
+    /// </remarks>
+    /// <exception cref="ArgumentException"><paramref name="timeZone" /> names no zone the runtime knows.</exception>
+    public WasmHostBuilder UseTimeZone(string timeZone)
+    {
+        AmbientClock.Configure(timeZone, $"UseTimeZone(\"{timeZone}\")");
+        return this;
+    }
+
     // Rask:Cultures as the build baked it, then what Program.cs said — code has the last word, as on the server.
     private RaskCultureOptions CultureOptions()
     {

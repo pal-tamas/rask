@@ -8,8 +8,9 @@ using Rask.Data;
 namespace Rask.Server.Tests.Authentication;
 
 /// <summary>
-///     <c>.ForgetOnSave&lt;T&gt;()</c>: a user kept by a session revalidator is loaded afresh the moment a save of the
-///     named type commits — here a save from no session at all, as a background job's would be, on SQLite.
+///     What <c>.Keep(…)</c> files a session revalidator's answer under, and <c>.ForgetOnSave&lt;T&gt;()</c>: an answer
+///     is asked afresh the moment a save of the named type commits — here a save from no session at all, as a
+///     background job's would be, on SQLite.
 /// </summary>
 public sealed class ForgetOnSaveTests : IDisposable
 {
@@ -62,8 +63,43 @@ public sealed class ForgetOnSaveTests : IDisposable
         Assert.Equal(1, check.Loads);
     }
 
-    private static ClaimsPrincipal Alice() =>
-        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "alice")], "TestCookie"));
+    [Fact]
+    public async Task Two_sessions_of_one_user_with_other_claims_do_not_share_an_answer()
+    {
+        await using var services = await StartAsync();
+        var revalidator = services.GetRequiredService<ISessionRevalidator>();
+        var check = services.GetRequiredService<AccountRowCheck>();
+        var inHerPartner = Alice(partner: "1");
+        var inAnotherPartner = Alice(partner: "2");
+
+        var first = await revalidator.Revalidate(inHerPartner, TestContext.Current.CancellationToken);
+        var second = await revalidator.Revalidate(inAnotherPartner, TestContext.Current.CancellationToken);
+
+        Assert.Same(inHerPartner, first);
+        Assert.Null(second);
+        Assert.Equal(2, check.Loads);
+    }
+
+    [Fact]
+    public async Task A_token_issued_again_with_only_a_new_iat_shares_the_answer()
+    {
+        await using var services = await StartAsync();
+        var revalidator = services.GetRequiredService<ISessionRevalidator>();
+        var check = services.GetRequiredService<AccountRowCheck>();
+        var issued = Alice();
+        ((ClaimsIdentity)issued.Identity!).AddClaim(new Claim("iat", "100"));
+        var reissued = Alice();
+        ((ClaimsIdentity)reissued.Identity!).AddClaim(new Claim("iat", "200"));
+
+        await revalidator.Revalidate(issued, TestContext.Current.CancellationToken);
+        var again = await revalidator.Revalidate(reissued, TestContext.Current.CancellationToken);
+
+        Assert.Same(reissued, again);
+        Assert.Equal(1, check.Loads);
+    }
+
+    private static ClaimsPrincipal Alice(string partner = "1") =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "alice"), new Claim("partner", partner)], "TestCookie"));
 
     // The app's container as far as this needs: Rask.Data's interceptors, the revalidator, and a context on SQLite
     // that the revalidator itself reads through — the interceptor it is told by is built for that very factory.
@@ -93,6 +129,8 @@ public sealed class ForgetOnSaveTests : IDisposable
         public string Name { get; set; } = "";
 
         public bool Disabled { get; set; }
+
+        public string Partner { get; set; } = "1";
     }
 
     internal sealed class NoteRow
@@ -109,20 +147,20 @@ public sealed class ForgetOnSaveTests : IDisposable
         public DbSet<NoteRow> Notes => Set<NoteRow>();
     }
 
-    internal sealed class AccountRowCheck(IDbContextFactory<AccountsContext> contexts) : SessionRevalidator<AccountRow>
+    // The app's own revalidator, one method: alice stands while her row is enabled and in the partner she works in.
+    internal sealed class AccountRowCheck(IDbContextFactory<AccountsContext> contexts) : ISessionRevalidator
     {
         private int _loads;
 
         public int Loads => Volatile.Read(ref _loads);
 
-        protected override async Task<AccountRow?> Load(string userId, CancellationToken cancellationToken = default)
+        public async ValueTask<ClaimsPrincipal?> Revalidate(ClaimsPrincipal principal, CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref _loads);
             await using var db = await contexts.CreateDbContextAsync(cancellationToken);
-            return await db.Accounts.AsNoTracking().SingleOrDefaultAsync(a => a.Name == userId, cancellationToken);
+            var name = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await db.Accounts.AsNoTracking().SingleOrDefaultAsync(a => a.Name == name, cancellationToken);
+            return user is { Disabled: false } && user.Partner == principal.FindFirstValue("partner") ? principal : null;
         }
-
-        protected override ClaimsPrincipal? Principal(AccountRow user, ClaimsPrincipal principal) =>
-            user.Disabled ? null : principal;
     }
 }

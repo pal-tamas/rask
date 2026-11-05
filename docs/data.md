@@ -2002,6 +2002,7 @@ public sealed class AppModel : IRaskModel
             ConstraintKind.Default    => $"{n.Table}_{n.Columns[0]}_df",
         });
         c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction);
+        c.TextOrder("Hungarian_100_CI_AS");
     }
 
     public static void Model(ModelBuilder m) => m.HasDefaultSchema("dbo");
@@ -2019,8 +2020,22 @@ public sealed class AppModel : IRaskModel
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
   usually has.
-- Both are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
-  a `HasDatabaseName`, `HasConstraintName` or `OnDelete` written there is kept as written. A unique index's
+- **`TextOrder(collation)`** is the order the database puts text in. On SQL Server every string column — the
+  batteries' too — is declared with that collation, so `OrderBy(x => x.Name)` puts `Cu` before `Cs` and `O` before `Ö`
+  with no `EF.Functions.Collate` in the query, and the next migration writes it into the schema. The name is SQL
+  Server's, so on every other database it changes nothing: an app on SQLite in development keeps its schema as it
+  was. A list already in memory orders the same way with `TextOrder.In("hu")` (see
+  [Localization](localization.md#dates-numbers-and-text-order)).
+
+  ```csharp
+  // before — in every query, and a comparer of the app's own for lists in memory
+  .OrderBy(x => EF.Functions.Collate(x.Name, "Hungarian_100_CI_AS"))
+  // after — once, in Conventions; the queries say what they mean
+  c.TextOrder("Hungarian_100_CI_AS");
+  .OrderBy(x => x.Name)
+  ```
+- All three are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
+  a `HasDatabaseName`, `HasConstraintName`, `OnDelete` or `UseCollation` written there is kept as written. A unique index's
   [message](#what-a-unique-indexs-violation-says) and a [referenced delete's sentence](#what-deleting-a-referenced-row-says)
   find their index or key under the name the rule gave it.
 - A battery states the length of every text column it owns (a job's payload, a mail's body are unbounded), so an

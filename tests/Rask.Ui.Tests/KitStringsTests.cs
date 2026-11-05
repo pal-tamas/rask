@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Core;
 using Rask.Core.Globalization;
 using Rask.UiTests.Flux;
 
@@ -95,6 +96,23 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         Assert.Contains(">Maradok<", switched, StringComparison.Ordinal);
         Assert.Contains(">Elhagyom<", switched, StringComparison.Ordinal);
         Assert.DoesNotContain(">Stay<", switched, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_form_that_asks_before_it_is_left_with_no_question_of_its_own_asks_the_frameworks_in_each_language()
+    {
+        var model = new LeaveModel();
+
+        var english = KitCulture.In("en-US", () => Form.Model(model).ConfirmLeave().ToHtml());
+        var hungarian = KitCulture.In("hu-HU", () => Form.Model(model).ConfirmLeave().ToHtml()).AsText();
+
+        Assert.Contains("data-rask-confirm-leave=\"Leave without saving?\"", english, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-leave=\"Biztos elhagyja mentés nélkül az oldalt?\"", hungarian, StringComparison.Ordinal);
+    }
+
+    private sealed class LeaveModel
+    {
+        public string Note { get; set; } = "";
     }
 
     [Fact]
@@ -329,6 +347,15 @@ public partial class KitStringsTests : global::Rask.Core.RaskMarkup
         nameof(RaskString.ConnectionAuthenticating), nameof(RaskString.ConnectionSessionTimedOut),
         // A printed PDF's page numbers: Rask.Pdf writes them into the foot it hands Chromium.
         nameof(RaskString.PdfPageNumber),
+        // A DataAnnotations attribute with no message of its own, and Rules: Core's validation words them.
+        nameof(RaskString.ValidationTooLong), nameof(RaskString.ValidationTooShort), nameof(RaskString.ValidationLength),
+        nameof(RaskString.ValidationTooMany), nameof(RaskString.ValidationTooFew), nameof(RaskString.ValidationCount),
+        nameof(RaskString.ValidationBetween), nameof(RaskString.ValidationEmail), nameof(RaskString.ValidationPhone),
+        nameof(RaskString.ValidationUrl), nameof(RaskString.ValidationCreditCard), nameof(RaskString.ValidationPattern),
+        nameof(RaskString.ValidationMatch), nameof(RaskString.ValidationFileType), nameof(RaskString.ValidationNotAllowed),
+        nameof(RaskString.ValidationBase64), nameof(RaskString.ValidationInvalid),
+        // A form's .ConfirmLeave() with no question of its own: Core's chain step asks it.
+        nameof(RaskString.ConfirmLeaveQuestion),
     ];
 
     // Key → English, from every RaskStrings.Get in the kit's sources.
