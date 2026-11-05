@@ -8,7 +8,8 @@ namespace Rask;
 ///     so when it is drawn — and an option with no <see cref="Value" /> stands for its own words. Its content
 ///     can be more than words: an icon beside them, as on Flux's page.
 /// </remarks>
-public sealed partial class UiPillboxOption : Component
+// Keyed in its pillbox's list, not among everything the page writes: two pillboxes may key their options alike (#1284).
+public sealed partial class UiPillboxOption : Component, IKeyedInItsList
 {
     /// <summary>What picking this option stores. Unset, the option's own text.</summary>
     public object? Value { get; set; }

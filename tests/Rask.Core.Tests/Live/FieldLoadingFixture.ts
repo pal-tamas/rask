@@ -60,7 +60,9 @@ const live = new Field("INPUT", {"data-rask-on-input": "h1"});
 const changed = new Field("SELECT", {"data-rask-on-change": "h2"});
 const quietParent = new Field("DIV", {"data-rask-loading": "off"});
 const quiet = new Field("INPUT", {"data-rask-on-input": "h3"}, quietParent);
-const all = [live, changed, quiet];
+// A search field that asks a store once typing pauses: its `input` goes out under the pause's handler.
+const paused = new Field("INPUT", {"data-rask-on-pause": "h4", "data-rask-debounce": "250"});
+const all = [live, changed, quiet, paused];
 g.document = {
     querySelector(selector: string) {
         const found = /^\[(data-rask-on-\w+)="(\w+)"\]$/.exec(selector);
@@ -75,6 +77,8 @@ const target = {
     unasked: fieldTarget({id: "h1", type: "input", unasked: true}) === null,
     gone: fieldTarget({id: "h9", type: "input"}) === null,
     optedOut: fieldTarget({id: "h3", type: "input"}) === null,
+    paused: fieldTarget({id: "h4", type: "input"}) === paused,
+    pausedChange: fieldTarget({id: "h4", type: "change"}) === null,
 };
 
 const ticket = beginLoading(live as unknown as Element, null, false);

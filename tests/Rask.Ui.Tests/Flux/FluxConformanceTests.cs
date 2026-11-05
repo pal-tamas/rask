@@ -561,6 +561,8 @@ public sealed class FluxConformanceTests
         ["flux:pillbox.search/Debounce"] = "as flux:select.search/Debounce",
         ["flux:autocomplete/Debounce"] = "`wire:model.live.debounce.250ms`: the property holds what was typed once typing has paused, as `flux:input/Debounce`",
         ["flux:select.search/Debounce"] = "`wire:model.live.debounce.250ms` on the search field: the page hears the search once typing has paused, as `flux:input/Debounce`",
+        // #1284, owner-approved 2026-11-04: both apps' picker that asks a store, folded into the select.
+        ["flux:select/Search"] = "Flux's \"Backend search\": `:filter=\"false\"`, the search written with `wire:model.live.debounce` and the options the component renders from a query over it — held by the select",
         ["flux:pillbox/Variant"] = "`variant=\"combobox\"`, which every combobox example on Flux's page writes and its reference omits",
         ["flux:pillbox.option.create/OnClick"] = "`wire:click`, which the reference lists as a directive",
         ["flux:pillbox.search/Value"] = "as flux:select.search",

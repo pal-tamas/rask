@@ -63,6 +63,20 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <summary>True for a search field over the listbox's options.</summary>
     public bool? Searchable { get; set; }
 
+    /// <summary>
+    ///     The options for what is typed, answered by the page — from a database, or from more rows than a list should
+    ///     draw: <c>.Search(async typed =&gt; (await Partner.Named(typed, 20)).Select(p =&gt; Ui.SelectOption.Value(p.Id)[p.Name]))</c>.
+    /// </summary>
+    /// <remarks>
+    ///     Flux's backend search — <c>:filter="false"</c> with <c>wire:model.live.debounce</c> on the search — held by the
+    ///     select itself. Asked for <c>""</c> when the select mounts, then once typing has paused (250 ms, or the search
+    ///     slot's <c>Debounce</c>); the list says it is loading while an answer is on its way, and the answer replaces the
+    ///     rows. The options written as children are the rows before the first answer — the one the value holds, say, so
+    ///     the select can name it. A picked option stays first in the list while a search does not find it. A listbox
+    ///     with a search field unless <c>Combobox</c> says otherwise.
+    /// </remarks>
+    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set; }
+
     /// <summary>What the list says when a search matches nothing. "No results found" when unset.</summary>
     public string? Empty { get; set; }
 
@@ -141,9 +155,13 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
 
     private bool IsMultiple => HoldsMany && Multiple != false;
 
-    private bool HasSearchField => Variant == Ui.SelectVariant.Listbox && Searchable == true;
+    // A select the page searches is drawn: a listbox with a search field, unless it says it is a combobox.
+    private Ui.SelectVariant Shape => Variant ?? (Search is null ? Ui.SelectVariant.Default : Ui.SelectVariant.Listbox);
 
-    private bool IsCombobox => Variant == Ui.SelectVariant.Combobox;
+    // A pillbox with an input among its pills is typed into there, and needs no field over its list.
+    private bool HasSearchField => Shape == Ui.SelectVariant.Listbox && (Searchable == true || (Search is not null && !PillsCombobox));
+
+    private bool IsCombobox => Shape == Ui.SelectVariant.Combobox;
 
     /// <summary>Whether something is typed to narrow the list: a combobox, a search field, a pillbox's own input.</summary>
     private bool Searches => IsCombobox || HasSearchField || PillsCombobox;
@@ -181,10 +199,13 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
         }
 
         var field = UiWithField.For(this);
-        var parts = Parts.Read(Children);
+        if (Shape == Ui.SelectVariant.Default && Pills is null)
+        {
+            return field.Wrap(Native(field, Parts.Read(Children)));
+        }
 
-        return field.Wrap((Variant ?? Ui.SelectVariant.Default) == Ui.SelectVariant.Default && Pills is null
-            ? Native(field, parts)
-            : Drawn(field, parts));
+        var picked = Current();
+
+        return field.Wrap(Drawn(field, Parts.Read(Offered(picked)), picked));
     }
 }

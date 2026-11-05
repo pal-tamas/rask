@@ -15,6 +15,12 @@ namespace Rask;
 /// </remarks>
 internal static class UiSearchPause
 {
+    /// <summary>
+    ///     The pause before a control that asks the page itself (<c>Search</c>) asks it, unless a slot's <c>Debounce</c>
+    ///     says otherwise: a word, not a letter, as both apps' pickers waited.
+    /// </summary>
+    internal static readonly TimeSpan Asked = TimeSpan.FromMilliseconds(250);
+
     /// <summary>The pause in milliseconds, or 0 when every keystroke is heard.</summary>
     /// <param name="debounce">The field's <c>Debounce</c> step.</param>
     /// <remarks>With no page behind the render there is no handler to name, and nothing to wait for.</remarks>

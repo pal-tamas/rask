@@ -19,6 +19,9 @@ public abstract partial class UiSelectControl<T>
         /// <summary>Whether a press on the create row is taken: always, unless the page filters and its search offers none.</summary>
         internal bool CreateShown { get; init; }
 
+        /// <summary>How many rows answer the search: every row, but for the picked ones a search the page answers keeps.</summary>
+        internal int Found { get; init; }
+
         /// <summary>
         ///     The answers that have something to show, in the order they were picked: each from its row, or
         ///     as the select last drew it once a render took the row away.
@@ -50,13 +53,14 @@ public abstract partial class UiSelectControl<T>
 
     private View Latest => _latest ?? throw new InvalidOperationException("The select has not been drawn.");
 
-    private View Read(UiWithField field, Parts parts)
+    private View Read(UiWithField field, Parts parts, IReadOnlyList<T> picked)
     {
         ReadSearch(parts);
         var search = SearchText(parts);
-        var view = new View(field, parts, Current(), search)
+        var view = new View(field, parts, picked, search)
         {
             CreateShown = parts.Create is { } create && (HidesRows || OffersCreate(create, parts, search)),
+            Found = Found(parts),
         };
         Remember(view);
         _latest = view;

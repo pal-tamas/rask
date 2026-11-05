@@ -26,7 +26,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
                      "ui-select-width", "ui-select-search", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
                      "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
-                     "ui-select-store", "ui-select-create", "ui-select-create-search", "ui-select-loading",
+                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",
                  })
         {
@@ -157,6 +157,56 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         // One query for the word, and one for the empty field the pick left behind it: the page's search follows the field.
         await Expect(Page.Locator("[data-testid='ui-select-store-state']")).ToHaveTextAsync("City: Bern. Queries: 2.");
         await Expect(Page.Locator("#ui-select-store")).ToContainTextAsync("Bern");
+    });
+
+    [Fact]
+    public Task A_select_that_asks_the_page_says_it_is_loading_keeps_its_answer_and_picks_from_the_keyboard() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var scope = Page.Locator("[data-testid='ui-select-server']");
+        var button = Page.Locator("#ui-select-server");
+        var field = scope.Locator("[data-ui-select-search] input");
+
+        // Named before anything is found, by the option written as a child; the first eight are there on opening.
+        await Expect(button).ToContainTextAsync("Bergmann Logistik");
+        await button.ClickAsync();
+        await Expect(field).ToBeFocusedAsync();
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
+
+        await field.FillAsync("berl");
+        await Expect(scope.Locator("[data-ui-listbox-loading]")).ToBeVisibleAsync();
+        await Expect(scope.Locator("[data-ui-listbox-loading]")).ToBeHiddenAsync();
+        // The partner the value holds stays first, whatever the search found.
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
+        // Typing lit the first row, as on Flux; the arrow goes on to the next and Enter picks it.
+        await field.PressAsync("ArrowDown");
+        await field.PressAsync("Enter");
+
+        await Expect(Page.Locator("[data-testid='ui-select-server-state']")).ToContainTextAsync("Partner: 5.");
+        await Expect(button).ToContainTextAsync("Berlin Cargo");
+
+        await button.ClickAsync();
+        await field.FillAsync("zzz");
+        await Expect(scope.Locator("[data-ui-listbox-empty]")).ToBeVisibleAsync();
+        await Expect(scope.Locator("[data-ui-listbox-empty]")).ToHaveTextAsync("No results found");
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Berlin Cargo"]);
+    });
+
+    [Fact]
+    public Task A_multi_select_that_asks_the_page_keeps_every_answer_in_its_list() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var scope = Page.Locator("[data-testid='ui-select-server-many']");
+        var button = Page.Locator("#ui-select-server-many");
+
+        await button.ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Alpine Freight" }).ClickAsync();
+        await scope.Locator("[data-ui-option]", new LocatorLocatorOptions { HasTextString = "Atlas Haulage" }).ClickAsync();
+        await scope.Locator("[data-ui-select-search] input").FillAsync("zen");
+
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Alpine Freight", "Atlas Haulage", "Zenith Express"]);
+        await Expect(button).ToContainTextAsync("2 selected");
+        await Expect(Page.Locator("[data-testid='ui-select-server-many-state']")).ToHaveTextAsync("Partners: 1, 2.");
     });
 
     [Fact]

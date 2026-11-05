@@ -124,6 +124,17 @@ internal static class UiListboxLook
         "data-hidden:hidden block items-center px-2 py-1.5 w-full rounded-md text-start text-sm font-medium cursor-default "
         + "text-zinc-500 dark:text-zinc-300";
 
+    /// <summary>The "no results" row of a list the page answers, aside while a field of its select waits on the answer.</summary>
+    internal const string EmptyWhileAsked = "in-[[data-rask-list]:has(input[data-loading])]:hidden";
+
+    /// <summary>
+    ///     The "loading" row of a list the page answers: the empty row's look, there only while a field of its select
+    ///     waits on the answer (<c>data-loading</c>, written by the runtime).
+    /// </summary>
+    internal const string Loading =
+        "hidden in-[[data-rask-list]:has(input[data-loading])]:block px-2 py-1.5 w-full rounded-md text-start text-sm font-medium cursor-default "
+        + "text-zinc-500 dark:text-zinc-300";
+
     /// <summary>
     ///     The row that makes a new option: a <c>div</c> no role names pressable, so it takes the hand itself (an
     ///     owner-approved departure from Flux's arrow, 2026-11-02) — and the arrow while the page makes it.

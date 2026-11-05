@@ -108,7 +108,10 @@ export function fieldTarget(payload: unknown): Element | null {
     const sent = payload as { id?: unknown; type?: unknown; unasked?: unknown } | null;
     if (!sent || sent.unasked || typeof sent.id !== "string" || (sent.type !== "input" && sent.type !== "change")) return null;
 
-    const field = document.querySelector("[data-rask-on-" + sent.type + "=\"" + sent.id + "\"]");
+    // A search that asks a store once typing pauses sends an `input` under the id its field names as the PAUSE's
+    // handler (rask-input.ts): that field waits on the answer as much as one that sends every key.
+    const field = document.querySelector("[data-rask-on-" + sent.type + "=\"" + sent.id + "\"]")
+        ?? (sent.type === "input" ? document.querySelector("[data-rask-on-pause=\"" + sent.id + "\"]") : null);
     return field && !isOptedOut(field) ? field : null;
 }
 

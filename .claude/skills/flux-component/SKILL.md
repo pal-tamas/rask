@@ -147,6 +147,13 @@ departure in behaviour carries none.
   Flux's, one page too) and steps back past the list's end, and `Empty` says "nothing yet" or "nothing matches" in the kit's empty row.
   Steps, not props, so `FluxConformanceTests` has nothing to list; the look is Flux's table, heading and pager
   unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
+- **2026-11-04 — `Search` on `Ui.Select` and `Ui.Pillbox` (#1284).** Flux's backend search is the page's `$search`, a
+  query over it and `:filter="false"`. The kit holds it: `.Search(async typed => …)` asks for "" on mount and the trimmed
+  text at a 250 ms pause, drops an answer to an older question, keeps every picked option FIRST in the list while a search
+  misses it (Flux leaves that to the query), and shows Flux's `when-loading` words in a row of their own while the
+  field is `data-loading` (the runtime now marks a field whose search went at its pause too). Look of every row
+  unchanged. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
+  `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

@@ -48,6 +48,11 @@ public abstract partial class UiSelectControl<T>
             yield return EmptyRow(view);
         }
 
+        if (Searches && !HidesRows)
+        {
+            yield return LoadingRow(view);
+        }
+
         // Written before the options, drawn before them: the pillbox's "Create new" that opens a form.
         if (view.Parts.Create is { } leading && view.Parts.CreateLeads)
         {
@@ -173,14 +178,27 @@ public abstract partial class UiSelectControl<T>
     private Component EmptyRow(View view)
     {
         var slot = view.Parts.Empty;
-        var others = view.Parts.Rows.Count > 0 || (view.Parts.Create is not null && !HidesRows && view.CreateShown);
+        var others = view.Found > 0 || (view.Parts.Create is not null && !HidesRows && view.CreateShown);
         var marks = RowMarks("data-ui-listbox-empty", picked: false, hidden: others);
         marks["data-rask-list-empty"] = null;
 
-        return Div.Key("ui:empty").Class(UiListboxLook.Empty, slot?.Class).Attributes(marks)[
-            _busy ? [slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...")] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
+        return Div.Key("ui:empty").Class(UiListboxLook.Empty, HidesRows ? null : UiListboxLook.EmptyWhileAsked, slot?.Class).Attributes(marks)[
+            _busy ? [Loading(slot)] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
+
+    // A list the page answers says it is loading while the field typed into waits on that answer — the runtime marks
+    // the field `data-loading` once the question has gone 200 ms unanswered (rask-loading.ts) — and the "no results"
+    // row stands aside meanwhile: Flux's `when-loading`. The rows drawn stay until the answer is here.
+    private static Component LoadingRow(View view)
+    {
+        var slot = view.Parts.Empty;
+
+        return Div.Key("ui:loading").Class(UiListboxLook.Loading, slot?.Class).Data("ui-listbox-loading", "")[Loading(slot)];
+    }
+
+    private static string Loading(UiSelectOptionEmpty? slot) =>
+        slot?.WhenLoading ?? RaskStrings.Get(RaskString.SelectLoading, "Loading...");
 
     // Offered by the browser, at every key, once what is typed is long enough and names no option; a list with
     // nothing to type into always has it. A list the page filters is told by the page.

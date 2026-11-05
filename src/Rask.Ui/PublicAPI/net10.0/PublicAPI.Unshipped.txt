@@ -8883,3 +8883,14 @@ Rask.UiTable.Empty(Rask.Core.Component? nothingYet, Rask.Core.Component? noMatch
 Rask.UiTable.PageIn(string! page, int? total, int perPage = 15) -> Rask.UiTable!
 Rask.UiTable.SortIn(string! column, string! direction) -> Rask.UiTable!
 Rask.UiTable.SortIn(string! direction) -> Rask.UiTable!
+Rask.UiPillbox<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?
+Rask.UiPillbox<T>.Search.set -> void
+Rask.UiSelectControl<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?
+Rask.UiSelectControl<T>.Search.set -> void
+override Rask.UiSelectControl<T>.OnMount() -> System.Threading.Tasks.Task!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiPillbox<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiPillbox<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiPillbox<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelect<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!
+static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!
