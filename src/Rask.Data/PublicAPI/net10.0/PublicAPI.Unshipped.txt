@@ -308,7 +308,11 @@ static Rask.Data.Tenant.Use(System.Guid tenant) -> System.IDisposable!
 static Rask.Data.TestDatabase.Start(System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure, System.TimeProvider? timeProvider = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase!>!
 Rask.Data.CurrentUser
 Rask.Data.CurrentUser.extension(Rask.Current!)
+static Rask.Data.CurrentUser.Claim(string! type) -> string?
+static Rask.Data.CurrentUser.IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.UseUser(System.Guid? userId) -> System.IDisposable!
+static Rask.Data.CurrentUser.extension(Rask.Current!).Claim(string! type) -> string?
+static Rask.Data.CurrentUser.extension(Rask.Current!).IsInRole(string! role) -> bool
 static Rask.Data.CurrentUser.extension(Rask.Current!).Principal.get -> System.Security.Claims.ClaimsPrincipal?
 static Rask.Data.CurrentUser.extension(Rask.Current!).RequiredUserId.get -> System.Guid
 static Rask.Data.CurrentUser.extension(Rask.Current!).UseUser(System.Guid? userId) -> System.IDisposable!

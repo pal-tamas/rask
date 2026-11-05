@@ -50,6 +50,61 @@ public sealed class CurrentTests
     }
 
     [Fact]
+    public void A_signed_in_user_s_first_claim_and_roles_answer_with_nothing_injected()
+    {
+        var principal = SignedIn(_alice, _acme,
+            new Claim("department", "sales"),
+            new Claim("department", "support"),
+            new Claim(ClaimTypes.Role, "Admin"));
+
+        using var scope = Db.UseScope(new StubScope(principal));
+        var department = Current.Claim("department");
+        var missing = Current.Claim("nickname");
+        var admin = Current.IsInRole("Admin");
+        var clerk = Current.IsInRole("Clerk");
+
+        Assert.Equal("sales", department);
+        Assert.Null(missing);
+        Assert.True(admin);
+        Assert.False(clerk);
+    }
+
+    [Fact]
+    public void An_anonymous_principal_has_no_claims_to_read_and_is_in_no_role_whatever_it_carries()
+    {
+        var anonymous = new ClaimsPrincipal(new ClaimsIdentity(
+            [new Claim("department", "sales"), new Claim(ClaimTypes.Role, "Admin")]));
+
+        using var scope = Db.UseScope(new StubScope(anonymous));
+        var department = Current.Claim("department");
+        var admin = Current.IsInRole("Admin");
+
+        Assert.Equal("sales", department);
+        Assert.False(admin);
+    }
+
+    [Fact]
+    public void Outside_any_session_or_request_there_is_no_claim_and_no_role()
+    {
+        var department = Current.Claim("department");
+        var admin = Current.IsInRole("Admin");
+
+        Assert.Null(department);
+        Assert.False(admin);
+    }
+
+    [Fact]
+    public void A_blank_claim_type_or_role_is_refused()
+    {
+        var principal = SignedIn(_alice, _acme);
+
+        using var scope = Db.UseScope(new StubScope(principal));
+
+        Assert.Throws<ArgumentException>(() => Current.Claim(" "));
+        Assert.Throws<ArgumentException>(() => Current.IsInRole(""));
+    }
+
+    [Fact]
     public void UseUser_beats_the_signed_in_user_and_leaves_the_principal_alone()
     {
         var principal = SignedIn(_alice, _acme);
@@ -108,11 +163,12 @@ public sealed class CurrentTests
         }
     }
 
-    private static ClaimsPrincipal SignedIn(Guid userId, Guid tenant) =>
+    private static ClaimsPrincipal SignedIn(Guid userId, Guid tenant, params Claim[] more) =>
         new(new ClaimsIdentity(
         [
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(Tenant.ClaimType, tenant.ToString()),
+            .. more,
         ], "Test"));
 
     private sealed class StubScope(ClaimsPrincipal principal) : IServiceProvider, IPrincipalSource
