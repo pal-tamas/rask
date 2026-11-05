@@ -656,4 +656,64 @@ public enum RaskString
 
     /// <summary>What a time or datetime picker says of a time typed after its latest, written into its <c>{0}</c>.</summary>
     ValidationTimeMax,
+
+    /// <summary>
+    ///     What a text longer than it may be says: <c>Rules.TooLong(max)</c>, and a <c>[StringLength]</c> or
+    ///     <c>[MaxLength]</c> on a text with no message of its own. <c>{0}</c> is the most characters it may hold.
+    /// </summary>
+    ValidationTooLong,
+
+    /// <summary>What a text shorter than a <c>[MinLength]</c> says. <c>{0}</c> is the fewest characters it must hold.</summary>
+    ValidationTooShort,
+
+    /// <summary>
+    ///     What a text outside a <c>[StringLength]</c> with a minimum, or a <c>[Length]</c>, says. <c>{0}</c> and
+    ///     <c>{1}</c> are the fewest and the most characters.
+    /// </summary>
+    ValidationLength,
+
+    /// <summary>What a list with more items than a <c>[MaxLength]</c> says. <c>{0}</c> is the most it may hold.</summary>
+    ValidationTooMany,
+
+    /// <summary>What a list with fewer items than a <c>[MinLength]</c> says. <c>{0}</c> is the fewest it must hold.</summary>
+    ValidationTooFew,
+
+    /// <summary>What a list outside a <c>[Length]</c> says. <c>{0}</c> and <c>{1}</c> are the fewest and the most items.</summary>
+    ValidationCount,
+
+    /// <summary>What a value outside a <c>[Range]</c> says. <c>{0}</c> and <c>{1}</c> are its least and its greatest.</summary>
+    ValidationBetween,
+
+    /// <summary>What an <c>[EmailAddress]</c> says of text that is no email address.</summary>
+    ValidationEmail,
+
+    /// <summary>What a <c>[Phone]</c> says of text that is no phone number.</summary>
+    ValidationPhone,
+
+    /// <summary>What a <c>[Url]</c> says of text that is no http, https or ftp address.</summary>
+    ValidationUrl,
+
+    /// <summary>What a <c>[CreditCard]</c> says of text that is no card number.</summary>
+    ValidationCreditCard,
+
+    /// <summary>What a <c>[RegularExpression]</c> says of text it does not match.</summary>
+    ValidationPattern,
+
+    /// <summary>What a <c>[Compare]</c> says of a value that differs from the other field's. <c>{0}</c> is that field's name.</summary>
+    ValidationMatch,
+
+    /// <summary>What a <c>[FileExtensions]</c> says of a file of another kind. <c>{0}</c> lists the extensions it accepts.</summary>
+    ValidationFileType,
+
+    /// <summary>What an <c>[AllowedValues]</c> or a <c>[DeniedValues]</c> says of a value it does not let through.</summary>
+    ValidationNotAllowed,
+
+    /// <summary>What a <c>[Base64String]</c> says of text that is no Base64.</summary>
+    ValidationBase64,
+
+    /// <summary>What an <c>[EnumDataType]</c> says of a value its enum does not name.</summary>
+    ValidationInvalid,
+
+    /// <summary>The question a form's <c>.ConfirmLeave()</c> asks when it is given none of its own.</summary>
+    ConfirmLeaveQuestion,
 }

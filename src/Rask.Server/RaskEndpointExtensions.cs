@@ -4277,7 +4277,8 @@ public static partial class RaskEndpointExtensions
                    : request.Identity?.IsAuthenticated != true);
     }
 
-    private static string? UserKey(ClaimsPrincipal user) =>
+    /// <summary>Who a principal is to a live session: its NameIdentifier, or its Name when it has none.</summary>
+    internal static string? UserKey(ClaimsPrincipal user) =>
         user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.Identity?.Name;
 
     private static async Task<string> ResolveAuthSchemeAsync(IServiceProvider services, string? explicitScheme)

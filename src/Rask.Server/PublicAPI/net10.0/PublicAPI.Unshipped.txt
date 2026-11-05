@@ -184,6 +184,18 @@ static Rask.WebPush.BrowserPushSubscriptions.Subscribe(Rask.Web.Types.PushSubscr
 static Rask.WebPush.BrowserPushSubscriptions.extension(Rask.WebPush.Push!).Subscribe(Rask.Web.Types.PushSubscriptionJSON! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
 Rask.Server.RaskVersionEndpointExtensions
 static Rask.Server.RaskVersionEndpointExtensions.MapRaskVersion(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string! pattern = "/version") -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+Rask.Server.SessionRevalidator
+Rask.Server.SessionRevalidator.SessionRevalidator() -> void
+Rask.Server.SessionRevalidator<TUser>
+Rask.Server.SessionRevalidator<TUser>.SessionRevalidator() -> void
+abstract Rask.Server.SessionRevalidator<TUser>.Load(string! userId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<TUser?>!
+abstract Rask.Server.SessionRevalidator<TUser>.Principal(TUser! user, System.Security.Claims.ClaimsPrincipal! principal) -> System.Security.Claims.ClaimsPrincipal?
+Rask.Server.SessionRevalidatorBuilder
+Rask.Server.SessionRevalidatorBuilder.Keep(System.TimeSpan duration) -> Rask.Server.SessionRevalidatorBuilder!
+Rask.Server.SessionRevalidatorBuilder.ForgetOnSave<TEntity>() -> Rask.Server.SessionRevalidatorBuilder!
+Rask.Server.SessionRevalidatorBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Server.SessionRevalidatorExtensions
+static Rask.Server.SessionRevalidatorExtensions.AddSessionRevalidator<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Rask.Server.SessionRevalidatorBuilder!
 Rask.Server.DataBuilder<TContext>
 Rask.Server.DataBuilder<TContext>.OwnsSchema(System.Action<Rask.Server.SchemaOwnership!>? configure = null) -> Rask.Server.DataBuilder<TContext!>!
 Rask.Server.DataBuilder<TContext>.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

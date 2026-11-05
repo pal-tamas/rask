@@ -34,6 +34,17 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
 
     private readonly ConditionalWeakTable<DbContext, HashSet<Type>> _collected = new();
     private readonly ConditionalWeakTable<DbContext, HashSet<Type>> _deferred = new();
+    private readonly ISavedTypeWatcher[] _watchers;
+
+    /// <summary>An interceptor that tells the session and the tenant and user rows, and no host watcher.</summary>
+    public DataChangesInterceptor()
+        : this([])
+    {
+    }
+
+    /// <summary>An interceptor that also tells <paramref name="watchers" /> of the saves they watch, whoever saved.</summary>
+    /// <param name="watchers">The host's watchers — the container's, as it builds this singleton.</param>
+    public DataChangesInterceptor(IEnumerable<ISavedTypeWatcher> watchers) => _watchers = [.. watchers];
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -102,9 +113,10 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
     private void Collect(DbContext? context)
     {
         // Nobody to tell outside a session, so nothing is worth walking the tracker for — except for the app's tenant
-        // and user rows, which a background job's save drops from what Current.Tenant holds as surely as a page's.
+        // and user rows, which a background job's save drops from what Current.Tenant holds as surely as a page's —
+        // and for what a host watcher watches, which is told whoever saved.
         var inSession = Db.ScopeServices is not null;
-        if (context is null || (!inSession && !CurrentRows.IsOn))
+        if (context is null || (!inSession && !CurrentRows.IsOn && _watchers.Length == 0))
         {
             return;
         }
@@ -114,7 +126,7 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
                      .Where(static e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
         {
             var root = RootOf(entry.Metadata);
-            if (inSession || CurrentRows.Watches(root))
+            if (inSession || CurrentRows.Watches(root) || IsWatched(root))
             {
                 (types ??= []).Add(root);
             }
@@ -168,10 +180,13 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
         "CA1031:Do not catch general exception types",
         Justification = "The save has committed. An observer that throws must not surface as a failed save, "
                         + "or the caller retries a write that already happened.")]
-    private static void Notify(HashSet<Type> types)
+    private void Notify(HashSet<Type> types)
     {
         // What Current.Tenant and Current.User hold, before anybody can read it again as it was.
         CurrentRows.Saved(types);
+
+        // What the host keeps across sessions, as surely.
+        TellWatchers(types);
 
         // Process-wide next, and deliberately outside the scope check below: an entity that announces itself is
         // telling every open page, and a background job's save has no session of its own to tell.
@@ -253,6 +268,42 @@ internal sealed class DataChangesInterceptor : SaveChangesInterceptor, IDbTransa
                         CancellationToken.None,
                         TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
                         TaskScheduler.Default);
+            }
+#pragma warning disable RCS1075 // deliberate swallow: a committed save must not surface as a failed one
+            catch (Exception)
+            {
+                // See the justification above.
+            }
+#pragma warning restore RCS1075
+        }
+    }
+
+    // Asked per changed row, so no closure: an app with no watcher pays one length check.
+    private bool IsWatched(Type root)
+    {
+        for (var i = 0; i < _watchers.Length; i++)
+        {
+            if (_watchers[i].Watches(root))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Same reason as Notify: the save has committed, and a watcher that throws must not surface as "
+                        + "a failed save.")]
+    private void TellWatchers(HashSet<Type> types)
+    {
+        foreach (var watcher in _watchers.Where(watcher => types.Any(watcher.Watches)))
+        {
+            try
+            {
+                watcher.Saved(types);
             }
 #pragma warning disable RCS1075 // deliberate swallow: a committed save must not surface as a failed one
             catch (Exception)

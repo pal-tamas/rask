@@ -180,7 +180,7 @@ internal sealed class RequiredFields
                         "forms bind, and a property that was trimmed away is one nothing binds, which answers false.")]
     [UnconditionalSuppressMessage("Trimming", "IL2075",
         Justification = "The same lookup on the model type's base types — see IL2070.")]
-    private static PropertyInfo? Property(Type owner, string name)
+    internal static PropertyInfo? Property(Type owner, string name)
     {
         for (var type = owner; type is not null; type = type.BaseType)
         {

@@ -114,6 +114,10 @@ Every `Add*` takes `Action<TOptions>? configure = null`. A required configure de
 method cannot express its own default, which means there isn't one — and a package with no working
 default is a package that fails on first use.
 
+An `Add*` whose settings are durations and types rather than knobs returns its steps instead — rule 12 —
+and has no delegate at all: `AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()`. The
+rule still holds, because every step is optional and the bare call has a working default.
+
 **`AddRaskWebPush` is the standing exception**, and the reasoning is worth stating because it is the
 line the rule stops at. Sending needs a VAPID key pair, which cannot have a default: a generated one
 would silently break every existing subscription on restart, and an absent one turns every send into a
