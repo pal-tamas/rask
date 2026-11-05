@@ -104,6 +104,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` re-checks a live page's
+  user from the app's OWN user type, kept a few seconds (#1287).** Before: an app with its own users wrote a whole
+  `ISessionRevalidator` — reading the claims, loading the account, building the principal — and, to avoid a read
+  per click, its own cache plus a `SaveChangesInterceptor` that forgot a user when their row was saved. After: it
+  derives from `SessionRevalidator<TUser>` and writes the two halves only, `Load(userId)` and
+  `Principal(user, principal)` (`null` = no longer signed in, other claims = new rights at the next event). Rask finds
+  the user id, keeps the loaded user for `.Keep(…)` across every page of theirs (nothing kept by default), and drops
+  what it keeps the moment a save of `.ForgetOnSave<T>()`'s type commits in this process — from a page, a request or a
+  background job. Server host.
 - **`var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` awaits a job's answer in its lane (#1281).**
   Before: work that had to wait its turn at a pump AND hand the caller an answer needed a named lock of its own — a raw
   `sp_getapplock` held while the work ran — beside a lane for the work that did not wait, two mechanisms that did not

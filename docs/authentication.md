@@ -345,7 +345,36 @@ internal sealed class TokenRevalidator(IAccounts accounts, TimeProvider clock) :
 ```
 
 It runs on the event's own path, so it costs what you make it cost: one indexed read is the usual price, and the
-same one a request through the app's authentication would pay. An app that signs users in and registers none is
+same one a request through the app's authentication would pay.
+
+**Your own user type, kept a few seconds.** When the question is "does this user still stand, and with which
+rights?", say only how a user is loaded and what principal they act under, and let Rask keep the user between
+events:
+
+```csharp
+builder.Services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>();
+
+internal sealed class AccountCheck : SessionRevalidator<User>
+{
+    protected override async Task<User?> Load(string userId, CancellationToken cancellationToken = default) =>
+        await User.Find(Guid.Parse(userId), cancellationToken);
+
+    // null: no longer signed in. The same principal: nothing changed. Another: the page renders again under it.
+    protected override ClaimsPrincipal? Principal(User user, ClaimsPrincipal principal) =>
+        !user.Active ? null
+        : user.IsAdmin == principal.IsInRole("admin") ? principal
+        : user.ToPrincipal(principal);
+}
+```
+
+| Step | What it does |
+|---|---|
+| `AddSessionRevalidator<T>()` | registers `T` as a singleton and asks it in place of any other `ISessionRevalidator`, Rask.Auth's included. The user id is the principal's `ClaimTypes.NameIdentifier` (or `ClaimTypes.Name`); a signed-in principal with neither has ended. Alone, every event loads its user |
+| `.Keep(5.Seconds)` | a loaded user — `null` included — answers every event of every page of theirs for that long without a read. The price is how long a change made elsewhere (another instance, a hand-run SQL update) can go unseen |
+| `.ForgetOnSave<User>()` | drops **everything** kept the moment a save of a `User` commits through Rask.Data in this process — a page's, a request's or a background job's, never a rolled-back one — so disabling a user or taking a role here counts at their next event. A load that a save overtook is answered and not kept |
+
+`Load` is kept, so it depends on the user alone; what depends on the principal — a token's `exp`, the tenant it
+chose — is checked in `Principal`, which is asked at every event with nothing kept. An app that signs users in and registers none is
 told so once as it starts, as a warning on `Rask.Live`: its open pages cannot learn that a sign-in ended.
 
 **No remount.** Taking another principal renders the page; it mounts nothing. A component keeps what it holds

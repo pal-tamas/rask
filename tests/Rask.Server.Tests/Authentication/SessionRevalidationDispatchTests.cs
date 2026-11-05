@@ -1,8 +1,4 @@
-using System.Net;
-using System.Net.Http.Json;
 using System.Security.Claims;
-using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Server.Authentication;
@@ -102,60 +98,11 @@ public class SessionRevalidationDispatchTests
             .Current.IsInRole("editor"));
     }
 
-    private static async Task<(System.Net.WebSockets.WebSocket Socket, string SessionId, string HandlerId)> AttachAsync(
-        RaskTestHost host)
-    {
-        var store = host.Server.Services.GetRequiredService<IAuthTicketStore>();
-        var principal = new ClaimsPrincipal(new ClaimsIdentity(
-            [new Claim(ClaimTypes.Name, "alice"), new Claim(ClaimTypes.NameIdentifier, "alice")], "TestCookie"));
-        var ticket = store.Issue(AuthAction.SignIn, principal, "TestCookie", "sess");
-        var redeem = await host.Http.PostAsJsonAsync("/_rask/auth/redeem", new { ticket, session = "sess" });
-        var cookie = redeem.Headers.TryGetValues("Set-Cookie", out var values) ? values.First().Split(';')[0] : "";
-
-        var get = new HttpRequestMessage(HttpMethod.Get, "/m2/protected");
-        get.Headers.Add("Cookie", cookie);
-        var response = await host.Http.SendAsync(get);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var html = await response.Content.ReadAsStringAsync();
-        var sessionId = MarkupAssert.SessionId(html);
-        var handler = Regex.Match(html, "<button[^>]*data-rask-on-click=\"(h\\d+)\"[^>]*>[^<]*bump").Groups[1].Value;
-        var session = host.Store.Peek(sessionId)!;
-        var settled = session.AttachesSettled;
-
-        host.WebSockets.ConfigureRequest = req => req.Headers["Cookie"] = cookie;
-        var ws = await host.WebSockets.ConnectAsync(host.WebSocketUri, CancellationToken.None);
-        await ws.SendJsonAsync(new { type = "hello", session = sessionId });
-        await ws.AttachedAsync(host, sessionId);
-
-        // The socket is in place before the attach asks about its user: a test that counts the questions next
-        // would otherwise count the attach's own.
-        await WaitFor.True(() => session.AttachesSettled > settled, "the attach has asked about its user");
-        await session.LastHandlerTask;
-
-        return (ws, sessionId, handler);
-    }
+    private static Task<(System.Net.WebSockets.WebSocket Socket, string SessionId, string HandlerId)> AttachAsync(
+        RaskTestHost host) => M2SignedInPage.AttachAsync(host);
 
     private static RaskTestHost CreateHost(SwitchableRevalidator revalidator) =>
-        RaskTestHost.Create<M2App>(
-            services =>
-            {
-                services.AddSingleton<M2Counter>();
-                services.AddSingleton<ISessionRevalidator>(revalidator);
-                // How long an answer about the user is trusted is the test's to say, not the runner's speed.
-                services.AddSingleton<TimeProvider>(new StoppedClock());
-                services.AddAuthentication("TestCookie").AddCookie("TestCookie", o =>
-                {
-                    o.Cookie.Name = "TestCookie";
-                    o.LoginPath = "/login";
-                    o.AccessDeniedPath = "/forbidden";
-                });
-                services.AddAuthorization();
-            },
-            app =>
-            {
-                app.UseAuthentication();
-                app.UseAuthorization();
-            });
+        M2SignedInPage.CreateHost(services => services.AddSingleton<ISessionRevalidator>(revalidator));
 
     private sealed class SwitchableRevalidator : ISessionRevalidator
     {
