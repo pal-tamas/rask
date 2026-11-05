@@ -33,6 +33,29 @@ public sealed class FormatTests : IDisposable
     }
 
     [Fact]
+    public void A_Hungarian_moment_before_ten_writes_its_hour_in_two_digits_so_a_column_lines_up()
+    {
+        CultureInfo.CurrentCulture = Hungarian;
+
+        var morning = Format.Moment(new DateTime(2026, 1, 2, 9, 5, 0));
+        var offset = Format.Moment(new DateTimeOffset(2026, 1, 2, 9, 5, 0, TimeSpan.Zero).ToOffset(TimeSpan.Zero));
+
+        Assert.Equal("2026. 01. 02. 09:05", morning);
+        Assert.EndsWith(":05", offset, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_English_moment_keeps_its_twelve_hour_clock_unpadded()
+    {
+        CultureInfo.CurrentCulture = English;
+
+        var morning = Format.Moment(new DateTime(2026, 1, 2, 9, 5, 0));
+
+        Assert.StartsWith("1/2/2026 9:05", morning, StringComparison.Ordinal);
+        Assert.EndsWith("AM", morning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_day_a_moment_and_a_number_are_written_as_English_writes_them()
     {
         CultureInfo.CurrentCulture = English;
@@ -63,9 +86,9 @@ public sealed class FormatTests : IDisposable
         var utcDateTime = Format.Moment(lateUtc.UtcDateTime);
         var wallDateTime = Format.Moment(new DateTime(2026, 10, 9, 22, 35, 0, DateTimeKind.Unspecified));
 
-        Assert.Equal("2026. 10. 10. 0:35", moment);
+        Assert.Equal("2026. 10. 10. 00:35", moment);
         Assert.Equal("2026. 10. 10.", day);
-        Assert.Equal("2026. 10. 10. 0:35", utcDateTime);
+        Assert.Equal("2026. 10. 10. 00:35", utcDateTime);
         Assert.Equal("2026. 10. 09. 22:35", wallDateTime);
     }
 }

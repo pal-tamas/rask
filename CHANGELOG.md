@@ -166,7 +166,7 @@ them until tagged releases begin.
   `host.UseTimeZone(…)`) names the zone once, and `Clock.Wall` / `Clock.Today` / `Clock.Zone` read it, following
   `Clock.Now` — so a frozen test clock moves them too, across a summer-time change. `Format.Day(x)`,
   `Format.Moment(x)` and `Format.Number(x)` / `Format.Number(x, decimals)` write a value in the visitor's culture
-  (`2026. 10. 09.`, `2026. 10. 09. 14:35`, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
+  (`2026. 10. 09.`, `2026. 10. 09. 09:05` — a 24-hour hour always in two digits, so moments line up —, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
   `c.OrderTextBy("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` names the database's order once, and
   `OrderBy(x => x.Name.InTextOrder())` writes `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` on SQL Server — in the
   `ORDER BY` only, never on a column: no migration, and a `Where` compares as it did (other databases order by the

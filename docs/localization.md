@@ -277,7 +277,7 @@ as `Culture` does:
 
 ```csharp
 Td[Format.Day(order.Placed)]        // 2026. 10. 09.        10/9/2026
-Td[Format.Moment(fueling.At)]       // 2026. 10. 09. 14:35  10/9/2026 2:35 PM
+Td[Format.Moment(fueling.At)]       // 2026. 10. 09. 09:05  10/9/2026 9:05 AM (a 24-hour hour always in two digits)
 Td[Format.Number(litres)]           // 1 764,6              1,764.6   — no column padding zeros
 Td[Format.Number(amount, 2)]        // 1 764,60             1,764.60
 ```

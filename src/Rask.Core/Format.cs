@@ -40,15 +40,16 @@ public static class Format
     public static string Day(DateTimeOffset moment) => Day(DateOnly.FromDateTime(AmbientClock.OnTheWall(moment)));
 
     /// <summary>
-    ///     A day and a time to the minute, in the culture's short date and time: <c>2026. 10. 09. 14:35</c> in Hungarian,
-    ///     <c>10/9/2026 2:35 PM</c> in English.
+    ///     A day and a time to the minute, in the culture's short date and time with a 24-hour clock's hour always in two
+    ///     digits, so moments line up in a column: <c>2026. 10. 09. 09:05</c> in Hungarian, <c>10/9/2026 9:05 AM</c> in
+    ///     English (a 12-hour clock is written as the culture writes it).
     /// </summary>
     /// <param name="moment">The moment — a UTC one is first put on the wall clock.</param>
     /// <returns>The moment as the visitor writes one.</returns>
-    public static string Moment(DateTime moment) => AmbientClock.OnTheWall(moment).ToString("g", Culture);
+    public static string Moment(DateTime moment) => AmbientClock.OnTheWall(moment).ToString(MomentPattern(Culture), Culture);
 
     /// <inheritdoc cref="Moment(DateTime)" />
-    public static string Moment(DateTimeOffset moment) => AmbientClock.OnTheWall(moment).ToString("g", Culture);
+    public static string Moment(DateTimeOffset moment) => AmbientClock.OnTheWall(moment).ToString(MomentPattern(Culture), Culture);
 
     /// <summary>A whole number with its thousands apart: <c>24 000</c> in Hungarian, <c>24,000</c> in English.</summary>
     /// <param name="value">The number.</param>
@@ -76,6 +77,22 @@ public static class Format
     public static string Number(double value, int decimals) => value.ToString(Places(decimals), Culture);
 
     private static CultureInfo Culture => RaskCulture.Current;
+
+    /// <summary>
+    ///     The culture's short date and short time (what <c>"g"</c> writes), with a 24-hour hour padded to two digits:
+    ///     Hungarian's <c>H:mm</c> becomes <c>HH:mm</c>, so 9:05 and 14:35 stand in one column. A 12-hour pattern is kept.
+    /// </summary>
+    private static string MomentPattern(CultureInfo culture)
+    {
+        var format = culture.DateTimeFormat;
+        var time = format.ShortTimePattern;
+        if (time.Contains('H', StringComparison.Ordinal) && !time.Contains("HH", StringComparison.Ordinal))
+        {
+            time = time.Replace("H", "HH", StringComparison.Ordinal);
+        }
+
+        return format.ShortDatePattern + " " + time;
+    }
 
     private static string Places(int decimals)
     {
