@@ -184,7 +184,7 @@ public sealed class AccountRecoveryTests
         await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
         using var scope = harness.NewScope();
 
-        var outcome = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
+        var outcome = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>()
             .RegisterAsync("someone@example.com", Password, firstRunToken: null, client: null, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(AuthError.EmailNotConfirmed, outcome.Result.Error);
@@ -199,7 +199,7 @@ public sealed class AccountRecoveryTests
         // account is only asked to confirm, so a taken one can say the same — and its owner is told by mail.
         await using var harness = await ClaimedAsync(o => o.RequireConfirmedEmail = true);
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var fresh = await accounts.RegisterAsync(
             "someone@example.com", Password, firstRunToken: null, client: null, cancellationToken: TestContext.Current.CancellationToken);
@@ -225,7 +225,7 @@ public sealed class AccountRecoveryTests
             o.SignInAttemptsPerMinute = 2;
         });
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         Task<AccountOutcome> Register(string email) => accounts.RegisterAsync(
             email, Password, firstRunToken: null, client: "203.0.113.7", cancellationToken: TestContext.Current.CancellationToken);
 
@@ -421,21 +421,21 @@ public sealed class AccountRecoveryTests
         AuthHarness harness, string email, string? firstRunToken = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return (await accounts.RegisterAsync(email, Password, firstRunToken, client: null)).Result;
     }
 
     private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email, string password)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return (await accounts.ValidateAsync(email, password, client: null)).Result;
     }
 
     private static async Task<AuthResult> SendResetAsync(AuthHarness harness, string email)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return await accounts.SendPasswordResetAsync(email, client: null);
     }
 
@@ -456,14 +456,14 @@ public sealed class AccountRecoveryTests
         AuthHarness harness, string userId, string token, string password)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return await accounts.ResetPasswordAsync(userId, token, password);
     }
 
     private static async Task<AuthResult> ConfirmAsync(AuthHarness harness, string userId, string token)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return await accounts.ConfirmEmailAsync(userId, token);
     }
 

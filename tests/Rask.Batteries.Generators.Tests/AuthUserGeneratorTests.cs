@@ -10,15 +10,22 @@ public class AuthUserGeneratorTests
     private const string Authenticatable = """
         namespace Rask.Auth
         {
-            public abstract class Authenticatable : Rask.Data.Aggregate<System.Guid, Rask.Data.Timestamps, Rask.Data.Versioned, Rask.Data.Model, Rask.Data.Deletable>
+            public abstract class Authenticatable<TKey> : Rask.Data.Aggregate<TKey, Rask.Data.Timestamps, Rask.Data.Versioned, Rask.Data.Model, Rask.Data.Deletable>
+                where TKey : notnull
             {
                 public string Email { get; private set; } = "";
                 public System.DateTime? EmailConfirmedAt { get; private set; }
             }
 
+            public abstract class Authenticatable : Authenticatable<System.Guid> { }
+
+            [System.AttributeUsage(System.AttributeTargets.Property)]
+            public sealed class SignInNameAttribute : System.Attribute { }
+
             public static class AuthUser
             {
                 public static void Use<TUser>() where TUser : Authenticatable, new() { }
+                public static void Use<TUser, TKey>() where TUser : Authenticatable<TKey>, new() where TKey : notnull { }
             }
         }
         """;
@@ -46,6 +53,57 @@ public class AuthUserGeneratorTests
             "global::Rask.Auth.AuthUser.Use<global::Shop.User>();",
             run.GeneratedSource("__RaskAuthUser"),
             StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_user_type_keyed_by_text_is_named_with_its_key()
+    {
+        var run = GeneratorHarness.Run(
+            Authenticatable + """
+
+            namespace Shop
+            {
+                public readonly record struct Username(string Value);
+
+                public sealed class User : Rask.Auth.Authenticatable<string>
+                {
+                    [Rask.Auth.SignInName] public Username Username { get; private set; }
+                }
+            }
+            """,
+            new AuthUserGenerator(),
+            "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "global::Rask.Auth.AuthUser.Use<global::Shop.User, string>();",
+            run.GeneratedSource("__RaskAuthUser"),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_user_keyed_by_text_has_its_name_on_its_form_model_and_never_the_credentials()
+    {
+        var run = GeneratorHarness.Run(
+            Authenticatable + """
+
+            namespace Shop
+            {
+                public sealed class User : Rask.Auth.Authenticatable<string>
+                {
+                    [Rask.Auth.SignInName] public string Username { get; private set; } = "";
+                }
+            }
+            """,
+            new ModelInputGenerator(),
+            "Rask.Data", "Rask.Cqrs", "Microsoft.EntityFrameworkCore");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+
+        var model = run.GeneratedSource("Shop.UserModel");
+        Assert.Contains("public string? Username { get; set; }", model, StringComparison.Ordinal);
+        Assert.DoesNotContain("Email", model, StringComparison.Ordinal);
     }
 
     [Fact]

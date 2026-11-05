@@ -10,6 +10,7 @@ internal static class TenantChoice
     /// Whether <paramref name="user" /> may act in a tenant they chose: they belong to none of their own, and hold
     /// <see cref="AuthOptions.ActInTenantRole" />.
     /// </summary>
-    internal static bool MayChoose(Authenticatable user, AuthOptions options) =>
+    internal static bool MayChoose<TKey>(Authenticatable<TKey> user, AuthOptions options)
+        where TKey : notnull =>
         TenantChoosing.MayChoose(user.TenantId is not null, options.ActInTenantRole, user.IsInRole);
 }

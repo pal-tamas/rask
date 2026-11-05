@@ -110,6 +110,20 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Auth accounts keyed by text that sign in by user name: `Authenticatable<string>` and `[SignInName]` (#1279).**
+  Before: `Authenticatable` was a Guid-keyed account signing in with `Email`, so an app whose users table is keyed by
+  a Guid kept as text and signs in by user name kept its own sign-in, sessions, cookie and throttle beside Rask.
+  After: `public sealed class User : Authenticatable<string> { [SignInName] public Username Username { get; private
+  set; } }` and `await auth.SignIn(username, password)`. The key is a `Guid` or a `string` holding one (Rask carries
+  the user as that Guid, so sessions, passkeys, `Current.UserId` and the events are unchanged); the name is a string or
+  a value object holding one, unique per tenant. Existing bcrypt hashes verify and move to the configured hash at
+  the next sign-in. A name account has no address: reset and confirmation links and passkeys answer `NotAllowed`
+  with the reason, and `RequireConfirmedEmail` stops the host starting. A wrong password and an unknown name are
+  refused alike. `Authenticatable` is now `Authenticatable<Guid>` with nothing marked, so existing apps and their
+  models do not change. New: `AuthUser.Use<TUser, TKey>()`, `AddRaskAuth<TContext, TUser, TKey>()`,
+  `modelBuilder.AddRaskAuth<TUser, TKey>()`; `IAuthHostServices.Register<TUser>` became `Register<TUser, TKey>`.
+  Switching an app over is a `rask db add` step, and everyone signs in once more — no old session table or cookie is
+  taken over. See [authentication.md](docs/authentication.md#signing-in-by-user-name-on-a-table-keyed-by-text).
 - **`Ui.Select` and `Ui.Pillbox` ask the page what was typed: `.Search(async typed => …)` (#1284).** Before: a list
   too long to send whole meant `Filter(false)`, a `Ui.SelectSearch.OnInput(Search).Debounce(250.Milliseconds)`, a
   field for the rows found, a first search on mount, and the picked option written back among the rows so the button

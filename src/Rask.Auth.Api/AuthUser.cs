@@ -36,22 +36,31 @@ public static class AuthUser
     /// <typeparam name="TUser">The application's <see cref="Authenticatable" /> user.</typeparam>
     public static void Use<TUser>()
         where TUser : Authenticatable, new() =>
-        Binding = new UserBinding<TUser>();
+        Use<TUser, Guid>();
+
+    /// <summary>Names the application's user type and its key. Called by generated code.</summary>
+    /// <typeparam name="TUser">The application's <see cref="Authenticatable{TKey}" /> user.</typeparam>
+    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
+    public static void Use<TUser, TKey>()
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull =>
+        Binding = new UserBinding<TUser, TKey>();
 
     /// <summary>Forgets the declared user type. Test seam.</summary>
     public static void Reset() => Binding = null;
 
     // A generic METHOD on a non-generic interface is what makes this work with no reflection: TUser is
     // closed by the generated call, TContext stays open for the caller, and the compiler emits both.
-    private sealed class UserBinding<TUser> : IAuthUserBinding
-        where TUser : Authenticatable, new()
+    private sealed class UserBinding<TUser, TKey> : IAuthUserBinding
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull
     {
         public Type UserType => typeof(TUser);
 
-        public ModelBuilder Map(ModelBuilder modelBuilder) => modelBuilder.AddRaskAuth<TUser>();
+        public ModelBuilder Map(ModelBuilder modelBuilder) => modelBuilder.AddRaskAuth<TUser, TKey>();
 
         public IServiceCollection Add<TContext>(IServiceCollection services, Action<AuthOptions>? configure)
             where TContext : DbContext =>
-            services.AddRaskAuth<TContext, TUser>(configure);
+            services.AddRaskAuth<TContext, TUser, TKey>(configure);
     }
 }

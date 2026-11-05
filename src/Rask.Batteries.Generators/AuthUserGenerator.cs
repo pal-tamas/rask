@@ -10,7 +10,8 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators;
 
 /// <summary>
-/// Finds the application's user type — the one class deriving from <c>Rask.Auth.Authenticatable</c> — and emits a
+/// Finds the application's user type — the one class deriving from <c>Rask.Auth.Authenticatable</c>, or from
+/// <c>Authenticatable&lt;TKey&gt;</c> for a text key — and emits a
 /// <c>[ModuleInitializer]</c> naming it to <c>Rask.Auth.AuthUser</c>,
 /// so <c>AddRaskAuth()</c> and <c>modelBuilder.AddRaskAuth()</c> need no type argument.
 /// </summary>
@@ -62,7 +63,7 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
 
         // Abstract or generic cannot be closed over; a user type also needs the parameterless
         // constructor registration builds a new user with.
-        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || !DerivesFromAuthenticatable(symbol))
+        if (symbol.IsAbstract || symbol.IsStatic || symbol.IsGenericType || KeyOf(symbol) is not { } key)
         {
             return null;
         }
@@ -75,21 +76,26 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
 
         return new Candidate(
             symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            key,
             SymbolLocation.From(symbol));
     }
 
-    private static bool DerivesFromAuthenticatable(INamedTypeSymbol symbol)
+    // The key the user type is named with: empty for one deriving from the Guid-keyed Authenticatable, whose binding
+    // names no key, and Authenticatable<TKey>'s TKey otherwise. Null for a class that derives from neither.
+    private static string? KeyOf(INamedTypeSymbol symbol)
     {
         for (var current = symbol.BaseType; current is not null; current = current.BaseType)
         {
             if (current.Name is AuthenticatableBase &&
                 current.ContainingNamespace?.ToDisplayString() is AuthNamespace)
             {
-                return true;
+                return current.TypeArguments.Length == 1
+                    ? current.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                    : string.Empty;
             }
         }
 
-        return false;
+        return null;
     }
 
     private static void Emit(SourceProductionContext context, ImmutableArray<Candidate> candidates)
@@ -125,11 +131,17 @@ public sealed class AuthUserGenerator : IIncrementalGenerator
         source.AppendLine("{");
         source.AppendLine("    [global::System.Runtime.CompilerServices.ModuleInitializer]");
         source.Append("    internal static void Initialize() => global::Rask.Auth.AuthUser.Use<")
-            .Append(users[0].FullyQualifiedName).AppendLine(">();");
+            .Append(users[0].FullyQualifiedName);
+        if (users[0].Key.Length > 0)
+        {
+            source.Append(", ").Append(users[0].Key);
+        }
+
+        source.AppendLine(">();");
         source.AppendLine("}");
 
         context.AddSource("__RaskAuthUser.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
     }
 
-    private readonly record struct Candidate(string FullyQualifiedName, SymbolLocation? Location);
+    private readonly record struct Candidate(string FullyQualifiedName, string Key, SymbolLocation? Location);
 }

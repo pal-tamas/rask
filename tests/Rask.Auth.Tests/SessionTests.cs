@@ -272,7 +272,7 @@ public sealed class SessionTests
         await using var harness = await ClaimedAsync();
         await WearAsync(harness, "legacy_id", "42");
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var outcome = await accounts.ValidateAsync(Owner, Password, client: null, TestContext.Current.CancellationToken);
 
@@ -341,7 +341,7 @@ public sealed class SessionTests
         await harness.StartAsync();
 
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         var owner = await accounts.RegisterAsync(Owner, Password, AuthHarness.FirstRunTokenValue, client: null);
         Assert.True(owner.Result.Succeeded, $"harness setup failed: {owner.Result.Error}");
 

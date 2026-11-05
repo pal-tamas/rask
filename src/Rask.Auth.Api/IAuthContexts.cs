@@ -7,7 +7,7 @@ namespace Rask.Auth;
 /// </summary>
 /// <remarks>
 /// A seam rather than an <c>IDbContextFactory&lt;TContext&gt;</c> injected directly, because
-/// <see cref="AccountService{TUser}" /> is generic over the <em>user</em> type and knows nothing about the application's
+/// <see cref="AccountService{TUser, TKey}" /> is generic over the <em>user</em> type and knows nothing about the application's
 /// context type. This closes over it once, at registration.
 /// </remarks>
 internal interface IAuthContexts

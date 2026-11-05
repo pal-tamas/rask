@@ -86,16 +86,16 @@ Rask.Auth.AuthOptions.TokenLifetime.set -> void
 Rask.Auth.AuthUser
 Rask.Auth.Authenticatable
 Rask.Auth.Authenticatable.Authenticatable() -> void
-Rask.Auth.Authenticatable.Email.get -> string!
-Rask.Auth.Authenticatable.EmailConfirmedAt.get -> System.DateTime?
-Rask.Auth.Authenticatable.GrantRole(string! role) -> void
-Rask.Auth.Authenticatable.IsEmailConfirmed.get -> bool
-Rask.Auth.Authenticatable.IsInRole(string! role) -> bool
-Rask.Auth.Authenticatable.PasswordChangedAt.get -> System.DateTime?
-Rask.Auth.Authenticatable.RecordTenant(System.Guid? tenant) -> void
-Rask.Auth.Authenticatable.RevokeRole(string! role) -> void
-Rask.Auth.Authenticatable.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
-Rask.Auth.Authenticatable.TenantId.get -> System.Guid?
+Rask.Auth.Authenticatable<TKey>.Email.get -> string!
+Rask.Auth.Authenticatable<TKey>.EmailConfirmedAt.get -> System.DateTime?
+Rask.Auth.Authenticatable<TKey>.GrantRole(string! role) -> void
+Rask.Auth.Authenticatable<TKey>.IsEmailConfirmed.get -> bool
+Rask.Auth.Authenticatable<TKey>.IsInRole(string! role) -> bool
+Rask.Auth.Authenticatable<TKey>.PasswordChangedAt.get -> System.DateTime?
+Rask.Auth.Authenticatable<TKey>.RecordTenant(System.Guid? tenant) -> void
+Rask.Auth.Authenticatable<TKey>.RevokeRole(string! role) -> void
+Rask.Auth.Authenticatable<TKey>.Roles.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Rask.Auth.Authenticatable<TKey>.TenantId.get -> System.Guid?
 Rask.Auth.EmailConfirmed
 Rask.Auth.EmailConfirmed.<Clone>$() -> Rask.Auth.EmailConfirmed!
 Rask.Auth.EmailConfirmed.Deconstruct(out System.Guid UserId, out string! Email) -> void
@@ -115,7 +115,7 @@ Rask.Auth.IAuthEmailBodies.AlreadyRegistered(string! link, string! subject) -> s
 Rask.Auth.IAuthEmailBodies.Confirm(string! link, string! subject) -> string!
 Rask.Auth.IAuthEmailBodies.Reset(string! link, string! subject, System.TimeSpan lifetime) -> string!
 Rask.Auth.IAuthHostServices
-Rask.Auth.IAuthHostServices.Register<TUser>(Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
+Rask.Auth.IAuthHostServices.Register<TUser, TKey>(Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> void
 Rask.Auth.Passkey
 Rask.Auth.Passkey.BackedUp.get -> bool
 Rask.Auth.Passkey.CredentialId.get -> byte[]!
@@ -280,7 +280,7 @@ static Rask.Auth.AuthUser.Reset() -> void
 static Rask.Auth.AuthUser.Type.get -> System.Type?
 static Rask.Auth.AuthUser.Use<TUser>() -> void
 static Rask.Auth.Authenticatable.NormalizeEmail(string! email) -> string!
-virtual Rask.Auth.Authenticatable.Claims() -> System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>!
+virtual Rask.Auth.Authenticatable<TKey>.Claims() -> System.Collections.Generic.IEnumerable<System.Security.Claims.Claim!>!
 static Rask.Auth.EmailConfirmed.operator !=(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
 static Rask.Auth.EmailConfirmed.operator ==(Rask.Auth.EmailConfirmed? left, Rask.Auth.EmailConfirmed? right) -> bool
 static Rask.Auth.PasskeyAdded.operator !=(Rask.Auth.PasskeyAdded? left, Rask.Auth.PasskeyAdded? right) -> bool
@@ -417,3 +417,10 @@ Rask.Auth.AuthOptions.ActInTenantRole.set -> void
 Rask.Auth.Session.ActingInTenant.get -> System.Guid?
 Rask.Auth.SessionRead.ActingInTenant.get -> System.Guid?
 Rask.Auth.SessionRead.ActingInTenant.init -> void
+Rask.Auth.Authenticatable<TKey>
+Rask.Auth.Authenticatable<TKey>.Authenticatable() -> void
+Rask.Auth.SignInNameAttribute
+Rask.Auth.SignInNameAttribute.SignInNameAttribute() -> void
+static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser, TKey>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
+static Rask.Auth.AuthUser.Use<TUser, TKey>() -> void
+static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser, TKey>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

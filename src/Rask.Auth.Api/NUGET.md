@@ -38,6 +38,15 @@ public sealed class User : Authenticatable
 }
 ```
 
+A users table keyed by text, whose people sign in by user name, keeps both — and its bcrypt hashes:
+
+```csharp
+public sealed class User : Authenticatable<string>
+{
+    [SignInName] public Username Username { get; private set; }
+}
+```
+
 ## Which package
 
 | | |

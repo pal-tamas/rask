@@ -18,14 +18,16 @@ namespace Rask.Auth;
 /// <em>whether</em> somebody may sign in.
 /// </remarks>
 /// <typeparam name="TUser">The application's user aggregate.</typeparam>
-internal sealed class ServerAuth<TUser>(
-    AccountService<TUser> accounts,
+/// <typeparam name="TKey">Its key: a Guid, or a string holding one.</typeparam>
+internal sealed class ServerAuth<TUser, TKey>(
+    AccountService<TUser, TKey> accounts,
     IAuthSignIn signIn,
     IUserProvider users,
     IWebAuthn webAuthn,
     IHttpContextAccessor http,
     AuthOptions options) : IAuth
-    where TUser : Authenticatable, new()
+    where TUser : Authenticatable<TKey>, new()
+    where TKey : notnull
 {
     public Task<AuthResult> Register(
         string email, string password, string? returnUrl = null, string? firstRunToken = null) =>

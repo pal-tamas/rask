@@ -28,20 +28,24 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
     private readonly IDataProtector _protector = provider.CreateProtector(ProtectorPurpose);
 
     /// <summary>A reset link token for <paramref name="user" />.</summary>
-    public string ForReset(Authenticatable user, TimeSpan lifetime) =>
-        Issue(TokenPurpose.Reset, user.Id, ResetFingerprint(user), lifetime);
+    public string ForReset<TKey>(Authenticatable<TKey> user, TimeSpan lifetime)
+        where TKey : notnull =>
+        Issue(TokenPurpose.Reset, user.AccountId, ResetFingerprint(user), lifetime);
 
     /// <summary>A confirmation link token for <paramref name="user" />.</summary>
-    public string ForConfirmation(Authenticatable user, TimeSpan lifetime) =>
-        Issue(TokenPurpose.Confirm, user.Id, ConfirmFingerprint(user), lifetime);
+    public string ForConfirmation<TKey>(Authenticatable<TKey> user, TimeSpan lifetime)
+        where TKey : notnull =>
+        Issue(TokenPurpose.Confirm, user.AccountId, ConfirmFingerprint(user), lifetime);
 
     /// <summary>Whether <paramref name="token" /> is a live reset token for <paramref name="user" />.</summary>
-    public bool IsValidReset(Authenticatable user, string token) =>
-        IsValid(token, TokenPurpose.Reset, user.Id, ResetFingerprint(user));
+    public bool IsValidReset<TKey>(Authenticatable<TKey> user, string token)
+        where TKey : notnull =>
+        IsValid(token, TokenPurpose.Reset, user.AccountId, ResetFingerprint(user));
 
     /// <summary>Whether <paramref name="token" /> is a live confirmation token for <paramref name="user" />.</summary>
-    public bool IsValidConfirmation(Authenticatable user, string token) =>
-        IsValid(token, TokenPurpose.Confirm, user.Id, ConfirmFingerprint(user));
+    public bool IsValidConfirmation<TKey>(Authenticatable<TKey> user, string token)
+        where TKey : notnull =>
+        IsValid(token, TokenPurpose.Confirm, user.AccountId, ConfirmFingerprint(user));
 
     private string Issue(TokenPurpose purpose, Guid userId, string fingerprint, TimeSpan lifetime)
     {
@@ -82,9 +86,11 @@ internal sealed class AuthTokens(IDataProtectionProvider provider, TimeProvider 
         return CryptographicOperations.FixedTimeEquals(actual, expected);
     }
 
-    private static string ResetFingerprint(Authenticatable user) => Fingerprint(user.PasswordHash);
+    private static string ResetFingerprint<TKey>(Authenticatable<TKey> user)
+        where TKey : notnull => Fingerprint(user.PasswordHash);
 
-    private static string ConfirmFingerprint(Authenticatable user) =>
+    private static string ConfirmFingerprint<TKey>(Authenticatable<TKey> user)
+        where TKey : notnull =>
         Fingerprint(user.Email + "|" + (user.EmailConfirmedAt?.Ticks.ToString(CultureInfo.InvariantCulture) ?? "-"));
 
     // A hash of the state rather than the state: a token never carries the password hash, even sealed.

@@ -222,6 +222,51 @@ throws, naming it. Roles go through `GrantRole`.
 [RASK074](diagnostics.md#rask074). Declare none and you have no accounts, and auth is not wired. An app that
 would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and `modelBuilder.AddRaskAuth<User>()`.
 
+### Signing in by user name, on a table keyed by text
+
+An app moving onto Rask often has a users table already: keyed by a Guid kept as text, people signing in with a user
+name, passwords hashed with bcrypt. Derive from `Authenticatable<string>` and mark the name `[SignInName]`:
+
+```csharp
+// Before: the app's own User, and its own sign-in, sessions, cookie and throttle beside it.
+public sealed class User : Aggregate<string, Deletable>
+{
+    public Username Username { get; private set; }
+    public string Password { get; private set; } = "";   // bcrypt
+}
+
+// After: Rask.Auth's accounts, keyed by the same text, signing in by the same name.
+public sealed record Username(string Value);
+
+public sealed class User : Authenticatable<string>
+{
+    [SignInName] public Username Username { get; private set; }
+}
+
+await auth.SignIn(username, password);
+```
+
+- **The key** is a `Guid` or a `string` holding one, written as `Guid.ToString()` writes it (lower-case, with
+  hyphens). Rask carries the signed-in user as that Guid — `Current.UserId`, a session's `UserId`, the events — so
+  `Session`, `Passkey` and the instance claim are the same tables whichever key the app has. Any other key stops the
+  host starting; a row whose text is not a Guid cannot sign in.
+- **`[SignInName]`** goes on a `string` or on a value object holding one string (read and written through its
+  column's own mapping). It is unique within a tenant, as an address is, and compared as stored after trimming, so the
+  column's collation decides whether `Admin` and `admin` are one name. Without it the account signs in with `Email`;
+  `Authenticatable` is `Authenticatable<Guid>` with nothing marked, so an existing app changes nothing.
+- **No address, so no mail.** A name account's `Email` is empty. A reset link, a confirmation link and passkeys need
+  an address to tie to, so they answer `NotAllowed` with the reason, for every name alike; `RequireConfirmedEmail`
+  stops the host starting. A wrong password and an unknown name are the same `InvalidCredentials`, at the same cost,
+  and the [throttle](#passwords-and-throttling) counts per name and client just as it counts per address.
+- **The hashes keep working.** Every format is read — bcrypt `$2a$`/`$2b$`/`$2y$` included — and moved to the
+  configured one at the user's next sign-in. Map the old column onto the hash in the user's own `Configure`:
+  `builder.Property<string>("PasswordHash").HasColumnName("password");`.
+- **The schema changes**: the user gains Rask.Auth's columns (`Email`, `EmailConfirmedAt`, `PasswordChangedAt`,
+  `Roles`, `TenantId`, `TenantKey`, the stamps) and the `RaskAuthSession` / `RaskAuthPasskey` tables. Make the step
+  with `rask db add AddRaskAuth` and look it over before it runs.
+- **Sessions start fresh.** Rask does not take over an old session table or cookie: on the day you switch, everyone
+  signs in once more, and the old tables can go in a later migration.
+
 ## Sessions and devices
 
 **Each signed-in device is a row.** Signing in starts a `Session` (the user, the address and browser it came from,

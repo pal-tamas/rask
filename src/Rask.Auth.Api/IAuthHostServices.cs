@@ -11,7 +11,9 @@ public interface IAuthHostServices
     ///     Adds the host's own auth services for <typeparamref name="TUser" />.
     /// </summary>
     /// <typeparam name="TUser">The application's user entity.</typeparam>
+    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
     /// <param name="services">The service collection <c>AddRaskAuth</c> is populating.</param>
-    void Register<TUser>(IServiceCollection services)
-        where TUser : Authenticatable, new();
+    void Register<TUser, TKey>(IServiceCollection services)
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull;
 }

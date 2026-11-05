@@ -11,7 +11,7 @@ namespace Rask.Auth;
 internal sealed class AuthModelCheck<TContext, TUser>(IDbContextFactory<TContext> contextFactory)
     : BatteryModelCheck<TContext>(contextFactory)
     where TContext : DbContext
-    where TUser : Authenticatable
+    where TUser : class
 {
     protected override string Battery => "Auth";
 

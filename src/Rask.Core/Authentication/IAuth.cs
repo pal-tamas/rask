@@ -37,7 +37,10 @@ namespace Rask.Core.Authentication;
 public interface IAuth
 {
     /// <summary>Creates an account and signs it in.</summary>
-    /// <param name="email">The email address, which is also the user name.</param>
+    /// <param name="email">
+    /// The email address, which is also the user name — or the user name itself, for an account whose type marks one
+    /// <c>[SignInName]</c>.
+    /// </param>
     /// <param name="password">The password, held only long enough to hash it.</param>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
     /// <param name="firstRunToken">
@@ -74,7 +77,10 @@ public interface IAuth
     Task SignOutEverywhere(string? returnUrl = null);
 
     /// <summary>Signs an existing account in.</summary>
-    /// <param name="email">The email address.</param>
+    /// <param name="email">
+    /// The email address — or the user name, for an account whose type marks one <c>[SignInName]</c>:
+    /// <c>await auth.SignIn(username, password)</c>.
+    /// </param>
     /// <param name="password">The password.</param>
     /// <param name="remember">Whether the session should outlive the browser session.</param>
     /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>

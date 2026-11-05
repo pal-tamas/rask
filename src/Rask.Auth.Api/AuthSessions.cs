@@ -17,13 +17,17 @@ namespace Rask.Auth;
 /// before each event it takes, so a session ended, a user removed or a role changed on any replica is what the very next
 /// event on every other one sees — which a per-process cache, however short, would stand in the way of.
 /// </remarks>
-internal sealed class AuthSessions<TContext, TUser>(
+internal sealed class AuthSessions<TContext, TUser, TKey>(
     IDbContextFactory<TContext> contexts,
     TimeProvider clock,
     AuthOptions options) : IAuthSessions, IAsyncDisposable
     where TContext : DbContext
-    where TUser : Authenticatable
+    where TUser : Authenticatable<TKey>
+    where TKey : notnull
 {
+    // The key named by its name, so the one query below serves a Guid key without a cast inside it.
+    private const string KeyProperty = nameof(Authenticatable.Id);
+
     public async Task<Guid> StartAsync(
         Guid userId, string? ipAddress, string? userAgent, bool persistent, CancellationToken cancellationToken = default)
     {
@@ -42,12 +46,41 @@ internal sealed class AuthSessions<TContext, TUser>(
 
     // Compiled once: a live page resumes before every event, and translating the same LINQ each time was most of
     // what a resume cost. Both query filters apply: an ended (soft-deleted) session and a deleted user are not found.
+    // A Guid key joins the session to its user in one query; a text key reads them one after the other, because the
+    // session holds the Guid the text carries and turning one into the other inside SQL is spelled differently on
+    // every database.
     private static readonly Func<TContext, Guid, CancellationToken, Task<Row?>> FindRow =
+        typeof(TKey) == typeof(Guid) ? Joined() : FindApart;
+
+    private static Func<TContext, Guid, CancellationToken, Task<Row?>> Joined() =>
         EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
             (from s in db.Set<Session>().AsNoTracking()
-             join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
+             join u in db.Set<TUser>().AsNoTracking() on s.UserId equals EF.Property<Guid>(u, KeyProperty)
              where s.Id == sessionId
              select new Row(u, s.ExpiresAt, s.LastSeenAt, s.ActingInTenant)).FirstOrDefault());
+
+    private static readonly Func<TContext, Guid, CancellationToken, Task<SessionRow?>> FindSession =
+        EF.CompileAsyncQuery((TContext db, Guid sessionId, CancellationToken _) =>
+            db.Set<Session>().AsNoTracking()
+                .Where(s => s.Id == sessionId)
+                .Select(s => new SessionRow(s.UserId, s.ExpiresAt, s.LastSeenAt, s.ActingInTenant))
+                .FirstOrDefault());
+
+    private static readonly Func<TContext, string, CancellationToken, Task<TUser?>> FindUserByText =
+        EF.CompileAsyncQuery((TContext db, string key, CancellationToken _) =>
+            db.Set<TUser>().AsNoTracking().FirstOrDefault(u => EF.Property<string>(u, KeyProperty) == key));
+
+    private static async Task<Row?> FindApart(TContext db, Guid sessionId, CancellationToken cancellationToken)
+    {
+        if (await FindSession(db, sessionId, cancellationToken).ConfigureAwait(false) is not { } session)
+        {
+            return null;
+        }
+
+        return await FindUserByText(db, session.UserId.ToString(), cancellationToken).ConfigureAwait(false) is { } user
+            ? new Row(user, session.ExpiresAt, session.LastSeenAt, session.ActingInTenant)
+            : null;
+    }
 
     // What each principal handed out was built from, for as long as somebody holds it: a live page asks about the
     // one it holds, and is handed that same one back while its user's row still says what it said. Not a cache —
@@ -65,7 +98,7 @@ internal sealed class AuthSessions<TContext, TUser>(
             return null;
         }
 
-        return _issued.TryGetValue(held, out var issued) && issued.StillSays(row.User, ActingIn(row)) ? held : Issue(row, sessionId);
+        return _issued.TryGetValue(held, out var issued) && issued.StillSays(row, ActingIn(row)) ? held : Issue(row, sessionId);
     }
 
     // The session's row and its user's, or null when the session has ended, expired, or its user is gone.
@@ -84,7 +117,13 @@ internal sealed class AuthSessions<TContext, TUser>(
             }
 
             sound = true;
-            return found is null || found.ExpiresAt <= now ? null : found;
+            if (found is null || found.ExpiresAt <= now)
+            {
+                return null;
+            }
+
+            // A name is read through its column's mapping, so while the context is at hand; an address is the row's own.
+            return AccountName<TUser, TKey>.IsEmail ? found : found with { Name = AccountName<TUser, TKey>.Of(db.Model, found.User) };
         }
         finally
         {
@@ -135,9 +174,9 @@ internal sealed class AuthSessions<TContext, TUser>(
     // tenant this session chose instead.
     private ClaimsPrincipal Issue(Row row, Guid sessionId)
     {
-        var issued = Issued.From(row.User, ActingIn(row));
+        var issued = Issued.From(row, ActingIn(row));
         var principal = AuthPrincipal.For(
-            row.User.Id, issued.Email, issued.Roles, sessionId, issued.TenantId ?? issued.ActingIn, issued.OwnClaims);
+            row.User.AccountId, issued.Name, issued.Email, issued.Roles, sessionId, issued.TenantId ?? issued.ActingIn, issued.OwnClaims);
         _issued.Add(principal, issued);
 
         return principal;
@@ -208,19 +247,29 @@ internal sealed class AuthSessions<TContext, TUser>(
         }
     }
 
-    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant);
+    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant)
+    {
+        // What the user signs in with, for an account that signs in by name; its address otherwise, which needs no copy.
+        public string? Name { get; init; }
+
+        public string SignInName => Name ?? User.Email;
+    }
+
+    private sealed record SessionRow(Guid UserId, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant);
 
     // Everything of a user's row that reaches their principal.
-    private sealed record Issued(string Email, string[] Roles, Guid? TenantId, Guid? ActingIn, OwnClaim[] OwnClaims)
+    private sealed record Issued(
+        string Name, string Email, string[] Roles, Guid? TenantId, Guid? ActingIn, OwnClaim[] OwnClaims)
     {
-        internal static Issued From(TUser user, Guid? actingIn) =>
-            new(user.Email, [.. user.Roles], user.TenantId, actingIn, user.OwnClaims());
+        internal static Issued From(Row row, Guid? actingIn) =>
+            new(row.SignInName, row.User.Email, [.. row.User.Roles], row.User.TenantId, actingIn, row.User.OwnClaims());
 
-        internal bool StillSays(TUser user, Guid? actingIn) =>
-            string.Equals(Email, user.Email, StringComparison.Ordinal)
-            && TenantId == user.TenantId
+        internal bool StillSays(Row row, Guid? actingIn) =>
+            string.Equals(Name, row.SignInName, StringComparison.Ordinal)
+            && string.Equals(Email, row.User.Email, StringComparison.Ordinal)
+            && TenantId == row.User.TenantId
             && ActingIn == actingIn
-            && Roles.AsSpan().SequenceEqual([.. user.Roles])
-            && OwnClaims.AsSpan().SequenceEqual(user.OwnClaims());
+            && Roles.AsSpan().SequenceEqual([.. row.User.Roles])
+            && OwnClaims.AsSpan().SequenceEqual(row.User.OwnClaims());
     }
 }
