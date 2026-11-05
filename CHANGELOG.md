@@ -104,6 +104,17 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Rules.Text(value, max)`, `Rules.Optional`, `Rules.Given`, `Rules.Required`, `Rules.TooLong(max)` — a form's
+  common rules in the reader's language, and `.ConfirmLeave()` with the framework's own question (#1299).** Before:
+  an app wrote its own copy of the sentences, in its own language —
+  `public static string? Text(string? v, int max) => string.IsNullOrWhiteSpace(v) ? "Kötelező kitölteni." : v.Length > max ? $"Maximum {max} karakter hosszúnak kell lennie." : null;`
+  and `.ConfirmLeave(Layout.UnsavedChanges)` on every form. After:
+  `public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);` and
+  `Form.Model(m).OnSubmit(Save).ConfirmLeave()[…]`, which ask "This field is required." / "Enter at most 100
+  characters." / "Leave without saving?" — and *Kötelező kitölteni.* / *Maximum 100 karakter hosszúnak kell
+  lennie.* / *Biztos elhagyja mentés nélkül az oldalt?* in Hungarian, from the kit's catalog. New `RaskString` keys
+  `ValidationTooLong` and `ConfirmLeaveQuestion`. An app's own `Rules` class in a namespace it imports beside
+  `Rask` is now ambiguous (CS0104): delete it, or qualify it.
 - **`TestDatabase.FromEnvironment<TContext>("VAR", (o, cs) => o.UseSqlServer(cs))` — a real database server for the
   tests that need one, skipped where there is none (#1291).** Before: an app testing against SQL Server carried its
   own fixture — read a variable, fail (or silently pass) without it, create and drop a database or `lockf` a standing
@@ -765,6 +776,20 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A DataAnnotations attribute with no `ErrorMessage` speaks the reader's language (#1300).** Before: under
+  `AddRask(culture: "hu")` a bare `[Required]`, `[StringLength(100)]` or `[Range(1, 30)]` said .NET's English — "The
+  Name field is required.", "The field Name must be a string with a maximum length of 100." — because .NET ships no
+  Hungarian for them, so an app turned the automatic validators off and wrote every rule by hand:
+  `RaskValidation.AutoValidate = false;`. After: Rask words every built-in attribute's failure from the `RaskStrings`
+  catalog with the attribute's numbers filled in — *Kötelező kitölteni.*, *Maximum 100 karakter hosszúnak kell
+  lennie.*, *Az értéknek 1 és 30 között kell lennie.* — in a form, a field checked as it is typed, a dispatched
+  request and a Rask.Data model's generated rules, on Server and WASM alike; so that line can go. An attribute's own
+  `ErrorMessage`/`ErrorMessageResourceType`, and an attribute class of the app's, still say what they say, and an
+  English reader reads .NET's text word for word. Sixteen new `RaskString` keys (`ValidationTooShort`,
+  `ValidationLength`, `ValidationTooMany`, `ValidationTooFew`, `ValidationCount`, `ValidationBetween`,
+  `ValidationEmail`, `ValidationPhone`, `ValidationUrl`, `ValidationCreditCard`, `ValidationPattern`,
+  `ValidationMatch`, `ValidationFileType`, `ValidationNotAllowed`, `ValidationBase64`, `ValidationInvalid`), Hungarian
+  in Rask.Ui; `DataAnnotationsFieldValidator.Message(check, value, said)` words an attribute run by hand.
 - **Behind `rask deploy`'s proxy a `RaskApp` sees the visitor's scheme and address.** Before: `BehindProxy` (and
   `Rask:BehindProxy`, which `rask deploy` sets) wired `UseForwardedHeaders` with ASP.NET's default trust list, which
   is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,

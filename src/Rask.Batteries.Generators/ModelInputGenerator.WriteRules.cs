@@ -145,7 +145,7 @@ public sealed partial class ModelInputGenerator
 
         if (CheckedMembers(entity).Any() || HeldValueObjects(entity).Any(static m => HasNestedChecks(m.ValueObject!)))
         {
-            AppendCheck(s);
+            AppendCheck(s, entity.ChecksFromCatalog);
         }
     }
 
@@ -432,7 +432,8 @@ public sealed partial class ModelInputGenerator
     }
 
     // `model` is whatever holds the field: the root model, or the nested model of a value object.
-    private static void AppendCheck(StringBuilder s)
+    // A built-in attribute's English is worded in the reader's language where the compilation has Core's catalog.
+    private static void AppendCheck(StringBuilder s, bool fromCatalog)
     {
         s.Append("    private static ").Append(FailureList)
             .Append(" __Check(global::System.ComponentModel.DataAnnotations.ValidationAttribute check, ")
@@ -442,7 +443,8 @@ public sealed partial class ModelInputGenerator
         s.AppendLine("        // The trim-safe context: it names the model without reflecting over it.");
         s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, name, null, null) { MemberName = name };");
         s.AppendLine("        return check.GetValidationResult(value, context) is { ErrorMessage: { } error }");
-        s.Append("            ? ").Append(ModelRules).AppendLine(".Told(failures, path, name, error)");
+        s.Append("            ? ").Append(ModelRules).Append(".Told(failures, path, name, ")
+            .Append(fromCatalog ? "global::Rask.Core.Forms.DataAnnotationsFieldValidator.Message(check, value, error)" : "error").AppendLine(")");
         s.AppendLine("            : failures;");
         s.AppendLine("    }");
         s.AppendLine();

@@ -601,6 +601,14 @@ Form.Model(_model).OnSubmit(Save)
 ]
 ```
 
+With no question of its own, `.ConfirmLeave()` asks the framework's — *Leave without saving?*, and
+*Biztos elhagyja mentés nélkül az oldalt?* in Hungarian, from the
+[strings catalog](localization.md#translating-the-frameworks-own-text) (`ConfirmLeaveQuestion`):
+
+```csharp
+Form.Model(_model).OnSubmit(Save).ConfirmLeave()[ … ]
+```
+
 <!-- demo:form-confirm-leave -->
 
 The dialog it asks in, live, with its steps: [Confirm leave on the UI tab](https://rask.sh/ui/confirm-leave/).

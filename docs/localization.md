@@ -38,7 +38,8 @@ builder.Services.AddRask(culture: "hu");
 ```
 
 It leaves automatic validation as it is: on by default, and off only where the app set
-`RaskValidation.AutoValidate = false` itself. On `RaskApp` the same line is `app.Configure(c => c.Cultures.Add("hu"))`
+`RaskValidation.AutoValidate = false` itself — and there is no longer a language reason to: a bare `[Required]`,
+`[StringLength(100)]` or `[Range(1, 10)]` speaks Hungarian too ([below](#a-models-validation-attributes)). On `RaskApp` the same line is `app.Configure(c => c.Cultures.Add("hu"))`
 — the first language named in code is the default there too.
 
 A browser (WebAssembly) app lists them in the same section, read by its **build** — see
@@ -512,6 +513,34 @@ the same generator. A component library of your own ships translations for the f
 same way — the file, and `<RaskStringsLibrary>true</RaskStringsLibrary>` in its project, which registers
 them a layer under the app's catalog instead of in its place.
 
+### A model's validation attributes
+
+.NET writes the message of a DataAnnotations attribute in English only — it ships no Hungarian for
+`System.ComponentModel.Annotations` — so a `[Required]` with no `ErrorMessage` used to say "The Name field is
+required." to a Hungarian reader. Rask words those failures from this catalog instead, in the Server and the
+WebAssembly host alike, in a form and in a dispatched request's validation:
+
+```csharp
+public sealed class Supplier
+{
+    [Required, StringLength(100)] public string Name { get; set; } = "";
+    [EmailAddress] public string? Email { get; set; }
+    [Range(1, 30)] public int PaymentDays { get; set; }
+}
+// hu: "Kötelező kitölteni."  "Maximum 100 karakter hosszúnak kell lennie."
+//     "Érvényes e-mail-címet adjon meg."  "Az értéknek 1 és 30 között kell lennie."
+```
+
+- **Every built-in attribute** has a key: `[Required]`, `[StringLength]`, `[MaxLength]`, `[MinLength]`, `[Length]`,
+  `[Range]`, `[EmailAddress]`, `[Phone]`, `[Url]`, `[CreditCard]`, `[RegularExpression]`, `[Compare]`,
+  `[FileExtensions]`, `[AllowedValues]`, `[DeniedValues]`, `[Base64String]`, `[EnumDataType]` — the
+  `Validation…` rows of [the table below](#every-key). The attribute's numbers are the text's values, written in
+  the reader's culture. A `[Range]` with an exclusive bound keeps .NET's text.
+- **Your own words win.** An attribute with an `ErrorMessage` or an `ErrorMessageResourceType`, and an attribute
+  class of your own, says exactly what it said.
+- **Where no catalog has the key** — every English reader, and a language neither your app nor the kit
+  translates — .NET's own text stands, word for word.
+
 ### Every key
 
 What each key says in English, and where it is drawn. A component's own props still win where it has them —
@@ -628,6 +657,7 @@ they say when you set nothing.
 | `ModalClose` | Modal | `Close modal` |
 | `ConfirmLeaveStay` | Confirm leave | `Stay` |
 | `ConfirmLeaveLeave` | Confirm leave | `Leave` |
+| `ConfirmLeaveQuestion` | A form's `.ConfirmLeave()` with no question of its own | `Leave without saving?` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |
@@ -650,6 +680,23 @@ they say when you set nothing.
 | `ValidationRangeMax` | Validation — a range longer than its picker's `MaxRange` | `Choose a range of at most {0} days.` |
 | `ValidationTimeMin` | Validation — a time typed before its picker's earliest | `Choose a time at or after {0}.` |
 | `ValidationTimeMax` | Validation — a time typed after its picker's latest | `Choose a time at or before {0}.` |
+| `ValidationTooLong` | Validation — `Rules.TooLong`, `[StringLength]`, `[MaxLength]` on a text | `Enter at most {0} characters.` |
+| `ValidationTooShort` | Validation — `[MinLength]` on a text | `Enter at least {0} characters.` |
+| `ValidationLength` | Validation — `[StringLength]` with a `MinimumLength`, `[Length]` on a text | `Enter between {0} and {1} characters.` |
+| `ValidationTooMany` | Validation — `[MaxLength]` on a list | `Choose at most {0}.` |
+| `ValidationTooFew` | Validation — `[MinLength]` on a list | `Choose at least {0}.` |
+| `ValidationCount` | Validation — `[Length]` on a list | `Choose between {0} and {1}.` |
+| `ValidationBetween` | Validation — `[Range]` | `Enter a value between {0} and {1}.` |
+| `ValidationEmail` | Validation — `[EmailAddress]` | `Enter a valid email address.` |
+| `ValidationPhone` | Validation — `[Phone]` | `Enter a valid phone number.` |
+| `ValidationUrl` | Validation — `[Url]` | `Enter a valid http, https or ftp address.` |
+| `ValidationCreditCard` | Validation — `[CreditCard]` | `Enter a valid card number.` |
+| `ValidationPattern` | Validation — `[RegularExpression]` | `Enter a value in the expected format.` |
+| `ValidationMatch` | Validation — `[Compare]`; `{0}` is the other field | `Must match {0}.` |
+| `ValidationFileType` | Validation — `[FileExtensions]` | `Choose a file of type {0}.` |
+| `ValidationNotAllowed` | Validation — `[AllowedValues]`, `[DeniedValues]` | `This value is not allowed.` |
+| `ValidationBase64` | Validation — `[Base64String]` | `Enter valid Base64 text.` |
+| `ValidationInvalid` | Validation — `[EnumDataType]` | `Enter a valid value.` |
 | `FormSaveFailed` | Form | `The save failed. Please try again.` |
 | `ErrorReference` | Error page | `The problem has been recorded. If it keeps happening, quote this reference: {0}` |
 | `HandlerFailed` | Toast | `That did not work. Please try again.` |

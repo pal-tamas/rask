@@ -23,6 +23,9 @@ namespace Rask.Core.Forms;
 /// </summary>
 public sealed class DataAnnotationsFieldValidator : IFieldValidator
 {
+    // What a failure that brought no message of its own says.
+    private const string Invalid = "Invalid value.";
+
     private readonly IServiceProvider? _services;
 
     /// <summary>
@@ -60,6 +63,28 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         }
 
         return entries;
+    }
+
+    /// <summary>
+    ///     What a failed DataAnnotations attribute says, in the reader's language: <paramref name="said" /> — .NET's
+    ///     English, or the attribute's own words — unless <paramref name="check" /> is a built-in attribute with no
+    ///     <c>ErrorMessage</c> of its own and the <c>RaskStrings</c> catalog has its sentence in the reader's language.
+    /// </summary>
+    /// <remarks>
+    ///     What this validator does with every failure it reports. For code that runs an attribute itself —
+    ///     <c>check.GetValidationResult(value, context)</c>, as a Rask.Data model's generated rules do — and shows
+    ///     what it said: <c>[StringLength(100)]</c> says "Maximum 100 karakter hosszúnak kell lennie." to a Hungarian
+    ///     reader, and .NET's own text to an English one.
+    /// </remarks>
+    /// <param name="check">The attribute that failed.</param>
+    /// <param name="value">The value it failed on.</param>
+    /// <param name="said">What the attribute's <see cref="ValidationResult" /> said.</param>
+    /// <returns>The sentence to show.</returns>
+    public static string Message(ValidationAttribute check, object? value, string said)
+    {
+        ArgumentNullException.ThrowIfNull(check);
+        ArgumentNullException.ThrowIfNull(said);
+        return AttributeMessages.For(check, value) ?? said;
     }
 
     // ValidationContext/Validator reflect over the model graph. The user-owned model types are
@@ -116,7 +141,7 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
 
         foreach (var r in results)
         {
-            context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
+            context.AddValidationMessage(field, Worded(r, owner, field.FieldName));
         }
 
         // IValidatableObject is a whole-object rule, so re-run it for per-field revalidation
@@ -128,10 +153,14 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
             foreach (var r in validatable.Validate(fullCtx)
                          .Where(r => r.MemberNames.Contains(field.FieldName, StringComparer.Ordinal)))
             {
-                context.AddValidationMessage(field, r.ErrorMessage ?? "Invalid value.");
+                context.AddValidationMessage(field, r.ErrorMessage ?? Invalid);
             }
         }
     }
+
+    // A failure's message, in the reader's language where it is a built-in attribute's own English (AttributeMessages).
+    private string Worded(ValidationResult result, object owner, string member) =>
+        result.ErrorMessage is { } said ? AttributeMessages.Reworded(said, owner, member, _services) : Invalid;
 
     // One node's failures, flattened to (memberName, message). An empty member name is the
     // object-level slot — FieldIdentifier(node, "") for a form, the "" key on the wire.
@@ -173,8 +202,8 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         // null on a model that only said "this one is fine". OfType is that filter.
         foreach (var r in results.OfType<ValidationResult>())
         {
-            var message = r.ErrorMessage ?? "Invalid value.";
             var members = r.MemberNames.Where(static m => m is not null).ToList();
+            var message = members.Count == 1 ? Worded(r, node, members[0]) : r.ErrorMessage ?? Invalid;
             IEnumerable<string> fields = members.Count == 0 ? [string.Empty] : members;
 
             // HashSet.Add is the "not seen yet" test: it records the pair as it passes it.
