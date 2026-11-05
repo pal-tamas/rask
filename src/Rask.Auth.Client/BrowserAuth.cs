@@ -195,6 +195,22 @@ public sealed class BrowserAuth(
             new RemovePasskeyRequest(id.ToString()),
             AuthJsonContext.Default.RemovePasskeyRequest);
 
+    /// <inheritdoc />
+    public Task<AuthResult> ActInTenant(Guid tenant, string? returnUrl = null) =>
+        ChooseTenant(tenant.ToString(), returnUrl);
+
+    /// <inheritdoc />
+    public Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
+        ChooseTenant(tenant.ToString(System.Globalization.CultureInfo.InvariantCulture), returnUrl);
+
+    /// <inheritdoc />
+    public Task<AuthResult> LeaveTenant(string? returnUrl = null) => ChooseTenant(null, returnUrl);
+
+    // The server keeps the choice on the session the cookie names; the user is read again so what shows the tenant
+    // re-renders, and the page lands where it was sent.
+    private Task<AuthResult> ChooseTenant(string? tenant, string? returnUrl) =>
+        PostAsync(AuthApi.Tenant, new ActInTenantRequest(tenant), AuthJsonContext.Default.ActInTenantRequest, returnUrl);
+
     /// <summary>A POST with no body whose answer is the thing being asked for.</summary>
     /// <remarks>
     /// POST rather than GET because these mint a challenge, and because the required header is what keeps another

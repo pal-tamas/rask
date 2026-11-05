@@ -48,19 +48,13 @@ public sealed class RuledAppContext(DbContextOptions<RaskAppDbContext> options) 
     }
 }
 
-/// <summary>Rask's context ordering text as Hungarian does, with one column keeping a collation of its own.</summary>
+/// <summary>Rask's context naming Hungarian as the order text is put in, when a query asks for it.</summary>
 public sealed class HungarianOrderedContext(DbContextOptions<RaskAppDbContext> options) : RaskAppDbContext(options)
 {
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         base.ConfigureConventions(configurationBuilder);
-        configurationBuilder.TextOrder("Hungarian_100_CI_AS");
-    }
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.Entity<Job>().Property(j => j.Lane).UseCollation("Latin1_General_BIN2");
+        configurationBuilder.OrderTextBy("Hungarian_100_CI_AS");
     }
 }
 
@@ -105,17 +99,18 @@ public sealed class RaskAppModelTests
     }
 
     [Fact]
-    public void An_app_s_text_order_is_written_into_every_text_column_unless_the_column_states_its_own()
+    public void An_app_s_text_order_is_written_into_the_order_by_only_and_never_into_a_column()
     {
         using var context = new HungarianOrderedContext(Options());
 
+        var sql = context.Set<Job>().Where(j => j.Lane == "main").OrderBy(j => j.Type.InTextOrder()).ToQueryString();
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        var jobs = model.FindEntityType(typeof(Job))!;
-        Assert.Equal("Hungarian_100_CI_AS", jobs.FindProperty(nameof(Job.Type))!.GetCollation());
-        Assert.Equal("Hungarian_100_CI_AS", model.FindEntityType(typeof(CacheEntry))!.FindProperty(nameof(CacheEntry.Key))!.GetCollation());
-        Assert.Equal("Latin1_General_BIN2", jobs.FindProperty(nameof(Job.Lane))!.GetCollation());
-        Assert.Null(jobs.FindProperty(nameof(Job.Attempts))!.GetCollation());
+        Assert.Contains("ORDER BY [j].[Type] COLLATE Hungarian_100_CI_AS", sql, StringComparison.Ordinal);
+        Assert.Contains("WHERE [j].[Lane] = N'main'", sql, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(sql, "COLLATE"));
+        var texts = model.GetEntityTypes().SelectMany(e => e.GetProperties()).Where(p => p.ClrType == typeof(string));
+        Assert.All(texts, p => Assert.Null(p.GetCollation()));
     }
 
     private static DbContextOptions<RaskAppDbContext> Options() =>

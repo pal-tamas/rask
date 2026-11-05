@@ -73,7 +73,7 @@ internal static class PayrollRules
         c.Properties<string>().HaveMaxLength(1000);
         c.Properties<decimal>().HaveColumnType("decimal(32, 16)");
         c.Conventions.Remove(typeof(ForeignKeyIndexConvention));
-        c.TextOrder("Hungarian_100_CI_AS");
+        c.OrderTextBy("Hungarian_100_CI_AS");
         c.ConstraintNames(n => n.Kind switch
         {
             ConstraintKind.PrimaryKey => $"{n.Table}_pkey",
@@ -137,13 +137,50 @@ public sealed class AppModelRulesTests(PayrollModelFixture fixture)
     private IEntityType Payslip => fixture.Model.FindEntityType(typeof(Payslip))!;
 
     [Fact]
-    public void On_SQLite_the_app_s_text_order_leaves_every_column_s_collation_as_it_was()
+    public void The_app_s_text_order_leaves_every_column_s_collation_as_it_was()
     {
         var payroll = Payroll;
 
         var collations = payroll.GetProperties().Where(p => p.ClrType == typeof(string)).Select(p => p.GetCollation());
 
         Assert.All(collations, Assert.Null);
+    }
+
+    [Fact]
+    public async Task On_SQLite_text_in_the_app_s_order_is_ordered_by_the_column_as_it_is()
+    {
+        await using var context = PayrollModelFixture.Open("Data Source=:memory:");
+        await context.Database.OpenConnectionAsync(TestContext.Current.CancellationToken);
+        await context.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
+        context.AddRange(Payee.Named("Zsolt"), Payee.Named("Csaba"), Payee.Named("Béla"), Payee.Named("Cecil"));
+        await context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var ordered = await context.Set<Payee>().OrderBy(p => p.Name.InTextOrder()).Select(p => p.Name)
+            .ToListAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(["Béla", "Cecil", "Csaba", "Zsolt"], ordered);
+    }
+
+    [Fact]
+    public void On_SQLite_text_in_the_app_s_order_writes_no_collation_and_leaves_the_where_as_it_was()
+    {
+        using var context = PayrollModelFixture.Open("Data Source=:memory:");
+
+        var sql = context.Set<Payee>().Where(p => p.Name == "Csaba").OrderBy(p => p.Name.InTextOrder()).ToQueryString();
+
+        Assert.Contains("WHERE \"p\".\"Name\" = 'Csaba'", sql, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY \"p\".\"Name\"", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("COLLATE", sql, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_in_the_app_s_order_outside_a_query_says_where_it_runs()
+    {
+        var names = new[] { "Csaba", "Béla" };
+
+        var refused = Assert.Throws<InvalidOperationException>(() => names.OrderBy(n => n.InTextOrder()).ToList());
+
+        Assert.Contains("TextOrder.In(\"hu\")", refused.Message, StringComparison.Ordinal);
     }
 
     [Fact]

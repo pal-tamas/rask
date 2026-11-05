@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -458,6 +459,40 @@ internal sealed partial class AccountService<TUser>(
         AuthPrincipal.UserId(principal) is { } userId
             ? sessions.EndAllAsync(userId, cancellationToken: cancellationToken)
             : Task.FromResult(0);
+
+    public async Task<AuthResult> ActInTenantAsync(
+        ClaimsPrincipal principal, Guid? tenant, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(principal);
+
+        if (tenant is { } named && !TenantChoosing.IsTenant(named))
+        {
+            return AuthResult.Fail(AuthError.NotAllowed, "That is not a tenant: Guid.Empty and Guid.AllBitsSet are reserved.");
+        }
+
+        if (AuthPrincipal.UserId(principal) is not { } userId || AuthPrincipal.SessionId(principal) is not { } sessionId)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed);
+        }
+
+        // The row decides, not the principal: a role taken away a moment ago is not one this user still holds.
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            var user = await db.Set<TUser>().AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (user is null || !TenantChoice.MayChoose(user, options))
+            {
+                return AuthResult.Fail(AuthError.NotAllowed);
+            }
+        }
+
+        return await sessions.ActInTenantAsync(sessionId, tenant, cancellationToken).ConfigureAwait(false)
+            ? AuthResult.Success
+            : AuthResult.Fail(AuthError.NotAllowed);
+    }
 
     /// <summary>Starts adding a passkey: the options the browser needs, and the sealed challenge it posts back.</summary>
     public async Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(

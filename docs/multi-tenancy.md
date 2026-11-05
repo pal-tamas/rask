@@ -381,7 +381,84 @@ a user before it can know their tenant. Inside it `Current.Tenant` is `null` and
 
 An administrator belongs to no tenant, so they carry no tenant claim, and a tenant-scoped read throws until
 they say which tenant they are acting in. That is intended: an admin should choose a tenant, not silently read
-across all of them. An admin page keeps the tenant the admin picked and opens a scope around the work:
+across all of them.
+
+### Acting in a tenant
+
+With [Rask.Auth](authentication.md#accounts-and-tenants), an administrator chooses once and every page works in it:
+
+```csharp
+Ui.Button.OnClick(() => auth.ActInTenant(partner.Id, returnUrl: "/orders"))["Work in this partner"]   // Guid or a number
+Ui.Button.OnClick(() => auth.LeaveTenant(returnUrl: "/tenants"))["Back to all partners"]
+```
+
+The choice is kept on the **sign-in** — the `Session` row the cookie names (`Session.ActingInTenant`) — and comes
+back as the `rask:tenant` claim each time the principal is rebuilt from it, so `Current.Tenant` answers it with
+nothing else to configure:
+
+| | The chosen tenant |
+|---|---|
+| the next request, the page's first `GET` | is `Current.Tenant` — the cookie resumes the session, and the session names it |
+| a reconnect, a bearer token of the same sign-in | still is: both resume the same session |
+| the user's other open live pages | work in it from their **next event**, and render again for it (below) |
+| another device, a new sign-in | chooses for itself: the choice belongs to one session |
+| signing out | ends the session, and the choice with it |
+
+Who may choose is the role `AuthOptions.ActInTenantRole` — `admin` by default, `null` turns choosing off — and
+only a user who **belongs to no tenant**: somebody signed in to one customer is refused rather than let into
+another. Both are read from the user's row at every request, so taking the role away takes the chosen tenant
+with it. On the Server host the click stores the choice and loads `returnUrl` as a fresh page; in WebAssembly
+and from a TypeScript front end it is `POST /api/auth/tenant` with `{ "tenant": "…" }` (`null` leaves), which
+needs the `X-Rask-Auth` header and is refused (`403`) when the browser says another site sent it
+(`Sec-Fetch-Site` other than `same-origin`).
+
+**Pages already open follow; they are not ended.** A live page of the same sign-in in another tab asks about its
+session before each event, finds a principal in another tenant, and renders again in it — every read is made
+afresh, as for [a resolver's answer that changed](#from-the-request-a-resolver). What a component holds in its
+fields stays, and cannot leak into the new tenant: [a row belongs to the tenant it was loaded
+in](#writes-stamp-it-and-it-never-moves), so saving one loaded before the switch is refused.
+
+**With a [resolver](#from-the-request-a-resolver), the resolver still decides.** The chosen tenant is the
+principal's claim, so a resolver that reads `Current.Principal` sees it; one that names a *different* tenant
+refuses the request, as for any claim that disagrees with it.
+
+### With your own sign-in
+
+An app that signs its users in itself — a refresh-token cookie, a JWT — has no Rask session row to keep the
+choice on, so it says where the choice goes and Rask does the rest. Map the choice before `MapRask`:
+
+```csharp
+// A cookie tied to the sign-in (read back by your scheme or a resolver)
+app.MapRaskTenantChoice(
+    find: (Guid id, HttpContext http) => Partners.Find(http, id),          // null: no such tenant (400)
+    onChosen: (http, partner) =>
+    {
+        PartnerCookie.Write(http, partner);                               // null partner: the admin left
+        return Task.CompletedTask;
+    });
+
+// A numbered tenant in a reissued token
+app.MapRaskTenantChoice(
+    find: (long id, HttpContext http) => Partners.Find(http, (int)id),
+    onChosen: async (http, partner) => TokenCookie.Write(http, await Tokens.Issue(http.User, partner)),
+    configure: o => o.BelongsToTenant = user => user.HasClaim(c => c.Type == "ownTenant"));
+```
+
+Rask owns the endpoint — `POST /api/tenant` (`o.Path`) with `{ "tenant": "…" }`, the `X-Rask-Auth` header,
+`403` when the browser says another site sent it — and who may choose, by the same rules as Rask.Auth: a signed-in
+user who holds `o.Role` (`admin`; read with `IsInRole`) and does not `o.BelongsToTenant` (nobody, by default —
+answer from the account, not the tenant chosen now). The id is a `Guid` or a number; `find` turns it into your
+tenant, and `onChosen` runs only for an allowed choice. Leaving posts `null` and hands `onChosen` a `null` tenant.
+
+A live page chooses exactly as with Rask.Auth — `Auth.ActInTenant(partner.Id, returnUrl: "/orders")`,
+`Auth.LeaveTenant(returnUrl: "/tenants")` — and the choice is handed to `onChosen` on the browser's own request
+(the sign-in relay's single-use ticket), which then loads `returnUrl` in the new tenant. From WebAssembly or a
+TypeScript front end, post to the path yourself.
+
+### A scope of your own
+
+An admin page that works in a tenant for one piece of work, rather than for the whole sign-in, opens a scope
+around it:
 
 ```csharp
 private Guid _tenant;   // chosen from a list of tenants

@@ -19463,6 +19463,12 @@ Rask.Core.Globalization.RaskString.ValidationRangeMin = 203 -> Rask.Core.Globali
 Rask.Core.Globalization.RaskString.ValidationRangeMax = 204 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMin = 205 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMax = 206 -> Rask.Core.Globalization.RaskString
+Rask.Core.Authentication.IAuth.ActInTenant(System.Guid tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.ActInTenant(long tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Core.Authentication.IAuth.LeaveTenant(string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ActInTenant(System.Guid tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.ActInTenant(long tenant, string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Core.Auth.LeaveTenant(string? returnUrl = null) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
 Rask.Format
 Rask.TextOrder
 static Rask.Format.Day(System.DateOnly day) -> string!
@@ -19503,3 +19509,7 @@ static Rask.Rules.Text(string? value, int max) -> System.Collections.Generic.IEn
 static Rask.Rules.TooLong(int max) -> string!
 static Rask.Core.BuilderRuntime.ConfirmLeave<TModel>(this Rask.Core.HTMLFormElement<TModel>! form) -> Rask.Core.HTMLFormElement<TModel>!
 static Rask.Core.Forms.DataAnnotationsFieldValidator.Message(System.ComponentModel.DataAnnotations.ValidationAttribute! check, object? value, string! said) -> string!
+Rask.Core.Authentication.AuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.Core.Authentication.IAuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignIn(System.Security.Claims.ClaimsPrincipal! principal, string? returnUrl = null) -> System.Threading.Tasks.Task!
+static Rask.Core.Auth.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!

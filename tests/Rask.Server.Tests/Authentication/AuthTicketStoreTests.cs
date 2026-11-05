@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Rask.Core.Authentication;
 using Rask.Server.Authentication;
+using Rask.Server.Tests.Infrastructure;
 
 namespace Rask.Server.Tests.Authentication;
 
@@ -54,20 +55,13 @@ public class AuthTicketStoreTests
     [Fact]
     public void An_expired_ticket_does_not_redeem()
     {
-        // A negative TTL makes every issued ticket already expired by the time it's redeemed.
-        var prev = AuthTicketStore.Ttl;
-        AuthTicketStore.Ttl = TimeSpan.FromMilliseconds(-1);
-        try
-        {
-            var store = Store();
-            var id = store.Issue(AuthAction.SignIn, new ClaimsPrincipal(new ClaimsIdentity()), null, "session-1");
+        var clock = new StoppedClock();
+        var store = new AuthTicketStore(clock);
+        var id = store.Issue(AuthAction.SignIn, new ClaimsPrincipal(new ClaimsIdentity()), null, "session-1");
 
-            Assert.False(store.TryRedeem(id, "session-1", out _));
-        }
-        finally
-        {
-            AuthTicketStore.Ttl = prev;
-        }
+        clock.Advance(AuthTicketStore.Ttl);
+
+        Assert.False(store.TryRedeem(id, "session-1", out _));
     }
 
     [Fact]

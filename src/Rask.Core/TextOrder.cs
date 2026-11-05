@@ -11,8 +11,9 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Case does not change the order. A query's <c>ORDER BY</c> follows the column's collation instead, which the
-///         model states once with <c>c.TextOrder("Hungarian_100_CI_AS")</c> in an <c>IRaskModel</c>'s <c>Conventions</c>.
+///         Case does not change the order. A query orders in the database instead, with <c>x.Name.InTextOrder()</c>,
+///         by the collation the model names once with <c>c.OrderTextBy("Hungarian_100_CI_AS")</c> in an
+///         <c>IRaskModel</c>'s <c>Conventions</c>.
 ///     </para>
 ///     <para>
 ///         It needs the runtime's culture data: a browser app ships it once <c>Rask:Cultures</c> names a language that is

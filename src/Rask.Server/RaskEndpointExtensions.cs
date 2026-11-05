@@ -439,9 +439,7 @@ public static partial class RaskEndpointExtensions
         // RaskWasmBrowserApis). Server can still reach the
         // activation-gated APIs declaratively via Trigger.Gesture — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
-        services.AddScoped<AuthSignIn>();
-        services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
-        services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
+        AddSignInRelay(services);
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
         services.AddSingleton<SessionUploadStore>();
         services.AddSingleton<SessionDownloadStore>();
@@ -3427,6 +3425,22 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    // The live handler's sign-in, sign-out and tenant choice, handed to the browser as a ticket it redeems.
+    private static void AddSignInRelay(IServiceCollection services)
+    {
+        // A sign-in with the app's own token needs somewhere to write it: the session cookie AddRaskCookieSession keeps,
+        // which may be registered after AddRask, so asked for when a session is built. So may a tenant choice, mapped
+        // once the app is built (MapRaskTenantChoice).
+        services.TryAddSingleton<TenantChoices>();
+        services.AddScoped(static sp => new AuthSignIn
+        {
+            KeepsTokens = sp.GetService<CookieSession>() is not null,
+            ChoosesTenants = sp.GetService<TenantChoices>()?.IsMapped == true,
+        });
+        services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
+        services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
+    }
+
     // Where the handler asked to go: a sign-in/out it started, or else a NavigateTo.
     private static AuthInstruction? TakeNavigation(
         LiveSession session,
@@ -3448,8 +3462,17 @@ public static partial class RaskEndpointExtensions
                 pending.Principal,
                 pending.Scheme,
                 session.Id,
-                pending.Persistent);
-            authInstruction = new AuthInstruction(ticketId, safeReturn);
+                pending.Persistent,
+                pending.Token,
+                pending.TenantPick);
+
+            // A token's user is known only once the app's own scheme reads the cookie, so the page is loaded again
+            // under it rather than this session being reattached to a principal Rask cannot expect. So is a tenant the
+            // app's own sign-in now keeps: every page of it is drawn again in that tenant.
+            authInstruction = new AuthInstruction(ticketId, safeReturn)
+            {
+                LoadsPage = pending.Token is not null || pending.TenantPick is not null,
+            };
 
             // Do NOT navigate routeState here. Setting it to the destination now would
             // mount the destination page under the PRE-SignIn principal — SessionUserProvider
@@ -4111,74 +4134,6 @@ public static partial class RaskEndpointExtensions
         var path = url[..idx];
         var query = QueryString.Parse(url[idx..]);
         return (path, query);
-    }
-
-    private static async Task RedeemAuthTicketAsync(HttpContext ctx, IAuthTicketStore tickets)
-    {
-        // Defense-in-depth CSRF: the redeem ticket is a single-use, session-bound, 128-bit secret
-        // delivered only over the authenticated same-origin WS frame, so classic cookie-CSRF can't
-        // forge it. As belt-and-braces we still reject a cross-origin Origin/Referer — a forged POST
-        // from another site is bounced before the (otherwise antiforgery-exempt) ticket is consulted.
-        if (!IsSameOrigin(ctx.Request))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            return;
-        }
-
-        var (ticketId, sessionId) = await ReadRedeemRequestAsync(ctx).ConfigureAwait(false);
-        if (string.IsNullOrEmpty(ticketId) || string.IsNullOrEmpty(sessionId))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
-            return;
-        }
-
-        if (!tickets.TryRedeem(ticketId, sessionId, out var ticket))
-        {
-            ctx.Response.StatusCode = StatusCodes.Status410Gone;
-            return;
-        }
-
-        var scheme = await ResolveAuthSchemeAsync(ctx.RequestServices, ticket.Scheme).ConfigureAwait(false);
-        if (ticket.Action == AuthAction.SignIn)
-        {
-            // Persistence travels with the ticket: a "remember me" sign-in from a component gets the same
-            // browser-outliving cookie the /api/auth login endpoint writes.
-            await ctx.SignInAsync(
-                    scheme,
-                    ticket.Principal!,
-                    new AuthenticationProperties { IsPersistent = ticket.Persistent })
-                .ConfigureAwait(false);
-        }
-        else
-        {
-            await ctx.SignOutAsync(scheme).ConfigureAwait(false);
-        }
-
-        // The reconnect that follows carries this principal, not the session's owner, so let the hello
-        // admission check expect it (MayAttach). Opened here rather than when the handler issued the
-        // ticket: the client reconnects only once this response arrives, and tying the window to the
-        // redeem means only whoever holds the ticket can open it. A sign-out opened at issue time let
-        // any anonymous holder of the session id attach before the client had even redeemed (#1075).
-        if (ctx.RequestServices.GetService<LiveSessionStore>()?.Peek(ticket.SessionId) is { } handoffSession)
-        {
-            handoffSession.PendingAuthHandoff = ticket.Principal ?? new ClaimsPrincipal(new ClaimsIdentity());
-        }
-
-        ctx.Response.StatusCode = StatusCodes.Status200OK;
-    }
-
-    // The ticket and the session it was issued for; both null when the body is not JSON.
-    private static async Task<(string? TicketId, string? SessionId)> ReadRedeemRequestAsync(HttpContext ctx)
-    {
-        try
-        {
-            using var doc = await JsonDocument.ParseAsync(ctx.Request.Body, cancellationToken: ctx.RequestAborted).ConfigureAwait(false);
-            return (StringProperty(doc.RootElement, "ticket"), StringProperty(doc.RootElement, "session"));
-        }
-        catch (JsonException)
-        {
-            return (null, null);
-        }
     }
 
     // True when the request carries no Origin/Referer (same-origin fetches may omit Origin — the

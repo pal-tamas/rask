@@ -373,7 +373,7 @@ interface RaskFrameReply {
      */
     type?: string;
     /** An auth ticket the client must redeem before it can reconnect. Server transport only. */
-    auth?: { ticket?: string; url?: string };
+    auth?: { ticket?: string; returnUrl?: string; load?: boolean };
     /** Set on a frame completing a [JSInvokable] call, naming the call it answers. */
     callId?: string;
     success?: boolean;

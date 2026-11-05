@@ -148,4 +148,53 @@ public interface IAuth
     Task<AuthResult> RemovePasskey(Guid id) =>
         throw new NotSupportedException(
             "This host cannot run a passkey ceremony. Passkeys need a browser: use the Server or WebAssembly host.");
+
+    /// <summary>
+    /// Makes the signed-in administrator act in <paramref name="tenant" /> on this sign-in, then loads
+    /// <paramref name="returnUrl" /> as a fresh page in it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The choice is kept on the session, so it is bound to this sign-in: every request, a reconnect and the user's
+    /// other live pages carry it as the <c>rask:tenant</c> claim, and <c>Current.Tenant</c> answers it; signing out
+    /// drops it, and another device chooses for itself. A live page of the same sign-in in another tab works in the new
+    /// tenant from its next event, and renders again for it.
+    /// </para>
+    /// <para>
+    /// Refused with <see cref="AuthError.NotAllowed" /> for a user who belongs to a tenant, and for one without the
+    /// choosing role (<c>AuthOptions.ActInTenantRole</c>, the admin role by default).
+    /// </para>
+    /// <example>
+    /// <code>
+    /// Ui.Button.OnClick(() => auth.ActInTenant(partner.Id, returnUrl: "/orders"))["Work in this partner"]
+    /// </code>
+    /// </example>
+    /// </remarks>
+    /// <param name="tenant">The tenant's id.</param>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    /// <exception cref="NotSupportedException">The host keeps no sessions to choose on.</exception>
+    Task<AuthResult> ActInTenant(Guid tenant, string? returnUrl = null) =>
+        throw new NotSupportedException(NoTenantChoice);
+
+    /// <summary>
+    /// Makes the signed-in administrator act in the tenant numbered <paramref name="tenant" />, for an app whose
+    /// tenants are numbered. Otherwise exactly <see cref="ActInTenant(Guid, string?)" />.
+    /// </summary>
+    /// <param name="tenant">The tenant's number: the value its rows hold in <c>TenantId</c>.</param>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    /// <exception cref="NotSupportedException">The host keeps no sessions to choose on.</exception>
+    Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
+        throw new NotSupportedException(NoTenantChoice);
+
+    /// <summary>
+    /// Ends acting in the tenant <see cref="ActInTenant(Guid, string?)" /> chose: the administrator belongs to no tenant
+    /// again, on this sign-in, and lands on <paramref name="returnUrl" />.
+    /// </summary>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    /// <exception cref="NotSupportedException">The host keeps no sessions to choose on.</exception>
+    Task<AuthResult> LeaveTenant(string? returnUrl = null) =>
+        throw new NotSupportedException(NoTenantChoice);
+
+    private const string NoTenantChoice =
+        "This host keeps no sign-in sessions to choose a tenant on. Rask.Auth does, on the Server and WebAssembly hosts.";
 }

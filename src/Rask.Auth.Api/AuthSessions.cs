@@ -47,7 +47,7 @@ internal sealed class AuthSessions<TContext, TUser>(
             (from s in db.Set<Session>().AsNoTracking()
              join u in db.Set<TUser>().AsNoTracking() on s.UserId equals u.Id
              where s.Id == sessionId
-             select new Row(u, s.ExpiresAt, s.LastSeenAt)).FirstOrDefault());
+             select new Row(u, s.ExpiresAt, s.LastSeenAt, s.ActingInTenant)).FirstOrDefault());
 
     // What each principal handed out was built from, for as long as somebody holds it: a live page asks about the
     // one it holds, and is handed that same one back while its user's row still says what it said. Not a cache —
@@ -65,7 +65,7 @@ internal sealed class AuthSessions<TContext, TUser>(
             return null;
         }
 
-        return _issued.TryGetValue(held, out var issued) && issued.StillSays(row.User) ? held : Issue(row, sessionId);
+        return _issued.TryGetValue(held, out var issued) && issued.StillSays(row.User, ActingIn(row)) ? held : Issue(row, sessionId);
     }
 
     // The session's row and its user's, or null when the session has ended, expired, or its user is gone.
@@ -131,15 +131,42 @@ internal sealed class AuthSessions<TContext, TUser>(
     }
 
     // TenantId rides along so a restored session filters for the same tenant the sign-in did, and the account's
-    // own claims so it is the principal the sign-in issued.
+    // own claims so it is the principal the sign-in issued. A user of no tenant who may choose one carries the
+    // tenant this session chose instead.
     private ClaimsPrincipal Issue(Row row, Guid sessionId)
     {
-        var issued = Issued.From(row.User);
+        var issued = Issued.From(row.User, ActingIn(row));
         var principal = AuthPrincipal.For(
-            row.User.Id, issued.Email, issued.Roles, sessionId, issued.TenantId, issued.OwnClaims);
+            row.User.Id, issued.Email, issued.Roles, sessionId, issued.TenantId ?? issued.ActingIn, issued.OwnClaims);
         _issued.Add(principal, issued);
 
         return principal;
+    }
+
+    // The tenant the session chose, while its user still may: belongs to none, and holds the choosing role.
+    private Guid? ActingIn(Row row) =>
+        row.ActingInTenant is { } chosen && TenantChoice.MayChoose(row.User, options) ? chosen : null;
+
+    public async Task<bool> ActInTenantAsync(Guid sessionId, Guid? tenant, CancellationToken cancellationToken = default)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using (db.ConfigureAwait(false))
+        {
+            // The soft-delete filter applies, so an ended session is not given a tenant back.
+            var session = await db.Set<Session>()
+                .FirstOrDefaultAsync(s => s.Id == sessionId && s.ExpiresAt > now, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (session is null)
+            {
+                return false;
+            }
+
+            session.ActIn(tenant);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
     }
 
     public async Task EndAsync(Guid sessionId, CancellationToken cancellationToken = default)
@@ -181,16 +208,18 @@ internal sealed class AuthSessions<TContext, TUser>(
         }
     }
 
-    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt);
+    private sealed record Row(TUser User, DateTime ExpiresAt, DateTime LastSeenAt, Guid? ActingInTenant);
 
     // Everything of a user's row that reaches their principal.
-    private sealed record Issued(string Email, string[] Roles, Guid? TenantId, OwnClaim[] OwnClaims)
+    private sealed record Issued(string Email, string[] Roles, Guid? TenantId, Guid? ActingIn, OwnClaim[] OwnClaims)
     {
-        internal static Issued From(TUser user) => new(user.Email, [.. user.Roles], user.TenantId, user.OwnClaims());
+        internal static Issued From(TUser user, Guid? actingIn) =>
+            new(user.Email, [.. user.Roles], user.TenantId, actingIn, user.OwnClaims());
 
-        internal bool StillSays(TUser user) =>
+        internal bool StillSays(TUser user, Guid? actingIn) =>
             string.Equals(Email, user.Email, StringComparison.Ordinal)
             && TenantId == user.TenantId
+            && ActingIn == actingIn
             && Roles.AsSpan().SequenceEqual([.. user.Roles])
             && OwnClaims.AsSpan().SequenceEqual(user.OwnClaims());
     }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -52,6 +53,7 @@ public static class RaskAuthEndpointExtensions
         group.MapPost(AuthApi.ForgotPassword, ForgotPasswordAsync);
         group.MapPost(AuthApi.ResetPassword, ResetPasswordAsync);
         group.MapPost(AuthApi.ConfirmEmail, ConfirmEmailAsync);
+        group.MapPost(AuthApi.Tenant, ActInTenantAsync);
 
         if (options.Passkeys)
         {
@@ -140,6 +142,47 @@ public static class RaskAuthEndpointExtensions
         await accounts.SignOutEverywhereAsync(context.User, cancellationToken).ConfigureAwait(false);
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme).ConfigureAwait(false);
         return Results.NoContent();
+    }
+
+    /// <summary>
+    /// Chooses the tenant the caller acts in on this sign-in. <c>204</c>; <c>401</c> for nobody; <c>403</c> for a caller
+    /// who may not choose, or a request another site made; <c>400</c> for a value that names no tenant.
+    /// </summary>
+    /// <remarks>
+    /// Same-origin only. The required header already keeps cross-site markup out; a browser's <c>Sec-Fetch-Site</c>
+    /// also keeps out another origin an app's CORS policy lets send headers, because switching the tenant an
+    /// administrator reads and writes in is not something another site does for them. A caller that sends no
+    /// <c>Sec-Fetch-Site</c> is not a browser, and carries its credential deliberately.
+    /// </remarks>
+    private static async Task<IResult> ActInTenantAsync(
+        HttpContext context, ActInTenantRequest request, IAccounts accounts, CancellationToken cancellationToken)
+    {
+        if (!HasRequestHeader(context))
+        {
+            return MissingRequestHeader();
+        }
+
+        if (!TenantChoosing.FromThisSite(context.Request))
+        {
+            return Refuse(
+                AuthResult.Fail(AuthError.NotAllowed, "The tenant is chosen only from this app's own pages."),
+                StatusCodes.Status403Forbidden);
+        }
+
+        if (context.User.Identity?.IsAuthenticated != true)
+        {
+            return Results.Unauthorized();
+        }
+
+        if (!TenantChoosing.TryRead(request.Tenant, out var tenant))
+        {
+            return Refuse(
+                AuthResult.Fail(AuthError.NotAllowed, "The tenant is a Guid or a number from one up."),
+                StatusCodes.Status400BadRequest);
+        }
+
+        var result = await accounts.ActInTenantAsync(context.User, tenant, cancellationToken).ConfigureAwait(false);
+        return result.Succeeded ? Results.NoContent() : Refuse(result, StatusCodes.Status403Forbidden);
     }
 
     /// <summary>Emails a reset link. Answers the same way whether or not the address has an account.</summary>

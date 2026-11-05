@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Text order is applied in the `ORDER BY` only, never to a column (#1290).** Before (nightly only):
+  `c.TextOrder("Hungarian_100_CI_AS")` gave every string column that collation on SQL Server — a schema migration on
+  every text column, and searches changed with it (under the Hungarian collation `c` no longer found `Csaba`). After:
+  `c.OrderTextBy("Hungarian_100_CI_AS")` names the order once and `OrderBy(x => x.Name.InTextOrder())` asks for it —
+  `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` on SQL Server, the column as it is on every other database; columns,
+  migrations and `Where` are untouched.
 - **A hosted Blazor `<EditForm>` submits (#1195).** Before: `@onsubmit` inside a `BlazorComponent<T>` rendered no
   attribute, so an `EditForm` never submitted and `OnValidSubmit`/`OnInvalidSubmit`/`OnSubmit` never ran. After: the
   form renders with `data-rask-on-submit` and its submit rides Rask's form channel into the hosted component, which
@@ -116,6 +122,46 @@ them until tagged releases begin.
   `Dir == UiTable.Descending`, `Page ?? 1`, and the new public `UiPaginator.DefaultPerPage` (15). Not Flux's — approved
   2026-11-04; demo at rask.sh/ui/table ("A list page"). In Rask.Testing, a page that navigates with no dispatch behind
   it (a hook past an await, a render nothing dispatched) now moves as a live session moves it, instead of throwing.
+- **A session cookie for the app's own token, and a sign-in handover any scheme can serve (#1286).** Before: the
+  relay behind `IAuthSignIn.SignIn(principal)` ended in `SignInAsync`, which a JWT bearer scheme or a handler that
+  looks a session row up cannot serve, so each such app kept its own ticket table, a `/login/enter` endpoint that set
+  the cookie, a local-address check and its own ticket life (30 s in one app, 60 s in another). After:
+  `builder.Services.AddRaskCookieSession(o => o.Name = "token")` (or `Rask:CookieSession`: `Name`, `Domain`,
+  `Lifetime`) and, in the handler that checked the password, `await Auth.SignInWithToken(token, ReturnUrl)`. The
+  browser redeems a single-use, 30-second ticket bound to its live session with a same-origin `POST` (another
+  origin, or a `Sec-Fetch-Site` other than `same-origin`, is refused before the ticket is touched), the `no-store`
+  answer writes an `HttpOnly`, `Secure`, `SameSite=Lax` cookie at `Path=/`, and the page loads at `ReturnUrl`, which
+  another origin turns into `/`. `Auth.SignOut()` clears the cookie, and on a host with no `IAuth` signs out through
+  the session alone; `Auth.SignIn(principal, returnUrl)` reaches `IAuthSignIn` with nothing injected. Every redeem
+  answer is `no-store` now and refuses a cross-site `Sec-Fetch-Site`. See
+  [Your own token, in a session cookie](docs/authentication.md#your-own-token-in-a-session-cookie).
+- **An app with its own sign-in lets an admin choose a tenant too: `app.MapRaskTenantChoice(find, onChosen)` (#1280).**
+  Before: an app that signs users in itself (a refresh-token cookie, a JWT) kept its own `PartnerChoice`: a
+  `GET /partner/{id}` behind a hand-written `Sec-Fetch-Site` check and an admin policy, which wrote a "chosen
+  partner" cookie or reissued the token. After: `app.MapRaskTenantChoice(find: (Guid id, HttpContext http) => …,
+  onChosen: (http, partner) => …)` (or `find: (long id, …)` for numbered tenants) — Rask owns `POST /api/tenant`
+  (`TenantChoiceOptions.Path`) and the rules Rask.Auth's choice keeps (the `X-Rask-Auth` header, `403` for a
+  cross-site `Sec-Fetch-Site`, a signed-in user holding `TenantChoiceOptions.Role` (admin) who does not
+  `BelongsToTenant`), reads a `Guid` or a number, refuses an id `find` does not know (`400`), and hands the app the
+  tenant — `null` when the admin leaves — to write where its sign-in lives. A live page calls
+  `Auth.ActInTenant(id, returnUrl)` / `Auth.LeaveTenant()` exactly as with Rask.Auth: the choice reaches `onChosen`
+  on the browser's own request through the sign-in relay, and the page loads again in the tenant. See
+  [With your own sign-in](docs/multi-tenancy.md#with-your-own-sign-in).
+- **An administrator acts in a tenant for the whole sign-in: `await auth.ActInTenant(partnerId)` (#1280).**
+  Before: an admin who belongs to no tenant had to open `Tenant.Use(id)` around every piece of work, or an app kept
+  its own "chosen partner" cookie tied to the sign-in, its own `GET /partner/{id}` behind a `Sec-Fetch-Site` check,
+  and a resolver reading it back. After: `auth.ActInTenant(id, returnUrl)` (a `Guid` or a tenant's number;
+  `auth.LeaveTenant()` to stop, also on the static `Auth`) records the tenant on the sign-in's `Session` row
+  (`Session.ActingInTenant`), and the principal rebuilt from it carries it as the `rask:tenant` claim — so
+  `Current.Tenant` answers it on the next request, after a reconnect and in a bearer token of the same sign-in;
+  signing out ends the row and the choice with it, and another device chooses for itself. The user's other open
+  live pages work in it from their next event and render again (rows loaded before stay refused for writes in the
+  new tenant). Only a user of no tenant who holds `AuthOptions.ActInTenantRole` (`admin` by default; `null` turns
+  it off) may choose, re-checked from the user's row at every request. WebAssembly and TypeScript front ends call
+  `POST /api/auth/tenant` with `{ "tenant": "…" }` (`AuthApi.Tenant`, `ActInTenantRequest`), which needs the
+  `X-Rask-Auth` header and answers `403` to a browser request another site sent (`Sec-Fetch-Site` other than
+  `same-origin`). **Migration:** `RaskAuthSession` gets a nullable `ActingInTenant` column — `rask db add
+  AddActingInTenant`.
 - **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` keeps a live page's
   revalidation answer a few seconds and forgets it when the user is saved (#1287).** Before: an app whose
   `ISessionRevalidator` read its own users on every click wrote its own cache and a `SaveChangesInterceptor` that
@@ -133,8 +179,10 @@ them until tagged releases begin.
   `Clock.Now` — so a frozen test clock moves them too, across a summer-time change. `Format.Day(x)`,
   `Format.Moment(x)` and `Format.Number(x)` / `Format.Number(x, decimals)` write a value in the visitor's culture
   (`2026. 10. 09.`, `2026. 10. 09. 14:35`, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
-  `c.TextOrder("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` gives every text column that collation on
-  SQL Server (an explicit `UseCollation` wins; other databases are left as they were), and `TextOrder.In("hu")` /
+  `c.OrderTextBy("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` names the database's order once, and
+  `OrderBy(x => x.Name.InTextOrder())` writes `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` on SQL Server — in the
+  `ORDER BY` only, never on a column: no migration, and a `Where` compares as it did (other databases order by the
+  column as it is); `TextOrder.In("hu")` /
   `TextOrder.Current` order a list in memory as the language does — `Cu` before `Cs`, `O` before `Ö`. An app that
   keeps its own `Format` class and imports its namespace beside `Rask` names one of the two (CS0104).
 - **`Rules.Text(value, max)`, `Rules.Optional`, `Rules.Given`, `Rules.Required`, `Rules.TooLong(max)` — a form's
@@ -840,6 +888,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A `Ui.Chart` with dates down to their first and last label keeps the first clear of the left edge, as Flux's does
+  (#1260).** Before: neither end held the plot in, so a first tick on the first row hung half its label past the
+  gutter (Flux's phone area chart, on a load whose first hour fell on the first point: 14.7px). The last label still
+  hangs past the right edge, as Flux's does.
 - **Escape in `Ui.Editor`'s link panel gives focus back to the link button, as Flux's does (#1260).** Before: it
   always went into the document. Measured on Flux: a mouse press or Enter/Space on the button gets focus back on
   Escape; a tap still leaves it in the document (Flux's tooltip is showing after a tap), and the ⌘K shortcut still

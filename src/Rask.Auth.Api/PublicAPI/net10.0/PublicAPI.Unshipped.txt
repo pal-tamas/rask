@@ -412,3 +412,8 @@ static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).SingleOrDefault
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).Single(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead!>!
 static Rask.Auth.SessionReadAccess.extension(Rask.Auth.Session!).SingleOrDefault(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Auth.SessionRead?>!
 static Rask.Auth.SessionReadAccess.get_All() -> Rask.Data.ModelQuery<Rask.Auth.SessionRead!>!
+Rask.Auth.AuthOptions.ActInTenantRole.get -> string?
+Rask.Auth.AuthOptions.ActInTenantRole.set -> void
+Rask.Auth.Session.ActingInTenant.get -> System.Guid?
+Rask.Auth.SessionRead.ActingInTenant.get -> System.Guid?
+Rask.Auth.SessionRead.ActingInTenant.init -> void

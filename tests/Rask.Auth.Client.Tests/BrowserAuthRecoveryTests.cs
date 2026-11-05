@@ -150,6 +150,39 @@ public sealed class BrowserAuthRecoveryTests
         Assert.Contains(id.ToString(), handler.LastBody, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task Acting_in_a_tenant_posts_it_and_lands_where_it_was_sent()
+    {
+        var handler = new StubHandler(HttpStatusCode.NoContent);
+        var auth = Auth(handler, out _);
+        var state = new RouteState();
+        var tenant = Guid.NewGuid();
+
+        AuthResult result;
+        using (new Navigator(state).EnterHandler())
+        {
+            result = await auth.ActInTenant(tenant, "/orders");
+        }
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("/api/auth/tenant", handler.LastPath);
+        Assert.Contains(tenant.ToString(), handler.LastBody, StringComparison.Ordinal);
+        Assert.Equal("/orders", state.Path);
+    }
+
+    [Fact]
+    public async Task A_refused_tenant_choice_stays_where_it_is()
+    {
+        var handler = new StubHandler(HttpStatusCode.Forbidden, """{"error":"NotAllowed","message":"no"}""");
+        var auth = Auth(handler, out var users);
+
+        var result = await auth.ActInTenant(42, "/orders");
+
+        Assert.Equal(AuthError.NotAllowed, result.Error);
+        Assert.Contains("\"42\"", handler.LastBody, StringComparison.Ordinal);
+        Assert.Equal(0, users.Refreshes);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
