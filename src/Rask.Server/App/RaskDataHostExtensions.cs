@@ -28,7 +28,8 @@ namespace Rask.Server;
 ///         A <c>RaskApp</c> does all of this itself and calls neither. What it does that these do NOT: it
 ///         chooses the database from <c>Rask:Database</c>, and it applies pending migrations as it starts.
 ///         Here the database is whatever the callback says, and nothing creates, migrates or checks a table —
-///         which is what an app whose schema is owned elsewhere needs.
+///         which is what an app whose schema is owned elsewhere needs — until <c>.OwnsSchema(…)</c> says the context's
+///         migrations own it.
 ///     </para>
 /// </remarks>
 public static class RaskDataHostExtensions
@@ -40,7 +41,10 @@ public static class RaskDataHostExtensions
     /// <typeparam name="TContext">The application's context — derive it from <see cref="RaskDbContext" />.</typeparam>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Chooses the provider and the connection — <c>o =&gt; o.UseSqlServer(…)</c>.</param>
-    /// <returns>The same service collection.</returns>
+    /// <returns>
+    ///     The steps that say more about <typeparamref name="TContext" /> — <c>.OwnsSchema(…)</c> to apply its migrations
+    ///     as the host starts.
+    /// </returns>
     /// <remarks>
     ///     <para>What it registers, each of which a hand-wired host otherwise writes or goes without:</para>
     ///     <list type="bullet">
@@ -55,7 +59,7 @@ public static class RaskDataHostExtensions
     ///         not add Rask's interceptors itself.
     ///     </para>
     /// </remarks>
-    public static IServiceCollection AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
+    public static DataBuilder<TContext> AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         this IServiceCollection services, Action<DbContextOptionsBuilder> configure)
         where TContext : DbContext
     {
@@ -71,8 +75,8 @@ public static class RaskDataHostExtensions
     /// <typeparam name="TContext">The application's context — derive it from <see cref="RaskDbContext" />.</typeparam>
     /// <param name="services">The service collection.</param>
     /// <param name="configure">Chooses the provider and the connection, given the application's services.</param>
-    /// <returns>The same service collection.</returns>
-    public static IServiceCollection AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
+    /// <returns>The steps that say more about <typeparamref name="TContext" />, as the overload above.</returns>
+    public static DataBuilder<TContext> AddRaskData<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         this IServiceCollection services, Action<IServiceProvider, DbContextOptionsBuilder> configure)
         where TContext : DbContext
     {
@@ -99,7 +103,7 @@ public static class RaskDataHostExtensions
         // every DbContextOptions<T> in the container, and this context has no schema to be asked about.
         services.TryAddSingleton<IDbContextFactory<RaskReadDbContext>>(sp => new ReadContextFactory(sp, configure));
 
-        return services;
+        return new DataBuilder<TContext>(services);
     }
 
     /// <summary>

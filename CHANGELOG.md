@@ -104,6 +104,14 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A hand-wired host's migrations own its schema in one line, and take over a database that predates them (#1282).**
+  Before: `AddRaskData<TContext>(…)` never migrated, so an app moving onto Rask (TA, Eszaf) carried a `SchemaOwner` of
+  its own — `sp_getapplock`, an `OBJECT_ID` check, a hand-built `__EFMigrationsHistory` row, `SetCommandTimeout` —
+  called after `Build()`. After: `builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(c)).OwnsSchema(s =>
+  s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes))`. As the host starts it takes EF
+  Core's migration lock (any provider, SQLite included), writes the first migration down as applied when the database
+  already has its schema, then applies the rest with that command timeout; a fresh database is made as usual.
+  `AddRaskData<TContext>(o => …)` now returns `DataBuilder<TContext>` (`.Services` for the collection).
 - **`AddRask(culture: "hu")` — a single-language server app's culture in one line (#1289).** Before, a hand-wired host
   wrote `AddRask(configureCulture: c => { c.SupportedCultures.Add("hu"); c.DefaultCulture = "hu"; })`. After:
   `builder.Services.AddRask(culture: "hu")` — the language joins `Rask:Cultures` and becomes the default, so every

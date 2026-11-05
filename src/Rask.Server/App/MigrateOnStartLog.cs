@@ -12,4 +12,8 @@ internal static partial class MigrateOnStartLog
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Applying {Count} migration(s) to the database: {Migrations}")]
     public static partial void Applying(ILogger logger, int count, string migrations);
+
+    [LoggerMessage(Level = LogLevel.Information, Message =
+        "The database already had the schema {Context}'s migrations start from, so {Baseline} is written down as applied.")]
+    public static partial void TakenOver(ILogger logger, string context, string baseline);
 }
