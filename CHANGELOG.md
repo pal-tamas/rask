@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **Text order is applied in the `ORDER BY` only, never to a column (#1290).** Before (nightly only):
+  `c.TextOrder("Hungarian_100_CI_AS")` gave every string column that collation on SQL Server — a schema migration on
+  every text column, and searches changed with it (under the Hungarian collation `c` no longer found `Csaba`). After:
+  `c.OrderTextBy("Hungarian_100_CI_AS")` names the order once and `OrderBy(x => x.Name.InTextOrder())` asks for it —
+  `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` on SQL Server, the column as it is on every other database; columns,
+  migrations and `Where` are untouched.
 - **A hosted Blazor `<EditForm>` submits (#1195).** Before: `@onsubmit` inside a `BlazorComponent<T>` rendered no
   attribute, so an `EditForm` never submitted and `OnValidSubmit`/`OnInvalidSubmit`/`OnSubmit` never ran. After: the
   form renders with `data-rask-on-submit` and its submit rides Rask's form channel into the hosted component, which
@@ -161,8 +167,10 @@ them until tagged releases begin.
   `Clock.Now` — so a frozen test clock moves them too, across a summer-time change. `Format.Day(x)`,
   `Format.Moment(x)` and `Format.Number(x)` / `Format.Number(x, decimals)` write a value in the visitor's culture
   (`2026. 10. 09.`, `2026. 10. 09. 14:35`, `24 000`, `1 764,6` in Hungarian), a UTC moment on the wall clock.
-  `c.TextOrder("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` gives every text column that collation on
-  SQL Server (an explicit `UseCollation` wins; other databases are left as they were), and `TextOrder.In("hu")` /
+  `c.OrderTextBy("Hungarian_100_CI_AS")` in an `IRaskModel`'s `Conventions` names the database's order once, and
+  `OrderBy(x => x.Name.InTextOrder())` writes `ORDER BY [Name] COLLATE Hungarian_100_CI_AS` on SQL Server — in the
+  `ORDER BY` only, never on a column: no migration, and a `Where` compares as it did (other databases order by the
+  column as it is); `TextOrder.In("hu")` /
   `TextOrder.Current` order a list in memory as the language does — `Cu` before `Cs`, `O` before `Ö`. An app that
   keeps its own `Format` class and imports its namespace beside `Rask` names one of the two (CS0104).
 - **`Rules.Text(value, max)`, `Rules.Optional`, `Rules.Given`, `Rules.Required`, `Rules.TooLong(max)` — a form's

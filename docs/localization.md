@@ -296,8 +296,9 @@ var names = drivers.Select(d => d.Name).Order(TextOrder.Current);   // the visit
 var rows  = rows.OrderBy(r => r.Name, TextOrder.In("hu"));          // a named one
 ```
 
-A query orders by the column's collation instead, which the model states once — `c.TextOrder("Hungarian_100_CI_AS")`
-in its `IRaskModel` (see [Data](data.md#app-wide-model-rules-one-iraskmodel)).
+A query orders in the database's order instead: the model names the collation once — `c.OrderTextBy("Hungarian_100_CI_AS")`
+in its `IRaskModel` — and a query asks for it with `OrderBy(d => d.Name.InTextOrder())`. Only that `ORDER BY` changes;
+the columns and every `Where` stay as they were (see [Data](data.md#app-wide-model-rules-one-iraskmodel)).
 
 ## What stays culture-neutral, on purpose
 
