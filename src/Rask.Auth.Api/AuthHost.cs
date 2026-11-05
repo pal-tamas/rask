@@ -25,7 +25,7 @@ namespace Rask.Auth;
 ///         drift.
 ///     </para>
 ///     <para>
-///         Generic rather than reflective on purpose: <see cref="IAuthHostServices.Register{TUser}" />
+///         Generic rather than reflective on purpose: <see cref="IAuthHostServices.Register{TUser, TKey}" />
 ///         is handed the closed user type, so nothing here needs <c>MakeGenericType</c> and the
 ///         trimmer can see every construction it has to keep.
 ///     </para>

@@ -90,7 +90,7 @@ public sealed class TenantAccountTests
         // The tenant is an OUTCOME of authentication, not an input to routing: sign-in finds the user, and
         // the user says which tenant they are in. So it rides on the principal, and the data layer reads it
         // back off the claim rather than being handed it.
-        var principal = AuthPrincipal.For(user);
+        var principal = AuthPrincipal.For(user, user.Email);
 
         Assert.Equal(_acme, AuthPrincipal.TenantId(principal));
         Assert.Equal(_acme.ToString(), principal.FindFirst(Tenant.ClaimType)?.Value);
@@ -107,7 +107,7 @@ public sealed class TenantAccountTests
 
         // No claim, so a tenant-scoped read throws until they choose a tenant to work in. That is the
         // intended behaviour: an admin should say which tenant they are acting in, not silently read across.
-        var principal = AuthPrincipal.For(admin);
+        var principal = AuthPrincipal.For(admin, admin.Email);
 
         Assert.Null(AuthPrincipal.TenantId(principal));
         Assert.Null(principal.FindFirst(Tenant.ClaimType));
@@ -144,7 +144,7 @@ public sealed class TenantAccountTests
     private static async Task<AuthResult> SignInAsync(AuthHarness harness, string email)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return (await accounts.ValidateAsync(email, Password, null)).Result;
     }
 

@@ -29,11 +29,28 @@ public static class AuthModelBuilderExtensions
     /// <param name="modelBuilder">The model builder.</param>
     /// <returns>The same model builder.</returns>
     public static ModelBuilder AddRaskAuth<TUser>(this ModelBuilder modelBuilder)
-        where TUser : Authenticatable
+        where TUser : Authenticatable =>
+        modelBuilder.AddRaskAuth<TUser, Guid>();
+
+    /// <summary>
+    /// Maps the accounts for a named user type and key, when an app would rather say which than let the generator find
+    /// them: <c>modelBuilder.AddRaskAuth&lt;User, string&gt;()</c>.
+    /// </summary>
+    /// <typeparam name="TUser">The application's user aggregate.</typeparam>
+    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
+    /// <param name="modelBuilder">The model builder.</param>
+    /// <returns>The same model builder.</returns>
+    /// <exception cref="NotSupportedException"><typeparamref name="TKey" /> is neither.</exception>
+    /// <exception cref="InvalidOperationException">The user type's <see cref="SignInNameAttribute">[SignInName]</see> cannot be one.</exception>
+    public static ModelBuilder AddRaskAuth<TUser, TKey>(this ModelBuilder modelBuilder)
+        where TUser : Authenticatable<TKey>
+        where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
+        AccountKey<TKey>.Require(typeof(TUser));
+        AccountName<TUser, TKey>.Require();
 
-        modelBuilder.Entity<TUser>(MapUser);
+        modelBuilder.Entity<TUser>(MapUser<TUser, TKey>);
         modelBuilder.Entity<Session>(MapSession);
         modelBuilder.Entity<Passkey>(MapPasskey);
 
@@ -43,8 +60,9 @@ public static class AuthModelBuilderExtensions
         return modelBuilder;
     }
 
-    private static void MapUser<TUser>(EntityTypeBuilder<TUser> b)
-        where TUser : Authenticatable
+    private static void MapUser<TUser, TKey>(EntityTypeBuilder<TUser> b)
+        where TUser : Authenticatable<TKey>
+        where TKey : notnull
     {
         // Unique on the normalized address WITHIN A TENANT: this is what makes "already registered" a
         // database guarantee rather than a check-then-insert race between two registrations arriving
@@ -63,8 +81,21 @@ public static class AuthModelBuilderExtensions
         // behaves the same on all three.
         b.Property(u => u.TenantId);
         b.Property<Guid>(Columns.TenantKey);
-        b.HasIndex(Columns.TenantKey, nameof(Authenticatable.Email)).IsUnique();
         b.Property(u => u.Email).HasMaxLength(256).IsRequired();
+
+        // An account that signs in by name holds the same guarantee on its name instead, and has no address: every row's
+        // Email is empty, so a unique index on it would let exactly one account exist. Declared by type and name, as
+        // its conversion — a value object such as Username — is the conventions' to add, which run after this.
+        if (AccountName<TUser, TKey>.Property is { } name)
+        {
+            b.Property(name.PropertyType, name.Name).IsRequired();
+            b.HasIndex(Columns.TenantKey, name.Name).IsUnique();
+        }
+        else
+        {
+            b.HasIndex(Columns.TenantKey, nameof(Authenticatable.Email)).IsUnique();
+        }
+
         b.Property(u => u.PasswordHash).HasMaxLength(256).IsRequired();
         b.PrimitiveCollection(u => u.Roles);
     }

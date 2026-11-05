@@ -43,12 +43,13 @@ internal sealed class RaskAuthHostServices : IAuthHostServices
     internal static void Register() => AuthHost.Services = new RaskAuthHostServices();
 
     /// <inheritdoc />
-    public void Register<TUser>(IServiceCollection services)
-        where TUser : Authenticatable, new()
+    public void Register<TUser, TKey>(IServiceCollection services)
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(services);
 
-        services.TryAddScoped<IAuth, ServerAuth<TUser>>();
+        services.TryAddScoped<IAuth, ServerAuth<TUser, TKey>>();
 
         // What lets a page that stays open learn its session ended elsewhere. See ISessionRevalidator.
         services.TryAddSingleton<ISessionRevalidator, SessionRevalidator>();

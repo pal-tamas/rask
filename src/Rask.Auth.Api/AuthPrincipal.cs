@@ -12,18 +12,34 @@ internal static class AuthPrincipal
     /// <summary>The authentication type of every principal Rask.Auth issues.</summary>
     internal const string AuthenticationType = "Rask.Auth";
 
-    /// <summary>A principal for <paramref name="user" />, carrying <paramref name="sessionId" /> when there is one.</summary>
-    internal static ClaimsPrincipal For(Authenticatable user, Guid? sessionId = null) =>
-        For(user.Id, user.Email, user.Roles, sessionId, user.TenantId, user.OwnClaims());
+    /// <summary>
+    /// A principal for <paramref name="user" />, named <paramref name="name" /> — what it signs in with — and carrying
+    /// <paramref name="sessionId" /> when there is one.
+    /// </summary>
+    internal static ClaimsPrincipal For<TKey>(Authenticatable<TKey> user, string name, Guid? sessionId = null)
+        where TKey : notnull =>
+        For(user.AccountId, name, user.Email, user.Roles, sessionId, user.TenantId, user.OwnClaims());
 
+    /// <summary>A principal from the parts of an account that reach it.</summary>
+    /// <param name="userId">The account, as the Guid Rask carries it.</param>
+    /// <param name="name">What the account signs in with: its address, or its user name.</param>
+    /// <param name="email">Its address; empty for an account that has none, which then carries no email claim.</param>
+    /// <param name="roles">Its roles.</param>
+    /// <param name="sessionId">The session row, when there is one.</param>
+    /// <param name="tenantId">The tenant it is in, when it is in one.</param>
+    /// <param name="ownClaims">The claims the account gives for itself.</param>
     internal static ClaimsPrincipal For(
-        Guid userId, string email, IEnumerable<string> roles, Guid? sessionId, Guid? tenantId = null,
+        Guid userId, string name, string email, IEnumerable<string> roles, Guid? sessionId, Guid? tenantId = null,
         IReadOnlyList<OwnClaim>? ownClaims = null)
     {
         var identity = new ClaimsIdentity(AuthenticationType, ClaimTypes.Name, ClaimTypes.Role);
         identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, userId.ToString()));
-        identity.AddClaim(new Claim(ClaimTypes.Name, email));
-        identity.AddClaim(new Claim(ClaimTypes.Email, email));
+        identity.AddClaim(new Claim(ClaimTypes.Name, name));
+
+        if (email.Length > 0)
+        {
+            identity.AddClaim(new Claim(ClaimTypes.Email, email));
+        }
 
         foreach (var role in roles)
         {

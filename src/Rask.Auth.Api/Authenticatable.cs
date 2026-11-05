@@ -4,9 +4,26 @@ using Rask.Data;
 namespace Rask.Auth;
 
 /// <summary>
-/// The base class of the application's <c>User</c>: the credentials Rask.Auth needs, on an aggregate the app owns.
+/// The base class of the application's <c>User</c>, keyed by a <typeparamref name="TKey" />: the credentials Rask.Auth
+/// needs, on an aggregate the app owns.
 /// </summary>
+/// <typeparam name="TKey">
+/// The key: a <see cref="Guid" />, or a <see cref="string" /> holding one in the form <c>Guid.ToString()</c> writes — the
+/// shape a users table another framework made often has. Rask carries the signed-in user as that <see cref="Guid" />
+/// (<c>Current.UserId</c>, a session's <c>UserId</c>, the events), so any other key is refused when the app starts.
+/// </typeparam>
 /// <remarks>
+/// <para>
+/// Most apps derive from <see cref="Authenticatable" />, which is this keyed by a <see cref="Guid" />. Derive from this one
+/// for a users table keyed by text, and mark the property people sign in with
+/// <see cref="SignInNameAttribute">[SignInName]</see> when it is not the address:
+/// <code>
+/// public sealed class User : Authenticatable&lt;string&gt;
+/// {
+///     [SignInName] public Username Username { get; private set; }
+/// }
+/// </code>
+/// </para>
 /// <para>
 /// An app declares one type deriving from it (<c>rask new</c> writes <c>public sealed class User : Authenticatable</c>
 /// into <c>Features/Shared</c>), and adds its own columns beside these. A source generator finds it, so
@@ -22,9 +39,13 @@ namespace Rask.Auth;
 /// are the app's to change: <c>User.Update(id, u =&gt; u.GrantRole("editor"))</c>.
 /// </para>
 /// </remarks>
-public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>, IUser
+public abstract class Authenticatable<TKey> : Aggregate<TKey, Timestamps, Versioned, Model, Deletable>, IUser
+    where TKey : notnull
 {
-    /// <summary>The sign-in address, trimmed and lower-cased. Unique.</summary>
+    /// <summary>
+    /// The address, trimmed and lower-cased. What the account signs in with, and unique — unless a property of the app's
+    /// says <see cref="SignInNameAttribute">[SignInName]</see>, when it is empty: such an account has no address.
+    /// </summary>
     public string Email { get; private set; } = "";
 
     // The password hash. Internal, so nothing that serializes a User's public properties (an API response, an island
@@ -119,21 +140,16 @@ public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, M
         return [.. claims];
     }
 
-    /// <summary>Normalizes an address the way <see cref="Email" /> stores it.</summary>
-    /// <param name="email">The address as typed.</param>
-    /// <returns>The trimmed, lower-cased address.</returns>
-    public static string NormalizeEmail(string email)
-    {
-        ArgumentNullException.ThrowIfNull(email);
-        return email.Trim().ToLowerInvariant();
-    }
+    /// <summary>The <see cref="Guid" /> Rask carries this account as: its key, or the one its text key holds.</summary>
+    internal Guid AccountId => AccountKey<TKey>.Of(Id);
 
-    internal void Register(string email, string passwordHash, DateTime now)
+    // Empty for an account that signs in by name: the app's own setter (IAuth.Register's apply) has written the name.
+    internal void Register(string email, string passwordHash)
     {
-        Id = Guid.CreateVersion7();
-        Email = NormalizeEmail(email);
+        Id = AccountKey<TKey>.New();
+        Email = email.Length == 0 ? "" : Authenticatable.NormalizeEmail(email);
         PasswordHash = passwordHash;
-        Raise(new UserRegistered(Id, Email));
+        Raise(new UserRegistered(AccountId, Email));
     }
 
     internal void ChangePasswordHash(string passwordHash, DateTime now)
@@ -150,13 +166,33 @@ public abstract class Authenticatable : Aggregate<Guid, Timestamps, Versioned, M
         if (EmailConfirmedAt is null)
         {
             EmailConfirmedAt = now;
-            Raise(new EmailConfirmed(Id, Email));
+            Raise(new EmailConfirmed(AccountId, Email));
         }
     }
 
     internal void ResetPassword(string passwordHash, DateTime now)
     {
         ChangePasswordHash(passwordHash, now);
-        Raise(new PasswordReset(Id));
+        Raise(new PasswordReset(AccountId));
+    }
+}
+
+/// <summary>
+/// The base class of the application's <c>User</c>: the credentials Rask.Auth needs, on an aggregate the app owns, keyed
+/// by a <see cref="Guid" /> and signing in with its address.
+/// </summary>
+/// <remarks>
+/// What <c>rask new</c> writes: <c>public sealed class User : Authenticatable</c>. Every member is
+/// <see cref="Authenticatable{TKey}" />'s; a users table keyed by text derives from that one instead.
+/// </remarks>
+public abstract class Authenticatable : Authenticatable<Guid>
+{
+    /// <summary>Normalizes an address the way <see cref="Authenticatable{TKey}.Email" /> stores it.</summary>
+    /// <param name="email">The address as typed.</param>
+    /// <returns>The trimmed, lower-cased address.</returns>
+    public static string NormalizeEmail(string email)
+    {
+        ArgumentNullException.ThrowIfNull(email);
+        return email.Trim().ToLowerInvariant();
     }
 }

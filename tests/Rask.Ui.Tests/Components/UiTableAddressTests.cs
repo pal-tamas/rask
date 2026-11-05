@@ -48,6 +48,28 @@ public sealed partial class AddressedSuppliersPage(RouteState route) : Component
     }
 }
 
+/// <summary>A page that binds nothing from its address and holds a list that reads it: the docs page's shape.</summary>
+[Route("/ui-table-address/hosted")]
+public sealed partial class AddressedHostPage : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() => Main[AddressedList];
+}
+
+/// <summary>A list that reads its sort from the address itself, as a component that is not the routed page must.</summary>
+public sealed partial class AddressedList(RouteState route) : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Ui.Table.SortIn("sort", "dir").PageIn("page", 5, perPage: 2)[
+            Ui.TableColumns[
+                Ui.TableColumn.Key("name").Id("hosted-name").Sortable()["Name"],
+                Ui.TableColumn.Key("vat").Id("hosted-vat").Sortable()["VAT"]
+            ],
+            Ui.TableRows[Ui.TableRow.Key(route.Query.Count)[Ui.TableCell["Ada"]]]
+        ];
+}
+
 /// <summary>A list of vehicle groups sorted by their name alone, its direction kept in the address.</summary>
 [Route("/ui-table-address/groups")]
 public sealed partial class AddressedGroupsPage : Component
@@ -166,6 +188,46 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Showing 3 to 4 of 5 results", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/ui-table-address/suppliers?sort=vat&amp;page=3\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"/ui-table-address/suppliers?sort=vat\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task After_a_sort_the_pager_links_carry_the_sort()
+    {
+        var page = Page.Visit("/ui-table-address/suppliers");
+
+        await page.On("#vat-heading").Click();
+        await page.On("#vat-heading").Click();
+
+        Assert.Contains("href=\"/ui-table-address/suppliers?sort=vat&amp;dir=desc&amp;page=2\"", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"/ui-table-address/suppliers?page=2\"", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task After_a_sort_the_pager_links_of_a_list_inside_a_page_carry_the_sort()
+    {
+        var page = Page.Visit("/ui-table-address/hosted");
+
+        await page.On("#hosted-vat").Click();
+        await page.On("#hosted-vat").Click();
+
+        Assert.Contains("href=\"/ui-table-address/hosted?sort=vat&amp;dir=desc&amp;page=2\"", page.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"/ui-table-address/hosted?page=2\"", page.Html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sort_makes_a_new_pager_and_a_page_turn_keeps_it()
+    {
+        var address = new UiTableAddress { SortKey = "sort", DirectionKey = "dir", PageKey = "page", Total = 40 };
+        RouteState At(string query) => new() { Path = "/orders", Query = QueryString.Parse(query) };
+
+        var first = address.Pager(At("?page=2"))!.Key;
+        var turned = address.Pager(At("?page=3"))!.Key;
+        var sorted = address.Pager(At("?sort=vat&dir=desc&page=2"))!.Key;
+
+        // A pager's links are no prop it compares: a session that kept the old pager kept its links, without the sort.
+        Assert.NotNull(first);
+        Assert.Equal(first, turned);
+        Assert.NotEqual(first, sorted);
     }
 
     [Fact]

@@ -28,7 +28,8 @@ namespace Rask.Auth;
 /// </para>
 /// </remarks>
 /// <typeparam name="TUser">The application's user aggregate.</typeparam>
-internal sealed partial class AccountService<TUser>(
+/// <typeparam name="TKey">Its key: a Guid, or a string holding one.</typeparam>
+internal sealed partial class AccountService<TUser, TKey>(
     IAuthContexts contexts,
     IInstanceClaimStore claims,
     FirstRunToken firstRun,
@@ -41,9 +42,13 @@ internal sealed partial class AccountService<TUser>(
     PasskeySite site,
     IAuthSessions sessions,
     TimeProvider clock,
-    ILogger<AccountService<TUser>> logger) : IAccounts
-    where TUser : Authenticatable, new()
+    ILogger<AccountService<TUser, TKey>> logger) : IAccounts
+    where TUser : Authenticatable<TKey>, new()
+    where TKey : notnull
 {
+    // Said for every name alike, so it tells nobody which names have an account.
+    private const string NoAddress =
+        "Accounts here sign in with a name and have no address, so there is nowhere to send a link.";
     private const string SignInPurpose = "sign-in";
     private const string RegisterPurpose = "register";
     private const string ResetPurpose = "reset";
@@ -89,7 +94,13 @@ internal sealed partial class AccountService<TUser>(
             return Fail(AuthError.FirstRunTokenRequired);
         }
 
-        if (!IsEmail(email))
+        if (!AccountName<TUser, TKey>.IsEmail && !IsName(email))
+        {
+            return new AccountOutcome(
+                AuthResult.Fail(AuthError.InvalidEmail, $"A name is 1 to {AccountName<TUser, TKey>.MaxLength} characters."), null);
+        }
+
+        if (AccountName<TUser, TKey>.IsEmail && !IsEmail(email))
         {
             return Fail(AuthError.InvalidEmail);
         }
@@ -99,11 +110,10 @@ internal sealed partial class AccountService<TUser>(
             return new AccountOutcome(AuthResult.Fail(AuthError.WeakPassword, problem), null);
         }
 
-        var normalized = Authenticatable.NormalizeEmail(email);
-        var now = clock.GetUtcNow().UtcDateTime;
+        var normalized = AccountName<TUser, TKey>.Normalize(email);
 
         var user = new TUser();
-        user.Register(normalized, hasher.Hash(password), now);
+        user.Register(AccountName<TUser, TKey>.IsEmail ? normalized : "", hasher.Hash(password));
         apply?.Invoke(user);
 
         if (options.RequireConfirmedEmail && !CountAgainstAddress(normalized, client))
@@ -118,7 +128,7 @@ internal sealed partial class AccountService<TUser>(
 
         await GrantRoleAsync(user, cancellationToken).ConfigureAwait(false);
 
-        return await WelcomeAsync(user, cancellationToken).ConfigureAwait(false);
+        return await WelcomeAsync(user, normalized, cancellationToken).ConfigureAwait(false);
     }
 
     // Behind the confirmation gate a taken address and a new one get the same answer, so they have to cost the same
@@ -154,14 +164,18 @@ internal sealed partial class AccountService<TUser>(
     }
 
     // Mails the confirmation link, then signs the new account in — unless the gate says it has to be proved first.
-    private async Task<AccountOutcome> WelcomeAsync(TUser user, CancellationToken cancellationToken)
+    private async Task<AccountOutcome> WelcomeAsync(TUser user, string name, CancellationToken cancellationToken)
     {
         // Sent whether or not RequireConfirmedEmail is on. With the gate off it is an invitation rather than a barrier — and an
         // app that turns the gate on later finds its existing accounts already confirmed, instead of locking all of them out.
-        await mail
-            .SendConfirmationAsync(
-                user.Email, user.Id.ToString(), tokens.ForConfirmation(user, options.TokenLifetime), cancellationToken)
-            .ConfigureAwait(false);
+        // An account that signs in by name has no address to send it to.
+        if (AccountName<TUser, TKey>.IsEmail)
+        {
+            await mail
+                .SendConfirmationAsync(
+                    user.Email, user.AccountId.ToString(), tokens.ForConfirmation(user, options.TokenLifetime), cancellationToken)
+                .ConfigureAwait(false);
+        }
 
         // The account exists, but with the gate on nobody is signed in to it until the address is proved: otherwise
         // registering would be a way round the very check sign-in makes.
@@ -170,7 +184,7 @@ internal sealed partial class AccountService<TUser>(
             return Fail(AuthError.EmailNotConfirmed);
         }
 
-        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
+        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user, name));
     }
 
     // Saves the new user. False when the address already has an account.
@@ -182,13 +196,14 @@ internal sealed partial class AccountService<TUser>(
             // A deleted user still holds its address, so it cannot be registered again under someone else.
             if (await db.Set<TUser>()
                     .IgnoreQueryFilters()
-                    .AnyAsync(u => u.Email == normalized, cancellationToken)
+                    .AnyAsync(AccountName<TUser, TKey>.Is(db, normalized), cancellationToken)
                     .ConfigureAwait(false))
             {
                 return false;
             }
 
             db.Add(user);
+            AccountName<TUser, TKey>.Write(db, user, normalized);
 
             try
             {
@@ -209,7 +224,7 @@ internal sealed partial class AccountService<TUser>(
         // Winning the claim is what makes this account the administrator, and only one caller can win it — the row's primary
         // key is a constant. A loser is not an error: it is the second person to register, and they get the ordinary role.
         var isAdmin = options.FirstUserIsAdmin
-                      && await claims.TryClaimAsync(user.Id, cancellationToken).ConfigureAwait(false);
+                      && await claims.TryClaimAsync(user.AccountId, cancellationToken).ConfigureAwait(false);
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -238,7 +253,7 @@ internal sealed partial class AccountService<TUser>(
             return Fail(AuthError.TooManyAttempts);
         }
 
-        var normalized = Authenticatable.NormalizeEmail(email);
+        var normalized = AccountName<TUser, TKey>.Normalize(email);
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
@@ -249,7 +264,7 @@ internal sealed partial class AccountService<TUser>(
             // unordered query would then sign somebody into whichever row the database happened to return first,
             // which is both non-deterministic and the wrong tenant half the time.
             var candidates = await db.Set<TUser>()
-                .Where(u => u.Email == normalized)
+                .Where(AccountName<TUser, TKey>.Is(db, normalized))
                 .Take(2)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -307,7 +322,7 @@ internal sealed partial class AccountService<TUser>(
             return Fail(AuthError.EmailNotConfirmed);
         }
 
-        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
+        return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user, AccountName<TUser, TKey>.Of(db.Model, user)));
     }
 
     /// <summary>Emails a reset link, if that address has an account.</summary>
@@ -319,6 +334,11 @@ internal sealed partial class AccountService<TUser>(
         string email, string? client, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(email);
+
+        if (!AccountName<TUser, TKey>.IsEmail)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed, NoAddress);
+        }
 
         // Said out loud rather than swallowed. A reset that queues nothing looks exactly like one that worked, so an app with
         // no mail battery gets an error it can act on instead of a silence it cannot.
@@ -346,7 +366,7 @@ internal sealed partial class AccountService<TUser>(
             {
                 var sent = await mail
                     .SendPasswordResetAsync(
-                        user.Email, user.Id.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken)
+                        user.Email, user.AccountId.ToString(), tokens.ForReset(user, options.TokenLifetime), cancellationToken)
                     .ConfigureAwait(false);
 
                 // Reported to the LOG, never to the caller (#1011): this branch is only reachable for an address that exists, so
@@ -371,6 +391,11 @@ internal sealed partial class AccountService<TUser>(
     {
         ArgumentNullException.ThrowIfNull(password);
 
+        if (!AccountName<TUser, TKey>.IsEmail)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed, NoAddress);
+        }
+
         if (!Guid.TryParse(userId, out var id))
         {
             return AuthResult.Fail(AuthError.InvalidToken);
@@ -379,7 +404,7 @@ internal sealed partial class AccountService<TUser>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
+            if (await db.Set<TUser>().FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(id), cancellationToken).ConfigureAwait(false)
                     is not { } user
                 || !tokens.IsValidReset(user, token))
             {
@@ -400,7 +425,7 @@ internal sealed partial class AccountService<TUser>(
 
             // A reset recovers the account, so it takes back every way in, not just the password: a passkey added by
             // whoever registered this address first, or by whoever knew the old password, would still sign them in.
-            foreach (var passkey in await db.Set<Passkey>().Where(p => p.UserId == user.Id).ToListAsync(cancellationToken)
+            foreach (var passkey in await db.Set<Passkey>().Where(p => p.UserId == user.AccountId).ToListAsync(cancellationToken)
                          .ConfigureAwait(false))
             {
                 passkey.Removed();
@@ -408,7 +433,7 @@ internal sealed partial class AccountService<TUser>(
             }
 
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            await sessions.EndAllAsync(user.Id, cancellationToken: cancellationToken).ConfigureAwait(false);
+            await sessions.EndAllAsync(user.AccountId, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             return AuthResult.Success;
         }
@@ -417,6 +442,11 @@ internal sealed partial class AccountService<TUser>(
     /// <summary>Marks an address confirmed from a token that arrived by email.</summary>
     public async Task<AuthResult> ConfirmEmailAsync(string userId, string token, CancellationToken cancellationToken = default)
     {
+        if (!AccountName<TUser, TKey>.IsEmail)
+        {
+            return AuthResult.Fail(AuthError.NotAllowed, NoAddress);
+        }
+
         if (!Guid.TryParse(userId, out var id))
         {
             return AuthResult.Fail(AuthError.InvalidToken);
@@ -425,7 +455,7 @@ internal sealed partial class AccountService<TUser>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == id, cancellationToken).ConfigureAwait(false)
+            if (await db.Set<TUser>().FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(id), cancellationToken).ConfigureAwait(false)
                 is not { } user)
             {
                 return AuthResult.Fail(AuthError.InvalidToken);
@@ -480,7 +510,7 @@ internal sealed partial class AccountService<TUser>(
         await using (db.ConfigureAwait(false))
         {
             var user = await db.Set<TUser>().AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                .FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(userId), cancellationToken)
                 .ConfigureAwait(false);
 
             if (user is null || !TenantChoice.MayChoose(user, options))
@@ -498,7 +528,8 @@ internal sealed partial class AccountService<TUser>(
     public async Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
         Guid userId, string? origin, CancellationToken cancellationToken = default)
     {
-        if (!options.Passkeys)
+        // An account that signs in by name has no address to confirm, which is what a passkey is gated on below.
+        if (!options.Passkeys || !AccountName<TUser, TKey>.IsEmail)
         {
             return null;
         }
@@ -506,7 +537,7 @@ internal sealed partial class AccountService<TUser>(
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
-            if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+            if (await db.Set<TUser>().AsNoTracking().FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(userId), cancellationToken)
                     .ConfigureAwait(false) is not { } user
                 || !user.IsEmailConfirmed)
             {
@@ -544,11 +575,17 @@ internal sealed partial class AccountService<TUser>(
 
     public async Task<AuthError> PasskeyRefusalAsync(Guid userId, CancellationToken cancellationToken = default)
     {
+        if (!AccountName<TUser, TKey>.IsEmail)
+        {
+            return AuthError.NotAllowed;
+        }
+
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))
         {
             var confirmed = await db.Set<TUser>().AsNoTracking()
-                .AnyAsync(u => u.Id == userId && u.EmailConfirmedAt != null, cancellationToken)
+                .Where(AccountKey<TKey>.Is<TUser>(userId))
+                .AnyAsync(u => u.EmailConfirmedAt != null, cancellationToken)
                 .ConfigureAwait(false);
 
             return options.Passkeys && !confirmed ? AuthError.EmailNotConfirmed : AuthError.NotAllowed;
@@ -729,7 +766,7 @@ internal sealed partial class AccountService<TUser>(
                 return Fail(AuthError.InvalidCredentials);
             }
 
-            if (await db.Set<TUser>().FirstOrDefaultAsync(u => u.Id == passkey.UserId, cancellationToken)
+            if (await db.Set<TUser>().FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(passkey.UserId), cancellationToken)
                     .ConfigureAwait(false) is not { } user)
             {
                 attempt.Fail();
@@ -746,7 +783,7 @@ internal sealed partial class AccountService<TUser>(
             passkey.Used(verified.SignCount, clock.GetUtcNow().UtcDateTime);
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-            return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user));
+            return new AccountOutcome(AuthResult.Success, AuthPrincipal.For(user, AccountName<TUser, TKey>.Of(db.Model, user)));
         }
     }
 
@@ -780,6 +817,9 @@ internal sealed partial class AccountService<TUser>(
         password.Length < options.MinimumPasswordLength
             ? $"Passwords must be at least {options.MinimumPasswordLength} characters."
             : hasher.Refuse(password);
+
+    private static bool IsName(string name) =>
+        name.Trim() is { Length: > 0 and <= AccountName<TUser, TKey>.MaxLength };
 
     private static bool IsEmail(string email) =>
         email.Trim() is { Length: > 0 and <= 256 } trimmed

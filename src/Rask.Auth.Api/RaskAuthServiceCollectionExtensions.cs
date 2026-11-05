@@ -61,20 +61,45 @@ public static class RaskAuthServiceCollectionExtensions
     public static IServiceCollection AddRaskAuth<TContext, TUser>(
         this IServiceCollection services, Action<AuthOptions>? configure = null)
         where TContext : DbContext
-        where TUser : Authenticatable, new()
+        where TUser : Authenticatable, new() =>
+        services.AddRaskAuth<TContext, TUser, Guid>(configure);
+
+    /// <summary>
+    /// Adds accounts for a named user type and key, when an app would rather say which than let the generator find
+    /// them: <c>services.AddRaskAuth&lt;AppDb, User, string&gt;()</c>.
+    /// </summary>
+    /// <typeparam name="TContext">The application context that owns the account tables.</typeparam>
+    /// <typeparam name="TUser">The application's user entity.</typeparam>
+    /// <typeparam name="TKey">Its key: a <see cref="Guid" />, or a <see cref="string" /> holding one.</typeparam>
+    /// <param name="services">The service collection.</param>
+    /// <param name="configure">Configures the options, after the <c>Rask:Auth</c> configuration section.</param>
+    /// <returns>The same service collection.</returns>
+    /// <remarks>
+    /// An account that signs in by name (<see cref="SignInNameAttribute">[SignInName]</see>) has no address, so
+    /// <see cref="AuthOptions.RequireConfirmedEmail" /> stops the host starting there.
+    /// </remarks>
+    /// <exception cref="NotSupportedException"><typeparamref name="TKey" /> is neither.</exception>
+    /// <exception cref="InvalidOperationException">The user type's <see cref="SignInNameAttribute">[SignInName]</see> cannot be one.</exception>
+    public static IServiceCollection AddRaskAuth<TContext, TUser, TKey>(
+        this IServiceCollection services, Action<AuthOptions>? configure = null)
+        where TContext : DbContext
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull
     {
         ArgumentNullException.ThrowIfNull(services);
+        AccountKey<TKey>.Require(typeof(TUser));
+        AccountName<TUser, TKey>.Require();
 
         // A repeat call is a no-op rather than a second registration beside the first.
         if (!services.AddRaskOptions<AuthOptions>(
-                "Rask:Auth", static (section, o) => section.Bind(o), configure, Validate))
+                "Rask:Auth", static (section, o) => section.Bind(o), configure, Validate<TUser, TKey>))
         {
             return services;
         }
 
         KeepDevelopmentOnCookies(services);
-        AddAccounts<TContext, TUser>(services);
-        AddHostedParts<TContext, TUser>(services);
+        AddAccounts<TContext, TUser, TKey>(services);
+        AddHostedParts<TContext, TUser, TKey>(services);
         AddCookieScheme(services);
 
         // AddRask() also calls this; it is idempotent, and Rask.Auth must not depend on being wired
@@ -104,9 +129,10 @@ public static class RaskAuthServiceCollectionExtensions
         });
     }
 
-    private static void AddAccounts<TContext, TUser>(IServiceCollection services)
+    private static void AddAccounts<TContext, TUser, TKey>(IServiceCollection services)
         where TContext : DbContext
-        where TUser : Authenticatable, new()
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull
     {
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<FirstRunToken>();
@@ -134,27 +160,28 @@ public static class RaskAuthServiceCollectionExtensions
         // Passkey ceremonies: the sealed challenges, and what a ceremony is verified against.
         services.TryAddSingleton<PasskeyChallenges>();
         services.TryAddSingleton<PasskeySite>();
-        services.TryAddSingleton<IAuthSessions, AuthSessions<TContext, TUser>>();
+        services.TryAddSingleton<IAuthSessions, AuthSessions<TContext, TUser, TKey>>();
         services.TryAddScoped<AuthCookieEvents>();
 
         services.TryAddScoped<AuthMail>();
 
         // What a test's Page.Visit(url).As(user) signs in with: the principal this battery issues for that user.
-        services.TryAddSingleton<IPrincipalFor, AuthUserPrincipals>();
+        services.TryAddSingleton<IPrincipalFor, AuthUserPrincipals<TContext, TUser, TKey>>();
 
         // What a job enqueued by a user runs as: their principal now, cut to the rights they had at enqueue.
-        services.TryAddSingleton<IAccountPrincipals, AccountPrincipals<TUser>>();
+        services.TryAddSingleton<IAccountPrincipals, AccountPrincipals<TUser, TKey>>();
 
-        services.AddScoped<AccountService<TUser>>();
+        services.AddScoped<AccountService<TUser, TKey>>();
 
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
         // parameterless extension method, so it has no way to know which one this app configured.
-        services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser>>());
+        services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser, TKey>>());
     }
 
-    private static void AddHostedParts<TContext, TUser>(IServiceCollection services)
+    private static void AddHostedParts<TContext, TUser, TKey>(IServiceCollection services)
         where TContext : DbContext
-        where TUser : Authenticatable, new()
+        where TUser : Authenticatable<TKey>, new()
+        where TKey : notnull
     {
         // Whatever the Rask host adds on top: an IAuth bound to its sign-in relay, and email bodies
         // rendered from real components. Null on a host that renders none, which is the whole point of
@@ -165,7 +192,7 @@ public static class RaskAuthServiceCollectionExtensions
         // the app would still start, still sign people in, and quietly send the plain-HTML emails
         // instead of its own.
         AuthHost.EnsureHostLoaded();
-        AuthHost.Services?.Register<TUser>(services);
+        AuthHost.Services?.Register<TUser, TKey>(services);
 
         // The bodies for the confirmation and reset emails, when the host contributed none.
         services.TryAddSingleton<IAuthEmailBodies, AuthEmailBodies>();
@@ -243,13 +270,23 @@ public static class RaskAuthServiceCollectionExtensions
 
     // The values themselves, then the bearer key: a key that cannot sign is refused here — which is to say at
     // host start — everywhere but Development, where the PostConfigure above has already switched bearer off.
-    private static void Validate(AuthOptions options)
+    private static void Validate<TUser, TKey>(AuthOptions options)
+        where TUser : Authenticatable<TKey>
+        where TKey : notnull
     {
         options.Validate();
 
         if (options.Bearer && BearerTokens.Reject(options) is { } reason)
         {
             throw new InvalidOperationException(reason);
+        }
+
+        // Nobody could ever sign in: the confirmation link it waits for has no address to go to.
+        if (options.RequireConfirmedEmail && !AccountName<TUser, TKey>.IsEmail)
+        {
+            throw new InvalidOperationException(
+                $"Rask:Auth:RequireConfirmedEmail is on, but {typeof(TUser).Name} signs in with "
+                + $"{AccountName<TUser, TKey>.Property!.Name} and has no address to confirm. Turn it off.");
         }
     }
 

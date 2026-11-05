@@ -204,6 +204,18 @@ public sealed class AccountServiceTests
     }
 
     /// <summary>A harness whose instance is already claimed, with one ordinary account to work against.</summary>
+    [Fact]
+    public void The_generated_read_face_of_an_account_keyed_by_a_Guid_carries_its_key_and_its_own_columns()
+    {
+        var face = typeof(TestUserRead);
+
+        var id = face.GetProperty(nameof(TestUserRead.Id))!.PropertyType;
+        var name = face.GetProperty(nameof(TestUserRead.DisplayName))!.PropertyType;
+
+        Assert.Equal(typeof(Guid), id);
+        Assert.Equal(typeof(string), name);
+    }
+
     private static async Task<AuthHarness> ClaimedAsync(Action<AuthOptions>? configure = null)
     {
         var harness = new AuthHarness(configure);
@@ -220,7 +232,7 @@ public sealed class AccountServiceTests
         AuthHarness harness, string email, string password = Password, string? firstRunToken = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         var outcome = await accounts.RegisterAsync(email, password, firstRunToken, client: null);
         return outcome.Result;
     }
@@ -229,7 +241,7 @@ public sealed class AccountServiceTests
         AuthHarness harness, string email, string password, string? client = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         var outcome = await accounts.ValidateAsync(email, password, client);
         return outcome.Result;
     }

@@ -194,7 +194,7 @@ public sealed class RaskBatteryTests
             if (declared is not null)
             {
                 // Put it back for whatever runs next in this process.
-                typeof(AuthUser).GetMethod(nameof(AuthUser.Use))!
+                typeof(AuthUser).GetMethod(nameof(AuthUser.Use), genericParameterCount: 1, Type.EmptyTypes)!
                     .MakeGenericMethod(declared)
                     .Invoke(null, null);
             }

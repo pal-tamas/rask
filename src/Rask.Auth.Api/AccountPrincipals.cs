@@ -5,8 +5,9 @@ using Rask.Data;
 namespace Rask.Auth;
 
 /// <summary>A user's principal as their account issues it now: roles, tenant and own claims from the row.</summary>
-internal sealed class AccountPrincipals<TUser>(IAuthContexts contexts) : IAccountPrincipals
-    where TUser : Authenticatable
+internal sealed class AccountPrincipals<TUser, TKey>(IAuthContexts contexts) : IAccountPrincipals
+    where TUser : Authenticatable<TKey>
+    where TKey : notnull
 {
     public async Task<ClaimsPrincipal?> Of(Guid userId, CancellationToken cancellationToken)
     {
@@ -14,9 +15,9 @@ internal sealed class AccountPrincipals<TUser>(IAuthContexts contexts) : IAccoun
         await using (db.ConfigureAwait(false))
         {
             var user = await db.Set<TUser>().AsNoTracking()
-                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken)
+                .FirstOrDefaultAsync(AccountKey<TKey>.Is<TUser>(userId), cancellationToken)
                 .ConfigureAwait(false);
-            return user is null ? null : AuthPrincipal.For(user);
+            return user is null ? null : AuthPrincipal.For(user, AccountName<TUser, TKey>.Of(db.Model, user));
         }
     }
 }

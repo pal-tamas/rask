@@ -56,10 +56,17 @@ internal sealed class UiTableAddress
     ///     The pager under the rows, a link per page: drawn as Flux draws it, a list on one page included ("Showing 1 to 3
     ///     of 3 results"). None while the total is unknown, or for an empty list, whose one row says why.
     /// </summary>
+    /// <remarks>
+    ///     Keyed by the address its links are written from. A pager's links are no prop it compares, so a sort or a
+    ///     filter that left the page, the size and the total as they were found the old pager equal and kept its links,
+    ///     which had dropped the new keys: Next led to <c>?page=2</c> without the sort. A new address is a new pager.
+    /// </remarks>
     internal Component? Pager(RouteState? route) =>
         PageKey is null || Total is not { } total || total <= 0
             ? null
-            : Ui.Pagination.Paginator(new UiPaginator { Page = Page(route), PerPage = Size, Total = total }).Href(page => Link(route, page));
+            : Ui.Pagination.Paginator(new UiPaginator { Page = Page(route), PerPage = Size, Total = total })
+                .Href(page => Link(route, page))
+                .Key("ui-pager:" + Link(route, 1));
 
     /// <summary>The keys a move to the list's first page writes: its page taken out.</summary>
     internal KeyValuePair<string, string?>[] FirstPage() => PageKey is { } key ? [new(key, null)] : [];

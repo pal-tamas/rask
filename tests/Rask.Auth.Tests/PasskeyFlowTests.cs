@@ -98,7 +98,7 @@ public sealed class PasskeyFlowTests
         using (var scope = harness.NewScope())
         {
             var removed = await scope.ServiceProvider
-                .GetRequiredService<AccountService<TestUser>>()
+                .GetRequiredService<AccountService<TestUser, Guid>>()
                 .RemovePasskeyAsync(owner.Id, passkeyId, TestContext.Current.CancellationToken);
             Assert.True(removed.Succeeded);
         }
@@ -129,7 +129,7 @@ public sealed class PasskeyFlowTests
         using (var scope = harness.NewScope())
         {
             await scope.ServiceProvider
-                .GetRequiredService<AccountService<TestUser>>()
+                .GetRequiredService<AccountService<TestUser, Guid>>()
                 .RemovePasskeyAsync(owner.Id, passkeyId, TestContext.Current.CancellationToken);
         }
 
@@ -160,7 +160,7 @@ public sealed class PasskeyFlowTests
 
         using var scope = harness.NewScope();
         var result = await scope.ServiceProvider
-            .GetRequiredService<AccountService<TestUser>>()
+            .GetRequiredService<AccountService<TestUser, Guid>>()
             .RemovePasskeyAsync(other.Id, passkeyId, TestContext.Current.CancellationToken);
 
         Assert.False(result.Succeeded);
@@ -180,7 +180,7 @@ public sealed class PasskeyFlowTests
 
         using var authenticator = new TestAuthenticator();
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var challenge = await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin, TestContext.Current.CancellationToken);
         Assert.NotNull(challenge);
@@ -207,7 +207,7 @@ public sealed class PasskeyFlowTests
 
         using var authenticator = new TestAuthenticator();
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var result = await accounts.CompleteAddPasskeyAsync(
             owner.Id,
@@ -230,7 +230,7 @@ public sealed class PasskeyFlowTests
         authenticator.SignCount = 1;
 
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var challenge = accounts.BeginPasskeySignIn(AuthHarness.Origin);
         Assert.NotNull(challenge);
@@ -291,7 +291,7 @@ public sealed class PasskeyFlowTests
         var owner = (await harness.UserAsync(Owner))!;
 
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         Assert.Null(await accounts.BeginAddPasskeyAsync(owner.Id, AuthHarness.Origin, TestContext.Current.CancellationToken));
         Assert.Null(accounts.BeginPasskeySignIn(AuthHarness.Origin));
@@ -310,7 +310,7 @@ public sealed class PasskeyFlowTests
         using (var scope = harness.NewScope())
         {
             var token = scope.ServiceProvider.GetRequiredService<AuthTokens>().ForReset(owner, TimeSpan.FromHours(1));
-            var reset = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>()
+            var reset = await scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>()
                 .ResetPasswordAsync(owner.Id.ToString(), token, "NewPassword1", TestContext.Current.CancellationToken);
             Assert.True(reset.Succeeded, $"reset failed: {reset.Error}");
         }
@@ -331,7 +331,7 @@ public sealed class PasskeyFlowTests
         var squatter = (await harness.UserAsync("squatter@example.com"))!;
 
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var challenge = await accounts.BeginAddPasskeyAsync(squatter.Id, AuthHarness.Origin, TestContext.Current.CancellationToken);
 
@@ -343,7 +343,7 @@ public sealed class PasskeyFlowTests
         AuthHarness harness, Guid userId, TestAuthenticator authenticator, string? name = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var challenge = await accounts.BeginAddPasskeyAsync(userId, AuthHarness.Origin);
         Assert.NotNull(challenge);
@@ -367,7 +367,7 @@ public sealed class PasskeyFlowTests
         AuthHarness harness, TestAuthenticator authenticator, Guid userId, string? client = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
 
         var challenge = accounts.BeginPasskeySignIn(AuthHarness.Origin);
         Assert.NotNull(challenge);
@@ -404,7 +404,7 @@ public sealed class PasskeyFlowTests
         AuthHarness harness, string email, string? firstRunToken = null)
     {
         using var scope = harness.NewScope();
-        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser>>();
+        var accounts = scope.ServiceProvider.GetRequiredService<AccountService<TestUser, Guid>>();
         return (await accounts.RegisterAsync(email, Password, firstRunToken, client: null)).Result;
     }
 }
