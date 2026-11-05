@@ -180,3 +180,5 @@ Rask.WebPush.BrowserPushSubscriptions
 Rask.WebPush.BrowserPushSubscriptions.extension(Rask.WebPush.Push!)
 static Rask.WebPush.BrowserPushSubscriptions.Subscribe(Rask.Web.Types.PushSubscriptionJSON! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
 static Rask.WebPush.BrowserPushSubscriptions.extension(Rask.WebPush.Push!).Subscribe(Rask.Web.Types.PushSubscriptionJSON! subscription, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.WebPush.PushSubscriber!>!
+Rask.Server.RaskVersionEndpointExtensions
+static Rask.Server.RaskVersionEndpointExtensions.MapRaskVersion(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string! pattern = "/version") -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
