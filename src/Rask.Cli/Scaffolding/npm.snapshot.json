@@ -2492,7 +2492,7 @@
     },
     "vue": {
       "versions": {
-        "3.5.44": {
+        "3.5.45": {
           "peerDependencies": {
             "typescript": "*"
           }
