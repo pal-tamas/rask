@@ -15,8 +15,6 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
 {
     private sealed record Visit(DateOnly Day, int Visitors, decimal Revenue);
 
-    private sealed record Reading(DateTime At, int Value);
-
     private static readonly Visit[] Visits =
     [
         .. new[] { 171, 227, 269, 223, 249, 251, 300, 246, 162, 115, 176, 144, 184, 269, 259, 267 }
@@ -150,29 +148,6 @@ public partial class UiChartTests : global::Rask.Core.RaskMarkup
         Assert.Equal(8, Regex.Matches(html, "style=\"display: none;\"").Count);
         Assert.Contains("<g transform=\"translate(598, 167)\" style=\"display: none;\">", html, StringComparison.Ordinal);
         Assert.Matches(">Sep 22</text>", html);
-    }
-
-    [Fact]
-    public void Dates_down_to_their_two_ends_keep_the_first_clear_of_the_left_edge_and_let_the_last_hang_past_the_right()
-    {
-        var start = new DateTime(2026, 9, 22, 21, 0, 0, DateTimeKind.Unspecified);
-        var rows = Enumerable.Range(0, 61).Select(i => new Reading(start.AddMinutes(10 * i), i)).ToList();
-        var half = UiChartInter.Measure("9 PM", medium: true) / 2;
-
-        var html = InEnglish(() => MeasuredCharts.Html(
-        Ui.Chart.Value(rows)[
-            Ui.ChartSvg[
-                Ui.ChartLine.Field((Reading r) => r.Value),
-                Ui.ChartAxis.X.Field((Reading r) => r.At)[Ui.ChartAxisLine, Ui.ChartAxisTick]
-            ]
-        ],
-        (256, 90)));
-
-        // The first tick falls on the first row: the plot starts half its label in from the gutter. The last falls
-        // on the last row, and the plot still runs to the gutter on the right.
-        Assert.Contains(FormattableString.Invariant($"<g transform=\"translate({8 + half}, "), html, StringComparison.Ordinal);
-        Assert.Contains(FormattableString.Invariant($"x1=\"{8 + half}\" x2=\"248\""), html, StringComparison.Ordinal);
-        Assert.Equal(2, Regex.Matches(html, ">[0-9]+ [AP]M</text>").Count - Regex.Matches(html, "style=\"display: none;\"").Count);
     }
 
     [Fact]

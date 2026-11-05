@@ -273,24 +273,12 @@ internal sealed class UiChartPlot
         {
             widest = Math.Max(widest, labels[i].Width);
             var hidden = !Horizontal && Hidden(i, labels.Length);
-            if (hidden)
+            if (hidden || (Crowding == UiChartCrowding.Ends && !Horizontal))
             {
                 continue;
             }
 
             var at = labels[i].Unit * Width;
-            if (Crowding == UiChartCrowding.Ends && !Horizontal)
-            {
-                // Down to its two ends, Flux keeps the plot's left edge clear of the first date and lets the last
-                // one hang past the right (#1260: a load whose first tick fell on the plot's start).
-                if (i == 0)
-                {
-                    reach.Left = Math.Max(reach.Left, (labels[i].Width / 2) - at);
-                }
-
-                continue;
-            }
-
             if (Crowding == UiChartCrowding.Turned && !Horizontal)
             {
                 reach.Left = Math.Max(reach.Left, -(at + (Diagonal * (LabelOffset - labels[i].Width))));
