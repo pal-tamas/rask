@@ -1938,7 +1938,8 @@ its own) is in the schema, and its `SaveChangesAsync` override (a guard, an audi
 the test saves through `database.Context` or through an aggregate (`product.Save()`, `Product.Create(model)`).
 `database.Context` is typed as `AppDbContext`, so its own sets need no cast. A context with no such constructor
 is refused with a message naming the one to add. An app on Rask's own context writes `TestDatabase.Start(…)`,
-which runs a plain `RaskDbContext`.
+which runs a plain `RaskDbContext`. For a test that needs the real database server, `TestDatabase.FromEnvironment<AppDbContext>("APP_TEST_DB", (o, cs) => o.UseSqlServer(cs))`
+takes it from an environment variable and skips the test where it is unset ([testing](testing.md#a-real-database-server-when-the-machine-has-one)).
 
 Either way it maps every entity the build found — so no fixture has to list entities — creates the
 schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in
@@ -2001,6 +2002,7 @@ public sealed class AppModel : IRaskModel
             ConstraintKind.Default    => $"{n.Table}_{n.Columns[0]}_df",
         });
         c.DeleteBehavior(children: DeleteBehavior.ClientCascade, others: DeleteBehavior.NoAction);
+        c.TextOrder("Hungarian_100_CI_AS");
     }
 
     public static void Model(ModelBuilder m) => m.HasDefaultSchema("dbo");
@@ -2018,8 +2020,22 @@ public sealed class AppModel : IRaskModel
   [children](#children) (Rask's own rule is `Cascade`), `others` for every other foreign key. `ClientCascade` keeps
   the children going with their aggregate while the database's key says `NO ACTION` — what a schema another tool made
   usually has.
-- Both are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
-  a `HasDatabaseName`, `HasConstraintName` or `OnDelete` written there is kept as written. A unique index's
+- **`TextOrder(collation)`** is the order the database puts text in. On SQL Server every string column — the
+  batteries' too — is declared with that collation, so `OrderBy(x => x.Name)` puts `Cu` before `Cs` and `O` before `Ö`
+  with no `EF.Functions.Collate` in the query, and the next migration writes it into the schema. The name is SQL
+  Server's, so on every other database it changes nothing: an app on SQLite in development keeps its schema as it
+  was. A list already in memory orders the same way with `TextOrder.In("hu")` (see
+  [Localization](localization.md#dates-numbers-and-text-order)).
+
+  ```csharp
+  // before — in every query, and a comparer of the app's own for lists in memory
+  .OrderBy(x => EF.Functions.Collate(x.Name, "Hungarian_100_CI_AS"))
+  // after — once, in Conventions; the queries say what they mean
+  c.TextOrder("Hungarian_100_CI_AS");
+  .OrderBy(x => x.Name)
+  ```
+- All three are applied as the model is finalized, so they see every table — **and an entity's `Configure` still wins**:
+  a `HasDatabaseName`, `HasConstraintName`, `OnDelete` or `UseCollation` written there is kept as written. A unique index's
   [message](#what-a-unique-indexs-violation-says) and a [referenced delete's sentence](#what-deleting-a-referenced-row-says)
   find their index or key under the name the rule gave it.
 - A battery states the length of every text column it owns (a job's payload, a mail's body are unbounded), so an
@@ -2493,8 +2509,10 @@ work runs in, and the mediator and query cache a save refreshes. An `(sp, o) => 
 the app's services. `app.UseRaskData()` makes each request's services ambient and points the model surface at
 the context — the `Db.Configure(app.Services)` a host used to call.
 
-**Neither creates, migrates or checks anything.** No connection is opened until the first read, no
-`MigrateOnStart` is registered, and `Rask:Database` is not read: the database is the one the callback names.
+**Neither creates, migrates or checks anything** — until you say the context's migrations own the schema. No
+connection is opened until the first read, and `Rask:Database` is not read: the database is the one the callback
+names. Add `.OwnsSchema()` and the host applies its migrations as it starts, the way a `RaskApp` does — see
+[taking over an existing schema](#taking-over-an-existing-schema).
 
 Without ASP.NET — a worker, a console app — the [wiring above](#wiring-when-rask-is-not-hosting) is the same
 thing by hand: `AddRaskData<DomainContext>()`, the two context factories, `Db.Configure`, and `Db.UseScope`
@@ -2765,8 +2783,8 @@ What it refuses to guess:
 - **A migration that fails** stops the start with EF's error and the migration's name, rather than serving on half a
   schema.
 
-Two instances starting together are safe: EF Core takes a migration lock on PostgreSQL and SQL Server, and a SQLite app
-is one process.
+Two instances starting together are safe: EF Core takes its migration lock on every provider — `sp_getapplock` on SQL
+Server, a table lock on PostgreSQL, a lock table on SQLite — so each migration runs once.
 
 When something else applies migrations — a release pipeline running `rask db update` or an idempotent SQL script —
 turn it off:
@@ -2776,7 +2794,48 @@ app.Configure(c => c.MigrateOnStart = false);
 ```
 
 or set `Rask:Database:MigrateOnStart` to `false` (`Rask__Database__MigrateOnStart=false` in the environment). The code
-line wins over the setting. A host wired by hand (`AddRask()` + `MapRask<TApp>()`) never migrates on start.
+line wins over the setting. A host wired by hand (`AddRask()` + `MapRask<TApp>()`) migrates on start only when its
+`AddRaskData<TContext>(…)` says `.OwnsSchema()`.
+
+### Taking over an existing schema
+
+An app moving onto Rask has a live database its new migrations did not make. Their first migration — the baseline —
+makes the schema that database already has, so there it must only be *written down* as applied; running it would fail
+on tables that exist. `OwnsSchema` says so, on the context the hand-wired host registered:
+
+```csharp
+// Before: a SchemaOwner class of the app's own — sp_getapplock, a raw OBJECT_ID check, a hand-built history row,
+// SetCommandTimeout — called from Program.cs after Build(), and an *AtDesignTime factory beside it.
+builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection));
+await SchemaOwner.Take(app.Services.GetRequiredService<IDbContextFactory<TaDomain>>(), app.Logger);
+
+// After
+builder.Services.AddRaskData<TaDomain>(o => o.UseSqlServer(connection))
+    .OwnsSchema(s => s.TakesOverFrom("WallClockMoments").WhenTable("Tenant").Patience(20.Minutes));
+```
+
+As the host starts — before any hosted service and before the web server — it takes EF Core's migration lock, so of a
+blue and a green starting together only one writes anything, and:
+
+| The database | What happens |
+|---|---|
+| does not exist, or has no `Tenant` table | made by the migrations from the first, as for any new database |
+| has `Tenant`, and its history shows `WallClockMoments` applied | the baseline is written down as applied; the migrations after it run |
+| has `Tenant`, but no `WallClockMoments` in its history | the start stops: its schema is not the one the baseline describes |
+| already has the baseline in its history | nothing to take over; pending migrations run |
+
+Each step is optional:
+
+- **`WhenTable("Tenant")`** — a table the baseline creates. Alone, it takes over a database that has the table even
+  with no migration history at all (a schema made by `EnsureCreated`, by hand, or by another tool).
+- **`TakesOverFrom("WallClockMoments")`** — the last migration of the set the baseline replaces, by its full id or just
+  its name (any moment matches). Alone, a history that shows it applied is proof enough; with `WhenTable`, it is the
+  guard in the third row above.
+- **`Patience(20.Minutes)`** — the command timeout each migration runs with, instead of the provider's thirty seconds:
+  a migration that moves the data takes minutes.
+
+`.OwnsSchema()` with nothing in it just applies the pending migrations on start. The checks a `RaskApp` makes hold
+here too: no migrations is a warning, a model changed since its last migration stops the start.
 
 ## Choosing the database
 

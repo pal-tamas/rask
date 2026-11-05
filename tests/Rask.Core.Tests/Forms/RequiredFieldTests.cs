@@ -314,6 +314,8 @@ public partial class RequiredFieldTests : global::Rask.Core.RaskMarkup
             Path.Combine("Rask.Core", "Forms", "RequiredFields.cs"),
             Path.Combine("Rask.Core", "Forms", "RaskValidation.cs"),
             Path.Combine("Rask.Core", "Forms", "DataAnnotationsFieldValidator.cs"),
+            // Words a failed [Required] in the reader's language: it asks what failed, never whether a field is required.
+            Path.Combine("Rask.Core", "Forms", "AttributeMessages.cs"),
             // A source generator: it copies the attribute's NAME into generated text and reads nothing at run time.
             Path.Combine("Rask.Batteries.Generators", "ModelInputGenerator.Model.cs"),
         ];

@@ -16,7 +16,7 @@ internal static class AppContextConstructor
         var constructor = type.GetConstructor([typeof(DbContextOptions<TContext>)])
             ?? type.GetConstructor([typeof(DbContextOptions)])
             ?? throw new InvalidOperationException(
-                $"TestDatabase.Start<{type.Name}> builds {type.Name} the way the app does, through a public constructor "
+                $"TestDatabase<{type.Name}> builds {type.Name} the way the app does, through a public constructor "
                 + $"taking its options, and {type.Name} has none. Add one: "
                 + $"public {type.Name}(DbContextOptions<{type.Name}> options) : base(options) {{ }}");
 

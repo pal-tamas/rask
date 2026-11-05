@@ -524,6 +524,7 @@ public static partial class RaskEndpointExtensions
             "Rask Live: this app signs users in and registers no ISessionRevalidator, so a live page cannot ask "
             + "whether its user is still signed in: a sign-out elsewhere, an expired token or a removed right "
             + "reaches an open page only when its connection is opened again. Register one — "
+            + "services.AddSessionRevalidator<T>().Keep(5.Seconds), or "
             + "services.AddSingleton<ISessionRevalidator, …>() — see " + RevalidatorDoc + ".");
     }
 

@@ -139,12 +139,52 @@ public static partial class RaskEndpointExtensions
     ///     });
     ///     </code>
     /// </param>
+    /// <param name="culture">
+    ///     The language this app is written in, as a BCP&#160;47 tag — the one line a single-language app needs:
+    ///     <code>
+    ///     services.AddRask(culture: "hu");
+    ///     </code>
+    ///     It joins <see cref="RaskCultureOptions.SupportedCultures" /> (after any <c>Rask:Cultures</c> lists) and
+    ///     becomes the <see cref="RaskCultureOptions.DefaultCulture" />, so every request renders in it, whatever the
+    ///     browser asks for. The framework's own text follows — the kit's pager and pickers, and the validation
+    ///     messages a form writes, from the <c>Resources/RaskStrings.{culture}.json</c> catalogs (<c>Rask.Ui</c> ships
+    ///     Hungarian). Forms keep validating themselves: <see cref="Core.Forms.RaskValidation.AutoValidate" /> is left
+    ///     as it is. Applied before <paramref name="configureCulture" />, which can still add other languages.
+    /// </param>
+    /// <param name="timeZone">
+    ///     The zone of the clock on the app's wall, as an IANA id — the one line an app needs for its times to be its
+    ///     users', whatever the server's own zone is:
+    ///     <code>
+    ///     services.AddRask(culture: "hu", timeZone: "Europe/Budapest");
+    ///     </code>
+    ///     <see cref="Clock.Wall" /> and <see cref="Clock.Today" /> read it, and <c>Format.Day</c>/<c>Format.Moment</c>
+    ///     show a UTC moment on it. Unset, the wall clock is the machine's. A zone the machine does not know fails here.
+    /// </param>
     /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
+    /// <exception cref="ArgumentException"><paramref name="timeZone" /> names no zone this machine knows.</exception>
     public static IServiceCollection AddRask(this IServiceCollection services,
         Action<RaskLiveOptions>? configure = null,
         Action<RaskServerOptions>? configureServer = null,
-        Action<RaskCultureOptions>? configureCulture = null)
+        Action<RaskCultureOptions>? configureCulture = null,
+        string? culture = null,
+        string? timeZone = null)
     {
+        if (timeZone is not null)
+        {
+            AmbientClock.Configure(timeZone, $"AddRask(timeZone: \"{timeZone}\")");
+        }
+
+        if (culture is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(culture);
+            var configured = configureCulture;
+            configureCulture = c =>
+            {
+                AppLanguages.Apply(c, [culture]);
+                configured?.Invoke(c);
+            };
+        }
+
         AddOptionsAndKeyRing(services, configure, configureServer);
         AddSessionHosting(services);
         // What the host registers for a session is the session's; every other scoped service is made per event.
@@ -893,7 +933,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions})" />
+    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions}, string, string)" />
     ///     under a name that says which host it registers — for an app whose own UI is served by another
     ///     host, such as a single-page app with the operator dashboard mounted beside it.
     /// </summary>
@@ -4237,7 +4277,8 @@ public static partial class RaskEndpointExtensions
                    : request.Identity?.IsAuthenticated != true);
     }
 
-    private static string? UserKey(ClaimsPrincipal user) =>
+    /// <summary>Who a principal is to a live session: its NameIdentifier, or its Name when it has none.</summary>
+    internal static string? UserKey(ClaimsPrincipal user) =>
         user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? user.Identity?.Name;
 
     private static async Task<string> ResolveAuthSchemeAsync(IServiceProvider services, string? explicitScheme)

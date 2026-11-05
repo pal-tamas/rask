@@ -348,6 +348,22 @@ It runs on the event's own path, so it costs what you make it cost: one indexed 
 same one a request through the app's authentication would pay. An app that signs users in and registers none is
 told so once as it starts, as a warning on `Rask.Live`: its open pages cannot learn that a sign-in ended.
 
+**Kept a few seconds.** A revalidator that reads the app's own users on every click can have its answers kept
+instead. Register the same class with `AddSessionRevalidator<T>()` in place of `AddSingleton`, and say for how long:
+
+```csharp
+builder.Services.AddSessionRevalidator<TokenRevalidator>().Keep(5.Seconds).ForgetOnSave<Account>();
+```
+
+| Step | What it does |
+|---|---|
+| `AddSessionRevalidator<T>()` | registers `T` as a singleton and asks it in place of any other `ISessionRevalidator`, Rask.Auth's included. Alone, it keeps nothing: every event asks `T`, as with `AddSingleton` |
+| `.Keep(5.Seconds)` | `T`'s answer — `null` included — answers every event for that long without asking `T` again, filed under the user's id (`ClaimTypes.NameIdentifier`, or `ClaimTypes.Name`) and **every claim of the principal** but `iat` and `nbf`. Two tabs of one user with the same claims share it; a principal with another `exp`, another chosen tenant or another sign-in is asked for itself. The price is how long a change made elsewhere (another instance, a hand-run SQL update) can go unseen |
+| `.ForgetOnSave<Account>()` | drops **every** kept answer the moment a save of an `Account` commits through Rask.Data in this process — a page's, a request's or a background job's, never a rolled-back one — so disabling a user or taking a role here counts at their next event. An answer a save overtook is handed on and not kept |
+
+An answer that kept the principal it was asked about hands each asker back its own instance, so it still costs the
+session nothing. A principal with neither a user id claim nor `.Keep` is asked about every time.
+
 **No remount.** Taking another principal renders the page; it mounts nothing. A component keeps what it holds
 — a field half typed, a list it loaded, a flag it worked out in `OnMount`. So read `IUserProvider.Current` where
 the decision is made — in the handler that saves, in `Render` — and gate a page with `[Authorize]`, a policy or

@@ -64,6 +64,13 @@ public sealed class JobsOptions
     /// </summary>
     public TimeZoneInfo TimeZone { get; set; } = TimeZoneInfo.Utc;
 
+    /// <summary>
+    /// What the queue and the processor of this app say to each other about an awaited job. Carried here because these
+    /// options are the one instance both are handed — the processor is built by <c>ActivatorUtilities</c>, so it can take
+    /// nothing internal through its constructor.
+    /// </summary>
+    internal JobSignals Signals { get; } = new();
+
     /// <summary>The registered recurring jobs.</summary>
     internal List<RecurringJob> Recurring { get; } = [];
 

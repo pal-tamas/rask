@@ -40,6 +40,9 @@ richer than a create, an update or a delete is EF Core exactly as you know it.
 - **`TestDatabase.Start<AppDbContext>`**: a real database for a test in one line, through the app's own context, so
   behaviour on an aggregate is tested against the database, model and `SaveChangesAsync` it ships on rather than
   a mocked `DbContext`.
+  `TestDatabase.FromEnvironment<AppDbContext>("APP_TEST_DB", (o, cs) => o.UseSqlServer(cs))` takes the real database
+  server from an environment variable — a database per test, or a shared standing one taken in turns — and skips the
+  test where the variable is unset.
 - **Three `ISaveChangesInterceptor`s**: auditing timestamps and versions, **opt-in soft delete** (for an aggregate
   that names `SoftDelete`, a delete becomes a `DeletedAt` stamp behind a global query filter), and **after-commit domain-event publication**
   through [Rask.Cqrs](https://www.nuget.org/packages/Rask.Cqrs).

@@ -10,7 +10,6 @@ public sealed class JobsFake : IJobs, IDisposable
     private readonly List<EnqueuedJob> _enqueued = [];
     private readonly IJobs? _previous;
     private readonly Lock _gate = new();
-    private int _ran;
 
     internal JobsFake()
     {
@@ -88,7 +87,6 @@ public sealed class JobsFake : IJobs, IDisposable
         lock (_gate)
         {
             _enqueued.Clear();
-            _ran = 0;
         }
     }
 
@@ -113,9 +111,8 @@ public sealed class JobsFake : IJobs, IDisposable
         var tenant = Tenant.Key;
         lock (_gate)
         {
-            for (var i = _ran; i < _enqueued.Count; i++)
+            foreach (var waiting in _enqueued.Where(e => !e.Ran))
             {
-                var waiting = _enqueued[i];
                 if (string.Equals(waiting.Lane, lane, StringComparison.Ordinal) && waiting.Tenant == tenant && Equals(waiting.Job, job))
                 {
                     return Task.FromResult(false);
@@ -128,13 +125,41 @@ public sealed class JobsFake : IJobs, IDisposable
         return Task.FromResult(true);
     }
 
+    // An awaited job cannot wait for the test to say Run(): it is recorded, already run, and runs here through its real
+    // handler - so the caller gets the handler's own answer, or its exception, as it would from the processor.
+    Task<TResult> IJobs.Run<TResult>(IJob<TResult> job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
+    {
+        RecordRun(job, lane);
+        return Dispatcher.Send<TResult>(job, cancellationToken);
+    }
+
+    Task IJobs.Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
+    {
+        RecordRun(job, lane);
+        return Dispatcher.Send(job, cancellationToken);
+    }
+
+    private void RecordRun(IJob job, string? lane)
+    {
+        ArgumentNullException.ThrowIfNull(job);
+        lock (_gate)
+        {
+            _enqueued.Add(new EnqueuedJob(job, null, null, Tenant.Key, Current.UserId, lane) { Ran = true });
+        }
+    }
+
     private EnqueuedJob? Next()
     {
         lock (_gate)
         {
-            return _ran < _enqueued.Count ? _enqueued[_ran++] : null;
+            var next = _enqueued.Find(e => !e.Ran);
+            next?.Ran = true;
+            return next;
         }
     }
 
-    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane);
+    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane)
+    {
+        public bool Ran { get; set; }
+    }
 }

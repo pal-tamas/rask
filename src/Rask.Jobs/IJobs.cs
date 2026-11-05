@@ -28,4 +28,20 @@ public interface IJobs
     /// <returns><see langword="true"/> when the row was written, <see langword="false"/> when it was skipped.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     Task<bool> AddUnlessWaiting(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes one job row a caller awaits, in <paramref name="lane"/>, and waits — at most <paramref name="within"/>, when
+    /// given — until it has run, answering what its handler returned. The primitive under <c>Jobs.Run(job)</c>; call that.
+    /// </summary>
+    /// <exception cref="JobFailedException">The job failed; it is not retried.</exception>
+    /// <exception cref="TimeoutException"><paramref name="within"/> went by first; the job still runs.</exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Task<TResult> Run<TResult>(IJob<TResult> job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Writes one job row a caller awaits, as <see cref="Run{TResult}"/> does, for a job that answers nothing. The primitive
+    /// under <c>Jobs.Run(job)</c>; call that.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Task Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default);
 }

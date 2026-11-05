@@ -122,6 +122,12 @@ public static class JobSerializerRegistry
     // otherwise a nested IJob would be stored under a name the registry never has and silently dead-letter.
     internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
+    /// <summary>What a job's handler answered, as the JSON its row keeps for the caller awaiting it.</summary>
+    internal static string SerializeResult<TResult>(TResult result) => JsonSerializer.Serialize(result, Json);
+
+    /// <summary>A kept answer, read back as the type the awaiting caller's job declares.</summary>
+    internal static TResult DeserializeResult<TResult>(string result) => JsonSerializer.Deserialize<TResult>(result, Json)!;
+
     /// <summary>Rehydrates a stored job as a dispatchable command, or <c>null</c> if its type isn't registered.</summary>
     public static ICommand? Deserialize(string typeName, string payload)
     {

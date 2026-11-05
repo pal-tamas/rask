@@ -19463,3 +19463,43 @@ Rask.Core.Globalization.RaskString.ValidationRangeMin = 203 -> Rask.Core.Globali
 Rask.Core.Globalization.RaskString.ValidationRangeMax = 204 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMin = 205 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ValidationTimeMax = 206 -> Rask.Core.Globalization.RaskString
+Rask.Format
+Rask.TextOrder
+static Rask.Format.Day(System.DateOnly day) -> string!
+static Rask.Format.Day(System.DateTime moment) -> string!
+static Rask.Format.Day(System.DateTimeOffset moment) -> string!
+static Rask.Format.Moment(System.DateTime moment) -> string!
+static Rask.Format.Moment(System.DateTimeOffset moment) -> string!
+static Rask.Format.Number(decimal value) -> string!
+static Rask.Format.Number(decimal value, int decimals) -> string!
+static Rask.Format.Number(double value) -> string!
+static Rask.Format.Number(double value, int decimals) -> string!
+static Rask.Format.Number(long value) -> string!
+static Rask.TextOrder.Current.get -> System.StringComparer!
+static Rask.TextOrder.In(string! culture) -> System.StringComparer!
+Rask.Core.Globalization.RaskString.ValidationTooLong = 207 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTooShort = 208 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationLength = 209 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTooMany = 210 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationTooFew = 211 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationCount = 212 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationBetween = 213 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationEmail = 214 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationPhone = 215 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationUrl = 216 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationCreditCard = 217 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationPattern = 218 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationMatch = 219 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationFileType = 220 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationNotAllowed = 221 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationBase64 = 222 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ValidationInvalid = 223 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConfirmLeaveQuestion = 224 -> Rask.Core.Globalization.RaskString
+Rask.Rules
+static Rask.Rules.Given<T>(T? value) -> System.Collections.Generic.IEnumerable<string!>!
+static Rask.Rules.Optional(string? value, int max) -> System.Collections.Generic.IEnumerable<string!>!
+static Rask.Rules.Required.get -> string!
+static Rask.Rules.Text(string? value, int max) -> System.Collections.Generic.IEnumerable<string!>!
+static Rask.Rules.TooLong(int max) -> string!
+static Rask.Core.BuilderRuntime.ConfirmLeave<TModel>(this Rask.Core.HTMLFormElement<TModel>! form) -> Rask.Core.HTMLFormElement<TModel>!
+static Rask.Core.Forms.DataAnnotationsFieldValidator.Message(System.ComponentModel.DataAnnotations.ValidationAttribute! check, object? value, string! said) -> string!

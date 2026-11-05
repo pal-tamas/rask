@@ -78,6 +78,30 @@ out. Every form that edits a destination's name asks the same question, the cons
 
 <!-- demo:validation-value-object -->
 
+**The framework's own sentences, for the common rules.** `Rules` answers in the reader's language from the
+[strings catalog](localization.md#translating-the-frameworks-own-text) — the kit carries the Hungarian — so a
+value object that only needs "filled, and not too long" writes no words of its own:
+
+```csharp
+public readonly record struct DriverName(string Value)
+{
+    public static IEnumerable<string> Validate(string value) => Rules.Text(value, 100);
+}
+
+Ui.Input.Bind(() => _model.Note).Validate(note => Rules.Optional(note, 500))
+Ui.Input.Bind(() => _model.Litres).Validate(Rules.Given)   // a decimal? that must be given
+```
+
+| Rule | Says | Hungarian |
+|---|---|---|
+| `Rules.Text(value, max)` | `Required` when empty or blank, `TooLong(max)` past `max` | |
+| `Rules.Optional(value, max)` | `TooLong(max)` past `max`; empty is fine | |
+| `Rules.Given(value)` | `Required` when a nullable value is null | |
+| `Rules.Required` | *This field is required.* | *Kötelező kitölteni.* |
+| `Rules.TooLong(max)` | *Enter at most 100 characters.* | *Maximum 100 karakter hosszúnak kell lennie.* |
+
+A `[Required]` or a `[StringLength(100)]` on a model says the same sentences ([below](#in-the-readers-language)).
+
 A model whose data layer has registered its properties' rules needs no step at all: the field runs the
 rule its property's type carries, first, and the steps written on the field run after it, only for a
 value it accepted. It runs when a written step would — whenever the field's value is written to the
@@ -454,6 +478,17 @@ exist — so attribute and object-level errors surface together (ASP.NET Core MV
 
 A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`Validation.Summary`); a
 populated one tags the named field.
+
+### In the reader's language
+
+An attribute with no `ErrorMessage` of its own speaks the reader's language: .NET ships its attributes' English
+only, so Rask words every built-in one — `[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`,
+`[Compare]`, … — from the [strings catalog](localization.md#a-models-validation-attributes), with the attribute's
+numbers filled in. Under `AddRask(culture: "hu")` a bare `[StringLength(100)]` says *Maximum 100 karakter
+hosszúnak kell lennie.*; an English reader still reads .NET's own text, word for word. An `ErrorMessage`, an
+`ErrorMessageResourceType` and an attribute class of your own always say what they say. It holds on the Server
+and in the browser, in a form and in a request validated before its handler runs — so a Hungarian app has no
+reason to turn the automatic validators off.
 
 A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
 
