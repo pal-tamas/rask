@@ -520,6 +520,56 @@ cookie scoped to the page's own address, signs the page in and leaves its socket
 user's, the socket is nobody's, and the socket is refused and the tab reloads. A principal also needs a
 `ClaimTypes.NameIdentifier` (or `ClaimTypes.Name`) on those requests, not only on the page's.
 
+### Your own token, in a session cookie
+
+A sign-in page checks the password inside a live handler, and a handler runs on the socket, which cannot write a
+`Set-Cookie`. `Auth.SignIn(principal)` hands a principal to a scheme that signs principals in — a cookie scheme. An
+app whose scheme reads **its own token** from a cookie instead — `AddJwtBearer` with an `OnMessageReceived` like the
+one above, or a handler that looks a session row up — hands Rask the token:
+
+```csharp
+builder.Services.AddRaskCookieSession(o => o.Name = "token");   // the cookie your scheme reads
+
+[Route("/login")]
+public sealed partial class LoginPage(Accounts accounts) : Component
+{
+    [QueryParam] public string? ReturnUrl { get; set; }
+
+    private async Task Submit(Credentials c)
+    {
+        if (await accounts.Check(c.Name, c.Password) is { } token)   // your check, your token
+        {
+            await Auth.SignInWithToken(token, ReturnUrl);
+        }
+    }
+}
+```
+
+Before, each app wrote this hand-over itself: a ticket table, an endpoint that set the cookie, a check that the next
+address was local, and its own idea of how long a ticket lives. Now the handler's call is the whole of it. Rask hands
+the browser a ticket, the page redeems it with its own `fetch`, the answer writes the token into the cookie, and the
+browser loads `ReturnUrl` under it — the page the guard sent the reader from, since a guard's redirect to `/login`
+carries it as `?returnUrl=`. `Auth.SignOut()` clears the cookie the same way; an app with no `IAuth` signs out through
+the session alone, and its scheme is asked to sign out too only when it can.
+
+`Rask:CookieSession` holds the knobs: `Name` (`rask.session` by default), `Domain` (unset: this host only) and
+`Lifetime` (unset: the cookie ends with the browser — set it to the token's own life, `7.Days`). The rest are
+decisions, each the conservative one:
+
+| Decision | Why |
+|---|---|
+| The ticket is **single use** and lives **30 seconds** | it is taken on the first redeem — refused, expired or redeemed, it is gone — and the browser redeems it at once |
+| The ticket is bound to the **live session** that asked for it | a ticket read off another tab's frame is refused |
+| The token is **never in an address** or on the socket | the browser carries a random ticket; only the redeem's answer carries the token, in `Set-Cookie` |
+| The redeem is a **same-origin `POST`** | another site's `Origin`/`Referer` is refused, and so is any `Sec-Fetch-Site` but `same-origin`, before the ticket is looked at — a forged attempt does not burn it |
+| The answer is **`no-store`** | no cache, shared or the browser's, keeps a credential |
+| The cookie is **`HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`** | no script reads it, it never crosses plain HTTP, another site's request carries it only on a link followed here, and the page's socket and its `/_rask` calls carry it as the page does — none of these are knobs |
+| `ReturnUrl` is **local or `/`** | `LocalUrl.Sanitize`: another origin, `//host`, a backslash or a control character becomes `/` |
+| The page **loads again** under the cookie | Rask cannot know the token's user before your scheme reads it, so the old live session is left, never reattached to someone it did not expect |
+
+The browser host has no `SignInWithToken`: a WebAssembly app posts the credentials to its server, whose answer sets the
+cookie.
+
 ## Passwords and throttling
 
 **Passwords are hashed with PBKDF2-SHA256 at 600,000 iterations** by default, from the base class library. Choose
@@ -785,7 +835,8 @@ A few framework defaults are fixed (not configurable knobs):
 | Initial HTTP GET challenge | the cookie scheme's `LoginPath` (`AuthOptions.LoginPath`) |
 | Client-side route-guard redirect (an in-app nav to a protected route, nobody signed in) | `/login` — name your login route `/login` to match |
 | A signed-in user the route forbids | stays on the address: [the page says so inside its layout](#a-page-the-user-may-not-open), answered 403 |
-| Sign-in/out redeem ticket lifetime | 30 seconds |
+| Sign-in/out redeem ticket lifetime | 30 seconds, single use, bound to the live session |
+| [Session cookie](#your-own-token-in-a-session-cookie) flags | `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/` |
 
 The first row's path is an `AuthOptions` value, shown here with the others at their defaults. `AccessDeniedPath`
 is where the cookie scheme sends a forbidden request to an endpoint that is not a Rask page (a controller, a

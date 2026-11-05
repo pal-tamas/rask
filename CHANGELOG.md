@@ -104,6 +104,19 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A session cookie for the app's own token, and a sign-in handover any scheme can serve (#1286).** Before: the
+  relay behind `IAuthSignIn.SignIn(principal)` ended in `SignInAsync`, which a JWT bearer scheme or a handler that
+  looks a session row up cannot serve, so each such app kept its own ticket table, a `/login/enter` endpoint that set
+  the cookie, a local-address check and its own ticket life (30 s in one app, 60 s in another). After:
+  `builder.Services.AddRaskCookieSession(o => o.Name = "token")` (or `Rask:CookieSession`: `Name`, `Domain`,
+  `Lifetime`) and, in the handler that checked the password, `await Auth.SignInWithToken(token, ReturnUrl)`. The
+  browser redeems a single-use, 30-second ticket bound to its live session with a same-origin `POST` (another
+  origin, or a `Sec-Fetch-Site` other than `same-origin`, is refused before the ticket is touched), the `no-store`
+  answer writes an `HttpOnly`, `Secure`, `SameSite=Lax` cookie at `Path=/`, and the page loads at `ReturnUrl`, which
+  another origin turns into `/`. `Auth.SignOut()` clears the cookie, and on a host with no `IAuth` signs out through
+  the session alone; `Auth.SignIn(principal, returnUrl)` reaches `IAuthSignIn` with nothing injected. Every redeem
+  answer is `no-store` now and refuses a cross-site `Sec-Fetch-Site`. See
+  [Your own token, in a session cookie](docs/authentication.md#your-own-token-in-a-session-cookie).
 - **An administrator acts in a tenant for the whole sign-in: `await auth.ActInTenant(partnerId)` (#1280).**
   Before: an admin who belongs to no tenant had to open `Tenant.Use(id)` around every piece of work, or an app kept
   its own "chosen partner" cookie tied to the sign-in, its own `GET /partner/{id}` behind a `Sec-Fetch-Site` check,

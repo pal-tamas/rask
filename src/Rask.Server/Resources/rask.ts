@@ -1833,7 +1833,7 @@ import {
         else console.error(`[Rask] navigate: "${href}" is not a URL of this app, so nothing navigated.`);
     };
 
-    function redeemAuthTicket(auth: { ticket?: string; url?: string }): void {
+    function redeemAuthTicket(auth: { ticket?: string; returnUrl?: string; load?: boolean }): void {
         suppressEvents = true;
         // The server drops what follows a sign-in, and so does the next connection.
         unacked.forget();
@@ -1847,9 +1847,16 @@ import {
             headers: {"content-type": "application/json"},
             body: JSON.stringify({ticket: auth.ticket, session: sessionId}),
             credentials: "same-origin"
-        }).then(() => {
+        }).then((res) => {
             // This tab changed the browser's credential: the others ask about it before their next frame.
             authChannel?.postMessage(1);
+            // A sign-in into the session cookie loads its page under it, with no reconnect to race it (the server
+            // checked the address is local); a refused one reloads, as whatever the cookie now says.
+            if (auth.load) {
+                if (res.ok) location.replace(prependBase(auth.returnUrl || "/"));
+                else location.reload();
+                return;
+            }
             try {
                 deliberateClose = true;
                 if (conn) conn.close(1000, "auth-refresh");

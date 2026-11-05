@@ -5,21 +5,31 @@ using Rask.Core.Authentication;
 
 namespace Rask.Server.Authentication;
 
-internal sealed class AuthTicketStore : IAuthTicketStore
+/// <summary>
+///     The single-use tickets a live handler's sign-in or sign-out is handed to the browser with. A ticket is taken
+///     once — redeemed, refused for another session, or expired, it is gone — and lives 30 seconds.
+/// </summary>
+/// <param name="clock">The clock a ticket's life is measured on; the system clock when the host registers none.</param>
+internal sealed class AuthTicketStore(TimeProvider? clock = null) : IAuthTicketStore
 {
-    // Lifetime of a one-shot sign-in/out redeem ticket. Short by design (the ticket is the authority
-    // for setting the cookie). Mutable static so tests can force expiry; not a public knob.
-    internal static TimeSpan Ttl { get; set; } = TimeSpan.FromSeconds(30);
+    // Short by design: the ticket is the authority for setting the cookie, and the browser redeems it at once.
+    internal static readonly TimeSpan Ttl = TimeSpan.FromSeconds(30);
 
+    private readonly TimeProvider _clock = clock ?? TimeProvider.System;
     private readonly ConcurrentDictionary<string, AuthTicket> _tickets = new(StringComparer.Ordinal);
     private int _opsSinceLastSweep;
 
     public string Issue(
-        AuthAction action, ClaimsPrincipal? principal, string? scheme, string sessionId, bool persistent = false)
+        AuthAction action,
+        ClaimsPrincipal? principal,
+        string? scheme,
+        string sessionId,
+        bool persistent = false,
+        string? token = null)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         var id = SecureToken.Create();
-        var ticket = new AuthTicket(action, principal, scheme, sessionId, DateTime.UtcNow.Add(Ttl), persistent);
+        var ticket = new AuthTicket(action, principal, scheme, sessionId, Now().Add(Ttl), persistent, token);
         _tickets[id] = ticket;
         MaybeSweep();
         return id;
@@ -39,7 +49,7 @@ internal sealed class AuthTicketStore : IAuthTicketStore
             return false;
         }
 
-        if (found.ExpiresUtc <= DateTime.UtcNow || !string.Equals(found.SessionId, sessionId, StringComparison.Ordinal))
+        if (found.ExpiresUtc <= Now() || !string.Equals(found.SessionId, sessionId, StringComparison.Ordinal))
         {
             ticket = default!;
             return false;
@@ -49,6 +59,8 @@ internal sealed class AuthTicketStore : IAuthTicketStore
         return true;
     }
 
+    private DateTime Now() => _clock.GetUtcNow().UtcDateTime;
+
     private void MaybeSweep()
     {
         if (Interlocked.Increment(ref _opsSinceLastSweep) < 16)
@@ -57,7 +69,7 @@ internal sealed class AuthTicketStore : IAuthTicketStore
         }
 
         Interlocked.Exchange(ref _opsSinceLastSweep, 0);
-        var now = DateTime.UtcNow;
+        var now = Now();
         foreach (var kv in _tickets)
         {
             if (kv.Value.ExpiresUtc <= now)

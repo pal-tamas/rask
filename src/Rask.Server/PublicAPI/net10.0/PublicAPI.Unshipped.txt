@@ -197,3 +197,13 @@ Rask.Server.SchemaOwnership
 Rask.Server.SchemaOwnership.Patience(System.TimeSpan timeout) -> Rask.Server.SchemaOwnership!
 Rask.Server.SchemaOwnership.TakesOverFrom(string! migration) -> Rask.Server.SchemaOwnership!
 Rask.Server.SchemaOwnership.WhenTable(string! table) -> Rask.Server.SchemaOwnership!
+Rask.Server.CookieSessionExtensions
+Rask.Server.CookieSessionOptions
+Rask.Server.CookieSessionOptions.CookieSessionOptions() -> void
+Rask.Server.CookieSessionOptions.Domain.get -> string?
+Rask.Server.CookieSessionOptions.Domain.set -> void
+Rask.Server.CookieSessionOptions.Lifetime.get -> System.TimeSpan?
+Rask.Server.CookieSessionOptions.Lifetime.set -> void
+Rask.Server.CookieSessionOptions.Name.get -> string!
+Rask.Server.CookieSessionOptions.Name.set -> void
+static Rask.Server.CookieSessionExtensions.AddRaskCookieSession(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Server.CookieSessionOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

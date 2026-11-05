@@ -40,6 +40,18 @@ public sealed class WasmAuthSignIn(HttpClient http, IUserProvider userProvider, 
             "POST credentials to your server endpoint via HttpClient instead.");
 
     /// <summary>
+    ///     Not supported in the browser, and throws. A session cookie is written by the server that checked the
+    ///     credentials, on its own answer: post them there with <see cref="HttpClient" />.
+    /// </summary>
+    /// <param name="token">Unused.</param>
+    /// <param name="returnUrl">Unused.</param>
+    /// <exception cref="NotSupportedException">Always.</exception>
+    public Task SignInWithToken(string token, string? returnUrl = null) =>
+        throw new NotSupportedException(
+            "WasmAuthSignIn does not support sign-in with a token: the browser cannot write an HttpOnly cookie. " +
+            "POST credentials to your server endpoint via HttpClient, and let its answer set the cookie.");
+
+    /// <summary>
     ///     Signs the user out: posts to <see cref="LogoutPath" /> so the server clears the auth cookie,
     ///     refreshes the current user, empties the service worker's offline cache, then navigates to <paramref name="returnUrl" /> without a full page
     ///     reload.

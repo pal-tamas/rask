@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
 using Rask.Wire;
@@ -42,12 +43,33 @@ public static class Auth
         string email, string password, bool remember = false, string? returnUrl = null) =>
         Resolve().SignIn(email, password, remember, returnUrl);
 
+    /// <summary>
+    ///     Signs <paramref name="principal" /> in once the current handler finishes — an app that checked the credentials
+    ///     itself, on a host whose authentication scheme can sign a principal in (a cookie scheme).
+    /// </summary>
+    /// <param name="principal">Who is signing in.</param>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    public static Task SignIn(ClaimsPrincipal principal, string? returnUrl = null) =>
+        Handover().SignIn(principal, returnUrl);
+
     /// <inheritdoc cref="IAuth.SignInWithPasskey(bool, string?)" />
     public static Task<AuthResult> SignInWithPasskey(bool remember = false, string? returnUrl = null) =>
         Resolve().SignInWithPasskey(remember, returnUrl);
 
-    /// <inheritdoc cref="IAuth.SignOut(string?)" />
-    public static Task SignOut(string? returnUrl = null) => Resolve().SignOut(returnUrl);
+    /// <inheritdoc cref="IAuthSignIn.SignInWithToken(string, string?)" />
+    public static Task SignInWithToken(string token, string? returnUrl = null) =>
+        Handover().SignInWithToken(token, returnUrl);
+
+    /// <summary>Signs the current visitor out — through <see cref="IAuth" /> when the app has accounts, else the
+    /// session alone (<see cref="IAuthSignIn.SignOut(string?, string?)" />), which clears the session cookie.</summary>
+    /// <param name="returnUrl">Where to land afterwards. Sanitized to a local URL before it is used.</param>
+    public static Task SignOut(string? returnUrl = null)
+    {
+        var services = Work();
+        return services.GetService<IAuth>() is { } auth
+            ? auth.SignOut(returnUrl)
+            : services.GetRequiredService<IAuthSignIn>().SignOut(returnUrl);
+    }
 
     /// <inheritdoc cref="IAuth.SignOutOtherDevices" />
     public static Task SignOutOtherDevices() => Resolve().SignOutOtherDevices();
@@ -83,6 +105,9 @@ public static class Auth
     /// <inheritdoc cref="IAuth.LeaveTenant(string?)" />
     public static Task<AuthResult> LeaveTenant(string? returnUrl = null) => Resolve().LeaveTenant(returnUrl);
 
-    private static IAuth Resolve() =>
-        Ambient.Require("Auth", "Inject IAuth there instead.").GetRequiredService<IAuth>();
+    private static IAuth Resolve() => Work().GetRequiredService<IAuth>();
+
+    private static IAuthSignIn Handover() => Work().GetRequiredService<IAuthSignIn>();
+
+    private static IServiceProvider Work() => Ambient.Require("Auth", "Inject IAuth there instead.");
 }

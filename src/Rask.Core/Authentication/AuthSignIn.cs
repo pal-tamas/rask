@@ -7,12 +7,30 @@ public sealed class AuthSignIn : IAuthSignIn
     private bool _inHandler;
     private PendingAuth? _pending;
 
+    // Whether the host keeps a session cookie (AddRaskCookieSession), which a sign-in with a token is written into.
+    internal bool KeepsTokens { get; init; }
+
     public Task SignIn(
         ClaimsPrincipal principal, string? returnUrl = null, string? scheme = null, bool persistent = false)
     {
         EnsureInHandler();
         ArgumentNullException.ThrowIfNull(principal);
         _pending = PendingAuth.SignIn(principal, returnUrl, scheme, persistent);
+        return Task.CompletedTask;
+    }
+
+    public Task SignInWithToken(string token, string? returnUrl = null)
+    {
+        EnsureInHandler();
+        ArgumentException.ThrowIfNullOrEmpty(token);
+        if (!KeepsTokens)
+        {
+            throw new InvalidOperationException(
+                "SignInWithToken writes the token into the session cookie, and this host keeps none. Add one with " +
+                "builder.Services.AddRaskCookieSession(o => o.Name = \"…\"), naming the cookie your authentication scheme reads.");
+        }
+
+        _pending = PendingAuth.SignInWithToken(token, returnUrl);
         return Task.CompletedTask;
     }
 
