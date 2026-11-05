@@ -53,7 +53,10 @@ for (const scheme of ['light', 'dark']) {
   let differing = 0;
   for (let i = 0; i < length; i++) {
     if (theirs.lines[i] === mine.lines[i] || cursorDepartedLine(theirs.lines[i], mine.lines[i])) continue;
-    if (differing++ < (process.argv.includes('--all') ? Infinity : 12)) console.log(`FAIL ${scheme} step ${i}\n   Flux: ${theirs.lines[i]}\n   Rask: ${mine.lines[i]}`);
+    if (differing++ < (process.argv.includes('--all') ? Infinity : 12)) {
+      console.log(`FAIL ${scheme} step ${i}\n   Flux: ${theirs.lines[i]}\n   Rask: ${mine.lines[i]}`);
+      console.log(`   Flux, on the way:\n${leadingTo(theirs, i)}\n   Rask, on the way:\n${leadingTo(mine, i)}`);
+    }
   }
 
   failures += differing;
@@ -64,9 +67,25 @@ await browser.close();
 console.log(failures ? `\nflux parity: the editor in use differs in ${failures} observation(s).` : '\nflux parity: the editor in use matches Flux.');
 process.exit(failures ? 1 : 0);
 
+// What a page did on its way to step i, from the step before: focus moving, keys, popovers opening and shutting,
+// each with the milliseconds since that step. A difference in focus or in a panel is read from this, not guessed.
+function leadingTo({ stamps, trace }, i) {
+  const until = stamps[i], from = stamps.slice(0, i).findLast(stamp => stamp !== undefined) ?? 0;
+  const events = trace.filter(([at]) => at >= from && at <= until).map(([at, event]) => `     +${at - from} ms ${event}`);
+  return events.length ? events.join('\n') : '     (nothing)';
+}
+
 async function transcript(scheme, url, at, inherited) {
   const context = await browser.newContext({ ...screen, colorScheme: scheme });
   await context.addInitScript(`window.__pressable = ${JSON.stringify(PRESSABLE)}; window.__look = ${look}; window.__states = ${states}`);
+  await context.addInitScript(() => {
+    window.__trace = [];
+    const name = el => el?.dataset ? `${el.dataset.slot ?? el.dataset.editor ?? el.closest('[data-editor]')?.dataset.editor ?? el.tagName}${el.hasAttribute('popover') ? '[popover]' : ''}` : String(el?.nodeName);
+    for (const type of ['keydown', 'focusin', 'focusout', 'beforetoggle', 'toggle']) {
+      document.addEventListener(type, event => window.__trace.push([Date.now(),
+        `${type} ${name(event.target)}${event.key ? ` ${event.key}` : ''}${event.newState ? ` ${event.newState}` : ''} focus=${name(document.activeElement)}`]), true);
+    }
+  });
   const page = await context.newPage();
   await page.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
   await page.evaluate(() => document.fonts.ready);
@@ -90,7 +109,12 @@ async function transcript(scheme, url, at, inherited) {
   // A click, or a tap on a phone.
   const hit = target => (phone ? target.tap() : target.click());
   // A gray's hue means nothing at zero chroma, and prints as `none` once a minifier has been at the sheet.
-  const note = (what, value) => lines.push(`${what}: ${value}`.replaceAll(' none)', ' 0)'));
+  // When each step was written down (Date.now, the clock the page's trace keeps too).
+  const stamps = [];
+  const note = (what, value) => {
+    lines.push(`${what}: ${value}`.replaceAll(' none)', ' 0)'));
+    stamps[lines.length - 1] = Date.now();
+  };
   const value = () => editor.evaluate(el => el.value);
   // Both editors settle a frame or two after a change or a click: an observation waits for that.
   const settle = () => page.waitForTimeout(100);
@@ -116,10 +140,11 @@ async function transcript(scheme, url, at, inherited) {
   // The link panel is open once its address field has focus. Flux hands it focus a task or more after the press
   // (20 ms here, 130 ms at a sixth of the CPU, past 300 ms on a loaded runner, where Escape then found focus still
   // on the button and the panel shut with it there: `focus=link`, #1260); the kit does it in the press. Waited on, on
-  // both pages, as long as it takes — and ten seconds at most, then on as before.
+  // both pages, as long as it takes — and ten seconds at most, then on as before. Looked at on a timer, not on the
+  // page's frames: a headless page may paint none (lib.mjs `frames`), and a frame-polled wait then waits it all out.
   const linkOpened = async () => {
     await page.waitForTimeout(300);
-    await page.waitForFunction(() => document.activeElement?.dataset?.editor === 'link:url', null, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => document.activeElement?.dataset?.editor === 'link:url', null, { polling: 50, timeout: 10000 }).catch(() => {});
   };
   await editor.evaluate(el => {
     window.__events = [];
@@ -392,8 +417,9 @@ async function transcript(scheme, url, at, inherited) {
     }, [at.editor, name]));
   }
 
+  const trace = await page.evaluate(() => window.__trace);
   await context.close();
-  return { lines, inherited };
+  return { lines, inherited, stamps, trace };
 }
 
 // Runs in the page. How one node of a document computes — what a reader of it would see.
