@@ -49,6 +49,12 @@ public sealed partial class UiTableCell : UiElement
     /// </remarks>
     public string? Cut { get; set; }
 
+    /// <summary>
+    ///     How many columns the cell spans: <c>Ui.TableCell.ColSpan(4)</c> for a row folded out beneath another, or a
+    ///     row that says the list is empty. Flux's cell forwards <c>colspan</c> to its <c>&lt;td&gt;</c>, as this does.
+    /// </summary>
+    public int? ColSpan { get; set; }
+
     /// <inheritdoc />
     protected override string TagName => "td";
 
@@ -57,23 +63,32 @@ public sealed partial class UiTableCell : UiElement
     protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true, Cut is not null), Class);
 
     /// <inheritdoc />
-    /// <remarks>A cut value is the cell's title for the length of the walk, unless the call site wrote one.</remarks>
+    /// <remarks>
+    ///     A cut value is the cell's title for the length of the walk, unless the call site wrote one. The span comes
+    ///     last, where a <c>&lt;td&gt;</c> writes its own attributes.
+    /// </remarks>
     protected override void WriteAttributes(StringBuilder sb)
     {
         if (Cut is null || Title is not null)
         {
             base.WriteAttributes(sb);
-            return;
+        }
+        else
+        {
+            Title = Cut;
+            try
+            {
+                base.WriteAttributes(sb);
+            }
+            finally
+            {
+                Title = null;
+            }
         }
 
-        Title = Cut;
-        try
+        if (ColSpan is { } span)
         {
-            base.WriteAttributes(sb);
-        }
-        finally
-        {
-            Title = null;
+            AppendAttr(sb, "colspan", span);
         }
     }
 

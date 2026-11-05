@@ -85,7 +85,7 @@ public sealed partial class MasterDetailDemo : Component
             if (open)
             {
                 rows.Add(Ui.TableRow.Key($"detail-{order.Id}").Class("md-detail")[
-                    Ui.TableCell.Attributes(("colspan", _orderColumns.Length.ToString(CultureInfo.InvariantCulture))).Class("p-0 bg-zinc-50 dark:bg-zinc-900")[
+                    Ui.TableCell.ColSpan(_orderColumns.Length).Class("p-0 bg-zinc-50 dark:bg-zinc-900")[
                         Div
                             .Class("p-3")
                             .Data("testid", $"inner-{order.Id}")[

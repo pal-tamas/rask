@@ -207,6 +207,18 @@ internal static class UiDocsCatalog
         "A form's footer in one line: Delete that asks first, Cancel back to the list and Save, drawn as Flux draws a form's "
         + "footer and worded in the reader's language.");
 
+    public static UiDocsEntry Empty { get; } = new(
+        Routes.UiEmptyPage(), "Empty state", Components,
+        "Empty state in C#: Ui.Empty",
+        "What a list says when it has nothing to show: one centred status line, in a table's spanning row or in place of "
+        + "the table, as Flux's own demo draws it.");
+
+    public static UiDocsEntry PageHeader { get; } = new(
+        Routes.UiPageHeaderPage(), "Page header", Components,
+        "Page header in C#: Ui.PageHeader",
+        "A page's title row in one line: its h1, a line under it, actions at the end and breadcrumbs above, laid out "
+        + "as Flux's demos lay out a heading.");
+
     public static UiDocsEntry RowActions { get; } = new(
         Routes.UiRowActionsPage(), "Row actions", Components,
         "Table row actions in C#: Ui.RowActions",
@@ -455,8 +467,8 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag, FormButtons,
-        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag, FormButtons,
+        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

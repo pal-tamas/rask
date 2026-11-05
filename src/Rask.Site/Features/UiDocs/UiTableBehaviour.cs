@@ -32,7 +32,7 @@ internal sealed partial class UiTableBehaviour : Component
         UiDocsTopic.Key("skeleton").Heading("A table drawn from a query shows skeleton rows").Paragraphs([
             "`Ui.Table.Of(orders)` draws the table from a `Rask.Query` query, and the rows stay yours, built from "
             + "`orders.Data`. While it first loads, the headings are there and a skeleton row stands for every row the "
-            + "pager says the page holds, each a real row's height. When it found nothing, one row says so "
+            + "pager says the page holds, each a real row's height. When it found nothing, one row says so in Flux's empty state, `Ui.Empty` "
             + "(`TableEmpty` in the catalog: \"No results.\").",
             "Every later load (a page, a sort, a filter, a tab) shows the skeleton at the press, in the browser, with "
             + "no round trip and no wait: the rows on screen keep their places and their heights and draw a bar in "
@@ -116,7 +116,7 @@ internal sealed partial class UiTableBehaviour : Component
             + "first cell, `text-xs`, `py-0`, `truncate`, `whitespace-normal`. The table itself writes Flux's own list "
             + "(`table-fixed`, `text-zinc-800`, `whitespace-nowrap`): a class that contradicts it is written with "
             + "Tailwind's `!`, as Flux's guide says (`table-auto!`), and so is one that overrides a strong cell's ink "
-            + "(`dark:text-white/70!`). `colspan` and `scope` go through `.Attributes((\"colspan\", \"3\"))`.",
+            + "(`dark:text-white/70!`). A fold-out row spans its columns with `Ui.TableCell.ColSpan(3)`; `scope` goes through `.Attributes((\"scope\", \"row\"))`.",
         ]);
 
     private static UiDocsTopic Frame() =>

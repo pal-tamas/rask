@@ -628,6 +628,41 @@ Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**
 and the column widths on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
+### Empty state, fold-out rows and a page's header
+
+**Three more every list app wrote by hand** (#1283). `Ui.Empty["No suppliers yet."]` is what a list says when it has
+nothing to show. Flux has no empty state of its own; this is the one its account overview demo draws when a search
+matches nothing — a `<div role="status">`, centred, 24px above and below, in the muted 14px ink of a table cell — measured
+there and held to it by `scripts/flux/parity.mjs empty-state --prepare scripts/flux/empty-state.mjs`. Put it in a row's
+only cell, `Ui.TableCell.ColSpan(columns)[Ui.Empty[…]]`, or in place of the table: it looks the same in both. A table drawn
+from a query writes that row itself (`Ui.Table.Of(query).Empty(nothingYet, noMatch)`).
+
+`Ui.TableCell.ColSpan(n)` spans a cell across columns, as Flux's cell forwards `colspan`: a row folded out beneath
+another, or the empty row.
+
+`Ui.PageHeader.Heading("Suppliers")` is the row a page opens with (not Flux's: an addition the owner approved,
+2026-10-20): the page's `<h1>` in the extra large size, `Subheading` 8px under it, `Breadcrumbs` above, and its children
+— the actions — at the end of the row, 8px apart. The row wraps; on a phone the title takes the whole line and the actions
+go 16px under it. 24px under the header, which weighs nothing: `.Class("mb-0")` takes it away. Each value is measured on
+Flux's demos (the settings demo's title, the account overview's heading row, the table demo's 24px).
+
+```csharp
+// Before: an EmptyList, a RowFold's colspan and a PageHeadline of each app's own.
+Div.Class("mb-6 flex flex-wrap items-center gap-y-3")[
+    PageHeadline.Of("Kutak"), Ui.Spacer, Div.Class("flex flex-wrap gap-2")[Ui.Button.Primary["Új kút"]]
+],
+pumps is [] ? EmptyList.Of("Még nincs kút rögzítve.") : Ui.Table[…],
+Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.Attributes(("colspan", "3"))[Details(pump)]]
+
+// After: the kit's.
+Ui.PageHeader.Heading("Kutak")[Ui.Button.Primary["Új kút"]],
+pumps is [] ? Ui.Empty["Még nincs kút rögzítve."] : Ui.Table[…],
+Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.ColSpan(3)[Details(pump)]]
+```
+
+Live: **[rask.sh/ui/empty](https://rask.sh/ui/empty/)**, **[rask.sh/ui/page-header](https://rask.sh/ui/page-header/)** and the
+fold-out row on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
+
 ## Printing
 
 The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.

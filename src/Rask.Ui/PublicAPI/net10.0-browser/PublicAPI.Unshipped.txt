@@ -8988,3 +8988,35 @@ Rask.UiTable.Empty(Rask.Core.Component? nothingYet, Rask.Core.Component? noMatch
 Rask.UiTable.PageIn(string! page, int? total, int perPage = 15) -> Rask.UiTable!
 Rask.UiTable.SortIn(string! column, string! direction) -> Rask.UiTable!
 Rask.UiTable.SortIn(string! direction) -> Rask.UiTable!
+Rask.RaskSeed_UiPageHeader
+Rask.RaskSeed_UiPageHeader.Heading(string! Heading) -> Rask.UiPageHeader!
+Rask.RaskSeed_UiPageHeader.Key(object? key) -> Rask.RaskSeed_UiPageHeader
+Rask.RaskSeed_UiPageHeader.RaskSeed_UiPageHeader() -> void
+Rask.UiEmpty
+Rask.UiEmpty.UiEmpty() -> void
+Rask.UiPageHeader
+Rask.UiPageHeader.Breadcrumbs.get -> Rask.Core.Component?
+Rask.UiPageHeader.Breadcrumbs.set -> void
+Rask.UiPageHeader.Class.get -> string?
+Rask.UiPageHeader.Class.set -> void
+Rask.UiPageHeader.Heading.get -> string!
+Rask.UiPageHeader.Heading.set -> void
+Rask.UiPageHeader.Subheading.get -> string?
+Rask.UiPageHeader.Subheading.set -> void
+Rask.UiPageHeader.UiPageHeader() -> void
+Rask.UiTableCell.ColSpan.get -> int?
+Rask.UiTableCell.ColSpan.set -> void
+static Rask.Ui.Empty.get -> Rask.UiEmpty!
+static Rask.Ui.PageHeader.get -> Rask.RaskSeed_UiPageHeader
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPageHeader(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPageHeader(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPageHeader(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.Breadcrumbs(this Rask.UiPageHeader! __b, Rask.Core.Component? value) -> Rask.UiPageHeader!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPageHeader! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPageHeader!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiPageHeader! __b, string? value) -> Rask.UiPageHeader!
+static RaskBuilderSettersRask_Ui.ColSpan(this Rask.UiTableCell! __b, int? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiPageHeader! __b, string! value) -> Rask.UiPageHeader!
+static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiPageHeader! __b, string? value) -> Rask.UiPageHeader!
+Rask.UiPageHeader.Level.get -> int?
+Rask.UiPageHeader.Level.set -> void
+static RaskBuilderSettersRask_Ui.Level(this Rask.UiPageHeader! __b, int? value) -> Rask.UiPageHeader!

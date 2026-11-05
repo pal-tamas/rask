@@ -133,6 +133,30 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         Assert.Equal("<td data-ui-cell>$49.00</td>", html);
     }
 
+    // TA's fold-out rows wrote `.Attributes(("colspan", "3"))` in seven places (#1283).
+    [Fact]
+    public void ColSpan_writes_the_cells_colspan_after_its_global_attributes_as_a_td_does()
+    {
+        var cell = Ui.TableCell.ColSpan(3).Class("bg-zinc-50").Cut("Pistol 2")["Hoses and meters"];
+
+        var html = cell.ToHtml();
+
+        Assert.Equal("<td class=\"truncate bg-zinc-50\" title=\"Pistol 2\" data-ui-cell colspan=\"3\">Hoses and meters</td>", html);
+    }
+
+    [Fact]
+    public void A_folded_out_row_spans_the_columns_of_the_row_above_it()
+    {
+        var rows = Ui.TableRows[
+            Ui.TableRow.Key("pump-1")[Ui.TableCell["Pump 1"], Ui.TableCell["Diesel"], Ui.TableCell.End["49 l"]],
+            Ui.TableRow.Key("pump-1-detail")[Ui.TableCell.ColSpan(3)["Pistol 1, Pistol 2"]]
+        ];
+
+        var html = rows.ToHtml();
+
+        Assert.Contains("<tr data-ui-row data-rask-key=\"pump-1-detail\"><td data-ui-cell colspan=\"3\">Pistol 1, Pistol 2</td></tr>", html, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void A_plain_heading_writes_no_class_its_look_is_the_sheets()
     {

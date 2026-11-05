@@ -349,6 +349,22 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> Empty { get; } =
+    [
+        new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it. Its children are the sentence.", []),
+    ];
+
+    public static IReadOnlyList<UiApiPart> PageHeader { get; } =
+    [
+        new("Ui.PageHeader", typeof(UiPageHeader), NotFlux, "A page's title row: the h1, a line under it, the trail above and, as its children, the actions at the end.",
+        [
+            new("Heading", typeof(string), "The page's title, its h1 in the extra large size. Required, and taken first.", "text: Ui.PageHeader.Heading(\"Suppliers\")"),
+            new("Level", typeof(int?), "The title's heading level, 1 to 4: 1 when unset, the page's h1; 2 for a header under a title of the page's own."),
+            new("Subheading", typeof(string), "A line under the title, in the muted ink."),
+            new("Breadcrumbs", typeof(Component), "The trail to this page, above the title.", "a Ui.Breadcrumbs"),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> RowActions { get; } =
     [
         new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: its pencil and bin, as Flux draws a row's action — ghost, small, square, in a py-0 cell — in the muted outline.",
@@ -552,6 +568,7 @@ internal static partial class UiApi
             new("Variant", typeof(Ui.TableCellVariant?), "How much the cell stands out. Muted when unset."),
             new("Sticky", typeof(bool?), "Keeps the cell in view while the others scroll sideways. Give it a background too."),
             new("Cut", typeof(string), "The value as text on one line, cut short with an ellipsis where the column ends, the whole of it in the cell's tooltip. Not Flux's."),
+            new("ColSpan", typeof(int?), "How many columns the cell spans: a row folded out beneath another, or the row that says the list is empty."),
         ]),
     ];
 
@@ -902,8 +919,8 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Field, FileUpload, Filters, Flag,
-            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag,
+            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();

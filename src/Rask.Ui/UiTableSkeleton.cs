@@ -91,10 +91,11 @@ internal static class UiTableSkeleton
         ]),
     ];
 
+    // Flux's own empty row (its account overview demo): one cell across every column, holding the status line.
     private static Component Empty(int columns, Component? says) =>
         Ui.TableRow.Key("ui-empty")[
-            Ui.TableCell.Class("text-center").Attributes(("colspan", columns.ToString(CultureInfo.InvariantCulture)))[
-                says ?? (Component)RaskStrings.Get(RaskString.TableEmpty, "No results.")
+            Ui.TableCell.ColSpan(columns)[
+                Ui.Empty[says ?? (Component)RaskStrings.Get(RaskString.TableEmpty, "No results.")]
             ]
         ];
 

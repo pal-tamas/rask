@@ -110,6 +110,18 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Ui: Flux's empty state, a cell that spans columns and a page's header (#1283).** Before: each list app kept an
+  `EmptyList.Of("No suppliers yet.")` (a `Ui.Text`), wrote a fold-out row's span as `Ui.TableCell.Attributes(("colspan",
+  "3"))` and opened each page with `Div.Class("mb-6 flex flex-wrap items-center gap-y-3")[PageHeadline.Of(title),
+  Ui.Spacer, Div.Class("flex flex-wrap gap-2")[…]]`. After: `Ui.Empty["No suppliers yet."]` is the empty state Flux's own
+  demo draws (a centred `role="status"` line, 24px above and below, in a cell's muted 14px ink; proven against it with
+  `parity.mjs empty-state --prepare scripts/flux/empty-state.mjs`, desktop and phone, light and dark), the same in a
+  row's spanning cell or in place of the table — and the row `Ui.Table.Of(query).Empty(…)` writes is now that one (it was a
+  `text-center` cell); `Ui.TableCell.ColSpan(3)`; and `Ui.PageHeader.Heading("Suppliers").Subheading("…").Breadcrumbs(
+  Ui.Breadcrumbs[…])[actions]` (owner-approved, not Flux's) lays out the page's `<h1>`, its line, the trail above and
+  the actions at the end as Flux's demos lay out a heading and its actions — they go under the title on a phone. Also
+  held now by `AnAppSizesTheKitTests`: a `Ui.TimePicker.Class("w-28")` is 112px wide with either trigger, and a heading
+  only a screen reader says adds no scrollbar under a list whose actions are held at its edge.
 - **Rask.Ui: a form's buttons, a row's actions and a list's column widths, from the kit (#1298).** Not Flux's: additions
   the owner approved, which both list apps kept a near-copy of. Before: each app wrote a `FormButtons`, a `RowActions`
   and a `ListTable` of its own — `FormButtons.For(list, Remove, "Szállító törlése", "Biztos törli?")`,

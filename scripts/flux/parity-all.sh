@@ -52,6 +52,8 @@ parity-date.mjs time-picker --refresh
 parity-date.mjs datetime-picker --refresh
 parity-editor.mjs
 parity-editor.mjs --view 390x844
+parity.mjs empty-state --refresh --prepare scripts/flux/empty-state.mjs
+parity.mjs empty-state --refresh --prepare scripts/flux/empty-state.mjs --view 390x844
 parity-focus.mjs --webkit
 parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh

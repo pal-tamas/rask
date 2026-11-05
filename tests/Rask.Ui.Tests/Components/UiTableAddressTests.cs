@@ -218,7 +218,7 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
 
         var page = Page.Visit("/ui-table-address/suppliers?sort=vat&dir=desc");
 
-        Assert.Matches("<td [^>]*colspan=\"2\"[^>]*>No suppliers yet.</td>", page.Html);
+        Assert.Matches("<td [^>]*colspan=\"2\"[^>]*><div [^>]*role=\"status\"[^>]*>No suppliers yet.</div></td>", page.Html);
     }
 
     [Fact]
@@ -228,7 +228,7 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
 
         var html = page.Html;
 
-        Assert.Contains(">No supplier matches.</td>", html, StringComparison.Ordinal);
+        Assert.Contains("role=\"status\">No supplier matches.</div></td>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("No suppliers yet.", html, StringComparison.Ordinal);
     }
 
@@ -239,7 +239,7 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
 
         var html = table.ToHtml();
 
-        Assert.Matches("<td [^>]*colspan=\"1\"[^>]*>No orders yet.</td>", html);
+        Assert.Matches("<td [^>]*colspan=\"1\"[^>]*><div [^>]*role=\"status\"[^>]*>No orders yet.</div></td>", html);
     }
 
     [Fact]

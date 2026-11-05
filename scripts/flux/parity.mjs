@@ -48,7 +48,9 @@ if (!page) {
 
 const path = page.includes('/') ? page : `components/${page}`;
 const slug = path.split('/')[1];
-const fluxUrl = `https://fluxui.dev/${prepared?.flux ? `components/${prepared.flux}` : path}`;
+// A `flux` with a slash is a page of its own, not a component's: Flux draws some things only in a DEMO
+// (`demo/account-overview`'s empty row), and the module marks there what is measured (empty-state.mjs).
+const fluxUrl = `https://fluxui.dev/${prepared?.flux ? (prepared.flux.includes('/') ? prepared.flux : `components/${prepared.flux}`) : path}`;
 const out = join(root, 'artifacts', 'flux-parity');
 // A layout page (layouts/header, layouts/sidebar) has no examples of its own: it links to full-document demos,
 // and each is measured whole — at desktop and phone widths, with the sidebar as it loads, narrowed to its rail

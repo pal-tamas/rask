@@ -40,6 +40,9 @@ public sealed partial class UiTablePage : Component
                     .Blurb("Nothing changes until the next page has its rows. Make the read slow and the pager moves "
                            + "first, the rows you have dim, and the new ones take their place when they arrive.")
             ],
+            UiDocsExample.Key("ui-table-fold-out").Heading("A row that folds out").File("TableFoldOutExample.cs").Demo(TableFoldOutExample).Testid("ui-table-fold-out")
+                .Blurb("The chevron folds a row of its own out beneath a pump's: one cell across all three columns, "
+                       + "Ui.TableCell.ColSpan(3), as Flux's cell takes colspan. Ui.Empty's row spans the same way."),
             UiDocsExample.Key("ui-table-widths").Heading("Column widths").File("TableColumnWidthsExample.cs").Demo(TableColumnWidthsExample).Testid("ui-table-widths")
                 .Blurb("Width(Ui.ColumnWidth.Day) and the rest say what each column holds, and that alone sizes it: the table "
                        + "fills its box, never shrinks below its columns together, and a phone scrolls it. Numbers and the row "

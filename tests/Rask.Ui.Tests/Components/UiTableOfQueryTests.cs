@@ -76,7 +76,7 @@ public sealed partial class UiTableOfQueryTests : global::Rask.Core.RaskMarkup
 
         Assert.Contains("<thead data-ui-columns>", html, StringComparison.Ordinal);
         Assert.Equal(1, Rows(html));
-        Assert.Matches("<td [^>]*colspan=\"3\"[^>]*>No results.</td>", html);
+        Assert.Matches("<td [^>]*colspan=\"3\"[^>]*><div [^>]*role=\"status\"[^>]*>No results.</div></td>", html);
     }
 
     [Fact]

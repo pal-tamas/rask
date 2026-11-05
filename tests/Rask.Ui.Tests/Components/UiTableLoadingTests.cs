@@ -52,7 +52,7 @@ public sealed partial class UiTableLoadingTests : global::Rask.Core.RaskMarkup
         var html = Invoices(rows, total: 0).ToHtml();
 
         Assert.Equal(1, Rows(html));
-        Assert.Matches("<td [^>]*colspan=\"3\"[^>]*>No results.</td>", html);
+        Assert.Matches("<td [^>]*colspan=\"3\"[^>]*><div [^>]*role=\"status\"[^>]*>No results.</div></td>", html);
     }
 
     private static global::Rask.Core.Component Invoices(string[]? rows, int total) =>
