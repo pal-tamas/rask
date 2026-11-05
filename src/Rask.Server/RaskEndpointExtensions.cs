@@ -139,12 +139,36 @@ public static partial class RaskEndpointExtensions
     ///     });
     ///     </code>
     /// </param>
+    /// <param name="culture">
+    ///     The language this app is written in, as a BCP&#160;47 tag — the one line a single-language app needs:
+    ///     <code>
+    ///     services.AddRask(culture: "hu");
+    ///     </code>
+    ///     It joins <see cref="RaskCultureOptions.SupportedCultures" /> (after any <c>Rask:Cultures</c> lists) and
+    ///     becomes the <see cref="RaskCultureOptions.DefaultCulture" />, so every request renders in it, whatever the
+    ///     browser asks for. The framework's own text follows — the kit's pager and pickers, and the validation
+    ///     messages a form writes, from the <c>Resources/RaskStrings.{culture}.json</c> catalogs (<c>Rask.Ui</c> ships
+    ///     Hungarian). Forms keep validating themselves: <see cref="Core.Forms.RaskValidation.AutoValidate" /> is left
+    ///     as it is. Applied before <paramref name="configureCulture" />, which can still add other languages.
+    /// </param>
     /// <returns>The same <paramref name="services" /> instance, for chaining.</returns>
     public static IServiceCollection AddRask(this IServiceCollection services,
         Action<RaskLiveOptions>? configure = null,
         Action<RaskServerOptions>? configureServer = null,
-        Action<RaskCultureOptions>? configureCulture = null)
+        Action<RaskCultureOptions>? configureCulture = null,
+        string? culture = null)
     {
+        if (culture is not null)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(culture);
+            var configured = configureCulture;
+            configureCulture = c =>
+            {
+                AppLanguages.Apply(c, [culture]);
+                configured?.Invoke(c);
+            };
+        }
+
         AddOptionsAndKeyRing(services, configure, configureServer);
         AddSessionHosting(services);
         // What the host registers for a session is the session's; every other scoped service is made per event.
@@ -893,7 +917,7 @@ public static partial class RaskEndpointExtensions
     }
 
     /// <summary>
-    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions})" />
+    ///     <see cref="AddRask(IServiceCollection, Action{RaskLiveOptions}, Action{RaskServerOptions}, Action{RaskCultureOptions}, string)" />
     ///     under a name that says which host it registers — for an app whose own UI is served by another
     ///     host, such as a single-page app with the operator dashboard mounted beside it.
     /// </summary>

@@ -1938,7 +1938,8 @@ its own) is in the schema, and its `SaveChangesAsync` override (a guard, an audi
 the test saves through `database.Context` or through an aggregate (`product.Save()`, `Product.Create(model)`).
 `database.Context` is typed as `AppDbContext`, so its own sets need no cast. A context with no such constructor
 is refused with a message naming the one to add. An app on Rask's own context writes `TestDatabase.Start(…)`,
-which runs a plain `RaskDbContext`.
+which runs a plain `RaskDbContext`. For a test that needs the real database server, `TestDatabase.FromEnvironment<AppDbContext>("APP_TEST_DB", (o, cs) => o.UseSqlServer(cs))`
+takes it from an environment variable and skips the test where it is unset ([testing](testing.md#a-real-database-server-when-the-machine-has-one)).
 
 Either way it maps every entity the build found — so no fixture has to list entities — creates the
 schema, wires the auditing and soft-delete interceptors so the conventions behave as they do in

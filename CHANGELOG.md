@@ -118,6 +118,23 @@ them until tagged releases begin.
   `Jobs.Fake()` runs an awaited job at once through its handler. **Upgrading adds the `Awaited` and `Result` columns:
   `rask db add AddJobResult && rask db update`** (until then the processor logs exactly that). See
   [Background jobs](docs/jobs.md#await-a-jobs-answer-jobsrun).
+- **`TestDatabase.FromEnvironment<TContext>("VAR", (o, cs) => o.UseSqlServer(cs))` — a real database server for the
+  tests that need one, skipped where there is none (#1291).** Before: an app testing against SQL Server carried its
+  own fixture — read a variable, fail (or silently pass) without it, create and drop a database or `lockf` a standing
+  one, hand out a context factory. After: one line in `Rask.Data`. Unset, the test is reported *skipped* with the
+  variable's name (xUnit v3's dynamic skip). Set, each test gets a database of its own — the named one with a unique
+  suffix, created, migrated and dropped — or, with `o => o.Shared = true`, the named standing database, taken in
+  turns across processes through a lock file (`o.LockFile`, the lock `lockf`/`flock` take). It hands out the same
+  fixture as `TestDatabase.Start<TContext>` plus `database.Factory`, an `IDbContextFactory<TContext>` — which
+  `Start<TContext>` now offers too. Provider-neutral: SQL Server, PostgreSQL and SQLite alike.
+- **`AddRask(culture: "hu")` — a single-language server app's culture in one line (#1289).** Before, a hand-wired host
+  wrote `AddRask(configureCulture: c => { c.SupportedCultures.Add("hu"); c.DefaultCulture = "hu"; })`. After:
+  `builder.Services.AddRask(culture: "hu")` — the language joins `Rask:Cultures` and becomes the default, so every
+  request renders in it whatever the browser asks, and the kit's texts and a form's validation messages come from the
+  Hungarian catalog. Automatic validation is left as it is (on by default; an app that set
+  `RaskValidation.AutoValidate = false` keeps it off). A `RaskApp` gives the same options for `c.Cultures.Add("hu")`,
+  whose first entry is now also the `DefaultCulture` ahead of any language appsettings lists, and a language named
+  both in appsettings and in code is listed once.
 - **`MapRaskVersion()` says which build is running (#1292).** Before: an app that wanted its version over HTTP wrote
   the endpoint itself — read the assembly's informational version, serialize it, remember `AllowAnonymous` and
   `no-store`. After: `app.MapEndpoints(e => e.MapRaskVersion())` (or `app.MapRaskVersion("/api/version")` on a
