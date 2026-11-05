@@ -12,6 +12,12 @@ public sealed record PendingAuth(
     // The app's own token, for a sign-in into the session cookie. Internal, so the record's printed form never shows it.
     internal string? Token { get; init; }
 
+    // The tenant an administrator chose to act in, for an app whose own sign-in keeps it (MapRaskTenantChoice).
+    internal TenantPick? TenantPick { get; init; }
+
+    internal static PendingAuth ChooseTenant(string? tenant, string? returnUrl) =>
+        new(AuthAction.SignIn, null, returnUrl, null) { TenantPick = new TenantPick(tenant) };
+
     internal static PendingAuth SignInWithToken(string token, string? returnUrl) =>
         new(AuthAction.SignIn, null, returnUrl, null) { Token = token };
 

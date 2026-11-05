@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Rask.Hosting.Shared;
 using Rask.Wire;
 
 namespace Rask.Auth;
@@ -464,7 +465,7 @@ internal sealed partial class AccountService<TUser>(
     {
         ArgumentNullException.ThrowIfNull(principal);
 
-        if (tenant is { } named && !TenantChoice.IsTenant(named))
+        if (tenant is { } named && !TenantChoosing.IsTenant(named))
         {
             return AuthResult.Fail(AuthError.NotAllowed, "That is not a tenant: Guid.Empty and Guid.AllBitsSet are reserved.");
         }

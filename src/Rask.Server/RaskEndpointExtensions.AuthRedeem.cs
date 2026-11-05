@@ -43,6 +43,13 @@ public static partial class RaskEndpointExtensions
     // Signs the ticket's sign-in or sign-out into this response; the status the redeem answers.
     private static async Task<int> ApplyTicketAsync(HttpContext ctx, AuthTicket ticket)
     {
+        if (ticket.TenantPick is { } pick)
+        {
+            // The app's own sign-in keeps the tenant: its choice writes it into this response, under the same rules as a
+            // request from a page, and the page loads again in it.
+            return await ctx.RequestServices.GetRequiredService<TenantChoices>().Choose(ctx, pick.Tenant).ConfigureAwait(false);
+        }
+
         var cookieSession = ctx.RequestServices.GetService<CookieSession>();
         if (ticket.Token is { } token)
         {

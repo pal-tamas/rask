@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Authentication;
@@ -95,19 +96,45 @@ public static class Auth
     public static Task<AuthResult> RemovePasskey(Guid id) => Resolve().RemovePasskey(id);
 
     /// <inheritdoc cref="IAuth.ActInTenant(Guid, string?)" />
+    /// <remarks>
+    /// In an app that signs its users in itself, the tenant is handed to the choice <c>MapRaskTenantChoice</c> mapped,
+    /// which writes it into the app's own sign-in; the page then loads again at <paramref name="returnUrl" />.
+    /// </remarks>
     public static Task<AuthResult> ActInTenant(Guid tenant, string? returnUrl = null) =>
-        Resolve().ActInTenant(tenant, returnUrl);
+        Work().GetService<IAuth>() is { } auth
+            ? auth.ActInTenant(tenant, returnUrl)
+            : OwnSignIn().ChooseTenant(tenant.ToString(), returnUrl);
 
     /// <inheritdoc cref="IAuth.ActInTenant(long, string?)" />
-    public static Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null) =>
-        Resolve().ActInTenant(tenant, returnUrl);
+    /// <remarks>
+    /// In an app that signs its users in itself, the number is handed to the choice <c>MapRaskTenantChoice</c> mapped.
+    /// </remarks>
+    public static Task<AuthResult> ActInTenant(long tenant, string? returnUrl = null)
+    {
+        if (Work().GetService<IAuth>() is { } auth)
+        {
+            return auth.ActInTenant(tenant, returnUrl);
+        }
+
+        return tenant > 0
+            ? OwnSignIn().ChooseTenant(tenant.ToString(CultureInfo.InvariantCulture), returnUrl)
+            : Task.FromResult(AuthResult.Fail(AuthError.NotAllowed, "Tenants are numbered from one."));
+    }
 
     /// <inheritdoc cref="IAuth.LeaveTenant(string?)" />
-    public static Task<AuthResult> LeaveTenant(string? returnUrl = null) => Resolve().LeaveTenant(returnUrl);
+    public static Task<AuthResult> LeaveTenant(string? returnUrl = null) =>
+        Work().GetService<IAuth>() is { } auth ? auth.LeaveTenant(returnUrl) : OwnSignIn().ChooseTenant(null, returnUrl);
 
     private static IAuth Resolve() => Work().GetRequiredService<IAuth>();
 
     private static IAuthSignIn Handover() => Work().GetRequiredService<IAuthSignIn>();
+
+    // The Server host's sign-in relay, for an app with no IAuth: it signs its users in itself.
+    private static AuthSignIn OwnSignIn() =>
+        Work().GetService<AuthSignIn>()
+        ?? throw new NotSupportedException(
+            "Choosing a tenant with your own sign-in goes through the Server host's sign-in relay. In WebAssembly, POST " +
+            "{ \"tenant\": \"…\" } with the X-Rask-Auth header to the path app.MapRaskTenantChoice(…) mapped.");
 
     private static IServiceProvider Work() => Ambient.Require("Auth", "Inject IAuth there instead.");
 }

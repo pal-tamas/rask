@@ -25,11 +25,12 @@ internal sealed class AuthTicketStore(TimeProvider? clock = null) : IAuthTicketS
         string? scheme,
         string sessionId,
         bool persistent = false,
-        string? token = null)
+        string? token = null,
+        TenantPick? tenantPick = null)
     {
         ArgumentNullException.ThrowIfNull(sessionId);
         var id = SecureToken.Create();
-        var ticket = new AuthTicket(action, principal, scheme, sessionId, Now().Add(Ttl), persistent, token);
+        var ticket = new AuthTicket(action, principal, scheme, sessionId, Now().Add(Ttl), persistent, token, tenantPick);
         _tickets[id] = ticket;
         MaybeSweep();
         return id;

@@ -207,3 +207,14 @@ Rask.Server.CookieSessionOptions.Lifetime.set -> void
 Rask.Server.CookieSessionOptions.Name.get -> string!
 Rask.Server.CookieSessionOptions.Name.set -> void
 static Rask.Server.CookieSessionExtensions.AddRaskCookieSession(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Server.CookieSessionOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Server.TenantChoiceExtensions
+Rask.Server.TenantChoiceOptions
+Rask.Server.TenantChoiceOptions.BelongsToTenant.get -> System.Func<System.Security.Claims.ClaimsPrincipal!, bool>!
+Rask.Server.TenantChoiceOptions.BelongsToTenant.set -> void
+Rask.Server.TenantChoiceOptions.Path.get -> string!
+Rask.Server.TenantChoiceOptions.Path.set -> void
+Rask.Server.TenantChoiceOptions.Role.get -> string?
+Rask.Server.TenantChoiceOptions.Role.set -> void
+Rask.Server.TenantChoiceOptions.TenantChoiceOptions() -> void
+static Rask.Server.TenantChoiceExtensions.MapRaskTenantChoice<TTenant>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, System.Func<long, Microsoft.AspNetCore.Http.HttpContext!, System.Threading.Tasks.Task<TTenant?>!>! find, System.Func<Microsoft.AspNetCore.Http.HttpContext!, TTenant?, System.Threading.Tasks.Task!>! onChosen, System.Action<Rask.Server.TenantChoiceOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+static Rask.Server.TenantChoiceExtensions.MapRaskTenantChoice<TTenant>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, System.Func<System.Guid, Microsoft.AspNetCore.Http.HttpContext!, System.Threading.Tasks.Task<TTenant?>!>! find, System.Func<Microsoft.AspNetCore.Http.HttpContext!, TTenant?, System.Threading.Tasks.Task!>! onChosen, System.Action<Rask.Server.TenantChoiceOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!

@@ -11,7 +11,8 @@ internal interface IAuthTicketStore
         string? scheme,
         string sessionId,
         bool persistent = false,
-        string? token = null);
+        string? token = null,
+        TenantPick? tenantPick = null);
 
     bool TryRedeem(string ticketId, string sessionId, out AuthTicket ticket);
 }

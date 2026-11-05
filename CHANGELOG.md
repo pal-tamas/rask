@@ -117,6 +117,18 @@ them until tagged releases begin.
   the session alone; `Auth.SignIn(principal, returnUrl)` reaches `IAuthSignIn` with nothing injected. Every redeem
   answer is `no-store` now and refuses a cross-site `Sec-Fetch-Site`. See
   [Your own token, in a session cookie](docs/authentication.md#your-own-token-in-a-session-cookie).
+- **An app with its own sign-in lets an admin choose a tenant too: `app.MapRaskTenantChoice(find, onChosen)` (#1280).**
+  Before: an app that signs users in itself (a refresh-token cookie, a JWT) kept its own `PartnerChoice`: a
+  `GET /partner/{id}` behind a hand-written `Sec-Fetch-Site` check and an admin policy, which wrote a "chosen
+  partner" cookie or reissued the token. After: `app.MapRaskTenantChoice(find: (Guid id, HttpContext http) => …,
+  onChosen: (http, partner) => …)` (or `find: (long id, …)` for numbered tenants) — Rask owns `POST /api/tenant`
+  (`TenantChoiceOptions.Path`) and the rules Rask.Auth's choice keeps (the `X-Rask-Auth` header, `403` for a
+  cross-site `Sec-Fetch-Site`, a signed-in user holding `TenantChoiceOptions.Role` (admin) who does not
+  `BelongsToTenant`), reads a `Guid` or a number, refuses an id `find` does not know (`400`), and hands the app the
+  tenant — `null` when the admin leaves — to write where its sign-in lives. A live page calls
+  `Auth.ActInTenant(id, returnUrl)` / `Auth.LeaveTenant()` exactly as with Rask.Auth: the choice reaches `onChosen`
+  on the browser's own request through the sign-in relay, and the page loads again in the tenant. See
+  [With your own sign-in](docs/multi-tenancy.md#with-your-own-sign-in).
 - **An administrator acts in a tenant for the whole sign-in: `await auth.ActInTenant(partnerId)` (#1280).**
   Before: an admin who belongs to no tenant had to open `Tenant.Use(id)` around every piece of work, or an app kept
   its own "chosen partner" cookie tied to the sign-in, its own `GET /partner/{id}` behind a `Sec-Fetch-Site` check,

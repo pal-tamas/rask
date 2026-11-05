@@ -99,6 +99,7 @@
     <Compile Include="..\Rask.Batteries.Shared\HousekeepingContextFactory.cs" Link="Shared\HousekeepingContextFactory.cs"/>
     <Compile Include="..\Rask.Batteries.Shared\HousekeepingServiceCollectionExtensions.cs" Link="Shared\HousekeepingServiceCollectionExtensions.cs"/>
     <Compile Include="..\Rask.Hosting.Shared\RaskOptionsRegistration.cs" Link="Shared\RaskOptionsRegistration.cs"/>
+    <Compile Include="..\Rask.Hosting.Shared\Tenants\TenantChoosing.cs" Link="Shared\Tenants\TenantChoosing.cs"/>
 
     <!-- The first-run token is a cryptographically random string, and this is the one generator the
          framework uses for every such string (live-session ids, auth tickets). Source-linked rather

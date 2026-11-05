@@ -439,11 +439,7 @@ public static partial class RaskEndpointExtensions
         // RaskWasmBrowserApis). Server can still reach the
         // activation-gated APIs declaratively via Trigger.Gesture — see docs/browser-capabilities.md.
         services.AddCoreBrowserApis(ServiceLifetime.Scoped);
-        // A sign-in with the app's own token needs somewhere to write it: the session cookie AddRaskCookieSession keeps,
-        // which may be registered after AddRask, so asked for when a session is built.
-        services.AddScoped(static sp => new AuthSignIn { KeepsTokens = sp.GetService<CookieSession>() is not null });
-        services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
-        services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
+        AddSignInRelay(services);
         services.AddSingleton<IRaskRuntimeScript, ServerRuntimeScript>();
         services.AddSingleton<SessionUploadStore>();
         services.AddSingleton<SessionDownloadStore>();
@@ -3429,6 +3425,22 @@ public static partial class RaskEndpointExtensions
         }
     }
 
+    // The live handler's sign-in, sign-out and tenant choice, handed to the browser as a ticket it redeems.
+    private static void AddSignInRelay(IServiceCollection services)
+    {
+        // A sign-in with the app's own token needs somewhere to write it: the session cookie AddRaskCookieSession keeps,
+        // which may be registered after AddRask, so asked for when a session is built. So may a tenant choice, mapped
+        // once the app is built (MapRaskTenantChoice).
+        services.TryAddSingleton<TenantChoices>();
+        services.AddScoped(static sp => new AuthSignIn
+        {
+            KeepsTokens = sp.GetService<CookieSession>() is not null,
+            ChoosesTenants = sp.GetService<TenantChoices>()?.IsMapped == true,
+        });
+        services.AddScoped<IAuthSignIn>(sp => sp.GetRequiredService<AuthSignIn>());
+        services.AddSingleton<IAuthTicketStore, AuthTicketStore>();
+    }
+
     // Where the handler asked to go: a sign-in/out it started, or else a NavigateTo.
     private static AuthInstruction? TakeNavigation(
         LiveSession session,
@@ -3451,11 +3463,16 @@ public static partial class RaskEndpointExtensions
                 pending.Scheme,
                 session.Id,
                 pending.Persistent,
-                pending.Token);
+                pending.Token,
+                pending.TenantPick);
 
             // A token's user is known only once the app's own scheme reads the cookie, so the page is loaded again
-            // under it rather than this session being reattached to a principal Rask cannot expect.
-            authInstruction = new AuthInstruction(ticketId, safeReturn) { LoadsPage = pending.Token is not null };
+            // under it rather than this session being reattached to a principal Rask cannot expect. So is a tenant the
+            // app's own sign-in now keeps: every page of it is drawn again in that tenant.
+            authInstruction = new AuthInstruction(ticketId, safeReturn)
+            {
+                LoadsPage = pending.Token is not null || pending.TenantPick is not null,
+            };
 
             // Do NOT navigate routeState here. Setting it to the destination now would
             // mount the destination page under the PRE-SignIn principal — SessionUserProvider
