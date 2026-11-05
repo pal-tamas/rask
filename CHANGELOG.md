@@ -747,6 +747,16 @@ them until tagged releases begin.
   is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,
   `Request.Scheme` stayed `http` (no HSTS, http redirects) and `RemoteIpAddress` was the proxy's. Now turning
   `BehindProxy` on trusts the proxy wherever it runs, as the setting already promised.
+- **A host wired by hand honours `Rask:BehindProxy` too (#1285).** Before: only `RaskApp` read the setting, so an app
+  calling `AddRask()`/`MapRask()` itself carried its own `UseForwardedHeaders` block. Now `AddRask()` puts the
+  forwarded headers ahead of every other middleware whenever the setting is on — delete the block:
+  ```csharp
+  // before, in Program.cs
+  var proxy = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
+  proxy.KnownIPNetworks.Clear(); proxy.KnownProxies.Clear();
+  app.UseForwardedHeaders(proxy);
+  // after: nothing — Rask:BehindProxy=true (rask deploy --domain sets it)
+  ```
 - **Translated text works in a WASM app that ships no ICU (#1199).** Before: with `InvariantGlobalization` the build
   left `PredefinedCulturesOnly` on, so `GetCultureInfo("hu")` threw, the resolver also refused any culture without
   data, `IRaskCulture.Supported` came out empty and every `Strings.*` lookup fell to the neutral catalog — contrary
