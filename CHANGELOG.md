@@ -104,6 +104,13 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Current.Claim(type)` and `Current.IsInRole(role)` (#1288).** Before: reading a claim or a role with nothing
+  injected meant `Current.Principal?.FindFirst("department")?.Value` and
+  `Current.Principal?.IsInRole("Admin") ?? false` — or an app-wide wrapper of your own around them. After:
+  `Current.Claim("department")` is the first such claim's value (or `null`) and `Current.IsInRole("Admin")` is
+  `false` when nobody is signed in (an anonymous principal is never in a role). Both read `Current.Principal`, so
+  they answer the same on the first GET, in an HTTP request and inside a live event, where the session revalidated
+  the user; a background job has no principal, so there they are `null` / `false`. Rask.Data, Server and WASM.
 - **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
   shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
   prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after

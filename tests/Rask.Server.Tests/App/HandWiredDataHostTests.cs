@@ -603,6 +603,7 @@ public sealed partial class HandWiredDataHostTests : IDisposable
             identity.AddClaim(tenantFrom == TenantFrom.TheRaskClaim
                 ? new Claim(Tenant.ClaimType, new Guid(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, (byte)number).ToString())
                 : new Claim(PartnerClaim, number.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+            identity.AddClaim(new Claim(ClaimTypes.Role, $"partner-{number}"));
         }
 
         return new ClaimsPrincipal(identity);

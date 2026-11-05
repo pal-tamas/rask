@@ -25,13 +25,13 @@ public sealed class CurrentRequestTests
     private static readonly Guid Acme = Guid.NewGuid();
 
     [Fact]
-    public async Task An_endpoint_reads_the_signed_in_user_and_tenant_with_nothing_injected()
+    public async Task An_endpoint_reads_the_signed_in_user_tenant_claims_and_roles_with_nothing_injected()
     {
         var app = await StartAsync();
 
         try
         {
-            Assert.Equal($"{Alice}|{Acme}", await GetAsync(app, "/who?signed-in=1"));
+            Assert.Equal($"{Alice}|{Acme}|sales|admin", await GetAsync(app, "/who?signed-in=1"));
         }
         finally
         {
@@ -46,7 +46,7 @@ public sealed class CurrentRequestTests
 
         try
         {
-            Assert.Equal("nobody|none", await GetAsync(app, "/who"));
+            Assert.Equal("nobody|none|no claim|no role", await GetAsync(app, "/who"));
 
             // Nothing leaks out of the request into the flow that made it.
             Assert.Null(Current.Principal);
@@ -72,10 +72,13 @@ public sealed class CurrentRequestTests
                 [
                     new Claim(ClaimTypes.NameIdentifier, Alice.ToString()),
                     new Claim(Tenant.ClaimType, Acme.ToString()),
+                    new Claim("department", "sales"),
+                    new Claim(ClaimTypes.Role, "Admin"),
                 ], "Test"));
             }
 
-            return $"{Current.UserId?.ToString() ?? "nobody"}|{Tenant.Key?.ToString() ?? "none"}";
+            return $"{Current.UserId?.ToString() ?? "nobody"}|{Tenant.Key?.ToString() ?? "none"}|" +
+                   $"{Current.Claim("department") ?? "no claim"}|{(Current.IsInRole("Admin") ? "admin" : "no role")}";
         }));
 
         var built = app.Build<MinimalApp>();
