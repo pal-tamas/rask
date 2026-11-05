@@ -35,6 +35,13 @@ internal interface IAccounts
 
     Task<int> SignOutEverywhereAsync(ClaimsPrincipal principal, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Records the tenant the signed-in <paramref name="principal" /> acts in on its session, or clears it with
+    /// <see langword="null" />. Refused (<see cref="AuthError.NotAllowed" />) for nobody, for a user who belongs to a
+    /// tenant, and for one without <see cref="AuthOptions.ActInTenantRole" />.
+    /// </summary>
+    Task<AuthResult> ActInTenantAsync(ClaimsPrincipal principal, Guid? tenant, CancellationToken cancellationToken = default);
+
     Task<PasskeyCreationChallenge?> BeginAddPasskeyAsync(
         Guid userId, string? origin, CancellationToken cancellationToken = default);
 

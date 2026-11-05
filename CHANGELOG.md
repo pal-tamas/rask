@@ -104,6 +104,21 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **An administrator acts in a tenant for the whole sign-in: `await auth.ActInTenant(partnerId)` (#1280).**
+  Before: an admin who belongs to no tenant had to open `Tenant.Use(id)` around every piece of work, or an app kept
+  its own "chosen partner" cookie tied to the sign-in, its own `GET /partner/{id}` behind a `Sec-Fetch-Site` check,
+  and a resolver reading it back. After: `auth.ActInTenant(id, returnUrl)` (a `Guid` or a tenant's number;
+  `auth.LeaveTenant()` to stop, also on the static `Auth`) records the tenant on the sign-in's `Session` row
+  (`Session.ActingInTenant`), and the principal rebuilt from it carries it as the `rask:tenant` claim — so
+  `Current.Tenant` answers it on the next request, after a reconnect and in a bearer token of the same sign-in;
+  signing out ends the row and the choice with it, and another device chooses for itself. The user's other open
+  live pages work in it from their next event and render again (rows loaded before stay refused for writes in the
+  new tenant). Only a user of no tenant who holds `AuthOptions.ActInTenantRole` (`admin` by default; `null` turns
+  it off) may choose, re-checked from the user's row at every request. WebAssembly and TypeScript front ends call
+  `POST /api/auth/tenant` with `{ "tenant": "…" }` (`AuthApi.Tenant`, `ActInTenantRequest`), which needs the
+  `X-Rask-Auth` header and answers `403` to a browser request another site sent (`Sec-Fetch-Site` other than
+  `same-origin`). **Migration:** `RaskAuthSession` gets a nullable `ActingInTenant` column — `rask db add
+  AddActingInTenant`.
 - **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` re-checks a live page's
   user from the app's OWN user type, kept a few seconds (#1287).** Before: an app with its own users wrote a whole
   `ISessionRevalidator` — reading the claims, loading the account, building the principal — and, to avoid a read

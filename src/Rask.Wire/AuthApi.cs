@@ -94,4 +94,9 @@ public static class AuthApi
 
     /// <summary>The route that removes a passkey, relative to the prefix.</summary>
     public const string PasskeyRemove = "/passkeys/remove";
+
+    /// <summary>
+    /// The route that chooses the tenant a signed-in administrator acts in, relative to the prefix. Same-origin only.
+    /// </summary>
+    public const string Tenant = "/tenant";
 }

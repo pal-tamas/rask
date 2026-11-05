@@ -29,6 +29,7 @@ namespace Rask.Auth.Client;
 [JsonSerializable(typeof(PasskeyRegistrationRequest))]
 [JsonSerializable(typeof(PasskeyLoginRequest))]
 [JsonSerializable(typeof(RemovePasskeyRequest))]
+[JsonSerializable(typeof(ActInTenantRequest))]
 [JsonSerializable(typeof(CurrentUser))]
 [JsonSerializable(typeof(AuthFailure))]
 internal sealed partial class AuthJsonContext : JsonSerializerContext;
