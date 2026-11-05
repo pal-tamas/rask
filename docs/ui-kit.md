@@ -583,20 +583,21 @@ row shows when it has no rows.
 
 **Three pieces every list app copied, now the kit's** (not Flux's: additions the owner approved, 2026-11-04, #1298).
 
-`Ui.TableColumn.Width(Ui.ColumnWidth.…)` says what a column holds, and that alone sizes it — `Day` and `Number` 7rem,
-`Code` 8, `Moment` and `Text` 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, and the `Rest` (or a heading with
+`Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
+that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
 a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. An `Actions`
 heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
 with an ellipsis, the whole of it in the cell's tooltip.
 
-`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's pencil and bin, as Flux draws a row's action —
-a ghost, small, square button in a `py-0` cell — in the muted outline. The bin asks in the layout's
+`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its pencil and bin, as Flux draws
+a row's action — a ghost, small, square button in an end-aligned `py-0` cell — in the muted outline. The bin asks in the layout's
 [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs the delete only on yes; a null delete draws no bin. What you put inside it stands
 before the pencil. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
-drops what was typed — and Save, the form's submit. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp
@@ -612,15 +613,16 @@ FormButtons.For(Routes.SuppliersPage(), Remove, "Szállító törlése", "Biztos
 // After: the kit's.
 Ui.Table[
     Ui.TableColumns[
-        Ui.TableColumn.Width(Ui.ColumnWidth.Rest)["Supplier"],
-        Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Since"],
-        Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+        Ui.TableColumn.Rest["Supplier"],
+        Ui.TableColumn.Day["Since"],
+        Ui.TableColumn.Actions
     ],
     Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
-        Ui.TableCell.End.Class("py-0")[Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")]])]
+        Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")])]
 ]
 Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése", "Biztos törli?")
+Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
 ```
 
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**

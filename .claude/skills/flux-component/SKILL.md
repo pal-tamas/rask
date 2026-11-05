@@ -149,8 +149,8 @@ departure in behaviour carries none.
   unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
 - **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
   Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
-  primary Save, a danger Delete at the start), `Ui.RowActions` Flux's row button (ghost, sm, square, in a `py-0` cell) as
-  a pencil and a bin in the muted outline (`text-zinc-400 hover:text-zinc-800 dark:hover:text-white`); both deletes ask
+  primary Save, a danger Delete at the start), `Ui.RowActions` IS the row's last cell (`Ui.TableCell.End`, `py-0`) holding Flux's row button (ghost, sm,
+  square) as a pencil and a bin in the muted outline (`text-zinc-400 hover:text-zinc-800 dark:hover:text-white`); both deletes ask
   in `Ui.Confirm`, words from the catalog. `Width(Ui.ColumnWidth.…)` sizes a heading (`[:where(&)]:w-*`, wraps, gives way
   on paper) and the table takes `[:where(&)]:w-full min-w-(--ui-table-least)` with the sum (40rem floor) and its box
   `min-w-0`. Approved types and `Translations` rows in `FluxConformanceTests`; `UiFormButtonsTests`, `UiRowActionsTests`,

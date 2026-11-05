@@ -344,12 +344,14 @@ internal static partial class UiApi
             new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
             new("RemoveHeading", typeof(string), "The title over the delete's question. \"Delete\" when unset."),
             new("RemoveQuestion", typeof(string), "The question the delete asks first."),
+            new("Cancel", typeof(string), "The label of the link back to the list. The catalog's \"Cancel\" when unset."),
+            new("Save", typeof(string), "The label of the submit: \"Create\" on a new record. The catalog's \"Save\" when unset."),
         ]),
     ];
 
     public static IReadOnlyList<UiApiPart> RowActions { get; } =
     [
-        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's pencil and bin, as Flux draws a row's action: ghost, small, square, in the muted outline.",
+        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: its pencil and bin, as Flux draws a row's action — ghost, small, square, in a py-0 cell — in the muted outline.",
         [
             new("Edit", typeof(Rask.Core.Routing.RouteUrl), "Where the pencil opens the row to be edited. Required, and taken first.", "a route: Routes.EditSupplierPage(id)"),
             new("Remove", typeof(Func<Task>), "A bin after the pencil that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
@@ -530,7 +532,7 @@ internal static partial class UiApi
         new("Ui.TableColumn", typeof(UiTableColumn), "flux:table.column", "One heading: the <th>. Its children are its label.",
         [
             new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset; the end for a Width of numbers or actions."),
-            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Code, Flag, Text, Name, Actions, Buttons, or the Rest. "
+            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions, Buttons, or the Rest. "
                                                   + "The table fills its box and is never narrower than its columns together (40rem at least). Not Flux's.",
                 "Ui.ColumnWidth, each a step too (.Day)"),
             new("Sortable", typeof(bool?), "Makes the heading a button with a chevron that asks for this column to be sorted."),

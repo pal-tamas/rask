@@ -116,10 +116,11 @@ them until tagged releases begin.
   `Ui.TableCell.End[RowActions.For(edit, () => Remove(s), …)]`, `ListTable.Column(ColumnWidth.Day, "since")`,
   `ListTable.Cell(s.Name)`. After: `Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése",
   "Biztos törli?")` draws Flux's form footer — Delete at the start asking in `Ui.Confirm`, Cancel back to the list,
-  Save; `Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), …)` draws Flux's ghost row button
-  as a pencil and a bin in the muted outline (`text-zinc-400`, darker under the pointer), each named in its tooltip;
-  `Ui.TableColumn.Width(Ui.ColumnWidth.Day)` (`Rest`, `Day`, `Moment`, `Number`, `Code`, `Flag`, `Text`, `Name`,
-  `Actions`, `Buttons`) sizes a column by what it holds, and a table whose headings name widths fills its box and is
+  Save (`.Save("Létrehozás")`, `.Cancel("Vissza")` name them); `Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id))
+  .Remove(() => Remove(s), …)` is the row's last cell (end-aligned, `py-0`, no `Ui.TableCell` around it), Flux's ghost
+  row button as a pencil and a bin in the muted outline (`text-zinc-400`, darker under the pointer), each named in its
+  tooltip; `Ui.TableColumn.Width(Ui.ColumnWidth.Day)` or the step `Ui.TableColumn.Day` (`Rest`, `Day`, `Moment`,
+  `Number`, `Short`, `Flag`, `Reference`, `Name`, `Actions`, `Buttons`) sizes a column by what it holds, and a table whose headings name widths fills its box and is
   never narrower than they take together (40rem at least, `--ui-table-least`), lifted on paper; `Ui.TableCell.Cut(text)`
   cuts a value short on one line with the whole of it in the cell's title. Seven new `RaskString` keys
   (`FormButtonsCancel`, `FormButtonsSave`, `FormButtonsRemove`, `RowActionsEdit`, `RowActionsRemove`,

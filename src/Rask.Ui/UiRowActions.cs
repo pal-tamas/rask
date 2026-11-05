@@ -3,12 +3,13 @@ using Rask.Core.Routing;
 namespace Rask;
 
 /// <summary>
-///     What a list row can do, at its end: open it to be edited (a pencil) and, where rows can be deleted, delete it (a
-///     bin).
+///     What a list row can do, in its last cell: open it to be edited (a pencil) and, where rows can be deleted, delete it
+///     (a bin). It IS that cell — a <see cref="UiTableCell" /> at the end, with no vertical padding.
 /// </summary>
 /// <remarks>
 ///     <code>
-///     Ui.TableCell.End.Class("py-0")[
+///     Ui.TableRow.Key(supplier.Id)[
+///         Ui.TableCell.Cut(supplier.Name),
 ///         Ui.RowActions.Edit(Routes.EditSupplierPage(supplier.Id)).Remove(() => Delete(supplier), "Delete supplier", $"Delete {supplier.Name}?")
 ///     ]
 ///     </code>
@@ -41,7 +42,7 @@ public sealed partial class UiRowActions : Component
     /// <summary>The question the bin asks first. "Are you sure you want to delete it?" when unset.</summary>
     public string? RemoveQuestion { get; set; }
 
-    /// <summary>Classes for the call site, added to the row's own.</summary>
+    /// <summary>Classes for the call site, added to the cell's own: <c>sticky</c> and a background to hold it at the edge.</summary>
     public string? Class { get; set; }
 
     /// <summary>
@@ -64,10 +65,13 @@ public sealed partial class UiRowActions : Component
     {
         var remove = RaskStrings.Get(RaskString.RowActionsRemove, "Delete");
 
-        return Div.Class("[:where(&)]:flex justify-end [:where(&)]:gap-1", Class).Data("ui-row-actions", "")[
-            Children is { } more ? Fragment[more] : null,
-            Pressed(Ui.IconName.Pencil, RaskStrings.Get(RaskString.RowActionsEdit, "Edit")).Key("edit").Href(Edit),
-            OnRemove.HasValue ? UiRemoval.Asking(Pressed(Ui.IconName.Trash, remove).Key("remove"), OnRemove, RemoveHeading, RemoveQuestion, remove) : null
+        // Flux's row action sits in a `py-0` cell, so the row keeps the height of its neighbours.
+        return Ui.TableCell.End.Class("py-0", Class).Data("ui-row-actions", "")[
+            Div.Class("[:where(&)]:flex justify-end [:where(&)]:gap-1")[
+                Children is { } more ? Fragment[more] : null,
+                Pressed(Ui.IconName.Pencil, RaskStrings.Get(RaskString.RowActionsEdit, "Edit")).Key("edit").Href(Edit),
+                OnRemove.HasValue ? UiRemoval.Asking(Pressed(Ui.IconName.Trash, remove).Key("remove"), OnRemove, RemoveHeading, RemoveQuestion, remove) : null
+            ]
         ];
     }
 

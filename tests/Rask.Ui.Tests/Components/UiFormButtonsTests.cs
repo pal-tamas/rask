@@ -53,6 +53,19 @@ public partial class UiFormButtonsTests : RaskMarkup
     }
 
     [Fact]
+    public void A_new_record_names_its_own_buttons_and_an_unnamed_one_reads_the_catalog()
+    {
+        var created = Ui.FormButtons.Back(Suppliers).Save("Létrehozás").Cancel("Vissza");
+
+        var html = created.ToHtml().AsText();
+        var hungarian = KitCulture.In("hu-HU", () => Ui.FormButtons.Back(Suppliers).Save("Létrehozás").ToHtml().AsText());
+
+        Assert.Contains(">Vissza</a>", html, StringComparison.Ordinal);
+        Assert.Contains(">Létrehozás</span></button>", html, StringComparison.Ordinal);
+        Assert.Contains(">Mégse</a>", hungarian, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_record_that_cannot_be_deleted_has_no_delete_button()
     {
         Func<Task>? remove = null;

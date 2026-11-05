@@ -37,6 +37,12 @@ public sealed partial class UiFormButtons : Component
     /// <summary>The question the delete asks first. "Are you sure you want to delete it?" when unset.</summary>
     public string? RemoveQuestion { get; set; }
 
+    /// <summary>The label of the button back to the list: <c>.Cancel("Back")</c>. The catalog's "Cancel" (Mégse) when unset.</summary>
+    public string? Cancel { get; set; }
+
+    /// <summary>The label of the submit: <c>.Save("Create")</c> on a new record. The catalog's "Save" (Mentés) when unset.</summary>
+    public string? Save { get; set; }
+
     /// <summary>Classes for the call site, added to the row's own.</summary>
     public string? Class { get; set; }
 
@@ -65,8 +71,8 @@ public sealed partial class UiFormButtons : Component
             OnRemove.HasValue ? UiRemoval.Asking(Ui.Button.Key("remove").Danger, OnRemove, RemoveHeading, RemoveQuestion, remove)[remove] : null,
             Ui.Spacer,
             Children is { } more ? Fragment[more] : null,
-            Ui.Button.Key("cancel").Ghost.Href(Back)[RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
-            Ui.Button.Key("save").Primary.Submit[RaskStrings.Get(RaskString.FormButtonsSave, "Save")]
+            Ui.Button.Key("cancel").Ghost.Href(Back)[Cancel ?? RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
+            Ui.Button.Key("save").Primary.Submit[Save ?? RaskStrings.Get(RaskString.FormButtonsSave, "Save")]
         ];
     }
 }

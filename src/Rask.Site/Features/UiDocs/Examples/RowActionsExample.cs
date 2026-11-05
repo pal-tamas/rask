@@ -16,17 +16,14 @@ public sealed partial class RowActionsExample : Component
             Ui.Table.Id("ura-suppliers").ContainerClass("min-w-0")[
                 Ui.TableColumns[
                     Ui.TableColumn["Supplier"],
-                    Ui.TableColumn.Width(Ui.ColumnWidth.Text)["City"],
+                    Ui.TableColumn.Width(Ui.ColumnWidth.Reference)["City"],
                     Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
                 ],
                 Ui.TableRows[
                     _suppliers.Select(supplier => Ui.TableRow.Key(supplier.Name)[
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(supplier.Name),
                         Ui.TableCell.Cut(supplier.City),
-                        Ui.TableCell.End.Class("py-0")[
-                            Ui.RowActions.Edit(Routes.UiFormButtonsPage())
-                                .Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
-                        ]
+                        Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
                     ])
                 ]
             ]

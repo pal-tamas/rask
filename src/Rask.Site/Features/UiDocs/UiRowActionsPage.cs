@@ -24,6 +24,6 @@ public sealed partial class UiRowActionsPage : Component
             UiDocsExample.Key("ui-row-actions").Heading("Edit and delete").File("RowActionsExample.cs").Demo(RowActionsExample).Testid("ui-row-actions")
                 .Blurb("Edit(url) is where the pencil goes. Remove(delete, heading, question) adds the bin, which asks in "
                        + "the layout's Ui.Confirm and deletes only on yes; a row that cannot be deleted passes null and has "
-                       + "none. What the row puts inside stands before the pencil. The column is Width(Ui.ColumnWidth.Actions).")
+                       + "none. What the row puts inside stands before the pencil. It is the row's last cell itself; its column is Width(Ui.ColumnWidth.Actions).")
         ];
 }

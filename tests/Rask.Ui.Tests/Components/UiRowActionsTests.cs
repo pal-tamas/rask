@@ -13,13 +13,24 @@ public partial class UiRowActionsTests : RaskMarkup
     private static readonly RouteUrl EditOne = new("/suppliers/1/edit");
 
     [Fact]
+    public void It_is_the_rows_last_cell_at_the_end_with_no_vertical_padding()
+    {
+        var row = Ui.TableRow[Ui.TableCell["Aminoff Freight"], Ui.RowActions.Edit(EditOne)];
+
+        var html = row.ToHtml().AsText();
+
+        Assert.Contains("<td class=\"text-end [&>*]:ms-auto py-0\" data-ui-cell data-ui-row-actions=\"\"><div class=\"[:where(&)]:flex justify-end [:where(&)]:gap-1\">", html, StringComparison.Ordinal);
+        Assert.EndsWith("</div></td></tr>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_pencil_links_to_the_rows_edit_in_the_muted_outline_and_names_itself()
     {
         var actions = Ui.RowActions.Edit(EditOne);
 
         var html = actions.ToHtml().AsText();
 
-        Assert.StartsWith("<div class=\"[:where(&)]:flex justify-end [:where(&)]:gap-1\" data-ui-row-actions=\"\">", html, StringComparison.Ordinal);
+        Assert.StartsWith("<td ", html, StringComparison.Ordinal);
         Assert.Matches("<a [^>]*text-zinc-400 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white[^>]*href=\"/suppliers/1/edit\"", html);
         Assert.Contains("aria-labelledby=\"ui-tooltip-", html, StringComparison.Ordinal);
         Assert.Contains(">Edit</div>", html, StringComparison.Ordinal);
@@ -66,13 +77,13 @@ public partial class UiRowActionsTests : RaskMarkup
         List<string> suppliers = ["Aminoff Freight", "Bothman & Sons"];
         var page = Page.Render(() =>
         [
-            Ul[suppliers.Select(name => Li.Key(name)[
-                name,
+            Ui.Table[Ui.TableRows[suppliers.Select(name => Ui.TableRow.Key(name)[
+                Ui.TableCell[name],
                 Ui.RowActions.Edit(new RouteUrl("/suppliers/" + name.Length)).Remove(suppliers.Count > 1 ? () => { suppliers.Remove(name); } : null)
-            ])],
+            ])]],
         ]);
 
-        await page.On("li:has-text(\"Aminoff\") button[data-rask-confirm]").Click();
+        await page.On("tr:has-text(\"Aminoff\") button[data-rask-confirm]").Click();
 
         Assert.Equal(["Bothman & Sons"], suppliers);
         Assert.False(page.Exists("[data-rask-confirm]"));

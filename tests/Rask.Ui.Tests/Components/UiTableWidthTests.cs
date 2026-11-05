@@ -53,6 +53,22 @@ public partial class UiTableWidthTests : RaskMarkup
     }
 
     [Fact]
+    public void Every_width_is_a_step_and_a_short_code_takes_ten_rem()
+    {
+        Component[] headings =
+        [
+            Ui.TableColumn.Rest, Ui.TableColumn.Day, Ui.TableColumn.Moment, Ui.TableColumn.Number, Ui.TableColumn.Short,
+            Ui.TableColumn.Flag, Ui.TableColumn.Reference, Ui.TableColumn.Name, Ui.TableColumn.Actions, Ui.TableColumn.Buttons,
+        ];
+
+        var html = Ui.Table[Ui.TableColumns[Ui.TableColumn.Short["VAT number"], Ui.TableColumn.Reference["City"]]].ToHtml();
+
+        Assert.Equal(10, headings.Length);
+        Assert.Contains("style=\"--ui-table-least: 40rem\"", html, StringComparison.Ordinal);
+        Assert.Equal(2, html.Split("[:where(&amp;)]:w-40").Length - 1);
+    }
+
+    [Fact]
     public void A_table_of_few_narrow_columns_is_still_forty_rem_wide_at_least()
     {
         var table = Ui.Table[Ui.TableColumns[Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Day"], Ui.TableColumn["Note"]]];

@@ -17,8 +17,7 @@ internal static class UiColumnWidths
     internal static string Class(Ui.ColumnWidth width) => width switch
     {
         Ui.ColumnWidth.Day or Ui.ColumnWidth.Number => "[:where(&)]:w-28" + Wraps,
-        Ui.ColumnWidth.Code => "[:where(&)]:w-32" + Wraps,
-        Ui.ColumnWidth.Moment or Ui.ColumnWidth.Text => "[:where(&)]:w-40" + Wraps,
+        Ui.ColumnWidth.Moment or Ui.ColumnWidth.Short or Ui.ColumnWidth.Reference => "[:where(&)]:w-40" + Wraps,
         Ui.ColumnWidth.Name => "[:where(&)]:w-72" + Wraps,
         Ui.ColumnWidth.Flag => "[:where(&)]:w-20" + Wraps,
         Ui.ColumnWidth.Actions => "[:where(&)]:w-24" + Wraps,
@@ -31,8 +30,7 @@ internal static class UiColumnWidths
     internal static int Rem(Ui.ColumnWidth width) => width switch
     {
         Ui.ColumnWidth.Day or Ui.ColumnWidth.Number => 7,
-        Ui.ColumnWidth.Code => 8,
-        Ui.ColumnWidth.Moment or Ui.ColumnWidth.Text => 10,
+        Ui.ColumnWidth.Moment or Ui.ColumnWidth.Short or Ui.ColumnWidth.Reference => 10,
         Ui.ColumnWidth.Name => 18,
         Ui.ColumnWidth.Flag => 5,
         Ui.ColumnWidth.Actions => 6,

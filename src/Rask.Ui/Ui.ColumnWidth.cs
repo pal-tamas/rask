@@ -25,14 +25,16 @@ public static partial class Ui
         /// <summary>An amount, a quantity, a count: 7rem, at the column's end.</summary>
         Number,
 
-        /// <summary>A short code — a plate, a tax number, an invoice number: 8rem.</summary>
-        Code,
+        /// <summary>A short code — a plate, a tax number, an invoice number, "GB 123 4567 89": 10rem.</summary>
+#pragma warning disable CA1720 // The owner's name for the step (`Ui.TableColumn.Short`, 2026-11-05): a short code, not the C# `short`.
+        Short,
+#pragma warning restore CA1720
 
         /// <summary>A yes or no, or a one-word state: 5rem.</summary>
         Flag,
 
-        /// <summary>A short text — a town, a supplier, a category: 10rem.</summary>
-        Text,
+        /// <summary>A short text that refers to something — a town, a supplier, a category: 10rem.</summary>
+        Reference,
 
         /// <summary>A name beside a longer text that takes the rest: 18rem.</summary>
         Name,

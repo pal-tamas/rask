@@ -17,7 +17,7 @@ public sealed partial class TableColumnWidthsExample : Component
         Ui.Table.Id("ui-deliveries")[
             Ui.TableColumns[
                 Ui.TableColumn.Width(Ui.ColumnWidth.Rest)["Supplier"],
-                Ui.TableColumn.Width(Ui.ColumnWidth.Code)["VAT number"],
+                Ui.TableColumn.Width(Ui.ColumnWidth.Short)["VAT number"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Delivered"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Amount"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Flag)["Paid"],
@@ -30,7 +30,7 @@ public sealed partial class TableColumnWidthsExample : Component
                     Ui.TableCell[Format.Day(delivery.Day)],
                     Ui.TableCell.End[Format.Number(delivery.Amount)],
                     Ui.TableCell[delivery.Paid ? "Yes" : "No"],
-                    Ui.TableCell.End.Class("py-0")[Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(() => { _deliveries.Remove(delivery); }, "Delete delivery", "Delete this delivery?")]
+                    Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(() => { _deliveries.Remove(delivery); }, "Delete delivery", "Delete this delivery?")
                 ])
             ]
         ];
