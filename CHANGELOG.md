@@ -104,6 +104,12 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`MapRaskVersion()` says which build is running (#1292).** Before: an app that wanted its version over HTTP wrote
+  the endpoint itself — read the assembly's informational version, serialize it, remember `AllowAnonymous` and
+  `no-store`. After: `app.MapEndpoints(e => e.MapRaskVersion())` (or `app.MapRaskVersion("/api/version")` on a
+  hand-wired host) answers `GET /version` with `{"version":"1.4.0+3f2a9c1"}` — the entry assembly's MinVer version,
+  anonymous, `Cache-Control: no-store`. Opt-in: `RaskApp` does not map it, since it tells anyone which build is live.
+  See [Observability](docs/observability.md#which-build-is-running).
 - **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
   shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
   prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after

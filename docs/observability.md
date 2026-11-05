@@ -258,3 +258,23 @@ app.MapHealthChecks("/health/ready",
 app.MapHealthChecks("/health/live",
     new HealthCheckOptions { Predicate = c => c.Tags.Contains("live") });
 ```
+
+## Which build is running
+
+`MapRaskVersion()` answers `GET /version` with the app's informational version — the one MinVer stamps from the
+release tag, so it carries the prerelease height and the commit:
+
+```csharp
+app.MapEndpoints(e => e.MapRaskVersion());            // a RaskApp
+app.MapRaskVersion("/api/version");                   // a host wired by hand, at a path of your own
+```
+
+```json
+{"version":"1.4.0-alpha.0.12+3f2a9c1"}
+```
+
+It is anonymous, so a deploy script or an uptime probe asks without signing in (a fallback authorization policy
+does not reach it), and it is served `Cache-Control: no-store`, so a proxy never answers with the build before last.
+`RaskApp` does **not** map it for you: it tells anyone who asks exactly which build is live, which is the app's call
+to make. It returns the endpoint's convention builder, so `.RequireAuthorization(...)` puts it behind a policy after
+all. An app built without an informational version answers its assembly version.
