@@ -391,3 +391,11 @@ static Rask.Data.CurrentRows.Tenant<TRead>() -> TRead?
 static Rask.Data.CurrentRows.User<TRead>() -> TRead?
 static Rask.Data.CurrentRows.UseTenant<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void
 static Rask.Data.CurrentRows.UseUser<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void
+Rask.Data.TestDatabase<TContext>.Factory.get -> Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>!
+Rask.Data.TestDatabaseOptions
+Rask.Data.TestDatabaseOptions.LockFile.get -> string?
+Rask.Data.TestDatabaseOptions.LockFile.set -> void
+Rask.Data.TestDatabaseOptions.Shared.get -> bool
+Rask.Data.TestDatabaseOptions.Shared.set -> void
+Rask.Data.TestDatabaseOptions.TestDatabaseOptions() -> void
+static Rask.Data.TestDatabase.FromEnvironment<TContext>(string! variable, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!, string!>! configure, System.Action<Rask.Data.TestDatabaseOptions!>? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Data.TestDatabase<TContext!>!>!

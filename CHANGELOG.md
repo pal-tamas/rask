@@ -112,6 +112,29 @@ them until tagged releases begin.
   Core's migration lock (any provider, SQLite included), writes the first migration down as applied when the database
   already has its schema, then applies the rest with that command timeout; a fresh database is made as usual.
   `AddRaskData<TContext>(o => …)` now returns `DataBuilder<TContext>` (`.Services` for the collection).
+- **`var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);` awaits a job's answer in its lane (#1281).**
+  Before: work that had to wait its turn at a pump AND hand the caller an answer needed a named lock of its own — a raw
+  `sp_getapplock` held while the work ran — beside a lane for the work that did not wait, two mechanisms that did not
+  see each other. After: the job is an `IJob<Done>` with an `IJobHandler<AtPump, Done>` (`Task<Done> Handle(AtPump job)`);
+  `Jobs.Run` stores it and runs it like any lane job — one at a time with that lane's other jobs, on every host — and
+  the await hands back its answer, kept as JSON on the new `Job.Result` column so any host may run it. It is tried
+  once: a failure throws `JobFailedException` with the handler's error and the row is a dead letter, never a retry
+  behind the caller's back. Cancelling the wait, or `.Within(2.Minutes)` running out (`TimeoutException`), stops the
+  waiting, never the job; a caller that dies leaves the job running. A job awaiting a job of its own lane, and
+  `Jobs.Run` inside `Db.Transaction`, throw rather than wait forever. A plain `IJob` can be awaited too, `IJobs` gains
+  the `Run` primitives (an app with its own `IJobs` implements them), `JobBacklog` takes `JobsOptions`, and
+  `Jobs.Fake()` runs an awaited job at once through its handler. **Upgrading adds the `Awaited` and `Result` columns:
+  `rask db add AddJobResult && rask db update`** (until then the processor logs exactly that). See
+  [Background jobs](docs/jobs.md#await-a-jobs-answer-jobsrun).
+- **`TestDatabase.FromEnvironment<TContext>("VAR", (o, cs) => o.UseSqlServer(cs))` — a real database server for the
+  tests that need one, skipped where there is none (#1291).** Before: an app testing against SQL Server carried its
+  own fixture — read a variable, fail (or silently pass) without it, create and drop a database or `lockf` a standing
+  one, hand out a context factory. After: one line in `Rask.Data`. Unset, the test is reported *skipped* with the
+  variable's name (xUnit v3's dynamic skip). Set, each test gets a database of its own — the named one with a unique
+  suffix, created, migrated and dropped — or, with `o => o.Shared = true`, the named standing database, taken in
+  turns across processes through a lock file (`o.LockFile`, the lock `lockf`/`flock` take). It hands out the same
+  fixture as `TestDatabase.Start<TContext>` plus `database.Factory`, an `IDbContextFactory<TContext>` — which
+  `Start<TContext>` now offers too. Provider-neutral: SQL Server, PostgreSQL and SQLite alike.
 - **`AddRask(culture: "hu")` — a single-language server app's culture in one line (#1289).** Before, a hand-wired host
   wrote `AddRask(configureCulture: c => { c.SupportedCultures.Add("hu"); c.DefaultCulture = "hu"; })`. After:
   `builder.Services.AddRask(culture: "hu")` — the language joins `Rask:Cultures` and becomes the default, so every

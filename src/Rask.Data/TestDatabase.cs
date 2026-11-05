@@ -45,17 +45,19 @@ namespace Rask.Data;
 ///     </para>
 /// </remarks>
 /// <seealso cref="TestDatabase{TContext}" />
-public class TestDatabase : IAsyncDisposable
+public partial class TestDatabase : IAsyncDisposable
 {
     private readonly RaskDbContext _schemaOwner;
     private readonly Func<RaskReadDbContext> _openRead;
     private readonly Func<DbContext> _openWrite;
+    private readonly IAsyncDisposable? _lease;
 
-    private protected TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite)
+    private protected TestDatabase(RaskDbContext schemaOwner, Func<RaskReadDbContext> openRead, Func<DbContext> openWrite, IAsyncDisposable? lease)
     {
         _schemaOwner = schemaOwner;
         _openRead = openRead;
         _openWrite = openWrite;
+        _lease = lease;
     }
 
     /// <summary>Builds the database over a plain <see cref="RaskDbContext" />, creates its schema, and makes it the ambient one.</summary>
@@ -74,7 +76,8 @@ public class TestDatabase : IAsyncDisposable
         Action<DbContextOptionsBuilder> configure,
         TimeProvider? timeProvider = null,
         CancellationToken cancellationToken = default) =>
-        await Open<RaskDbContext>(configure, static options => new RaskDbContext(options), timeProvider, cancellationToken).ConfigureAwait(false);
+        await Open<RaskDbContext>(configure, static options => new RaskDbContext(options), timeProvider, SchemaStep.Create, lease: null, cancellationToken)
+            .ConfigureAwait(false);
 
     /// <summary>
     ///     Builds the database over the app's own context, creates its schema, and makes it the ambient one — so the
@@ -103,14 +106,16 @@ public class TestDatabase : IAsyncDisposable
         where TContext : RaskDbContext
     {
         ArgumentNullException.ThrowIfNull(configure);
-        return Open(configure, AppContextConstructor.For<TContext>(), timeProvider, cancellationToken);
+        return Open(configure, AppContextConstructor.For<TContext>(), timeProvider, SchemaStep.Create, lease: null, cancellationToken);
     }
 
     [RequiresUnreferencedCode(DataTrimming.EfCoreUnreferencedCode)]
-    private static async Task<TestDatabase<TContext>> Open<TContext>(
+    private static async Task<TestDatabase<TContext>> Open<[DynamicallyAccessedMembers(DataTrimming.Context)] TContext>(
         Action<DbContextOptionsBuilder> configure,
         Func<DbContextOptions<TContext>, TContext> construct,
         TimeProvider? timeProvider,
+        Func<TContext, CancellationToken, Task> createSchema,
+        IAsyncDisposable? lease,
         CancellationToken cancellationToken)
         where TContext : RaskDbContext
     {
@@ -141,7 +146,15 @@ public class TestDatabase : IAsyncDisposable
         // alive: SQLite drops an in-memory database when its last connection closes, so a fixture that
         // created the schema and disposed would hand the first query an empty file.
         var schemaOwner = Create();
-        await schemaOwner.Database.EnsureCreatedAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await createSchema(schemaOwner, cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            await schemaOwner.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
 
         Db.Configure(Create);
 
@@ -156,7 +169,7 @@ public class TestDatabase : IAsyncDisposable
         }
 
         ReadDb.Configure(CreateRead);
-        return new TestDatabase<TContext>(schemaOwner, CreateRead, Create);
+        return new TestDatabase<TContext>(schemaOwner, CreateRead, Create, lease);
     }
 
     /// <summary>The fixture's own context — the way to seed rows and to run a domain operation under test.</summary>
@@ -213,6 +226,11 @@ public class TestDatabase : IAsyncDisposable
         Db.Reset();
         ReadDb.Reset();
         await _schemaOwner.DisposeAsync().ConfigureAwait(false);
+        if (_lease is not null)
+        {
+            await _lease.DisposeAsync().ConfigureAwait(false);
+        }
+
         GC.SuppressFinalize(this);
     }
 

@@ -30,9 +30,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     public DateTime? ProcessedAt { get; private set; }
 
     /// <summary>How many times the job has been attempted.</summary>
-#pragma warning disable S1144 // EF materializes the column through the setter; code only moves it with ExecuteUpdate
     public int Attempts { get; private set; }
-#pragma warning restore S1144
 
     /// <summary>The last failure message, if any.</summary>
     public string? Error { get; private set; }
@@ -100,6 +98,19 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </remarks>
     public string? WaitingKey { get; private set; }
 
+    /// <summary>
+    ///     Whether a caller awaits this job — it was started with <c>Jobs.Run(job)</c>, not enqueued. An awaited job is tried
+    ///     once: a failure is a dead letter at once and reaches the caller as a <see cref="JobFailedException"/>, rather than
+    ///     a retry later, behind the back of a caller who has already been told it failed.
+    /// </summary>
+    public bool Awaited { get; private set; }
+
+    /// <summary>
+    ///     What the job's handler answered, as JSON — for a job of <see cref="IJob{TResult}"/> — once it has run; null before,
+    ///     and for a job whose handler answers nothing. What <c>await Jobs.Run(job)</c> reads back, on whichever host it waits.
+    /// </summary>
+    public string? Result { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -139,6 +150,24 @@ public sealed class Job : Aggregate<long, Timestamps>
         job.WaitingKey = JobWaitingKey.Of(type, payload, lane, job.TenantId);
         return job;
     }
+
+    /// <summary>Enqueues a job a caller awaits (<c>Jobs.Run(job)</c>): tried once, and its answer kept on the row.</summary>
+    /// <param name="type">The job's registered type name.</param>
+    /// <param name="payload">The serialized job.</param>
+    /// <param name="runAt">The earliest time (UTC) it may run.</param>
+    /// <param name="lane">The lane it runs in, or <c>null</c> for the default one.</param>
+    internal static Job ForAwaiting(string type, string payload, DateTime runAt, string? lane)
+    {
+        var job = For(type, payload, runAt, lane);
+        job.Awaited = true;
+        return job;
+    }
+
+    /// <summary>Keeps what the handler answered, as JSON, for the caller awaiting it.</summary>
+    internal void Answered(string? result) => Result = result;
+
+    /// <summary>Spends every attempt: an awaited job that failed is a dead letter at once, never a retry.</summary>
+    internal void GaveUp(int maxAttempts) => Attempts = Math.Max(Attempts, maxAttempts);
 
     /// <summary>Records a successful run, clearing any error from an earlier attempt.</summary>
     /// <param name="at">When it completed (UTC).</param>

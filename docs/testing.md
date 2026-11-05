@@ -321,6 +321,55 @@ public async Task A_company_that_still_has_contacts_is_not_removed()
 go to that database, through the app's own context (its model, its `SaveChangesAsync`), and the app's `Program.cs`
 (with whatever settings it demands) never runs for it. An app on Rask's own context writes `TestDatabase.Start(…)`.
 
+### A real database server, when the machine has one
+
+Some tests need the database the app runs on — SQL Server's locking, a stored procedure, a migration — and not
+every machine has one. Name it with an environment variable, and the tests run where it is set and are **skipped**
+(not failed) where it is not:
+
+```csharp
+[Fact]
+public async Task An_invoice_number_is_never_handed_out_twice()
+{
+    await using var database = await TestDatabase.FromEnvironment<ShopContext>("SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs));
+    var invoices = new InvoiceNumbers(database.Factory);   // anything that takes an IDbContextFactory<ShopContext>
+
+    var numbers = await Task.WhenAll(invoices.Next(), invoices.Next());
+
+    Assert.NotEqual(numbers[0], numbers[1]);
+}
+```
+
+```bash
+SHOP_TEST_DB="Server=localhost;Initial Catalog=Shop;User ID=sa;Password=…;TrustServerCertificate=true" dotnet test
+```
+
+Without `SHOP_TEST_DB` the test reports *skipped — SHOP_TEST_DB is not set, so this test has no database to run on*
+(xUnit v3's dynamic skip). With it, `database` is the same fixture `TestDatabase.Start` hands out — `Context`,
+`Load<T>`, the model surface (`Product.Where(…)`) pointed at it — plus **`database.Factory`**, an
+`IDbContextFactory<ShopContext>` over the same database for the code under test that takes one.
+
+- **A database per test, by default.** The test gets the named database with a unique suffix (`Shop_3f9c…`; on
+  SQLite, `shop-3f9c….db` beside the named file) — created, migrated (the app's migrations when it has any,
+  otherwise its model), and dropped when `database` is disposed.
+- **One standing database, shared.** `o => o.Shared = true` runs on the named database itself: it is migrated if it
+  is behind and never created or dropped, and each test holds a lock file for as long as it runs, so test runs on
+  one machine — in one process or in several — take turns at it. The default lock is one per connection string in
+  the temporary directory; `o.LockFile = "/tmp/shop-test-db.lock"` names it, and since it is the lock `lockf` and
+  `flock` take, another script that runs under `lockf /tmp/shop-test-db.lock …` (a reseed, a restore) and these
+  tests wait for each other. **Never wrap the test run itself in that lock** (`lockf /tmp/shop-test-db.lock dotnet
+  test …`): the test process takes the file on its own, so it would wait for its own parent until the timeout.
+  Drop such a wrapper when the tests move to `Shared = true`.
+
+```csharp
+await using var database = await TestDatabase.FromEnvironment<ShopContext>(
+    "SHOP_TEST_DB", (o, cs) => o.UseSqlServer(cs), o => (o.Shared, o.LockFile) = (true, "/tmp/shop-test-db.lock"));
+```
+
+Either way a process holds one at a time — the model surface is process-wide, so a second `FromEnvironment` waits
+until the first is disposed. The provider is the callback's: `(o, cs) => o.UseSqlite(cs)` works the same, which is
+how Rask tests it.
+
 Nothing here names a handler id, a selector or a `data-testid`. A field is found by the text beside it —
 its label, then its placeholder, then its `aria-label` — which is the same thing a person looks for, and
 the reason a test written this way fails when the *screen* breaks rather than when the markup is
