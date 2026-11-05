@@ -8877,3 +8877,9 @@ static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b) -> Rask.UiIn
 static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiInput<T>! __b, bool? value) -> Rask.UiInput<T>!
 static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b) -> Rask.UiTextarea<T>!
 static RaskBuilderSettersRask_Ui.Live<T>(this Rask.UiTextarea<T>! __b, bool? value) -> Rask.UiTextarea<T>!
+const Rask.UiPaginator.DefaultPerPage = 15 -> int
+const Rask.UiTable.Descending = "desc" -> string!
+Rask.UiTable.Empty(Rask.Core.Component? nothingYet, Rask.Core.Component? noMatch = null) -> Rask.UiTable!
+Rask.UiTable.PageIn(string! page, int? total, int perPage = 15) -> Rask.UiTable!
+Rask.UiTable.SortIn(string! column, string! direction) -> Rask.UiTable!
+Rask.UiTable.SortIn(string! direction) -> Rask.UiTable!

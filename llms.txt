@@ -1267,6 +1267,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `Ui.Table.Loading(_rows is null)` does the same for rows the page loads into its own field (no query);
   `Ui.Table.Of(rows, columns)` (up to three queries) waits for every one, rows from the first;
   a control outside the table names it with `.Aria("controls", tableId)`.
+  A LIST PAGE (owner-approved, not Flux): `Ui.Table.Of(listed).SortIn("sort", "dir").PageIn("page", listed.Data?.Total).Empty("No suppliers yet.", "No supplier matches.")` — the table writes the sorted column (by its heading's `Key`), the direction (`UiTable.Descending` or left out) and the page into the address, draws a pager of links past one page, steps back a page when the last row of the last page is deleted, and says `noMatch` while another address key or a `Ui.Filters` filter narrows the list; the page reads the same keys as `[QueryParam]`s and reads `UiPaginator.DefaultPerPage` (15) rows. Never hand-write a heading's OnSort, a pager Href or a step back for a list page.
   It always sits in a scroll area;
   `Class` lands on the `<table>`, `ContainerClass("max-h-80")` on the box, `Bleed()` runs the dividers through the parent's padding (`--ui-bleed`, 1.5rem by default) and `Paginate(pager)` puts a pager under the rows.
   COLUMNS THAT DO NOT MOVE WHEN A TABLE PAGES OR SORTS: `Ui.Table.Class("w-full min-w-160")` with a width on every `Ui.TableColumn` but one (`.Class("w-40")`;

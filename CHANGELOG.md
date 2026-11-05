@@ -104,6 +104,18 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A list page in four steps: `Ui.Table.Of(listed).SortIn("sort", "dir").PageIn("page", total).Empty(nothingYet,
+  noMatch)` (#1294).** Before: every list page wrote its own sortable headings (`Sorted`, `Direction` and an `OnSort`
+  that built the next address), its pager's `Href`, the step back to the previous page in its delete handler once the
+  last row of the last page went, and an empty sentence that told "nothing yet" from "nothing matches" — TA in 9 files,
+  Eszaf in 21 — and wrote 15 rows a page as a constant of its own. After: the table keeps the sorted column, its
+  direction and the page in the address under the keys named (the default column, ascending and the first page by
+  leaving them out; a sort starts at the first page), draws a pager of links once the rows run past a page, steps back
+  to the last page there is when the address names one past it, and says `noMatch` while a key that is not its own (a
+  filter, a tab, a search) or a `Ui.Filters` filter narrows the list. The page reads the same keys as `[QueryParam]`s:
+  `Dir == UiTable.Descending`, `Page ?? 1`, and the new public `UiPaginator.DefaultPerPage` (15). Not Flux's — approved
+  2026-11-04; demo at rask.sh/ui/table ("A list page"). In Rask.Testing, a page that navigates with no dispatch behind
+  it (a hook past an await, a render nothing dispatched) now moves as a live session moves it, instead of throwing.
 - **`services.AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()` keeps a live page's
   revalidation answer a few seconds and forgets it when the user is saved (#1287).** Before: an app whose
   `ISessionRevalidator` read its own users on every click wrote its own cache and a `SaveChangesInterceptor` that

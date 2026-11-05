@@ -485,7 +485,8 @@ reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 `Ui.Table` is [Flux's table](https://fluxui.dev/components/table), part for part: `Ui.TableColumns` of
 `Ui.TableColumn`s and `Ui.TableRows` of `Ui.TableRow`s of `Ui.TableCell`s. **It sorts nothing and pages nothing**: the
 page keeps the sorted column, its direction and the page number (`Sortable()`, `Sorted`, `Direction`, `OnSort`, and
-`Paginate(Ui.Pagination…)` under the rows). A slow page change keeps the rows and dims them with nothing to write;
+`Paginate(Ui.Pagination…)` under the rows) — or, on a list page, keeps them in the address with
+[`SortIn` and `PageIn`](#a-list-page). A slow page change keeps the rows and dims them with nothing to write;
 `w-full` on the table and a width on every column but one keep the columns still from page to page
 (`ContainerClass("min-w-0")` inside a grid or a flex row). A cell's and a heading's look is written once, in the kit's
 sheet, so a cell writes only what differs and a list of thousands of rows stays small; your class on a cell wins as it
@@ -529,6 +530,53 @@ Ui.Table.Loading(_rows is null)[
     Ui.TableRows[(_rows ?? []).Select(d => Ui.TableRow.Key(d.Id)[Ui.TableCell[d.Name], Ui.TableCell[d.Fuel]])]
 ]
 ```
+
+### A list page
+
+**`SortIn`, `PageIn` and `Empty` are the list page every app writes** (not Flux's: an addition the owner approved,
+2026-11-04). `SortIn("sort", "dir")` keeps the sorted column (by its heading's `Key`) and its direction in the address:
+a press on a heading writes them — another column ascending, the sorted one turned round, as Flux's — and takes the
+list to its first page; `SortIn("dir")` keeps the direction alone, for a list sorted by one column. `PageIn("page",
+total)` draws a pager of links once the rows run past a page (`UiPaginator.DefaultPerPage`, 15, unless a third
+argument says otherwise), and steps back to the last page there is when the address names one past it — which is what
+deleting the last row of the last page leaves. The column the list sorts by unless asked, ascending, and the first page
+are each named by leaving their key out. `Empty(nothingYet, noMatch)` is what the one row of an empty list says:
+`noMatch` while the list is narrowed — the address holds a key that is not the table's own (a filter, a tab, a search),
+or a [`Ui.Filters`](#filters) before the table has a filter in force — and `nothingYet` otherwise. The page reads the
+same keys as its own query parameters and reads that page of its rows; nothing else is wired.
+
+```csharp
+// Before: the page wrote every heading's sort, the pager's links, the step back and the empty sentence itself.
+[QueryParam("sort")] public string? Sort { get; set; }
+[QueryParam("dir")] public string? Dir { get; set; }
+[QueryParam("page")] public int? Page { get; set; }
+
+Listed.Data is { Total: 0 }
+    ? EmptyList.Of("No suppliers yet.", "No supplier matches.", filtered: Name is not null)
+    : Ui.Table.Of(Listed).Paginate(Listed.Data?.Total > 15 ? Pager() : null)[
+        Ui.TableColumns[Heading("Name", null), Heading("VAT number", "vat")],
+        …
+    ]
+// …plus Heading(…) with its Sorted/Direction/OnSort, Pager() with its Href, and in Remove():
+// if (Listed.Data?.Rows.Count == 1 && Page > 1) Go.To(Address(Page - 1)).Replacing();
+
+// After: the same keys, read the same way; the table writes them.
+Ui.Table.Of(Listed)
+    .SortIn("sort", "dir")
+    .PageIn("page", Listed.Data?.Total)
+    .Empty("No suppliers yet.", "No supplier matches.")[
+    Ui.TableColumns[
+        Ui.TableColumn.Key("name").Sortable()["Name"],
+        Ui.TableColumn.Key("vat").Sortable()["VAT number"]
+    ],
+    Ui.TableRows[(Listed.Data?.Rows ?? []).Select(s => Ui.TableRow.Key(s.Id)[Ui.TableCell[s.Name], Ui.TableCell[s.Vat]])]
+]
+
+// and the read: Dir == UiTable.Descending, Page ?? 1, UiPaginator.DefaultPerPage
+```
+
+A heading the page gives its own `OnSort` keeps it. A table that is not drawn from a query takes `Empty` too: its one
+row shows when it has no rows.
 
 ## Printing
 

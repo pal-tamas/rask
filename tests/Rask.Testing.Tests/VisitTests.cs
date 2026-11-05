@@ -19,9 +19,32 @@ public sealed partial class VisitProductList : Component
     protected override Component? Render() => H1["All products"];
 }
 
+[Route("/visit-tests/old")]
+public sealed partial class VisitMovedPage : Component
+{
+    // A page that sends the reader on as it mounts, as a live session lets it: the move is made once the walk is over.
+    protected override async Task OnMount()
+    {
+        await Task.Yield();
+        VisitProductList.Go();
+    }
+
+    protected override Component? Render() => H1["Moved"];
+}
+
 // Page.Visit opens the app at a URL through the real router, so a test walks pages the way a person does.
 public sealed class VisitTests
 {
+    [Fact]
+    public void A_page_that_sends_the_reader_on_after_an_await_lands_them_there()
+    {
+        var page = Page.Visit("/visit-tests/old");
+
+        page.Shows("All products");
+
+        page.IsAt("/visit-tests/list");
+    }
+
     [Fact]
     public void Visiting_a_url_renders_the_page_registered_for_it()
     {
