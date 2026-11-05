@@ -112,6 +112,7 @@
 
   "ConfirmLeaveStay": "Maradok",
   "ConfirmLeaveLeave": "Elhagyom",
+  "ConfirmLeaveQuestion": "Biztos elhagyja mentés nélkül az oldalt?",
 
   "OtpCharacter": "{0}. karakter, összesen {1}",
 
@@ -229,5 +230,23 @@
   "ValidationRangeMin": "Legalább {0} napos időszakot válasszon.",
   "ValidationRangeMax": "Legfeljebb {0} napos időszakot válasszon.",
   "ValidationTimeMin": "Válasszon {0} vagy későbbi időpontot.",
-  "ValidationTimeMax": "Válasszon {0} vagy korábbi időpontot."
+  "ValidationTimeMax": "Válasszon {0} vagy korábbi időpontot.",
+
+  "ValidationTooLong": "Maximum {0} karakter hosszúnak kell lennie.",
+  "ValidationTooShort": "Legalább {0} karakter hosszúnak kell lennie.",
+  "ValidationLength": "Legalább {0}, legfeljebb {1} karakter hosszúnak kell lennie.",
+  "ValidationTooMany": "Legfeljebb {0} elem adható meg.",
+  "ValidationTooFew": "Legalább {0} elemet adjon meg.",
+  "ValidationCount": "Legalább {0}, legfeljebb {1} elemet adjon meg.",
+  "ValidationBetween": "Az értéknek {0} és {1} között kell lennie.",
+  "ValidationEmail": "Érvényes e-mail-címet adjon meg.",
+  "ValidationPhone": "Érvényes telefonszámot adjon meg.",
+  "ValidationUrl": "Érvényes webcímet adjon meg (http, https vagy ftp).",
+  "ValidationCreditCard": "Érvényes bankkártyaszámot adjon meg.",
+  "ValidationPattern": "A megadott érték formátuma nem megfelelő.",
+  "ValidationMatch": "Nem egyezik a következővel: {0}.",
+  "ValidationFileType": "Csak ilyen kiterjesztésű fájl választható: {0}.",
+  "ValidationNotAllowed": "Ez az érték nem adható meg.",
+  "ValidationBase64": "Érvényes Base64-kódolású szöveget adjon meg.",
+  "ValidationInvalid": "Érvénytelen érték."
 }

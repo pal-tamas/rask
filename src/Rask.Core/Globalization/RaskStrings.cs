@@ -112,6 +112,10 @@ public static class RaskStrings
         return string.Format(culture, text, arg0, arg1, arg2);
     }
 
+    // Whether the visitor's language has a translation for the key: the app's or a library's. What a caller asks
+    // that keeps a text of someone else's — .NET's English for a DataAnnotations attribute — where there is none.
+    internal static bool Translates(RaskString key) => Translation(key) is not null;
+
     /// <summary>Test-only: forgets every registered source.</summary>
     internal static void ResetForTests()
     {

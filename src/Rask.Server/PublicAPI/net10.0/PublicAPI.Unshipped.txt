@@ -96,7 +96,7 @@ static Rask.Server.Diagnostics.RaskHealthCheckExtensions.AddRaskLiveSessions(thi
 static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Rask.Server.DataBuilder<TContext!>!
 static Rask.Server.RaskDataHostExtensions.AddRaskData<TContext>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<System.IServiceProvider!, Microsoft.EntityFrameworkCore.DbContextOptionsBuilder!>! configure) -> Rask.Server.DataBuilder<TContext!>!
 static Rask.Server.RaskDataHostExtensions.UseRaskData(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
-static Rask.Server.RaskEndpointExtensions.AddRask(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configureCulture = null, string? culture = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Rask.Server.RaskEndpointExtensions.AddRask(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null, System.Action<Rask.Core.Globalization.RaskCultureOptions!>? configureCulture = null, string? culture = null, string? timeZone = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Server.RaskEndpointExtensions.AddRaskServer(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Core.Live.RaskLiveOptions!>? configure = null, System.Action<Rask.Server.RaskServerOptions!>? configureServer = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Rask.Server.RaskEndpointExtensions.MapRask<TApp>(this Microsoft.AspNetCore.Builder.WebApplication! app, string! pattern = "/{**path}", string! pathBase = "") -> Microsoft.AspNetCore.Builder.WebApplication!
 static Rask.Server.RaskEndpointExtensions.MapRask<TApp>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, string! pattern = "/{**path}", string! pathBase = "") -> Microsoft.AspNetCore.Routing.IEndpointRouteBuilder!
@@ -124,6 +124,8 @@ Rask.RaskAppOptions.ConnectionString.get -> string?
 Rask.RaskAppOptions.ConnectionString.set -> void
 Rask.RaskAppOptions.Cqrs.get -> Rask.Battery!
 Rask.RaskAppOptions.Cultures.get -> System.Collections.Generic.IList<string!>!
+Rask.RaskAppOptions.TimeZone.get -> string?
+Rask.RaskAppOptions.TimeZone.set -> void
 Rask.RaskAppOptions.Data.get -> Rask.Battery!
 Rask.RaskAppOptions.ErrorPath.get -> string!
 Rask.RaskAppOptions.ErrorPath.set -> void

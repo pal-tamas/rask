@@ -48,6 +48,22 @@ public sealed class RuledAppContext(DbContextOptions<RaskAppDbContext> options) 
     }
 }
 
+/// <summary>Rask's context ordering text as Hungarian does, with one column keeping a collation of its own.</summary>
+public sealed class HungarianOrderedContext(DbContextOptions<RaskAppDbContext> options) : RaskAppDbContext(options)
+{
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+        configurationBuilder.TextOrder("Hungarian_100_CI_AS");
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<Job>().Property(j => j.Lane).UseCollation("Latin1_General_BIN2");
+    }
+}
+
 /// <summary>
 /// Rask's own context on SQL Server, model only: the batteries' columns under an app-wide string length, and the app's
 /// constraint names under SQL Server's 128-character identifier limit.
@@ -86,6 +102,20 @@ public sealed class RaskAppModelTests
         Assert.Equal("jobs_lane_as_written", jobs.FindProperty(nameof(Job.Lane))!.GetDefaultConstraintName());
         var cut = model.FindEntityType(typeof(CacheEntry))!.FindPrimaryKey()!.GetName();
         Assert.Equal($"{RuledAppContext.LongTable}_pkey"[..128], cut);
+    }
+
+    [Fact]
+    public void An_app_s_text_order_is_written_into_every_text_column_unless_the_column_states_its_own()
+    {
+        using var context = new HungarianOrderedContext(Options());
+
+        var model = context.GetService<IDesignTimeModel>().Model;
+
+        var jobs = model.FindEntityType(typeof(Job))!;
+        Assert.Equal("Hungarian_100_CI_AS", jobs.FindProperty(nameof(Job.Type))!.GetCollation());
+        Assert.Equal("Hungarian_100_CI_AS", model.FindEntityType(typeof(CacheEntry))!.FindProperty(nameof(CacheEntry.Key))!.GetCollation());
+        Assert.Equal("Latin1_General_BIN2", jobs.FindProperty(nameof(Job.Lane))!.GetCollation());
+        Assert.Null(jobs.FindProperty(nameof(Job.Attempts))!.GetCollation());
     }
 
     private static DbContextOptions<RaskAppDbContext> Options() =>
