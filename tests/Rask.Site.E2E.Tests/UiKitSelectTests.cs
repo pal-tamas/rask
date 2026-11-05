@@ -173,11 +173,11 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(field).ToBeFocusedAsync();
         await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
 
-        // While the slow store answers, the field waits and its clear button fades; the rows drawn stay, as on Flux.
+        // While the slow store answers, the field waits and the rows drawn stay, as on Flux.
+        await WatchTheWaitAsync(field);
         await field.FillAsync("berl");
-        await Expect(field).ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
-        await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
-        await Expect(field).Not.ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        var berl = await TheWaitAsync(field);
+        Assert.Equal(8, berl.Rows);
         // The partner the value holds stays first, whatever the search found.
         await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
         // Typing lit the first row, as on Flux; the arrow goes on to the next and Enter picks it.
@@ -196,14 +196,52 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         // With no row to show, the empty row says Flux's `when-loading` words while the next answer is on its way: drawn
         // over its own words, which take no room meanwhile.
+        await WatchTheWaitAsync(field);
         await field.PressSequentiallyAsync("q");
-        await Expect(field).ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
-        Assert.Equal("\"Loading...\"", await empty.EvaluateAsync<string>("el => getComputedStyle(el, '::before').content"));
-        Assert.Equal("0px", await empty.EvaluateAsync<string>("el => getComputedStyle(el).fontSize"));
-        await Expect(field).Not.ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        var zzzq = await TheWaitAsync(field);
+        Assert.Equal("\"Loading...\"", zzzq.Before);
+        Assert.Equal("0px", zzzq.FontSize);
         Assert.Equal("none", await empty.EvaluateAsync<string>("el => getComputedStyle(el, '::before').content"));
         await Expect(empty).ToBeVisibleAsync();
     });
+
+    // The select as it was the moment the runtime marked its field waiting (`data-loading`).
+    private sealed record Waiting(int Rows, string? Before, string? FontSize);
+
+    // Records the select the moment its search field is marked waiting. The mark lasts from 200 ms after the question
+    // until the answer — a window an assertion that polls can step over on a slow runner — so it is caught when it is
+    // written, by the field's own MutationObserver, never by sampling.
+    private static Task WatchTheWaitAsync(ILocator field) => field.EvaluateAsync(
+        """
+        el => {
+            window.__raskWait = null;
+            const watch = new MutationObserver(() => {
+                if (!el.hasAttribute('data-loading') || window.__raskWait) return;
+                const root = el.closest('[data-ui-select]');
+                const empty = root.querySelector('[data-ui-listbox-empty]');
+                window.__raskWait = {
+                    rows: root.querySelectorAll('[data-ui-option]').length,
+                    before: empty ? getComputedStyle(empty, '::before').content : null,
+                    fontSize: empty ? getComputedStyle(empty).fontSize : null,
+                };
+                watch.disconnect();
+            });
+            watch.observe(el, { attributes: true, attributeFilter: ['data-loading'] });
+        }
+        """);
+
+    // Waits for the mark to be written and then taken off with the answer, and hands back the select as it was marked.
+    private async Task<Waiting> TheWaitAsync(ILocator field)
+    {
+        await Page.WaitForFunctionAsync("() => window.__raskWait !== null");
+        await Expect(field).Not.ToHaveAttributeAsync("data-loading", new System.Text.RegularExpressions.Regex(".*"));
+        var seen = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__raskWait");
+
+        return new Waiting(
+            seen.GetProperty("rows").GetInt32(),
+            seen.GetProperty("before").GetString(),
+            seen.GetProperty("fontSize").GetString());
+    }
 
     [Fact]
     public Task A_multi_select_that_asks_the_page_keeps_every_answer_in_its_list() => RunAsync(async () =>
