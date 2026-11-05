@@ -47,6 +47,15 @@ public sealed class User : Authenticatable<string>
 }
 ```
 
+An administrator manages the accounts of the tenant they work in — signing nobody in, and refused to anybody whose
+row lacks the `admin` role:
+
+```csharp
+await Accounts.Create(name, password);
+await Accounts.SetPassword(id, password);   // ends that user's sessions; blank leaves it
+await Accounts.Remove(id);                  // with their sessions and passkeys
+```
+
 ## Which package
 
 | | |

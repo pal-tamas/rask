@@ -30,7 +30,8 @@ internal sealed class NameHarness : IAsyncDisposable
     private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-auth-names-{Guid.NewGuid():N}.db");
 
     /// <param name="configure">Deviations from the default options.</param>
-    public NameHarness(Action<AuthOptions>? configure = null)
+    /// <param name="extraServices">Registrations a test adds last, such as the context a <c>Db.Transaction</c> opens.</param>
+    public NameHarness(Action<AuthOptions>? configure = null, Action<IServiceCollection>? extraServices = null)
     {
         var services = new ServiceCollection();
         services.AddLogging();
@@ -47,12 +48,14 @@ internal sealed class NameHarness : IAsyncDisposable
             configure?.Invoke(o);
         });
 
+        extraServices?.Invoke(services);
+
         _provider = services.BuildServiceProvider();
     }
 
     public IServiceProvider Services => _provider;
 
-    public IAccounts Accounts => _provider.GetRequiredService<IAccounts>();
+    public IAccountFlows Accounts => _provider.GetRequiredService<IAccountFlows>();
 
     public IAuthSessions Sessions => _provider.GetRequiredService<IAuthSessions>();
 

@@ -9,9 +9,10 @@ namespace Rask.Auth.SignInName.Tests;
 
 /// <summary>
 ///     An account keyed by text that signs in by user name (#1279): <c>User : Authenticatable&lt;string&gt;</c> with
-///     <c>[SignInName] Username</c>. One class, so its tests run one after another: they share one context type, and
-///     EF Core's model cache is per context type.
+///     <c>[SignInName] Username</c>. In <see cref="NameDbCollection" />, so its tests run one after another with the
+///     other classes': they share one context type, and EF Core's model cache is per context type.
 /// </summary>
+[Collection(NameDbCollection.Name)]
 public sealed class SignInByNameTests
 {
     private const string Password = "Password1";

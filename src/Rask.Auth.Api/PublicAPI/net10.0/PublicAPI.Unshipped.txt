@@ -424,3 +424,22 @@ Rask.Auth.SignInNameAttribute.SignInNameAttribute() -> void
 static Rask.Auth.AuthModelBuilderExtensions.AddRaskAuth<TUser, TKey>(this Microsoft.EntityFrameworkCore.ModelBuilder! modelBuilder) -> Microsoft.EntityFrameworkCore.ModelBuilder!
 static Rask.Auth.AuthUser.Use<TUser, TKey>() -> void
 static Rask.Auth.RaskAuthServiceCollectionExtensions.AddRaskAuth<TContext, TUser, TKey>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Rask.Auth.AuthOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+Rask.Auth.Accounts
+Rask.Auth.IAccounts
+Rask.Auth.IAccounts.Create(string! name, string! password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.IAccounts.Create<TUser>(string! name, string! password, System.Action<TUser!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.IAccounts.Remove(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Auth.IAccounts.Remove(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+Rask.Auth.IAccounts.Rename(string! id, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.IAccounts.Rename(System.Guid id, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.IAccounts.SetPassword(string! id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+Rask.Auth.IAccounts.SetPassword(System.Guid id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.IsOn.get -> bool
+static Rask.Auth.Accounts.Create(string! name, string! password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.Create<TUser>(string! name, string! password, System.Action<TUser!>! apply, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.Remove(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Auth.Accounts.Remove(System.Guid id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Auth.Accounts.Rename(string! id, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.Rename(System.Guid id, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.SetPassword(string! id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!
+static Rask.Auth.Accounts.SetPassword(System.Guid id, string? password, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Wire.AuthResult!>!

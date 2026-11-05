@@ -110,6 +110,17 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **An administrator manages accounts: `Accounts.Create`, `Rename`, `SetPassword`, `Remove` (#1302).** Before: the
+  only way to make an account was `IAuth.Register`, which signs the new one in, so an admin page kept its own user
+  management beside Rask.Auth — its own hash, its own uniqueness check, and a delete that had to remember the
+  sessions table. After: `await Accounts.Create(name, password)` (or the injectable `IAccounts`) makes an account
+  in the tenant the administrator acts in, signing nobody in; `Accounts.Rename(id, name)` keeps the name unique;
+  `Accounts.SetPassword(id, password)` needs no old password, leaves a blank one alone and **ends every session of
+  that user** in the same save; `Accounts.Remove(id)` deletes the account with its sessions and passkeys in one save,
+  joining a `Db.Transaction`. Names and passwords follow registration's rules and refusals are an `AuthResult`
+  (`DuplicateAccount`, `InvalidEmail`, `WeakPassword`); another tenant's account, an administrator's and an unknown id
+  are a `KeyNotFoundException`; a caller whose row lacks the `admin` role gets a `ForbiddenException`, whatever the
+  page's `[Authorize]` says. Ids are an account's `Guid` or, for `Authenticatable<string>`, its text key.
 - **Rask.Auth accounts keyed by text that sign in by user name: `Authenticatable<string>` and `[SignInName]` (#1279).**
   Before: `Authenticatable` was a Guid-keyed account signing in with `Email`, so an app whose users table is keyed by
   a Guid kept as text and signs in by user name kept its own sign-in, sessions, cookie and throttle beside Rask.

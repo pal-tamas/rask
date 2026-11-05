@@ -175,6 +175,19 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey, Timestamps, Versio
         ChangePasswordHash(passwordHash, now);
         Raise(new PasswordReset(AccountId));
     }
+
+    // An administrator's new account belongs to the tenant they are working in (IAccounts.Create).
+    internal void JoinTenantInFlight(Guid? tenant) => RecordTenant(tenant);
+
+    // A new address is not a proved one: it is confirmed again, by whoever reads mail sent to it.
+    internal void ChangeEmail(string normalized)
+    {
+        if (!string.Equals(Email, normalized, StringComparison.Ordinal))
+        {
+            Email = normalized;
+            EmailConfirmedAt = null;
+        }
+    }
 }
 
 /// <summary>

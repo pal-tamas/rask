@@ -1,4 +1,3 @@
-using System.Net.Mail;
 using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +41,7 @@ internal sealed partial class AccountService<TUser, TKey>(
     PasskeySite site,
     IAuthSessions sessions,
     TimeProvider clock,
-    ILogger<AccountService<TUser, TKey>> logger) : IAccounts
+    ILogger<AccountService<TUser, TKey>> logger) : IAccountFlows
     where TUser : Authenticatable<TKey>, new()
     where TKey : notnull
 {
@@ -94,15 +93,9 @@ internal sealed partial class AccountService<TUser, TKey>(
             return Fail(AuthError.FirstRunTokenRequired);
         }
 
-        if (!AccountName<TUser, TKey>.IsEmail && !IsName(email))
+        if (AccountChecks.NameProblem<TUser, TKey>(email) is { } badName)
         {
-            return new AccountOutcome(
-                AuthResult.Fail(AuthError.InvalidEmail, $"A name is 1 to {AccountName<TUser, TKey>.MaxLength} characters."), null);
-        }
-
-        if (AccountName<TUser, TKey>.IsEmail && !IsEmail(email))
-        {
-            return Fail(AuthError.InvalidEmail);
+            return new AccountOutcome(badName, null);
         }
 
         if (PasswordProblem(password) is { } problem)
@@ -813,18 +806,7 @@ internal sealed partial class AccountService<TUser, TKey>(
     private static string? JoinTransports(IReadOnlyList<string>? transports) =>
         transports is { Count: > 0 } ? string.Join(',', transports) : null;
 
-    private string? PasswordProblem(string password) =>
-        password.Length < options.MinimumPasswordLength
-            ? $"Passwords must be at least {options.MinimumPasswordLength} characters."
-            : hasher.Refuse(password);
-
-    private static bool IsName(string name) =>
-        name.Trim() is { Length: > 0 and <= AccountName<TUser, TKey>.MaxLength };
-
-    private static bool IsEmail(string email) =>
-        email.Trim() is { Length: > 0 and <= 256 } trimmed
-        && MailAddress.TryCreate(trimmed, out var address)
-        && string.Equals(address.Address, trimmed, StringComparison.OrdinalIgnoreCase);
+    private string? PasswordProblem(string password) => AccountChecks.PasswordProblem(password, options, hasher);
 
     private static AccountOutcome Fail(AuthError error) => new(AuthResult.Fail(error), null);
 
