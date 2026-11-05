@@ -175,7 +175,10 @@ public static class RaskAuthServiceCollectionExtensions
 
         // The endpoints resolve the store without naming the user type — MapRaskAuth() is a
         // parameterless extension method, so it has no way to know which one this app configured.
-        services.TryAddScoped<IAccounts>(sp => sp.GetRequiredService<AccountService<TUser, TKey>>());
+        services.TryAddScoped<IAccountFlows>(sp => sp.GetRequiredService<AccountService<TUser, TKey>>());
+
+        // An administrator's create, rename, set-password and remove: Accounts.Create(…) and the injectable IAccounts.
+        services.TryAddScoped<IAccounts, AccountAdministration<TUser, TKey>>();
     }
 
     private static void AddHostedParts<TContext, TUser, TKey>(IServiceCollection services)

@@ -205,7 +205,7 @@ public sealed class ActInTenantTests
         return await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
     }
 
-    private static IAccounts Accounts(AuthHarness harness) => harness.Services.GetRequiredService<IAccounts>();
+    private static IAccountFlows Accounts(AuthHarness harness) => harness.Services.GetRequiredService<IAccountFlows>();
 
     private static Guid SessionOf(ClaimsPrincipal principal) => Guid.Parse(principal.FindFirstValue("sid")!);
 

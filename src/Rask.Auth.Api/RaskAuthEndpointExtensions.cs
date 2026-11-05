@@ -68,7 +68,7 @@ public static class RaskAuthEndpointExtensions
     }
 
     private static async Task<IResult> RegisterAsync(
-        HttpContext context, RegisterRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, RegisterRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -83,7 +83,7 @@ public static class RaskAuthEndpointExtensions
     }
 
     private static async Task<IResult> LoginAsync(
-        HttpContext context, LoginRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, LoginRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -109,7 +109,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Ends every session of the caller except this one. <c>204</c>, or <c>401</c> when nobody is signed in.</summary>
     private static async Task<IResult> SignOutOtherDevicesAsync(
-        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -127,7 +127,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Ends every session of the caller, this one included, and clears its cookie.</summary>
     private static async Task<IResult> SignOutEverywhereAsync(
-        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -155,7 +155,7 @@ public static class RaskAuthEndpointExtensions
     /// <c>Sec-Fetch-Site</c> is not a browser, and carries its credential deliberately.
     /// </remarks>
     private static async Task<IResult> ActInTenantAsync(
-        HttpContext context, ActInTenantRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, ActInTenantRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -189,7 +189,7 @@ public static class RaskAuthEndpointExtensions
     private static async Task<IResult> ForgotPasswordAsync(
         HttpContext context,
         ForgotPasswordRequest request,
-        IAccounts accounts,
+        IAccountFlows accounts,
         CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
@@ -217,7 +217,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Sets a new password from an emailed token.</summary>
     private static async Task<IResult> ResetPasswordAsync(
-        HttpContext context, ResetPasswordRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, ResetPasswordRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -236,7 +236,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Marks an address confirmed from an emailed token.</summary>
     private static async Task<IResult> ConfirmEmailAsync(
-        HttpContext context, ConfirmEmailRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, ConfirmEmailRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -252,7 +252,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>The options for adding a passkey to the signed-in account.</summary>
     private static async Task<IResult> PasskeyRegisterOptionsAsync(
-        HttpContext context, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -280,7 +280,7 @@ public static class RaskAuthEndpointExtensions
     private static async Task<IResult> PasskeyRegisterAsync(
         HttpContext context,
         PasskeyRegistrationRequest request,
-        IAccounts accounts,
+        IAccountFlows accounts,
         CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
@@ -301,7 +301,7 @@ public static class RaskAuthEndpointExtensions
     }
 
     /// <summary>The options for signing in with a passkey. Anonymous, and says nothing about any account.</summary>
-    private static IResult PasskeyLoginOptions(HttpContext context, IAccounts accounts)
+    private static IResult PasskeyLoginOptions(HttpContext context, IAccountFlows accounts)
     {
         if (!HasRequestHeader(context))
         {
@@ -315,7 +315,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Signs in whoever signed the challenge.</summary>
     private static async Task<IResult> PasskeyLoginAsync(
-        HttpContext context, PasskeyLoginRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, PasskeyLoginRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {
@@ -332,7 +332,7 @@ public static class RaskAuthEndpointExtensions
 
     /// <summary>Removes one of the signed-in account's passkeys.</summary>
     private static async Task<IResult> PasskeyRemoveAsync(
-        HttpContext context, RemovePasskeyRequest request, IAccounts accounts, CancellationToken cancellationToken)
+        HttpContext context, RemovePasskeyRequest request, IAccountFlows accounts, CancellationToken cancellationToken)
     {
         if (!HasRequestHeader(context))
         {

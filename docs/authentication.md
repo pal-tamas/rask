@@ -139,6 +139,7 @@ choice between, not a layering.
 - [Concepts](#concepts)
 - [The first account is the administrator](#the-first-account-is-the-administrator)
 - [Accounts and tenants](#accounts-and-tenants)
+- [An administrator manages accounts](#an-administrator-manages-accounts)
 - [Confirming an address, and resetting a password](#confirming-an-address-and-resetting-a-password)
 - [Configuration](#configuration)
 - [Declarative gating — the `Authorize` component](#declarative-gating)
@@ -779,6 +780,61 @@ tenant and a partitioned table refuses a row without one. That shapes three rule
   signing out drops it — see [acting in a tenant](multi-tenancy.md#acting-in-a-tenant). Only a user of no
   tenant who holds `AuthOptions.ActInTenantRole` (`admin`) may; `null` turns it off. `Tenant.Use(id)` scopes
   one piece of work instead, and reading across every tenant is a deliberate `Tenant.Across()`.
+
+## An administrator manages accounts
+
+`IAuth.Register` signs the new account in, which is right for somebody signing up and wrong for an administrator
+adding a colleague. An admin page creates, renames, re-passwords and removes accounts with `Accounts` — the static —
+or the injectable `IAccounts`, which reads the same:
+
+```csharp
+// Before: the app kept its own user management beside Rask.Auth — its own hash, its own uniqueness check, and a
+// delete that had to remember the sessions table.
+await User.Create(User.Register(form.Username, form.Password));
+await Db.Transaction(async () =>
+{
+    await User.Delete(id, db: db);
+    await db.Set<LoginSession>().Where(s => s.UserId == id).ExecuteDeleteAsync();
+});
+
+// After: Rask.Auth does it, with the policy, the hashing and the sign-ins registering has.
+[Authorize(Roles = RaskRoles.Admin)]
+private async Task Save()
+{
+    var result = UserId is { } id
+        ? await Accounts.Rename(id, form.Username)
+        : await Accounts.Create(form.Username, form.Password);   // AuthError.DuplicateAccount, WeakPassword, InvalidEmail
+
+    if (result.Succeeded && UserId is { } changed)
+    {
+        await Accounts.SetPassword(changed, form.Password);       // blank leaves it; otherwise their sign-ins end
+    }
+}
+
+[Authorize(Roles = RaskRoles.Admin)]
+private Task Remove() => Accounts.Remove(UserId!);                // with their sessions and passkeys
+```
+
+- **Nobody is signed in or out but the account it is about.** `Create` makes an account holding
+  `RaskRoles.User` and signs nobody in. `SetPassword` needs no old password, and ends **every** session of that
+  account in the same save, so whoever held it signs in again with the new one; the acting administrator stays
+  signed in. A blank or `null` password changes nothing, so an edit form's empty field means "keep it".
+- **The same rules as registering.** A name is trimmed (an address lower-cased too) and refused while any account
+  holds it — in any tenant, because [sign-in](#accounts-and-tenants) finds an account before it knows its tenant.
+  The password meets `MinimumPasswordLength` and the hasher's policy. Refusals are an `AuthResult`, never a throw.
+  An address is sent the link that confirms it, on `Create` and on a `Rename` that changes it — and a renamed address
+  is unconfirmed until that link is used.
+- **The tenant in flight, and never an administrator.** A new account belongs to the tenant the administrator
+  [acts in](multi-tenancy.md#acting-in-a-tenant) (`Current.Tenant`), or to none in an app without tenants. `Rename`,
+  `SetPassword` and `Remove` reach only that tenant's accounts: another tenant's, an administrator's and an id
+  nobody has are all a `KeyNotFoundException`, and nothing changes. An id is the account's `Guid`, or its text key
+  for `Authenticatable<string>`.
+- **`Remove` is one transaction.** The account, its sessions and its passkeys go in one save. Inside a
+  `Db.Transaction` it joins it, and is rolled back with the rest of the work.
+- **The API checks too.** Every call reads the signed-in user's row and refuses one without the `admin` role with a
+  `Rask.Cqrs.ForbiddenException` — on top of the page's `[Authorize]`, so a page that lost its attribute still hands
+  the accounts to nobody. Outside any work (a hosted service, a timer) the static has no user to ask; a job enqueued
+  by an administrator runs as them, and may.
 
 ---
 
