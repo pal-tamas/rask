@@ -59,6 +59,48 @@ public static class CurrentUser
         public static ClaimsPrincipal? Principal => Db.PrincipalFromScope();
 
         /// <summary>
+        ///     The value of the first <paramref name="type" /> claim <c>Current.Principal</c> carries, or
+        ///     <see langword="null" /> when it carries none or nobody is signed in.
+        /// </summary>
+        /// <param name="type">The claim type, such as <c>"department"</c> or <see cref="ClaimTypes.Email" />.</param>
+        /// <returns>The claim's value, or <see langword="null" />.</returns>
+        /// <remarks>
+        ///     Read from the principal of the work in flight, so it answers the same on the first GET, inside a live
+        ///     event — after the session revalidated the user — and in an HTTP request:
+        ///     <code>
+        ///     var department = Current.Claim("department");
+        ///     </code>
+        ///     A background job has no principal (see <c>Current.Principal</c>), so it answers
+        ///     <see langword="null" /> there.
+        /// </remarks>
+        public static string? Claim(string type)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(type);
+            return Current.Principal?.FindFirst(type)?.Value;
+        }
+
+        /// <summary>
+        ///     Whether the signed-in user holds <paramref name="role" />; <see langword="false" /> when nobody is
+        ///     signed in.
+        /// </summary>
+        /// <param name="role">The role, as the principal's role claims name it.</param>
+        /// <returns><see langword="true" /> when the signed-in principal is in the role.</returns>
+        /// <remarks>
+        ///     <c>ClaimsPrincipal.IsInRole</c> on <c>Current.Principal</c>, answered only for an authenticated one:
+        ///     an anonymous principal is never in a role, whatever claims it carries. Like <c>Current.Claim</c>, it
+        ///     answers the same on the first GET and inside a live event, and <see langword="false" /> in a
+        ///     background job, which has no principal.
+        ///     <code>
+        ///     if (Current.IsInRole("Admin")) { … }
+        ///     </code>
+        /// </remarks>
+        public static bool IsInRole(string role)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(role);
+            return Current.Principal is { Identity.IsAuthenticated: true } principal && principal.IsInRole(role);
+        }
+
+        /// <summary>
         ///     The id of the user the work in flight is for, or <see langword="null" /> when it is for nobody.
         /// </summary>
         /// <remarks>

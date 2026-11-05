@@ -434,6 +434,64 @@ public sealed class RaskAppTests
     }
 
     [Fact]
+    public async Task A_host_wired_by_hand_believes_its_proxy_when_the_setting_says_one_is_there()
+    {
+        // TA and Eszaf call AddRask()/MapRask() themselves, never RaskApp (#1285); AddRask alone must read the setting.
+        string? scheme = null;
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseSetting("urls", "http://127.0.0.1:0");
+        builder.WebHost.UseSetting("Rask:BehindProxy", "true");
+        builder.Services.AddRask();
+        var app = builder.Build();
+        app.MapGet("/scheme", (HttpContext ctx) => scheme = ctx.Request.Scheme);
+        await app.StartAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
+            client.DefaultRequestHeaders.Add("X-Forwarded-Proto", "https");
+            await client.GetAsync("/scheme", TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            await app.StopAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal("https", scheme);
+    }
+
+    [Fact]
+    public async Task Behind_a_proxy_the_forwarded_chain_is_read_once_not_twice()
+    {
+        // RaskApp's own BehindProxy and the startup filter are one middleware: a second pass would take the NEXT hop
+        // of X-Forwarded-For off the chain and name the wrong visitor.
+        IPAddress? visitor = null;
+        var app = NewApp(a =>
+        {
+            a.Configure(c => c.BehindProxy = true);
+            a.MapEndpoints(e => e.MapGet("/visitor", (HttpContext ctx) =>
+            {
+                visitor = ctx.Connection.RemoteIpAddress;
+                return "ok";
+            }));
+        }).Build<MinimalApp>();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+
+        try
+        {
+            using var client = new HttpClient { BaseAddress = new Uri(BaseAddress(app)) };
+            client.DefaultRequestHeaders.Add("X-Forwarded-For", "198.51.100.1, 203.0.113.7");
+            await client.GetAsync("/visitor", TestContext.Current.CancellationToken);
+        }
+        finally
+        {
+            await app.StopAsync(TestContext.Current.CancellationToken);
+        }
+
+        Assert.Equal(IPAddress.Parse("203.0.113.7"), visitor);
+    }
+
+    [Fact]
     public async Task A_proxy_in_another_container_is_believed_about_the_scheme_and_the_visitor()
     {
         // Caddy under `rask deploy` reaches the app from its own container's address, never loopback, which is
@@ -448,7 +506,7 @@ public sealed class RaskAppTests
                 return Task.CompletedTask;
             },
             Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance,
-            Microsoft.Extensions.Options.Options.Create(RaskApp.ProxyHeaders()));
+            Microsoft.Extensions.Options.Options.Create(Rask.Server.Http.ProxyHeaders.Options()));
         var request = new DefaultHttpContext();
         request.Connection.RemoteIpAddress = IPAddress.Parse("172.18.0.3");
         request.Request.Scheme = "http";

@@ -110,6 +110,13 @@ them until tagged releases begin.
   hand-wired host) answers `GET /version` with `{"version":"1.4.0+3f2a9c1"}` — the entry assembly's MinVer version,
   anonymous, `Cache-Control: no-store`. Opt-in: `RaskApp` does not map it, since it tells anyone which build is live.
   See [Observability](docs/observability.md#which-build-is-running).
+- **`Current.Claim(type)` and `Current.IsInRole(role)` (#1288).** Before: reading a claim or a role with nothing
+  injected meant `Current.Principal?.FindFirst("department")?.Value` and
+  `Current.Principal?.IsInRole("Admin") ?? false` — or an app-wide wrapper of your own around them. After:
+  `Current.Claim("department")` is the first such claim's value (or `null`) and `Current.IsInRole("Admin")` is
+  `false` when nobody is signed in (an anonymous principal is never in a role). Both read `Current.Principal`, so
+  they answer the same on the first GET, in an HTTP request and inside a live event, where the session revalidated
+  the user; a background job has no principal, so there they are `null` / `false`. Rask.Data, Server and WASM.
 - **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
   shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
   prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after
@@ -746,6 +753,16 @@ them until tagged releases begin.
   is loopback only, and Caddy reaches the app from its own container — so `X-Forwarded-Proto`/`-For` were dropped,
   `Request.Scheme` stayed `http` (no HSTS, http redirects) and `RemoteIpAddress` was the proxy's. Now turning
   `BehindProxy` on trusts the proxy wherever it runs, as the setting already promised.
+- **A host wired by hand honours `Rask:BehindProxy` too (#1285).** Before: only `RaskApp` read the setting, so an app
+  calling `AddRask()`/`MapRask()` itself carried its own `UseForwardedHeaders` block. Now `AddRask()` puts the
+  forwarded headers ahead of every other middleware whenever the setting is on — delete the block:
+  ```csharp
+  // before, in Program.cs
+  var proxy = new ForwardedHeadersOptions { ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto };
+  proxy.KnownIPNetworks.Clear(); proxy.KnownProxies.Clear();
+  app.UseForwardedHeaders(proxy);
+  // after: nothing — Rask:BehindProxy=true (rask deploy --domain sets it)
+  ```
 - **Translated text works in a WASM app that ships no ICU (#1199).** Before: with `InvariantGlobalization` the build
   left `PredefinedCulturesOnly` on, so `GetCultureInfo("hu")` threw, the resolver also refused any culture without
   data, `IRaskCulture.Supported` came out empty and every `Strings.*` lookup fell to the neutral catalog — contrary

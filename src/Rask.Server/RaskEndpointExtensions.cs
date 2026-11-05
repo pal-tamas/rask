@@ -152,6 +152,10 @@ public static partial class RaskEndpointExtensions
         AddSessionServices(services, configureCulture);
         SessionScoped.Since(services, sessionServices, SessionForwards);
 
+        // Behind a proxy (Rask:BehindProxy, which `rask deploy` sets), its X-Forwarded-Proto/-For rewrite the request
+        // FIRST — registered before every other startup filter, so a hand-wired host gets it as RaskApp does.
+        Http.ProxyHeaders.Register(services);
+
         // The app's compiled stylesheet, compressed and cacheable, ahead of the app's own static files — so a
         // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
         Http.AppStylesheet.Register(services);
