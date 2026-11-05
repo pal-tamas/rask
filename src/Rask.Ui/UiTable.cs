@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Rask.Core.Live;
 using Rask.Querying;
@@ -64,7 +65,18 @@ public sealed partial class UiTable : UiElement, IUiHost
     // cell — a checkbox's hidden input, a hidden heading — escapes it and the whole page scrolls sideways on a phone.
     private const string ScrollArea = "relative block overflow-auto";
 
+    // A table whose headings name widths (UiTableColumn.Width) fills its box and is never narrower than they take
+    // together: the least width is a variable rather than a style of its own, so paper can lift it. Kit defaults, so
+    // an app's own `w-auto` wins; `min-w-0!` lifts the least.
+    private const string Held = "[:where(&)]:w-full min-w-(--ui-table-least) print:min-w-0";
+
+    // The box of such a table may shrink below it in a grid or a flex row: the table scrolls inside it instead.
+    private const string HeldContainer = "min-w-0";
+
     private static readonly UiPartMarker Marker = new("ui-table");
+
+    // The least width in rem of this render's columns, or null when no heading names a width.
+    private int? _least;
 
     private IQueryState? _query;
 
@@ -179,7 +191,7 @@ public sealed partial class UiTable : UiElement, IUiHost
     protected override string? TagName => null;
 
     /// <inheritdoc />
-    protected override string? ResolveClass() => UiClass.Compose(Base, Bleed is true ? BleedEdges : "", Class);
+    protected override string? ResolveClass() => UiClass.Compose(Base, Bleed is true ? BleedEdges : "", _least is null ? "" : Held, Class);
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
 
@@ -210,7 +222,8 @@ public sealed partial class UiTable : UiElement, IUiHost
             marks["rask-skeleton"] = UiTableSkeleton.Word(query);
         }
 
-        var box = Div.Class(Container, Bleed is true ? Bleeding : "", ContainerClass);
+        _least = UiColumnWidths.Least(Headings(Children));
+        var box = Div.Class(Container, Bleed is true ? Bleeding : "", _least is null ? null : HeldContainer, ContainerClass);
         if (marks.Count > 0)
         {
             box = box.Data(marks);
@@ -224,5 +237,27 @@ public sealed partial class UiTable : UiElement, IUiHost
         ];
     }
 
-    void IUiHost.WriteHostAttributes(StringBuilder sb) => WriteAttributes(sb);
+    void IUiHost.WriteHostAttributes(StringBuilder sb)
+    {
+        if (_least is not { } least)
+        {
+            WriteAttributes(sb);
+            return;
+        }
+
+        // The least width rides in the style for the length of the walk, after the call site's own.
+        var style = Style;
+        Style = string.Concat(style is null ? "" : style.TrimEnd().TrimEnd(';') + "; ", "--ui-table-least: ", least.ToString(CultureInfo.InvariantCulture), "rem");
+        try
+        {
+            WriteAttributes(sb);
+        }
+        finally
+        {
+            Style = style;
+        }
+    }
+
+    private static IEnumerable<UiTableColumn> Headings(IEnumerable<Component?>? parts) =>
+        (parts ?? []).OfType<UiTableColumns>().SelectMany(headings => headings.Children ?? []).OfType<UiTableColumn>();
 }

@@ -33,10 +33,15 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
 
     private const string SortHint = "opacity-0 group-hover/sortable:opacity-100";
 
-    // Every list a heading can write, built once: by alignment, sortability and stickiness. Null where there is nothing to write.
-    private static readonly string?[] Lists = [.. Enum.GetValues<Ui.Align>().SelectMany(align =>
-        new[] { false, true }.SelectMany(sortable => new[] { false, true }.Select(sticky =>
-            UiTableBox.Join(Group(align), sortable ? SortGroup : "", sticky ? UiTableBox.Stuck : "", sortable ? SortEdge : ""))))];
+    private const int Aligns = (int)Ui.Align.End + 1;
+
+    // Every list a heading can write, built once: by width (none first), alignment, sortability and stickiness. Null
+    // where there is nothing to write.
+    private static readonly string?[] Lists = [.. new Ui.ColumnWidth?[] { null }.Concat(Enum.GetValues<Ui.ColumnWidth>().Cast<Ui.ColumnWidth?>())
+        .SelectMany(width => Enum.GetValues<Ui.Align>().SelectMany(align =>
+            new[] { false, true }.SelectMany(sortable => new[] { false, true }.Select(sticky =>
+                UiTableBox.Join(Group(align), sortable ? SortGroup : "", sticky ? UiTableBox.Stuck : "", sortable ? SortEdge : "",
+                    width is { } w ? UiColumnWidths.Class(w) : "")))))];
 
     private static readonly UiPartMarker Marker = new("ui-column");
 
@@ -44,8 +49,24 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     // click, and the table dims its rows by that mark (ui.css).
     private static readonly UiPartMarker Waiting = Marker.And("rask-loading");
 
-    /// <summary>Where the heading sits in its column. Start unless this says otherwise.</summary>
+    /// <summary>
+    ///     Where the heading sits in its column. Start unless this says otherwise — or, for a <see cref="Width" /> of
+    ///     numbers or of the row's actions, the end.
+    /// </summary>
     public Ui.Align? Align { get; set; }
+
+    /// <summary>
+    ///     How wide the column is, by what it holds: <c>Ui.TableColumn.Width(Ui.ColumnWidth.Day)</c>. A table whose headings
+    ///     name widths fills its box, is never narrower than they take together, and keeps every column where it is while
+    ///     its rows change; a long label wraps.
+    /// </summary>
+    /// <remarks>
+    ///     Not Flux's: an addition the owner approved (2026-11-04). A column left without one takes what the others
+    ///     leave, as <see cref="Ui.ColumnWidth.Rest" /> does. The heading of <see cref="Ui.ColumnWidth.Actions" /> or
+    ///     <see cref="Ui.ColumnWidth.Buttons" /> given no words says "Actions" to a screen reader. On paper the widths give
+    ///     way. The cells under it still say their own alignment: <c>Ui.TableCell.End</c> under a number.
+    /// </remarks>
+    public Ui.ColumnWidth? Width { get; set; }
 
     /// <summary>Makes the heading a button that asks for this column to be sorted.</summary>
     public bool? Sortable { get; set; }
@@ -77,7 +98,10 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <inheritdoc />
     /// <remarks>What this heading writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
     protected override string? ResolveClass() =>
-        UiTableBox.WithClass(Lists[((int)(Align ?? default) * 4) + (Sortable is true ? 2 : 0) + (Sticky is true ? 1 : 0)], Class);
+        UiTableBox.WithClass(Lists[(((Width is { } width ? (int)width + 1 : 0) * Aligns) + (int)(Align ?? Implied)) * 4 + (Sortable is true ? 2 : 0) + (Sticky is true ? 1 : 0)], Class);
+
+    // The edge the width's values keep to, where the call site names none.
+    private Ui.Align Implied => Width is { } width ? UiColumnWidths.Align(width) : default;
 
     private protected override IReadOnlyDictionary<string, string?> ResolveData() =>
         (Sortable is true ? Waiting : Marker).With(Data);
@@ -87,8 +111,14 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     {
         var label = Div.Class(Label);
 
-        return HostedElement.Tag("th").Owner(this)[Sortable is true ? label[SortControl()] : label[Children ?? []]];
+        return HostedElement.Tag("th").Owner(this)[Sortable is true ? label[SortControl()] : label[Children ?? Unworded()]];
     }
+
+    // A row actions column the page gives no words still has a name, for a screen reader alone.
+    private Component?[] Unworded() =>
+        Width is { } width && UiColumnWidths.HeadsActions(width)
+            ? [Span.Class("sr-only")[RaskStrings.Get(RaskString.RowActionsHeading, "Actions")]]
+            : [];
 
     /// <inheritdoc />
     /// <remarks>The sort handler stands in for the click for the length of the walk, as the resolved ARIA does.</remarks>

@@ -213,6 +213,14 @@
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",
   "ConfirmNo": "Nem",
+
+  "FormButtonsCancel": "Mégse",
+  "FormButtonsSave": "Mentés",
+  "FormButtonsRemove": "Törlés",
+  "RowActionsEdit": "Módosítás",
+  "RowActionsRemove": "Törlés",
+  "RowActionsHeading": "Műveletek",
+  "RemoveQuestion": "Biztos törölni szeretné?",
   "PdfPageNumber": "{0} / {1} oldal",
 
   "TableEmpty": "Nincs találat.",
