@@ -104,6 +104,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`TestDatabase.FromEnvironment<TContext>("VAR", (o, cs) => o.UseSqlServer(cs))` — a real database server for the
+  tests that need one, skipped where there is none (#1291).** Before: an app testing against SQL Server carried its
+  own fixture — read a variable, fail (or silently pass) without it, create and drop a database or `lockf` a standing
+  one, hand out a context factory. After: one line in `Rask.Data`. Unset, the test is reported *skipped* with the
+  variable's name (xUnit v3's dynamic skip). Set, each test gets a database of its own — the named one with a unique
+  suffix, created, migrated and dropped — or, with `o => o.Shared = true`, the named standing database, taken in
+  turns across processes through a lock file (`o.LockFile`, the lock `lockf`/`flock` take). It hands out the same
+  fixture as `TestDatabase.Start<TContext>` plus `database.Factory`, an `IDbContextFactory<TContext>` — which
+  `Start<TContext>` now offers too. Provider-neutral: SQL Server, PostgreSQL and SQLite alike.
 - **A URL per language: every page of a prerendered WASM app published once per language (#1199).** Before: a site
   shipping hu/en/de to a static host had one URL per page and no way to say which language a URL was in — the
   prerender wrote each page once, `<html lang>` came from the boot shell, the sitemap had no alternates, and after
