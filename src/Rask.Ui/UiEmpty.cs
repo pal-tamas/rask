@@ -13,15 +13,15 @@ namespace Rask;
 ///         shows when it found nothing.
 ///     </para>
 ///     <para>
-///         In place of a table it reads the same: the cell's 14px and muted ink (zinc-500, zinc-300 in dark) are its
-///         own, at no weight, so a class of the call site's wins.
+///         It writes no ink and no size, as Flux's demo writes none: in a cell it reads in the cell's 14px muted ink; in
+///         place of a table, the page decides (<c>.Class("text-sm text-zinc-500 dark:text-zinc-300")</c> reads as the
+///         cell does). Its spacing weighs nothing, so a class of the call site's wins.
 ///     </para>
 /// </remarks>
 public sealed partial class UiEmpty : UiElement
 {
-    // Measured on Flux's demo (light and dark): 24px above and below, centred, and the ink and size of the cell it sits in.
-    private const string Look =
-        "[:where(&)]:py-6 [:where(&)]:text-center [:where(&)]:text-sm [:where(&)]:text-zinc-500 [:where(&)]:dark:text-zinc-300";
+    // Measured on Flux's demo (light and dark): 24px above and below, centred; the ink and size are the cell's.
+    private const string Look = "[:where(&)]:py-6 [:where(&)]:text-center";
 
     /// <inheritdoc />
     protected override string TagName => "div";

@@ -9,14 +9,14 @@ namespace Rask.UiTests.Components;
 public partial class UiEmptyTests : RaskMarkup
 {
     [Fact]
-    public void It_is_a_status_line_centred_with_room_above_and_below_in_the_cells_ink()
+    public void It_is_a_status_line_centred_with_room_above_and_below_and_no_ink_of_its_own()
     {
         var empty = Ui.Empty["No suppliers yet."];
 
         var html = empty.ToHtml().AsText();
 
         Assert.Equal(
-            "<div class=\"[:where(&)]:py-6 [:where(&)]:text-center [:where(&)]:text-sm [:where(&)]:text-zinc-500 [:where(&)]:dark:text-zinc-300\" role=\"status\">No suppliers yet.</div>",
+            "<div class=\"[:where(&)]:py-6 [:where(&)]:text-center\" role=\"status\">No suppliers yet.</div>",
             html);
     }
 
@@ -27,7 +27,7 @@ public partial class UiEmptyTests : RaskMarkup
 
         var html = empty.ToHtml().AsText();
 
-        Assert.Contains("[:where(&)]:dark:text-zinc-300 py-12\"", html, StringComparison.Ordinal);
+        Assert.Contains("[:where(&)]:text-center py-12\"", html, StringComparison.Ordinal);
         Assert.Contains("role=\"note\"", html, StringComparison.Ordinal);
         Assert.DoesNotContain("role=\"status\"", html, StringComparison.Ordinal);
     }

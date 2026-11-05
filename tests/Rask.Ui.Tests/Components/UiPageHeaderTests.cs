@@ -9,27 +9,16 @@ namespace Rask.UiTests.Components;
 public partial class UiPageHeaderTests : RaskMarkup
 {
     [Fact]
-    public void A_heading_alone_is_the_pages_h1_in_the_extra_large_size_with_room_under_the_row()
+    public void A_heading_alone_is_the_pages_h1_in_the_extra_large_size_and_keeps_no_room_around_itself()
     {
         var header = Ui.PageHeader.Heading("Suppliers");
 
         var html = header.ToHtml().AsText();
 
-        Assert.StartsWith("<div class=\"[:where(&)]:mb-6\" data-ui-page-header=\"\"><div class=\"flex flex-wrap items-center justify-between gap-2\"><div class=\"min-w-0 max-sm:w-full\"><h1 ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div data-ui-page-header=\"\"><div class=\"flex flex-wrap items-center justify-between gap-2\"><div class=\"min-w-0 max-sm:w-full\"><h1 ", html, StringComparison.Ordinal);
         Assert.Matches("<h1 class=\"[^\"]*\\[:where\\(&\\)\\]:text-2xl[^\"]*\" data-ui-heading>Suppliers</h1>", html);
         Assert.DoesNotContain("data-ui-subheading>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("justify-end", html, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Under_a_title_of_the_pages_own_the_heading_takes_the_level_it_is_given()
-    {
-        var header = Ui.PageHeader.Heading("Suppliers").Level(2);
-
-        var html = header.ToHtml().AsText();
-
-        Assert.Contains("data-ui-heading>Suppliers</h2>", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<h1", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -67,12 +56,12 @@ public partial class UiPageHeaderTests : RaskMarkup
     }
 
     [Fact]
-    public void A_class_of_the_call_sites_is_added_to_the_headers_spacing_which_weighs_nothing()
+    public void The_room_under_the_header_is_the_pages_to_give_with_a_class()
     {
-        var header = Ui.PageHeader.Heading("Suppliers").Class("mb-0");
+        var header = Ui.PageHeader.Heading("Suppliers").Class("mb-6");
 
         var html = header.ToHtml().AsText();
 
-        Assert.StartsWith("<div class=\"[:where(&)]:mb-6 mb-0\" data-ui-page-header=\"\">", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"mb-6\" data-ui-page-header=\"\">", html, StringComparison.Ordinal);
     }
 }

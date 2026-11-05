@@ -632,9 +632,10 @@ and the column widths on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 **Three more every list app wrote by hand** (#1283). `Ui.Empty["No suppliers yet."]` is what a list says when it has
 nothing to show. Flux has no empty state of its own; this is the one its account overview demo draws when a search
-matches nothing — a `<div role="status">`, centred, 24px above and below, in the muted 14px ink of a table cell — measured
+matches nothing — a `<div role="status">`, centred, 24px above and below, with no ink or size of its own — measured
 there and held to it by `scripts/flux/parity.mjs empty-state --prepare scripts/flux/empty-state.mjs`. Put it in a row's
-only cell, `Ui.TableCell.ColSpan(columns)[Ui.Empty[…]]`, or in place of the table: it looks the same in both. A table drawn
+only cell, `Ui.TableCell.ColSpan(columns)[Ui.Empty[…]]`, where it reads in the cell's 14px muted ink, or in place of the table, where
+the page gives the ink (`.Class("text-sm text-zinc-500 dark:text-zinc-300")` reads as the cell does). A table drawn
 from a query writes that row itself (`Ui.Table.Of(query).Empty(nothingYet, noMatch)`).
 
 `Ui.TableCell.ColSpan(n)` spans a cell across columns, as Flux's cell forwards `colspan`: a row folded out beneath
@@ -643,8 +644,8 @@ another, or the empty row.
 `Ui.PageHeader.Heading("Suppliers")` is the row a page opens with (not Flux's: an addition the owner approved,
 2026-10-20): the page's `<h1>` in the extra large size, `Subheading` 8px under it, `Breadcrumbs` above, and its children
 — the actions — at the end of the row, 8px apart. The row wraps; on a phone the title takes the whole line and the actions
-go 16px under it. 24px under the header, which weighs nothing: `.Class("mb-0")` takes it away. Each value is measured on
-Flux's demos (the settings demo's title, the account overview's heading row, the table demo's 24px).
+go 16px under it. It is always the page's one `<h1>`, and keeps no room around itself: `.Class("mb-6")` is the page's. Each value is measured on
+Flux's demos (the settings demo's title, the account overview's heading row).
 
 ```csharp
 // Before: an EmptyList, a RowFold's colspan and a PageHeadline of each app's own.
@@ -655,7 +656,7 @@ pumps is [] ? EmptyList.Of("Még nincs kút rögzítve.") : Ui.Table[…],
 Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.Attributes(("colspan", "3"))[Details(pump)]]
 
 // After: the kit's.
-Ui.PageHeader.Heading("Kutak")[Ui.Button.Primary["Új kút"]],
+Ui.PageHeader.Heading("Kutak").Class("mb-6")[Ui.Button.Primary["Új kút"]],
 pumps is [] ? Ui.Empty["Még nincs kút rögzítve."] : Ui.Table[…],
 Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.ColSpan(3)[Details(pump)]]
 ```

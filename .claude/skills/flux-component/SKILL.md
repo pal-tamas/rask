@@ -167,13 +167,13 @@ departure in behaviour carries none.
   `min-w-0`. Approved types and `Translations` rows in `FluxConformanceTests`; `UiFormButtonsTests`, `UiRowActionsTests`,
   `UiTableWidthTests`, the site's `UiKitListActionsTests`.
 - **2026-11-04 — `Ui.Empty`, `Ui.PageHeader`, `UiTableCell.ColSpan` (#1283).** Flux has no empty state: `Ui.Empty` is the one
-  its account overview DEMO draws (a `div role=status`, `py-6 text-center`, the cell's 14px muted ink at no weight), and no
+  its account overview DEMO draws (a `div role=status`, `py-6 text-center`, NO ink or size: the cell gives them, owner 2026-11-05), and no
   marker, as Flux writes none. A demo is measured through `parity.mjs <page> --prepare <module>` whose `flux` names the demo
   (`demo/account-overview`): `scripts/flux/empty-state.mjs` searches there, then sets the demo's table in an example frame
   (`EmptyStateParity`). `ColSpan` is the `colspan` Flux's cell forwards (a `Translations` row). `Ui.PageHeader` (owner,
   2026-10-20) lays out an `h1` Xl heading, a `Ui.Subheading`, breadcrumbs above and the actions at the end from the demos'
   measured rows (account overview: `flex flex-wrap items-center justify-between gap-2`, the title `max-sm:w-full max-sm:mb-2`,
-  actions `flex-1 justify-end gap-2`; table demo: `mb-6`). `UiEmptyTests`, `UiPageHeaderTests`, the site's `UiKitEmptyAndHeaderTests`.
+  actions `flex-1 justify-end gap-2`). Always the `h1`, no outer spacing (owner 2026-11-05), so its docs examples are framed demo pages. `UiEmptyTests`, `UiPageHeaderTests`, the site's `UiKitEmptyAndHeaderTests`.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

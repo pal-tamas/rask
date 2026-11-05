@@ -9017,9 +9017,6 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiPageHeader! __b, string? valu
 static RaskBuilderSettersRask_Ui.ColSpan(this Rask.UiTableCell! __b, int? value) -> Rask.UiTableCell!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiPageHeader! __b, string! value) -> Rask.UiPageHeader!
 static RaskBuilderSettersRask_Ui.Subheading(this Rask.UiPageHeader! __b, string? value) -> Rask.UiPageHeader!
-Rask.UiPageHeader.Level.get -> int?
-Rask.UiPageHeader.Level.set -> void
-static RaskBuilderSettersRask_Ui.Level(this Rask.UiPageHeader! __b, int? value) -> Rask.UiPageHeader!
 Rask.UiPillbox<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?
 Rask.UiPillbox<T>.Search.set -> void
 Rask.UiSelectControl<T>.Search.get -> Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>?

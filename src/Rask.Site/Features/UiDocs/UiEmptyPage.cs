@@ -26,7 +26,7 @@ public sealed partial class UiEmptyPage : Component
                        + "cell across both columns: Ui.TableCell.ColSpan(2)[Ui.Empty[…]]. A table drawn from a query does "
                        + "this itself: Ui.Table.Of(suppliers).Empty(\"No suppliers yet.\", \"No supplier matches.\")."),
             UiDocsExample.Key("ui-empty-list").Heading("In place of a list").File("EmptyListExample.cs").Demo(EmptyListExample).Testid("ui-empty-list")
-                .Blurb("A list with nothing in it yet says so where its table would be, in the same look as the empty row: "
-                       + "14px, the muted ink, centred.")
+                .Blurb("A list with nothing in it yet says so where its table would be. Ui.Empty has no ink of its own — in a "
+                       + "cell it reads in the cell's — so out of one the page gives it: the cell's 14px muted ink here.")
         ];
 }

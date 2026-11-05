@@ -72,7 +72,11 @@ public sealed class UiKitEmptyAndHeaderTests(WasmExampleAppFixture app, Playwrig
     public Task A_page_header_keeps_its_actions_at_the_end_and_puts_them_under_the_title_on_a_phone() => RunAsync(async () =>
     {
         await OpenUiPageAsync("page-header", "Page header");
-        var header = Page.Locator("[data-testid='ui-page-header'] [data-ui-page-header]");
+        await Expect(Page.Locator("h1")).ToHaveCountAsync(1);
+        await Page.Locator("[data-testid='ui-page-header'] iframe").ScrollIntoViewIfNeededAsync();
+        var frame = Page.FrameLocator("[data-testid='ui-page-header'] iframe");
+        var header = frame.Locator("[data-ui-page-header]");
+        await Expect(frame.Locator("h1")).ToHaveCountAsync(1, new() { Timeout = 30_000 });
         var title = header.GetByRole(AriaRole.Heading, new() { Name = "Suppliers" });
         var add = header.GetByRole(AriaRole.Link, new() { Name = "New supplier" });
         await header.ScrollIntoViewIfNeededAsync();

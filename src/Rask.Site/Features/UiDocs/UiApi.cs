@@ -351,7 +351,7 @@ internal static partial class UiApi
 
     public static IReadOnlyList<UiApiPart> Empty { get; } =
     [
-        new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it. Its children are the sentence.", []),
+        new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it; in a cell, the cell's ink and size. Its children are the sentence.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> PageHeader { get; } =
@@ -359,7 +359,6 @@ internal static partial class UiApi
         new("Ui.PageHeader", typeof(UiPageHeader), NotFlux, "A page's title row: the h1, a line under it, the trail above and, as its children, the actions at the end.",
         [
             new("Heading", typeof(string), "The page's title, its h1 in the extra large size. Required, and taken first.", "text: Ui.PageHeader.Heading(\"Suppliers\")"),
-            new("Level", typeof(int?), "The title's heading level, 1 to 4: 1 when unset, the page's h1; 2 for a header under a title of the page's own."),
             new("Subheading", typeof(string), "A line under the title, in the muted ink."),
             new("Breadcrumbs", typeof(Component), "The trail to this page, above the title.", "a Ui.Breadcrumbs"),
         ]),
