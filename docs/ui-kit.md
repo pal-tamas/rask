@@ -1045,7 +1045,15 @@ Ui.Confirm                                                // "Confirm", "No" and
 Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")   // your own words
 Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a title of its own
 Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a menu item too
+Ui.MenuItem.Href("/logout").Confirm("Sign out of Acme?")["Sign out"]   // a link: a yes follows it
+Ui.MenuItem.Href(SignOut.Path).SignOut()   // "Are you sure you want to sign out?" under "Sign out", from the catalog
 ```
+
+A menu item's link asks before it is followed, and a yes follows it — an in-app route in the app, a string as the
+browser follows any link: a GET and a page load, which is how a sign-out endpoint is reached. `.SignOut()` is that
+question in the catalog's words (`SignOut`, `SignOutQuestion`; in Hungarian "Biztos ki szeretne jelentkezni?" under
+"Kijelentkezés"), and names the row "Sign out" with Flux's `arrow-right-start-on-rectangle` where it has no words or
+icon of its own. It signs no one out itself: the link does, or the `OnClick` it runs.
 
 `Ui.ConfirmLeave` is where a form's [`ConfirmLeave("…")`](forms.md#ask-before-leaving-unsaved-changes) asks, in
 place of `confirm` — the form's message as the heading. Every example, live, with its steps:
