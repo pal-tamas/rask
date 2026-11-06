@@ -222,8 +222,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry RowActions { get; } = new(
         Routes.UiRowActionsPage(), "Row actions", Components,
         "Table row actions in C#: Ui.RowActions",
-        "A list row's pencil and bin in one line: edit opens the row, delete asks first, in Flux's ghost row button with "
-        + "the muted outline icons.");
+        "A list row's pencil and bin in one line, or a ⋯ menu of view, edit and delete held at the table's right edge; "
+        + "delete asks first.");
 
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,

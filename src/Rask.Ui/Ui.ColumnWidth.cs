@@ -44,5 +44,11 @@ public static partial class Ui
 
         /// <summary>A row's end that holds more — three or four icon buttons, or a worded one beside the pencil and bin: 12rem.</summary>
         Buttons,
+
+        /// <summary>
+        ///     The row's <see cref="UiRowActions" /> behind one ⋯ (<c>Ui.RowActions.Menu()</c>): 4rem, at the column's end,
+        ///     and held at the table's right edge while the other columns scroll under it, as its cells are.
+        /// </summary>
+        RowMenu,
     }
 }

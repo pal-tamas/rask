@@ -18,6 +18,12 @@ internal static class UiTableBox
         + "in-data-scrolled-right:first:after:inset-shadow-[8px_0px_8px_-8px_rgba(0,0,0,0.05)] "
         + "in-data-scrolled-left:last:after:inset-shadow-[-8px_0px_8px_-8px_rgba(0,0,0,0.05)]";
 
+    /// <summary>
+    ///     What a sticky part the KIT makes sticky stands on, so the columns scrolled under it do not show through: the
+    ///     surface <see cref="UiMain" /> draws, at no weight, so the page's own background on the cell wins.
+    /// </summary>
+    internal const string Surface = "[:where(&)]:bg-white dark:[:where(&)]:bg-zinc-800";
+
     /// <summary>Flux's parts, in Flux's order, joined once: the empty ones left out, and null when every one is.</summary>
     internal static string? Join(params string[] parts) =>
         parts.Any(part => part.Length > 0) ? string.Join(' ', parts.Where(part => part.Length > 0)) : null;

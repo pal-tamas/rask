@@ -585,7 +585,7 @@ row shows when it has no rows.
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
-`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, and the `Rest` (or a heading with
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
 a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. An `Actions`
@@ -619,10 +619,35 @@ Ui.Table[
     ],
     Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
-        Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")])]
+        Ui.RowActions.Key(s.Id).Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")])]
 ]
 Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése", "Biztos törli?")
 Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
+```
+
+`Ui.RowActions.Menu()` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
+tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
+edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in
+`Ui.Confirm` (its words are the heading's). None is required: a row that can only be deleted, or only chosen, says only
+that, and a row nothing can be done with has no ⋯. The cell is Flux's sticky cell on `Ui.Main`'s surface (white,
+zinc-800 in the dark; your own `bg-*` on it wins), so it stays at the table's right edge while the other columns
+scroll under it on a phone; its column is `Ui.TableColumn.RowMenu` (4rem, sticky too, "Actions" to a screen reader). Each
+row's dropdown, button and items are keyed by the component itself, so nothing in it needs a `"row-menu-" + id` key
+of yours. Key the `Ui.RowActions` itself by the row, as every component in a list: unkeyed it is the n-th of its type
+the page writes, and a delete pressed just as a row above it went would reach the row that took its place.
+
+```csharp
+// Before: each app kept a "⋯" helper, keying every dropdown and item by the row.
+Ui.TableColumn.Key("actions").End.Class(ListTable.Actions + " " + RowActions.AtTheEdge)[RowActions.Heading]
+Ui.TableCell.Key("actions").End.Class(RowActions.AtTheEdge + " py-0")[
+    RowActions.For(driver.Id, Editing(driver.Id), () => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")]
+
+// After: the kit's.
+Ui.TableColumn.RowMenu
+Ui.RowActions.Key(driver.Id).Menu().View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
+    .Remove(() => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")
+Ui.RowActions.Key(tenant.Id).Menu()[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
+Ui.RowActions.Key(row.Id).Menu().OnEdit(() => EditInPlace(row))                    // edited where it stands
 ```
 
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**

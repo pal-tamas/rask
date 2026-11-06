@@ -122,10 +122,6 @@ Rask.RaskSeed_UiPillbox.Values<T>(System.Collections.Generic.ICollection<T>? Val
 Rask.RaskSeed_UiRadioGroup.Bind<T>(System.Linq.Expressions.Expression<System.Func<T>!>! Bind) -> Rask.UiRadioGroup<T>!
 Rask.RaskSeed_UiRadioGroup.Of<T>() -> Rask.UiRadioGroup<T>!
 Rask.RaskSeed_UiRadioGroup.Value<T>(T? Value) -> Rask.UiRadioGroup<T>!
-Rask.RaskSeed_UiRowActions
-Rask.RaskSeed_UiRowActions.Edit(Rask.Core.Routing.RouteUrl Edit) -> Rask.UiRowActions!
-Rask.RaskSeed_UiRowActions.Key(object? key) -> Rask.RaskSeed_UiRowActions
-Rask.RaskSeed_UiRowActions.RaskSeed_UiRowActions() -> void
 Rask.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.HashSet<T>!>!>! Bind) -> Rask.UiSelectMultiple<T>!
 Rask.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.ICollection<T>!>!>! Bind) -> Rask.UiSelectMultiple<T>!
 Rask.RaskSeed_UiSelect.Bind<T>(System.Linq.Expressions.Expression<System.Func<System.Collections.Generic.IList<T>!>!>! Bind) -> Rask.UiSelectMultiple<T>!
@@ -326,6 +322,7 @@ Rask.Ui.ColumnWidth.Actions = 8 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Buttons = 9 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Day = 1 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Flag = 5 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.RowMenu = 10 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Moment = 2 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Name = 7 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Number = 3 -> Rask.Ui.ColumnWidth
@@ -2650,8 +2647,12 @@ Rask.UiRadioIndicator.UiRadioIndicator() -> void
 Rask.UiRowActions
 Rask.UiRowActions.Class.get -> string?
 Rask.UiRowActions.Class.set -> void
-Rask.UiRowActions.Edit.get -> Rask.Core.Routing.RouteUrl
+Rask.UiRowActions.Edit.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiRowActions.Edit.set -> void
+Rask.UiRowActions.Menu.get -> bool?
+Rask.UiRowActions.Menu.set -> void
+Rask.UiRowActions.OnEdit.get -> Rask.Core.Callback
+Rask.UiRowActions.OnEdit.set -> void
 Rask.UiRowActions.OnRemove.get -> Rask.Core.Callback
 Rask.UiRowActions.OnRemove.set -> void
 Rask.UiRowActions.Remove(System.Action? onRemove, string? heading = null, string? question = null) -> Rask.UiRowActions!
@@ -2661,6 +2662,8 @@ Rask.UiRowActions.RemoveHeading.set -> void
 Rask.UiRowActions.RemoveQuestion.get -> string?
 Rask.UiRowActions.RemoveQuestion.set -> void
 Rask.UiRowActions.UiRowActions() -> void
+Rask.UiRowActions.View.get -> Rask.Core.Routing.RouteUrl?
+Rask.UiRowActions.View.set -> void
 Rask.UiSelect<T>.AfterBind.get -> Rask.Core.Callback<T>
 Rask.UiSelect<T>.AfterBind.set -> void
 Rask.UiSelect<T>.Bind.get -> System.Linq.Expressions.Expression<System.Func<T>!>?
@@ -3684,6 +3687,7 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Actions.get -> Rask.UiT
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Buttons.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Day.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Flag.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).RowMenu.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Moment.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Name.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Number.get -> Rask.UiTableColumn!
@@ -3994,7 +3998,7 @@ static Rask.Ui.Popover.get -> Rask.UiPopover!
 static Rask.Ui.Profile.get -> Rask.UiProfile!
 static Rask.Ui.Radio.get -> Rask.UiRadio!
 static Rask.Ui.RadioIndicator.get -> Rask.UiRadioIndicator!
-static Rask.Ui.RowActions.get -> Rask.RaskSeed_UiRowActions
+static Rask.Ui.RowActions.get -> Rask.UiRowActions!
 static Rask.Ui.SelectButton.get -> Rask.UiSelectButton!
 static Rask.Ui.SelectGroup.get -> Rask.UiSelectGroup!
 static Rask.Ui.SelectInput.get -> Rask.UiSelectInput!
@@ -4990,7 +4994,7 @@ static RaskBuilderSettersRask_Ui.Dropdown<T>(this Rask.UiTimePicker<T>! __b) -> 
 static RaskBuilderSettersRask_Ui.Dropdown<T>(this Rask.UiTimePicker<T>! __b, bool? value) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.Dropper(this Rask.UiColorPicker! __b) -> Rask.UiColorPicker!
 static RaskBuilderSettersRask_Ui.Dropper(this Rask.UiColorPicker! __b, bool? value) -> Rask.UiColorPicker!
-static RaskBuilderSettersRask_Ui.Edit(this Rask.UiRowActions! __b, Rask.Core.Routing.RouteUrl value) -> Rask.UiRowActions!
+static RaskBuilderSettersRask_Ui.Edit(this Rask.UiRowActions! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiRowActions!
 static RaskBuilderSettersRask_Ui.Empty<T>(this Rask.UiSelect<T>! __b, string? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Empty<T>(this Rask.UiSelectMultiple<T>! __b, string? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Error(this Rask.UiFileUpload! __b, string? value) -> Rask.UiFileUpload!
@@ -5319,6 +5323,7 @@ static RaskBuilderSettersRask_Ui.get_List(Rask.UiDatetimePicker! __b) -> Rask.Ui
 static RaskBuilderSettersRask_Ui.get_List(Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.get_Mandatory(Rask.UiCarousel! __b) -> Rask.UiCarousel!
 static RaskBuilderSettersRask_Ui.get_Md(Rask.UiFlag! __b) -> Rask.UiFlag!
+static RaskBuilderSettersRask_Ui.get_RowMenu(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Micro(Rask.UiAvatar! __b) -> Rask.UiAvatar!
 static RaskBuilderSettersRask_Ui.get_Micro(Rask.UiBreadcrumbsItem! __b) -> Rask.UiBreadcrumbsItem!
 static RaskBuilderSettersRask_Ui.get_Micro(Rask.UiCommandItem! __b) -> Rask.UiCommandItem!
@@ -5676,6 +5681,8 @@ static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatetimePicker! __b, int? 
 static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatetimePickerRange! __b, int? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.MaxTime(this Rask.UiDatetimePicker! __b, System.TimeOnly? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.MaxTime(this Rask.UiDatetimePickerRange! __b, System.TimeOnly? value) -> Rask.UiDatetimePickerRange!
+static RaskBuilderSettersRask_Ui.Menu(this Rask.UiRowActions! __b) -> Rask.UiRowActions!
+static RaskBuilderSettersRask_Ui.Menu(this Rask.UiRowActions! __b, bool? value) -> Rask.UiRowActions!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatetimePicker! __b, System.DateTime? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatetimePickerRange! __b, System.DateTime? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatetimePicker! __b, int? value) -> Rask.UiDatetimePicker!
@@ -5701,6 +5708,10 @@ static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatetimePickerRange! __b, 
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatetimePickerRange! __b, System.Func<Rask.UiDateTimeRange, System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatetimePickerRange! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.OnChange(this Rask.UiDatetimePickerRange! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiDatetimePickerRange!
+static RaskBuilderSettersRask_Ui.OnEdit(this Rask.UiRowActions! __b, Rask.Core.Callback? value) -> Rask.UiRowActions!
+static RaskBuilderSettersRask_Ui.OnEdit(this Rask.UiRowActions! __b, System.Action? value) -> Rask.UiRowActions!
+static RaskBuilderSettersRask_Ui.OnEdit(this Rask.UiRowActions! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiRowActions!
+static RaskBuilderSettersRask_Ui.OnEdit(this Rask.UiRowActions! __b, System.Func<System.Threading.Tasks.ValueTask>? value) -> Rask.UiRowActions!
 static RaskBuilderSettersRask_Ui.OnRemove(this Rask.UiFormButtons! __b, Rask.Core.Callback? value) -> Rask.UiFormButtons!
 static RaskBuilderSettersRask_Ui.OnRemove(this Rask.UiFormButtons! __b, System.Action? value) -> Rask.UiFormButtons!
 static RaskBuilderSettersRask_Ui.OnRemove(this Rask.UiFormButtons! __b, System.Func<System.Threading.Tasks.Task!>? value) -> Rask.UiFormButtons!
@@ -5750,6 +5761,7 @@ static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatetimePickerRange! __b, 
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatetimePickerRange! __b, Rask.Core.Validator<Rask.UiDateTimeRange>? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.Validate(this Rask.UiDatetimePickerRange! __b, System.Func<Rask.UiDateTimeRange, System.Threading.Tasks.ValueTask<System.Collections.Generic.IEnumerable<string!>!>>? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.Variant(this Rask.UiDatePickerInput! __b, Rask.Ui.DatePickerInputVariant? value) -> Rask.UiDatePickerInput!
+static RaskBuilderSettersRask_Ui.View(this Rask.UiRowActions! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiRowActions!
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePicker! __b) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePicker! __b, bool? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.WeekNumbers(this Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!

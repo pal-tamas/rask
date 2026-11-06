@@ -19519,3 +19519,4 @@ Rask.Core.Globalization.RaskString.RowActionsEdit = 228 -> Rask.Core.Globalizati
 Rask.Core.Globalization.RaskString.RowActionsRemove = 229 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RowActionsHeading = 230 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RemoveQuestion = 231 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.RowActionsView = 232 -> Rask.Core.Globalization.RaskString
