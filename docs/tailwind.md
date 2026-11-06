@@ -142,26 +142,20 @@ treated as a component's scoped stylesheet — [RASK015](diagnostics.md), for a 
 
 ## Where the engine comes from
 
-Tailwind v4's compiler is a native binary, and Rask fetches it rather than asking you to:
-
-| | |
-|---|---|
-| **Standalone binary** (preferred) | Downloaded once from Tailwind's GitHub releases, verified against a SHA-256 **recorded in Rask itself** for the pinned version — a download that does not match fails the build, it never falls back to npm — and cached **per user** at `~/.rask/tailwind` (`%LOCALAPPDATA%\rask\tailwind` on Windows) — shared by every project, deliberately outside the repository. |
-| **npm** (fallback) | A project-local `npm install` of `tailwindcss`, used where no standalone binary is published. |
+Tailwind v4's compiler is a native binary, and Rask fetches it rather than asking you to: Tailwind's
+**standalone binary**, downloaded once from Tailwind's GitHub releases, verified against a SHA-256
+**recorded in Rask itself** for the pinned version — a download that does not match fails the build —
+and cached **per user** at `~/.rask/tailwind` (`%LOCALAPPDATA%\rask\tailwind` on Windows), shared by
+every project and deliberately outside the repository.
 
 The release's own `sha256sums.txt` comes from the same place as the binary, so it can only show that a
 download arrived intact. That is still what an app that overrides `RaskTailwindVersion` gets, with a
 build warning saying so; set `RaskTailwindSha256` to the asset's SHA-256 to pin that version too.
 
-The standalone binary is first because "the SDK is all you need" is most of why anyone picks a C#
-host, and it keeps that true on macOS (x64/arm64), Linux (x64/arm64, glibc **and** musl) and Windows
-x64. npm is second because it covers strictly more: Tailwind's npm engine ships native builds for
-win32-arm64, 32-bit ARM and FreeBSD that the standalone release has no equivalent of, plus a
-`wasm32-wasi` build that runs anywhere Node does. The standalone release publishes seven assets;
-between the two engines **no platform is simply unsupported**.
-
-The fallback is a real `npm install` into the project, not `npx`: `npx --package tailwindcss` and
-`npx --cwd` both fail to place the platform-specific optional dependency the engine needs.
+It keeps "the SDK is all you need" true on macOS (x64/arm64), Linux (x64/arm64, glibc **and** musl)
+and Windows x64 — the platforms the standalone release publishes for. Windows on ARM runs the x64
+binary under emulation. Anywhere else (32-bit ARM, FreeBSD), build a Tailwind binary yourself and point
+`RaskTailwindPath` at it.
 
 ## Knobs
 
@@ -175,7 +169,7 @@ compile, which is what lets a class library in the same solution ignore all of t
 | Property | Default | What it does |
 |---|---|---|
 | `RaskTailwindVersion` | `4.3.4` | The Tailwind version. **Pinned, never floating** — a compiler is not a library, and a different version emits different CSS, so a build that quietly picked up a new one would change how your pages look with nothing in the diff. Each Rask release carries Tailwind's newest at the time, digests included; set it to hold a version. |
-| `RaskTailwindEngine` | `auto` | `standalone` or `npm` to force one. On Windows on ARM, `npm` gets you a native engine instead of the x64 binary under emulation. |
+| `RaskTailwindPath` | unset | A Tailwind binary of your own, used as it is instead of downloading the pinned one — for a platform the standalone release does not cover. |
 | `RaskTailwindInput` | `Styles/app.css` | Your stylesheet — the one that imports Tailwind, on its own or through `rask-ui.css`. |
 | `RaskTailwindOutput` | `wwwroot/css/app.css` | Where the compiled CSS lands. |
 | `RaskTailwindMinify` | `true` in Release | Minified for production, readable in devtools while you work. |
@@ -196,18 +190,14 @@ IDE reloading a project must never download a binary or shell out to a compiler.
 Every failure names the way out, and the way out is always available — it is a way *through*, never a
 way to skip the stylesheet:
 
-- **No standalone binary for this platform, and no Node.js.** The error names your OS and
-  architecture and gives the install line for it (`brew install node`, `winget install
-  OpenJS.NodeJS.LTS`, your distro's `nodejs` package). Between the two engines no platform is
-  unsupported, so installing Node is always an available answer — and it is the answer, because there
-  is no build of a Rask app without its stylesheet.
-- **`RaskTailwindEngine=standalone` on a platform with no binary.** Refused rather than silently
-  falling back, because you asked for the binary specifically.
+- **No standalone binary for this platform.** The error names your OS and architecture and tells you
+  to set `RaskTailwindPath` to a Tailwind binary you built or installed — there is no build of a Rask
+  app without its stylesheet.
 - **Offline, with nothing cached.** The error prints the download URL and the exact path to put it
   at. The cache is per user rather than per project, so seeding it once serves every build on the
   machine — which is how a hermetic or air-gapped build is set up.
-- **The download failed.** Not fatal on its own — a machine that cannot reach GitHub releases can often
-  still reach a registry mirror, so the build says so and tries npm.
+- **The download failed.** The error names the URL; a machine that cannot reach GitHub releases seeds
+  the cache once, as for an offline build, or sets `RaskTailwindPath`.
 
 ## See also
 

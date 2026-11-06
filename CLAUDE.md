@@ -18,7 +18,7 @@ the `docs/`, and the tests for depth. Keep this file small; put how-to detail in
 - **rask-review** — security / performance / memory / .NET-C# review lens (wraps /code-review, /security-review).
 - **rask-seo** — search + AI-assistant discoverability of rask.sh and the packages (page/guide copy, JSON-LD, sitemap, llms.txt); on EVERY site/docs/package-metadata change.
 - **land-on-main** — Conventional-Commit, merge `origin/main`, `git push origin HEAD:main`, CI reports after. **Never open a PR** for own work.
-- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
+- **cut-release** — CHANGELOG promote + `vX.Y.Z` tag. **check-dependency-updates** — NuGet + the pins outside CPM.
 - **upstream-follower** — anything generated from or pinned to an upstream release is a follower in `scripts/upstream/followers.json`
   (daily → gated → auto-landed, one issue per source); never a hand-run script or a build side effect.
 
@@ -35,7 +35,7 @@ concurrently on all cores under ONE shared `-m` budget, and anything serial stat
 front doors, attribution) and nothing blocks a commit or a push. AFTER the push to `main`, `ci.yml`
 runs the gates the change can REACH, each its own job (`scripts/lib/affected_gates.py` decides, and runs
 everything for whatever it cannot narrow); `full.yml` runs the whole set — build, unit, format, every
-browser E2E, CLI build, templates, a job per front-end template — once a day, and `nightly.yml`/`pages.yml`
+browser E2E, CLI build, templates — once a day, and `nightly.yml`/`pages.yml`
 publish only from a PUSH run of `ci` on main — `pages` once it passed, `nightly` once its `build` job is green (until 1.0). Locally, build and test
 ONLY the project you touched (`dotnet test tests/Rask.X.Tests`), never the solution, never a gate script
 — several worktrees doing that at once is what made every gate take ten minutes. A red `main`
@@ -71,7 +71,8 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   `RaskBatteryWiring`, `RaskAppDbContext`). `AddRask()`/`MapRask<TApp>()` stay for a hand-wired host.
   `src/Rask.Wasm` — browser host; `Batteries/` wires the client halves (Cqrs, Query, Auth.Client, Cqrs.Client, validation, Ui).
   There is NO meta-package any more: `Rask` = shared core, `Rask.Server`/`Rask.Wasm` = host + batteries.
-- `src/Rask.Spa.Hosting` — `MapRaskSpa()`: serves a built SPA from its ASP.NET host — a Rask WASM app (WASM is a SPA, never a render mode) or an npm front end in `client/`, which its build targets `npm ci` + `npm run build` and publish into `wwwroot` (`docs/spa.md`); a JS component inside a Rask page is an island. `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
+- `src/Rask.Spa.Hosting` — `AddRaskSpaHost()`/`MapRaskSpa()`: serves the `wasm-hosted` template's Rask WASM app from its ASP.NET host (WASM is a SPA, never a render mode; `docs/spa.md`). `src/Rask.Wasm.Tasks` — `BakeScopedAssetsTask`.
+- **ZERO Node/npm** for users, maintainers and CI: tsgo, esbuild and Tailwind are native binaries the build fetches and verifies; browser automation is Microsoft.Playwright (.NET).
 - `src/Rask.Validation.FluentValidation` — opt-in validator (DataAnnotations is in Core). `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Imported for every Server/WASM app by its own `build/Rask.Web.props` (buildTransitive): `global using Rask.Web;` + `global using Types = Rask.Web.Types;` — never the `Types` namespace itself (CS0104 with the globals); Rask's `EditContext`/`FormData`/`DataTransfer`/`EventTarget`/`Touch` keep the bare name by global alias there; a library on `Rask` alone gets none of it.
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; browsers subscribe via MDN's `PushManager`). Zero external deps.
@@ -80,30 +81,6 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
   pinned Chrome for Testing shell over our own DevTools pipe (zero deps). The BUILD fetches the shell (`build/Rask.Pdf.targets`, SHA-256
   checked) and the template Dockerfiles copy it; never a download at run time. Reaches the server render through Core's internal
   `IPrintablePages` (Rask.Server implements it); a RaskApp finds it by name (`PdfLoader`). Pin moved by `scripts/upstream/chrome.py`.
-- `src/Rask.Blazor` — a REAL Blazor component as an ordinary Rask component: derive a `partial` class from
-  `BlazorComponent<T>` (T from an RCL/MudBlazor/Radzen — the Razor SDK compiles `.razor` untouched). Rendered
-  server-side into the FIRST response via `OnUpdated` + quiescence; params cross as live C# objects
-  (no serialization). The hosted component's own `@onclick` works with NO circuit — `BlazorFrameWriter` rewrites
-  Blazor's handler ids as `data-rask-on-*` over the existing socket. **NOT opaque when static** (opaque ⇒
-  `FrameDiffer` skips children ⇒ island freezes after first paint). **Both hosts; trimming is annotated, NOT gated end to end** —
-  `BlazorComponent<T>`'s type parameter is DAM-annotated, or the trimmer eats the hosted `[Parameter]` setters
-  and the island renders EMPTY with a green build. Compiling `.razor`→chain was rejected: Razor's syntax layer is `internal`
-  in every version and the .NET 10 SDK compiler is closed (23 IVT friends) — see `docs/blazor-components.md`.
-- `src/Rask.External` + `src/Rask.External.Tasks` — a `.tsx`/Lit file as an ORDINARY component: derive a
-  `partial` class from `ReactComponent`/`PreactComponent`/`SolidComponent`/`VueComponent`/`SvelteComponent`/
-  `AngularComponent`/`LitComponent` (the base class IS the
-  declaration — no attribute, and the BUILD reads it too: three runtimes write `.tsx` and two write `.ts`, so the
-  extension names a family and the generator carries the declared runtime out as a constant). Two runtimes sharing
-  an extension are scoped by DIRECTORY and overlapping trees are refused; React+Preact is refused (npm cannot
-  install both). Front-end file paired by filename like scoped JS. Props declared in C#, serialized reflection-free — EXCEPT a
-  **package island** (`Module => "@mui/material/Button"`, no front-end file), whose props are generated from the
-  committed `{Island}.props.json` beside it by BOTH the island and factory generators through one shared
-  `PackageIslandProps` resolver (one generator never sees the other's output); unset props are omitted and
-  callbacks carry `$a` so no event object is ever serialized. The BUILD writes that snapshot before the compile
-  (Rask-pinned `typescript` 6.x JS API under node; locked — RASKISLAND008, never rewrites — under CI);
-  callbacks re-enter C# over the existing handler channel AND escalate the page to interactive. Its subtree is a
-  **diff boundary** (`Component.OpaqueSubtree` + `data-rask-opaque`). `rask dev` serves islands from Vite on 5174
-  for HMR — see `docs/islands.md`.
 - `src/Rask.Site` — the ONE app published to rask.sh: landing page at `/`, showcase + guides at `/docs`.
   Browser-WASM only; `samples/` is deleted. It is `IsPackable=false` + `RaskPublicApiTracked=false`:
   an APP under `src/` would otherwise be treated as a shippable library by both repo-wide gates.
@@ -142,7 +119,7 @@ dotnet run --project src/Rask.Site
   step, or stated with `.Of<T>()`, which hands back the state still owing any required steps. See `docs/building-components.md`.
 - **Names:** elements + markup primitives are BARE (inherited by components; `using static Rask.Markup` elsewhere;
   `Markup.Footer` when a member hides one; `<html>` is `Html`). Families are GROUPED, never bare — `Ui.Button`/`Ui.Tone`
-  (kit, namespace `Rask`), `Trigger.*`, `Validation.*`, an npm package class (`Mui.Button`) — via `[RaskChainGroup]`.
+  (kit, namespace `Rask`), `Trigger.*`, `Validation.*` — via `[RaskChainGroup]`.
 - **The chain's receiver IS the component** — one shape, and a step hands back exactly what it was called
   on. `Build<T>`, the mode-carrying `Build<T, TMode>`, `FormBuild<T>` and `GridBuild<T, TKey>` are gone.
   What makes that safe is that every event prop is a `Callback<T>` — a non-invocable STRUCT, so
@@ -170,7 +147,7 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–115, RASK027/030/032/034/042/046/047/048–050/054/075/076/081/091 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–115, RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
@@ -178,7 +155,7 @@ started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, moved daily by the `mdn` follower in `upstream.yml`, never by the build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
 - **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–115 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046/047/048/049/050/054/075/076/081/091 are retired and never recycled; RASK063/065 are RESERVED for Rask.Blazor and unimplemented; the next free id is RASK116). **Grep `src/`
+  (RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 are retired and never recycled; the next free id is RASK116). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

@@ -1700,6 +1700,24 @@ them until tagged releases begin.
 
 ### Removed
 
+- **BREAKING: islands are gone — `Rask.External`, `Rask.External.Tasks` and `Rask.Blazor` are no longer
+  packages.** A `.tsx`, `.vue`, `.svelte`, Angular or Lit file derived from `ReactComponent`, `PreactComponent`,
+  `SolidComponent`, `VueComponent`, `SvelteComponent`, `AngularComponent` or `LitComponent`, a package island
+  (`Module => "react-colorful"`, a `*Package` class, its committed `{Island}.props.json`), and a Blazor component
+  hosted through `BlazorComponent<T>` no longer compile. Pages are C# components; a JavaScript library is reached
+  from a component's scoped `.ts` ([JavaScript interop](docs/js-interop.md)).
+- **BREAKING: `rask new` offers `server`, `wasm` and `wasm-hosted` only.** The `react`, `preact`, `vue`,
+  `angular`, `solid`, `svelte` and `lit` templates and `--islands` are refused as unknown, and
+  `Rask.Spa.Hosting` no longer builds an npm front end: `MapRaskSpa()` serves the `wasm-hosted` template's
+  WebAssembly app ([a WebAssembly app on its host](docs/spa.md)).
+- **No Node or npm anywhere — for an app, for Rask's maintainers, or in CI.** Tailwind's npm fallback
+  (`RaskTailwindEngine=npm`) is gone: the standalone binary is the engine, and a platform it does not cover
+  points `RaskTailwindPath` at a binary of its own ([Tailwind](docs/tailwind.md#where-the-engine-comes-from)). The
+  installer no longer installs Node, `rask doctor` no longer checks for it, and the repo's own scripts and
+  followers run on .NET and Python.
+- **Diagnostic ids retired with them:** RASK056–059, RASK061–066 (RASK063 and RASK065 were never implemented),
+  RASK077–080 and RASK100, and the islands build's RASKISLAND001–019. None is recycled.
+
 - **BREAKING (behaviour): `NavigationQuiescenceTimeout` — a navigation sends its page at once; its loads follow
   in a later frame.** `RaskServerOptions.NavigationQuiescenceTimeout` and `RaskWasmOptions.NavigationQuiescenceTimeout`
   are gone, and a `Rask:Server:NavigationQuiescenceTimeout` key left in appsettings is ignored. A link, Back, a

@@ -276,10 +276,7 @@ latest render drew it, sends that value — compared as the render wrote it:
   no event to a disabled control, so whatever arrives was written by hand. The markup is an enabled control's, and
   every kit control that draws one (a standalone `Ui.Checkbox`, `Ui.Switch`, `Ui.Input`, `Ui.Textarea`, `Ui.Phone`,
   the native `Ui.Select`, a `Ui.Slider` thumb, a `Ui.Otp` cell, …) inherits it — the warning names the kit control,
-  `Ui.Slider 'Volume'`. Its rules still run when the form is submitted. A hosted Blazor component's own
-  `<button disabled @onclick>` — or any control in its `<fieldset disabled>` — is refused by the same rule
-  ([Blazor components](blazor-components.md#events)); an island's callbacks are the app's to check
-  ([islands](islands.md#a-disabled-control-in-an-island-is-yours-to-check));
+  `Ui.Slider 'Volume'`. Its rules still run when the form is submitted;
 - a kit control that writes through a hidden field or an engine of its own, drawn `.Disabled()`: nothing —
   `Ui.DatePicker` (`.Range`, typed or not), `Ui.DatetimePicker`, `Ui.TimePicker` (list and typed),
   `Ui.ColorPicker`, `Ui.Select.Listbox`/`.Combobox` (a pick, its clear, its create row), `Ui.Pillbox` and
@@ -621,7 +618,7 @@ of the page asks first:
 | The reader… | What asks |
 | --- | --- |
 | follows a link inside the app (`NavLink`, a Markdown link to another page) | your message, in the browser's own `confirm` dialog — or in [`Ui.ConfirmLeave`](#ask-in-a-dialog-of-your-own) when the layout has one |
-| is navigated by front-end code (`__raskHost.navigate(…)`, an island's router) | the same dialog |
+| is navigated by script (`__raskHost.navigate(…)`) | the same dialog |
 | presses Back or Forward | the same dialog; staying puts the address and the history back where they were |
 | closes the tab, reloads, or follows a link out of the app | the browser's own "leave site?" prompt. No page can set its text, so your message is not shown there. |
 | closes the [`Ui.Modal`](ui-kit.md#who-owns-the-state) the form is in — its close button, a `Ui.ModalClose`, Escape, a press outside | the same dialog; staying keeps the modal open with what was typed |

@@ -530,7 +530,7 @@ rask new MyApp --template wasm                   # static WASM bundle → nginx:
 The Dockerfile references your project by name (the template renames `Company.RaskServer.dll` to
 `MyApp.dll` when it scaffolds), so `docker build` works with no edits.
 
-**Build cache.** The build stage keeps NuGet's packages, npm's cache, the Tailwind CLI and
+**Build cache.** The build stage keeps NuGet's packages, the Tailwind CLI and
 [Rask.Pdf's browser](pdf.md#the-browser) in BuildKit cache mounts, and the runtime stage copies the app last, so a
 redeploy after a code edit downloads and installs none of them again. That needs a builder with
 cache mounts — Docker 23+ with the buildx plugin (Docker Desktop and get.docker.com install it; Homebrew's
@@ -560,7 +560,7 @@ sends, and the 15-second heartbeat stays inside its default 60-second `proxy_rea
 ignores both must not buffer that path, and must not compress `text/event-stream`. Serve over HTTP/2 where you
 can: a tab on the fallback holds one of HTTP/1.1's six connections per origin. To host under a sub-path, pass `app.MapRask<App>(pathBase:
 "/myapp")` and route `/myapp/*` to the container; the page tells the browser runtime the prefix on its own
-`<script>` tag, so no `<base href>` is needed ([details](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
+`<script>` tag, so no `<base href>` is needed ([details](routing.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
 
 **Caching in front of the app.** Every page is `Cache-Control: no-store, no-cache, must-revalidate,
 private`, because every page is [live](render-modes.md) and its document carries a session id that

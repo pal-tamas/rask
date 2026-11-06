@@ -20,9 +20,7 @@ The UI is C# too. Write components as plain C# classes that return a tree of HTM
 state is a field, and an event handler is a delegate. The *same* component code runs server-rendered with live WebSocket
 updates or fully client-side on WebAssembly.
 
-Rask is a superset, not a rival: React, Preact, Solid, Vue, Svelte, Angular and Lit components and real Blazor
-components (`Rask.Blazor`) run inside Rask pages as islands — and it builds on ASP.NET Core and EF Core
-rather than replacing them.
+Rask builds on ASP.NET Core and EF Core rather than replacing them.
 
 ```csharp
 [Route("/counter")]
@@ -37,13 +35,13 @@ public sealed partial class Counter : Component
 
 ## Install
 
-> **Prerequisites: none.** The installer below adds whatever is missing — the **.NET SDK**, the
-> `wasm-tools` workload the WASM templates need, Node for islands — all under `$HOME`, no
+> **Prerequisites: none.** The installer below adds whatever is missing — the **.NET SDK** and the
+> `wasm-tools` workload the WASM templates need — all under `$HOME`, no
 > `sudo`. Already have the .NET 10 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
 curl -sSL https://rask.sh/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy
-rask new MyApp                            # batteries included; or: -t wasm, -t wasm-hosted, -t react (or vue, angular, …)
+rask new MyApp                            # batteries included; or: -t wasm, -t wasm-hosted
 rask dev                                  # run with hot reload — the first migration is already applied
 rask deploy --host you@box --domain app.example.com       # build + run on one box, over SSH
 ```
@@ -54,8 +52,6 @@ Or add to an existing project. **Pick a host** — each brings `Rask`, the share
 dotnet add package Rask.Server            # ASP.NET: live pages over WebSockets plus every battery, all on
 dotnet add package Rask.Wasm              # client-side WebAssembly, with the client halves of the batteries
 dotnet add package Rask.Spa.Hosting       # serve a Rask WebAssembly app from an ASP.NET host
-dotnet add package Rask.External           # a .tsx/.vue/.svelte/Lit component as a Rask component (needs Node)
-dotnet add package Rask.Blazor             # a real Blazor component (MudBlazor, an RCL) as a Rask component
 ```
 
 A library of components used by either host references the core alone: `dotnet add package Rask`.

@@ -21,11 +21,8 @@ async lifecycle hook shows over the running app, which stays mounted with its st
 
 The framework side of that loop has its own gate, `scripts/run-watch-e2e.sh` — it scaffolds an app, runs
 it under a real `dotnet watch`, edits a file, and asserts the change reached the open live session
-without it being torn down. It covers islands too, on a Server and on a WASM app scaffolded with
-`--islands react`: the manifest names the Vite dev server under `$dev`, the island loads from that
-server through its loopback-only CORS rule, and a `.tsx` edit arrives on Vite's HMR socket as a
-`js-update`, not a full reload. Run it when you touch the hot-reload coordinator, the scoped-asset
-registry, the generated registries, the island dev server, or `rask dev`. CI runs it before a release and on a
+without it being torn down. Run it when you touch the hot-reload coordinator, the scoped-asset
+registry, the generated registries, or `rask dev`. CI runs it before a release and on a
 `ci/release/**` branch, not on every push (see [CI](#ci)).
 
 There used to be a browser half, `scripts/run-wasm-watch-e2e.sh`, driving a WASM sample under
@@ -158,8 +155,8 @@ free for a public repository and nobody waits on it.
 | `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
 | `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed, a front-end template, inside its `front end K/2` job, when its tree changed (all seven when the SPA host, the TypeScript emitter or the scaffolder did). `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the front-end templates in two jobs over one packed feed each (`run-template-e2e.sh --front-end=<key>,<key>…`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -178,7 +175,6 @@ is that command; run it in a worktree at that commit:
 ```bash
 scripts/run-unit-local.sh                    # the build and analyzers jobs (RASK_UNIT_PART=build | analyzers | analyzers-K runs one)
 scripts/run-e2e-local.sh                     # the "browser E2E" jobs (RASK_E2E_SITE=publish is the "site publish" job; prebuilt drives what it published)
-scripts/run-template-e2e.sh --front-end=vue  # one template of a "front end K/2" job (--front-end=react,vue runs several)
 scripts/run-all-gates.sh --only 'E2E|CLI'    # several, by label
 scripts/run-all-gates.sh --list              # every gate, and what it needs
 ```
@@ -239,7 +235,7 @@ loosening is marked `restore at 1.0` where it is made, and listed here so the 1.
 | A nightly is pushed in one wave: a package can be served ahead of a dependency while nuget.org validates. | `nightly.yml` (`--waves 1 --jobs 8`) | level by level: drop `--waves`/`--jobs`, as `release.yml` |
 | Finished work lands directly on `main` after its local targeted tests — no `ci/**` pre-run, however risky — except a change to CI itself, a Linux-only risk the Mac cannot check, and the release-only gates (`ci/release/**`). | `CLAUDE.md`, the `land-on-main` and `rask-ship` skills | risky changes go through a `ci/**` branch first |
 | The formatter checks only the `.cs` files a change touched (every file when it touches an `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json`), inside the `analyzers K/N` jobs, each over its own projects' files; with no scope base — the daily whole run, a release — it checks nothing. | `scripts/run-unit-local.sh` (the `analyzers-K` parts), `scripts/lib/format-scope.sh` | the whole tree in the daily `full` run: a job there running `dotnet format Rask.slnx --verify-no-changes` |
-| A nightly is pushed the moment `main`'s `ci` run has a green `build` job, not when the run has passed: browser E2E, templates, front ends and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
+| A nightly is pushed the moment `main`'s `ci` run has a green `build` job, not when the run has passed: browser E2E, templates and the CLI build may still be going, and a red one is fixed forward. It is packed while the run builds. | `nightly.yml` (`workflow_run` `requested`), `scripts/lib/nightly_pick.sh`, `scripts/lib/nightly_wait.sh` | `workflow_run` `completed` of `full`, and `pick` taking only a commit whose whole run passed |
 | The `build` job builds with the analyzers off (`-p:RunAnalyzers=false`) and runs the unit tests; the analyzers, the formatter and the gate script tests are the `analyzers K/N` jobs beside it, which no publish waits for, cut by project (`scripts/lib/analyzer-shards.txt`, `-p:RaskAnalyzerShard=K` in `Directory.Build.targets`) so none is longer than `build`. The nightly pack skips the analyzers too. | `gates.yml` (`build`, `analyzers K/N`), `scripts/run-unit-local.sh` (`RASK_UNIT_PART`), `Directory.Build.targets` (`RaskAnalyzerShard`), `scripts/lib/analyzer-shards.txt`, `scripts/lib/nightly_pack.sh` | one `build` job, analyzers on, ahead of the tests; the pack with the analyzers |
 
 ### How a version reaches nuget.org
@@ -333,7 +329,7 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 
 - `ci.yml` — the gates a change reaches, on every push to `main` or a `ci/**` branch and every pull
   request; the whole set and the release set on a `ci/release/**` branch. By hand: `gh workflow run ci.yml --ref <branch> -f only='CLI build'`
-  (`only` is a pattern over job names: `'front end'` is both front-end jobs, `'front end 1/2'` one).
+  (`only` is a pattern over job names).
 - `full.yml` — the whole push set against `main`, once a day and by hand (fourteen jobs at once so a
   push's own run finds runners). It gates nothing.
 - `gates.yml` — the reusable list of gate jobs the others call.
@@ -344,17 +340,15 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
 - `release.yml` — tag-triggered: every gate, then the stable publish.
 - `upstream.yml` — daily (Flux UI weekly, Mondays: `flux` and `flux-parity`); follows what Rask is generated from. `scripts/upstream/follow.sh` moves the
   MDN snapshot to the latest stable data, records the public surface that moved with it
-  (`scripts/public-api/record.py`), moves the stated Node line to the Active LTS, and moves every pin
+  (`scripts/public-api/record.py`), and moves every pin
   Dependabot cannot read to its newest stable release (the followers listed under *What updates
   itself*). Each follower is a job of its own (`upstream-follow.yml`, `follow.sh <follower>`): its
   commit is gated by what it can reach and THEN landed on `main`, with nobody watching — so a release
   the gates refuse holds back that source only. A refusal for a gate `main` is already red on
   (`scripts/upstream/main-already-red.sh`) is not upstream's: the commit waits on
-  `upstream-waits/<follower>` and is followed again when `main`'s `ci` next passes on a push. Its `front-ends` matrix scaffolds every
-  front-end template on the newest npm set `rask new` chooses and runs
-  `scripts/run-template-e2e.sh --front-end=<key>` on it. Every source keeps ONE issue, opened only
-  when it needs a person — the gates refused what it shipped, a template no longer builds on the
-  newest npm packages, or Flux UI moved — and closed by its next green run. The Flux lock
+  `upstream-waits/<follower>` and is followed again when `main`'s `ci` next passes on a push. Every
+  source keeps ONE issue, opened only when it needs a person — the gates refused what it shipped, or
+  Flux UI moved — and closed by its next green run. The Flux lock
   (`tests/Rask.Ui.Tests/Flux/flux.lock.json`) is measured on its runner, so it is relocked there:
   `gh workflow run upstream.yml -f relock=true`.
 - `dependabot-merge.yml` — merges a Dependabot pull request once `ci` has passed it. What must not
@@ -414,10 +408,7 @@ True of the scripts wherever they run — a CI job or your terminal.
   `scripts/tests/affected-projects.test.sh` enforces this). Forget the declaration and a scoped run
   skips the test that pins the file. The gate's own tests declare theirs on a `# gate-inputs:` header
   line, an ERE over repo-relative paths; a change under `scripts/` or `.githooks/` runs all of them.
-- **Every script finds Node and opts out of .NET CLI telemetry.** `scripts/lib/node-path.sh` takes the
-  newest version under `~/.nvm/versions/node` when `node` is not on PATH (a shell started by an IDE
-  or an agent), instead of failing the islands build with RASKISLAND001. `scripts/lib/dotnet-env.sh`
-  exports `DOTNET_CLI_TELEMETRY_OPTOUT=1`: the CLI walks and locks its spool under
+- **Every script opts out of .NET CLI telemetry.** `scripts/lib/dotnet-env.sh` exports `DOTNET_CLI_TELEMETRY_OPTOUT=1`: the CLI walks and locks its spool under
   `~/.dotnet/TelemetryStorageService` on every exit, and a gate's hundreds of `dotnet` processes
   queue on a large one with the cores idle.
 - **The scaffold templates compile in the unit gate.** `src/Rask.Templates` is in no project the
@@ -462,8 +453,7 @@ True of the scripts wherever they run — a CI job or your terminal.
   that the run was filtered, because a narrowed green is not the gate.
 - **Devtools E2E — `scripts/run-devtools-e2e-local.sh`** (push set). Rask DevTools against real pages
   (`tests/Rask.DevTools.E2E.Tests`): the pill, the dock and every tab. A gate of its own because the
-  devtools exist only in a **Debug** build. It needs **node** on `PATH` (a real Lit island is bundled)
-  and sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`; a Release build, or a run without the variable,
+  devtools exist only in a **Debug** build. It sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`; a Release build, or a run without the variable,
   fails naming the script rather than passing on nothing.
 - **Browser SQLite E2E — `scripts/run-browser-sqlite-e2e-local.sh`** and **data demo E2E —
   `scripts/run-data-demo-e2e-local.sh`** (push set). The only gates that link `e_sqlite3` natively
@@ -476,19 +466,8 @@ True of the scripts wherever they run — a CI job or your terminal.
   `-warnaserror`. The script exports `RASK_CLI_BUILD_E2E=1`; without it every case reports
   **SKIPPED** rather than passing silently.
 - **Templates — `scripts/run-template-e2e.sh`** (push set). Scaffolds `server`, `wasm` and
-  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. It also scaffolds a server
-  app per npm island runtime and runs the real island build (`npm install` and Vite), asserting the
-  manifest lists the scaffolded island: a compile-only row cannot see a scaffold that does not bundle. Exports
+  `wasm-hosted` through the dispatch `rask new` uses and builds what it wrote. Exports
   `RASK_TEMPLATE_E2E=1`, with the same SKIPPED rule.
-- **Front ends — `scripts/run-template-e2e.sh --front-end=<key>`** (push set, the templates dealt into two jobs
-  `front end 1/2` and `2/2` that pack the feed once and run `--front-end=<key>,<key>…`, a verdict per template in the log and job summary). Scaffolds that template with every battery on and runs the one
-  command a deploy runs, `dotnet publish`: `npm install` (a template ships no lockfile), the typed client written
-  into `client/src/rask/` from the host's message records, and the bundle. Then the client checks itself — `npm run check` (Vite+: format, lint and type check)
-  and `npm test`, or Angular's `npm run lint` and `npm run format:check` — and the **published** app is started and asked for `/` (the bundle's
-  `index.html`, and the script it loads) and for the starter's query, by the wire name the generated
-  client carries. No browser. The jobs come from the trees: a template with a `client/package.json` is a
-  front end (`--list-front-ends`), so adding one adds its job, and `TemplateTreeContractTests` holds that
-  list to the one `rask new` offers. About 2.5 minutes for one on a ten-core machine.
 - **Watch hot reload — `scripts/run-watch-e2e.sh`** (release set). See [the inner loop](#the-inner-loop).
 - **Deploy — `scripts/run-deploy-e2e-local.sh`** (release set). Points the real `rask deploy` at a
   throwaway privileged container standing in for a bare VPS and asserts on the host: an image built
@@ -496,8 +475,8 @@ True of the scripts wherever they run — a CI job or your terminal.
   accepted, a volume that outlived its container. Every other deploy test is mocked. **Not covered:**
   real DNS and Let's Encrypt — the gate uses a `.test` domain.
 - **Installer — `scripts/run-install-e2e-local.sh`** (release set). Runs the working tree's `rask.sh`
-  in containers that lack a .NET SDK, Node and tools, then asserts a working `rask`, `dotnet-ef` and
-  Node, plus a scaffolded project that builds. Its cheap half, `scripts/tests/install-script.test.sh`,
+  in containers that lack a .NET SDK and tools, then asserts a working `rask` and `dotnet-ef`, plus a
+  scaffolded project that builds. Its cheap half, `scripts/tests/install-script.test.sh`,
   is one of the unit gate's own tests: the pure helpers, POSIX `sh`, truncation safety (by running
   prefixes of the file) and the install URL byte-identical everywhere it is written. **Not covered:**
   a real Windows host.
@@ -551,14 +530,15 @@ heavy build still running names it ([#850](https://github.com/pal-tamas/rask/iss
 
 ## Dependencies
 
-The standing rule is **the latest LTS** — Node, .NET, and the front-end toolchains. A scaffolder is a
+The standing rule is **the latest LTS** — .NET and every tool a build fetches. Nothing in the repo,
+the build or a scaffolded app needs Node or npm: TypeScript and esbuild arrive as native binaries, and
+so does Tailwind. A scaffolder is a
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
 stopped getting security patches.
 
 **What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
 and `scripts/tools/RaskRename`'s own), GitHub Actions (the workflows and the shared
-`.github/actions/setup`), the npm lockfiles (the site and the devtools E2E island bundler; the kit's
-editor and phone engines are followers, which rebuild their committed bundles with the lock) and the base images of every template
+`.github/actions/setup`) and the base images of every template
 `Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
 moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
 self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`). The followers, their commands and
@@ -568,23 +548,16 @@ names a generator under `scripts/{upstream,flux,mdn}` that is on neither list �
 
 | Follower | Pins | Upstream |
 | --- | --- | --- |
-| `node-lts.sh` | `ScaffoldLine`, the build floors, `setup_NN.x`, `@types/node`, Angular's `packageManager` npm | nodejs.org's index |
 | `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the scripts' `postgres:NN-alpine` — each to the newest tag of the same shape | Docker Hub |
 | `litestream.py` | `RaskLitestreamVersion`, its seven SHA-256s (downloaded and checked against `checksums.txt`), the templates' `litestream/litestream` image | GitHub releases |
-| `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskExternalTypeScriptVersion` (newest 6.x — the JS API), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download; a new Tailwind major moves the templates' ranges | npm, GitHub releases |
-| `fixtures.py` | the adapter fixtures in `Rask.External.Tests.csproj` (rxjs: the newest Angular's peer range takes) | npm |
+| `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download | the npm registry's tarball URLs, GitHub releases |
 | `actions.py` | the action majors in the deploy workflow `rask deploy` scaffolds | GitHub releases |
 
 Not followed, on purpose: Roslyn (held to the SDK's compiler).
 The runner image (`runs-on: ubuntu-26.04`) is moved by hand: the workflow token may not push a change
 to `.github/workflows`.
 
-The front-end templates are not in it, because they name no versions: every package
-in a template client and in `_islands/*/island.json` is `latest`, and `rask new` resolves them against
-the registry to the newest set that installs together — peers that agree, an `engines.node` that takes
-the newest LTS — written as `^x.y.z`. No template ships a lockfile; the app writes its own on the first
-build. The holds are `tailwindcss` / `@tailwindcss/*` (to `RaskTailwindVersion`) and `@types/node` (the
-LTS major). `upstream.yml`'s daily `front-ends` matrix proves that newest set builds. Families
+Families
 that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
 `sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
@@ -599,40 +572,12 @@ matter most are asserted by an offline unit test rather than by a comment:
 
 | Test | Holds together |
 | --- | --- |
-| `NodeRequirementTests` | `ScaffoldLine` vs. `rask.sh`, `rask.ps1`, and `docs/installation.md` (both platform columns, the `≥ NN.NN` sentence, the "Node NN LTS" summary); the CLI's build floor vs. `RaskExternalMinimumNode` and `RaskSpaMinimumNode` |
-| `TemplateNodePinTests` | no template ships a lockfile; every template package is `latest` except the declared holds; `@types/node` vs. the LTS major; no template lowers the Node floor; each front-end template's `Dockerfile` `setup_NN.x` vs. `ScaffoldLine`'s major |
-| `TailwindVersionPinTests` | the `tailwindcss` range in every template client vs. `RaskTailwindVersion` |
 | `PackagePinFamilyTests` | the Spectre and SQLitePCLRaw pairs, the one-version platform stack, and that every SQLite project can still reach the patched SQLitePCLRaw |
 | `EfToolProbeTests` | the `dotnet-ef` floor the CLI checks for vs. the EF Core version in `Directory.Packages.props` |
 | `ResolveTypeScriptToolTaskTests` | reads `RaskTsgoVersion`/`RaskEsbuildVersion` out of `Rask.Core.targets` instead of restating them |
 
 They need no network and run in the ordinary unit gate — CI's `build` job, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
-
-**Not everything is covered, and pretending otherwise is the same bug.** Prose mentions of the Node
-line elsewhere — the build-floor figures quoted in `docs/islands.md`, `docs/spa.md` and
-`docs/diagnostics.md`, and the codename in `NodeRequirement`'s own doc comment — are still only prose.
-`scripts/upstream/node-lts.sh`, run daily by `upstream.yml`, moves `ScaffoldLine` on every new LTS
-release; on a new major it also moves the build floor to that line's first LTS release, the templates'
-`setup_NN.x` lines and `@types/node`.
-
-**Re-importing a front-end template is done by hand.** `scripts/refresh-templates.sh` used to re-run each
-framework's creator and print the diff against the committed tree. It is not coming back: every file in a
-client now carries Rask's own layer (the Tailwind starter, the lint and format configs, the dev proxy,
-the battery markers), so that diff is the same wall on every run and a real change in the creator's
-output is one line lost in it. Versions are chosen at `rask new`. For the shape — a new `tsconfig` option, a
-creator that changed its linter — run the creator into a scratch directory and read it beside the tree:
-
-```bash
-cd "$(mktemp -d)"
-npx --yes create-vite@latest client --template preact-ts   # react-ts, vue-ts, solid-ts, svelte-ts, lit-ts
-npx --yes @angular/cli@latest new client --directory client --style css --ssr false --skip-git --skip-install
-diff -ru --exclude=src --exclude=public --exclude=package-lock.json <repo>/src/Rask.Templates/preact/client client
-```
-
-Take what matters into `src/Rask.Templates/<key>/client` by hand — a new package as `latest`, no
-lockfile — and run `dotnet test tests/Rask.Cli.Tests` and
-`scripts/run-template-e2e.sh --front-end=<key>`.
 
 **Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
 required checks, so a red run does not disable the merge button: read the run first. Then land it

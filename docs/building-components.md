@@ -152,8 +152,7 @@ using static Rask.Markup;            // the C# templates' too, so the tags are b
 Div.Class("panel")[                          // an element: bare
     Ui.Button.Primary["Save"], // the UI kit: through `Ui`
     Trigger.Fullscreen.Template(g => Button.Data(g)["⛶"]).For(_video),   // a browser capability: through `Trigger`
-    Validation.Message.Template(m => Span[m[0]]).For(() => _m.Email),    // form feedback: through `Validation`
-    Mui.Button["From npm"]                   // an npm package you declared: through its class
+    Validation.Message.Template(m => Span[m[0]]).For(() => _m.Email)     // form feedback: through `Validation`
 ]
 ```
 
@@ -161,8 +160,8 @@ Div.Class("panel")[                          // an element: bare
   inherits them; any other class (a test, a helper, a static factory) gets them from
   `global using static Rask.Markup;`. The `<html>` element is `Html`, like every other tag.
 - **A family is reached through its group**, so typing the group lists it and nothing in it can shadow an
-  element: `Ui.` (the [kit](ui-kit.md)), `Trigger.` (the browser-capability wrappers), `Validation.` (a
-  form's feedback), and the class of an [npm package you declared](islands.md#several-components-from-one-package).
+  element: `Ui.` (the [kit](ui-kit.md)), `Trigger.` (the browser-capability wrappers), and `Validation.` (a
+  form's feedback).
 - **When a member of your own takes an element's name** — a `Footer` property, a `Label` — the member wins
   inside that component, and `Markup.Footer` still reaches the element.
 - **Element types are MDN's, in `Rask.Core`** — `HTMLParagraphElement`, `SVGCircleElement` — so a signature names

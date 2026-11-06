@@ -84,7 +84,7 @@ do not run the suite. Reproduce a red E2E job with `RASK_E2E_FILTER=<test> bash 
 
 The E2E suite drives ONE published app now (`src/Rask.Site`), served by a plain static host the way
 GitHub Pages serves it — so it must be published before it can be driven, which is what that script
-does. `SiteExampleTests` covers the landing page, `WasmExampleTests` and `WasmIslandsExampleTests` the
+does. `SiteExampleTests` covers the landing page, `WasmExampleTests` the
 showcase.
 
 ## 3b. User-facing changes → sample + docs (keep everything up to date)

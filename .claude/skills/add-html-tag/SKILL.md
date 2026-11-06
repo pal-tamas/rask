@@ -14,7 +14,7 @@ SVG is the same (`Circle` builds `SVGCircleElement : SVGGeometryElement`); an SV
 entry would shadow `System.IO.Path`/`Text`, gets an `Svg` prefix (`SvgA`, `SvgPath`). `SVGElement.cs` is the hand
 partial holding the presentation attributes common enough to be fields; the rarer ones are generated onto a side object.
 
-**Keyword attributes are enums** (`src/Rask.Dom.Tasks/DomKeywords.cs`): `refresh.mjs` records an attribute's closed
+**Keyword attributes are enums** (`src/Rask.Dom.Tasks/DomKeywords.cs`): the MDN refresh records an attribute's closed
 keyword set (webref's `attr-value` dfns, or the IDL enum its reflecting attribute is named after) with each keyword's
 BCD support, and the emitter types it — `Loading`, `ButtonType`, `ReferrerPolicy` — FNV-1a-valued, no chain step per
 member. Open sets, token lists and non-word keywords stay `string`, by data rule, never by a hand table. A hand-written
@@ -23,7 +23,7 @@ fails unless its members are exactly the spec's keywords.
 
 ## 1. A tag or attribute is missing → refresh MDN
 ```bash
-scripts/mdn/refresh.sh        # latest stable MDN data, latest LTS Node
+scripts/mdn/refresh.sh        # latest stable MDN data
 git diff --stat src/Rask.Core/Dom/mdn.snapshot.json
 ```
 The `mdn` follower does this every day in `upstream.yml` (the build never does). If MDN still lacks it, it does not ship in two of
