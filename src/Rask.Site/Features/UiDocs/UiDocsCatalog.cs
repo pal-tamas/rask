@@ -213,6 +213,12 @@ internal static class UiDocsCatalog
         "What a list says when it has nothing to show: one centred status line, in a table's spanning row or in place of "
         + "the table, as Flux's own demo draws it.");
 
+    public static UiDocsEntry NotFound { get; } = new(
+        Routes.UiNotFoundPage(), "Not found and forbidden", Components,
+        "404 and 403 pages in C#: Ui.NotFound, Ui.Forbidden",
+        "The built-in 404 and 403 of an app on Rask.Ui: one sentence in a Flux callout, inside the app's own frame, with "
+        + "the menu still in reach.");
+
     public static UiDocsEntry PageHeader { get; } = new(
         Routes.UiPageHeaderPage(), "Page header", Components,
         "Page header in C#: Ui.PageHeader",
@@ -468,7 +474,7 @@ internal static class UiDocsCatalog
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
         ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag, FormButtons,
-        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
+        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

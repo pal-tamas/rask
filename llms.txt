@@ -343,8 +343,9 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The `Authorize` component gates by role with `Authorize.Role("admin")` or `Authorize.Roles("admin", "editor")`.
   **`[Authorize]` ON AN EVENT HANDLER METHOD** (`[Authorize(Roles = "admin")] private async Task Remove()`) is checked at the event against the session's principal — a method group when the event arrives, a call inside a lambda by a build-written interceptor (RASK109 names a call it cannot reach) — and a refusal is the `HandlerForbidden` toast with the method never run;
   never hand-check the role at the top of a handler.
-  A page whose `[Authorize]` refuses a SIGNED-IN user keeps its address and shows `PageForbidden` inside its layouts (403 on the first request);
-  anonymous still goes to `/login`.
+  A page whose `[Authorize]` refuses a SIGNED-IN user keeps its address and shows `PageForbidden` inside its layouts (403 on the first request; with the kit on it is `Ui.Forbidden`, Flux's danger callout);
+  anonymous still goes to `/login`. A page that decides for itself writes `!allowed ? Ui.Forbidden : …` — never its own NotAllowed component.
+  AN ADDRESS NO PAGE ANSWERS lands INSIDE THE ROOT LAYOUT (the one parentless `[Route("/")]` other pages nest under) with a 404: `Ui.NotFound` with the kit on (Flux's warning callout, `PageNotFound` „A kért oldal nem található.” + a button home, `.Home(route)`), Rask's own page without it — so an app needs NO NotFoundPage of its own; one it declares with `[NotFound]` still wins.
   `[Guest]` (or `[Guest(Then = "/app")]`) on a sign-in/register page sends a SIGNED-IN reader to Then before the page is built (302 on the first GET, history-replaced navigation live, both hosts);
   the scaffolded login/register/forgot/reset pages carry it.
 - [Live pages](docs/render-modes.md): EVERY Rask.Server page is live — there are no render modes, no `[RenderMode]`, no static pages and no WebAssembly handover.

@@ -737,4 +737,10 @@ public enum RaskString
 
     /// <summary>What a delete in <c>Ui.FormButtons</c> or <c>Ui.RowActions</c> asks when it is given no question of its own.</summary>
     RemoveQuestion,
+
+    /// <summary>
+    ///     What a page says, inside the app's layout, at an address no page answers: the built-in not-found page's
+    ///     sentence, and <c>Ui.NotFound</c>'s.
+    /// </summary>
+    PageNotFound,
 }

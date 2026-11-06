@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **The built-in 404 and 403 stand inside the app's frame, as Flux callouts.** Before: an address no page answered drew
+  Rask's own page OUTSIDE the layout (inline styles, no menu), so every app wrote a `[NotFound, ParentRoute(typeof(Layout))]`
+  page of its own; a page whose `[Authorize]` refused a signed-in reader said `PageForbidden` in a bare `<p>`, and an
+  app deciding for itself wrote its own `NotAllowed` callout. After: the built-in not-found page lands in the root layout
+  (the one parentless `[Route("/")]` other pages nest under), still answering 404, and with the kit on both are the
+  kit's new `Ui.NotFound` (warning callout, the new catalog sentence `PageNotFound` — „A kért oldal nem található.” — and
+  a button home, `.Home(route)`) and `Ui.Forbidden` (danger callout, `role="alert"`, `PageForbidden`), which a page can
+  also draw itself: `!Allowed ? Ui.Forbidden : …`. An app's own `[NotFound]` page still wins.
 - **The CQRS wire codec is generated only for a host with a WebAssembly `Client/`.** Before: a `Rask.Server` project
   with a `client/package.json` (an npm front end) switched it on too, and it carried the messages as TypeScript
   contracts for that front end. After: `RaskCqrsCodec` follows `RaskClient` alone, and the TypeScript contracts are no

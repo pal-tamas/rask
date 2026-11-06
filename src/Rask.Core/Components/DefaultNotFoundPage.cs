@@ -6,8 +6,9 @@ using Rask.Core.Routing;
 namespace Rask.Core.Components;
 
 /// <summary>
-///     The built-in 404 page, rendered when no route matches. Replace it by registering your own not-found
-///     page rather than editing this.
+///     The built-in 404 page, rendered when no route matches — inside the app's root layout (the route at <c>/</c> its
+///     pages nest under), so the menu stays in reach. With the UI kit on it is <c>Ui.NotFound</c>. Replace it by
+///     declaring your own <c>[NotFound]</c> page rather than editing this.
 /// </summary>
 public sealed class DefaultNotFoundPage : Component
 {
@@ -46,8 +47,17 @@ public sealed class DefaultNotFoundPage : Component
     // The tab says what the page says. The last title in the walk wins, so this one stands over the app's.
     protected override Component? HeadAssets => Title[RaskStrings.Get(RaskString.NotFoundTitle, "Page not found")];
 
+    // What the app's frame shows of it — the last breadcrumb, the heading of a header bar — when its layout reads the title.
+    protected override string? PageTitle => RaskStrings.Get(RaskString.NotFoundTitle, "Page not found");
+
     protected override Component? Render()
     {
+        // The kit's callout where the host has the kit on: one sentence and the way home, inside the app's frame.
+        if (RaskDocumentDefaults.Current?.NotFound is { } kit)
+        {
+            return kit();
+        }
+
         var route = LiveRenderContext.Current?.Services?.GetService<RouteState>();
         var path = route?.Path ?? "";
 

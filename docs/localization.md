@@ -780,6 +780,7 @@ they say when you set nothing.
 | `CommandClose` | Command | `Close command modal` |
 | `HandlerForbidden` | Toast | `You do not have permission to do that.` |
 | `PageForbidden` | Page | `You do not have permission to view this page.` |
+| `PageNotFound` | Page | `The page you requested could not be found.` |
 | `ConfirmHeading` | Confirm | `Confirm` |
 | `ConfirmYes` | Confirm | `Yes` |
 | `ConfirmNo` | Confirm | `No` |

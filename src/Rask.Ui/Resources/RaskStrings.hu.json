@@ -209,6 +209,7 @@
 
   "HandlerForbidden": "Ehhez nincs jogosultsága.",
   "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
+  "PageNotFound": "A kért oldal nem található.",
 
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",

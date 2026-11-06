@@ -1,4 +1,5 @@
 using Rask.Core.Globalization;
+using Rask.Core.Live;
 
 namespace Rask.Core.Components;
 
@@ -10,6 +11,8 @@ internal sealed class ForbiddenPage : Component
 {
     private const string English = "You do not have permission to view this page.";
 
+    // The kit's callout where the host has the kit on; Rask's own sentence everywhere else (a hand-wired host, a test).
     protected override Component? Render() =>
-        P.Class("rask-forbidden").Role(AriaRole.Alert)[RaskStrings.Get(RaskString.PageForbidden, English)];
+        RaskDocumentDefaults.Current?.Forbidden?.Invoke()
+        ?? P.Class("rask-forbidden").Role(AriaRole.Alert)[RaskStrings.Get(RaskString.PageForbidden, English)];
 }
