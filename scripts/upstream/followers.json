@@ -81,7 +81,8 @@
     {
       "name": "flux",
       "kind": "measure",
-      "run": "node scripts/flux/sync.mjs",
+      "run": "dotnet run --project scripts/flux/Flux -c Release -- sync",
+      "setup": "dotnet",
       "outputs": [
         "tests/Rask.Ui.Tests/Flux/flux.snapshot.json",
         "tests/Rask.Ui.Tests/Flux/flux.lock.json"
@@ -96,7 +97,7 @@
     {
       "name": "heroicons",
       "kind": "regenerate",
-      "run": "node scripts/flux/icons.mjs",
+      "run": "dotnet run --project scripts/flux/Flux -c Release -- icons",
       "setup": "dotnet",
       "outputs": [
         "src/Rask.Ui/UiIconPaths.g.cs",
@@ -107,7 +108,8 @@
     {
       "name": "country-flag-icons",
       "kind": "regenerate",
-      "run": "node scripts/flux/flags.mjs",
+      "run": "dotnet run --project scripts/flux/Flux -c Release -- flags",
+      "setup": "dotnet",
       "outputs": [
         "src/Rask.Ui/UiFlagRegistry.g.cs",
         "src/Rask.Ui/Flags/LICENSE.txt",
@@ -146,7 +148,7 @@
   "manual": [
     {
       "name": "inter",
-      "generator": "scripts/flux/inter-metrics.mjs",
+      "generator": "dotnet run --project scripts/flux/Flux -c Release -- inter-metrics",
       "outputs": [
         "src/Rask.Ui/UiChartInter.Metrics.cs"
       ],
