@@ -17,14 +17,38 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      # The repository's own rule, scripts/lib/conventional-commit.sh — the type list and the header
+      # limit live there and nowhere else, and .githooks/commit-msg calls the same function. No Node:
+      # this replaced commitlint's own GitHub action, and nothing here builds or lints with Node.
+      #
+      # The PR TITLE is checked as well as every commit: a squash merge makes the title the header of
+      # the commit that lands on main.
       - name: Lint PR commits
-        uses: wagoid/commitlint-github-action@v6
-        with:
-          # Must name the file that exists. The action does `existsSync(configFile)` and, when it
-          # is false, silently falls back to @commitlint/config-conventional with NO error — so a
-          # rename here that misses the workflow leaves a green gate enforcing defaults instead of
-          # this repo's rules. CommitlintConfigTests pins the two together.
-          configFile: commitlint.config.ts
+        env:
+          # Via env, not ${{ }} interpolation into the script: the title is attacker-controlled text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          . scripts/lib/conventional-commit.sh
+
+          failed=0
+          for sha in $(git rev-list "$BASE_SHA..$HEAD_SHA"); do
+            header="$(git log -1 --format=%s "$sha")"
+            if ! problem="$(rask_commit_header_error "$header")"; then
+              echo "::error::commit $(git log -1 --format=%h "$sha") '$header': $(printf '%s' "$problem" | tr '\n' ' ')"
+              failed=1
+            fi
+          done
+
+          if ! problem="$(rask_commit_header_error "$PR_TITLE")"; then
+            echo "::error::the pull request title '$PR_TITLE': $(printf '%s' "$problem" | tr '\n' ' ')"
+            failed=1
+          fi
+
+          [ "$failed" -eq 0 ] || exit 1
+          echo "Conventional: $(git rev-list --count "$BASE_SHA..$HEAD_SHA") commit(s) and the title."
 
       # The attribution guard, at the one boundary the local hooks cannot cover.
       #

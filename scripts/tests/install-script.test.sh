@@ -4,7 +4,7 @@
 #
 # Two halves, and the second is the point.
 #
-# The first drives the pure helpers (version compare, platform mapping, profile selection, arg
+# The first drives the pure helpers (SDK and workload detection, profile selection, arg
 # parsing) by SOURCING rask.sh with RASK_INSTALL_LIB_ONLY=1. Nothing here downloads or installs.
 #
 # The second asserts structural properties OF THE SHIPPED FILE that no functional test can reach:
@@ -43,9 +43,7 @@ export RASK_INSTALL_LIB_ONLY
 # shellcheck source=../../rask.sh
 . "$root/rask.sh"
 
-# --- rask_version_ge -------------------------------------------------------------------------
-
-ge() { if rask_version_ge "$1" "$2"; then printf 'yes'; else printf 'no'; fi; }
+# --- rask_workload_installed -----------------------------------------------------------------
 
 installed() { if rask_workload_installed "$1" "$2"; then printf 'yes'; else printf 'no'; fi; }
 
@@ -72,32 +70,6 @@ check "neither, empty list"                    no  "$(installed wasm-tools '')"
 # The word appears in the header and the trailing prose; neither is a row.
 check "prose alone is not an install"          no  "$(installed wasm-tools 'Use dotnet workload search wasm-tools to find it.')"
 
-echo "==> rask_version_ge"
-check "10.0.100 >= 10.0"                       yes "$(ge 10.0.100 10.0)"
-check "9.0.400 >= 10.0"                        no  "$(ge 9.0.400 10.0)"
-check "11.0.100 >= 10.0"                       yes "$(ge 11.0.100 10.0)"
-check "10.0.100-preview.3 >= 10.0.100"         yes "$(ge 10.0.100-preview.3 10.0.100)"
-check "10.0 >= 10.0.100"                       no  "$(ge 10.0 10.0.100)"
-check "v24.14.0 >= 22.12.0 (node prints a v)"  yes "$(ge v24.14.0 22.12.0)"
-check "v22.11.0 >= 22.12.0"                    no  "$(ge v22.11.0 22.12.0)"
-check "v22.12.0 >= 22.12.0 (equal)"            yes "$(ge v22.12.0 22.12.0)"
-check "empty >= 22.12.0"                       no  "$(ge '' 22.12.0)"
-check "garbage >= 22.12.0"                     no  "$(ge 'not-a-version' 22.12.0)"
-
-# --- the SHIPPED Node floor ------------------------------------------------------------------
-# Against the real default rather than a literal, so this pins what the installer actually does. The
-# floor decides whether an existing Node is LEFT ALONE, and it is the newest Active LTS release, which
-# scripts/upstream/node-lts.sh moves — so the checks are relative to it. 24.14.0 is the exact machine that
-# installed cleanly and then could not scaffold (#886).
-echo "==> the shipped RASK_INSTALL_NODE_MIN"
-_min_major="${RASK_INSTALL_NODE_MIN%%.*}"
-_min_minor="$(printf '%s' "$RASK_INSTALL_NODE_MIN" | cut -d. -f2)"
-check "24.14.0 is refused (the #886 machine)"  no  "$(ge v24.14.0 "$RASK_INSTALL_NODE_MIN")"
-check "the shipped LTS release satisfies it"   yes "$(ge "v$RASK_INSTALL_NODE_MIN" "$RASK_INSTALL_NODE_MIN")"
-check "a later release on the line does too"   yes "$(ge "v$_min_major.$((_min_minor + 1)).0" "$RASK_INSTALL_NODE_MIN")"
-check "an earlier release on the line does not" no "$(ge "v$_min_major.$((_min_minor - 1)).0" "$RASK_INSTALL_NODE_MIN")"
-check "22.12.0 no longer satisfies it"         no  "$(ge v22.12.0 "$RASK_INSTALL_NODE_MIN")"
-
 # --- rask_dotnet_ok --------------------------------------------------------------------------
 # Real `dotnet --list-sdks` output: "<version> [<path>]", newest last, one per line.
 
@@ -114,97 +86,6 @@ check "9.0 and 10.0 side by side" yes "$(sdk_ok '9.0.305 [/usr/share/dotnet/sdk]
 check "11.0 alone satisfies the floor" yes "$(sdk_ok '11.0.100 [/usr/share/dotnet/sdk]')"
 check "a preview 10.0 counts" yes "$(sdk_ok '10.0.100-preview.5.25277.114 [/usr/share/dotnet/sdk]')"
 check "no SDKs at all" no "$(sdk_ok '')"
-
-# --- rask_node_triple ------------------------------------------------------------------------
-
-triple() { rask_node_triple "$1" "$2" 2>/dev/null || printf 'unsupported'; }
-
-echo "==> rask_node_triple"
-check "Darwin/arm64"   darwin-arm64 "$(triple Darwin arm64)"
-check "Darwin/x86_64"  darwin-x64   "$(triple Darwin x86_64)"
-check "Linux/aarch64"  linux-arm64  "$(triple Linux aarch64)"
-check "Linux/x86_64"   linux-x64    "$(triple Linux x86_64)"
-check "Linux/armv7l"   linux-armv7l "$(triple Linux armv7l)"
-check "FreeBSD/x86_64" unsupported  "$(triple FreeBSD x86_64)"
-check "Linux/riscv64"  unsupported  "$(triple Linux riscv64)"
-
-# --- rask_node_native_fix --------------------------------------------------------------------
-# Node 26's Linux build links libatomic, which every minimal image leaves out — the first 26 LTS
-# (26.13.0) turned the bare-Debian install case red with `libatomic.so.1: cannot open shared object
-# file`. The fix the installer prints has to name THIS distro's package, read from os-release.
-
-os_release() { printf '%s\n' "$@" >"$tmp/os-release"; rask_node_native_fix "$tmp/os-release"; }
-
-echo "==> rask_node_native_fix"
-check "Debian"                  "sudo apt-get install -y libatomic1" "$(os_release 'ID=debian')"
-check "Ubuntu (ID_LIKE=debian)" "sudo apt-get install -y libatomic1" "$(os_release 'ID=ubuntu' 'ID_LIKE=debian')"
-check "Fedora"                  "sudo dnf install -y libatomic"      "$(os_release 'ID=fedora')"
-check "Rocky (quoted ID_LIKE)"  "sudo dnf install -y libatomic"      "$(os_release 'ID="rocky"' 'ID_LIKE="rhel centos fedora"')"
-check "openSUSE"                "sudo zypper install -y libatomic1"  "$(os_release 'ID="opensuse-tumbleweed"' 'ID_LIKE="opensuse suse"')"
-# No libatomic fixes Alpine: nodejs.org ships no musl build, so the glibc tarball never starts there.
-check "Alpine"                  "sudo apk add nodejs npm   (nodejs.org publishes no musl build)" "$(os_release 'ID=alpine')"
-# An ID that merely CONTAINS a known one is not it: `debian-ish` must not match `debian`.
-check "unknown distro: every line" 4 "$(os_release 'ID=debian-ish' | wc -l | tr -d ' ')"
-check "no os-release: every line"  4 "$(rask_node_native_fix "$tmp/no-such-file" | wc -l | tr -d ' ')"
-
-# --- step_node, against a fixture nodejs.org -------------------------------------------------
-# Drives the REAL step_node against a file:// dist tree holding one fake release whose `node` is a
-# script. This is the seam that was missing: the tarball downloaded, verified and unpacked while the
-# binary could not start, and nothing said so until a later `node` call failed with a loader error.
-
-if sn_triple="$(rask_node_triple 2>/dev/null)" && command -v curl >/dev/null 2>&1 &&
-    command -v shasum >/dev/null 2>&1; then
-    echo "==> step_node (the shipped function, against a fixture nodejs.org)"
-
-    fake_node_dist() { # $1 = the body of the fake bin/node
-        local release="node-v99.0.0-$sn_triple"
-        rm -rf "$tmp/dist" "$tmp/stage" "$tmp/nprefix"
-        mkdir -p "$tmp/dist/v99.0.0" "$tmp/stage/$release/bin"
-        printf '#!/bin/sh\n%s\n' "$1" >"$tmp/stage/$release/bin/node"
-        chmod +x "$tmp/stage/$release/bin/node"
-        tar -czf "$tmp/dist/v99.0.0/$release.tar.gz" -C "$tmp/stage" "$release"
-        printf '[{"version":"v99.0.0","lts":"Fixture"}]' >"$tmp/dist/index.json"
-        (cd "$tmp/dist/v99.0.0" && shasum -a 256 "$release.tar.gz" >SHASUMS256.txt)
-    }
-
-    run_step_node() {
-        (
-            RASK_INSTALL_NODE_DIST="file://$tmp/dist"
-            RASK_INSTALL_NODE_MIN=99.0.0 # whatever node runs this suite is "too old", so it installs
-            RASK_INSTALL_PREFIX="$tmp/nprefix"
-            RASK_CURL="$(command -v curl)"
-            RASK_SHA256=""
-            RASK_SHASUM="$(command -v shasum)"
-            RASK_QUIET=1
-            step_node
-        ) 2>&1
-    }
-
-    has() { case "$1" in *"$2"*) printf yes ;; *) printf no ;; esac; }
-
-    fake_node_dist 'echo "node: error while loading shared libraries: libatomic.so.1: cannot open shared object file" >&2; exit 127'
-    out="$(run_step_node)"
-    check "a node that cannot start is reported"  yes "$(has "$out" 'cannot start')"
-    check "the loader's own words are passed on"  yes "$(has "$out" 'libatomic.so.1')"
-    check "the fix names the package"             yes "$(has "$out" 'libatomic1')"
-    check "the unpacked tree is kept for the fix" yes "$([ -x "$tmp/nprefix/node/bin/node" ] && printf yes || printf no)"
-
-    fake_node_dist 'echo v99.0.0'
-    check "a node that starts says nothing"       "" "$(run_step_node)"
-fi
-
-# --- rask_node_lts_version -------------------------------------------------------------------
-# Shaped like the real nodejs.org index.json: one line, newest first, "lts" is a codename string on
-# an LTS release and the bare literal false otherwise.
-
-cat >"$tmp/index.json" <<'FIXTURE'
-[{"version":"v25.1.0","date":"2026-08-01","files":["linux-x64"],"lts":false,"security":false},{"version":"v24.14.0","date":"2026-07-01","files":["linux-x64","darwin-arm64"],"lts":"Krypton","security":false},{"version":"v22.12.0","date":"2024-12-03","files":["linux-x64"],"lts":"Jod","security":false}]
-FIXTURE
-
-echo "==> rask_node_lts_version"
-check "picks the newest LTS, not the newest release" 24.14.0 "$(rask_node_lts_version <"$tmp/index.json")"
-check "no LTS in the index yields nothing" "" \
-    "$(printf '%s' '[{"version":"v25.1.0","lts":false}]' | rask_node_lts_version)"
 
 # --- rask_profile_file -----------------------------------------------------------------------
 
@@ -277,7 +158,6 @@ check "profile: dot, not source" ". $HOME/.profile" "$(rask_reload_command "$HOM
 echo "==> rask_path_block"
 block_path_after() (
     RASK_INSTALL_DOTNET_ROOT="$tmp/dotnet"
-    RASK_INSTALL_PREFIX="$tmp/prefix"
     rask_path_block "$HOME/.bashrc" >"$tmp/block.sh"
     PATH="/usr/bin:/bin"
     local i
@@ -285,15 +165,15 @@ block_path_after() (
     printf '%s' "$PATH"
 )
 
-check "sourcing once prepends all three directories" \
-    "$tmp/prefix/node/bin:$tmp/dotnet/tools:$tmp/dotnet:/usr/bin:/bin" "$(block_path_after 1)"
+check "sourcing once prepends both directories" \
+    "$tmp/dotnet/tools:$tmp/dotnet:/usr/bin:/bin" "$(block_path_after 1)"
 check "sourcing three times is identical to once" \
     "$(block_path_after 1)" "$(block_path_after 3)"
 check "the block leaves no loop variable behind" \
     "unset" "$(block_path_after 1 >/dev/null; printf '%s' "${rask_dir-unset}")"
 
 # fish is a different language, so its block is asserted on shape rather than executed.
-fish_block="$(RASK_INSTALL_DOTNET_ROOT="$tmp/dotnet" RASK_INSTALL_PREFIX="$tmp/prefix" \
+fish_block="$(RASK_INSTALL_DOTNET_ROOT="$tmp/dotnet" \
     rask_path_block "$HOME/.config/fish/config.fish")"
 check "fish block guards with contains, not a bare set" \
     "yes" "$(grep -q 'if not contains \$rask_dir \$PATH' <<<"$fish_block" && echo yes || echo no)"
@@ -323,17 +203,16 @@ check "default: install the SDK"     1 "$(state_after RASK_DO_SDK)"
 check "--no-sdk"                     0 "$(state_after RASK_DO_SDK --no-sdk)"
 check "--no-ef"                      0 "$(state_after RASK_DO_EF --no-ef)"
 check "--no-wasm-tools"              0 "$(state_after RASK_DO_WASM_TOOLS --no-wasm-tools)"
-check "--no-node"                    0 "$(state_after RASK_DO_NODE --no-node)"
 check "--no-path"                    0 "$(state_after RASK_DO_PATH --no-path)"
 check "--dry-run"                    1 "$(state_after RASK_DRY_RUN --dry-run)"
 check "--quiet"                      1 "$(state_after RASK_QUIET --quiet)"
 check "--prerelease"                 1 "$(state_after RASK_PRERELEASE --prerelease)"
 check "--version takes its value"    0.20.0 "$(state_after RASK_PIN_VERSION --version 0.20.0)"
-check "flags combine"                0 "$(state_after RASK_DO_NODE --no-node --dry-run --quiet)"
+check "flags combine"                0 "$(state_after RASK_DO_EF --no-ef --dry-run --quiet)"
 check "--help exits 0"               0 "$(code_of rask_parse_args --help)"
-# Exit 2 for bad argv, matching the CLI. An installer that shrugged off a misspelled --no-node would
+# Exit 2 for bad argv, matching the CLI. An installer that shrugged off a misspelled --no-ef would
 # install the very thing you opted out of.
-check "unknown flag exits 2"         2 "$(code_of rask_parse_args --no-nod)"
+check "unknown flag exits 2"         2 "$(code_of rask_parse_args --no-e)"
 check "--version with no value is 2" 2 "$(code_of rask_parse_args --version)"
 check "a bare word exits 2"          2 "$(code_of rask_parse_args install)"
 
@@ -456,8 +335,8 @@ check "main is invoked exactly once, at column 0" 1 \
     "$(grep -c '^\[ -n "${RASK_INSTALL_LIB_ONLY:-}" \] || main "\$@"$' rask.sh)"
 
 # And the property itself, empirically: feed sh a PREFIX of the file — what a dropped connection
-# leaves behind — and nothing may happen. Every prefix is run for real, with $HOME and both install
-# roots pointed into a throwaway directory and the package name poisoned, so even a total failure of
+# leaves behind — and nothing may happen. Every prefix is run for real, with $HOME and the SDK
+# install root pointed into a throwaway directory and the package name poisoned, so even a total failure of
 # this assertion cannot touch the machine running the suite.
 #
 # A prefix that lands mid-heredoc is a syntax error, which is a pass: sh printed a complaint and ran
@@ -472,7 +351,6 @@ for cut in $(seq 10 20 $((lines - 1))) $((lines - 1)); do
     out="$(
         HOME="$tmp/thome" \
             RASK_INSTALL_DOTNET_ROOT="$tmp/thome/.dotnet" \
-            RASK_INSTALL_PREFIX="$tmp/thome/prefix" \
             RASK_INSTALL_PACKAGE="Rask.Cli.NoSuchPackage.$$" \
             sh "$tmp/prefix.sh" 2>&1 || true
     )"
@@ -503,6 +381,12 @@ check "no local"            "" "$(code_only | grep -nE '^[[:space:]]*local ' || 
 check "no declare"          "" "$(code_only | grep -nE '^[[:space:]]*declare ' || true)"
 check "no bash arrays"      "" "$(code_only | grep -nE '=\(' || true)"
 check "shebang is /bin/sh"  "#!/bin/sh" "$(head -n 1 rask.sh)"
+
+# Nothing Rask builds or runs needs Node, so neither installer may fetch one, offer a flag for one or
+# put one on PATH. Comments may say so; code may not mention it.
+check "rask.sh installs no Node"  "" "$(code_only | grep -niE 'node|npm' || true)"
+check "rask.ps1 installs no Node" "" \
+    "$(sed '/^<#/,/^#>/d' rask.ps1 | grep -vE '^[[:space:]]*#' | grep -niE 'node|npm' || true)"
 
 # --help and the parser must list the same flags. A flag documented but unparsed exits 2 on a user
 # who followed the docs; a flag parsed but undocumented is invisible.

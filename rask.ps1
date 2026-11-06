@@ -7,9 +7,9 @@
 
     `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
     .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
-    `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and islands
-    (React, Vue, Svelte, ... components inside a Rask page) need Node to build. Otherwise each of those
-    is discovered by failure. This script front-loads them.
+    `rask db` needs dotnet-ef and every browser-wasm build needs the wasm-tools workload. Otherwise
+    each of those is discovered by failure. This script front-loads them. Nothing Rask builds or runs
+    needs Node, so it installs none.
 
     Everything is installed per-user. Nothing here needs an elevated prompt or writes outside the
     user profile, and an SDK already on the box is left exactly as it is. Docker is the deliberate
@@ -40,8 +40,6 @@ param(
     [switch] $NoEf,
     # Skip the wasm-tools workload (needed by every browser-wasm build).
     [switch] $NoWasmTools,
-    # Skip Node.js (needed only by islands: react, vue, svelte, angular, ...).
-    [switch] $NoNode,
     # Never write to the user PATH.
     [switch] $NoPath,
     # Print what would happen and change nothing.
@@ -64,13 +62,7 @@ $DotnetChannel = if ($env:RASK_INSTALL_DOTNET_CHANNEL) { $env:RASK_INSTALL_DOTNE
 $DotnetQuality = if ($env:RASK_INSTALL_DOTNET_QUALITY) { $env:RASK_INSTALL_DOTNET_QUALITY } else { '' }
 $DotnetMajor = if ($env:RASK_INSTALL_DOTNET_MAJOR) { [int] $env:RASK_INSTALL_DOTNET_MAJOR } else { 10 }
 $DotnetRoot = if ($env:RASK_INSTALL_DOTNET_ROOT) { $env:RASK_INSTALL_DOTNET_ROOT } else { Join-Path $env:USERPROFILE '.dotnet' }
-$Prefix = if ($env:RASK_INSTALL_PREFIX) { $env:RASK_INSTALL_PREFIX } else { Join-Path $env:LOCALAPPDATA 'rask' }
 $DotnetScriptUrl = if ($env:RASK_INSTALL_DOTNET_SCRIPT_URL) { $env:RASK_INSTALL_DOTNET_SCRIPT_URL } else { 'https://dot.net/v1/dotnet-install.ps1' }
-$NodeDist = if ($env:RASK_INSTALL_NODE_DIST) { $env:RASK_INSTALL_NODE_DIST } else { 'https://nodejs.org/dist' }
-# 26.13.0 rather than the islands' build floor: this decides whether an existing Node is left alone, and
-# the standing rule is the latest LTS, which the island toolchains (Vite and the framework plugins) track
-# (#886). Mirrors RASK_INSTALL_NODE_MIN in rask.sh.
-$NodeMin = if ($env:RASK_INSTALL_NODE_MIN) { $env:RASK_INSTALL_NODE_MIN } else { '26.13.0' }
 $Package = if ($env:RASK_INSTALL_PACKAGE) { $env:RASK_INSTALL_PACKAGE } else { 'Rask.Cli' }
 
 $script:Warnings = @()
@@ -102,21 +94,6 @@ function Stop-Install {
 }
 
 # --- helpers ---------------------------------------------------------------------------------
-
-# 0-or-better comparison tolerant of a leading `v` and a prerelease suffix: 10.0.100-preview.3
-# compares as 10.0.100, which is what an SDK floor means here.
-function Test-VersionGe {
-    param([string] $Have, [string] $Want)
-    if ([string]::IsNullOrWhiteSpace($Have)) { return $false }
-    $normalise = {
-        param($v)
-        $v = $v.Trim().TrimStart('v')
-        $v = ($v -split '-')[0]
-        $parts = @($v -split '\.') + @('0', '0', '0')
-        [version]::new([int] ($parts[0] -replace '\D', '0'), [int] ($parts[1] -replace '\D', '0'), [int] ($parts[2] -replace '\D', '0'))
-    }
-    try { return (& $normalise $Have) -ge (& $normalise $Want) } catch { return $false }
-}
 
 # The dotnet to use, by absolute path when we installed one. Same reasoning as rask.sh: prepending to
 # PATH is not enough to guarantee the SDK we just installed is the one that runs, and handing a net10.0
@@ -164,7 +141,6 @@ function Get-RaskPathEntries {
     @(
         $DotnetRoot
         (Join-Path $DotnetRoot 'tools')
-        (Join-Path $Prefix 'node')
     )
 }
 
@@ -176,27 +152,6 @@ function Get-RaskCommandPath {
     }
     $command = Get-Command rask -ErrorAction SilentlyContinue
     if ($command) { return $command.Source }
-    return $null
-}
-
-# Windows builds only, and only on Windows. PowerShell runs elsewhere, where OSArchitecture alone
-# would happily name a win-x64 zip to download onto a Linux box.
-function Get-NodeTriple {
-    if (-not $IsWindows) { return $null }
-    switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) {
-        'X64' { 'win-x64' }
-        'Arm64' { 'win-arm64' }
-        'X86' { 'win-x86' }
-        default { $null }
-    }
-}
-
-# The index is newest-first; "lts" is a codename string on an LTS release and $false otherwise.
-function Get-NodeLtsVersion {
-    $index = Invoke-RestMethod -Uri "$NodeDist/index.json"
-    foreach ($release in $index) {
-        if ($release.lts -is [string]) { return $release.version.TrimStart('v') }
-    }
     return $null
 }
 
@@ -359,64 +314,6 @@ function Step-WasmTools {
     }
 }
 
-function Step-Node {
-    if ($NoNode) { return }
-    Write-Step "Checking for Node.js >= $NodeMin (islands)"
-
-    $node = Get-Command node -ErrorAction SilentlyContinue
-    if ($node) {
-        $have = (& node --version 2>$null)
-        if (Test-VersionGe $have $NodeMin) { Write-Detail "found $have — leaving it alone"; return }
-    }
-
-    $triple = Get-NodeTriple
-    if (-not $triple) {
-        Write-Warn @(
-            "no Node.js build for this platform ($([System.Runtime.InteropServices.RuntimeInformation]::OSDescription)) — skipping it.",
-            'Only islands (`rask new --islands react|vue|svelte|...`) need Node. Outside Windows, use rask.sh.')
-        return
-    }
-
-    $version = Get-NodeLtsVersion
-    if (-not $version) {
-        Write-Warn @("could not resolve the current Node LTS from $NodeDist/index.json — skipping it.")
-        return
-    }
-    Write-Detail "installing Node $version ($triple) into $Prefix\node"
-    if ($DryRun) { Write-Detail "(dry-run) download and unpack node-v$version-$triple.zip"; return }
-
-    $name = "node-v$version-$triple.zip"
-    $work = Join-Path ([System.IO.Path]::GetTempPath()) "rask-node-$([guid]::NewGuid())"
-    New-Item -ItemType Directory -Path $work -Force | Out-Null
-    try {
-        Invoke-WebRequest -Uri "$NodeDist/v$version/$name" -OutFile "$work\$name" -UseBasicParsing
-        Invoke-WebRequest -Uri "$NodeDist/v$version/SHASUMS256.txt" -OutFile "$work\SHASUMS256.txt" -UseBasicParsing
-
-        # Verify against the digest nodejs.org publishes. An unverified archive unpacked onto
-        # someone's PATH is not something to ship.
-        $want = (Get-Content "$work\SHASUMS256.txt" |
-            Where-Object { ($_ -split '\s+')[-1] -eq $name } |
-            ForEach-Object { ($_ -split '\s+')[0] } |
-            Select-Object -First 1)
-        if (-not $want) { Stop-Install 1 @("$name is not listed in SHASUMS256.txt for v$version.") }
-
-        $have = (Get-FileHash "$work\$name" -Algorithm SHA256).Hash.ToLowerInvariant()
-        if ($have -ne $want.ToLowerInvariant()) {
-            Stop-Install 1 @("checksum mismatch for $name.", "expected $want", "got      $have")
-        }
-        Write-Detail 'sha256 verified'
-
-        $target = Join-Path $Prefix 'node'
-        if (Test-Path $target) { Remove-Item $target -Recurse -Force }
-        Expand-Archive -Path "$work\$name" -DestinationPath $work -Force
-        New-Item -ItemType Directory -Path $Prefix -Force | Out-Null
-        Move-Item (Join-Path $work "node-v$version-$triple") $target
-    }
-    finally {
-        Remove-Item $work -Recurse -Force -ErrorAction SilentlyContinue
-    }
-}
-
 function Step-Docker {
     Write-Step 'Checking for Docker (rask deploy)'
     if (Get-Command docker -ErrorAction SilentlyContinue) { Write-Detail 'found'; return }
@@ -567,7 +464,6 @@ function Invoke-Main {
     Step-Rask
     Step-Ef
     Step-WasmTools
-    Step-Node
     Step-Docker
     Step-Path
     Step-Verify
