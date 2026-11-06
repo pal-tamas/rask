@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# gate-inputs: ^scripts/flux/refresh\.mjs$
-# scripts/flux/refresh.mjs, the catalogue half of the `flux` follower, run against saved docs pages: a part
+# gate-inputs: ^scripts/flux/Flux/
+# The Flux harness's `refresh` command (scripts/flux/Flux/Commands/Refresh.cs), the catalogue half of the `flux` follower, run against saved docs pages: a part
 # with a Reference heading of its own is read from it, and a part Flux only writes in its examples (or lists as
 # an available item) is read from there — under `examples`, the props with the values written, never `options`.
 # The daily run lands what this writes with nobody reading it, so it must write the same file every time.
@@ -76,10 +76,16 @@ Not an item:
 ### flux:writer
 MD
 
-node "$root/scripts/flux/refresh.mjs" "$tmp/saved" "$tmp/first.json" >/dev/null
-node "$root/scripts/flux/refresh.mjs" "$tmp/saved" "$tmp/second.json" >/dev/null
-q() { node -e 'const s = require(process.argv[1]); console.log(eval(process.argv[2]))' "$tmp/first.json" "$1"; }
-part() { q "JSON.stringify(s.pages.find(p => p.slug === '$1').parts.find(p => p.name === '$2') ?? null)"; }
+# Built once into its own output and run twice: a `dotnet run` per call would rebuild, and nothing else in the
+# gate writes this output.
+dotnet build "$root/scripts/flux/Flux" -c Release -m:2 -nodeReuse:false -o "$tmp/flux" >"$tmp/build.log" 2>&1 \
+  || { tail -20 "$tmp/build.log" >&2; echo "flux refresh: the harness did not build" >&2; exit 1; }
+dotnet "$tmp/flux/flux.dll" refresh "$tmp/saved" "$tmp/first.json" >/dev/null
+dotnet "$tmp/flux/flux.dll" refresh "$tmp/saved" "$tmp/second.json" >/dev/null
+part() {
+  jq -c --arg slug "$1" --arg name "$2" \
+    'first(.pages[] | select(.slug == $slug) | .parts[] | select(.name == $name)) // null' "$tmp/first.json"
+}
 
 check "the same pages write the same file" same "$(cmp -s "$tmp/first.json" "$tmp/second.json" && echo same)"
 check "a headed part is read from its Reference" \
@@ -96,7 +102,7 @@ check "an available item is a part of its page's component" '{"name":"flux:write
 check "...and only an item of that list" null "$(part writer flux:writer.nothing)"
 check "the headed parts come first, in the Reference's order" \
   'flux:menu,flux:menu.item,flux:icon.*,flux:chart.summaryvalue,flux:menu.group,flux:spacer' \
-  "$(q "s.pages[0].parts.map(p => p.name).join()")"
+  "$(jq -r '.pages[0].parts | map(.name) | join(",")' "$tmp/first.json")"
 
 [ "$failures" -eq 0 ] || { echo "flux refresh: $failures failed" >&2; exit 1; }
 echo "flux refresh: ok"
