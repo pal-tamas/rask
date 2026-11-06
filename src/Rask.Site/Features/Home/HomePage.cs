@@ -61,13 +61,18 @@ public sealed partial class HomePage : Component
         // a different one, and "different" had grown to a navbar of its own, a second brand mark, two
         // badges, a route readout and a bordered button.
         SiteHeader.FullBleed(false),
-        Hero(),
-        // Back end first. Rask is the whole stack, and the stack is what a visitor cannot get from a UI
-        // library; the components come second, then where they run.
-        WholeStackSection(),
-        FrontendSection(),
-        HostsSection(),
-        InstallSection(),
+        // The sections sit in the page's <main>, between the bar and the footer: it is the landmark a reader's
+        // "skip to content" reaches and the one Rask focuses after a navigation lands here. Every other page
+        // has one (ShowcaseLayout's, or NotFoundPage's own); this one had none.
+        Main[
+            Hero(),
+            // Back end first. Rask is the whole stack, and the stack is what a visitor cannot get from a UI
+            // library; the components come second, then where they run.
+            WholeStackSection(),
+            FrontendSection(),
+            HostsSection(),
+            InstallSection()
+        ],
         FooterSection()
     ];
 

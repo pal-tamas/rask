@@ -4,7 +4,7 @@ public sealed partial class PropsAttributeOrderDemo : Component
 {
     protected override Component? Render() =>
         A
-            .Href("/tags")
+            .Href(Routes.GuidePage("elements"))
             .Id("out")
             .Class("font-medium text-accent-content underline underline-offset-4")
             .Data("external", "true")["See HTML order"];

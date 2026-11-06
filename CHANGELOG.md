@@ -971,6 +971,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **rask.sh's landing page has a `<main>` landmark, and the elements guide's attribute-order demo links to a real
+  page.** The landing page's sections sat straight in the body, so "skip to content" and the focus Rask moves to
+  `<main>` after a navigation had nothing to reach; they now sit in one `<main>` between the bar and the footer.
+  The demo's "See HTML order" link went to `/tags`, a route that no longer exists, and showed "Page not found"; it
+  now opens the elements guide. A new site test reads every prerendered page and fails on a link that lands nowhere.
 - **The site's picker journeys no longer go red on the 6th of a month, or on a busy machine (#1304).** The datetime
   picker example opens five days on at 10:30, and the journey pressed the month's 11th enabled day: on the 6th that
   is the chosen day, which Flux's picker takes as "no day", so the 14:30 picked next had no day to join and the
