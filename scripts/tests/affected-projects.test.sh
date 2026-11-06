@@ -140,7 +140,7 @@ expect "the site shell reaches the WASM prerender test" \
 expect "the kit stylesheet reaches the site's contrast tests" \
   "src/Rask.Ui/Styles/ui.css" scoped "tests/Rask.Site.Tests/Rask.Site.Tests.csproj"
 expect "a precise glob keeps its extension filter" \
-  "docs/installation.md" absent "tests/Rask.Blazor.Tests/Rask.Blazor.Tests.csproj"
+  "docs/installation.md" absent "tests/Rask.Providers.E2E.Tests/Rask.Providers.E2E.Tests.csproj"
 
 # The declarations must never be EVALUATED: MSBuild expands an item glob at every evaluation, and
 # "..\..\**\*.cs" would walk the whole repo — bin/, obj/, node_modules/ — on every build of the project.

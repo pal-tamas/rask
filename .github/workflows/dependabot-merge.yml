@@ -4,11 +4,7 @@ name: dependabot-merge
 # reading it. What must NOT move on its own is said in .github/dependabot.yml's ignore lists, beside
 # the reason; everything else is trusted to the gates, exactly as a hand push is.
 #
-# "ci has passed it" is the deps set (gates.yml). The front-end templates are not among what it bumps:
-# they name no version, and upstream.yml proves the newest set `rask new` chooses every day. Should a
-# pull request change a template's client, its "front end K/2" job runs that template alone (the plan
-# narrows the job to what the pull request touched), so the verdict below is still that template's.
-# The verdict is the ci run's conclusion: no job name is read here, so how the gates are split into
+# "ci has passed it" is the deps set (gates.yml). The verdict is the ci run's conclusion: no job name is read here, so how the gates are split into
 # jobs can change without this file.
 #
 # workflow_run, not pull_request: a run Dependabot starts gets a read-only token and no secrets, and

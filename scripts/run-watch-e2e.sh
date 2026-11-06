@@ -7,11 +7,6 @@
 # its WebSocket — the whole loop, including that the session was never torn down, and that the
 # "hot reload applied" frame actually arrives.
 #
-# The island cases (IslandWatchHotReloadE2ETests, matched by the same filter) do the same for islands on a
-# Server and a WASM app scaffolded with --islands react: the dev-session manifest names the Vite dev server
-# under $dev, the island loads from it through its loopback-only CORS rule, and a .tsx edit arrives on
-# Vite's HMR socket as a js-update. They need Node (the LTS line the islands build asks for) and npm.
-#
 # They are opt-in because they pack this commit's packages, build the generated app, and run several
 # watch sessions with 2-minute ceilings — far too slow for the inner loop. CI runs this script before a
 # release, and on a ci/release/** branch (.github/workflows/gates.yml).
@@ -32,9 +27,6 @@ if [ "${RASK_SKIP_WATCH_E2E:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
-# shellcheck source=lib/node-path.sh
-. "$root/scripts/lib/node-path.sh"
-rask_ensure_node
 # shellcheck source=lib/dotnet-env.sh
 . "$root/scripts/lib/dotnet-env.sh"
 cd "$root"

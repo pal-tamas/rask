@@ -10,9 +10,6 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-# shellcheck source=lib/node-path.sh
-. scripts/lib/node-path.sh
-rask_ensure_node
 # shellcheck source=lib/dotnet-env.sh
 . scripts/lib/dotnet-env.sh
 
