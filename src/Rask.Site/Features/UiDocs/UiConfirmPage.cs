@@ -31,6 +31,10 @@ public sealed partial class UiConfirmPage : Component
             UiDocsExample.Key("ui-confirm-form").Heading("On a form").File("ConfirmFormExample.cs").Demo(ConfirmFormExample).Testid("ui-confirm-form")
                 .Blurb("On a form it asks before the submit, and the form is held only once Yes lets it go. On a submit "
                        + "button it asks before the submit that button makes."),
+            UiDocsExample.Key("ui-confirm-sign-out").Heading("Before a link").File("ConfirmSignOutExample.cs").Demo(ConfirmSignOutExample).Testid("ui-confirm-sign-out")
+                .Blurb("A menu item's link asks too, and a yes follows it. .SignOut() asks in the catalog's words — \"Are "
+                       + "you sure you want to sign out?\" under \"Sign out\", in Hungarian \"Biztos ki szeretne "
+                       + "jelentkezni?\" — and names the row the same where it has no words of its own."),
             UiDocsExample.Key("ui-confirm-words").Heading("Your own words").File("ConfirmWordsExample.cs")
                 .Demo(UiLayoutPreview.Demo(Routes.ConfirmWordsDemoPage()).Title("A layout whose Ui.Confirm says Nem and Igen")).Testid("ui-confirm-words")
                 .Blurb("Heading, No and Yes are the layout's, for every question on the page; a question with heading: "

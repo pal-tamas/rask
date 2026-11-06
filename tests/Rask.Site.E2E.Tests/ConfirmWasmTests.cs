@@ -104,6 +104,29 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
     });
 
     [Fact]
+    public Task A_sign_out_link_asks_in_the_catalogs_words_and_is_followed_only_after_a_yes() => RunAsync(async () =>
+    {
+        var browserDialogs = Count();
+        await OpenUiPageAsync("confirm", "Confirm");
+        var signOut = Page.GetByTestId("ui-confirm-sign-out").GetByRole(AriaRole.Menuitem, new() { Name = "Sign out" });
+
+        await Page.ClickAsync("#uc-account");
+        await signOut.ClickAsync();
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Sign out");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("Are you sure you want to sign out?");
+        await Page.ClickAsync(No);
+        await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
+        var stayed = Page.Url;
+        await Page.ClickAsync("#uc-account");
+        await signOut.ClickAsync();
+        await Page.ClickAsync(Yes);
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("#signed-out$"), new() { Timeout = 10_000 });
+        Assert.DoesNotContain("#signed-out", stayed, StringComparison.Ordinal);
+        Assert.Empty(browserDialogs);
+    });
+
+    [Fact]
     public Task A_layouts_own_words_name_the_dialog_and_its_buttons() => RunAsync(async () =>
     {
         var browserDialogs = Count();

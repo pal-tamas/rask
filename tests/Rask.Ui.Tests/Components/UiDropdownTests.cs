@@ -225,6 +225,51 @@ public partial class UiDropdownTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_link_item_that_confirms_asks_on_the_link_the_browser_follows_after_a_yes()
+    {
+        var html = Html(Ui.Menu[
+            Ui.MenuItem.Href("/logout").Confirm("Sign out now?", heading: "Sign out")["Sign out"],
+            Ui.MenuItem.Href(new global::Rask.Core.Routing.RouteUrl("/settings", PageType: typeof(UiDropdownTests))).Confirm("Leave the list?")["Settings"]
+        ]);
+
+        var (away, inApp) = (Row(html, "Sign out"), Row(html, "Settings"));
+
+        Assert.StartsWith("<a", away, StringComparison.Ordinal);
+        Assert.Contains("href=\"/logout\"", away, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm=\"Sign out now?\"", away, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-heading=\"Sign out\"", away, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-click", away, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm=\"Leave the list?\"", inApp, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-on-click", inApp, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sign_out_item_reads_its_words_its_question_and_its_icon_from_the_catalog()
+    {
+        var item = () => Html(Ui.Menu[Ui.MenuItem.Href("/kilepes").SignOut()]);
+
+        var (english, hungarian) = (Row(item(), "Sign out"), Row(KitCulture.In("hu-HU", item), "Kijelentkezés"));
+
+        Assert.Contains("href=\"/kilepes\"", english, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm=\"Are you sure you want to sign out?\"", english, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-heading=\"Sign out\"", english, StringComparison.Ordinal);
+        Assert.Contains("data-ui-menu-item-has-icon", english, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm=\"Biztos ki szeretne jelentkezni?\"", hungarian, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-heading=\"Kijelentkezés\"", hungarian, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sign_out_item_keeps_the_words_and_the_question_it_was_given()
+    {
+        var html = Html(Ui.Menu[Ui.MenuItem.Href("/logout").Confirm("Leave Acme?").SignOut()["Log out"]]);
+
+        var row = Row(html, "Log out");
+
+        Assert.Contains("data-rask-confirm=\"Leave Acme?\"", row, StringComparison.Ordinal);
+        Assert.DoesNotContain(">Sign out<", row, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void An_item_with_an_Href_is_a_link_that_is_still_a_menuitem()
     {
         var html = Html(Ui.Menu[Ui.MenuItem.Href("/settings")["Settings"]]);

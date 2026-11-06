@@ -19519,3 +19519,9 @@ Rask.Core.Globalization.RaskString.RowActionsEdit = 228 -> Rask.Core.Globalizati
 Rask.Core.Globalization.RaskString.RowActionsRemove = 229 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RowActionsHeading = 230 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RemoveQuestion = 231 -> Rask.Core.Globalization.RaskString
+static Rask.Format.Money(decimal amount) -> string!
+static Rask.Format.Money(decimal amount, string! currency) -> string!
+static Rask.Format.Number(decimal value, int? atMost) -> string!
+static Rask.Format.Number(double value, int? atMost) -> string!
+Rask.Core.Globalization.RaskString.SignOut = 232 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SignOutQuestion = 233 -> Rask.Core.Globalization.RaskString

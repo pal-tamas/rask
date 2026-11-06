@@ -221,6 +221,8 @@
   "RowActionsRemove": "Törlés",
   "RowActionsHeading": "Műveletek",
   "RemoveQuestion": "Biztos törölni szeretné?",
+  "SignOut": "Kijelentkezés",
+  "SignOutQuestion": "Biztos ki szeretne jelentkezni?",
   "PdfPageNumber": "{0} / {1} oldal",
 
   "TableEmpty": "Nincs találat.",
