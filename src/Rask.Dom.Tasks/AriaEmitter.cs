@@ -1,4 +1,4 @@
-// The WAI-ARIA half of the MDN build step: the snapshot's `aria` section (read from the spec by scripts/mdn/aria.mjs)
+// The WAI-ARIA half of the MDN build step: the snapshot's `aria` section (read from the spec by scripts/mdn/aria.py)
 // becomes AriaRole's constants, one typed Aria* property per aria-* attribute on Element, the keyword enums those
 // properties take, and the slot table Component.AriaAttrs stores them by. Every name and type is derived from the
 // spec's data; nothing here is written per attribute.

@@ -1,5 +1,5 @@
 // The KEYBOARD half of the build step: KeyboardEvent.key's named values (Keys) and KeyboardEvent.code's values (Codes),
-// one string constant each, from the snapshot's `keys` and `codes` — UI Events' own tables, read by scripts/mdn/refresh.mjs.
+// one string constant each, from the snapshot's `keys` and `codes` — UI Events' own tables, read by scripts/mdn/refresh.py.
 using System;
 using System.Collections.Generic;
 using System.Linq;

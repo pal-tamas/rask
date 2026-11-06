@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Dom;
 
 /// <summary>
 ///     <c>Keys</c> and <c>Codes</c> are generated from the snapshot's <c>keys</c> and <c>codes</c>, which
-///     <c>scripts/mdn/refresh.mjs</c> reads from UI Events' own tables.
+///     <c>scripts/mdn/refresh.py</c> reads from UI Events' own tables.
 /// </summary>
 public class KeyboardValueTests
 {

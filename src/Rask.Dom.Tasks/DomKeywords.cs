@@ -7,7 +7,7 @@ using Rask.Generators.Json;
 
 namespace Rask.Core.Dom.Build;
 
-// HTML's enumerated attributes as C# enums, from the keywords the snapshot records for them (scripts/mdn/refresh.mjs):
+// HTML's enumerated attributes as C# enums, from the keywords the snapshot records for them (scripts/mdn/refresh.py):
 // `Img.Loading(Loading.Lazy)` where it was `Img.Loading("lazy")`. An attribute is typed when its set is closed and every
 // keyword names a member mechanically ("plaintext-only" → PlaintextOnly). It stays a string where the spec's values are
 // not words (`<ol type="A">`, a MIME type), and where they are a token list (`rel`): a set of keywords, not one.

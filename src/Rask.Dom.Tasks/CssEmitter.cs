@@ -1,5 +1,5 @@
 // The CSS half of the build step: one step per property on Css, from the snapshot's `css` — every property two
-// engines ship, with the keywords and value types that are a whole value alone (scripts/mdn/css.mjs).
+// engines ship, with the keywords and value types that are a whole value alone (scripts/mdn/css.py).
 using System;
 using System.Collections.Generic;
 using System.Globalization;

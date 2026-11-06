@@ -81,15 +81,13 @@ public class MdnSnapshotTests
     }
 
     [Fact]
-    public void The_ARIA_spec_is_read_at_a_pinned_commit_with_a_pinned_parser()
+    public void The_ARIA_spec_is_read_at_a_pinned_commit()
     {
         var sources = Snapshot.GetProperty("sources");
 
         var aria = sources.GetProperty("w3c/aria").GetString();
-        var parser = sources.GetProperty("parse5").GetString();
 
         Assert.Matches("^[0-9a-f]{40}$", aria);
-        Assert.Matches(@"^\d+\.\d+\.\d+$", parser);
     }
 
     [Fact]
