@@ -117,6 +117,20 @@ public sealed class LiveRenderContext : IDisposable
     // Reading through IsActive makes a disposed context read as "no context", which is correct.
     internal static LiveRenderContext? CurrentSync => _syncCurrent is { IsActive: true } ? _syncCurrent : null;
 
+    /// <summary>
+    ///     The walk this very thread is inside: where Render and the synchronous part of a hook run. Null in a hook's
+    ///     continuation, which still carries the walk's context after an await (<see cref="Current" />) but is no
+    ///     longer inside it — and may be running beside the session's next walk on another thread. Null too on a
+    ///     thread whose walk belongs to another flow (a continuation run inline inside a stranger's walk).
+    /// </summary>
+    /// <remarks>
+    ///     What files into the tree asks this, not <see cref="Current" />: a chain built after an await filed into
+    ///     the context it captured would write a parent's child map while a walk enumerates it —
+    ///     <c>Collection was modified</c> in a live session, and a stray row in the tree at best.
+    /// </remarks>
+    internal static LiveRenderContext? Walking =>
+        _syncCurrent is { IsActive: true } walk && ReferenceEquals(walk, _current.Value) ? walk : null;
+
     // Test-only: clears this thread's sync mirror. xUnit reuses pool threads across tests; an
     // async render can release a thread at an await with _syncCurrent still set, so a later
     // synchronous test on that thread would otherwise observe a leftover context. Tests call
