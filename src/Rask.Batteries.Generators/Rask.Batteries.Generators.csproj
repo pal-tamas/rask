@@ -18,8 +18,8 @@
 
   <ItemGroup>
     <!-- The wire model and its emitters are internal: they are an implementation detail of the
-         generated code, not an API. The tests assert the TypeScript an emitter produces, which is
-         cheaper and far more legible than round-tripping it through a full generator run. -->
+         generated code, not an API. The tests assert what an emitter produces, which is cheaper
+         and far more legible than round-tripping it through a full generator run. -->
     <InternalsVisibleTo Include="Rask.Batteries.Generators.Tests"/>
   </ItemGroup>
 
@@ -56,9 +56,6 @@
     <Compile Include="..\Rask.Generators.Shared\WireMember.cs" Link="Shared\WireMember.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireType.cs" Link="Shared\WireType.cs"/>
     <Compile Include="..\Rask.Generators.Shared\WireCodecEmitter.cs" Link="Shared\WireCodecEmitter.cs"/>
-    <Compile Include="..\Rask.Generators.Shared\TypeScriptEmitter.cs" Link="Shared\TypeScriptEmitter.cs"/>
-    <Compile Include="..\Rask.Generators.Shared\NestedShape.cs" Link="Shared\NestedShape.cs"/>
-    <Compile Include="..\Rask.Generators.Shared\ShapeDescriptor.cs" Link="Shared\ShapeDescriptor.cs"/>
     <Compile Include="..\Rask.Generators.Shared\GeneratedModelShape.cs" Link="Shared\GeneratedModelShape.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ReadFaceName.cs" Link="Shared\ReadFaceName.cs"/>
     <Compile Include="..\Rask.Generators.Shared\ModelMemberRole.cs" Link="Shared\ModelMemberRole.cs"/>

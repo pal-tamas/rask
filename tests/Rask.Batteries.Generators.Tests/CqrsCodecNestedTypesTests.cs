@@ -3,7 +3,7 @@ using Rask.Generators.Shared;
 namespace Rask.Batteries.Generators.Tests;
 
 // The codec walked one hand-unrolled level of nesting, so a message inside a container inside a container got
-// no contract — the #949 miss the island and Blazor generators had already fixed.
+// no contract (#949).
 public class CqrsCodecNestedTypesTests
 {
     private const string Messages = """
