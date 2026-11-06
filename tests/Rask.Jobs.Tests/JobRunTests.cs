@@ -227,12 +227,17 @@ public sealed class JobRunTests
     public async Task A_wait_that_runs_out_throws_a_timeout_and_leaves_the_job_running()
     {
         await using var h = new JobsHarness();
+        h.Clock.HoldTimers();
+        var wait = TimeSpan.FromMilliseconds(200);
         await h.Processor.StartAsync(CancellationToken.None);
         try
         {
-            var run = () => h.Queue.Run(new AtPump("slow"), TestContext.Current.CancellationToken).InLane("pump-7").Within(TimeSpan.FromMilliseconds(200)).AsTask();
+            var waiting = h.Queue.Run(new AtPump("slow"), TestContext.Current.CancellationToken).InLane("pump-7").Within(wait).AsTask();
+            await h.Lanes.Entered("slow").WaitAsync(Rask.TestSupport.WaitFor.HangCeiling, TestContext.Current.CancellationToken);
+            await h.WaitUntilAsync(() => Task.FromResult(h.Clock.PendingTimers > 0));
 
-            var error = await Assert.ThrowsAsync<TimeoutException>(run);
+            h.Clock.Advance(wait);
+            var error = await Assert.ThrowsAsync<TimeoutException>(() => waiting);
             var stillRunning = h.Lanes.HasStarted("slow") && h.Recorder.Values.Count == 0;
             h.Lanes.Release("slow");
 

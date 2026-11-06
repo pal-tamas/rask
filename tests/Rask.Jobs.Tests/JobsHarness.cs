@@ -141,17 +141,6 @@ public sealed class JobsDbContext(DbContextOptions<JobsDbContext> options) : DbC
     protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskJobs();
 }
 
-/// <summary>A hand-rolled fake clock (no external package): the processor's due/backoff checks read it, so
-/// tests drive time deterministically while the poll loop ticks on the real (short) interval.</summary>
-public sealed class FakeTimeProvider(DateTimeOffset start) : TimeProvider
-{
-    private long _ticks = start.UtcTicks;
-
-    public override DateTimeOffset GetUtcNow() => new(Interlocked.Read(ref _ticks), TimeSpan.Zero);
-
-    public void Advance(TimeSpan by) => Interlocked.Add(ref _ticks, by.Ticks);
-}
-
 /// <summary>Builds a real-SQLite service provider wired for jobs, with a controllable clock.</summary>
 public sealed class JobsHarness : IAsyncDisposable
 {
