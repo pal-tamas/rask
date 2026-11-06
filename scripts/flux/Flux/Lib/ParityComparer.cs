@@ -247,6 +247,17 @@ public sealed partial class ParityComparer(string slug, bool layout, IReadOnlySe
         return diffs;
     }
 
+    /// <summary>
+    ///     Every difference between Flux's node <paramref name="a" /> and the kit's <paramref name="b" /> and what is under
+    ///     them, each placed against its own root: an open dialog, compared from the dialog down (parity-modal).
+    /// </summary>
+    public List<string> CompareSubtree(Example theirs, MeasuredNode a, Example mine, MeasuredNode b, string where)
+    {
+        var diffs = new List<string>();
+        CompareTree(theirs, a, mine, b, a, b, where, diffs);
+        return diffs;
+    }
+
     /// <summary>The part's marker is the shortest: Flux writes <c>data-flux-card</c> beside <c>data-flux-card-body-variant</c>.</summary>
     public static string Mark(MeasuredNode node, string prefix)
     {
