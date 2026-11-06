@@ -19530,3 +19530,4 @@ Rask.Core.Globalization.RaskString.SignOutQuestion = 233 -> Rask.Core.Globalizat
 Rask.Core.Globalization.RaskString.PageNotFound = 234 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RowActionsView = 235 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.SelectChoose = 236 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FormTabsInvalid = 237 -> Rask.Core.Globalization.RaskString

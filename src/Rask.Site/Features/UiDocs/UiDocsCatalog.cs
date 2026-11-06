@@ -207,6 +207,12 @@ internal static class UiDocsCatalog
         "A form's footer in one line: Delete that asks first, Cancel back to the list and Save, drawn as Flux draws a form's "
         + "footer and worded in the reader's language.");
 
+    public static UiDocsEntry FormTabs { get; } = new(
+        Routes.UiFormTabsPage(), "Form tabs", Components,
+        "Form tabs in C#: Ui.FormTabs",
+        "A long form's tabs: a red badge on each tab counts its invalid fields as they are corrected, and a refused save "
+        + "opens the first tab that holds one.");
+
     public static UiDocsEntry EditorDialog { get; } = new(
         Routes.UiEditorDialogPage(), "Editor dialog", Components,
         "Editor dialog in C#: Ui.EditorDialog",
@@ -485,7 +491,7 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag, FormButtons,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag, FormButtons, FormTabs,
         Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];

@@ -732,6 +732,7 @@ they say when you set nothing.
 | `SignOut` | A menu item's `.SignOut()` (its words where it has none, and the title of its question) | `Sign out` |
 | `SignOutQuestion` | A menu item's `.SignOut()`: what it asks first | `Are you sure you want to sign out?` |
 | `SelectChoose` | Select and pillbox given rows by `.Choices(…)`, while nothing is chosen | `Choose...` |
+| `FormTabsInvalid` | Form tabs: what a tab's red count says to a screen reader | `Fields to correct: {0}` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |

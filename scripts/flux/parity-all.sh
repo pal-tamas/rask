@@ -59,6 +59,8 @@ parity-editor
 parity-editor --view 390x844
 parity empty-state --refresh --prepare empty-state
 parity empty-state --refresh --prepare empty-state --view 390x844
+parity form-tabs --refresh --prepare form-tabs
+parity form-tabs --refresh --prepare form-tabs --view 390x844
 parity-focus --webkit
 parity-menu dropdown --refresh
 parity-menu context --refresh

@@ -144,6 +144,15 @@ them until tagged releases begin.
   `Ui.DatePicker.Bind(…).Typed()` is the typed input with the selectable header, in the culture's order; on a range,
   two fields named "Start" and "End" ("Kezdet", "Vége"). Owner-approved, not Flux's. A Hungarian typed date now ends on
   its full stop, `2026. 11. 06.`, as the culture writes it.
+- **`Ui.FormTabs`: a long form's tabs, each counting its invalid fields in a red badge** (owner-approved, not Flux; TA +
+  Eszaf survey, step 8). Before (Eszaf, 7 forms): a `FormTabs` of its own, handed the form's `EditContext`, field names
+  as strings and a refusal counter the page bumped in `OnInvalidSubmit` — `FormTabs.Form(form).Refused(_refused).Tabs([
+  new("details", "Törzsadatok", [nameof(m.Number), …], Details(m))])`. After: `Ui.FormTabs[Ui.FormTab.Name("details")
+  .Label("Törzsadatok").Holds(() => m.Number, () => m.CountryId)[Details(m)]]` inside the `Form`, which it reads itself:
+  Flux's scrollable tabs with a red `Ui.Badge` per tab, the counts following each correction, every refused submit (the
+  rules failed, or the save threw field failures) opening the first tab holding one; an object or collection member
+  holds every field it reaches (`.Holds(() => m.Rows)`). A screen reader hears the count from the new catalog sentence
+  `FormTabsInvalid` ("Fields to correct: {0}", „Javítandó mezők: {0}”). Live on rask.sh/ui/form-tabs.
 - **`Ui.RowActions`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
   "⋯" helper of their own. Before: `RowActions.For(row, edit, remove, heading, question)` in a hand-made sticky cell,
   every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).View(url).Edit(url)

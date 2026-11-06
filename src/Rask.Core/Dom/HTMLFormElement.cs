@@ -352,9 +352,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             StateHasChanged();
             try
             {
-                await ctx.Validate().ConfigureAwait(false);
-                ctx.TouchAllRegisteredFields();
-                var isValid = !ctx.HasValidationMessages();
+                var isValid = await Validated(ctx).ConfigureAwait(false);
                 await RunSubmitHandler(isValid, ctx, formData).ConfigureAwait(false);
 
                 // Only here: a refused submit and a handler that threw both leave the form unsaved.
@@ -395,6 +393,21 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             }
         };
 
+    // Every rule asked, every field touched so its message shows. A refusal is counted before the handler runs,
+    // so what OnInvalidSubmit draws already knows of it (Ui.FormTabs opens the first tab holding a message).
+    private static async Task<bool> Validated(EditContext ctx)
+    {
+        await ctx.Validate().ConfigureAwait(false);
+        ctx.TouchAllRegisteredFields();
+        if (!ctx.HasValidationMessages())
+        {
+            return true;
+        }
+
+        ctx.NoteRefused();
+        return false;
+    }
+
     // The submit handler's [Authorize] turned the person away — nothing was saved, and a toast says why — or the
     // app's own code refused it (Shows).
     private bool Refused(Exception ex, EditContext ctx)
@@ -413,6 +426,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     // no f.Error. The submit stays a failure only when some sentence of it has nowhere at all to be read.
     private bool Shows(IReadOnlyList<FieldFailure> refusal, EditContext ctx)
     {
+        ctx.NoteRefused();
         var unread = FieldFailurePlacement.Place(ctx, refusal);
         if (unread.Count > 0 && !Refusal.Say(unread))
         {

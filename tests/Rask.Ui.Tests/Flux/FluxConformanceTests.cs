@@ -279,6 +279,8 @@ public sealed class FluxConformanceTests
         [typeof(UiDayAndTime<>)] = "the owner, 2026-11-04: a moment as Flux's typed date picker and time picker in one row, not the datetime picker (#1297)",
         [typeof(UiNotFound)] = "the owner, 2026-11-06: the built-in 404 inside the app's frame, as Flux's warning callout (TA+Eszaf survey, step 10)",
         [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
+        [typeof(UiFormTabs)] = "the owner, 2026-11-06: a long form's flux:tabs, a red flux:badge counting each tab's invalid fields, the first opened on a refused save (TA+Eszaf survey, step 8)",
+        [typeof(UiFormTab)] = "the owner, 2026-11-06: one tab of a UiFormTabs — its words, the fields it holds, its flux:tab.panel",
     };
 
     /// <summary>

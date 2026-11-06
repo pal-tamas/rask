@@ -837,6 +837,21 @@ Validation.Summary.Template(entries => Ul[entries.Select(e => Li[Strong[e.Field]
 
 <!-- demo:validation-summary -->
 
+**A long form in tabs.** `Ui.FormTabs` inside the `Form` reads the same context: each tab counts the invalid fields it
+`Holds(…)` in a red badge, and every refused submit — the rules failed, or the save threw field failures — opens the
+first tab holding one. Nothing is handed to it:
+
+```csharp
+Form.Model(m).OnSubmit(Save)[
+    Ui.FormTabs[
+        Ui.FormTab.Name("details").Label("Details").Holds(() => m.Name, () => m.Email)[ /* fields */ ],
+        Ui.FormTab.Name("address").Label("Address").Holds(() => m.Address)[ /* every field on the address */ ]
+    ],
+    Ui.Button.Submit["Save"]]
+```
+
+See [form tabs in the UI kit](ui-kit.md#a-long-forms-tabs).
+
 ### Controls at a glance
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and
