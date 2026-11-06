@@ -486,14 +486,14 @@ public void Unset_props_render_empty_button_tags() =>
 [Fact]
 public void Setting_every_prop_emits_the_base_attributes_before_the_tags_own() =>
     Assert.Equal(
-        "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" disabled name=\"action\" type=\"submit\" value=\"save\"></button>",
+        "<button id=\"go\" class=\"primary\" style=\"color:red\" data-test-id=\"primary\" disabled name=\"action\" type=\"submit\" value=\"save\"></button>",
         Button
             .Type(ButtonType.Submit)
             .Disabled()
             .Name("action")
             .Value("save")
             .Id("go")
-            .Class("btn")
+            .Class("primary")
             .Style("color:red")
             .Data("test-id", "primary")
             .ToHtml());
