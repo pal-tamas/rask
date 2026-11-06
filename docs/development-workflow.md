@@ -35,11 +35,12 @@ Every change passes this gate before it lands on `main` (the `rask-ship` skill).
 it: CI runs the format check, the build, the tests and the browser journeys after the push (see
 [CI](#ci)), so what you skip here you find out there, on `main`.
 
-1. **Format + analyzers** — `dotnet format Rask.slnx` then `--verify-no-changes`. CI's
-   `analyzers K/N` jobs run the same verify after the push, each over the files the change touched in its own
+1. **Format + analyzers** — `dotnet format src/Rask.X/Rask.X.csproj --include <the files you changed>`:
+   the project you touched, never the solution. CI's
+   `analyzers K/N` jobs run the `--verify-no-changes` after the push, each over the files the change touched in its own
    projects (every file of its projects when the change touched the rules).
-2. **Clean build, warnings-as-errors** —
-   `dotnet build Rask.slnx -c Release -warnaserror -p:EnforceCodeStyleInBuild=true`.
+2. **Clean build, warnings-as-errors** — of the project you touched, never the solution:
+   `dotnet build src/Rask.X -c Release -warnaserror`.
    Enforced in `Directory.Build.props` (`TreatWarningsAsErrors`, `EnableNETAnalyzers`,
    `EnforceCodeStyleInBuild`), so a plain build enforces it too. See [code-analysis.md](code-analysis.md).
    The same build runs the **public-API gate**: anything public you added, renamed or removed fails
@@ -47,14 +48,14 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    API review — read it against [api-style.md](api-style.md) before you commit.
 3. **Tests** — unit-test every feature/fix (`tests/Rask.*.Tests`); add E2E only when a unit test
    can't reach the path. **Every `src/Rask.Site` change gets an E2E** journey update
-   (`tests/Rask.Site.E2E.Tests`). Inner loop — **build once, then test with `--no-build`** so
-   each run doesn't rebuild the whole solution (test execution itself is fast; the build dominates):
+   (`tests/Rask.Site.E2E.Tests`). Locally, test **only the project you touched** — the solution and
+   the gate scripts are CI's (`ci.yml` after the push, `full.yml` daily). Inner loop — **build once,
+   then test with `--no-build`** (test execution itself is fast; the build dominates):
    ```bash
-   dotnet build Rask.slnx -c Release
-   dotnet test Rask.slnx -c Release --no-build --filter "FullyQualifiedName!~Rask.Site.E2E"
+   dotnet build tests/Rask.Core.Tests -c Release
+   dotnet test tests/Rask.Core.Tests -c Release --no-build
    ```
-   Narrow further to one project (`dotnet test tests/Rask.Core.Tests --no-build`) or one class
-   (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
+   Narrow further to one class (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
    `Rask.Spa.Hosting.targets`, which skips a referenced client's nested publish under `RaskWasm=false`).
 
@@ -72,7 +73,8 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    `[Unreleased]` entry (Keep a Changelog).
 6. **Review** — security, performance, and memory held together with UX; prefer standard .NET
    APIs over hand-rolled code; refactor duplication you touch (the `rask-review` skill).
-7. **Land on `main`** — Conventional Commit `type(scope): subject` (enforced by commitlint), then
+7. **Land on `main`** — Conventional Commit `type(scope): subject` (enforced by `.githooks/commit-msg`
+   and, on a pull request, `commitlint.yml` — both `scripts/lib/conventional-commit.sh`), then
    merge `origin/main` in and `git push origin HEAD:main`. **Own work never goes through a pull
    request** — PRs are reserved for external contributions, which arrive from forks. `ci.yml` runs
    on the push; a red `main` is fixed forward. See the `land-on-main` skill.
@@ -160,11 +162,11 @@ free for a public repository and nobody waits on it.
 
 | When | What |
 |---|---|
-| `commit-msg` hook | Conventional Commits (commitlint) and the attribution guard. |
-| `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged. |
+| `commit-msg` hook | Conventional Commits (`scripts/lib/conventional-commit.sh`) and the attribution guard. |
+| `pre-commit` hook | `scripts/tests/front-doors.test.sh`, only when `README.md` or `NUGET.md` is staged; `scripts/tests/prose-comments.test.sh` over the staged `src/*.cs` files. |
 | `pre-push` hook | The attribution guard again, over the commits being pushed. |
-| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the CLI build and templates when the CLI, a template or a project file changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
-| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
+| **CI, every push to `main` or a `ci/**` branch and every pull request** — `ci.yml`, SCOPED | The gates of the **push** set the change can reach: `build` (the build with the analyzers off, then the unit tests it reaches — the nightly is pushed the moment it is green) and `analyzers 1/4` … `analyzers 4/4` (the same build with the analyzers on, cut by project in `scripts/lib/analyzer-shards.txt`, each shard skipped when the change reaches none of its projects; each shard also runs the formatter over the `.cs` files the change touched in its projects' directories — every file there when it touched the rules — and shard 1 the gate script tests and the files in no project's directory), the browser journeys when what they draw is reached, the benchmark budgets when what they measure is reached, the CLI build and templates when the CLI, a template, the kit or a project file changed. `scripts/lib/affected_gates.py` decides, from the push's OWN change — on `main`, from the head of the newest earlier run that started its gates, green or red; on a `ci/**` branch, from its merge-base with `main`; a change to the CI itself, a gate script or the package pins runs the whole set. |
+| **CI, once a day against `main`, and by hand** — `full.yml` | The whole **push** set, unscoped: build with the unit tests over its output, and the analyzer build (`run-unit-local.sh`; no formatter — no change to check, restore at 1.0), browser E2E in three shards over one `site publish` job and the Rask.Server journeys (`run-e2e-local.sh`), devtools E2E, browser SQLite E2E, data demo E2E, WASM E2E (`run-wasm-e2e-local.sh`), CLI build (`run-cli-build-e2e.sh`), templates (`run-template-e2e.sh`), the benchmark byte and allocation budgets (`run-benchmarks-local.sh`). |
 | **CI, before a release** — `release.yml` on a `v*` tag, and `ci.yml` on a `ci/release/**` branch | The push set plus the **release** set, which needs containers or a real host: watch hot reload (`run-watch-e2e.sh`), deploy, storage providers, installer, providers. |
 | **Only when you ask** | BenchmarkDotNet timings, the SQLite load gate (`run-sqlite-load-local.sh`), the Linux dev-host gate (`run-devhost-linux-local.sh`). No hook, no workflow. |
 
@@ -463,6 +465,9 @@ True of the scripts wherever they run — a CI job or your terminal.
   (`tests/Rask.DevTools.E2E.Tests`): the pill, the dock and every tab. A gate of its own because the
   devtools exist only in a **Debug** build. It sets `DOTNET_MODIFIABLE_ASSEMBLIES=debug`; a Release build, or a run without the variable,
   fails naming the script rather than passing on nothing.
+- **WASM E2E — `scripts/run-wasm-e2e-local.sh`** (push set). The browser host's own journeys
+  (`tests/Rask.Wasm.E2E.Tests`) over `tests/Rask.Wasm.Fixture.Wasm`, served from an ASP.NET host inside the
+  test process that issues the sign-in cookie: a gate of its own because nothing else publishes the fixture.
 - **Browser SQLite E2E — `scripts/run-browser-sqlite-e2e-local.sh`** and **data demo E2E —
   `scripts/run-data-demo-e2e-local.sh`** (push set). The only gates that link `e_sqlite3` natively
   into a WebAssembly bundle, so they need the `wasm-tools` workload and refuse to start without it.
@@ -496,7 +501,7 @@ True of the scripts wherever they run — a CI job or your terminal.
   CI job). Verifies the Linux half of [`https://<name>.test`](cli.md#httpsnametest) in a throwaway
   container where the CA anchors, NSS databases, `/etc/hosts` and the port sysctl are really
   modified, ending with a `curl` TLS handshake with no `--cacert`. **Not covered:** macOS and Windows.
-- **Benchmarks — `scripts/run-benchmarks-local.sh`** (CI, every push). Checks both wire-byte baselines —
+- **Benchmarks — `scripts/run-benchmarks-local.sh`** (push set). Checks both wire-byte baselines —
   the standalone codec and the head-to-head against Blazor — byte-for-byte, holds a live update to its
   allocation budget (`Baselines/allocation-budget.csv`, exact; measured with
   `DOTNET_TieredCompilation=0 DOTNET_TieredPGO=0`, which the script sets on that one process, so the count
@@ -545,7 +550,7 @@ recommendation every new project inherits, so a maintenance-only pin hands users
 stopped getting security patches.
 
 **What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
-and `scripts/tools/RaskRename`'s own), GitHub Actions (the workflows and the shared
+and `scripts/tools/RaskRename`'s and `scripts/tools/KitBundle`'s own), GitHub Actions (the workflows and the shared
 `.github/actions/setup`) and the base images of every template
 `Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
 moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
@@ -559,6 +564,7 @@ names a generator under `scripts/{upstream,flux,mdn}` that is on neither list �
 | `images.py` | `CurlImage`, the backup's `alpine`, the E2E's images, the scripts' `postgres:NN-alpine` — each to the newest tag of the same shape | Docker Hub |
 | `litestream.py` | `RaskLitestreamVersion`, its seven SHA-256s (downloaded and checked against `checksums.txt`), the templates' `litestream/litestream` image | GitHub releases |
 | `tools.py` | `RaskEsbuildVersion`, `RaskTsgoVersion` (TypeScript 7's native compiler), `RaskTailwindVersion`, with every digest in `TypeScriptToolPins.cs` / `TailwindPins.cs` recomputed from the download | the npm registry's tarball URLs, GitHub releases |
+| `chrome.py` | `RaskPdfChromeVersion` and its per-platform SHA-256s (`Rask.Pdf.ChromePin.props`) — the newest Stable a week old | Chrome for Testing |
 | `actions.py` | the action majors in the deploy workflow `rask deploy` scaffolds | GitHub releases |
 
 Not followed, on purpose: Roslyn (held to the SDK's compiler).
@@ -567,7 +573,7 @@ to `.github/workflows`.
 
 Families
 that must move together are grouped (`microsoft-extensions`, `test-tooling`, `spectre-console`,
-`sqlitepclraw`); the three `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
+`sqlitepclraw`); the two `Microsoft.CodeAnalysis.CSharp*` packages are ignored on purpose, because
 an analyzer referencing a newer Roslyn than the running `csc` is CS9057 and raises the compiler floor
 for every downstream consumer.
 
@@ -587,9 +593,10 @@ matter most are asserted by an offline unit test rather than by a comment:
 They need no network and run in the ordinary unit gate — CI's `build` job, on every push and
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
-**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (format, unit, CLI build, templates — the browser suites run on `main` after the merge), but `main` has no
-required checks, so a red run does not disable the merge button: read the run first. Then land it
-locally, not from the web UI — check the branch out and push it.
+**Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (`build`, the `analyzers K/N` shards with the formatter, CLI build, templates — the browser suites run on `main` after the merge),
+and `dependabot-merge.yml` squash-merges the pull request once that run has passed. A red one waits for a
+person: `main` has no required checks, so a red run does not disable the merge button — read the run first.
+Then land it locally, not from the web UI — check the branch out and push it.
 
 A green `commitlint` check on a Dependabot PR means its title and commits are Conventional and carry
 no trailer *other than* Dependabot's own sign-off, which CI lets through on those PRs only. The hooks

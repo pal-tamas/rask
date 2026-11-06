@@ -15,9 +15,11 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
 | **RASK023** | appends `.Alt("")` to the chain |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
-| **RASK067** | swaps ASP.NET's `[Route]` for Rask's own |
+| **RASK071** | swaps ASP.NET's `[Route]` for Rask's own |
 | **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
 | **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
+| **RASK092** | rewrites the unit to the form its count reads with (`2.Hour` → `2.Hours`) |
+| **RASK093** | awaits the call (making the method `async`), or assigns it to a discard `_ =` |
 | **RASK095** | adds the missing required steps right after the chain so far (or moves one taken too late) |
 | **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
 | **RASK104** | turns the static field or get-only auto-property into an expression-bodied property (`static Component Empty => Div;`) |
