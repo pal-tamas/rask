@@ -63,11 +63,10 @@ public sealed partial class HomePage : Component
         SiteHeader.FullBleed(false),
         Hero(),
         // Back end first. Rask is the whole stack, and the stack is what a visitor cannot get from a UI
-        // library; the components come second, then where they run, then which front end to put on it.
+        // library; the components come second, then where they run.
         WholeStackSection(),
         FrontendSection(),
         HostsSection(),
-        FrontEndsSection(),
         InstallSection(),
         FooterSection()
     ];
@@ -100,7 +99,7 @@ public sealed partial class HomePage : Component
                             Span.Class("text-accent-content")["C#"], "."
                         ],
                         P.Class(Lede)["Data, queries, auth, background jobs, email, realtime and deploy — one framework and one C# codebase, for a team of one or fifty."],
-                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly — with React, Vue or Angular components inside them as islands."],
+                        P.Class(Sub)["Declare an aggregate, query it from a page, ship it with ", Code["rask deploy"], ". The UI is C# components, live over a WebSocket or running in WebAssembly."],
                         Div.Class("mt-8 flex flex-wrap gap-3")[
                             Ui.Button.Primary.Href(PageMeta.LinkTo(Routes.GuidesIndexPage())).Id("cta-docs")["Docs"],
                             Ui.Button.Href("https://github.com/pal-tamas/rask")
@@ -143,7 +142,7 @@ public sealed partial class HomePage : Component
             body.Length == 0 ? null : P.Class(Lede)[body]
         ];
 
-    // ---- hosts & front-end lanes ----
+    // ---- hosts ----
     private static Component LaneCard(
         Ui.IconName icon, string tag, string title, string guide, string prev, params Component?[] body) =>
         NavLink
@@ -164,8 +163,17 @@ public sealed partial class HomePage : Component
             Span.Class("mt-4 block font-mono text-xs text-zinc-800 dark:text-white")[prev]
         ];
 
+    /// <summary>
+    ///     The hosts section's DOM id — the handle its tests address it by.
+    /// </summary>
+    /// <remarks>
+    /// The last section before the install steps: the three places the same components run, each card a
+    /// way into its guide. <c>HomePageTests</c> and the site journey count its cards and its place.
+    /// </remarks>
+    internal const string HostsSectionId = "hosts";
+
     private static Component HostsSection() =>
-        Section.Class(SectionPad)[
+        Section.Id(HostsSectionId).Class(SectionPad)[
             Div.Class(Wrap)[
                 SecHead("One component model · every host",
                     "Write it once. Ship it where you need it.",
@@ -177,36 +185,6 @@ public sealed partial class HomePage : Component
                         "The same component runs fully client-side on the browser's Mono/WASM runtime via JSImport/JSExport. Ships as an installable, offline PWA."),
                     LaneCard(Ui.IconName.ServerStack, "Rask.Spa.Hosting", "WebAssembly host", "deployment", "AddRaskSpaHost() · MapRaskSpa()",
                         "Serves a Rask WebAssembly app from the ASP.NET host that answers its API, cached by what its publish guarantees, with pre-compressed variants.")
-                ]
-            ]
-        ];
-
-    // ---- front ends ----
-    /// <summary>
-    ///     The front-ends section's DOM id — the handle its tests address it by.
-    /// </summary>
-    /// <remarks>
-    /// The heading counts the lanes in words ("Three front ends"), and a count written in prose is the
-    /// kind that goes stale silently — the README's equivalent section said "Three" for as long as
-    /// there were four lanes to choose between. <c>FrontEndsTests</c> slices the page at this id and
-    /// counts the cards inside it, so adding a lane without rewording the heading fails rather than
-    /// merely reads wrong.
-    /// </remarks>
-    internal const string FrontEndsSectionId = "front-ends";
-
-    private static Component FrontEndsSection() =>
-        Section.Id(FrontEndsSectionId).Class(SectionPad)[
-            Div.Class(Wrap)[
-                SecHead("Three front ends · one back end",
-                    "Bring your own components — or don't.",
-                    "Rask is a superset, not a rival: React, Preact, Solid, Vue, Svelte, Angular and Lit components, and real Blazor components, run inside C# pages as islands, against the same C# back end — mixed freely in one component tree."),
-                Div.Class("grid gap-4 md:grid-cols-3")[
-                    LaneCard(Ui.IconName.CodeBracket, "Rask", "Rask components", "render-modes", "rask new Shop",
-                        "C# components server-rendered over a WebSocket, every state change streaming as a minimal diff. Pick ", Code["-t wasm-hosted"], " and the same components publish as a WebAssembly bundle the host serves, out of the same project."),
-                    LaneCard(Ui.IconName.PuzzlePiece, "Rask.External", "Islands", "islands", "class Chart : ReactComponent",
-                        "A ", Code[".tsx"], ", ", Code[".vue"], ", ", Code[".svelte"], " or Lit file as an ordinary Rask component — props declared in C#, callbacks re-entering C#, and the live diff leaving the subtree to its own renderer."),
-                    LaneCard(Ui.IconName.RectangleStack, "Rask.Blazor", "Blazor components", "blazor-components", "class Chart : BlazorComponent<MudChart>",
-                        "A real Blazor component — MudBlazor, Radzen, your own Razor Class Library — as an ordinary Rask component, rendered into the first response with no Blazor circuit.")
                 ]
             ]
         ];

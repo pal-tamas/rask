@@ -31,7 +31,7 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
 
     /// <summary>
     ///     Where the showcase is mounted inside the one site app: the landing page owns "/", and
-    ///     everything these journeys drive — the guides, the demos, the islands — hangs off here.
+    ///     everything these journeys drive — the guides, the demos — hangs off here.
     /// </summary>
     /// <remarks>
     ///     A named prefix rather than twelve literals. The showcase has moved once already (it was a

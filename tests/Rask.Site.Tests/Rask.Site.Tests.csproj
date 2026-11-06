@@ -6,17 +6,6 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <NoWarn>$(NoWarn);RASK014</NoWarn>
-    <!--
-      This project LINKS the site's sources (below) but not its front-end files, so the island
-      generator declares every one of the site's islands here while no `.tsx`, `.vue`, `.svelte` or
-      `.ts` is anywhere near it. The unbuilt-island check then reports each of them — correctly, for a
-      real app, and meaninglessly here: nothing in this assembly is ever bundled or served, so no
-      browser can ask for a chunk it does not have.
-
-      The prop types are what that check hangs off, and they buy nothing here either: they exist for a
-      front-end file to import, and there is none.
-    -->
-    <RaskExternalPropTypes>false</RaskExternalPropTypes>
     <!-- The linked site sources call the site's ONE generated Routes class, which lands in the root namespace. -->
     <RootNamespace>Rask.Site</RootNamespace>
   </PropertyGroup>
@@ -67,7 +56,6 @@
     </Compile>
     <Compile Remove="..\..\src\Rask.Site\obj\**"/>
     <Compile Remove="..\..\src\Rask.Site\bin\**"/>
-    <Compile Remove="..\..\src\Rask.Site\node_modules\**"/>
     <Compile Remove="..\..\src\Rask.Site\Program.cs"/>
   </ItemGroup>
 
@@ -83,17 +71,7 @@
   -->
   <ItemGroup>
     <AdditionalFiles Include="..\..\src\Rask.Site\**\*.css"
-                     Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\node_modules\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Styles\**"/>
-
-    <!--
-      A package island's committed props snapshot, for the same linked-sources reason. The generator finds the
-      snapshot beside a class by its `.props.json` name and produces the class's chain steps from it; but
-      Rask.External.targets globs *.props.json under THIS project's directory, which holds none, so without this the
-      linked ColorPicker.cs compiles with no steps and IslandsDemo does not compile at all (RASK077, fatal under
-      warnings-as-errors).
-    -->
-    <AdditionalFiles Include="..\..\src\Rask.Site\**\*.props.json"
-                     Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\node_modules\**;..\..\src\Rask.Site\wwwroot\**"/>
+                     Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Styles\**"/>
   </ItemGroup>
 
   <!--
@@ -108,7 +86,7 @@
   </PropertyGroup>
   <ItemGroup>
     <_RaskScopedTs Include="..\..\src\Rask.Site\**\*.ts"
-                   Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\**\node_modules\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Resources\**;..\..\src\Rask.Site\Browser\**;..\..\src\Rask.Site\**\*.d.ts;..\..\src\Rask.Site\Features\Islands\**"/>
+                   Exclude="..\..\src\Rask.Site\bin\**;..\..\src\Rask.Site\obj\**;..\..\src\Rask.Site\wwwroot\**;..\..\src\Rask.Site\Resources\**;..\..\src\Rask.Site\Browser\**;..\..\src\Rask.Site\**\*.d.ts"/>
   </ItemGroup>
 
   <!--
@@ -150,11 +128,10 @@
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
-    <!-- The linked sources include the WASM-only demos and the islands. Rask.Wasm multi-targets
+    <!-- The linked sources include the WASM-only demos. Rask.Wasm multi-targets
          net10.0;net10.0-browser, so this net10.0 suite gets the net10.0 face of the same API — which is
          also how the prerender companion compiles these files. -->
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
-    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <!-- The Rask.Query guide demo (QueryParcelsDemo); the site gets it through the Rask meta project. -->
     <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>

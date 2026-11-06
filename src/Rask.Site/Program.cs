@@ -50,7 +50,7 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 
 // These pages contribute their sidebar entries here rather than in ShowcaseLayout's own table.
 //
-// The paths are the GENERATED route URLs, not literals. They WERE literals — "/pwa", "/islands" — and
+// The paths are the GENERATED route URLs, not literals. They WERE literals — "/pwa" among them — and
 // the day the showcase moved from / to /docs every one of them became a dead sidebar link pointing at a
 // URL with no route behind it. Nothing failed to build; the entries rendered, the links looked right,
 // and clicking one landed on "No route is registered for /pwa".
@@ -62,8 +62,6 @@ host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.Gu
 // find that twelve of them teach the same idea. PwaPage still answers all thirteen old URLs (repeated
 // [Route]), so nothing that was linked or bookmarked 404s.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.PwaPage(), "PWA & device APIs", Ui.IconName.DevicePhoneMobile, "PWA"));
-// The islands showcase: .vue/.tsx/.svelte and Lit components, mounted client-side.
-host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.IslandsPage(), "Islands", Ui.IconName.Squares2x2, "Islands"));
 // The UI kit. Its own docs are the UI tab (/ui), one page per Flux component; the docs keep a link to it.
 host.Services.AddSingleton(new ShowcaseNavEntry(Rask.Site.Routes.UiIntroductionPage(), "All UI components", Ui.IconName.Swatch, "UI kit"));
 // The docs' plain-text face for AI assistants: /llms.txt, /llms-full.txt and a .md twin beside every guide.

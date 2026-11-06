@@ -10,16 +10,15 @@ namespace Rask.Site.Tests.Pages;
 /// </summary>
 /// <remarks>
 /// The first thing under the hero used to be a byte-for-byte table against Blazor, then a UI-first
-/// "batteries" grid. Rask is the full-stack framework now, so the back end takes that place; the
-/// front-end section still says what Rask is to the frameworks it hosts — a superset, not a rival —
-/// which a head-to-head table directly contradicted.
+/// "batteries" grid. Rask is the full-stack framework now, so the back end takes that place, and the
+/// hosts the same components run on close the page.
 /// </remarks>
 public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
 {
     // Qualified throughout: inside a markup host the bare `HomePage` is the chain entry, not the type.
     private const string WholeStackId = global::Rask.Site.Pages.HomePage.WholeStackSectionId;
     private const string FrontendId = global::Rask.Site.Pages.HomePage.FrontendSectionId;
-    private const string FrontEndsId = global::Rask.Site.Pages.HomePage.FrontEndsSectionId;
+    private const string HostsId = global::Rask.Site.Pages.HomePage.HostsSectionId;
     private const int BrowserApiCount = global::Rask.Site.Pages.HomePage.BrowserApiCount;
 
     [Fact]
@@ -32,16 +31,16 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void The_back_end_comes_before_the_front_end_and_the_front_end_lanes()
+    public void The_back_end_comes_before_the_front_end_and_the_hosts()
     {
         var html = Render();
         var stack = html.IndexOf($"id=\"{WholeStackId}\"", StringComparison.Ordinal);
         var frontend = html.IndexOf($"id=\"{FrontendId}\"", StringComparison.Ordinal);
-        var lanes = html.IndexOf($"id=\"{FrontEndsId}\"", StringComparison.Ordinal);
+        var hosts = html.IndexOf($"id=\"{HostsId}\"", StringComparison.Ordinal);
 
-        Assert.True(stack >= 0 && frontend >= 0 && lanes >= 0, "a landing-page section is missing.");
+        Assert.True(stack >= 0 && frontend >= 0 && hosts >= 0, "a landing-page section is missing.");
         Assert.True(stack < frontend, "the whole-stack section does not come before the frontend section.");
-        Assert.True(frontend < lanes, "the frontend section does not come before the front-end lanes.");
+        Assert.True(frontend < hosts, "the frontend section does not come before the hosts section.");
     }
 
     [Fact]
@@ -151,9 +150,17 @@ public sealed partial class HomePageTests : global::Rask.Core.RaskMarkup
     public void The_page_does_not_say(string phrase) =>
         Assert.DoesNotContain(phrase, Render(), StringComparison.OrdinalIgnoreCase);
 
-    [Fact]
-    public void The_front_end_section_calls_Rask_a_superset() =>
-        Assert.Contains("superset", Slice(FrontEndsId), StringComparison.Ordinal);
+    [Theory]
+    [InlineData("Server", "render-modes")]
+    [InlineData("WebAssembly", "pwa")]
+    [InlineData("WebAssembly host", "deployment")]
+    public void Every_host_is_a_card_into_its_guide(string title, string guide)
+    {
+        var section = Slice(HostsId);
+
+        Assert.Contains($">{title}</h3>", section, StringComparison.Ordinal);
+        Assert.Contains($"href=\"/docs/guides/{guide}/\"", section, StringComparison.Ordinal);
+    }
 
     private static string Render() => Page.Render(() => HomePage).Html;
 

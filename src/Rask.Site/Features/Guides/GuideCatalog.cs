@@ -8,7 +8,7 @@ public static class GuideCatalog
         new("installation", "Installing Rask", "One line to the CLI and everything it needs — options, upgrade, uninstall.", "Start here")
         {
             SearchTitle = "Install the CLI and .NET 10 SDK in one command",
-            Description = "Install the rask CLI with one curl or PowerShell command. It adds the .NET SDK, dotnet-ef, wasm-tools and Node.js LTS under your home directory, no sudo.",
+            Description = "Install the rask CLI with one curl or PowerShell command. It adds the .NET SDK, dotnet-ef and the wasm-tools workload under your home directory, no sudo.",
         },
         new("getting-started", "Getting started", "Scaffold a project and build your first component.", "Start here")
         {
@@ -310,22 +310,10 @@ public static class GuideCatalog
             SearchTitle = "Calling JavaScript from C# with IJSRuntime",
             Description = "Call JavaScript from C# with an injected IJSRuntime, use typed browser APIs and element refs, and wrap a third-party JavaScript library with TypeScript types.",
         },
-        new("spa", "Single-page app front ends", "An npm-built front end built, published and served by its ASP.NET host.", "Frontend")
+        new("spa", "WebAssembly app on its host", "A Rask WebAssembly app built, published and served by its ASP.NET host.", "Frontend")
         {
-            SearchTitle = "Host a React or Vue SPA on ASP.NET Core",
-            Description = "Serve a React, Vue, Svelte or Angular single-page app from an ASP.NET Core host: dotnet build runs the npm build, publish ships the bundle, one call serves it.",
-        },
-        new("islands", "Islands",
-            "A .tsx or Lit file as an ordinary Rask component, with props owned by C#.", "Frontend")
-        {
-            SearchTitle = "React, Vue and Svelte components in a C# app",
-            Description = "Use React, Vue, Svelte, Lit or Angular components in a C# app, from your own files or straight from npm, with typed props, callbacks and hot reload.",
-        },
-        new("blazor-components", "Blazor components",
-            "A real Blazor component — MudBlazor, an RCL — hosted in a Rask page, server-rendered.", "Frontend")
-        {
-            SearchTitle = "Host MudBlazor and Radzen Blazor components in C#",
-            Description = "Render real Blazor components from Razor Class Libraries, MudBlazor or Radzen inside a C# page: in the first response, with parameters, events and @bind.",
+            SearchTitle = "Serve a C# WebAssembly app from ASP.NET Core",
+            Description = "Host a Rask WebAssembly app on the ASP.NET Core server that answers its API: one publish ships both, MapRaskSpa() serves the bundle cached and pre-compressed.",
         },
         new("tailwind", "Tailwind CSS", "Tailwind v4 compiled by dotnet build — no npm, no config file.", "Frontend")
         {
