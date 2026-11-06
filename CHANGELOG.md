@@ -971,6 +971,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The jobs test for a `.Within(…)` that runs out no longer flakes.** Its 200 ms deadline ran on the real clock
+  and raced the processor claiming the job, so on a slow runner the wait ran out before the handler had started
+  and "the job still runs" read false. The test clock can now hold its timers (`FakeTimeProvider.HoldTimers`):
+  the test waits until the handler is provably running, then moves the clock past the deadline itself.
 - **A fresh `rask new` builds without MSB3277 and its `dotnet test` passes.** The first migration added
   `Microsoft.EntityFrameworkCore.Design` with no version, so it took the newest EF on nuget.org (10.0.14) while Rask
   is built against 10.0.13: the app's test project warned twice at build and threw `FileNotFoundException` for
