@@ -356,6 +356,15 @@ internal static partial class UiApi
         new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it; in a cell, the cell's ink and size. Its children are the sentence.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> NotFound { get; } =
+    [
+        new("Ui.NotFound", typeof(UiNotFound), NotFlux, "What an address no page answers says: a warning callout with the catalog's sentence and a small button home. The built-in 404 with the kit on.",
+        [
+            new("Home", typeof(Rask.Core.Routing.RouteUrl?), "Where the button leads. The root, /, when unset.", "a route: Routes.DashboardPage()"),
+        ]),
+        new("Ui.Forbidden", typeof(UiForbidden), NotFlux, "What a page says to a signed-in reader whose account may not open it: a danger callout, an alert, with the catalog's sentence. The built-in 403 with the kit on.", []),
+    ];
+
     public static IReadOnlyList<UiApiPart> PageHeader { get; } =
     [
         new("Ui.PageHeader", typeof(UiPageHeader), NotFlux, "A page's title row: the h1, a line under it, the trail above and, as its children, the actions at the end.",
@@ -921,7 +930,7 @@ internal static partial class UiApi
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag,
-            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();

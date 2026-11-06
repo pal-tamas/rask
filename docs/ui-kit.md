@@ -757,6 +757,22 @@ Dismissing is yours too: `Controls` places the button, and what pressing it does
 is the page's. `Id`, `Class` and `Role` land on the callout itself; `Ui.CalloutText` and `Ui.CalloutLink` are
 their elements and take every element step.
 
+### Not found and forbidden
+
+**What an address no page answers and a page the reader may not open say** (owner-approved, not Flux): one sentence
+in a Flux callout, inside the app's frame. They are the built-in 404 and 403 of an app on the kit — the not-found page
+lands in the root layout by itself ([routing](routing.md#not-found-and-auth-gating)), and a page whose `[Authorize]`
+refuses a signed-in reader shows `Ui.Forbidden` in its outlet ([authentication](authentication.md#a-page-the-user-may-not-open)).
+An app draws them itself where it decides on its own:
+
+```csharp
+Ui.NotFound                                   // warning callout: „A kért oldal nem található.” + Vissza a kezdőlapra
+Ui.NotFound.Home(Routes.DashboardPage())      // the button leads there instead of /
+!Allowed ? Ui.Forbidden : Ui.Table[…]         // danger callout, role="alert": „Nincs jogosultsága az oldal megtekintéséhez.”
+```
+
+The words are the catalog's `PageNotFound`, `NotFoundBackHome` and `PageForbidden` ([localization](localization.md)).
+
 ## Tooltips
 
 `Ui.Tooltip` is [Flux's tooltip](https://fluxui.dev/components/tooltip): a line of help beside its first child,

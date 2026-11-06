@@ -2049,6 +2049,10 @@ Rask.UiFlag.Size.set -> void
 Rask.UiFlag.Src.get -> string?
 Rask.UiFlag.Src.set -> void
 Rask.UiFlag.UiFlag() -> void
+Rask.UiForbidden
+Rask.UiForbidden.Class.get -> string?
+Rask.UiForbidden.Class.set -> void
+Rask.UiForbidden.UiForbidden() -> void
 Rask.UiFormButtons
 Rask.UiFormButtons.Back.get -> Rask.Core.Routing.RouteUrl
 Rask.UiFormButtons.Back.set -> void
@@ -2345,6 +2349,12 @@ Rask.UiNavmenuItem.Variant.get -> Rask.Ui.MenuItemVariant?
 Rask.UiNavmenuItem.Variant.set -> void
 Rask.UiNavmenuSeparator
 Rask.UiNavmenuSeparator.UiNavmenuSeparator() -> void
+Rask.UiNotFound
+Rask.UiNotFound.Class.get -> string?
+Rask.UiNotFound.Class.set -> void
+Rask.UiNotFound.Home.get -> Rask.Core.Routing.RouteUrl?
+Rask.UiNotFound.Home.set -> void
+Rask.UiNotFound.UiNotFound() -> void
 Rask.UiOtp.AfterBind.get -> Rask.Core.Callback<string!>
 Rask.UiOtp.AfterBind.set -> void
 Rask.UiOtp.Autocomplete.get -> string?
@@ -3953,6 +3963,7 @@ static Rask.Ui.FileUploadDropzone.get -> Rask.UiFileUploadDropzone!
 static Rask.Ui.Filter.get -> Rask.RaskSeed_UiFilter
 static Rask.Ui.Filters.get -> Rask.UiFilters!
 static Rask.Ui.Flag.get -> Rask.UiFlag!
+static Rask.Ui.Forbidden.get -> Rask.UiForbidden!
 static Rask.Ui.FormButtons.get -> Rask.RaskSeed_UiFormButtons
 static Rask.Ui.Header.get -> Rask.UiHeader!
 static Rask.Ui.InputGroup.get -> Rask.UiInputGroup!
@@ -3979,6 +3990,7 @@ static Rask.Ui.ModalClose.get -> Rask.UiModalClose!
 static Rask.Ui.ModalTrigger.get -> Rask.RaskSeed_UiModalTrigger
 static Rask.Ui.NavmenuItem.get -> Rask.UiNavmenuItem!
 static Rask.Ui.NavmenuSeparator.get -> Rask.UiNavmenuSeparator!
+static Rask.Ui.NotFound.get -> Rask.UiNotFound!
 static Rask.Ui.OtpGroup.get -> Rask.UiOtpGroup!
 static Rask.Ui.OtpInput.get -> Rask.UiOtpInput!
 static Rask.Ui.OtpSeparator.get -> Rask.UiOtpSeparator!
@@ -4131,6 +4143,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFileUpload(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFilter(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFilters(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFlag(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiForbidden(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiFormButtons(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuCheckboxGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiMenuRadio(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -4141,6 +4154,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavlistGroup(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavlistItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavmenu(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNavmenuItem(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiNotFound(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPhone(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiRowActions(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiSidebarBrand(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -4274,6 +4288,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFileUploadDropzone(Rask
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFilter(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFilters(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFlag(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiForbidden(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiFormButtons(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInputGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiInputGroupPrefix(Rask.Core.Component! __c0) -> void
@@ -4289,6 +4304,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavlistGroup(Rask.Core.
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavlistItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavmenu(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNavmenuItem(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiNotFound(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPhone(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiRowActions(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiSidebarBrand(Rask.Core.Component! __c0) -> void
@@ -4387,6 +4403,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFileUploadDropzone(Ra
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFilter(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFilters(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFlag(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiForbidden(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiFormButtons(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInputGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiInputGroupPrefix(Rask.Core.Component! __c0, ulong __p) -> void
@@ -4403,6 +4420,7 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiNavlistItem(Rask.Core
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiNavmenu(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiNavmenuItem(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiModalTrigger(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiNotFound(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPhone(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillbox_1<T>(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPillboxInput(Rask.Core.Component! __c0, ulong __p) -> void
@@ -4639,6 +4657,8 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiFileUpload! __b, params Syste
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFileUpload! __b, string? value) -> Rask.UiFileUpload!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFlag! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiFlag!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFlag! __b, string? value) -> Rask.UiFlag!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiForbidden! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiForbidden!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiForbidden! __b, string? value) -> Rask.UiForbidden!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFormButtons! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiFormButtons!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiFormButtons! __b, string? value) -> Rask.UiFormButtons!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiHeader! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiHeader!
@@ -4753,6 +4773,8 @@ static RaskBuilderSettersRask_Ui.Class(this Rask.UiInputGroupPrefix! __b, params
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiInputGroupPrefix! __b, string? value) -> Rask.UiInputGroupPrefix!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiInputGroupSuffix! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiInputGroupSuffix!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiInputGroupSuffix! __b, string? value) -> Rask.UiInputGroupSuffix!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiNotFound! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiNotFound!
+static RaskBuilderSettersRask_Ui.Class(this Rask.UiNotFound! __b, string? value) -> Rask.UiNotFound!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiPhone! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiPhone! __b, string? value) -> Rask.UiPhone!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiPillboxInput! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPillboxInput!
@@ -5645,6 +5667,7 @@ static RaskBuilderSettersRask_Ui.Gutter(this Rask.UiChartSvg! __b, string? value
 static RaskBuilderSettersRask_Ui.Header(this Rask.UiKanbanCard! __b, Rask.Core.Component? value) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.Header<T>(this Rask.UiComposer<T>! __b, Rask.Core.Component? value) -> Rask.UiComposer<T>!
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiConfirm! __b, string? value) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Home(this Rask.UiNotFound! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiNotFound!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatetimePicker! __b, string? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Id(this Rask.UiDatetimePickerRange! __b, string? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.Indent(this Rask.UiNavmenuItem! __b) -> Rask.UiNavmenuItem!

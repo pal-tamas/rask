@@ -167,18 +167,7 @@ public static class RouteRegistry
                 return _treeCache;
             }
 
-            var effective = Flatten();
-            if (!HasCatchAll(effective) && _defaultFallback is not null)
-            {
-                effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, null));
-            }
-
-            var byParent = effective.ToLookup(r => r.Parent);
-
-            Route Build(RouteRegistration r) =>
-                new(r.PageType, r.Template, byParent[r.PageType].Select(Build).ToArray());
-
-            _treeCache = byParent[null].Select(Build).ToArray();
+            _treeCache = BuildFrom(Flatten());
             return _treeCache;
         }
     }
@@ -274,13 +263,14 @@ public static class RouteRegistry
         return all;
     }
 
-    // Caller holds _lock. Shares BuildTree's shape, including the fallback rule, so a subset behaves
-    // like a table in its own right rather than like a filtered view of somebody else's.
+    // Caller holds _lock. The whole table and every subset are built here, fallback rule included, so a subset
+    // behaves like a table in its own right rather than like a filtered view of somebody else's.
     private static Route[] BuildFrom(List<RouteRegistration> effective)
     {
+        // Inside the app's frame, as an app's own [NotFound, ParentRoute(typeof(Layout))] is: the menu stays in reach.
         if (!HasCatchAll(effective) && _defaultFallback is not null)
         {
-            effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, null));
+            effective.Add(new RouteRegistration(_defaultFallback, DefaultFallbackTemplate, RootLayout(effective)));
         }
 
         var byParent = effective.ToLookup(r => r.Parent);
@@ -376,6 +366,39 @@ public static class RouteRegistry
         }
 
         return mountOnly;
+    }
+
+    // The layout every page of the app is drawn in: the one route at "/" with no parent that other routes nest under.
+    // Null when there is none — the built-in page then stands alone, as it always has — or when two would claim it.
+    private static Type? RootLayout(List<RouteRegistration> registrations)
+    {
+        var parents = new HashSet<Type>();
+        foreach (var registration in registrations)
+        {
+            if (registration.Parent is { } parent)
+            {
+                parents.Add(parent);
+            }
+        }
+
+        Type? root = null;
+        foreach (var registration in registrations)
+        {
+            if (registration.Parent is not null || registration.Template.Trim('/').Length != 0
+                || registration.PageType == root || !parents.Contains(registration.PageType))
+            {
+                continue;
+            }
+
+            if (root is not null)
+            {
+                return null;
+            }
+
+            root = registration.PageType;
+        }
+
+        return root;
     }
 
     private static bool HasCatchAll(List<RouteRegistration> registrations)

@@ -275,6 +275,8 @@ public sealed class FluxConformanceTests
         [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's pencil and bin, as Flux draws a row's action (#1298)",
         [typeof(UiEmpty)] = "the owner, 2026-11-04: a list's empty state, as Flux's account overview demo draws its empty row (#1283, TA gap B3)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",
+        [typeof(UiNotFound)] = "the owner, 2026-11-06: the built-in 404 inside the app's frame, as Flux's warning callout (TA+Eszaf survey, step 10)",
+        [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
     };
 
     /// <summary>

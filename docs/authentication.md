@@ -1030,6 +1030,14 @@ A page whose `[Authorize]` refuses a **signed-in** user is not left: the address
 render as usual, and its outlet says *You do not have permission to view this page.* (`PageForbidden`) — on
 the first request (answered 403), on an in-app navigation, and on a page whose role was taken away while it
 was open. The layouts' own buttons keep working. Someone **not signed in** is still sent to sign in, as before.
+With the UI kit on, the sentence is `Ui.Forbidden` — Flux's danger callout, an alert — and a page that decides for
+itself who may see it draws the same in place of its content, with the same words in a refused save's toast:
+
+```csharp
+protected override Component? Render() => !Allowed ? Ui.Forbidden : Ui.Table[…];
+
+Toast.Error(RaskStrings.Get(RaskString.PageForbidden, "You do not have permission to view this page."));
+```
 
 ```csharp
 [Route("/admin")] [Authorize] public sealed partial class AdminLayout : Component { … Outlet … }

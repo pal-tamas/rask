@@ -16,8 +16,21 @@ internal sealed class RaskDocumentDefaults(
     TimeSpan? toastDuration = null,
     bool toastsTimeThemselves = false,
     bool toastsKeepTheirPlace = false,
-    Func<string?>? appStylesheetVersion = null)
+    Func<string?>? appStylesheetVersion = null,
+    Func<Component>? notFound = null,
+    Func<Component>? forbidden = null)
 {
+    /// <summary>The defaults of the app the work in progress renders for; null outside a render, or for a host that registers none.</summary>
+    internal static RaskDocumentDefaults? Current =>
+        LiveRenderContext.Current?.Services?.GetService(typeof(RaskDocumentDefaults)) as RaskDocumentDefaults;
+
+    // What the built-in not-found page draws inside the app's frame (Ui.NotFound with the kit on); null draws Rask's own.
+    public Func<Component>? NotFound { get; } = notFound;
+
+    // What stands in the outlet of a page the signed-in person may not open (Ui.Forbidden with the kit on); null draws
+    // Rask's own sentence.
+    public Func<Component>? Forbidden { get; } = forbidden;
+
     // The app sheet's content hash, asked at each document so a rebuilt sheet gets a new address; null where
     // the host does not serve the sheet itself (WASM), and then the link carries no ?v=.
     public Func<string?>? AppStylesheetVersion { get; } = appStylesheetVersion;

@@ -46,6 +46,53 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     }
 
     [Fact]
+    public void The_fallback_nests_under_the_root_layout_the_apps_pages_share()
+    {
+        RouteRegistry.SetDefaultFallback(typeof(Fallback));
+        RouteRegistry.Add(new[]
+        {
+            new RouteRegistration(typeof(Layout), "/", null),
+            new RouteRegistration(typeof(Home), "", typeof(Layout)),
+        });
+
+        var tree = RouteRegistry.BuildTree();
+
+        var layout = Assert.Single(tree);
+        Assert.Equal(typeof(Layout), layout.PageType);
+        Assert.Contains(layout.SubRoutes!, r => r.PageType == typeof(Fallback));
+    }
+
+    [Fact]
+    public void A_home_page_with_nothing_under_it_leaves_the_fallback_at_the_top()
+    {
+        RouteRegistry.SetDefaultFallback(typeof(Fallback));
+        RouteRegistry.Add(new[] { new RouteRegistration(typeof(Home), "/", null) });
+
+        var tree = RouteRegistry.BuildTree();
+
+        Assert.All(tree, r => Assert.Empty(r.SubRoutes ?? []));
+        Assert.Contains(tree, r => r.PageType == typeof(Fallback));
+    }
+
+    [Fact]
+    public void Two_layouts_at_the_root_leave_the_fallback_at_the_top()
+    {
+        RouteRegistry.SetDefaultFallback(typeof(Fallback));
+        RouteRegistry.Add(new[]
+        {
+            new RouteRegistration(typeof(Layout), "/", null),
+            new RouteRegistration(typeof(Home), "", typeof(Layout)),
+            new RouteRegistration(typeof(OtherLayout), "/", null),
+            new RouteRegistration(typeof(Other), "other", typeof(OtherLayout)),
+        });
+
+        var tree = RouteRegistry.BuildTree();
+
+        Assert.Contains(tree, r => r.PageType == typeof(Fallback));
+        Assert.All(tree, r => Assert.DoesNotContain(r.SubRoutes ?? [], child => child.PageType == typeof(Fallback)));
+    }
+
+    [Fact]
     public void Reset_clears_the_fallback()
     {
         RouteRegistry.SetDefaultFallback(typeof(Fallback));
@@ -74,6 +121,21 @@ public class RouteRegistryDefaultFallbackTests : IDisposable
     }
 
     private sealed class Home : Component
+    {
+        protected override Component? Render() => this;
+    }
+
+    private sealed class Layout : Component
+    {
+        protected override Component? Render() => this;
+    }
+
+    private sealed class OtherLayout : Component
+    {
+        protected override Component? Render() => this;
+    }
+
+    private sealed class Other : Component
     {
         protected override Component? Render() => this;
     }

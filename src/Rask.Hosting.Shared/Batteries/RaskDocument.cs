@@ -40,7 +40,10 @@ internal static class RaskDocument
             toastsTimeThemselves: kit,
             // …and keeps its host on the page with no toast showing, so one arriving is a diff.
             toastsKeepTheirPlace: kit,
-            appStylesheetVersion: appStylesheetVersion);
+            appStylesheetVersion: appStylesheetVersion,
+            // The built-in 404 and 403, inside the app's frame: the kit's callouts with the kit on, Rask's own without it.
+            notFound: kit ? () => Ui.NotFound : null,
+            forbidden: kit ? () => Ui.Forbidden : null);
 
     private static string? Metadata(Assembly app, string key) =>
         app.GetCustomAttributes<AssemblyMetadataAttribute>()
