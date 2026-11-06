@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Rask.Core.Tests.Dom;
 
 /// <summary>
-/// The snapshot's <c>css</c> section: what <c>scripts/mdn/css.mjs</c> reduces each property's value grammar to.
+/// The snapshot's <c>css</c> section: what <c>scripts/mdn/css.py</c> reduces each property's value grammar to.
 /// These read the committed data, so a refresh that changes how a grammar is read fails here, by name.
 /// </summary>
 public sealed class CssSnapshotTests

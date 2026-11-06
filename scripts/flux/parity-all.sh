@@ -26,13 +26,13 @@ rm -f "$pinned"
 dotnet build scripts/flux/Flux -c Release -m:2 -nodeReuse:false > "$out/flux-build.log" 2>&1 \
   || { echo "parity-all: could not build the harness"; tail -20 "$out/flux-build.log"; exit 1; }
 export FLUX="$PWD/scripts/flux/Flux/bin/Release/net10.0/flux.dll"
-node scripts/flux/parity-chart.mjs --measure > "$out/chart-measure.log" 2>&1
+dotnet "$FLUX" parity-chart --measure > "$out/chart-measure.log" 2>&1
 [ -s "$pinned" ] || { echo "parity-all: could not pin the chart's load"; tail -20 "$out/chart-measure.log"; exit 1; }
 dotnet test tests/Rask.Ui.Tests -m:2 -nodeReuse:false -p:RaskMdnRefresh=false --filter FluxParityPages > "$out/pages.log" 2>&1 \
   || { echo "parity-all: could not write the Rask pages"; tail -20 "$out/pages.log"; exit 1; }
 
 checks() {
-  # Every docs page, desktop and phone (layouts are measured at both widths by parity.mjs itself).
+  # Every docs page, desktop and phone (layouts are measured at both widths by `parity` itself).
   python3 -c '
 import json
 for p in json.load(open("tests/Rask.Ui.Tests/Flux/flux.snapshot.json"))["pages"]:
@@ -45,38 +45,38 @@ for p in json.load(open("tests/Rask.Ui.Tests/Flux/flux.snapshot.json"))["pages"]
     if p["kind"] != "layouts":
         print(f"parity {page} --refresh --view 390x844{given}")'
   cat <<'EOF'
-parity-autocomplete.mjs --refresh
-parity-autocomplete.mjs --refresh --view 390x844
-parity-carousel.mjs
-parity-carousel.mjs --view 390x844
-parity-color-picker.mjs --refresh
-parity-command.mjs --refresh
-parity-command.mjs --refresh --view 390x844
-parity-date.mjs date-picker --refresh
-parity-date.mjs time-picker --refresh
-parity-date.mjs datetime-picker --refresh
-parity-editor.mjs
-parity-editor.mjs --view 390x844
+parity-autocomplete --refresh
+parity-autocomplete --refresh --view 390x844
+parity-carousel
+parity-carousel --view 390x844
+parity-color-picker --refresh
+parity-command --refresh
+parity-command --refresh --view 390x844
+parity-date date-picker --refresh
+parity-date time-picker --refresh
+parity-date datetime-picker --refresh
+parity-editor
+parity-editor --view 390x844
 parity empty-state --refresh --prepare empty-state
 parity empty-state --refresh --prepare empty-state --view 390x844
-parity-focus.mjs --webkit
-parity-menu.mjs dropdown --refresh
-parity-menu.mjs context --refresh
-parity-menu.mjs dropdown --refresh --view 390x844
-parity-menu.mjs context --refresh --view 390x844
-parity-modal.mjs --refresh
-parity-phone.mjs --refresh
-parity-phone.mjs --refresh --view 390x844
-parity-pillbox.mjs --refresh
-parity-pillbox.mjs --refresh --view 390x844
-parity-popover.mjs --refresh
-parity-popover.mjs --refresh --view 390x844
-parity-select.mjs --refresh
-parity-select.mjs --refresh --view 390x844
-parity-toast.mjs
-parity-toast.mjs --view 390x844
-parity-tooltip.mjs --refresh
-parity-tooltip.mjs --refresh --view 390x844
+parity-focus --webkit
+parity-menu dropdown --refresh
+parity-menu context --refresh
+parity-menu dropdown --refresh --view 390x844
+parity-menu context --refresh --view 390x844
+parity-modal --refresh
+parity-phone --refresh
+parity-phone --refresh --view 390x844
+parity-pillbox --refresh
+parity-pillbox --refresh --view 390x844
+parity-popover --refresh
+parity-popover --refresh --view 390x844
+parity-select --refresh
+parity-select --refresh --view 390x844
+parity-toast
+parity-toast --view 390x844
+parity-tooltip --refresh
+parity-tooltip --refresh --view 390x844
 chart
 EOF
 }
@@ -86,10 +86,8 @@ run() {
   name=$(echo "$*" | tr ' /' '__')
   if [ "$1" = chart ]; then
     { dotnet "$FLUX" parity chart && dotnet "$FLUX" parity chart --view 390x844 \
-        && node scripts/flux/parity-chart.mjs && node scripts/flux/parity-chart.mjs --view 390x844 \
-        && node scripts/flux/parity-chart.mjs --pointer && node scripts/flux/parity-chart.mjs --pointer --view 390x844; } > "$OUT/$name.log" 2>&1
-  elif [ "${1%.mjs}" != "$1" ]; then
-    node "scripts/flux/$1" "${@:2}" > "$OUT/$name.log" 2>&1
+        && dotnet "$FLUX" parity-chart && dotnet "$FLUX" parity-chart --view 390x844 \
+        && dotnet "$FLUX" parity-chart --pointer && dotnet "$FLUX" parity-chart --pointer --view 390x844; } > "$OUT/$name.log" 2>&1
   else
     # A check of the harness: its command and arguments (README.md in scripts/flux/Flux).
     dotnet "$FLUX" "$@" > "$OUT/$name.log" 2>&1

@@ -666,7 +666,7 @@ internal static class DomEmitter
             remarks.Add("<b>Experimental.</b>");
         }
 
-        // On no standards track: scripts/mdn/refresh.mjs admits these by name only (NON_STANDARD).
+        // On no standards track: scripts/mdn/refresh.py admits these by name only (NON_STANDARD).
         if (data["nonStandard"]?.AsBoolean() == true)
         {
             remarks.Add("<b>Non-standard.</b>");
