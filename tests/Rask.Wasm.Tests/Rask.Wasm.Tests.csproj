@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!--
-      This project has no scoped component assets. Its .ts files are the Node fixtures below, which
-      drive the built browser bundle in a subprocess — so the scoped-TS glob must not claim them and
+      This project has no scoped component assets. Its .ts files are the script fixtures below, which
+      drive the built browser bundle on an in-process JS engine — so the scoped-TS glob must not claim them and
       RASK017 must not ask them to name a component they are not paired with.
 
       A property rather than an item Remove: the csproj body evaluates before Directory.Build.targets
@@ -40,11 +40,6 @@
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit.v3"/>
-    <!--
-      So a test that cannot run reports SKIPPED rather than passing. BootFailureReportingTests needs
-      node on PATH; without this it would have to return early and report green, which is the exact
-      shape of "gate that silently didn't run" the tests in this project exist to prevent.
-    -->
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -73,23 +68,22 @@
   </ItemGroup>
 
   <!--
-    The Node fixtures. Each JSInterop/*Fixture.ts drives the BUILT browser bundle under Node with a
-    stub DOM, and its C# test asserts the JSON it prints — the browser-side halves of the boot-failure
-    surface and the head-asset gate, neither of which a C# assertion over the file's text could reach.
+    The script fixtures. Each JSInterop/*Fixture.ts drives the BUILT browser bundle with a stub DOM,
+    in-process on Jint (ScriptFixture.Run), and its C# test asserts the value it reports — the browser-side
+    halves of the boot-failure surface and the head-asset gate, neither of which a C# assertion over the
+    file's text could reach.
 
     Bundled during the BUILD rather than from the test, so a fixture that no longer compiles fails the
-    build with the compiler's message instead of failing a test with node's. They take the bundle's
-    path as an argument and import it at runtime, so nothing here depends on the framework sources.
+    build with the compiler's message instead of failing a test. They take the bundle's path as an
+    argument and import it at runtime, so nothing here depends on the framework sources.
   -->
   <ItemGroup>
-    <_RaskNodeFixture Include="JSInterop\*Fixture.ts"/>
+    <_RaskScriptFixture Include="JSInterop\*Fixture.ts"/>
     <!-- OfflineCacheFixture imports this one source directly; an edit to it has to re-bundle the fixture. -->
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Wasm\Resources\rask-offline-cache.ts"/>
+    <_RaskScriptFixtureDependency Include="..\..\src\Rask.Wasm\Resources\rask-offline-cache.ts"/>
   </ItemGroup>
 
-  <!-- Bundled by the target every fixture-running test project shares; node20 covers the top-level await both
-       fixtures use to import the bundle under test. -->
-  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
+  <Import Project="..\Rask.TestSupport\ScriptFixtures.targets"/>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test

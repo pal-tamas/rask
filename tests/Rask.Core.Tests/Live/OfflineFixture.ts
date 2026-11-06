@@ -1,8 +1,9 @@
-// Node-driven fixture for rask-offline.ts — `data-rask-offline` on <html> while the page cannot reach its app.
+// Script fixture for rask-offline.ts — `data-rask-offline` on <html> while the page cannot reach its app.
 //
 // A window that keeps its listeners and a <html> that keeps its attributes, and a navigator the fixture turns offline
-// by hand, as the browser would. The C# test (OfflineMarkClientTests) runs this in a node subprocess and asserts the
-// JSON line.
+// by hand, as the browser would. The C# test (OfflineMarkClientTests) runs this on Jint and asserts what it reports.
+
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
 const listeners: Record<string, (() => void)[]> = {};
 const attributes = new Set<string>();
@@ -36,11 +37,11 @@ const browserBackButSocketStillDown = marked();
 connectionIs(false);
 const afterTheSocketReopened = marked();
 
-process.stdout.write(JSON.stringify({
+report({
     online,
     afterTheBrowserWentOffline,
     afterItCameBack,
     whileTheConnectionIsDown,
     browserBackButSocketStillDown,
     afterTheSocketReopened,
-}) + "\n");
+});

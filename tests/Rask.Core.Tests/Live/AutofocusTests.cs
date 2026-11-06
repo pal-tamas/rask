@@ -6,21 +6,18 @@ namespace Rask.Core.Tests.Live;
 ///     Which <c>autofocus</c> element a frame the runtime just applied gives focus to, and when it gives it to none.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-autofocus.ts</c> in a Node subprocess against a stub page
+///     Drives the production <c>rask-autofocus.ts</c> in-process on Jint against a stub page
 ///     (<c>AutofocusFixture.ts</c>). The hosts' wiring — after which frame it is asked, and what the route's own
 ///     focus does then — is covered in a real browser by <c>AutofocusJourneyTests</c>.
 /// </remarks>
 public sealed class AutofocusTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("AutofocusFixture");
+    private static JsonElement Run() => ScriptFixture.Run("AutofocusFixture");
 
     [Fact]
     public void What_the_document_was_served_with_is_the_browsers_to_focus_and_no_render_focuses_it()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var served = root.GetProperty("served");
 
@@ -31,10 +28,7 @@ public sealed class AutofocusTests
     [Fact]
     public void A_navigation_focuses_the_first_autofocus_element_on_screen_and_enabled_even_one_the_frame_kept()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var navigation = root.GetProperty("navigation");
 
@@ -47,10 +41,7 @@ public sealed class AutofocusTests
     [Fact]
     public void A_navigation_to_a_page_with_no_autofocus_element_takes_no_focus_so_the_routes_own_goes_ahead()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var none = root.GetProperty("none");
 
@@ -61,10 +52,7 @@ public sealed class AutofocusTests
     [Fact]
     public void A_page_reached_at_a_fragment_keeps_focus_for_the_fragment_and_owes_its_autofocus_element_none_later()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var fragment = root.GetProperty("fragment");
 
@@ -76,10 +64,7 @@ public sealed class AutofocusTests
     [Fact]
     public void An_element_that_arrives_with_autofocus_is_focused_once_and_one_that_keeps_it_is_not_focused_again()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var arrival = root.GetProperty("arrival");
 
@@ -93,10 +78,7 @@ public sealed class AutofocusTests
     [Fact]
     public void An_arrival_takes_nothing_from_a_field_the_reader_is_typing_in_and_is_not_focused_afterwards_either()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var typing = root.GetProperty("whileTyping");
 
@@ -111,10 +93,7 @@ public sealed class AutofocusTests
     [Fact]
     public void An_arrival_is_focused_from_a_control_that_takes_no_text()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var controls = root.GetProperty("whileNotTyping");
 
@@ -127,10 +106,7 @@ public sealed class AutofocusTests
     [Fact]
     public void An_element_that_arrives_off_screen_is_left_to_whatever_shows_it()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var closed = root.GetProperty("closed");
 
@@ -143,10 +119,7 @@ public sealed class AutofocusTests
     [Fact]
     public void Back_focuses_only_what_arrived_and_leaves_the_scroll_to_the_browser()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var back = root.GetProperty("back");
 

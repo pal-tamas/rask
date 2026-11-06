@@ -1,9 +1,9 @@
-// Node-driven fixture for rask-input.ts — what is typed into a field while .NET still owes it an answer.
+// Script fixture for rask-input.ts — what is typed into a field while .NET still owes it an answer.
 //
 // The host here answers when the fixture says so, which is the slow path a browser only reaches under load:
-// a page whose render takes longer than a key. The C# test (InputHoldTests) runs this in a node subprocess
-// and asserts the JSON line.
+// a page whose render takes longer than a key. The C# test (InputHoldTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {frame, listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
@@ -99,7 +99,7 @@ type(field, "At");
 type(field, "Atl");
 const unansweredHost = sent.slice();
 
-process.stdout.write(JSON.stringify({
+report({
     whileOwed,
     afterAnswer,
     afterAllAnswered,
@@ -113,4 +113,4 @@ process.stdout.write(JSON.stringify({
     heldAcrossFrame,
     frameAnswered,
     unansweredHost,
-}) + "\n");
+});

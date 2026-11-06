@@ -1,21 +1,20 @@
-// Drives the BUILT src/Rask.Wasm/Browser/rask-sw.js under Node with a stub `self`, `caches` and
+// Drives the BUILT src/Rask.Wasm/Browser/rask-sw.js on Jint with a stub `self`, `caches` and
 // `fetch`, and reports — per request — what the worker answered with and how often it went to the
 // network. Companion to ServiceWorkerCacheTests.cs.
 //
-// Usage:  node ServiceWorkerCacheFixture.mjs <path-to-rask-sw.js>
+// Arguments (ScriptFixture.Run):  <path-to-rask-sw.js>
 //
 // Each case runs against a fresh worker and a fresh cache, so no case can be answered by a response
 // an earlier one stored.
-import {readFileSync} from "node:fs";
+import {args, readText, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const workerPath = process.argv[2];
+const workerPath = args[0];
 if (!workerPath) {
-    console.error("usage: node ServiceWorkerCacheFixture.mjs <rask-sw.js path>");
-    process.exit(2);
+    throw new Error("ServiceWorkerCacheFixture takes: <rask-sw.js path>");
 }
 
 const ORIGIN = "https://app.test";
-const workerSource = readFileSync(workerPath, "utf8");
+const workerSource = readText(workerPath);
 
 interface StubResponse {
     ok: boolean;
@@ -131,4 +130,4 @@ for (const [name, c] of Object.entries(cases)) {
     results[name] = await run(c);
 }
 
-process.stdout.write(JSON.stringify(results) + "\n");
+report(results);

@@ -8,21 +8,18 @@ namespace Rask.Core.Tests.Live;
 /// </summary>
 /// <remarks>
 ///     Drives the production <c>rask-field.ts</c>, <c>rask-otp.ts</c>, <c>rask-menu.ts</c> and <c>rask-owned.ts</c>
-///     in a Node subprocess (<c>RuntimeHooksFixture.ts</c>). The expected strings are what Flux UI's live input
+///     in-process on Jint (<c>RuntimeHooksFixture.ts</c>). The expected strings are what Flux UI's live input
 ///     page produced for the same keys on 2026-10-07; the pointer, focus and top-layer half of every hook is
 ///     driven in a real browser by the <c>RuntimeHook*Tests</c> of <c>Rask.Server.E2E.Tests</c>.
 /// </remarks>
 public sealed class RuntimeHookShapingTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("RuntimeHooksFixture");
+    private static JsonElement Run() => ScriptFixture.Run("RuntimeHooksFixture");
 
     [Fact]
     public void A_pattern_drops_what_does_not_fit_and_writes_a_literal_only_before_a_character()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var pattern = root.GetProperty("pattern");
 
@@ -38,10 +35,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_character_typed_in_the_middle_of_a_pattern_keeps_the_caret_behind_it()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var inserted = root.GetProperty("pattern").GetProperty("inserted");
 
@@ -52,10 +46,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void An_amount_is_grouped_as_it_is_typed_and_keeps_two_decimals()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var money = root.GetProperty("money");
         var steps = money.GetProperty("steps").EnumerateArray().Select(e => e.GetString()).ToArray();
@@ -69,10 +60,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void An_amount_takes_its_marks_and_its_decimals_from_the_attribute()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var money = root.GetProperty("money");
 
@@ -84,10 +72,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_one_time_code_keeps_only_the_characters_its_mode_accepts()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var otp = root.GetProperty("otp");
 
@@ -99,10 +84,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void The_safe_area_is_the_triangle_from_the_pointer_to_the_near_edge_of_the_flyout()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var right = root.GetProperty("area").GetProperty("right");
         var left = root.GetProperty("area").GetProperty("left");
@@ -119,10 +101,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_key_list_names_keys_as_the_browser_does_with_Space_and_Arrows_as_its_two_words()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var listed = root.GetProperty("keys").GetProperty("listed").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
 
@@ -132,10 +111,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_roving_group_wraps_at_both_ends_and_a_list_scrolls_by_the_least_that_shows_the_row()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var keys = root.GetProperty("keys");
 
@@ -146,10 +122,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_search_finds_its_words_anywhere_in_a_row_whatever_the_case_or_the_accents_and_in_its_keywords()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var list = root.GetProperty("list");
         var search = list.GetProperty("search").EnumerateArray().Select(Words).ToArray();
@@ -166,10 +139,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void The_create_row_is_offered_once_what_is_typed_is_long_enough_and_names_no_option()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var offered = root.GetProperty("list").GetProperty("create").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
 
@@ -180,10 +150,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void The_arrows_step_over_a_row_that_is_off_and_stop_at_either_end_and_letters_jump_to_the_row_that_starts_with_them()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var list = root.GetProperty("list");
 
@@ -198,10 +165,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_pointer_becomes_a_fraction_of_the_track_inside_the_inset_and_never_leaves_zero_to_one()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var drag = root.GetProperty("drag");
 
@@ -212,10 +176,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_required_global_is_a_plain_identifier_the_scope_has_and_nothing_else()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var provided = root.GetProperty("requires").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
 
@@ -225,10 +186,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void Upload_progress_is_a_whole_percent_rounded_down_and_never_over_a_hundred()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var progress = root.GetProperty("progress").EnumerateArray().Select(e => e.GetString()).ToArray();
 
@@ -238,10 +196,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void The_row_nearest_the_pointer_changes_at_the_midpoint_and_a_tooltip_flips_when_it_would_leave_the_frame()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var plot = root.GetProperty("plot");
 
@@ -253,10 +208,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_plots_text_reads_its_rows_line_and_a_box_half_a_pixel_off_is_the_box_the_field_says()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var plot = root.GetProperty("plot");
 
@@ -267,10 +219,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_digit_no_second_could_follow_finishes_its_part_and_one_too_many_starts_the_part_again()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var segments = root.GetProperty("segments");
         string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
@@ -284,10 +233,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_short_year_lands_within_twenty_years_ahead_and_a_pasted_date_is_read_in_the_order_of_the_parts()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var segments = root.GetProperty("segments");
         string?[] Texts(string name) => segments.GetProperty(name).EnumerateArray().Select(e => e.GetString()).ToArray();
@@ -300,10 +246,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_hook_holds_one_attribute_of_one_element_until_it_lets_go()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var owned = root.GetProperty("owned");
 
@@ -321,10 +264,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_panel_with_room_lands_where_it_asked_and_one_without_takes_the_other_side_or_the_other_alignment()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var place = root.GetProperty("place");
         var over = place.GetProperty("over").EnumerateArray().Select(Landed).ToArray();
@@ -341,10 +281,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_panel_within_five_pixels_of_an_edge_is_slid_back_and_one_wider_than_the_viewport_keeps_its_start_in_view()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var place = root.GetProperty("place");
         var phone = place.GetProperty("phone").EnumerateArray().Select(Landed).ToArray();
@@ -358,10 +295,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void An_offset_turns_with_the_alignment_and_a_panel_beside_its_trigger_turns_to_the_other_side()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var place = root.GetProperty("place");
         var offset = place.GetProperty("offset").EnumerateArray().Select(Landed).ToArray();
@@ -375,10 +309,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_panel_taller_than_the_room_takes_the_roomier_side_and_is_held_to_what_is_left_five_pixels_from_the_edge()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var place = root.GetProperty("place");
         var tall = place.GetProperty("tall").EnumerateArray().Select(Landed).ToArray();
@@ -393,10 +324,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_menu_at_the_pointer_reaches_back_from_it_and_opens_over_it_at_the_bottom_of_the_viewport()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var pointer = root.GetProperty("place").GetProperty("pointer").EnumerateArray().Select(Landed).ToArray();
 
@@ -408,10 +336,7 @@ public sealed class RuntimeHookShapingTests
     [Fact]
     public void A_button_says_it_copied_for_as_long_as_Flux_shows_its_tick()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var shown = root.GetProperty("copiedMs").GetInt32();
 

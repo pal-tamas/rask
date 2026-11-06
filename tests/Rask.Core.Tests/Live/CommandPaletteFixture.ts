@@ -1,15 +1,16 @@
-// Node-driven fixture for the runtime's command palette (Rask.Core/Resources/rask-command.ts): which commands
+// Script fixture for the runtime's command palette (Rask.Core/Resources/rask-command.ts): which commands
 // a query leaves (`matches`) and which command an arrow lights (`stepTo`). The C# test
-// (CommandPaletteTests) runs this and asserts the one JSON line it prints.
+// (CommandPaletteTests) runs this and asserts what it reports.
 //
 // No document is installed, so the module adds no listener on load and only the rules are exercised — hiding
 // the rows and lighting one needs a browser and is UiCommandBrowserTests' in Rask.Server.E2E.Tests.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {matches, stepTo} from "../../../src/Rask.Core/Resources/rask-command.js";
 
 const middleOff = [true, false, true, true];
 
-console.log(JSON.stringify({
+report({
     plain: matches("New invoice", "inv"),
     anyCase: matches("New invoice", "NEW"),
     accentInTheCommand: matches("R\u00e9glages", "reglages"),
@@ -25,4 +26,4 @@ console.log(JSON.stringify({
     onlyOne: stepTo([false, true, false], 1, 1),
     none: stepTo([false, false], -1, 1),
     empty: stepTo([], -1, 1),
-}));
+});

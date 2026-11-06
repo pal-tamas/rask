@@ -1,10 +1,12 @@
-// Node-driven fixture for rask-leave.ts — when a form that asks before it is left (data-rask-confirm-leave)
+// Script fixture for rask-leave.ts — when a form that asks before it is left (data-rask-confirm-leave)
 // counts as unsaved.
 //
 // The guard listens on the document as it is imported, so the page it finds is made first: a document that
 // keeps its listeners and its forms, a window that says what listens for `beforeunload`, and an observer the
 // fixture fires by hand, as the browser would after a render changed an attribute. The C# test
-// (ConfirmLeaveClientTests) runs this in a node subprocess and asserts the JSON line.
+// (ConfirmLeaveClientTests) runs this on Jint and asserts what it reports.
+
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
 type Heard = (e: Raised) => void;
 
@@ -197,7 +199,7 @@ raise("input", new Stub("input", {}, form));
 dialog.open = false;
 const inAClosedDialog = unsavedMessage(doc);
 
-process.stdout.write(JSON.stringify({
+report({
     escapeUntouchedRefused,
     inTheDialog,
     escapeRefused,
@@ -219,4 +221,4 @@ process.stdout.write(JSON.stringify({
     afterSearching,
     afterTheRuntimeWroteAField,
     afterTypingBesideTheSearch,
-}) + "\n");
+});

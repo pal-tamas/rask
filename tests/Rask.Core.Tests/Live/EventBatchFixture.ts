@@ -1,9 +1,9 @@
-// Node-driven fixture for rask-batch.ts — the events one task produces leave as one frame.
+// Script fixture for rask-batch.ts — the events one task produces leave as one frame.
 //
 // The host here is the smallest one that batches the way both runtimes do: a handler event is held until the
-// task ends, anything else is sent at once behind what was held. The C# test (EventBatchTests) runs this in a
-// node subprocess and asserts the JSON line.
+// task ends, anything else is sent at once behind what was held. The C# test (EventBatchTests) runs this on Jint and asserts what it reports.
 
+import {nextTask, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
@@ -30,10 +30,10 @@ function send(payload: unknown): unknown {
 
 setHost({send, inRoot: () => true});
 
-// The end of the task: every microtask queued so far has run. Node's own next task, since the page's timers
+// The end of the task: every microtask queued so far has run. The host's own next task, since the page's timers
 // are the fixture's (stub-events.ts) and only run when a test lets time pass.
 async function taskEnds(): Promise<void> {
-    await new Promise<void>(function (done) { setImmediate(done); });
+    await nextTask();
 }
 
 async function answer(): Promise<void> {
@@ -172,7 +172,7 @@ await taskEnds();
 pageApplied({v: 0});
 const madeAgain = frames.slice();
 
-process.stdout.write(JSON.stringify({
+report({
     pagesNamed,
     madeAgain,
     editThenInput,
@@ -190,4 +190,4 @@ process.stdout.write(JSON.stringify({
     typedThenClicked,
     heldWhileOwed,
     sentOnceAnswered,
-}));
+});

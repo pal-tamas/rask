@@ -1,8 +1,9 @@
-// Node-driven fixture for rask-confirm.ts — whether an action that asks first (`.Confirm`) may go.
+// Script fixture for rask-confirm.ts — whether an action that asks first (`.Confirm`) may go.
 //
 // The browser's dialogs are stood in for by a window whose confirm() and prompt() answer what the fixture says
-// and remember what they were asked. The C# test (ConfirmClientTests) runs this in a node subprocess and
-// asserts the JSON line.
+// and remember what they were asked. The C# test (ConfirmClientTests) runs this on Jint and asserts what it reports.
+
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
 class Stub {
     clicks = 0;
@@ -105,7 +106,7 @@ const withoutDialogBrowserAsks = await goes({"data-rask-confirm": "No dialog her
 const browserAskedWithoutDialog = asked.slice();
 delete seam.confirm;
 
-process.stdout.write(JSON.stringify({
+report({
     inDialog,
     pressWaitsForTheDialog,
     pressedAgain,
@@ -129,4 +130,4 @@ process.stdout.write(JSON.stringify({
     bothSaidYes,
     askedWhenBothSaidYes,
     noSubmitter,
-}) + "\n");
+});

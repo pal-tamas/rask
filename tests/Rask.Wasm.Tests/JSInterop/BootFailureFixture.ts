@@ -1,8 +1,8 @@
-// Drives the REAL src/Rask.Wasm/Browser/main.js under Node with a stub DOM, and reports what the
+// Drives the REAL src/Rask.Wasm/Browser/main.js on Jint with a stub DOM, and reports what the
 // boot screen ended up showing. Companion to BootFailureReportingTests.cs; see that file for why
-// this is worth a Node subprocess rather than a C# assertion over the file's text.
+// this is worth running the script rather than a C# assertion over the file's text.
 //
-// Usage:  node BootFailureFixture.mjs <path-to-main.js> <scenario>
+// Arguments (ScriptFixture.Run):  <path-to-main.js> <scenario>
 //
 // Scenarios — the three outcomes that have to be told apart:
 //   runtime-fails    dotnet.create() rejects. The commonest real failure (a 404 on _framework, a
@@ -11,12 +11,9 @@
 //   already-painted  every step resolves and the app mounted. NEGATIVE CONTROL: the boot surface
 //                    must stay silent, because painting an error over a live page would turn a
 //                    working app into a broken-looking one.
-import {mkdtempSync, mkdirSync, copyFileSync, writeFileSync} from "node:fs";
-import {tmpdir} from "node:os";
-import {join} from "node:path";
-import {pathToFileURL} from "node:url";
+import {addModule, args, readText, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const [mainJsPath, scenario] = process.argv.slice(2);
+const [mainJsPath, scenario] = args;
 
 // --- stub DOM -------------------------------------------------------------------------------
 //
@@ -64,7 +61,7 @@ function makeStubElement(tag: string): StubElement {
     return el;
 }
 
-/** The globals the boot module reaches for, which Node does not have. */
+/** The globals the boot module reaches for, which a bare JS engine does not have. */
 const globals = globalThis as unknown as {
     document: unknown;
     window: unknown;
@@ -120,11 +117,10 @@ console.error = (...args: unknown[]) => {
 };
 
 // --- stub ./_framework/dotnet.js -----------------------------------------------------------
-// main.js imports it by relative path, so it has to exist next to a copy of main.js.
-const dir = mkdtempSync(join(tmpdir(), "rask-boot-"));
-const mainCopy = join(dir, "main.js");
-copyFileSync(mainJsPath, mainCopy);
-mkdirSync(join(dir, "_framework"));
+// main.js imports it by relative path, so main.js is stood up, in memory, in a directory that has one.
+const dir = "/rask-boot";
+const mainCopy = dir + "/main.js";
+addModule(mainCopy, readText(mainJsPath));
 
 const createBody = scenario === "runtime-fails"
     ? `const e = new Error("Failed to fetch dotnet.native.wasm");
@@ -135,7 +131,7 @@ const createBody = scenario === "runtime-fails"
            runMain: async () => { ${scenario === "already-painted" ? "globalThis.__raskFixtureMounted();" : ""} return 0; }
        });`;
 
-writeFileSync(join(dir, "_framework", "dotnet.js"), `
+addModule(dir + "/_framework/dotnet.js", `
 const chain = {
     withApplicationArgumentsFromQuery() { return chain; },
     withModuleConfig() { return chain; },
@@ -146,11 +142,11 @@ export const dotnet = chain;
 
 // main.js also imports ./rask.wasm.js once the runtime is up. The real one is a 4000-line bundle
 // that wants a full DOM; only setExports is reached here, so stub that much.
-writeFileSync(join(dir, "rask.wasm.js"), "export function setExports() {}\n");
+addModule(dir + "/rask.wasm.js", "export function setExports() {}\n");
 
 let threw = false;
 try {
-    await import(pathToFileURL(mainCopy).href);
+    await import(mainCopy);
 } catch (e) {
     // A failing boot reports and then RETHROWS — keeping the failure visible to the runtime's own
     // channels — so an exception here is part of the contract, not a fixture problem.
@@ -161,7 +157,7 @@ const panel = boot._children[0];
 const children = panel?._children ?? [];
 const paragraphs = children.filter(c => c.tagName === "P");
 
-process.stdout.write(JSON.stringify({
+report({
     scenario,
     threw,
     bootErrorAttributeSet: boot.hasAttribute("data-rask-boot-error"),
@@ -173,5 +169,5 @@ process.stdout.write(JSON.stringify({
     unhandledRejectionHandlerRegistered: (listeners.get("unhandledrejection") ?? []).length > 0,
     errorHandlerRegistered: (listeners.get("error") ?? []).length > 0,
     bootFailedHookExposed: typeof globals.__raskBootFailed === "function"
-}) + "\n");
+});
 console.error = realError;

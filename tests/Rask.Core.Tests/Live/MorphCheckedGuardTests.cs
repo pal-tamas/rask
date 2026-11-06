@@ -19,23 +19,14 @@ namespace Rask.Core.Tests.Live;
 // carries that stale state until an authoritative frame differs, then releases so
 // server-driven changes win again.
 //
-// This exercises the production rask-morph.ts + rask-dom.ts in a Node subprocess
+// This exercises the production rask-morph.ts + rask-dom.ts in-process on Jint
 // with a stub DOM. Pairs with the WASM/Server E2E journeys.
 public sealed class MorphCheckedGuardTests
 {
     [Fact]
     public void A_stale_render_does_not_clobber_a_just_clicked_radio_or_checkbox_then_releases()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("MorphCheckedGuardFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("MorphCheckedGuardFixture");
 
         bool Get(string name) => root.GetProperty(name).GetBoolean();
 

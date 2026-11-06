@@ -1,4 +1,4 @@
-// Node-driven fixture for the dirty-field base capture that the redeploy form restore merges against
+// Script fixture for the dirty-field base capture that the redeploy form restore merges against
 // (Rask.Core/Resources/rask-morph.js — raskNoteDirtyField / raskDirtyFieldBase / raskFieldBase, read by
 // saveRestoreFields / applyRestoreFields in rask.js).
 //
@@ -10,8 +10,8 @@
 // and base always equals the user's text, every field compares unequal against a pristine replacement,
 // and the whole feature is a silent no-op that still passes a naive test.
 //
-// The C# test (RestoreFieldBaseTests) runs this in a node subprocess and asserts the single JSON line on
-// stdout. Exits non-zero on an internal stub failure.
+// The C# test (RestoreFieldBaseTests) runs this on Jint and asserts what it
+// reports. A stub that fails throws, and the run fails with it.
 
 
 // ----- Minimal element stub -----
@@ -23,6 +23,7 @@
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph, raskDirtyFieldBase, raskFieldBase, raskIsDirtyField, raskNoteDirtyField, raskNotePendingValue, raskRadioGroup} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubControl} from "./stub-dom.js";
 
@@ -142,7 +143,7 @@ const afterLaterServerChange = restored.value;
 const untouched = makeInput({"data-rask-on-input": "h7", "value": "server value"});
 const untouchedIsDirty = raskIsDirtyField(asDom(untouched));
 
-process.stdout.write(JSON.stringify({
+report({
     baseAfterEcho,            // ""            — the echo did NOT move the base
     attributeAfterEcho,       // "hello"       — ...even though it DID rewrite the attribute
     baseAfterSecondEdit,      // ""            — capture-once
@@ -155,4 +156,4 @@ process.stdout.write(JSON.stringify({
     afterConvergeEcho,        // "hello"       — echo applied, guard released
     afterLaterServerChange,   // "server"      — the framework didn't pin the user's value forever
     untouchedIsDirty          // false
-}) + "\n");
+});

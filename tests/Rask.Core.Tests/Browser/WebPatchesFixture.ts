@@ -1,7 +1,7 @@
-// Node-driven fixture for Rask.Web's browser-quirk patches (src/Rask.Core/Resources/rask-web-patches.ts), each driven
-// against a stub of the browser that has the quirk. The C# test (WebPatchesTests) runs this in a node subprocess and
-// asserts the JSON on stdout.
+// Script fixture for Rask.Web's browser-quirk patches (src/Rask.Core/Resources/rask-web-patches.ts), each driven
+// against a stub of the browser that has the quirk. The C# test (WebPatchesTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import { raskWebArm, raskWebCall, raskWebGlobalName, raskWebInstallPrompt, raskWebListened } from "../../../src/Rask.Core/Resources/rask-web-patches.js";
 
 type Any = Record<string, unknown>;
@@ -173,9 +173,4 @@ async function run(): Promise<Any> {
     return {...(await wakeLock()), ...(await speechRecognition()), ...(await installPrompt())};
 }
 
-run().then(
-    (result) => console.log(JSON.stringify(result)),
-    (error) => {
-        console.error(error);
-        process.exit(1);
-    });
+report(await run());

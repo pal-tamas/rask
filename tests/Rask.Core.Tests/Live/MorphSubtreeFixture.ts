@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared diff interpreter's MorphSubtree op
+// Script fixture for the shared diff interpreter's MorphSubtree op
 // (Rask.Core/Resources/rask-dom.ts applyDiff `case 8`, which delegates to
 // Rask.Core/Resources/rask-morph.ts `morph`).
 //
@@ -6,14 +6,14 @@
 // parent's children: instead of re-morphing document.documentElement (the flaky,
 // expensive path on every guide/CodeSample page), the server ships a trusted op that
 // carries the Raw-owning parent's new inner HTML, and the client morphs just that
-// subtree. This fixture drives the production applyDiff+morph in a Node subprocess with
+// subtree. This fixture drives the production applyDiff+morph on Jint with
 // a stub DOM (a minimal HTML parser backs innerHTML) and asserts three things:
 //   1. the op is recognised (no location.reload fallback),
 //   2. the tainted subtree converges — a Raw-expanded multi-node run reconciles and the
 //      changed sibling's text updates, including a node-count change,
 //   3. a focused node OUTSIDE the morphed parent keeps focus (morph is scoped, not global).
 //
-// The C# test (MorphSubtreeTests) runs this and asserts the single JSON line on stdout.
+// The C# test (MorphSubtreeTests) runs this and asserts what it reports.
 // Real-browser coverage of the same op lives in the Playwright E2E guide journeys.
 //
 // The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
@@ -21,6 +21,7 @@
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {applyDiff} from "../../../src/Rask.Core/Resources/rask-dom.js";
 import {asStubParent, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -174,7 +175,7 @@ try {
     error = e instanceof Error ? (e.stack ?? e.message) : String(e);
 }
 
-process.stdout.write(JSON.stringify({
+report({
     threw,
     error,
     reloaded,
@@ -187,4 +188,4 @@ process.stdout.write(JSON.stringify({
     })(),
     // the focused input outside the morphed parent must keep focus (identity + activeElement).
     focusKept: doc.activeElement === focused && focused.parentNode === docAsParent
-}) + "\n");
+});

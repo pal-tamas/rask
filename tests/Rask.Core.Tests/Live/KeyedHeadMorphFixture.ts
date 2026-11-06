@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared client morph's keyed-children reconciliation
+// Script fixture for the shared client morph's keyed-children reconciliation
 // (Rask.Core/Resources/rask-morph.js — the keyed branch under `if (keyed)`).
 //
 // Reproduces the WASM static-host hydration crash: the App renders a full <head>
@@ -11,8 +11,8 @@
 // never finished its first morph (blank page). The fix advances the anchor past a
 // node before removing it.
 //
-// The C# test (KeyedHeadMorphTests) runs this in a node subprocess and asserts the
-// single JSON line on stdout. Pairs with the StandaloneWasm E2E (the host that
+// The C# test (KeyedHeadMorphTests) runs this on Jint and asserts the
+// a single report. Pairs with the StandaloneWasm E2E (the host that
 // exercises this exact hydration).
 //
 // The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
@@ -20,6 +20,7 @@
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -122,8 +123,8 @@ try {
     error = String((e && (e instanceof Error ? e.message : String(e))) || e);
 }
 
-process.stdout.write(JSON.stringify({
+report({
     threw,
     error,
     children: fromHead._kids.map((c) => c.nodeName)
-}) + "\n");
+});

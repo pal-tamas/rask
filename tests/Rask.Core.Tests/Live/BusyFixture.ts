@@ -1,9 +1,10 @@
-// Node-driven fixture for rask-busy.ts — `data-rask-busy` on <html> while the page is settling — and for the one
+// Script fixture for rask-busy.ts — `data-rask-busy` on <html> while the page is settling — and for the one
 // source every host shares, rask-owned.ts's `awaiting` (an event or a navigation not answered yet).
 //
-// A <html> that keeps its attributes. The C# test (BusyMarkClientTests) runs this in a node subprocess and asserts
-// the JSON line. "Now" is read in the same task as the step before it; "later" after the microtasks have run, which
+// A <html> that keeps its attributes. The C# test (BusyMarkClientTests) runs this on Jint and asserts what it reports. "Now" is read in the same task as the step before it; "later" after the microtasks have run, which
 // is the earliest anything outside this task — a test's poll — could look.
+
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
 const attributes = new Set<string>();
 const root = {
@@ -80,7 +81,7 @@ const clearedWhenAnswered = marked();
 const ownsItOnHtml = busyOwnsAttr(root as unknown as Element, "data-rask-busy");
 const ownsNothingElse = busyOwnsAttr({} as Element, "data-rask-busy") || busyOwnsAttr(root as unknown as Element, "class");
 
-process.stdout.write(JSON.stringify({
+report({
     idleAtFirst,
     markedInTheSameTask,
     stillMarkedInTheTaskThatLetGo,
@@ -97,4 +98,4 @@ process.stdout.write(JSON.stringify({
     clearedWhenAnswered,
     ownsItOnHtml,
     ownsNothingElse,
-}) + "\n");
+});

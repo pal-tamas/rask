@@ -1,4 +1,4 @@
-// Node-driven fixture for what the WASM service worker keeps offline
+// Script fixture for what the WASM service worker keeps offline
 // (src/Rask.Wasm/Resources/rask-offline-cache.ts — keptOffline), the rule its fetch handler applies
 // before every cache.put.
 //
@@ -7,6 +7,7 @@
 // browser next. A fetch event cannot be raised outside a browser, so the decision is a pure function
 // and this asks it about each kind of request by name.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import { keptOffline, RASK_CACHE } from "../../../src/Rask.Wasm/Resources/rask-offline-cache.js";
 
 interface Case {
@@ -51,4 +52,4 @@ for (const name of Object.keys(cases)) {
     kept[name] = ask(cases[name]);
 }
 
-process.stdout.write(JSON.stringify({ cache: RASK_CACHE, kept }) + "\n");
+report({ cache: RASK_CACHE, kept });

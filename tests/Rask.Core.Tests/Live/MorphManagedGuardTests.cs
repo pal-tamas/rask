@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Live;
 // guard makes the to-side filter symmetric: a marked node in the incoming tree is always a misuse
 // (a rendered node is part of the payload), so skipping it turns the mistake into a no-op.
 //
-// This exercises the production rask-morph.ts in a Node subprocess with a stub DOM. The
+// This exercises the production rask-morph.ts in-process on Jint with a stub DOM. The
 // user-observable side used to be covered by PlaygroundExampleTests (.pg-code-host count after a run);
 // the playground was removed, so this unit guard is now the only thing holding the invariant.
 public sealed class MorphManagedGuardTests
@@ -18,16 +18,7 @@ public sealed class MorphManagedGuardTests
     [Fact]
     public void A_managed_node_in_the_incoming_tree_is_not_duplicated_and_a_correctly_placed_marker_survives()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("MorphManagedGuardFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("MorphManagedGuardFixture");
 
         bool GetBool(string name) => root.GetProperty(name).GetBoolean();
         int GetInt(string name) => root.GetProperty(name).GetInt32();
@@ -49,14 +40,9 @@ public sealed class MorphManagedGuardTests
         // injected <style> (react-colorful, emotion) was trimmed by the takeover morph and the island rendered at zero size.
         // The island runtime now watches <head> until this one arms and calls its handoff. Arming must set the flag an island
         // runtime loading later reads, and hand over exactly once rather than on every head morph.
-        var result = NodeFixture.Run("MorphManagedGuardFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        Assert.True(result.Value.GetProperty("headWatchArmed").GetBoolean(), "arming the head watch did not set the flag");
-        Assert.Equal(1, result.Value.GetProperty("handoffCalls").GetInt32());
+        var result = ScriptFixture.Run("MorphManagedGuardFixture");
+        Assert.True(result.GetProperty("headWatchArmed").GetBoolean(), "arming the head watch did not set the flag");
+        Assert.Equal(1, result.GetProperty("handoffCalls").GetInt32());
     }
 
 

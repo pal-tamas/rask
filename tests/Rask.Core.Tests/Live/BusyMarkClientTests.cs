@@ -7,23 +7,20 @@ namespace Rask.Core.Tests.Live;
 ///     and never idle in between when one hold hands over to the next.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-busy.ts</c> and <c>rask-owned.ts</c> in a Node subprocess (<c>BusyFixture.ts</c>).
+///     Drives the production <c>rask-busy.ts</c> and <c>rask-owned.ts</c> in-process on Jint (<c>BusyFixture.ts</c>).
 ///     The journeys on a real page are <c>WaitForRaskTests</c> in <c>Rask.Server.E2E.Tests</c> and
 ///     <c>WaitForRaskWasmTests</c> in <c>Rask.Site.E2E.Tests</c>.
 /// </remarks>
 public sealed class BusyMarkClientTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("BusyFixture");
+    private static JsonElement Run() => ScriptFixture.Run("BusyFixture");
 
     private static bool Read(JsonElement root, string name) => root.GetProperty(name).GetBoolean();
 
     [Fact]
     public void The_mark_goes_on_in_the_task_that_holds_and_comes_off_once_nothing_holds()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var idle = Read(root, "idleAtFirst");
         var marked = Read(root, "markedInTheSameTask");
@@ -39,10 +36,7 @@ public sealed class BusyMarkClientTests
     [Fact]
     public void The_page_stays_busy_while_any_hold_remains_and_across_a_hand_over_in_one_task()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var secondHolds = Read(root, "markedWhileTheSecondHolds");
         var bothGone = Read(root, "clearedWhenBothLetGo");
@@ -58,10 +52,7 @@ public sealed class BusyMarkClientTests
     [Fact]
     public void A_pending_frame_typing_and_an_unanswered_event_each_hold_the_page_until_they_are_done()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var frame = Read(root, "markedWhileTheFrameIsPending");
         var applied = Read(root, "clearedWhenTheFrameApplied");
@@ -81,10 +72,7 @@ public sealed class BusyMarkClientTests
     [Fact]
     public void A_morph_leaves_the_mark_on_html_and_only_there()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var owns = Read(root, "ownsItOnHtml");
         var others = Read(root, "ownsNothingElse");

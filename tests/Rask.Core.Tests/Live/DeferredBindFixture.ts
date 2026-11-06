@@ -1,11 +1,11 @@
-// Node-driven fixture for rask-input.ts and rask-events.ts — a bound control that waits for the next action
+// Script fixture for rask-input.ts and rask-events.ts — a bound control that waits for the next action
 // (`data-rask-bind-on="action"`, what a plain `.Bind(…)` renders), and everything that counts as one.
 //
 // The host here does what both real hosts do at the top of their `send`: it asks rask-input to send what waits
 // first (sendTypedFirst). So what this fixture records is the order the frames would leave in. Time passes when
-// the fixture says so (stub-events.ts). The C# test (DeferredBindClientTests) runs this in a node subprocess
-// and asserts the JSON line.
+// the fixture says so (stub-events.ts). The C# test (DeferredBindClientTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {autofocused, elapse, frame, listeners, StubField} from "./stub-events.js";
 import {focusArrived} from "../../../src/Rask.Core/Resources/rask-autofocus.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
@@ -358,7 +358,7 @@ frame();
 const aHookWrittenFieldAfterTheAnswers = taken();
 answers = false;
 
-process.stdout.write(JSON.stringify({
+report({
     hostSkipsItsChange,
     typedAndLeft,
     beforeAClick,
@@ -411,4 +411,4 @@ process.stdout.write(JSON.stringify({
     aHookWrittenFieldOnce,
     aHookWrittenFieldHeldBeforeAClick,
     aHookWrittenFieldAfterTheAnswers,
-}) + "\n");
+});

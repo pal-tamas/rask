@@ -1,10 +1,12 @@
-// Node-driven fixture for rask-bound.ts — the one hidden bound field of a group the browser owns — and what a
+// Script fixture for rask-bound.ts — the one hidden bound field of a group the browser owns — and what a
 // render that lands on it as a morph does: the WebAssembly host morphs every render, and the morph writes the
 // rendered `value` back onto every field, changed or not.
 //
 // A hidden input's `value` IS its attribute, so the stub field below keeps one string for both, as the browser
 // does. The observer is a stub the fixture hands records to, the way the browser would after a render. The C#
-// test (BoundFieldClientTests) runs this in a node subprocess and asserts the JSON line.
+// test (BoundFieldClientTests) runs this on Jint and asserts what it reports.
+
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
 interface Observed {
     type: string;
@@ -103,9 +105,9 @@ pick("[\"free\"]");
 render("[\"team\"]");
 const theNewAnswerRenderedAgainIsNoNewsEither = shows === "[\"free\"]" && field.value === "[\"free\"]" && adopted.length === 1;
 
-process.stdout.write(JSON.stringify({
+report({
     keptAcrossARenderThatSaidNothingNew,
     echoIsNoNews,
     aNewAnswerIsAdopted,
     theNewAnswerRenderedAgainIsNoNewsEither,
-}) + "\n");
+});

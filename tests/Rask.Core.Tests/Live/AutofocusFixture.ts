@@ -1,12 +1,13 @@
-// Node-driven fixture for rask-autofocus.ts — which `autofocus` element a frame that was just applied gives
+// Script fixture for rask-autofocus.ts — which `autofocus` element a frame that was just applied gives
 // focus to, and when it gives it to none.
 //
 // The module reads `document` once, as it loads, and takes note of the `autofocus` elements the document was
 // served with. So the stub document is installed first and the module is imported after it, and every scenario
 // then changes the same page, in the order a session would.
 //
-// The C# test (AutofocusTests) runs this in a node subprocess and asserts the JSON line.
+// The C# test (AutofocusTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {installStubGlobals} from "./stub-dom.js";
 
 interface Field {
@@ -142,7 +143,7 @@ const backTook = focusArrived({action: "replace"});
 const backFocus = focus();
 const backKeepsScroll = kept === true;
 
-console.log(JSON.stringify({
+report({
     served: {took: servedTook, focus: servedFocus},
     navigation: {took: navigationTook, focus: navigationFocus, scrolls: navigationScrolls},
     none: {took: noneTook, focus: noneFocus},
@@ -153,4 +154,4 @@ console.log(JSON.stringify({
     afterTypingTook,
     closed: {took: closedTook, openedTook, openedFocus},
     back: {took: backTook, focus: backFocus, keepsScroll: backKeepsScroll},
-}));
+});

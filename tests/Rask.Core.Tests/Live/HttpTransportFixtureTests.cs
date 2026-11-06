@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Rask.Core.Tests.Live;
 
 /// <summary>
-///     The Server runtime's HTTP fallback, driven in a Node subprocess: the event-stream parser, the POST batcher
+///     The Server runtime's HTTP fallback, driven in-process on Jint: the event-stream parser, the POST batcher
 ///     and the choice between a WebSocket and HTTP.
 /// </summary>
 /// <remarks>
@@ -21,20 +21,13 @@ namespace Rask.Core.Tests.Live;
 /// </remarks>
 public sealed class HttpTransportFixtureTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("HttpTransportFixture");
+    private static JsonElement Run() => ScriptFixture.Run("HttpTransportFixture");
 
     [Fact]
     public void The_parser_reads_events_however_the_network_splits_them()
     {
-        // No node on PATH — the fixture cannot run. Deliberately not a failure: node is not required to build or
-        // test Rask, and the transport's end-to-end behaviour is covered by the server's HTTP transport tests.
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = result;
 
         var whole = root.GetProperty("whole");
         Assert.Equal(1, whole.GetArrayLength());
@@ -63,12 +56,7 @@ public sealed class HttpTransportFixtureTests
     public void Frames_sent_while_a_post_is_in_flight_wait_and_go_together_in_order()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var batching = result.Value.GetProperty("batching");
+        var batching = result.GetProperty("batching");
 
         // One POST at a time: the order a typing handler and the submit after it arrive in is the protocol's.
         Assert.Equal(1, batching.GetProperty("inFlightBeforeRelease").GetInt32());
@@ -84,12 +72,7 @@ public sealed class HttpTransportFixtureTests
     public void A_refused_post_stops_the_batcher_rather_than_posting_into_a_refused_session()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var refusal = result.Value.GetProperty("refusal");
+        var refusal = result.GetProperty("refusal");
 
         Assert.Equal(1, refusal.GetProperty("refusedWith").GetArrayLength());
         Assert.Equal(409, refusal.GetProperty("refusedWith")[0].GetInt32());
@@ -100,12 +83,7 @@ public sealed class HttpTransportFixtureTests
     public void Only_an_http_stream_that_opened_where_a_socket_did_not_is_remembered()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var choosing = result.Value.GetProperty("choosing");
+        var choosing = result.GetProperty("choosing");
         string Choice(string name) => choosing.GetProperty(name).GetString()!;
 
         // A fresh tab tries the socket.
@@ -125,12 +103,7 @@ public sealed class HttpTransportFixtureTests
     public void A_rebuilt_session_is_addressed_by_the_id_the_stream_names_and_its_render_waits_for_the_open()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var connection = result.Value.GetProperty("connection");
+        var connection = result.GetProperty("connection");
 
         // The rebuild's render arrived before the stream named its session, and was held rather than acted on.
         Assert.Equal(0, connection.GetProperty("beforeOpen").GetArrayLength());
@@ -161,12 +134,7 @@ public sealed class HttpTransportFixtureTests
     public void A_batch_is_packed_within_the_limit_the_stream_announced()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var packing = result.Value.GetProperty("packing");
+        var packing = result.GetProperty("packing");
 
         // No limit known: everything that piled up goes together.
         Assert.Equal(3, packing.GetProperty("unlimited").GetInt32());
@@ -182,12 +150,7 @@ public sealed class HttpTransportFixtureTests
     public void A_stream_that_never_opens_or_goes_silent_is_given_up_on_rather_than_waited_for()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var deadlines = result.Value.GetProperty("deadlines");
+        var deadlines = result.GetProperty("deadlines");
 
         // Never opened: ends as a failed attempt, so the chooser and the backoff treat it as one, and Retry works.
         Assert.Equal(
@@ -209,12 +172,7 @@ public sealed class HttpTransportFixtureTests
     public void An_open_deadline_counts_only_the_time_a_starved_page_could_run()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var starved = result.Value.GetProperty("starved");
+        var starved = result.GetProperty("starved");
 
         Assert.True(starved.GetProperty("onTime").GetBoolean(), "a page on time is given up on at its deadline");
         Assert.False(starved.GetProperty("starvedAfterAFewLateChecks").GetBoolean(), "a late check is not a spent deadline");
@@ -226,12 +184,7 @@ public sealed class HttpTransportFixtureTests
     public void Sockets_cut_off_early_three_times_count_and_blips_or_deliberate_closes_do_not()
     {
         var result = Run();
-        if (result is null)
-        {
-            return;
-        }
-
-        var choosing = result.Value.GetProperty("choosing");
+        var choosing = result.GetProperty("choosing");
         string Choice(string name) => choosing.GetProperty(name).GetString()!;
 
         Assert.Equal("http", Choice("afterThreeEarlyCloses"));

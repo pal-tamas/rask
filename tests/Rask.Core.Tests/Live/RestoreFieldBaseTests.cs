@@ -17,7 +17,7 @@ namespace Rask.Core.Tests.Live;
 // nothing is ever restored. That failure is silent and would still pass a naive test, which is why the
 // echo is reproduced explicitly below.
 //
-// Exercises the production rask-morph.ts in a Node subprocess with a stub DOM, alongside
+// Exercises the production rask-morph.ts in-process on Jint with a stub DOM, alongside
 // MorphValueGuardTests. The merge decision and the converge send live in rask.js — an IIFE that boots a
 // WebSocket and is a host entry point that boots a socket against a live document — so those are covered by E2E instead.
 public sealed class RestoreFieldBaseTests
@@ -25,16 +25,7 @@ public sealed class RestoreFieldBaseTests
     [Fact]
     public void A_dirty_field_base_is_captured_before_the_echo_and_describes_the_control_not_the_element()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("RestoreFieldBaseFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("RestoreFieldBaseFixture");
 
         // THE regression assertion. The server echoed the user's text back and the `value` attribute
         // duly became it — but the base still reads what the server had rendered before the edit. Read

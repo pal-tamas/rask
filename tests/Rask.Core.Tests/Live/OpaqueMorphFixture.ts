@@ -1,4 +1,4 @@
-// Node-driven fixture for the external-component diff boundary in the shared client morph
+// Script fixture for the external-component diff boundary in the shared client morph
 // (Rask.Core/Resources/rask-morph.ts — the data-rask-opaque early return).
 //
 // The scenario is the one that silently corrupts. What a foreign renderer put in the DOM and what the
@@ -9,12 +9,13 @@
 //
 // Attributes must still sync across the boundary: that is how a changed `props` reaches the adapter.
 //
-// The C# test (OpaqueMorphTests) runs this in a node subprocess and asserts the JSON on stdout.
+// The C# test (OpaqueMorphTests) runs this on Jint and asserts what it reports.
 //
 // The functions under test arrive by IMPORT, matching every other fixture here: they used to be read
 // off disk and evaluated in a string, which stopped working the moment the shared modules had real
 // `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -123,9 +124,9 @@ function run(opaque: boolean) {
     };
 }
 
-process.stdout.write(JSON.stringify({
+report({
     opaque: run(true),
     // Negative control: identical shapes with the marker off. If this one ALSO keeps its children the
     // fixture is proving nothing, because the morph never wanted to remove them in the first place.
     transparent: run(false)
-}) + "\n");
+});

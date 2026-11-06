@@ -4,6 +4,7 @@
 // The host here is the smallest one that sends the way the Server runtime does: a frame goes out on the open
 // connection unless the watch holds it, and what was held leaves when the watch lets go or a connection opens.
 
+import {nextTask, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {
     createAuthWatch,
     FRESH_FOCUSED_MS,
@@ -86,7 +87,7 @@ function tab(bootedWithUser = true): Tab {
             if (answer === "fails") asked.reject(new Error("offline"));
             else asked.resolve(answer);
             // The watch hears the answer in a microtask of its own.
-            await new Promise<void>((done) => setImmediate(done));
+            await nextTask();
         },
         elapse(ms) {
             const due = me.waiting.filter((w) => w.ms <= ms);
@@ -344,4 +345,4 @@ const results: Record<string, unknown> = {};
     results.changedWhileDown = {holdsWhileDown, wire: t.wire};
 }
 
-console.log(JSON.stringify(results));
+report(results);

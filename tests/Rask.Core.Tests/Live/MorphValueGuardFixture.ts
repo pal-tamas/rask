@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared client morph's user-edit echo guard
+// Script fixture for the shared client morph's user-edit echo guard
 // (Rask.Core/Resources/rask-morph.js — raskNotePendingValue /
 // consumed by both rask.js and rask.wasm.js).
 //
@@ -10,8 +10,8 @@
 // suppresses the stale value until the server echoes the user's value back, then
 // lets server-canonical values win again.
 //
-// The C# test (MorphValueGuardTests) runs this in a node subprocess and asserts
-// the single JSON line on stdout. Exits non-zero on an internal stub failure.
+// The C# test (MorphValueGuardTests) runs this on Jint and asserts
+// what it reports. A stub that fails throws, and the run fails with it.
 
 
 // ----- Minimal element stub -----
@@ -24,6 +24,7 @@
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph, raskNotePendingValue} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubControl} from "./stub-dom.js";
 
@@ -103,9 +104,9 @@ intInput.value = "";                                            // user cleared
 morph(asDom(intInput), asDom(makeInput({"data-rask-on-change": "h99", "value": "0"})));
 const afterCorrection = intInput.value;
 
-process.stdout.write(JSON.stringify({
+report({
     afterStale,       // COMMITTED — stale render suppressed
     afterEcho,        // COMMITTED — echo applied, guard released
     afterLater,       // LATER     — later server value wins
     afterCorrection   // "0"       — server correction applied (not suppressed)
-}) + "\n");
+});

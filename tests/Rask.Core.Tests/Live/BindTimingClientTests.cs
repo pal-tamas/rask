@@ -6,13 +6,13 @@ namespace Rask.Core.Tests.Live;
 ///     What the browser sends for a bound field that waits — <c>.Debounce(…)</c> and <c>.Blur()</c> — and when.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-input.ts</c> in a Node subprocess with a clock the fixture moves
+///     Drives the production <c>rask-input.ts</c> in-process on Jint with a clock the fixture moves
 ///     (<c>BindTimingFixture.ts</c>). Each value sent is written <c>type:value</c>, and a message with no
 ///     value <c>type:handler</c>.
 /// </remarks>
 public sealed class BindTimingClientTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("BindTimingFixture");
+    private static JsonElement Run() => ScriptFixture.Run("BindTimingFixture");
 
     private static string[] Sent(JsonElement root, string name) =>
         [.. root.GetProperty(name).EnumerateArray().Select(value => value.GetString()!)];
@@ -20,10 +20,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_debounced_field_says_nothing_while_typed_into_and_sends_one_value_at_the_pause()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var beforePause = Sent(root, "beforePause");
         var atPause = Sent(root, "atPause");
@@ -37,10 +34,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void What_a_pause_still_holds_is_sent_ahead_of_the_event_that_follows_and_only_once()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var flushed = Sent(root, "flushed");
         var flushedOnce = Sent(root, "flushedOnce");
@@ -52,10 +46,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void Leaving_a_debounced_field_sends_what_its_pause_was_holding()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var left = Sent(root, "left");
 
@@ -65,10 +56,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void No_pause_is_counted_while_a_character_is_being_composed()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var composing = Sent(root, "composing");
         var composedTooSoon = Sent(root, "composedTooSoon");
@@ -82,10 +70,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_pause_that_ends_while_the_last_value_is_unanswered_is_held_and_sent_with_the_answer()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var heldAtPause = Sent(root, "heldAtPause");
         var heldSent = Sent(root, "heldSent");
@@ -97,10 +82,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_debounced_field_emptied_by_a_key_sends_what_it_says_now()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var cleared = Sent(root, "cleared");
 
@@ -110,10 +92,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_field_showing_a_message_reports_its_first_keystroke_once()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var edited = Sent(root, "edited");
         var stillAsked = root.GetProperty("editStillAsked").GetBoolean();
@@ -125,10 +104,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_handler_that_hears_the_pause_is_sent_nothing_by_typing_leaving_or_the_next_action_and_one_text_at_the_pause()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var whileTyping = Sent(root, "askedWhileTyping");
         var atPause = Sent(root, "askedAtPause");
@@ -140,10 +116,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void An_input_handler_beside_the_pauses_handler_hears_every_key_and_the_other_the_pause_alone()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var whileTyping = Sent(root, "besideWhileTyping");
         var atPause = Sent(root, "besideAtPause");
@@ -155,10 +128,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void The_pauses_handler_counts_no_pause_while_a_character_is_being_composed()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var composing = Sent(root, "askedComposing");
         var composed = Sent(root, "askedComposed");
@@ -170,10 +140,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_field_bound_on_blur_says_nothing_while_typed_into_and_is_sent_once_ahead_of_what_follows()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var typed = Sent(root, "typedIntoBlur");
         var committed = Sent(root, "committedOnce");
@@ -185,10 +152,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void The_change_the_browser_fires_for_a_value_already_sent_is_not_sent_again()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var duplicate = root.GetProperty("duplicate").GetBoolean();
         var askedAgain = root.GetProperty("askedAgain").GetBoolean();
@@ -202,10 +166,7 @@ public sealed class BindTimingClientTests
     [Fact]
     public void A_change_the_browser_fires_first_is_the_hosts_to_send_and_leaves_nothing_to_flush()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var ownedByHost = root.GetProperty("ownedByHost").GetBoolean();
         var afterNativeChange = Sent(root, "afterNativeChange");

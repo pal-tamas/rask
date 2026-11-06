@@ -1,18 +1,17 @@
-// Node-driven fixture: what does `__raskHost.navigate(url, replace)` send to .NET?
+// Script fixture: what does `__raskHost.navigate(url, replace)` send to .NET?
 //
 // The generated `@rask/routes` module navigates through this bridge, so front-end island code can
 // write `Routes.OrdersPage({ Page: 2 }).Go()` and never a path. It has to take the same road a click
 // on an `a[data-rask-nav]` takes, and refuse a URL that is not this app's.
 //
-// Drives the built rask.wasm.js against a minimal stub DOM and prints one JSON line.
+// Drives the built rask.wasm.js against a minimal stub DOM and reports one JSON value.
 //
-// Usage:  node HostNavigateFixture.mjs <rask.wasm.js path> <url> [replace]
-import {readFileSync} from "node:fs";
+// Arguments (ScriptFixture.Run):  <rask.wasm.js path> <url> [replace]
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const [bundlePath, target, replace] = process.argv.slice(2);
+const [bundlePath, target, replace] = args;
 if (!bundlePath || !target) {
-    console.error("usage: node HostNavigateFixture.mjs <rask.wasm.js path> <url> [replace]");
-    process.exit(2);
+    throw new Error("HostNavigateFixture takes: <rask.wasm.js path> <url> [replace]");
 }
 
 const element = () => ({
@@ -50,8 +49,7 @@ globals.setInterval = () => 0;
 const errors: string[] = [];
 console.error = (...args: unknown[]) => void errors.push(args.map(String).join(" "));
 
-const bundleSource = readFileSync(bundlePath, "utf8");
-const mod = await import("data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)))) as {
+const mod = await import(bundlePath) as {
     setExports(exports: unknown): void;
 };
 
@@ -72,4 +70,4 @@ const host = (globalThis as unknown as { __raskHost: { navigate(url: string, rep
 host.navigate(target, replace === "replace");
 await new Promise(resolve => setTimeout(resolve, 0));
 
-process.stdout.write(JSON.stringify({frames, errors}) + "\n");
+report({frames, errors});

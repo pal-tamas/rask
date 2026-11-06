@@ -13,7 +13,7 @@ namespace Rask.Core.Tests.Live;
 // Fix: rask-dom.ts's path walk skips the same nodes the morph does — formatting whitespace inside
 // <html>/<head>, and browser-added `data-rask-managed` nodes.
 //
-// Written against applyDiff directly, in a Node subprocess with a stub DOM, like
+// Written against applyDiff directly, in-process on Jint with a stub DOM, like
 // PrerenderWhitespaceMorphTests: the browser-visible symptom is an absence, which is a poor thing to
 // wait for.
 public sealed class DiffPathFormattingTextTests
@@ -21,17 +21,10 @@ public sealed class DiffPathFormattingTextTests
     [Fact]
     public void An_UpdateText_through_a_formatting_newline_in_the_html_reaches_its_text_node()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
-        // not required to build or test Rask.
-        var result = NodeFixture.Run("DiffPathFormattingTextFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var html = result.Value.GetProperty("html");
+        var result = ScriptFixture.Run("DiffPathFormattingTextFixture");
+        var html = result.GetProperty("html");
         Assert.False(html.GetProperty("threw").GetBoolean(), html.GetProperty("error").GetString());
-        Assert.False(result.Value.GetProperty("reloaded").GetBoolean(), "applyDiff fell back to a reload.");
+        Assert.False(result.GetProperty("reloaded").GetBoolean(), "applyDiff fell back to a reload.");
 
         // The assertion that fails pre-fix: the path landed on the newline and the op was dropped.
         Assert.Equal("clicks=1", html.GetProperty("text").GetString());
@@ -40,16 +33,11 @@ public sealed class DiffPathFormattingTextTests
     [Fact]
     public void An_UpdateText_under_body_still_counts_whitespace_text_nodes()
     {
-        var result = NodeFixture.Run("DiffPathFormattingTextFixture");
-        if (result is null)
-        {
-            return;
-        }
-
+        var result = ScriptFixture.Run("DiffPathFormattingTextFixture");
         // Whitespace between inline content under <body> is rendered and is in the frame walk, so it
         // must keep its slot. A filter that leaked past <html>/<head> would resolve slot 1 to <main>'s
         // neighbour and miss here.
-        var body = result.Value.GetProperty("body");
+        var body = result.GetProperty("body");
         Assert.False(body.GetProperty("threw").GetBoolean(), body.GetProperty("error").GetString());
         Assert.Equal("v2", body.GetProperty("text").GetString());
     }

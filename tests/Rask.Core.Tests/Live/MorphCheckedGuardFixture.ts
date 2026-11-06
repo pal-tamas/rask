@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared client's `.checked` echo guard
+// Script fixture for the shared client's `.checked` echo guard
 // (raskNotePendingChecked / raskShouldSuppressChecked in rask-morph.js, consumed
 // by both the full morph (rask-morph.js) and the diff codec (rask-dom.js's
 // syncFormProperty), which in turn feed rask.js and rask.wasm.js).
@@ -13,14 +13,15 @@
 // a frame that still carries it, until an authoritative frame (the echo of the new
 // state) arrives with a different value and releases the guard.
 //
-// The C# test (MorphCheckedGuardTests) runs this in a node subprocess and asserts
-// the single JSON line on stdout. Exits non-zero on an internal stub failure.
+// The C# test (MorphCheckedGuardTests) runs this on Jint and asserts
+// what it reports. A stub that fails throws, and the run fails with it.
 //
 // The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
 // `new Function(src + "return { … }")`, because the shared modules were bare declarations meant to be
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph, raskNotePendingChecked} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {syncFormProperty} from "../../../src/Rask.Core/Resources/rask-dom.js";
 import {asDom, installStubGlobals, type StubControl} from "./stub-dom.js";
@@ -121,7 +122,7 @@ const s3AfterStale = cbFrom.checked;                  // expect true
 morph(asDom(cbFrom), asDom(makeInput({"data-rask-on-change": "hC", "checked": ""}, true))); // echo → applies
 const s3AfterEcho = cbFrom.checked;                   // expect true
 
-process.stdout.write(JSON.stringify({
+report({
     s1AfterStale,       // true  — stale diff op suppressed
     s1AfterEcho,        // true  — echo applied
     s2FreeAfterStale,   // false — stale frame didn't re-check the old radio
@@ -131,4 +132,4 @@ process.stdout.write(JSON.stringify({
     s2ProAfterLater,    // false — later server change wins (not pinned)
     s3AfterStale,       // true  — checkbox stale revert suppressed
     s3AfterEcho         // true  — checkbox echo applied
-}) + "\n");
+});

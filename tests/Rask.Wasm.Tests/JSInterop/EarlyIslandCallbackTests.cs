@@ -8,7 +8,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 /// <remarks>
 ///     A prerendered page mounts its islands from the served HTML, so they are clickable before .NET
 ///     exists. The Server host has always queued a callback fired while its socket was still opening;
-///     this host dropped it with a console warning. Driven under Node against the built
+///     this host dropped it with a console warning. Driven on Jint against the built
 ///     <c>rask.wasm.js</c> — see <c>EarlyIslandCallbackFixture.ts</c>.
 /// </remarks>
 public sealed class EarlyIslandCallbackTests
@@ -16,10 +16,7 @@ public sealed class EarlyIslandCallbackTests
     [Fact]
     public void An_island_callback_fired_before_boot_is_delivered_after_the_first_frame()
     {
-        if (Run("delivered") is not { } result)
-        {
-            return;
-        }
+        var result = Run("delivered");
 
         Assert.Equal(0, result.GetProperty("dispatchedBeforeBoot").GetInt32());
         Assert.Equal(["h3"], Dispatched(result));
@@ -30,10 +27,7 @@ public sealed class EarlyIslandCallbackTests
     {
         // Handler ids are positional and the prerendered page came from another process, so the same id
         // on a different island is a different handler — one the visitor never pressed.
-        if (Run("other-island") is not { } result)
-        {
-            return;
-        }
+        var result = Run("other-island");
 
         Assert.Empty(Dispatched(result));
         Assert.Contains(Warnings(result), w => w.Contains("'Counter' island", StringComparison.Ordinal));
@@ -42,10 +36,7 @@ public sealed class EarlyIslandCallbackTests
     [Fact]
     public void The_pre_boot_queue_is_bounded()
     {
-        if (Run("bounded") is not { } result)
-        {
-            return;
-        }
+        var result = Run("bounded");
 
         var dispatched = Dispatched(result);
 
@@ -59,10 +50,7 @@ public sealed class EarlyIslandCallbackTests
     {
         // Only an island is interactive before boot. A prerendered Rask control has no handler yet, and
         // replaying a click against the live page's positional ids could press something else (#973).
-        if (Run("dom-event") is not { } result)
-        {
-            return;
-        }
+        var result = Run("dom-event");
 
         Assert.Empty(Dispatched(result));
     }
@@ -73,13 +61,12 @@ public sealed class EarlyIslandCallbackTests
     private static string[] Warnings(JsonElement result) =>
         [.. result.GetProperty("warnings").EnumerateArray().Select(e => e.GetString()!)];
 
-    // Null when node is not on PATH: the JS-driven check cannot run, and node is not required to build Rask.
-    private static JsonElement? Run(string scenario)
+    private static JsonElement Run(string scenario)
     {
         var bundle = Path.Combine(RepoRoot(), "src", "Rask.Wasm", "Browser", "rask.wasm.js");
         Assert.True(File.Exists(bundle), $"Bundle missing: {bundle} — build src/Rask.Wasm first.");
 
-        return NodeFixture.Run("EarlyIslandCallbackFixture", bundle, scenario);
+        return ScriptFixture.Run("EarlyIslandCallbackFixture", bundle, scenario);
     }
 
     private static string RepoRoot()

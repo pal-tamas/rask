@@ -20,22 +20,14 @@ namespace Rask.Core.Tests.Live;
 // the newline in the first place, so the published bytes and the payload agree at the source — but
 // this test pins the morph, which is what holds however the shell is formatted.
 //
-// Written against the morph directly, in a Node subprocess with a stub DOM, for the same reason
+// Written against the morph directly, in-process on Jint with a stub DOM, for the same reason
 // KeyedHeadMorphTests is: a browser assertion here would have to catch a single frame.
 public sealed class PrerenderWhitespaceMorphTests
 {
     [Fact]
     public void A_full_document_morph_with_formatting_whitespace_in_the_html_keeps_the_same_body_element()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
-        // not required to build or test Rask.
-        var result = NodeFixture.Run("PrerenderWhitespaceMorphFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("PrerenderWhitespaceMorphFixture");
 
         Assert.False(root.GetProperty("threw").GetBoolean(),
             $"Full-document morph threw: {root.GetProperty("error").GetString()}");

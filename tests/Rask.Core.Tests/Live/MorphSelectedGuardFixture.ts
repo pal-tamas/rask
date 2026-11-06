@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared client's `selected` echo guard
+// Script fixture for the shared client's `selected` echo guard
 // (raskNotePendingSelected / raskShouldSuppressSelected in rask-morph.js, consumed by the diff codec's
 // syncFormProperty in rask-dom.js, which in turn feeds rask.js and rask.wasm.js).
 //
@@ -13,14 +13,15 @@
 // through the option's own property, so a diff that moves the selection can't leave a single-select
 // briefly showing its first option.
 //
-// The C# test (MorphSelectedGuardTests) runs this in a node subprocess and asserts the single JSON line
-// on stdout. Exits non-zero on an internal stub failure.
+// The C# test (MorphSelectedGuardTests) runs this on Jint and asserts what it
+// reports. A stub that fails throws, and the run fails with it.
 //
 // The functions under test arrive by IMPORT. They used to be read off disk and evaluated with
 // `new Function(src + "return { … }")`, because the shared modules were bare declarations meant to be
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {raskNotePendingFormState} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {syncFormProperty} from "../../../src/Rask.Core/Resources/rask-dom.js";
 import {asDom, installStubGlobals, type StubControl, type StubNode} from "./stub-dom.js";
@@ -141,7 +142,7 @@ makeSelect([s4a, s4b], true);
 syncFormProperty(asDom(s4b), "selected", "", true);
 const s4BothSelected = s4a.selected && s4b.selected;                      // expect true
 
-process.stdout.write(JSON.stringify({
+report({
     s1AfterStaleA,      // false — stale frame didn't re-select the old option
     s1AfterStaleB,      // true  — stale frame didn't revert the user's pick
     s1AfterEchoA,       // false — echo applied
@@ -152,4 +153,4 @@ process.stdout.write(JSON.stringify({
     s2AfterServerB,     // true
     s3OnlyCSelected,    // true  — one write moved the whole group
     s4BothSelected      // true  — multi-select keeps per-option control
-}) + "\n");
+});
