@@ -351,6 +351,16 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> EditorDialog { get; } =
+    [
+        new("Ui.EditorDialog", typeof(UiEditorDialog), NotFlux, "A list's editor over the list, open while its query key is in the address; its children are the form, held only while it is open.",
+        [
+            new("In", typeof(string), "The query key that says which record is open: UiEditorDialog.New for one not yet saved. Required, and taken first.", "a key: Ui.EditorDialog.In(\"edit\")"),
+            new("Wide", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
+            new("Heading", typeof(string), "The dialog's heading, clear of its cross."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> DayAndTime { get; } =
     [
         new("Ui.DayAndTime", typeof(UiDayAndTime<DateTime?>), NotFlux,
@@ -378,6 +388,15 @@ internal static partial class UiApi
         new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it; in a cell, the cell's ink and size. Its children are the sentence.", []),
     ];
 
+    public static IReadOnlyList<UiApiPart> NotFound { get; } =
+    [
+        new("Ui.NotFound", typeof(UiNotFound), NotFlux, "What an address no page answers says: a warning callout with the catalog's sentence and a small button home. The built-in 404 with the kit on.",
+        [
+            new("Home", typeof(Rask.Core.Routing.RouteUrl?), "Where the button leads. The root, /, when unset.", "a route: Routes.DashboardPage()"),
+        ]),
+        new("Ui.Forbidden", typeof(UiForbidden), NotFlux, "What a page says to a signed-in reader whose account may not open it: a danger callout, an alert, with the catalog's sentence. The built-in 403 with the kit on.", []),
+    ];
+
     public static IReadOnlyList<UiApiPart> PageHeader { get; } =
     [
         new("Ui.PageHeader", typeof(UiPageHeader), NotFlux, "A page's title row: the h1, a line under it, the trail above and, as its children, the actions at the end.",
@@ -390,14 +409,16 @@ internal static partial class UiApi
 
     public static IReadOnlyList<UiApiPart> RowActions { get; } =
     [
-        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: its pencil and bin, as Flux draws a row's action — ghost, small, square, in a py-0 cell — in the muted outline.",
+        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: all it can do behind one ghost ⋯ opening a dropdown at the bottom end, as Flux's table demo does, in a py-0 cell held at the table's right edge. Its column is Ui.TableColumn.RowMenu.",
         [
-            new("Edit", typeof(Rask.Core.Routing.RouteUrl), "Where the pencil opens the row to be edited. Required, and taken first.", "a route: Routes.EditSupplierPage(id)"),
-            new("Remove", typeof(Func<Task>), "A bin after the pencil that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
+            new("View", typeof(Rask.Core.Routing.RouteUrl?), "Where the row opens to be looked at: the menu's first item, an eye.", "a route: Routes.SupplierPage(id)"),
+            new("Edit", typeof(Rask.Core.Routing.RouteUrl?), "Where the menu's edit item opens the row to be edited. Unset, there is none.", "a route: Routes.EditSupplierPage(id)"),
+            new("OnEdit", typeof(Callback), "Edits the row where it stands: the menu's edit item is a button. Wins over Edit.", Handler),
+            new("Remove", typeof(Func<Task>), "The menu's last item, apart and in red, that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
                 "the delete, then the question's heading and the question (the catalog's when null)"),
             new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
-            new("RemoveHeading", typeof(string), "The title over the bin's question. \"Delete\" when unset."),
-            new("RemoveQuestion", typeof(string), "The question the bin asks first."),
+            new("RemoveHeading", typeof(string), "The title over the delete's question, and the delete item's words. \"Delete\" when unset."),
+            new("RemoveQuestion", typeof(string), "The question the delete asks first."),
         ]),
     ];
 
@@ -571,7 +592,7 @@ internal static partial class UiApi
         new("Ui.TableColumn", typeof(UiTableColumn), "flux:table.column", "One heading: the <th>. Its children are its label.",
         [
             new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset; the end for a Width of numbers or actions."),
-            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions, Buttons, or the Rest. "
+            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions, Buttons, RowMenu (the row's ⋯, sticky), or the Rest. "
                                                   + "The table fills its box and is never narrower than its columns together (40rem at least). Not Flux's.",
                 "Ui.ColumnWidth, each a step too (.Day)"),
             new("Sortable", typeof(bool?), "Makes the heading a button with a chevron that asks for this column to be sorted."),
@@ -942,8 +963,8 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag,
-            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
+            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();

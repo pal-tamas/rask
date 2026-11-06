@@ -59,6 +59,7 @@
   "SelectSearchClear": "Keresés törlése",
   "SelectClear": "Kiválasztás törlése",
   "SelectSelectedSuffix": "kiválasztva",
+  "SelectChoose": "Válasszon…",
 
   "DatetimePickerPlaceholder": "Válasszon dátumot és időpontot",
   "DatetimePickerRangePlaceholder": "Válasszon kezdő és záró időpontot",
@@ -209,6 +210,7 @@
 
   "HandlerForbidden": "Ehhez nincs jogosultsága.",
   "PageForbidden": "Nincs jogosultsága az oldal megtekintéséhez.",
+  "PageNotFound": "A kért oldal nem található.",
 
   "ConfirmHeading": "Megerősítés",
   "ConfirmYes": "Igen",
@@ -220,6 +222,7 @@
   "RowActionsEdit": "Módosítás",
   "RowActionsRemove": "Törlés",
   "RowActionsHeading": "Műveletek",
+  "RowActionsView": "Megtekintés",
   "RemoveQuestion": "Biztos törölni szeretné?",
   "SignOut": "Kijelentkezés",
   "SignOutQuestion": "Biztos ki szeretne jelentkezni?",

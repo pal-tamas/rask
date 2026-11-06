@@ -46,8 +46,8 @@ Ui.Button.Primary["Save"]
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
 [Confirm leave](https://rask.sh/ui/confirm-leave/), [Filters](https://rask.sh/ui/filters/),
-[Form buttons](https://rask.sh/ui/form-buttons/), [Row actions](https://rask.sh/ui/row-actions/) and
-[Day and time](https://rask.sh/ui/day-and-time/), with
+[Form buttons](https://rask.sh/ui/form-buttons/), [Row actions](https://rask.sh/ui/row-actions/),
+[Editor dialog](https://rask.sh/ui/editor-dialog/) and [Day and time](https://rask.sh/ui/day-and-time/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
@@ -586,17 +586,16 @@ row shows when it has no rows.
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
-`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, and the `Rest` (or a heading with
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
-a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. An `Actions`
-heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
+a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu` or
+`Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
 with an ellipsis, the whole of it in the cell's tooltip.
 
-`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its pencil and bin, as Flux draws
-a row's action — a ghost, small, square button in an end-aligned `py-0` cell — in the muted outline. The bin asks in the layout's
-[`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs the delete only on yes; a null delete draws no bin. What you put inside it stands
-before the pencil. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
+`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its actions behind one ⋯ (below).
+The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
+none. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
 drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
@@ -616,7 +615,7 @@ Ui.Table[
     Ui.TableColumns[
         Ui.TableColumn.Rest["Supplier"],
         Ui.TableColumn.Day["Since"],
-        Ui.TableColumn.Actions
+        Ui.TableColumn.RowMenu
     ],
     Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
@@ -624,6 +623,31 @@ Ui.Table[
 ]
 Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése", "Biztos törli?")
 Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
+```
+
+`Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
+tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
+edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in
+`Ui.Confirm` (its words are the heading's). None is required: a row that can only be deleted, or only chosen, says only
+that, and a row nothing can be done with has no ⋯. The cell is Flux's sticky cell on `Ui.Main`'s surface (white,
+zinc-800 in the dark; your own `bg-*` on it wins), so it stays at the table's right edge while the other columns
+scroll under it on a phone; its column is `Ui.TableColumn.RowMenu` (4rem, sticky too, "Actions" to a screen reader). Each
+row's dropdown, button and items are keyed by the component itself, so nothing in it needs a `"row-menu-" + id` key
+of yours, and the `Ui.RowActions` itself needs none either: written inside a keyed row, an unkeyed component is that
+row's (#1309), so a delete pressed just as a row above it went still deletes its own row.
+
+```csharp
+// Before: each app kept a "⋯" helper, keying every dropdown and item by the row.
+Ui.TableColumn.Key("actions").End.Class(ListTable.Actions + " " + RowActions.AtTheEdge)[RowActions.Heading]
+Ui.TableCell.Key("actions").End.Class(RowActions.AtTheEdge + " py-0")[
+    RowActions.For(driver.Id, Editing(driver.Id), () => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")]
+
+// After: the kit's.
+Ui.TableColumn.RowMenu
+Ui.RowActions.View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
+    .Remove(() => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")
+Ui.RowActions[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
+Ui.RowActions.OnEdit(() => EditInPlace(row))                                 // edited where it stands
 ```
 
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**
@@ -664,6 +688,37 @@ Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.ColSpan(3)[Details(pump)]]
 
 Live: **[rask.sh/ui/empty](https://rask.sh/ui/empty/)**, **[rask.sh/ui/page-header](https://rask.sh/ui/page-header/)** and the
 fold-out row on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
+
+### The editor over its list
+
+**A list's record is added or changed in a dialog over the list, at the list's own address** (not Flux's: an addition
+the owner approved, 2026-11-04, #1295, made of `Ui.Modal`). `Ui.EditorDialog.In("edit")` is open while the address
+holds `?edit=` — `UiEditorDialog.New` for a record not yet saved, its id otherwise — and holds its content only then.
+The link that opens it is the list's own address with the key set, `route.With("edit", id)`, so the search, sort and
+page stay, a reload reopens it and Back closes it. The cross, Escape, a press outside and Cancel take the key out
+(`Go.Without("edit")`, in the current history entry's place) and the list stands as the reader left it; a save ends
+with `Go.Without("edit")`, and the list, rendering again, reads its rows again. `.Wide()` opens a form with rows of its
+own as a sheet from the right, as wide as the screen allows (84rem at most); one list can hold both, each with its own
+key. Open it from a link — a row's Edit, a New button — never a row's double-click. An editor's old address keeps working
+when its page sends the reader on: `Go.To(Routes.DriversPage().With("edit", id)).Replacing()` in its `OnMount`.
+
+```csharp
+// Before: each app kept an EditorDialog of its own, given the list's address to close back to.
+[QueryParam("edit")] public string? Edit { get; set; }
+Ui.Button.Primary.Href(EditorDialog.Editing(Here, EditorDialog.New))["New driver"]
+EditorDialog.For(Edit, DriverEditing.Key(Edit ?? "closed").Editing(Edit ?? EditorDialog.New).Back(Here), Here, wide: true)
+EditorDialog.Heading("Edit driver")   // inside the editor
+
+// After: the dialog reads and clears its own key.
+[QueryParam("edit")] public string? Edit { get; set; }
+Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New driver"]
+Ui.RowActions.Edit(route.With("edit", driver.Id.ToString(CultureInfo.InvariantCulture)))
+Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Wide()[
+    DriverEditing.Key(Edit).Editing(Edit)
+]
+```
+
+Live: **[rask.sh/ui/editor-dialog](https://rask.sh/ui/editor-dialog/)**.
 
 ## A day and a time
 
@@ -795,6 +850,22 @@ saved ? Ui.Callout.Success.Role("status").Heading("Saved.") : null              
 Dismissing is yours too: `Controls` places the button, and what pressing it does — a field, a row in a table —
 is the page's. `Id`, `Class` and `Role` land on the callout itself; `Ui.CalloutText` and `Ui.CalloutLink` are
 their elements and take every element step.
+
+### Not found and forbidden
+
+**What an address no page answers and a page the reader may not open say** (owner-approved, not Flux): one sentence
+in a Flux callout, inside the app's frame. They are the built-in 404 and 403 of an app on the kit — the not-found page
+lands in the root layout by itself ([routing](routing.md#not-found-and-auth-gating)), and a page whose `[Authorize]`
+refuses a signed-in reader shows `Ui.Forbidden` in its outlet ([authentication](authentication.md#a-page-the-user-may-not-open)).
+An app draws them itself where it decides on its own:
+
+```csharp
+Ui.NotFound                                   // warning callout: „A kért oldal nem található.” + Vissza a kezdőlapra
+Ui.NotFound.Home(Routes.DashboardPage())      // the button leads there instead of /
+!Allowed ? Ui.Forbidden : Ui.Table[…]         // danger callout, role="alert": „Nincs jogosultsága az oldal megtekintéséhez.”
+```
+
+The words are the catalog's `PageNotFound`, `NotFoundBackHome` and `PageForbidden` ([localization](localization.md)).
 
 ## Tooltips
 
@@ -1229,6 +1300,23 @@ Ui.Select.Bind(() => model.PartnerId).Placeholder("Choose a partner...").Search(
 ]
 ```
 
+**Rows of another table** — a company, a driver, a vehicle — are `.Choices(…)` rather than options (the owner's
+addition, not Flux's). Hand it `Ui.Choice<T>` rows in any order and the select is the picker both apps used to write:
+a listbox with a search field, the rows in the **reader's** alphabet (`TextOrder.Current` — in Hungarian `Á` stands
+with `A`, `Cs` after `Cu`, `Dzs` after `Dz`), a row's detail as the muted line under its words that a search finds
+too, and "Choose..." from the catalog ("Válasszon…" in Hungarian). Whether it can be cleared is the bound member's to
+say: `int?` or `string?` that the model does not require gets the cross, `int` and a required member never do, and a
+required member's message is the model's own rule's. For a list too long to send whole, hand it the search instead;
+the row the value holds is named before anything is found and stays first while a search misses it:
+
+```csharp
+Ui.Select.Bind(() => model.CompanyId).Choices(companies)        // Ui.Choice<int>[]: new(c.Id, c.Name, c.City)
+Ui.Select.Bind(() => model.DriverId).Choices(Driver.Named, held: driver)
+```
+
+Everything it fills in is a default: `.Placeholder(…)`, `.Clearable(…)`, `.Searchable(false)` or `.Combobox` say
+otherwise, `.AfterBind(…)` runs after a pick, and options written as children come after the rows.
+
 An option's `Key` names it inside its own select, so two selects on one page may key theirs by the same ids. An open list sends the page nothing until a row is picked — and a bound select
 sends nothing at the pick either, one answer or several: the browser draws it (the words, the count, the ticked rows)
 and the value travels with the next action, as Flux's `wire:model` (`.Live()` sends it at once). Every example, the
@@ -1247,7 +1335,9 @@ page what was typed once typing has paused, for suggestions from a database; `Mo
 `Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list, each a
 pill that can be taken off again, bound to a collection. `Searchable()`, `.Combobox`, `Ui.PillboxOptionCreate` and
 `Filter(false)` with `Debounce` for options found on the server — or `Search(async typed => …)`, as on the select, which
-asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
+asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. Rows of another
+table are `.Choices(vehicles)` (or `.Choices(find, held: picked)`), as on the select: searched, in the reader's
+alphabet, the detail as muted words after the name in the list and the name alone on the pill. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
 Backspace in the empty input send nothing: the browser draws the pills and the answers travel with the next action,
 as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboard and the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
 

@@ -89,7 +89,7 @@ public abstract partial class UiSelectControl<T>
     private bool Clears(View view) => AsksToClear(view) && view.Picked.Count > 0 && !IsOff(view.Parts);
 
     private bool AsksToClear(View view) =>
-        Clearable == true || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true;
+        ClearsByItself || view.Parts.Button?.Clearable == true || Pills?.Trigger?.Clearable == true;
 
     // ----- Listbox: the button -------------------------------------------------------------------------
 
@@ -107,7 +107,7 @@ public abstract partial class UiSelectControl<T>
             .Aria(TriggerAria(view))
             .Attributes(TriggerMarks(view, "data-ui-select-button", view.Field.Invalid || slot?.Invalid == true, anchors: true))[
             Prefix is { } prefix ? Span.Class(UiSelectLook.Prefix).Data("ui-select-prefix", "")[prefix] : null,
-            Shows(PickedContent(view, slot?.Placeholder ?? Placeholder)),
+            Shows(PickedContent(view, slot?.Placeholder ?? Placeholding)),
             // Drawn whenever it is asked for, out of sight while there is nothing to clear: its handler is numbered
             // before the rows', and a pick that shows it leaves every row wired as it was. Held, it has none: the
             // browser clears.
@@ -160,7 +160,7 @@ public abstract partial class UiSelectControl<T>
                 .Value(PickedWords(view))
                 .Id(view.Field.ControlId)
                 .Type(InputType.Text)
-                .Placeholder(slot?.Placeholder ?? Placeholder)
+                .Placeholder(slot?.Placeholder ?? Placeholding)
                 .Role("combobox")
                 .Autocomplete("off")
                 .Disabled(Disabled == true)

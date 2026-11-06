@@ -207,6 +207,12 @@ internal static class UiDocsCatalog
         "A form's footer in one line: Delete that asks first, Cancel back to the list and Save, drawn as Flux draws a form's "
         + "footer and worded in the reader's language.");
 
+    public static UiDocsEntry EditorDialog { get; } = new(
+        Routes.UiEditorDialogPage(), "Editor dialog", Components,
+        "Editor dialog in C#: Ui.EditorDialog",
+        "A list's editor in a dialog over the list, opened by the query string: a link, a reload and Back open and close "
+        + "it, and closing it keeps the list's filters.");
+
     public static UiDocsEntry DayAndTime { get; } = new(
         Routes.UiDayAndTimePage(), "Day and time", Components,
         "Day and time in C#: Ui.DayAndTime",
@@ -219,6 +225,12 @@ internal static class UiDocsCatalog
         "What a list says when it has nothing to show: one centred status line, in a table's spanning row or in place of "
         + "the table, as Flux's own demo draws it.");
 
+    public static UiDocsEntry NotFound { get; } = new(
+        Routes.UiNotFoundPage(), "Not found and forbidden", Components,
+        "404 and 403 pages in C#: Ui.NotFound, Ui.Forbidden",
+        "The built-in 404 and 403 of an app on Rask.Ui: one sentence in a Flux callout, inside the app's own frame, with "
+        + "the menu still in reach.");
+
     public static UiDocsEntry PageHeader { get; } = new(
         Routes.UiPageHeaderPage(), "Page header", Components,
         "Page header in C#: Ui.PageHeader",
@@ -228,8 +240,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry RowActions { get; } = new(
         Routes.UiRowActionsPage(), "Row actions", Components,
         "Table row actions in C#: Ui.RowActions",
-        "A list row's pencil and bin in one line: edit opens the row, delete asks first, in Flux's ghost row button with "
-        + "the muted outline icons.");
+        "A list row's actions behind one ⋯ in C#: view, edit, your own items and delete, held at the table's right edge; "
+        + "the delete asks first.");
 
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,
@@ -473,8 +485,8 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag, FormButtons,
-        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag, FormButtons,
+        Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];
 }

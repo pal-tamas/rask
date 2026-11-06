@@ -337,7 +337,8 @@ What follows for a list of rows:
 - **Key rows that are components** (`.Key(row.Id)`). A row that is a component of its own and carries no key is
   the same *instance* by position, whatever record it is handed — so after the first row is removed, the
   instance in second place shows the third record, and a click sent to "the second row" reaches it. A key ties
-  the instance to its record, and that click then reaches its own row or nothing.
+  the instance to its record, and that click then reaches its own row or nothing. What a keyed row holds needs no key
+  of its own: an unkeyed component inside it — the row's delete button or menu — is that row's (#1309).
 
 Three cases are worth knowing:
 

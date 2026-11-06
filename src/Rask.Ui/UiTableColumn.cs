@@ -62,8 +62,9 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// </summary>
     /// <remarks>
     ///     Not Flux's: an addition the owner approved (2026-11-04). A column left without one takes what the others
-    ///     leave, as <see cref="Ui.ColumnWidth.Rest" /> does. The heading of <see cref="Ui.ColumnWidth.Actions" /> or
-    ///     <see cref="Ui.ColumnWidth.Buttons" /> given no words says "Actions" to a screen reader. On paper the widths give
+    ///     leave, as <see cref="Ui.ColumnWidth.Rest" /> does. The heading of
+    ///     <see cref="Ui.ColumnWidth.Buttons" /> or <see cref="Ui.ColumnWidth.RowMenu" /> given no words says "Actions" to a
+    ///     screen reader; <see cref="Ui.ColumnWidth.RowMenu" /> is sticky, as the row's ⋯ cells under it are. On paper the widths give
     ///     way. The cells under it still say their own alignment: <c>Ui.TableCell.End</c> under a number.
     /// </remarks>
     public Ui.ColumnWidth? Width { get; set; }
@@ -98,7 +99,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <inheritdoc />
     /// <remarks>What this heading writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
     protected override string? ResolveClass() =>
-        UiTableBox.WithClass(Lists[(((Width is { } width ? (int)width + 1 : 0) * Aligns) + (int)(Align ?? Implied)) * 4 + (Sortable is true ? 2 : 0) + (Sticky is true ? 1 : 0)], Class);
+        UiTableBox.WithClass(Lists[(((Width is { } width ? (int)width + 1 : 0) * Aligns) + (int)(Align ?? Implied)) * 4 + (Sortable is true ? 2 : 0) + (Sticky is true || UiColumnWidths.Sticks(Width) ? 1 : 0)], Class);
 
     // The edge the width's values keep to, where the call site names none.
     private Ui.Align Implied => Width is { } width ? UiColumnWidths.Align(width) : default;

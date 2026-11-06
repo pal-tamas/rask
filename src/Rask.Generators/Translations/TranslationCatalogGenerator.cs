@@ -278,6 +278,9 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("RemoveQuestion", 0),
         ("SignOut", 0),
         ("SignOutQuestion", 0),
+        ("PageNotFound", 0),
+        ("RowActionsView", 0),
+        ("SelectChoose", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

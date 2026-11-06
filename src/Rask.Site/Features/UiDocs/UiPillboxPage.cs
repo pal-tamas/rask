@@ -34,6 +34,9 @@ public sealed partial class UiPillboxPage : Component
                        + "cleared the query brings the picked tags back, so a tag just made is among them."),
             UiDocsExample.Key("ui-pillbox-store").Heading("Backend search in the search field").File("PillboxSearchStoreExample.cs").Demo(PillboxSearchStoreExample).Testid("ui-pillbox-store")
                 .Blurb("The same over a searchable list, through Ui.PillboxSearch: the rows drawn stay until the answer is here."),
+            UiDocsExample.Key("ui-pillbox-choices").Heading("Rows of another table").File("PillboxChoicesExample.cs").Demo(PillboxChoicesExample).Testid("ui-pillbox-choices")
+                .Blurb("Choices hands the pillbox rows rather than options: searched, in the reader's alphabet, each row's "
+                       + "detail muted after its name in the list and the name alone on the pill."),
             UiDocsExample.Key("ui-pillbox-loading").Heading("Loading message").File("PillboxLoadingExample.cs").Demo(PillboxLoadingExample).Testid("ui-pillbox-loading")
                 .Blurb("What the list says while a slow search is on its way, and when it finds nothing."),
             UiDocsExample.Key("ui-pillbox-validation").Heading("With validation").File("PillboxValidationExample.cs").Demo(PillboxValidationExample).Testid("ui-pillbox-validation")

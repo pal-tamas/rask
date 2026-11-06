@@ -382,6 +382,7 @@ public sealed partial class UiDocsTests
     [Theory]
     [InlineData("/ui/confirm", "ui-confirm")]
     [InlineData("/ui/confirm-leave", "ui-confirm-leave")]
+    [InlineData("/ui/not-found", "ui-not-found")]
     public async Task A_page_of_the_kits_own_says_it_is_not_Fluxs_and_links_to_no_Flux_page(string path, string example)
     {
         var html = await SiteDocument.At(path);

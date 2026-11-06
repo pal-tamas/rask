@@ -163,8 +163,8 @@ departure in behaviour carries none.
   `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
 - **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
   Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
-  primary Save, a danger Delete at the start), `Ui.RowActions` IS the row's last cell (`Ui.TableCell.End`, `py-0`) holding Flux's row button (ghost, sm,
-  square) as a pencil and a bin in the muted outline (`text-zinc-400 hover:text-zinc-800 dark:hover:text-white`); both deletes ask
+  primary Save, a danger Delete at the start), `Ui.RowActions` IS the row's last cell (`Ui.TableCell.End`, `py-0`, sticky on `Ui.Main`'s surface) holding Flux's table
+  demo's ghost ⋯ and dropdown (bottom end; the pencil-and-bin shape went 2026-11-06); both deletes ask
   in `Ui.Confirm`, words from the catalog. `Width(Ui.ColumnWidth.…)` sizes a heading (`[:where(&)]:w-*`, wraps, gives way
   on paper) and the table takes `[:where(&)]:w-full min-w-(--ui-table-least)` with the sum (40rem floor) and its box
   `min-w-0`. Approved types and `Translations` rows in `FluxConformanceTests`; `UiFormButtonsTests`, `UiRowActionsTests`,
@@ -186,6 +186,19 @@ departure in behaviour carries none.
   2026-10-20) lays out an `h1` Xl heading, a `Ui.Subheading`, breadcrumbs above and the actions at the end from the demos'
   measured rows (account overview: `flex flex-wrap items-center justify-between gap-2`, the title `max-sm:w-full max-sm:mb-2`,
   actions `flex-1 justify-end gap-2`). Always the `h1`, no outer spacing (owner 2026-11-05), so its docs examples are framed demo pages. `UiEmptyTests`, `UiPageHeaderTests`, the site's `UiKitEmptyAndHeaderTests`.
+- **2026-11-04 — `Ui.EditorDialog.In("edit")` (#1295).** Both apps kept a copy. It IS `Ui.Modal` (`Open` from the address,
+  `OnClose` → `Go.Without(key)`), a box (`w-full sm:min-w-[28rem]`) or with `Wide()` the flyout (`w-full
+  md:w-[min(84rem,100vw)]`), and a heading `Ui.Heading.Level(2).Lg` with `mb-6 pe-8` to clear the cross; nothing of its
+  own is drawn, so `flux parity-modal` holds the look. Approved type in `FluxConformanceTests`; `UiEditorDialogTests`,
+  the site's `UiKitEditorDialogTests`.
+
+- **2026-11-06 — `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` (TA + Eszaf `Picker`/`PickerMany`/`MultiPicker`).** Flux's
+  select is handed options the page writes. The kit also takes `Ui.Choice<T>(Value, Name, Detail)` rows: options in the
+  reader's alphabet (`TextOrder.Current`), `Detail` as the option's `Description` and `Keywords`, and DEFAULTS only — a
+  listbox with a search field, the catalog's `SelectChoose` placeholder, `Clearable` where the bound member may hold
+  nothing (`int?`/`string?`, not `UiRequired`). `.Choices(find, held:)` is `Search` over rows. A method, so
+  `ApprovedMembers` rows `flux:select/Choices` and `flux:pillbox/Choices`; the markup is the select's own, unchanged.
+  `UiChoicesTests`, the site's `ui-select-choices` / `ui-pillbox-choices` E2E.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

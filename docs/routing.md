@@ -608,6 +608,9 @@ Key behaviours:
   to a path and keep params, use the `Go.To(path, query)` overload or follow up with `Go.With`.
 - `Go.To(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
+- A LINK to a page with one key changed is `route.With("edit", "new")` on the injected `RouteState` (this page,
+  every other key kept — the filters a reader set) or `Routes.DriversPage().With("edit", "7")` on any `RouteUrl`; a
+  `null` value takes the key out. A component that writes `route.With(...)` renders again when the address moves.
 - `Go.With` / `Go.Without` operate on the **current** path and leave it unchanged — they're for
   partial query updates (`?page=2&sort=asc`). A move that changes only the query **replaces** the current history
   entry, as Livewire's `#[Url]` does, so a live search adds no Back stop at every pause; follow it with `.Pushing()`
@@ -713,18 +716,24 @@ router subtree.)
 
 ## Not-found and auth gating
 
-**404 / catch-all.** Mark a component `[NotFound]` to register it as the catch-all page when no route matches; the
-framework falls back to a minimal built-in page if no app-defined one exists.
+**404 / catch-all.** An address no page answers shows the built-in not-found page **inside the app's root layout** —
+the one route at `/` with no parent that other pages nest under through `[ParentRoute]` — so the menu stays in reach
+and the app writes no not-found page of its own. With the UI kit on it is [`Ui.NotFound`](ui-kit.md#not-found-and-forbidden):
+Flux's warning callout with one sentence from the catalog (`PageNotFound`, „A kért oldal nem található.” in Hungarian)
+and a button home. An app with no such layout (or two of them) gets the page on its own, as before.
+
+Mark a component `[NotFound]` to replace it; yours always wins, and is placed where its own `[ParentRoute]` says:
 
 ```csharp
 [NotFound]
+[ParentRoute(typeof(Layout))]
 public sealed partial class NotFoundPage : Component
 {
-    protected override Component? Render() => H1["Page not found"];
+    protected override Component? Render() => Ui.NotFound.Home(Routes.DashboardPage());
 }
 ```
 
-The built-in page says three things — a heading that is also the tab's title, a sentence with the path that was
+Without the kit, the built-in page says three things — a heading that is also the tab's title, a sentence with the path that was
 asked for, and a link home — in the visitor's language: `RaskString.NotFoundTitle`, `NotFoundBody` (the path is its
 `{0}`) and `NotFoundBackHome` ([localization](localization.md)). The path is written as text, and nothing else of
 the request is shown.

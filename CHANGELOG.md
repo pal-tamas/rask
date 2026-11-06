@@ -8,6 +8,19 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING (Rask.Ui): `Ui.RowActions` is the ⋯ menu only; its pencil-and-bin shape and `Ui.ColumnWidth.Actions` are
+  gone.** One shape for a row's actions, as the owner decided (2026-11-06). Before:
+  `Ui.TableColumn.Actions` … `Ui.RowActions.Edit(url).Remove(…)` drew a muted pencil and bin, and `.Menu()` switched to
+  the ⋯. After: `Ui.TableColumn.RowMenu` … `Ui.RowActions.Key(row.Id).Edit(url).Remove(…)` always draws the ⋯ menu;
+  drop `.Menu()`, and move an `Actions` column to `RowMenu` (or `Buttons` for buttons of the page's own).
+- **The built-in 404 and 403 stand inside the app's frame, as Flux callouts.** Before: an address no page answered drew
+  Rask's own page OUTSIDE the layout (inline styles, no menu), so every app wrote a `[NotFound, ParentRoute(typeof(Layout))]`
+  page of its own; a page whose `[Authorize]` refused a signed-in reader said `PageForbidden` in a bare `<p>`, and an
+  app deciding for itself wrote its own `NotAllowed` callout. After: the built-in not-found page lands in the root layout
+  (the one parentless `[Route("/")]` other pages nest under), still answering 404, and with the kit on both are the
+  kit's new `Ui.NotFound` (warning callout, the new catalog sentence `PageNotFound` — „A kért oldal nem található.” — and
+  a button home, `.Home(route)`) and `Ui.Forbidden` (danger callout, `role="alert"`, `PageForbidden`), which a page can
+  also draw itself: `!Allowed ? Ui.Forbidden : …`. An app's own `[NotFound]` page still wins.
 - **The CQRS wire codec is generated only for a host with a WebAssembly `Client/`.** Before: a `Rask.Server` project
   with a `client/package.json` (an npm front end) switched it on too, and it carried the messages as TypeScript
   contracts for that front end. After: `RaskCqrsCodec` follows `RaskClient` alone, and the TypeScript contracts are no
@@ -131,6 +144,37 @@ them until tagged releases begin.
   `Ui.DatePicker.Bind(…).Typed()` is the typed input with the selectable header, in the culture's order; on a range,
   two fields named "Start" and "End" ("Kezdet", "Vége"). Owner-approved, not Flux's. A Hungarian typed date now ends on
   its full stop, `2026. 11. 06.`, as the culture writes it.
+- **`Ui.RowActions`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
+  "⋯" helper of their own. Before: `RowActions.For(row, edit, remove, heading, question)` in a hand-made sticky cell,
+  every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).View(url).Edit(url)
+  .Remove(delete, heading, question)[Ui.MenuItem…]` under `Ui.TableColumn.RowMenu` — Flux's table demo's ghost ⋯ and
+  dropdown (bottom end), View, Edit (or `OnEdit` to edit in place), the page's items, then the delete apart in red,
+  asking in `Ui.Confirm`. The cell and its heading are Flux's sticky ones on `Ui.Main`'s surface. No part is required
+  (`Ui.RowActions.Remove(…)` alone is a row that can only be deleted). New catalog word `RowActionsView` (Megtekintés).
+  Everything inside one is keyed by the component, and inside a keyed row it needs no key of its own (#1309).
+- **Rask.Ui: the editor over its list, opened by the query string — `Ui.EditorDialog.In("edit")` (#1295).** Not Flux's:
+  an addition the owner approved, which both list apps kept a copy of, made of `Ui.Modal`. Before: each app wrote an
+  `EditorDialog.For(Edit, editor, Here, wide: true)` that was handed the list's address to close back to, an
+  `Editing(Here, id)` to build the link and a `Heading` of its own. After:
+  `Ui.EditorDialog.In("edit").Heading("Edit driver").Wide()[editor]` reads its key from the address and takes it out
+  when the reader closes it — the cross, Escape, a press outside, Cancel, Back — keeping every other key, so the list's
+  filters, sort and page stand as they were; content is sent only while it is open, `UiEditorDialog.New` names a record
+  not yet saved, and `.Wide()` is a sheet from the right as wide as the screen allows (84rem at most). The link is new
+  in Core: `route.With("edit", id)` on the injected `RouteState` (this page, every key kept) and
+  `Routes.DriversPage().With("edit", id)` on any `RouteUrl` — a null value removes the key. Live on
+  rask.sh/ui/editor-dialog.
+- **Rask.Ui: `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` — rows of another table, picked (owner-approved, not Flux's).**
+  Before: TA and Eszaf each kept a `Picker` (Eszaf also `PickerMany`, `MultiPicker` and three search components of its own,
+  ~600 lines between them): `Picker.Of(() => m.CompanyId, companies, optional: true, changed: Fill)`, with a `Choice<T>`,
+  a Hungarian sort, "Válasszon…" and `Listbox.Searchable(true).Clearable(optional)` written out each time. After:
+  `Ui.Select.Bind(() => m.CompanyId).Choices(companies)` over `Ui.Choice<int>(id, name, detail)` rows draws a searchable
+  listbox, the rows in the READER'S alphabet (`TextOrder.Current`: in Hungarian `Á` with `A`, `Cs` after `Cu`, `Dzs`
+  after `Dz`, `Ö` after `O`), the detail as the muted line under the words that a search finds too, and the catalog's
+  new "Choose..." (`RaskString.SelectChoose`, "Válasszon…" in Hungarian). The cross comes from the bound member: `int?`
+  or `string?` that the model does not require is cleared, `int` or a required member never is. For a long list
+  `.Choices(Driver.Named, held: driver)` asks as `Search` does and keeps the held row
+  named and first. `Ui.Pillbox.Bind(() => m.VehicleIds).Choices(vehicles)` and `.Choices(find, held: picked)` do the
+  same for several. Whatever it fills in, `.Placeholder(…)`, `.Clearable(…)` or `.Searchable(false)` overrides.
 - **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
   `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
   most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,
@@ -997,6 +1041,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An unkeyed component inside a keyed list row is that row's, so a late press can no longer act on another row**
+  (#1309). Before: `Ui.TableRow.Key(s.Id)[Ui.TableCell[s.Name], Ui.RowActions.Remove(() => Delete(s))]` reused each
+  `Ui.RowActions` by its order among every one the page writes — delete Aminoff, and a press made a moment earlier on
+  Bothman's delete reached the instance that then drew Geidt's row, and deleted Geidt; the apps keyed every menu by
+  hand (`"row-menu-" + row`). After: once a keyed node has its key and its children, the unkeyed components it holds
+  are told apart by their order among THAT ROW's children (its nearest keyed ancestor), so their state and their
+  handlers follow the row when rows above it come, go or reorder. A page with no keys is unchanged. A component whose
+  props are all callbacks is now also claimed by a `Key` written on it, which it silently was not.
 - **The jobs test for a `.Within(…)` that runs out no longer flakes.** Its 200 ms deadline ran on the real clock
   and raced the processor claiming the job, so on a slow runner the wait ran out before the handler had started
   and "the job still runs" read false. The test clock can now hold its timers (`FakeTimeProvider.HoldTimers`):

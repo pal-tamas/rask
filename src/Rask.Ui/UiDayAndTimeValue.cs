@@ -19,11 +19,11 @@ internal static class UiDayAndTimeValue
     }
 
     /// <summary>
-    ///     Whether nothing chosen is an answer: a <c>DateTime?</c> the model does not require. A <c>DateTime</c>
-    ///     always holds a moment, and a required member must be given one.
+    ///     Whether nothing chosen is an answer, as for a select's choices: a <c>DateTime?</c> the model does not require. A
+    ///     <c>DateTime</c> always holds a moment, and a required member must be given one.
     /// </summary>
     /// <param name="bound">The control's bind expression, or null for a control bound to nothing.</param>
-    internal static bool MayBeEmpty<T>(LambdaExpression? bound) => typeof(T) == typeof(DateTime?) && !UiRequired.Is(bound);
+    internal static bool MayBeEmpty<T>(LambdaExpression? bound) => UiChoices.MayBeEmpty(bound, typeof(T));
 
     /// <summary>The moment <paramref name="value" /> holds; nothing for no value, or for a <c>DateTime</c> never set.</summary>
     internal static DateTime? Read<T>(T? value) => value is DateTime moment && moment != default ? moment : null;

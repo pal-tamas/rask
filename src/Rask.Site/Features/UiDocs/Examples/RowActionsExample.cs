@@ -1,6 +1,6 @@
 namespace Rask.Site.Features.UiDocs.Examples;
 
-// The pencil opens the row's form; the bin asks in the layout's Ui.Confirm. A supplier with orders cannot be deleted.
+// The ⋯ opens the row's menu: Edit opens its form, Delete asks in the layout's Ui.Confirm. A supplier with orders cannot be deleted.
 public sealed partial class RowActionsExample : Component
 {
     private static readonly Supplier[] Everyone =
@@ -17,19 +17,19 @@ public sealed partial class RowActionsExample : Component
                 Ui.TableColumns[
                     Ui.TableColumn["Supplier"],
                     Ui.TableColumn.Width(Ui.ColumnWidth.Reference)["City"],
-                    Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+                    Ui.TableColumn.RowMenu
                 ],
                 Ui.TableRows[
                     _suppliers.Select(supplier => Ui.TableRow.Key(supplier.Name)[
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(supplier.Name),
                         Ui.TableCell.Cut(supplier.City),
-                        Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
+                        Ui.RowActions.Key(supplier.Name).Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
                     ])
                 ]
             ]
         ];
 
-    // A supplier with orders cannot be deleted: no delete, no bin.
+    // A supplier with orders cannot be deleted: no delete in its menu.
     private Action? Removal(Supplier supplier) => supplier.Orders == 0 ? () => _suppliers.Remove(supplier) : null;
 
     private sealed record Supplier(string Name, string City, int Orders);

@@ -15,7 +15,7 @@ public partial class UiTableWidthTests : RaskMarkup
                 Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Since"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Balance"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Name)["Contact"],
-                Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+                Ui.TableColumn.Width(Ui.ColumnWidth.RowMenu)
             ],
             Ui.TableRows[Ui.TableRow[Ui.TableCell.Cut("Aminoff Freight"), Ui.TableCell["2026. 01. 15."], Ui.TableCell.End["49"], Ui.TableCell["Lindsey"], Ui.TableCell]]
         ];
@@ -34,11 +34,11 @@ public partial class UiTableWidthTests : RaskMarkup
     public void A_number_and_the_row_actions_head_their_columns_end_unless_the_page_says_otherwise()
     {
         var number = Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Balance"].ToHtml().AsText();
-        var actions = Ui.TableColumn.Width(Ui.ColumnWidth.Actions).ToHtml().AsText();
+        var actions = Ui.TableColumn.Width(Ui.ColumnWidth.Buttons).ToHtml().AsText();
         var told = Ui.TableColumn.Width(Ui.ColumnWidth.Number).Align(Ui.Align.Start)["Balance"].ToHtml().AsText();
 
         Assert.StartsWith("<th class=\"group/end-align [:where(&)]:w-28", number, StringComparison.Ordinal);
-        Assert.StartsWith("<th class=\"group/end-align [:where(&)]:w-24", actions, StringComparison.Ordinal);
+        Assert.StartsWith("<th class=\"group/end-align [:where(&)]:w-48", actions, StringComparison.Ordinal);
         Assert.StartsWith("<th class=\"[:where(&)]:w-28", told, StringComparison.Ordinal);
     }
 
@@ -47,9 +47,9 @@ public partial class UiTableWidthTests : RaskMarkup
     {
         var html = Suppliers(style: "max-height: 20rem;").ToHtml().AsText();
 
-        // 12 + 7 + 7 + 18 + 6 rem.
+        // 12 + 7 + 7 + 18 + 4 rem.
         Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0 min-w-0\">", html, StringComparison.Ordinal);
-        Assert.Matches("<table class=\"[^\"]* \\[:where\\(&\\)\\]:w-full min-w-\\(--ui-table-least\\) print:min-w-0\" style=\"max-height: 20rem; --ui-table-least: 50rem\"", html);
+        Assert.Matches("<table class=\"[^\"]* \\[:where\\(&\\)\\]:w-full min-w-\\(--ui-table-least\\) print:min-w-0\" style=\"max-height: 20rem; --ui-table-least: 48rem\"", html);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public partial class UiTableWidthTests : RaskMarkup
         Component[] headings =
         [
             Ui.TableColumn.Rest, Ui.TableColumn.Day, Ui.TableColumn.Moment, Ui.TableColumn.Number, Ui.TableColumn.Short,
-            Ui.TableColumn.Flag, Ui.TableColumn.Reference, Ui.TableColumn.Name, Ui.TableColumn.Actions, Ui.TableColumn.Buttons,
+            Ui.TableColumn.Flag, Ui.TableColumn.Reference, Ui.TableColumn.Name, Ui.TableColumn.Buttons, Ui.TableColumn.RowMenu,
         ];
 
         var html = Ui.Table[Ui.TableColumns[Ui.TableColumn.Short["VAT number"], Ui.TableColumn.Reference["City"]]].ToHtml();
@@ -92,9 +92,9 @@ public partial class UiTableWidthTests : RaskMarkup
     [Fact]
     public void The_row_actions_heading_given_no_words_names_its_column_to_a_screen_reader()
     {
-        var english = Ui.TableColumn.Width(Ui.ColumnWidth.Actions).ToHtml();
+        var english = Ui.TableColumn.Width(Ui.ColumnWidth.RowMenu).ToHtml();
         var hungarian = KitCulture.In("hu-HU", () => Ui.TableColumn.Width(Ui.ColumnWidth.Buttons).ToHtml().AsText());
-        var worded = Ui.TableColumn.Width(Ui.ColumnWidth.Actions)["Do"].ToHtml();
+        var worded = Ui.TableColumn.Width(Ui.ColumnWidth.Buttons)["Do"].ToHtml();
 
         Assert.Contains("<span class=\"sr-only\">Actions</span>", english, StringComparison.Ordinal);
         Assert.Contains("<span class=\"sr-only\">Műveletek</span>", hungarian, StringComparison.Ordinal);
