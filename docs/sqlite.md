@@ -25,7 +25,8 @@ product** — app, data, and background work — with nothing to rent or wire to
 > Two packages: **`Rask.SQLite`** is the pragma engine — it depends only on `Microsoft.Data.Sqlite`, is
 > reflection-free, and so works under trimming/AOT.
 > **`Rask.SQLite.EntityFrameworkCore`** adds the one-line `UseRaskSqlite(...)` for EF Core (and pulls in
-> `Microsoft.EntityFrameworkCore.Sqlite`). Neither needs the rest of Rask.
+> `Microsoft.EntityFrameworkCore.Sqlite`, plus `Rask.Data` for the model-level declarations it translates).
+> `Rask.SQLite` needs none of the rest of Rask.
 
 ## Install & wire it up
 
@@ -980,8 +981,9 @@ not just asserted in prose.
 **Outgrowing it is cheap.** Moving to a client-server database when you genuinely need multi-writer
 scale-out or managed HA is a provider + connection-string change you make yourself: the
 [`Rask.Data`](data.md) aggregates, [`Rask.Cqrs`](cqrs.md) handlers and generated slices are
-provider-agnostic, so point EF Core at your own provider and they follow. Rask ships no provider package
-for it — SQLite is the database it wires. What you leave behind is everything on this page that treats the
+provider-agnostic, so swap `UseRaskSqlite` for `UseRaskPostgres` ([`Rask.Postgres`](data.md#postgresql)) or
+`UseRaskSqlServer` ([`Rask.SqlServer`](data.md#sql-server)), both included in `Rask.Server`, and they follow.
+SQLite stays the default the framework wires. What you leave behind is everything on this page that treats the
 database as a *file* — Litestream, snapshots, `rask db backup` — and you are off the framework's happy
 path. See **[Scaling](scaling.md)** for where the wall actually is and what running more than one instance
 costs. SQLite gets you far enough that most single-person products never make the switch.

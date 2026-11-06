@@ -9,7 +9,7 @@ OpenTelemetry-exportable out of the box. Five surfaces:
    and **dead letters**.
 3. **Tracing** — an `ActivitySource` named `Rask.Server` spanning handler dispatch.
 4. **Health checks** — a live-session capacity check.
-5. **Durable logs** — opt-in: [`Rask.Logging`](logging.md) keeps the `ILogger` pipeline in a database of its
+5. **Durable logs** — on in a `RaskApp`, opt-in on a host wired by hand: [`Rask.Logging`](logging.md) keeps the `ILogger` pipeline in a database of its
    own, so what happened survives the restart that hid it.
 
 Everything is on by default with zero configuration; you opt in to *exporting* it.
