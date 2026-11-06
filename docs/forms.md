@@ -545,6 +545,13 @@ Form.Model(_order).OnSubmit(Send).Confirm("Send the order?")[ … ]
 
 // A row's ⋯ menu: the pick asks first.
 Ui.MenuItem.Danger.Icon(Ui.IconName.Trash).OnClick(() => Delete(row)).Confirm("Delete the partner?")["Delete"]
+
+// A link asks too, and a yes follows it: a string href as the browser follows any link (a GET, a page load).
+Ui.MenuItem.Href("/logout").Confirm("Sign out of Acme?", heading: "Sign out")["Sign out"]
+
+// The sign-out row in the catalog's words: "Are you sure you want to sign out?" under "Sign out" —
+// "Biztos ki szeretne jelentkezni?" under "Kijelentkezés" in Hungarian — named and iconed the same.
+Ui.MenuItem.Href(SignOut.Path).SignOut()
 ```
 
 <!-- demo:form-confirm -->
