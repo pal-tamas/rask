@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Pdf/build/Rask\.Pdf\.ChromePin\.props$|src/Rask\.Templates/[^/]+/(Dockerfile|client/package\.json)$|Rask\.Core\.targets$|Rask\.External\.props$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|Rask\.External\.Tests\.csproj$|GitHubActionsWorkflow\.cs$
+# gate-inputs: scripts/upstream/.*\.py$|src/Rask\.Cli/Commands/(DeployCommand|DbCommand\.Backup)\.cs$|src/Rask\.SQLite\.Litestream/build/|src/Rask\.Pdf/build/Rask\.Pdf\.ChromePin\.props$|src/Rask\.Templates/[^/]+/Dockerfile$|Rask\.Core\.targets$|TypeScriptToolPins\.cs$|Rask\.Tailwind\.props$|TailwindPins\.cs$|docs/tailwind\.md$|GitHubActionsWorkflow\.cs$|src/Rask\.Ui/(UiDatetimePickerJoins\.g\.cs|Resources/cldr\.LICENSE\.txt)$|cldr-plurals\.json$
 # The Python followers under scripts/upstream/, each run in a copy of the files it rewrites against saved
 # upstream answers (RASK_UPSTREAM_FIXTURES): a newer stable release moves every copy of the pin, with digests
 # computed from what was downloaded; a prerelease, an older release or a mismatched checksum moves nothing.
+# The npm followers (cldr, cldr-plurals, through npm.py) read a release's tarball only once it hashes to the
+# integrity the registry names.
 #
 # These edits land with nobody reading them. A copy one misses is a gate failure at best, and a digest that
 # was never checked is a build that executes whatever the network handed it.
@@ -14,16 +16,17 @@ root="$(git rev-parse --show-toplevel)"
 tmp="$(mktemp -d -t rask-followers.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
-files=(scripts/upstream/upstream.py scripts/upstream/images.py scripts/upstream/litestream.py scripts/upstream/tools.py scripts/upstream/chrome.py
-       scripts/upstream/fixtures.py scripts/upstream/actions.py
+files=(scripts/upstream/upstream.py scripts/upstream/npm.py scripts/upstream/images.py scripts/upstream/litestream.py
+       scripts/upstream/tools.py scripts/upstream/chrome.py scripts/upstream/actions.py
+       scripts/upstream/cldr.py scripts/upstream/cldr-plurals.py
+       src/Rask.Ui/UiDatetimePickerJoins.g.cs src/Rask.Ui/Resources/cldr.LICENSE.txt tests/Rask.Generators.Tests/cldr-plurals.json
        src/Rask.Cli/Commands/DeployCommand.cs src/Rask.Cli/Commands/DbCommand.Backup.cs tests/Rask.Cli.Tests/DeployCommandTests.cs
        tests/Rask.Cli.E2E.Tests/DeployHostE2ETests.cs scripts/run-providers-local.sh src/Rask.Templates/wasm/Dockerfile
        src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets
-       src/Rask.Templates/server/Dockerfile src/Rask.Templates/react/Dockerfile
-       src/Rask.Core/build/Rask.Core.targets src/Rask.External/build/Rask.External.props src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs
+       src/Rask.Templates/server/Dockerfile src/Rask.Templates/wasm-hosted/Dockerfile
+       src/Rask.Core/build/Rask.Core.targets src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs
        src/Rask.Tailwind/build/Rask.Tailwind.props src/Rask.Tailwind.Tasks/TailwindPins.cs docs/tailwind.md
-       src/Rask.Templates/react/client/package.json src/Rask.Templates/angular/client/package.json
-       tests/Rask.External.Tests/Rask.External.Tests.csproj src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
+       src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
        src/Rask.Pdf/build/Rask.Pdf.ChromePin.props)
 fresh() {
   rm -rf "$tmp/tree" "$tmp/saved"
@@ -141,10 +144,10 @@ check "an older Stable moves nothing"                  "" "$(unchanged "${files[
 echo "==> upstream tools"
 fresh
 answer "https://registry.npmjs.org/esbuild" '{"dist-tags":{"latest":"99.0.0"},"versions":{}}'
-answer "https://registry.npmjs.org/typescript" '{"dist-tags":{"latest":"98.1.0","next":"99.0.0-dev.1"},"versions":{"6.0.3":{},"6.9.9":{},"6.10.0-beta":{},"98.1.0":{}}}'
+answer "https://registry.npmjs.org/typescript" '{"dist-tags":{"latest":"98.1.0","next":"99.0.0-dev.1"},"versions":{}}'
 pins="$tmp/tree/src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs"
 while read -r package; do
-  case "$package" in @esbuild/*) v=99.0.0 ;; typescript) v=6.9.9 ;; *) v=98.1.0 ;; esac
+  case "$package" in @esbuild/*) v=99.0.0 ;; *) v=98.1.0 ;; esac
   answer "https://registry.npmjs.org/${package//\//%2f}/$v" "{\"dist\":{\"integrity\":\"$(sha512 "tgz $package")\"}}"
   answer "https://registry.npmjs.org/$package/-/${package##*/}-$v.tgz" "tgz $package"
 done < <(sed -n 's/.*\["\(.*\)@[^@]*"\] = .*/\1/p' "$pins")
@@ -161,30 +164,15 @@ check "...with a row per platform package"             9 "$(count '@99.0.0"] = '
 check "...holding the downloaded tarball's sha512"     1 "$(count "[\"@esbuild/linux-x64@99.0.0\"] = \"$(sha512 'tgz @esbuild/linux-x64')\"")"
 check "tsgo is typescript's latest, prerelease skipped" 1 "$(count '>98.1.0</RaskTsgoVersion>')"
 check "...from the stable native packages"             6 "$(count '["@typescript/typescript-')"
-check "the props extractor stays on the newest 6.x"    1 "$(count '>6.9.9</RaskExternalTypeScriptVersion>')"
-check "...with its row"                                1 "$(count '["typescript@6.9.9"]')"
 check "Tailwind's pin, table and docs move together"   3 "$(( $(count '>99.0.0</RaskTailwindVersion>') + $(count 'Version = "99.0.0"') + $(count '| `99.0.0` |') ))"
 check "every Tailwind asset holds its own digest"      1 "$(count "[\"tailwindcss-linux-x64\"] = \"$(sha256 'cli tailwindcss-linux-x64')\"")"
-check "a new major moves the templates' ranges"        4 "$(count '"^99.0.0"')"
 
 fresh
 answer "https://registry.npmjs.org/esbuild" '{"dist-tags":{"latest":"0.0.1"},"versions":{}}'
-answer "https://registry.npmjs.org/typescript" '{"dist-tags":{"latest":"99.0.0-rc"},"versions":{"5.9.9":{},"99.0.0-rc":{}}}'
+answer "https://registry.npmjs.org/typescript" '{"dist-tags":{"latest":"99.0.0-rc"},"versions":{}}'
 release tailwindlabs/tailwindcss v1.0.0
 run tools.py
 check "an older or prerelease compiler moves nothing"  "" "$(unchanged "${files[@]}")"
-
-echo "==> upstream fixtures"
-fresh
-for package in preact happy-dom react vue solid-js svelte; do
-  answer "https://registry.npmjs.org/$package" '{"dist-tags":{"latest":"99.0.0"},"versions":{}}'
-done
-answer "https://registry.npmjs.org/@angular%2fcore" '{"dist-tags":{"latest":"99.1.0"},"versions":{"99.1.0":{"peerDependencies":{"rxjs":"^7.4.0 || ^98.0.0"}}}}'
-answer "https://registry.npmjs.org/rxjs" '{"dist-tags":{"latest":"99.0.0"},"versions":{"7.8.2":{},"98.1.0":{},"98.2.0-beta.1":{},"99.0.0":{}}}'
-run fixtures.py
-check "every framework is npm's latest"                6 "$(count '>99.0.0</Rask')"
-check "Angular is one number for its four packages"    1 "$(count '>99.1.0</RaskAngularFixtureVersion>')"
-check "rxjs is the newest Angular's peer range takes"  1 "$(count '>98.1.0</RaskRxjsFixtureVersion>')"
 
 echo "==> upstream actions"
 fresh
@@ -195,33 +183,47 @@ check "a newer major moves the scaffolded workflow"    1 "$(count 'actions/check
 workflow=src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
 check "an older one leaves it" "$(grep -o 'setup-dotnet@v[0-9]*' "$root/$workflow")" "$(grep -o 'setup-dotnet@v[0-9]*' "$tmp/tree/$workflow")"
 
-echo "==> upstream front-end releases"
-# A tree of its own: one template, so the packages it floats are the only ones asked for.
-rm -rf "$tmp/tree" "$tmp/saved"
-mkdir -p "$tmp/saved" "$tmp/tree/scripts/upstream" "$tmp/tree/src/Rask.Templates/lit/client" "$tmp/tree/src/Rask.Cli/Scaffolding"
-cp "$root/scripts/upstream/upstream.py" "$root/scripts/upstream/front-ends.py" "$tmp/tree/scripts/upstream/"
-cat > "$tmp/tree/src/Rask.Templates/lit/client/package.json" <<'JSON'
-{ "dependencies": { "lit": "latest" },
-  "devDependencies": { "typescript": "~6.0.3", "vite": "npm:@voidzero-dev/vite-plus-core@latest", "vite-plus": "latest" } }
-JSON
-answer "https://registry.npmjs.org/lit" '{"versions":{
-  "3.3.3":{"peerDependencies":{"vite":"^8.0.0","left-pad":"*"},"engines":{"node":">=20"}},
-  "3.3.2":{},"3.2.1":{},"3.4.0-beta.1":{},"3.1.0":{"deprecated":"broken"},"2.8.0":{},"2.7.0":{},"1.0.0":{},"0.5.0":{}}}'
-answer "https://registry.npmjs.org/vite-plus" '{"versions":{"1.4.0":{"peerDependencies":{"lit":"^3"}}}}'
-answer "https://registry.npmjs.org/@voidzero-dev%2fvite-plus-core/1.4.0" '{"bundledVersions":{"vite":"8.3.5"}}'
-snapshot="$tmp/tree/src/Rask.Cli/Scaffolding/npm.snapshot.json"
-read_snapshot() { python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); print(eval(sys.argv[2]))' "$snapshot" "$1"; }
-run front-ends.py
-check "only what a template floats is followed, not a hold" "['lit', 'vite-plus']" "$(read_snapshot 'sorted(d["packages"])')"
-check "every minor of the newest major, the newest of two before it, no prerelease or deprecated" \
-  "['3.3.3', '3.2.1', '2.8.0', '1.0.0']" "$(read_snapshot 'list(d["packages"]["lit"]["versions"])')"
-check "a peer on vite or another floating package is kept, any other dropped" \
-  "{'vite': '^8.0.0'}" "$(read_snapshot 'd["packages"]["lit"]["versions"]["3.3.3"]["peerDependencies"]')"
-check "...and so is engines.node"                       ">=20" "$(read_snapshot 'd["packages"]["lit"]["versions"]["3.3.3"]["engines"]["node"]')"
-check "the toolchain records the vite its core bundles" "8.3.5" "$(read_snapshot 'd["packages"]["vite-plus"]["versions"]["1.4.0"]["bundledVersions"]["vite"]')"
-sed -i.bak 's/"followed": "[0-9-]*"/"followed": "2000-01-01"/' "$snapshot"
-run front-ends.py
-check "a day with nothing new writes nothing"           "2000-01-01" "$(read_snapshot 'd["followed"]')"
+echo "==> upstream cldr"
+# `cldr_release VERSION [INTEGRITY]` packs a cldr-core holding 152 languages' plurals as npm's latest, naming
+# INTEGRITY if given (else the tarball's own).
+cldr_release() {
+  rm -rf "$tmp/package"
+  mkdir -p "$tmp/package/supplemental"
+  local langs="" i tgz="$tmp/cldr-core-$1.tgz" url="https://registry.npmjs.org/cldr-core/-/cldr-core-$1.tgz"
+  for i in $(seq 1 150); do langs="$langs\"x$i\":{\"pluralRule-count-other\":\" @integer 0~15\"},"; done
+  printf '{"supplemental":{"plurals-type-cardinal":{%s"en":{"pluralRule-count-one":"i = 1 and v = 0 @integer 1","pluralRule-count-other":" @integer 0, 2~16"},"ar":{"pluralRule-count-zero":"n = 0 @integer 0"}}}}' \
+    "$langs" > "$tmp/package/supplemental/plurals.json"
+  (cd "$tmp" && COPYFILE_DISABLE=1 tar --format=ustar -czf "$tgz" package)
+  cp "$tgz" "$tmp/saved/$(cd "$root/scripts/upstream" && python3 -c 'import sys, upstream; print(upstream.fixture_name(sys.argv[1]))' "$url")"
+  answer "https://registry.npmjs.org/cldr-core/latest" \
+    "{\"name\":\"cldr-core\",\"version\":\"$1\",\"dist\":{\"tarball\":\"$url\",\"integrity\":\"${2:-$(sha512_of "$tgz")}\"}}"
+}
+sha512_of() { printf 'sha512-%s' "$(openssl dgst -sha512 -binary < "$1" | base64 | tr -d '\n')"; }
+plurals() { RASK_UPSTREAM_FIXTURES="$tmp/saved" python3 "$tmp/tree/scripts/upstream/cldr-plurals.py" "$@" >"$tmp/out" 2>&1; }
+snapshot=tests/Rask.Generators.Tests/cldr-plurals.json
+
+fresh
+cldr_release 99.0.0
+plurals
+check "a new release is written"                       1 "$(grep -cF '"release": "99.0.0"' "$tmp/tree/$snapshot")"
+check "...naming the integrity it was checked against" 1 "$(grep -cF "$(sha512_of "$tmp/cldr-core-99.0.0.tgz")" "$tmp/tree/$snapshot")"
+check "...each rule without its samples"               1 "$(grep -cF '"one": "i = 1 and v = 0"' "$tmp/tree/$snapshot")"
+check "--check passes on what it wrote"                passed "$(plurals --check && echo passed)"
+
+fresh
+cldr_release 99.0.0
+check "--check fails on another release's snapshot"    stale "$(plurals --check || echo stale)"
+
+fresh
+cldr_release 99.0.0 "sha512-$(printf 'not it' | openssl dgst -sha512 -binary | base64)"
+check "a tarball the registry does not name is refused" refused "$(plurals || echo refused)"
+check "...and moves nothing"                           "" "$(unchanged "$snapshot")"
+
+fresh
+check "a registry that does not answer is not a failure" passed "$(plurals && echo passed)"
+check "...and moves nothing"                           "" "$(unchanged "$snapshot")"
+check "...for the date-time joins too"                 passed "$(run cldr.py && echo passed)"
+check "...which stay as they were"                     "" "$(unchanged src/Rask.Ui/UiDatetimePickerJoins.g.cs src/Rask.Ui/Resources/cldr.LICENSE.txt)"
 
 [ "$failures" -eq 0 ] || { echo "upstream followers: $failures failed" >&2; exit 1; }
 echo "upstream followers: ok"

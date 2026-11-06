@@ -3,13 +3,10 @@
 
     esbuild      RaskEsbuildVersion (Rask.Core.targets)              npm esbuild, latest
     tsgo         RaskTsgoVersion (Rask.Core.targets)                 npm typescript, latest (7.x is native)
-    typescript   RaskExternalTypeScriptVersion (Rask.External.props) npm typescript, newest 6.x: the props
-                 extractor needs the JavaScript API, which 7.x does not ship
     Tailwind     RaskTailwindVersion (Rask.Tailwind.props)           GitHub tailwindlabs/tailwindcss, latest
 
 Every package or asset the pin tables list (TypeScriptToolPins.cs, TailwindPins.cs) is downloaded and hashed
-here, and must agree with what its registry publishes beside it. On a new Tailwind major the templates'
-tailwindcss and @tailwindcss/* ranges move to ^<new> too, so they keep accepting the pin (TailwindVersionPinTests).
+here, and must agree with what its registry publishes beside it.
 
 Usage:  scripts/upstream/tools.py
 Exit:   0 when it could tell (the diff is the report) · 1 the repo changed shape or a digest disagrees
@@ -22,26 +19,20 @@ from upstream import (ROOT, ShapeChanged, capture, checksums, fetch, fetch_json,
 
 NPM = "https://registry.npmjs.org"
 CORE = "src/Rask.Core/build/Rask.Core.targets"
-EXTERNAL = "src/Rask.External/build/Rask.External.props"
 NPM_PINS = "src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs"
 TAILWIND = "src/Rask.Tailwind/build/Rask.Tailwind.props"
 TAILWIND_PINS = "src/Rask.Tailwind.Tasks/TailwindPins.cs"
 TAILWIND_RELEASES = "https://github.com/tailwindlabs/tailwindcss/releases/download"
 
-# (name, file, property, package whose release it follows, the majors it may take, the pin rows' package names)
+# (name, file, property, package whose latest release it follows, the pin rows' package names)
 NPM_TOOLS = [
-    ("esbuild", CORE, "RaskEsbuildVersion", "esbuild", None, r"@esbuild/[\w-]+"),
-    ("tsgo", CORE, "RaskTsgoVersion", "typescript", None, r"@typescript/typescript-[\w-]+"),
-    ("typescript", EXTERNAL, "RaskExternalTypeScriptVersion", "typescript", 6, r"typescript"),
+    ("esbuild", CORE, "RaskEsbuildVersion", "esbuild", r"@esbuild/[\w-]+"),
+    ("tsgo", CORE, "RaskTsgoVersion", "typescript", r"@typescript/typescript-[\w-]+"),
 ]
 
 
-def newest_npm(package, major):
-    document = fetch_json(f"{NPM}/{package.replace('/', '%2f')}")
-    if major is None:
-        return document["dist-tags"]["latest"]
-    versions = [v for v in document["versions"] if stable(v) and numbers(v)[0] == major]
-    return max(versions, key=numbers) if versions else None
+def newest_npm(package):
+    return fetch_json(f"{NPM}/{package.replace('/', '%2f')}")["dist-tags"]["latest"]
 
 
 def tarball(package, version):
@@ -49,9 +40,9 @@ def tarball(package, version):
     return f"{NPM}/{package}/-/{package.split('/')[-1]}-{version}.tgz"
 
 
-def follow_npm(name, path, prop, package, major, rows):
+def follow_npm(name, path, prop, package, rows):
     stated = capture(path, rf"<{prop} [^>]*>([^<]+)<")
-    latest = newest_npm(package, major)
+    latest = newest_npm(package)
     if not latest or not stable(latest) or numbers(latest) <= numbers(stated):
         return None
 
@@ -92,13 +83,6 @@ def follow_tailwind():
     substitute(TAILWIND_PINS, r'(Version = ")[\d.]+(")', rf"\g<1>{latest}\g<2>")
     substitute(TAILWIND_PINS, row, lambda m: f'["{m.group(1)}"] = "{digests[m.group(1)]}"')
     substitute("docs/tailwind.md", r"(\| `RaskTailwindVersion` \| `)[\d.]+(`)", rf"\g<1>{latest}\g<2>")
-    if numbers(latest)[0] != numbers(stated)[0]:
-        manifests = [*ROOT.glob("src/Rask.Templates/*/client/package.json"), *ROOT.glob("src/Rask.Templates/_islands/*/island.json")]
-        for manifest in manifests:
-            text = manifest.read_text(encoding="utf-8")
-            moved = re.sub(r'("(?:tailwindcss|@tailwindcss/[\w-]+)"\s*:\s*)"\^[\d.]+"', rf'\g<1>"^{latest}"', text)
-            if moved != text:
-                manifest.write_text(moved, encoding="utf-8")
     return f"tailwind {stated} -> {latest}"
 
 

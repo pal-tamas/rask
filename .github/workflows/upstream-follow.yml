@@ -39,7 +39,7 @@ jobs:
           fetch-depth: 0   # the commit is rebased onto main before it is pushed
 
       # Only a follower that builds (`"setup": "dotnet"` in the registry) pays for .NET: MDN records the public
-      # surface from a build of the new snapshot, island-props reads the islands' props in the site's build.
+      # surface from a build of the new snapshot. Every follower is Python or .NET: none needs Node.
       - name: Needs .NET?
         id: needs
         run: |
@@ -49,10 +49,6 @@ jobs:
         if: steps.needs.outputs.setup == 'dotnet'
         with:
           workloads: wasm-tools
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
 
       - name: Follow ${{ inputs.follower }}
         env:
