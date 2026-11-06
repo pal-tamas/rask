@@ -132,6 +132,18 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Ui.DayAndTime` — a day and a time in one row, bound to one `DateTime?` — and `Ui.DatePicker.Typed()` (#1297).**
+  Before: TA and Eszaf each kept a `Moments` helper and two model properties taking the moment apart —
+  `FromDay { get => Moments.Day(From); set => From = Moments.OnDay(From, value); }`, `FromTime` likewise,
+  `Moments.Pickers(() => _form.FromDay, () => _form.FromTime, rule: …, live: true)` — and a `DayPicker(s)` extension
+  (`.Hu()` / `.Typed()`). After: `Ui.DayAndTime.Bind(() => _form.From).Validate(…).Live()` draws Flux's typed date picker
+  and typed time picker side by side, the time beneath the day where the row has no room (a phone). The time waits for
+  a day and goes with it; a new day keeps the time to the second, and a time left at the hour and minute it shows keeps
+  the seconds. A `DateTime?` the model does not require has the day's ×; a required one or a `DateTime` never empties.
+  Half typed, it says "Enter a valid date." / "Enter a valid time." under the pair, from the catalog.
+  `Ui.DatePicker.Bind(…).Typed()` is the typed input with the selectable header, in the culture's order; on a range,
+  two fields named "Start" and "End" ("Kezdet", "Vége"). Owner-approved, not Flux's. A Hungarian typed date now ends on
+  its full stop, `2026. 11. 06.`, as the culture writes it.
 - **`Ui.RowActions`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
   "⋯" helper of their own. Before: `RowActions.For(row, edit, remove, heading, question)` in a hand-made sticky cell,
   every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).View(url).Edit(url)

@@ -361,6 +361,28 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> DayAndTime { get; } =
+    [
+        new("Ui.DayAndTime", typeof(UiDayAndTime<DateTime?>), NotFlux,
+            "A moment as Flux's typed date picker and time picker in one row. The time waits for a day, and goes beneath it where the row has no room.",
+        [
+            new("Bind", typeof(Expression<Func<DateTime?>>), "The member it reads and writes: () => m.At, a DateTime? or a DateTime. Or Value with OnChange.", "() => a DateTime? or a DateTime"),
+            new("Value", typeof(DateTime?), "What it holds, for a page that holds it itself.", "T: a DateTime? or a DateTime"),
+            new("OnChange", typeof(Callback<DateTime?>), "Runs with the whole moment when the day or the time changes.", Picked),
+            new("AfterBind", typeof(Callback<DateTime?>), "Runs after Bind has written the model.", Picked),
+            new("Validate", typeof(Validator<DateTime?>?), "A rule the moment is checked by when it is written; it speaks under the pair.", Validates),
+            new("Live", typeof(bool?), "Writes the model as soon as the day or the time is given, not with the next action."),
+            new("Label", typeof(string), "Draws a field around the pair, with this label and the error under both."),
+            new("Description", typeof(string), "Help text between the label and the pair."),
+            new("DescriptionTrailing", typeof(string), "Help text under the pair."),
+            new("Badge", typeof(string), "A word beside the label: \"Optional\"."),
+            new("Disabled", typeof(bool?), "Takes no input, the day nor the time."),
+            new("Invalid", typeof(bool?), "Error styling the form did not ask for."),
+            new("Locale", typeof(string), "The culture the day is typed and the time written in. The app's culture when unset."),
+            new("ShowValidation", typeof(bool?), "False leaves the member's message to a Ui.Error placed elsewhere."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Empty { get; } =
     [
         new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it; in a cell, the cell's ink and size. Its children are the sentence.", []),
@@ -941,7 +963,7 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
+            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
             FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,

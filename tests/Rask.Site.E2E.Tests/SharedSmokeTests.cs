@@ -47,11 +47,18 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
     protected abstract string FixtureName { get; }
     protected abstract string ServerLog { get; }
 
+    /// <summary>
+    ///     The browser's language, unset for the browser's own. A WASM app loads the ICU data of the reader's language
+    ///     only (an English browser gets the EFIGS shard), so a page that formats Hungarian is read by a Hungarian browser.
+    /// </summary>
+    protected virtual string? BrowserLocale => null;
+
     public async ValueTask InitializeAsync()
     {
         _ctx = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions
         {
             BaseURL = BaseUrl,
+            Locale = BrowserLocale,
             // Grant the browser-gated APIs the /browser showcase exercises so their journey step is
             // deterministic in headless Chromium: clipboard read/write, plus a fixed geolocation fix.
             Permissions = ["clipboard-read", "clipboard-write", "geolocation"],

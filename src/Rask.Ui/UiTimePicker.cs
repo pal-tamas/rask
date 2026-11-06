@@ -28,10 +28,13 @@ namespace Rask;
 /// <see cref="UiField" /> with its <see cref="UiError" />, as Flux's shorthand does.
 /// </para>
 /// </remarks>
-public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind, IUiLockable
+public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind, IUiLockable, IUiRelaysUnread
 {
     private readonly int _instance = UiTimePickerLook.NextInstance();
     private string? _ownId;
+
+    // Where it says what it cannot take when it is a part of another control (IUiRelaysUnread), as last drawn.
+    private Func<string, Task>? _relay;
 
     // The binding as the last render resolved it, inside its form: a handler reads the value through it as it
     // is when the handler runs.
@@ -85,6 +88,9 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
 
     /// <inheritdoc />
     bool IUiLockable.Locked => Disabled == true;
+
+    /// <inheritdoc />
+    Func<string, Task>? IUiRelaysUnread.Relay => _relay;
 
     /// <summary>
     ///     Draws the error state. A bound picker is invalid on its own while its form holds a message for it.
@@ -155,6 +161,7 @@ public sealed partial class UiTimePicker<T> : Component, IFormControl<T>, IUiFor
         var field = UiWithField.For(this);
         var (accessor, context, current) = UiFormCommit.Resolve(this);
         (_accessor, _context) = (accessor, context);
+        _relay = UiUnreadRelay.Around();
         var chosen = UiTimePickerValue.Read(current);
         var times = UiTimePickerLook.Times(Min, Max, Interval ?? 30);
         // Drawn whenever it is asked for, out of sight while there is nothing to clear: its handler is numbered

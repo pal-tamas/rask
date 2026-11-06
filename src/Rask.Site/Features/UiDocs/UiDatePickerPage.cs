@@ -31,6 +31,10 @@ public sealed partial class UiDatePickerPage : Component
             .Blurb("Bound to a DateOnly? that starts on today, as Flux's value does."),
         UiDocsExample.Key("ui-date-picker-input").Heading("Input trigger").File("DatePickerInputExample.cs").Demo(DatePickerInputExample).Testid("ui-date-picker-input")
             .Blurb("Month, day and year typed as one field: a part that is full moves on to the next, and the chevron opens the calendar."),
+        UiDocsExample.Key("ui-date-picker-typed").Heading("Typed").File("DatePickerTypedExample.cs").Demo(DatePickerTypedExample).Testid("ui-date-picker-typed")
+            .Blurb("Typed() is the input trigger with the selectable header: the day typed in the culture's own order and "
+                   + "separators — Hungarian here, 2026. 11. 06. — or picked, the header choosing the month and the year. "
+                   + "On a range it draws two fields, its start and its end, named from the catalog. A day with a time is Ui.DayAndTime."),
     ];
 
     private static Component[] Ranges() =>

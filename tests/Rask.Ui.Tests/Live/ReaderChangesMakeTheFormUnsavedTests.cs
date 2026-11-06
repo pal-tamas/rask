@@ -40,6 +40,7 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
         ["calendar, multiple"] = (typeof(UiCalendarMultiple), a => Ui.Calendar.Multiple.Bind(() => a.Days).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20")),
         ["date picker"] = (typeof(UiDatePicker), a => Ui.DatePicker.Bind(() => a.Day).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20")),
         ["datetime picker"] = (typeof(UiDatetimePicker), a => Ui.DatetimePicker.Bind(() => a.Moment).Locale("en-US").On(Today), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "2026-01-20T09:30")),
+        ["day and time"] = (typeof(UiDayAndTime<>), a => Ui.DayAndTime.Bind(() => a.Moment).Locale("en-US"), page => First(page, "[data-ui-date-picker] [data-rask-segments] input[type=\"hidden\"]", "change", "2026-01-20")),
         ["time picker"] = (typeof(UiTimePicker<>), a => Ui.TimePicker.Bind(() => a.At), page => First(page, "button[role=\"option\"]", "click")),
         ["colour picker"] = (typeof(UiColorPicker), a => Ui.ColorPicker.Bind(() => a.Text), page => First(page, "input[type=\"hidden\"][data-rask-on-change]", "change", "#22c55e")),
         ["slider"] = (typeof(UiSlider<>), a => Ui.Slider.Bind(() => a.Volume), page => First(page, "input[type=\"range\"]", "input", "40")),

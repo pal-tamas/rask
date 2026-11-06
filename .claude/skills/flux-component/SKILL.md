@@ -169,6 +169,15 @@ departure in behaviour carries none.
   on paper) and the table takes `[:where(&)]:w-full min-w-(--ui-table-least)` with the sum (40rem floor) and its box
   `min-w-0`. Approved types and `Translations` rows in `FluxConformanceTests`; `UiFormButtonsTests`, `UiRowActionsTests`,
   `UiTableWidthTests`, the site's `UiKitListActionsTests`.
+- **2026-11-04 — `Ui.DayAndTime` and `.Typed()` on `Ui.DatePicker` (#1297).** Both apps typed a moment as Flux's date
+  picker and time picker side by side; the owner rejected `Ui.DatetimePicker` for it. `Ui.DayAndTime.Bind(() => m.At)`
+  binds ONE `DateTime?`/`DateTime` and draws `Ui.DatePicker…Typed()` + `Ui.TimePicker` typed (no new look: both pickers'
+  parity holds) in a `[:where(&)]:flex flex-wrap gap-2` row, day `min-w-48 flex-1`, time `w-36 shrink-0` (`w-44` on a 12-hour clock). The parts say
+  what they cannot take under the pair (`IUiRelaysUnread` + a `UiUnreadRelay` in context, read in each picker's render).
+  Seconds kept when the hour and minute are; required-ness from the member, as `.Choices`. `.Typed()` is a step
+  (`Type(Input)` + `SelectableHeader`; a range draws two labelled fields), so `FluxConformanceTests` lists only the type
+  (`Approved`). `UiDayAndTimeTests`, the site's `UiKitDayAndTimeTests`. A typed date's parts now carry the pattern's own
+  text between and after them (hu `2026. 11. 06.`, its last full stop included); en-US, de and ja are unchanged.
 - **2026-11-04 — `Ui.Empty`, `Ui.PageHeader`, `UiTableCell.ColSpan` (#1283).** Flux has no empty state: `Ui.Empty` is the one
   its account overview DEMO draws (a `div role=status`, `py-6 text-center`, NO ink or size: the cell gives them, owner 2026-11-05), and no
   marker, as Flux writes none. A demo is measured through `flux parity <page> --prepare <name>` whose `Flux(slug)` names the demo

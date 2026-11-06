@@ -276,6 +276,7 @@ public sealed class FluxConformanceTests
         [typeof(UiEmpty)] = "the owner, 2026-11-04: a list's empty state, as Flux's account overview demo draws its empty row (#1283, TA gap B3)",
         [typeof(UiEditorDialog)] = "the owner, 2026-11-04: a list's editor over it, opened and closed by a query key, made of flux:modal (#1295)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",
+        [typeof(UiDayAndTime<>)] = "the owner, 2026-11-04: a moment as Flux's typed date picker and time picker in one row, not the datetime picker (#1297)",
         [typeof(UiNotFound)] = "the owner, 2026-11-06: the built-in 404 inside the app's frame, as Flux's warning callout (TA+Eszaf survey, step 10)",
         [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
     };
