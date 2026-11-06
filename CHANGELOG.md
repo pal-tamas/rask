@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **The CQRS wire codec is generated only for a host with a WebAssembly `Client/`.** Before: a `Rask.Server` project
+  with a `client/package.json` (an npm front end) switched it on too, and it carried the messages as TypeScript
+  contracts for that front end. After: `RaskCqrsCodec` follows `RaskClient` alone, and the TypeScript contracts are no
+  longer generated; a project that sends messages some other way still sets `<RaskCqrsCodec>true</RaskCqrsCodec>`.
+- **Rask's own tooling runs on .NET and Python, with no Node.** The runtime's TypeScript fixtures run in-process on
+  Jint (`ScriptFixture` in `tests/Rask.TestSupport`), the Flux UI harness is a C# app on Microsoft.Playwright
+  (`dotnet run --project scripts/flux/Flux -- parity button`; each command is named after the script it was),
+  `scripts/tools/KitBundle` builds and follows `Ui.Editor`'s and `Ui.Phone`'s engines straight from npm's registry,
+  and the MDN, CLDR and npm followers are Python (`scripts/mdn/*.py`, `scripts/upstream/*.py`).
 - **Text order is applied in the `ORDER BY` only, never to a column (#1290).** Before (nightly only):
   `c.TextOrder("Hungarian_100_CI_AS")` gave every string column that collation on SQL Server — a schema migration on
   every text column, and searches changed with it (under the Hungarian collation `c` no longer found `Csaba`). After:
@@ -1705,18 +1714,21 @@ them until tagged releases begin.
   `SolidComponent`, `VueComponent`, `SvelteComponent`, `AngularComponent` or `LitComponent`, a package island
   (`Module => "react-colorful"`, a `*Package` class, its committed `{Island}.props.json`), and a Blazor component
   hosted through `BlazorComponent<T>` no longer compile. Pages are C# components; a JavaScript library is reached
-  from a component's scoped `.ts` ([JavaScript interop](docs/js-interop.md)).
+  from a component's scoped `.ts` ([JavaScript interop](docs/js-interop.md)). `rask dev` no longer runs Vite for
+  islands' hot reload, and `LivePayload.InjectIslandsDevAttr` is gone with it.
 - **BREAKING: `rask new` offers `server`, `wasm` and `wasm-hosted` only.** The `react`, `preact`, `vue`,
   `angular`, `solid`, `svelte` and `lit` templates and `--islands` are refused as unknown, and
   `Rask.Spa.Hosting` no longer builds an npm front end: `MapRaskSpa()` serves the `wasm-hosted` template's
-  WebAssembly app ([a WebAssembly app on its host](docs/spa.md)).
+  WebAssembly app ([a WebAssembly app on its host](docs/spa.md)). The `Rask.Spa.Tasks` package that ran
+  `npm ci` + `npm run build` is gone, and so is `SpaHostingOptions.DevServerUrl`.
 - **No Node or npm anywhere — for an app, for Rask's maintainers, or in CI.** Tailwind's npm fallback
   (`RaskTailwindEngine=npm`) is gone: the standalone binary is the engine, and a platform it does not cover
   points `RaskTailwindPath` at a binary of its own ([Tailwind](docs/tailwind.md#where-the-engine-comes-from)). The
   installer no longer installs Node, `rask doctor` no longer checks for it, and the repo's own scripts and
   followers run on .NET and Python.
 - **Diagnostic ids retired with them:** RASK056–059, RASK061–066 (RASK063 and RASK065 were never implemented),
-  RASK077–080 and RASK100, and the islands build's RASKISLAND001–019. None is recycled.
+  RASK077–080 and RASK100, the islands build's RASKISLAND001–019, and the npm front-end build's RASKSPA001–005
+  and RASKSPA007. None is recycled.
 
 - **BREAKING (behaviour): `NavigationQuiescenceTimeout` — a navigation sends its page at once; its loads follow
   in a later frame.** `RaskServerOptions.NavigationQuiescenceTimeout` and `RaskWasmOptions.NavigationQuiescenceTimeout`
