@@ -284,6 +284,7 @@ public sealed class FluxConformanceTests
     private static readonly Dictionary<string, string> ApprovedMembers = new(StringComparer.Ordinal)
     {
         ["flux:table/Of"] = "the owner, 2026-10-21: a table drawn from a Rask.Query query, skeleton rows of the rows' own size while it loads",
+        ["flux:menu.item/Confirm"] = "the owner, 2026-11-06: an item that asks first, in the page's Ui.Confirm dialog",
     };
 
     /// <summary>
