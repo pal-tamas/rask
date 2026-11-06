@@ -778,8 +778,9 @@ that configures it; defaults to `--project`), and `--context/-c` (when the app h
 `DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
 The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design`, and
-`rask db` adds it for you (via `dotnet add package`) if it's missing. A project from `rask new` already
-has it, because the first migration `rask new` runs goes through this same code path. `backup` and
+`rask db` adds it for you (via `dotnet add package`) if it's missing, at the EF Core version Rask itself is
+built against, so the app never restores two EFs. A project from `rask new` with the database already
+references it in its csproj, at that same version. `backup` and
 `restore` need none of that: they copy a database rather than migrate one, so they never install
 `dotnet-ef`.
 

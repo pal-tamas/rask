@@ -99,6 +99,23 @@
     <Compile Include="..\Rask.WebPush\Base64Url.cs" Link="Shared\WebPush\Base64Url.cs" />
   </ItemGroup>
 
+  <!-- The EF Core version Rask is built against, read off the central pin in Directory.Packages.props and
+       stamped onto the assembly (EfCorePin reads it back). A scaffold's Microsoft.EntityFrameworkCore.Design
+       and `rask db`'s own `dotnet add package` pin THIS number: left to float, they took the newest EF on
+       nuget.org, one patch ahead of what Rask.Server restores, and the app's test project hit MSB3277 at build
+       and a FileNotFoundException at test time. Read from the pin rather than restated, so a Dependabot bump of
+       Microsoft.EntityFrameworkCore moves the CLI with it. -->
+  <Target Name="RaskStampEfCoreVersion" BeforeTargets="GetAssemblyAttributes">
+    <ItemGroup>
+      <_RaskEfCorePin Include="@(PackageVersion)" Condition="'%(Identity)' == 'Microsoft.EntityFrameworkCore'" />
+    </ItemGroup>
+    <Error Condition="'@(_RaskEfCorePin->'%(Version)')' == ''"
+           Text="Microsoft.EntityFrameworkCore is not pinned in Directory.Packages.props; Rask.Cli stamps that pin into every scaffold." />
+    <ItemGroup>
+      <AssemblyMetadata Include="RaskEfCoreVersion" Value="@(_RaskEfCorePin->'%(Version)')" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Cli.Tests" />
     <InternalsVisibleTo Include="Rask.Generators.Tests" />

@@ -971,6 +971,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A fresh `rask new` builds without MSB3277 and its `dotnet test` passes.** The first migration added
+  `Microsoft.EntityFrameworkCore.Design` with no version, so it took the newest EF on nuget.org (10.0.14) while Rask
+  is built against 10.0.13: the app's test project warned twice at build and threw `FileNotFoundException` for
+  `Microsoft.EntityFrameworkCore, Version=10.0.14.0` at test time. A scaffold with the database now references the
+  design package in its csproj, at the EF version Rask is built against, and `rask db` pins the same version when it
+  adds the package to a hand-built project. That version is stamped into the CLI from the
+  `Microsoft.EntityFrameworkCore` pin in `Directory.Packages.props`, so an EF bump moves it too.
 - **The tutorial builds and runs when you type it in, chapter by chapter.** Typed end to end against a fresh
   `rask new Shop`: chapter 5's receipt handler now carries `[RaskMarkup]` (without it `OrderReceipt.OrderId(…)` is
   CS0120 outside a component); chapter 6's `CatalogCache.Get` awaits `Cache.Remember(…).For(…)` instead of returning

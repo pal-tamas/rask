@@ -22,7 +22,8 @@ public sealed class TemplateTreeContractTests
         var leftovers = files
             .Where(f => f.Bytes is null
                 && (f.Content.Contains(TemplateMaterializer.NameToken, StringComparison.Ordinal)
-                    || f.Content.Contains(TemplateMaterializer.VersionToken, StringComparison.Ordinal)))
+                    || f.Content.Contains(TemplateMaterializer.VersionToken, StringComparison.Ordinal)
+                    || f.Content.Contains(TemplateMaterializer.EfCoreVersionToken, StringComparison.Ordinal)))
             .Select(f => f.Path)
             .Order(StringComparer.Ordinal)
             .ToArray();

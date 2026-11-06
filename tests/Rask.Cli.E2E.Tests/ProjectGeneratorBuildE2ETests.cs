@@ -72,6 +72,12 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// project restores, builds against the app, and its one test passes. Only a real run proves the
     /// chain entry for the app's <c>HomePage</c> reaches the test project and that the app's own build
     /// keeps the test folder out of its globs.
+    /// <para>
+    /// The first migration runs first, through the same <see cref="DbCommand"/> <c>rask new</c> calls, because
+    /// that step can change the app's references: it once added an unversioned
+    /// <c>Microsoft.EntityFrameworkCore.Design</c>, which took the newest EF on nuget.org, a patch ahead of
+    /// Rask's, so the test project built with MSB3277 and threw <c>FileNotFoundException</c> for EF at test time.
+    /// </para>
     /// </summary>
     [Fact]
     public async Task Generated_server_project_passes_its_own_test()
@@ -87,6 +93,7 @@ public sealed class ProjectGeneratorBuildE2ETests
         {
             var batteries = BatterySelection.ToBatteries(TemplateCatalog.Default, []);
             Assert.True(batteries.Tests, "a bare rask new no longer scaffolds a test project");
+            Assert.True(batteries.Data, "a bare rask new no longer creates a first migration");
 
             var result = ProjectGenerator.GenerateServer(projectDir, name, batteries, version);
 
@@ -99,8 +106,18 @@ public sealed class ProjectGeneratorBuildE2ETests
 
             CliBuildE2E.WriteNuGetConfig(fs, projectDir, feed);
 
+            var project = Path.Combine(projectDir, name + ".csproj");
+            var (restoreExit, restoreOutput) = await CliBuildE2E.RunDotnet($"restore \"{project}\"");
+            Assert.True(restoreExit == 0, $"restore failed.{CliBuildE2E.Diagnostics(restoreOutput)}");
+            var console = new StringConsole();
+            var db = new DbCommand(console, fs, new ProcessRunner(), projectDir,
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["RaskSpaBuild"] = "false" });
+            var migrate = await db.ExecuteAsync(["add", "Init", "--project", project], CancellationToken.None);
+            Assert.True(migrate == 0, $"the first migration failed.\n{console.OutText}\n{console.ErrorText}");
+
             var (exit, output) = await CliBuildE2E.RunDotnet($"test \"{Path.Combine(projectDir, name + ".slnx")}\" -m:1");
             Assert.True(exit == 0, $"the scaffolded tests did not pass.{CliBuildE2E.Diagnostics(output)}\n{output}");
+            Assert.DoesNotContain("MSB3277", output, StringComparison.Ordinal);
             Assert.Matches(@"Passed:\s+1\b", output);
             Assert.Matches(@"Total:\s+1\b", output);
         }

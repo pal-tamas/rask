@@ -281,6 +281,22 @@ public sealed class ProjectGeneratorTests
     }
 
     [Fact]
+    public void A_database_scaffold_pins_the_EF_design_package_to_the_EF_Core_version_Rask_is_built_against()
+    {
+        var pin = RepoPins.Package("Microsoft.EntityFrameworkCore");
+
+        var (on, _) = Generate(data: true);
+        var (off, _) = Generate(data: false);
+
+        // The first migration needs the design package. Referenced here, at Rask's own EF, rather than left to
+        // a runtime `dotnet add` that would take the newest EF on nuget.org and split the app across two.
+        Assert.Contains(
+            $"""<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="{pin}" PrivateAssets="all"/>""",
+            on["App.csproj"], StringComparison.Ordinal);
+        Assert.DoesNotContain("Microsoft.EntityFrameworkCore.Design", off["App.csproj"], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Data_flag_keeps_the_database_on_and_names_its_file_in_appsettings()
     {
         var (on, _) = Generate(data: true, cqrs: true);

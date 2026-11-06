@@ -370,10 +370,11 @@ internal sealed partial class DbCommand(
     }
 
     // The EF Core tools need the startup project to reference Microsoft.EntityFrameworkCore.Design:
-    // without it `dotnet ef` fails with a terse message. Projects scaffolded with `--data` already
-    // include it, but a hand-built one (or a demo that uses EnsureCreated) may not — so add it for the
-    // user (like the dotnet-ef tool install
-    // above). `dotnet add package` restores too, so the subsequent `dotnet ef` build picks it up. This
+    // without it `dotnet ef` fails with a terse message. A scaffold with the data battery already
+    // references it, but a hand-built one (or a demo that uses EnsureCreated) may not — so add it for the
+    // user (like the dotnet-ef tool install above), at the EF version Rask itself is built against: left
+    // unversioned, `dotnet add` takes the newest on nuget.org, one patch ahead of the EF that Rask.Server
+    // restores, and the app's test project then fails to load EF at all. `dotnet add package` restores too, so the subsequent `dotnet ef` build picks it up. This
     // never blocks: if we can't confidently read the startup project's csproj we stay quiet rather than
     // touch a setup we can't see (e.g. the ref comes from imported props), and a failed add still lets
     // `dotnet ef` run so the user sees EF's own guidance.
@@ -397,10 +398,10 @@ internal sealed partial class DbCommand(
         }
 
         Console.WriteLine("Adding Microsoft.EntityFrameworkCore.Design to the startup project (required by the EF Core tools)…", ConsoleStyle.Dim);
-        var exit = await _process.RunAsync("dotnet", ["add", csproj, "package", "Microsoft.EntityFrameworkCore.Design"], _workingDirectory, cancellationToken).ConfigureAwait(false);
+        var exit = await _process.RunAsync("dotnet", ["add", csproj, "package", "Microsoft.EntityFrameworkCore.Design", "--version", EfCorePin.Version], _workingDirectory, cancellationToken).ConfigureAwait(false);
         if (exit != 0)
         {
-            WriteWarning($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design");
+            WriteWarning($"  Couldn't add it automatically — add it manually: dotnet add \"{csproj}\" package Microsoft.EntityFrameworkCore.Design --version {EfCorePin.Version}");
         }
     }
 

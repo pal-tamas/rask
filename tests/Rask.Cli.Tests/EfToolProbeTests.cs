@@ -7,9 +7,9 @@ namespace Rask.Cli.Tests;
 ///     it.
 /// </summary>
 /// <remarks>
-///     The floor is stated twice — once in <c>Directory.Packages.props</c>, which is what a scaffolded app
-///     restores, and once in <see cref="EfToolProbe.Floor" />, which is what the CLI checks against. Two
-///     copies of one number drift silently, so this reads the props file and compares.
+///     The floor is the <c>Directory.Packages.props</c> pin, which is what a scaffolded app restores, as the
+///     build stamps it onto the CLI (<see cref="EfCorePin" />). This reads the props file and compares, so the
+///     stamp cannot quietly stop following the pin.
 /// </remarks>
 public sealed class EfToolProbeTests
 {

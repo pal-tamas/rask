@@ -14,10 +14,9 @@ internal static class EfToolProbe
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Mirrors the <c>Microsoft.EntityFrameworkCore</c> version in
-    ///         <c>Directory.Packages.props</c>, which is the version a scaffolded app actually restores
-    ///         through <c>Rask.Data</c>. <c>EfToolProbeTests</c> reads that file and fails if the two ever
-    ///         disagree, because one number stated twice drifts silently otherwise.
+    ///         The <c>Microsoft.EntityFrameworkCore</c> version in <c>Directory.Packages.props</c>, which
+    ///         is the version a scaffolded app actually restores through <c>Rask.Server</c> — read off
+    ///         <see cref="EfCorePin" />, which the build stamps from that pin, so it is never restated.
     ///     </para>
     ///     <para>
     ///         Below it, every <c>rask db</c> command prints "The Entity Framework tools version 'x' is
@@ -26,7 +25,7 @@ internal static class EfToolProbe
     ///         so it is carried out rather than recited.
     ///     </para>
     /// </remarks>
-    public static readonly Version Floor = new(10, 0, 13);
+    public static readonly Version Floor = Version.Parse(EfCorePin.Version);
 
     public static async Task<bool> IsInstalledAsync(IProcessRunner process, CancellationToken cancellationToken)
         => await InstalledVersionAsync(process, cancellationToken).ConfigureAwait(false) is not null;

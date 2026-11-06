@@ -307,9 +307,25 @@ public sealed class DbCommandTests
         var exit = await command.ExecuteAsync(["list"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Contains(runner.Invocations, i => i.Arguments is ["add", Csproj, "package", "Microsoft.EntityFrameworkCore.Design"]);
+        Assert.Contains(runner.Invocations, i => i.Arguments is ["add", Csproj, "package", "Microsoft.EntityFrameworkCore.Design", "--version", _]);
         // Adding never blocks — the ef command still runs afterwards.
         Assert.Equal(["ef", "migrations", "list", "--project", ProjectDir, "--startup-project", ProjectDir], runner.LastRun!.Arguments);
+    }
+
+    [Fact]
+    public async Task The_ef_design_package_it_adds_is_pinned_to_the_EF_Core_version_Rask_is_built_against()
+    {
+        var runner = new FakeProcessRunner();
+        var fileSystem = new FakeFileSystem();
+        fileSystem.Seed(Csproj, "<Project><ItemGroup><PackageReference Include=\"Microsoft.EntityFrameworkCore.Sqlite\" /></ItemGroup></Project>");
+        var command = new DbCommand(new StringConsole(), fileSystem, runner, ProjectDir);
+
+        await command.ExecuteAsync(["list"], CancellationToken.None);
+
+        // Unversioned, `dotnet add` takes the newest EF on nuget.org — a patch ahead of what Rask.Server
+        // restores — and the app's test project then builds with MSB3277 and cannot load EF at test time.
+        var add = Assert.Single(runner.Invocations, i => i.Arguments.Contains("Microsoft.EntityFrameworkCore.Design"));
+        Assert.Equal(["--version", RepoPins.Package("Microsoft.EntityFrameworkCore")], add.Arguments.TakeLast(2));
     }
 
     [Fact]

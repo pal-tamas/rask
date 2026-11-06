@@ -11,7 +11,7 @@ namespace Rask.Cli.Scaffolding;
 ///     <para>
 ///         The tree under <c>src/Rask.Templates/&lt;key&gt;/</c> IS the output: editing a file there
 ///         changes what <c>rask new</c> writes, byte for byte, because there is no second copy of the
-///         content anywhere. Four things are applied on the way out, and nothing else:
+///         content anywhere. Five things are applied on the way out, and nothing else:
 ///     </para>
 ///     <list type="number">
 ///         <item>battery conditionals — whole files named in <c>template.json</c>, and regions marked
@@ -19,6 +19,8 @@ namespace Rask.Cli.Scaffolding;
 ///         <item>the name token, <c>Company.RaskServer</c>, in content AND in paths, which is the
 ///         mechanism the hand-written generators already used;</item>
 ///         <item><c>{{RaskVersion}}</c>, the version of the Rask packages the scaffold should pin;</item>
+///         <item><c>{{EfCoreVersion}}</c>, the EF Core version those packages are built against (see
+///         <see cref="EfCorePin" />), for the EF packages a scaffold references itself;</item>
 ///         <item>a generated <c>global.json</c> (see <see cref="WithGlobalJson" />), which is the one
 ///         file no tree commits because its content is the target's own SDK band.</item>
 ///     </list>
@@ -34,6 +36,9 @@ internal static class TemplateMaterializer
 
     /// <summary>The placeholder for the Rask package version the scaffold pins.</summary>
     internal const string VersionToken = "{{RaskVersion}}";
+
+    /// <summary>The placeholder for the EF Core version Rask is built against.</summary>
+    internal const string EfCoreVersionToken = "{{EfCoreVersion}}";
 
     /// <summary>The manifest, at the root of every template tree.</summary>
     internal const string ManifestFile = "template.json";
@@ -119,6 +124,7 @@ internal static class TemplateMaterializer
         text = TemplateMarkers.Apply(text, on, asset.Path);
         text = text
             .Replace(VersionToken, version, StringComparison.Ordinal)
+            .Replace(EfCoreVersionToken, EfCorePin.Version, StringComparison.Ordinal)
             .Replace(NameToken, name, StringComparison.Ordinal);
 
         return new ScaffoldFile(destination, text);

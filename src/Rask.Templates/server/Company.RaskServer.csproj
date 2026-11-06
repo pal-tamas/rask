@@ -24,6 +24,11 @@
     <PackageReference Include="Rask.Server" Version="{{RaskVersion}}"/>
     <!-- In-page devtools: present in a Debug build in Development, absent from a Release publish. -->
     <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
+    <!-- rask:if data -->
+    <!-- What `rask db` (the EF Core tools) needs to create migrations; build-time only, never shipped. Pinned
+         to the EF Core version Rask.Server is built against, so the app restores one EF, not two. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="{{EfCoreVersion}}" PrivateAssets="all"/>
+    <!-- rask:end -->
   </ItemGroup>
 
 </Project>
