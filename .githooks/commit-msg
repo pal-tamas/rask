@@ -1,13 +1,16 @@
 #!/bin/sh
 # Local Conventional Commits guard. Enable once with:
 #   git config core.hooksPath .githooks
-# CI also enforces this via .github/workflows/commitlint.yml.
+# CI also enforces this via .github/workflows/commitlint.yml, from the same
+# scripts/lib/conventional-commit.sh.
 
 msg_file="$1"
 
 root="$(git rev-parse --show-toplevel)"
 # shellcheck source=../scripts/lib/attribution.sh
 . "$root/scripts/lib/attribution.sh"
+# shellcheck source=../scripts/lib/conventional-commit.sh
+. "$root/scripts/lib/conventional-commit.sh"
 
 # Attribution guard. Checked before the merge/revert early-exit below, so those messages are covered
 # too — a squash or merge footer counts on the contributor list exactly like any other. The rule and
@@ -31,40 +34,18 @@ fi
 
 header=$(head -n1 "$msg_file")
 
-# Allow merge/revert/fixup commits through.
-case "$header" in
-  "Merge "*|"Revert "*|"fixup! "*|"squash! "*) exit 0 ;;
-esac
-
-pattern='^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9._-]+\))?!?: .{1,}'
-
-# commitlint.config.ts's header-max-length. CI lints commits on pull requests only, and own work is pushed
-# straight to main, so this hook is the one place that rule is ever applied to it.
-max_header=100
-header_length=$(printf '%s' "$header" | wc -m | tr -d ' ')
-if [ "$header_length" -gt "$max_header" ]; then
+# The rule itself — the type list, the header limit, the subject — lives in
+# scripts/lib/conventional-commit.sh, which CI applies to pull requests too. Own work is pushed
+# straight to main, so for it this hook is the one place the rule is ever applied.
+if ! problem=$(rask_commit_header_error "$header"); then
   cat >&2 <<EOF
-✖ Commit header is $header_length characters; the limit is $max_header (commitlint.config.ts):
+✖ Commit message must follow Conventional Commits:
 
     $header
 
-  Say it shorter and put the rest in the body.
+$problem
+
+See scripts/lib/conventional-commit.sh / https://www.conventionalcommits.org/
 EOF
   exit 1
 fi
-
-if printf '%s' "$header" | grep -Eq "$pattern"; then
-  exit 0
-fi
-
-cat >&2 <<'EOF'
-✖ Commit message must follow Conventional Commits:
-
-    type(scope): subject
-
-  type ∈ feat, fix, perf, refactor, docs, test, build, ci, chore, revert
-  e.g. "feat(forms): add RadioGroup disabled state"
-
-See commitlint.config.ts / https://www.conventionalcommits.org/
-EOF
-exit 1

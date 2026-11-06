@@ -144,14 +144,7 @@ PublishProfiles/
 # build (see CopyTaskAssemblyToRaskWasmBuild). Its MVID/timestamp/PDB-hash differ per
 # build environment, so committing it made it perpetually dirty in git.
 src/Rask.Wasm/build/Rask.Wasm.Tasks.dll
-src/Rask.Spa.Hosting/build/Rask.Spa.Tasks.dll
 src/Rask.Tailwind/build/Rask.Tailwind.Tasks.dll
-src/Rask.External/build/Rask.External.Tasks.dll
-# Written beside that DLL by CopyTaskAssemblyToRaskExternalBuild: the hash of the targets it was
-# built against, so a mismatched pair is detected instead of failing as MSB4064 (#965).
-src/Rask.External/build/Rask.External.Tasks.contract
-# The package-island props extractor, bundled from src/Rask.External/extractor by _RaskBundleExtractor.
-src/Rask.External/build/rask-extract-props.mjs
 src/Rask.Core/build/Rask.TypeScript.Tasks.dll
 
 # Ad-hoc SQLite load-harness runs (the committed reference lives in Baselines/).
@@ -190,13 +183,6 @@ src/Rask.Wasm/Browser/rask-sw.js
 # And the kit's Tailwind sources beside an app's own stylesheet, for an app that compiles the kit into
 # its one sheet (`@import "./vendor/rask-ui.css";`): written at build, never source.
 **/Styles/vendor/
-
-# Island bundles. Vite writes them into wwwroot so the SDK publishes them with no publish target
-# of its own — but they are build output, regenerated on every build, and the chunk names are hashed.
-**/wwwroot/_rask/external/
-
-# The tsconfig fragment Rask writes for the @rask/* prop-type mapping. Generated, never committed.
-**/obj/rask-external/
 
 
 # The browser half of the MDN element events, written by src/Rask.Core/Dom/Rask.Dom.targets on every build.

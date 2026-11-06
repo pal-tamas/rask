@@ -36,13 +36,6 @@ runs:
       with:
         dotnet-version: 10.0.x
 
-    # The Node the repo states (.node-version = ScaffoldLine, moved by the node-lts follower), as the installers
-    # put on a machine. Not `lts/*`: setup-node reads LTS status from its own manifest, which lags nodejs.org,
-    # so a follower that moved the build floor to a new line was gated on the old one.
-    - uses: actions/setup-node@v7
-      with:
-        node-version-file: .node-version
-
     # Keyed on the versions, not the project files: with central package management every version is in
     # Directory.Packages.props, and a key over **/*.csproj saved a new 1.8 GB copy for every project edit.
     # SAVED ON MAIN ONLY. Every other ref reads main's copy (a branch may read its default branch's caches)

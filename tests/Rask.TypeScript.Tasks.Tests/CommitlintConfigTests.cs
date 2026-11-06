@@ -1,73 +1,80 @@
 namespace Rask.TypeScript.Tasks.Tests;
 
 /// <summary>
-///     The commit-message gate names a config file that exists.
+///     The commit-message gate and the local hook apply ONE rule, from one file.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <c>wagoid/commitlint-github-action</c> resolves its <c>configFile</c> input with
-///         <c>existsSync</c> and, when that is false, falls back to
-///         <c>@commitlint/config-conventional</c> with <b>no error and no warning</b>. So a rename
-///         that misses the workflow does not turn the gate red — it leaves it green, enforcing
-///         conventional defaults instead of this repository's rules. The header-length limit, the
-///         type list and the subject-case rule would all quietly stop applying.
+///         <c>scripts/lib/conventional-commit.sh</c> states the allowed types and the header limit;
+///         <c>.githooks/commit-msg</c> applies it to every local commit and
+///         <c>.github/workflows/commitlint.yml</c> to every commit of a pull request and its title. Own
+///         work is pushed straight to main, so the hook is the only place the rule ever meets it, and the
+///         workflow the only place it meets an external contribution.
 ///     </para>
 ///     <para>
-///         That is the failure this test exists for, and it is why the check is on the two files
-///         agreeing rather than on either one alone. It runs here because this is the suite that
-///         owns the repository's TypeScript, and the config is now TypeScript.
+///         The failure this pins is drift: a second copy of the type list or the limit in either caller,
+///         which then disagrees with the first the day one of them is edited — or a workflow that goes back
+///         to a Node action and a config file of its own. The repository has no Node anywhere.
 ///     </para>
 /// </remarks>
 public class CommitlintConfigTests
 {
+    private const string RuleFile = "scripts/lib/conventional-commit.sh";
+    private const string RuleFunction = "rask_commit_header_error";
+
     [Fact]
-    public void The_workflow_names_a_config_file_that_exists()
+    public void The_rule_file_states_the_types_and_the_header_limit_exactly_once()
     {
-        var root = RepositoryRoot();
-        var workflow = Path.Combine(root, ".github", "workflows", "commitlint.yml");
+        var text = File.ReadAllText(Path.Combine(RepositoryRoot(), RuleFile));
 
-        Assert.True(File.Exists(workflow), $"'{workflow}' is missing — the commit-message gate has gone.");
+        var types = Occurrences(text, "RASK_COMMIT_TYPES=");
+        var limit = Occurrences(text, "RASK_COMMIT_MAX_HEADER=");
 
-        var text = File.ReadAllText(workflow);
-        var marker = "configFile:";
-        var index = text.IndexOf(marker, StringComparison.Ordinal);
+        Assert.Equal(1, types);
+        Assert.Equal(1, limit);
+        Assert.Contains("RASK_COMMIT_MAX_HEADER=100", text, StringComparison.Ordinal);
+    }
 
-        Assert.True(
-            index >= 0,
-            "commitlint.yml no longer passes configFile, so the action will use its own default path. "
-            + "Either name the config explicitly or move this assertion to whatever replaced it.");
+    [Theory]
+    [InlineData(".githooks/commit-msg")]
+    [InlineData(".github/workflows/commitlint.yml")]
+    public void A_caller_sources_the_shared_rule_and_restates_none_of_it(string caller)
+    {
+        var text = File.ReadAllText(Path.Combine(RepositoryRoot(), caller));
 
-        var named = text[(index + marker.Length)..]
-            .Split('\n')[0]
-            .Trim();
+        var restated = text.Contains("feat|fix", StringComparison.Ordinal)
+            || text.Contains("RASK_COMMIT_TYPES=", StringComparison.Ordinal)
+            || text.Contains("RASK_COMMIT_MAX_HEADER=", StringComparison.Ordinal);
 
-        Assert.True(
-            File.Exists(Path.Combine(root, named)),
-            $"commitlint.yml points at '{named}', which does not exist. The action falls back to "
-            + "@commitlint/config-conventional silently when that happens, so the gate would stay "
-            + "green while enforcing none of this repository's rules.");
+        Assert.Contains(RuleFile, text, StringComparison.Ordinal);
+        Assert.Contains(RuleFunction, text, StringComparison.Ordinal);
+        Assert.False(restated, $"{caller} restates the type list or the header limit; read them from {RuleFile}.");
     }
 
     [Fact]
-    public void The_config_is_TypeScript_and_declares_its_type_import_as_a_type()
+    public void The_gate_runs_no_node_tool_and_reads_no_commitlint_config()
     {
-        var config = Path.Combine(RepositoryRoot(), "commitlint.config.ts");
+        var root = RepositoryRoot();
+        var workflow = File.ReadAllText(Path.Combine(root, ".github", "workflows", "commitlint.yml"));
 
-        Assert.True(File.Exists(config), "commitlint.config.ts is missing.");
+        var configs = Directory.EnumerateFiles(root, "commitlint.config.*").ToList();
 
-        var text = File.ReadAllText(config);
+        Assert.DoesNotContain("commitlint-github-action", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("setup-node", workflow, StringComparison.Ordinal);
+        Assert.Empty(configs);
+    }
 
-        // The action does not install this repository's dependencies, so the workspace has no
-        // node_modules. jiti elides an `import type`; a value-position import of @commitlint/types
-        // would be a runtime resolution failure inside the action.
-        Assert.DoesNotContain("import {UserConfig}", text, StringComparison.Ordinal);
-        Assert.Contains("import type", text, StringComparison.Ordinal);
+    private static int Occurrences(string text, string value)
+    {
+        var count = 0;
+        for (var index = text.IndexOf(value, StringComparison.Ordinal);
+             index >= 0;
+             index = text.IndexOf(value, index + value.Length, StringComparison.Ordinal))
+        {
+            count++;
+        }
 
-        // .ts, not .mts: @commitlint/load 19.x registers loaders for .ts and .cts only. The
-        // documentation lists .mts because it describes a later major than the action ships.
-        Assert.False(
-            File.Exists(Path.Combine(RepositoryRoot(), "commitlint.config.mts")),
-            "commitlint.config.mts will not be loaded by @commitlint/load 19.x — rename it to .ts.");
+        return count;
     }
 
     private static string RepositoryRoot()

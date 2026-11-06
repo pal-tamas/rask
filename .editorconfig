@@ -295,9 +295,9 @@ dotnet_diagnostic.CS0108.severity = none
 # the rule keeps guarding every new line.
 #
 # The one path-scoped exception: MA0004 (ConfigureAwait). Component, runtime and UI code runs on Rask's
-# LifecycleSyncContext or Blazor's renderer context, and an await there MUST resume on it; the batteries and hosts
+# LifecycleSyncContext, and an await there MUST resume on it; the batteries and hosts
 # below it have no context to keep and do call ConfigureAwait(false).
-[{src/Rask.Core/**.cs,src/Rask.Ui/**.cs,src/Rask.Blazor/**.cs,src/Rask.Site/**.cs}]
+[{src/Rask.Core/**.cs,src/Rask.Ui/**.cs,src/Rask.Site/**.cs}]
 dotnet_diagnostic.MA0004.severity = none
 
 # CA1716 is about Visual Basic's keywords (Get, Set, Select, Option, Stop, Error, Module, Shared, …). Rask is a C#
