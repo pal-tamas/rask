@@ -70,7 +70,10 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
         var state = Page.Locator("[data-testid='ui-datetime-picker-state']");
         await picker.ScrollIntoViewIfNeededAsync();
         await picker.Locator("[data-ui-datetime-picker-button]").ClickAsync();
-        await picker.Locator("dialog td[data-date]:not([data-outside]) button:not([disabled])").Nth(10).ClickAsync();
+
+        // The example opens five days on, at 10:30. Its own day pressed again is no day (Flux's toggle), so the day
+        // pressed here is never the chosen one — on the 6th of a month the 11th was, and the time had no day to join.
+        await picker.Locator("dialog td[data-date]:not([data-outside]):not([aria-selected=true]) button:not([disabled])").Nth(10).ClickAsync();
         await picker.Locator("[data-rask-calendar-part=times] [data-time='14:30']").ClickAsync();
 
         await Expect(state).ToContainTextAsync("T14:30", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
@@ -188,8 +191,11 @@ public sealed class UiKitPickersTests(WasmExampleAppFixture app, PlaywrightFixtu
         // A key makes the focus visible, as Tab into the form before it did on an app's page.
         await Page.Keyboard.PressAsync("Shift");
 
+        // The browser lets go of a focused element it stops drawing on its own time, after the placeholder's display
+        // is already none: waited for, not read the same instant.
         await Expect(picker.Locator("[data-ui-focus-placeholder]")).ToBeHiddenAsync();
-        Assert.Equal("BODY", await Page.EvaluateAsync<string>("document.activeElement.tagName"));
+        await Page.WaitForFunctionAsync("() => document.activeElement === document.body", null,
+            new PageWaitForFunctionOptions { Timeout = 15_000 });
         await Expect(dialog).ToHaveCSSAsync("outline-style", "none");
     });
 
