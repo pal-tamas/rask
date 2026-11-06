@@ -39,18 +39,52 @@ public abstract partial class Component
         // Whether the entry handed over an instance an unkeyed child has held since an earlier render: that
         // one is not this key's to keep, whatever else the key turns out to own.
         var held = GiveBackToUnkeyedSiblings(provisional, type, slot, out var siblings);
+        return (T)Settle(provisional, type, key, slot, create, held, siblings, reportRepeat: true);
+    }
 
+    /// <summary>
+    ///     Settles which instance an UNKEYED child written inside a keyed row is: the one it had in that row,
+    ///     told apart from the row's other children of its type by its order among them (#1309).
+    /// </summary>
+    /// <remarks>
+    ///     Called once the row is complete — see <see cref="BuilderRuntime" />'s row scoping — so the whole of the
+    ///     child's chain has run on <paramref name="provisional" />, and the caller replays it onto the instance
+    ///     this returns when it is another. Unlike a written key, a row key repeated across two rows is not
+    ///     reported here: the diff codec already reports the rows' own repeated key.
+    /// </remarks>
+    internal Component ClaimScopedChild(
+        Component provisional,
+        object scope,
+        int ordinal,
+        (Type Type, int Ordinal) slot,
+        Func<IServiceProvider, Component> create)
+    {
+        var type = provisional.GetType();
+        var held = GiveBackToUnkeyedSiblings(provisional, type, slot, out var siblings);
+        return Settle(provisional, type, siblings.KeyFor(scope, ordinal), slot, create, held, siblings, reportRepeat: false);
+    }
+
+    private Component Settle(
+        Component provisional,
+        Type type,
+        object key,
+        (Type Type, int Ordinal) slot,
+        Func<IServiceProvider, Component> create,
+        bool held,
+        KeyedSiblings siblings,
+        bool reportRepeat)
+    {
         var keyed = Live.KeyedChildren ??= new Dictionary<(Type, object), Component>();
         var repeated = keyed.ContainsKey((type, key));
         var chosen = provisional;
-        if (PreviousKeyedChild(siblings, type, key, repeated) is T kept)
+        if (PreviousKeyedChild(siblings, type, key, repeated, reportRepeat) is { } kept && kept.GetType() == type)
         {
             chosen = kept;
         }
         else if (held)
         {
             // A key that is new this render gets an instance that never ran (#685).
-            chosen = (T)NewChild(create, LiveRenderContext.Current?.Services);
+            chosen = NewChild(create, LiveRenderContext.Current?.Services);
         }
 
         if (!ReferenceEquals(chosen, provisional))
@@ -61,7 +95,7 @@ public abstract partial class Component
             // that never ran may become one.
             if (!held && !provisional.HasInitializedInternal)
             {
-                siblings.Spare = provisional;
+                siblings.AddSpare(provisional);
             }
         }
 
@@ -106,14 +140,18 @@ public abstract partial class Component
 
     // The instance this use of the key had last render. A key already written this render is a REPEAT, which
     // has no entry of its own in the keyed map — the first use owns that.
-    private Component? PreviousKeyedChild(KeyedSiblings siblings, Type type, object key, bool repeated)
+    private Component? PreviousKeyedChild(KeyedSiblings siblings, Type type, object key, bool repeated, bool report)
     {
         if (!repeated)
         {
             return Live.PreviousKeyedChildren?.GetValueOrDefault((type, key));
         }
 
-        ReportRepeatedKey(siblings, type, key);
+        if (report)
+        {
+            ReportRepeatedKey(siblings, type, key);
+        }
+
         return siblings.PreviousRepeat(key);
     }
 

@@ -377,7 +377,11 @@ public sealed class LiveRenderContext : IDisposable
             child.EnsureLiveStateInternal();
         }
 
-        if (pending != 0UL)
+        // A COMPONENT is recorded even with no folding prop to leave behind (`copy` is null only for an element):
+        // the slot is what a Key step, or the keyed row it is written in (#1309), settles its identity through.
+        // Without one, a component whose props are all callbacks — a row's delete button — kept the instance
+        // position gave it whatever key it was written under.
+        if (pending != 0UL || copy is not null)
         {
             // The folding props this entry may leave behind. Recorded against the PARENT so the drain
             // at the end of its Render() knows which slots are its own — see BuilderRuntime.

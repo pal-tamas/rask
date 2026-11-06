@@ -619,7 +619,7 @@ Ui.Table[
     ],
     Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
-        Ui.RowActions.Key(s.Id).Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")])]
+        Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Remove(s), "Szállító törlése", "Biztos törli?")])]
 ]
 Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlése", "Biztos törli?")
 Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
@@ -633,8 +633,8 @@ that, and a row nothing can be done with has no ⋯. The cell is Flux's sticky c
 zinc-800 in the dark; your own `bg-*` on it wins), so it stays at the table's right edge while the other columns
 scroll under it on a phone; its column is `Ui.TableColumn.RowMenu` (4rem, sticky too, "Actions" to a screen reader). Each
 row's dropdown, button and items are keyed by the component itself, so nothing in it needs a `"row-menu-" + id` key
-of yours. Key the `Ui.RowActions` itself by the row, as every component in a list: unkeyed it is the n-th of its type
-the page writes, and a delete pressed just as a row above it went would reach the row that took its place.
+of yours, and the `Ui.RowActions` itself needs none either: written inside a keyed row, an unkeyed component is that
+row's (#1309), so a delete pressed just as a row above it went still deletes its own row.
 
 ```csharp
 // Before: each app kept a "⋯" helper, keying every dropdown and item by the row.
@@ -644,10 +644,10 @@ Ui.TableCell.Key("actions").End.Class(RowActions.AtTheEdge + " py-0")[
 
 // After: the kit's.
 Ui.TableColumn.RowMenu
-Ui.RowActions.Key(driver.Id).View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
+Ui.RowActions.View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
     .Remove(() => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")
-Ui.RowActions.Key(tenant.Id)[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
-Ui.RowActions.Key(row.Id).OnEdit(() => EditInPlace(row))                    // edited where it stands
+Ui.RowActions[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
+Ui.RowActions.OnEdit(() => EditInPlace(row))                                 // edited where it stands
 ```
 
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**

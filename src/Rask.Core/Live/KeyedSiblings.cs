@@ -36,11 +36,69 @@ internal sealed class KeyedSiblings
     private List<(object Key, Component Instance)>? _repeats;
     private List<(object Key, Component Instance)>? _previousRepeats;
 
+    // Instances an entry built by position and a Key step then set aside for the ones it kept. None of them
+    // started a lifecycle, so the next entries take them instead of constructing more. A stack rather than one:
+    // a keyed row's unkeyed children are claimed when the row is complete (#1309), so a row holding three
+    // children of one type has three provisional instances out at once, and one spare would leave two of them
+    // to be built afresh on every render.
+    private List<Component>? _spares;
+
+    // The keys this parent's unkeyed children of the type are claimed under inside a keyed row (#1309): per
+    // row key, the n-th child's. Kept across renders so a render reuses the same key objects rather than
+    // boxing a pair per child; the rows the last render wrote are what this one looks in first.
+    private Dictionary<object, ScopedKey?[]>? _scopes;
+    private Dictionary<object, ScopedKey?[]>? _previousScopes;
+
+    // A component instance is a few hundred bytes and a row rarely holds more than a handful of one type.
+    private const int MaxSpares = 32;
+
+    /// <summary>Takes an instance set aside by an earlier Key step, or null when there is none.</summary>
+    public T? TakeSpare<T>() where T : Component
+    {
+        if (_spares is not { Count: > 0 } spares || spares[^1] is not T spare)
+        {
+            return null;
+        }
+
+        spares.RemoveAt(spares.Count - 1);
+        return spare;
+    }
+
+    /// <summary>Sets aside <paramref name="spare" />, which never started a lifecycle, for the next entry of the type.</summary>
+    public void AddSpare(Component spare)
+    {
+        var spares = _spares ??= [];
+        if (spares.Count < MaxSpares)
+        {
+            spares.Add(spare);
+        }
+    }
+
     /// <summary>
-    ///     An instance an entry built by position and its Key step then set aside for the one it kept. It
-    ///     never started a lifecycle, so the next entry takes it instead of constructing another.
+    ///     The key the <paramref name="ordinal" />-th unkeyed child of the type inside the row keyed
+    ///     <paramref name="scope" /> is claimed under: the same object every render the row is written.
     /// </summary>
-    public Component? Spare { get; set; }
+    public ScopedKey KeyFor(object scope, int ordinal)
+    {
+        var scopes = _scopes ??= [];
+        if (!scopes.TryGetValue(scope, out var keys))
+        {
+            if (_previousScopes is null || !_previousScopes.Remove(scope, out keys))
+            {
+                keys = [];
+            }
+
+            scopes[scope] = keys;
+        }
+
+        if (ordinal >= keys.Length)
+        {
+            Array.Resize(ref keys, Math.Max(ordinal + 1, keys.Length * 2));
+            scopes[scope] = keys;
+        }
+
+        return keys[ordinal] ??= new ScopedKey(scope, ordinal);
+    }
 
     /// <summary>Whether a repeated key has been reported for this parent and type — once is enough.</summary>
     public bool RepeatReported { get; set; }
@@ -150,6 +208,12 @@ internal sealed class KeyedSiblings
         }
 
         _written = 0;
+        if (_scopes is not null)
+        {
+            (_previousScopes, _scopes) = (_scopes, _previousScopes ?? []);
+            _scopes.Clear();
+        }
+
         if (_repeats is not null)
         {
             (_previousRepeats, _repeats) = (_repeats, _previousRepeats ?? []);

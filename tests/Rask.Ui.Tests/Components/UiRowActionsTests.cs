@@ -144,8 +144,7 @@ public partial class UiRowActionsTests : RaskMarkup
     }
 
     // A delete confirmed in one row while the row above it is deleted: the press reaches the instance it was made on.
-    // Ui.RowActions written by the page unkeyed is the n-th of its type the page writes, so it must be keyed by the row,
-    // as every component row is (RASK022) — then the late press still deletes its own supplier.
+    // Keyed by the row itself, the menu is that row's whatever comes and goes around it.
     [Fact]
     public async Task A_late_delete_from_a_keyed_row_still_deletes_its_own_row_after_the_row_above_went()
     {
@@ -158,12 +157,12 @@ public partial class UiRowActionsTests : RaskMarkup
         Assert.Equal(["Geidt Logistics"], page.Instance.Suppliers);
     }
 
-    // The hazard the key above guards against, pinned: written unkeyed, the second Ui.RowActions is the second the
-    // page writes, so once the first row goes, the press made on Bothman's menu reaches the instance that now draws
-    // Geidt's row — and deletes Geidt. RASK022 refuses a component ROW without a key; a component INSIDE a keyed row is
-    // not reported, and is reused by its order among everything of its type the page writes (docs/composition.md).
+    // The same with the menu written unkeyed, as the docs write it (#1309). It used to be the second Ui.RowActions the
+    // page writes, so once the first row went, the press made on Bothman's menu reached the instance that then drew
+    // Geidt's row — and deleted Geidt. An unkeyed component inside a keyed row is told apart by its order among THAT
+    // ROW's children now, so the menu stays Bothman's and the late press deletes Bothman.
     [Fact]
-    public async Task An_unkeyed_row_menu_is_reused_by_its_order_so_a_late_delete_reaches_the_row_now_in_its_place()
+    public async Task An_unkeyed_row_menu_is_its_rows_so_a_late_delete_still_deletes_its_own_row_after_the_row_above_went()
     {
         var page = Page.Render(new SupplierList(keyed: false));
         var bothman = page.HandlerIdFor("tr:has-text(\"Bothman\") [data-rask-key=\"remove\"][role=\"menuitem\"]", "click");
@@ -171,7 +170,7 @@ public partial class UiRowActionsTests : RaskMarkup
         await page.On("tr:has-text(\"Aminoff\") [data-rask-key=\"remove\"][role=\"menuitem\"]").Click();
         await page.Invoke(bothman);
 
-        Assert.Equal(["Bothman & Sons"], page.Instance.Suppliers);
+        Assert.Equal(["Geidt Logistics"], page.Instance.Suppliers);
     }
 
     [Fact]

@@ -79,6 +79,23 @@ Div.Class("panel")[
 > record sits in its place by then. The same holds for a repeated key, and for the unkeyed children beside keyed
 > ones: among themselves they are told apart by order alone.
 >
+> **Inside a keyed row, the order counts within that row only** (#1309). A component written without a key under a
+> node that has one — an element or a component row keyed by its item — is the *n*-th of its type *in that row*, not
+> among everything its owner writes. So the cells, buttons and menus of a list row stay with the row when rows above
+> it come, go or reorder, and a press made on one row's delete a moment before can only reach that row:
+>
+> ```csharp
+> Ui.TableRows[suppliers.Select(s => Ui.TableRow.Key(s.Id)[
+>     Ui.TableCell[s.Name],
+>     Ui.RowActions.Edit(Routes.EditSupplierPage(s.Id)).Remove(() => Delete(s))   // Bothman's, whatever goes above it
+> ])]
+> ```
+>
+> The row is the NEAREST keyed ancestor, so in nested lists a line is told apart within its own keyed line, and the
+> line keys are looked up across the component like any key: key lines that repeat between groups by the group too
+> (`$"{group.Id}-{line.No}"`). Only children held in the row's children — not one passed in a prop, nor one built
+> before the render — are the row's; what was built elsewhere keeps the identity its builder gave it.
+>
 > `Key` is available before a component's *required* steps too, generic ones included
 > (`Ui.Select.Key(id).Value(v)`), so a row can say which item it is first. An element is re-specified
 > in full every render, so its instance carries nothing and `Div.Class("line").Key(i)` never claims one.

@@ -224,7 +224,7 @@ public static partial class BuilderRuntime
         // it holds nothing, and its key is that list's to read.
         if (target is Element or IKeyedInItsList)
         {
-            return target;
+            return Completed(target, key);
         }
 
         var slots = _slots;
@@ -252,12 +252,23 @@ public static partial class BuilderRuntime
                 slots[i] = slot with { Target = chosen };
             }
 
-            return chosen;
+            return Completed(chosen, key);
         }
 
         // No slot: the receiver came from a FACTORY rather than an entry (both surfaces compile side by
         // side), and the factory owns that component's identity itself. Leave it alone.
         return target;
+    }
+
+    // A Key written after the indexer completes the row it keys: its children are scoped by it now (#1309).
+    private static T Completed<T>(T keyed, object key) where T : Component
+    {
+        if (keyed.Children is not null)
+        {
+            ScopeRow(keyed, key);
+        }
+
+        return keyed;
     }
 
     /// <summary>The prop bits still pending on <paramref name="target" />, for tests and diagnostics.</summary>

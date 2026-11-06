@@ -30,7 +30,7 @@ public sealed partial class UiRowActionsPage : Component
                        + "Edit(url) — or OnEdit to edit the row where it stands — what the row puts inside, then the delete, "
                        + "apart and in red, asking first. None is required; a row nothing can be done with has no ⋯. The cell "
                        + "keeps to the table's right edge while the other columns scroll under it; its column is "
-                       + "Ui.TableColumn.RowMenu. Key it by the row, as every component in a list: a press that arrives "
-                       + "after a row above it went then still reaches its own row.")
+                       + "Ui.TableColumn.RowMenu. Inside a keyed row it needs no key of its own: a press that arrives "
+                       + "after a row above it went still reaches its own row.")
         ];
 }
