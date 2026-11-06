@@ -737,4 +737,7 @@ public enum RaskString
 
     /// <summary>What a delete in <c>Ui.FormButtons</c> or <c>Ui.RowActions</c> asks when it is given no question of its own.</summary>
     RemoveQuestion,
+
+    /// <summary>What a select or a pillbox given its rows by <c>.Choices(…)</c> shows while nothing is chosen.</summary>
+    SelectChoose,
 }

@@ -1182,6 +1182,23 @@ Ui.Select.Bind(() => model.PartnerId).Placeholder("Choose a partner...").Search(
 ]
 ```
 
+**Rows of another table** — a company, a driver, a vehicle — are `.Choices(…)` rather than options (the owner's
+addition, not Flux's). Hand it `Ui.Choice<T>` rows in any order and the select is the picker both apps used to write:
+a listbox with a search field, the rows in the **reader's** alphabet (`TextOrder.Current` — in Hungarian `Á` stands
+with `A`, `Cs` after `Cu`, `Dzs` after `Dz`), a row's detail as the muted line under its words that a search finds
+too, and "Choose..." from the catalog ("Válasszon…" in Hungarian). Whether it can be cleared is the bound member's to
+say: `int?` or `string?` that the model does not require gets the cross, `int` and a required member never do, and a
+required member's message is the model's own rule's. For a list too long to send whole, hand it the search instead;
+the row the value holds is named before anything is found and stays first while a search misses it:
+
+```csharp
+Ui.Select.Bind(() => model.CompanyId).Choices(companies)        // Ui.Choice<int>[]: new(c.Id, c.Name, c.City)
+Ui.Select.Bind(() => model.DriverId).Choices(Driver.Named, held: driver)
+```
+
+Everything it fills in is a default: `.Placeholder(…)`, `.Clearable(…)`, `.Searchable(false)` or `.Combobox` say
+otherwise, `.AfterBind(…)` runs after a pick, and options written as children come after the rows.
+
 An option's `Key` names it inside its own select, so two selects on one page may key theirs by the same ids. An open list sends the page nothing until a row is picked — and a bound select
 sends nothing at the pick either, one answer or several: the browser draws it (the words, the count, the ticked rows)
 and the value travels with the next action, as Flux's `wire:model` (`.Live()` sends it at once). Every example, the
@@ -1200,7 +1217,9 @@ page what was typed once typing has paused, for suggestions from a database; `Mo
 `Ui.Pillbox` is [Flux UI's pillbox](https://fluxui.dev/components/pillbox): several answers out of a list, each a
 pill that can be taken off again, bound to a collection. `Searchable()`, `.Combobox`, `Ui.PillboxOptionCreate` and
 `Filter(false)` with `Debounce` for options found on the server — or `Search(async typed => …)`, as on the select, which
-asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
+asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. Rows of another
+table are `.Choices(vehicles)` (or `.Choices(find, held: picked)`), as on the select: searched, in the reader's
+alphabet, the detail as muted words after the name in the list and the name alone on the pill. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
 Backspace in the empty input send nothing: the browser draws the pills and the answers travel with the next action,
 as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboard and the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
 

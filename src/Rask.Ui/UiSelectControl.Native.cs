@@ -17,7 +17,7 @@ public abstract partial class UiSelectControl<T>
 
     private IEnumerable<Component?> NativeOptions(Parts parts)
     {
-        if (Placeholder is { } placeholder)
+        if (Placeholding is { } placeholder)
         {
             // Not pickable, and the chosen option until there is an answer: the select then shows it in grey.
             yield return Option.Value(string.Empty).Disabled().Selected(Current().Count == 0)[placeholder];

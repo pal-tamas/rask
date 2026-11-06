@@ -252,7 +252,9 @@ Textarea.Bind(() => _model.Notes).Rows(3)
 
 Those are the browser's own controls. An app normally writes the [UI kit](ui-kit.md)'s, which bind the same
 way: `Ui.DatePicker` for a date, `Ui.TimePicker` for a time (the two side by side for a date and a time),
-`Ui.Select.Bind(…).Listbox[…]` for a choice and `Ui.Input` for text and numbers.
+`Ui.Select.Bind(…).Listbox[…]` for a choice, `Ui.Select.Bind(() => m.CompanyId).Choices(companies)` for a row of
+another table (`Ui.Pillbox…Choices(…)` for several — [rows of another table](ui-kit.md#select)) and `Ui.Input` for
+text and numbers.
 
 <!-- demo:binding-multi -->
 

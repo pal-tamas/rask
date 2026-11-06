@@ -156,10 +156,10 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     private bool IsMultiple => HoldsMany && Multiple != false;
 
     // A select the page searches is drawn: a listbox with a search field, unless it says it is a combobox.
-    private Ui.SelectVariant Shape => Variant ?? (Search is null ? Ui.SelectVariant.Default : Ui.SelectVariant.Listbox);
+    private Ui.SelectVariant Shape => Variant ?? (Asked is null && _choosing is null ? Ui.SelectVariant.Default : Ui.SelectVariant.Listbox);
 
     // A pillbox with an input among its pills is typed into there, and needs no field over its list.
-    private bool HasSearchField => Shape == Ui.SelectVariant.Listbox && (Searchable == true || (Search is not null && !PillsCombobox));
+    private bool HasSearchField => Shape == Ui.SelectVariant.Listbox && (SearchesByItself || (Asked is not null && !PillsCombobox));
 
     private bool IsCombobox => Shape == Ui.SelectVariant.Combobox;
 
@@ -185,7 +185,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
 
     /// <summary>What the select's button says for <paramref name="value" />: its option's words, or the value itself.</summary>
     private protected string Picked(T value) =>
-        Parts.Read(Children).Rows.FirstOrDefault(row => EqualityComparer<T>.Default.Equals(row.Value, value))?.Option.SelectedText
+        Parts.Read(Written).Rows.FirstOrDefault(row => EqualityComparer<T>.Default.Equals(row.Value, value))?.Option.SelectedText
         ?? Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty;
 
     /// <inheritdoc />
@@ -201,7 +201,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
         var field = UiWithField.For(this);
         if (Shape == Ui.SelectVariant.Default && Pills is null)
         {
-            return field.Wrap(Native(field, Parts.Read(Children)));
+            return field.Wrap(Native(field, Parts.Read(Written)));
         }
 
         var picked = Current();

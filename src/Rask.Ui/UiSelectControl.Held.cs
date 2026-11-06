@@ -61,9 +61,9 @@ public abstract partial class UiSelectControl<T>
 
     private string? HeldPlaceholder(View view) => Pills switch
     {
-        null => view.Parts.Button?.Placeholder ?? Placeholder,
-        { Combobox: true } => view.Parts.Input?.Placeholder ?? Placeholder,
-        _ => Pills.Trigger?.Placeholder ?? Placeholder,
+        null => view.Parts.Button?.Placeholder ?? Placeholding,
+        { Combobox: true } => view.Parts.Input?.Placeholder ?? Placeholding,
+        _ => Pills.Trigger?.Placeholder ?? Placeholding,
     };
 
     // A button's: the placeholder, the answer the page holds now — an answer whose row a render took away is still

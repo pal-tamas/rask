@@ -716,6 +716,7 @@ they say when you set nothing.
 | `RowActionsRemove` | Row actions (the bin's tooltip, and the title of its question) | `Delete` |
 | `RowActionsHeading` | A table's row actions column with no words of its own, for a screen reader | `Actions` |
 | `RemoveQuestion` | Form buttons and row actions: a delete given no question of its own | `Are you sure you want to delete it?` |
+| `SelectChoose` | Select and pillbox given rows by `.Choices(…)`, while nothing is chosen | `Choose...` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |
