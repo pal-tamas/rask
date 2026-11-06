@@ -31,8 +31,8 @@ internal static class TailwindCli
     public static string? AssetName(TailwindOs os, Architecture architecture, bool isMusl)
     {
         // Tailwind publishes x64 and arm64 only. A 32-bit ARM box (a Raspberry Pi) has no standalone
-        // build at all — npm does, so returning null here is what routes it to the fallback rather than
-        // handing it a binary it cannot execute.
+        // build at all, so returning null here is what fails the build naming RaskTailwindPath rather
+        // than handing it a binary it cannot execute.
         var isArm64 = architecture == Architecture.Arm64;
         if (architecture is not (Architecture.X64 or Architecture.Arm64))
         {
@@ -48,8 +48,8 @@ internal static class TailwindCli
             TailwindOs.Linux => isArm64 ? "tailwindcss-linux-arm64" : "tailwindcss-linux-x64",
 
             // No windows-arm64 asset exists. x64 runs under emulation on Windows on ARM, which is a
-            // working build rather than a refused one — and npm's native win32-arm64 engine is one
-            // RaskTailwindEngine=npm away if the emulation cost matters.
+            // working build rather than a refused one — and RaskTailwindPath runs a native binary
+            // instead if the emulation cost matters.
             TailwindOs.Windows => "tailwindcss-windows-x64.exe",
             _ => null,
         };
@@ -237,7 +237,7 @@ internal static class TailwindCli
 
             // "<hash>  ./tailwindcss-macos-arm64" — the names carry a leading ./ (and, in binary mode,
             // a leading *). Both are part of the sha256sum format rather than the filename, and missing
-            // them means every download "fails verification" and silently falls through to the npm path.
+            // them means every download "fails verification" and fails a build that had nothing wrong with it.
             var name = trimmed.Substring(separator + 1).Trim('*', ' ');
             if (name.StartsWith("./", StringComparison.Ordinal))
             {

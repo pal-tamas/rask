@@ -7,8 +7,8 @@ namespace Rask.Tailwind.Tasks.Tests;
 /// </summary>
 /// <remarks>
 ///     The platform mapping is the part with judgement in it: a wrong asset name is a 404 several
-///     minutes into somebody's first build, and a missing one is the difference between falling back to
-///     npm and failing outright.
+///     minutes into somebody's first build, and a missing one is what fails the build naming
+///     RaskTailwindPath instead.
 /// </remarks>
 public class TailwindCliTests
 {
@@ -36,7 +36,7 @@ public class TailwindCliTests
     {
         // Tailwind publishes no windows-arm64 asset. Windows emulates x64 transparently, so falling back
         // gives a working build where refusing would fail on a machine that is perfectly capable — and
-        // RaskTailwindEngine=npm gets a native engine for anyone who minds the emulation.
+        // RaskTailwindPath runs a native binary for anyone who minds the emulation.
         Assert.Equal("tailwindcss-windows-x64.exe", TailwindCli.AssetName(TailwindOs.Windows, Architecture.Arm64, false));
         Assert.Equal("tailwindcss-windows-x64.exe", TailwindCli.AssetName(TailwindOs.Windows, Architecture.X64, false));
     }
@@ -46,8 +46,8 @@ public class TailwindCliTests
     [InlineData(Architecture.X86)]
     public void An_architecture_with_no_build_asks_for_nothing(Architecture architecture)
     {
-        // 32-bit ARM — a Raspberry Pi — has no standalone build at all. Returning null is what routes it
-        // to the npm engine, which does have one; inventing an asset name would 404 instead.
+        // 32-bit ARM — a Raspberry Pi — has no standalone build at all. Returning null is what fails the
+        // build naming RaskTailwindPath; inventing an asset name would 404 instead.
         Assert.Null(TailwindCli.AssetName(TailwindOs.Linux, architecture, isMusl: false));
     }
 
@@ -55,8 +55,8 @@ public class TailwindCliTests
     public void The_checksum_manifest_is_read_in_the_format_it_is_actually_published_in()
     {
         // The names carry a leading "./" — part of the sha256sum format rather than the filename. Missing
-        // it made every download "fail verification" and silently fall through to npm, which looked like
-        // a network problem and was not.
+        // it made every download "fail verification", which looked like a tampered release and was
+        // not.
         const string Manifest = """
             55fd0b241214eff3de1e8ee4f22796662f2d2e7a49bcfca7477cfd0bac398195  ./tailwindcss-linux-arm64
             cdf646702987a743464dff4d9c60fd4480d1c1e73dd819a9a67f1078815dce9d  ./tailwindcss-macos-arm64

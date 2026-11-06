@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Runtime.InteropServices;
@@ -11,30 +10,29 @@ using Task = Microsoft.Build.Utilities.Task;
 namespace Rask.Tailwind.Tasks;
 
 /// <summary>
-///     Resolves something that can run Tailwind: the standalone binary where one exists, npm where it
-///     does not.
+///     Resolves the Tailwind standalone binary: the one the project names, or the pinned release for this
+///     machine, fetched once into a per-user cache.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Standalone first, because "the SDK is all you need" is why someone picks a C# host, and the
-///         binary keeps that true on every platform Tailwind publishes one for — macOS, Linux (glibc and
-///         musl) and Windows x64.
+///         The standalone binary is the only engine, because "the SDK is all you need" is why someone
+///         picks a C# host, and the binary keeps that true on every platform Tailwind publishes one for —
+///         macOS, Linux (glibc and musl) and Windows (x64, and ARM64 under emulation).
 ///     </para>
 ///     <para>
-///         npm second, because it covers strictly more: Tailwind's npm engine ships native builds for
-///         win32-arm64, 32-bit ARM and FreeBSD that the standalone release has no equivalent of, plus a
-///         <c>wasm32-wasi</c> build that runs anywhere Node does. Falling back means no platform is
-///         simply unsupported.
+///         Where Tailwind publishes none — 32-bit ARM, FreeBSD — the build fails and names
+///         <c>RaskTailwindPath</c>: point it at a Tailwind binary for that machine and the build runs it as
+///         it would the fetched one.
 ///     </para>
 ///     <para>
 ///         A build-time download is a real hazard and this repo has the scar: Litestream's build props
 ///         fetched a binary on every build, which broke offline builds and errored outright on a RID with
 ///         no published asset — hence <c>RaskLitestreamDownload=false</c>. Three things make this
 ///         different: it is fetched <b>once</b> into a per-user cache rather than per build, the version
-///         is <b>pinned</b> rather than floating, and the two engines between them leave no platform
-///         unsupported, so there is nothing to opt out OF. The first build of a scaffolded app is what
-///         populates the cache; <c>RaskTailwindCacheRoot</c> seeds it somewhere else, and
-///         <c>RaskTailwindOffline</c> makes an unseeded cache an error instead of a download.
+///         is <b>pinned</b> rather than floating, and <c>RaskTailwindPath</c> replaces the download
+///         outright where one cannot work. The first build of a scaffolded app is what populates the cache;
+///         <c>RaskTailwindCacheRoot</c> seeds it somewhere else, and <c>RaskTailwindOffline</c> makes an
+///         unseeded cache an error instead of a download.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTailwindCliTask : Task
@@ -47,8 +45,11 @@ public sealed class ResolveTailwindCliTask : Task
     [Required]
     public string CacheRoot { get; set; } = string.Empty;
 
-    /// <summary><c>auto</c>, <c>standalone</c> or <c>npm</c>.</summary>
-    public string Engine { get; set; } = "auto";
+    /// <summary>
+    ///     A Tailwind binary to run instead of the fetched one (<c>RaskTailwindPath</c>). Empty to fetch the
+    ///     pinned release for this machine.
+    /// </summary>
+    public string ExecutablePath { get; set; } = string.Empty;
 
     /// <summary>Refuse to fetch, and fail if nothing is cached.</summary>
     public bool Offline { get; set; }
@@ -63,45 +64,25 @@ public sealed class ResolveTailwindCliTask : Task
     [Output]
     public string ToolPath { get; set; } = string.Empty;
 
-    /// <summary>
-    ///     Whether the caller must go through npm: install Tailwind into the project, then run it from
-    ///     the project's own <c>node_modules/.bin</c>.
-    /// </summary>
-    /// <remarks>
-    ///     It cannot be an <c>npx</c> one-liner, and that is worth stating because it looks like it
-    ///     should be. Tailwind resolves <c>@import "tailwindcss"</c> from the <b>stylesheet's own
-    ///     directory</b> upward — not from the working directory, and not from whatever temporary prefix
-    ///     npx assembles — so the package has to be reachable from the project itself. <c>--cwd</c> does
-    ///     not change this. The standalone binary has no such requirement because it bundles Tailwind
-    ///     inside itself, which is exactly why it is the preferred engine.
-    /// </remarks>
-    [Output]
-    public bool UseNpm { get; set; }
-
     /// <inheritdoc />
     public override bool Execute()
     {
-        var wanted = Engine?.Trim().ToLowerInvariant() ?? "auto";
-        if (string.Equals(wanted, "npm", StringComparison.Ordinal))
+        if (!string.IsNullOrWhiteSpace(ExecutablePath))
         {
-            return FallBackToNpm(becauseNoBinary: false);
+            return UseNamedBinary(ExecutablePath.Trim());
         }
 
         var assetName = AssetForThisMachine();
         if (assetName is null)
         {
-            if (string.Equals(wanted, "standalone", StringComparison.Ordinal))
-            {
-                Log.LogError(
-                    "Rask.Tailwind: RaskTailwindEngine=standalone, but Tailwind publishes no standalone "
-                    + $"binary for this platform ({RuntimeInformation.OSDescription}, "
-                    + $"{RuntimeInformation.ProcessArchitecture}). Leave the engine on 'auto' and it "
-                    + "falls back to npm, which covers this platform.");
-                return false;
-            }
-
-            // The whole reason the npm fallback exists.
-            return FallBackToNpm(becauseNoBinary: true);
+            Log.LogError(
+                "Rask.Tailwind: Tailwind publishes no standalone binary for this platform "
+                + $"({RuntimeInformation.OSDescription}, {RuntimeInformation.ProcessArchitecture}), so there "
+                + "is nothing to fetch. Set RaskTailwindPath to a Tailwind v4 binary that runs here "
+                + "(in the .csproj, or -p:RaskTailwindPath=/path/to/tailwindcss) and the build runs it. Rask "
+                + "apps are styled with Tailwind, so there is no build without it: a project whose pages are "
+                + "written in utilities and whose stylesheet was never compiled renders as unstyled HTML.");
+            return false;
         }
 
         var path = TailwindCli.CachePath(CacheRoot, Version, assetName);
@@ -117,14 +98,29 @@ public sealed class ResolveTailwindCliTask : Task
                 $"Rask.Tailwind: '{path}' is not there and RaskTailwindOffline is set, so it will not be "
                 + $"fetched. Download {TailwindCli.DownloadUrl(Version, assetName)} and put it at that "
                 + "path — the cache is per user, so seeding it once serves every project on this "
-                + "machine — or unset RaskTailwindOffline and let this build fetch it.");
+                + "machine — set RaskTailwindPath to a Tailwind binary you already have, or unset "
+                + "RaskTailwindOffline and let this build fetch it.");
             return false;
         }
 
-        return FetchOrFallBack(assetName, path);
+        return FetchInto(assetName, path);
     }
 
-    private bool FetchOrFallBack(string assetName, string path)
+    private bool UseNamedBinary(string executable)
+    {
+        if (!File.Exists(executable))
+        {
+            Log.LogError(
+                $"Rask.Tailwind: RaskTailwindPath is '{executable}', and there is no file there. Point it at "
+                + "a Tailwind v4 binary, or unset it to fetch the pinned release for this machine.");
+            return false;
+        }
+
+        ToolPath = Path.GetFullPath(executable);
+        return true;
+    }
+
+    private bool FetchInto(string assetName, string path)
     {
         try
         {
@@ -132,8 +128,8 @@ public sealed class ResolveTailwindCliTask : Task
         }
         catch (InvalidDataException ex)
         {
-            // NEVER a reason to try npm: the bytes arrived and are not the ones expected, which is what a
-            // replaced release asset looks like. Falling back would turn that into a quiet success.
+            // The bytes arrived and are not the ones expected, which is what a replaced release asset
+            // looks like. Never quietly accepted.
             Log.LogError(
                 $"Rask.Tailwind: the Tailwind {Version} CLI was downloaded but {ex.Message}. Nothing was "
                 + "installed. If the release was republished, check it before setting RaskTailwindSha256 to "
@@ -142,39 +138,15 @@ public sealed class ResolveTailwindCliTask : Task
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or WebException)
         {
-            // Not fatal on its own: npm may still be able to run Tailwind, and a machine that cannot
-            // reach GitHub releases can often still reach a registry mirror.
-            Log.LogMessage(
-                MessageImportance.High,
-                $"Rask.Tailwind: could not fetch the standalone CLI ({ex.Message}); trying npm.");
-            return FallBackToNpm(becauseNoBinary: false);
-        }
-
-        ToolPath = path;
-        return true;
-    }
-
-    private bool FallBackToNpm(bool becauseNoBinary)
-    {
-        var npm = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "npm.cmd" : "npm";
-        if (Which(npm) is null)
-        {
-            var why = becauseNoBinary
-                ? "Tailwind publishes no standalone binary for this platform "
-                  + $"({RuntimeInformation.OSDescription}, {RuntimeInformation.ProcessArchitecture}), so it "
-                  + "needs Node.js"
-                : "the npm engine was selected, so Tailwind needs Node.js";
-
             Log.LogError(
-                $"Rask.Tailwind: {why}, and 'npm' is not on PATH. Install Node.js from https://nodejs.org "
-                + "(macOS: brew install node; Windows: winget install OpenJS.NodeJS.LTS; Linux: your "
-                + "distro's nodejs package). Rask apps are styled with Tailwind, so there is no build "
-                + "without it: a project whose pages are written in utilities and whose stylesheet was "
-                + "never compiled renders as unstyled HTML.");
+                $"Rask.Tailwind: could not fetch the Tailwind {Version} CLI ({ex.Message}). Download "
+                + $"{TailwindCli.DownloadUrl(Version, assetName)} and put it at '{path}' — the cache is per "
+                + "user, so seeding it once serves every project on this machine — or set RaskTailwindPath "
+                + "to a Tailwind binary you already have.");
             return false;
         }
 
-        UseNpm = true;
+        ToolPath = path;
         return true;
     }
 
@@ -200,7 +172,7 @@ public sealed class ResolveTailwindCliTask : Task
         var actual = Sha256(bytes);
         if (!string.Equals(expected, actual, StringComparison.OrdinalIgnoreCase))
         {
-            // Its own type, caught before the network failures: those fall back to npm, this must not.
+            // Its own type, so the error says the bytes were wrong rather than that the network failed.
             throw new InvalidDataException($"its SHA-256 is {actual}, not the expected {expected}");
         }
 
@@ -296,7 +268,7 @@ public sealed class ResolveTailwindCliTask : Task
         }
         else
         {
-            // FreeBSD and anything else: no standalone build exists, and npm has one.
+            // FreeBSD and anything else: no standalone build exists; RaskTailwindPath is the way through.
             return null;
         }
 
@@ -334,11 +306,4 @@ public sealed class ResolveTailwindCliTask : Task
 
         return false;
     }
-
-    private static string? Which(string command) =>
-        (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
-            .Split(Path.PathSeparator)
-            .Where(directory => directory.Length > 0)
-            .Select(directory => Path.Combine(directory, command))
-            .FirstOrDefault(File.Exists);
 }
