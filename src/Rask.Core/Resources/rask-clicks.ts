@@ -19,6 +19,7 @@ import { closestFrom } from "./rask-morph.js";
  */
 export function navLinkClick(e: MouseEvent): URL | null {
     if (e.defaultPrevented) return null;
+    if (!linkConfirmed(e)) return null;
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
     const a = closestFrom(e.target, "a[data-rask-nav]");
     if (!a) return null;
@@ -28,6 +29,18 @@ export function navLinkClick(e: MouseEvent): URL | null {
     if (!url) return null;
     e.preventDefault();
     return url;
+}
+
+// A link that asks first and runs no handler — `Ui.MenuItem.Href(…).Confirm("…")`, a sign-out — is asked before the
+// browser or the host follows it (rask-confirm.ts). Said no to, it goes nowhere; a yes presses it again, and that
+// press is followed as any other: by the browser, a page load, for a string href, and by the host for an in-app one.
+// A link that runs a handler is asked by handlerClick, before the handler is sent.
+function linkConfirmed(e: MouseEvent): boolean {
+    const a = closestFrom(e.target, "a[href][data-rask-confirm]");
+    if (!a || !inRoot(a) || a.hasAttribute("data-rask-on-click")) return true;
+    if (confirmed(a)) return true;
+    e.preventDefault();
+    return false;
 }
 
 /**

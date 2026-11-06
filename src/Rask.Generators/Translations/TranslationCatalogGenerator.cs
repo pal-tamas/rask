@@ -276,6 +276,8 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("RowActionsRemove", 0),
         ("RowActionsHeading", 0),
         ("RemoveQuestion", 0),
+        ("SignOut", 0),
+        ("SignOutQuestion", 0),
         ("PageNotFound", 0),
     ];
 

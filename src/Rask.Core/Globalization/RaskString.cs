@@ -738,6 +738,12 @@ public enum RaskString
     /// <summary>What a delete in <c>Ui.FormButtons</c> or <c>Ui.RowActions</c> asks when it is given no question of its own.</summary>
     RemoveQuestion,
 
+    /// <summary>A menu item's <c>.SignOut()</c>: its words where it is given none, and the title of the question it asks.</summary>
+    SignOut,
+
+    /// <summary>What a menu item's <c>.SignOut()</c> asks before the reader is signed out.</summary>
+    SignOutQuestion,
+
     /// <summary>
     ///     What a page says, inside the app's layout, at an address no page answers: the built-in not-found page's
     ///     sentence, and <c>Ui.NotFound</c>'s.
