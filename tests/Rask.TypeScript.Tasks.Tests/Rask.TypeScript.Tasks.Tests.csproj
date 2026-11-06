@@ -54,7 +54,8 @@
     <RaskTestReads Include="..\..\**\*.csproj" />
     <RaskTestReads Include="..\..\src\Rask.Core\build\Rask.Core.targets" />
     <RaskTestReads Include="..\..\.github\workflows\commitlint.yml" />
-    <RaskTestReads Include="..\..\commitlint.config.*" />
+    <RaskTestReads Include="..\..\scripts\lib\conventional-commit.sh" />
+    <RaskTestReads Include="..\..\.githooks\commit-msg" />
   </ItemGroup>
 
 </Project>

@@ -1724,8 +1724,10 @@ them until tagged releases begin.
 - **No Node or npm anywhere — for an app, for Rask's maintainers, or in CI.** Tailwind's npm fallback
   (`RaskTailwindEngine=npm`) is gone: the standalone binary is the engine, and a platform it does not cover
   points `RaskTailwindPath` at a binary of its own ([Tailwind](docs/tailwind.md#where-the-engine-comes-from)). The
-  installer no longer installs Node, `rask doctor` no longer checks for it, and the repo's own scripts and
-  followers run on .NET and Python.
+  installer no longer installs Node (`rask.sh --no-node` and `rask.ps1 -NoNode` are refused as unknown, and
+  `RASK_INSTALL_PREFIX` is gone), `rask doctor` no longer checks for it, and the repo's own scripts and
+  followers run on .NET and Python. Commit messages are linted by the repo's own rule
+  (`scripts/lib/conventional-commit.sh`, shared by the `commit-msg` hook and CI) instead of commitlint.
 - **Diagnostic ids retired with them:** RASK056–059, RASK061–066 (RASK063 and RASK065 were never implemented),
   RASK077–080 and RASK100, the islands build's RASKISLAND001–019, and the npm front-end build's RASKSPA001–005
   and RASKSPA007. None is recycled.

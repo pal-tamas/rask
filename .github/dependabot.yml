@@ -97,6 +97,21 @@ updates:
         patterns:
           - "*"
 
+  # The kit bundler (scripts/tools/KitBundle): outside central package management like RaskRename, so its
+  # one pin (Semver) is its own csproj's.
+  - package-ecosystem: nuget
+    directory: "/scripts/tools/KitBundle"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      kit-bundle:
+        patterns:
+          - "*"
+
   # The base images: every template's Dockerfile, and the throwaway Linux box `rask dev` is tested in
   # (scripts/devhost — its image is an ARG, which Dependabot reads no further than the default).
   - package-ecosystem: docker

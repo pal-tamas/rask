@@ -74,4 +74,4 @@ check "prose in Markdown"                                0 "$(flagged b/README.m
 
 echo "==> no node: the tree"
 cd "$root"
-git ls-files -z | python3 -I "$scanner" scripts/tests/no-node.test.sh
+git ls-files -z | python3 -I "$scanner" scripts/tests/no-node.test.sh scripts/lib/no_node.py
