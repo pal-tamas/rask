@@ -127,6 +127,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Ui.RowActions.Menu()`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
+  "⋯" helper of their own. Before: `RowActions.For(row, edit, remove, heading, question)` in a hand-made sticky cell,
+  every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).Menu().View(url).Edit(url)
+  .Remove(delete, heading, question)[Ui.MenuItem…]` under `Ui.TableColumn.RowMenu` — Flux's table demo's ghost ⋯ and
+  dropdown (bottom end), View, Edit (or `OnEdit` to edit in place), the page's items, then the delete apart in red,
+  asking in `Ui.Confirm`. The cell and its heading are Flux's sticky ones on `Ui.Main`'s surface. `Edit` is no longer a
+  required step (`Ui.RowActions.Remove(…)` alone is a row that can only be deleted), and the pencil row gains `View`
+  and `OnEdit` too; the pencil and bin are otherwise unchanged. New catalog word `RowActionsView` (Megtekintés).
+  Everything inside one is keyed by the component, so nothing needs a per-row key; key the `Ui.RowActions` itself.
 - **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
   `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
   most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,

@@ -749,4 +749,7 @@ public enum RaskString
     ///     sentence, and <c>Ui.NotFound</c>'s.
     /// </summary>
     PageNotFound,
+
+    /// <summary>A list row's item that opens it to be looked at, in <c>Ui.RowActions.Menu()</c>.</summary>
+    RowActionsView,
 }

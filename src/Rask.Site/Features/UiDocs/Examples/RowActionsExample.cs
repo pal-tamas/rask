@@ -23,7 +23,7 @@ public sealed partial class RowActionsExample : Component
                     _suppliers.Select(supplier => Ui.TableRow.Key(supplier.Name)[
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(supplier.Name),
                         Ui.TableCell.Cut(supplier.City),
-                        Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
+                        Ui.RowActions.Key(supplier.Name).Edit(Routes.UiFormButtonsPage()).Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")
                     ])
                 ]
             ]

@@ -30,7 +30,7 @@ public sealed partial class TableColumnWidthsExample : Component
                     Ui.TableCell[Format.Day(delivery.Day)],
                     Ui.TableCell.End[Format.Number(delivery.Amount)],
                     Ui.TableCell[delivery.Paid ? "Yes" : "No"],
-                    Ui.RowActions.Edit(Routes.UiFormButtonsPage()).Remove(() => { _deliveries.Remove(delivery); }, "Delete delivery", "Delete this delivery?")
+                    Ui.RowActions.Key(delivery.Vat).Edit(Routes.UiFormButtonsPage()).Remove(() => { _deliveries.Remove(delivery); }, "Delete delivery", "Delete this delivery?")
                 ])
             ]
         ];

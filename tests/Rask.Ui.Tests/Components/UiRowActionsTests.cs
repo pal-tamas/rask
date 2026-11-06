@@ -72,6 +72,41 @@ public partial class UiRowActionsTests : RaskMarkup
     }
 
     [Fact]
+    public void An_eye_opens_the_row_to_be_looked_at_before_the_pencil()
+    {
+        var actions = Ui.RowActions.View(new RouteUrl("/suppliers/1")).Edit(EditOne);
+
+        var html = actions.ToHtml().AsText();
+
+        Assert.True(html.IndexOf("data-rask-key=\"view\"", StringComparison.Ordinal) < html.IndexOf("data-rask-key=\"edit\"", StringComparison.Ordinal));
+        Assert.Matches("<a [^>]*data-rask-key=\"view\"[^>]*href=\"/suppliers/1\"", html);
+        Assert.Contains(">View</div>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task On_edit_makes_the_pencil_a_button_that_edits_the_row_where_it_stands()
+    {
+        var edited = 0;
+        var page = Page.Render(() => Ui.Table[Ui.TableRows[Ui.TableRow[Ui.TableCell["Aminoff Freight"], Ui.RowActions.OnEdit(() => edited++)]]]);
+
+        await page.On("button[data-rask-key=\"edit\"]").Click();
+
+        Assert.Equal(1, edited);
+        Assert.False(page.Exists("[data-ui-row-actions] a"));
+    }
+
+    [Fact]
+    public void A_row_that_can_only_be_deleted_has_a_bin_and_no_pencil()
+    {
+        var actions = Ui.RowActions.Remove(() => { });
+
+        var html = actions.ToHtml().AsText();
+
+        Assert.DoesNotContain("data-rask-key=\"edit\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-key=\"remove\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Yes_deletes_the_row_and_a_row_that_cannot_be_deleted_has_no_bin()
     {
         List<string> suppliers = ["Aminoff Freight", "Bothman & Sons"];
