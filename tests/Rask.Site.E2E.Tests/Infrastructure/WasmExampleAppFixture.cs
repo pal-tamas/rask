@@ -14,6 +14,9 @@ public sealed class WasmExampleAppFixture : StaticWwwrootHostFixture
 {
     protected override string ProjectRelativePath => "src/Rask.Site";
 
+    /// <summary>The published <c>wwwroot</c> this host serves, for a test that reads the bundle's files rather than its pages.</summary>
+    public string PublishedWwwroot => Wwwroot;
+
     protected override string MissingBundleMessage(string wwwroot) =>
         $"Published src/Rask.Site not found at '{wwwroot}'. Publish it first — e.g. "
         + $"`dotnet publish src/Rask.Site -c {Configuration} -p:WasmBuildNative=false`.";

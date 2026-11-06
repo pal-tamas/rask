@@ -307,7 +307,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
 
-        await foreach (var entity in Apply(context.Set<TEntity>())
+        await foreach (var entity in Open(context)
                            .AsAsyncEnumerable()
                            .WithCancellation(Ambient.Or(cancellationToken))
                            .ConfigureAwait(false))
@@ -334,7 +334,7 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
 
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        return await query(Apply(context.Set<TEntity>()), Ambient.Or(cancellationToken)).ConfigureAwait(false);
+        return await query(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 
     // Untracked is decided at the head of the query rather than composed, so every read — through this
@@ -344,6 +344,11 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
         var head = source.AsNoTracking();
         return _compose is null ? head : _compose(head);
     }
+
+    // The query over the context's own set, with every model query its lambdas use — another read face's
+    // AsQueryable() in a Where or an OrderBy — bound to that same context, so the whole read is one statement.
+    private IQueryable<TEntity> Open(DbContext context) =>
+        ModelQueryBinder.BindNested(Apply(context.Set<TEntity>()), context);
 
     private ModelQuery<TEntity> Then(
         Func<IQueryable<TEntity>, IQueryable<TEntity>> step,
@@ -369,6 +374,6 @@ public sealed class ModelQuery<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     {
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        return await run(Apply(context.Set<TEntity>()), Ambient.Or(cancellationToken)).ConfigureAwait(false);
+        return await run(Open(context), Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 }

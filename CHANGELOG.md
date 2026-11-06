@@ -978,6 +978,24 @@ them until tagged releases begin.
   design package in its csproj, at the EF version Rask is built against, and `rask db` pins the same version when it
   adds the package to a hand-built project. That version is stamped into the CLI from the
   `Microsoft.EntityFrameworkCore` pin in `Directory.Packages.props`, so an EF bump moves it too.
+- **A read face used inside another read face's query runs instead of killing the process.** Before:
+  `Vehicle.AsQueryable().OrderBy(v => VehicleGroup.AsQueryable().Where(g => g.Id == v.VehicleGroupId).Select(g =>
+  g.Name).FirstOrDefault())` crashed with a stack overflow (exit 134): EF Core could not translate the inner query,
+  and printing it for the error message recursed through the model queryable's root, a constant whose expression
+  was itself. After: every model query nested in the expression — a call, a captured variable, inside a lambda or
+  not — is bound to the context the outer query opened, so the lookup is a correlated subquery of the one SQL
+  statement with its own soft-delete and tenant filters; this holds for `Product.Where(…)`/`OrderBy(…)`/`Select(…)`
+  too. A nested query EF Core cannot translate throws an ordinary `InvalidOperationException`.
+- **rask.sh's landing page has a `<main>` landmark, and the elements guide's attribute-order demo links to a real
+  page.** The landing page's sections sat straight in the body, so "skip to content" and the focus Rask moves to
+  `<main>` after a navigation had nothing to reach; they now sit in one `<main>` between the bar and the footer.
+  The demo's "See HTML order" link went to `/tags`, a route that no longer exists, and showed "Page not found"; it
+  now opens the elements guide. A new site test reads every prerendered page and fails on a link that lands nowhere.
+- **`llms.txt` matches the corrected docs.** An assistant reading it no longer writes `Ui.Swap`,
+  `Ui.Toast.OnDismiss`, `AccessibleLabel`, `SqlitePragmaOptions` (it is `SqliteOptions`), a bare
+  `AppBannerPromptOutcome` (it is `Types.AppBannerPromptOutcome`) or `Body(html)` (it is `Html(html)`), or looks for
+  `UiClassNames.cs` or `DataGrid*` text keys. It now says that `rask db backup` does archive disk-stored files beside
+  the database, while Litestream and snapshots do not, and it lists the RASK092/RASK093 quick-fixes.
 - **The tutorial builds and runs when you type it in, chapter by chapter.** Typed end to end against a fresh
   `rask new Shop`: chapter 5's receipt handler now carries `[RaskMarkup]` (without it `OrderReceipt.OrderId(…)` is
   CS0120 outside a component); chapter 6's `CatalogCache.Get` awaits `Cache.Remember(…).For(…)` instead of returning

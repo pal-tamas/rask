@@ -62,7 +62,7 @@ public sealed class Projection<[DynamicallyAccessedMembers(DataTrimming.Entity)]
     {
         var context = ReadDb.OpenFor<TEntity>();
         await using var contextScope = context.ConfigureAwait(false);
-        var projected = _source(context.Set<TEntity>()).Select(_selector);
+        var projected = ModelQueryBinder.BindNested(_source(context.Set<TEntity>()).Select(_selector), context);
         return await run(projected, Ambient.Or(cancellationToken)).ConfigureAwait(false);
     }
 }

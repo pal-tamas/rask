@@ -15,12 +15,13 @@ internal sealed class ModelQueryable<TElement> : IOrderedQueryable<TElement>, IA
 {
     private readonly IModelQueryProvider _provider;
 
-    // The root: its expression is a constant pointing at itself, which the provider swaps for EF Core's
-    // real source at execution time.
+    // The root: its expression is a placeholder for the provider's model query, which ModelQueryBinder swaps
+    // for EF Core's real source at execution time. Never a constant holding this queryable — see
+    // ModelQueryRootExpression for why that crashed.
     internal ModelQueryable(IModelQueryProvider provider)
     {
         _provider = provider;
-        Expression = Expression.Constant(this, typeof(IQueryable<TElement>));
+        Expression = new ModelQueryRootExpression(provider, typeof(IQueryable<TElement>));
     }
 
     internal ModelQueryable(IModelQueryProvider provider, Expression expression)

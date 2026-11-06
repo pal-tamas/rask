@@ -826,7 +826,17 @@ public sealed partial class ProductsPage : Component
 ```
 
 A list spanning two aggregates is possible here, because the read face carries the navigation:
-`OrderBy(o => o.Customer.Name)` needs nothing declared.
+`OrderBy(o => o.Customer.Name)` needs nothing declared. Where there is no navigation — a bare id — another read
+face can be used inside the LINQ as a lookup, and it runs as a subquery of the same SQL statement, its own
+filters (soft delete, tenant) included:
+
+```csharp
+Vehicle.AsQueryable().OrderBy(v => VehicleGroup.AsQueryable()
+    .Where(g => g.Id == v.VehicleGroupId).Select(g => g.Name).FirstOrDefault());
+```
+
+The same works inside a model query's own `Where`/`OrderBy`/`Select`. A lookup EF Core cannot translate throws
+an `InvalidOperationException` naming the part it could not translate.
 
 The sort becomes `ORDER BY` and the page becomes `LIMIT`/`OFFSET`, in the database — the table never reaches
 memory, however large it is. A synchronous `Count()` and an awaited `ToListAsync()` both work against it;

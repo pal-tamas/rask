@@ -12,9 +12,10 @@ namespace Rask.Data;
 /// <remarks>
 ///     <para>
 ///         Composition never touches a database: <c>Queryable.Where</c>, <c>OrderBy</c>, <c>Skip</c> and
-///         the rest only build a new expression over the root. Execution binds it — the root constant is
-///         replaced by the model query applied to a fresh context's no-tracking set, the result is produced
-///         by EF Core's own provider, and the context is disposed.
+///         the rest only build a new expression over the root. Execution binds it — the root, and the root of
+///         every other model query nested in it, is replaced by that query applied to the one fresh context's
+///         no-tracking set (<see cref="ModelQueryBinder" />), the result is produced by EF Core's own provider,
+///         and the context is disposed.
 ///     </para>
 ///     <para>
 ///         Generic throughout, so nothing reflects over the element type — the grid's synchronous
@@ -25,15 +26,18 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
     where TEntity : class
 {
     private readonly ModelQuery<TEntity> _query;
-    private readonly ModelQueryable<TEntity> _root;
 
     internal ModelQueryProvider(ModelQuery<TEntity> query)
     {
         _query = query;
-        _root = new ModelQueryable<TEntity>(this);
+        Root = new ModelQueryable<TEntity>(this);
     }
 
-    internal IQueryable<TEntity> Root => _root;
+    internal IQueryable<TEntity> Root { get; }
+
+    public Type ElementType => typeof(TEntity);
+
+    public Expression SourceIn(DbContext context) => _query.Apply(context.Set<TEntity>()).Expression;
 
     public IQueryable CreateQuery(Expression expression) =>
         throw new NotSupportedException(
@@ -131,14 +135,14 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
         }
     }
 
-    private Bound Bind(Expression expression)
+    private static Bound Bind(Expression expression)
     {
         var context = ReadDb.OpenFor<TEntity>();
         try
         {
-            var source = _query.Apply(context.Set<TEntity>());
-            var bound = new RootBinder(_root, source.Expression).Visit(expression);
-            return new Bound(context, (IAsyncQueryProvider)source.Provider, bound);
+            var provider = (IAsyncQueryProvider)((IQueryable)context.Set<TEntity>()).Provider;
+            var bound = new ModelQueryBinder(context).Visit(expression);
+            return new Bound(context, provider, bound);
         }
         catch
         {
@@ -148,10 +152,4 @@ internal sealed class ModelQueryProvider<[DynamicallyAccessedMembers(DataTrimmin
     }
 
     private readonly record struct Bound(DbContext Context, IAsyncQueryProvider Provider, Expression Expression);
-
-    private sealed class RootBinder(object root, Expression source) : ExpressionVisitor
-    {
-        protected override Expression VisitConstant(ConstantExpression node) =>
-            ReferenceEquals(node.Value, root) ? source : node;
-    }
 }
