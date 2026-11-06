@@ -10,7 +10,7 @@ name: upstream
 #            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, the npm
 #            releases `rask new` falls back on offline, and Unicode CLDR's date-time joins.
 #            Nothing moved: that job ends green. Dependabot keeps the rest (.github/dependabot.yml).
-#   flux     (weekly) scripts/flux/sync.mjs — has Flux UI's catalogue, look or release moved? A look is pixels,
+#   flux     (weekly) `flux sync` (scripts/flux/Flux) — has Flux UI's catalogue, look or release moved? A look is pixels,
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
 #            platform, or taken by measuring code that has changed since) re-measures every look and
 #            lands the lock instead of reporting them.
@@ -116,24 +116,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
+      - uses: ./.github/actions/setup
 
-      # The scripts take any Playwright driver (RASK_FLUX_PLAYWRIGHT); the one the E2E project
-      # carries would cost a build of the whole site to get at. The same release line as that one
-      # (Microsoft.Playwright in Directory.Packages.props, which Dependabot moves): a new Chromium is a
-      # relock, so it arrives with that bump rather than on its own.
-      - name: Chromium
+      # The harness (scripts/flux/Flux) is C# on Microsoft.Playwright, the version Directory.Packages.props pins
+      # for the E2E suites and Dependabot moves: a new Chromium is a relock, so it arrives with that bump rather
+      # than on its own. Its own installer fetches that Chromium — no Node, no npm.
+      - name: Harness and Chromium
         run: |
           set -eu
-          line="$(sed -n 's/.*Include="Microsoft.Playwright" Version="\([0-9]*\.[0-9]*\)\..*/\1/p' Directory.Packages.props)"
-          [ -n "$line" ] || { echo "no Microsoft.Playwright in Directory.Packages.props" >&2; exit 1; }
-          mkdir -p "$RUNNER_TEMP/playwright" && cd "$RUNNER_TEMP/playwright"
-          npm init -y >/dev/null
-          npm install --silent --no-audit --no-fund "playwright@$line"
-          npx playwright install --with-deps chromium
-          echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
+          dotnet build scripts/flux/Flux -c Release -m:2 -nodeReuse:false
+          echo "FLUX=$PWD/scripts/flux/Flux/bin/Release/net10.0/flux.dll" >> "$GITHUB_ENV"
+          dotnet scripts/flux/Flux/bin/Release/net10.0/flux.dll install --with-deps chromium
 
       - name: Has Flux UI moved?
         id: sync
@@ -142,12 +135,12 @@ jobs:
         run: |
           set -u
           mode=()
-          if [ "$RELOCK" = "true" ] || ! node scripts/flux/sync.mjs --comparable; then
+          if [ "$RELOCK" = "true" ] || ! dotnet "$FLUX" sync --comparable; then
             mode=(--baseline)
             echo "baselined=true" >> "$GITHUB_OUTPUT"
           fi
 
-          node scripts/flux/sync.mjs "${mode[@]}" | tee "$RUNNER_TEMP/flux.log"
+          dotnet "$FLUX" sync "${mode[@]}" | tee "$RUNNER_TEMP/flux.log"
           case "${PIPESTATUS[0]}" in
             0) echo "moved=false" >> "$GITHUB_OUTPUT" ;;
             2) echo "moved=true"  >> "$GITHUB_OUTPUT" ;;
@@ -185,8 +178,8 @@ jobs:
             echo '```'
             echo
             echo "Match the components named above (\`flux-component\` skill: \`FluxConformanceTests\` names the"
-            echo "props, \`parity.mjs <slug>\` the pixels), then \`gh workflow run upstream.yml -f relock=true\`."
-            echo "The lock is measured on the runner, so a local \`sync.mjs\` measures but does not compare."
+            echo "props, \`dotnet run --project scripts/flux/Flux -- parity <slug>\` the pixels), then \`gh workflow run upstream.yml -f relock=true\`."
+            echo "The lock is measured on the runner, so a local \`flux sync\` measures but does not compare."
             echo
             echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another, and closes it when Flux and Rask.Ui match again.</sub>"
           } > "$RUNNER_TEMP/body.md"
@@ -228,21 +221,10 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-
-      # As the `flux` job takes it: the release line of Microsoft.Playwright in Directory.Packages.props.
+      # As the `flux` job takes it: the harness's own installer, the Chromium of the pinned Microsoft.Playwright.
+      # parity-all.sh builds the harness itself, once, before its checks run side by side.
       - name: Chromium
-        run: |
-          set -eu
-          line="$(sed -n 's/.*Include="Microsoft.Playwright" Version="\([0-9]*\.[0-9]*\)\..*/\1/p' Directory.Packages.props)"
-          [ -n "$line" ] || { echo "no Microsoft.Playwright in Directory.Packages.props" >&2; exit 1; }
-          mkdir -p "$RUNNER_TEMP/playwright" && cd "$RUNNER_TEMP/playwright"
-          npm init -y >/dev/null
-          npm install --silent --no-audit --no-fund "playwright@$line"
-          npx playwright install --with-deps chromium
-          echo "RASK_FLUX_PLAYWRIGHT=$RUNNER_TEMP/playwright/node_modules/playwright" >> "$GITHUB_ENV"
+        run: dotnet run --project scripts/flux/Flux -c Release -- install --with-deps chromium
 
       # 0 matches, 2 differs (a person is needed), 1 could not tell — fluxui.dev down, a crash: no news about Flux.
       - name: Does Rask.Ui still match Flux UI?
@@ -275,7 +257,7 @@ jobs:
             sed -n '/parity-all: /,$p' "$RUNNER_TEMP/parity.log" | head -200
             echo '```'
             echo
-            echo "Every check is one script of \`scripts/flux/\` — run the one named above with \`--refresh --all\` to see"
+            echo "Every check is one command of \`scripts/flux/Flux\` — run the one named above with \`--refresh --all\` to see"
             echo "each difference, and match the component the Flux way (\`flux-component\` skill). The measurements of both"
             echo "pages are in the run's \`flux-parity\` artifact."
             echo

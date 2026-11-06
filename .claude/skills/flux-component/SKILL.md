@@ -1,6 +1,6 @@
 ---
 name: flux-component
-description: Build or change a Rask.Ui component so it looks and behaves EXACTLY like its Flux UI (fluxui.dev) counterpart. Use for every component of the Flux rebuild — a new `Ui.*` component, replacing a kit component that is not Flux's, or fixing a parity difference. Measures Flux's live docs, writes the C# component from the measurements, proves parity with scripts/flux/parity.mjs, converts call sites, and deletes the component it replaces.
+description: Build or change a Rask.Ui component so it looks and behaves EXACTLY like its Flux UI (fluxui.dev) counterpart. Use for every component of the Flux rebuild — a new `Ui.*` component, replacing a kit component that is not Flux's, or fixing a parity difference. Measures Flux's live docs, writes the C# component from the measurements, proves parity with the `flux parity` command (scripts/flux/Flux, C# on Microsoft.Playwright — no Node), converts call sites, and deletes the component it replaces.
 ---
 
 # flux-component — one Flux UI component, exactly
@@ -13,7 +13,7 @@ behaviour **to the pixel and to the keypress**. Its theme is Flux's alone: the z
 `livewire/flux` on GitHub is **proprietary** and its terms forbid derivatives in open source. Rask is
 MIT. **Never open, read or copy that repository's Blade, CSS or JS.** Everything comes from the
 PUBLIC docs site: its markdown (`https://fluxui.dev/components/<slug>.md`, index at `/llms.txt`) and
-its live rendered examples, which `scripts/flux/measure.mjs` measures. Class strings are written from
+its live rendered examples, which `flux measure` measures (`flux <command>` is `dotnet run --project scripts/flux/Flux -- <command>` throughout: the harness, `scripts/flux/Flux/README.md`). Class strings are written from
 the measurements, never transcribed from a page's `class` attributes — except the TABLE element, which writes
 Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`). Its headings and cells do NOT
 (owner, 2026-11-02, a 9,730-row list was 31.6 MB): their shared look is ONE set of zero-weight rules on
@@ -22,8 +22,11 @@ Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`)
 ## 1. Read and measure
 ```bash
 curl -sS https://fluxui.dev/components/<slug>.md          # examples + the Reference section
-node scripts/flux/measure.mjs artifacts/flux-parity/flux components/<slug>
+dotnet run --project scripts/flux/Flux -- measure artifacts/flux-parity/flux components/<slug>
 ```
+The harness is ONE C# app on Microsoft.Playwright, the version the E2E suites pin (no Node, no npm): its browser
+comes from `dotnet run --project scripts/flux/Flux -- install chromium` (or `webkit`), once per Playwright bump;
+`-- <command>` with no command lists them all.
 `measurements.json` holds, per example and per scheme (light, dark), every node's box and computed
 styles, its `::before`/`::after`, and what `:hover`, `:active` and `:focus-visible` change. PNGs of
 each example sit beside it — look at them. Flux is Tailwind v4 on the default palette, so a measured
@@ -32,13 +35,13 @@ colour IS a Tailwind colour: `oklch(0.274 0.006 286.033)` is `zinc-800`, `rgba(0
 darker, an inset highlight, 12px on the icon side and 16px on the other.
 
 **A layout page** (`layouts/header`, `layouts/sidebar`) has no examples: it links to full-document demos
-(`fluxui.dev/demo/<name>`). `parity.mjs layouts/<slug>` measures each demo whole — 1280 and 390 wide, light
+(`fluxui.dev/demo/<name>`). `flux parity layouts/<slug>` measures each demo whole — 1280 and 390 wide, light
 and dark, as loaded, narrowed to its rail and slid over the page — against one document per demo, written
 from a `FluxLayoutParity` (`tests/Rask.Ui.Tests/Flux/Parity/SidebarLayoutParity.cs`). What is not rendered
 is not compared, and another component placed in the layout is compared as a box.
 
 Behaviour is measured too: open the page, use the component with keyboard and pointer (Playwright via
-`scripts/flux/lib.mjs`'s `chromium()`), and write down what each key does before implementing it.
+the harness's `Browsers.Chromium()`, `scripts/flux/Flux/Lib/Browsers.cs`), and write down what each key does before implementing it.
 A state no example shows (dragging, uploading, invalid) is read by writing Flux's attribute on the LIVE node
 (`el.setAttribute('data-dragging', '')`) and diffing computed styles; when that changes nothing, the state is
 decided on the server and cannot be measured — say so in the component, never guess silently.
@@ -71,8 +74,8 @@ departure in behaviour carries none.
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
 - **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
-  scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `parity.mjs` lets
-  `position` go on that node only (`DEPARTED`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
+  scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `flux parity` lets
+  `position` go on that node only (`Departed`); `UiTableTests.The_scroll_area_holds_what_its_cells_place_absolutely`.
   What that costs, and how it is paid without a second departure (#1260, 2026-11-02): Flux keeps an absolutely placed
   box out of its scroll area because nothing between the cell and the page is positioned (measured: an `sr-only`
   heading written into the last heading of every example on fluxui.dev changes no area's scroll width). In the kit's
@@ -110,10 +113,10 @@ departure in behaviour carries none.
   above the rule); text and children that are not pressed keep theirs. Not a handler: a `Div.OnClick` gets
   nothing (no Core change). Kept as Flux: the collapsed sidebar rail's `e-resize` (`w-resize` RTL) and a modal
   backdrop's arrow. Reason: the reader is told what can be pressed. Parity lets `cursor` go ONLY where the kit
-  computes `pointer` on a pressable node and Flux `default`/`auto`, or the arrow on a HELD one (`lib.mjs` `HELD`,
-  measured `pressable: 'held'`) where Flux keeps the hand (`lib.mjs` `PRESSABLE` + `cursorDeparted`,
-  used by `parity.mjs`, `open.mjs`, `parity-menu.mjs`, `parity-modal.mjs`; `cursorDepartedLine` in
-  `parity-editor.mjs`); any other cursor difference still fails. `UiPointerCursorTests` (the rule),
+  computes `pointer` on a pressable node and Flux `default`/`auto`, or the arrow on a HELD one (`Pressables.Held`,
+  measured `pressable: 'held'`) where Flux keeps the hand (`Pressables.Pressable` + `CursorDeparted` in
+  `scripts/flux/Flux/Lib/Pressables.cs`, used by `flux parity`, `OpenList`, `flux parity-menu`, `flux parity-modal`; `CursorDepartedLine` in
+  `flux parity-editor`); any other cursor difference still fails. `UiPointerCursorTests` (the rule),
   `UiKitCursorTests` (the cursor where the pointer lands, on the running showcase).
 - **2026-11-02 — native feel (`NATIVE FEEL` in `Styles/ui.css`, `@layer rask`, every selector `:where()`).** Flux
   leaves touch to the browser. The kit's CHROME (buttons, tabs, nav/sidebar items and controls, breadcrumbs, pagination
@@ -124,9 +127,9 @@ departure in behaviour carries none.
   the command list, menus and popovers `overscroll-behavior: contain`; header/sidebar/flyout/toast insets
   `max(the kit's padding, env(safe-area-inset-*))` (equal to Flux's without `viewport-fit=cover`); the date picker's
   preset `<select>` `text-base sm:text-sm` (Flux: 14px always) so iOS does not zoom. CONTENT keeps full parity.
-  `parity.mjs` and `parity-modal.mjs` let go `userSelect`, `webkitUserSelect`, `touchAction`, `webkitTouchCallout` on chrome and what is
+  `flux parity` and `flux parity-modal` let go `userSelect`, `webkitUserSelect`, `touchAction`, `webkitTouchCallout` on chrome and what is
   inside it, `webkitUserDrag` on chrome images, `overscrollBehaviorY` on those scrollers, and `fontSize`/`lineHeight`
-  on that select and its options, plus `gap` (`DEPARTED` in `scripts/flux/departed.mjs`, read by `parity.mjs`, `parity-modal.mjs` and `open.mjs` — which also lets
+  on that select and its options, plus `gap` (`Departed` in `scripts/flux/Flux/Lib/Departed.cs`, read by `flux parity`, `flux parity-modal` and `OpenList` — which also lets
   the accent ring go on the field that HAS focus in an open list); the slashes of a typed date are `user-select: none`, as Flux. Owner said NO to: `:active` press styles, `color-scheme` meta, kit meta tags, scrollbar
   restyling, context-menu blocking, overscroll in a browser tab. `UiNativeFeelTests`, `UiKitNativeFeelTests` (E2E).
 - **2026-11-03 — a focused field is ringed in the ACCENT (`A FOCUSED FIELD` in `Styles/ui.css`, `@layer
@@ -138,8 +141,8 @@ departure in behaviour carries none.
   invalid. A box holding a typed field (date/time typed parts, colour picker, pillbox) is ringed while its input
   has focus; a typed date/time part is lit by a 1px accent outline inside the box. Buttons, tabs, checkboxes, radios
   and switches keep the browser's keyboard ring, as Flux's; a trigger pressed by the mouse draws nothing, as Flux's.
-  `parity-focus.mjs` holds those steps to the accent ring instead of Flux's outline (`FOCUS_ACCENT` in
-  `scripts/flux/departed.mjs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
+  `flux parity-focus` holds those steps to the accent ring instead of Flux's outline (`Departed.FocusAccent` in
+  `scripts/flux/Flux/Lib/Departed.cs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
   (Server E2E: a field in a table row in a flyout, unclipped).
 - **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the
   paginator. The kit can keep them in the address: a heading's press writes the sorted column and direction (Flux's
@@ -156,7 +159,7 @@ departure in behaviour carries none.
   left of its chevron and its input grows to `pe-16`; a select search field's clear button fades (`opacity-0`); a create
   row greys to zinc-400 and takes no press; the empty row, shown only when no other row is, says `when-loading` — drawn
   by CSS from `data-rask-list-loading` so the row's text stays Flux's. The runtime marks a field whose search went at
-  its pause `data-loading` too. `parity-select.mjs` holds the open lists. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
+  its pause `data-loading` too. `flux parity-select` holds the open lists. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
   `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
 - **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
   Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
@@ -168,8 +171,8 @@ departure in behaviour carries none.
   `UiTableWidthTests`, the site's `UiKitListActionsTests`.
 - **2026-11-04 — `Ui.Empty`, `Ui.PageHeader`, `UiTableCell.ColSpan` (#1283).** Flux has no empty state: `Ui.Empty` is the one
   its account overview DEMO draws (a `div role=status`, `py-6 text-center`, NO ink or size: the cell gives them, owner 2026-11-05), and no
-  marker, as Flux writes none. A demo is measured through `parity.mjs <page> --prepare <module>` whose `flux` names the demo
-  (`demo/account-overview`): `scripts/flux/empty-state.mjs` searches there, then sets the demo's table in an example frame
+  marker, as Flux writes none. A demo is measured through `flux parity <page> --prepare <name>` whose `Flux(slug)` names the demo
+  (`demo/account-overview`): the `empty-state` preparation (`scripts/flux/Flux/Preparations/EmptyState.cs`) searches there, then sets the demo's table in an example frame
   (`EmptyStateParity`). `ColSpan` is the `colspan` Flux's cell forwards (a `Translations` row). `Ui.PageHeader` (owner,
   2026-10-20) lays out an `h1` Xl heading, a `Ui.Subheading`, breadcrumbs above and the actions at the end from the demos'
   measured rows (account overview: `flex flex-wrap items-center justify-between gap-2`, the title `max-sm:w-full max-sm:mb-2`,
@@ -178,7 +181,7 @@ departure in behaviour carries none.
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
 - **A part no Reference heads** (`flux:spacer`, `flux:navmenu`, `flux:chart.bar`, the editor's toolbar items) is in the
-  snapshot all the same: `refresh.mjs` reads the attributes Flux's examples write on it (as `values`, which every one
+  snapshot all the same: `flux refresh` reads the attributes Flux's examples write on it (as `values`, which every one
   must be taken and close no list) and the items a page lists as available. It goes in `Built` like any other part.
 - **Props are Flux's**, one property per documented prop: `icon:trailing` → `IconTrailing`,
   `tooltip:position` → `TooltipPosition`. Optional props are nullable; `tests/Rask.Ui.Tests/Flux/flux.snapshot.json`
@@ -210,8 +213,8 @@ departure in behaviour carries none.
   accepted there, not a pattern for a one-marker root.
 - **Element:** where Flux renders a custom element (`<ui-field>`, `<ui-label>`, `<ui-progress>`,
   `<ui-table-scroll-area>`, `<ui-disclosure>`), write the NATIVE element with the same semantics and no
-  script (`<div>`, `<label for>`, `<div role="progressbar">`, `<details>`) and add the pair to `NATIVE` in
-  `parity.mjs`. A `UiElement` MUST override `TagName`, or it renders itself for ever (a stack overflow that
+  script (`<div>`, `<label for>`, `<div role="progressbar">`, `<details>`) and add the pair to `ParityComparer.Native` in
+  `flux parity`. A `UiElement` MUST override `TagName`, or it renders itself for ever (a stack overflow that
   kills the test process). A part that puts markup of its own around its children is a `Component`, not a
   `UiElement` (Core's serializer writes an element's children straight from the indexer) — `UiCallout`,
   `UiTable` via `HostedElement`. The one exception is `UiButton`, which stays the `<button>` and composes its
@@ -224,7 +227,7 @@ departure in behaviour carries none.
   button has no such prop in Flux, so it has none here: the call site forwards the anchor's own attributes,
   `.Attributes(("target", "_blank"), ("rel", "noopener noreferrer"))`, and nothing is added to them.
 - **Icons:** `Ui.Icon.Name(Ui.IconName.ChevronDown).Variant(Ui.IconVariant.Micro)` (or `.Mini`, `.Solid`) —
-  never an inline SVG path. The enum is all of Heroicons, generated by `scripts/flux/icons.mjs`.
+  never an inline SVG path. The enum is all of Heroicons, generated by `flux icons`.
 - **Classes:** complete Tailwind literals in the component (a `private static string` switch per
   enum). The `zinc` scale and `accent` / `accent-content` / `accent-foreground` tokens
   (`src/Rask.Ui/Styles/ui.css`), `dark:` for dark. **No class from another library, no `base-*`, no `--color-ui-*`** (`FluxThemeOnlyTests`).
@@ -275,14 +278,14 @@ label themselves. The recipe (`UiInput.cs` and `UiTextarea.cs` are the two to co
    `<input>` itself, which holds nothing: the root is a `<label>` around the real input (`sr-only`, never `hidden`),
    and every part reads the input's own state — `has-checked:` on the root, `group-has-checked/option:` inside it
    (`UiOptionLook.cs`). Where two states meet, write the rule for the pair with both variants stacked: two rules of
-   equal weight leave the winner to the order Tailwind prints them in. `parity.mjs`'s `HOLDS_INPUT` names the tags
+   equal weight leave the winner to the order Tailwind prints them in. `ParityComparer`'s `HoldsInput` names the tags
    whose label holds that one node Flux has none for.
 7. A GROUP whose choices are children (`UiRadioGroup<T>`, `UiCheckboxGroup<T>`) is the `IFormControl<T>`; it hands
    the choices a scope through `Context.Provide` (current value, commit, variant) and they bind nothing themselves.
    A prop that is Flux's `value` on a choice stays `Value` there, so the choice's own state is `Checked`.
 
 A custom element is written as the native one that behaves that way without script (`ui-label` → `<label for>`);
-`parity.mjs`'s `NATIVE` (by tag) and `NATIVE_PART` (by marker) tables name each pair, and a stand-in for a control
+`ParityComparer`'s `Native` (by tag) and `NativePart` (by marker) tables name each pair, and a stand-in for a control
 not rebuilt yet carries `data-parity-skip` (held to its place and size only).
 
 **Bleed** is one contract, the card's (Flux's `--flux-bleed-*`): `Ui.Card` and `Ui.CardBody` set
@@ -300,18 +303,18 @@ Never key on `[data-ui-card]` from another component.
    `NotTranslated` with its reason.
 3. ```bash
    dotnet test tests/Rask.Ui.Tests --filter "FullyQualifiedName~Flux"
-   node scripts/flux/parity.mjs <slug>            # until: "matches Flux"
+   dotnet run --project scripts/flux/Flux -- parity <slug>   # until: "matches Flux"
    ```
-   A menu loads CLOSED, so `parity.mjs` never sees it. `node scripts/flux/parity-menu.mjs <dropdown|context>`
+   A menu loads CLOSED, so `flux parity` never sees it. `flux parity-menu <dropdown|context>`
    opens every example on both pages and compares the popup: placement against the trigger, each row at
    rest, under a real pointer, pressed and under the cursor, a submenu's flyout, Escape and a click outside.
    Fix the COMPONENT until it passes. A difference is only accepted when it is Livewire-specific or
    comes from the docs page rather than the component; say which, in a comment on the example.
-   Two false greens to know: a crashed `parity.mjs` prints no `FAIL` (read its last line), and
+   Two false greens to know: a crashed `flux parity` prints no `FAIL` (read its last line), and
    `dotnet test` prints `Passed!` with a lower total after the test process crashed — look for
    `FATAL ERROR` / `Test Run Failed`, and compare the total with the last run.
-   `parity.mjs` measures a page AS LOADED, where a modal is a trigger and a dialog nobody is shown.
-   `node scripts/flux/parity-modal.mjs` presses each example's trigger on both pages and compares the
+   `flux parity` measures a page AS LOADED, where a modal is a trigger and a dialog nobody is shown.
+   `flux parity-modal` presses each example's trigger on both pages and compares the
    open dialog — its subtree, its box in the viewport, `::backdrop`, `data-open`, the page lock, focus — then
    the transitions in and out, and what Escape, a click outside, a press dragged across the panel's edge and
    each close button do (36 checks). It then opens the same dialogs the way a RENDER does, on the pseudo-page
@@ -322,7 +325,7 @@ Never key on `[data-ui-card]` from another component.
    (`ModalConfirmParity`) to it at 1280 and 390 — the width, the close button against its corner, how near the
    heading's first line comes to it — and `Ui.ConfirmLeave` to Flux's corner. It waits on state (open, no transition running,
    the same box for three frames). A component that is only itself once opened needs the same; start from it.
-   Every page is held on a PHONE too: `parity.mjs <slug> --view 390x844`. Below 640px `lib.mjs`'s `screen()`
+   Every page is held on a PHONE too: `flux parity <slug> --view 390x844`. Below 640px the harness's `Screen.Of`
    opens the page as a phone (touch, overlay scrollbars) — a desktop browser that narrow is no phone, and there
    Flux's `scrollbar-gutter: stable` reserves 15px for a scrollbar nobody draws. Before landing, the whole suite:
    `scripts/flux/parity-all.sh` (every page on both widths, every behaviour script, the chart's pinned load —
@@ -331,16 +334,16 @@ Never key on `[data-ui-card]` from another component.
 4. Unit tests in `tests/Rask.Ui.Tests/Components/Ui<Name>Tests.cs`: behaviour and markup contract
    (roles, attributes, what a prop writes). Names are sentences; three blank-line-separated blocks.
 
-### The harness, as it is (`scripts/flux/lib.mjs`, `parity.mjs`, `FluxParityPages.cs`)
+### The harness, as it is (`scripts/flux/Flux`: `Lib/Measure.cs`, `Lib/ParityComparer.cs`, `Commands/Parity.cs`; `FluxParityPages.cs`)
 One harness for every page. Do not patch it to pass a page; if a rule is missing, add ONE general rule
 with a comment, and re-run every built page (`field heading text icon separator skeleton progress table
 card accordion callout button toast badge tooltip kanban dropdown context input textarea select autocomplete pillbox modal checkbox radio switch editor
-calendar date-picker datetime-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `rail.mjs` (the collapsed sidebar, below) and the open-state scripts `parity-toast.mjs`, `parity-tooltip.mjs`,
-`parity-menu.mjs dropdown|context`, `parity-modal.mjs`, `parity-select.mjs`, `parity-autocomplete.mjs`,
-`parity-pillbox.mjs`, `parity-editor.mjs`, `parity-popover.mjs`, `parity-command.mjs` (the page `command-open`, brought to its states by
-`parity.mjs --prepare scripts/flux/command-open.mjs` on both pages alike, then five walks), `parity-color-picker.mjs`, `parity-carousel.mjs`, `parity-phone.mjs` and `parity-date.mjs date-picker|time-picker|datetime-picker`; `pillbox-picked` is a page only `parity-pillbox.mjs` reads, as `toast-shown` is the toast's; `popover` is a built page too).
-- **What opens** is not in a page as loaded. `scripts/flux/open.mjs` is the one module for it, and
-  `parity-select.mjs`, `parity-autocomplete.mjs` and `parity-pillbox.mjs` are its configs (selectors, NATIVE
+calendar date-picker datetime-picker time-picker color-picker slider otp-input pagination timeline tabs file-upload navbar brand profile breadcrumbs avatar flag toggle carousel phone layouts/sidebar layouts/header` today, plus `flux rail` (the collapsed sidebar, below) and the open-state scripts `flux parity-toast`, `flux parity-tooltip`,
+`flux parity-menu dropdown|context`, `flux parity-modal`, `flux parity-select`, `flux parity-autocomplete`,
+`flux parity-pillbox`, `flux parity-editor`, `flux parity-popover`, `flux parity-command` (the page `command-open`, brought to its states by
+`flux parity command-open --prepare command-open` on both pages alike, then five walks), `flux parity-color-picker`, `flux parity-carousel`, `flux parity-phone` and `flux parity-date date-picker|time-picker|datetime-picker`; `pillbox-picked` is a page only `flux parity-pillbox` reads, as `toast-shown` is the toast's; `popover` is a built page too).
+- **What opens** is not in a page as loaded. `OpenList` (`scripts/flux/Flux/Lib/OpenList.cs`) is the one module for it, and
+  `flux parity-select`, `flux parity-autocomplete` and `flux parity-pillbox` are its configs (an `OpenKind`: selectors, native
   pairs, walks): it opens each example on Flux's page and on the parity page, compares the popup subtree, its
   box against the trigger and a row hovered and pressed. `--record` walks Flux's page alone and prints every
   step — write the behaviour table from that BEFORE the component; `--live <url>` walks a running site against
@@ -354,15 +357,15 @@ calendar date-picker datetime-picker time-picker color-picker slider otp-input p
   render, and it goes BEFORE the `[children]` indexer, which hands back a plain `Component`.
 - The runtime runs the CLOSEST handler of an event and no ancestor's: a cross inside a trigger needs no
   stop-propagation, and a click on a child with no handler is the trigger's.
-- **A popup `parity.mjs` itself opens**: `data-parity-open` on what a reader presses (`="hover"` to hover it).
-  `lib.mjs` presses its centre with a real pointer while that example is measured, then Escape.
-  `parity-date.mjs` marks Flux's pickers that way and files the result as the page `<slug>-open`; the Rask page
-  of that name (`DatePickerOpenParity`, `TimePickerOpenParity`) carries the same mark. It is NOT an `open.mjs`
+- **A popup `flux parity` itself opens**: `data-parity-open` on what a reader presses (`="hover"` to hover it).
+  `Measure` presses its centre with a real pointer while that example is measured, then Escape.
+  `flux parity-date` marks Flux's pickers that way and files the result as the page `<slug>-open`; the Rask page
+  of that name (`DatePickerOpenParity`, `TimePickerOpenParity`) carries the same mark. It is NOT an `OpenList`
   config: that module compares a list of rows under a `:popover-open` popup with no pinned clock, and Flux's
   date popup is a `<dialog open>` whose calendar opens on today. A popover the kit anchors (`position: fixed`,
   the gap a margin) where Flux places its popup by script (`position: absolute`, insets) is held to where it
-  LANDS: for exactly that pair `position` and the four margins are not compared (`placed` in `parity.mjs`).
-- **Never drawn, never collected** (`lib.mjs`): a `<template>` and what is inside one (Flux keeps one per day of
+  LANDS: for exactly that pair `position` and the four margins are not compared (`Placed` in `ParityComparer`).
+- **Never drawn, never collected** (`PageScripts.Collect`): a `<template>` and what is inside one (Flux keeps one per day of
   a calendar — they used up the 500 nodes an example is measured to), and an `<input type="hidden">` (the one
   bound field of a `data-rask-segments` group).
 - **Line height is copied as a RATIO** of the font size, as the docs page states it, so a node that sets its own
@@ -395,7 +398,7 @@ calendar date-picker datetime-picker time-picker color-picker slider otp-input p
 - **A root Flux leaves unmarked** (`<ui-chart>` carries no `data-flux-*`) is named in `MISMARKED` by its tag.
   A `<template>` is no child on either side (Flux keeps a prototype of every chart node in one). A node in
   `EXTRA` (`data-ui-chart-hover`) is what the kit adds to do WITHOUT script what Flux does with it: not paired.
-- **Not differences:** `NATIVE` tag pairs (and `button`→`summary`; `ui-button`, Flux's pressable that is not a
+- **Not differences:** `ParityComparer.Native` tag pairs (and `button`→`summary`; `ui-button`, Flux's pressable that is not a
   `<button>`, pairs with one); the colour of a border 0px wide on
   both sides, or of an outline with `outline-style:none` on both, at rest and in a forced state; the
   offset of a node with no box (`display:none` itself or above it, or 0×0 on both sides); `oklch(… none)`
@@ -404,57 +407,57 @@ calendar date-picker datetime-picker time-picker color-picker slider otp-input p
 - **Animations:** clock-driven CSS animations are paused at their first frame and their DEFINITION (name
   with `flux-`≡`ui-`, duration, delay, iterations, direction, fill, keyframes with easing) is recorded per
   node and compared. Scroll-driven ones are neither paused nor recorded: the kit uses one where Flux runs
-  script. After any change to `lib.mjs`, cached Flux measurements are stale — `parity.mjs <slug> --refresh`.
-- **A state the page does not load in** (a shown toast) gets its own script beside `parity.mjs` and a
-  pseudo-page: `node scripts/flux/parity-toast.mjs` raises each toast on Flux's page, measures it with
-  `lib.mjs`, compares through `parity.mjs` under the name `toast-shown` (`ToastShownParity`) and adds a
+  script. After any change to `Lib/Measure.cs` or `Lib/PageScripts.cs`, cached Flux measurements are stale — `flux parity <slug> --refresh`.
+- **A state the page does not load in** (a shown toast) gets its own script beside `flux parity` and a
+  pseudo-page: `flux parity-toast` raises each toast on Flux's page, measures it with
+  `Measure`, compares through `ParityComparer` under the name `toast-shown` (`ToastShownParity`) and adds a
   where-on-screen check (38 + 38). Its NATIVE pairs (`ui-toast`, `ui-toast-group`, `ui-close` → `div`) stay
   local to it. It ends with the COUNTDOWN, timed on both pages (`ToastTimedParity`, page `toast-timed`): a
   hovered stack holds every toast, each resumes its remainder, focus holds nothing.
-  `node scripts/flux/parity-tooltip.mjs` does the same for the tooltip (`TooltipShownParity`,
+  `flux parity-tooltip` does the same for the tooltip (`TooltipShownParity`,
   page `tooltip-shown`): 36 cases per scheme — box, styles and the ARIA each side writes — then a
   pointer-and-keyboard walk in which every step must agree (one, `OPEN`, is the runtime hook's to change).
-  **A page that is walked gets the runtime**: `runtime.mjs` bundles the hook modules from
+  **A page that is walked gets the runtime**: `Runtime` (`Lib/Runtime.cs`) bundles the hook modules from
   `src/Rask.Core/Resources` with the build's cached esbuild and adds them to the static page, because what
   Flux does in script the kit asks the runtime for. Both scripts wait on STATE (`:popover-open`, the same box
   for three frames, every declared font face loaded), never on a delay: the tooltip script used to fail one
   case in a batch when the medium Inter face, first needed by the first tooltip shown, was still loading.
-  In `parity.mjs` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
+  In `flux parity` itself `ui-tooltip` and `ui-dropdown` (what Flux renders a TOGGLEABLE tooltip as,
   under the tooltip's marker) pair with `div`, and so does the menu family (`ui-context`, `ui-menu`,
   `ui-submenu`, `ui-menu-radio-group`, `ui-menu-checkbox-group` → `div`; `ui-menu-radio`, `ui-menu-checkbox` →
   `button`). `toast-shown` is no Flux slug: nothing that walks Flux's pages may assume a parity page is one.
   `ui-modal` and `ui-close` (the wrapper of a modal, and of a button that closes it) pair with `div` too, and a
   root that is `display: contents` on both sides (a modal's trigger) anchors no offsets: it has no box.
 - **A component that is USED rather than shown** (the editor) is proved by a transcript: `node
-  scripts/flux/parity-editor.mjs` drives ONE scenario with real keys and a real pointer on Flux's live page and
+  flux parity-editor` drives ONE scenario with real keys and a real pointer on Flux's live page and
   on the Rask parity page (the kit's engine mounted on it), each step writing down what it observes — the
   value, the events, a control's states, where a popover opened, what has focus, how every kind of node
   computes — and the two transcripts must be equal line for line, in light and dark. Both pages settle a
   frame or two after a click, so the script waits; a single differing line on one run that is gone on the
   next is that, not the component (its waits are delays, not states — three runs in a row agreed on merging;
-  make them state-based the day one does not). In `parity.mjs` the editor's own elements (`ui-editor`,
+  make them state-based the day one does not). In `flux parity` the editor's own elements (`ui-editor`,
   `ui-toolbar`, `ui-editor-content`, and `ui-menu` for the stand-in) pair with `div` beside the select's, and
   a `<path>` outside an `<svg>` is no node, as a `<template>` is none.
 - **Public API:** `python3 scripts/public-api/record.py src/Rask.Ui` builds and applies RS0016/RS0017 to
   both baselines (run it twice: a step exists only once its property compiles). It is the only such script.
 
-### The chart is measured its own way (`scripts/flux/parity-chart.mjs`)
+### The chart is measured its own way (`flux parity-chart`)
 Flux's docs make chart data up on EVERY request (random values, dates counted back from now), and lay a chart
-out around tick labels measured before Inter may have loaded. So **never `parity.mjs chart --refresh`**:
-`node scripts/flux/parity-chart.mjs --measure` pins one load (the document is replayed for both schemes, the
+out around tick labels measured before Inter may have loaded. So **never `flux parity chart --refresh`**:
+`flux parity-chart --measure` pins one load (the document is replayed for both schemes, the
 charts are redrawn once the fonts are in), writes the rows each chart drew to
 `tests/Rask.Ui.Tests/Flux/Parity/ChartParity.data.json` (commit it with the change) and the measurement where
-`parity.mjs chart` caches it — on a desktop AND at 390x844, from the same document, with the box each drawing
-got in each view (`--remeasure` measures the pinned document again, no new numbers). Then `parity.mjs chart` for
-boxes and styles and `parity-chart.mjs` for geometry: every number of every `d`, `x1…y2`, `cx/cy/r` and
+`flux parity chart` caches it — on a desktop AND at 390x844, from the same document, with the box each drawing
+got in each view (`--remeasure` measures the pinned document again, no new numbers). Then `flux parity chart` for
+boxes and styles and `flux parity-chart` for geometry: every number of every `d`, `x1…y2`, `cx/cy/r` and
 `translate()`, to 0.05px — a tick's `transform` to 0.5px, in both chart scripts and nowhere else (owner, 2026-11-04,
 #1260: Flux lays its axes out around each label's getBBox(), which Chromium on Linux widens by the glyph overhang
 where a Mac gives the advance — same Inter file and features, measured — so on the runner its ticks sit up to
 0.24px off the kit's, which match the Mac's exactly; on Linux the grid lines and the series' paths move with them, so
-there `parity-chart.mjs` holds every number to 0.5px); each takes `--view 390x844`, against `ChartPhoneParity`'s page (`chart@390x844.html`,
+there `flux parity-chart` holds every number to 0.5px); each takes `--view 390x844`, against `ChartPhoneParity`'s page (`chart@390x844.html`,
 every chart drawn at Flux's phone box — a static page has no server to draw it again). Flux's rules were found by handing
 its live `<ui-chart>` a dataset (`element.value = rows`) and reading back what it drew — the way to answer any
-new question about its layout. `scripts/flux/inter-metrics.mjs` regenerates the label-width table.
+new question about its layout. `flux inter-metrics` regenerates the label-width table.
 The pin itself lives under `artifacts/` (ignored), so a checkout that did not make it has only the committed
 rows and BOTH chart scripts fail on numbers alone. To prove the chart there: `--measure`, rewrite the pages,
 run both, then `git checkout -- …/ChartParity.data.json` unless the chart itself changed — committing a new pin
@@ -475,7 +478,7 @@ Then the `rask-ship` gate and `land-on-main`. Screenshot the showcase demo in li
 (`run-rask`) before landing.
 
 When the weekly run reports that Flux moved: `flux.lock.json` is CI's, measured on its Linux runner, so
-a local `node scripts/flux/sync.mjs <slug>` measures for `parity.mjs` but compares nothing. Match the
+a local `flux sync <slug>` measures for `flux parity` but compares nothing. Match the
 component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 
 ## Leftovers, each to delete with what it waits for
@@ -496,7 +499,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
 - The `.alert-*` contrast corrections stay in `ui.css` for the templates' hand-written `alert alert-*`.
 - The Dashboard's queue tiles lost their icon and hover (Flux's card has no link or icon props, and the
   Dashboard may not write classes): rebuilt on Flux pieces later.
-- Chart (pointer and size wired 2026-10-09; `parity-chart.mjs --pointer` walks both pages). Measured on Flux and
+- Chart (pointer and size wired 2026-10-09; `flux parity-chart --pointer` walks both pages). Measured on Flux and
   built: the active region is the PLOT box; the tooltip sits 15px from the row and the pointer and flips at the
   DRAWING's right / bottom edge (not the chart root's — the slice-colours example has a legend beside it); Flux
   measures the tooltip BEFORE writing the new row's text, so the hook does too; an area cursor covers the row's
@@ -608,7 +611,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   snapshot reads it from the example that writes it, and `Ui.CheckboxIndicator` is `Built`. `flux:switch`'s `align` lists `right|start` and `left|end` as one
   option each: two enum members, two `NotTranslated` rows.
 - Slider (2026-10-08): script-free but for `big-step`. Each thumb holds a native `<input type="range">` laid over
-  the track it can reach (`NATIVE_CONTROL` in `parity.mjs`: tag and place compared, box and look the platform's),
+  the track it can reach (`NativeControl` in `ParityComparer`: tag and place compared, box and look the platform's),
   so drag, track press, arrows, Home / End are the browser's and `data-rask-drag` is NOT used. Measured on Flux's
   page: with `big-step="100"` Shift+Arrow and PageUp / PageDown move by 100; WITHOUT it Shift+Arrow moves one
   step and PageUp / PageDown are the browser's own tenth of the track (50 → 60 at 0–100 step 1; 500 → 600 at
@@ -619,7 +622,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   `aria-labelledby`, as Flux's; a range's say `aria-valuetext="200 start range"`. Not written: Flux's root
   `tabindex="-1"` and its leaked `data-flux-aria-range-*`. `Disabled` is the input's own.
 - OTP (2026-10-08): wired to `data-rask-otp` as the table says — cells with no `value`, no handler, no key; one
-  `Input.Type(Hidden)` FIRST in the group (`parity.mjs`'s `BOUND` leaves it unpaired), bound on `OnInput`
+  `Input.Type(Hidden)` FIRST in the group (`ParityComparer`'s `Bound` leaves it unpaired), bound on `OnInput`
   (what the hook's own tests bind) through `UiFormCommit`, and rendered back EXACTLY as the hook announced it
   (`UiOtp._typed`): an echo that differs by one character is taken for the page changing the code and written
   over the keys typed since. That state is why an unkeyed `Ui.Otp` beside a keyed one loses keys (below, "Key
@@ -721,7 +724,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Width (measured 2026-10-26): both pickers are never under 12rem, 15rem from `sm` — until the call site passes a
   class, which takes the minimum away (`flex-1`, `sm:w-40` → `min-width: 0`); `UiPickerWidth` is that one rule. A time
   picker of several times also keeps a maximum of the same size (Flux's `multiple`, no class of the page's).
-  `node scripts/flux/clear-placement.mjs` holds every clear button to its trigger on the pseudo-page
+  `flux clear-placement` holds every clear button to its trigger on the pseudo-page
   `clear-placement` (`ClearPlacementParity`: alone, labelled, in a row, grown, in a grid cell; 1920 and 390).
   The today shortcut draws Heroicons' mini calendar where Flux draws a glyph of its own (1px taller window).
   ja-JP: Flux's button reads `2026年10月20日`, which is what the kit writes (measured; the earlier note of a
@@ -732,7 +735,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   (`UiDateTimeRange`), the date picker's calendar (`UiCalendarGrid`) with Flux's column of times beside it, a time
   field under it (the phone's, typed times' and a range's two) built from the time picker's parts (`UiTimeParts`,
   `UiTimePickerLook`, `rask-time-list.ts`), all drawn in the browser by `rask-calendar.ts` (`time` in its JSON,
-  helpers in `rask-datetime.ts`). Measured rules are in that module's header; `parity-date.mjs datetime-picker`
+  helpers in `rask-datetime.ts`). Measured rules are in that module's header; `flux parity-date datetime-picker`
   holds loaded, open and phone. Known and not matching: the word between date and time follows the picker's `Locale`, as Flux's does, from the kit's own table
   (`UiDatetimePickerText.Joins`: CLDR's "at" in English, nothing in Hungarian, English for the rest — so fr
   writes "at" where Flux's browser writes "à"); the static open page has no runtime, so a popup Flux
@@ -763,19 +766,19 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   only — a pick is held, and the months past the first are not drawn (the arrows must not walk into a hidden
   month) — and hears it through `UiCalendarGrid`'s probe, a 1px box that is 2px under `sm`, measured by the
   existing `data-rask-measure` hook into `UiCalendarState.Narrow` (drawn only where it changes something: several
-  months, or a picker's popup; `EXTRA` in `parity.mjs` knows it as `data-ui-calendar-narrow`). Until the page
+  months, or a picker's popup; `Extra` in `ParityComparer` knows it as `data-ui-calendar-narrow`). Until the page
   has heard — a static parity page never does — the stylesheet folds the other months (`max-sm:hidden`), and
-  `lib.mjs` does not collect a `[data-month]` that is itself `display: none`. The colour picker's sheet asks the
+  `PageScripts.Collect` does not collect a `[data-month]` that is itself `display: none`. The colour picker's sheet asks the
   same question the same way; if a third control needs it, the probe becomes one shared helper.
-  Harness: `parity.mjs <page> --view 390x844` measures both pages in that viewport (Flux's cache is
+  Harness: `flux parity <page> --view 390x844` measures both pages in that viewport (Flux's cache is
   `measurements@390x844.json`); a `<dialog>` that is `position: fixed` on both sides is held to its place in
-  the VIEWPORT and what is inside it to the dialog; `parity-date.mjs date-picker` runs loaded + open at both
+  the VIEWPORT and what is inside it to the dialog; `flux parity-date date-picker` runs loaded + open at both
   sizes and the landings at 390, 640 and 1920, and `--live <url>` walks Flux's first example against a running
   site's picker at 390 (open, pick, pick, Cancel, open, pick, Select date, Escape, backdrop, Select date).
 
 - Popover (2026-10-12): `Ui.Popover` is the PANEL, the second child of `Ui.Dropdown`, which places it with the
-  menu's own anchor code (`UiPopupHost`). `parity-popover.mjs` measures Flux's page once per dropdown (eleven)
-  with that one open — the `data-parity-open` route, not an `open.mjs` config — gives the Rask page the runtime
+  menu's own anchor code (`UiPopupHost`). `flux parity-popover` measures Flux's page once per dropdown (eleven)
+  with that one open — the `data-parity-open` route, not an `OpenList` config — gives the Rask page the runtime
   (the hover example opens by `data-rask-hover`) and then walks both. Measured on Flux: focus stays on the
   trigger as it opens (no `autofocus` here, unlike a menu), Tab goes into the panel, Shift+Tab off the trigger
   closes it, a second press closes it (the locked page takes the press), ArrowDown does nothing; `data-open` on
@@ -783,7 +786,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   written in the `beforetoggle`, so `data-open:flex` applies in the frame the panel opens; the dropdown's and
   the trigger's are the runtime's too since 2026-10-13, asked for by naming the panel,
   `data-rask-open-mark="<panel id>"`, and the panel's toggle is sent only to a page that gave `OnToggle`). So the event example is no longer rendered `Open(true)`, and
-  `popover-open` only matches on a page that has the hooks, which `parity-popover.mjs` gives it. Flux's panel is `popover="manual"` + script, the kit's
+  `popover-open` only matches on a page that has the hooks, which `flux parity-popover` gives it. Flux's panel is `popover="manual"` + script, the kit's
   `popover="auto"`. Measured again 2026-10-13 and built into `rask-hover.ts`: Flux
   closes a hovered panel from a pointer-move check that runs at most once in 100 ms (83 ms after the last move
   looked at: passed over; 113 ms: looked at). The move that brings the pointer in is not one of them, coming
@@ -801,8 +804,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   no page documents one for the leading `icon`. Unmeasured: slot content in a button that waits (left as given). `icon:class`, `icon-trailing:class` and `label:class` are stated as page rules there: the kit
   has no such props. Found through it: a label beside `kbd` alone is bare (`UiButton.Label`).
 
-- Color picker (2026-10-13): seven parts, loaded and open parity 22/22 each (`parity.mjs color-picker`,
-  `parity-color-picker.mjs` — the `data-parity-open` route; `--live <url>` walks a running site beside Flux's page,
+- Color picker (2026-10-13): seven parts, loaded and open parity 22/22 each (`flux parity color-picker`,
+  `flux parity-color-picker` — the `data-parity-open` route; `--live <url>` walks a running site beside Flux's page,
   `--phone` the sheet at 390). Since 2026-10-15 the whole picker is `rask-color.ts` (hook table): the page renders
   the colour it holds and hears it through one field — measured on Flux, its element says `input` + `change` per key of
   the area or a slider and per swatch, `input` per move of a drag and `change` at the release, and nothing for opening,
@@ -818,10 +821,10 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   popover's input change nothing outside the sheet; Select takes it; Cancel, Escape and a press outside drop it; a
   swatch is taken at once and closes the sheet. A render cannot ask a media query, so the dialog holds a box only
   the stylesheet sizes (`data-ui-color-picker-sheet`: 1px wide, 2px below `sm`), which the runtime reads as a choice
-  is made (since 2026-10-15 the page is told nothing of it) — an `EXTRA` node in `parity.mjs`. The page's scroll lock on the sheet is one
+  is made (since 2026-10-15 the page is told nothing of it) — an `Extra` node in `ParityComparer`. The page's scroll lock on the sheet is one
   media-queried `:root:has()` rule in `ui.css`, not `data-rask-lock`: the lock depends on the width, and Flux
   locks nothing at pointer widths. Placement is the date picker's anchor rules said in `ui.css` (the name comes down in
-  `--ui-color-picker-anchor`), no placement code of its own; `placed` in `parity.mjs` covers a `<dialog>` too.
+  `--ui-color-picker-anchor`), no placement code of its own; `Placed` in `ParityComparer` covers a `<dialog>` too.
   **NOT on `data-rask-place`**: `rask-place.ts` places what is `:popover-open`, reads the anchor from the panel's
   inline style, and would hang the sheet under its trigger. So near an edge this panel only turns to the other
   side (`position-try-fallbacks`), where Flux also slides it and holds its height. To wire it the hook has to
@@ -840,7 +843,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   itself — an arrow, a press on its track — is put on the element too (`SetValueAsNumber`).
 - Where a panel LANDS (2026-10-13, the owner: exactly as Flux's). Flux places every panel by script, and the
   kit's anchor rules could only turn one to the other side. Measured on Flux's live pages by holding a host
-  `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`scripts/flux/placement.mjs`, which every
+  `position: fixed` at each edge of 390 × 844 and 1920 × 1080 (`Placement` in `scripts/flux/Flux/Lib/Placement.cs`, which every
   open-state script now ends with — `EDGES` is the list of places, `landings()` the comparison, Flux's side
   cached as `edges.json`): the side asked for, then the other alignment, then the opposite side, then that with
   the other alignment — the first that fits the viewport EDGE TO EDGE (no padding: a panel 3 px from the edge
@@ -870,7 +873,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   own button (`UiInvoker.Decorate`). A dropdown a part owns outright takes the internal step
   `UiDropdown.OwnedBy(marker, hoverIf)` (the rail group's) and that part gives its button the dropdown's
   `AnchorName`, so the menu sits against the button and not the row around it.
-- **The rail, measured on `fluxui.dev/demo/sidebar-collapsible`** and held by `node scripts/flux/rail.mjs`
+- **The rail, measured on `fluxui.dev/demo/sidebar-collapsible`** and held by `flux rail`
   (36 steps, light and dark; then an application's menu, `long-menu.html` from `LayoutDemo.LongMenu`):
   every `Ui.SidebarItem` sits in a `Ui.Tooltip` (`right`, wrapper `block min-w-0`, `aria-describedby`) whose
   content OPENS whenever the pointer is there and is DRAWN only in the rail and never inside a menu
@@ -886,7 +889,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   animates nor remembers a group's fold. Leaving the icon for anywhere but the menu closes it with the first
   pointer move that is looked at (once in 100 ms, see the popover's note): at once after a rest, and a moving
   pointer crosses the 5px gap. No safe area.
-- **Layout parity:** `parity.mjs layouts/<slug>` → `measureLayouts` (`lib.mjs`: `VIEWS` × states `rail` / `open`,
+- **Layout parity:** `flux parity layouts/<slug>` → `MeasureLayouts` (`Measure`: `VIEWS` × states `rail` / `open`,
   put there by pressing `CONTROLS`), one document per demo from a `FluxLayoutParity`. `LayoutDemo.Utilities`
   are the demos' own classes, unlayered: never a bare `.bg-white{}` there — the kit's menu says `bg-white` and
   lost its dark ground to it. A demo the class yields that Flux has not (`long-menu`) is written and never
@@ -944,7 +947,7 @@ element that already carries a listed one (`data-rask-segment`) is declared in t
 | Input `mask` / `mask:dynamic="$money($input)"` | `data-rask-mask="<pattern>"` / `data-rask-mask-money` (`=".,2"`) | Flux's (Alpine's) shaping; any other `mask:dynamic` expression is NOT supported |
 | Switch | `<input type="checkbox" role="switch">` | Enter toggles |
 | Tabs (WIRED: `UiTabs`, `UiTab`, `UiTabPanel`) | `role="tablist"` + `data-rask-tabs="<turn> <name>"` (bare when nobody holds the value) over `button[role=tab][data-rask-tab="<name>"]`, roving `tabindex`, `aria-selected`, `data-selected`; NO click handler on a tab (only the page's own `Tab.OnClick`), NO key handler, ONE class list per tab painted from `data-selected:`; when the page reads the value, ONE `Input.Type(Hidden)` as the tablist's FIRST child, bound the usual way (`Bind` / `.Live()` / `OnChange`). The turn moves only when the page chose another tab than the browser shows (`UiTabs.Says`) | Flux's tabs in the browser (`rask-tabs.ts`; the role alone loads the bundle): a press, an arrow (past disabled tabs, around the ends; Home / End are the page's) and a find-in-page match select — `aria-selected`, `tabindex`, `data-selected` on the tabs, `hidden`, `tabindex`, `data-selected` on the panels by `aria-controls`, all held against the render; nothing sent but the bound field's own `change`; a late echo is not drawn over a later choice, a new turn is |
-| Command palette (WIRED 2026-10-16: `UiCommand`, `UiCommandInput`, `UiCommandItems`, `UiCommandItem`) | the root `data-rask-command`; its search `<input>` with NO value and NO handler (`aria-autocomplete="none"`, no role, as Flux's); each command `[role=option][data-rask-match="<its words>"]` with its id and NO `data-active`; the list's last child the empty row `[data-rask-command-empty][data-hidden]`; the clear button `data-rask-clear="<input id>"`, the close button `command="close"` naming the modal it is in | Flux's palette (`rask-command.ts`), walked step for step by `parity-command.mjs`: focus lights the first command and selects the box's text, blur lights none; typing hides by `data-hidden` (any case, any accents), shows the empty row and lights the first left; the arrows stop at the ends; the pointer lights, and leaving takes away only a light the pointer gave; Enter clicks the lit command; a pressed command empties the box and nothing else (no close, no reset on close); a press on a command leaves focus on the list, which swallows the arrows; nothing sent until a command runs |
+| Command palette (WIRED 2026-10-16: `UiCommand`, `UiCommandInput`, `UiCommandItems`, `UiCommandItem`) | the root `data-rask-command`; its search `<input>` with NO value and NO handler (`aria-autocomplete="none"`, no role, as Flux's); each command `[role=option][data-rask-match="<its words>"]` with its id and NO `data-active`; the list's last child the empty row `[data-rask-command-empty][data-hidden]`; the clear button `data-rask-clear="<input id>"`, the close button `command="close"` naming the modal it is in | Flux's palette (`rask-command.ts`), walked step for step by `flux parity-command`: focus lights the first command and selects the box's text, blur lights none; typing hides by `data-hidden` (any case, any accents), shows the empty row and lights the first left; the arrows stop at the ends; the pointer lights, and leaving takes away only a light the pointer gave; Enter clicks the lit command; a pressed command empties the box and nothing else (no close, no reset on close); a press on a command leaves focus on the list, which swallows the arrows; nothing sent until a command runs |
 | Slider | `data-rask-big-step="<BigStep>"` on each thumb's `<input type="range">`, only when `BigStep` is set (Flux without `big-step`: Shift changes nothing, the Page keys are the browser's) | Shift+Arrow, PageUp / PageDown |
 | A search field that asks a store | `data-rask-on-pause="<handler>"` + `data-rask-debounce="<ms>"` on the `<input>` typed into (`Debounce` on `Ui.SelectSearch`, `Ui.SelectInput`, `Ui.PillboxSearch`, `Ui.PillboxInput`, `Ui.Autocomplete` — ONE reading, `UiSearchPause`); the list's keys, Backspace on the pills and the field emptied with its list are the list hook's (`data-rask-list`), which ends the pause itself when it rewrites the field and tells the handler only when the page had heard a search | the handler hears the field's text once typing has paused, and NOTHING else sends it (not the next action, not leaving the field): a pick during the pause is of the list as drawn (`rask-input.ts`, not a hook) |
 | ANY control that draws itself in C# | `data-rask-draws="<events>"` on each element, naming the handlers that only draw the control (`UiDraws.Marks/With/Pairs`): opening, the cursor, paging, a search nobody of the page's listens to, and a PICK when the control is bound and waits (`UiDraws.Waits`). NEVER a handler that reaches a `Callback` the app gave or writes a value now (`.Live()`, `Value`/`OnChange`) | the event is sent alone and marked `unasked`: no waiting field is sent ahead of it and no `PendingBinds` are written — Flux makes no request there at all (`rask-owned.ts` `tell`, not a hook). `UiDrawsTests` pins the marks |
@@ -986,7 +989,7 @@ the handler. The built-in toast shows one at a time, as Flux's.
 
 Wired (2026-10-07): `Ui.Modal` writes `data-rask-modal` (all four values), `data-rask-lock="scroll"` and, with
 `Open` or without a `Name`, `data-rask-modal-open`; its trigger and close buttons are `command` / `commandfor`
-alone. `parity-modal.mjs` holds every step of both paths to Flux's page, and `UiModalHookTests`
+alone. `flux parity-modal` holds every step of both paths to Flux's page, and `UiModalHookTests`
 (`tests/Rask.Server.E2E.Tests`) drives the component on a Server host. `Ui.Tooltip` writes `data-rask-tooltip` and an `Interactive()` trigger's
 `aria-expanded="false"`; the interest invoker and the `:hover` CSS are gone (`:hover` survives only under
 `@media (scripting: none)`). `Ui.Toast` writes `data-rask-dismiss-hold="pointer"`, `Ui.ToastGroup`
@@ -1005,7 +1008,7 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
 - **`Interactive()` and a focus dropped to nothing** (ALIGNED in round two: `rask-hover.ts` now keeps a tooltip
   whose trigger carries `aria-expanded` open on a focus that goes to nothing, until a press outside) — Flux keeps an interactive tooltip open when its trigger
   loses focus with no next element (`blur()`, the window), until a press outside; `rask-hover.ts` closes on
-  any `focusout` that leaves the wrapper. Tab into the content and out of it agree. `parity-tooltip.mjs`
+  any `focusout` that leaves the wrapper. Tab into the content and out of it agree. `flux parity-tooltip`
   prints it as `OPEN`.
 - **`data-rask-stack` (the 350 ms glide)** — NOT wired, and cannot be from the kit. Measured on Flux: every
   toast is `position:absolute; bottom:0`; in the deck each toast's CARD is given the FRONT toast's height
@@ -1014,7 +1017,7 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   `translateY(−Σ heights in front)`; opacity, transform and height all transition over 0.35s ease. The hook
   measures each child's `offsetHeight` when the child list changes — and in the deck that IS the cut height,
   so `--rask-stack-height` / `-offset` come out as multiples of the front toast's height and a fan-out built
-  on them is wrong as soon as two toasts differ in height (`group-deck` in `parity-toast.mjs` is that case).
+  on them is wrong as soon as two toasts differ in height (`group-deck` in `flux parity-toast` is that case).
   Cutting the card instead of the dialog needs the front toast's height inside every toast, which the three
   variables do not carry (only index 1 has it, as its offset) and anchors cannot bring (an anchor is not
   visible from inside a transformed toast, and `anchor-size()` is for the positioned box itself). The hook has
@@ -1032,7 +1035,7 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
   names its steps `aria-label="&laquo; Previous"` / `"Next &raquo;"` — the entity unresolved, which is what Flux's
   DOM says — and a spent one is a `<div aria-disabled="true">`; the SIMPLE pager writes no `aria-label` and its
   spent step is a bare `<div>`. The numbers show once the pager's OWN box is 640px (`@container`), which Flux's
-  606px previews never reach, so `parity.mjs pagination` compares the narrow form and `UiPaginationTests` holds
+  606px previews never reach, so `flux parity pagination` compares the narrow form and `UiPaginationTests` holds
   the numbered one. `PaginationParity` writes "1 to 75 of" over the large example's summary: Flux's demo data
   is not a list a paginator could describe. Flux's "Scroll to top" section renders no example, so `ScrollTo`
   (`data-rask-scroll-to`) is built on the Reference and pinned by `RuntimeHookScrollTests`.
@@ -1085,7 +1088,7 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   chosen picture for its preview, which Flux's page does on the server.
 
 - Flag (2026-10-13): `Ui.Flag` is a `<span>` frame around a lazy `<img>`. The drawings are FILES
-  (`src/Rask.Ui/Flags/`, country-flag-icons, MIT — `node scripts/flux/flags.mjs [--check]` vendors them
+  (`src/Rask.Ui/Flags/`, country-flag-icons, MIT — `flux flags [--check]` vendors them
   from npm's latest release, followed daily, and writes `UiFlagRegistry.g.cs`), packed ONCE as `flags/` at the package root (not under `build/`: `PackagingContractTests` wants every `build/` item twinned, which would ship them twice) and copied to
   `wwwroot/flags` only for a project that says `RaskUiWriteFlags` (`Rask.Ui.targets`; the browser half of a
   one-project WASM app owns them, as it owns the editor's engine — `ClientCompanionGenerationTests`). `UN` and
@@ -1109,11 +1112,11 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   the text as typed until then); picking a country KEEPS the number and reads it again; a read-only field says
   `aria-readonly` and its list never opens; the placeholder is the prop alone (Flux's first example states one);
   Home/End/Page keys in the search do not move the cursor; the list opens with the chosen row lit and unscrolled.
-  `parity-phone.mjs` serves the parity page with the engine and the hook and compares the OPEN list (all rows).
+  `flux parity-phone` serves the parity page with the engine and the hook and compares the OPEN list (all rows).
   To move onto the select family's `rask-list.ts` when it lands: the picker's cursor/search/pick would be that
   hook's, and the engine keeps the number and the countries.
 - Toggle (2026-10-13): `Ui.Toggle` is a real `<button role="switch">` where Flux writes a `<ui-switch>` — the
-  element its SWITCH is too, so `parity.mjs` pairs by marker first (`NATIVE_PART.toggle`). Recorded on Flux: a
+  element its SWITCH is too, so `flux parity` pairs by marker first (`NativePart["toggle"]`). Recorded on Flux: a
   press, Space and Enter turn it, the arrows do nothing, focus stays; `data-loading` shows the spinner, hides
   what the toggle holds and takes the pointer; `disabled` is 50%, no pointer, no shadow, out of the tab order.
   All of that is the button's own and the runtime's `data-loading`. A toggle with no `Bind` and no `OnChange`
@@ -1136,7 +1139,7 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   carousel state is C#'s and there is nothing to bind. A slide learns its place from the carousel
   (`UiCarouselSlide.Placed`, an internal step that marks it changed). `Fade()` is a scroll-driven mask in
   `ui.css` where Flux's script writes `--flux-carousel-fade-left/right`; the harness neither pauses nor records
-  it. `node scripts/flux/parity-carousel.mjs` is the walk: Flux's eight live carousels and the parity page with
+  it. `flux parity-carousel` is the walk: Flux's eight live carousels and the parity page with
   `rask-carousel.ts` (or `--live <url>` — the site's demo keeps Flux's order for its first eight), one line a
   step, equal line for line; `--record` prints Flux's alone. Recorded there and built: Enter and Space press an
   arrow, the arrow keys / Home / End on an arrow do nothing, a pointer drag does not scroll, Tab stops are the
@@ -1148,7 +1151,7 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   `snap="mandatory"`, `scroll="instant"`, `disabled`, `arrows:class`.
 
 ## Merging a component branch
-`git rerere` is on and has replayed a one-sided resolution of `scripts/flux/lib.mjs` that silently dropped
+`git rerere` is on and has replayed a one-sided resolution of the harness's measuring code (`scripts/flux/Flux/Lib/Measure.cs`, then a script) that silently dropped
 the `__fluxRest` calls. After resolving, `git diff HEAD -- scripts/flux tests/Rask.Ui.Tests/Flux/FluxParity.cs
 tests/Rask.Ui.Tests/Flux/FluxParityPages.cs tests/Rask.Ui.Tests/Flux/flux.lock.json` must be empty apart from
 what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
@@ -1172,7 +1175,5 @@ what the branch ADDS; `git checkout HEAD -- <file>` puts ours back.
 ## Open work (integration stopped here on 2026-10-07 — see the integrator's report)
 - A stale `src/Rask.Site/obj/**/rask-external` folder can fail the site build after merging main
   (`@rask/routes` not found): delete that folder.
-- `sync.mjs` and `lib.mjs` on main changed (#1189): the lock is CI's, animations rest through
-  `window.__fluxRest()`. Merge main's with this harness; keep the recording of animation definitions.
-- The comparison in `parity.mjs` is not importable; `open.mjs` holds the one copy the open-state scripts
-  share. Move parity.mjs's to a module and have `open.mjs` import it.
+- `OpenList` keeps its own minimal comparison beside `ParityComparer` (the open lists compare from the
+  trigger's corner, not by marker): fold it into `ParityComparer` once the open-state checks are all ported.
