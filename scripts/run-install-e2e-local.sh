@@ -231,7 +231,6 @@ export PATH=\"/root/.dotnet/tools:\$PATH\"
 # here left a real bug in that branch — a \`-join\` parsed as a parameter to the preceding function —
 # invisible to every case.
 out=\$(RASK_INSTALL_DOTNET_ROOT=/usr/share/dotnet \
-      RASK_INSTALL_PREFIX=/root/.local/share/rask \
       pwsh -NoProfile -File /rask.ps1 -NoSdk -NoWasmTools 2>&1)
 printf '%s\n' \"\$out\"
 printf '%s\n' \"\$out\" | grep -q 'per-user PATH cannot be set outside Windows' || {

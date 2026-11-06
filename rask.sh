@@ -3,9 +3,9 @@
 #
 # `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
 # .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
-# `rask db` needs dotnet-ef, every browser-wasm build needs the wasm-tools workload, and islands
-# (React, Vue, Svelte, … components inside a Rask page) need Node to build. Otherwise each of those is
-# discovered by failure — a raw MSBuild error for a missing workload. This script front-loads them.
+# `rask db` needs dotnet-ef and every browser-wasm build needs the wasm-tools workload. Otherwise each
+# of those is discovered by failure — a raw MSBuild error for a missing workload. This script
+# front-loads them. Nothing Rask builds or runs needs Node, so it installs none.
 #
 # Everything is installed USER-LOCALLY. Nothing here needs sudo, touches a distro package manager,
 # or writes outside $HOME. An SDK already on the box is left exactly as it is.
@@ -41,21 +41,13 @@ RASK_INSTALL_DOTNET_CHANNEL="${RASK_INSTALL_DOTNET_CHANNEL:-10.0}"
 RASK_INSTALL_DOTNET_QUALITY="${RASK_INSTALL_DOTNET_QUALITY:-}"
 RASK_INSTALL_DOTNET_MAJOR="${RASK_INSTALL_DOTNET_MAJOR:-10}"
 RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotnet}}"
-RASK_INSTALL_PREFIX="${RASK_INSTALL_PREFIX:-$HOME/.local/share/rask}"
 RASK_INSTALL_DOTNET_SCRIPT_URL="${RASK_INSTALL_DOTNET_SCRIPT_URL:-https://dot.net/v1/dotnet-install.sh}"
-RASK_INSTALL_NODE_DIST="${RASK_INSTALL_NODE_DIST:-https://nodejs.org/dist}"
-# 26.13.0, the newest Active LTS release, not the build floor (the line's first). This decides whether an
-# EXISTING Node is left alone, and the standing rule is the latest LTS: the island toolchains (Vite and
-# the framework plugins) track the Active LTS and raise their own floors whenever they like, so a box
-# left on an app's build floor is provisioned for today's islands and not for next month's (#886).
-RASK_INSTALL_NODE_MIN="${RASK_INSTALL_NODE_MIN:-26.13.0}"
 RASK_INSTALL_PACKAGE="${RASK_INSTALL_PACKAGE:-Rask.Cli}"
 
 # Flag state. Declared up front because `set -u` makes an unset read fatal.
 RASK_DO_SDK=1
 RASK_DO_EF=1
 RASK_DO_WASM_TOOLS=1
-RASK_DO_NODE=1
 RASK_DO_PATH=1
 RASK_DRY_RUN=0
 RASK_QUIET=0
@@ -143,27 +135,6 @@ rask_version_field() {
     esac
 }
 
-# rask_version_ge <have> <want> — 0 when have >= want. Tolerates a leading `v` and a prerelease or
-# build suffix: 10.0.100-preview.3 compares as 10.0.100, which is what the SDK floor means here.
-rask_version_ge() {
-    _vg_have="${1:-}"
-    _vg_want="${2:-}"
-    [ -n "$_vg_have" ] || return 1
-    _vg_have="${_vg_have#v}"
-    _vg_want="${_vg_want#v}"
-    _vg_have="${_vg_have%%-*}"
-    _vg_want="${_vg_want%%-*}"
-    _vg_i=1
-    while [ "$_vg_i" -le 3 ]; do
-        _vg_h="$(rask_version_field "$_vg_have" "$_vg_i")"
-        _vg_w="$(rask_version_field "$_vg_want" "$_vg_i")"
-        [ "$_vg_h" -gt "$_vg_w" ] && return 0
-        [ "$_vg_h" -lt "$_vg_w" ] && return 1
-        _vg_i=$((_vg_i + 1))
-    done
-    return 0
-}
-
 # stdin: the output of `dotnet --list-sdks`. 0 when any listed SDK has a major >= $1.
 # Rask.Cli sets RollForward=Major (Rask.Cli.csproj:14), so a newer major is fine — we must NOT
 # demand exactly 10, or this script would reinstall an SDK on every .NET 11 box.
@@ -184,71 +155,6 @@ rask_dotnet_ok() {
 $_do_sdks
 RASK_SDK_LIST
     return "$_do_found"
-}
-
-# uname -s / uname -m  ->  the triple nodejs.org names its tarballs with. Non-zero on anything we
-# have no build for, so the caller can degrade to a warning instead of downloading a 404.
-rask_node_triple() {
-    _nt_os="${1:-$(uname -s)}"
-    _nt_arch="${2:-$(uname -m)}"
-    case "$_nt_os" in
-        Darwin) _nt_o="darwin" ;;
-        Linux) _nt_o="linux" ;;
-        *) return 1 ;;
-    esac
-    case "$_nt_arch" in
-        arm64 | aarch64) _nt_a="arm64" ;;
-        x86_64 | amd64) _nt_a="x64" ;;
-        armv7l) _nt_a="armv7l" ;;
-        ppc64le) _nt_a="ppc64le" ;;
-        s390x) _nt_a="s390x" ;;
-        *) return 1 ;;
-    esac
-    printf '%s-%s' "$_nt_o" "$_nt_a"
-}
-
-# $1: an os-release file (default /etc/os-release). Prints the command that installs what the
-# nodejs.org Linux build links against and a minimal image leaves out — libatomic since Node 26
-# (26.13.0, the line's first LTS, answered `libatomic.so.1: cannot open shared object file` on a bare
-# debian:trixie-slim). Arch
-# ships it inside gcc-libs, so it never reaches this. Alpine is a different gap: nodejs.org publishes
-# no musl build at all, so the fix there is the distro's own Node. An unknown distro gets every line.
-#
-# Printed, never run: the contract at the top of this file is no sudo and no package manager, and the
-# ICU message in step_dotnet already makes the same call for the .NET runtime's native dependency.
-rask_node_native_fix() {
-    _nf_file="${1:-/etc/os-release}"
-    _nf_ids=""
-    if [ -r "$_nf_file" ]; then
-        _nf_ids="$(sed -n 's/^ID\(_LIKE\)\{0,1\}=//p' "$_nf_file" | tr -d '"' | tr '\n' ' ')"
-    fi
-    case " $_nf_ids " in
-        *" alpine "*) printf '%s\n' "sudo apk add nodejs npm   (nodejs.org publishes no musl build)" ;;
-        *" debian "* | *" ubuntu "*) printf '%s\n' "sudo apt-get install -y libatomic1" ;;
-        *" fedora "* | *" rhel "* | *" centos "*) printf '%s\n' "sudo dnf install -y libatomic" ;;
-        *" suse "* | *" opensuse "*) printf '%s\n' "sudo zypper install -y libatomic1" ;;
-        *)
-            printf '%s\n' \
-                "Debian/Ubuntu:  sudo apt-get install -y libatomic1" \
-                "Fedora/RHEL:    sudo dnf install -y libatomic" \
-                "openSUSE:       sudo zypper install -y libatomic1" \
-                "Alpine:         sudo apk add nodejs npm"
-            ;;
-    esac
-}
-
-# stdin: https://nodejs.org/dist/index.json. Prints the newest LTS version, no leading `v`.
-#
-# `tr '{' '\n'` puts one release object per line — the entries have no nested objects, only a
-# `"files":[...]` array of strings — which is enough structure to pick a field without a JSON parser.
-# The index is sorted newest-first, so the first LTS line wins. `"lts"` is the codename string on an
-# LTS release and the bare literal false otherwise, so matching on `"lts":"` selects exactly the LTS
-# lines. No pipefail here (it isn't POSIX), so `head` closing the pipe early is harmless.
-rask_node_lts_version() {
-    tr '{' '\n' |
-        grep '"lts":"' |
-        head -n 1 |
-        sed -n 's/.*"version":"v\([0-9][0-9.]*\)".*/\1/p'
 }
 
 # The shell profile a PATH line belongs in. $1 overrides $SHELL and $2 overrides `uname -s`, both so
@@ -382,8 +288,8 @@ rask_path_block() {
             if rask_local_dotnet; then
                 printf 'set -gx DOTNET_ROOT "%s"\n' "$RASK_INSTALL_DOTNET_ROOT"
             fi
-            printf 'for rask_dir in "%s" "%s/tools" "%s/node/bin"\n' \
-                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_PREFIX"
+            printf 'for rask_dir in "%s" "%s/tools"\n' \
+                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT"
             printf '    if not contains $rask_dir $PATH\n'
             printf '        set -gx PATH $rask_dir $PATH\n'
             printf '    end\n'
@@ -394,8 +300,8 @@ rask_path_block() {
             if rask_local_dotnet; then
                 printf 'export DOTNET_ROOT="%s"\n' "$RASK_INSTALL_DOTNET_ROOT"
             fi
-            printf 'for rask_dir in "%s" "%s/tools" "%s/node/bin"; do\n' \
-                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_PREFIX"
+            printf 'for rask_dir in "%s" "%s/tools"; do\n' \
+                "$RASK_INSTALL_DOTNET_ROOT" "$RASK_INSTALL_DOTNET_ROOT"
             printf '    case ":$PATH:" in\n'
             printf '        *":$rask_dir:"*) ;;\n'
             printf '        *) PATH="$rask_dir:$PATH" ;;\n'
@@ -433,7 +339,6 @@ Options:
   --no-sdk         never install the .NET SDK, even when none is found
   --no-ef          skip the dotnet-ef tool (rask db installs it on first use anyway)
   --no-wasm-tools  skip the wasm-tools workload (needed by every browser-wasm build)
-  --no-node        skip Node.js (needed only by islands: react, vue, svelte, angular, ...)
   --no-path        never write to a shell profile
   --dry-run        print what would happen and change nothing
   --quiet          print only errors and the final summary
@@ -445,7 +350,7 @@ RASK_USAGE
 }
 
 # Flags -> RASK_DO_* state. An unknown flag exits 2, not 1: the CLI reserves 2 for bad argv, and an
-# installer that silently ignores a misspelled --no-node would install the thing you opted out of.
+# installer that silently ignores a misspelled --no-ef would install the thing you opted out of.
 rask_parse_args() {
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -468,10 +373,6 @@ rask_parse_args() {
                 ;;
             --no-wasm-tools)
                 RASK_DO_WASM_TOOLS=0
-                shift
-                ;;
-            --no-node)
-                RASK_DO_NODE=0
                 shift
                 ;;
             --no-path)
@@ -507,14 +408,6 @@ rask_fetch() {
     fi
 }
 
-rask_sha256() {
-    if [ -n "${RASK_SHA256:-}" ]; then
-        "$RASK_SHA256" "$1" | cut -d' ' -f1
-    else
-        "$RASK_SHASUM" -a 256 "$1" | cut -d' ' -f1
-    fi
-}
-
 # --- steps ---------------------------------------------------------------------------------------
 
 step_preflight() {
@@ -537,16 +430,8 @@ step_preflight() {
         rask_die 1 "neither \`curl\` nor \`wget\` is on your PATH." "One of them is needed to download anything."
     fi
 
-    RASK_SHA256=""
-    RASK_SHASUM=""
-    if command -v sha256sum >/dev/null 2>&1; then
-        RASK_SHA256="$(command -v sha256sum)"
-    elif command -v shasum >/dev/null 2>&1; then
-        RASK_SHASUM="$(command -v shasum)"
-    fi
-
     command -v tar >/dev/null 2>&1 ||
-        rask_die 1 "\`tar\` is not on your PATH." "It is needed to unpack the .NET SDK and Node."
+        rask_die 1 "\`tar\` is not on your PATH." "It is needed to unpack the .NET SDK."
 }
 
 step_dotnet() {
@@ -741,86 +626,6 @@ step_wasm_tools() {
     done
 }
 
-step_node() {
-    [ "$RASK_DO_NODE" = 1 ] || return 0
-    rask_step "Checking for Node.js >= $RASK_INSTALL_NODE_MIN (islands)"
-
-    if command -v node >/dev/null 2>&1 &&
-        rask_version_ge "$(node --version 2>/dev/null)" "$RASK_INSTALL_NODE_MIN"; then
-        rask_detail "found $(node --version 2>/dev/null) — leaving it alone"
-        return 0
-    fi
-
-    if [ -z "${RASK_SHA256:-}" ] && [ -z "${RASK_SHASUM:-}" ]; then
-        rask_warn \
-            "no sha256 tool found, so a Node download could not be verified — skipping it." \
-            "Install the current Node.js LTS ($RASK_INSTALL_NODE_MIN or newer) yourself from https://nodejs.org."
-        return 0
-    fi
-
-    if ! _nd_triple="$(rask_node_triple)"; then
-        rask_warn \
-            "no Node.js build for $(uname -s)/$(uname -m) — skipping it." \
-            "Only islands (\`rask new --islands react|vue|svelte|...\`) need Node."
-        return 0
-    fi
-
-    _nd_tmp="$(mktemp -d)"
-    trap 'rm -rf "$_nd_tmp"' EXIT INT TERM
-
-    # Buffered to a file rather than piped straight into the parser. The parser stops at the first LTS
-    # line, and a `head` that closes the pipe early makes curl write `curl: (23) Failure writing output
-    # to destination` into the middle of an install that is going fine. The exit status was never
-    # wrong — the line on the user's screen was, and a first run has no budget for noise it then has
-    # to explain away.
-    rask_fetch "$RASK_INSTALL_NODE_DIST/index.json" "$_nd_tmp/index.json"
-    _nd_version="$(rask_node_lts_version <"$_nd_tmp/index.json")"
-    if [ -z "$_nd_version" ]; then
-        rask_warn "could not resolve the current Node LTS from $RASK_INSTALL_NODE_DIST/index.json — skipping it."
-        return 0
-    fi
-    rask_detail "installing Node $_nd_version ($_nd_triple) into $RASK_INSTALL_PREFIX/node"
-
-    _nd_name="node-v$_nd_version-$_nd_triple.tar.gz"
-
-    # .tar.gz rather than the smaller .tar.xz: a slim container image has tar but often no xz.
-    rask_fetch "$RASK_INSTALL_NODE_DIST/v$_nd_version/$_nd_name" "$_nd_tmp/$_nd_name"
-    rask_fetch "$RASK_INSTALL_NODE_DIST/v$_nd_version/SHASUMS256.txt" "$_nd_tmp/SHASUMS256.txt"
-
-    # Verify against the digest nodejs.org publishes — the same shape TailwindCli.cs:90 uses for the
-    # Tailwind binary. An unverified tarball unpacked onto someone's PATH is not something to ship.
-    _nd_want="$(awk -v want="$_nd_name" '$2 == want { print $1 }' "$_nd_tmp/SHASUMS256.txt")"
-    [ -n "$_nd_want" ] || rask_die 1 "$_nd_name is not listed in SHASUMS256.txt for v$_nd_version."
-    _nd_have="$(rask_sha256 "$_nd_tmp/$_nd_name")"
-    [ "$_nd_have" = "$_nd_want" ] ||
-        rask_die 1 "checksum mismatch for $_nd_name." "expected $_nd_want" "got      $_nd_have"
-    rask_detail "sha256 verified"
-
-    rask_run rm -rf "$RASK_INSTALL_PREFIX/node"
-    rask_run mkdir -p "$RASK_INSTALL_PREFIX/node"
-    rask_run tar -xzf "$_nd_tmp/$_nd_name" -C "$RASK_INSTALL_PREFIX/node" --strip-components=1
-
-    rm -rf "$_nd_tmp"
-    trap - EXIT INT TERM
-
-    [ "$RASK_DRY_RUN" = 1 ] && return 0
-
-    # The tarball is self-contained except for the system libraries it links, and a minimal image lacks
-    # one of them: Node 26 needs libatomic, which debian:*-slim, ubuntu and fedora containers leave out.
-    # Unpacked, it then fails at its first run with a loader error that names a .so and no package. Ask
-    # it now, while the install is still on screen. A warning, not a failure — only islands need Node —
-    # and the unpacked tree stays where it is, so installing the package is the whole fix: no re-run.
-    if ! _nd_err="$("$RASK_INSTALL_PREFIX/node/bin/node" --version 2>&1)"; then
-        rask_warn \
-            "Node $_nd_version unpacked into $RASK_INSTALL_PREFIX/node, but it cannot start:" \
-            "  $(printf '%s\n' "$_nd_err" | head -n 1)" \
-            "Most often a system library a minimal image leaves out. Install it, and node works as is:"
-        rask_node_native_fix | while IFS= read -r _nd_line; do
-            printf '           %s\n' "$_nd_line" >&2
-        done
-    fi
-}
-
 step_docker() {
     rask_step "Checking for Docker (rask deploy)"
 
@@ -932,7 +737,7 @@ step_summary() {
         if rask_local_dotnet; then
             rask_say "  export DOTNET_ROOT=\"$RASK_INSTALL_DOTNET_ROOT\""
         fi
-        rask_say "  export PATH=\"$RASK_INSTALL_DOTNET_ROOT:$RASK_INSTALL_DOTNET_ROOT/tools:$RASK_INSTALL_PREFIX/node/bin:\$PATH\""
+        rask_say "  export PATH=\"$RASK_INSTALL_DOTNET_ROOT:$RASK_INSTALL_DOTNET_ROOT/tools:\$PATH\""
     fi
 
     rask_say ""
@@ -947,7 +752,7 @@ main() {
     # Everything installed here lands under $HOME and is not on PATH yet in THIS shell. Prepend it
     # up front so the later steps — dotnet-ef, the workload, the verify — can see what step_dotnet
     # just installed without the user opening a new terminal first.
-    PATH="$RASK_INSTALL_DOTNET_ROOT:$RASK_INSTALL_DOTNET_ROOT/tools:$RASK_INSTALL_PREFIX/node/bin:$PATH"
+    PATH="$RASK_INSTALL_DOTNET_ROOT:$RASK_INSTALL_DOTNET_ROOT/tools:$PATH"
     export PATH
     export DOTNET_CLI_TELEMETRY_OPTOUT="${DOTNET_CLI_TELEMETRY_OPTOUT:-1}"
     export DOTNET_NOLOGO="${DOTNET_NOLOGO:-1}"
@@ -968,7 +773,6 @@ main() {
     step_rask
     step_ef
     step_wasm_tools
-    step_node
     step_docker
     step_path
     step_verify
