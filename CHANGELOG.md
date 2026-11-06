@@ -971,6 +971,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A read face used inside another read face's query runs instead of killing the process.** Before:
+  `Vehicle.AsQueryable().OrderBy(v => VehicleGroup.AsQueryable().Where(g => g.Id == v.VehicleGroupId).Select(g =>
+  g.Name).FirstOrDefault())` crashed with a stack overflow (exit 134): EF Core could not translate the inner query,
+  and printing it for the error message recursed through the model queryable's root, a constant whose expression
+  was itself. After: every model query nested in the expression — a call, a captured variable, inside a lambda or
+  not — is bound to the context the outer query opened, so the lookup is a correlated subquery of the one SQL
+  statement with its own soft-delete and tenant filters; this holds for `Product.Where(…)`/`OrderBy(…)`/`Select(…)`
+  too. A nested query EF Core cannot translate throws an ordinary `InvalidOperationException`.
 - **The component, forms, routing, interop, kit and localization docs match today's API.** Snippets that would not
   compile now do: a form's submit state is `f.Submitting`, `Aria`/`Attributes`/`Data` take pairs instead of a `new()`
   bag, `Text[…]` is indexed, `Select` opens with `Value`, `Ui.Input` with `Bind`, and components come from their
