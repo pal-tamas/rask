@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Holds the whole of Rask.Ui to Flux UI's live documentation: every page's look on a desktop and on a phone, and
-# every walk the behaviour scripts take (open, keys, pointer). sync.mjs locks Flux's LOOK on one platform to see
+# every walk the behaviour checks take (open, keys, pointer). `flux sync` locks Flux's LOOK on one platform to see
 # Flux move; this compares the two side by side on the same machine, so it needs no lock and runs anywhere — and,
 # with main matching Flux, a red line here is Flux having moved (or Rask having drifted) since.
 #
 # Usage:  scripts/flux/parity-all.sh            # every check; the Rask pages are written first
-# Needs:  node, dotnet, and RASK_FLUX_PLAYWRIGHT (or the Site E2E project's driver) — see scripts/flux/lib.mjs.
+# Needs:  dotnet, and Chromium installed by the harness (dotnet run --project scripts/flux/Flux -- install chromium).
 # Exit:   0 everything matches · 2 something differs (the log names it) · 1 it could not run
 #
 # Concurrent on every core: each check is its own browser, writing its own artifacts/flux-parity/<name>. The
@@ -22,6 +22,10 @@ rm -rf "$out" && mkdir -p "$out" || exit 1
 # what counts is that it wrote the load.
 pinned=artifacts/flux-parity/flux/chart/document.html
 rm -f "$pinned"
+# The harness is built ONCE and every check runs the built app: a `dotnet run` per check would race on one obj/.
+dotnet build scripts/flux/Flux -c Release -m:2 -nodeReuse:false > "$out/flux-build.log" 2>&1 \
+  || { echo "parity-all: could not build the harness"; tail -20 "$out/flux-build.log"; exit 1; }
+export FLUX="$PWD/scripts/flux/Flux/bin/Release/net10.0/flux.dll"
 node scripts/flux/parity-chart.mjs --measure > "$out/chart-measure.log" 2>&1
 [ -s "$pinned" ] || { echo "parity-all: could not pin the chart's load"; tail -20 "$out/chart-measure.log"; exit 1; }
 dotnet test tests/Rask.Ui.Tests -m:2 -nodeReuse:false -p:RaskMdnRefresh=false --filter FluxParityPages > "$out/pages.log" 2>&1 \
@@ -29,16 +33,17 @@ dotnet test tests/Rask.Ui.Tests -m:2 -nodeReuse:false -p:RaskMdnRefresh=false --
 
 checks() {
   # Every docs page, desktop and phone (layouts are measured at both widths by parity.mjs itself).
-  node -e '
-    const pages = require("./tests/Rask.Ui.Tests/Flux/flux.snapshot.json").pages;
-    for (const p of pages) {
-      const page = p.kind === "layouts" ? `layouts/${p.slug}` : p.slug;
-      if (page === "chart") continue;
-      // The composer is fitted to its text by the runtime as it arrives, so its page is given the hooks.
-      const given = page === "composer" ? " --prepare scripts/flux/composer-grown.mjs" : "";
-      console.log(`parity.mjs ${page} --refresh${given}`);
-      if (p.kind !== "layouts") console.log(`parity.mjs ${page} --refresh --view 390x844${given}`);
-    }'
+  python3 -c '
+import json
+for p in json.load(open("tests/Rask.Ui.Tests/Flux/flux.snapshot.json"))["pages"]:
+    page = "layouts/" + p["slug"] if p["kind"] == "layouts" else p["slug"]
+    if page == "chart":
+        continue
+    # The composer is fitted to its text by the runtime as it arrives, so its page is given the hooks.
+    given = " --prepare composer-grown" if page == "composer" else ""
+    print(f"parity {page} --refresh{given}")
+    if p["kind"] != "layouts":
+        print(f"parity {page} --refresh --view 390x844{given}")'
   cat <<'EOF'
 parity-autocomplete.mjs --refresh
 parity-autocomplete.mjs --refresh --view 390x844
@@ -52,8 +57,8 @@ parity-date.mjs time-picker --refresh
 parity-date.mjs datetime-picker --refresh
 parity-editor.mjs
 parity-editor.mjs --view 390x844
-parity.mjs empty-state --refresh --prepare scripts/flux/empty-state.mjs
-parity.mjs empty-state --refresh --prepare scripts/flux/empty-state.mjs --view 390x844
+parity empty-state --refresh --prepare empty-state
+parity empty-state --refresh --prepare empty-state --view 390x844
 parity-focus.mjs --webkit
 parity-menu.mjs dropdown --refresh
 parity-menu.mjs context --refresh
@@ -80,11 +85,14 @@ run() {
   local name
   name=$(echo "$*" | tr ' /' '__')
   if [ "$1" = chart ]; then
-    { node scripts/flux/parity.mjs chart && node scripts/flux/parity.mjs chart --view 390x844 \
+    { dotnet "$FLUX" parity chart && dotnet "$FLUX" parity chart --view 390x844 \
         && node scripts/flux/parity-chart.mjs && node scripts/flux/parity-chart.mjs --view 390x844 \
         && node scripts/flux/parity-chart.mjs --pointer && node scripts/flux/parity-chart.mjs --pointer --view 390x844; } > "$OUT/$name.log" 2>&1
-  else
+  elif [ "${1%.mjs}" != "$1" ]; then
     node "scripts/flux/$1" "${@:2}" > "$OUT/$name.log" 2>&1
+  else
+    # A check of the harness: its command and arguments (README.md in scripts/flux/Flux).
+    dotnet "$FLUX" "$@" > "$OUT/$name.log" 2>&1
   fi
   echo "$? $*"
 }

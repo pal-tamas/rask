@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The Flux UI measurement and parity harness behind the flux-component skill: one console app, one
+    subcommand per check (README.md). A developer tool, in no solution and never packed. It keeps the
+    repository's build rules (warnings as errors, central package versions), so Microsoft.Playwright is the
+    version the E2E suites use and the browsers they installed are the ones it launches. No Node.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Rask.Flux</RootNamespace>
+    <AssemblyName>flux</AssemblyName>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
+  </ItemGroup>
+
+</Project>
