@@ -62,7 +62,8 @@ change applies to the running app and re-renders the open page — no manual reb
 Open the URL printed in the console. You'll see a single **"Hello, Rask! 👋"** welcome card — a
 card that lists the CLI commands you'll use next. That's the whole
 starter app: no example pages to delete, just a clean shell to build on. Because every app has accounts, you
-also have a working **`/login`** page and a protected **`/members`** page.
+also have a working **`/login`** page and a protected **`/devices`** page (signed out, it sends you to
+`/login`).
 
 > **The first build is slower and your IDE may look broken — that's expected.** The first build is when
 > Rask's source generators run; until then the IDE may flag generated methods (`HomePage()`, `Login()`, …)

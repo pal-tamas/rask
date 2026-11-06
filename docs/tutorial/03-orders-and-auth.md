@@ -115,12 +115,17 @@ Div.Class("flex flex-wrap items-center gap-3")[
 ]
 ```
 
-For role-specific bits — say a "Delete" button only admins should see — pass `Roles`. In the table's
-last cell that is:
+The **Edit** link in each row is wrapped the same way. For role-specific bits — say a "Delete" button only
+admins should see — pass `Roles`. The table's last cell becomes:
 
 ```csharp
-Authorize.Role("admin")[
-    DeleteProductButton.Id(p.Id).Version(p.Version)
+Ui.TableCell.Class("py-0")[
+    Authorize[
+        Ui.Button.Ghost.Sm.Href(Routes.EditProductPage(p.Id))["Edit"]
+    ],
+    Authorize.Role("admin")[
+        DeleteProductButton.Id(p.Id).Version(p.Version)
+    ]
 ]
 ```
 
@@ -130,10 +135,12 @@ page, not just a cosmetic one.
 ## Verify
 
 - `/orders` renders and creating an order persists it (same `app.db` as products).
-- Signed out, visiting `/products/new` redirects to `/login`; the "New product" button isn't shown on
-  `/products`.
-- After signing in (register an account first at `/register` — the first one is the administrator),
-  the create/edit/delete pages and buttons appear and work.
+- Signed out, visiting `/products/new` redirects to `/login`; the "New product", "Edit" and "Delete" buttons
+  aren't shown on `/products`.
+- After signing in, the create/edit/delete pages and buttons appear and work. Register an account first at
+  `/register`: the first one claims the app and becomes the administrator, and claiming it asks for the
+  **one-time first-run token** the app prints in its startup log (`This Rask app has no accounts yet … needs
+  this one-time token: …`) — so nobody who merely finds a fresh deploy can claim it before you do.
 
 **Learn more:** [authentication](../authentication.md) · [Rask.Data](../data.md) · [the `rask` CLI](../cli.md)
 

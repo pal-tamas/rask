@@ -145,8 +145,8 @@
       it is collected — and a genuinely missing one is NU5019 rather than a silent omission (#852).
 
       Rask.TypeScript.Tasks.dll is NOT named here. It does not live in this project's build folder:
-      it is copied into src/Rask.Core/build/ and packed into every host package from there by
-      RaskCoreBuildPack.targets, which names it literally for the same reason.
+      it is copied into src/Rask.Core/build/ and packed into the `Rask` package from there by
+      Rask.Core.csproj, which names it literally for the same reason.
     -->
     <None Include="build\**" Exclude="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>
     <None Include="build\Rask.Wasm.Tasks.dll" Pack="true" PackagePath="build\"/>

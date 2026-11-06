@@ -976,6 +976,18 @@ them until tagged releases begin.
   `AppBannerPromptOutcome` (it is `Types.AppBannerPromptOutcome`) or `Body(html)` (it is `Html(html)`), or looks for
   `UiClassNames.cs` or `DataGrid*` text keys. It now says that `rask db backup` does archive disk-stored files beside
   the database, while Litestream and snapshots do not, and it lists the RASK092/RASK093 quick-fixes.
+- **The tutorial builds and runs when you type it in, chapter by chapter.** Typed end to end against a fresh
+  `rask new Shop`: chapter 5's receipt handler now carries `[RaskMarkup]` (without it `OrderReceipt.OrderId(…)` is
+  CS0120 outside a component); chapter 6's `CatalogCache.Get` awaits `Cache.Remember(…).For(…)` instead of returning
+  it as a `Task`, its list item keeps `UpdatedAt`, and the cached `ProductsPage` is shown whole instead of sketched in
+  comments; chapter 4 enqueues inside the page's `save` command rather than in a `Save` method chapter 2's page never
+  had; chapter 9's ship handler is an `IDurableHandler`, so it runs from the outbox as the text says; chapter 10 shows
+  the whole `/ops` page, `ScalarAsync` included. Chapter 1 names `/devices` (there is no `/members`), chapter 3 says
+  claiming the app needs the first-run token from the startup log and gates the Edit link too, and chapter 7 reads
+  `Attempts = 1` as a clean delivery. The CLI build gate now compiles chapters 5, 6, 9 and 10 as well.
+- **`rask new --culture`/`--localization`/`--no-localization` now say where languages really live.** The refusal
+  pointed at an `AddRask(configureCulture: ...)` call in Program.cs; every template lists its languages under
+  `Rask:Cultures` in appsettings.json (`wwwroot/appsettings.json` for a wasm app), and the message now says so.
 - **The component, forms, routing, interop, kit and localization docs match today's API.** Snippets that would not
   compile now do: a form's submit state is `f.Submitting`, `Aria`/`Attributes`/`Data` take pairs instead of a `new()`
   bag, `Text[…]` is indexed, `Select` opens with `Value`, `Ui.Input` with `Bind`, and components come from their

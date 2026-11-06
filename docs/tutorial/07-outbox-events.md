@@ -174,7 +174,8 @@ receipt already went out before sending another.
 
 - Clicking **Buy** on `/products` writes an `OutboxMessage` row in the same transaction as the order.
 - The `OrderPlacedHandler` log line appears within the poll interval, and the row's `ProcessedAt` is set
-  while `Error` stays null and `Attempts` stays `0` — that combination is what "delivered cleanly" means. A
+  while `Error` stays null and `Attempts` reads `1` — that combination is what "delivered cleanly" means
+  (`Attempts` counts attempts *started*: the processor bumps it when it claims the message). A
   message that can't be deserialized doesn't throw; it records an error and retries until `MaxAttempts`.
 - A receipt job row follows, and then the receipt in `mail-pickup` — the chain from Chapters 4 and 5, now
   starting from the transaction.
