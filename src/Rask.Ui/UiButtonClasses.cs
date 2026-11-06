@@ -5,7 +5,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     Every string is a whole literal, because Tailwind emits only what it can read whole. Each value was
-///     measured on fluxui.dev/components/button in light and in dark (<c>scripts/flux/parity.mjs button</c>
+///     measured on fluxui.dev/components/button in light and in dark (<c>flux parity button</c>
 ///     holds the kit to it); the few that page does not show are marked where they are written.
 /// </remarks>
 internal static class UiButtonClasses

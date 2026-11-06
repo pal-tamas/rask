@@ -14,7 +14,7 @@ namespace Rask.Server.E2E.Tests;
 /// </summary>
 /// <remarks>
 ///     <c>RuntimeHookGestureTests</c> pins the plot and measuring hooks against attributes written by hand;
-///     <c>scripts/flux/parity-chart.mjs --pointer</c> holds the kit's chart to Flux's under a pointer on a static
+///     <c>flux parity-chart --pointer</c> holds the kit's chart to Flux's under a pointer on a static
 ///     page. This is the seam between them: a render that says <c>data-rask-measure</c>, the size coming back as
 ///     an <c>input</c> a round trip later, and the chart drawn again for it — as Flux's is, measured on its live
 ///     page on 2026-10-09 (drawn for its box, again in the frame its box changes, never while it has none).

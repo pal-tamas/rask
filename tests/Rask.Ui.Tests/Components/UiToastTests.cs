@@ -17,7 +17,7 @@ namespace Rask.UiTests.Components;
 ///     still counts a toast down, waits while it is being read, and closes it.
 ///     </para>
 ///     <para>
-///     What only a browser shows — the look, to the pixel — is <c>scripts/flux/parity-toast.mjs</c>'s.
+///     What only a browser shows — the look, to the pixel — is <c>flux parity-toast</c>'s.
 ///     </para>
 /// </remarks>
 public partial class UiToastTests : global::Rask.Core.RaskMarkup

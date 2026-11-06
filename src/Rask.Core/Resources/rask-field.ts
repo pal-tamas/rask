@@ -17,7 +17,7 @@
 //   * Enter toggles a checkbox that is a role="switch"; Shift+Arrow and PageUp/PageDown move a range input by
 //     its data-rask-big-step. (A closed data-rask-listbox-button's keys are rask-keys.ts's.)
 //
-// Delegated to the document throughout. The shaping functions are exported for the Node fixture.
+// Delegated to the document throughout. The shaping functions are exported for the script fixture.
 
 import {disown, listen, named, near, own, page} from "./rask-owned.js";
 

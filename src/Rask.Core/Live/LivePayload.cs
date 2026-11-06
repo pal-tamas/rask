@@ -36,7 +36,7 @@ public static class LivePayload
     ///     serialization and can be sent without allocating.
     ///     <para>
     ///         The client branches on this exact text; <c>HotReloadMessageTests</c> and the
-    ///         <c>rask.js</c> Node fixture both assert against this same constant so the two halves
+    ///         <c>rask.js</c> script fixture both assert against this same constant so the two halves
     ///         cannot drift.
     ///     </para>
     /// </summary>

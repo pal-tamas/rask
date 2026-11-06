@@ -8,7 +8,7 @@ namespace Rask;
 ///     The engine is intl-tel-input, the library fluxui.dev's phone field runs, with Google's libphonenumber in a
 ///     second file it fetches when the first field mounts. Neither is in Rask's runtime nor in this assembly: the
 ///     app's build copies both into <c>wwwroot/js</c> (<c>build/Rask.Ui.targets</c>, <c>RaskUiPhoneEngine</c>).
-///     <c>Resources/phone/build.mjs</c> builds them and writes the two versions.
+///     <c>scripts/tools/KitBundle</c> (<c>build phone</c>) builds them and writes the two versions.
 /// </remarks>
 internal static class UiPhoneEngine
 {

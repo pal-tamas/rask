@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 ///     shares: options as children, the typed binding, the field it draws around itself.
 /// </summary>
 /// <remarks>
-///     The look is held to fluxui.dev by <c>SelectParity</c> and <c>scripts/flux/parity-select.mjs</c>; these
+///     The look is held to fluxui.dev by <c>SelectParity</c> and <c>flux parity-select</c>; these
 ///     hold what a class string cannot say. The drawn variants are in <c>UiSelectListboxTests</c>,
 ///     <c>UiSelectSearchTests</c> and <c>UiSelectComboboxTests</c>.
 /// </remarks>

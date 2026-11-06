@@ -4,7 +4,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
 ///     Flux's empty state, which no component page shows: its account overview demo draws it when a search matches
-///     nothing (https://fluxui.dev/demo/account-overview). <c>scripts/flux/empty-state.mjs</c> searches there and sets
+///     nothing (https://fluxui.dev/demo/account-overview). <c>flux parity --prepare empty-state</c> searches there and sets
 ///     the demo's table in an example frame; this is the kit's twin — <c>Ui.TableCell.ColSpan(2)[Ui.Empty[…]]</c> in
 ///     the only row of a bleeding table.
 /// </summary>

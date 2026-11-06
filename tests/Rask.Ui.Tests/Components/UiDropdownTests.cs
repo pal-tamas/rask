@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The markup contract: the roles and ARIA a screen reader hears, the attributes the browser and the runtime
 ///     act on, and the <c>data-ui-*</c> markers the stylesheet and the parity tool key on. How it LOOKS is held to
-///     Flux by <c>scripts/flux/parity.mjs</c> and <c>parity-menu.mjs</c>; what the keys do, by
+///     Flux by <c>flux parity</c> and <c>flux parity-menu</c>; what the keys do, by
 ///     <see cref="UiDropdownInteractionTests" />.
 /// </remarks>
 public partial class UiDropdownTests : global::Rask.Core.RaskMarkup

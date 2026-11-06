@@ -10,7 +10,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     The page's first paint and the value it hears. What a reader does in the popup is the browser's
-///     (<c>rask-calendar.ts</c>, <c>RuntimeHookDatetimeTests</c>); <c>scripts/flux/parity-date.mjs datetime-picker</c>
+///     (<c>rask-calendar.ts</c>, <c>RuntimeHookDatetimeTests</c>); <c>flux parity-date datetime-picker</c>
 ///     holds the look to Flux's live page.
 /// </remarks>
 public sealed partial class UiDatetimePickerTests : global::Rask.Core.RaskMarkup

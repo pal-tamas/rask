@@ -12,7 +12,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     </para>
 ///     <para>
 ///     The six "Examples" set avatars among other pages' components. Headings, text, stars and buttons beside
-///     an avatar are left out (unmarked, and <c>parity.mjs</c> says so). Where Flux puts the avatars INSIDE
+///     an avatar are left out (unmarked, and <c>flux parity</c> says so). Where Flux puts the avatars INSIDE
 ///     another component — a tooltip, a table, a card, a select, a dropdown — that component is the real one.
 ///     </para>
 /// </remarks>

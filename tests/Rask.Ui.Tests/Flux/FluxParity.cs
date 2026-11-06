@@ -7,7 +7,7 @@ namespace Rask.UiTests.Flux;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     Rask.Ui has to look and behave exactly as Flux does, and "exactly" is measured: <c>scripts/flux/parity.mjs</c>
+///     Rask.Ui has to look and behave exactly as Flux does, and "exactly" is measured: <c>flux parity</c>
 ///     opens Flux's live page and the page <see cref="FluxParityPages" /> writes from these examples, and
 ///     compares what the browser computed for each — boxes, colours, borders, shadows, and what hover, press
 ///     and keyboard focus change — in light and in dark.

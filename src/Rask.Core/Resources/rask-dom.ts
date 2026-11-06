@@ -950,7 +950,7 @@ export function applyFrameInvokes(
 // attribute changes, the row is scrolled into view, or, when it is not in the DOM, the tree is scrolled to
 // where the row would be. The scroll it causes re-renders the window, and the row arrives.
 (function () {
-    // No DOM in the Node fixtures — see the block above.
+    // No DOM in the script fixtures — see the block above.
     if (typeof document === "undefined" || typeof document.addEventListener !== "function") {
         return;
     }

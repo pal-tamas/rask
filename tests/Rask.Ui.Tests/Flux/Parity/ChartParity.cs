@@ -10,10 +10,10 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 /// <para>
 /// Flux's docs make their chart data up on every request — random values, dates counted back from now — so
-/// there is no fixed page to compare against. <c>scripts/flux/parity-chart.mjs --measure</c> pins one load: it
+/// there is no fixed page to compare against. <c>flux parity-chart --measure</c> pins one load: it
 /// measures it, and writes the rows each chart drew to <c>ChartParity.data.json</c>, which is what is drawn
 /// here. Data, not code. The same script then compares the two drawings' geometry number by number, which
-/// <c>parity.mjs</c> (boxes and styles) cannot see.
+/// <c>flux parity</c> (boxes and styles) cannot see.
 /// </para>
 /// <para>
 /// The props are the ones the LIVE examples carry where they differ from the listing beside them: points of

@@ -11,7 +11,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <para>
 ///     The page is measured AS LOADED and with no engine: Flux's field shows its number formatted by its script,
 ///     this one an empty input of the same box — the text inside an input is no node. What the engine does is
-///     held by <c>tests/Rask.Server.E2E.Tests/UiPhoneTests</c>, and the open list by <c>parity-phone.mjs</c>.
+///     held by <c>tests/Rask.Server.E2E.Tests/UiPhoneTests</c>, and the open list by <c>flux parity-phone</c>.
 ///     </para>
 /// </remarks>
 public sealed partial class PhoneParity : FluxParity

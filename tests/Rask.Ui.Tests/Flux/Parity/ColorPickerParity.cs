@@ -9,8 +9,8 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <c>rgba</c> where the markdown lists six, and its custom swatches are eight labelled pairs.
 ///     </para>
 ///     <para>
-///     <c>scripts/flux/parity.mjs color-picker</c> compares every example as loaded, popover shut;
-///     <c>scripts/flux/parity-color-picker.mjs</c> measures each with its popover open
+///     <c>flux parity color-picker</c> compares every example as loaded, popover shut;
+///     <c>flux parity-color-picker</c> measures each with its popover open
 ///     (<see cref="ColorPickerOpenParity" />) and walks both pages.
 ///     </para>
 /// </remarks>

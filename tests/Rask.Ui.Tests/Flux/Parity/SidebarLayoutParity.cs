@@ -48,7 +48,7 @@ public sealed partial class SidebarLayoutParity : FluxLayoutParity
             Ui.Main[LayoutDemo.Greeting()]
         ]));
 
-        // Not one of Flux's demos, so `parity.mjs` never asks for it: an application's long menu, for rail.mjs.
+        // Not one of Flux's demos, so `flux parity` never asks for it: an application's long menu, for flux rail.
         yield return ("long-menu", Page1, Document([
             LayoutDemo.LongMenu(Bordered),
             Ui.Header.Class("lg:hidden")[LayoutDemo.Bar()],

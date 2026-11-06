@@ -53,7 +53,7 @@ internal static class UiConfirmation
         Ui.Text.Id(messageId).Class("mt-2").Data(part, "message").Attributes(("data-rask-opaque", null));
 
     // Flux's heading keeps no room for the close button, because its examples keep a heading short: a whole
-    // question may run under it, so this one keeps the room itself (measured by parity-modal.mjs).
+    // question may run under it, so this one keeps the room itself (measured by flux parity-modal).
 
     /// <summary>The question alone, as the title.</summary>
     internal static Component Untitled(string part) =>

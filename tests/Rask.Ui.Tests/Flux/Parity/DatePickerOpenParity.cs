@@ -3,11 +3,11 @@ using Rask.Core;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     The same fifteen pickers, each measured with its popup open — <c>scripts/flux/parity-date.mjs date-picker</c>.
+///     The same fifteen pickers, each measured with its popup open — <c>flux parity-date date-picker</c>.
 /// </summary>
 /// <remarks>
 ///     <para>
-///     <c>lib.mjs</c> presses whatever carries <c>data-parity-open</c> before it measures an example. The mark is
+///     the flux harness (<c>scripts/flux/Flux</c>) presses whatever carries <c>data-parity-open</c> before it measures an example. The mark is
 ///     the measurer's and no prop of the picker, so the example puts it on: on the picker itself where its
 ///     button fills it, and on the chevron of a typed field, where a press on a segment only puts the caret in it.
 ///     </para>

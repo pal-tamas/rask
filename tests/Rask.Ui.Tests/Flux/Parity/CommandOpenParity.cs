@@ -3,9 +3,9 @@ using Rask.Core;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     Flux's command palette once it is used, which a page as loaded never shows: <c>scripts/flux/command-open.mjs</c>
+///     Flux's command palette once it is used, which a page as loaded never shows: <c>flux parity --prepare command-open</c>
 ///     types into the first two and opens the third on this page and on Flux's (whose first example it copies twice),
-///     the same way, before <c>parity.mjs</c> compares them.
+///     the same way, before <c>flux parity</c> compares them.
 /// </summary>
 /// <remarks>
 ///     <c>typed</c>: "ch" typed and the box left — one command shown and the clear button. <c>empty</c>: "zz" typed —

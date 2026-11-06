@@ -82,7 +82,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
         var popup = Regex.Match(html, "<div(?=[^>]*data-ui-options)[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
         var list = Regex.Match(html, "<div(?=[^>]*role=\"listbox\")[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
 
-        // Measured on Flux's phone (parity-phone.mjs): the popup round the searched countries is overscroll-behavior
+        // Measured on Flux's phone (flux parity-phone): the popup round the searched countries is overscroll-behavior
         // auto, the list in it none — as a searched select's (UiSelectSearchTests).
         Assert.DoesNotContain("overscroll-y-none", popup);
         Assert.Contains("overscroll-y-none", list);

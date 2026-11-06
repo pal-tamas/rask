@@ -212,7 +212,7 @@ async function step<T>(what: string, run: () => Promise<T>): Promise<T> {
 //   * A ceiling, so a slow image, or a backgrounded tab where rAF never fires, cannot hold
 //     interactivity behind it.
 // Optional, because this runs at module top level in whatever document the host provides. A real
-// browser always has a documentElement; the framework's own Node fixture did not, and the throw took
+// browser always has a documentElement; the framework's own script fixture did not, and the throw took
 // the whole boot with it — before the failure reporter below could say why.
 const PRERENDERED = document.documentElement?.hasAttribute("data-rask-prerendered") === true;
 

@@ -3,7 +3,7 @@ using Rask.Core;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     The page <c>scripts/flux/parity-tooltip.mjs</c> shows every tooltip on, case by case.
+///     The page <c>flux parity-tooltip</c> shows every tooltip on, case by case.
 /// </summary>
 /// <remarks>
 ///     <para>

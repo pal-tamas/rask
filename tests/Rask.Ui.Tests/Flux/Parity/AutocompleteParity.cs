@@ -5,7 +5,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// <summary><c>fluxui.dev/components/autocomplete</c>, example by example.</summary>
 /// <remarks>
 ///     One example is rendered on Flux's page. The states are the rendered page's — forty-eight, where the
-///     markdown shows three. <c>scripts/flux/parity-autocomplete.mjs</c> opens the list here and on Flux's page
+///     markdown shows three. <c>flux parity-autocomplete</c> opens the list here and on Flux's page
 ///     and compares what is then on screen.
 /// </remarks>
 public sealed partial class AutocompleteParity : FluxParity

@@ -10,7 +10,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     One example per dropdown, eleven in all: the example it sits in on Flux's page, with that one trigger
 ///     marked <c>data-parity-open</c> for the measurer to press (or to hover, for the hover card). Nothing on
 ///     the page opens it but the browser — there is no runtime here — so a match is also the proof that the
-///     popover works without one. <c>scripts/flux/parity-popover.mjs</c> measures Flux's page the same way and
+///     popover works without one. <c>flux parity-popover</c> measures Flux's page the same way and
 ///     compares the two.
 /// </remarks>
 public sealed partial class PopoverOpenParity : FluxParity

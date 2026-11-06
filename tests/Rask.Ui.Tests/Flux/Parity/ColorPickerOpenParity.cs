@@ -3,10 +3,10 @@ using Rask.Core;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     The same eleven examples, each measured with its popover open — <c>scripts/flux/parity-color-picker.mjs</c>.
+///     The same eleven examples, each measured with its popover open — <c>flux parity-color-picker</c>.
 /// </summary>
 /// <remarks>
-///     <c>lib.mjs</c> presses whatever carries <c>data-parity-open</c> before it measures an example. The mark is
+///     the flux harness (<c>scripts/flux/Flux</c>) presses whatever carries <c>data-parity-open</c> before it measures an example. The mark is
 ///     the measurer's and no prop of the picker, so the example puts it on what a reader presses: the swatch
 ///     button of an input trigger, or the button trigger itself. The button opens its dialog by command, with
 ///     no script at all.

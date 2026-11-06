@@ -7,7 +7,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     Measured twice by <c>scripts/flux/parity-modal.mjs</c>: as loaded, where a modal is its trigger and a
+///     Measured twice by <c>flux parity-modal</c>: as loaded, where a modal is its trigger and a
 ///     dialog nobody sees, and again with each example's trigger pressed — the open dialog is the component.
 ///     </para>
 ///     <para>

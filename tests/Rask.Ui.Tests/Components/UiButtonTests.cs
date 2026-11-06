@@ -7,7 +7,7 @@ namespace Rask.UiTests.Components;
 ///     Flux's button: what each prop writes, its two tags, its parts, and Rask's own behaviour on top.
 /// </summary>
 /// <remarks>
-///     How it LOOKS is held to fluxui.dev by <c>scripts/flux/parity.mjs button</c>; these hold the markup
+///     How it LOOKS is held to fluxui.dev by <c>flux parity button</c>; these hold the markup
 ///     contract. Deriving from <c>RaskMarkup</c> is what makes <c>Ui.Button</c> here the chain's entry.
 /// </remarks>
 public partial class UiButtonTests : global::Rask.Core.RaskMarkup

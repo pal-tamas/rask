@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The filter, the lit command and Enter are the runtime's (<c>rask-command.ts</c>): typing into a palette and
 ///     walking it send the page nothing, and are held to fluxui.dev step by step in a browser
-///     (<c>scripts/flux/parity-command.mjs</c>, <c>UiCommandBrowserTests</c>). What C# owns is pinned here — the
+///     (<c>flux parity-command</c>, <c>UiCommandBrowserTests</c>). What C# owns is pinned here — the
 ///     markup those hooks read — and the rules are <c>CommandPaletteTests</c>' in Rask.Core.Tests.
 /// </remarks>
 public partial class UiCommandTests : RaskMarkup

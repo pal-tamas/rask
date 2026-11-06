@@ -10,7 +10,7 @@ namespace Rask.Core.Tests.Resources;
 ///     Linux). rask-overlay.ts hands the finger to the popover once it has moved past a tap's slop, so the pointerup
 ///     lands inside it. Structural, as <see cref="PopoverInvokerClientContractTests" /> is: the hooks run against a
 ///     live document. The behaviour is held in a browser by <c>UiMenuHookTests</c> (Server E2E) and by
-///     <c>scripts/flux/parity-popover.mjs --view 390x844</c>.
+///     <c>flux parity-popover --view 390x844</c>.
 /// </remarks>
 public class SwipeKeepsPopoverOpenContractTests
 {

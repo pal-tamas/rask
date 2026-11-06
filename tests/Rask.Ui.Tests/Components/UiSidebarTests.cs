@@ -4,7 +4,7 @@ namespace Rask.UiTests.Components;
 ///     Flux's sidebar and its parts: the markup contract the layout's CSS and a keyboard depend on.
 /// </summary>
 /// <remarks>
-///     How it LOOKS is held to Flux by <c>scripts/flux/parity.mjs layouts/sidebar</c>. What is pinned here is
+///     How it LOOKS is held to Flux by <c>flux parity layouts/sidebar</c>. What is pinned here is
 ///     what no measurement sees: that each state has somewhere to live with no script (a checkbox, and a label
 ///     for it), that the parts say what they are to a screen reader, and that C# can own either state.
 /// </remarks>

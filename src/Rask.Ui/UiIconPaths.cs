@@ -2,7 +2,7 @@ using System.Text;
 
 namespace Rask;
 
-// The tables themselves are UiIconPaths.g.cs, written by scripts/flux/icons.mjs. This half reads them.
+// The tables themselves are UiIconPaths.g.cs, written by flux icons. This half reads them.
 internal static partial class UiIconPaths
 {
     private const byte Separator = (byte)'|';

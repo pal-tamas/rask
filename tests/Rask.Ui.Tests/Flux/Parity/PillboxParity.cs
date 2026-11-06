@@ -11,7 +11,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     </para>
 ///     <para>
 ///     The words are the rendered page's: its last example is a plain pillbox with a placeholder, where the
-///     markdown shows a combobox. <c>scripts/flux/parity-pillbox.mjs</c> opens every list here and on Flux's
+///     markdown shows a combobox. <c>flux parity-pillbox</c> opens every list here and on Flux's
 ///     page, picks two options and compares what is then on screen.
 ///     </para>
 /// </remarks>

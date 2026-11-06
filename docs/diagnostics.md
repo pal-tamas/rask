@@ -130,7 +130,8 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 
 **Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
 RASK049, RASK050, RASK054, RASK056, RASK057, RASK058, RASK059, RASK061, RASK062, RASK063, RASK064, RASK065, RASK066,
-RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091 and RASK100. Each guarded a mistake that can no
+RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091 and RASK100, the islands build's
+RASKISLAND001–019, and the npm front-end build's RASKSPA001–005 and RASKSPA007. Each guarded a mistake that can no
 longer be written; a suppression that names one is dead and can be deleted.
 
 ---
@@ -2593,13 +2594,7 @@ and no quick-fix.
 
 | Code | What happened | Fix |
 | --- | --- | --- |
-| `RASKSPA001` | The front end needs building and `node --version` did not run. | Install Node.js, or pass `-p:RaskSpaBuild=false` to build the server without the front end. |
-| `RASKSPA002` | The front end's build finished but wrote no `index.html` where the host expects it. | Set `RaskSpaDistDir` to the bundler's real output directory. |
-| `RASKSPA003` | `RaskSpaClientDir` names a directory with no `package.json`. | Point it at the front-end project directory. |
-| `RASKSPA004` | The host declares remote messages and its front end has no TypeScript configuration to check the generated contracts with. | Use the framework's TypeScript template, name the config with `RaskSpaTypeScriptConfig`, or set `RaskEmitTypeScript=false`. |
-| `RASKSPA005` | Node is older than `RaskSpaMinimumNode`. | Install the current LTS, or set `RaskSpaMinimumNode`. |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
-| `RASKSPA007` | A host has both a WebAssembly client and a front-end `client` folder. | `MapRaskSpa` serves one app per host — remove one, or give it its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
 | `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net10.0-browser`. |
 | `RASKDOM001` | Contributors only: the MDN snapshot could not be turned into element types. | The message names the member that collides. |

@@ -12,7 +12,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The page's first paint and the value it hears, on a pinned day so a month has the weeks the test counts.
 ///     What the keys, a press and the pointer do is the browser's (<c>rask-calendar.ts</c>), asserted in
-///     <c>RuntimeHookCalendarTests</c>. How it looks is <c>scripts/flux/parity.mjs calendar</c>'s to hold.
+///     <c>RuntimeHookCalendarTests</c>. How it looks is <c>flux parity calendar</c>'s to hold.
 /// </remarks>
 public partial class UiCalendarTests : global::Rask.Core.RaskMarkup
 {

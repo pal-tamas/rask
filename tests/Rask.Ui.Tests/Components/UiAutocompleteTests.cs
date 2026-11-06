@@ -10,7 +10,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The list is the browser's (<c>data-rask-list</c>): the lit row, the filter, whether it is open and the
 ///     pick that writes an item into the input send the page nothing, and are held to fluxui.dev key by key in a
-///     browser (<c>scripts/flux/parity-autocomplete.mjs</c>, <c>UiListHookTests</c>). The page hears the input's
+///     browser (<c>flux parity-autocomplete</c>, <c>UiListHookTests</c>). The page hears the input's
 ///     text as it hears any input's. Here: what a render writes, and that text arriving.
 /// </remarks>
 public partial class UiAutocompleteTests : global::Rask.Core.RaskMarkup

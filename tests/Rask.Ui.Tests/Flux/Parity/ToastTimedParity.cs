@@ -4,7 +4,7 @@ using Rask.Core.Messaging;
 namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
-///     Toasts that count down, for <c>scripts/flux/parity-toast.mjs</c> to time against Flux's.
+///     Toasts that count down, for <c>flux parity-toast</c> to time against Flux's.
 /// </summary>
 /// <remarks>
 ///     <see cref="ToastShownParity" /> holds every toast still so it can be measured. These run: the script

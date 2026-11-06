@@ -7,7 +7,7 @@
 // asks for it, and nothing turns it off.
 //
 // Deliberately DOM-free apart from `fetch`. The parser, the batcher and the chooser are plain functions over
-// plain inputs, so a node fixture can drive each one with a fake clock, fake storage and fake responses — the
+// plain inputs, so a script fixture can drive each one with a fake clock, fake storage and fake responses — the
 // only honest way to test a fallback whose whole point is the failure paths.
 
 /** What the rest of the runtime needs from a live connection, whichever transport carries it. */

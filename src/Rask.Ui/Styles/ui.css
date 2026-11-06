@@ -1286,7 +1286,7 @@
 
   What is in there is the user's HTML, written by ProseMirror: no class of the kit's reaches a node of it,
   so its typography is the one thing of the editor a utility cannot say. Measured node by node on
-  fluxui.dev/components/editor (scripts/flux/parity-editor.mjs keeps it there): headings, margins and
+  fluxui.dev/components/editor (flux parity-editor keeps it there): headings, margins and
   indents in proportion to the area's text, so the whole document grows with it on a phone (16px there,
   14px from sm up), and Flux's own inline code, code block, quote bar and list markers. The first and last
   node sit flush with the area's padding.

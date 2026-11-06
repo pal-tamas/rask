@@ -11,7 +11,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The page's first paint and the value it hears. The popup opening, closing, what a pick does in it and where
 ///     it sits are the browser's (<c>rask-calendar.ts</c>, <c>RuntimeHookCalendarTests</c>);
-///     <c>scripts/flux/parity-date.mjs</c> holds those to Flux's live page.
+///     <c>flux parity-date</c> holds those to Flux's live page.
 /// </remarks>
 public partial class UiDatePickerTests : global::Rask.Core.RaskMarkup
 {

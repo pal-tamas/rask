@@ -8,7 +8,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     A closed tooltip is most of nothing, so the SHOWN one is proved separately:
-///     <c>node scripts/flux/parity-tooltip.mjs</c> shows each tooltip on Flux's live page and on
+///     <c>flux parity-tooltip</c> shows each tooltip on Flux's live page and on
 ///     <see cref="TooltipShownParity" />'s, and compares the box, its colours, its gap and its alignment.
 ///     </para>
 ///     <para>

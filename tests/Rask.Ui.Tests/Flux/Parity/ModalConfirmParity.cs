@@ -4,7 +4,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
 ///     Flux's confirmation with what an app really writes in it: a question for a heading, no text under it,
-///     two buttons — with the example's own width and without it. For <c>scripts/flux/parity-modal.mjs</c>.
+///     two buttons — with the example's own width and without it. For <c>flux parity-modal</c>.
 /// </summary>
 /// <remarks>
 ///     <para>

@@ -8,7 +8,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     The keys, the pointer, the search and whether the list is open are the browser's (<c>data-rask-list</c>),
-///     held to fluxui.dev key by key in a browser: <c>scripts/flux/parity-pillbox.mjs</c> replays the walks and
+///     held to fluxui.dev key by key in a browser: <c>flux parity-pillbox</c> replays the walks and
 ///     <c>UiListHookTests</c> counts what they send. Here: what a render writes for the browser to read, and what
 ///     the page hears — a row or a cross pressed.
 /// </remarks>

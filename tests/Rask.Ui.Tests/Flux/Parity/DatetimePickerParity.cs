@@ -11,7 +11,7 @@ public sealed partial class DatetimePickerParity : DatetimePickerExamples
 }
 
 /// <summary>
-///     The same pickers, each measured with its popup open — <c>scripts/flux/parity-date.mjs datetime-picker</c>, which
+///     The same pickers, each measured with its popup open — <c>flux parity-date datetime-picker</c>, which
 ///     presses whatever carries <c>data-parity-open</c>: the picker, whose button (or custom trigger) fills it.
 /// </summary>
 public sealed partial class DatetimePickerOpenParity : DatetimePickerExamples

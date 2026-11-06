@@ -32,7 +32,7 @@
 // `OnInput` search, a change) marks its field until that event's answer, released where a pressed button's is.
 // Only `data-loading`: a field being typed into is not `aria-busy`, and nothing around it is marked.
 //
-// No DOM access at import: shared by both host bundles and imported by a Node fixture with a stub DOM.
+// No DOM access at import: shared by both host bundles and imported by a script fixture with a stub DOM.
 
 export const LOADING_DELAY_MS = 200;
 

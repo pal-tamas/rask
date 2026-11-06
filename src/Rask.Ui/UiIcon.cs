@@ -9,7 +9,7 @@ namespace Rask;
 /// <remarks>
 ///     <para>
 ///     The drawings are <see href="https://heroicons.com">Heroicons</see> (MIT), generated into the assembly by
-///     <c>scripts/flux/icons.mjs</c>, so the kit ships no icon font and no static assets.
+///     <c>flux icons</c>, so the kit ships no icon font and no static assets.
 ///     <c>Ui.Icon.Name(Ui.IconName.Bolt)</c> is the 24px outline; <c>.Solid</c>, <c>.Mini</c> and <c>.Micro</c>
 ///     pick the others.
 ///     </para>

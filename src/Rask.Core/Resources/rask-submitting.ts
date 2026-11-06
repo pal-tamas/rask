@@ -19,7 +19,7 @@
 // is dropped by the host, never sent. A plain button's click is not covered: Livewire disables nothing for
 // `wire:click`, and neither does this.
 //
-// No DOM access at import: shared by both host bundles and imported by a Node fixture with a stub DOM.
+// No DOM access at import: shared by both host bundles and imported by a script fixture with a stub DOM.
 
 import {LOADING_HARD_TIMEOUT_MS} from "./rask-loading.js";
 import {disown, own} from "./rask-owned.js";

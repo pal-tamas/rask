@@ -4,7 +4,7 @@ namespace Rask.UiTests.Components;
 ///     Flux's header and main, and the grid the three layout parts make of whatever holds them.
 /// </summary>
 /// <remarks>
-///     The look is held to Flux by <c>scripts/flux/parity.mjs layouts/header</c>. Pinned here: the landmarks,
+///     The look is held to Flux by <c>flux parity layouts/header</c>. Pinned here: the landmarks,
 ///     what each prop writes, and the rules of the layout grid — which live in the kit's sheet, not in a class.
 /// </remarks>
 public partial class UiHeaderTests : global::Rask.Core.RaskMarkup

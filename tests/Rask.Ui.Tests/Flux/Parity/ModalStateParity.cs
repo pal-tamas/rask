@@ -4,7 +4,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
 ///     The modals of <see cref="ModalParity" /> with the PAGE owning whether each is open — Rask's
-///     <c>wire:model</c> — for <c>scripts/flux/parity-modal.mjs</c> to open the way a render does.
+///     <c>wire:model</c> — for <c>flux parity-modal</c> to open the way a render does.
 /// </summary>
 /// <remarks>
 ///     Flux's page shows no bound modal, so there is nothing of its own to pair these with: each is held to

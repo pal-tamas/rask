@@ -473,7 +473,7 @@
     </PropertyGroup>
 
     <Error Condition="!Exists('$(_RaskUiEditorSource)')"
-           Text="Rask.Ui: the editor's engine could not be found ($(_RaskUiEditorSource)), so $(_RaskUiEditorOutput) cannot be written and every Ui.Editor would stay a block of plain markup. From the package it ships beside these targets as build/rask-ui-editor.js; in this repository it is src/Rask.Ui/Resources/ui-editor.js, built by Resources/editor/build.mjs. An app that draws no editor can say &lt;RaskUiEditorEngine&gt;false&lt;/RaskUiEditorEngine&gt;."/>
+           Text="Rask.Ui: the editor's engine could not be found ($(_RaskUiEditorSource)), so $(_RaskUiEditorOutput) cannot be written and every Ui.Editor would stay a block of plain markup. From the package it ships beside these targets as build/rask-ui-editor.js; in this repository it is src/Rask.Ui/Resources/ui-editor.js, built by scripts/tools/KitBundle (build editor). An app that draws no editor can say &lt;RaskUiEditorEngine&gt;false&lt;/RaskUiEditorEngine&gt;."/>
 
     <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(MSBuildProjectDirectory)/$(_RaskUiEditorOutput)'))"/>
     <Copy SourceFiles="$(_RaskUiEditorSource)"
@@ -551,7 +551,7 @@
           Condition="'@(_RaskUiPhoneKit)' != ''"
           BeforeTargets="BeforeBuild">
     <Error Condition="!Exists('%(_RaskUiPhoneFile.Source)')"
-           Text="Rask.Ui: the phone engine's file %(_RaskUiPhoneFile.Source) could not be found, so %(_RaskUiPhoneFile.Identity) cannot be written and every Ui.Phone would stay a plain field. From the package it ships beside these targets; in this repository it is in src/Rask.Ui/Resources, built by Resources/phone/build.mjs. An app that draws no phone field can say &lt;RaskUiPhoneEngine&gt;false&lt;/RaskUiPhoneEngine&gt;."/>
+           Text="Rask.Ui: the phone engine's file %(_RaskUiPhoneFile.Source) could not be found, so %(_RaskUiPhoneFile.Identity) cannot be written and every Ui.Phone would stay a plain field. From the package it ships beside these targets; in this repository it is in src/Rask.Ui/Resources, built by scripts/tools/KitBundle (build phone). An app that draws no phone field can say &lt;RaskUiPhoneEngine&gt;false&lt;/RaskUiPhoneEngine&gt;."/>
     <MakeDir Directories="$(MSBuildProjectDirectory)/wwwroot/js"/>
     <Copy SourceFiles="@(_RaskUiPhoneFile->'%(Source)')"
           DestinationFiles="@(_RaskUiPhoneFile->'$(MSBuildProjectDirectory)/%(Identity)')"
@@ -613,7 +613,7 @@
           BeforeTargets="BeforeBuild">
     <!-- Fails rather than warns: the project asked for the flags by name, and without them every Ui.Flag is an empty frame. -->
     <Error Condition="'@(_RaskUiFlagFile)' == ''"
-           Text="Rask.Ui: this project set RaskUiWriteFlags=true but the flag drawings could not be found ($(_RaskUiFlagsSource)), so $(_RaskUiFlagsOutput) cannot be written and every Ui.Flag would draw an empty frame. From the package they ship as flags/ at its root; in this repository they are src/Rask.Ui/Flags, written by scripts/flux/flags.mjs."/>
+           Text="Rask.Ui: this project set RaskUiWriteFlags=true but the flag drawings could not be found ($(_RaskUiFlagsSource)), so $(_RaskUiFlagsOutput) cannot be written and every Ui.Flag would draw an empty frame. From the package they ship as flags/ at its root; in this repository they are src/Rask.Ui/Flags, written by flux flags."/>
 
     <Copy SourceFiles="@(_RaskUiFlagFile)"
           DestinationFolder="$(MSBuildProjectDirectory)/$(_RaskUiFlagsOutput)"

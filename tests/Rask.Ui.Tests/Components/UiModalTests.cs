@@ -8,7 +8,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     What it looks like, and what it does once open, is held to Flux's live page by
-///     <c>scripts/flux/parity-modal.mjs</c>. These hold the contract that script cannot see: which attribute
+///     <c>flux parity-modal</c>. These hold the contract that script cannot see: which attribute
 ///     each prop writes, and what a callback hears.
 /// </remarks>
 public partial class UiModalTests : global::Rask.Core.RaskMarkup

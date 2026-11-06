@@ -9,7 +9,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <para>
 ///     The component is the OPEN panel, which a page as loaded never shows: <see cref="PopoverOpenParity" />
 ///     writes these same examples once per dropdown, with that dropdown's trigger marked for the measurer to
-///     open, and <c>scripts/flux/parity-popover.mjs</c> holds each to Flux's.
+///     open, and <c>flux parity-popover</c> holds each to Flux's.
 ///     </para>
 ///     <para>
 ///     What a panel holds is other pages' components, and they are the real ones. The three grey lines in the
@@ -194,7 +194,7 @@ public sealed partial class PopoverParity : FluxParity
             opened);
 
         // `data-open:flex` is said by the panel's own mark, which the runtime writes as the panel opens
-        // (rask-toggle.ts): parity-popover.mjs gives the page the hooks before it is measured.
+        // (rask-toggle.ts): flux parity-popover gives the page the hooks before it is measured.
         return Ui.Dropdown.Bottom.Center[
             trigger[
                 Div.Class("pp-bar").Style("align-self:stretch;width:2px;border-radius:calc(infinity * 1px)"),

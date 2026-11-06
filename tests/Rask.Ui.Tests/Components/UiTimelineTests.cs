@@ -5,7 +5,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     The track itself — which cell each part sits in, where the lines stop — is the stylesheet's, and is
-///     held to Flux's by <c>scripts/flux/parity.mjs timeline</c>. These hold the contract the stylesheet reads.
+///     held to Flux's by <c>flux parity timeline</c>. These hold the contract the stylesheet reads.
 /// </remarks>
 public partial class UiTimelineTests : global::Rask.Core.RaskMarkup
 {

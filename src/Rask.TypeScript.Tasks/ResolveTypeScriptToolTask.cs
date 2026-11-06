@@ -24,11 +24,10 @@ namespace Rask.TypeScript.Tasks;
 ///         produced those three rules.
 ///     </para>
 ///     <para>
-///         There is no npm fallback, and its absence is the point rather than an omission. Tailwind
-///         needs one because it publishes no standalone binary for several platforms that its npm engine
-///         does support. esbuild and tsgo publish native builds for every platform they support at all,
-///         so a fallback through npm could only ever cover platforms where the direct download would
-///         have worked — it would add a Node dependency and reach nothing new.
+///         There is no npm fallback, and its absence is the point rather than an omission: esbuild and
+///         tsgo publish native builds for every platform they support at all, so a fallback through npm
+///         could only ever cover platforms where the direct download would have worked — it would add a
+///         Node dependency and reach nothing new.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTypeScriptToolTask : Task
@@ -147,9 +146,8 @@ public sealed class ResolveTypeScriptToolTask : Task
         catch (Exception ex) when (ex is HttpRequestException or IOException or WebException or UnauthorizedAccessException
                                        or System.Threading.Tasks.TaskCanceledException)
         {
-            // Fatal, unlike the Tailwind resolver's equivalent. There it can still try npm; here there is
-            // nothing else to try, and continuing would produce an app whose TypeScript silently never
-            // compiled.
+            // Fatal: there is nothing else to try, and continuing would produce an app whose TypeScript
+            // silently never compiled.
             var tried = TransientRetry.IsTransient(ex) ? $" (asked {TransientRetry.Waits.Count + 1} times)" : "";
             Log.LogError($"Rask.TypeScript: could not fetch {packageName}@{Version}{tried} — {ex.Message}");
             return false;

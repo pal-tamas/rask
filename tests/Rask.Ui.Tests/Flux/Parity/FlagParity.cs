@@ -12,7 +12,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     </para>
 ///     <para>
 ///     The tool measures the frame a flag is drawn in, not the picture: which file each code draws is held
-///     by the unit tests, and where the artwork comes from by <c>scripts/flux/flags.mjs</c>.
+///     by the unit tests, and where the artwork comes from by <c>flux flags</c>.
 ///     </para>
 /// </remarks>
 public sealed partial class FlagParity : FluxParity

@@ -2,7 +2,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
 ///     <c>fluxui.dev/components/pillbox</c> with two options picked in every example: what
-///     <c>scripts/flux/parity-pillbox.mjs</c> holds to Flux's page once it has opened each list there and
+///     <c>flux parity-pillbox</c> holds to Flux's page once it has opened each list there and
 ///     clicked its second and third option.
 /// </summary>
 /// <remarks>

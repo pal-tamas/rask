@@ -12,7 +12,7 @@ namespace Rask.Server.E2E.Tests;
 ///     An open date picker's calendar is on the side Flux's is, month by month. Reported from a form: a
 ///     <c>Ui.DatePicker</c> whose trigger ends 616 px down a 1440 × 950 window opens under it on October, and paged
 ///     to August, a month of six weeks, goes over it. Flux's live picker, held at the same place, does exactly that
-///     (<c>scripts/flux/date-flip.mjs</c>, 2026-10-21): under it at 621 on the months of five weeks, over it at 213 on
+///     (<c>flux date-flip</c>, 2026-10-21): under it at 621 on the months of five weeks, over it at 213 on
 ///     August — the owner chose Flux's behaviour over keeping the side.
 /// </summary>
 public sealed class DatePickerSideTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>

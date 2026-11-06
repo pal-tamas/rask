@@ -205,52 +205,6 @@ public class GeneratedModelAcrossGeneratorsTests
     }
 
     [Fact]
-    public void A_generated_model_is_declared_in_TypeScript_under_its_own_name()
-    {
-        var run = RunCodec("""
-            namespace Shop.Contracts
-            {
-                public sealed record SaveProduct(ProductModel Product) : ICommand;
-            }
-            """);
-
-        var message = run.Compilation.GetTypeByMetadataName("Shop.Contracts.SaveProduct")
-                      ?? throw new InvalidOperationException("SaveProduct did not compile.");
-        var emitter = new TypeScriptEmitter();
-
-        emitter.Ensure(WireShape.Classify(message, allowFile: false, compilation: run.Compilation));
-
-        var ts = emitter.Declarations;
-        Assert.Contains("product: ProductModel;", ts, StringComparison.Ordinal);
-        Assert.Contains("export interface ProductModel {", ts, StringComparison.Ordinal);
-        Assert.Contains("price: MoneyModel | null;", ts, StringComparison.Ordinal);
-        Assert.Contains("notes: string | null;", ts, StringComparison.Ordinal);
-        Assert.Contains("export interface MoneyModel {", ts, StringComparison.Ordinal);
-        Assert.DoesNotContain("Anonymous", ts, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void A_nullable_generated_model_member_is_nullable_in_TypeScript()
-    {
-        // `ProductModel?` binds as Nullable<ProductModel> to a generator, so the property's annotation says
-        // nothing — the member was declared `draft: ProductModel;` and the front end was promised a value.
-        var run = RunCodec("""
-            namespace Shop.Contracts
-            {
-                public sealed record SaveDraft(ProductModel? Draft) : ICommand;
-            }
-            """);
-
-        var message = run.Compilation.GetTypeByMetadataName("Shop.Contracts.SaveDraft")!;
-        var emitter = new TypeScriptEmitter();
-
-        emitter.Ensure(WireShape.Classify(message, allowFile: false, compilation: run.Compilation));
-
-        Assert.Contains("draft: ProductModel | null;", emitter.Declarations, StringComparison.Ordinal);
-        Assert.Empty(run.GeneratedCompileErrors());
-    }
-
-    [Fact]
     public void A_value_object_built_through_accessors_travels_as_its_ordinary_nested_model()
     {
         // How the entity's value object is rebuilt is the model generator's business; the nested model is the

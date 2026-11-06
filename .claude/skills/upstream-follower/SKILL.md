@@ -56,5 +56,5 @@ That is all: the matrix reads the registry. Something deliberately held (Lucide 
 boxes match Flux's) goes in `manual` with a `why`. Never make a build refresh anything: a build that writes a
 tracked file is how upstream data rode into unrelated commits.
 
-Rask.Ui generators (`scripts/flux`, `src/Rask.Ui`) belong to the `ui` session. Send it the request rather than
-editing them.
+Rask.Ui's generators (`scripts/flux/Flux`, the C# harness, and `scripts/tools/KitBundle`, the editor and phone
+engines) are this session's own: change them here, through the `flux-component` skill.

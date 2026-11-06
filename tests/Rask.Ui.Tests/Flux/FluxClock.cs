@@ -6,7 +6,7 @@ namespace Rask.UiTests.Flux;
 ///     The two clocks Flux's docs pages run on, for a parity page to run on the same ones.
 /// </summary>
 /// <remarks>
-///     <c>scripts/flux/lib.mjs</c> pins the BROWSER to 15 January 2026, and Flux's calendar asks the browser what
+///     the flux harness (<c>scripts/flux/Flux</c>) pins the BROWSER to 15 January 2026, and Flux's calendar asks the browser what
 ///     today is. The dates its examples are given (<c>now()-&gt;format('Y-m-d')</c>) are written by Flux's SERVER,
 ///     which is on the real date. A translated example needs both to land on the month Flux's lands on.
 /// </remarks>

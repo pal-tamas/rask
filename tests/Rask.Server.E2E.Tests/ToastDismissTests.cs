@@ -19,7 +19,7 @@ namespace Rask.Server.E2E.Tests;
 ///     its state, and that the countdown pauses while somebody is reading it.
 ///     </para>
 ///     <para>
-///     The last one is the reason this is not a node fixture. Pausing on a real pointer entering a real element
+///     The last one is the reason this is not a script fixture. Pausing on a real pointer entering a real element
 ///     is the behaviour, and a stub DOM would be asserting that the code calls the functions it calls.
 ///     </para>
 /// </remarks>
