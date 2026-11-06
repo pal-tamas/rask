@@ -724,8 +724,8 @@ they say when you set nothing.
 | `FormButtonsCancel` | Form buttons | `Cancel` |
 | `FormButtonsSave` | Form buttons | `Save` |
 | `FormButtonsRemove` | Form buttons (the button, and the title of its question) | `Delete` |
-| `RowActionsEdit` | Row actions (the pencil's tooltip, the menu's edit item) | `Edit` |
-| `RowActionsRemove` | Row actions (the bin's tooltip, and the title of its question) | `Delete` |
+| `RowActionsEdit` | Row actions (the menu's edit item) | `Edit` |
+| `RowActionsRemove` | Row actions (the menu's delete item, and the title of its question) | `Delete` |
 | `RowActionsHeading` | A table's row actions column with no words of its own, for a screen reader; the ⋯'s tooltip | `Actions` |
 | `RowActionsView` | Row actions (the menu's item that opens the row to be looked at) | `View` |
 | `RemoveQuestion` | Form buttons and row actions: a delete given no question of its own | `Are you sure you want to delete it?` |

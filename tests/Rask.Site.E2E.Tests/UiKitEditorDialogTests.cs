@@ -54,14 +54,14 @@ public sealed class UiKitEditorDialogTests(WasmExampleAppFixture app, Playwright
     });
 
     [Fact]
-    public Task Back_closes_the_dialog_a_pencil_opened() => RunAsync(async () =>
+    public Task Back_closes_the_dialog_the_rows_edit_opened() => RunAsync(async () =>
     {
         await OpenAsync("?q=o");
         var dialog = Page.Locator(Dialog);
         var levin = Page.Locator(Scope + " #ued-suppliers tbody tr", new() { HasText = "Levin Oil" });
         await levin.ScrollIntoViewIfNeededAsync();
 
-        await levin.Locator("a[data-ui-button]").ClickAsync();
+        await EditAsync(levin);
         await Expect(dialog).ToBeVisibleAsync(new() { Timeout = 10_000 });
         await Expect(dialog.GetByLabel("Name")).ToHaveValueAsync("Levin Oil");
         await Page.GoBackAsync();
@@ -79,7 +79,7 @@ public sealed class UiKitEditorDialogTests(WasmExampleAppFixture app, Playwright
         var geidt = rows.Filter(new() { HasText = "Geidt Logistics" });
         await geidt.ScrollIntoViewIfNeededAsync();
 
-        await geidt.Locator("a[data-ui-button]").ClickAsync();
+        await EditAsync(geidt);
         await Expect(dialog).ToBeVisibleAsync(new() { Timeout = 10_000 });
         await dialog.GetByLabel("City").FillAsync("Lisbon");
         await dialog.GetByRole(AriaRole.Button, new() { Name = "Save" }).ClickAsync();
@@ -111,5 +111,12 @@ public sealed class UiKitEditorDialogTests(WasmExampleAppFixture app, Playwright
         await Page.GotoAsync($"{UiTab}/editor-dialog/{query}");
         await Expect(Page.Locator("main h1")).ToContainTextAsync("Editor dialog", new() { Timeout = 30_000 });
         await WaitForInteractiveAsync();
+    }
+
+    // A row opens its editor from its ⋯ menu's Edit, a link to the list's own address with the key set.
+    private static async Task EditAsync(ILocator row)
+    {
+        await row.GetByRole(AriaRole.Button, new() { Name = "Actions" }).ClickAsync();
+        await row.GetByRole(AriaRole.Menuitem, new() { Name = "Edit" }).ClickAsync();
     }
 }

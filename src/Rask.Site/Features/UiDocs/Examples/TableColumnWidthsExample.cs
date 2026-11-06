@@ -21,7 +21,7 @@ public sealed partial class TableColumnWidthsExample : Component
                 Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Delivered"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Amount"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Flag)["Paid"],
-                Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+                Ui.TableColumn.Width(Ui.ColumnWidth.RowMenu)
             ],
             Ui.TableRows[
                 _deliveries.Select(delivery => Ui.TableRow.Key(delivery.Vat)[

@@ -62,7 +62,7 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// </summary>
     /// <remarks>
     ///     Not Flux's: an addition the owner approved (2026-11-04). A column left without one takes what the others
-    ///     leave, as <see cref="Ui.ColumnWidth.Rest" /> does. The heading of <see cref="Ui.ColumnWidth.Actions" />,
+    ///     leave, as <see cref="Ui.ColumnWidth.Rest" /> does. The heading of
     ///     <see cref="Ui.ColumnWidth.Buttons" /> or <see cref="Ui.ColumnWidth.RowMenu" /> given no words says "Actions" to a
     ///     screen reader; <see cref="Ui.ColumnWidth.RowMenu" /> is sticky, as the row's ⋯ cells under it are. On paper the widths give
     ///     way. The cells under it still say their own alignment: <c>Ui.TableCell.End</c> under a number.

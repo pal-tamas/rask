@@ -64,8 +64,8 @@ public sealed partial class SizedTimePickersPage : Component
 }
 
 /// <summary>
-///     TA's list: wider than a phone, so it scrolls sideways there, its actions held at the end (sticky, on a background),
-///     under a heading only a screen reader says.
+///     TA's list: wider than a phone, so it scrolls sideways there, its ⋯ held at the end (the kit's sticky cell, on the
+///     page's surface), under a heading only a screen reader says.
 /// </summary>
 public sealed partial class StickyActionsPage : Component
 {
@@ -85,7 +85,7 @@ public sealed partial class StickyActionsPage : Component
                 Ui.TableRows[new[] { 1, 2, 3 }.Select(id => Ui.TableRow.Key(id)[
                     Ui.TableCell["Beszállító " + id],
                     Ui.TableCell["1234567" + id],
-                    Ui.RowActions.Edit(new Rask.Core.Routing.RouteUrl("/" + id)).Class(AtTheEdge)
+                    Ui.RowActions.Key(id).Edit(new Rask.Core.Routing.RouteUrl("/" + id))
                 ])]
             ]
         ];

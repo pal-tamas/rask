@@ -272,7 +272,7 @@ public sealed class FluxConformanceTests
         [typeof(UiFilters)] = "the owner, 2026-10-21: a list's filters kept in the address, in a lazy flyout, with badges (TA gap B6)",
         [typeof(UiFilter)] = "the owner, 2026-10-21: the filter a UiFilters cannot read from a control by itself",
         [typeof(UiFormButtons)] = "the owner, 2026-11-04: a form's Delete, Cancel back to the list and Save, as Flux draws a form's footer (#1298)",
-        [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's pencil and bin, as Flux draws a row's action (#1298)",
+        [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's actions behind one ⋯, as Flux's table demo draws a row's menu (#1298; the pencil and bin went 2026-11-06)",
         [typeof(UiEmpty)] = "the owner, 2026-11-04: a list's empty state, as Flux's account overview demo draws its empty row (#1283, TA gap B3)",
         [typeof(UiEditorDialog)] = "the owner, 2026-11-04: a list's editor over it, opened and closed by a query key, made of flux:modal (#1295)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",

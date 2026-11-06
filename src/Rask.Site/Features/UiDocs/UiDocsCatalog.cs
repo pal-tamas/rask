@@ -234,8 +234,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry RowActions { get; } = new(
         Routes.UiRowActionsPage(), "Row actions", Components,
         "Table row actions in C#: Ui.RowActions",
-        "A list row's pencil and bin in one line, or a ⋯ menu of view, edit and delete held at the table's right edge; "
-        + "delete asks first.");
+        "A list row's actions behind one ⋯ in C#: view, edit, your own items and delete, held at the table's right edge; "
+        + "the delete asks first.");
 
     public static UiDocsEntry Kanban { get; } = new(
         Routes.UiKanbanPage(), "Kanban", Components,

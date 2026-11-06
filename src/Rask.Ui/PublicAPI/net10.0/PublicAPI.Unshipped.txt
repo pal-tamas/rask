@@ -323,11 +323,10 @@ Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Button = 1 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Input = 0 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Actions = 8 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Buttons = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Buttons = 8 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Day = 1 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Flag = 5 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.RowMenu = 10 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.RowMenu = 9 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Moment = 2 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Name = 7 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Number = 3 -> Rask.Ui.ColumnWidth
@@ -2674,8 +2673,6 @@ Rask.UiRowActions.Class.get -> string?
 Rask.UiRowActions.Class.set -> void
 Rask.UiRowActions.Edit.get -> Rask.Core.Routing.RouteUrl?
 Rask.UiRowActions.Edit.set -> void
-Rask.UiRowActions.Menu.get -> bool?
-Rask.UiRowActions.Menu.set -> void
 Rask.UiRowActions.OnEdit.get -> Rask.Core.Callback
 Rask.UiRowActions.OnEdit.set -> void
 Rask.UiRowActions.OnRemove.get -> Rask.Core.Callback
@@ -3708,7 +3705,6 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Mini.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Outline.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Sm.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Solid.get -> Rask.UiTab!
-RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Actions.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Buttons.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Day.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Flag.get -> Rask.UiTableColumn!
@@ -5122,7 +5118,6 @@ static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartTooltip! __b, Rask.UiCh
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartTooltipHeading! __b, Rask.UiChartFormat? value) -> Rask.UiChartTooltipHeading!
 static RaskBuilderSettersRask_Ui.Format(this Rask.UiChartTooltipValue! __b, Rask.UiChartFormat? value) -> Rask.UiChartTooltipValue!
 static RaskBuilderSettersRask_Ui.Gap(this Rask.UiTooltip! __b, int? value) -> Rask.UiTooltip!
-static RaskBuilderSettersRask_Ui.get_Actions(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Alpha(Rask.UiColorPickerSlider! __b) -> Rask.UiColorPickerSlider!
 static RaskBuilderSettersRask_Ui.get_Alpha(Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.get_Alphanumeric(Rask.UiOtp! __b) -> Rask.UiOtp!
@@ -5727,8 +5722,6 @@ static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatetimePicker! __b, int? 
 static RaskBuilderSettersRask_Ui.MaxRange(this Rask.UiDatetimePickerRange! __b, int? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.MaxTime(this Rask.UiDatetimePicker! __b, System.TimeOnly? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.MaxTime(this Rask.UiDatetimePickerRange! __b, System.TimeOnly? value) -> Rask.UiDatetimePickerRange!
-static RaskBuilderSettersRask_Ui.Menu(this Rask.UiRowActions! __b) -> Rask.UiRowActions!
-static RaskBuilderSettersRask_Ui.Menu(this Rask.UiRowActions! __b, bool? value) -> Rask.UiRowActions!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatetimePicker! __b, System.DateTime? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Min(this Rask.UiDatetimePickerRange! __b, System.DateTime? value) -> Rask.UiDatetimePickerRange!
 static RaskBuilderSettersRask_Ui.MinRange(this Rask.UiDatetimePicker! __b, int? value) -> Rask.UiDatetimePicker!

@@ -726,10 +726,10 @@ public enum RaskString
     /// <summary>A form's button that deletes its record, in <c>Ui.FormButtons</c>, and the title of the question it asks first.</summary>
     FormButtonsRemove,
 
-    /// <summary>The tooltip of a list row's pencil, in <c>Ui.RowActions</c>: the row opens to be edited.</summary>
+    /// <summary>A list row's menu item, in <c>Ui.RowActions</c>, that opens the row to be edited.</summary>
     RowActionsEdit,
 
-    /// <summary>The tooltip of a list row's bin, in <c>Ui.RowActions</c>, and the title of the question it asks first.</summary>
+    /// <summary>A list row's menu item, in <c>Ui.RowActions</c>, that deletes it, and the title of the question it asks first.</summary>
     RowActionsRemove,
 
     /// <summary>What the heading of a list's row actions column says to a screen reader, where the page gives it no words.</summary>
@@ -750,7 +750,7 @@ public enum RaskString
     /// </summary>
     PageNotFound,
 
-    /// <summary>A list row's item that opens it to be looked at, in <c>Ui.RowActions.Menu()</c>.</summary>
+    /// <summary>A list row's menu item, in <c>Ui.RowActions</c>, that opens it to be looked at.</summary>
     RowActionsView,
 
     /// <summary>What a select or a pillbox given its rows by <c>.Choices(…)</c> shows while nothing is chosen.</summary>

@@ -35,7 +35,7 @@ public sealed partial class RowActionsMenuExample : Component
                         Ui.TableCell.Cut(supplier.City),
                         Ui.TableCell.Cut(supplier.Vat),
                         Ui.TableCell.End[supplier.Orders.ToString(CultureInfo.InvariantCulture)],
-                        Ui.RowActions.Key(supplier.Name).Menu()
+                        Ui.RowActions.Key(supplier.Name)
                             .View(Routes.UiTablePage())
                             .Edit(Routes.UiFormButtonsPage())
                             .Remove(Removal(supplier), "Delete supplier", $"Delete {supplier.Name}?")[

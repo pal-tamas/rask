@@ -33,13 +33,13 @@ public sealed partial class EditorDialogExample(RouteState route) : Component
                 Ui.TableColumns[
                     Ui.TableColumn["Supplier"],
                     Ui.TableColumn.Width(Ui.ColumnWidth.Reference)["City"],
-                    Ui.TableColumn.Width(Ui.ColumnWidth.Actions)
+                    Ui.TableColumn.RowMenu
                 ],
                 Ui.TableRows[
                     _suppliers.Where(Found).Select(supplier => Ui.TableRow.Key(supplier.Id)[
                         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(supplier.Name),
                         Ui.TableCell.Cut(supplier.City),
-                        Ui.RowActions.Edit(route.With("edit", supplier.Id.ToString(CultureInfo.InvariantCulture)))
+                        Ui.RowActions.Key(supplier.Id).Edit(route.With("edit", supplier.Id.ToString(CultureInfo.InvariantCulture)))
                     ])
                 ]
             ],

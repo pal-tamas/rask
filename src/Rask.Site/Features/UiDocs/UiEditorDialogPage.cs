@@ -22,7 +22,7 @@ public sealed partial class UiEditorDialogPage : Component
                   + "components: the kit's own, made of Flux's modal — a centred box, or a sheet from the right.")
             .Api(UiApi.EditorDialog)[
             UiDocsExample.Key("ui-editor-dialog").Heading("Over its list").File("EditorDialogExample.cs").Demo(EditorDialogExample).Testid("ui-editor-dialog")
-                .Blurb("In(\"edit\") names the key. New supplier and each row's pencil are links to this page with the key "
+                .Blurb("In(\"edit\") names the key. New supplier and each row's Edit are links to this page with the key "
                        + "set (route.With(\"edit\", id)), so the search stays. The cross, Escape, a press outside, Cancel and "
                        + "Back take the key out and the list stands as it was; Save ends with Go.Without(\"edit\")."),
             UiDocsExample.Key("ui-editor-dialog-wide").Heading("A wide sheet").File("EditorDialogWideExample.cs").Demo(EditorDialogWideExample).Testid("ui-editor-dialog-wide")

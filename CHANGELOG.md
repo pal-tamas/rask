@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **BREAKING (Rask.Ui): `Ui.RowActions` is the ⋯ menu only; its pencil-and-bin shape and `Ui.ColumnWidth.Actions` are
+  gone.** One shape for a row's actions, as the owner decided (2026-11-06). Before:
+  `Ui.TableColumn.Actions` … `Ui.RowActions.Edit(url).Remove(…)` drew a muted pencil and bin, and `.Menu()` switched to
+  the ⋯. After: `Ui.TableColumn.RowMenu` … `Ui.RowActions.Key(row.Id).Edit(url).Remove(…)` always draws the ⋯ menu;
+  drop `.Menu()`, and move an `Actions` column to `RowMenu` (or `Buttons` for buttons of the page's own).
 - **The built-in 404 and 403 stand inside the app's frame, as Flux callouts.** Before: an address no page answered drew
   Rask's own page OUTSIDE the layout (inline styles, no menu), so every app wrote a `[NotFound, ParentRoute(typeof(Layout))]`
   page of its own; a page whose `[Authorize]` refused a signed-in reader said `PageForbidden` in a bare `<p>`, and an
@@ -127,14 +132,13 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
-- **`Ui.RowActions.Menu()`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
+- **`Ui.RowActions`: a list row's actions behind one ⋯, held at the table's right edge.** Both apps kept a
   "⋯" helper of their own. Before: `RowActions.For(row, edit, remove, heading, question)` in a hand-made sticky cell,
-  every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).Menu().View(url).Edit(url)
+  every dropdown and item keyed `"row-menu-" + row`. After: `Ui.RowActions.Key(row.Id).View(url).Edit(url)
   .Remove(delete, heading, question)[Ui.MenuItem…]` under `Ui.TableColumn.RowMenu` — Flux's table demo's ghost ⋯ and
   dropdown (bottom end), View, Edit (or `OnEdit` to edit in place), the page's items, then the delete apart in red,
-  asking in `Ui.Confirm`. The cell and its heading are Flux's sticky ones on `Ui.Main`'s surface. `Edit` is no longer a
-  required step (`Ui.RowActions.Remove(…)` alone is a row that can only be deleted), and the pencil row gains `View`
-  and `OnEdit` too; the pencil and bin are otherwise unchanged. New catalog word `RowActionsView` (Megtekintés).
+  asking in `Ui.Confirm`. The cell and its heading are Flux's sticky ones on `Ui.Main`'s surface. No part is required
+  (`Ui.RowActions.Remove(…)` alone is a row that can only be deleted). New catalog word `RowActionsView` (Megtekintés).
   Everything inside one is keyed by the component, so nothing needs a per-row key; key the `Ui.RowActions` itself.
 - **Rask.Ui: the editor over its list, opened by the query string — `Ui.EditorDialog.In("edit")` (#1295).** Not Flux's:
   an addition the owner approved, which both list apps kept a copy of, made of `Ui.Modal`. Before: each app wrote an

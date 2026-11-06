@@ -586,17 +586,16 @@ row shows when it has no rows.
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
-`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` 6, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
-a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. An `Actions`
-heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
+a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu` or
+`Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
 with an ellipsis, the whole of it in the cell's tooltip.
 
-`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its pencil and bin, as Flux draws
-a row's action — a ghost, small, square button in an end-aligned `py-0` cell — in the muted outline. The bin asks in the layout's
-[`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs the delete only on yes; a null delete draws no bin. What you put inside it stands
-before the pencil. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
+`Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its actions behind one ⋯ (below).
+The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
+none. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
 drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
@@ -616,7 +615,7 @@ Ui.Table[
     Ui.TableColumns[
         Ui.TableColumn.Rest["Supplier"],
         Ui.TableColumn.Day["Since"],
-        Ui.TableColumn.Actions
+        Ui.TableColumn.RowMenu
     ],
     Ui.TableRows[rows.Select(s => Ui.TableRow.Key(s.Id)[
         Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(s.Name), Ui.TableCell[Format.Day(s.Since)],
@@ -626,7 +625,7 @@ Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlés
 Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
 ```
 
-`Ui.RowActions.Menu()` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
+`Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
 tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
 edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in
 `Ui.Confirm` (its words are the heading's). None is required: a row that can only be deleted, or only chosen, says only
@@ -645,10 +644,10 @@ Ui.TableCell.Key("actions").End.Class(RowActions.AtTheEdge + " py-0")[
 
 // After: the kit's.
 Ui.TableColumn.RowMenu
-Ui.RowActions.Key(driver.Id).Menu().View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
+Ui.RowActions.Key(driver.Id).View(Routes.DriverPage(driver.Id)).Edit(Editing(driver.Id))
     .Remove(() => Remove(driver.Id), "Sofőr törlése", "Biztos törölni szeretné a sofőrt?")
-Ui.RowActions.Key(tenant.Id).Menu()[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
-Ui.RowActions.Key(row.Id).Menu().OnEdit(() => EditInPlace(row))                    // edited where it stands
+Ui.RowActions.Key(tenant.Id)[Ui.MenuItem.Icon(Ui.IconName.Check).OnClick(() => Choose(tenant))["Kiválasztás"]]
+Ui.RowActions.Key(row.Id).OnEdit(() => EditInPlace(row))                    // edited where it stands
 ```
 
 Live: **[rask.sh/ui/row-actions](https://rask.sh/ui/row-actions/)**, **[rask.sh/ui/form-buttons](https://rask.sh/ui/form-buttons/)**
@@ -700,7 +699,7 @@ page stay, a reload reopens it and Back closes it. The cross, Escape, a press ou
 (`Go.Without("edit")`, in the current history entry's place) and the list stands as the reader left it; a save ends
 with `Go.Without("edit")`, and the list, rendering again, reads its rows again. `.Wide()` opens a form with rows of its
 own as a sheet from the right, as wide as the screen allows (84rem at most); one list can hold both, each with its own
-key. Open it from a link — a pencil, a New button — never a row's double-click. An editor's old address keeps working
+key. Open it from a link — a row's Edit, a New button — never a row's double-click. An editor's old address keeps working
 when its page sends the reader on: `Go.To(Routes.DriversPage().With("edit", id)).Replacing()` in its `OnMount`.
 
 ```csharp

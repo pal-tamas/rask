@@ -387,17 +387,16 @@ internal static partial class UiApi
 
     public static IReadOnlyList<UiApiPart> RowActions { get; } =
     [
-        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: its pencil and bin, as Flux draws a row's action — ghost, small, square, in a py-0 cell — in the muted outline; or, with Menu, all of it behind one ⋯.",
+        new("Ui.RowActions", typeof(UiRowActions), NotFlux, "A list row's last cell: all it can do behind one ghost ⋯ opening a dropdown at the bottom end, as Flux's table demo does, in a py-0 cell held at the table's right edge. Its column is Ui.TableColumn.RowMenu.",
         [
-            new("Menu", typeof(bool?), "Everything behind a ghost ⋯ opening a dropdown at the bottom end, as Flux's table demo does, in a cell held at the table's right edge. Its column is Ui.TableColumn.RowMenu."),
-            new("View", typeof(Rask.Core.Routing.RouteUrl?), "Where the row opens to be looked at: an eye, first.", "a route: Routes.SupplierPage(id)"),
-            new("Edit", typeof(Rask.Core.Routing.RouteUrl?), "Where the pencil opens the row to be edited. Unset, there is none.", "a route: Routes.EditSupplierPage(id)"),
-            new("OnEdit", typeof(Callback), "Edits the row where it stands: the pencil, or the menu's edit item, is a button. Wins over Edit.", Handler),
-            new("Remove", typeof(Func<Task>), "A bin after the pencil — in the menu, the last item, apart and in red — that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
+            new("View", typeof(Rask.Core.Routing.RouteUrl?), "Where the row opens to be looked at: the menu's first item, an eye.", "a route: Routes.SupplierPage(id)"),
+            new("Edit", typeof(Rask.Core.Routing.RouteUrl?), "Where the menu's edit item opens the row to be edited. Unset, there is none.", "a route: Routes.EditSupplierPage(id)"),
+            new("OnEdit", typeof(Callback), "Edits the row where it stands: the menu's edit item is a button. Wins over Edit.", Handler),
+            new("Remove", typeof(Func<Task>), "The menu's last item, apart and in red, that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
                 "the delete, then the question's heading and the question (the catalog's when null)"),
             new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
-            new("RemoveHeading", typeof(string), "The title over the bin's question, and the menu's delete item's words. \"Delete\" when unset."),
-            new("RemoveQuestion", typeof(string), "The question the bin asks first."),
+            new("RemoveHeading", typeof(string), "The title over the delete's question, and the delete item's words. \"Delete\" when unset."),
+            new("RemoveQuestion", typeof(string), "The question the delete asks first."),
         ]),
     ];
 

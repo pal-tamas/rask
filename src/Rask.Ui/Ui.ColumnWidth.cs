@@ -39,14 +39,11 @@ public static partial class Ui
         /// <summary>A name beside a longer text that takes the rest: 18rem.</summary>
         Name,
 
-        /// <summary>The row's <see cref="UiRowActions" />, a pencil and a bin: 6rem, at the column's end.</summary>
-        Actions,
-
-        /// <summary>A row's end that holds more — three or four icon buttons, or a worded one beside the pencil and bin: 12rem.</summary>
+        /// <summary>A row's end that holds buttons of the page's own — three or four icon buttons, or a worded one: 12rem.</summary>
         Buttons,
 
         /// <summary>
-        ///     The row's <see cref="UiRowActions" /> behind one ⋯ (<c>Ui.RowActions.Menu()</c>): 4rem, at the column's end,
+        ///     The row's <see cref="UiRowActions" />, behind one ⋯: 4rem, at the column's end,
         ///     and held at the table's right edge while the other columns scroll under it, as its cells are.
         /// </summary>
         RowMenu,
