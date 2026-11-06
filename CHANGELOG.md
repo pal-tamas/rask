@@ -971,6 +971,12 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The site's picker journeys no longer go red on the 6th of a month, or on a busy machine (#1304).** The datetime
+  picker example opens five days on at 10:30, and the journey pressed the month's 11th enabled day: on the 6th that
+  is the chosen day, which Flux's picker takes as "no day", so the 14:30 picked next had no day to join and the
+  value stayed `…T10:30`. The journey now presses a day that is not the chosen one. The focus journey read
+  `document.activeElement` the instant the focus placeholder was hidden, before the browser had let go of it; it
+  now waits for the focus to fall to the page. The pickers themselves were right and are unchanged.
 - **Escape in `Ui.Editor`'s link panel gives focus back to the link button, as Flux's does (#1260).** Before: it
   always went into the document. Measured on Flux: a mouse press or Enter/Space on the button gets focus back on
   Escape; a tap still leaves it in the document (Flux's tooltip is showing after a tap), and the ⌘K shortcut still
