@@ -71,7 +71,7 @@ and chain it into the options — exactly as Blazor WASM requires under AOT. Pri
 ## The continuous AOT gate
 
 You don't need to run a full AOT publish to catch AOT-safety regressions. The framework runtime
-(`Rask.Wasm`, `Rask.Core`) builds under `IsAotCompatible`, and the WASM sample under
+(`Rask.Wasm`, `Rask.Core`) builds under `IsAotCompatible`, and the site app (`src/Rask.Site`) under
 `EnableAotAnalyzer`, so the **trim + AOT Roslyn analyzers run on every build** under
 warnings-as-errors. A newly introduced `RequiresDynamicCode` or trim hazard fails the normal build
 long before the slow Emscripten step.
@@ -80,8 +80,9 @@ The data layer — `Rask.Data` and `Rask.SQLite.EntityFrameworkCore` — builds 
 **trim** analyzer runs on it the same way, so its reflection stays annotated and a trimmed browser app
 needs nothing kept for Rask's own assemblies. Not `IsAotCompatible`, because EF Core itself is not: a
 trimmed app on EF Core roots EF's three assemblies and suppresses EF's own `IL2026`/`IL2104` — the
-recipe is in [SQLite in the browser](sqlite.md#sqlite-in-the-browser-wasm). The full `-p:RaskWasmAot=true` publish runs in CI nightly as
-the end-to-end proof.
+recipe is in [SQLite in the browser](sqlite.md#sqlite-in-the-browser-wasm). No CI job runs a full
+`-p:RaskWasmAot=true` publish (it needs the `wasm-tools` workload and minutes of Emscripten relink), so
+AOT-safety rests on those analyzers.
 
 ## Why binding is faster
 

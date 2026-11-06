@@ -61,7 +61,8 @@ Tag-specific steps and the universal `Id`/`Class`/`Style`/`Data` steps sit side 
 
 **MDN is the source of truth.** The element types, the tags each one renders and every attribute are
 generated at build time from MDN's own data (`@webref/elements`, `@webref/idl`, `@mdn/browser-compat-data`),
-kept in `src/Rask.Core/Dom/mdn.snapshot.json` and refreshed to the latest stable release by the local build.
+kept in `src/Rask.Core/Dom/mdn.snapshot.json`, which the `mdn` upstream follower moves to the latest stable release
+daily — the build reads the snapshot and never refreshes it.
 The same snapshot carries UI Events' `KeyboardEvent` tables ([key](https://w3c.github.io/uievents-key/),
 [code](https://w3c.github.io/uievents-code/)), pinned by commit, from which `Keys` and `Codes` are generated:
 `e.Key is Keys.Escape`, `case Codes.KeyQ:` (see [keyboard events](composition-callbacks-context.md)).
@@ -224,14 +225,14 @@ not every browser ships carries its support like any member — hover `Popover.H
 
 ### `Attributes` — the escape hatch
 
-Everything the class does not name: microdata (`itemscope`/`itemprop`), `nonce`, `part`/`exportparts`,
-`accesskey`, `slot`, `inputmode`, and anything vendor or experimental. Entries emit verbatim as
+Everything the class does not name: microdata (`itemscope`/`itemprop`), `exportparts`, and anything vendor or
+experimental. Entries emit verbatim as
 `{key}="{value}"` with the value HTML-encoded, and a null value renders the attribute bare, exactly like
 `Data`:
 
 ```csharp
-Div.Attributes(new() { ["itemscope"] = null, ["itemtype"] = "https://schema.org/Person" })
-Div.Attributes(new() { ["inputmode"] = "decimal" })
+Div.Attributes(("itemscope", null), ("itemtype", "https://schema.org/Person"))
+Span.Attributes("itemprop", "name")
 ```
 
 **Prefer a typed property wherever one exists** — it is checked, documented and discoverable, and for
@@ -274,7 +275,7 @@ Button.Command("--spin").CommandFor("widget")["Spin"]     // dispatches a Comman
 
 <!-- demo:props-command -->
 
-`FetchPriority` (`high`, `low`, `auto`) is on `Img`, `Link`, `Script` and `Iframe`. The use with a
+`FetchPriority` (`high`, `low`, `auto`) is on `Img`, `Link` and `Script`. The use with a
 measurable story behind it is `high` on the LCP image — the browser discovers it at the same moment
 either way, this moves it ahead of the other images in the queue. Marking everything high marks nothing
 high.

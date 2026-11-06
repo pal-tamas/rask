@@ -54,10 +54,10 @@ verbatim (so you write `"label"`, not `"aria-label"`) and the value is HTML-enco
 emits a bare attribute.
 
 ```csharp
-Button.Aria(new() { ["label"] = "Close", ["expanded"] = "false" })["✕"]
+Button.Aria(("label", "Close"), ("expanded", "false"))["✕"]
 // <button aria-label="Close" aria-expanded="false">✕</button>
 
-Span.Class("icon").Aria(new() { ["hidden"] = "true" })["\U0001F5D1"]
+Span.Class("icon").Aria("hidden", "true")["\U0001F5D1"]
 // <span class="icon" aria-hidden="true">🗑</span>  — decorative icon, skipped by screen readers.
 // The glyph carries no meaning a reader needs; the BUTTON around it carries the accessible name.
 ```
@@ -126,7 +126,7 @@ Img.Src("/logo.png").Alt("Rask logo")   // informative image
 Img.Src("/divider.png").Alt("")          // decorative: empty alt hides it from assistive tech
 ```
 
-Pass `Alt: ""` for purely decorative images so screen readers skip them; pass a meaningful string
+Pass `.Alt("")` for purely decorative images so screen readers skip them; pass a meaningful string
 for everything else.
 
 ## Form validation

@@ -99,8 +99,8 @@ A nested graph with **async** validators and live totals rolling up from the row
 ## Radio & checkbox groups
 
 `Ui.RadioGroup` binds one value; `Ui.CheckboxGroup` binds an `ICollection<T>`. Both are
-[Flux UI's](ui-kit.md#checkbox-radio-and-switch), and both are ordinary `IFormControl<T>` controls — the binding
-API of §9 — so they work **bound** or **controlled**, exactly like `Input`, and you can build a group of
+[Flux UI's](ui-kit.md#checkbox-radio-and-switch), and both are ordinary `IFormControl<T>` controls — the [binding
+API](forms.md#1-two-way-binding) — so they work **bound** or **controlled**, exactly like `Input`, and you can build a group of
 your own the same way ([building-form-controls.md](building-form-controls.md)). The choices are the group's
 **children**: a `Ui.Radio` or a `Ui.Checkbox` whose `Value` is what the group binds.
 
@@ -127,7 +127,7 @@ Ui.CheckboxGroup.Values(_interests).Label("Interests").OnChange(next => _interes
 ```
 
 - Bound mode opens with `Bind`; `Validate` takes a synchronous or an asynchronous rule, like `Input`
-  (§9). `Ui.RadioGroup` renders the radio whose `Value` equals the current value `checked` and sets the
+  ([validation](forms-validation.md#inline-validation)). `Ui.RadioGroup` renders the radio whose `Value` equals the current value `checked` and sets the
   bound property on select; `Ui.CheckboxGroup` writes the bound collection, in the order the checkboxes
   are written (membership by `EqualityComparer<T>.Default`). Each change calls `NotifyFieldChanged` +
   `NotifyFieldTouched` + `ValidateField`, so DataAnnotations / FluentValidation rules apply.
@@ -232,5 +232,5 @@ Passwords, file, hidden and one-time-code inputs, and anything with a `cc-*` / `
 The binding system is public: a custom control implementing `IFormControl<T>` gets generator-synthesized
 bound + controlled chains, per-field validation, and the same ergonomics as the built-ins — see the
 dedicated guide **[building-form-controls.md](building-form-controls.md)** (with a complete worked example
-and the `IFormControl<T>` helper reference). `Ui.RadioGroup`/`Ui.CheckboxGroup` (§8) and
+and the `IFormControl<T>` helper reference). `Ui.RadioGroup`/`Ui.CheckboxGroup` ([above](#radio--checkbox-groups)) and
 `Ui.Select` are built entirely on it.

@@ -265,10 +265,10 @@ right, because a `[JSInvokable]` is callable by *any* script on the page with *a
   another's widget by counting from 1. Holding the token is what proves ownership.
 - **Unregister on unmount**, or the entry pins the component for the life of the process.
 
-Keep the boundary to primitives and JSON strings and a trimmed WASM publish stays clean. Prefer callbacks
-that take **one** argument (bundle extras into a record): the generated chain step only wraps arity-≤1
-delegates for auto-re-render, so a two-arg callback silently leaves the caller reaching for
-`StateHasChanged()`.
+Keep the boundary to primitives and JSON strings and a trimmed WASM publish stays clean. Expose the
+wrapper's own events as `Callback`, `Callback<T>` or `Callback<T1, T2>` properties: the generated chain step
+re-renders the caller after its handler runs. A plain delegate-typed property gets no such wrapping, and its
+chain step is unreachable besides (CS1593).
 
 Finally, tear down from `OnUnmount` **without awaiting** the interop call. An `IAsyncDisposable`
 component is awaited by the framework's dispose walk, and that walk also runs for a session whose socket
