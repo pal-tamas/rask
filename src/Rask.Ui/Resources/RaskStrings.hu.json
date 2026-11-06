@@ -60,6 +60,7 @@
   "SelectClear": "Kiválasztás törlése",
   "SelectSelectedSuffix": "kiválasztva",
   "SelectChoose": "Válasszon…",
+  "FormTabsInvalid": "Javítandó mezők: {0}",
 
   "DatetimePickerPlaceholder": "Válasszon dátumot és időpontot",
   "DatetimePickerRangePlaceholder": "Válasszon kezdő és záró időpontot",

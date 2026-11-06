@@ -755,4 +755,7 @@ public enum RaskString
 
     /// <summary>What a select or a pillbox given its rows by <c>.Choices(…)</c> shows while nothing is chosen.</summary>
     SelectChoose,
+
+    /// <summary>What a tab of <c>Ui.FormTabs</c> says to a screen reader beside its red count: how many of its fields to correct.</summary>
+    FormTabsInvalid,
 }

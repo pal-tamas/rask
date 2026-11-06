@@ -46,7 +46,7 @@ Ui.Button.Primary["Save"]
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
 [Confirm leave](https://rask.sh/ui/confirm-leave/), [Filters](https://rask.sh/ui/filters/),
-[Form buttons](https://rask.sh/ui/form-buttons/), [Row actions](https://rask.sh/ui/row-actions/) and
+[Form buttons](https://rask.sh/ui/form-buttons/), [Form tabs](https://rask.sh/ui/form-tabs/), [Row actions](https://rask.sh/ui/row-actions/) and
 [Editor dialog](https://rask.sh/ui/editor-dialog/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
@@ -481,6 +481,41 @@ nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"`
 keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
 arrows select as they go, and a tab is never a link. Every example, the keyboard, Flux's attributes as steps and the
 reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
+
+### A long form's tabs
+
+`Ui.FormTabs` is the kit's own (owner-approved, not Flux's): a long form split into Flux's tabs, each tab saying in a
+red `Ui.Badge` how many of the fields it holds are invalid, and every refused save opening the first tab that holds
+one. It stands inside the `Form` and reads that form's messages itself, so the page hands it nothing — no
+`EditContext`, no refusal counter, no `OnInvalidSubmit`. A tab names what it holds with the member expressions a control
+binds; a member that is an object or a collection holds every field it reaches, so an editor's rows are held by their
+list. A field no tab holds is counted by none, and a tab that holds nothing (a document, a history) never shows a
+count. The row scrolls sideways on a phone; which tab is open is the browser's, as a `Ui.Tabs`' is, and every panel
+stays in the form. A correction counts once it reaches the form — with the next action, or as it is typed in a
+`.Live()` field. A screen reader hears the count as "Fields to correct: 2" (`FormTabsInvalid` in the `RaskStrings`
+catalog; „Javítandó mezők: 2” in Hungarian).
+
+```csharp
+// Before (Eszaf): a FormTabs of its own, handed the form's context, field names as strings and a refusal counter.
+Form.Model(model).Context(form).OnSubmit(Save).OnInvalidSubmit(() => { _refused++; })[
+    FormTabs.Form(form).Refused(_refused).Tabs([
+        new("trip", "Törzs", [nameof(model.Number), nameof(model.VehicleId), nameof(model.DriverId), …], Trip(model)),
+        new("transactions", "Tranzakciók", [], Transactions(model)),
+    ]),
+    FormButtons.For(…)]
+
+// After: the kit's. No EditContext, no counter, no OnInvalidSubmit.
+Form.Model(model).OnSubmit(Save)[
+    Ui.FormTabs[
+        Ui.FormTab.Name("trip").Label("Törzs").Holds(() => model.Number, () => model.VehicleId, () => model.DriverId, …)[Trip(model)],
+        Ui.FormTab.Name("transactions").Label("Tranzakciók")[Transactions(model)]
+    ],
+    Ui.FormButtons.Back(…)]
+// A tab shown only for a saved record:  Id is null ? null : Ui.FormTab.Name("document").Label("Dokumentum")[Document()]
+// An editor's rows:                    .Holds(() => model.Pistols) — every field of every pistol
+```
+
+Live: **[rask.sh/ui/form-tabs](https://rask.sh/ui/form-tabs/)**.
 
 ## Tables
 

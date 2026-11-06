@@ -351,6 +351,19 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> FormTabs { get; } =
+    [
+        new("Ui.FormTabs", typeof(UiFormTabs), NotFlux, "A long form's tabs, inside its Form: each counts its invalid fields in a red badge, and a refused save opens the first that holds one.",
+        []),
+        new("Ui.FormTab", typeof(UiFormTab), NotFlux, "One tab: its words, the fields it holds, and its children as the panel.",
+        [
+            new("Name", typeof(string), "Ties the tab to its panel; unique in the row. Required, and taken first."),
+            new("Label", typeof(string), "The words on the tab. Required, and taken first."),
+            new("Holds", typeof(string), "The fields whose messages the tab counts, as the member expressions a control binds; an object or a collection holds every field it reaches.",
+                "fields: () => m.Name, () => m.Address"),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> EditorDialog { get; } =
     [
         new("Ui.EditorDialog", typeof(UiEditorDialog), NotFlux, "A list's editor over the list, open while its query key is in the address; its children are the form, held only while it is open.",
@@ -942,7 +955,7 @@ internal static partial class UiApi
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
-            FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
+            FormButtons, FormTabs, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,
         }.SelectMany(parts => parts).Distinct();
