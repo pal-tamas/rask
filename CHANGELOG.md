@@ -1025,6 +1025,14 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **An unkeyed component inside a keyed list row is that row's, so a late press can no longer act on another row**
+  (#1309). Before: `Ui.TableRow.Key(s.Id)[Ui.TableCell[s.Name], Ui.RowActions.Remove(() => Delete(s))]` reused each
+  `Ui.RowActions` by its order among every one the page writes — delete Aminoff, and a press made a moment earlier on
+  Bothman's delete reached the instance that then drew Geidt's row, and deleted Geidt; the apps keyed every menu by
+  hand (`"row-menu-" + row`). After: once a keyed node has its key and its children, the unkeyed components it holds
+  are told apart by their order among THAT ROW's children (its nearest keyed ancestor), so their state and their
+  handlers follow the row when rows above it come, go or reorder. A page with no keys is unchanged. A component whose
+  props are all callbacks is now also claimed by a `Key` written on it, which it silently was not.
 - **The jobs test for a `.Within(…)` that runs out no longer flakes.** Its 200 ms deadline ran on the real clock
   and raced the processor claiming the job, so on a slow runner the wait ran out before the handler had started
   and "the job still runs" read false. The test clock can now hold its timers (`FakeTimeProvider.HoldTimers`):

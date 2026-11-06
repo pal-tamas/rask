@@ -19,11 +19,7 @@ public abstract partial class Component
     [OverloadResolutionPriority(1)]
     public Component this[params Component?[] children]
     {
-        get
-        {
-            Children = children;
-            return this;
-        }
+        get => WithChildren(children);
     }
 
     // Single-arg enumerable form: a `List<Component>`, a `.Select(...)` LINQ projection, or any
@@ -42,8 +38,7 @@ public abstract partial class Component
             // every render and silently drop its state (e.g. a demo mounted from a yield-built list).
             // Already-materialised collections (Component?[]/List<Component?>/…) ran their factories
             // when the caller built them, so they pass through without a copy.
-            Children = children is IReadOnlyCollection<Component?> ? children : children.ToArray();
-            return this;
+            return WithChildren(children is IReadOnlyCollection<Component?> ? children : children.ToArray());
         }
     }
 
@@ -96,8 +91,21 @@ public abstract partial class Component
                 flat.Dispose();
             }
 
-            return this;
+            return WithChildren(Children);
         }
+    }
+
+    // A keyed node given its children after its key is complete: the unkeyed components it holds are its own from
+    // here on, told apart by their order among its children rather than among everything its owner writes (#1309).
+    private Component WithChildren(IEnumerable<Component?> children)
+    {
+        Children = children;
+        if (Key is { } key)
+        {
+            BuilderRuntime.ScopeRow(this, key);
+        }
+
+        return this;
     }
 
     // Mirrors the implicit operators above — anything spellable as a child directly is spellable
@@ -262,8 +270,7 @@ public abstract partial class Component
             }
             else
             {
-                instance = siblings.Spare as T ?? NewChild(factory, services);
-                siblings.Spare = null;
+                instance = siblings.TakeSpare<T>() ?? NewChild(factory, services);
                 siblings.Hold(instance);
             }
         }

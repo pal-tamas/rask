@@ -81,6 +81,10 @@ A `.Key(…)` on a list item gives it a stable identity across renders, so a reo
 DOM node (with its focus, caret, and uncommitted input) instead of detaching and re-creating it. This
 is the same reconciliation identity the diff uses everywhere — not a reactive prop.
 
+What a keyed row holds is the row's: an unkeyed component inside it — a cell, a counter, a row's delete menu — is
+told apart by its order among that row's children, so its state and its handlers follow the row when rows above it
+are removed or reordered ([composition](composition.md), #1309).
+
 <!-- demo:keyed-lists-reorder -->
 
 A **master-detail** grid is the same identity trick at work: each order row carries a `Key`, and expanding
