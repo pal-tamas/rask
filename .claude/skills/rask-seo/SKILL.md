@@ -16,8 +16,7 @@ own ("blazor", "react"). Map every new page to one:
 | Query a developer types | Page |
 | --- | --- |
 | blazor alternative / migrate from blazor | `migration-from-blazor` |
-| use MudBlazor / Radzen components without a Blazor circuit | `blazor-components` |
-| React / Vue / Svelte components in a C# / .NET app | `islands` (+ `/docs/islands`) |
+| serve a C# WebAssembly app from ASP.NET Core | `spa` |
 | CQRS .NET source generator, mediator without reflection | `cqrs` |
 | SQLite in production .NET, WAL, Litestream | `sqlite`, `08-production-sqlite` |
 | EF Core SQLite full-text search, FTS5 in .NET, ranked search with highlights | `sqlite` (#full-text-search), `data` |

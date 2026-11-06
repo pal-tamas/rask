@@ -91,8 +91,6 @@ the page that uses the card is the one that built them. Each row shows what its 
 - **The key**, as a badge, when the component has one.
 - **Its props**, as `Name=value`. Rask writes the code that reads them when it builds the app, so they are there in a
   trimmed WASM app too.
-- **What it is**, as a badge, when it is more than a component: an island's runtime (`React`, `Vue`, `Lit`…), or
-  `Blazor`.
 
 Select a row to see the component in full beside the tree: its key, every prop with its type and value, and its
 [context](composition.md):
@@ -104,9 +102,6 @@ Select a row to see the component in full beside the tree: its key, every prop w
 
 Context is recorded while the panel is open. Open the panel on a page that has already rendered, and a component's
 context appears with the page's next render.
-
-An [island](islands.md) is a row like any other component, with the props your C# passed it. Its own components live
-in the browser, so the tree ends at the island.
 
 **Show HTML tags** adds the elements between the components, so you can see which `<ul>` a row sits in.
 
@@ -228,7 +223,6 @@ The tab keeps the last 500 interactions. **Clear** forgets them.
   `OnMount`.
 - **A warning or an error from the framework**, such as two list items sharing a key, or a JavaScript call that failed.
 - **A script on the page that threw**, or a promise that was rejected with nothing to catch it.
-- **An island that failed** to mount, update or unmount, or whose props it could not read.
 
 What your code logs with `console.error` is not listed: logging a problem is not the same as failing.
 
@@ -239,18 +233,17 @@ are listed, but not counted. Nothing opens by itself.
 
 Each error shows:
 
-- **What kind it is**: `render`, `handler`, `lifecycle`, `page script`, `island`, or `warning` / `error` for the
+- **What kind it is**: `render`, `handler`, `lifecycle`, `page script`, or `warning` / `error` for the
   framework's own.
 - **The exception type and message**. Rask unwraps the wrappers .NET adds around it, so you see the exception your
   code threw.
-- **Where it happened**: the components it sat in, outermost first. For an island, that is the component the island
-  sits in. **Show in tree** opens the Tree tab at that component and selects it.
+- **Where it happened**: the components it sat in, outermost first. **Show in tree** opens the Tree tab at that component and selects it.
 - **Whether an error boundary caught it**, for a handler or a lifecycle hook.
 - **Its stack**, behind **Stack**.
 
 The same error again, straight after, counts up as `×2` rather than adding a row.
 
-A script or an island that fails before you have opened the panel still counts on the pill. The page keeps the last 50
+A script that fails before you have opened the panel still counts on the pill. The page keeps the last 50
 such failures and lists them as soon as the panel opens.
 
 Most framework warnings happen while a page renders or handles an event, and those are listed for that page. One

@@ -964,8 +964,7 @@ It is the **runtime** that marks the button, not script in the kit, because only
 dispatch starts and ends. So every `<button>` with a handler gets the same `data-loading` + `aria-busy`
 attributes — `Ui.Button` is what turns them into a spinner, and your own CSS can style `[data-loading]` on any control. `data-rask-loading="off"` on an element, or on a toolbar around several,
 opts them out; `data-rask-loading` on a non-button element opts it in. It is never `disabled`, which would
-throw keyboard focus off the control mid-press. A Blazor island's buttons get it too — their handlers
-dispatch over the same channel.
+throw keyboard focus off the control mid-press.
 
 A **field** is marked the same way once the event that sent its value is unanswered — `data-loading` alone, with no
 `aria-busy` — so your own CSS can say `data-loading:opacity-70` on an input that searches as it is typed. The kit

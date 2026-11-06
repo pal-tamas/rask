@@ -45,17 +45,14 @@ public sealed class SiteExampleTests
             await Expect(page.Locator(".hero-grid pre")).ToContainTextAsync(": Aggregate<Guid, Timestamps, Versioned, Model, Deletable>");
             await Expect(page.Locator(".hero-code-tab")).ToHaveCountAsync(2);
 
-            // The three front-end lanes are part of the prerendered document rather than something the
-            // bundle fills in later. This is the section a visitor reads to work out which lane they
-            // are in — and the one a crawler has to see all of, since choosing a front end is the
-            // decision that brings people to the page at all. Asserted with no timeout extension, for
+            // The three hosts are part of the prerendered document rather than something the bundle
+            // fills in later: a crawler has to see all of them. Asserted with no timeout extension, for
             // the same reason as the headline above: waiting would mean it was not prerendered.
-            await Expect(page.Locator("#front-ends a")).ToHaveCountAsync(3);
-            await Expect(page.Locator("#front-ends")).ToContainTextAsync("Blazor components");
+            await Expect(page.Locator("#hosts a")).ToHaveCountAsync(3);
+            await Expect(page.Locator("#hosts")).ToContainTextAsync("WebAssembly host");
 
             // The whole stack leads: the back end sits directly under the hero, the C# frontend follows
-            // it, and only then the front-end lanes — which say what Rask is to the frameworks it hosts.
-            // Prerendered as well, so again no timeout extension.
+            // it, and only then the hosts. Prerendered as well, so again no timeout extension.
             await Expect(page.Locator("#whole-stack")).ToHaveCountAsync(1);
             await Expect(page.Locator("#frontend")).ToHaveCountAsync(1);
             Assert.True(
@@ -63,13 +60,12 @@ public sealed class SiteExampleTests
                     "() => !!(document.getElementById('whole-stack').compareDocumentPosition("
                     + "document.getElementById('frontend')) & Node.DOCUMENT_POSITION_FOLLOWING)"
                     + " && !!(document.getElementById('frontend').compareDocumentPosition("
-                    + "document.getElementById('front-ends')) & Node.DOCUMENT_POSITION_FOLLOWING)"),
-                "the sections are not in whole-stack → frontend → front-ends order.");
+                    + "document.getElementById('hosts')) & Node.DOCUMENT_POSITION_FOLLOWING)"),
+                "the sections are not in whole-stack → frontend → hosts order.");
             // The back end is the real one: its data, realtime and deploy cards are in the first paint.
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/data/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/subscriptions/']")).ToHaveCountAsync(1);
             await Expect(page.Locator("#whole-stack a.guide-link[href='/docs/guides/deployment/']")).ToHaveCountAsync(1);
-            await Expect(page.Locator("#front-ends")).ToContainTextAsync("superset");
             await Expect(page.GetByText("Rask vs Blazor")).ToHaveCountAsync(0);
 
             // Note there is deliberately no "the marker is present" assertion here. It is true only

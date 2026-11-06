@@ -15,8 +15,8 @@ restyling them is editing them. They are ordinary components written against `IA
 from `Rask.Auth`.
 
 The API is the same on every host. A component injects `IAuth` to move somebody between signed-out and
-signed-in, and `IUserProvider` to read who that is — identical on the Server host, in WebAssembly, and
-inside an island. Any other client reaches the same flows through `/api/auth`.
+signed-in, and `IUserProvider` to read who that is — identical on the Server host and in WebAssembly.
+Any other client reaches the same flows through `/api/auth`.
 
 ## Two packages, one battery
 

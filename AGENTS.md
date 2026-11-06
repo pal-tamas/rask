@@ -16,7 +16,7 @@ Apply the matching playbook automatically:
 - **rask-review** — security/perf/memory/best-practices. **land-on-main** — Conventional-Commit, land straight on `main`.
 - **rask-seo** — search + AI-assistant discoverability, on every site/docs/package-metadata change.
   **rename-public-member** — one-pass Roslyn rename of a public name, then baselines, templates and docs.
-- **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + Node LTS + the pins outside CPM.
+- **cut-release** — tag `vX.Y.Z`. **check-dependency-updates** — NuGet + the pins outside CPM.
 
 ## The gate (every change)
 1. `dotnet format Rask.slnx` (+ `--verify-no-changes`) — the full pass, not `whitespace`; CI's

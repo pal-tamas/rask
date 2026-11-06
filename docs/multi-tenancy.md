@@ -408,7 +408,7 @@ Who may choose is the role `AuthOptions.ActInTenantRole` — `admin` by default,
 only a user who **belongs to no tenant**: somebody signed in to one customer is refused rather than let into
 another. Both are read from the user's row at every request, so taking the role away takes the chosen tenant
 with it. On the Server host the click stores the choice and loads `returnUrl` as a fresh page; in WebAssembly
-and from a TypeScript front end it is `POST /api/auth/tenant` with `{ "tenant": "…" }` (`null` leaves), which
+and from any other client it is `POST /api/auth/tenant` with `{ "tenant": "…" }` (`null` leaves), which
 needs the `X-Rask-Auth` header and is refused (`403`) when the browser says another site sent it
 (`Sec-Fetch-Site` other than `same-origin`).
 

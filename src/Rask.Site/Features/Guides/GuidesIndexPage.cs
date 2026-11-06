@@ -25,8 +25,8 @@ public sealed partial class GuidesIndexPage : Component
         PageHeader
             .Title("Guides")
             .Lead("Everything Rask covers, end to end: data and CQRS, auth, background jobs, email, cache, "
-                  + "realtime, multi-tenancy, search and deploy — then the UI, from C# components to islands "
-                  + "and SPAs. The same guides ship in the repo's docs/ folder; here they carry runnable demos."),
+                  + "realtime, multi-tenancy, search and deploy — then the UI, from C# components to "
+                  + "WebAssembly. The same guides ship in the repo's docs/ folder; here they carry runnable demos."),
         Install(),
         Div[GuideCards]
     ];

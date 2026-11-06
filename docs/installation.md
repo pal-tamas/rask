@@ -26,7 +26,6 @@ whole story — the script exists for the case where you don't.
 | **Always** | **`Rask.Cli`** as a global tool | the `rask` command itself | updated instead of installed |
 | **Always** | **`dotnet-ef`** | `rask db add` / `update` / `list` / `drop` | installed if missing; `rask db` updates it when it is older than the EF Core runtime the app uses, rather than letting every command open with a version notice |
 | **Always** | **`wasm-tools` workload** | every browser build (`net10.0-browser`) — the `wasm` and `wasm-hosted` templates | left alone |
-| **Always** | **Node.js LTS** into `~/.local/share/rask/node` | [islands](islands.md) (`rask new --islands react\|vue\|svelte\|…`): their build bundles them, and `rask dev` serves them from Vite. Also the front-end templates (`react`, `vue`, `angular`, …), whose client npm builds. Only at build time — a published app does not run Node. | left alone if `node --version` is ≥ 26.13 (the newest Active LTS release; an app builds on 24.11 or later) |
 | **Never** | Docker | `rask deploy`, `rask db backup --remote` | detected and reported only |
 
 Docker is deliberately not installed. Putting a container runtime on someone's workstation is a big,
@@ -36,9 +35,6 @@ you want it.
 The .NET SDK is only installed **when there isn't one**. An SDK you installed with `brew`, `apt`, or
 the Microsoft installer is detected and used as-is; the script never touches it, and never changes
 which `dotnet` your other projects resolve.
-
-Node is downloaded from `nodejs.org` and its **SHA-256 is verified against the published
-`SHASUMS256.txt`** before anything is unpacked.
 
 ## Options
 
@@ -56,13 +52,12 @@ everything after `--` becomes the script's arguments.
 | `--no-sdk` | | never install the .NET SDK, even when none is found |
 | `--no-ef` | | skip `dotnet-ef` (`rask db` installs it on first use anyway) |
 | `--no-wasm-tools` | | skip the workload — a server-only app never needs it |
-| `--no-node` | | skip Node — only islands need it |
 | `--no-path` | | never write to a shell profile |
 | `--dry-run` | | print every step and change nothing |
 | `--quiet` | | print only errors and the final summary |
 | `--help` | | the option list |
 
-On Windows the same options are PowerShell switches (`-Prerelease`, `-NoNode`, `-DryRun`, …). `iex`
+On Windows the same options are PowerShell switches (`-Prerelease`, `-NoSdk`, `-DryRun`, …). `iex`
 cannot pass arguments, so use a script block when you need one:
 
 ```powershell
@@ -76,11 +71,9 @@ Every path is overridable from the environment, on both scripts:
 | Variable | Default (Unix) | Default (Windows) |
 |---|---|---|
 | `RASK_INSTALL_DOTNET_ROOT` | `$DOTNET_ROOT`, else `~/.dotnet` | `%USERPROFILE%\.dotnet` |
-| `RASK_INSTALL_PREFIX` | `~/.local/share/rask` | `%LOCALAPPDATA%\rask` |
 | `RASK_INSTALL_DOTNET_CHANNEL` | `10.0` | `10.0` |
 | `RASK_INSTALL_DOTNET_MAJOR` | `10` | `10` |
 | `RASK_INSTALL_DOTNET_QUALITY` | *(unset)* | *(unset)* |
-| `RASK_INSTALL_NODE_MIN` | `26.13.0` | `26.13.0` |
 | `RASK_INSTALL_PACKAGE` | `Rask.Cli` | `Rask.Cli` |
 
 `RASK_INSTALL_DOTNET_QUALITY` is passed to Microsoft's `dotnet-install` only when you set it, because a
@@ -123,19 +116,17 @@ dependency that is already current untouched.
 
 ```bash
 dotnet tool uninstall -g Rask.Cli
-rm -rf ~/.local/share/rask          # the Node the installer unpacked, if any
 ```
 
 Then delete the block between `# >>> rask installer >>>` and `# <<< rask installer <<<` from your
 shell profile. Leave `~/.dotnet` alone unless you are sure nothing else uses it.
 
-On Windows: `dotnet tool uninstall -g Rask.Cli`, remove `%LOCALAPPDATA%\rask`, and drop the two rask
-entries from your user `Path`.
+On Windows: `dotnet tool uninstall -g Rask.Cli`, and drop the rask entries from your user `Path`.
 
 ## Troubleshooting
 
 **`rask: command not found` right after installing.** Expected, and not a failed install — `dotnet`
-and `node` will be missing from that shell too. A shell reads its profile when it *starts*, and the
+will be missing from that shell too. A shell reads its profile when it *starts*, and the
 installer ran as a child process, which cannot reach into the environment of the shell that launched
 it. No installer can. Open a new terminal, or reload the current one with the exact line the script
 printed just above `Then:` — `source ~/.bashrc`, `source ~/.zshrc`, `source ~/.config/fish/config.fish`
@@ -161,15 +152,6 @@ export DOTNET_ROOT="$HOME/.dotnet"
 The installer only writes `DOTNET_ROOT` when it actually installed an SDK into `~/.dotnet` — setting
 it on a machine whose SDK lives elsewhere would break the SDK that was working.
 
-**"Node … unpacked, but it cannot start" / `libatomic.so.1: cannot open shared object file`.**
-nodejs.org's Linux build links `libatomic` from Node 26 on, and a minimal image — `debian:*-slim`,
-Ubuntu's and Fedora's containers — leaves it out. The installer never runs a package manager, so it
-prints the command for your distro instead: `sudo apt-get install -y libatomic1` (Debian/Ubuntu),
-`sudo dnf install -y libatomic` (Fedora/RHEL) or `sudo zypper install -y libatomic1` (openSUSE). The
-unpacked Node stays where it is, so that one command is the whole fix — no re-run. On Alpine, which
-nodejs.org publishes no musl build for, use the distro's own `apk add nodejs npm`. `rask doctor`
-reports the same node as `cannot start`.
-
 **"installing the .NET SDK needs `bash`."** Microsoft's `dotnet-install.sh` is a bash script, even
 though `rask.sh` itself is POSIX `sh`. Nearly every system has bash; a minimal container may not.
 Install it, or install the SDK yourself and re-run with `--no-sdk`.
@@ -183,8 +165,8 @@ directory is root-owned. Run `sudo dotnet workload install wasm-tools` (Windows:
 terminal). The script never elevates on your behalf. Only browser-wasm builds need it — a server app
 builds fine without.
 
-**Behind a proxy, or offline.** The script needs `nuget.org`, `dot.net` and `nodejs.org`. With an
-SDK and Node already installed, `--no-sdk --no-node` reduces that to `nuget.org` alone.
+**Behind a proxy, or offline.** The script needs `nuget.org` and `dot.net`. With an
+SDK already installed, `--no-sdk` reduces that to `nuget.org` alone.
 
 **Reviewing it before running it.** It is a single POSIX `sh` file with no dependencies, served from
 this repository — read it at [`rask.sh`](https://github.com/pal-tamas/rask/blob/main/rask.sh), or:
@@ -217,7 +199,6 @@ dotnet tool install -g Rask.Cli
 # 3. what your project needs
 dotnet tool install -g dotnet-ef       # rask db
 dotnet workload install wasm-tools     # browser-wasm builds
-# 4. Node 26 LTS — https://nodejs.org   (islands and front ends only)
 ```
 
 `rask doctor` reports what it finds either way.

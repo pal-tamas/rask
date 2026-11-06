@@ -16,21 +16,9 @@
 
 /*
   The guides' typography (#1101): Tailwind's own typography plugin, `prose`, on the rendered docs/*.md.
-  The standalone Tailwind binary bundles it, which is the engine every platform this site builds on uses.
-  Rask.Tailwind's npm fallback (platforms with no standalone binary) installs tailwindcss alone, so there
-  this line would need `@tailwindcss/typography` added to the generated package.json.
+  The standalone Tailwind binary bundles it, so the line needs nothing installed.
 */
 @plugin "@tailwindcss/typography";
-
-/*
-  The islands' front-end files.
-
-  They live in this project now, where Tailwind would find them anyway — this stays explicit because
-  the failure it prevents is silent: a `.vue`, `.tsx` or `.svelte` Tailwind cannot see loses every
-  utility it names, and the island renders unstyled with nothing reporting why. It used to name two
-  sibling projects, which is what made it load-bearing before the merge.
-*/
-@source "../Features/Islands";
 
 @layer base {
   /*

@@ -1484,7 +1484,7 @@ reflection. **It does not call the aggregate's methods**, so a rule that must ho
 validation attribute on the aggregate (copied to the model), and a change that is a domain operation goes through
 a method in the lambda.
 
-**Or send it in a command.** A command, a query, an API endpoint or an island prop can carry a `ProductModel`
+**Or send it in a command.** A command, a query or an API endpoint can carry a `ProductModel`
 (`public sealed record AddProduct(ProductModel Product) : ICommand<Guid>`), and the generators that build their
 codecs recognise it although it is itself generated; the handler calls `Product.Create(command.Product)`. The
 model carries every mapped property, so input from outside your own pages is best a command of its own that says

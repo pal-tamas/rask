@@ -43,8 +43,8 @@ curl -sSL https://rask.sh/rask.sh | sh
 
 On Windows, in PowerShell: `irm https://rask.sh/rask.ps1 | iex`.
 
-**Prerequisites: none.** The installer adds whatever is missing — the .NET SDK, the `wasm-tools`
-workload, Node — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?
+**Prerequisites: none.** The installer adds whatever is missing — the .NET SDK and the `wasm-tools`
+workload — all under `$HOME`, no `sudo`. Already have the SDK and want only the tool?
 `dotnet tool install -g Rask.Cli`. See [installation](docs/installation.md).
 
 Adding Rask to a project you already have is one package — the host, with every battery:
@@ -54,57 +54,19 @@ dotnet add package Rask.Server   # an ASP.NET app: live pages, database, auth, j
 dotnet add package Rask.Wasm     # a browser app on .NET WebAssembly
 ```
 
-## C# components, and islands for the rest
+## C# components
 
-Pages are C# components. Your React, Vue, Svelte, Solid, Angular, Lit or Preact components — and
-[a real Blazor component](docs/blazor-components.md) — run as islands *inside* those pages, against the
-same C# back end. Rask builds on ASP.NET Core and EF Core rather than replacing them.
-
-### Rask components
-
-C# components, server-rendered, with every state change streaming to the browser as a minimal diff
+Pages are C# components, server-rendered, with every state change streaming to the browser as a minimal diff
 over a WebSocket. Pick `--template wasm-hosted` and the pages run in the browser instead: a WebAssembly app in the
 project's `Client/` folder, served by the same server that answers its API — no second project to
-maintain, and message records in `Shared/` compile into both halves.
+maintain, and message records in `Shared/` compile into both halves. Rask builds on ASP.NET Core and
+EF Core rather than replacing them.
 
 ```bash
 rask new Shop
 ```
 
 → [Render modes](docs/render-modes.md) · [Building components](docs/building-components.md)
-
-### Islands
-
-A `.tsx`, `.vue`, `.svelte` or Lit file as an *ordinary* Rask component. Derive from
-`ReactComponent`, `PreactComponent`, `SolidComponent`, `VueComponent`, `SvelteComponent`,
-`AngularComponent` or `LitComponent`, drop the front-end file beside
-it, and place it anywhere the chain goes — a leaf inside a card, or a whole route. Props are declared
-in C#, callbacks re-enter C# over the channel every handler already uses, and the live diff leaves the
-subtree alone because its own renderer owns it. Neither host brings this pillar on its own: add
-`Rask.External`, and Node, because your React does.
-
-A component from npm needs no front-end file at all: name the package export in `Module`, and its chain
-steps are generated from the package's own TypeScript into a committed `ColorPicker.props.json`. An
-island takes children of its own runtime, so a React island can hold another.
-
-```bash
-rask new Shop --islands react    # scaffolds the pair, the npm dependencies and the package reference
-```
-
-```csharp
-public sealed partial class Chart : ReactComponent
-{
-    public required IReadOnlyList<Point> Series { get; set; }
-}
-
-public sealed partial class ColorPicker : ReactComponent
-{
-    protected override string Module => "react-colorful";
-    protected override string Export => "HexColorPicker";   // .Color(…), .OnChange(…)
-}
-```
-
-→ [Islands](docs/islands.md)
 
 ## Ship it
 

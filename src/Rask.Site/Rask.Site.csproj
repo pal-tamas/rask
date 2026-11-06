@@ -106,18 +106,12 @@
     <NoWarn>$(NoWarn);IL2104</NoWarn>
     <!-- The showcase draws Ui.Flag: its drawings are files in wwwroot/flags, copied there at build. -->
     <RaskUiWriteFlags>true</RaskUiWriteFlags>
-    <!-- The package islands' committed *.props.json are moved by the island-props follower
-         (scripts/upstream/followers.json), daily and gated, never as a side effect of a build here. -->
-    <RaskExternalPropsExtract>false</RaskExternalPropsExtract>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- The browser host, with the trim-safe client batteries it brings: the mediator, the query cache,
          remote dispatch, accounts and validation. -->
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
-    <!-- The islands page (Features/Islands): the island base classes, and the build layer that
-         bundles their front-end files into wwwroot/_rask/external. -->
-    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- Arrived with the guides and demos when the Shared library folded into this project. Rask.Core
          is named explicitly rather than left to the host package: the library used to carry it,
          and the host reference does not flow it to the compiler — dropping it takes `Component` itself
@@ -153,8 +147,7 @@
        raksrc/{leaf}; Program.cs registers this app assembly with EmbeddedSource so the lookup
        finds them. A .cs stays compiled too; this only adds its text as a manifest resource. -->
   <ItemGroup>
-    <!-- *.props.json is a package island's committed snapshot, shown beside the class it generates steps for. -->
-    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.ts;Features/**/*.js;Features/**/*.css;Features/**/*.tsx;Features/**/*.vue;Features/**/*.svelte;Features/**/*.props.json">
+    <EmbeddedResource Include="Features/**/*.cs;Features/**/*.ts;Features/**/*.js;Features/**/*.css">
       <LogicalName>raksrc/%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
@@ -173,18 +166,6 @@
 
   <!-- The kit's namespace, project-wide. Its icons and components are named in markup all over this
        project, and a per-file using on ~60 files would be noise. -->
-  <!--
-    The islands' front-end files. Styles/app.css names the same directory in `@source`, and that is a
-    TAILWIND-side path — nothing hands it to MSBuild, so without this the sheet is built from them once
-    and then never rebuilt when one changes.
-
-    The two have to be stated together: `@source` decides what Tailwind SCANS, this decides what the
-    build WATCHES, and a file in one but not the other goes stale silently.
-  -->
-  <ItemGroup>
-    <RaskTailwindSource Include="Features/Islands/**/*.vue;Features/Islands/**/*.tsx;Features/Islands/**/*.svelte;Features/Islands/**/*.ts"/>
-  </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="ColorCode.HTML"/>
     <PackageReference Include="Markdig"/>

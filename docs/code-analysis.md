@@ -46,8 +46,8 @@ command.CommandText = $"SELECT \"Key\" FROM \"{table.Replace("\"", "\"\"", Strin
 ```
 
 Never for a whole project or path, so the rule keeps guarding every new line. Two exceptions, both in
-`.editorconfig`: `MA0004` (`ConfigureAwait`) is off in `Rask.Core`, `Rask.Ui`, `Rask.Blazor` and `Rask.Site`, whose
-component and runtime code runs on Rask's lifecycle context or Blazor's renderer, where an `await` must resume; and
+`.editorconfig`: `MA0004` (`ConfigureAwait`) is off in `Rask.Core`, `Rask.Ui` and `Rask.Site`, whose
+component and runtime code runs on Rask's lifecycle context, where an `await` must resume; and
 `CA1716` (a name that is a Visual Basic keyword) is off everywhere, because Rask is a C# framework and a name like
 `Select`, `Option` or `Get` is the HTML tag or the repo's verb.
 

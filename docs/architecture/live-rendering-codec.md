@@ -283,7 +283,7 @@ sets the clone's `innerHTML` to the fragment, and runs the same `morph()` a whol
 context: table rows inside a `<tbody>`, options inside a `<select>`, and shapes inside an `<svg>` in
 the SVG namespace. So everything the whole-page morph guarantees holds inside the morphed parent,
 exactly as before — a focused field that streams its typing is left alone, a field holding what the
-server has not heard yet keeps it, `data-rask-managed` nodes are skipped, a `data-rask-opaque` island
+server has not heard yet keeps it, `data-rask-managed` nodes are skipped, a `data-rask-opaque` subtree
 keeps its children, attributes a behaviour hook owns stay the hook's, an open `<dialog>` stays open,
 a keyed child keeps its node — and everything **outside** it is not touched at all: the focus, the
 caret, the scroll position and the expanded groups of a menu the navigation never named. An inline

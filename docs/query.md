@@ -1,9 +1,8 @@
 # Rask.Query — the dispatcher, cached
 
 `Rask.Query` wraps `IDispatcher` in a cache: request dedup, staleness, background refetch and
-invalidation, for Rask components. It is TanStack Query's model in C#, down to the defaults — so an
-app whose front end is React and whose admin pages are Rask components behaves the same way on both
-sides.
+invalidation, for Rask components. It is TanStack Query's model in C#, down to the defaults — so
+anyone who knows TanStack Query already knows how it behaves.
 
 ```csharp
 builder.Services.AddRaskQuery();

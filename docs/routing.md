@@ -15,7 +15,7 @@ using Rask.Core.Routing;
 In a Web SDK project without it, `[Route]` finds ASP.NET's `Microsoft.AspNetCore.Routing.Route` class instead
 and the build stops with `CS0616: 'Route' is not an attribute class` — the fix is the line above. A hand-wired host
 puts it in the page files rather than in a global using when it also has MVC controllers: their `[Route]` is
-`Microsoft.AspNetCore.Mvc.RouteAttribute`, and both in scope is CS0104 (see [SPA hosting](spa.md#moving-an-existing-app-onto-rask-a-page-at-a-time)).
+`Microsoft.AspNetCore.Mvc.RouteAttribute`, and both in scope is CS0104 (see [moving an existing app onto Rask](#moving-an-existing-app-onto-rask-a-page-at-a-time)).
 
 See also: [lifecycle.md](lifecycle.md) for hook timing on routed pages, [authentication.md](authentication.md) for
 auth gating, and [diagnostics.md](diagnostics.md) for the routing analyzers (RASK003–RASK013).
@@ -129,7 +129,7 @@ empty one is left out like an ungiven argument: `FleetPage.Url(Drivers: ["ada", 
 
 A key left out lands on [the property's initializer](#route-and-query-parameters), so the link to a list is
 its clean address and only a link that says a page carries one. `Routes.OrdersPage(…)`, `Url(…)` and `Go(…)`
-are one formatter and agree, and so does the TypeScript `Routes` an island imports.
+are one formatter and agree.
 
 Use `Url` where a link's target belongs and `Go` where a handler navigates:
 
@@ -314,8 +314,7 @@ public sealed partial class FleetPage : Component
   their value.
 - **A key with no element left keeps the initializer**, as an absent one does, and going back to an address
   without the key puts the initializer back.
-- **Write:** `Routes.FleetPage(…)`, `FleetPage.Url(…)`/`.Go(…)` and the TypeScript `Routes` of an island
-  (`Routes.FleetPage({ Drivers: ['ada', 'theo'] })`) write the same bytes: the elements in order, invariant
+- **Write:** `Routes.FleetPage(…)` and `FleetPage.Url(…)`/`.Go(…)` write the same bytes: the elements in order, invariant
   culture, each under `Drivers%5B%5D`. A `null` or empty list, or one whose every element writes as nothing,
   leaves the key out. From a handler, `Go.With("drivers", drivers)` sets the list — like Laravel's
   `route(…, ['drivers' => [...]])` or Rails' `url_for(drivers: [...])` — replacing the key in every form it had
@@ -625,9 +624,6 @@ Go.To("/login").Replacing();               // redirect without a back-stack entr
 Routes.LoginPage().Go().Replacing();
 ```
 
-Front-end code in an [island](islands.md#navigating-from-an-island) navigates with the same two names —
-`Routes.UserPage({ Id: 42 }).Go()`, `Go.With('page', '2')` — generated from these pages into `@rask/routes`.
-
 Files go to the browser with `Download.File(…)`, under the same event-handler-only rule — see
 [HTTP & files](http-and-files.md#downloading-files).
 
@@ -841,3 +837,68 @@ a page component; the `RouteAuthorizationGuard` enforces it before the page rend
 ([guests](authentication.md#a-page-only-for-guests)). The session is a cookie and
 `Rask.Auth` owns that scheme; roles and policies are ASP.NET's own `AddAuthorization`. Full flows on Server and
 WASM are in [authentication.md](authentication.md).
+
+## Moving an existing app onto Rask, a page at a time
+
+An ASP.NET app that already has an API and pages of its own does not have to move at once. Give Rask a
+prefix, and leave everything else where it is:
+
+```csharp
+builder.Services.AddRask();
+
+var app = builder.Build();
+app.UseWebSockets();
+app.MapControllers();                    // the API and the existing pages, unchanged
+app.MapRask<App>(pathBase: "/new");      // pages that have moved
+```
+
+`AddRask()` and `MapRask<App>()` need no `using`: referencing `Rask.Server` imports its namespace for the
+project. A page file imports routing itself, because `[Route]` lives in `Rask.Core.Routing`:
+
+```csharp
+using Rask.Core.Routing;
+
+[Route("/orders")]
+public sealed partial class OrdersPage : Component { … }
+```
+
+Without that line the Web SDK's own `Microsoft.AspNetCore.Routing.Route` class answers to `[Route]`, and
+the build stops with `CS0616: 'Route' is not an attribute class`. Rask does not import the namespace for
+the whole project, because the app's controllers already use `[Route]` from `Microsoft.AspNetCore.Mvc`, and
+two `RouteAttribute`s in scope break every one of them (CS0104).
+
+**The prefix reaches the browser by itself.** The runtime's `<script>` tag carries it
+(`data-rask-base="/new/"`), and the runtime builds its connection, the addresses it pushes to history and the
+paths it routes from that, so the app writes no `<base href>`. Rask leaves `<base>` alone on purpose: one would
+re-resolve every relative URL of the page — `href="#reviews"` would lead to `/new/#reviews`. An app that writes
+its own `<base href>` keeps it; the runtime still takes the prefix from its tag.
+
+**Files under `wwwroot` are the host's to serve.** `MapRask` serves its own runtime and scoped assets under the
+prefix, never a `wwwroot` file, so a stylesheet linked as `LiveOptions.PathBase + "/css/app.css"`
+(`/new/css/app.css`) falls through to Rask's page catch-all and answers with a page. Link the address the host
+already serves the file at — `/css/app.css`, from its `MapStaticAssets()` or `UseStaticFiles()`:
+
+```csharp
+protected override Component? HeadAssets => Link.Rel("stylesheet").Href("/css/app.css");
+```
+
+The app's own compiled sheet is the exception: the server answers `css/app.css` under the prefix as well, so
+`AppStylesheet` (`HeadAssets => [AppStylesheet]`) links `/new/css/app.css?v={hash}`, the link `RaskApp` writes.
+
+To serve `wwwroot` under the prefix instead, the host calls `app.UseStaticFiles(new StaticFileOptions { RequestPath = "/new" })`
+BEFORE an explicit `app.UseRouting()`: once routing has matched Rask's catch-all, static files step aside.
+
+Each answers only its own paths — a route the old app owns is still its own, a page under `/new` is rendered
+by Rask, and the Rask runtime is served under the prefix and nowhere else. The old app links to a moved page
+with an ordinary `<a href="/new/…">`, a full page load, and a Rask page sends the reader back with
+[`Go.Out`](#leaving-the-app--goout).
+
+Two things the move runs into first:
+
+- **Sign-in.** A Rask page is rendered from the request, so it sees who is signed in only when the
+  browser sends that with a navigation — a cookie. An app that keeps its token in `localStorage`
+  renders every Rask page signed out until sign-in also sets one. See
+  [authentication](authentication.md).
+- **Per-request services.** After the first response a Rask page works over its connection, where there
+  is no `HttpContext`. A service that reads the tenant or the user from `IHttpContextAccessor` has to
+  get it some other way — from the signed-in principal, for instance.

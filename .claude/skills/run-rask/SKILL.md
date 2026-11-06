@@ -28,7 +28,7 @@ otherwise.
   unversioned — Central Package Management supplies it).
 - **Playwright browsers** — already present in `~/Library/Caches/ms-playwright` (installed for the
   E2E suite). If missing, the driver errors with a "browser not found" message; build the E2E project
-  once, then `scripts/playwright.sh install chromium`. That wrapper drives the node CLI bundled with
+  once, then `scripts/playwright.sh install chromium`. That wrapper drives the CLI bundled with
   `Microsoft.Playwright`, so it needs no PowerShell and always installs the browser revisions the
   pinned binding expects — unlike `npx playwright install`.
 - **No `wasm-tools` workload needed**: the default build uses the Mono **interpreter**. AOT is opt-in
@@ -225,8 +225,7 @@ programmatic scroll with its stack — so "the page jumps on refresh" splits cle
 (a call is listed) or *the content moved under a restored position* (height changes, no call). `growprobe.cs`
 then names the content: it snapshots every element's box on the prerendered document and again after takeover,
 and prints the DEEPEST ones that changed and anything present on one side only. A clean page prints only the
-shell's two boot `<script>`s. Expected, not defects: an island's `rask-external` (it has no prerendered size)
-and text a page can only know in a browser. WebKit also reports the theme menu's options inside a closed
+shell's two boot `<script>`s. Expected, not defects: text a page can only know in a browser. WebKit also reports the theme menu's options inside a closed
 `<details>` moving by 1px, which never paints.
 
 What they found: on refresh the guides grew 4423px → 4711px, because the prerender companion was never handed
@@ -248,7 +247,7 @@ dotnet run navlist.cs   http://127.0.0.1:PORT     # what the sidebar ACTUALLY re
 ```
 
 `navlist.cs` prints the sidebar's real link text and hrefs. Reach for it the moment a driver times out on
-`:has-text('…')`: **the rows under "PWA", "UI kit" and "Islands" are contributed by the HOST at boot**
+`:has-text('…')`: **the rows under "PWA" and "UI kit" are contributed by the HOST at boot**
 (`ShowcaseNavEntry` in `Program.cs`), so they are not in the shell the parser sees — a probe that waits for
 the first `.side-nav a.side-nav-link` and then reads the list finds only the guide links and times out on a
 label that is genuinely not there yet. Wait for the specific `href`. A deep link is not an alternative
