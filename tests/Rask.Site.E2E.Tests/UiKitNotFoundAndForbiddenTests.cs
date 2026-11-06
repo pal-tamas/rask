@@ -41,7 +41,8 @@ public sealed class UiKitNotFoundAndForbiddenTests(WasmExampleAppFixture app, Pl
         await scope.ScrollIntoViewIfNeededAsync();
         await Expect(scope.GetByRole(AriaRole.Alert)).ToContainTextAsync("You do not have permission to view this page.");
 
-        await scope.Locator("#uf-admin").ClickAsync();
+        // The switch's input is sr-only under its track: a reader clicks the label, as the switch page's own test does.
+        await scope.Locator("label[for='uf-admin']").ClickAsync();
 
         await Expect(scope.Locator("#uf-records")).ToHaveTextAsync("Three suppliers, 412 deliveries.", new() { Timeout = 10_000 });
         await Expect(scope.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
