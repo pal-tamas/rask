@@ -82,7 +82,7 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
         var popup = Regex.Match(html, "<div(?=[^>]*data-ui-options)[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
         var list = Regex.Match(html, "<div(?=[^>]*role=\"listbox\")[^>]*class=\"([^\"]*)\"").Groups[1].Value.Split(' ');
 
-        // Measured on Flux's phone (parity-phone.mjs): the popup round the searched countries is overscroll-behavior
+        // Measured on Flux's phone (flux parity-phone): the popup round the searched countries is overscroll-behavior
         // auto, the list in it none — as a searched select's (UiSelectSearchTests).
         Assert.DoesNotContain("overscroll-y-none", popup);
         Assert.Contains("overscroll-y-none", list);
@@ -150,8 +150,8 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     {
         var notices = File.ReadAllText(Path.Combine(Resources, "ui-phone.LICENSES.txt"));
         var banner = File.ReadLines(Path.Combine(Resources, "ui-phone.js")).First();
-        var lockfile = File.ReadAllText(Path.Combine(Resources, "phone", "package-lock.json"));
-        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(Resources, "phone", "package.json")));
+        var lockfile = File.ReadAllText(Path.Combine(Resources, "phone", "bundle-lock.json"));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(Resources, "phone", "bundle.json")));
         var release = package.RootElement.GetProperty("dependencies").GetProperty("intl-tel-input").GetString();
 
         Assert.Contains("intl-tel-input " + release + " — MIT", notices, StringComparison.Ordinal);

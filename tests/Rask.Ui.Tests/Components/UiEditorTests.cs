@@ -7,7 +7,7 @@ namespace Rask.UiTests.Components;
 /// <summary>
 ///     Flux's editor, as far as markup goes: the contract the engine (<c>Resources/editor/ui-editor.ts</c>)
 ///     finds its controls by, the first paint of the value, and what a prop writes. What the editor DOES is
-///     the browser's to prove — <c>scripts/flux/parity-editor.mjs</c> and the site's E2E.
+///     the browser's to prove — <c>flux parity-editor</c> and the site's E2E.
 /// </summary>
 public partial class UiEditorTests : global::Rask.Core.RaskMarkup
 {
@@ -165,7 +165,7 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
             .Select(match => match.Groups[1].Value.Split(' '))
             .ToList();
 
-        // Measured on fluxui.dev/components/editor (parity.mjs editor): touch-action manipulation on each of them.
+        // Measured on fluxui.dev/components/editor (flux parity editor): touch-action manipulation on each of them.
         Assert.NotEmpty(buttons);
         Assert.All(buttons, classes => Assert.Contains("touch-manipulation", classes));
     }
@@ -262,7 +262,7 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
     public void The_engine_travels_with_the_notices_of_what_it_bundles()
     {
         var notices = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.LICENSES.txt"));
-        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "editor", "package.json")));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "editor", "bundle.json")));
         var tiptap = package.RootElement.GetProperty("dependencies").GetProperty("@tiptap/core").GetString();
 
         var licences = Regex.Matches(notices, "^(\\S+) (\\S+) — (.+)$", RegexOptions.Multiline);
