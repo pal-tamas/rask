@@ -42,14 +42,12 @@ public sealed class DevSessionPropertyTests
         Assert.Equal("true", value);
     }
 
-    [Theory]
-    [InlineData("src/Rask.Core/build/Rask.Core.targets")]
-    [InlineData("src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.targets")]
-    public void Each_host_lane_bakes_the_key_the_app_reads(string targets)
+    [Fact]
+    public void Every_host_bakes_the_key_the_app_reads()
     {
-        // Two files because the two kinds of app import different ones. The key is the runtime's constant,
-        // so a rename cannot leave one behind.
-        var text = File.ReadAllText(Path.Combine(RepoRoot(), targets));
+        // Rask.Core.targets reaches every app, a wasm-hosted server included. The key is the runtime's
+        // constant, so a rename cannot leave it behind.
+        var text = File.ReadAllText(Path.Combine(RepoRoot(), "src/Rask.Core/build/Rask.Core.targets"));
 
         Assert.Contains($"<AssemblyMetadata Include=\"{EditorDevSession.MetadataKey}\" Value=\"true\"", text, StringComparison.Ordinal);
         Assert.Contains("'$(RaskDevSession)' == 'true'", text, StringComparison.Ordinal);

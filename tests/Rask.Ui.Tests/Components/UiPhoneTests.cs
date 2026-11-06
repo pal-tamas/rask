@@ -150,8 +150,8 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
     {
         var notices = File.ReadAllText(Path.Combine(Resources, "ui-phone.LICENSES.txt"));
         var banner = File.ReadLines(Path.Combine(Resources, "ui-phone.js")).First();
-        var lockfile = File.ReadAllText(Path.Combine(Resources, "phone", "package-lock.json"));
-        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(Resources, "phone", "package.json")));
+        var lockfile = File.ReadAllText(Path.Combine(Resources, "phone", "bundle-lock.json"));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(Resources, "phone", "bundle.json")));
         var release = package.RootElement.GetProperty("dependencies").GetProperty("intl-tel-input").GetString();
 
         Assert.Contains("intl-tel-input " + release + " — MIT", notices, StringComparison.Ordinal);

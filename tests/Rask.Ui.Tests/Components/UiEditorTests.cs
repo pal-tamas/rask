@@ -262,7 +262,7 @@ public partial class UiEditorTests : global::Rask.Core.RaskMarkup
     public void The_engine_travels_with_the_notices_of_what_it_bundles()
     {
         var notices = File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "ui-editor.LICENSES.txt"));
-        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "editor", "package.json")));
+        using var package = JsonDocument.Parse(File.ReadAllText(Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "Resources", "editor", "bundle.json")));
         var tiptap = package.RootElement.GetProperty("dependencies").GetProperty("@tiptap/core").GetString();
 
         var licences = Regex.Matches(notices, "^(\\S+) (\\S+) — (.+)$", RegexOptions.Multiline);
