@@ -971,6 +971,9 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`rask new --culture`/`--localization`/`--no-localization` now say where languages really live.** The refusal
+  pointed at an `AddRask(configureCulture: ...)` call in Program.cs; every template lists its languages under
+  `Rask:Cultures` in appsettings.json (`wwwroot/appsettings.json` for a wasm app), and the message now says so.
 - **The component, forms, routing, interop, kit and localization docs match today's API.** Snippets that would not
   compile now do: a form's submit state is `f.Submitting`, `Aria`/`Attributes`/`Data` take pairs instead of a `new()`
   bag, `Text[…]` is indexed, `Select` opens with `Value`, `Ui.Input` with `Bind`, and components come from their
