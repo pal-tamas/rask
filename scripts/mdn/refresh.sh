@@ -1,23 +1,10 @@
 #!/usr/bin/env bash
-# Refresh Rask's element surface from MDN: install @webref/elements, @webref/idl, @webref/css and
-# @mdn/browser-compat-data, read UI Events' key and code tables, and rewrite src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
+# Refresh Rask's element surface from MDN: @webref/elements, @webref/idl, @webref/css and @mdn/browser-compat-data,
+# UI Events' key and code tables and the WAI-ARIA spec, read by scripts/mdn/refresh.py into
+# src/Rask.Core/Dom/mdn.snapshot.json. Commit the diff.
 #
-# Versions default to each package's `latest` dist-tag (its stable release), webref's `curated` head and w3c/aria's
-# `main` head. Each can be pinned:
-#   RASK_MDN_BCD, RASK_MDN_IDL, RASK_MDN_ELEMENTS, RASK_MDN_EVENTS, RASK_MDN_CSS  npm versions (stable releases)
-#   RASK_MDN_WEBIDL2                                the IDL parser's version
-#   RASK_MDN_PARSE5                                 the HTML parser's version, which reads the ARIA spec
-#   RASK_MDN_WEBREF                                 webref commit for the spec's attribute index
-#   RASK_MDN_UIEVENTS_KEY, RASK_MDN_UIEVENTS_CODE   w3c/uievents-key and -code gh-pages commits (KeyboardEvent values)
-#   RASK_MDN_ARIA                                   w3c/aria commit for the ARIA roles and attributes
-# --ignore-scripts: a build runs this unattended, so no package install script ever executes.
-# Needs the latest LTS Node (https://nodejs.org/en/about/previous-releases).
+# Python 3 alone: each package is its registry tarball, checked against the registry's integrity and read in
+# memory, so nothing is installed and no package script runs. The pins (RASK_MDN_BCD, RASK_MDN_WEBREF, …) are
+# listed in refresh.py.
 set -euo pipefail
-root="$(cd "$(dirname "$0")/../.." && pwd)"
-work="$(mktemp -d "${TMPDIR:-/tmp}/rask-mdn.XXXXXX")"
-trap 'rm -rf "$work"' EXIT
-
-(cd "$work" && npm init -y >/dev/null && npm install --silent --no-audit --no-fund --ignore-scripts \
-  "@webref/elements@${RASK_MDN_ELEMENTS:-latest}" "@webref/events@${RASK_MDN_EVENTS:-latest}" "@webref/idl@${RASK_MDN_IDL:-latest}" "@webref/css@${RASK_MDN_CSS:-latest}" \
-  "@mdn/browser-compat-data@${RASK_MDN_BCD:-latest}" "webidl2@${RASK_MDN_WEBIDL2:-latest}" "parse5@${RASK_MDN_PARSE5:-latest}")
-node "$root/scripts/mdn/refresh.mjs" "$work" "$root/src/Rask.Core/Dom/mdn.snapshot.json"
+exec python3 "$(dirname "$0")/refresh.py" "$@"

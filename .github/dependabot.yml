@@ -74,94 +74,10 @@ updates:
         patterns:
           - "SQLitePCLRaw.*"
 
-  # No entry for the front-end templates (src/Rask.Templates/*/client, _islands/*/island.json): they name
-  # no version. `rask new` chooses the newest set that installs together (FrontEndVersions), the
-  # scaffolded app writes its own lockfile on the first build, and upstream.yml proves that newest set
-  # every day — there is nothing here for a pull request to move.
-
-  # The site's own front end (src/Rask.Site/package.json + its lockfile).
-  - package-ecosystem: npm
-    directory: "/src/Rask.Site"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    # Conventional Commits so the commitlint check passes (e.g. "build(deps): bump X").
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # TypeScript 7 is the native compiler and ships no JavaScript API, which is what vue-tsc and
-      # svelte-check run on: svelte-check peers typescript "^5.0.0 || ^6.0.0", so 7.x does not even
-      # install (ERESOLVE on npm ci — PR #1174). Lift this when both checkers accept 7.
-      - dependency-name: "typescript"
-        versions: [">=7.0.0"]
-      # The Vite+ toolchain moves as one: vite-plus exact, and vite aliased to the core at that same version in
-      # devDependencies and overrides. A bump of vite-plus alone would leave the alias behind, so both are moved
-      # together by hand: npm install -D vite-plus@X vite@npm:@voidzero-dev/vite-plus-core@X, and the override.
-      - dependency-name: "vite-plus"
-      - dependency-name: "vite"
-    groups:
-      # One PR for the wave rather than one per dependency.
-      site-front-end:
-        patterns:
-          - "*"
-
-  # NOT the rich text editor's engine (src/Rask.Ui/Resources/editor): the tiptap follower moves its pins, lock AND
-  # the committed bundle together, daily (scripts/upstream/followers.json). A version PR here moved the lock alone.
-
-  # The island bundler the devtools E2E journeys run (tests/Rask.DevTools.E2E.Tests/package.json).
-  - package-ecosystem: npm
-    directory: "/tests/Rask.DevTools.E2E.Tests"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # Moved as one, by hand, for the reason given for /src/Rask.Site above.
-      - dependency-name: "vite-plus"
-      - dependency-name: "vite"
-    groups:
-      devtools-e2e:
-        patterns:
-          - "*"
-
-  # The island bundler the Rask.Server journeys run (tests/Rask.Server.E2E.Tests/package.json).
-  - package-ecosystem: npm
-    directory: "/tests/Rask.Server.E2E.Tests"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # Moved as one, by hand, for the reason given for /src/Rask.Site above.
-      - dependency-name: "vite-plus"
-      - dependency-name: "vite"
-    groups:
-      server-e2e:
-        patterns:
-          - "*"
-
-  # The island bundler of the WASM fixture the browser host's journeys serve (tests/Rask.Wasm.Fixture.Wasm/package.json).
-  - package-ecosystem: npm
-    directory: "/tests/Rask.Wasm.Fixture.Wasm"
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-    commit-message:
-      prefix: build
-      include: scope
-    ignore:
-      # Moved as one, by hand, for the reason given for /src/Rask.Site above.
-      - dependency-name: "vite-plus"
-      - dependency-name: "vite"
-    groups:
-      wasm-fixture:
-        patterns:
-          - "*"
+  # No npm entry: nothing in Rask runs on Node (scripts/tests/no-node.test.sh holds it there). The lockfiles beside
+  # Rask.Ui's engines (src/Rask.Ui/Resources/editor, phone) are integrity pins, not installs: the tiptap and
+  # intl-tel-input followers move them together with the committed bundles (scripts/upstream/followers.json),
+  # where a version PR here would move the lock alone.
 
   # The rename tool (scripts/tools/RaskRename): cut off from central package management on purpose, so
   # its references are its own csproj's.

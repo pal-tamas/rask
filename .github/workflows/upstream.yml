@@ -5,10 +5,9 @@ name: upstream
 #   follow   a job per follower (scripts/upstream/follow.sh --list), each a call of upstream-follow.yml:
 #            regenerate, gate what that commit can reach, land it, and keep that source's own issue — so
 #            one release the gates refuse holds back its source only. The followers: MDN's latest stable
-#            data and the public surface that moves with it, Node's Active LTS line, the Docker images the
-#            code names, Litestream, Chrome for Testing, the compilers a build downloads with their digests,
-#            the adapter fixtures' frameworks, the actions a scaffolded deploy workflow uses, the npm
-#            releases `rask new` falls back on offline, and Unicode CLDR's date-time joins.
+#            data and the public surface that moves with it, the Docker images the code names, Litestream,
+#            Chrome for Testing, the compilers a build downloads with their digests, the actions a scaffolded
+#            deploy workflow uses, and Unicode CLDR's date-time joins and plural rules.
 #            Nothing moved: that job ends green. Dependabot keeps the rest (.github/dependabot.yml).
 #   flux     (weekly) `flux sync` (scripts/flux/Flux) — has Flux UI's catalogue, look or release moved? A look is pixels,
 #            so the lock is measured HERE, on the runner: `-f relock=true` (or a lock from another
@@ -17,9 +16,6 @@ name: upstream
 #   flux-parity  (weekly) scripts/flux/parity-all.sh — does Rask.Ui still match Flux UI? Every page's look on a desktop
 #            and a phone and every walk the behaviour scripts take, Rask's page beside Flux's live one on this
 #            runner: no lock, so a red check is Flux having moved since main matched it.
-#   front-ends  every front-end template scaffolded on the newest npm set `rask new` chooses, installed,
-#            built, linted and served — the templates pin nothing, so this is where a release that breaks
-#            a starter is caught.
 #
 # Every source keeps ONE issue, opened only when a person is needed and closed by its next green run.
 # A follower the gates refused for a red main already has waits instead (upstream-waits/<follower>): when
@@ -281,68 +277,3 @@ jobs:
         if: success() && github.ref == 'refs/heads/main'
         run: |
           scripts/upstream/issue.sh --close "Upstream: flux-parity could not be followed" "Measured again: $RUN"
-
-  # The templates name no version: `rask new` chooses the newest set that installs together, so what npm
-  # released overnight is what the next scaffold gets. This proves that set, on main as it is, every day —
-  # scaffolded, installed from the live registry, built, linted and served — rather than when a template changes.
-  front-end-keys:
-    if: github.event_name != 'workflow_run' && github.event.schedule != '41 4 * * 1'
-    runs-on: ubuntu-26.04
-    outputs:
-      keys: ${{ steps.list.outputs.keys }}
-    steps:
-      - uses: actions/checkout@v7
-      - id: list
-        run: echo "keys=$(scripts/run-template-e2e.sh --list-front-ends | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
-
-  front-ends:
-    needs: front-end-keys
-    name: front end ${{ matrix.key }} (newest npm)
-    runs-on: ubuntu-26.04
-    timeout-minutes: 30
-    permissions:
-      contents: read
-      issues: write
-    strategy:
-      fail-fast: false   # one template that no longer installs says nothing about the others
-      matrix:
-        key: ${{ fromJSON(needs.front-end-keys.outputs.keys) }}
-    env:
-      GH_TOKEN: ${{ github.token }}
-      RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      TITLE: "Upstream: front end ${{ matrix.key }} no longer builds on the newest npm"
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0   # MinVer packs the local feed the scaffold restores from
-
-      - uses: ./.github/actions/setup
-        with:
-          workloads: wasm-tools
-
-      - name: front end ${{ matrix.key }}
-        env:
-          RASK_BUILD_SLOTS: 4
-        run: scripts/run-template-e2e.sh --front-end=${{ matrix.key }}
-
-      - name: The starter broke
-        if: failure() && github.ref == 'refs/heads/main'
-        env:
-          KEY: ${{ matrix.key }}
-        run: |
-          set -eu
-          {
-            echo "The \`$KEY\` template no longer builds on the newest npm packages \`rask new\` chooses: $RUN"
-            echo
-            echo "A release upstream broke the starter, and every scaffold from today gets it. Fix the starter for"
-            echo "the new release, or — only when that cannot be done yet — hold the package with a range in its"
-            echo "template (and in TemplateNodePinTests' holds), with the reason beside it."
-            echo
-            echo "<sub>Opened by \`.github/workflows/upstream.yml\`, which updates this issue rather than opening another, and closes it when the template builds again.</sub>"
-          } > "$RUNNER_TEMP/body.md"
-          scripts/upstream/issue.sh "$TITLE" "$RUNNER_TEMP/body.md"
-
-      - name: The starter builds
-        if: success() && github.ref == 'refs/heads/main'
-        run: |
-          scripts/upstream/issue.sh --close "$TITLE" "Builds again on the newest npm: $RUN"

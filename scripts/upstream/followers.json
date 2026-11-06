@@ -13,31 +13,6 @@
       ]
     },
     {
-      "name": "island-props",
-      "kind": "regenerate",
-      "run": "scripts/upstream/island-props.sh",
-      "setup": "dotnet",
-      "outputs": [
-        "src/Rask.Site/Features/Islands/React/*.props.json"
-      ]
-    },
-    {
-      "name": "node-lts",
-      "kind": "regenerate",
-      "run": "scripts/upstream/node-lts.sh",
-      "outputs": [
-        "src/Rask.Cli/NodeRequirement.cs",
-        ".node-version",
-        "rask.sh",
-        "rask.ps1",
-        "docs/installation.md",
-        "src/Rask.External/build/Rask.External.props",
-        "src/Rask.Spa.Hosting/build/Rask.Spa.Hosting.props",
-        "src/Rask.Templates/*/Dockerfile",
-        "src/Rask.Templates/*/client/package.json"
-      ]
-    },
-    {
       "name": "images",
       "kind": "regenerate",
       "run": "scripts/upstream/images.py",
@@ -72,19 +47,10 @@
       "run": "scripts/upstream/tools.py",
       "outputs": [
         "src/Rask.Core/build/Rask.Core.targets",
-        "src/Rask.External/build/Rask.External.props",
         "src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs",
         "src/Rask.Tailwind/build/Rask.Tailwind.props",
         "src/Rask.Tailwind.Tasks/TailwindPins.cs",
         "docs/tailwind.md"
-      ]
-    },
-    {
-      "name": "fixtures",
-      "kind": "regenerate",
-      "run": "scripts/upstream/fixtures.py",
-      "outputs": [
-        "tests/Rask.External.Tests/Rask.External.Tests.csproj"
       ]
     },
     {
@@ -96,17 +62,9 @@
       ]
     },
     {
-      "name": "front-ends",
-      "kind": "regenerate",
-      "run": "scripts/upstream/front-ends.py",
-      "outputs": [
-        "src/Rask.Cli/Scaffolding/npm.snapshot.json"
-      ]
-    },
-    {
       "name": "cldr",
       "kind": "regenerate",
-      "run": "node scripts/upstream/cldr.mjs",
+      "run": "scripts/upstream/cldr.py",
       "outputs": [
         "src/Rask.Ui/UiDatetimePickerJoins.g.cs",
         "src/Rask.Ui/Resources/cldr.LICENSE.txt"
@@ -115,7 +73,7 @@
     {
       "name": "cldr-plurals",
       "kind": "regenerate",
-      "run": "node scripts/upstream/cldr-plurals.mjs",
+      "run": "scripts/upstream/cldr-plurals.py",
       "outputs": [
         "tests/Rask.Generators.Tests/cldr-plurals.json"
       ]

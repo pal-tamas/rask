@@ -1,7 +1,8 @@
 """What the Python followers share: one fetch, the version order, and a rewrite that must find its target.
 
 RASK_UPSTREAM_FIXTURES names a directory of saved answers, one file per URL (fixture_name), which is how
-the self-tests under scripts/tests/ run a follower with no network.
+the self-tests under scripts/tests/ run a follower with no network. A URL with no saved answer is an upstream
+that did not answer.
 """
 import base64
 import hashlib
@@ -28,7 +29,10 @@ def fixture_name(url):
 def fetch(url, accept=None):
     saved = os.environ.get("RASK_UPSTREAM_FIXTURES")
     if saved:
-        return (Path(saved) / fixture_name(url)).read_bytes()
+        answer = Path(saved) / fixture_name(url)
+        if not answer.is_file():
+            raise urllib.error.URLError(f"no saved answer for {url}")  # what a registry that is down looks like
+        return answer.read_bytes()
     headers = {"User-Agent": "rask-upstream"}
     if accept:
         headers["Accept"] = accept

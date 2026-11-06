@@ -6,33 +6,15 @@
 # rask.sh is a Release build on a public origin, where the devtools never switch on, so the guide shows them
 # through pictures instead of a live demo. The pictures are taken here rather than drawn: this builds
 # tests/Rask.DevTools.Showcase in Debug, runs it in Development on a loopback port, drives the pill and the
-# panel in Chromium (scripts/capture-devtools-screenshots.mjs) and writes WebP files to
+# panel in Chromium (scripts/capture-devtools-screenshots.cs, a file-based app on Microsoft.Playwright) and writes WebP files to
 # src/Rask.Site/wwwroot/img/devtools/. Re-run it whenever the panel changes, and commit what it wrote.
 #
-# Needs: the E2E project built once (for the Playwright driver it ships — see scripts/playwright.sh),
-# Chromium installed through that driver, and cwebp (brew install webp / apt install webp).
+# Needs: Chromium installed for the repo's Microsoft.Playwright (as the E2E suites install it) and cwebp
+# (brew install webp / apt install webp).
 set -euo pipefail
 
 root="$(git rev-parse --show-toplevel)"
 cd "$root"
-
-# shellcheck source=lib/playwright.sh
-. "$root/scripts/lib/playwright.sh"
-
-pw_node=""
-pw_package=""
-for cfg in Release Debug; do
-  # Rooted, because node resolves a bare relative require against the script's folder, not the working one.
-  if driver="$(rask_playwright_driver "$root/tests/Rask.Site.E2E.Tests/bin/$cfg")"; then
-    pw_node="$(printf '%s\n' "$driver" | sed -n 1p)"
-    pw_package="$(dirname "$(printf '%s\n' "$driver" | sed -n 2p)")"
-    break
-  fi
-done
-if [ -z "$pw_node" ]; then
-  echo "capture: no bundled Playwright driver. Build it once: dotnet build tests/Rask.Site.E2E.Tests -c Release" >&2
-  exit 1
-fi
 
 if ! command -v cwebp >/dev/null 2>&1; then
   echo "capture: cwebp is missing (brew install webp, or apt install webp)." >&2
@@ -77,7 +59,7 @@ if [ -z "$url" ]; then
   exit 1
 fi
 
-"$pw_node" "$root/scripts/capture-devtools-screenshots.mjs" "$url" "$work" "$pw_package"
+dotnet run "$root/scripts/capture-devtools-screenshots.cs" -- "$url" "$work"
 
 mkdir -p "$out"
 for png in "$work"/*.png; do
