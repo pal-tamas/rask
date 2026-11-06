@@ -9028,6 +9028,7 @@ static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, Rask.Core
 static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelect<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelect<T>!
 static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, Rask.Core.Fn<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!
 static RaskBuilderSettersRask_Ui.Search<T>(this Rask.UiSelectMultiple<T>! __b, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IEnumerable<Rask.Core.Component?>!>!>? value) -> Rask.UiSelectMultiple<T>!
+Rask.UiMenuItem.SignOut() -> Rask.UiMenuItem!
 ~override Rask.Ui.Choice<T>.Equals(object obj) -> bool
 ~override Rask.Ui.Choice<T>.ToString() -> string
 override Rask.Ui.Choice<T>.GetHashCode() -> int

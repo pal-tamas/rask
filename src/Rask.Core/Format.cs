@@ -24,7 +24,7 @@ namespace Rask;
 ///         with <see cref="CultureInfo.InvariantCulture" /> instead.
 ///     </para>
 /// </remarks>
-public static class Format
+public static partial class Format
 {
     /// <summary>A day, in the culture's short date: <c>2026. 10. 09.</c> in Hungarian, <c>10/9/2026</c> in English.</summary>
     /// <param name="day">The day.</param>
@@ -76,6 +76,25 @@ public static class Format
     /// <inheritdoc cref="Number(decimal, int)" />
     public static string Number(double value, int decimals) => value.ToString(Places(decimals), Culture);
 
+    /// <summary>
+    ///     A number to at most <paramref name="atMost" /> places, rounded half away from zero, thousands apart and with
+    ///     none of a column's padding zeros: <c>Format.Number(1764.604m, atMost: 2)</c> is <c>1 764,6</c>, and 1200 is
+    ///     <c>1 200</c>. Null writes every decimal the number has, as <see cref="Number(decimal)" /> does.
+    /// </summary>
+    /// <param name="value">The number.</param>
+    /// <param name="atMost">The most places after the decimal separator, at most 15.</param>
+    /// <returns>The number as the visitor writes one.</returns>
+    public static string Number(decimal value, int? atMost) =>
+        atMost is { } places
+            ? Math.Round(value, Rounding(places), MidpointRounding.AwayFromZero).ToString(AtMost(places), Culture)
+            : Number(value);
+
+    /// <inheritdoc cref="Number(decimal, int?)" />
+    public static string Number(double value, int? atMost) =>
+        atMost is { } places
+            ? Math.Round(value, Rounding(places), MidpointRounding.AwayFromZero).ToString(AtMost(places), Culture)
+            : Number(value);
+
     private static CultureInfo Culture => RaskCulture.Current;
 
     /// <summary>
@@ -98,5 +117,16 @@ public static class Format
     {
         ArgumentOutOfRangeException.ThrowIfNegative(decimals);
         return "N" + decimals.ToString(CultureInfo.InvariantCulture);
+    }
+
+    // "#,0.##" for two: as many of the places as the number has, and no more.
+    private static string AtMost(int places) => places == 0 ? "#,0" : "#,0." + new string('#', places);
+
+    // What Math.Round takes, for a decimal and a double alike.
+    private static int Rounding(int places)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(places);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(places, 15);
+        return places;
     }
 }

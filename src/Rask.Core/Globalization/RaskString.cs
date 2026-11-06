@@ -738,6 +738,12 @@ public enum RaskString
     /// <summary>What a delete in <c>Ui.FormButtons</c> or <c>Ui.RowActions</c> asks when it is given no question of its own.</summary>
     RemoveQuestion,
 
+    /// <summary>A menu item's <c>.SignOut()</c>: its words where it is given none, and the title of the question it asks.</summary>
+    SignOut,
+
+    /// <summary>What a menu item's <c>.SignOut()</c> asks before the reader is signed out.</summary>
+    SignOutQuestion,
+
     /// <summary>What a select or a pillbox given its rows by <c>.Choices(…)</c> shows while nothing is chosen.</summary>
     SelectChoose,
 }

@@ -131,6 +131,20 @@ them until tagged releases begin.
   `.Choices(Driver.Named, held: driver)` asks as `Search` does and keeps the held row
   named and first. `Ui.Pillbox.Bind(() => m.VehicleIds).Choices(vehicles)` and `.Choices(find, held: picked)` do the
   same for several. Whatever it fills in, `.Placeholder(…)`, `.Clearable(…)` or `.Searchable(false)` overrides.
+- **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
+  `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
+  most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,
+  `1 764,6 Ft`; `$1,200`), a language alone read as its main country's so `"hu"` writes `Ft` and `"en"` `$`, never `¤`;
+  `Format.Money(total, "EUR")` names an ISO currency — the culture's own in its sign (`"HUF"` is `Ft` in Hungarian), any
+  other in its code (`1 764,6 EUR`, `EUR 1,764.6`). `Format.Number(litres, atMost: 2)` is the same rounding without a
+  currency (`1 764,6`).
+- **A `Ui.MenuItem` link asks before it is followed, and `.SignOut()` asks in the catalog's words.** Before:
+  `.Confirm(…)` on a menu item worked only with `OnClick`, so each app's sign-out was a menu item that opened a
+  hand-written `Ui.Modal` of 13 lines and a `_signingOut` field. After: `Ui.MenuItem.Href("/logout").Confirm("…")` asks
+  and a yes follows the link (a string href: a GET and a page load), and `Ui.MenuItem.Href(SignOut.Path).SignOut()` is the
+  whole sign-out row — "Are you sure you want to sign out?" under "Sign out" (new catalog keys `SignOut`,
+  `SignOutQuestion`; Hungarian "Biztos ki szeretne jelentkezni?" under "Kijelentkezés"), named and iconed the same where
+  it has no words or icon of its own.
 - **Rask.Ui: Flux's empty state, a cell that spans columns and a page's header (#1283).** Before: each list app kept an
   `EmptyList.Of("No suppliers yet.")` (a `Ui.Text`), wrote a fold-out row's span as `Ui.TableCell.Attributes(("colspan",
   "3"))` and opened each page with `Div.Class("mb-6 flex flex-wrap items-center gap-y-3")[PageHeadline.Of(title),
@@ -983,6 +997,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The jobs test for a `.Within(…)` that runs out no longer flakes.** Its 200 ms deadline ran on the real clock
+  and raced the processor claiming the job, so on a slow runner the wait ran out before the handler had started
+  and "the job still runs" read false. The test clock can now hold its timers (`FakeTimeProvider.HoldTimers`):
+  the test waits until the handler is provably running, then moves the clock past the deadline itself.
 - **A fresh `rask new` builds without MSB3277 and its `dotnet test` passes.** The first migration added
   `Microsoft.EntityFrameworkCore.Design` with no version, so it took the newest EF on nuget.org (10.0.14) while Rask
   is built against 10.0.13: the app's test project warned twice at build and threw `FileNotFoundException` for

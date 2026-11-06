@@ -280,7 +280,19 @@ Td[Format.Day(order.Placed)]        // 2026. 10. 09.        10/9/2026
 Td[Format.Moment(fueling.At)]       // 2026. 10. 09. 09:05  10/9/2026 9:05 AM (a 24-hour hour always in two digits)
 Td[Format.Number(litres)]           // 1 764,6              1,764.6   — no column padding zeros
 Td[Format.Number(amount, 2)]        // 1 764,60             1,764.60
+Td[Format.Number(litres, atMost: 2)] // 1 764,6 (1764.604)  1,764.6   — rounded, at most two places
+Td[Format.Money(total)]             // 1 200 Ft · 1 764,6 Ft  $1,200 · $1,764.6
+Td[Format.Money(total, "EUR")]      // 1 764,6 EUR          EUR 1,764.6
 ```
+
+`Format.Money` writes at most two places, rounded half away from zero, with no padding zeros — `1 200 Ft`, not
+`1 200,00 Ft` — where and how the culture writes an amount. Without a currency it is the culture's country's: a
+language alone is read as its main country's (`hu` as Hungary, `en` as the United States), so a culture configured
+as `"hu"` writes `Ft` and `"en"` writes `$` (a neutral culture alone would write `¤`, which is #1305 for `{x:C}`).
+With an ISO 4217 code, the culture's own currency is written in its sign (`"HUF"` is `Ft` in Hungarian) and any other
+in its code (`EUR`), as .NET knows no other currency's sign in a culture. A browser app that ships no culture data —
+one whose `Rask:Cultures` is English alone — knows no currency to write and writes `¤`: name the currency there, or
+set `<RaskGlobalization>true</RaskGlobalization>`.
 
 A UTC moment — a `DateTimeOffset`, or a `DateTime` of kind `Utc` — is written as the wall clock showed it; an
 unspecified `DateTime` is a wall-clock time already and is written as it is.
@@ -716,6 +728,8 @@ they say when you set nothing.
 | `RowActionsRemove` | Row actions (the bin's tooltip, and the title of its question) | `Delete` |
 | `RowActionsHeading` | A table's row actions column with no words of its own, for a screen reader | `Actions` |
 | `RemoveQuestion` | Form buttons and row actions: a delete given no question of its own | `Are you sure you want to delete it?` |
+| `SignOut` | A menu item's `.SignOut()` (its words where it has none, and the title of its question) | `Sign out` |
+| `SignOutQuestion` | A menu item's `.SignOut()`: what it asks first | `Are you sure you want to sign out?` |
 | `SelectChoose` | Select and pillbox given rows by `.Choices(…)`, while nothing is chosen | `Choose...` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
