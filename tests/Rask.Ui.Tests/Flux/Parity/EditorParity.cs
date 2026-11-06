@@ -12,7 +12,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     HTML, or the empty paragraph that carries the placeholder — which is what Flux's page shows once Tiptap
 ///     has drawn the same document. What only exists while the editor is USED (a pressed button, an open
 ///     list, the link panel, every kind of node a document can hold) is proved by
-///     <c>node scripts/flux/parity-editor.mjs</c>, which mounts the kit's engine on this same page and drives
+///     <c>flux parity-editor</c>, which mounts the kit's engine on this same page and drives
 ///     it and Flux's live editor through one scenario.
 ///     </para>
 /// </remarks>

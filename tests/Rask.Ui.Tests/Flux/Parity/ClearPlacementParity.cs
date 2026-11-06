@@ -4,7 +4,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary>
 ///     Every control with a clear button, holding a value, in the containers an app lays a form out with: for
-///     <c>scripts/flux/clear-placement.mjs</c>, which holds each button to its trigger's box.
+///     <c>flux clear-placement</c>, which holds each button to its trigger's box.
 /// </summary>
 /// <remarks>
 ///     <c>clear-placement</c> is no Flux slug: Flux's public pages draw one clear button, the input's, and never

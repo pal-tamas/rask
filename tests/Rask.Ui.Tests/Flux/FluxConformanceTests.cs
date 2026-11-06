@@ -10,7 +10,7 @@ namespace Rask.UiTests.Flux;
 /// <remarks>
 ///     <para>
 ///     <c>flux.snapshot.json</c> is Flux's reference — every component, its props, the values each accepts —
-///     read from fluxui.dev's docs by <c>scripts/flux/refresh.mjs</c>. This holds each built component to it: a
+///     read from fluxui.dev's docs by <c>flux refresh</c>. This holds each built component to it: a
 ///     documented prop with no property of that name, or a documented value with no enum member, fails here.
 ///     So does a refresh that brings a prop Flux added since.
 ///     </para>
@@ -290,7 +290,7 @@ public sealed class FluxConformanceTests
     /// <summary>
     ///     Flux's, under a part <c>flux.snapshot.json</c> does not list at all, so the checks above cannot hold it yet. Each
     ///     is measured on fluxui.dev and moved to <see cref="Built" />, or deleted. A part Flux only writes in its examples
-    ///     is in the snapshot too (<c>scripts/flux/refresh.mjs</c> reads them), so nothing waits here for want of a heading:
+    ///     is in the snapshot too (<c>flux refresh</c> reads them), so nothing waits here for want of a heading:
     ///     empty since 2026-11-02, when the 29 that did were measured and built.
     /// </summary>
     private static readonly Dictionary<Type, string> FluxUnlisted = new();
@@ -879,7 +879,7 @@ public sealed class FluxConformanceTests
         Path.Combine(RepoRoot.FullPath, "tests", "Rask.Ui.Tests", "Flux", "flux.snapshot.json")));
 
     // A part a Reference heads has `props`, each with the closed list of `options` it takes. A part no Reference heads
-    // has `examples` (scripts/flux/refresh.mjs): the props Flux's examples write on it, with the `values` written —
+    // has `examples` (flux refresh): the props Flux's examples write on it, with the `values` written —
     // each one must be taken, but they close no list.
     private static IEnumerable<(string Name, List<(string Name, string[] Options, string[] Values)> Props)> Parts() =>
         from page in Snapshot.RootElement.GetProperty("pages").EnumerateArray()

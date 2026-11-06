@@ -16,7 +16,7 @@ request: `upstream.yml` lands regenerated sources with the workflow's own token 
 
 ## 1. Commit on the worktree branch — Conventional Commits
 Format `type(scope): subject`, imperative, lower-case subject, ≤100 chars. Allowed types:
-`feat, fix, perf, refactor, docs, test, build, ci, chore, revert` (`commitlint.config.mjs`).
+`feat, fix, perf, refactor, docs, test, build, ci, chore, revert` (the commit-msg hook).
 Breaking change → `feat!:` / `fix!:` or a `BREAKING CHANGE:` footer. There is no `merge:` type, so a
 merge commit needs a conforming subject too. `.githooks/commit-msg` enforces this locally — which is
 the only enforcement own work gets, since `commitlint.yml` triggers `on: pull_request`.

@@ -10,7 +10,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     What is typed, the rows it leaves, the lit row and whether the list is open are the browser's
 ///     (<c>data-rask-list</c>), held to Flux key by key in a browser (<c>UiListHookTests</c>,
-///     <c>scripts/flux/parity-select.mjs</c>). Here: what a render writes for the browser to read, and what the
+///     <c>flux parity-select</c>). Here: what a render writes for the browser to read, and what the
 ///     page hears — a pick, and the text where it asked for it.
 /// </remarks>
 public partial class UiSelectComboboxTests : global::Rask.Core.RaskMarkup

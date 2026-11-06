@@ -11,11 +11,11 @@ public sealed partial class TimePickerParity : TimePickerExamples
 }
 
 /// <summary>
-///     The same examples with each list open, for <c>scripts/flux/parity-date.mjs time-picker</c>.
+///     The same examples with each list open, for <c>flux parity-date time-picker</c>.
 /// </summary>
 /// <remarks>
 ///     The measurer opens whatever carries <c>data-parity-open</c> with a real press at its centre, and
-///     <c>parity-date.mjs</c> marks Flux's page the way the script below marks this one: the button, or the picker
+///     <c>flux parity-date</c> marks Flux's page the way the script below marks this one: the button, or the picker
 ///     itself where the trigger is typed. This page is static — the kit's sheet and nothing else — so a typed
 ///     trigger, whose list the RUNTIME shows when C# says so (<c>data-rask-popover-open</c>), is shown here by
 ///     the same script.

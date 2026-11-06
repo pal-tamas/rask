@@ -207,7 +207,7 @@ public sealed class UiMenuHookTests(PlaywrightFixture playwright) : IClassFixtur
         // Flux UI's dropdown and context menu, 2026-11-02: the pointer goes from "Sort by" into its flyout and on out
         // of its far side, at a hand's pace (a move every 130 ms; Flux hears one per 100 ms or so). A move heard
         // outside the row and the flyout closes the flyout: nothing is lit, focus has not moved, and nothing went
-        // over the socket. (Leaving the row away from the flyout is the same rule — parity-menu.mjs walks it; this
+        // over the socket. (Leaving the row away from the flyout is the same rule — flux parity-menu walks it; this
         // menu opens at the window's left edge, with no room to its left.)
         var sent = 0;
         var received = 0;

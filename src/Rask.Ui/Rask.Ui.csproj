@@ -247,7 +247,7 @@
 
   <!--
     THE EDITOR'S ENGINE: Resources/ui-editor.js, Tiptap and ProseMirror bundled with the kit's own wiring
-    (Resources/editor/ui-editor.ts, built by Resources/editor/build.mjs and committed — the kit builds
+    (Resources/editor/ui-editor.ts, built by scripts/tools/KitBundle (build editor) and committed — the kit builds
     without Node). Packed beside the targets, which copy it into the wwwroot of every app that references the
     kit. NOT an EmbeddedResource: a browser-WASM app downloads this assembly whether or not it draws an
     editor, and 374 KB of script on every first load is exactly what a file fetched on demand prevents.
@@ -265,7 +265,7 @@
 
   <!--
     THE PHONE ENGINE: Resources/ui-phone.js (intl-tel-input with the kit's picker, built by
-    Resources/phone/build.mjs and committed) and Resources/ui-phone-utils.js (the library's own libphonenumber
+    scripts/tools/KitBundle (build phone) and committed) and Resources/ui-phone-utils.js (the library's own libphonenumber
     build), packed beside the targets for the editor engine's reason. Their notices (MIT and Apache-2.0)
     travel with them: at the package's root, and beside the targets, which write them next to the scripts.
   -->
@@ -281,7 +281,7 @@
 
   <!--
     UNICODE CLDR: UiDatetimePickerJoins.g.cs is derived from CLDR's date-time patterns (Unicode License v3),
-    written by scripts/upstream/cldr.mjs with the release's licence beside it. It is compiled into the assembly,
+    written by scripts/upstream/cldr.py with the release's licence beside it. It is compiled into the assembly,
     so its notice travels at the package's root.
   -->
   <ItemGroup>
@@ -289,7 +289,7 @@
   </ItemGroup>
 
   <!--
-    UI.FLAG'S DRAWINGS: Flags/*.svg, country-flag-icons' 3:2 set (MIT), vendored by scripts/flux/flags.mjs.
+    UI.FLAG'S DRAWINGS: Flags/*.svg, country-flag-icons' 3:2 set (MIT), vendored by flux flags.
     Packed beside the targets and NOT embedded, for the editor engine's reason: a browser-WASM app downloads
     this assembly whole, and 172 KB of flags is too much for an app that shows three. An app that sets
     RaskUiWriteFlags gets them copied into wwwroot/flags; one that does not carries none of them.

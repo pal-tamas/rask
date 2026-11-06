@@ -10,9 +10,9 @@ namespace Rask.UiTests.Flux.Parity;
 /// <remarks>
 ///     <para>
 ///     <see cref="ToastParity" /> is that page as it LOADS: ten buttons. This is what they raise. On Flux's
-///     side <c>scripts/flux/parity-toast.mjs</c> raises each toast on the live page and measures it; here a
+///     side <c>flux parity-toast</c> raises each toast on the live page and measures it; here a
 ///     shown toast is just markup, so each example is the toast drawn. The script then hands both to
-///     <c>parity.mjs</c> under the page name <c>toast-shown</c>, and the section names below are the
+///     <c>flux parity</c> under the page name <c>toast-shown</c>, and the section names below are the
 ///     scenario names it uses.
 ///     </para>
 ///     <para>

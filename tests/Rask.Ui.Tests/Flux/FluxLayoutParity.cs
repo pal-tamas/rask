@@ -9,7 +9,7 @@ namespace Rask.UiTests.Flux;
 ///     <para>
 ///     A layout cannot sit in a preview box, so Flux's page links to a full-screen demo under each heading
 ///     (<c>fluxui.dev/demo/sidebar-inset</c>). <see cref="FluxParityPages" /> writes one document per demo and
-///     <c>scripts/flux/parity.mjs layouts/sidebar</c> measures both sides whole: at desktop and phone widths,
+///     <c>flux parity layouts/sidebar</c> measures both sides whole: at desktop and phone widths,
 ///     in light and dark, with the sidebar as it loads, narrowed to its rail and slid over the page.
 ///     </para>
 ///     <para>

@@ -662,7 +662,7 @@ setHost({send, inRoot});
 // The behaviour hooks are a script of their own beside this module, loaded when the page first asks for one
 // (rask-hook-loader.ts).
 //
-// A module that was not loaded from a place (a `data:` URL, which is how the Node fixtures import this bundle)
+// A module that was not loaded from a place (the script fixtures import this bundle by path, into a script with no URL of its own)
 // has no "beside": there is nothing to load the hooks from, and nothing is watched for.
 function hooksUrl(): string | null {
     try {

@@ -650,8 +650,8 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   Tailwind never reads (`UiBadgeTests` pins it; `DashboardIsKitOnlyTests` allows exactly that call
   until the Dashboard has a sheet of its own).
 - Editor: the one component with an ENGINE. `Resources/editor/ui-editor.ts` (Tiptap pinned in
-  `package.json`, locked) is bundled by `Resources/editor/build.mjs` into the committed
-  `Resources/ui-editor.js`; after changing either, run `npm ci && node build.mjs` there — it rewrites
+  `bundle.json`, locked in `bundle-lock.json`) is bundled by `scripts/tools/KitBundle` into the committed
+  `Resources/ui-editor.js`; after changing either, run `dotnet run --project scripts/tools/KitBundle -- build editor` — it rewrites
   `UiEditorEngine.Version`, which `UiEditorTests` holds to the bundle's hash. There is NO switch, as Flux's has
   none: `build/Rask.Ui.targets` copies the file to `wwwroot/js` of every app that references the kit (a Web
   or WebAssembly SDK project; `RaskUiEditorEngine=false` opts one out, `=true` is for a host that is neither), and
@@ -662,7 +662,7 @@ component, land it, then relock: `gh workflow run upstream.yml -f relock=true`.
   the LOOK of the `subscript` / `superscript` / `highlight` / `code` buttons (Lucide icons, no shortcut hint —
   what each DOES is in the transcript, by a control of that name made on both pages), the
   look of `Invalid` (`aria-invalid:border-red-500` is a guess), a `Ui.EditorButton` with text, and h4–h6.
-  Its notices (`Resources/ui-editor.LICENSES.txt`, written by `build.mjs`; Lucide's text, which npm does not deliver, is
+  Its notices (`Resources/ui-editor.LICENSES.txt`, written by KitBundle; Lucide's text, which npm does not deliver, is
   kept in `Resources/editor/notices/`) ship in the package and are written beside the script in `wwwroot/js`.
   On the Server host it is pinned by `tests/Rask.Server.E2E.Tests/EditorOnServerTests.cs`. The `code` item is INLINE code:
   observed on Flux's live `<ui-editor>` (a control named `data-editor="code"` runs `toggleCode` and shows
@@ -1051,8 +1051,7 @@ faded would stay, unseen). What is NOT wired, each with what it needs:
 - An app's sheet gets the kit's utilities from `rask-ui.classes.txt`, which the kit's build lists from its
   own COMPILED sheet. So a class the precompiled sheet lacks is missing from every app too: a class named
   only in a doc comment for the Dashboard's sake (the badge's `font-mono …`) still has to be in a kit source.
-- The Site, the Dashboard (`Styles/dashboard.css`, inlined) and the three templates compile their own sheet;
-  building `src/Rask.Site` needs `node` on PATH (RASKISLAND001 otherwise).
+- The Site, the Dashboard (`Styles/dashboard.css`, inlined) and the three templates compile their own sheet.
 - Proof to repeat after a change to the entries or targets: in the built `src/Rask.Site/wwwroot/css/app.css`
   a base utility (`.bg-white{`, `.rounded-lg{`) sits before its `dark:` / `in-data-ui-button-group:`
   variant and the kit-only classes are there (`OneStylesheetCascadeTests` holds the same in the unit gate);
@@ -1099,10 +1098,10 @@ of its own, told apart by order, and is reported once as a `Rask.Live` warning (
   draws the `Label` in place of its children, so the flag page's two selects are written without it.
 
 - Phone (2026-10-14): `Ui.Phone` runs intl-tel-input — the release fluxui.dev's `phone.min.js` says it is, followed daily by
-  `scripts/upstream/kit-bundle.mjs phone` —
+  `scripts/tools/KitBundle/follow.sh phone` —
   with that release's own libphonenumber utils (Flux's `phone-utils.js` answered the same on every country's
-  examples and as-you-type), as an ENGINE like the editor's: `Resources/phone/` (pinned, locked, `npm ci && node
-  build.mjs`) writes `Resources/ui-phone.js`, `ui-phone-utils.js`, their notices (MIT + Apache-2.0),
+  examples and as-you-type), as an ENGINE like the editor's: `Resources/phone/` (pinned, locked, `dotnet run --project
+  scripts/tools/KitBundle -- build phone`) writes `Resources/ui-phone.js`, `ui-phone-utils.js`, their notices (MIT + Apache-2.0),
   `UiPhoneEngine`'s two versions and `UiPhoneCountries.g.cs`; the targets copy them to `wwwroot/js` of every app
   (`RaskUiPhoneEngine=false` opts out) and `RaskUiWriteFlags` unset follows that switch. The runtime's
   `rask-phone.ts` hook fetches the engine; the engine owns the tel input (iti's wrapper is taken back off), the ONE

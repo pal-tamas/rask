@@ -7,9 +7,9 @@ namespace Rask.UiTests.Flux.Parity;
 /// </summary>
 /// <remarks>
 ///     <para>
-///     As the page loads every menu is closed, so <c>scripts/flux/parity.mjs</c> compares the dropdown, its
+///     As the page loads every menu is closed, so <c>flux parity</c> compares the dropdown, its
 ///     trigger's room and the closed popup. The component is the OPEN menu, and
-///     <c>scripts/flux/parity-menu.mjs</c> opens each of these on both pages and compares that.
+///     <c>flux parity-menu</c> opens each of these on both pages and compares that.
 ///     </para>
 ///     <para>
 ///     A trigger with words is the real <c>Ui.Button</c>, and the profile the real <c>Ui.Profile</c>: a box of its

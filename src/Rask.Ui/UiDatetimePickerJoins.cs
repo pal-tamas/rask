@@ -5,7 +5,7 @@ namespace Rask;
 /// <summary>
 ///     What a datetime picker's button writes between a moment's date and its time in the picker's locale, as Flux's
 ///     does from the browser's Intl: the data is Unicode CLDR's (<c>UiDatetimePickerJoins.g.cs</c>, written by
-///     <c>scripts/upstream/cldr.mjs</c>).
+///     <c>scripts/upstream/cldr.py</c>).
 /// </summary>
 internal static partial class UiDatetimePickerJoins
 {

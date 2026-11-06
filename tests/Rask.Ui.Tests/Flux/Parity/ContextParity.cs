@@ -6,7 +6,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     <c>fluxui.dev/components/context</c>: the one example on that page.
 /// </summary>
 /// <remarks>
-///     The area is Flux's dashed card around a line of text. <c>scripts/flux/parity-menu.mjs</c> right-clicks
+///     The area is Flux's dashed card around a line of text. <c>flux parity-menu</c> right-clicks
 ///     it on both pages and compares the menu that opens at the pointer.
 /// </remarks>
 public sealed partial class ContextParity : FluxParity

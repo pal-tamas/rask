@@ -14,7 +14,7 @@
 // the file through OpenReadStream, a chunk at a time, in the reader's tab — so there it is how much of the
 // files the handler has READ, and stays at 0 for a handler that never opens them.
 //
-// No DOM access at import: both host bundles import this, and so does a Node fixture.
+// No DOM access at import: both host bundles import this, and so does a script fixture.
 
 import {disown, own} from "./rask-owned.js";
 

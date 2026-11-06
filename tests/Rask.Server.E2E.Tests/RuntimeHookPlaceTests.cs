@@ -17,7 +17,7 @@ namespace Rask.Server.E2E.Tests;
 ///     alignment, then the opposite side — the first that fits the viewport edge to edge — then the panel slid
 ///     back to stay 5 px inside the edge it runs along, and a panel taller than what is left held to that and
 ///     scrolling inside. Every Flux panel was placed in the frame it opened in. The numbers of each family are
-///     held to Flux's pages by <c>scripts/flux/placement.mjs</c>; this is the hook itself, in a 1000 × 700 viewport,
+///     held to Flux's pages by <c>scripts/flux/Flux</c>'s placement checks; this is the hook itself, in a 1000 × 700 viewport,
 ///     with panels of 200 × 100 under triggers of 120 × 40.
 /// </remarks>
 public sealed class RuntimeHookPlaceTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>

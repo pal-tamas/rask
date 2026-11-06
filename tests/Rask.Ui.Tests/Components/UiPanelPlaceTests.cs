@@ -10,7 +10,7 @@ namespace Rask.UiTests.Components;
 ///     The anchor rules in each panel's <c>style</c> place it with no script and can only turn it to the other
 ///     side. What Flux does beyond that — the other alignment, a slide back inside the edge, a height that fits
 ///     — is the runtime's (<c>rask-place.ts</c>), from this one attribute. Where a panel then LANDS is held to
-///     Flux's live pages by the open-state parity scripts (<c>scripts/flux/placement.mjs</c>).
+///     Flux's live pages by the open-state parity scripts (<c>scripts/flux/Flux</c>'s placement checks).
 /// </remarks>
 public partial class UiPanelPlaceTests : global::Rask.Core.RaskMarkup
 {

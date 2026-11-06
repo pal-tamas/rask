@@ -4,7 +4,7 @@ namespace Rask.UiTests.Flux.Parity;
 
 /// <summary><c>fluxui.dev/components/command</c>, example for example, as the page loads.</summary>
 /// <remarks>
-///     The palette's open, typed and lit states are seen only once it is used: <c>scripts/flux/parity-command.mjs</c>
+///     The palette's open, typed and lit states are seen only once it is used: <c>flux parity-command</c>
 ///     brings both pages to each of them, the same way, and holds this page to Flux's there.
 /// </remarks>
 public sealed partial class CommandParity : FluxParity

@@ -17,7 +17,7 @@ internal sealed partial class UiTooltipBehaviour : Component
 
     private static UiDocsTopic Look() =>
         UiDocsTopic.Key("look").Heading("Look and placement").Paragraphs([
-            "Measured on fluxui.dev, in light and dark, by `scripts/flux/parity-tooltip.mjs`: zinc-800 with white 12px "
+            "Measured on fluxui.dev, in light and dark, by `flux parity-tooltip`: zinc-800 with white 12px "
             + "text (zinc-700 inside a hairline in dark), 5px from its trigger, no arrow, no shadow, no transition and "
             + "no delay. One look, with no tones.",
             "The content is a `popover` placed by CSS anchor positioning, and the runtime keeps it inside the viewport "
@@ -35,7 +35,7 @@ internal sealed partial class UiTooltipBehaviour : Component
             "The kit ships no script; the runtime shows it. The wrapper carries `data-rask-tooltip=\"<content id>\"`, "
             + "one of the runtime's generic hooks, so every tooltip, whatever its trigger (a button, a link, a `Span`, "
             + "a disabled button), is in the top layer, where no card can clip it, and behaves as Flux's does, step "
-            + "for step (`parity-tooltip.mjs` walks both): shown the moment the pointer arrives or keyboard focus does, "
+            + "for step (`flux parity-tooltip` walks both): shown the moment the pointer arrives or keyboard focus does, "
             + "gone the moment the pointer leaves unless that focus is still there, dismissed by Escape, and hidden by "
             + "a press on the trigger until the pointer has left and come back. The pointer cannot rest on it.",
         ])[

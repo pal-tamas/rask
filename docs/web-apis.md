@@ -354,7 +354,7 @@ or shipped later, is warning [RASK098](diagnostics.md#rask098) where it is made 
 `if (!await Navigator.Usb.IsSupported) return;`. The browsers are `chrome`, `edge`, `firefox` and `safari`;
 unset, nothing is checked.
 
-What is on no standards track is left out, except a short list named one by one in `scripts/mdn/refresh.mjs`
+What is on no standards track is left out, except a short list named one by one in `scripts/mdn/refresh.py`
 (`NON_STANDARD`), each something a real app needs and nothing standard does: today `BeforeInstallPromptEvent`. Their
 doc comments say **Non-standard.**
 

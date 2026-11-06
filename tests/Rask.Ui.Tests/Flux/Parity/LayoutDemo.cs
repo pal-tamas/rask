@@ -91,7 +91,7 @@ internal sealed partial class LayoutDemo : global::Rask.Core.RaskMarkup
 
     /// <summary>
     ///     No demo of Flux's: an application's menu — twelve groups, eighty items, three groups folded, one item
-    ///     current deep in the list — in the collapsible demo's sidebar. <c>scripts/flux/rail.mjs</c> walks it.
+    ///     current deep in the list — in the collapsible demo's sidebar. <c>flux rail</c> walks it.
     /// </summary>
     public static Component LongMenu(string classes) =>
         Ui.Sidebar.Sticky(true).Collapsible(Ui.SidebarCollapsible.Always).Class(classes)[

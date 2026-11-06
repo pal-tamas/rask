@@ -67,7 +67,7 @@
   </ItemGroup>
 
   <!-- CLDR's plural rules, which PluralRulesMatchCldrTests holds the curated table to. The cldr-plurals follower
-       (scripts/upstream/cldr-plurals.mjs) moves it; nothing here writes it. -->
+       (scripts/upstream/cldr-plurals.py) moves it; nothing here writes it. -->
   <ItemGroup>
     <None Include="cldr-plurals.json" CopyToOutputDirectory="PreserveNewest"/>
   </ItemGroup>

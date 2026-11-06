@@ -7,7 +7,7 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     Eszaf #16 in a real browser, the flow of its compare/flow-reports.mjs: the report form's columns added, two grouped
+///     Eszaf #16 in a real browser, the flow of its flow-reports comparison: the report form's columns added, two grouped
 ///     to the front, one moved up, then a row moved down and up again, and one removed. The move back was lost.
 /// </summary>
 public sealed class KeyedRowMoveBackTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>

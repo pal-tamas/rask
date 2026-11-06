@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 /// </summary>
 /// <remarks>
 ///     The markup contract. How the panel LOOKS, where it lands and what the pointer and the keys do are held
-///     to Flux's page by <c>scripts/flux/parity.mjs popover</c> and <c>parity-popover.mjs</c>.
+///     to Flux's page by <c>flux parity popover</c> and <c>flux parity-popover</c>.
 /// </remarks>
 public partial class UiPopoverTests : global::Rask.Core.RaskMarkup
 {

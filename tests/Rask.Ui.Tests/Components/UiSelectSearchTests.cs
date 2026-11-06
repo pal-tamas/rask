@@ -10,7 +10,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     The search is the browser's, as it is in Flux: the runtime (<c>data-rask-list</c>) hides the rows that
 ///     do not hold what is typed, and typing sends the page nothing — which rows, the "no results" row and the
-///     keys are held to Flux in a browser (<c>UiListHookTests</c>, <c>scripts/flux/parity-select.mjs</c>) and
+///     keys are held to Flux in a browser (<c>UiListHookTests</c>, <c>flux parity-select</c>) and
 ///     in the runtime's own fixture. Here: what a render writes for it to read, and what the page hears.
 /// </remarks>
 public partial class UiSelectSearchTests : global::Rask.Core.RaskMarkup

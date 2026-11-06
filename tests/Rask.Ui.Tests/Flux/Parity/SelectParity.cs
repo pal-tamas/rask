@@ -12,7 +12,7 @@ namespace Rask.UiTests.Flux.Parity;
 ///     </para>
 ///     <para>
 ///     The words and the picked options are the rendered page's: its listbox examples open on an answer where
-///     the markdown shows none. <c>scripts/flux/parity-select.mjs</c> opens every drawn list here and on
+///     the markdown shows none. <c>flux parity-select</c> opens every drawn list here and on
 ///     Flux's page and compares what is then on screen.
 ///     </para>
 /// </remarks>

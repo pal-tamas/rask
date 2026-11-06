@@ -5,7 +5,7 @@ namespace Rask.UiTests.Flux.Parity;
 /// <summary><c>fluxui.dev/layouts/header</c>, demo for demo.</summary>
 /// <remarks>
 ///     What a header holds — the brand, the navbars, the profile — is other pages' to draw, and compared as a box
-///     (parity.mjs's FOREIGN). The brand and the navbars are the real ones, so each is as wide as its words are on
+///     (flux parity's FOREIGN). The brand and the navbars are the real ones, so each is as wide as its words are on
 ///     the platform measuring it (whole pixels on Linux, not on a Mac); the profile is a box of the size Flux gave
 ///     it. What is compared is the header, the phone's sidebar and the main.
 /// </remarks>

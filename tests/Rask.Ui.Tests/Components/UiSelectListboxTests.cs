@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     Where the reader is in the list is the browser's: the lit row, the keys, type-ahead and whether the list
 ///     is open are kept by the runtime (<c>data-rask-list</c>) and send the page nothing, so they are held to
-///     Flux in a browser (<c>UiListHookTests</c>, <c>scripts/flux/parity-select.mjs</c>). What is in process is
+///     Flux in a browser (<c>UiListHookTests</c>, <c>flux parity-select</c>). What is in process is
 ///     what a render writes, and the press that picks.
 /// </remarks>
 public partial class UiSelectListboxTests : global::Rask.Core.RaskMarkup

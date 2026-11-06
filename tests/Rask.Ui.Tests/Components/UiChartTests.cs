@@ -9,7 +9,7 @@ namespace Rask.UiTests.Components;
 /// <remarks>
 ///     What is pinned here is what Flux's own layout was measured to do — the round ticks, the gutters set by the
 ///     widest label, the curve through the points — as numbers, since a chart that is a pixel out is a chart that
-///     misstates its data. <c>scripts/flux/parity-chart.mjs</c> holds the same numbers to Flux's live page.
+///     misstates its data. <c>flux parity-chart</c> holds the same numbers to Flux's live page.
 /// </remarks>
 public partial class UiChartTests : global::Rask.Core.RaskMarkup
 {

@@ -262,7 +262,7 @@ export function whenQuiet(heard: () => void): void {
 
 // ----- Shared helpers ---------------------------------------------------------------------------------
 
-/** The document, or null where there is none to listen on: the Node fixtures import these modules too. */
+/** The document, or null where there is none to listen on: the script fixtures import these modules too. */
 export const page: Document | null =
     typeof document !== "undefined" && typeof document.addEventListener === "function" ? document : null;
 
