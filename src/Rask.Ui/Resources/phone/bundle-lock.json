@@ -1,0 +1,15 @@
+{
+  "lockVersion": 1,
+  "packages": {
+    "data/cldr-localenames-full": {
+      "version": "48.0.0",
+      "resolved": "https://registry.npmjs.org/cldr-localenames-full/-/cldr-localenames-full-48.0.0.tgz",
+      "integrity": "sha512-H6ZG0+1rjwsg7gqFeIAa2TTab9fWA7/b7U0ovxA2YJSI5tGumyM5sVchY5f/q0kn/9AtseGKwrTb9UDC4xmghw=="
+    },
+    "node_modules/intl-tel-input": {
+      "version": "29.2.3",
+      "resolved": "https://registry.npmjs.org/intl-tel-input/-/intl-tel-input-29.2.3.tgz",
+      "integrity": "sha512-uwDslWntH/G5HuVlCSly8XdRC2iXVnpAEtj5I3JOFTy3G/7PARGsqbakWBBXfjzh3BjXXLOEOZDvqulvPSG0QQ=="
+    }
+  }
+}

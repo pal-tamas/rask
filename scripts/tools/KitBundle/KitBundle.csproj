@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    A maintainer tool, not a product: builds Rask.Ui's two script engines (Ui.Editor's Tiptap, Ui.Phone's
+    intl-tel-input) from npm's registry with no npm and no Node, and follows their pins daily
+    (scripts/upstream/followers.json). It is in no solution and is never packed; the empty Directory.Build.*
+    and Directory.Packages.props beside the tools folder cut it off from the rules for what ships. Usage: Program.cs.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- The country table is sorted the way a browser's Intl.Collator('en') sorts it: ICU, never invariant mode. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Semver" Version="3.0.0"/>
+  </ItemGroup>
+
+  <!--
+    esbuild is the build's own: the version Rask.Core.targets pins (RaskEsbuildVersion), and the platform package,
+    cache directory and recorded SHA-512 the build's ResolveTypeScriptToolTask uses. A machine that has built Rask
+    already has it, and one pin moves both (scripts/upstream/tools.py).
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\..\src\Rask.TypeScript.Tasks\TypeScriptTools.cs" Link="Shared\TypeScriptTools.cs"/>
+    <Compile Include="..\..\..\src\Rask.TypeScript.Tasks\TypeScriptToolPins.cs" Link="Shared\TypeScriptToolPins.cs"/>
+    <Compile Include="..\..\..\src\Rask.TypeScript.Tasks\TypeScriptTool.cs" Link="Shared\TypeScriptTool.cs"/>
+    <Compile Include="..\..\..\src\Rask.TypeScript.Tasks\ToolOs.cs" Link="Shared\ToolOs.cs"/>
+  </ItemGroup>
+
+</Project>

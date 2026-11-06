@@ -1,6 +1,6 @@
 // The engine behind Ui.Editor: Tiptap (ProseMirror) wired to the markup UiEditor renders.
 //
-// Bundled by build.mjs into ../ui-editor.js, which an app serves as a static file and UiEditor.ts imports
+// Bundled by scripts/tools/KitBundle into ../ui-editor.js, which an app serves as a static file and UiEditor.ts imports
 // the first time an editor mounts. Nothing here knows about Rask's runtime: `mount(root)` reads the DOM it
 // is given, so the same file drives a page that has no .NET behind it (the Flux parity pages).
 //

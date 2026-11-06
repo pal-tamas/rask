@@ -159,10 +159,11 @@
     {
       "name": "tiptap",
       "kind": "regenerate",
-      "run": "node scripts/upstream/kit-bundle.mjs editor",
+      "run": "scripts/tools/KitBundle/follow.sh editor",
+      "setup": "dotnet",
       "outputs": [
-        "src/Rask.Ui/Resources/editor/package.json",
-        "src/Rask.Ui/Resources/editor/package-lock.json",
+        "src/Rask.Ui/Resources/editor/bundle.json",
+        "src/Rask.Ui/Resources/editor/bundle-lock.json",
         "src/Rask.Ui/Resources/ui-editor.js",
         "src/Rask.Ui/Resources/ui-editor.LICENSES.txt",
         "src/Rask.Ui/UiEditorEngine.cs"
@@ -171,10 +172,11 @@
     {
       "name": "intl-tel-input",
       "kind": "regenerate",
-      "run": "node scripts/upstream/kit-bundle.mjs phone",
+      "run": "scripts/tools/KitBundle/follow.sh phone",
+      "setup": "dotnet",
       "outputs": [
-        "src/Rask.Ui/Resources/phone/package.json",
-        "src/Rask.Ui/Resources/phone/package-lock.json",
+        "src/Rask.Ui/Resources/phone/bundle.json",
+        "src/Rask.Ui/Resources/phone/bundle-lock.json",
         "src/Rask.Ui/Resources/ui-phone.js",
         "src/Rask.Ui/Resources/ui-phone-utils.js",
         "src/Rask.Ui/Resources/ui-phone.LICENSES.txt",
