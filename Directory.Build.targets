@@ -190,7 +190,7 @@
 
   <!--
     The third-party static analyzers (docs/code-analysis.md), on everything under src/ and nothing else:
-    tests and benchmarks keep the SDK's own set, which is what keeps the one-minute hooks inside budget.
+    tests and benchmarks keep the SDK's own set, which keeps their builds fast.
     PrivateAssets="all" keeps every one of them out of the packages — a consumer of Rask gets Rask's own
     analyzers and none of these. Rule severities, and the reason each tuned rule is tuned, are in .editorconfig.
   -->

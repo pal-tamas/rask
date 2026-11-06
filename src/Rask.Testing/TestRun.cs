@@ -5,12 +5,13 @@ namespace Rask.Testing;
 
 /// <summary>
 ///     One test's own app: booted from the app's <c>Program.cs</c> the first time the test needs it — its first
-///     <c>User.Create(…)</c>, its first <c>Page.Visit</c> — with its own database, and shut down when the test ends.
+///     <c>Accounts.Create&lt;User&gt;(…)</c>, its first <c>Page.Visit</c> — with its own database, and shut down when the test ends.
 /// </summary>
 /// <remarks>
 ///     Machinery: Rask.Testing's build adds a test-framework hook that calls <see cref="Begin" /> before every
 ///     test and <see cref="End" /> after it, so a test writes neither. It is why
-///     <c>var admin = await User.Create(…); var page = Page.Visit("/x").As(admin);</c> works in that order.
+///     <c>await Accounts.Create&lt;User&gt;(…); var admin = await User.Where(…).First(); var page = Page.Visit("/x").As(admin);</c>
+///     works in that order.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class TestRun

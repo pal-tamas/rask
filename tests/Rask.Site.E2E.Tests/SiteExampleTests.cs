@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -12,7 +13,7 @@ namespace Rask.Site.E2E.Tests;
 ///     live counter and install tabs are genuine stateful Rask components (click → diff → re-render), and
 ///     that the docs link points at the nested sub-app.
 /// </summary>
-public sealed class SiteExampleTests
+public sealed partial class SiteExampleTests
 {
     private readonly WasmExampleAppFixture _app;
     private readonly PlaywrightFixture _pw;
@@ -637,6 +638,78 @@ public sealed class SiteExampleTests
         Assert.Equal("image/png", card.Content.Headers.ContentType?.MediaType);
         Assert.Contains("property=\"og:image\" content=\"https://rask.sh/img/og-card.png\"", guide, StringComparison.Ordinal);
     }
+
+    /// <remarks>
+    ///     The landing page had no <c>&lt;main&gt;</c> at all: every section sat straight in the body, so a reader's
+    ///     "skip to content" had nowhere to go and the landmark Rask focuses after a navigation was missing on the
+    ///     one page every visit starts on. Asserted after hydration, because the runtime morphs the body.
+    /// </remarks>
+    [Fact]
+    public async Task The_landing_page_holds_its_sections_in_one_main_landmark()
+    {
+        var context = await _pw.Browser.NewContextAsync(new BrowserNewContextOptions { BaseURL = _app.BaseUrl });
+        var page = await context.NewPageAsync();
+        await SlowMachine.ApplyAsync(page);
+
+        try
+        {
+            await page.GotoAsync("/index.html");
+            await Expect(page.Locator("html[data-rask-prerendered]"))
+                .ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 60_000 });
+
+            var main = page.Locator("main");
+            await Expect(main).ToHaveCountAsync(1);
+            await Expect(main.Locator("h1")).ToContainTextAsync("The whole stack");
+            await Expect(main.Locator("section#hosts")).ToHaveCountAsync(1);
+            await Expect(page.Locator("main header, main footer")).ToHaveCountAsync(0);
+        }
+        finally
+        {
+            await context.CloseAsync();
+        }
+    }
+
+    /// <remarks>
+    ///     The elements guide's attribute-order demo linked to <c>/tags</c>, a route that left with the old tags page,
+    ///     so its live result was a link to "Page not found". Every page the publish prerendered is read back off disk
+    ///     and every root-relative link in it has to name a page or a file the same bundle carries.
+    ///     <c>/demos/data/</c> is the one exception: <c>pages.yml</c> deploys that app beside this one.
+    /// </remarks>
+    [Fact]
+    public void Every_link_a_published_page_makes_lands_on_a_page_the_bundle_carries()
+    {
+        var wwwroot = _app.PublishedWwwroot;
+        var pages = Directory.EnumerateFiles(wwwroot, "index.html", SearchOption.AllDirectories)
+            .Where(p => !Path.GetRelativePath(wwwroot, p).StartsWith('_'))
+            .ToList();
+
+        var broken = pages
+            .SelectMany(p => LinkHref().Matches(File.ReadAllText(p))
+                .Select(m => (Page: "/" + Path.GetRelativePath(wwwroot, Path.GetDirectoryName(p)!).Replace('\\', '/'),
+                    Href: System.Net.WebUtility.HtmlDecode(m.Groups[1].Value))))
+            .Where(link => !link.Href.StartsWith("//", StringComparison.Ordinal)
+                && !link.Href.StartsWith(DataDemoPath, StringComparison.Ordinal)
+                && !Lands(wwwroot, link.Href))
+            .Select(link => $"{link.Page} -> {link.Href}")
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.True(pages.Count > 100, $"only {pages.Count} prerendered pages were found under {wwwroot}.");
+        Assert.True(broken.Count == 0, "links to nothing:\n" + string.Join('\n', broken));
+    }
+
+    private const string DataDemoPath = "/demos/data/";
+
+    private static bool Lands(string wwwroot, string href)
+    {
+        var path = href.Split('#', '?')[0].TrimStart('/');
+        var full = Path.Combine(wwwroot, path);
+        return path.Length == 0 || File.Exists(full) || File.Exists(Path.Combine(full, "index.html"));
+    }
+
+    // An anchor's root-relative href; a stylesheet, a script or an icon is not a link a reader follows.
+    [GeneratedRegex("<a\\s[^>]*?href=\"(/[^\"]*)\"", RegexOptions.CultureInvariant)]
+    private static partial Regex LinkHref();
 
     [Theory]
     [InlineData("/index.html")]

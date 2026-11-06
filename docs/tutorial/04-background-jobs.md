@@ -83,28 +83,20 @@ long-lived, and a scoped context would outlive any unit of work.
 ## 3. Enqueue from your code
 
 Open chapter 3's `NewOrderPage` in `Features/Orders/NewOrderPage.cs` and enqueue right after the order is
-saved. Nothing is injected: `Jobs` reaches the queue of the work it runs in, and is cancelled with it.
-`SendOrderReceipt` lives in `Features/Shared/`, so the page also needs `using Shop.Features.Shared;`:
+saved — inside the work the page's `save` command sends, so a failed enqueue lands on `save.IsError` like a
+failed save. Nothing is injected: `Jobs` reaches the queue of the work it runs in, and is cancelled with it.
+`SendOrderReceipt` lives in `Features/Shared/`, so the page also needs `using Shop.Features.Shared;` at the
+top. Only the form's `OnSubmit` changes:
 
 ```csharp
-public sealed partial class NewOrderPage : Component
+Form.Model(_model).OnSubmit(async model => await save.Send(async ct =>
 {
-    // … the fields and Render() are unchanged …
-
-    private async Task Save(OrderModel model)
-    {
-        try
-        {
-            var order = await Order.Create(model);
-            await Jobs.Enqueue(new SendOrderReceipt(order.Id));   // ← enqueue
-            Routes.OrdersPage().Go();
-        }
-        catch (Exception)
-        {
-            _error = "Something went wrong — please try again.";
-        }
-    }
-}
+    var order = await Order.Create(model, cancellationToken: ct);
+    await Jobs.Enqueue(new SendOrderReceipt(order.Id));   // ← enqueue
+    Routes.OrdersPage().Go();
+}, CancellationToken))[
+    // … the inputs are unchanged …
+]
 ```
 
 `Order.Create` hands back the saved order, with the `Id` it was given. The enqueue returns as soon as the

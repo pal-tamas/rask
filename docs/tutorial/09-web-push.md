@@ -126,15 +126,25 @@ rask db add AddOrderCustomer   # applied the next time the app starts
 
 Chapter 7's handler already reacts to an order being placed. Shipping has the same shape: give `Order` a
 `Ship()` method that raises an `OrderShipped` event (a `[LocalOnly]` `IEvent`, like `OrderPlaced`) and call it with
-`Order.Update(id, o => o.Ship())`, which saves the change and the event in one transaction. Push is then one more handler hanging
-off that event:
+`Order.Update(id, o => o.Ship())`, which saves the change and the event in one transaction:
+
+```csharp
+// Features/Orders/OrderEvents.cs, beside OrderPlaced
+[LocalOnly]
+public sealed record OrderShipped(Guid Id) : IEvent;
+
+// Features/Orders/Order.cs, inside the class
+public void Ship() => Raise(new OrderShipped(Id));
+```
+
+Push is then one more handler hanging off that event, `Features/Orders/OrderShippedHandler.cs`:
 
 ```csharp
 using Rask.WebPush;
 
 namespace Shop.Features.Orders;
 
-public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
+public sealed class OrderShippedHandler : IDurableHandler<OrderShipped>
 {
     public async Task Handle(OrderShipped notification)
     {
@@ -151,7 +161,7 @@ public sealed class OrderShippedHandler : IEventHandler<OrderShipped>
 everyone. A subscription the push service says is gone — the browser unsubscribed, the app was uninstalled — is
 dropped as the send finds it, so the table never fills with dead endpoints.
 
-Sending from the **outbox** handler rather than inline is deliberate, for the same reason as the email: the
+It is an `IDurableHandler`, so it runs from the **outbox**, and sending from there rather than inline is deliberate, for the same reason as the email: the
 notification is derived from the order committing, so it should not be able to go missing because the push
 service was slow.
 

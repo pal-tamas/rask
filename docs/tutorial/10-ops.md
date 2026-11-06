@@ -23,22 +23,23 @@ query**. Queue depth is `SELECT count(*)`.
 They're ordinary EF entities, mapped into the same `RaskAppDbContext` as your products. They aren't
 aggregates, so there's no `OutboxMessage.Where(…)` — you reach them through the context itself. Inject
 `IDbContextFactory<RaskAppDbContext>` into the page as `dbFactory` and open one per refresh. These are EF Core's
-own calls, which do not pick up the page's cancellation by themselves, so each is handed the page's
-`CancellationToken` (`ct` below):
+own calls, which do not pick up the page's cancellation by themselves, so each is handed a token that ends
+with the page (`ct` below):
 
 ```csharp
-var ct = CancellationToken;
+var ct = _stopped.Token;   // cancelled when the page unmounts — see the whole page below
 await using var db = await dbFactory.CreateDbContextAsync(ct);
 ```
 
 ## 2. Count what matters
 
-Three counts tell you almost everything:
+Four counts tell you almost everything:
 
 ```csharp
 OutboxProcessed = await db.Set<OutboxMessage>().CountAsync(m => m.ProcessedAt != null, ct),
 OutboxFailed    = await db.Set<OutboxMessage>().CountAsync(m => m.Error != null, ct),
 JobsProcessed   = await db.Set<Job>().CountAsync(j => j.ProcessedAt != null, ct),
+MailSent        = await db.Set<QueuedMail>().CountAsync(m => m.ProcessedAt != null, ct),
 ```
 
 The **failed** count is the one people leave out, and it's the one that matters. Delivery is at-least-once
@@ -90,8 +91,122 @@ While you're here, read the connection settings back from the live database, rat
 the database was opened the way Chapter 8 said:
 
 ```csharp
-JournalMode = await ScalarAsync(db, "PRAGMA journal_mode"),   // → wal
-ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys"),   // → 1
+JournalMode = await ScalarAsync(db, "PRAGMA journal_mode", ct),   // → wal
+ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys", ct),   // → 1
+```
+
+`ScalarAsync` is a few lines of ADO.NET over the context's own connection — it is in the page below.
+
+## The whole page
+
+Here are the pieces put together, as `Features/Ops/OpsPage.cs`. `Job` and `QueuedMail` are in namespaces every
+Shop file already imports; `OutboxMessage` needs `using Rask.Outbox;`. The page shows the same rows as the
+dashboard below, so it is gated on the same **admin** role. `_stopped` is cancelled when the page unmounts,
+which is what ends the loop when the tab closes, and the refresh uses its token (`ct`) rather than the page's
+`CancellationToken`: the loop runs between events, where nothing else would cancel it.
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Rask.Outbox;
+
+namespace Shop.Features.Ops;
+
+[Authorize(Roles = "admin")]
+[Route("/ops")]
+public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactory) : Component
+{
+    // About five minutes of 1 Hz polling per open tab, then the page stops asking.
+    private const int MaxTicks = 300;
+
+    private readonly CancellationTokenSource _stopped = new();
+    private Stats _stats;
+
+    protected override string? PageTitle => "Ops";
+
+    protected override async Task OnMount()
+    {
+        await Refresh().ConfigureAwait(false);
+        _ = Poll();
+    }
+
+    protected override Task OnUnmount()
+    {
+        _stopped.Cancel();
+        _stopped.Dispose();
+        return Task.CompletedTask;
+    }
+
+    private async Task Poll()
+    {
+        try
+        {
+            for (var tick = 0; tick < MaxTicks && !_stopped.IsCancellationRequested; tick++)
+            {
+                await Task.Delay(1.Second, _stopped.Token).ConfigureAwait(false);
+
+                var before = _stats;
+                await Refresh().ConfigureAwait(false);
+                if (_stats != before)
+                {
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The page went away.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The page went away mid-tick.
+        }
+    }
+
+    private async Task Refresh()
+    {
+        var ct = _stopped.Token;
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        _stats = new Stats
+        {
+            OutboxProcessed = await db.Set<OutboxMessage>().CountAsync(m => m.ProcessedAt != null, ct).ConfigureAwait(false),
+            OutboxFailed = await db.Set<OutboxMessage>().CountAsync(m => m.Error != null, ct).ConfigureAwait(false),
+            JobsProcessed = await db.Set<Job>().CountAsync(j => j.ProcessedAt != null, ct).ConfigureAwait(false),
+            MailSent = await db.Set<QueuedMail>().CountAsync(m => m.ProcessedAt != null, ct).ConfigureAwait(false),
+            JournalMode = await ScalarAsync(db, "PRAGMA journal_mode", ct).ConfigureAwait(false),
+            ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys", ct).ConfigureAwait(false),
+        };
+    }
+
+    // One value from the live connection: what the pragmas actually are, not what the config says.
+    private static async Task<string> ScalarAsync(DbContext db, string sql, CancellationToken ct)
+    {
+        var connection = db.Database.GetDbConnection();
+        await db.Database.OpenConnectionAsync(ct).ConfigureAwait(false);
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToString(await command.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture) ?? "";
+    }
+
+    protected override Component? Render() =>
+    [
+        Ui.Heading.Level(1).Xl["Ops"],
+        Ui.Card.Class("mt-4")[
+            Ul[
+                Li[$"Outbox processed: {_stats.OutboxProcessed}"],
+                Li[$"Outbox failed: {_stats.OutboxFailed}"],
+                Li[$"Jobs processed: {_stats.JobsProcessed}"],
+                Li[$"Mail sent: {_stats.MailSent}"],
+                Li[$"journal_mode: {_stats.JournalMode}"],
+                Li[$"foreign_keys: {_stats.ForeignKeys}"]
+            ]
+        ]
+    ];
+
+    private readonly record struct Stats(
+        int OutboxProcessed, int OutboxFailed, int JobsProcessed, int MailSent, string JournalMode, string ForeignKeys);
+}
 ```
 
 ## Verify

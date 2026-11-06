@@ -59,7 +59,7 @@ internal sealed partial class UiTooltipBehaviour : Component
         UiDocsTopic.Key("announced").Heading("What a screen reader hears").Paragraphs([
             "The kit wires the trigger to the tooltip the way Flux's script does, at render: a trigger with text of "
             + "its own gets `aria-describedby`, and one without (an icon button) gets `aria-labelledby`, so the "
-            + "tooltip is its name and it needs no `AccessibleLabel`.",
+            + "tooltip is its name and it needs no `.AriaLabel(...)`.",
             "`Interactive()` says the content is more than a description: the trigger gets `aria-controls` instead, "
             + "with `aria-expanded` `false` at rest and `true` while it shows, and the content stays in the reading "
             + "order. A `Toggleable()` tooltip is Flux's dropdown to a screen reader: its button gets `aria-controls` "

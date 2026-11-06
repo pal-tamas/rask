@@ -75,7 +75,8 @@ thread. The handler sends with nothing injected:
 ```csharp
 using Shop.Features.Orders;   // for Order
 
-public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
+[RaskMarkup]   // so this class can build your components by their chain — OrderReceipt below
+public sealed partial class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
 {
     public async Task Handle(SendOrderReceipt job)
     {
@@ -90,6 +91,12 @@ public sealed class SendOrderReceiptHandler : IJobHandler<SendOrderReceipt>
     }
 }
 ```
+
+A component's chain entry — the bare `OrderReceipt` that starts `OrderReceipt.OrderId(…)` — is injected
+into every component of yours, which is why a page never needs anything to name one. A job handler is not a
+component, so it says it builds markup with `[RaskMarkup]`, and is `partial` so the entries have somewhere to
+go. Leave the attribute off and the build fails on `OrderReceipt.OrderId(…)` with *CS0120: An object
+reference is required*, because outside a markup host `OrderReceipt` is just the type.
 
 `FirstOrDefault` returns `null` for an order that has been deleted since the job was queued, which is why the
 handler checks before sending (`First` would throw instead, and the job would be retried).
