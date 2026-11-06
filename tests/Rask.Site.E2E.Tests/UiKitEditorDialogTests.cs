@@ -97,6 +97,19 @@ public sealed class UiKitEditorDialogTests(WasmExampleAppFixture app, Playwright
 
         var sheet = Page.Locator("[data-testid='ui-editor-dialog-wide'] dialog");
         await Expect(sheet).ToBeVisibleAsync(new() { Timeout = 10_000 });
+        // The flyout slides in from the right: measured mid-slide it stands short of the edge.
+        // Wait for its own finite transitions (not a spinner's endless one inside it), then for it to hold still.
+        await sheet.EvaluateAsync(
+            """
+            async el => {
+                await Promise.all(el.getAnimations().filter(a => a.effect?.getTiming().iterations !== Infinity).map(a => a.finished));
+                await new Promise(done => {
+                    let last;
+                    const step = () => { const x = el.getBoundingClientRect().x; if (x === last) done(); else { last = x; requestAnimationFrame(step); } };
+                    requestAnimationFrame(step);
+                });
+            }
+            """);
         var box = await sheet.BoundingBoxAsync();
 
         Assert.NotNull(box);
