@@ -12,7 +12,7 @@
          root namespace, and the default one (Rask.Ui.Tests) would open a `Rask.Ui` namespace that hides the
          `Rask.Ui` kit class from every `Rask.Ui.Marker`-style reference in this project. -->
     <RootNamespace>Rask.UiTests</RootNamespace>
-    <!-- Appearance/*Fixture.ts is a Node fixture, not a component's scoped TypeScript (RASK017). -->
+    <!-- Appearance/*Fixture.ts is a script fixture, not a component's scoped TypeScript (RASK017). -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
@@ -63,13 +63,13 @@
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
-  <!-- Appearance/AppearanceScriptFixture.ts runs Ui.AppearanceScript's inline script under Node against a stub
+  <!-- Appearance/AppearanceScriptFixture.ts runs Ui.AppearanceScript's inline script in-process on Jint against a stub
        document; UiAppearanceScriptTests asserts the JSON it prints. Bundled by the shared target. -->
   <ItemGroup>
-    <_RaskNodeFixture Include="Appearance\*Fixture.ts"/>
+    <_RaskScriptFixture Include="Appearance\*Fixture.ts"/>
   </ItemGroup>
 
-  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
+  <Import Project="..\Rask.TestSupport\ScriptFixtures.targets"/>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test

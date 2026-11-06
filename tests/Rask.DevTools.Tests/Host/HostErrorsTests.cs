@@ -4,7 +4,7 @@ using Rask.TestSupport;
 namespace Rask.DevTools.Tests.Host;
 
 /// <summary>
-///     The page's side of the Errors tab, driven in Node against a stub DOM: the button the devtools add to the runtime's
+///     The page's side of the Errors tab, driven in-process on Jint against a stub DOM: the button the devtools add to the runtime's
 ///     dev-error overlay, and a request to show the errors that waits for the panel.
 /// </summary>
 public sealed class HostErrorsTests
@@ -12,15 +12,7 @@ public sealed class HostErrorsTests
     [Fact]
     public void The_overlay_gains_an_open_in_devtools_button_and_a_show_request_waits_for_the_panel()
     {
-        // No node on PATH — the JS-driven check cannot run. Deliberately not a failure: node is not required to build
-        // or test Rask, and the devtools' browser check drives the same code for real.
-        var result = NodeFixture.Run("HostErrorsFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var r = result.Value;
+        var r = ScriptFixture.Run("HostErrorsFixture");
         bool Bool(string name) => r.GetProperty(name).GetBoolean();
         string? Str(string name) => r.GetProperty(name).GetString();
 

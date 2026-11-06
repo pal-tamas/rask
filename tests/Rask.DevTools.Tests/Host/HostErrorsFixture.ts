@@ -1,8 +1,9 @@
-// Node-driven fixture for the page's side of the Errors tab (host/errors.ts): the "Open in DevTools" button added to the
+// Script fixture for the page's side of the Errors tab (host/errors.ts): the "Open in DevTools" button added to the
 // runtime's dev-error overlay, and a show request held until the panel is listening.
 //
 // Stub DOM with exactly what the module touches. The C# test (HostErrorsTests) asserts the single JSON line on stdout.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {
     addOverlayButton, installErrorsLink, OVERLAY_BUTTON_ATTRIBUTE, PAGE_ERROR_LIMIT,
 } from "../../../src/Rask.DevTools/Resources/host/errors.js";
@@ -137,4 +138,4 @@ quiet.heardFromPanel();
 const handed = bufferPosts.flatMap(m => m.kind === "page-error" ? [m.report.message] : []);
 out.bufferHanded = `${handed.length}:${handed[0]}:${handed[handed.length - 1]}`;
 
-process.stdout.write(JSON.stringify(out) + "\n");
+report(out);

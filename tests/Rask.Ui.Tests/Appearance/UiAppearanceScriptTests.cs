@@ -8,8 +8,8 @@ namespace Rask.UiTests.Appearance;
 ///     mode contract.
 /// </summary>
 /// <remarks>
-///     The script is run, not read: <c>AppearanceScriptFixture.ts</c> executes it under Node against a stub
-///     document. Without Node these return early; <c>DarkModeTests</c> covers the same ground in a browser.
+///     The script is run, not read: <c>AppearanceScriptFixture.ts</c> executes it in-process on Jint against a stub
+///     document. <c>DarkModeTests</c> covers the same ground in a browser.
 /// </remarks>
 public sealed class UiAppearanceScriptTests
 {
@@ -28,12 +28,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored, osDark, steps = Array.Empty<object>() };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.Equal(dark, html.GetProperty("darkClass").GetBoolean());
         Assert.Equal(dark, html.GetProperty("dark").GetBoolean());
@@ -49,12 +44,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored, osDark = false, steps = Array.Empty<object>() };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.False(html.GetProperty("darkClass").GetBoolean());
         Assert.Equal("system", html.GetProperty("appearance").GetString());
@@ -68,12 +58,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored = (string?)null, osDark, steps = Array.Empty<object>() };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.Equal(osDark, html.GetProperty("darkClass").GetBoolean());
         Assert.Equal(JsonValueKind.Null, html.GetProperty("dataTheme").ValueKind);
@@ -85,13 +70,8 @@ public sealed class UiAppearanceScriptTests
         var toDark = new { key = Key, stored = (string?)null, osDark = false, steps = new object[] { new { dark = true } } };
         var toSystem = new { key = Key, stored = "dark", osDark = false, steps = new object[] { new { appearance = "system" } } };
 
-        var dark = Play(toDark);
-        var system = Play(toSystem);
-
-        if (dark is not { } darkened || system is not { } followed)
-        {
-            return;
-        }
+        var darkened = Play(toDark);
+        var followed = Play(toSystem);
 
         Assert.Equal("dark", darkened.GetProperty("stored").GetString());
         Assert.True(darkened.GetProperty("darkClass").GetBoolean());
@@ -104,12 +84,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored = "dark", osDark = false, steps = new object[] { new { appearance = "dracula" } } };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.Equal("system", html.GetProperty("appearance").GetString());
         Assert.Equal(JsonValueKind.Null, html.GetProperty("stored").ValueKind);
@@ -121,13 +96,8 @@ public sealed class UiAppearanceScriptTests
         var following = new { key = Key, stored = (string?)null, osDark = false, steps = new object[] { new { os = true } } };
         var chosen = new { key = Key, stored = "light", osDark = false, steps = new object[] { new { os = true } } };
 
-        var followed = Play(following);
-        var kept = Play(chosen);
-
-        if (followed is not { } system || kept is not { } light)
-        {
-            return;
-        }
+        var system = Play(following);
+        var light = Play(chosen);
 
         Assert.True(system.GetProperty("darkClass").GetBoolean());
         Assert.False(light.GetProperty("darkClass").GetBoolean());
@@ -138,12 +108,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored = "dark", osDark = false, steps = new object[] { new { morph = true } } };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.True(html.GetProperty("darkClass").GetBoolean());
         Assert.True(html.GetProperty("earlierHookRan").GetBoolean());
@@ -154,12 +119,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = Key, stored = (string?)null, osDark = false, steps = new object[] { new { otherTab = "dark" } } };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.True(html.GetProperty("darkClass").GetBoolean());
         Assert.Equal("dark", html.GetProperty("appearance").GetString());
@@ -177,12 +137,7 @@ public sealed class UiAppearanceScriptTests
             steps = new object[] { new { dark = true } },
         };
 
-        var page = Play(scenario);
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario);
 
         Assert.True(html.GetProperty("darkClass").GetBoolean());
     }
@@ -192,12 +147,7 @@ public sealed class UiAppearanceScriptTests
     {
         var scenario = new { key = "shop.appearance", stored = "dark", osDark = false, steps = Array.Empty<object>() };
 
-        var page = Play(scenario, UiAppearanceScript.Js("shop.appearance"));
-
-        if (page is not { } html)
-        {
-            return;
-        }
+        var html = Play(scenario, UiAppearanceScript.Js("shop.appearance"));
 
         Assert.True(html.GetProperty("darkClass").GetBoolean());
     }
@@ -228,6 +178,6 @@ public sealed class UiAppearanceScriptTests
         Assert.DoesNotContain("data-rask-on", html, StringComparison.Ordinal);
     }
 
-    private static JsonElement? Play(object scenario, string? script = null) =>
-        NodeFixture.Run("AppearanceScriptFixture", script ?? UiAppearanceScript.Js(Key), JsonSerializer.Serialize(scenario));
+    private static JsonElement Play(object scenario, string? script = null) =>
+        ScriptFixture.Run("AppearanceScriptFixture", script ?? UiAppearanceScript.Js(Key), JsonSerializer.Serialize(scenario));
 }

@@ -4,7 +4,9 @@
 //   argv[2]  the script, as the component renders it
 //   argv[3]  the scenario: { stored, osDark, steps: [{ appearance | dark | os | otherTab | morph }] }
 //
-// UiAppearanceScriptTests runs this in a node subprocess and asserts the JSON line.
+// UiAppearanceScriptTests runs this on Jint and asserts what it reports.
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
+
 declare const process: { readonly argv: string[]; readonly stdout: { write(chunk: string): boolean } };
 
 interface Step {
@@ -23,8 +25,8 @@ interface Scenario {
     steps: Step[];
 }
 
-const script = process.argv[2] ?? '';
-const scenario = JSON.parse(process.argv[3] ?? '{}') as Scenario;
+const script = args[0] ?? '';
+const scenario = JSON.parse(args[1] ?? '{}') as Scenario;
 
 const classes = new Set<string>();
 const attributes = new Map<string, string>();
@@ -102,11 +104,11 @@ for (const step of scenario.steps) {
     }
 }
 
-process.stdout.write(JSON.stringify({
+report({
     darkClass: classes.has('dark'),
     dataTheme: attributes.get('data-theme') ?? null,
     stored: store.get(scenario.key) ?? null,
     appearance: rask.appearance,
     dark: rask.dark,
     earlierHookRan: win.earlierHookRan === true,
-}) + '\n');
+});

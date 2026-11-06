@@ -3,7 +3,7 @@ using Rask.TestSupport;
 namespace Rask.DevTools.Tests.Host;
 
 /// <summary>
-///     The devtools pill and drawer, driven in Node against a stub DOM: where they mount, how they open, the shortcut,
+///     The devtools pill and drawer, driven in-process on Jint against a stub DOM: where they mount, how they open, the shortcut,
 ///     and the remembered dock side.
 /// </summary>
 public sealed class HostDockTests
@@ -11,15 +11,7 @@ public sealed class HostDockTests
     [Fact]
     public void The_dock_mounts_opens_docks_and_answers_the_shortcut()
     {
-        // No node on PATH — the JS-driven check cannot run. Deliberately not a failure: node is not required to build
-        // or test Rask, and the devtools E2E drives the same dock in a real browser.
-        var result = NodeFixture.Run("HostDockFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var r = result.Value;
+        var r = ScriptFixture.Run("HostDockFixture");
         bool Bool(string name) => r.GetProperty(name).GetBoolean();
         int Int(string name) => r.GetProperty(name).GetInt32();
         string? Str(string name) => r.GetProperty(name).GetString();

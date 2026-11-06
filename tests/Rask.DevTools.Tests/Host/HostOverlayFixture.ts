@@ -1,9 +1,10 @@
-// Node-driven fixture for the page overlays' logic: where a place is (host/anchors.ts), what the page does with the panel
+// Script fixture for the page overlays' logic: where a place is (host/anchors.ts), what the page does with the panel
 // frame's messages (host/bridge.ts), how a box is measured from the page's nodes and how a node's path is read back
 // (host/overlay.ts over Rask.Core's rask-dom-path.ts), and what the panel's side posts and reports (panel/panel-client.ts).
 //
 // Stub DOMs with exactly what each module touches. The C# test (HostOverlayTests) asserts the single JSON line on stdout.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {contains, findAnchor, parseAnchors, parsePlace} from "../../../src/Rask.DevTools/Resources/host/anchors.js";
 import {createBridge, installPatchTiming, listenToPanel} from "../../../src/Rask.DevTools/Resources/host/bridge.js";
 import type {DockHandle} from "../../../src/Rask.DevTools/Resources/host/dock.js";
@@ -401,4 +402,4 @@ const changed = changedElements([
 ] as unknown as MutationRecord[], hostEl as unknown as Element);
 out.domChanged = (changed as unknown as Node2[]).map(n => n.name).join(",");
 
-process.stdout.write(JSON.stringify(out) + "\n");
+report(out);

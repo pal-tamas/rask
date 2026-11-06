@@ -3,7 +3,7 @@ using Rask.TestSupport;
 namespace Rask.DevTools.Tests.Host;
 
 /// <summary>
-///     The page overlays' logic, driven in Node against stub DOMs: reading and matching places, what the page does with the
+///     The page overlays' logic, driven in-process on Jint against stub DOMs: reading and matching places, what the page does with the
 ///     panel frame's messages and which it ignores, measuring a box from the page's nodes, and what the panel side posts.
 /// </summary>
 public sealed class HostOverlayTests
@@ -11,15 +11,7 @@ public sealed class HostOverlayTests
     [Fact]
     public void Places_match_messages_are_filtered_boxes_are_measured_and_the_panel_posts_what_it_is_over()
     {
-        // No node on PATH — the JS-driven check cannot run. Deliberately not a failure: node is not required to build
-        // or test Rask, and the devtools' browser check drives the same code for real.
-        var result = NodeFixture.Run("HostOverlayFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var r = result.Value;
+        var r = ScriptFixture.Run("HostOverlayFixture");
         bool Bool(string name) => r.GetProperty(name).GetBoolean();
         string? Str(string name) => r.GetProperty(name).GetString();
 

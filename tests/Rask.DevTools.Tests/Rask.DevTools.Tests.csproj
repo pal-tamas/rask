@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
 
-    <!-- No scoped component assets: the .ts files here are Node fixtures (see Host/), which the scoped-TS glob must
+    <!-- No scoped component assets: the .ts files here are script fixtures (see Host/), which the scoped-TS glob must
          not claim. A property, because the csproj body evaluates before Rask.Core.targets adds the items. -->
     <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
 
@@ -48,7 +48,7 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
-    <!-- NodeFixture, which runs the host-script fixtures below. -->
+    <!-- ScriptFixture, which runs the host-script fixtures below. -->
     <ProjectReference Include="..\Rask.TestSupport\Rask.TestSupport.csproj"/>
     <!-- The panel is drawn with Rask.Ui, which Rask.DevTools references privately: an app brings its own copy, and so
          does this test host. -->
@@ -70,18 +70,18 @@
     <Using Include="Rask.TestFiles"/>
   </ItemGroup>
 
-  <!-- The host script's Node fixtures: each drives a Resources/ module against a stub DOM. -->
+  <!-- The host script's script fixtures: each drives a Resources/ module against a stub DOM. -->
   <ItemGroup>
-    <_RaskNodeFixture Include="Host\*Fixture.ts"/>
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.DevTools\Resources\**\*.ts"
+    <_RaskScriptFixture Include="Host\*Fixture.ts"/>
+    <_RaskScriptFixtureDependency Include="..\..\src\Rask.DevTools\Resources\**\*.ts"
                                 Exclude="..\..\src\Rask.DevTools\Resources\**\*.d.ts"/>
     <!-- The frame client bundles the runtime's DOM, morph and event modules and the behaviour hooks. -->
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"/>
+    <_RaskScriptFixtureDependency Include="..\..\src\Rask.Core\Resources\*.ts"/>
     <!-- The stub DOM a fixture imports first. -->
-    <_RaskNodeFixtureDependency Include="Host\*.ts" Exclude="@(_RaskNodeFixture)"/>
+    <_RaskScriptFixtureDependency Include="Host\*.ts" Exclude="@(_RaskScriptFixture)"/>
   </ItemGroup>
 
-  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
+  <Import Project="..\Rask.TestSupport\ScriptFixtures.targets"/>
 
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. A test

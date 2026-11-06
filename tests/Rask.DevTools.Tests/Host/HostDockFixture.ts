@@ -1,4 +1,4 @@
-// Node-driven fixture for the devtools pill and drawer (Rask.DevTools/Resources/host/dock.ts).
+// Script fixture for the devtools pill and drawer (Rask.DevTools/Resources/host/dock.ts).
 //
 // Drives the production installDock against a stub DOM that has what the dock uses and nothing more: elements with
 // attributes, children, listeners and a shadow root; a window that records its listeners; a localStorage that can be
@@ -17,6 +17,7 @@
 //
 // The C# test (HostDockTests) runs this and asserts the single JSON line on stdout.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {DOCK_STORAGE_KEY, installDock} from "../../../src/Rask.DevTools/Resources/host/dock.js";
 import {followPageScheme, pageScheme} from "../../../src/Rask.DevTools/Resources/host/scheme.js";
 
@@ -233,7 +234,7 @@ observed.forEach(fire => fire());
 followed.push(host.getAttribute("data-scheme"));
 delete globals.MutationObserver;
 
-process.stdout.write(JSON.stringify({
+report({
     schemes, followed, observers: observed.length,
     dotAtStart, dotShut, alertLabel, dotHiddenWhileOpen, dotBackWhenShut, dotCapped, dotCleared,
     mountedAfterBody, managed, closedAtStart, framesAtStart, sideAtStart, shortcutListenerIsCapture,
@@ -243,4 +244,4 @@ process.stdout.write(JSON.stringify({
     blockedThrew, blockedSide,
     framesWithoutPanel,
     wasmFrameCount: wasmFrames.length, wasmFrameDocument, wasmFrameSrc, framed
-}) + "\n");
+});
