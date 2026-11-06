@@ -349,6 +349,16 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> EditorDialog { get; } =
+    [
+        new("Ui.EditorDialog", typeof(UiEditorDialog), NotFlux, "A list's editor over the list, open while its query key is in the address; its children are the form, held only while it is open.",
+        [
+            new("In", typeof(string), "The query key that says which record is open: UiEditorDialog.New for one not yet saved. Required, and taken first.", "a key: Ui.EditorDialog.In(\"edit\")"),
+            new("Wide", typeof(bool?), "A sheet from the right, as wide as the screen allows (84rem at most), for a form with rows of its own."),
+            new("Heading", typeof(string), "The dialog's heading, clear of its cross."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> Empty { get; } =
     [
         new("Ui.Empty", typeof(UiEmpty), NotFlux, "What a list says when it has nothing to show: a centred status line with 24px above and below, as Flux's demo draws it; in a cell, the cell's ink and size. Its children are the sentence.", []),
@@ -918,7 +928,7 @@ internal static partial class UiApi
         new[]
         {
             Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
-            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag,
+            Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
             FormButtons, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
             Tooltip,

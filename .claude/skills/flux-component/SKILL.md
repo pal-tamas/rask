@@ -177,6 +177,11 @@ departure in behaviour carries none.
   2026-10-20) lays out an `h1` Xl heading, a `Ui.Subheading`, breadcrumbs above and the actions at the end from the demos'
   measured rows (account overview: `flex flex-wrap items-center justify-between gap-2`, the title `max-sm:w-full max-sm:mb-2`,
   actions `flex-1 justify-end gap-2`). Always the `h1`, no outer spacing (owner 2026-11-05), so its docs examples are framed demo pages. `UiEmptyTests`, `UiPageHeaderTests`, the site's `UiKitEmptyAndHeaderTests`.
+- **2026-11-04 — `Ui.EditorDialog.In("edit")` (#1295).** Both apps kept a copy. It IS `Ui.Modal` (`Open` from the address,
+  `OnClose` → `Go.Without(key)`), a box (`w-full sm:min-w-[28rem]`) or with `Wide()` the flyout (`w-full
+  md:w-[min(84rem,100vw)]`), and a heading `Ui.Heading.Level(2).Lg` with `mb-6 pe-8` to clear the cross; nothing of its
+  own is drawn, so `flux parity-modal` holds the look. Approved type in `FluxConformanceTests`; `UiEditorDialogTests`,
+  the site's `UiKitEditorDialogTests`.
 
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).

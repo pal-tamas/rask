@@ -119,6 +119,17 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Ui: the editor over its list, opened by the query string — `Ui.EditorDialog.In("edit")` (#1295).** Not Flux's:
+  an addition the owner approved, which both list apps kept a copy of, made of `Ui.Modal`. Before: each app wrote an
+  `EditorDialog.For(Edit, editor, Here, wide: true)` that was handed the list's address to close back to, an
+  `Editing(Here, id)` to build the link and a `Heading` of its own. After:
+  `Ui.EditorDialog.In("edit").Heading("Edit driver").Wide()[editor]` reads its key from the address and takes it out
+  when the reader closes it — the cross, Escape, a press outside, Cancel, Back — keeping every other key, so the list's
+  filters, sort and page stand as they were; content is sent only while it is open, `UiEditorDialog.New` names a record
+  not yet saved, and `.Wide()` is a sheet from the right as wide as the screen allows (84rem at most). The link is new
+  in Core: `route.With("edit", id)` on the injected `RouteState` (this page, every key kept) and
+  `Routes.DriversPage().With("edit", id)` on any `RouteUrl` — a null value removes the key. Live on
+  rask.sh/ui/editor-dialog.
 - **Rask.Ui: Flux's empty state, a cell that spans columns and a page's header (#1283).** Before: each list app kept an
   `EmptyList.Of("No suppliers yet.")` (a `Ui.Text`), wrote a fold-out row's span as `Ui.TableCell.Attributes(("colspan",
   "3"))` and opened each page with `Div.Class("mb-6 flex flex-wrap items-center gap-y-3")[PageHeadline.Of(title),

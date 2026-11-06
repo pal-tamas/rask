@@ -136,44 +136,42 @@ public sealed class RouteState
     }
 
     /// <summary>
+    ///     The page being shown with <paramref name="key" /> set in its query, every other key kept — a filter, a sort, a
+    ///     page: <c>Ui.Button.Href(route.With("edit", UiEditorDialog.New))["New driver"]</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A <c>null</c> value takes the key out. A component that writes one renders again when the address moves, so the
+    ///     link always carries the filters the reader set. Another page's is <c>Routes.DriversPage().With("edit", "7")</c>.
+    /// </remarks>
+    /// <param name="key">The query parameter, matched without regard to case.</param>
+    /// <param name="value">Its value; <c>null</c> removes it.</param>
+    /// <returns>An in-app link to this page, in the language of the page it is used on.</returns>
+    public RouteUrl With(string key, string? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+
+        return With([new KeyValuePair<string, string?>(key, value)]);
+    }
+
+    /// <summary>
     ///     The page being shown with <paramref name="changes" /> written into its query — a pair with no value takes its
     ///     key out, every other key stays: where a pager's link or a sort leads.
     /// </summary>
     /// <param name="changes">The keys to write, matched without regard to case.</param>
     /// <returns>An in-app link to this page, in the language of the page it is used on.</returns>
-    internal RouteUrl With(IEnumerable<KeyValuePair<string, string?>> changes)
-    {
-        var query = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (key, value) in Query)
-        {
-            query[key] = value;
-        }
-
-        foreach (var (key, value) in changes)
-        {
-            if (value is null)
-            {
-                query.Remove(key);
-            }
-            else
-            {
-                query[key] = value;
-            }
-        }
-
-        return Here(new QueryCollection(query));
-    }
+    internal RouteUrl With(IEnumerable<KeyValuePair<string, string?>> changes) => Here(RouteUrl.Changed(Query, changes));
 
     // This page under the query given: its page type makes it an in-app link.
-    private RouteUrl Here(IEnumerable<KeyValuePair<string, StringValues>> query)
+    private RouteUrl Here(IEnumerable<KeyValuePair<string, StringValues>> query) => Here(RouteUrl.Changed(query, []));
+
+    private RouteUrl Here(string? query)
     {
         var path = RoutePath;
         var page = RouteResolver.TryResolve(CurrentTable, path, out var chain, out var notFound) && !notFound && chain.Count > 0
             ? chain[^1]
             : null;
-        var here = QueryString.Build(path, query);
-        var at = here.IndexOf('?', StringComparison.Ordinal);
-        return new RouteUrl(path, at < 0 ? null : here[at..], page);
+        return new RouteUrl(path, query, page);
     }
 
     /// <summary>

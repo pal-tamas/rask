@@ -4494,6 +4494,7 @@ Rask.Core.Routing.RouteState.Query.set -> void
 Rask.Core.Routing.RouteState.RouteState() -> void
 Rask.Core.Routing.RouteState.Title.get -> string?
 Rask.Core.Routing.RouteState.In(string! language) -> Rask.Core.Routing.RouteUrl
+Rask.Core.Routing.RouteState.With(string! key, string? value) -> Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteUrl.Deconstruct(out string! Path, out string? QueryString, out System.Type? PageType) -> void
 Rask.Core.Routing.RouteUrl.Equals(Rask.Core.Routing.RouteUrl other) -> bool
@@ -4505,6 +4506,7 @@ Rask.Core.Routing.RouteUrl.QueryString.get -> string?
 Rask.Core.Routing.RouteUrl.QueryString.init -> void
 Rask.Core.Routing.RouteUrl.RouteUrl() -> void
 Rask.Core.Routing.RouteUrl.RouteUrl(string! Path, string? QueryString = null, System.Type? PageType = null) -> void
+Rask.Core.Routing.RouteUrl.With(string! key, string? value) -> Rask.Core.Routing.RouteUrl
 Rask.Core.Routing.RouteValueFormatter
 Rask.Core.Routing.Router
 Rask.Core.Routing.Router.Router(Rask.Core.Routing.RouteState! state) -> void
