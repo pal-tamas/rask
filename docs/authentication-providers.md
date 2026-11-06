@@ -39,7 +39,7 @@ builder.Services.AddAuthentication()
 builder.Services.Configure<AuthenticationOptions>(
     o => o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme);
 
-builder.Services.AddRask(auth => auth.ChallengePath = "/login");
+builder.Services.AddRask();   // the route guard challenges to /login (RouteAuthorizationGuard.ChallengePath, fixed)
 // app: UseAuthentication(); UseAuthorization(); MapRask<App>();
 ```
 
@@ -58,7 +58,7 @@ app.MapPost("/logout", (HttpContext ctx) =>
 
 A "Sign in" link (`A.Href("/login?returnUrl=/secure")`) sends the user through Keycloak; on return the
 cookie is set and the next Rask GET/WS sees the authenticated `User`. Route `[Authorize]` pages now
-challenge straight to Keycloak via `ChallengePath`.
+challenge to `/login` (`RouteAuthorizationGuard.ChallengePath`), which hands off to Keycloak.
 
 ---
 

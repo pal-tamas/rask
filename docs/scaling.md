@@ -70,7 +70,7 @@ your user count.** Splitting a 200-row grid into pages of 20 buys more than a bi
 | Host at capacity | New sessions get `503` + `Retry-After`; `/health` reports Degraded at 80% of `MaxSessions` so an orchestrator sheds first. |
 | Host killed outright | Whatever was in flight is lost. Sessions rebuild on the next reconnect if their record is still valid. |
 
-Two of those depend on a **persisted data-protection key ring**, which `rask new` scaffolds to
+Two of those depend on a **persisted data-protection key ring**, which `AddRask` persists to
 `/data/keys`. Without it, a record sealed before a redeploy can't be opened after one, and you're back to
 a reload. Watch `rask.sessions.resume_rejected{reason="unprotect"}` — a spike right after a deploy is
 exactly that failure.

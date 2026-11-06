@@ -103,13 +103,13 @@ host.Services.AddRaskApiClient();
 ```csharp
 public sealed class PostDetail(PostsClient posts) : Component
 {
-    [Prop] public int Id { get; init; }
+    public required int Id { get; set; }
 
     private Post? _post;
 
     protected override async Task OnMount() => _post = await posts.Get(Id);
 
-    public override Component Render() =>
+    protected override Component? Render() =>
         _post is null ? Div["Loading…"] : Article[H1[_post.Title]];
 }
 ```

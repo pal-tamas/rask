@@ -153,7 +153,7 @@ The WASM client has no server pipeline of its own, so the **API host** owns the 
 its principal from `/api/me`.
 
 > **By hand, and unexercised.** No template scaffolds this two-project shape — the `wasm-hosted` template
-> that did was removed — so the pieces below are yours to write: the host's `/api/login` + `/api/me` +
+> no longer does — so the pieces below are yours to write: the host's `/api/login` + `/api/me` +
 > `/auth/logout`, and the browser client's `ApiUserProvider`, login page and protected `/members` page.
 > A pair of sample projects used to hold exactly this arrangement, kept building and covered by a browser
 > E2E; they are gone, so this page is now the whole of it and nothing verifies it end to end. Read it as

@@ -38,7 +38,7 @@ public sealed record SendWelcomeEmail(string Email, string Name) : IJob;
 public sealed class SendWelcomeEmailHandler : IJobHandler<SendWelcomeEmail>
 {
     public async Task Handle(SendWelcomeEmail job) =>
-        await Mail.Send(Email.To(job.Email).Subject("Welcome").Body(new WelcomeEmail(job.Name)));
+        await Mail.Send(Email.To(job.Email).Subject("Welcome").Body(WelcomeEmail.Name(job.Name)));
 }
 
 // Program.cs
@@ -283,7 +283,7 @@ picks the same job up a second time, however long it runs.
 
 **The job author's contract:**
 
-- **Honour the token.** `Current.Cancellation` (or the token your handler is given) is cancelled only when the
+- **Honour the token.** `Current.Cancellation` is cancelled only when the
   stop budget ends. Pass it to every awaited call, and stop cleanly when it fires.
 - **Make the job idempotent.** A job cancelled at the end of the budget — or killed with the container — re-runs
   *whole* on the next boot, not from where it stopped. It does **not** count a failed attempt (a redeploy is not

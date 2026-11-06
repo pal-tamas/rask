@@ -95,7 +95,7 @@ so `Rask__Mail__Smtp__Host` in the environment is enough to start. Nothing else 
 ## How it works
 
 - **`Email`** — a fluent builder: `To`/`AndTo`/`Cc`/`Bcc`/`ReplyTo`/`From`, `Subject`, `Body(component)` (or
-  `Body(html)`), an optional `PlainText` alternative, and `Attach`. `Body(component)` renders the component to
+  `Html(html)`), an optional `PlainText` alternative, and `Attach`. `Body(component)` renders the component to
   HTML **immediately** (`Component.ToHtml()`), so the built email holds only strings and bytes.
 - **`IMail`** — writes one `QueuedMail` row (envelope + already-rendered body) through your
   `IDbContextFactory<TContext>`, defaulting the sender from `MailOptions.From` when the message didn't set one.
