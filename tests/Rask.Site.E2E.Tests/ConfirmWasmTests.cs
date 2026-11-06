@@ -121,8 +121,9 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
         await signOut.ClickAsync();
         await Page.ClickAsync(Yes);
 
-        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("#signed-out$"), new() { Timeout = 10_000 });
-        Assert.DoesNotContain("#signed-out", stayed, StringComparison.Ordinal);
+        // A path, followed as a page load as a sign-out endpoint is: a #fragment is followed too, then dropped (#1310).
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/ui/confirm/\\?signed-out$"), new() { Timeout = 30_000 });
+        Assert.DoesNotContain("signed-out", stayed, StringComparison.Ordinal);
         Assert.Empty(browserDialogs);
     });
 
