@@ -92,7 +92,7 @@ Two option delegates in a row cannot be told apart at a call site:
 ```csharp
 // don't
 AddRaskSqlite(services, connectionString,
-    Action<SqlitePragmaOptions>? configure = null,
+    Action<SqliteOptions>? configure = null,
     Action<SqliteBusyRetryOptions>? configureRetry = null)
 ```
 
