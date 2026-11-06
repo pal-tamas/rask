@@ -116,11 +116,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
                 static (ctx, _) => GetCandidates(ctx))
             .SelectMany(static (c, _) => c);
 
-        // A package island's props come from its committed snapshot — an additional file the syntax transform
-        // above cannot read — so they are merged in after collection. See WithPackageProps.
         var grouped = candidates.Collect()
-            .Combine(External.PackageIslands.PackageIslandProps.Snapshots(context))
-            .Select(static (t, _) => WithPackageProps(t.Left, t.Right))
             .WithComparer(CandidateListComparer.Instance);
 
         return grouped;
@@ -237,10 +233,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // lets a NESTED component be injected into. Empty for a top-level component.
         EquatableArray<string> EnclosingTypes = default,
         bool EnclosingAllPartial = false,
-        // What pairs an island with its committed props snapshot, when this is one — symbol-side facts only,
-        // because the snapshot itself is an additional file the syntax transform cannot read. See
-        // WithPackageProps, which adds the steps once snapshots and candidates are both in hand.
-        global::Rask.Generators.External.PackageIslands.IslandFacts? Package = null,
         // Where the entry lives when it is not on the markup surface — `Ui.Button` rather than `Ui.Button`. See
         // RaskChainGroupAttribute; null for every component reached by its bare name.
         ChainGroup? Group = null,

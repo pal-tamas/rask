@@ -17,12 +17,6 @@ internal static class SpaAppBundle
     /// <summary>The dist directory, baked at build time.</summary>
     internal const string DistMetadataKey = "Rask.SpaDistDir";
 
-    /// <summary>The client project directory, baked so tooling can find the sources.</summary>
-    internal const string ClientMetadataKey = "Rask.SpaClientDir";
-
-    /// <summary>Where the bundler's dev server listens, baked from the client's configuration.</summary>
-    internal const string DevServerMetadataKey = "Rask.SpaDevServerUrl";
-
     /// <summary>The Rask WebAssembly client project this host serves, baked when there is one.</summary>
     internal const string WasmClientMetadataKey = "Rask.SpaWasmClient";
 

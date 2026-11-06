@@ -48,43 +48,6 @@ internal sealed class DevToolsTreeSnapshotter
         _ids.GetValue(component, _ => new StrongBox<long>(Interlocked.Increment(ref _next))).Value;
 
 
-    /// <summary>The element an island or a Blazor component renders, named as the badge a developer knows it by.</summary>
-    internal static string? BadgeOf(ReadOnlySpan<RenderFrame> frames, int start)
-    {
-        if (start < 0 || start >= frames.Length || frames[start].Kind != RenderFrameKind.Element)
-        {
-            return null;
-        }
-
-        switch (frames[start].Name)
-        {
-            case "rask-blazor":
-                return "Blazor";
-            case "rask-external":
-                for (var i = start + 1; i < frames.Length && frames[i].Kind == RenderFrameKind.Attribute; i++)
-                {
-                    if (string.Equals(frames[i].Name, "runtime", StringComparison.Ordinal) && frames[i].Value is { Length: > 0 } runtime)
-                    {
-                        return runtime switch
-                        {
-                            "react" => "React",
-                            "preact" => "Preact",
-                            "solid" => "Solid",
-                            "vue" => "Vue",
-                            "svelte" => "Svelte",
-                            "angular" => "Angular",
-                            "lit" => "Lit",
-                            _ => runtime,
-                        };
-                    }
-                }
-
-                return "Island";
-            default:
-                return null;
-        }
-    }
-
     private sealed class Builder
     {
         private readonly DevToolsTreeSnapshotter _owner;
@@ -180,7 +143,7 @@ internal sealed class DevToolsTreeSnapshotter
         }
 
         private DevToolsComponentNode Describe(
-            long id, Component component, List<DevToolsComponentNode> children, string? at, string? badge = null)
+            long id, Component component, List<DevToolsComponentNode> children, string? at)
         {
             // What the component says about itself. The override the build wrote reads its own properties by name; in a
             // build without the devtools the base method is empty, so this is a call that collects nothing.
@@ -188,7 +151,7 @@ internal sealed class DevToolsTreeSnapshotter
             component.DescribeProps(describer);
             return new DevToolsComponentNode(
                 id, DevToolsNames.Of(component.GetType()), component.Key?.ToString(), describer.Props, children, At: at,
-                Badge: badge, Provides: ProvidesOf(component), Reads: ReadsOf(component));
+                Provides: ProvidesOf(component), Reads: ReadsOf(component));
         }
 
         private DevToolsProvidedContext[]? ProvidesOf(Component component)
@@ -293,9 +256,7 @@ internal sealed class DevToolsTreeSnapshotter
                 AddComponents(children, kids);
             }
 
-            return Describe(
-                id, item.Component, children, Locate(item.FrameStart, item.FrameEnd),
-                _capture.FrameCount >= 0 ? BadgeOf(_capture.Frames, item.FrameStart) : null);
+            return Describe(id, item.Component, children, Locate(item.FrameStart, item.FrameEnd));
         }
 
         // Through FramePathWalker, the same slot arithmetic the diff uses, so the box drawn is around the nodes the diff

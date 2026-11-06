@@ -114,7 +114,6 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
         }
 
         var isComponent = false;
-        var isExternal = false;
         var ownNames = new SortedSet<string>(StringComparer.Ordinal) { symbol.Name };
         ownNames.UnionWith(symbol.MemberNames);
         for (var t = symbol.BaseType; t is not null; t = t.BaseType)
@@ -126,7 +125,6 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
                 break;
             }
 
-            isExternal |= string.Equals(name, ExternalComponentFullName, StringComparison.Ordinal);
             ownNames.UnionWith(t.MemberNames);
         }
 
@@ -144,7 +142,6 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
             ns,
             string.Join("\n", containers),
             partial,
-            isExternal,
             string.Join("\n", ownNames));
     }
 
@@ -205,8 +202,7 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
         {
             var stem = Path.GetFileNameWithoutExtension(file.SourcePath);
             var key = AssetPairing.MakeKey(AssetPairing.NormalizeDirectory(file.SourcePath), stem);
-            if (!byKey.TryGetValue(key, out var matches) || matches.Count != 1 || matches[0].IsExternal
-                || !emitted.Add(matches[0].FullyQualifiedName))
+            if (!byKey.TryGetValue(key, out var matches) || matches.Count != 1 || !emitted.Add(matches[0].FullyQualifiedName))
             {
                 continue;
             }
@@ -285,7 +281,6 @@ public sealed class ScopedScriptCallsGenerator : IIncrementalGenerator
         string Namespace,
         string Containers,
         bool IsPartial,
-        bool IsExternal,
         string MemberNames);
 
     private readonly record struct DeclarationFile(string SourcePath, string Contents);

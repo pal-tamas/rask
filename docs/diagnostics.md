@@ -1,12 +1,11 @@
-# Rask diagnostics (RASK001–RASK115, RASKVAL001–RASKVAL002, RASKISLAND001–018)
+# Rask diagnostics (RASK001–RASK115, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
 
 These come from the Rask source generator and analyzers (`Rask.Generators`). The generated chain
 surface doesn't exist until a build runs, so if an ID below isn't recognised by your IDE yet,
-build once. The islands build has a sequence of its own, logged by MSBuild rather than by an analyzer:
-[RASKISLAND001–018](#island-build-diagnostics-raskisland).
+build once.
 
 Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 
@@ -85,15 +84,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK052](#rask052) | Warning | Translation catalog disagrees with the neutral catalog |
 | [RASK053](#rask053) | Error | Remote message has no wire encoding |
 | [RASK055](#rask055) | Error | Scoped JavaScript is no longer supported |
-| [RASK056](#rask056) | Error | External component must be partial |
-| [RASK057](#rask057) | Error | External component prop has no wire encoding |
-| [RASK058](#rask058) | Error | External component name collision |
-| [RASK059](#rask059) | Error | Module or Export override must be a constant string |
 | [RASK060](#rask060) | Warning | `AddRask` is called twice on the same service collection |
-| [RASK061](#rask061) | Error | Blazor island must be partial |
-| [RASK062](#rask062) | Error | An island cannot render these children |
-| [RASK064](#rask064) | Error | Blazor island name collision |
-| [RASK066](#rask066) | Warning | Hosted Blazor component's parameters cannot be verified |
 | [RASK067](#rask067) | Error | Endpoint shape has no wire encoding |
 | [RASK068](#rask068) | Warning | Endpoint has no generated client method |
 | [RASK069](#rask069) | Error | Two endpoints claim one client method |
@@ -102,10 +93,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK072](#rask072) | Warning | Entity `Configure` method will not be called |
 | [RASK073](#rask073) | Warning | Strongly-typed id has no usable value |
 | [RASK074](#rask074) | Warning | More than one user type |
-| [RASK077](#rask077) | Warning | Package island has no props snapshot |
-| [RASK078](#rask078) | Error | Props snapshot cannot be read |
-| [RASK079](#rask079) | Error | Props snapshot describes a different component |
-| [RASK080](#rask080) | Warning | Package prop was not generated |
 | [RASK082](#rask082) | Error | A type already has the generated model's name |
 | [RASK083](#rask083) | Warning | Nested entity gets no generated model |
 | [RASK084](#rask084) | Error | Model state can be changed from outside the type |
@@ -123,7 +110,6 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK097](#rask097) | Error | A route helper's name collides with a nested `Routes` class |
 | [RASK098](#rask098) | Warning | A web API member is missing from a browser `<RaskBrowserTargets>` names |
 | [RASK099](#rask099) | Warning | A `<RaskBrowserTargets>` entry is not `<browser> >= <version>` |
-| [RASK100](#rask100) | Error | `[BlazorParameter]` names a parameter the hosted component does not declare |
 | [RASK101](#rask101) | Error | An authorization attribute on a handler or event is not one Rask reads |
 | [RASK102](#rask102) | Warning | A value object's `Validate` is not the shape of a rule, so no form runs it |
 | [RASK103](#rask103) | Error | A constructor-built value object holds a value object of several values |
@@ -143,8 +129,9 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
 **Retired, never recycled:** RASK027, RASK030, RASK032, RASK034, RASK042, RASK046, RASK047, RASK048,
-RASK049, RASK050, RASK054, RASK075, RASK076, RASK081 and RASK091. Each guarded a mistake that can no longer be written; a
-suppression that names one is dead and can be deleted. RASK063 and RASK065 are reserved.
+RASK049, RASK050, RASK054, RASK056, RASK057, RASK058, RASK059, RASK061, RASK062, RASK063, RASK064, RASK065, RASK066,
+RASK075, RASK076, RASK077, RASK078, RASK079, RASK080, RASK081, RASK091 and RASK100. Each guarded a mistake that can no
+longer be written; a suppression that names one is dead and can be deleted.
 
 ---
 
@@ -377,7 +364,7 @@ in a loop) without a `Key`. Keyless items reconcile **by position**, which loses
 and emits untrusted structural diffs on insert/remove/move.
 
 For a **component row** — anything that renders itself (it overrides `Render()`: your own row or card,
-a `Ui.*` part that draws its own markup, an island) — position also decides which instance is reused, so the row's own state and
+a `Ui.*` part that draws its own markup) — position also decides which instance is reused, so the row's own state and
 its own handlers follow the slot rather than the item. That position is its order among the components
 of its type the same `Render()` writes. A row inserted at the top hands every row below it the state of
 the row above; and an event already on its way — a click on "Delete" on the second row, sent just as the
@@ -1181,86 +1168,6 @@ else's file and is left alone.
 > entirely and are never considered. A plain site-wide script belongs in `wwwroot` and is linked from
 > your `Head`, exactly as before.
 
-## RASK056
-
-**External component must be partial** · Error
-
-A `ReactComponent` or `LitComponent` is completed by a second part of the class: its name, its module
-and its props writer. Without `partial` there is nowhere to put any of it. A package declaration
-(`Mui : ReactPackage`) is completed the same way — its components' entries, `Mui.Button`, are generated into it.
-
-```csharp
-// ✗ RASK056 — nothing can be generated into it
-public sealed class Chart : ReactComponent { }
-
-// ✓
-public sealed partial class Chart : ReactComponent { }
-```
-
-Reported here, against the declaration, rather than left to the compiler: what it would otherwise
-produce is three "does not implement inherited abstract member" errors naming `ComponentName`,
-`Module` and `WriteProps`, none of which the author wrote or should have to know about.
-
-## RASK057
-
-**External component prop has no wire encoding** · Error
-
-Props are serialized to JSON by generated code rather than by reflection — which is what lets them
-survive trimming and AOT — so a shape the generator cannot express has to be reported now rather than
-arriving as `null` in the browser.
-
-The supported set is the same wire vocabulary [RASK053](#rask053) documents, plus callbacks as
-`Action`, `Action<T>`, `Func<Task>` and `Func<T, Task>`.
-
-```csharp
-// ✗ RASK057 — an interface names no single concrete type
-public IFilter? Filter { get; set; }
-
-// ✓ a concrete type has one shape
-public TextFilter? Filter { get; set; }
-```
-
-A property that is not meant to reach the browser at all — an injected service, a computed helper —
-should say so with `[SkipFactory]`, which keeps it out of the props entirely.
-
-## RASK058
-
-**External component name collision** · Error
-
-The client runtime resolves a module by the component's simple type name, so two sharing one name
-would resolve to whichever registered last — silently, and potentially differently between builds.
-
-```csharp
-// ✗ RASK058 — both are "Chart" to the browser
-namespace Sales    { public sealed partial class Chart : ReactComponent { } }
-namespace Support  { public sealed partial class Chart : ReactComponent { } }
-```
-
-Rename one, or give it an explicit module by overriding `Module`.
-
-## RASK059
-
-**Module or Export override must be a constant string** · Error
-
-The bundler needs the module specifier at *build* time, to generate the entry that pairs the component
-with its adapter — long before any of this code runs. So the override has to be a literal the
-generator can read straight out of the syntax. The same holds for a package island's `Export`, which names the
-component the entry imports, and for a package declaration's `Exports`, which must be a list of string literals
-(`=> ["Button", "Card"]`).
-
-```csharp
-// ✗ RASK059 — the build cannot evaluate this
-protected override string Module => $"./widgets/{Name}.ts";
-protected override string Export => nameof(HexColorPicker);
-
-// ✓
-protected override string Module => "react-colorful";
-protected override string Export => "HexColorPicker";
-```
-
-Anything computed would leave the browser resolving a name the bundle never built — markup pointing at
-a chunk that does not exist, with nothing failing until someone loads the page.
-
 ## RASK060
 
 **`AddRask` is called twice on the same service collection** · Warning
@@ -1289,112 +1196,6 @@ with **none**. It is worse than a plain no-op: `AddRaskCulture` still flips the 
 same method body on the same receiver as written**, so a test file that builds one `ServiceCollection`
 per case — or a method configuring two collections side by side — is left alone. See
 [configuration](configuration.md) and [localization](localization.md).
-
-## RASK061
-
-**Blazor island must be partial** · Error
-
-A `BlazorComponent<T>` is completed by a second part of the class — the chain steps taken from the
-hosted component's `[Parameter]`s, and the reflection-free writer that maps them onto it. Without
-`partial` there is nowhere to put any of it.
-
-```csharp
-// ✗ RASK061 — nothing can be generated into it
-public sealed class Chart : BlazorComponent<MudChart> { }
-
-// ✓
-public sealed partial class Chart : BlazorComponent<MudChart> { }
-```
-
-Reported against the declaration rather than left to the compiler, which would otherwise report a
-missing `WriteParameters` the author never wrote and should not have to know about.
-
-## RASK062
-
-**An island cannot render these children** · Error
-
-An island renders what a foreign renderer owns, so what it can take as children depends on the
-renderer.
-
-**A Blazor island takes none.** It is a leaf:
-
-```csharp
-// ✗ RASK062 — 'Chart' is a Blazor island and cannot take Rask children
-Chart.Series(_series)[ H2["Revenue"] ]
-
-// ✓ compose the other way round
-Div.Class("rounded-xl border p-4")[ H2["Revenue"], Chart.Series(_series) ]
-```
-
-Rask children would have to cross the diff boundary, and no crossing is right for every hosted
-component: it may have no `RenderFragment` parameter at all, one under a name only it knows (`Content`,
-`Body`), or several (`HeaderContent`, `RowTemplate`).
-
-**A JS island takes children of its own runtime** — a React island accepts React islands, text,
-numbers and dates — because they travel inside its props and React renders them. Rask markup, or
-another runtime's island, cannot: once a front-end framework has moved Rask's nodes into its own tree,
-every DOM path Rask holds into them is wrong and the content goes dead after its first paint.
-
-```csharp
-// ✗ RASK062 — 'MuiCard' is a React island; its children are React islands, text, numbers and dates
-MuiCard[ Span["Revenue"] ]
-MuiCard[ VueChip.Label("new") ]
-
-// ✓
-MuiCard[ "Revenue ", MuiChip.Label("new") ]
-Div[ MuiCard["Revenue"], Span["updated today"] ]
-```
-
-A package island whose component takes no content accepts nothing:
-`'MuiIcon' is a React island that takes no children`.
-
-The compiler refuses these on its own — an island's children indexers are typed to its runtime, and
-the ones it inherits return a type that cannot become a component — but it says so late, where the
-result fails to convert, and not at all for `var x = MuiCard[Span["x"]]`. RASK062 reports the call at
-its brackets instead.
-
-**Assigning `Children`** is reported on both families: an island never renders it, so the children
-would compile and silently never appear. Pass them through the indexer.
-
-See [islands](islands.md#children) and [Blazor
-components](blazor-components.md#an-island-takes-no-children).
-
-## RASK064
-
-**Blazor island name collision** · Error
-
-An island's simple name identifies it in the rendered markup (`<rask-blazor name="Chart">`), so two
-islands sharing one is ambiguous in the page and in anything reading it.
-
-```csharp
-// ✗ RASK064 — both are "Chart"
-namespace Dashboard { public sealed partial class Chart : BlazorComponent<MudChart> { } }
-namespace Reports   { public sealed partial class Chart : BlazorComponent<MudChart> { } }
-```
-
-**Fix:** rename one. The namespace does not disambiguate, because the name is written into HTML.
-
-## RASK066
-
-**Hosted Blazor component's parameters cannot be verified** · Warning
-
-The island's chain steps are read from the hosted component's `[Parameter]` properties. That works
-for a type from a **referenced** project or package, but not for a `.razor` in the *same* project:
-that class is produced by the Razor source generator, and one source generator never sees another's
-output — so Rask's generator cannot resolve its parameters and emits no chain steps for them.
-
-The island still renders. What is lost is compile-time checking of what you pass it.
-
-```csharp
-// ⚠ RASK066 — Widget.razor is in this project
-public sealed partial class WidgetIsland : BlazorComponent<Widget> { }
-```
-
-**Fix:** move the `.razor` into a Razor Class Library and reference it. That is also where a Blazor
-component belongs if anything else will ever use it — and it is why hosting MudBlazor or Radzen,
-which are referenced packages, is fully checked with no warning at all.
-
----
 
 ## RASK067
 
@@ -1668,86 +1469,6 @@ Declaring **no** user type is not reported: an app with no accounts is a legitim
 battery simply does not wire.
 
 ---
-
-## RASK077
-
-**Package island has no props snapshot** · Warning
-
-An island whose `Module` names an npm package — a *package island* — gets its props from the package's own
-TypeScript, read from `{Island}.props.json` beside the class. That file is committed like a lockfile, so a fresh
-clone, the IDE and a build without Node all see every step. This island has neither a snapshot beside it nor a
-prop declared by hand, so there is nothing it can be told.
-
-```csharp
-// Features/Shop/MuiButton.cs
-public sealed partial class MuiButton : ReactComponent
-{
-    // ⚠ RASK077 — no MuiButton.props.json beside this file
-    protected override string Module => "@mui/material/Button";
-}
-```
-
-Add `MuiButton.props.json` beside the class and commit it, or declare the props on the island in C#. An island
-that declares its props by hand is not reported — see
-[Using a package component directly](islands.md#using-a-package-component-directly).
-
-## RASK078
-
-**Props snapshot cannot be read** · Error
-
-The snapshot is not one this Rask.External can read: malformed JSON, a required field missing, or a `"schema"`
-newer than it understands. The diagnostic points at the line it breaks on, and nothing is generated for the
-island rather than a partial set of steps.
-
-A snapshot describes a package; it is not somewhere to hand-tune the island. Re-extract it, or update
-Rask.External when the schema is newer than it reads.
-
-## RASK079
-
-**Props snapshot describes a different component** · Error
-
-A snapshot records the runtime, the module and the export it was extracted for. The class beside it now names
-another:
-
-```csharp
-public sealed partial class MuiButton : ReactComponent
-{
-    // ✗ RASK079 — MuiButton.props.json was extracted for the default export of '@mui/material/Button'
-    protected override string Module => "@mui/material";
-    protected override string Export => "Button";
-}
-```
-
-The default export of `@mui/material/Button` and the `Button` export of `@mui/material` are different imports, and
-the base class decides whose types were read, so the props cannot be assumed to match. Re-extract the snapshot, or
-put the base class, `Module` and `Export` back to what it was taken from.
-
-## RASK080
-
-**Package prop was not generated** · Warning
-
-A prop in the snapshot has no C# type Rask can generate for it, or its C# name collides with one the island
-already has. The other props are generated as usual; this one gets no chain step.
-
-| TypeScript | Why it is left out |
-|---|---|
-| `string \| boolean`, any union of unrelated types | no single C# type — only `string \| number` has one |
-| a callback that returns a value | the package needs the value synchronously, and a call into C# is asynchronous |
-| an object with no declared members, a function nested in a value | no JSON encoding |
-
-Declare the property on the island yourself, with the type you want, and it is sent under the package's own name:
-
-```csharp
-public sealed partial class MuiToggle : ReactComponent
-{
-    protected override string Module => "@mui/material/ToggleButton";
-
-    /// <summary>
-    ///     The package takes <c>string | boolean</c>; this app only ever passes a string.
-    /// </summary>
-    public string? Value { get; set; }
-}
-```
 
 ## RASK082
 
@@ -2834,31 +2555,6 @@ once per build, since it would otherwise check nothing.
 
 **Fix:** write `chrome`, `edge`, `firefox` or `safari`, then `>=`, then the version: `safari >= 16`.
 
-## RASK100
-
-**`[BlazorParameter]` names a parameter the hosted component does not declare** · Error
-
-`[BlazorParameter("X")]` feeds a property of the island into the hosted component's parameter `X`. When the
-component has no public, settable `[Parameter]` called `X`, the property is still a chain step — but nothing
-writes it, so the call site sets a value the component never receives.
-
-```csharp
-public sealed partial class Chart : BlazorComponent<MudChart>
-{
-    [BlazorParameter("ChartSeris")]                     // ❌ RASK100: 'Chart.Series' is mapped to 'ChartSeris',
-    public List<ChartSeries>? Series { get; set; }      //    but 'MudChart' declares no [Parameter] of that name …
-
-    [BlazorParameter("ChartSeries")]                    // ✅ spelled as MudChart declares it
-    public List<ChartSeries>? Series { get; set; }
-}
-```
-
-Not reported when the hosted component cannot be read at all — a `.razor` in the same project, which is
-[RASK066](#rask066).
-
-**Fix:** spell the name exactly as the component declares it (it is case-sensitive, and a library upgrade may
-have renamed it), or remove the attribute if the property is not meant to reach the component.
-
 ## RASK101
 
 **Authorization attribute is not read** · Error
@@ -2889,272 +2585,6 @@ public sealed class PurgeLogsHandler : ICommandHandler<PurgeLogs> { /* … */ }
 
 **Fix:** write `[Authorize(Roles = …, Policy = …)]` on the handler class itself. To share one rule between
 handlers, name a policy (`[Authorize(Policy = "admin")]`) or put the `[Authorize]` on a common base class.
-
-## Island build diagnostics (RASKISLAND)
-
-These come from the [islands](islands.md) build — `Rask.External`'s MSBuild targets and tasks — rather than from
-an analyzer, so they appear in `dotnet build` output and not as squiggles, and have no quick-fix. Every message
-starts `Rask islands:` and ends with what to do.
-A warning can be demoted per project with `MSBuildWarningsAsMessages` — not `NoWarn`, which is the compiler's
-switch and does not reach a build task:
-
-```xml
-<MSBuildWarningsAsMessages>$(MSBuildWarningsAsMessages);RASKISLAND004</MSBuildWarningsAsMessages>
-```
-
-| Code | Severity | Summary |
-| --- | --- | --- |
-| [`RASKISLAND001`](#raskisland001) | error | Node.js is missing or too old to build the islands |
-| [`RASKISLAND002`](#raskisland002) | error | The bundler finished but wrote no manifest |
-| [`RASKISLAND003`](#raskisland003) | error | The bundle was published but no endpoint serves it |
-| [`RASKISLAND004`](#raskisland004) | warning | A declared island's front-end file is not being bundled |
-| [`RASKISLAND005`](#raskisland005) | error | A package island declaration the build cannot act on |
-| [`RASKISLAND006`](#raskisland006) | error | No props snapshot, and this build cannot extract one |
-| [`RASKISLAND007`](#raskisland007) | error | A package component's props could not be read |
-| [`RASKISLAND008`](#raskisland008) | error | A locked build found an out-of-date props snapshot |
-| [`RASKISLAND009`](#raskisland009) | warning | A package island the build did not see before compiling |
-| [`RASKISLAND010`](#raskisland010) | warning | The props snapshot is from another package version than the lockfile pins |
-| [`RASKISLAND011`](#raskisland011) | error | Two front-end files would register under one island name |
-| [`RASKISLAND012`](#raskisland012) | error | An island names a runtime Rask has no adapter for |
-| [`RASKISLAND013`](#raskisland013) | error | `RaskExternalDevServerUrl` is not an http(s) origin |
-| [`RASKISLAND014`](#raskisland014) | error | React and Preact islands in one project |
-| [`RASKISLAND015`](#raskisland015) | error | Two runtimes that compile the same extension share a folder tree |
-| [`RASKISLAND016`](#raskisland016) | error | A package island's plugin cannot be kept off another runtime's files |
-| [`RASKISLAND017`](#raskisland017) | error | The generated prop types could not be read from the compiled assembly |
-| [`RASKISLAND018`](#raskisland018) | warning | The islands' declared runtimes could not be read from the compiled assembly |
-| [`RASKISLAND019`](#raskisland019) | error | The project bundles islands but does not install Vite+ |
-
-### RASKISLAND001
-
-**Node.js is missing or too old** · error
-
-A project with islands and a `package.json` bundles them with Vite, which needs Node. The build probes
-`node --version` before `npm` runs and stops here when it did not run, or reported less than
-`RaskExternalMinimumNode` (24.11.0, the first release of the Active LTS line).
-
-**Fix:** install the current LTS (`nvm install --lts`, `brew install node`, `winget install OpenJS.NodeJS.LTS`)
-and build again. `-p:RaskExternalMinimumNode=…` moves the bar if you have a reason to.
-
-### RASKISLAND002
-
-**The bundler wrote no manifest** · error
-
-Vite exited without an error but `manifest.json` is not where the build expects it. The browser resolves every
-island's chunk through that file, so none would mount.
-
-**Fix:** read the bundler's own output just above the error — it names the file that failed. If
-`RaskExternalBuildCommand` is overridden, it has to run Vite with the generated config it is handed. Left
-unset, it is `npx vp build --config`: islands are bundled by Vite+ alone ([`RASKISLAND019`](#raskisland019)).
-
-### RASKISLAND003
-
-**The bundle was published but nothing serves it** · error
-
-`dotnet publish` produced the chunks, but the static-web-assets endpoints manifest has no route under
-`RaskExternalPublicBase`, so every chunk request would fall through to the page and come back as HTML.
-
-**Fix:** keep `RaskExternalOutputDir` under `wwwroot`, and do not skip the `_RaskExternalStaticWebAssets` target.
-
-### RASKISLAND004
-
-**A declared island's front-end file is not being bundled** · warning
-
-The class says its markup comes from `Gauge.tsx`; the files the build will bundle do not include it. The page
-renders, the chunk does not exist, and the browser reports `'Gauge' is not in the manifest`.
-
-```
-Features/Gauge.cs        public sealed partial class Gauge : ReactComponent { }
-Features/Gauge.tsx       ← missing, misnamed, or excluded from the island globs
-```
-
-**Fix:** put the file beside the class under the same name, or declare it with
-`<RaskExternal Include="…"/>`. A fixture island with no module on purpose can demote the code — see
-[islands](islands.md#a-lit-island-and-scoped-typescript-in-one-project).
-
-### RASKISLAND005
-
-**A package island declaration the build cannot act on** · error
-
-Reported at the class's `Module` line. One of: the class also has a front-end file beside it; `Export` is not an
-identifier (or a dotted path of them, or for Lit a tag name); `Export` is overridden but `Module` names no
-package; the export is still written after a `#` in `Module`; or a Lit element is named by its class and no
-snapshot records its tag.
-
-```csharp
-protected override string Module => "react-colorful#HexColorPicker";   // ✗ RASKISLAND005
-
-protected override string Module => "react-colorful";                  // ✓
-protected override string Export => "HexColorPicker";
-```
-
-**Fix:** the message gives the exact overrides to write for the case it found.
-
-### RASKISLAND006
-
-**No props snapshot, and this build cannot extract one** · error
-
-A package island's chain steps are generated from `{Island}.props.json`. There is none, and this build was told
-not to read the package (`RaskExternalBuild=false`, `RaskExternalPropsExtract=false`) — the message says which.
-
-**Fix:** run `npm install`, build once without that switch, and commit the `{Island}.props.json` it writes.
-
-### RASKISLAND007
-
-**A package component's props could not be read** · error
-
-The props extractor ran and could not describe the component. The bracketed reason in the message is one of
-`module-not-found`, `export-not-found`, `not-a-component`, `lit-tag-unknown`, `runtime-unsupported` or
-`extractor-crashed`. Two rarer variants: the extractor wrote no result at all (its own output, just above, says
-why), or it did not report on one island.
-
-**Fix:** run `npm install` so the package is in `node_modules`, check `Module` and `Export` against what the
-package actually exports, and build again. For an island the extractor skipped, `dotnet build --no-incremental`.
-
-### RASKISLAND008
-
-**A locked build found an out-of-date snapshot** · error
-
-Under `ContinuousIntegrationBuild=true` or `-p:RaskExternalPropsLocked=true` the build reads the package but
-never rewrites a snapshot; one that no longer matches fails instead.
-
-**Fix:** build once locally without the lock (`dotnet build`), and commit the refreshed `{Island}.props.json`.
-
-### RASKISLAND009
-
-**A package island the build did not see before compiling** · warning
-
-The compiled assembly declares a package island the pre-compile source scan missed, so its props were not read
-and its snapshot was not refreshed. The scan reads source text, and only finds a constant.
-
-```csharp
-protected override string Module => Packages.Button;                // ⚠ RASKISLAND009 — not a literal here
-protected override string Module => "@mui/material/Button";         // ✓
-```
-
-**Fix:** return `Module` as a constant string from the class's own body.
-
-### RASKISLAND010
-
-**The snapshot is from another package version than the lockfile pins** · warning
-
-Reported only on a build that does not extract. `{Island}.props.json` records the version it was read from, and
-`package-lock.json` now pins a different one; the props may or may not still be right.
-
-**Fix:** run `npm install`, then `dotnet build` without `RaskExternalBuild=false` or
-`RaskExternalPropsExtract=false`, and commit the rewritten snapshot.
-
-### RASKISLAND011
-
-**Two front-end files would register under one island name** · error
-
-The island's name — the file name, unless the item says otherwise — is the key the browser resolves a chunk by.
-Two files with one name would overwrite each other in the manifest, differently depending on build order.
-
-```
-Features/Sales/Chart.tsx
-Features/Stock/Chart.tsx      ✗ RASKISLAND011 — both are 'Chart'
-```
-
-**Fix:** rename one file, and its C# class with it (`StockChart.tsx` beside `StockChart.cs`).
-
-### RASKISLAND012
-
-**An island names a runtime Rask has no adapter for** · error
-
-Only a hand-written `<RaskExternal>` item can do this; a class picks its runtime by its base class.
-
-```xml
-<RaskExternal Include="Widgets/Chart.vue" Runtime="vue3"/>   <!-- ✗ RASKISLAND012 -->
-<RaskExternal Include="Widgets/Chart.vue" Runtime="vue"/>    <!-- ✓ -->
-```
-
-**Fix:** use one of `react`, `preact`, `solid`, `vue`, `svelte`, `angular`, `lit` — the message lists them.
-
-### RASKISLAND013
-
-**`RaskExternalDevServerUrl` is not an http(s) origin** · error
-
-`rask dev` serves islands from Vite, and the config pins the port named here. A value that is not an absolute
-`http(s)` URL, or one that carries a path, cannot say which port that is.
-
-```
--p:RaskExternalDevServerUrl=http://localhost:5174/islands   ✗
--p:RaskExternalDevServerUrl=http://localhost:5174           ✓
-```
-
-**Fix:** stop at the port. `rask dev` sets this itself; it only needs fixing when set by hand.
-
-### RASKISLAND014
-
-**React and Preact islands in one project** · error
-
-Not a Rask rule: `@vitejs/plugin-react` resolves Babel 8 and `@preact/preset-vite` pins `@babel/core` 7, so npm
-refuses to install both. The message names the islands on each side.
-
-**Fix:** pick one runtime for the project. See
-[islands](islands.md#react-and-preact-cannot-share-a-project).
-
-### RASKISLAND015
-
-**Two runtimes that compile the same extension share a folder tree** · error
-
-React, Preact and Solid all compile `.tsx`, and each Vite plugin is scoped to the folders its own islands live
-in. Overlapping folders leave one plugin compiling the other's island with the wrong transform.
-
-```
-Features/Islands/Counter.tsx            ✗ RASKISLAND015 — React here…
-Features/Islands/Solid/Spark.tsx          …and Solid nested inside it
-
-Features/Islands/React/Counter.tsx      ✓ a folder each
-Features/Islands/Solid/Spark.tsx
-```
-
-**Fix:** give each runtime a folder of its own, and do not nest one inside the other. See
-[islands](islands.md#two-runtimes-that-share-an-extension-need-separate-folders).
-
-### RASKISLAND016
-
-**A package island's plugin cannot be kept off another runtime's files** · error
-
-A package island whose runtime has to compile the package itself — Solid, in practice — needs that runtime's
-Vite plugin, and the project also has islands of a runtime that compiles the same files (React or Preact). Plugins are kept apart by folder, and a package has no folder.
-
-**Fix:** keep that runtime's package islands and the other runtime's islands in separate projects.
-
-### RASKISLAND017
-
-**The generated prop types could not be read** · error
-
-After the compile, the build reads each island's TypeScript prop types out of the assembly to write the `.d.ts`
-files the front end is checked against. The assembly was there and could not be read; the message carries the
-underlying error. Failing is deliberate — the alternative is a front end type-checked against the last build's
-props.
-
-**Fix:** `dotnet build --no-incremental`. If it persists, report it with the bracketed error.
-
-### RASKISLAND018
-
-**The islands' declared runtimes could not be read** · warning
-
-Each island's runtime is read from the compiled assembly, because the file extension only names a family —
-`.tsx` is React, Preact or Solid. When the assembly cannot be read the build falls back to the extension, which
-is right for a project with one runtime per extension and silently wrong otherwise.
-
-**Fix:** `dotnet build --no-incremental` so the assembly is written afresh.
-
-### RASKISLAND019
-
-**The project does not install Vite+** · error
-
-Islands are bundled by `vp build` and served in a dev session by `vp dev`, and nothing else: a Vite+ project
-aliases `vite` to the core Vite+ ships, which carries no `vite` command. After the install, the build looks
-for `node_modules/.bin/vp` and stops here when npm linked none, rather than failing inside npx.
-
-**Fix:** install Vite+, with `vite` aliased to its core so every plugin resolves the same one —
-`npm install -D vite-plus vite@npm:@voidzero-dev/vite-plus-core`, then add
-`"overrides": { "vite": "npm:@voidzero-dev/vite-plus-core@<the same version>" }` to `package.json`.
-`rask new --islands` writes all of this. A project that sets `RaskExternalBuildCommand` names its own bundler
-and is not checked.
 
 ## Build errors from MSBuild
 

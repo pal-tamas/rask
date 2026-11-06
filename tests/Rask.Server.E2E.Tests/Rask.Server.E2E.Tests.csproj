@@ -60,9 +60,6 @@
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
-    <!-- IslandUnderAPathBaseTests: a real island on the page, a Lit-runtime one bundled by this build with Vite+ (which
-         is why package.json sits beside this file), served under the app's path base by IslandAssets. -->
-    <ProjectReference Include="..\..\src\Rask.External\Rask.External.csproj"/>
     <!-- WaitForRaskTests: the browser-test wait the package ships, driven against this host. -->
     <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
     <!-- LiveEventListenerTests: a page that handles a published event, registered by the battery generator. -->
@@ -86,8 +83,6 @@
        KitFrameBudgetTests holds the frame budget to Flux's catalogue. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\Rask.Ui.Tests\Flux\flux.snapshot.json" />
-    <!-- IslandAssets serves the island client runtime from its source folder. -->
-    <RaskTestReads Include="..\..\src\Rask.External\wwwroot\**" />
   </ItemGroup>
 
 </Project>

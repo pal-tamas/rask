@@ -14,8 +14,8 @@ namespace Rask.TypeScript.Tasks;
 ///         build is about to execute have to be the ones that were published on the day somebody looked.
 ///     </para>
 ///     <para>
-///         <c>scripts/upstream/tools.py</c> moves <c>RaskEsbuildVersion</c>, <c>RaskTsgoVersion</c> and
-///         <c>RaskExternalTypeScriptVersion</c> with their rows, hashing each tarball it downloads and
+///         <c>scripts/upstream/tools.py</c> moves <c>RaskEsbuildVersion</c> and <c>RaskTsgoVersion</c> with their
+///         rows, hashing each tarball it downloads and
 ///         recording it only when it agrees with the registry's <c>dist.integrity</c>. A test fails while a
 ///         pinned version has a published package with no entry here.
 ///     </para>
@@ -41,8 +41,6 @@ internal static class TypeScriptToolPins
         ["@typescript/typescript-linux-arm64@7.0.2"] = "sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==",
         ["@typescript/typescript-win32-x64@7.0.2"] = "sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==",
         ["@typescript/typescript-win32-arm64@7.0.2"] = "sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==",
-
-        ["typescript@6.0.3"] = "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
     };
 
     /// <summary>The recorded integrity of <paramref name="packageName" /> at <paramref name="version" />, or null when Rask does not pin it.</summary>

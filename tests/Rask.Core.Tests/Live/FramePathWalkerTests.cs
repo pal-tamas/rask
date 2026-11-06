@@ -104,11 +104,11 @@ public sealed class FramePathWalkerTests
     public void An_opaque_subtree_belongs_to_another_renderer_and_is_not_entered()
     {
         using var frames = new FrameWriter();
-        var island = frames.OpenElement("rask-external", null, selfClosing: false, htmlStart: 0, opaque: true);
-        frames.Text("react owns this", frames.Count * 16, frames.Count * 16 + 1);
-        frames.CloseElement(island, 0);
+        var host = frames.OpenElement("x-chart", null, selfClosing: false, htmlStart: 0, opaque: true);
+        frames.Text("a script owns this", frames.Count * 16, frames.Count * 16 + 1);
+        frames.CloseElement(host, 0);
 
-        Assert.False(Resolve(frames, island + 1, island + 2, out _, out _, out _));
+        Assert.False(Resolve(frames, host + 1, host + 2, out _, out _, out _));
     }
 
     [Theory]

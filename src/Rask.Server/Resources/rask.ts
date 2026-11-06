@@ -1821,10 +1821,10 @@ import {
         else queue.push({message: msg, seq});
     }
 
-    // Rask.External is a separate, opt-in module, so it cannot see `send` in this scope — but it must
-    // not open a channel of its own either. Going through this one is what gets an external
-    // component's callback the same guarantees every DOM handler already has: sequence stamping, the
-    // queue-while-reconnecting, and the suppression window during an auth redirect.
+    // Front-end code loaded as a separate module cannot see `send` in this scope — but it must not open
+    // a channel of its own either. Going through this one is what gets its events the same guarantees
+    // every DOM handler already has: sequence stamping, the queue-while-reconnecting, and the
+    // suppression window during an auth redirect.
     globalThis.__raskHost = globalThis.__raskHost || {};
     globalThis.__raskHost.send = send;
     globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {

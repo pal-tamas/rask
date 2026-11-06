@@ -5,8 +5,8 @@ using Rask.DevTools.Probe;
 namespace Rask.DevTools.Panel;
 
 /// <summary>
-///     Takes the failures the page reports about itself — a script's uncaught error, a rejected promise, an island that
-///     failed — and lists them with the page's errors, whichever tab is showing.
+///     Takes the failures the page reports about itself — a script's uncaught error, a rejected promise — and lists them
+///     with the page's errors, whichever tab is showing.
 /// </summary>
 /// <remarks>
 ///     No server hears of these: the page's devtools host catches them and posts them to the panel, whose script hands
@@ -68,43 +68,15 @@ internal sealed partial class DevToolsPageErrorReceiver : Component
             return;
         }
 
-        var island = Text(report, "island", TitleLimit);
-        var kind = string.Equals(Text(report, "kind", 16), "island", StringComparison.Ordinal) ? DevToolsErrorKind.Island : DevToolsErrorKind.Page;
         var at = report.TryGetProperty("at", out var ms) && ms.TryGetInt64(out var millis)
                  && millis is > 0 and < 253402300800000
             ? DateTimeOffset.FromUnixTimeMilliseconds(millis).ToLocalTime()
             : TimeProvider.System.GetLocalNow();
 
-        if (kind == DevToolsErrorKind.Island)
-        {
-            message = Text(report, "phase", 16) switch
-            {
-                "props" => $"'{island}' has props it could not read: {message}",
-                "update" => $"'{island}' failed to update: {message}",
-                "unmount" => $"'{island}' failed to unmount: {message}",
-                _ => $"'{island}' failed to mount: {message}",
-            };
-        }
-
-        // An island is inside a component the page rendered: found by where its element is, as a pick would find it.
-        (DevToolsComponentNode Component, List<string> Path)? owner = null;
-        if (Text(report, "place", 512) is { } place && DevToolsPlaceMatch.Parse(place) is { } parsed
-            && feed.TreeSnapshot() is { } tree)
-        {
-            owner = DevToolsPlaceMatch.Find(tree, [.. parsed.Path, parsed.First]);
-        }
-
         var stack = Text(report, "stack", DevToolsErrorLog.DetailLimit);
-        var entry = feed.Errors.Record(
-            kind, isWarning: false, title, message, stack,
-            owner?.Component.Type, owner?.Component.Id, caught: false, appWide: false, at, DevToolsBugReport.FromScript(stack));
-        if (owner is { Path: var path })
-        {
-            for (var i = path.Count - 2; i >= 0; i--)
-            {
-                feed.Errors.Enclosing(entry, path[i]);
-            }
-        }
+        feed.Errors.Record(
+            DevToolsErrorKind.Page, isWarning: false, title, message, stack,
+            null, null, caught: false, appWide: false, at, DevToolsBugReport.FromScript(stack));
     }
 
     private static string? Text(JsonElement report, string name, int limit)

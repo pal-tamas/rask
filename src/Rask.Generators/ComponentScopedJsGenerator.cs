@@ -169,44 +169,7 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         }
 
         var fqn = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        return new ComponentInfo(symbol.Name, fqn, path, InheritsFromExternalComponent(symbol));
-    }
-
-    /// <summary>
-    ///     Whether this component is an ISLAND, whose sibling <c>.ts</c> belongs to the bundler.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         A Lit or Angular island is declared by putting <c>Gauge.ts</c> beside <c>Gauge.cs</c>,
-    ///         which is character-for-character how a scoped asset is declared too — the only
-    ///         difference is the base class, and this is the one place that can see it (#938).
-    ///     </para>
-    ///     <para>
-    ///         The build already keeps an island's module out of <c>@(_RaskScopedTs)</c>, so in an
-    ///         ordinary build this file never reaches the generator at all. It is still checked here,
-    ///         because the two are not equally reliable: MSBuild has to read the C# as TEXT before the
-    ///         compile, while this is the compiler. What MSBuild spares is a wasted transpile; what
-    ///         this prevents is the island's module being registered as
-    ///         <c>window.Rask["Gauge"]</c> and injected as a second <c>&lt;script&gt;</c> on a
-    ///         component that already mounts it through the island runtime.
-    ///     </para>
-    ///     <para>
-    ///         Islands stay in the pairing map rather than being dropped from it, which is what keeps
-    ///         RASK017 quiet: an island's module has a component of that name right beside it, and
-    ///         "no matching component class" would be a false and unfixable error.
-    ///     </para>
-    /// </remarks>
-    private static bool InheritsFromExternalComponent(INamedTypeSymbol symbol)
-    {
-        for (var t = symbol.BaseType; t is not null; t = t.BaseType)
-        {
-            if (string.Equals(t.OriginalDefinition.ToDisplayString(), ExternalComponentFullName, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return new ComponentInfo(symbol.Name, fqn, path);
     }
 
     private static void Emit(
@@ -282,13 +245,6 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
             // before the first real build — a design-time build does not run the compiler — so
             // this must not be an error.
             if (string.IsNullOrWhiteSpace(asset.Contents))
-            {
-                continue;
-            }
-
-            // An island's front-end file is its MODULE, not a scoped asset. Skipped silently: the
-            // component is right there, so nothing is orphaned and there is nothing to report.
-            if (match.IsExternal)
             {
                 continue;
             }
@@ -458,16 +414,10 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
     /// <param name="TypeName">The simple type name, which is what a file name pairs with.</param>
     /// <param name="FullyQualifiedName">The name written into the generated registration.</param>
     /// <param name="FilePath">Where Roslyn says the class is declared, which fixes the folder.</param>
-    /// <param name="IsExternal">
-    ///     Whether the component is an island. Its sibling front-end file is the module the bundler
-    ///     builds, so it is never registered as a scoped asset — see
-    ///     <see cref="InheritsFromExternalComponent" />.
-    /// </param>
     private readonly record struct ComponentInfo(
         string TypeName,
         string FullyQualifiedName,
-        string FilePath,
-        bool IsExternal);
+        string FilePath);
 
     /// <summary>One compiled scoped asset: where it came from, and what it compiled to.</summary>
     /// <remarks>

@@ -1,10 +1,10 @@
 namespace Rask.Core.Tests.Live;
 
-// The third enforcement point of the external-component diff boundary (Rask.External). FrameDiffer skipping the
+// The third enforcement point of the opaque-subtree diff boundary (Component.OpaqueSubtree). FrameDiffer skipping the
 // subtree is not enough on its own: a full-document morph is a SEPARATE path to the same DOM, taken
 // on scoped-CSS delivery, on reconnect, and on any structural op the diff can't trust.
 //
-// The failure it guards is specific and silent. What the foreign renderer built and what the server
+// The failure it guards is specific and silent. What the script drew and what the server
 // thinks is there permanently disagree — the children were created in the browser after mount, and
 // the server's HTML either has none of them or still carries the slot templates the client lifted out
 // — so the incoming side of every morph has nothing where the live DOM has a mounted component.

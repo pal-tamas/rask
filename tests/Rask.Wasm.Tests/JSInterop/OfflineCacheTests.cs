@@ -15,7 +15,7 @@ public sealed class OfflineCacheTests
     [InlineData("image")]
     [InlineData("runtime")]
     [InlineData("runtimeUnderSubPath")]
-    [InlineData("islandManifest")]
+    [InlineData("scopedAsset")]
     public void The_app_shell_is_kept_for_offline_use(string request)
     {
         if (Kept() is not { } kept)

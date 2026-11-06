@@ -334,9 +334,9 @@ public static partial class FrameDiffer
             newFrames, ref newChildStart, newChildEnd,
             path, domSlot, output);
 
-        // An opaque element's DOM belongs to a foreign renderer — React, Lit, Blazor (see
-        // Rask.External). Its attributes still diff above, which is how changed props reach
-        // the adapter; its children never do. Recursing here would put two writers on one
+        // An opaque element's DOM belongs to something that is not Rask — a script that draws
+        // into it. Its attributes still diff above, which is how changed values reach that
+        // script; its children never do. Recursing here would put two writers on one
         // subtree, and that does not throw — it corrupts the moment the parent re-renders.
         //
         // Either side being opaque is enough. A tag change already routes to the replace

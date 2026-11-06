@@ -35,7 +35,7 @@ if (!window.__raskDevtoolsHost && panelUrl) {
     const errors = installErrorsLink(dock, post);
     bridge = createBridge(dock, overlay, flash, post, errors);
     listenToPanel(() => frameWindow, location.origin, () => bridge);
-    installPatchTiming(post, errors.island);
+    installPatchTiming(post);
 
     // Flashing remembered as on: DOM changes flash at once, and the panel runs behind the shut drawer to report renders.
     if (readFlashSetting()) {

@@ -3,11 +3,10 @@ using System.Text.Json;
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
 /// <summary>
-///     <c>__raskHost.navigate</c>: the bridge the generated <c>@rask/routes</c> module navigates through.
+///     <c>__raskHost.navigate</c>: the bridge front-end code navigates in-app through.
 /// </summary>
 /// <remarks>
-///     Front-end island code writes <c>Routes.OrdersPage({ Page: 2 }).Go()</c>; what reaches .NET has to
-///     be the frame a click on an <c>a[data-rask-nav]</c> sends. Driven under Node against the built
+///     What reaches .NET has to be the frame a click on an <c>a[data-rask-nav]</c> sends. Driven under Node against the built
 ///     <c>rask.wasm.js</c> — see <c>HostNavigateFixture.ts</c>.
 /// </remarks>
 public sealed class HostNavigateTests

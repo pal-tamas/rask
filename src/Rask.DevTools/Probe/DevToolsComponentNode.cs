@@ -21,10 +21,6 @@ namespace Rask.DevTools.Probe;
 ///     document to its parent, dot-separated, the slot its first node occupies, and how many sibling nodes it rendered.
 ///     Null when it rendered nothing, sits inside another renderer's subtree, or the walk captured no frames.
 /// </param>
-/// <param name="Badge">
-///     What kind of component it is, when that is more than a component: the runtime of an island (<c>React</c>,
-///     <c>Lit</c>…) or <c>Blazor</c>. Read from the element it renders, so the devtools need no reference to either package.
-/// </param>
 /// <param name="Provides">
 ///     The context values its markup provides, in page order. Null when the render this came from recorded no context —
 ///     one before a panel was open.
@@ -38,6 +34,5 @@ internal sealed record DevToolsComponentNode(
     IReadOnlyList<DevToolsComponentNode> Children,
     bool IsTag = false,
     string? At = null,
-    string? Badge = null,
     IReadOnlyList<DevToolsProvidedContext>? Provides = null,
     IReadOnlyList<DevToolsReadContext>? Reads = null);

@@ -33,7 +33,7 @@ public sealed partial class ComponentFactoryGenerator
             SymbolEqualityComparer.Default.Equals(component.ContainingAssembly, compilation.Assembly);
 
         // A friend sees the internal half too, so it must spell an override of a `protected internal` member with
-        // both words — exactly as Core does. Core names about twenty of them (the hosts, the islands, Rask.Testing
+        // both words — exactly as Core does. Core names about twenty of them (the hosts, Rask.Testing
         // and their test projects), and writing `protected` alone in any of them is CS0507.
         var seesComponentInternals =
             declaresComponent || component.ContainingAssembly.GivesAccessTo(compilation.Assembly);

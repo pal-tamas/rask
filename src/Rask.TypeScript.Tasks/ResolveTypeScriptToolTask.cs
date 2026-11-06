@@ -11,7 +11,7 @@ using Task = Microsoft.Build.Utilities.Task;
 namespace Rask.TypeScript.Tasks;
 
 /// <summary>
-///     Resolves a TypeScript tool — the esbuild bundler, the tsgo type checker, or the compiler library —
+///     Resolves a TypeScript tool — the esbuild bundler or the tsgo type checker —
 ///     fetching it once into a per-user cache if it is not already there.
 /// </summary>
 /// <remarks>
@@ -28,14 +28,12 @@ namespace Rask.TypeScript.Tasks;
 ///         needs one because it publishes no standalone binary for several platforms that its npm engine
 ///         does support. esbuild and tsgo publish native builds for every platform they support at all,
 ///         so a fallback through npm could only ever cover platforms where the direct download would
-///         have worked — it would add a Node dependency and reach nothing new. The compiler library is one
-///         package for every platform, and pinning it here rather than taking the project's own copy is what
-///         makes two machines extract the same props snapshot.
+///         have worked — it would add a Node dependency and reach nothing new.
 ///     </para>
 /// </remarks>
 public sealed class ResolveTypeScriptToolTask : Task
 {
-    /// <summary><c>esbuild</c>, <c>tsgo</c> or <c>typescript</c>.</summary>
+    /// <summary><c>esbuild</c> or <c>tsgo</c>.</summary>
     [Required]
     public string Tool { get; set; } = string.Empty;
 
@@ -75,7 +73,7 @@ public sealed class ResolveTypeScriptToolTask : Task
     /// </remarks>
     public bool CachedOnly { get; set; }
 
-    /// <summary>The executable to run — or, for the compiler library, the <c>typescript.js</c> to load.</summary>
+    /// <summary>The executable to run.</summary>
     [Output]
     public string ToolPath { get; set; } = string.Empty;
 
@@ -85,22 +83,16 @@ public sealed class ResolveTypeScriptToolTask : Task
         if (!TryParseTool(Tool, out var tool))
         {
             Log.LogError(
-                $"Rask.TypeScript: '{Tool}' is not a tool this task knows; expected 'esbuild', 'tsgo' or 'typescript'.");
+                $"Rask.TypeScript: '{Tool}' is not a tool this task knows; expected 'esbuild' or 'tsgo'.");
             return false;
         }
 
         var os = TypeScriptTools.CurrentOs();
-        var native = TypeScriptTools.IsNative(tool);
+        var packageName = os is { } known
+            ? TypeScriptTools.PackageName(tool, known, RuntimeInformation.ProcessArchitecture)
+            : null;
 
-        // The compiler library is the same package on every platform, so only a native tool needs the OS
-        // and architecture to be ones it publishes for. Any value stands in for an unknown OS here: the
-        // library's name and layout do not depend on it.
-        var platform = os ?? ToolOs.Linux;
-        var packageName = os is null && native
-            ? null
-            : TypeScriptTools.PackageName(tool, platform, RuntimeInformation.ProcessArchitecture);
-
-        if (packageName is null)
+        if (os is not { } platform || packageName is null)
         {
             Log.LogError(
                 $"Rask.TypeScript: {Tool} publishes no native build for this platform "
@@ -118,10 +110,10 @@ public sealed class ResolveTypeScriptToolTask : Task
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
         }
 
-        return Resolve(tool, platform, packageName, native);
+        return Resolve(tool, platform, packageName);
     }
 
-    private bool Resolve(TypeScriptTool tool, ToolOs platform, string packageName, bool native)
+    private bool Resolve(TypeScriptTool tool, ToolOs platform, string packageName)
     {
         var directory = TypeScriptTools.CacheDirectory(CacheRoot, tool, Version, packageName);
         var entry = TypeScriptTools.ExecutablePath(tool, platform);
@@ -150,7 +142,7 @@ public sealed class ResolveTypeScriptToolTask : Task
 
         try
         {
-            Fetch(packageName, directory, tarball, native ? entry : null);
+            Fetch(packageName, directory, tarball, entry);
         }
         catch (Exception ex) when (ex is HttpRequestException or IOException or WebException or UnauthorizedAccessException
                                        or System.Threading.Tasks.TaskCanceledException)
@@ -183,7 +175,7 @@ public sealed class ResolveTypeScriptToolTask : Task
     ///     The entry to mark executable, relative to the package root — null for the compiler library, a
     ///     JavaScript file Node loads rather than a binary anything runs.
     /// </param>
-    private void Fetch(string packageName, string directory, string tarballUrl, string? executable)
+    private void Fetch(string packageName, string directory, string tarballUrl, string executable)
     {
         Log.LogMessage(
             MessageImportance.High,
@@ -275,12 +267,11 @@ public sealed class ResolveTypeScriptToolTask : Task
         return tool switch
         {
             TypeScriptTool.Tsgo => "Set RaskTsgoIntegrity to the package's sha512 integrity to pin it.",
-            TypeScriptTool.TypeScript => "Set RaskExternalTypeScriptIntegrity to the package's sha512 integrity to pin it.",
             _ => Record,
         };
     }
 
-    private static void Unpack(byte[] bytes, string directory, string? executable)
+    private static void Unpack(byte[] bytes, string directory, string executable)
     {
         // Unpacked beside the target and moved into place, so a cancelled build cannot leave a
         // half-extracted tree that every later build then treats as a cache hit. tsgo is ~27 MB across
@@ -289,10 +280,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         try
         {
             TarGz.ExtractTo(bytes, staging);
-            if (executable is not null)
-            {
-                MakeExecutable(Path.Combine(staging, executable));
-            }
+            MakeExecutable(Path.Combine(staging, executable));
 
             MoveIntoPlace(staging, directory);
         }
@@ -379,9 +367,6 @@ public sealed class ResolveTypeScriptToolTask : Task
                 return true;
             case "tsgo":
                 tool = TypeScriptTool.Tsgo;
-                return true;
-            case "typescript":
-                tool = TypeScriptTool.TypeScript;
                 return true;
             default:
                 tool = default;

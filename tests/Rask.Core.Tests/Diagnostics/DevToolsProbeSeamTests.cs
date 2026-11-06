@@ -258,21 +258,21 @@ public partial class DevToolsProbeSeamTests : global::Rask.Core.RaskMarkup, IDis
     [Fact]
     public void A_component_that_renders_as_its_own_element_is_walked_like_a_component_but_an_html_element_is_not()
     {
-        // An External island is serialized down the element branch; it is still a component, and the devtools' tree
+        // A component that renders as an element of its own is serialized down the element branch; it is still a component, and the devtools' tree
         // lists it. The HTML elements around it are not components and are never reported as walked.
-        var island = new ElementRenderedComponent();
-        var view = new StubComponent(() => Div[Section[island]]);
+        var element = new ElementRenderedComponent();
+        var view = new StubComponent(() => Div[Section[element]]);
 
         view.RenderAsLiveRoot();
 
-        var walk = Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, island));
+        var walk = Assert.Single(_probe.Walks, w => ReferenceEquals(w.Component, element));
         Assert.Same(view, walk.Parent);
         Assert.DoesNotContain(_probe.Walks, w => w.Component is Element);
     }
 
     private sealed class ElementRenderedComponent : Component
     {
-        protected override string? TagName => "x-island";
+        protected override string? TagName => "x-chart";
     }
 
     [Fact]

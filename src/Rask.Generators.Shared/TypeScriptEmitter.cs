@@ -19,8 +19,8 @@ namespace Rask.Generators.Shared;
 ///         a compile error.
 ///     </para>
 ///     <para>
-///         Shared source rather than a CQRS-owned type: the island generator emits prop interfaces
-///         from the same model, and two implementations of "what does this C# type look like in
+///         Shared source rather than a CQRS-owned type, so any generator that declares a C# type in
+///         TypeScript uses the same model: two implementations of "what does this C# type look like in
 ///         TypeScript" would disagree eventually — silently, and only on the wire.
 ///     </para>
 ///     <para>

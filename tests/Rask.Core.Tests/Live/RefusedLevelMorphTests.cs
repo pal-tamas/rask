@@ -310,8 +310,8 @@ public partial class RefusedLevelMorphTests : global::Rask.Core.RaskMarkup
     public void An_opaque_child_of_the_morphed_parent_keeps_what_its_own_renderer_mounted()
     {
         var reply = Reply.To(
-            Div[Div[Span["Loading"], new Island("{\"n\":1}")[Span["mounted by react"]]]],
-            Div[Div[Ul[Li["a"]], new Island("{\"n\":2}")[Span["rendered by rask"], Span["again"]]]]);
+            Div[Div[Span["Loading"], new OpaqueHost("{\"n\":1}")[Span["drawn by a script"]]]],
+            Div[Div[Ul[Li["a"]], new OpaqueHost("{\"n\":2}")[Span["rendered by rask"], Span["again"]]]]);
         var mounted = reply.Before.At(0, 0, 1, 0);
 
         reply.Apply();
@@ -392,9 +392,9 @@ public partial class RefusedLevelMorphTests : global::Rask.Core.RaskMarkup
         cache.TryComputeDiff(ops, html.ToString());
     }
 
-    private sealed class Island(string props) : Component
+    private sealed class OpaqueHost(string props) : Component
     {
-        protected override string? TagName => "rask-external";
+        protected override string? TagName => "x-chart";
 
         protected override bool OpaqueSubtree => true;
 

@@ -9,7 +9,7 @@ namespace Rask.Core.Authentication;
 /// <para>
 /// This is the one interface an app calls to move somebody between signed-out and signed-in. It is
 /// injected the same way, and behaves the same way, whether the component runs on the Server host, in
-/// WebAssembly, or inside an island — the implementations differ, the call site does not.
+/// WebAssembly — the implementations differ, the call site does not.
 /// </para>
 /// <para>
 /// On the Server host it validates against the account store and then hands the principal to

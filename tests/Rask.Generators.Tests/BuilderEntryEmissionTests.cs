@@ -442,7 +442,7 @@ public class BuilderEntryEmissionTests
     // A component named after a framework tag KEEPS the simple name: its own entry is injected with
     // `new`, hiding the inherited one. Without the modifier the compiler refuses it (CS0108); without
     // the entry at all the TAG wins and `Section[…]` renders <section> instead of the component — a
-    // green build that paints the wrong element, which is how this was found (a Svelte island named
+    // green build that paints the wrong element, which is how this was found (a component named
     // Meter rendered <meter value="0">).
     [Fact]
     public void An_own_entry_named_after_a_framework_tag_hides_the_inherited_one()

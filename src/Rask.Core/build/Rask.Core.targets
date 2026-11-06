@@ -80,12 +80,10 @@
   </PropertyGroup>
 
   <!--
-    The excludes below name the front end's directories at ANY depth, not just the project root.
-    `node_modules\**` alone is anchored, and that was enough only because the ISLANDS lane puts its
-    package.json in the project root. The SPA and meta lanes put the whole front end in a subdirectory,
-    so theirs is `client/node_modules` — and a scoped-CSS auto-include then walks into a Nuxt app's
-    dependencies and reports RASK015 for every stylesheet Vue, the devtools and the build output
-    happen to contain. 154 of them, on a sample whose own C# has no stylesheet at all.
+    The excludes below name a JavaScript front end's directories at ANY depth, not just the project root.
+    `node_modules\**` alone is anchored, and a project that keeps a front end in a subdirectory has
+    `client/node_modules` — a scoped-CSS auto-include would then walk into its dependencies and report
+    RASK015 for every stylesheet they and their build output happen to contain.
 
     A .css inside a front-end directory can never be scoped CSS: scoped CSS is paired with a Component
     class in the same folder, and there are no C# classes down there.

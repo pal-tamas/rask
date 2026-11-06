@@ -1,6 +1,5 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Rask.Generators.External;
 using Rask.Generators.Validation;
 
 namespace Rask.Generators.Tests;
@@ -150,61 +149,5 @@ public class GeneratedModelReferenceTests
         Assert.DoesNotContain("<ProductModel", setters, StringComparison.Ordinal);
         Assert.DoesNotContain(" ProductModel", setters, StringComparison.Ordinal);
         Assert.DoesNotContain(" ProductModel", run.Source("RaskBuilderEntryHost"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void An_island_prop_typed_as_a_generated_model_is_encoded_from_the_entity()
-    {
-        var run = GeneratorDriverFixture.Run(
-            [
-                ("/proj/Stubs.cs", Stubs),
-                ("/proj/ProductCard.cs", """
-                    namespace Shop.Islands
-                    {
-                        public sealed partial class ProductCard : Rask.External.ReactComponent
-                        {
-                            public ProductModel? Product { get; set; }
-                        }
-                    }
-                    """),
-            ],
-            [new ExternalGenerator()]);
-
-        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK057");
-
-        var island = run.GeneratedSource("ProductCard.External");
-        Assert.Contains("writer, global::Shop.ProductModel value)", island, StringComparison.Ordinal);
-        // The generated model carries no key, so neither does what is sent of it.
-        Assert.DoesNotContain("writer.WritePropertyName(\"id\");", island, StringComparison.Ordinal);
-        Assert.Contains("writer.WritePropertyName(\"name\");", island, StringComparison.Ordinal);
-
-        var typeScript = run.GeneratedSource("RaskExternalGeneratedTypeScript");
-        Assert.Contains("export interface ProductModel {", typeScript, StringComparison.Ordinal);
-        Assert.Contains("product: ProductModel | null;", typeScript, StringComparison.Ordinal);
-
-        // The writer has to BIND, which text cannot show: `ProductModel?` is Nullable<ProductModel> to a
-        // generator, and was once emitted as `ProductModel?<global::Shop.ProductModel>`. The model generator is
-        // not in this assembly, so a stand-in with the generated model's members plays its part.
-        var standIn = CSharpSyntaxTree.ParseText(
-            """
-            namespace Shop
-            {
-                public sealed partial class ProductModel
-                {
-                    public string? Name { get; set; }
-                    public int? Version { get; set; }
-                }
-            }
-            """,
-            new CSharpParseOptions(LanguageVersion.Latest),
-            "/proj/ProductModel.g.cs", cancellationToken: TestContext.Current.CancellationToken);
-        var generated = run.RunResult.Results
-            .SelectMany(r => r.GeneratedSources)
-            .Select(s => CSharpSyntaxTree.ParseText(s.SourceText, new CSharpParseOptions(LanguageVersion.Latest), s.HintName));
-
-        Assert.Empty(run.Compilation
-            .AddSyntaxTrees(generated.Append(standIn))
-            .GetDiagnostics(TestContext.Current.CancellationToken)
-            .Where(d => d.Severity == DiagnosticSeverity.Error));
     }
 }

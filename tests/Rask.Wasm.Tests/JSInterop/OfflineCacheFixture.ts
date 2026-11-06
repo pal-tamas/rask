@@ -37,7 +37,7 @@ const cases: Record<string, Case> = {
     image: { url: "/logo.svg", destination: "image" },
     runtime: { url: "/_framework/dotnet.native.wasm" },
     runtimeUnderSubPath: { url: "/shop/_framework/Shop.wasm" },
-    islandManifest: { url: "/_rask/external/manifest.json" },
+    scopedAsset: { url: "/_rask/a/3f2a9c.js" },
     api: { url: "/api/orders" },
     apiMarkedPublic: { url: "/api/catalog", cacheControl: "public, max-age=60" },
     apiMarkedPrivate: { url: "/api/me", cacheControl: "private, max-age=60" },

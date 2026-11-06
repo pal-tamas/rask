@@ -327,11 +327,6 @@ public static partial class RaskEndpointExtensions
         // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
         // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
         services.AddHostedService<RaskDrainService>();
-
-        // An app VS Code's F5 launched starts its islands' Vite dev server itself: `rask dev` would have, and
-        // under a debugger there is no `rask dev`. Registered only for a dev-session build; whether it acts is
-        // decided at startup (Development, and not under dotnet watch).
-        Dev.IslandDevServer.Register(services, System.Reflection.Assembly.GetEntryAssembly());
     }
 
     private static LiveSessionStore CreateSessionStore(IServiceProvider sp)
@@ -924,9 +919,7 @@ public static partial class RaskEndpointExtensions
             return;
         }
 
-        var content = Prerender.PageDocument.Live(
-            html, session.Id, dev,
-            dev ? Prerender.PageDocument.IslandsDevUrl(httpContext.RequestServices) : null, devTools);
+        var content = Prerender.PageDocument.Live(html, session.Id, dev, devTools);
         await PageCompression.WriteAsync(httpContext, content, limits.CompressPageHtml).ConfigureAwait(false);
     }
 

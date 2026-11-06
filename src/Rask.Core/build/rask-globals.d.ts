@@ -63,9 +63,9 @@ interface Window {
  * The dispatch bridge a separately-loaded Rask package reaches the running host through.
  *
  * Distinct from `rask-host.ts`'s `setHost`, and both are needed. That one is an INTRA-BUNDLE
- * contract: a shared module imports `send` and the bundler resolves it. `Rask.External` is a
- * separately published package the browser fetches from its own URL as its own module graph, so it
- * has no import path to that binding at all — a global is the only seam that crosses.
+ * contract: a shared module imports `send` and the bundler resolves it. Front-end code the
+ * browser fetches from its own URL as its own module graph has no import path to that binding at
+ * all — a global is the only seam that crosses.
  *
  * On `globalThis` rather than `interface Window` because that is where the hosts install it, and a
  * `Window` member would not satisfy `globalThis.__raskHost` for the type checker.
@@ -81,8 +81,8 @@ interface RaskHostBridge {
 
     /**
      * Navigates in-app to a URL of this origin, exactly as a click on an `a[data-rask-nav]` does;
-     * `replace` replaces the current history entry. The generated `@rask/routes` calls it, which is
-     * how front-end code navigates without ever writing a path.
+     * `replace` replaces the current history entry. It is how front-end code loaded as its own
+     * module navigates in-app.
      */
     navigate?(url: string, replace?: boolean): void;
 }

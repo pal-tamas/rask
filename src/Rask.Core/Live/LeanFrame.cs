@@ -21,7 +21,7 @@ public struct LeanFrame
     public bool SelfClosing { get; set; }
 
     // Retained with the snapshot rather than recomputed: replay writes frames straight back into the
-    // live FrameWriter, so a dropped flag would silently un-protect a cached island's subtree and let
-    // the next diff patch into React's DOM.
+    // live FrameWriter, so a dropped flag would silently un-protect a cached opaque subtree and let
+    // the next diff patch into DOM that a script owns.
     public bool Opaque { get; set; }
 }

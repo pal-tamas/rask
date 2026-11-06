@@ -186,33 +186,6 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public async Task The_companion_does_not_build_the_apps_islands()
-    {
-        // The companion compiles the app's C#, so it sees every island declared there, but Rask.External
-        // globs for their front-end files from the companion's own directory inside obj/ and finds none.
-        // Left on, the prop-types step warned RASKISLAND004 for every island on every prerendered publish,
-        // about chunks the app's own build had just bundled (#1068).
-        var project = await Generate();
-
-        Assert.Contains("<RaskExternalPropTypes>false</RaskExternalPropTypes>", project, StringComparison.Ordinal);
-        Assert.Contains("<RaskExternalBuild>false</RaskExternalBuild>", project, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_package_islands_snapshot_reaches_the_companion()
-    {
-        // A package island's chain steps are generated from the `{Island}.props.json` beside its class, and Rask.External
-        // globs for those from the companion's own directory inside obj/, where none lives. Without the app's snapshots
-        // the island compiled with no steps and the prerendered publish failed on its first one as CS1929 — the way this
-        // repo's own islands page did, with a green build and a red publish.
-        var project = (await Generate()).Replace('\\', '/');
-
-        Assert.Contains("<AdditionalFiles Include=\"", project, StringComparison.Ordinal);
-        Assert.Contains("/**/*.props.json\" />", project, StringComparison.Ordinal);
-        Assert.Contains("/obj/**\" />", project, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public async Task The_apps_scoped_stylesheets_reach_the_companion()
     {
         // The prerender renders through the scoped-asset registry, and the generator fills it only from the

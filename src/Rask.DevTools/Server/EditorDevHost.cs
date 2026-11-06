@@ -16,10 +16,6 @@ namespace Rask.DevTools.Server;
 ///         every time, the same way <c>rask dev</c> decides — a certificate and key for the name, and the
 ///         name inside the hosts-file block <c>rask dev</c> owns.
 ///     </para>
-///     <para>
-///         Skipped when the project has islands, exactly as <c>rask dev</c> skips it: islands load their
-///         modules from a Vite dev server over plain HTTP, which an HTTPS page is not allowed to do at all.
-///     </para>
 /// </remarks>
 /// <param name="Hostname">The <c>.test</c> name.</param>
 /// <param name="Port">The port Kestrel listens on for it.</param>
@@ -42,14 +38,12 @@ internal sealed record EditorDevHost(string Hostname, int Port, string Certifica
     /// <param name="entryAssembly">The app assembly, which says whether this build was a dev session.</param>
     /// <param name="isDevelopment">The host environment's answer.</param>
     /// <param name="applicationName">The app's name — the project name <c>rask dev</c> derives the host from.</param>
-    /// <param name="contentRoot">The app's content root, where an islands project has its dev-server pointer.</param>
     /// <param name="readEnv">Reads an environment variable.</param>
     /// <param name="machine">What is on this machine; a seam so tests never read the real one.</param>
     internal static EditorDevHost? Resolve(
         Assembly? entryAssembly,
         bool isDevelopment,
         string? applicationName,
-        string contentRoot,
         Func<string, string?> readEnv,
         IDevHostMachine machine)
     {
@@ -57,11 +51,6 @@ internal sealed record EditorDevHost(string Hostname, int Port, string Certifica
         ArgumentNullException.ThrowIfNull(machine);
 
         if (!EditorDevSession.IsActive(entryAssembly, isDevelopment, readEnv))
-        {
-            return null;
-        }
-
-        if (machine.FileExists(IslandDevPointer.PathFor(contentRoot)))
         {
             return null;
         }

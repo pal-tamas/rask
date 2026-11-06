@@ -82,7 +82,7 @@ public partial class ElementDialogEventsTests : global::Rask.Core.RaskMarkup
     [InlineData("reset")]
     [InlineData("toggle")]
     public void Every_dom_event_feeds_a_parameterless_handler_through_the_one_list(string eventName) =>
-        // The list Rask.Blazor reads too, rather than a copy of it.
+        // The one list, rather than a copy of it.
         Assert.True(HandlerFrameShape.FeedsParameterless(eventName));
 
     [Theory]

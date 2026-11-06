@@ -325,47 +325,6 @@ public sealed class LiveRenderContext : IDisposable
     internal (Component Owner, Delegate Handler)[]? CaptureHandlerRun(Component component) =>
         component.CaptureHandlerRun(_root);
 
-    /// <summary>
-    ///     Registers a handler whose slot belongs to <paramref name="owner" /> rather than to the
-    ///     component currently being serialized.
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         For a component that writes its own handler references into its markup instead of
-    ///         letting the serializer emit <c>data-rask-on-*</c> — an external component's callback
-    ///         props (see <c>Rask.External</c>). Those are numbered against the component that
-    ///         DECLARED them, so two of them under one parent cannot renumber each other, which is
-    ///         what the client's function-identity cache depends on.
-    ///     </para>
-    ///     <para>
-    ///         It has to go through here rather than through <c>owner.RegisterHandler(handler)</c>,
-    ///         and the difference is not cosmetic: that overload treats its receiver as the render
-    ///         ROOT, so calling it on the owner puts the handler in the OWNER's map and restarts the
-    ///         id sequence at zero. The dispatcher only ever looks in the root's map, so the callback
-    ///         resolves to nothing and silently never fires — while its id collides with whatever the
-    ///         root numbered first.
-    ///     </para>
-    /// </remarks>
-    internal string RegisterHandlerFor(Component owner, Delegate handler)
-    {
-        // The slot belongs to OWNER, but the clean-subtree cache snapshots only the component being
-        // walked. An owner that is not that component (an island, serialized down the element branch
-        // inside some page) would have its registration skipped by the page's replay, leaving an id in
-        // the markup that resolves to nothing — so keep the enclosing subtree off the replay path.
-        if (!ReferenceEquals(owner, CurrentParent))
-        {
-            HtmlSerializer.MarkNestedComponent();
-        }
-
-        return _root.RegisterHandler(handler, owner);
-    }
-
-    /// <summary>
-    ///     Keeps the subtree currently being walked out of the clean-subtree frame cache, for a
-    ///     component whose serialization does work a replay would skip.
-    /// </summary>
-    internal static void MarkSubtreeUncacheable() => HtmlSerializer.MarkNestedComponent();
-
     /// <summary>Re-register a captured run under its component's own slot ids, as the skipped walk would.</summary>
     internal void ReplayHandlerRun(Component component, (Component Owner, Delegate Handler)[] run) =>
         component.ReplayHandlerRun(_root, run);

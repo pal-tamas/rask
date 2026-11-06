@@ -18,17 +18,13 @@ namespace Rask.TypeScript.Tasks;
 ///         Every tool is distributed as an npm package, but nothing here needs npm. An npm package is a
 ///         gzipped tarball at a predictable URL with a published checksum, so Rask fetches and verifies it
 ///         directly, exactly as <c>Rask.Tailwind.Tasks</c> fetches the Tailwind standalone CLI. The native
-///         tools then need no JavaScript runtime at all; the compiler library needs Node, which a project
-///         building islands has by definition.
+///         tools then need no JavaScript runtime at all.
 ///     </para>
 /// </remarks>
 internal static class TypeScriptTools
 {
     /// <summary>The npm registry. Overridable so a build behind a mirror is not a build that fails.</summary>
     public const string DefaultRegistry = "https://registry.npmjs.org";
-
-    /// <summary>Whether a tool is a native executable, published per platform.</summary>
-    public static bool IsNative(TypeScriptTool tool) => tool != TypeScriptTool.TypeScript;
 
     /// <summary>
     ///     The package holding this tool for a platform, or null when none is published.
@@ -45,18 +41,9 @@ internal static class TypeScriptTools
     ///         <c>-musl</c> variants and a loader probe to pick between them; copying that here would be
     ///         cargo cult, and a wrong guess would fail on the distro least able to explain why.
     ///     </para>
-    ///     <para>
-    ///         The compiler library is one package for every platform, so it is answered before the platform
-    ///         is looked at — a 32-bit or unknown machine can still read a component's props.
-    ///     </para>
     /// </remarks>
     public static string? PackageName(TypeScriptTool tool, ToolOs os, Architecture architecture)
     {
-        if (tool == TypeScriptTool.TypeScript)
-        {
-            return "typescript";
-        }
-
         var slug = PlatformSlug(tool, os, architecture);
         if (slug is null)
         {
@@ -108,8 +95,7 @@ internal static class TypeScriptTools
     ///     The tools disagree, and so does esbuild with itself: esbuild is <c>bin/esbuild</c> on Unix
     ///     but <c>esbuild.exe</c> at the package root on Windows, with no <c>bin</c> directory at all.
     ///     Assuming one layout works on a developer's machine and fails on somebody else's, which is the
-    ///     worst time to find out — so every layout is stated here and covered by a test. The compiler
-    ///     library is the same file everywhere.
+    ///     worst time to find out — so every layout is stated here and covered by a test.
     /// </remarks>
     public static string ExecutablePath(TypeScriptTool tool, ToolOs os)
     {
@@ -118,7 +104,6 @@ internal static class TypeScriptTools
         {
             TypeScriptTool.Esbuild => windows ? "esbuild.exe" : Path.Combine("bin", "esbuild"),
             TypeScriptTool.Tsgo => windows ? Path.Combine("lib", "tsc.exe") : Path.Combine("lib", "tsc"),
-            TypeScriptTool.TypeScript => Path.Combine("lib", "typescript.js"),
             _ => throw new ArgumentOutOfRangeException(nameof(tool)),
         };
     }
@@ -129,9 +114,8 @@ internal static class TypeScriptTools
     /// <remarks>
     ///     tsgo ships <c>lib/lib.dom.d.ts</c> and its ~110 siblings beside the binary and resolves
     ///     <c>"lib"</c> from its own location, so extracting only <c>lib/tsc</c> yields a compiler that
-    ///     reports every DOM type as undefined. The compiler library resolves the same <c>lib.*.d.ts</c> files
-    ///     from beside <c>typescript.js</c>, for the same reason. esbuild genuinely is one file. All are
-    ///     extracted whole; this exists to say why that is not incidental.
+    ///     reports every DOM type as undefined. esbuild genuinely is one file. Both are extracted whole; this
+    ///     exists to say why that is not incidental.
     /// </remarks>
     public static bool NeedsWholePackage(TypeScriptTool tool) => tool != TypeScriptTool.Esbuild;
 

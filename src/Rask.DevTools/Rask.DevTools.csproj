@@ -63,9 +63,8 @@
     It also carries the editor-launched dev session (Server/): an app VS Code's F5 started under its debugger is
     served on https://<name>.test when `rask dev` has already set that name up, and says where the browser should
     go. The dev-host layout is source-linked from the one place `rask dev` also compiles it from, so the name and
-    the certificate this finds are exactly the ones `rask dev` made. Only the layout files: EditorDevSession and
-    IslandDevPointer arrive with Rask.Server, whose internals this assembly sees, and a second copy of either
-    would conflict with that one (CS0436).
+    the certificate this finds are exactly the ones `rask dev` made. Only the layout files: EditorDevSession arrives
+    with Rask.Server, whose internals this assembly sees, and a second copy would conflict with that one (CS0436).
   -->
   <ItemGroup Condition=" '$(TargetFramework)' != '' AND '$([MSBuild]::GetTargetPlatformIdentifier($(TargetFramework)))' == '' ">
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>

@@ -20,8 +20,7 @@ namespace Rask.Generators.Validation;
 ///     </para>
 ///     <para>
 ///         Ships in every host package's analyzer payload and stays inert unless the app references
-///         <c>Rask.Validation.FluentValidation</c>, the same way <c>BlazorGenerator</c> stays inert
-///         without <c>Rask.Blazor</c>.
+///         <c>Rask.Validation.FluentValidation</c>.
 ///     </para>
 /// </remarks>
 [Generator(LanguageNames.CSharp)]
@@ -58,7 +57,7 @@ public sealed class ValidatorRegistryGenerator : IIncrementalGenerator
     /// <inheritdoc />
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        // Straight off the compilation, matching BlazorGenerator and CqrsCodecGenerator: symbols must
+        // Straight off the compilation, matching CqrsCodecGenerator: symbols must
         // not be held across an incremental boundary.
         context.RegisterSourceOutput(context.CompilationProvider, static (spc, compilation) => Emit(spc, compilation));
     }

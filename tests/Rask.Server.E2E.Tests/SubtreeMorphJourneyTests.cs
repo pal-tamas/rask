@@ -25,7 +25,7 @@ namespace Rask.Server.E2E.Tests;
 ///     </para>
 ///     <para>
 ///         <see cref="MorphGuardsPage" /> holds everything a morph must step around in ONE parent, beside a
-///         child that changes element: what a foreign renderer mounted, a node a script added, a modal dialog
+///         child that changes element: what a script drew, a node a script added, a modal dialog
 ///         and a popover the reader opened, a checkbox whose state is the reader's, an inline script, a drawing.
 ///     </para>
 /// </remarks>
@@ -207,10 +207,10 @@ public sealed class SubtreeMorphJourneyTests(PlaywrightFixture playwright) : ICl
         await page.EvaluateAsync(
             """
             () => {
-                document.getElementById('island').appendChild(Object.assign(document.createElement('b'), { id: 'mounted', textContent: 'mounted' }));
+                document.getElementById('drawn').appendChild(Object.assign(document.createElement('b'), { id: 'mounted', textContent: 'mounted' }));
                 const managed = Object.assign(document.createElement('i'), { id: 'managed', textContent: 'managed' });
                 managed.setAttribute('data-rask-managed', '');
-                document.getElementById('guards').insertBefore(managed, document.getElementById('island'));
+                document.getElementById('guards').insertBefore(managed, document.getElementById('drawn'));
                 document.getElementById('kept').click();
                 document.getElementById('dialog').showModal();
                 document.getElementById('tip').showPopover();
@@ -358,10 +358,10 @@ public sealed partial class MorphGuardsPage : Component
     // An element whose children are another renderer's: the render knows it as empty.
     private sealed class MountedElsewhere : Component
     {
-        protected override string? TagName => "rask-external";
+        protected override string? TagName => "x-chart";
 
         protected override bool OpaqueSubtree => true;
 
-        protected override void WriteAttributes(StringBuilder sb) => AppendAttr(sb, "id", "island");
+        protected override void WriteAttributes(StringBuilder sb) => AppendAttr(sb, "id", "drawn");
     }
 }

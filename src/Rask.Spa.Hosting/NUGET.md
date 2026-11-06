@@ -1,16 +1,14 @@
 # Rask.Spa.Hosting
 
-**ASP.NET Core host for a built single-page app** — a front end from any bundler (React, Preact,
-Vue, Solid, Svelte, Lit, Angular) or a Rask WebAssembly app written in C#. Part of
-[Rask](https://rask.sh/), a full-stack .NET web framework for teams of any size.
+**ASP.NET Core host for a Rask WebAssembly app** written in C# — or any other built single-page app.
+Part of [Rask](https://rask.sh/), a full-stack .NET web framework for teams of any size.
 
 - **One call serves the build output** with correct MIME types, cache headers that follow what the build
   guarantees (content-hashed assets cached hard, `index.html` never cached), precompressed siblings, and a SPA
   fallback that still answers 404 for a missing asset.
-- **A Rask WebAssembly app is a SPA too.** Reference the client project and the host's build publishes it;
-  `MapRaskSpa` recognises the bundle and serves the runtime files with the right types and compression.
-- **The build runs the front end's own toolchain.** `dotnet build` runs `npm ci` and `npm run build` in the
-  `client` folder; `dotnet publish` copies the bundle into `wwwroot`.
+- **The WebAssembly client is published by the host's build.** Reference the client project and `dotnet build`
+  publishes it; `MapRaskSpa` recognises the bundle and serves the runtime files with the right types and
+  compression. Under `rask dev` the client's build output is served instead, so hot reload reaches the browser.
 - Depends on nothing else in Rask.
 
 ## Install
@@ -19,8 +17,7 @@ Vue, Solid, Svelte, Lit, Angular) or a Rask WebAssembly app written in C#. Part 
 dotnet add package Rask.Spa.Hosting
 ```
 
-Or start from a scaffold that already references it — a Rask host with the framework's TypeScript client
-in `client/`: `rask new Shop --template react` (or `preact`, `vue`, `angular`, `solid`, `svelte`, `lit`).
+Or start from a scaffold that already references it: `rask new Shop --template wasm-hosted`.
 
 ## Use
 
@@ -36,4 +33,4 @@ app.MapRaskSpa();
 app.Run();
 ```
 
-Guide: [Single-page app front ends](https://rask.sh/docs/guides/spa)
+Guide: [Single-page apps](https://rask.sh/docs/guides/spa)

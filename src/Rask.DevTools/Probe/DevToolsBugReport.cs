@@ -36,8 +36,8 @@ internal static class DevToolsBugReport
     private const string Fence = "```";
     private const int FrameLimit = 30;
 
-    // The script files that are Rask's own on a page: the runtimes, the island runtime, anything a Rask package serves.
-    private static readonly string[] RaskScripts = ["/rask/rask.js", "rask.wasm", "rask-hooks.js", "rask-external.js", "/_content/Rask.", "/_rask/"];
+    // The script files that are Rask's own on a page: the runtimes, anything a Rask package serves.
+    private static readonly string[] RaskScripts = ["/rask/rask.js", "rask.wasm", "rask-hooks.js", "/_content/Rask.", "/_rask/"];
 
     /// <summary>
     ///     Reads a .NET stack (<see cref="Exception.StackTrace" />). <paramref name="appNamespaces" /> are namespaces known to
@@ -120,7 +120,6 @@ internal static class DevToolsBugReport
             DevToolsErrorKind.Handler => "an event handler",
             DevToolsErrorKind.Lifecycle => "a lifecycle hook",
             DevToolsErrorKind.Page => "a page script",
-            DevToolsErrorKind.Island => "an island",
             _ => "the framework",
         };
         var innermost = error.ReportFrames.FirstOrDefault(f => !string.Equals(f, AppCode, StringComparison.Ordinal));

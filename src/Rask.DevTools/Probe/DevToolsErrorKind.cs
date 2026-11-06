@@ -17,7 +17,4 @@ internal enum DevToolsErrorKind : byte
 
     /// <summary>A script on the page threw, or a promise was rejected with nobody to catch it.</summary>
     Page,
-
-    /// <summary>An island failed to mount, update or unmount.</summary>
-    Island,
 }

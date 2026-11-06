@@ -124,11 +124,8 @@
          reference Rask.Query, so the server host compiles the same file in and registers it itself (RaskBatteryWiring). -->
     <Compile Include="..\Rask.Data\Browser\QueryDataChanges.cs" Link="App\QueryDataChanges.cs"/>
     <Compile Include="..\Rask.Data\Browser\QueryClientReads.cs" Link="App\QueryClientReads.cs"/>
-    <!-- An app VS Code's F5 launched starts its islands' Vite dev server itself (Dev/IslandDevServer). -->
+    <!-- Whether VS Code's F5 launched this app as a dev session; Rask.DevTools reads it through this assembly. -->
     <Compile Include="..\Rask.Hosting.Shared\Dev\EditorDevSession.cs" Link="Shared\Dev\EditorDevSession.cs"/>
-    <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevPointer.cs" Link="Shared\Dev\IslandDevPointer.cs"/>
-    <Compile Include="..\Rask.Hosting.Shared\Dev\IslandDevCommand.cs" Link="Shared\Dev\IslandDevCommand.cs"/>
-    <Compile Include="..\Rask.Hosting.Shared\Dev\DevServerProcess.cs" Link="Shared\Dev\DevServerProcess.cs"/>
   </ItemGroup>
 
   <!-- The live, server, culture and upload options bind Rask:Live / Rask:Server / Rask:Cultures / Rask:Uploads.

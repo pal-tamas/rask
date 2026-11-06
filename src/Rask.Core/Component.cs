@@ -223,8 +223,8 @@ public abstract partial class Component : RaskMarkup
     protected virtual bool SelfClosing => false;
 
     // True when everything below this component's element is owned by something that is not Rask —
-    // a React root, a Lit element, a Blazor renderer (see Rask.External). The live diff must then
-    // treat the subtree as a single opaque node: it is reconciled by its own framework, on its own
+    // a script that draws into it, such as a kit component's editor or calendar engine. The live diff
+    // must then treat the subtree as a single opaque node: it is reconciled by its owner, on its own
     // schedule, and patching into it means two writers on one subtree. That failure does not throw —
     // it corrupts on the next parent re-render, which is why the marker is carried on the frame
     // (FrameDiffer skips by SubtreeLength) AND written into the HTML as data-rask-opaque (the

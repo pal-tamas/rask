@@ -20,10 +20,9 @@ namespace Rask.Spa.Hosting;
 ///     a refresh or a deep link.
 /// </summary>
 /// <remarks>
-///     The framework is not this package's business — React, Vue and Angular all bundle to the same
-///     thing, and the cache rules below are keyed on what the <em>bundler</em> guarantees rather than on
-///     who generated it. A Rask WebAssembly bundle is recognised from its files and gets the rules its
-///     publish guarantees instead.
+///     The cache rules below are keyed on what the build that produced the files guarantees rather than
+///     on who generated it. A Rask WebAssembly bundle is recognised from its files and gets the rules its
+///     publish guarantees.
 /// </remarks>
 public static class RaskSpaEndpointExtensions
 {
@@ -124,7 +123,7 @@ public static class RaskSpaEndpointExtensions
 
         if (devManifest is null && resolved is null)
         {
-            MapMissingBundle(endpoints, prefix, options, environment, entry, distPath);
+            MapMissingBundle(endpoints, prefix, environment, entry, distPath);
             return endpoints;
         }
 
@@ -152,10 +151,6 @@ public static class RaskSpaEndpointExtensions
         }
 
         UseBundleFiles(app, fileProvider, prefix, options, dev, wasm);
-        if (wasm)
-        {
-            MapIslandFiles(endpoints, fileProvider, prefix, options);
-        }
 
         MapIndexDocument(endpoints, prefix, options, wasm, IndexPath(fileProvider, options, devManifest, resolved));
         return endpoints;
@@ -199,57 +194,6 @@ public static class RaskSpaEndpointExtensions
             ApplySecurityHeaders(context.Response.Headers);
             await context.Response.SendFileAsync(indexPath, context.RequestAborted).ConfigureAwait(false);
         });
-
-    /// <summary>The folder a WebAssembly bundle's islands are built into, beside its manifest (Rask.External).</summary>
-    private const string IslandFolder = "_rask/external";
-
-    /// <summary>
-    ///     Serves the bundle's islands from an endpoint of their own, when it has any (#1194).
-    /// </summary>
-    /// <remarks>
-    ///     <para>
-    ///         Static files are middleware, and middleware runs after routing has chosen an endpoint — and skips the
-    ///         request when one was chosen. The operator dashboard maps <c>/_rask/{**path}</c>, so every island
-    ///         chunk and its manifest went to the dashboard's sign-in instead, and the island failed to mount. A
-    ///         route with the literal <c>_rask/external</c> outranks that catch-all; it clears the endpoint so the
-    ///         same static-file handling serves the file, and answers 404 for one the bundle does not have.
-    ///     </para>
-    ///     <para>
-    ///         Mapped only when the bundle has an island manifest, so an app without islands gains no route.
-    ///     </para>
-    /// </remarks>
-    private static void MapIslandFiles(
-        IEndpointRouteBuilder endpoints,
-        IFileProvider fileProvider,
-        string prefix,
-        SpaHostingOptions options)
-    {
-        if (!fileProvider.GetFileInfo(IslandFolder + "/manifest.json").Exists)
-        {
-            return;
-        }
-
-        var files = endpoints.CreateApplicationBuilder()
-            .Use(next => context =>
-            {
-                context.SetEndpoint(null);
-                return next(context);
-            })
-            .UseStaticFiles(new StaticFileOptions
-            {
-                FileProvider = fileProvider,
-                RequestPath = prefix,
-                ContentTypeProvider = _contentTypes,
-                OnPrepareResponse = context => PrepareResponse(context, prefix, options, wasm: true),
-            });
-        files.Run(context =>
-        {
-            context.Response.StatusCode = StatusCodes.Status404NotFound;
-            return Task.CompletedTask;
-        });
-
-        endpoints.MapMethods($"{prefix}/{IslandFolder}/{{**path}}", [HttpMethods.Get, HttpMethods.Head], files.Build());
-    }
 
     private static void MapDevSession(IEndpointRouteBuilder endpoints, string prefix, string devManifest, bool wasm)
     {
@@ -457,29 +401,19 @@ public static class RaskSpaEndpointExtensions
     private static void MapMissingBundle(
         IEndpointRouteBuilder endpoints,
         string prefix,
-        SpaHostingOptions options,
         IHostEnvironment? environment,
         Assembly? entry,
         string? distPath)
     {
         var wasmClient = SpaAppBundle.Read(entry, SpaAppBundle.WasmClientMetadataKey);
-        var client = SpaAppBundle.Read(entry, SpaAppBundle.ClientMetadataKey);
-        var devServer = options.DevServerUrl ?? SpaAppBundle.Read(entry, SpaAppBundle.DevServerMetadataKey);
-        var buildHint = (wasmClient, client) switch
-        {
-            ({ } wasmProject, _) => $"publish {wasmProject}",
-            (null, null) => "run your bundler's build",
-            (null, { } clientDirectory) => $"run the build in {clientDirectory}",
-        };
+        var buildHint = wasmClient is null ? "publish the app into this host" : $"publish {wasmClient}";
 
         if (environment?.IsDevelopment() == true)
         {
             Console.WriteLine(wasmClient is not null
                 ? "Rask.Spa.Hosting: the WebAssembly client has no build output to serve. Building this "
                   + $"project builds the client too; to serve the published app from this host instead, {buildHint}."
-                : "Rask.Spa.Hosting: no built app to serve. In development the front end is served by the "
-                  + $"bundler — open {devServer ?? "the bundler's dev server"} (rask dev starts it). To serve "
-                  + $"the built app from this host instead, {buildHint}.");
+                : $"Rask.Spa.Hosting: no built app to serve. To serve one from this host, {buildHint}.");
 
             StaticSpaFiles.MapCatchAll(endpoints, prefix, async context =>
             {
@@ -487,7 +421,7 @@ public static class RaskSpaEndpointExtensions
                 context.Response.Headers.CacheControl = "no-store";
                 ApplySecurityHeaders(context.Response.Headers);
                 await context.Response.WriteAsync(
-                        DevelopmentPage(devServer, buildHint, wasmClient is not null), context.RequestAborted)
+                        DevelopmentPage(buildHint, wasmClient is not null), context.RequestAborted)
                     .ConfigureAwait(false);
             });
 
@@ -511,21 +445,16 @@ public static class RaskSpaEndpointExtensions
         });
     }
 
-    private static string DevelopmentPage(string? devServer, string buildHint, bool wasm)
+    private static string DevelopmentPage(string buildHint, bool wasm)
     {
-        var startIt = devServer is null
-            ? "<p>Start it with <code>rask dev</code>.</p>"
-            : $"""<p><a href="{WebUtility.HtmlEncode(devServer)}">{WebUtility.HtmlEncode(devServer)}</a> &mdash; started by <code>rask dev</code>.</p>""";
         var where = wasm
             ? """
               <p>This host serves your WebAssembly app's <em>build output</em>, and there isn't any.
               Build this project — <code>dotnet build</code> or <code>rask dev</code> — and it is served from here.</p>
               """
-            : $"""
-               <p>This host serves your app's <em>build output</em>, and there isn't any. In development the
-               front end is served by the bundler instead, which is the one with hot reload.</p>
-               {startIt}
-               """;
+            : """
+              <p>This host serves your app's <em>build output</em>, and there isn't any.</p>
+              """;
 
         return $"""
             <!doctype html>
