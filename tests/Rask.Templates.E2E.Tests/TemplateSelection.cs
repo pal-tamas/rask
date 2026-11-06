@@ -6,7 +6,7 @@ namespace Rask.Templates.E2E.Tests;
 /// <remarks>
 ///     <para>
 ///         A VSTest filter cannot express "one case of this theory" here. A theory's display name
-///         carries its argument — <c>…_handler(key: "react")</c> — and the parentheses and quotes in it
+///         carries its argument — <c>…_compiles(key: "wasm")</c> — and the parentheses and quotes in it
 ///         survive neither route: <c>dotnet test --filter</c> passes the string through MSBuild, which
 ///         rejects <c>)</c> outright (MSB4177), and <c>dotnet vstest --TestCaseFilter</c> has no escape
 ///         sequence for them either. Filtering by method name alone runs every template, and on this
@@ -14,9 +14,8 @@ namespace Rask.Templates.E2E.Tests;
 ///     </para>
 ///     <para>
 ///         So the selection is an environment variable, read by the theory data rather than by the
-///         runner: <c>RASK_TEMPLATE_ONLY=react</c>, or a comma-separated list. Unset, every template
-///         runs. The one gate script that sets it is <c>run-template-e2e.sh --front-end=&lt;key&gt;</c>, which
-///         is that narrowing by name: CI runs each front end as its own job.
+///         runner: <c>RASK_TEMPLATE_ONLY=wasm</c>, or a comma-separated list. Unset, every template
+///         runs. <c>run-template-e2e.sh --template=&lt;key&gt;</c> sets it.
 ///     </para>
 /// </remarks>
 internal static class TemplateSelection

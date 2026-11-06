@@ -48,33 +48,6 @@
          package's build/ hooks are imported for a DIRECT reference only — and those hooks are
          what drop it from a Release publish. -->
     <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
-    <!-- rask:if islands -->
-    <!-- Islands: the base classes a .tsx/.vue/.svelte/.ts component derives from, plus the MSBuild
-         layer that discovers each pair, generates its prop types and bundles it with Vite. -->
-    <PackageReference Include="Rask.External" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if islands-blazor -->
-    <!-- A real Blazor component hosted as an ordinary Rask component. No npm side: the Razor SDK
-         compiles the .razor and Rask renders it into the first response. -->
-    <PackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
   </ItemGroup>
-
-
-  <!-- rask:if islands-blazor -->
-  <PropertyGroup>
-    <!-- The library lives in a folder of this project and its files are its own: without this, the
-         second build would compile the library's obj/ into this app and stop on duplicate attributes. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Company.RaskServer.Components/**</DefaultItemExcludes>
-    <RaskScopedSourceExclude>$(RaskScopedSourceExclude);Company.RaskServer.Components\**</RaskScopedSourceExclude>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <!-- The Razor Class Library holding this app's Blazor components. A separate project because a
-         .razor compiled in THIS project is generated during this same compilation, so Rask cannot
-         read its [Parameter]s and generates no chain steps for them (RASK066). -->
-    <ProjectReference Include="Company.RaskServer.Components\Company.RaskServer.Components.csproj"/>
-  </ItemGroup>
-  <!-- rask:end -->
 
 </Project>

@@ -24,7 +24,7 @@ namespace Rask.Cli.Scaffolding;
 ///     </list>
 ///     <para>
 ///         What it deliberately does NOT do is run anybody else's scaffolder: `rask new` needs no network
-///         and no Node install, and produces the same tree every time.
+///         and no other toolchain, and produces the same tree every time.
 ///     </para>
 /// </remarks>
 internal static class TemplateMaterializer
@@ -35,20 +35,6 @@ internal static class TemplateMaterializer
     /// <summary>The placeholder for the Rask package version the scaffold pins.</summary>
     internal const string VersionToken = "{{RaskVersion}}";
 
-    /// <summary>
-    ///     The npm-safe spelling of <see cref="NameToken"/>, which some tooling writes instead of the
-    ///     name itself.
-    /// </summary>
-    /// <remarks>
-    ///     Angular is the one that needs it: <c>ng new</c> derives its project name from the directory
-    ///     and lowercases it, so the Angular template says <c>company-raskserver-client</c> in
-    ///     angular.json, in the client's package.json name, in a spec's expected text, and in the host's
-    ///     RaskSpaDistDir. Substituting only the exact name token leaves every one of those naming the
-    ///     placeholder, and the host then looks for the bundle under a directory Angular never writes —
-    ///     a scaffolded Angular app that builds and serves nothing.
-    /// </remarks>
-    internal const string SlugToken = "company-raskserver";
-
     /// <summary>The manifest, at the root of every template tree.</summary>
     internal const string ManifestFile = "template.json";
 
@@ -57,8 +43,8 @@ internal static class TemplateMaterializer
 
     /// <summary>
     ///     Files stored without their leading dot, because the VCS would otherwise read them as rules
-    ///     for THIS repository: a nested <c>.gitignore</c> beats the root one, and angular's
-    ///     <c>.vscode/</c> line silently drops three files the template is supposed to ship.
+    ///     for THIS repository: a nested <c>.gitignore</c> beats the root one, and a line in it could
+    ///     silently drop files the template is supposed to ship.
     /// </summary>
     private static readonly FrozenDictionary<string, string> InertNames =
         new Dictionary<string, string>(StringComparer.Ordinal)
@@ -76,7 +62,6 @@ internal static class TemplateMaterializer
         string name,
         ServerBatteries batteries,
         string version,
-        IReadOnlyList<string>? islands = null,
         VsCodeSetup vsCode = VsCodeSetup.None)
     {
         ArgumentException.ThrowIfNullOrEmpty(targetDirectory);
@@ -86,11 +71,7 @@ internal static class TemplateMaterializer
         var assets = TemplateAssets.Load(templateKey);
         var owners = ReadOwners(assets, templateKey);
 
-        // The island flags are conditions like any other, so the templates can mark their package
-        // references with them rather than having those spliced in afterwards.
-        var on = islands is { Count: > 0 }
-            ? FlagsOn(batteries).Concat(IslandAssembly.Flags(islands)).ToFrozenSet(StringComparer.Ordinal)
-            : FlagsOn(batteries);
+        var on = FlagsOn(batteries);
 
         var files = new List<ScaffoldFile>(assets.Count);
         foreach (var asset in assets)
@@ -108,9 +89,7 @@ internal static class TemplateMaterializer
             files.Add(Materialize(asset, targetDirectory, name, version, on));
         }
 
-        var written = islands is { Count: > 0 }
-            ? IslandAssembly.Apply(targetDirectory, islands, name, files, PagesFolder(templateKey))
-            : files;
+        IReadOnlyList<ScaffoldFile> written = files;
 
         if (vsCode != VsCodeSetup.None)
         {
@@ -123,14 +102,6 @@ internal static class TemplateMaterializer
         // RENDERED appsettings.json carries a WebPush section, so it reads the same text the app will.
         return WebPushAssembly.Apply(targetDirectory, written);
     }
-
-    /// <summary>
-    ///     The folder <paramref name="templateKey" />'s pages compile from, where its islands have to be for a page to
-    ///     name them: a wasm-hosted app's pages are its browser half's, in <c>Client/</c> (#1194); every other
-    ///     template's are the project's own.
-    /// </summary>
-    internal static string PagesFolder(string templateKey) =>
-        string.Equals(templateKey, "wasm-hosted", StringComparison.Ordinal) ? "Client" : "";
 
     /// <summary>One asset as the file it becomes: renamed, its regions resolved and its tokens replaced.</summary>
     private static ScaffoldFile Materialize(
@@ -148,9 +119,6 @@ internal static class TemplateMaterializer
         text = TemplateMarkers.Apply(text, on, asset.Path);
         text = text
             .Replace(VersionToken, version, StringComparison.Ordinal)
-            // Before the name token, because the slug is the name's own lower-case spelling and
-            // replacing the name first would leave nothing for this to match.
-            .Replace(SlugToken, Slug(name), StringComparison.Ordinal)
             .Replace(NameToken, name, StringComparison.Ordinal);
 
         return new ScaffoldFile(destination, text);
@@ -162,7 +130,7 @@ internal static class TemplateMaterializer
     /// </summary>
     /// <remarks>
     ///     <para>
-    ///         Generated here rather than committed into all nineteen template trees, for the reason the
+    ///         Generated here rather than committed into every template tree, for the reason the
     ///         <c>_vscode</c> fragments are shared: the file is identical everywhere.
     ///     </para>
     ///     <para>
@@ -219,36 +187,6 @@ internal static class TemplateMaterializer
                 on.Add(flag);
             }
         }
-    }
-
-    /// <summary>
-    ///     An app name as npm and the Angular CLI spell it: lower case, with every run of characters
-    ///     that is not a letter or digit collapsed to a single dash.
-    /// </summary>
-    /// <remarks>
-    ///     Matches what <c>ng new</c> does to a directory name, which is what the Angular template's
-    ///     committed files were written against — <c>Company.RaskServer</c> becomes
-    ///     <c>company-raskserver</c>. An npm package name may not contain an upper-case letter or a dot,
-    ///     so this is a requirement rather than a convention.
-    /// </remarks>
-    internal static string Slug(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-
-        var slug = new StringBuilder(name.Length);
-        foreach (var c in name)
-        {
-            if (char.IsLetterOrDigit(c))
-            {
-                slug.Append(char.ToLowerInvariant(c));
-            }
-            else if (slug.Length > 0 && slug[^1] != '-')
-            {
-                slug.Append('-');
-            }
-        }
-
-        return slug.ToString().Trim('-');
     }
 
     /// <summary>The stored name with its leading dot restored, if it was stored without one.</summary>

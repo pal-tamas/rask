@@ -8,7 +8,7 @@ namespace Rask.Cli.Commands;
 
 /// <summary>
 /// <c>rask new</c> — scaffold a Rask project. The CLI is the scaffolding authority: every template
-/// (<c>server</c>, <c>wasm</c>, and the front-end ones) is generated directly — files written +
+/// (<c>server</c>, <c>wasm</c> and <c>wasm-hosted</c>) is generated directly — files written +
 /// package refs baked at the CLI's own version + <c>dotnet restore</c> — with no <c>dotnet new</c> /
 /// Rask.Templates dependency.
 /// </summary>
@@ -40,8 +40,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
     [
         "rask new Shop",
         "rask new Shop --template wasm-hosted",
-        "rask new Shop --template react",
-        "rask new Shop --islands react angular",
         "rask new Shop --template wasm",
         "rask new Blog --no-push --no-ops",
         "rask new Tiny --no-data --no-docker --no-pwa",
@@ -55,14 +53,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
             .Option("template", 't', "name", "Template to scaffold (default: server).", choices: TemplateCatalog.Keys)
             .Option("output", 'o', "dir", "Directory to create the project in (default: ./<name>).")
             .Option("name", 'n', "name", "Project name, if not given positionally.")
-            .MultiOption(
-                "islands",
-                valueHint: "runtime",
-                description:
-                    "Scaffold a front-end component as an ordinary Rask component, one per runtime named "
-                    + "(react, preact, vue, svelte, solid, lit, angular, blazor). Takes several: "
-                    + "`--islands react angular`. react and preact cannot share a project.",
-                choices: IslandRuntimes.All)
             .Flag("no-pwa", description: "Leave out the PWA manifest, icon, and offline page (also drops Web Push).")
             .Flag("no-push", description: "Leave out server-sent Web Push and its subscribe endpoints.")
             .Flag("no-cqrs", description: "Leave out Rask.Cqrs — and with it the database, whose writes, jobs and domain events all go through it.")
@@ -162,40 +152,24 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
 
         var batteries = ToBatteries(template, off);
 
-        var islands = parsed.MultiOption("islands");
-        if (IslandsError(template, islands) is { } islandsError)
-        {
-            return Fail(islandsError);
-        }
-
         // Every template is generated directly by the CLI; the key here is one the catalog knows
         // (validated by TemplateCatalog.TryGet).
         return await GenerateDirectAsync(
             template, name, parsed.Option("output"), parsed.HasFlag("dry-run"), parsed.HasFlag("force"),
             parsed.HasFlag("no-restore"), parsed.HasFlag("no-git"), parsed.HasFlag("json"), batteries,
-            (dir, version) => Generate(template, dir, name, batteries, version, islands),
+            (dir, version) => Generate(template, dir, name, batteries, version),
             cancellationToken).ConfigureAwait(false);
     }
 
     private static ScaffoldResult Generate(
-        TemplateInfo template, string dir, string name, ServerBatteries batteries, string version,
-        IReadOnlyList<string> islands)
-    {
-        // Asked of the same list the catalog was built from, so a key the parser accepts is one this generates.
-        if (SpaFramework.TryGet(template.Key, out var framework))
-        {
-            return ProjectGenerator.GenerateSpa(dir, name, framework, batteries, version);
-        }
-
-        return template.Key switch
+        TemplateInfo template, string dir, string name, ServerBatteries batteries, string version) =>
+        template.Key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
-                dir, name, batteries.Pwa, batteries.Docker, version, batteries, islands),
-            WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
-                dir, name, batteries, version, islands),
-            _ => ProjectGenerator.GenerateServer(dir, name, batteries, version, islands),
+                dir, name, batteries.Pwa, batteries.Docker, version, batteries),
+            WasmHostedKey => ProjectGenerator.GenerateWasmHosted(dir, name, batteries, version),
+            _ => ProjectGenerator.GenerateServer(dir, name, batteries, version),
         };
-    }
 
     /// <summary>
     ///     MSBuild reads properties from the environment, which is how these reach a build whose command
@@ -212,12 +186,6 @@ internal sealed partial class NewCommand(IConsole console, IFileSystem fileSyste
     ///     check. Set by <c>CliApplication</c>; left unset in tests, so none of them reaches the network.
     /// </summary>
     internal PackageFeed? Feed { get; init; }
-
-    /// <summary>
-    ///     The registry the client's <c>"latest"</c> versions are chosen from (<see cref="FrontEndVersions" />), or
-    ///     <c>null</c> to leave them for npm. Set by <c>CliApplication</c>; left unset in tests.
-    /// </summary>
-    internal NpmRegistry? Npm { get; init; }
 
     /// <summary>
     /// The version to pin generated <c>PackageReference</c>s at.

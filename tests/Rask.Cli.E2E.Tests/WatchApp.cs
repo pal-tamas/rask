@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
-using Rask.Hosting.Shared;
 
 namespace Rask.Cli.E2E.Tests;
 
@@ -18,9 +17,6 @@ internal sealed class WatchApp : IAsyncDisposable
     // applies cleanly. If `rask new` ever changes this string, ReplaceInFile's assert names it.
     internal const string OriginalHeading = "Hello, Rask!";
     internal const string EditedHeading = "Hello, Edited!";
-
-    /// <summary>What <c>dotnet watch</c> prints when the build failed and it is waiting for an edit to retry.</summary>
-    private const string WatchBuildFailed = "Fix the error to continue";
 
     private readonly StringBuilder _log = new();
     private readonly object _logLock = new();
@@ -35,12 +31,6 @@ internal sealed class WatchApp : IAsyncDisposable
     {
         get { lock (_logLock) { return "\n--- dotnet watch output ---\n" + _log; } }
     }
-
-    /// <summary>
-    ///     The island dev server <c>rask dev</c> starts beside the app, or null when the app was started
-    ///     without islands.
-    /// </summary>
-    public IslandViteServer? Islands { get; private set; }
 
     public static async Task<WatchApp> StartAsync(string name)
     {
@@ -80,109 +70,6 @@ internal sealed class WatchApp : IAsyncDisposable
             // leaked `dotnet watch` keeps rebuilding for the rest of the session. Clean up here.
             await app.DisposeAsync().ConfigureAwait(false);
             throw;
-        }
-    }
-
-    /// <summary>
-    ///     A <paramref name="template" /> app scaffolded with <c>--islands react</c>, run the way <c>rask dev</c>
-    ///     runs it: the same project detection, the same <c>dotnet watch</c> command line and environment, and
-    ///     the island Vite dev server started from the pointer the dev-session build drops.
-    /// </summary>
-    /// <remarks>
-    ///     Nothing here re-states what <c>rask dev</c> does: <see cref="DevTarget.Detect" /> reads the port the
-    ///     way the CLI does, <see cref="DotnetWatchInvocation" /> builds the command line and environment
-    ///     (<c>RaskDevSession=true</c>, <c>RASK_ISLANDS_DEV</c>), and <see cref="IslandViteServer" /> runs
-    ///     <c>IslandDevCommand</c> over <c>IslandDevPointer</c>. If any of those drift, this drifts with them,
-    ///     which is the point. The island port is a free one per run, written into the csproj the way an app
-    ///     that moved off 5174 does: the dev server is <c>strictPort</c>, so a fixed port would make two
-    ///     concurrent runs fail each other.
-    /// </remarks>
-    public static async Task<WatchApp> StartWithIslandAsync(string name, IslandHost template)
-    {
-        var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-        var app = Create(name);
-
-        var scaffold = template == IslandHost.Server
-            ? ProjectGenerator.GenerateServer(app.ProjectDir, name, new ServerBatteries(), version, islands: ["react"])
-            : ProjectGenerator.GenerateWasm(app.ProjectDir, name, pwa: false, docker: false, version, islands: ["react"]);
-
-        // `rask new` chooses the island packages' versions; a package.json of "latest"s is not what it writes.
-        var (pinned, unchosen) = await FrontEndVersions.PinAsync(scaffold, NpmRegistry.Public, CancellationToken.None);
-        Assert.True(unchosen is null, $"the island packages' versions could not be chosen: {unchosen}");
-        app.Write(pinned, feed);
-
-        var csproj = Path.Combine(app.ProjectDir, name + ".csproj");
-        var islandPort = FreePort();
-        SetIslandDevServerPort(csproj, islandPort);
-
-        var target = DevTarget.Detect(new SystemFileSystem(), app.ProjectDir, csproj);
-        Assert.NotNull(target);
-        Assert.True(target.HasIslands, $"rask dev would not start an island dev server for this {template} app.");
-        Assert.Equal($"http://localhost:{islandPort}", target.IslandDevServerUrl);
-
-        app.Port = FreePort();
-        var arguments = DotnetWatchInvocation.BuildDotnetArguments(
-            target.ProjectPath, once: false, noHotReload: false, launchProfile: null, nonInteractive: true,
-            passthrough: [], target.Kind);
-        var environment = DotnetWatchInvocation.Overlay(
-            DotnetWatchInvocation.BuildEnvironment(
-                target.Kind, restartOnRudeEdit: true, urls: $"http://127.0.0.1:{app.Port}",
-                Environment.GetEnvironmentVariable, target.IslandDevServerUrl),
-            [new("DOTNET_WATCH_SUPPRESS_EMOJIS", "1"), new("NO_COLOR", "1")]);
-
-        app.StartWatch(arguments, environment);
-        app.Http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{app.Port}") };
-
-        try
-        {
-            // What `rask dev` does beside the watch: wait for the dev-session build to name the config, then
-            // serve it. The first build installs the island packages, so this is the slow half.
-            // A failed build leaves watch waiting for a fix and never writes the pointer, so stop waiting then.
-            using var failed = new CancellationTokenSource();
-            using var started = new CancellationTokenSource();
-            var watcher = app.CancelOnBuildFailureAsync(failed, started.Token);
-            app.Islands = await IslandViteServer.StartAsync(
-                target.ProjectDirectory, TimeSpan.FromMinutes(6), failed.Token);
-            await started.CancelAsync();
-            await watcher;
-            Assert.True(
-                app.Islands is not null,
-                $"the dev-session build never wrote {IslandDevPointer.PathFor(target.ProjectDirectory)}, so rask dev "
-                + $"would start no island dev server.{app.Log}");
-
-            var ready = await app.PollAsync("/", System.Net.HttpStatusCode.OK, TimeSpan.FromSeconds(300));
-            Assert.True(ready, $"the watch app never started listening on {app.Port}.{app.Log}{app.Islands.Log}");
-            return app;
-        }
-        catch
-        {
-            await app.DisposeAsync().ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>Cancels <paramref name="failed" /> once watch reports a failed build, until <paramref name="stop" />.</summary>
-    private async Task CancelOnBuildFailureAsync(CancellationTokenSource failed, CancellationToken stop)
-    {
-        while (!stop.IsCancellationRequested)
-        {
-            lock (_logLock)
-            {
-                if (_log.ToString().Contains(WatchBuildFailed, StringComparison.Ordinal))
-                {
-                    failed.Cancel();
-                    return;
-                }
-            }
-
-            try
-            {
-                await Task.Delay(250, stop).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                return;
-            }
         }
     }
 
@@ -232,19 +119,6 @@ internal sealed class WatchApp : IAsyncDisposable
         {
             File.Delete(launchSettings);
         }
-    }
-
-    /// <summary>Moves the island dev server off 5174, the way an app author does: in the csproj.</summary>
-    private static void SetIslandDevServerPort(string csproj, int port)
-    {
-        const string group = "<PropertyGroup>";
-        var text = File.ReadAllText(csproj);
-        var at = text.IndexOf(group, StringComparison.Ordinal);
-        Assert.True(at >= 0, $"no {group} in {csproj}");
-
-        File.WriteAllText(
-            csproj,
-            text.Insert(at + group.Length, $"\n    <RaskExternalDevServerPort>{port}</RaskExternalDevServerPort>"));
     }
 
     private static List<string> WatchArguments(string csproj) =>
@@ -447,7 +321,7 @@ internal sealed class WatchApp : IAsyncDisposable
         catch (OperationCanceledException)
         {
             Assert.Fail(
-                $"timed out waiting for the expected frame. Frames seen:\n{string.Join("\n", frames)}{Log}{Islands?.Log}");
+                $"timed out waiting for the expected frame. Frames seen:\n{string.Join("\n", frames)}{Log}");
         }
 
         return frames;
@@ -509,10 +383,6 @@ internal sealed class WatchApp : IAsyncDisposable
         }
 
         _process?.Dispose();
-        if (Islands is not null)
-        {
-            await Islands.DisposeAsync().ConfigureAwait(false);
-        }
 
         CliBuildE2E.TryDeleteDirectory(_temp);
     }

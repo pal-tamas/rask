@@ -31,9 +31,6 @@ if [ "${RASK_SKIP_UNIT:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
-# shellcheck source=lib/node-path.sh
-. "$root/scripts/lib/node-path.sh"
-rask_ensure_node
 # shellcheck source=lib/dotnet-env.sh
 . "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
@@ -694,10 +691,6 @@ rask_phase "generators in Debug (for the formatter)"
 # to exclude any more: it used to be skipped when npx was absent, and a check whose first question is
 # "is the tooling here?" is one that eventually answers no and stops running — which is how a generator
 # emitting malformed TypeScript would ship green.
-#
-# The GATE still needs node, for the islands. RaskExternalBuild is left ON deliberately — the showcase
-# carries a package.json, so the solution build runs npm and Vite for it, and that IS covered by unit
-# tests.
 tsc_filter=""
 
 echo "==> Unit & integration tests (excludes the browser E2E)"

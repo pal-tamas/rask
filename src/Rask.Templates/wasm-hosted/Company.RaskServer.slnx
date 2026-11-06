@@ -1,6 +1,3 @@
 <Solution>
   <Project Path="Company.RaskServer.csproj" />
-  <!-- rask:if islands-blazor -->
-  <Project Path="Company.RaskServer.Components/Company.RaskServer.Components.csproj" />
-  <!-- rask:end -->
 </Solution>

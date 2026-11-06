@@ -5,7 +5,7 @@
   and the classes the kit's components write — compiled beside the classes this project writes,
   so every utility exists once and Tailwind ranks them, not the order of two <link>s.
 
-  Styles/vendor/ is written by the build (no npm, no node_modules) and is not yours to edit or commit.
+  Styles/vendor/ is written by the build and is not yours to edit or commit.
 */
 @import "./vendor/rask-ui.css";
 

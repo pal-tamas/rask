@@ -10,5 +10,5 @@
     "skipLibCheck": true
   },
   "include": ["**/*.ts", "obj/rask/types/**/*.d.ts"],
-  "exclude": ["bin", "obj/Debug", "obj/Release", "node_modules", "wwwroot"]
+  "exclude": ["bin", "obj/Debug", "obj/Release", "wwwroot"]
 }

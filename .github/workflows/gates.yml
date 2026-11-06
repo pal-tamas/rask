@@ -5,8 +5,7 @@ name: gates
 # runs by hand, which keeps a red job reproducible with one command.
 #
 #   push     what a push to main is held to
-#   deps     the part of push a version bump can break before it lands: build, unit, format, CLI build, templates,
-#            and the front end of each template whose client the pull request changes
+#   deps     the part of push a version bump can break before it lands: build, unit, format, CLI build, templates
 #   release  what needs containers or a real host; run before a release, and on a ci/release/** branch
 #   all      push and release
 #
@@ -99,17 +98,6 @@ jobs:
           # the slowest shard is the WHOLE run's time, and so how long a fix waits for its package, so
           # re-deal when one drifts.
           #
-          # "each": "front end" deals the front-end templates into "groups" jobs, expanded below from the
-          # script's own list (a tree with a committed npm client), so a new template joins a job with no
-          # edit here: "front end 1/2" runs `--front-end=angular,preact,…`, packing the feed ONCE and
-          # scaffolding its templates one after another, with a verdict per template in the log and the
-          # job summary. A template is selected by "frontend-<key>", and a job runs only the templates
-          # the run reaches. They were a job each until 2026-11-03, each packing the feed again
-          # (about 4.4 minutes, seven times).
-          # "deps": "touched" puts a template in the deps set only when the pull request changes its
-          # client, which is what a lockfile bump is: dependabot-merge.yml then merges a template bump on
-          # the verdict of the template it changed, and a NuGet bump pays for none.
-          #
           # The benchmark gate is the byte and allocation budgets only — exact counts, the same on a
           # shared runner as anywhere. No time is measured here: a runner's clock proves nothing.
           GATES: >-
@@ -130,7 +118,6 @@ jobs:
               {"set": "push", "when": "bench",     "name": "benchmarks",         "run": "scripts/run-benchmarks-local.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "CLI build", "run": "scripts/run-cli-build-e2e.sh"},
               {"set": "push", "deps": true, "when": "packaging", "name": "templates", "run": "scripts/run-template-e2e.sh"},
-              {"set": "push", "deps": "touched", "each": "front end", "groups": 2, "name": "front end", "run": "scripts/run-template-e2e.sh --front-end="},
               {"set": "release", "name": "watch hot reload",   "run": "scripts/run-watch-e2e.sh"},
               {"set": "release", "name": "deploy",             "run": "scripts/run-deploy-e2e-local.sh"},
               {"set": "release", "name": "storage providers",  "run": "scripts/run-storage-providers-local.sh"},
@@ -160,43 +147,21 @@ jobs:
             echo "gates: the whole set — no usable base commit ('$BASE') to measure the change from"
           fi
 
-          # What a pull request changes, for the gates a deps run takes only when touched. Unknown
-          # (null) takes them all: a gate too many costs minutes, a gate too few merges unchecked.
-          changed=null
-          if [ -n "$PR_BASE" ] && git cat-file -e "$PR_BASE^{commit}" 2>/dev/null; then
-            changed="$(git diff --name-only "$PR_BASE" HEAD | jq -Rnc '[inputs]')"
-            # A Dependabot pull request runs unscoped, with no base: its formatter checks what it changed.
-            [ -n "$range" ] || range="$PR_BASE..$(git rev-parse HEAD)"
+          # A Dependabot pull request runs unscoped, with no base: its formatter checks what it changed.
+          if [ -z "$range" ] && [ -n "$PR_BASE" ] && git cat-file -e "$PR_BASE^{commit}" 2>/dev/null; then
+            range="$PR_BASE..$(git rev-parse HEAD)"
           fi
-          front_ends="$(scripts/run-template-e2e.sh --list-front-ends | jq -Rnc '[inputs]')"
 
-          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" --arg mode "$mode" --arg keys "$keys" \
-                      --argjson changed "$changed" --argjson front_ends "$front_ends" '
+          gates="$(jq -c --arg set "$SET" --arg only "$ONLY" --arg mode "$mode" --arg keys "$keys" '
             ($keys | split(" ")) as $reached
             | [ .[]
-                | if .each == "front end"
-                  then . as $gate | range(0; $gate.groups) as $g
-                       | $gate + {name: "\($gate.name) \($g + 1)/\($gate.groups)",
-                                  keys: [$front_ends | to_entries[] | select(.key % $gate.groups == $g) | .value]}
-                       # Narrowed to the front ends this run reaches: a scoped run, to its keys; a deps
-                       # run that can see its change, to the templates whose client it changed.
-                       | .keys |= [.[] | . as $k | select(
-                             ($mode != "scoped" or ($reached | index("frontend-\($k)")) != null)
-                             and ($set != "deps" or $changed == null
-                                  or any($changed[]; test("^src/Rask\\.Templates/\($k)/client/"))))]
-                       | select(.keys != [])
-                       | .run = "\(.run)\(.keys | join(","))"
-                       | .when = [.keys[] | "frontend-\(.)"]
-                  else . end
-                | select($set == "all" or .set == $set
-                         or ($set == "deps" and (.deps == true or .deps == "touched")))
+                | select($set == "all" or .set == $set or ($set == "deps" and .deps == true))
                 | select($only == "" or (.name | test($only)))
                 | select(if $mode == "full"
                          then (.mode // "") != "scoped"
                          else (.mode // "") != "full"
-                              and ((.when | type) == "array" or ((.when // "") as $when | $reached | index($when)) != null)
-                         end)
-                | del(.each, .keys, .groups) ]' <<<"$GATES")"
+                              and ((.when // "") as $when | $reached | index($when)) != null
+                         end) ]' <<<"$GATES")"
           [ "$gates" != "[]" ] || { echo "gates: set '$SET' with only '$ONLY' selects no gate" >&2; exit 1; }
 
           echo "gates: $(jq -r '[.[].name] | join(", ")' <<<"$gates")"

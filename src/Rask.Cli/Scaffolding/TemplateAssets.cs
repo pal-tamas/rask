@@ -36,8 +36,8 @@ internal static class TemplateAssets
     /// <summary>Whether <paramref name="templateKey"/> has a committed tree.</summary>
     /// <remarks>
     ///     Matches on the resource PREFIX rather than against <see cref="Keys"/>, which holds only the
-    ///     first path segment: the island fragments are addressed as <c>_islands/&lt;runtime&gt;</c>, and
-    ///     comparing that to a list of top-level names would say no to every one of them.
+    ///     first path segment: a nested fragment is addressed by its whole path, and comparing that to a
+    ///     list of top-level names would say no to every one of them.
     /// </remarks>
     public static bool Has(string templateKey)
     {

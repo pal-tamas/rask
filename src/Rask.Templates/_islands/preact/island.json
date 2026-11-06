@@ -1,8 +1,0 @@
-{
-  "devDependencies": {
-    "@preact/preset-vite": "latest",
-    "preact": "latest",
-    "typescript": "latest"
-  },
-  "runtime": "preact"
-}

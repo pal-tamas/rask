@@ -2,8 +2,7 @@ using System.Text;
 
 namespace Rask.Cli.Scaffolding;
 
-// The wasm-hosted template: a Rask WebAssembly front end on an ASP.NET host — the same lane as the
-// TypeScript front-end templates, with C# on both sides of the wire.
+// The wasm-hosted template: a Rask WebAssembly front end on an ASP.NET host, with C# on both sides of the wire.
 internal static partial class ProjectGenerator
 {
     /// <summary>
@@ -33,8 +32,7 @@ internal static partial class ProjectGenerator
         string targetDirectory,
         string name,
         ServerBatteries requested,
-        string version,
-        IReadOnlyList<string>? islands = null)
+        string version)
     {
         ArgumentNullException.ThrowIfNull(requested);
 
@@ -43,7 +41,7 @@ internal static partial class ProjectGenerator
         var batteries = (requested with { Cqrs = true }).Normalized();
 
         var files = TemplateMaterializer.Files(
-            targetDirectory, "wasm-hosted", name, batteries, version, islands,
+            targetDirectory, "wasm-hosted", name, batteries, version,
             // Two debug targets rather than one: the host under the C# debugger, the browser half in
             // the browser's.
             vsCode: VsCodeSetup.WasmHost);
@@ -62,9 +60,8 @@ internal static partial class ProjectGenerator
 
     /// <summary>
     ///     <see cref="OffSwitches" />, less the PWA: here it is the browser app's (<c>host.UsePwa</c> in
-    ///     <c>Client/Program.cs</c>, or a TypeScript client's own manifest and worker), and <c>Serve()</c> wires no
-    ///     server-side manifest or worker to turn off. A PWA-less app still has no push, so that switch stays.
-    ///     Every <c>Serve()</c> template's — the SPA ones' too.
+    ///     <c>Client/Program.cs</c>), and <c>Serve()</c> wires no server-side manifest or worker to turn off. A
+    ///     PWA-less app still has no push, so that switch stays.
     /// </summary>
     private static List<string> WasmHostedOffSwitches(ServerBatteries batteries) =>
         [.. OffSwitches(batteries).Select(battery => string.Equals(battery, "Pwa", StringComparison.Ordinal) ? "Push" : battery)];

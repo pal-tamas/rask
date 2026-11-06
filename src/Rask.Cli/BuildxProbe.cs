@@ -3,8 +3,8 @@ using System.ComponentModel;
 namespace Rask.Cli;
 
 /// <summary>
-///     Can the local docker CLI build a scaffolded Dockerfile? Every template's Dockerfile keeps NuGet, npm and
-///     the Tailwind CLI in <c>RUN --mount=type=cache</c> steps, and only BuildKit understands them.
+///     Can the local docker CLI build a scaffolded Dockerfile? Every template's Dockerfile keeps NuGet, the Tailwind
+///     CLI and the PDF shell in <c>RUN --mount=type=cache</c> steps, and only BuildKit understands them.
 /// </summary>
 /// <remarks>
 ///     <para>

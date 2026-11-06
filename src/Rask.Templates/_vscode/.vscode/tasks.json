@@ -2,9 +2,8 @@
   "version": "2.0.0",
   "tasks": [
     {
-      // The build F5 runs first. RaskDevSession=true is the same switch `rask dev` passes: islands and the
-      // front end come from their dev servers instead of a production bundle, and the app knows to start
-      // those dev servers itself.
+      // The build F5 runs first. RaskDevSession=true is the same switch `rask dev` passes: the app knows it
+      // runs in a dev session and prepares its https://<name>.test address itself.
       "label": "rask: build",
       "type": "process",
       "command": "dotnet",

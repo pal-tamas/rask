@@ -8,8 +8,6 @@
 # build and that gate builds Release: folding this in would add a Debug build of the graph to a gate that already
 # spends most of its ten minutes building. Listed in scripts/run-all-gates.sh.
 #
-# Needs node on PATH: the island journeys' Lit island is bundled by the project's own build (npm ci the first time).
-#
 # Waits for the machine exactly as the browser gate does (scripts/lib/e2e-admission.sh, under its own name), and the
 # same overrides apply: RASK_E2E_QUEUE=0, RASK_E2E_ALLOW_CONCURRENT=1, RASK_E2E_QUEUE_TIMEOUT, RASK_SKIP_E2E=1.
 set -euo pipefail
@@ -20,9 +18,6 @@ if [ "${RASK_SKIP_E2E:-}" = "1" ]; then
 fi
 
 root="$(git rev-parse --show-toplevel)"
-# shellcheck source=lib/node-path.sh
-. "$root/scripts/lib/node-path.sh"
-rask_ensure_node
 # shellcheck source=lib/dotnet-env.sh
 . "$root/scripts/lib/dotnet-env.sh"
 cd "$root"

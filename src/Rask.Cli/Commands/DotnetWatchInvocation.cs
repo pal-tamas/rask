@@ -70,9 +70,7 @@ internal static class DotnetWatchInvocation
         DevTemplateKind kind,
         bool restartOnRudeEdit,
         string? urls,
-        Func<string, string?> readEnv,
-        string? islandDevServerUrl = null,
-        bool once = false)
+        Func<string, string?> readEnv)
     {
         var env = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -102,20 +100,6 @@ internal static class DotnetWatchInvocation
         if (urls is { Length: > 0 })
         {
             env["ASPNETCORE_URLS"] = urls;
-        }
-
-        // Where the page should load @vite/client from, so each framework's own hot replacement takes
-        // over its modules. Stamped onto <body> by the server as data-rask-islands-dev, and only in
-        // development — a production page carrying a localhost URL would have every visitor's browser
-        // open a websocket to their own machine.
-        //
-        // Never under --once. BuildDotnetArguments already withholds the MSBuild property there, so
-        // that mode serves a real bundle with no dev server beside it; stamping the page anyway would
-        // leave it importing @vite/client from a port nothing is listening on. Decided HERE rather
-        // than at the call site so the rule is pinned by a test.
-        if (!once && islandDevServerUrl is { Length: > 0 })
-        {
-            env["RASK_ISLANDS_DEV"] = islandDevServerUrl;
         }
 
         return env;
@@ -154,9 +138,6 @@ internal static class DotnetWatchInvocation
         //   • Rask.Spa.Hosting serves a WebAssembly client's BUILD output. The published bundle is republished
         //     by a nested emscripten relink on every save, and it is trimmed — trimming folds
         //     MetadataUpdater.IsSupported to false, so an applied delta could never reach the page.
-        //   • Rask.External serves islands from a Vite dev server instead of bundling them. NOT
-        //     RaskExternalBuild=false, which turns the feature off outright and leaves islands that
-        //     never mount.
         //
         // The scaffolded VS Code build task passes the very same property, which is what keeps an F5
         // session and this one from drifting apart. Not passed under --once, which is deliberately a

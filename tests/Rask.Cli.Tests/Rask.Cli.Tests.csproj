@@ -56,7 +56,6 @@
     <RaskTestReads Include="..\..\**\*.targets" />
     <RaskTestReads Include="..\..\**\*.props" />
     <RaskTestReads Include="..\..\rask.sh" />
-    <RaskTestReads Include="..\..\.node-version" />
     <RaskTestReads Include="..\..\rask.ps1" />
     <RaskTestReads Include="..\..\docs\installation.md" />
     <RaskTestReads Include="..\..\src\Rask.Tailwind\**" />

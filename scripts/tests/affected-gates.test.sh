@@ -90,36 +90,6 @@ expect_has   "a kit component reaches the CLI gates (#1214)"       packaging src
 expect_has   "the kit's Tailwind input reaches the CLI gates"      packaging src/Rask.Ui/Styles/ui.css
 expect_has   "the Tailwind build task reaches the CLI gates"       packaging src/Rask.Tailwind.Tasks/CssClassNames.cs
 
-# The front-end gates are one job per template, also selected by file: a template's tree reaches its
-# own job, and what installs, generates, bundles and serves every front end reaches all of them.
-expect_has   "a front end's manifest reaches its own job"          frontend-vue     src/Rask.Templates/vue/client/package.json
-expect_lacks "...and no other front end's"                         frontend-react   src/Rask.Templates/vue/client/package.json
-expect_has   "a front end's host half reaches it too"              frontend-angular src/Rask.Templates/angular/Program.cs
-expect_lacks "the server template reaches no front end"            frontend-react   src/Rask.Templates/server/Program.cs
-expect_lacks "an island fragment reaches no front end"             frontend-react   src/Rask.Templates/_islands/react/island.json
-expect_has   "a template that is gone reaches every front end"     frontend-lit     src/Rask.Templates/removed-front-end/client/package.json
-expect_has   "the SPA host reaches every front end"                frontend-lit     src/Rask.Spa.Hosting/client/client.ts
-expect_has   "the task that writes the typed client"               frontend-solid   src/Rask.Spa.Tasks/WriteGeneratedTypeScriptTask.cs
-expect_has   "the TypeScript emitter"                              frontend-svelte  src/Rask.Batteries.Generators/TypeScriptModule.cs
-expect_has   "the sign-in client every front end is handed"        frontend-preact  src/Rask.Core/Resources/browser/auth.ts
-expect_has   "the scaffolder"                                      frontend-react   src/Rask.Cli/Scaffolding/ProjectGenerator.Spa.cs
-expect_has   "the front-end gate's own test"                       frontend-vue     tests/Rask.Templates.E2E.Tests/FrontEndBuildE2ETests.cs
-expect_lacks "another generator reaches no front end"              frontend-react   src/Rask.Batteries.Generators/JobRegistryGenerator.cs
-expect_lacks "an ordinary core change reaches no front end"        frontend-react   src/Rask.Core/Component.cs
-expect_lacks "a CLI command reaches no front end"                  frontend-react   src/Rask.Cli/Program.cs
-
-# The scoper and the gate script list the front ends by one rule; a key only one of them knew would be a
-# job nothing selects, or a selection no job answers.
-checked=$((checked + 1))
-listed="$("$root/scripts/run-template-e2e.sh" --list-front-ends | sed 's/^/frontend-/' | tr '\n' ' ')"
-scoped="$(gates src/Rask.Spa.Hosting/client/client.ts | tr ' ' '\n' | grep '^frontend-' | tr '\n' ' ')"
-if [ -n "$listed" ] && [ "$listed" = "$scoped" ]; then
-  printf '  ok   %s\n' "the gate script and the scoper list the same front ends: $listed"
-else
-  printf '  FAIL the gate script lists [%s], the scoper answers [%s]\n' "$listed" "$scoped" >&2
-  failures=$((failures + 1))
-fi
-
 # Whatever the project scoper refuses to narrow is not narrowed here either.
 expect_full  "a workflow"                                          .github/workflows/gates.yml
 expect_full  "a gate script"                                       scripts/run-unit-local.sh
@@ -181,8 +151,8 @@ fi
 
 # --- the plan ---------------------------------------------------------------------------------------
 # gates.yml's own plan step, lifted out of the workflow and run as written over a throwaway repository
-# with three front ends. It is what deals one "front end" entry into jobs of templates, and what decides
-# whether a Dependabot pull request is held to one — the rule dependabot-merge.yml's merge rests on.
+# with one template. It is what decides which gates a set selects — the deps set is the rule
+# dependabot-merge.yml's merge rests on.
 echo "==> the plan"
 
 sandbox="$(mktemp -d)"
@@ -200,21 +170,13 @@ open(sys.argv[2] + "/plan.sh", "w", encoding="utf-8").write(textwrap.dedent("\n"
 PY
 
 repo="$sandbox/repo"
-mkdir -p "$repo/scripts" "$repo/src/Rask.Templates/server"
-cp "$root/scripts/run-template-e2e.sh" "$repo/scripts/"
-for front_end in angular react vue; do
-  mkdir -p "$repo/src/Rask.Templates/$front_end/client"
-  echo '{}' > "$repo/src/Rask.Templates/$front_end/client/package.json"
-done
+mkdir -p "$repo/src/Rask.Templates/server"
 echo '//' > "$repo/src/Rask.Templates/server/Program.cs"
 sandbox_git() {
   git -C "$repo" -c user.name=gate -c user.email=gate@example.invalid -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"
 }
 sandbox_git init -q
 sandbox_git add -A && sandbox_git commit -qm "base"
-echo '{}' > "$repo/src/Rask.Templates/vue/client/package-lock.json"
-sandbox_git add -A && sandbox_git commit -qm "a vue lockfile bump"
-vue_bump="$(sandbox_git rev-parse HEAD)"
 echo '<Project/>' > "$repo/Directory.Packages.props"
 sandbox_git add -A && sandbox_git commit -qm "a NuGet bump"
 nuget_bump="$(sandbox_git rev-parse HEAD)"
@@ -242,15 +204,9 @@ plans() {
 }
 
 named='[.[].name]'
-front_end_runs='[.[] | select(.name | startswith("front end")) | .run]'
-plans "the push set deals the front ends into two jobs"    "$named | index(\"front end 1/2\") != null and index(\"front end 2/2\") != null" push "" ""
-plans "...each running its templates over one packed feed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=angular,vue\", \"scripts/run-template-e2e.sh --front-end=react\"]" push "" ""
-plans "...and answering to each of its templates' keys"   'any(.[]; .name == "front end 1/2" and .when == ["frontend-angular", "frontend-vue"])' push "" ""
-plans "only= names one job"                                "$named == [\"front end 2/2\"]" push 'front end 2/2$' ""
-plans "a lockfile bump is held to the template it changed" "$front_end_runs == [\"scripts/run-template-e2e.sh --front-end=vue\"]" deps "" "$vue_bump~1" "$vue_bump"
-plans "...with the rest of the deps set"                   "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$vue_bump~1" "$vue_bump"
-plans "a NuGet bump is held to no front end"               "$named | any(.[]; startswith(\"front end\")) | not" deps "" "$nuget_bump~1" "$nuget_bump"
-plans "a deps run that cannot see its change takes them all" "$front_end_runs | length == 2" deps "" ""
+plans "only= names one job"                                "$named == [\"templates\"]" push 'templates$' ""
+plans "a NuGet bump takes the deps set"                    "$named | index(\"templates\") != null and index(\"build\") != null" deps "" "$nuget_bump~1" "$nuget_bump"
+plans "...and no release-only gate"                        "$named | index(\"deploy\") == null" deps "" "$nuget_bump~1" "$nuget_bump"
 
 # The unit tests run in the build job, over the analyzer build's output: no job builds the solution again.
 plans "the tests run in the build job, not a job of their own" 'any(.[]; .name == "build" and .part == "build") and all(.[]; (.part // "") | startswith("tests") | not)' push "" ""

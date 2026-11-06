@@ -56,7 +56,7 @@ internal sealed partial class NewCommand
         // Styling asks nothing: Tailwind is built in, so there is no answer a project could give.
 
         // The browser no longer gets a question of its own: it is a project TYPE now (wasm-hosted, beside
-        // wasm and the front-end templates), so it is answered by the list above rather than by a yes/no
+        // server and wasm), so it is answered by the list above rather than by a yes/no
         // afterwards (#1103). That also keeps the checklist below honest — it is about taking things away,
         // and mixing something you ADD into a list of things you remove read as the opposite of what it did.
         // Authentication used to be asked here and is not any more: an app with a database has accounts.

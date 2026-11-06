@@ -10,7 +10,7 @@ namespace Rask.Templates.E2E.Tests;
 /// <remarks>
 ///     <para>
 ///         The claim under test is the plain one the unit suites cannot make: that what the scaffolder
-///         writes compiles — and, through <see cref="IslandsHostBuildE2ETests"/>, that every island runtime does.
+///         writes compiles.
 ///     </para>
 ///     <para>
 ///         Built through the same dispatch <see cref="NewCommand"/> uses, so the arm under test is the
@@ -43,15 +43,13 @@ public sealed class TemplateBuildE2ETests
         try
         {
             var projectDirectory = Path.Combine(work, name);
-            var result = Scaffold(key, projectDirectory, name, version, islands: []);
+            var result = Scaffold(key, projectDirectory, name, version);
             Write(result, projectDirectory, feed);
 
-            // The FRONT END is deliberately off here: this asserts the C# half compiles, and the npm
-            // half is minutes per template. FrontEndBuildE2ETests is where that is paid, behind its own
-            // switch and in a CI job per template.
+            // The browser half's publish is off here: this asserts the code compiles, and a WebAssembly
+            // publish is minutes per template.
             var (exit, output) = await CliBuildE2E.RunDotnet(
-                $"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -warnaserror -m:1 "
-                + "-p:RaskSpaBuild=false -p:RaskExternalBuild=false");
+                $"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -warnaserror -m:1 -p:RaskSpaBuild=false");
 
             Assert.True(exit == 0, $"--template {key} does not compile:\n{CliBuildE2E.Diagnostics(output)}");
         }
@@ -65,8 +63,7 @@ public sealed class TemplateBuildE2ETests
     ///     The same dispatch <see cref="NewCommand"/> performs, so a key wired to the wrong generator
     ///     fails here rather than producing a different template's project.
     /// </summary>
-    internal static ScaffoldResult Scaffold(
-        string key, string projectDirectory, string name, string version, IReadOnlyList<string> islands)
+    internal static ScaffoldResult Scaffold(string key, string projectDirectory, string name, string version)
     {
         Assert.True(TemplateCatalog.TryGet(key, out var template));
 
@@ -75,47 +72,21 @@ public sealed class TemplateBuildE2ETests
         // arrives through the theory data like every other template and this dispatch has one axis fewer.
         var batteries = BatterySelection.ToBatteries(template, []);
 
-        if (SpaFramework.TryGet(key, out var spa))
-        {
-            return ProjectGenerator.GenerateSpa(projectDirectory, name, spa, batteries, version);
-        }
-
         return key switch
         {
             "wasm" => ProjectGenerator.GenerateWasm(
-                projectDirectory, name, batteries.Pwa, batteries.Docker, version, batteries, islands),
-            NewCommand.WasmHostedKey => ProjectGenerator.GenerateWasmHosted(
-                projectDirectory, name, batteries, version, islands),
-            _ => ProjectGenerator.GenerateServer(projectDirectory, name, batteries, version, islands),
+                projectDirectory, name, batteries.Pwa, batteries.Docker, version, batteries),
+            NewCommand.WasmHostedKey => ProjectGenerator.GenerateWasmHosted(projectDirectory, name, batteries, version),
+            _ => ProjectGenerator.GenerateServer(projectDirectory, name, batteries, version),
         };
-    }
-
-    /// <summary>
-    ///     <see cref="Scaffold"/> with its <c>"latest"</c> versions chosen from the live registry, as <c>rask new</c> writes it.
-    /// </summary>
-    /// <remarks>
-    ///     Every gate that runs npm installs THIS, never the raw template (offline, <c>rask new</c> chooses from the
-    ///     shipped snapshot instead: <see cref="ShippedFrontEndVersionsE2ETests" />). npm can refuse a bare
-    ///     <c>"latest"</c> where the chosen set installs — @volar/typescript 2.4.29 put an optional
-    ///     <c>typescript &lt;7</c> peer under the toolchain, and npm reads a root <c>"latest"</c> as able to step down to
-    ///     6 and fails ERESOLVE, while the <c>^7.0.2</c> that <c>rask new</c> writes installs.
-    /// </remarks>
-    internal static async Task<ScaffoldResult> ScaffoldWithChosenVersions(
-        string key, string projectDirectory, string name, string version, IReadOnlyList<string> islands)
-    {
-        var (scaffold, unchosen) = await FrontEndVersions.PinAsync(
-            Scaffold(key, projectDirectory, name, version, islands), NpmRegistry.Public, CancellationToken.None);
-        Assert.True(unchosen is null, $"--template {key}: {unchosen}");
-        return scaffold;
     }
 
     /// <summary>
     ///     Writes a scaffold to disk and points it at the local feed.
     /// </summary>
     /// <remarks>
-    ///     Binary files are written as BYTES. The templates carry a PNG and two .ico favicons, and
-    ///     writing those through WriteAllText re-encodes them as UTF-8 — a corruption that a build does
-    ///     not notice and a browser does.
+    ///     Binary files are written as BYTES: writing an image through WriteAllText re-encodes it as
+    ///     UTF-8 — a corruption that a build does not notice and a browser does.
     /// </remarks>
     internal static void Write(ScaffoldResult result, string projectDirectory, string feed)
     {
@@ -153,8 +124,8 @@ public sealed class TemplateBuildE2ETests
     ///         project reference for project configuration item", which reads exactly like a broken
     ///         template. It cost an hour here: the same scaffold built by hand under a non-symlinked
     ///         path succeeded every time, which is what finally separated the environment from the code.
-    ///         Only a project that references ANOTHER project is affected, so this surfaced the day the
-    ///         Blazor island grew a Razor Class Library and not before.
+    ///         Only a project that references ANOTHER project is affected, so this surfaces only for a
+    ///         scaffold with a second project in it.
     ///     </para>
     /// </remarks>
     internal static string NewWorkingDirectory()

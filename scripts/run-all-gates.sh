@@ -33,9 +33,6 @@
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-# shellcheck source=lib/node-path.sh
-. "$root/scripts/lib/node-path.sh"
-rask_ensure_node
 # shellcheck source=lib/dotnet-env.sh
 . "$root/scripts/lib/dotnet-env.sh"
 cd "$root"
@@ -53,9 +50,7 @@ gates=(
   # The browser host's own journeys: a WASM fixture served by an ASP.NET host that signs it in and out.
   "WASM E2E|scripts/run-wasm-e2e-local.sh|"
   "CLI build|scripts/run-cli-build-e2e.sh|RASK_CLI_BUILD_E2E=1"
-  # Every template's C# half scaffolded and built. The seven front ends are NOT here: each is minutes
-  # (npm ci, a bundle, a published host), so CI gives each a job and by hand it is one at a time —
-  # scripts/run-template-e2e.sh --front-end=<key>.
+  # Every template scaffolded and built, the server template published in Release and run in a browser.
   "templates|scripts/run-template-e2e.sh|RASK_TEMPLATE_E2E=1"
   "watch hot reload|scripts/run-watch-e2e.sh|RASK_WATCH_E2E=1"
   "deploy|scripts/run-deploy-e2e-local.sh|RASK_DEPLOY_E2E=1"

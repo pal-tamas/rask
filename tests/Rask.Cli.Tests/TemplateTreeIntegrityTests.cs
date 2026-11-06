@@ -33,11 +33,11 @@ public sealed class TemplateTreeIntegrityTests
         // The templates are payload, and the repository's own ignore rules reach into them. Two
         // separate mechanisms have already dropped files here with no error of any kind:
         //
-        //   * the root .gitignore's `.vscode/` line, which matches at any depth, silently excluded the
-        //     editor recommendations create-vite and the Angular CLI ship (eight files);
+        //   * the root .gitignore's `.vscode/` line, which matches at any depth, silently excluded
+        //     editor files a template shipped;
         //   * a template's OWN .gitignore, which the VCS reads as a rule for THIS repository and which
-        //     beats the root file — angular's `.vscode/` and next's `next-env.d.ts`. Those are stored
-        //     without their leading dot for exactly this reason (see TemplateMaterializer.InertNames).
+        //     beats the root file. Those are stored without their leading dot for exactly this reason
+        //     (see TemplateMaterializer.InertNames).
         //
         // An untracked template file is invisible: the tree looks complete on the machine that made it
         // and scaffolds a broken app for everyone else. Only comparing disk against the index catches
@@ -110,9 +110,8 @@ public sealed class TemplateTreeIntegrityTests
     {
         var missing = Directory
             .EnumerateDirectories(TemplateRoot)
-            // _islands is not a template: it holds the per-runtime FRAGMENTS that --islands merges into
-            // a host template, so it has no battery conditionals of its own to record. Each fragment
-            // carries an island.json instead, which is asserted separately.
+            // The _vscode* folders are not templates: they hold the editor FRAGMENTS merged into one, so
+            // they have no battery conditionals of their own to record.
             .Where(d => !Path.GetFileName(d).StartsWith('_'))
             .Where(d => !File.Exists(Path.Combine(d, TemplateMaterializer.ManifestFile)))
             .Select(d => Path.GetFileName(d))

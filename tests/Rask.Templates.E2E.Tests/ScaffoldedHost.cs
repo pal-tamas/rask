@@ -64,9 +64,9 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
             // host aborts with "address already in use" and the journey reads as "it never answered".
             "--no-launch-profile",
 
-            // The front end is already built; a `dotnet run` that rebuilt it would add minutes and
-            // could pick a different bundle than the one this test just proved.
-            "-p:RaskSpaBuild=false", "-p:RaskExternalBuild=false");
+            // The app is already built; a `dotnet run` that republished a WebAssembly client would add
+            // minutes and could pick a different bundle than the one this test just proved.
+            "-p:RaskSpaBuild=false");
 
     /// <summary>
     ///     Starts a PUBLISHED app out of its publish directory, the way a container does, and returns

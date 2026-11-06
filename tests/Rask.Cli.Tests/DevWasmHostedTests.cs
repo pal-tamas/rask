@@ -4,10 +4,9 @@ namespace Rask.Cli.Tests;
 ///     <c>rask dev</c> recognising a host that serves a Rask WebAssembly app.
 /// </summary>
 /// <remarks>
-///     Such a host references <c>Rask.Spa.Hosting</c>, the same package a TypeScript front end's host
-///     does. Classified by that package alone it reads as a bundler SPA: <c>rask dev</c> then looks for an
-///     npm client that is not there and never asks for the WebAssembly client's build output, so hot
-///     reload never reaches the browser.
+///     Such a host references <c>Rask.Spa.Hosting</c>, and is classified by the client it serves rather than
+///     by that package: <c>rask dev</c> has to ask for the WebAssembly client's build output, or hot reload
+///     never reaches the browser.
 /// </remarks>
 public sealed class DevWasmHostedTests
 {

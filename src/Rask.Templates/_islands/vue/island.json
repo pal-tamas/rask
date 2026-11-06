@@ -1,9 +1,0 @@
-{
-  "devDependencies": {
-    "@vitejs/plugin-vue": "latest",
-    "typescript": "latest",
-    "vue": "latest",
-    "vue-tsc": "latest"
-  },
-  "runtime": "vue"
-}

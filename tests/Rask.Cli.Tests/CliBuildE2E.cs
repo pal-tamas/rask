@@ -60,8 +60,6 @@ internal static class CliBuildE2E
         "Rask.Ui",                          // the component kit Rask.Dashboard is drawn with, and depends on
         "Rask.DevTools",                    // every template — the in-page devtools of a Debug build
         "Rask.Validation.FluentValidation", // the FluentValidation alternative
-        "Rask.External",                    // --islands: the island base classes and the build layer
-        "Rask.Blazor",                      // --islands blazor: a Razor component as a Rask component
         "Rask.Testing",                     // server + wasm: the <name>.Tests project's one passing test
     ];
 

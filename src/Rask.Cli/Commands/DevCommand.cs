@@ -115,9 +115,7 @@ internal sealed partial class DevCommand(
             parsed.Option("launch-profile"), nonInteractive, parsed.Passthrough, target.Kind);
 
         var environment = BuildEnvironment(
-            target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable,
-            target.IslandDevServerUrl,
-            once);
+            target.Kind, restartOnRudeEdit && !once, parsed.Option("urls"), Environment.GetEnvironmentVariable);
 
         // The environment overlay is not incidental here (see the remarks on this class): the MSBuild
         // property that stops a rude edit blocking on an interactive prompt travels through it, so a dry
@@ -190,8 +188,7 @@ internal sealed partial class DevCommand(
         new("dotnet", dotnetArgs, target.ProjectDirectory, new SortedDictionary<string, string>(environment.ToDictionary(StringComparer.Ordinal), StringComparer.Ordinal));
 
     /// <summary>
-    ///     Runs the host under watch (or once), with the client and island dev servers beside it, and waits
-    ///     for <paramref name="opening" /> before returning.
+    ///     Runs the host under watch (or once), and waits for <paramref name="opening" /> before returning.
     /// </summary>
     private async Task<int> RunSessionAsync(
         DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment, bool once,
@@ -212,13 +209,6 @@ internal sealed partial class DevCommand(
             ? environment
             : Overlay(environment, [new(DevStatusEnvironmentVariable, status.Url)]);
 
-        // The bundler's dev server, beside the host. Its own token, so the host exiting takes it with it —
-        // a Vite left listening on 5173 after `rask dev` returns is picked up by the NEXT session, which
-        // then serves a stale client against a new server and looks like a Rask bug.
-        using var clientTokens = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var client = StartClientDevServer(target, clientTokens.Token);
-        var islands = once ? Task.CompletedTask : StartIslandDevServer(target, clientTokens.Token);
-
         var exit = status is null
             ? await _process
                 .RunAsync("dotnet", dotnetArgs, target.ProjectDirectory, cancellationToken, runEnvironment)
@@ -228,18 +218,9 @@ internal sealed partial class DevCommand(
                     runEnvironment)
                 .ConfigureAwait(false);
 
-        await clientTokens.CancelAsync().ConfigureAwait(false);
-        await client.ConfigureAwait(false);
-        await islands.ConfigureAwait(false);
         await opening.ConfigureAwait(false);
         return exit;
     }
-
-    /// <summary>
-    ///     Where Vite listens by default, for a scaffold too old to have baked the real answer into its
-    ///     csproj. Not probed from the running bundler, which is not up yet when this is decided.
-    /// </summary>
-    internal const string ViteDevServerUrl = LocalDevServers.Vite;
 
     private void WriteBanner(
         DevTarget target,
@@ -289,7 +270,6 @@ internal sealed partial class DevCommand(
     {
         DevTemplateKind.Server => "server",
         DevTemplateKind.WasmHosted => "wasm-hosted",
-        DevTemplateKind.SpaHosted => "spa",
         DevTemplateKind.WasmStandalone => "wasm",
         _ => "app"
     };

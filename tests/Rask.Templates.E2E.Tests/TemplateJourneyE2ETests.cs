@@ -12,22 +12,9 @@ namespace Rask.Templates.E2E.Tests;
 ///         actually <b>works</b>. Building proves the code compiles; it says nothing about whether the
 ///         host serves a page or whether the runtime on it starts.
 ///     </para>
-///     <para>
-///         Behind the front-end switch, because a journey builds and RUNS the app, which would double an
-///         already expensive gate.
-///     </para>
 /// </remarks>
 public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassFixture<PlaywrightFixture>
 {
-    private const string SkipReason =
-        "Template journey gate: set RASK_TEMPLATE_FRONTEND_E2E=1 (with RASK_TEMPLATE_E2E=1) to run it. "
-        + "Each case scaffolds, installs, builds and then RUNS the app — minutes per template. "
-        + "See scripts/run-template-e2e.sh --front-end.";
-
-    private static bool Enabled =>
-        TemplateBuildE2ETests.Enabled
-        && Environment.GetEnvironmentVariable("RASK_TEMPLATE_FRONTEND_E2E") == "1";
-
     /// <summary>
     ///     A scaffolded Rask app renders its own components and boots its runtime.
     /// </summary>
@@ -41,7 +28,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     [InlineData("server")]
     public async Task A_C_sharp_host_renders_its_own_components(string key)
     {
-        Assert.SkipUnless(Enabled, SkipReason);
+        Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
 
         await using var app = await BuildAndRunAsync(key, TimeSpan.FromMinutes(2));
         var page = await browser.Browser.NewPageAsync();
@@ -97,7 +84,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         // Without its WebAssembly client. These journeys run the host as `dotnet run` does and never publish a client,
         // so a server scaffold WITH one answered every request 503 from MapRaskSpa's missing-bundle page, and the
         // server journey could not reach the component it asserts on (#1105).
-        var result = await TemplateBuildE2ETests.ScaffoldWithChosenVersions(key, projectDirectory, name, version, islands: []);
+        var result = TemplateBuildE2ETests.Scaffold(key, projectDirectory, name, version);
         TemplateBuildE2ETests.Write(result, projectDirectory, feed);
 
         var projectFile = Path.Combine(projectDirectory, name + ".csproj");
@@ -105,7 +92,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
 
         Assert.True(
             exit == 0,
-            $"--template {key} does not build with its front end:\n{CliBuildE2E.Diagnostics(output)}");
+            $"--template {key} does not build:\n{CliBuildE2E.Diagnostics(output)}");
 
         return await ScaffoldedHost.StartAsync(projectDirectory, projectFile, readyTimeout);
     }

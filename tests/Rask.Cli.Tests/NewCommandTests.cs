@@ -292,14 +292,13 @@ public sealed class NewCommandTests
     {
         var (console, _, runner, command) = Build();
 
-        // Not a near-miss of a real template on purpose: 'svelte' used to stand in for "unknown" here,
-        // and became a template, which turned this into a test of nothing.
+        // Not a near-miss of a real template on purpose, so a template added later cannot turn this into a test of nothing.
         var exit = await command.ExecuteAsync(["MyApp", "--template", "cobol"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Contains("Option '--template' does not accept 'cobol'.", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("Choose one of: server, wasm, wasm-hosted, react, preact, vue, angular, solid, svelte, lit.", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Choose one of: server, wasm, wasm-hosted.", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -615,74 +614,47 @@ public sealed class NewCommandTests
     }
 
     // #1106: a template that forces CQRS back on used to accept --no-cqrs, keep the mediator, and drop the database.
-    [Theory]
-    [InlineData("wasm-hosted", "Rask.Cqrs.Client")]
-    [InlineData("react", "the generated TypeScript client")]
-    [InlineData("angular", "the generated TypeScript client")]
-    public async Task No_cqrs_is_refused_on_a_front_end_with_a_host(string template, string wire)
+    [Fact]
+    public async Task No_cqrs_is_refused_on_a_front_end_with_a_host()
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", template, "--no-cqrs"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", "wasm-hosted", "--no-cqrs"], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Empty(fs.Files);
         Assert.Contains("can't drop CQRS", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains(wire, console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Rask.Cqrs.Client", console.ErrorText, StringComparison.Ordinal);
     }
 
-    // A front-end template's whole client is a front end already; an island needs a C# page to sit in.
-    [Fact]
-    public async Task Islands_are_refused_on_a_front_end_template()
+    [Theory]
+    [InlineData("react")]
+    [InlineData("vue")]
+    [InlineData("angular")]
+    public async Task A_javascript_front_end_is_not_a_template_rask_new_writes(string template)
     {
         var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["MyApp", "--template", "react", "--islands", "vue"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--template", template], CancellationToken.None);
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
         Assert.Empty(fs.Files);
-        Assert.Contains("--islands is not available on --template react", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains($"does not accept '{template}'", console.ErrorText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_front_end_template_scaffolds_a_host_and_its_client_and_restores_the_project()
+    public async Task Islands_are_not_an_option_rask_new_takes()
     {
-        var (_, fs, runner, command) = Build();
+        var (console, fs, runner, command) = Build();
 
-        var exit = await command.ExecuteAsync(["Shop", "--template", "react", "--no-git"], CancellationToken.None);
+        var exit = await command.ExecuteAsync(["MyApp", "--islands", "react"], CancellationToken.None);
 
-        Assert.Equal(0, exit);
-        Assert.Contains(fs.Files.Keys, path => path.Replace('\\', '/').EndsWith("Shop/Shop.csproj", StringComparison.Ordinal));
-        Assert.Contains(fs.Files.Keys, path => path.Replace('\\', '/').EndsWith("Shop/client/package.json", StringComparison.Ordinal));
-        Assert.Contains(fs.Files.Keys, path => path.Replace('\\', '/').EndsWith("Shop/client/.gitignore", StringComparison.Ordinal));
-        Assert.Contains(runner.Invocations, call => call.Arguments is ["restore", var target] && target.EndsWith("Shop.csproj", StringComparison.Ordinal));
-
-        // The scaffold's own build writes the typed client but leaves node alone; `rask dev` or a plain build installs.
-        Assert.Contains(runner.Invocations, call => call.Arguments is ["build", ..] && call.Arguments.Contains("-p:RaskSpaBuild=false"));
-        Assert.DoesNotContain(runner.Invocations, call => call.FileName is "npm" or "npx");
-    }
-
-    // Offline, a root "typescript": "latest" let npm step TypeScript down under @volar/typescript's `<7` peer and
-    // refuse the Solid set (ERESOLVE): the shipped snapshot's carets are written instead, and the scaffold says so.
-    [Fact]
-    public async Task An_offline_scaffold_writes_the_shipped_versions_and_warns_they_were_not_refreshed()
-    {
-        var console = new StringConsole();
-        var fs = new FakeFileSystem();
-        var command = new NewCommand(console, fs, new FakeProcessRunner(), WorkingDirectory)
-        {
-            Npm = new NpmRegistry((_, _) => Task.FromResult<IReadOnlyList<NpmRelease>?>(null)),
-        };
-
-        var exit = await command.ExecuteAsync(["Shop", "--islands", "solid", "--no-git"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        var manifest = fs.Files.Single(f => f.Key.Replace('\\', '/').EndsWith("Shop/package.json", StringComparison.Ordinal)).Value;
-        Assert.DoesNotContain("latest", manifest, StringComparison.Ordinal);
-        Assert.Matches("\"typescript\": \"\\^\\d+\\.\\d+\\.\\d+\"", manifest);
-        Assert.Contains("The npm registry did not answer", console.ErrorText, StringComparison.Ordinal);
+        Assert.Equal(CliCommand.UsageExitCode, exit);
+        Assert.Empty(runner.Invocations);
+        Assert.Empty(fs.Files);
+        Assert.Contains("Unknown option '--islands'", console.ErrorText, StringComparison.Ordinal);
     }
 
     // #1083: the next-steps text is written before restore, build and migration run, and it used to announce the
