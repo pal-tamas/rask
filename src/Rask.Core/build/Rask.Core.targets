@@ -80,13 +80,13 @@
   </PropertyGroup>
 
   <!--
-    The excludes below name a JavaScript front end's directories at ANY depth, not just the project root.
-    `node_modules\**` alone is anchored, and a project that keeps a front end in a subdirectory has
-    `client/node_modules` — a scoped-CSS auto-include would then walk into its dependencies and report
-    RASK015 for every stylesheet they and their build output happen to contain.
+    The excludes below leave out `node_modules` at ANY depth, not just the project root. Rask needs no npm,
+    but a project can still carry one for its own tooling (an editor plugin, a formatter, a test runner),
+    and `node_modules\**` alone is anchored: a scoped-CSS or TypeScript auto-include would walk into
+    `tools/node_modules` and report RASK015 for every stylesheet its packages happen to ship.
 
-    A .css inside a front-end directory can never be scoped CSS: scoped CSS is paired with a Component
-    class in the same folder, and there are no C# classes down there.
+    A file inside `node_modules` can never be a scoped asset: one is paired with a Component class in the
+    same folder, and there are no C# classes down there.
   -->
   <!--
     RaskScopedSourceExclude: more directories to leave out of every scoped CSS and TypeScript glob in this
@@ -97,7 +97,7 @@
   -->
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
     <AdditionalFiles Include="**\*.css"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
   </ItemGroup>
 
   <!--
@@ -132,7 +132,7 @@
 
   <ItemGroup Condition=" '$(RaskTranslationsAutoInclude)' != 'false' ">
     <AdditionalFiles Include="Resources\**\*.json"
-                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**"/>
+                     Exclude="@(AdditionalFiles);bin\**;obj\**;**\node_modules\**;wwwroot\**"/>
   </ItemGroup>
 
   <PropertyGroup>
@@ -262,7 +262,7 @@
   -->
   <ItemGroup Condition=" '$(RaskScopedTsAutoInclude)' != 'false' ">
     <_RaskScopedTs Include="**\*.ts"
-                   Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts;$(RaskScopedSourceExclude)"
+                   Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;wwwroot\**;Resources\**;Browser\**;**\*.d.ts;$(RaskScopedSourceExclude)"
                    Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -273,7 +273,7 @@
       to type-check. They emit nothing, so they never become an AdditionalFile.
     -->
     <_RaskScopedTsTypes Include="**\*.d.ts"
-                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;wwwroot\**;Browser\**;$(RaskScopedSourceExclude)"
                         Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -297,7 +297,7 @@
 
     <!-- Never becomes <AdditionalFiles>. It exists only to feed RASK055. -->
     <_RaskStrayScopedJs Include="**\*.js"
-                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;Resources\**;Browser\**;$(RaskScopedSourceExclude)"
+                        Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;wwwroot\**;Resources\**;Browser\**;$(RaskScopedSourceExclude)"
                         Condition=" '$(RaskScopedTsGlob)' != 'false' "/>
 
     <!--
@@ -310,7 +310,7 @@
   </ItemGroup>
 
   <ItemGroup Condition=" '$(RaskScopedCssAutoInclude)' != 'false' ">
-    <Watch Include="**\*.css" Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;**\.output\**;**\.nuxt\**;**\.next\**;**\.svelte-kit\**;**\.vite\**;**\.angular\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
+    <Watch Include="**\*.css" Exclude="bin\**;obj\**;$(_RaskBuildOutputExclude);**\node_modules\**;wwwroot\**;$(RaskScopedSourceExclude)"/>
   </ItemGroup>
 
   <!--
