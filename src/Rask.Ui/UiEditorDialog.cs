@@ -38,9 +38,9 @@ public sealed partial class UiEditorDialog : Component
     public const string New = "new";
 
     // A small form's box; a form with rows of its own is a sheet from the right, as wide as the screen allows.
-    private const string Box = "w-full sm:min-w-[28rem]";
+    private const string Box = "[:where(&)]:w-full sm:min-w-[28rem]";
 
-    private const string Sheet = "w-full md:w-[min(84rem,100vw)]";
+    private const string Sheet = "[:where(&)]:w-full md:w-[min(84rem,100vw)]";
 
     /// <summary>The query key that says which record is open: <c>Ui.EditorDialog.In("edit")</c>. Required, and taken first.</summary>
     public required string In { get; set; }
