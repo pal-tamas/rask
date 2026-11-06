@@ -138,6 +138,14 @@ sentences of a guide merge; keep new text that way.
   re-unlisting finished work and never reach the rest of the backlog. Only the registration index carries
   `listed` per version, and a missing `listed` field means listed.
 
+- **A retired package is unlisted whole, by hand.** A package Rask stops shipping (`Rask.External`,
+  `Rask.Blazor` and their tasks packages, `Rask.Spa.Tasks`) has no newer version for a release to keep, so
+  no release ever tidies it. Run the **unlist-retired** workflow with the ids
+  (`gh workflow run unlist-retired.yml -f packages="Rask.Blazor Rask.External"`): it runs
+  [`scripts/unlist-retired-packages.sh`](../scripts/unlist-retired-packages.sh), which unlists every listed
+  version and, unlike the release step, waits nuget.org's quota out instead of stopping, so one run finishes
+  — tested in `scripts/tests/unlist-retired.test.sh`.
+
 ## CI
 
 **Nothing blocks a commit or a push.** The git hooks take seconds and build nothing; the gates run in

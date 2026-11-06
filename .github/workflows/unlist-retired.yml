@@ -1,0 +1,27 @@
+name: unlist-retired
+
+# Unlists every listed version of package ids Rask no longer ships (scripts/unlist-retired-packages.sh).
+# Run by hand when a package is retired; it waits nuget.org's unlist quota out, so one run finishes the job.
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: "Space-separated package ids to unlist completely"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  unlist:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Unlist
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          PACKAGES: ${{ inputs.packages }}
+        # PACKAGES is split on purpose: one argument per id.
+        run: scripts/unlist-retired-packages.sh $PACKAGES
