@@ -25,18 +25,14 @@
     <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.4</RaskTailwindVersion>
 
     <!--
-      `auto` prefers Tailwind's standalone binary and falls back to npm where none is published.
+      RaskTailwindPath — unset by default. The engine is Tailwind's standalone binary, fetched once per
+      user for the pinned version, because "the SDK is all you need" is why anyone picks a C# host: it
+      runs on macOS, Linux (glibc and musl) and Windows (x64, and ARM64 under emulation).
 
-      Standalone first because "the SDK is all you need" is why anyone picks a C# host, and the binary
-      keeps that true on macOS, Linux (glibc and musl) and Windows x64. npm second because it covers
-      strictly more — Tailwind's npm engine ships native builds for win32-arm64, 32-bit ARM and FreeBSD
-      that the standalone release has no equivalent of, plus a wasm32-wasi build that runs anywhere Node
-      does. So no platform is simply unsupported.
-
-      Force one with `standalone` or `npm`. On Windows on ARM, `npm` gets you a native engine instead of
-      the x64 binary under emulation.
+      Set this to a Tailwind v4 binary to run that one instead: on a platform Tailwind publishes no
+      standalone binary for (32-bit ARM, FreeBSD), where the build otherwise fails naming this property,
+      or to run a native build on Windows on ARM.
     -->
-    <RaskTailwindEngine Condition="'$(RaskTailwindEngine)' == ''">auto</RaskTailwindEngine>
 
     <!-- Never reach the network: fail instead, naming the file to place and where it goes. For a build
          that must be hermetic. -->

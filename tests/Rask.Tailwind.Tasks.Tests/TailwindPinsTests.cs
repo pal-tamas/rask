@@ -5,8 +5,7 @@ namespace Rask.Tailwind.Tasks.Tests;
 
 // #1182: the release's own sha256sums.txt comes from the same place as the binary, so it cannot say whether
 // the asset was replaced. The digests are recorded in the repository instead — which only helps while the
-// pinned version has one for every asset, and while a download that does not match is a failure rather
-// than a reason to quietly use npm.
+// pinned version has one for every asset, and while a download that does not match fails the build.
 public class TailwindPinsTests
 {
     [Fact]
@@ -41,7 +40,7 @@ public class TailwindPinsTests
     }
 
     [Fact]
-    public void A_binary_that_is_not_the_expected_one_fails_the_build_instead_of_falling_back_to_npm()
+    public void A_binary_that_is_not_the_expected_one_fails_the_build_and_installs_nothing()
     {
         var cache = Path.Combine(Path.GetTempPath(), "rask-tailwind-swapped-" + Guid.NewGuid().ToString("n"));
         var engine = new RecordingEngine();
@@ -62,7 +61,7 @@ public class TailwindPinsTests
         }
 
         Assert.False(resolved);
-        Assert.False(task.UseNpm);
+        Assert.Empty(task.ToolPath);
         Assert.Contains("not the expected", Assert.Single(engine.Errors), StringComparison.Ordinal);
         Assert.False(Directory.Exists(cache) && Directory.GetFiles(cache, "*", SearchOption.AllDirectories).Length > 0);
     }

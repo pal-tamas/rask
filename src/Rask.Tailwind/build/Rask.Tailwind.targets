@@ -61,31 +61,10 @@
     lives under one of them in some layouts, and a target whose input includes its own output never
     settles.
   -->
-  <!--
-    node_modules is excluded alongside obj/ and bin/. The npm fallback path installs it INTO the project
-    directory, and a modern install carries thousands of .html files — docs, fixtures, coverage reports —
-    every one of which would otherwise become an up-to-date-check input for this target, on every build,
-    for a tree Tailwind is not scanning anyway.
-  -->
   <ItemGroup Condition="'$(_RaskTailwindDoBuild)' == 'true'">
     <_RaskTailwindSource Include="$(_RaskTailwindInput)"/>
     <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.cs;$(MSBuildProjectDirectory)/**/*.razor;$(MSBuildProjectDirectory)/**/*.html"
-                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*"/>
-    <!--
-      Island front-end files. Tailwind v4 already SCANS these — it detects sources from the project it
-      is run in, and a .vue or .svelte is an ordinary source to it — so the utilities land in the sheet
-      on a clean build and everything looks right.
-
-      What was missing is the other half: this list is the target's up-to-date check, and a file that
-      is scanned but not listed here is one whose EDIT does not rebuild. Change a class in a .vue and
-      the CSS keeps the old utility, silently, until something unrelated forces a rebuild — the worst
-      shape of staleness, because the page renders and only the styling is a version behind.
-
-      An island whose files live in a SIBLING project needs `@source` in the stylesheet as well; that
-      is a Tailwind-side path it cannot infer, and it is documented in docs/islands.md.
-    -->
-    <_RaskTailwindSource Include="$(MSBuildProjectDirectory)/**/*.tsx;$(MSBuildProjectDirectory)/**/*.jsx;$(MSBuildProjectDirectory)/**/*.vue;$(MSBuildProjectDirectory)/**/*.svelte"
-                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*;$(MSBuildProjectDirectory)/node_modules/**/*"/>
+                        Exclude="$(MSBuildProjectDirectory)/obj/**/*;$(MSBuildProjectDirectory)/bin/**/*"/>
 
     <!--
       Anything the stylesheet reaches with Tailwind's `@source` but this project does not contain.
@@ -98,11 +77,11 @@
       So the two have to be stated together. Add the same directory here that the stylesheet names:
 
         <ItemGroup>
-          <RaskTailwindSource Include="../Shop.Web/Features/Islands/**/*.vue"/>
+          <RaskTailwindSource Include="../Shop.Components/**/*.cs"/>
         </ItemGroup>
 
-      The commonest reason to need it is an island: its front-end file lives in the app that bundles it,
-      which is not always the project that owns the stylesheet.
+      The commonest reason to need it is a sibling project of components: their classes are written
+      there, and the stylesheet that compiles them lives in the app.
     -->
     <_RaskTailwindSource Include="@(RaskTailwindSource)"/>
 
@@ -136,45 +115,11 @@
           Condition="'$(_RaskTailwindDoBuild)' == 'true'">
     <ResolveTailwindCliTask Version="$(RaskTailwindVersion)"
                             CacheRoot="$(RaskTailwindCacheRoot)"
-                            Engine="$(RaskTailwindEngine)"
+                            ExecutablePath="$(RaskTailwindPath)"
                             Offline="$(RaskTailwindOffline)"
                             ExpectedSha256="$(RaskTailwindSha256)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskTailwindTool"/>
-      <Output TaskParameter="UseNpm" PropertyName="_RaskTailwindUseNpm"/>
     </ResolveTailwindCliTask>
-  </Target>
-
-  <!--
-    The npm engine, for the platforms Tailwind publishes no standalone binary for — 32-bit ARM, FreeBSD,
-    and anywhere else its release page does not reach.
-
-    This is a real install into the project rather than an `npx` one-liner, and that is not a choice:
-    Tailwind resolves `@import "tailwindcss"` from the STYLESHEET's own directory upward, so the package
-    has to be reachable from the project. Neither the cwd flag nor npx's temporary prefix changes that.
-    The standalone binary avoids all of it by bundling Tailwind inside itself, which is why it is first.
-
-    So on this path a C# project genuinely gains a package.json and a node_modules — because that is what
-    using Tailwind from npm means. node_modules belongs in .gitignore; the package.json is harmless to
-    commit and pins the same version the standalone path uses.
-  -->
-  <Target Name="_RaskTailwindNpmInstall"
-          Condition="'$(_RaskTailwindUseNpm)' == 'true'"
-          Inputs="$(MSBuildProjectDirectory)/package.json"
-          Outputs="$(MSBuildProjectDirectory)/node_modules/.package-lock.json">
-    <WriteLinesToFile
-      File="$(MSBuildProjectDirectory)/package.json"
-      Overwrite="true"
-      Condition="!Exists('$(MSBuildProjectDirectory)/package.json')"
-      Lines="{&quot;private&quot;:true,&quot;devDependencies&quot;:{&quot;tailwindcss&quot;:&quot;$(RaskTailwindVersion)&quot;,&quot;@tailwindcss/cli&quot;:&quot;$(RaskTailwindVersion)&quot;}}"/>
-
-    <Message Importance="high"
-             Text="Rask.Tailwind: no standalone binary for this platform — installing Tailwind $(RaskTailwindVersion) from npm."/>
-
-    <!-- IgnoreStandardErrorWarningFormat: npm writes deprecation notices and audit summaries to stderr
-         as a matter of course, and Exec turns any stderr line into MSB3077 even when it exited 0. -->
-    <Exec Command="npm install --no-audit --no-fund"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          IgnoreStandardErrorWarningFormat="true"/>
   </Target>
 
   <!--
@@ -225,16 +170,12 @@
 
   <Target Name="_RaskTailwindBuild"
           BeforeTargets="BeforeBuild"
-          DependsOnTargets="_RaskTailwindResolve;_RaskTailwindNpmInstall;_RaskTailwindSourceList"
+          DependsOnTargets="_RaskTailwindResolve;_RaskTailwindSourceList"
           Condition="'$(_RaskTailwindDoBuild)' == 'true'"
           Inputs="@(_RaskTailwindSource);$(IntermediateOutputPath)rask-tailwind.sources.txt"
           Outputs="$(_RaskTailwindOutput)">
     <PropertyGroup>
       <_RaskTailwindMinify Condition="'$(RaskTailwindMinify)' == 'true'"> --minify</_RaskTailwindMinify>
-
-      <!-- Resolved after the install, because on the npm path it does not exist until then. -->
-      <_RaskTailwindTool Condition="'$(_RaskTailwindUseNpm)' == 'true'"
-      >$(MSBuildProjectDirectory)/node_modules/.bin/tailwindcss</_RaskTailwindTool>
     </PropertyGroup>
 
     <Message Importance="high" Text="Rask.Tailwind: building $(RaskTailwindOutput) from $(RaskTailwindInput)"/>
