@@ -41,7 +41,7 @@ interface Field {
     ready: boolean;
 }
 
-// The utils' file name and version, written in by build.mjs: the URL changes when the bytes do.
+// The utils' file name and version, written in by scripts/tools/KitBundle: the URL changes when the bytes do.
 declare const UTILS: string;
 
 const fields = new WeakMap<Element, Field>();

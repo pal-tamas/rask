@@ -1,0 +1,9 @@
+{
+  "description": "Builds src/Rask.Ui/Resources/ui-phone.js and ui-phone-utils.js, the lazily loaded engine behind Ui.Phone: dotnet run --project scripts/tools/KitBundle -- build phone (no npm, no Node). intl-tel-input is pinned to the release fluxui.dev serves (read off its phone.min.js by the tool's follow, daily); its utils are that release's own build of Google's libphonenumber. The countries' English names are Unicode CLDR's, read from cldr-localenames-full (npm's latest), never bundled.",
+  "dependencies": {
+    "intl-tel-input": "29.2.3"
+  },
+  "data": {
+    "cldr-localenames-full": "48.0.0"
+  }
+}
