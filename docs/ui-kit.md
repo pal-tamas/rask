@@ -46,7 +46,8 @@ Ui.Button.Primary["Save"]
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
 [Confirm leave](https://rask.sh/ui/confirm-leave/), [Filters](https://rask.sh/ui/filters/),
-[Form buttons](https://rask.sh/ui/form-buttons/) and [Row actions](https://rask.sh/ui/row-actions/), with
+[Form buttons](https://rask.sh/ui/form-buttons/), [Row actions](https://rask.sh/ui/row-actions/) and
+[Editor dialog](https://rask.sh/ui/editor-dialog/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
@@ -688,6 +689,37 @@ Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.ColSpan(3)[Details(pump)]]
 
 Live: **[rask.sh/ui/empty](https://rask.sh/ui/empty/)**, **[rask.sh/ui/page-header](https://rask.sh/ui/page-header/)** and the
 fold-out row on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
+
+### The editor over its list
+
+**A list's record is added or changed in a dialog over the list, at the list's own address** (not Flux's: an addition
+the owner approved, 2026-11-04, #1295, made of `Ui.Modal`). `Ui.EditorDialog.In("edit")` is open while the address
+holds `?edit=` — `UiEditorDialog.New` for a record not yet saved, its id otherwise — and holds its content only then.
+The link that opens it is the list's own address with the key set, `route.With("edit", id)`, so the search, sort and
+page stay, a reload reopens it and Back closes it. The cross, Escape, a press outside and Cancel take the key out
+(`Go.Without("edit")`, in the current history entry's place) and the list stands as the reader left it; a save ends
+with `Go.Without("edit")`, and the list, rendering again, reads its rows again. `.Wide()` opens a form with rows of its
+own as a sheet from the right, as wide as the screen allows (84rem at most); one list can hold both, each with its own
+key. Open it from a link — a pencil, a New button — never a row's double-click. An editor's old address keeps working
+when its page sends the reader on: `Go.To(Routes.DriversPage().With("edit", id)).Replacing()` in its `OnMount`.
+
+```csharp
+// Before: each app kept an EditorDialog of its own, given the list's address to close back to.
+[QueryParam("edit")] public string? Edit { get; set; }
+Ui.Button.Primary.Href(EditorDialog.Editing(Here, EditorDialog.New))["New driver"]
+EditorDialog.For(Edit, DriverEditing.Key(Edit ?? "closed").Editing(Edit ?? EditorDialog.New).Back(Here), Here, wide: true)
+EditorDialog.Heading("Edit driver")   // inside the editor
+
+// After: the dialog reads and clears its own key.
+[QueryParam("edit")] public string? Edit { get; set; }
+Ui.Button.Primary.Href(route.With("edit", UiEditorDialog.New))["New driver"]
+Ui.RowActions.Edit(route.With("edit", driver.Id.ToString(CultureInfo.InvariantCulture)))
+Ui.EditorDialog.In("edit").Heading(Edit == UiEditorDialog.New ? "New driver" : "Edit driver").Wide()[
+    DriverEditing.Key(Edit).Editing(Edit)
+]
+```
+
+Live: **[rask.sh/ui/editor-dialog](https://rask.sh/ui/editor-dialog/)**.
 
 ## Printing
 

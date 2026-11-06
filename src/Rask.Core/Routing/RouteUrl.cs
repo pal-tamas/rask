@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Primitives;
 using Rask.Core.Live;
 
 namespace Rask.Core.Routing;
@@ -24,6 +25,52 @@ public readonly record struct RouteUrl(string Path, string? QueryString = null, 
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
         return this with { Language = language };
+    }
+
+    /// <summary>
+    ///     This URL with <paramref name="key" /> set in its query, every other key kept — the link that opens a list's
+    ///     editor over it: <c>Routes.DriversPage().With("edit", "new")</c> is <c>/drivers?edit=new</c>.
+    /// </summary>
+    /// <remarks>
+    ///     A <c>null</c> value takes the key out. A key already there is replaced, matched without regard to case; a
+    ///     new one goes last. The page being shown with a key changed is <c>route.With(…)</c> on the injected
+    ///     <see cref="RouteState" />.
+    /// </remarks>
+    /// <param name="key">The query parameter: <c>"edit"</c>.</param>
+    /// <param name="value">Its value, escaped as it is written; <c>null</c> removes it.</param>
+    /// <returns>The same page, language and path, with the query changed.</returns>
+    public RouteUrl With(string key, string? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        return this with { QueryString = Changed(Routing.QueryString.Parse(QueryString), [new(key, value)]) };
+    }
+
+    /// <summary>
+    ///     <paramref name="query" /> with <paramref name="changes" /> written into it — a pair with no value takes its key
+    ///     out, every other key stays — as a query string (<c>?a=1&amp;b=2</c>), or <c>null</c> when nothing is left.
+    /// </summary>
+    internal static string? Changed(IEnumerable<KeyValuePair<string, StringValues>> query, IEnumerable<KeyValuePair<string, string?>> changes)
+    {
+        var merged = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (key, value) in query)
+        {
+            merged[key] = value;
+        }
+
+        foreach (var (key, value) in changes)
+        {
+            if (value is null)
+            {
+                merged.Remove(key);
+            }
+            else
+            {
+                merged[key] = value;
+            }
+        }
+
+        var written = Routing.QueryString.Build("", merged);
+        return written.Length == 0 ? null : written;
     }
 
     public override string ToString()

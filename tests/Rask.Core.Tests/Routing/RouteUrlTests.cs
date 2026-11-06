@@ -59,4 +59,46 @@ public class RouteUrlTests
 
         Assert.NotEqual(a, b);
     }
+
+    [Fact]
+    public void With_adds_a_key_after_the_ones_the_url_has()
+    {
+        var list = new RouteUrl("/drivers", "?q=ada&page=2", typeof(RouteUrlTests));
+
+        var editing = list.With("edit", "new");
+
+        Assert.Equal("/drivers?q=ada&page=2&edit=new", editing.ToString());
+        Assert.Equal(typeof(RouteUrlTests), editing.PageType);
+    }
+
+    [Fact]
+    public void With_replaces_a_key_the_url_has_whatever_its_case()
+    {
+        var list = new RouteUrl("/drivers", "?Edit=3&q=ada");
+
+        var editing = list.With("edit", "7");
+
+        Assert.Equal("/drivers?Edit=7&q=ada", editing.ToString());
+    }
+
+    [Fact]
+    public void With_no_value_takes_the_key_out_and_the_last_one_leaves_no_query()
+    {
+        var editing = new RouteUrl("/drivers", "?edit=7");
+
+        var list = editing.With("edit", null);
+
+        Assert.Equal("/drivers", list.ToString());
+        Assert.Null(list.QueryString);
+    }
+
+    [Fact]
+    public void With_escapes_the_value_it_writes()
+    {
+        var list = new RouteUrl("/drivers");
+
+        var editing = list.With("edit", "a b&c");
+
+        Assert.Equal("/drivers?edit=a%20b%26c", editing.ToString());
+    }
 }

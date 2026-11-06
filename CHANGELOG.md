@@ -136,6 +136,17 @@ them until tagged releases begin.
   required step (`Ui.RowActions.Remove(…)` alone is a row that can only be deleted), and the pencil row gains `View`
   and `OnEdit` too; the pencil and bin are otherwise unchanged. New catalog word `RowActionsView` (Megtekintés).
   Everything inside one is keyed by the component, so nothing needs a per-row key; key the `Ui.RowActions` itself.
+- **Rask.Ui: the editor over its list, opened by the query string — `Ui.EditorDialog.In("edit")` (#1295).** Not Flux's:
+  an addition the owner approved, which both list apps kept a copy of, made of `Ui.Modal`. Before: each app wrote an
+  `EditorDialog.For(Edit, editor, Here, wide: true)` that was handed the list's address to close back to, an
+  `Editing(Here, id)` to build the link and a `Heading` of its own. After:
+  `Ui.EditorDialog.In("edit").Heading("Edit driver").Wide()[editor]` reads its key from the address and takes it out
+  when the reader closes it — the cross, Escape, a press outside, Cancel, Back — keeping every other key, so the list's
+  filters, sort and page stand as they were; content is sent only while it is open, `UiEditorDialog.New` names a record
+  not yet saved, and `.Wide()` is a sheet from the right as wide as the screen allows (84rem at most). The link is new
+  in Core: `route.With("edit", id)` on the injected `RouteState` (this page, every key kept) and
+  `Routes.DriversPage().With("edit", id)` on any `RouteUrl` — a null value removes the key. Live on
+  rask.sh/ui/editor-dialog.
 - **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
   `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
   most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,

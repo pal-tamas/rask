@@ -608,6 +608,9 @@ Key behaviours:
   to a path and keep params, use the `Go.To(path, query)` overload or follow up with `Go.With`.
 - `Go.To(path, query)` **replaces** the entire query string with the supplied pairs. Pairs with a `null` value are
   dropped; repeated keys concatenate into a multi-value param.
+- A LINK to a page with one key changed is `route.With("edit", "new")` on the injected `RouteState` (this page,
+  every other key kept — the filters a reader set) or `Routes.DriversPage().With("edit", "7")` on any `RouteUrl`; a
+  `null` value takes the key out. A component that writes `route.With(...)` renders again when the address moves.
 - `Go.With` / `Go.Without` operate on the **current** path and leave it unchanged — they're for
   partial query updates (`?page=2&sort=asc`). A move that changes only the query **replaces** the current history
   entry, as Livewire's `#[Url]` does, so a live search adds no Back stop at every pause; follow it with `.Pushing()`
