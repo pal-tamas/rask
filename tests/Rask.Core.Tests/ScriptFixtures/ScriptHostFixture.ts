@@ -76,6 +76,7 @@ async function globals() {
         cloned: structuredClone({when: new Date(0), list: [1, {deep: true}], map: new Map([["k", 1]])}).map instanceof Map,
         response: await new Response(body, {status: 201}).text(),
         json: await Response.json({ok: true}).json(),
+        stackHead: (new RangeError("bad range").stack ?? "").split("\n")[0],
     };
 }
 

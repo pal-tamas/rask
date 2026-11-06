@@ -61,6 +61,23 @@
 
     // --- errors -------------------------------------------------------------------------------------------------------
 
+    // A stack led by its "Name: message" line, the shape V8 (Chromium, Node) gives and the shipped code was written
+    // against: the devtools' error list reads its first line. The engine's own is the frames alone.
+    const frames = Object.getOwnPropertyDescriptor(Error.prototype, "stack");
+    if (frames?.get) {
+        Object.defineProperty(Error.prototype, "stack", {
+            configurable: true,
+            get() {
+                const below = frames.get.call(this);
+                const head = this.message ? `${this.name}: ${this.message}` : String(this.name);
+                return below ? head + "\n" + below : head;
+            },
+            set(value) {
+                Object.defineProperty(this, "stack", {value, writable: true, configurable: true});
+            },
+        });
+    }
+
     class DOMException extends Error {
         constructor(message = "", name = "Error") {
             super(message);

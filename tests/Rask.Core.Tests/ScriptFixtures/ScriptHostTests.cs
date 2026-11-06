@@ -31,7 +31,7 @@ public sealed class ScriptHostTests
         var said = ScriptFixture.Run("ScriptHostFixture", "globals");
 
         Assert.Equal(
-            JsonNode.Parse("""{"bytes":[97,195,169,226,130,172,240,159,152,128],"split":"aé€😀","url":"https://example.test/a/b/c?x=1+2&y=a%26b#h","origin":"https://example.test","pathname":"/a/b/c","query":[["1","3"],"two words","a=1&b=two+words&a=3"],"headers":["text/plain","1, 2",["content-type","x-many"]],"heard":1,"aborted":"AbortError","base64":["aGkgdGhlcmU=","hi there"],"cloned":true,"response":"streamed body","json":{"ok":true}}""")!.ToJsonString(),
+            JsonNode.Parse("""{"bytes":[97,195,169,226,130,172,240,159,152,128],"split":"aé€😀","url":"https://example.test/a/b/c?x=1+2&y=a%26b#h","origin":"https://example.test","pathname":"/a/b/c","query":[["1","3"],"two words","a=1&b=two+words&a=3"],"headers":["text/plain","1, 2",["content-type","x-many"]],"heard":1,"aborted":"AbortError","base64":["aGkgdGhlcmU=","hi there"],"cloned":true,"response":"streamed body","json":{"ok":true},"stackHead":"RangeError: bad range"}""")!.ToJsonString(),
             JsonNode.Parse(said.GetRawText())!.ToJsonString());
     }
 
