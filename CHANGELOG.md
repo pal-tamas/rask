@@ -1029,6 +1029,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A chain built after a hook's `await` no longer writes into the page's tree while the next render walks it.**
+  Before: a hook's continuation still carried the render context it captured, so `Span["x"]` (or a
+  `Ui.Pillbox.Choices(find, …)` answer building its option rows after the search's await) filed itself as a child
+  of whatever component that context last pointed at — on a pool thread, beside the session's next render, which
+  then threw `Collection was modified` in `CollectAliveWithParents` (about 1 in 6 runs of the kit tests). After:
+  only the walk running on the current thread files a chain into the tree; a chain built anywhere else is a fresh
+  component, as one built in a handler is, and is drawn wherever the page puts it.
 - **An unkeyed component inside a keyed list row is that row's, so a late press can no longer act on another row**
   (#1309). Before: `Ui.TableRow.Key(s.Id)[Ui.TableCell[s.Name], Ui.RowActions.Remove(() => Delete(s))]` reused each
   `Ui.RowActions` by its order among every one the page writes — delete Aminoff, and a press made a moment earlier on

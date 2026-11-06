@@ -432,7 +432,7 @@ public static partial class BuilderRuntime
         Action<Component, Component, ulong>? copy = null)
         where T : Component, new()
     {
-        if (Live.LiveRenderContext.Current is not { } ctx)
+        if (Live.LiveRenderContext.Walking is not { } ctx)
         {
             return new T();
         }
@@ -453,7 +453,7 @@ public static partial class BuilderRuntime
         Action<Component, Component, ulong>? copy = null)
         where T : Component
     {
-        if (Live.LiveRenderContext.Current is { } ctx)
+        if (Live.LiveRenderContext.Walking is { } ctx)
         {
             var component = ctx.GetOrCreateEntry<T>(
                 static sp => Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(sp),
@@ -464,6 +464,13 @@ public static partial class BuilderRuntime
             reset(component);
             ClearCallbacks(component);
             return component;
+        }
+
+        // Built after a hook's await: the walk it came from is over, but its services still answer — a fresh
+        // instance, filed nowhere, as an off-walk entry of any other component is.
+        if (Live.LiveRenderContext.Current?.Services is { } services)
+        {
+            return Microsoft.Extensions.DependencyInjection.ActivatorUtilities.CreateInstance<T>(services);
         }
 
         throw new InvalidOperationException(
@@ -482,7 +489,7 @@ public static partial class BuilderRuntime
         Action<Component, Component, ulong>? copy = null)
         where T : Component
     {
-        if (Live.LiveRenderContext.Current is not { } ctx)
+        if (Live.LiveRenderContext.Walking is not { } ctx)
         {
             return Activator.CreateInstance<T>();
         }

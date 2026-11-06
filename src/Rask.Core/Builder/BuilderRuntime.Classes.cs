@@ -109,7 +109,7 @@ public static partial class BuilderRuntime
             }
         }
 
-        var result = Live.LiveRenderContext.Current is null ? JoinPair(current, value) : value;
+        var result = Live.LiveRenderContext.Walking is null ? JoinPair(current, value) : value;
         Track(target, current, result);
         return result;
     }

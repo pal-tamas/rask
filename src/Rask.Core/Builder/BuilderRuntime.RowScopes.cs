@@ -42,7 +42,7 @@ public static partial class BuilderRuntime
         // The component whose Render() is building the row: what the row holds is claimed among ITS children. Its
         // slots are the top of the stack — its children render later, during the walk — so the search for one stops
         // where they end.
-        var owner = LiveRenderContext.Current?.WalkParent;
+        var owner = LiveRenderContext.Walking?.WalkParent;
         if (owner is null)
         {
             return;

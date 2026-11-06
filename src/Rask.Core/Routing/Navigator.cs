@@ -515,8 +515,7 @@ internal sealed class Navigator(RouteState routeState, IDownloadSink? downloadSi
 
     // The walk itself, on the thread running it: where Render and the synchronous part of a hook are. A hook's
     // continuation still carries the walk's context after an await, but is no longer inside it.
-    private static bool InRenderWalk =>
-        LiveRenderContext.CurrentSync is { } walk && ReferenceEquals(walk, LiveRenderContext.Current);
+    private static bool InRenderWalk => LiveRenderContext.Walking is not null;
 
     private void Navigated()
     {
