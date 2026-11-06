@@ -61,7 +61,10 @@ public sealed class Parity : IFluxCommand
     public async Task<int> Run(string[] args)
     {
         var arg = new Args(args);
-        var asked = arg.All.FirstOrDefault(a => !a.StartsWith("--", StringComparison.Ordinal) && a != arg.Option("section") && a != arg.Option("view") && a != arg.Option("prepare"));
+        // The page is the first argument that is no option's value — by its place, not its text: in
+        // `parity command-open --prepare command-open` the page and the preparation share a name.
+        var asked = arg.All.Where((a, i) => !a.StartsWith("--", StringComparison.Ordinal) && (i == 0 || arg.All[i - 1] is not ("--section" or "--view" or "--prepare")))
+            .FirstOrDefault();
         // `--view 390x844`: both pages are measured in that viewport — a component that is another thing on a phone.
         var view = arg.Option("view")?.Split('x').Select(int.Parse).ToArray();
         // `--prepare <name>`: a state the component is only in once it is USED (IParityPreparation); `<slug>` is then a
