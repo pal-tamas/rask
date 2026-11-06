@@ -45,7 +45,7 @@ public abstract partial class UiSelectControl<T>
         // Keyed, all three: the clear button comes and goes between the pills and the chevron.
         return trigger[
             Div.Key("picked").Class(UiPillboxLook.Selected)[
-                PillsCombobox ? null : Box(UiPillboxLook.Contents, "rask-list-blank", PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholder)),
+                PillsCombobox ? null : Box(UiPillboxLook.Contents, "rask-list-blank", PillPlaceholder(pills.Length, slot?.Placeholder ?? Placeholding)),
                 Div.Class(UiPillboxLook.Pills)[
                     Box(UiPillboxLook.Contents, "rask-list-pills",
                         pills.Length > 0 ? Div.Class(UiPillboxLook.Contents)[pills.Select(answer => Pill(answer, off))] : null),
@@ -105,7 +105,7 @@ public abstract partial class UiSelectControl<T>
     private HTMLInputElement<string> PillInput(View view, int pills, bool off)
     {
         var slot = view.Parts.Input;
-        var placeholder = slot?.Placeholder ?? Placeholder;
+        var placeholder = slot?.Placeholder ?? Placeholding;
         var aria = new Dictionary<string, string?>(view.Field.Aria, StringComparer.Ordinal)
         {
             ["autocomplete"] = "list",

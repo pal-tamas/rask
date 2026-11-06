@@ -288,6 +288,8 @@ public sealed class FluxConformanceTests
     {
         ["flux:table/Of"] = "the owner, 2026-10-21: a table drawn from a Rask.Query query, skeleton rows of the rows' own size while it loads",
         ["flux:menu.item/Confirm"] = "the owner, 2026-11-06: an item that asks first, in the page's Ui.Confirm dialog",
+        ["flux:select/Choices"] = "the owner, 2026-11-06: rows of another table (Ui.Choice), searched, in the reader's alphabet, cleared where nothing is an answer (TA + Eszaf Picker)",
+        ["flux:pillbox/Choices"] = "the owner, 2026-11-06: rows of another table (Ui.Choice), searched, in the reader's alphabet (Eszaf PickerMany, MultiPicker)",
     };
 
     /// <summary>

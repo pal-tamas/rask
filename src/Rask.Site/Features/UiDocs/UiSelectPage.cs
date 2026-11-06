@@ -86,6 +86,10 @@ public sealed partial class UiSelectPage : Component
                    + "anything is found."),
         UiDocsExample.Key("ui-select-server-many").Heading("Several, searched on the server").File("SelectServerSearchMultipleExample.cs").Demo(SelectServerSearchMultipleExample).Testid("ui-select-server-many")
             .Blurb("The same on a multi-select: every partner picked stays in the list, first, while a search does not find it."),
+        UiDocsExample.Key("ui-select-choices").Heading("Rows of another table").File("SelectChoicesExample.cs").Demo(SelectChoicesExample).Testid("ui-select-choices")
+            .Blurb("Choices hands the select rows rather than options: a search field over them, in the reader's alphabet, "
+                   + "\"Choose...\" while nothing is picked, and the cross only where the member may hold nothing. Given a "
+                   + "search instead, the store answers what is typed and the row the value holds stays named."),
         UiDocsExample.Key("ui-select-create").Heading("Create option").File("SelectCreateExample.cs").Demo(SelectCreateExample).Testid("ui-select-create")
             .Blurb("Type a name no project has: the create row offers to make it, from two characters on."),
         UiDocsExample.Key("ui-select-create-search").Heading("With backend search").File("SelectCreateSearchExample.cs").Demo(SelectCreateSearchExample).Testid("ui-select-create-search")

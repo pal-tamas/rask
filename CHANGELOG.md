@@ -147,6 +147,18 @@ them until tagged releases begin.
   in Core: `route.With("edit", id)` on the injected `RouteState` (this page, every key kept) and
   `Routes.DriversPage().With("edit", id)` on any `RouteUrl` — a null value removes the key. Live on
   rask.sh/ui/editor-dialog.
+- **Rask.Ui: `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` — rows of another table, picked (owner-approved, not Flux's).**
+  Before: TA and Eszaf each kept a `Picker` (Eszaf also `PickerMany`, `MultiPicker` and three search components of its own,
+  ~600 lines between them): `Picker.Of(() => m.CompanyId, companies, optional: true, changed: Fill)`, with a `Choice<T>`,
+  a Hungarian sort, "Válasszon…" and `Listbox.Searchable(true).Clearable(optional)` written out each time. After:
+  `Ui.Select.Bind(() => m.CompanyId).Choices(companies)` over `Ui.Choice<int>(id, name, detail)` rows draws a searchable
+  listbox, the rows in the READER'S alphabet (`TextOrder.Current`: in Hungarian `Á` with `A`, `Cs` after `Cu`, `Dzs`
+  after `Dz`, `Ö` after `O`), the detail as the muted line under the words that a search finds too, and the catalog's
+  new "Choose..." (`RaskString.SelectChoose`, "Válasszon…" in Hungarian). The cross comes from the bound member: `int?`
+  or `string?` that the model does not require is cleared, `int` or a required member never is. For a long list
+  `.Choices(Driver.Named, held: driver)` asks as `Search` does and keeps the held row
+  named and first. `Ui.Pillbox.Bind(() => m.VehicleIds).Choices(vehicles)` and `.Choices(find, held: picked)` do the
+  same for several. Whatever it fills in, `.Placeholder(…)`, `.Clearable(…)` or `.Searchable(false)` overrides.
 - **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
   `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
   most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,

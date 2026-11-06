@@ -104,7 +104,8 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
     {
         UiPillboxTrigger? trigger = null;
         UiPillboxSearch? search = null;
-        List<Component?> parts = [];
+        // The rows `.Choices(…)` made come first, before the options and parts the page wrote.
+        List<Component?> parts = [.. _choosing?.Rows ?? []];
         foreach (var child in Children ?? [])
         {
             switch (child)
@@ -133,13 +134,13 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
         return list
             .Listbox
             .Multiple()
-            .Placeholder(Placeholder)
+            .Placeholder(Placeholder ?? (_choosing is null ? null : UiChoices.Placeholder))
             .Label(Label)
             .Description(Description)
             .Size(Size == Ui.PillboxSize.Sm ? Ui.SelectSize.Sm : null)
-            .Searchable(Searchable == true || search is not null)
+            .Searchable(Searchable == true || search is not null || (Searchable is null && _choosing is not null && Variant != Ui.PillboxVariant.Combobox))
             .Filter(Filter)
-            .Search(Search)
+            .Search(Search ?? _choosing?.Find)
             .Disabled(Disabled)
             .Invalid(Invalid)
             .Id(Id)

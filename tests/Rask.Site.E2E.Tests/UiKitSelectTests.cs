@@ -26,7 +26,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
                      "ui-select-width", "ui-select-search", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
                      "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
-                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-create", "ui-select-create-search", "ui-select-loading",
+                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",
                  })
         {
@@ -37,6 +37,45 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
             Assert.NotNull(box);
             Assert.True(box!.Height > 0, $"{id} rendered with zero height.");
         }
+    });
+
+    [Fact]
+    public Task A_select_given_rows_lists_them_in_the_readers_alphabet_and_clears_a_member_that_may_hold_nothing() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var button = Page.Locator("#ui-select-choices");
+        var state = Page.Locator("[data-testid='ui-select-choices-state']");
+
+        await Expect(button).ToContainTextAsync("Choose...");
+        await button.ClickAsync();
+        var rows = Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[data-ui-option]:visible");
+        await Expect(rows).ToHaveCountAsync(5);
+        await Expect(rows).ToContainTextAsync(["Ábel Transport", "Alpine Freight", "Bergmann Logistik", "Danube Express", "Zenith Express"]);
+        await rows.Nth(2).ClickAsync();
+        await Expect(state).ToContainTextAsync("Company: 2.");
+        await Expect(button).ToContainTextAsync("Bergmann Logistik");
+
+        await Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[aria-label='Clear selected']").ClickAsync();
+
+        await Expect(state).ToContainTextAsync("Company: none.");
+    });
+
+    [Fact]
+    public Task A_select_given_a_search_names_its_held_row_and_picks_from_the_answer() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var button = Page.Locator("#ui-select-choices-search");
+        var list = Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button });
+        var field = list.Locator("[data-ui-select-search] input");
+
+        await Expect(button).ToContainTextAsync("Bergmann Logistik");
+        await button.ClickAsync();
+        await field.FillAsync("berl");
+        await Expect(list.Locator("[data-ui-option]:visible")).ToContainTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
+        await list.Locator("[data-ui-option]:visible", new LocatorLocatorOptions { HasTextString = "Berlin Cargo" }).ClickAsync();
+
+        await Expect(Page.Locator("[data-testid='ui-select-choices-state']")).ToContainTextAsync("Driver: 5.");
+        await Expect(button).ToContainTextAsync("Berlin Cargo");
     });
 
     [Fact]

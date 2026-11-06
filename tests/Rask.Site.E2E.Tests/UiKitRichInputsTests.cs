@@ -18,7 +18,7 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
     [Theory]
     [InlineData("composer", "Composer", "ui-composer|ui-composer-header|ui-composer-inline|ui-composer-input|ui-composer-height|ui-composer-enter|ui-composer-rich|ui-composer-disabled|ui-composer-invalid")]
     [InlineData("autocomplete", "Autocomplete", "ui-autocomplete|ui-autocomplete-search")]
-    [InlineData("pillbox", "Pillbox", "ui-pillbox|ui-pillbox-sm|ui-pillbox-searchable|ui-pillbox-icons|ui-pillbox-combobox|ui-pillbox-create|ui-pillbox-backend|ui-pillbox-store|ui-pillbox-loading|ui-pillbox-validation|ui-pillbox-modal")]
+    [InlineData("pillbox", "Pillbox", "ui-pillbox|ui-pillbox-sm|ui-pillbox-searchable|ui-pillbox-icons|ui-pillbox-combobox|ui-pillbox-create|ui-pillbox-backend|ui-pillbox-store|ui-pillbox-choices|ui-pillbox-loading|ui-pillbox-validation|ui-pillbox-modal")]
     [InlineData("file-upload", "File upload", "ui-upload|ui-upload-inline|ui-upload-progress|ui-upload-disabled|ui-upload-custom|ui-upload-single|ui-upload-multiple")]
     public Task Every_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
@@ -213,6 +213,25 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
         // The search for "script", and the empty one the pick left behind it.
         await Expect(state).ToContainTextAsync("Skills: TypeScript. Searches: 2.");
         await Expect(field).ToHaveValueAsync(string.Empty);
+    });
+
+    [Fact]
+    public Task A_pillbox_given_rows_lists_them_in_the_readers_alphabet_and_pills_the_words_alone() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("pillbox", "Pillbox");
+        var scope = Page.Locator("[data-testid='ui-pillbox-choices']");
+        var state = Page.Locator("[data-testid='ui-pillbox-choices-state']");
+
+        await Expect(scope).ToContainTextAsync("Choose...");
+        await Page.Locator("#ui-pillbox-choices").ClickAsync();
+        var rows = scope.Locator("[data-ui-listbox-option]:visible");
+        await Expect(rows).ToContainTextAsync(["ÁBC-123", "ABD-456", "CSE-321", "XYZ-789"]);
+        await Expect(rows.First).ToContainTextAsync("Volvo FH16");
+        await rows.Nth(1).ClickAsync();
+
+        await Expect(state).ToHaveTextAsync("Vehicles: 2.");
+        await Expect(scope.Locator("[data-ui-pillbox-trigger]")).ToContainTextAsync("ABD-456");
+        await Expect(scope.Locator("[data-ui-pillbox-trigger]")).Not.ToContainTextAsync("MAN TGX");
     });
 
     [Fact]

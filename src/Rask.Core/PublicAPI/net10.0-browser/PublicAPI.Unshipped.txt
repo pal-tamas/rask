@@ -19529,3 +19529,4 @@ Rask.Core.Globalization.RaskString.SignOut = 232 -> Rask.Core.Globalization.Rask
 Rask.Core.Globalization.RaskString.SignOutQuestion = 233 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.PageNotFound = 234 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.RowActionsView = 235 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.SelectChoose = 236 -> Rask.Core.Globalization.RaskString

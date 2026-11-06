@@ -26,7 +26,7 @@ public abstract partial class UiSelectControl<T>
     private int _asked;
 
     /// <summary>Whether the page answers what is typed through <see cref="Search" />.</summary>
-    private bool Asks => Search is not null;
+    private bool Asks => Asked is not null;
 
     /// <inheritdoc />
     // Before anything is typed the list offers what an empty search finds. A server page waits for it, so the first
@@ -37,7 +37,7 @@ public abstract partial class UiSelectControl<T>
     // space typed after a word asks nothing new.
     private async Task AnswerAsync(string typed)
     {
-        if (Search is not { } search)
+        if (Asked is not { } search)
         {
             return;
         }
@@ -61,24 +61,24 @@ public abstract partial class UiSelectControl<T>
         _keptCount = 0;
         if (!Asks)
         {
-            return Children;
+            return Written;
         }
 
         if (_found is not { } found)
         {
-            RememberPicked(picked, Parts.Read(Children).Rows);
-            return Children;
+            RememberPicked(picked, Parts.Read(Written).Rows);
+            return Written;
         }
 
         var foundRows = Parts.Read(found).Rows;
-        RememberPicked(picked, [.. foundRows, .. Parts.Read(Children).Rows]);
+        RememberPicked(picked, [.. foundRows, .. Parts.Read(Written).Rows]);
         var kept = _remembered
             .Where(held => !foundRows.Exists(row => Same(row.Value, held.Value)))
             .Select(held => (Component?)held.Option)
             .ToArray();
         _keptCount = kept.Length;
 
-        return Replaced(Children ?? [], [.. kept, .. found]);
+        return Replaced(Written ?? [], [.. kept, .. found]);
     }
 
     private static IEnumerable<Component?> Replaced(IEnumerable<Component?> children, Component?[] rows)

@@ -183,6 +183,14 @@ departure in behaviour carries none.
   own is drawn, so `flux parity-modal` holds the look. Approved type in `FluxConformanceTests`; `UiEditorDialogTests`,
   the site's `UiKitEditorDialogTests`.
 
+- **2026-11-06 — `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` (TA + Eszaf `Picker`/`PickerMany`/`MultiPicker`).** Flux's
+  select is handed options the page writes. The kit also takes `Ui.Choice<T>(Value, Name, Detail)` rows: options in the
+  reader's alphabet (`TextOrder.Current`), `Detail` as the option's `Description` and `Keywords`, and DEFAULTS only — a
+  listbox with a search field, the catalog's `SelectChoose` placeholder, `Clearable` where the bound member may hold
+  nothing (`int?`/`string?`, not `UiRequired`). `.Choices(find, held:)` is `Search` over rows. A method, so
+  `ApprovedMembers` rows `flux:select/Choices` and `flux:pillbox/Choices`; the markup is the select's own, unchanged.
+  `UiChoicesTests`, the site's `ui-select-choices` / `ui-pillbox-choices` E2E.
+
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
 - **A part no Reference heads** (`flux:spacer`, `flux:navmenu`, `flux:chart.bar`, the editor's toolbar items) is in the

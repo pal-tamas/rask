@@ -752,4 +752,7 @@ public enum RaskString
 
     /// <summary>A list row's item that opens it to be looked at, in <c>Ui.RowActions.Menu()</c>.</summary>
     RowActionsView,
+
+    /// <summary>What a select or a pillbox given its rows by <c>.Choices(…)</c> shows while nothing is chosen.</summary>
+    SelectChoose,
 }

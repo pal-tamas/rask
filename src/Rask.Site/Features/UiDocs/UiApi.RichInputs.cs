@@ -71,6 +71,8 @@ internal static partial class UiApi
             new("SearchPlaceholder", typeof(string), "What the search field says while it is empty. \"Search...\" when unset."),
             new("Filter", typeof(bool?), "False leaves every option in the list whatever is typed: the page filters."),
             new("Search", typeof(Fn<string, Task<IEnumerable<Component?>>>?), "The options for what is typed, answered by the page: asked on mount and once typing pauses. Picked options stay in the list."),
+            new("Choices", typeof(IEnumerable<Ui.Choice<int>>), "Rows of another table instead of options: searched, in the reader's alphabet, \"Choose...\". Not Flux's.",
+                "Ui.Choice<T> rows, or a search for them and the held rows"),
             new("Disabled", typeof(bool?), "A pillbox that cannot be opened or changed."),
             new("Invalid", typeof(bool?), "Error styling the form did not ask for."),
             new("ShowValidation", typeof(bool?), "False leaves the member's message to a Ui.Error placed elsewhere."),
