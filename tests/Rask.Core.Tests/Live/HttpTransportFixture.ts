@@ -4,6 +4,7 @@
 // No DOM, no network: each part takes plain inputs (text chunks, a fake post function, a fake clock and storage),
 // which is what lets the failure paths of a fallback be tested at all.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {
     createPostBatcher,
     createSseParser,
@@ -345,4 +346,4 @@ results.batching = await batching();
 results.refusal = await refusal();
 results.choosing = choosing();
 
-console.log(JSON.stringify(results));
+report(results);

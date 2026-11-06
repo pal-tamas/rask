@@ -7,8 +7,8 @@
     <IsPackable>false</IsPackable>
 
     <!--
-      This project has no scoped component assets. Its .ts files are the Node fixtures below, which
-      drive framework modules against a stub DOM in a subprocess — so the scoped-TS glob must not
+      This project has no scoped component assets. Its .ts files are the script fixtures below, which
+      drive framework modules against a stub DOM on an in-process JS engine — so the scoped-TS glob must not
       claim them and RASK017 must not ask them to name a component they are not paired with.
 
       A property rather than an item Remove: the csproj body evaluates before Directory.Build.targets
@@ -65,30 +65,30 @@
   </ItemGroup>
 
   <!--
-    The Node fixtures. Each Live/*Fixture.ts drives a real framework module — the morph, the diff
-    codec — against a stub DOM in a node subprocess, and its C# test asserts the JSON it prints.
+    The script fixtures. Each Live/*Fixture.ts drives a real framework module — the morph, the diff
+    codec — against a stub DOM, in-process on Jint (ScriptFixture.Run), and its C# test asserts the value it reports.
 
-    They IMPORT what they test, so esbuild bundles each one into a self-contained .mjs beside the
+    They IMPORT what they test, so esbuild bundles each one into a self-contained module beside the
     test assembly. Before this they read the module off disk and evaluated it with
     `new Function(src + "return { morph, … }")`, because the shared modules were bare declarations
     meant to be pasted into a host's scope. Nothing checked that the names in that string still
     existed, and it stops working the moment the module has real `export`s.
 
     Bundled during the BUILD rather than from the test, so a fixture that no longer compiles fails
-    the build with the compiler's message instead of failing a test with node's.
+    the build with the compiler's message instead of failing a test.
   -->
   <ItemGroup>
-    <_RaskNodeFixture Include="Live\*Fixture.ts;Browser\*Fixture.ts"/>
+    <_RaskScriptFixture Include="Live\*Fixture.ts;Browser\*Fixture.ts;ScriptFixtures\*Fixture.ts"/>
   </ItemGroup>
 
-  <Import Project="..\Rask.TestSupport\NodeFixtures.targets"/>
+  <Import Project="..\Rask.TestSupport\ScriptFixtures.targets"/>
 
   <!--
     The framework modules the fixtures import. Listed so an edit to the morph re-bundles them —
     a target's Inputs does not expand wildcards.
   -->
   <ItemGroup>
-    <_RaskNodeFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts;..\..\src\Rask.Server\Resources\rask-http-transport.ts;..\..\src\Rask.Server\Resources\rask-resend.ts;Browser\WebRuntimeWindow.ts"
+    <_RaskScriptFixtureDependency Include="..\..\src\Rask.Core\Resources\**\*.ts;..\..\src\Rask.Server\Resources\rask-http-transport.ts;..\..\src\Rask.Server\Resources\rask-resend.ts;Browser\WebRuntimeWindow.ts"
                                 Exclude="..\..\src\Rask.Core\Resources\**\*.d.ts"/>
   </ItemGroup>
 

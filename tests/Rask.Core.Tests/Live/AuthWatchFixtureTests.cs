@@ -4,7 +4,7 @@ namespace Rask.Core.Tests.Live;
 
 /// <summary>
 ///     When a tab of the Server runtime asks whether the browser's credential still names its user, and what becomes
-///     of the frames the page sends meanwhile — driven in a Node subprocess (<c>AuthWatchFixture.ts</c>).
+///     of the frames the page sends meanwhile — driven in-process on Jint (<c>AuthWatchFixture.ts</c>).
 /// </summary>
 /// <remarks>
 ///     A socket sees the browser's cookie once, at its upgrade. The rule these pin is the one a request per update
@@ -13,16 +13,12 @@ namespace Rask.Core.Tests.Live;
 /// </remarks>
 public sealed class AuthWatchFixtureTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("AuthWatchFixture");
+    private static JsonElement Run() => ScriptFixture.Run("AuthWatchFixture");
 
     [Fact]
     public void A_tab_that_has_just_loaded_asks_nothing_and_sends_at_once()
     {
-        // No node on PATH — the fixture cannot run. Not a failure: the Server E2E suite drives the same in a browser.
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var fresh = result.GetProperty("fresh");
 
@@ -33,10 +29,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_tab_come_back_to_asks_at_once_and_holds_what_the_reader_does_until_it_is_answered()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var back = result.GetProperty("cameBackSame");
 
@@ -50,10 +43,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_changed_credential_opens_the_connection_again_before_anything_is_sent_and_loses_nothing()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var changed = result.GetProperty("cameBackChanged");
 
@@ -67,10 +57,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_hidden_tab_asks_only_when_something_is_about_to_be_sent()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var hidden = result.GetProperty("hidden");
 
@@ -82,10 +69,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void An_answer_is_trusted_for_thirty_seconds_in_the_focused_window_and_two_in_any_other()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var focused = result.GetProperty("agedFocused");
         var unfocused = result.GetProperty("agedUnfocused");
@@ -102,10 +86,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_question_that_gets_no_answer_keeps_the_connection_and_sends_what_waited_on_it()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var unanswered = result.GetProperty("unanswered");
 
@@ -119,10 +100,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_slow_answer_holds_a_frame_for_a_moment_of_the_page_time_and_is_still_acted_on_when_it_comes()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var slow = result.GetProperty("slow");
 
@@ -136,10 +114,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_hold_that_lapses_after_its_answer_lets_nothing_go_twice()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var lapsed = result.GetProperty("lapsedAfterAnswer");
 
@@ -150,10 +125,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_tab_told_to_ask_later_every_time_keeps_its_connection()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var later = result.GetProperty("laterForEver");
 
@@ -164,10 +136,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void One_question_is_out_at_a_time_however_often_the_tab_is_told()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var asks = result.GetProperty("oneAtATime").GetProperty("asks").GetInt32();
 
@@ -177,10 +146,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void Over_the_http_transport_nothing_is_asked_and_nothing_is_held()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var http = result.GetProperty("http");
 
@@ -191,10 +157,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_tab_knows_whether_it_had_a_user_from_the_page_it_booted_from_and_from_each_answer()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var had = result.GetProperty("hadUser");
 
@@ -207,10 +170,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void Three_tabs_open_their_connections_again_once_each_and_only_the_one_that_found_out_tells()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var tabs = result.GetProperty("threeTabs");
 
@@ -222,10 +182,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_tab_told_to_ask_later_holds_what_it_has_and_asks_again_without_opening_its_connection_again()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var later = result.GetProperty("later");
         var afterLater = later.GetProperty("afterLater");
@@ -241,10 +198,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_changed_credential_whose_connection_cannot_be_dropped_lets_what_waited_go_on_the_open_one()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var failed = result.GetProperty("dropFailed");
 
@@ -256,10 +210,7 @@ public sealed class AuthWatchFixtureTests
     [Fact]
     public void A_changed_credential_with_no_connection_open_holds_nothing_and_sends_everything_on_the_next_one()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var down = result.GetProperty("changedWhileDown");
 

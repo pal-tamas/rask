@@ -15,23 +15,14 @@ namespace Rask.Core.Tests.Live;
 // the server echoes it back (frames arrive in send order, so the stale frame
 // precedes the echo), then releases so server-canonical values win again.
 //
-// This exercises the production rask-morph.ts in a Node subprocess with a stub
+// This exercises the production rask-morph.ts in-process on Jint with a stub
 // DOM. Pairs with the E2E coverage on the Server host.
 public sealed class MorphValueGuardTests
 {
     [Fact]
     public void A_stale_render_does_not_clobber_the_committed_value_then_releases_on_echo()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("MorphValueGuardFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("MorphValueGuardFixture");
 
         // The stale re-render (carrying the model default) must NOT overwrite the
         // value the user just committed. This is the assertion that fails pre-fix.

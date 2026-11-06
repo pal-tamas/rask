@@ -6,21 +6,18 @@ namespace Rask.Core.Tests.Live;
 ///     The runtime's loading mark: a control waiting on its own handler says so, and cannot be pressed twice.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-loading.ts</c> and <c>rask-morph.ts</c> in a Node subprocess against a stub
+///     Drives the production <c>rask-loading.ts</c> and <c>rask-morph.ts</c> in-process on Jint against a stub
 ///     DOM with a fake clock (<c>LoadingStateFixture.ts</c>). The hosts' wiring — which press begins a ticket,
 ///     which ack ends it — is covered in a real browser by <c>ButtonLoadingTests</c>.
 /// </remarks>
 public sealed class LoadingStateTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("LoadingStateFixture");
+    private static JsonElement Run() => ScriptFixture.Run("LoadingStateFixture");
 
     [Fact]
     public void Buttons_and_opted_in_elements_wait_and_an_opt_out_anywhere_above_wins()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var target = root.GetProperty("target");
         Assert.True(target.GetProperty("button").GetBoolean());
@@ -40,10 +37,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void The_mark_waits_out_the_delay_and_comes_off_when_the_dispatch_ends()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         // Nothing inside the delay: a handler that answers in a frame never flashes a spinner.
         Assert.False(root.GetProperty("beforeDelay").GetProperty("loading").GetBoolean());
@@ -65,10 +59,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void Two_presses_keep_the_mark_until_the_last_one_is_done()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         Assert.True(root.GetProperty("afterFirstOfTwo").GetBoolean(), "the first of two dispatches took the mark off.");
         Assert.False(root.GetProperty("afterSecondOfTwo").GetBoolean());
@@ -77,10 +68,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_mark_the_render_wrote_is_left_to_the_render()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         // Ui.Button.Loading(true) renders data-loading itself; a dispatch ending must not contradict it.
         Assert.True(root.GetProperty("serverOwned").GetBoolean());
@@ -90,10 +78,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_dispatch_that_never_reports_back_and_a_dropped_connection_both_clear_the_mark()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         Assert.True(root.GetProperty("hardTimeoutCleared").GetBoolean());
         Assert.True(root.GetProperty("disconnectCleared").GetBoolean());
@@ -102,10 +87,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void The_morph_keeps_the_runtimes_mark_and_nothing_else_the_render_dropped()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         // The render the handler itself caused lands mid-dispatch and has no data-loading in it; stripping the
         // spinner there would end the wait on screen before the dispatch ended.
@@ -118,10 +100,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_scope_is_the_nearest_element_above_the_press_that_says_within_unless_anything_says_off()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var scope = root.GetProperty("scopeOf");
         Assert.True(scope.GetProperty("descendant").GetBoolean());
@@ -137,10 +116,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_scope_is_marked_loading_after_the_delay_and_is_neither_busy_nor_unpressable()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         Assert.False(root.GetProperty("scopeBeforeDelay").GetBoolean());
 
@@ -159,10 +135,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_scopes_mark_outlives_the_render_that_replaces_the_pressed_control_and_ends_with_the_dispatch()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         Assert.True(root.GetProperty("scopeMarkSurvivesTheRender").GetBoolean());
         Assert.False(root.GetProperty("scopeAfterEnd").GetBoolean());
@@ -171,10 +144,7 @@ public sealed class LoadingStateTests
     [Fact]
     public void A_scope_waits_for_a_press_on_something_that_is_not_a_control_and_for_the_last_of_two()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         Assert.True(root.GetProperty("scopeMarkedByAPlainOwner").GetBoolean());
         Assert.True(root.GetProperty("scopeAfterFirstOfTwo").GetBoolean(), "the first of two dispatches took the mark off.");

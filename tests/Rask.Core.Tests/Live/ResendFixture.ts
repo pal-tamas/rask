@@ -1,6 +1,7 @@
 // Drives rask-resend.ts — what a connection carried that no ack answered, and what the next one sends first — and
 // prints what it did as JSON for ResendFixtureTests.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {createUnacked, MAX_UNACKED, newestSeq} from "../../../src/Rask.Server/Resources/rask-resend.js";
 
 const results: Record<string, unknown> = {};
@@ -48,4 +49,4 @@ results.seqs = [
     newestSeq(null),
 ];
 
-console.log(JSON.stringify(results));
+report(results);

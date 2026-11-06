@@ -1,12 +1,13 @@
-// Node-driven fixture for who has the last word on whether a popover, a dialog or a <details> is open:
+// Script fixture for who has the last word on whether a popover, a dialog or a <details> is open:
 // rask-owned.ts ("the reader's last word"), through the real listeners of rask-events.ts and the real
 // reconcile of rask-dom.ts.
 //
 // The host stamps a seq on every event, as the Server's does, and the fixture plays the server: `rendered`
 // is a reply writing the attribute, `answered(n)` is the ack of seq n. The popover raises its `toggle` when
 // the fixture says so, because the bug lived in the task between the browser acting and that event.
-// The C# test (OpenStateTests) runs this in a node subprocess and asserts the JSON line.
+// The C# test (OpenStateTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {elapse, listeners} from "./stub-events.js";
 import {StubPopover} from "./stub-open.js";
 import {send, setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
@@ -150,7 +151,7 @@ const runtimeClose = taken();
 listeners.close({type: "close", target: dialog});
 const readerClose = taken();
 
-process.stdout.write(JSON.stringify({
+report({
     reported,
     stale,
     answer,
@@ -160,4 +161,4 @@ process.stdout.write(JSON.stringify({
     silentIsDriven,
     details: {keptOpen, shutOnceAnswered, sent: detailsSent, writtenWhenNothingIsOwed, untouchedAttribute},
     dialog: {runtimeClose, readerClose},
-}));
+});

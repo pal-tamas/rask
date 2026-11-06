@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.TestFiles;
 
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
@@ -30,8 +29,8 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 //     dereferencing it, so the component degrades gracefully instead of
 //     throwing.
 //
-// This test exercises the production rask.wasm.js bundle in a Node
-// subprocess with a stub DOM, parks a Rask.CodeSample.rendered invoke
+// This test exercises the production rask.wasm.js bundle in-process on
+// Jint with a stub DOM, parks a Rask.CodeSample.rendered invoke
 // (the stub mirrors the post-fix defensive shape), fires 'error' on the
 // tracked <script>, and asserts the framework contract: drain proceeds,
 // warning logged, user-code-equivalent does not throw.
@@ -44,43 +43,12 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 public sealed class HeadAssetGateBugReproductionTests
 {
     [Fact]
-    public async Task A_head_asset_error_drains_the_gate_with_a_diagnostic_warning_and_defensive_user_code_does_not_throw()
+    public void A_head_asset_error_drains_the_gate_with_a_diagnostic_warning_and_defensive_user_code_does_not_throw()
     {
-        var node = ResolveNode();
-        if (node is null)
-        {
-            // No node on PATH — the JS-driven reproduction can't run. Don't
-            // hard-fail the suite; emit a diagnostic and pass. The E2E
-            // reproduction (Highlight_HljsScriptFails_*) still covers the
-            // user-observable side of the same bug under Playwright.
-            return;
-        }
+        var bundlePath = Path.Combine(LocateRepoRoot(), "src", "Rask.Wasm", "Browser", "rask.wasm.js");
+        Assert.True(File.Exists(bundlePath), $"Bundle source missing: {bundlePath} — build src/Rask.Wasm first.");
 
-        var repoRoot = LocateRepoRoot();
-        var fixtureScript = Path.Combine(AppContext.BaseDirectory, "node-fixtures", "HeadAssetGateFixture.mjs");
-        var bundlePath = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "rask.wasm.js");
-        Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
-        Assert.True(File.Exists(bundlePath), $"Bundle source missing: {bundlePath}");
-
-        var run = await TestProcess.Run(
-            node, $"\"{fixtureScript}\" \"{bundlePath}\"", timeout: TimeSpan.FromSeconds(30),
-            cancellationToken: TestContext.Current.CancellationToken);
-        var stdout = run.StandardOutput;
-        var stderr = run.StandardError;
-
-        Assert.True(run.ExitCode == 0,
-            $"Fixture exited with code {run.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
-
-        // The fixture emits one JSON line on stdout (after any console.log noise
-        // from the bundle's setExports). Locate it.
-        var jsonLine = stdout
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault(s => s.StartsWith("{") && s.EndsWith("}"));
-        Assert.False(jsonLine is null,
-            $"Fixture didn't emit a JSON line. stdout:\n{stdout}\nstderr:\n{stderr}");
-
-        using var doc = JsonDocument.Parse(jsonLine!);
-        var root = doc.RootElement;
+        var root = ScriptFixture.Run("HeadAssetGateFixture", bundlePath);
 
         // The gate's 5-second safety timeout MUST be scheduled — without it,
         // an asset that never fires either event leaves Rask.* invokes
@@ -148,26 +116,6 @@ public sealed class HeadAssetGateBugReproductionTests
             "<script> was supposed to define (`typeof window.X === 'undefined'`) before " +
             "dereferencing it: the gate drains on error and timeout as well as load, so " +
             "degrading gracefully is the contract, not an optimisation.");
-    }
-
-    private static string? ResolveNode()
-    {
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var separator = OperatingSystem.IsWindows() ? ';' : ':';
-        var exeNames = OperatingSystem.IsWindows() ? new[] { "node.exe", "node.cmd" } : new[] { "node" };
-        foreach (var dir in path.Split(separator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (var name in exeNames)
-            {
-                var candidate = Path.Combine(dir, name);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return null;
     }
 
     private static string LocateRepoRoot()

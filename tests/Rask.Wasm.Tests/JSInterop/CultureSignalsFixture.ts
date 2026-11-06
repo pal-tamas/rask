@@ -1,15 +1,15 @@
-// Node-driven fixture: which cookie and which query key does `getCultureSignals` read?
+// Script fixture: which cookie and which query key does `getCultureSignals` read?
 //
 // They are the app's RaskCultureOptions.CookieName and QueryKey, handed in by the host — not ASP.NET's
 // defaults written into the script.
 //
-// Usage:  node CultureSignalsFixture.mjs <rask.wasm.js path> <cookie header> <query string> <cookie name> <query key>
-import {readFileSync} from "node:fs";
+// Arguments (ScriptFixture.Run):  <rask.wasm.js path> <cookie header> <query string> <cookie name> <query key>
 
-const [bundlePath, cookies, search, cookieName, queryKey] = process.argv.slice(2);
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
+
+const [bundlePath, cookies, search, cookieName, queryKey] = args;
 if (!bundlePath || cookieName === undefined || queryKey === undefined) {
-    console.error("usage: node CultureSignalsFixture.mjs <rask.wasm.js path> <cookies> <search> <cookie name> <query key>");
-    process.exit(2);
+    throw new Error("CultureSignalsFixture takes: <rask.wasm.js path> <cookies> <search> <cookie name> <query key>");
 }
 
 const element = () => ({
@@ -45,9 +45,8 @@ globals.cancelAnimationFrame = () => { };
 globals.requestAnimationFrame = () => 0;
 globals.setInterval = () => 0;
 
-const bundleSource = readFileSync(bundlePath, "utf8");
-const mod = await import("data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)))) as {
+const mod = await import(bundlePath) as {
     getCultureSignals(cookieName: string, queryKey: string): string;
 };
 
-process.stdout.write(mod.getCultureSignals(cookieName, queryKey) + "\n");
+report(JSON.parse(mod.getCultureSignals(cookieName, queryKey)));

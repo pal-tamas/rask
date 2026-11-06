@@ -1,11 +1,12 @@
-// Node-driven fixture for rask-loading.ts — the mark a control carries while its own handler is in flight —
+// Script fixture for rask-loading.ts — the mark a control carries while its own handler is in flight —
 // and for the one place the morph has to know about it.
 //
 // Timers are faked: the module reads the global setTimeout/clearTimeout at call time, so replacing them
 // before any ticket is begun lets the scenarios step time exactly instead of sleeping.
 //
-// The C# test (LoadingStateTests) runs this in a node subprocess and asserts the JSON line.
+// The C# test (LoadingStateTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {
     beginLoading,
     endAllLoading,
@@ -229,7 +230,7 @@ advance(LOADING_DELAY_MS);
 endLoading(renderedScopeTicket);
 const renderedScopeMarkKept = renderedScope.hasAttribute("data-loading");
 
-process.stdout.write(JSON.stringify({
+report({
     scopeOf,
     scopeBeforeDelay,
     scopeAfterDelay,
@@ -254,4 +255,4 @@ process.stdout.write(JSON.stringify({
     morphRemovedDropped,
     afterEndMorphClean,
     morphRemovedRenderedMark,
-}) + "\n");
+});

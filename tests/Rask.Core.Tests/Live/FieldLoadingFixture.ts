@@ -1,9 +1,10 @@
-// Node-driven fixture for the field half of rask-loading.ts — the mark an input carries while the event that sent its
+// Script fixture for the field half of rask-loading.ts — the mark an input carries while the event that sent its
 // value is unanswered (Livewire's data-loading on a `wire:model.live` input).
 //
 // Timers are faked, and `document.querySelector` finds the field by the handler attribute the payload names, as the
-// browser would. The C# test (FieldLoadingTests) runs this in a node subprocess and asserts the JSON line.
+// browser would. The C# test (FieldLoadingTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {
     beginLoading,
     endLoading,
@@ -96,11 +97,11 @@ advance(LOADING_DELAY_MS);
 const buttonBusy = button.hasAttribute("aria-busy");
 endLoading(pressed);
 
-process.stdout.write(JSON.stringify({
+report({
     target,
     beforeDelay,
     duringLoading,
     busyWhileLoading,
     afterEnd,
     buttonBusy,
-}) + "\n");
+});

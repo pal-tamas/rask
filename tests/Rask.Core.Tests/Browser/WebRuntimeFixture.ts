@@ -1,7 +1,7 @@
-// Node-driven fixture for Rask.Web's runtime (src/Rask.Core/Resources/rask-api.ts, __raskWeb): what a chain's run
-// answers with as data, and the patches it consults on the way. The C# test (WebRuntimeTests) runs this in a node
-// subprocess and asserts the JSON on stdout.
+// Script fixture for Rask.Web's runtime (src/Rask.Core/Resources/rask-api.ts, __raskWeb): what a chain's run
+// answers with as data, and the patches it consults on the way. The C# test (WebRuntimeTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import "./WebRuntimeWindow.js";
 import "../../../src/Rask.Core/Resources/rask-api.js";
 
@@ -48,9 +48,4 @@ async function run(): Promise<Any> {
     };
 }
 
-run().then(
-    (result) => console.log(JSON.stringify(result)),
-    (error) => {
-        console.error(error);
-        process.exit(1);
-    });
+report(await run());

@@ -1,4 +1,4 @@
-// Node-driven fixture for the keyed reconciliation's ANCHOR
+// Script fixture for the keyed reconciliation's ANCHOR
 // (Rask.Core/Resources/rask-morph.ts — the `if (keyed)` branch).
 //
 // A prerendered <head> is [shell nodes][document nodes], while the runtime's full-frame payload carries
@@ -15,6 +15,7 @@
 // than the snapshot the loop started with — the DOM is mutated as it goes, so a snapshot stops
 // describing it after the first insert.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -125,7 +126,7 @@ try {
     error = String((e && (e instanceof Error ? e.message : String(e))) || e);
 }
 
-process.stdout.write(JSON.stringify({
+report({
     threw,
     error,
     moves,
@@ -135,4 +136,4 @@ process.stdout.write(JSON.stringify({
     sameCss: fromHead._kids.includes(docCss),
     sameMeta: fromHead._kids.includes(docMeta),
     children: fromHead._kids.map((c) => c.nodeName)
-}) + "\n");
+});

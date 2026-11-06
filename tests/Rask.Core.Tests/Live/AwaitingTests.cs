@@ -7,22 +7,18 @@ namespace Rask.Core.Tests.Live;
 ///     event or navigation a host sent has been answered, and an answer reported twice counts once.
 /// </summary>
 /// <remarks>
-///     Drives the production module in a Node subprocess (<c>AwaitingFixture.ts</c>). The hosts' wiring — which send
+///     Drives the production module in-process on Jint (<c>AwaitingFixture.ts</c>). The hosts' wiring — which send
 ///     takes one, which render answers it — and the table skeleton that waits on it are covered in a real browser by
 ///     <c>TableSkeletonTests</c>.
 /// </remarks>
 public sealed class AwaitingTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("AwaitingFixture");
+    private static JsonElement Run() => ScriptFixture.Run("AwaitingFixture");
 
     [Fact]
     public void The_hooks_hear_once_when_the_last_answer_is_in_and_a_second_report_changes_nothing()
     {
-        // Node is not installed: TableSkeletonTests covers the same in a browser.
-        if (Run() is not { } said)
-        {
-            return;
-        }
+        var said = Run();
 
         Assert.False(said.GetProperty("idle").GetBoolean());
         Assert.True(said.GetProperty("whileTwo").GetBoolean());

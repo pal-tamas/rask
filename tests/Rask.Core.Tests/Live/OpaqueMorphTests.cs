@@ -11,20 +11,14 @@ namespace Rask.Core.Tests.Live;
 // Without the boundary the positional walk trims all of it, and the component goes blank on the next
 // full reply.
 //
-// Runs the production rask-morph.ts under node; see OpaqueMorphFixture.ts.
+// Runs the production rask-morph.ts on Jint; see OpaqueMorphFixture.ts.
 public sealed class OpaqueMorphTests
 {
     [Fact]
     public void Morphing_an_opaque_host_keeps_foreign_children_and_still_updates_props()
     {
-        var doc = NodeFixture.Run("OpaqueMorphFixture");
-        if (doc is null)
-        {
-            // No node on PATH. The browser E2E covers the user-observable half.
-            return;
-        }
-
-        var opaque = doc.Value.GetProperty("opaque");
+        var doc = ScriptFixture.Run("OpaqueMorphFixture");
+        var opaque = doc.GetProperty("opaque");
 
         Assert.False(opaque.GetProperty("threw").GetBoolean(),
             $"morph threw: {opaque.GetProperty("error").GetString()}");
@@ -44,13 +38,8 @@ public sealed class OpaqueMorphTests
         // The negative control, and the reason the test above is worth having. Identical shapes with
         // the marker off: the morph really does trim the whole subtree. Without this, a boundary that
         // silently stopped working would still look green.
-        var doc = NodeFixture.Run("OpaqueMorphFixture");
-        if (doc is null)
-        {
-            return;
-        }
-
-        var transparent = doc.Value.GetProperty("transparent");
+        var doc = ScriptFixture.Run("OpaqueMorphFixture");
+        var transparent = doc.GetProperty("transparent");
 
         Assert.False(transparent.GetProperty("threw").GetBoolean(),
             $"morph threw: {transparent.GetProperty("error").GetString()}");

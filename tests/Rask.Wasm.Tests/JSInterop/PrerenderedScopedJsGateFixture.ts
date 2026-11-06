@@ -1,4 +1,4 @@
-// Node-driven fixture: does a scoped-JS <script> that arrived IN THE SERVED DOCUMENT hold Rask.* invokes?
+// Script fixture: does a scoped-JS <script> that arrived IN THE SERVED DOCUMENT hold Rask.* invokes?
 //
 // A prerendered page ships its <script data-rask-key="rsk-js" defer> in <head>. The parser runs it before
 // main.js imports the runtime, so its load event has fired long before the runtime could listen for one.
@@ -7,13 +7,12 @@
 // refresh. A scoped script the MORPH inserts later is a different case, deliberately left waiting for its
 // load event: its namespace does not exist until it has run.
 //
-// Drives the built rask.wasm.js against a minimal stub DOM and prints one JSON line.
-import {readFileSync} from "node:fs";
+// Drives the built rask.wasm.js against a minimal stub DOM and reports one JSON value.
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const bundlePath = process.argv[2];
+const bundlePath = args[0];
 if (!bundlePath) {
-    console.error("usage: node PrerenderedScopedJsGateFixture.mjs <rask.wasm.js path>");
-    process.exit(2);
+    throw new Error("PrerenderedScopedJsGateFixture takes: <rask.wasm.js path>");
 }
 
 interface StubElement {
@@ -101,9 +100,7 @@ const realSetTimeout = globals.setTimeout as (fn: () => void, delay?: number) =>
 globals.setTimeout = (fn: () => void, delay?: number) => (delay ?? 0) >= 100 ? 0 : realSetTimeout(fn, delay);
 globals.setInterval = () => 0;
 
-const bundleSource = readFileSync(bundlePath, "utf8");
-const moduleUrl = "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)));
-const mod = await import(moduleUrl) as {
+const mod = await import(bundlePath) as {
     setExports(exports: unknown): void;
     beginInvokeJS(taskId: string, identifier: string, argsJson: string | null, resultType: number,
                   targetInstanceId: string): void;
@@ -127,4 +124,4 @@ mod.beginInvokeJS("1", "Rask.Measure.width", "[]", 3, "0");
 await flush();
 const servedScriptHeldTheInvoke = !fired.includes("Measure.width");
 
-process.stdout.write(JSON.stringify({servedScriptHeldTheInvoke}) + "\n");
+report({servedScriptHeldTheInvoke});

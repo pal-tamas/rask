@@ -1,4 +1,4 @@
-// Node-driven fixture for the Rask.Wasm head-asset / scoped-JS invoke gate.
+// Script fixture for the Rask.Wasm head-asset / scoped-JS invoke gate.
 //
 // Goal: at the JS layer, reproduce the user-reported "undefined is not an
 // object (evaluating 'window.hljs.highlightElement')" crash. The crash
@@ -22,16 +22,15 @@
 //   * fire 'error' on the script
 //   * observe whether the queued invoke ran anyway
 //
-// The C# test (HeadAssetErrorDrainsQueueTests) consumes the single JSON
-// line on stdout and asserts the recorded values match the bug pattern.
+// The C# test (HeadAssetErrorDrainsQueueTests) consumes what it
+// reports and asserts the recorded values match the bug pattern.
 // When the bug is fixed (gate stops draining on 'error'/timeout), the
 // expectations flip and the test reads as a regression guard.
-import {readFileSync} from "node:fs";
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const bundlePath = process.argv[2];
+const bundlePath = args[0];
 if (!bundlePath) {
-    console.error("usage: node HeadAssetGateFixture.mjs <rask.wasm.js path>");
-    process.exit(2);
+    throw new Error("HeadAssetGateFixture takes: <rask.wasm.js path>");
 }
 
 // ----- Minimal browser stubs -----
@@ -144,7 +143,7 @@ body.contains = () => false;
 body.setAttribute("data-rask-root", "");
 
 /**
- * The browser globals the bundle reaches for, none of which Node has.
+ * The browser globals the bundle reaches for, none of which a bare JS engine has.
  *
  * One `unknown`-typed view rather than a cast at each assignment: every one of these is a partial
  * fake, and saying so once keeps the assignments below reading as the list of things the bundle
@@ -202,8 +201,8 @@ globals.history = {
 globals.cancelAnimationFrame = () => {
 };
 globals.requestAnimationFrame = () => 0;
-// Node already exposes a (getter-only) `crypto` global on v19+; skip the
-// override if one is present so the assignment doesn't fault here.
+// The fixture host already provides `crypto` (as Node >= 19 does); keep it
+// rather than override it with a stub.
 if (typeof globals.crypto === "undefined") {
     globals.crypto = {randomUUID: () => "stub-uuid"};
 }
@@ -221,10 +220,7 @@ globals.setTimeout = (fn: () => void, delay?: number) => {
 };
 
 // ----- Load the bundle -----
-const bundleSource = readFileSync(bundlePath, "utf8");
-// btoa rather than Buffer: it is standard, so the fixture needs no further Node declarations.
-const moduleUrl = "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)));
-const mod = await import(moduleUrl) as {
+const mod = await import(bundlePath) as {
     applyRender(bytes: Uint8Array): void;
     setExports(exports: unknown): void;
     // Mirrors the export in rask.wasm.ts. taskId and targetInstanceId are STRINGS: they cross the
@@ -338,8 +334,8 @@ hljsScript._dispatch("error");
 await flushMicrotasks();
 const firedAfterError = invokeFired;
 
-// Single JSON line for the C# test to parse.
-process.stdout.write(JSON.stringify({
+// One report for the C# test to parse.
+report({
     firedBeforeError,         // false — gate held the invoke while asset pending
     firedAfterError,          // true  — gate drained on error (so page doesn't hang)
     invokeSawHljs,            // false — at invoke time, the failed asset's global is still undefined
@@ -350,4 +346,4 @@ process.stdout.write(JSON.stringify({
     // asset that failed.
     warnedAboutFailedAsset: capturedWarnings.some((w: string) =>
         w.includes("[Rask]") && w.includes("highlight.min.js") && w.includes("error"))
-}) + "\n");
+});

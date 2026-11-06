@@ -20,23 +20,14 @@ namespace Rask.Core.Tests.Live;
 //
 // Fix: advance `anchor` past a from-node before removing it (the node-name-mismatch branch).
 //
-// This exercises the production rask-morph.ts in a Node subprocess with a stub DOM whose
+// This exercises the production rask-morph.ts in-process on Jint with a stub DOM whose
 // insertBefore throws exactly like a browser. Pairs with the StandaloneWasm E2E.
 public sealed class KeyedHeadMorphTests
 {
     [Fact]
     public void A_keyed_head_morph_against_an_SDK_injected_head_does_not_throw_and_converges()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("KeyedHeadMorphFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("KeyedHeadMorphFixture");
 
         // The keyed reconciliation must NOT throw — this is the assertion that fails pre-fix
         // (insertBefore against the stale anchor pointing at the removed <base>).

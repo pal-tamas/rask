@@ -1,11 +1,11 @@
-// Node-driven fixture for the parts of the runtime's behaviour hooks that are pure: how a mask shapes text and
+// Script fixture for the parts of the runtime's behaviour hooks that are pure: how a mask shapes text and
 // where it leaves the caret, which characters a one-time-code cell accepts, the safe-area triangle towards a
 // submenu, and the registry of attributes a hook holds against the morph.
 //
 // Everything a browser has to prove — pointers, focus, the top layer — is in RuntimeHook*Tests of
-// Rask.Server.E2E.Tests. The C# test (RuntimeHookShapingTests) runs this in a node subprocess and asserts
-// the JSON line.
+// Rask.Server.E2E.Tests. The C# test (RuntimeHookShapingTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {maskMoney, maskPattern, COPIED_MS} from "../../../src/Rask.Core/Resources/rask-field.js";
 import {otpChars} from "../../../src/Rask.Core/Resources/rask-otp.js";
 import {safeArea} from "../../../src/Rask.Core/Resources/rask-menu.js";
@@ -46,7 +46,7 @@ const otherElement = ownsAttr(b, "data-open");
 disown(a, "data-open");
 own(b, "checked");
 
-console.log(JSON.stringify({
+report({
     copiedMs: COPIED_MS,
     pattern: {
         noisy: maskPattern("7a16x1234567890", phone),
@@ -165,4 +165,4 @@ console.log(JSON.stringify({
             landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 1500, 1920, 1080, false, true)].map((to) => [to.x, to.y, to.cap]),
     },
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},
-}));
+});

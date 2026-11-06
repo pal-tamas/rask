@@ -1,9 +1,10 @@
-// Node-driven fixture for rask-submitting.ts — what a form does while its submit is in flight — and for the
+// Script fixture for rask-submitting.ts — what a form does while its submit is in flight — and for the
 // one place the morph has to know about it.
 //
 // Timers are faked as in LoadingStateFixture: the hard timeout is stepped, not slept. The C# test
-// (FormSubmittingTests) runs this in a node subprocess and asserts the JSON line.
+// (FormSubmittingTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {LOADING_HARD_TIMEOUT_MS} from "../../../src/Rask.Core/Resources/rask-loading.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {ownsAttr} from "../../../src/Rask.Core/Resources/rask-owned.js";
@@ -180,7 +181,7 @@ holdForm(dom(dropB));
 releaseAllForms();
 const disconnectReleased = !isSubmitting(dom(dropA)) && !isSubmitting(dom(dropB));
 
-process.stdout.write(JSON.stringify({
+report({
     before,
     atPress,
     secondRefused: second === null,
@@ -194,4 +195,4 @@ process.stdout.write(JSON.stringify({
     hungHeld,
     hardTimeoutReleased,
     disconnectReleased,
-}) + "\n");
+});

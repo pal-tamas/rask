@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared client morph's POSITIONAL child pairing
+// Script fixture for the shared client morph's POSITIONAL child pairing
 // (Rask.Core/Resources/rask-morph.ts — the walk under `const max = Math.max(fc.length, tc.length)`).
 //
 // Reproduces the WASM prerender hydration flash: the published page paints one completely unstyled
@@ -20,9 +20,10 @@
 // formatting whitespace from BOTH sides when pairing the children of <html>/<head> — the containers
 // where such text is never rendered — so HEAD pairs with HEAD and BODY with BODY.
 //
-// The C# test (PrerenderWhitespaceMorphTests) runs this in a node subprocess and asserts the single
-// JSON line on stdout.
+// The C# test (PrerenderWhitespaceMorphTests) runs this on Jint and asserts the single
+// what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -138,7 +139,7 @@ try {
     error = String((e && (e instanceof Error ? e.message : String(e))) || e);
 }
 
-process.stdout.write(JSON.stringify({
+report({
     threw,
     error,
     // The whole point: the live <body> must be the SAME OBJECT after the morph, not a replacement.
@@ -149,4 +150,4 @@ process.stdout.write(JSON.stringify({
     // <body>, which is NOT one of the containers that ignores formatting text -- so this also pins
     // that the filter stayed scoped to <html>/<head>.
     bodyText: liveDiv._kids[0]?.nodeValue ?? ""
-}) + "\n");
+});

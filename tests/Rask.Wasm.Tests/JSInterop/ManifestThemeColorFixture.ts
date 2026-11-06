@@ -1,4 +1,4 @@
-// Node-driven fixture for the WASM manifest injector, `window.__raskPwa.applyManifest`
+// Script fixture for the WASM manifest injector, `window.__raskPwa.applyManifest`
 // (Rask.Wasm/Resources/rask-wasm-api.ts).
 //
 // The symptom it guards: rask.sh's browser toolbar tint blinked on every boot. The page's head declares
@@ -12,13 +12,12 @@
 //   * the page declares none           -> the manifest's colour is added as the fallback
 //   * the page declares a light/dark pair -> both left alone (the old code rewrote the first)
 //
-// The C# test (ManifestThemeColorTests) runs this in a node subprocess and asserts the JSON line.
-import {readFileSync} from "node:fs";
+// The C# test (ManifestThemeColorTests) runs this on Jint and asserts what it reports.
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const bundlePath = process.argv[2];
+const bundlePath = args[0];
 if (!bundlePath) {
-    console.error("usage: node ManifestThemeColorFixture.mjs <rask.wasm.js path>");
-    process.exit(2);
+    throw new Error("ManifestThemeColorFixture takes: <rask.wasm.js path>");
 }
 
 interface StubElement {
@@ -102,8 +101,7 @@ globals.history = {replaceState: () => { }, pushState: () => { }};
 globals.requestAnimationFrame = () => 0;
 globals.cancelAnimationFrame = () => { };
 
-const bundleSource = readFileSync(bundlePath, "utf8");
-await import("data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource))));
+await import(bundlePath);
 
 const pwa = (globalThis as unknown as { __raskPwa: { applyManifest(json: string): void } }).__raskPwa;
 const manifest = JSON.stringify({name: "App", start_url: "/", theme_color: "#512BD4"});
@@ -131,4 +129,4 @@ head.appendChild(el("meta", {name: "theme-color", content: "#000000", media: "(p
 pwa.applyManifest(manifest);
 const pair = themeColors();
 
-console.log(JSON.stringify({declared, manifestLinked, undeclared, pair}));
+report({declared, manifestLinked, undeclared, pair});

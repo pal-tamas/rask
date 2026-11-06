@@ -7,12 +7,12 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 // again — and everything else has to stay network-first, because cache-first on a URL whose bytes can
 // change is a stale app for ever.
 //
-// Driven through a Node subprocess against the built Browser/rask-sw.js (see
+// Driven in-process on Jint against the built Browser/rask-sw.js (see
 // ServiceWorkerCacheFixture.ts): which requests reach the network is behaviour, not text.
 public sealed class ServiceWorkerCacheTests
 {
-    // One node run for the whole class: the fixture reports every case in a single JSON line.
-    private static readonly Lazy<JsonElement?> Fixture = new(RunFixture);
+    // One run for the whole class: the fixture reports every case at once.
+    private static readonly Lazy<JsonElement> Fixture = new(RunFixture);
 
     [Theory]
     [InlineData("frameworkCached")]
@@ -104,20 +104,14 @@ public sealed class ServiceWorkerCacheTests
         Assert.Equal("failed", result.GetProperty("served").GetString());
     }
 
-    private static JsonElement Results()
-    {
-        var results = Fixture.Value;
-        Assert.SkipWhen(results is null, "node is not on PATH, so the JS-driven service worker fixture cannot run.");
+    private static JsonElement Results() => Fixture.Value;
 
-        return results!.Value;
-    }
-
-    private static JsonElement? RunFixture()
+    private static JsonElement RunFixture()
     {
         var worker = Path.Combine(RepoRoot(), "src", "Rask.Wasm", "Browser", "rask-sw.js");
         Assert.True(File.Exists(worker), $"Worker missing: {worker} — build src/Rask.Wasm first.");
 
-        return NodeFixture.Run("ServiceWorkerCacheFixture", worker);
+        return ScriptFixture.Run("ServiceWorkerCacheFixture", worker);
     }
 
     private static string RepoRoot()

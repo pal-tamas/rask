@@ -7,20 +7,17 @@ namespace Rask.Core.Tests.Live;
 ///     itself offline, and while a host's live connection is down — whichever of the two is true.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-offline.ts</c> in a Node subprocess (<c>OfflineFixture.ts</c>). The journeys on
+///     Drives the production <c>rask-offline.ts</c> in-process on Jint (<c>OfflineFixture.ts</c>). The journeys on
 ///     a real socket are <c>OfflineAndReconnectTests</c> in <c>Rask.Server.E2E.Tests</c>.
 /// </remarks>
 public sealed class OfflineMarkClientTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("OfflineFixture");
+    private static JsonElement Run() => ScriptFixture.Run("OfflineFixture");
 
     [Fact]
     public void An_online_page_carries_no_mark_and_the_browser_going_offline_adds_it_and_coming_back_takes_it_off()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var online = root.GetProperty("online").GetBoolean();
         var offline = root.GetProperty("afterTheBrowserWentOffline").GetBoolean();
@@ -34,10 +31,7 @@ public sealed class OfflineMarkClientTests
     [Fact]
     public void A_connection_that_is_down_marks_the_page_though_the_browser_is_online_and_only_its_return_clears_it()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var down = root.GetProperty("whileTheConnectionIsDown").GetBoolean();
         var browserBack = root.GetProperty("browserBackButSocketStillDown").GetBoolean();

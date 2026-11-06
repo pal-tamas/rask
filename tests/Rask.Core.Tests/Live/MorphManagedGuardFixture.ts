@@ -1,4 +1,4 @@
-// Node-driven fixture for rask-morph.js's data-rask-managed handling (both sides of the
+// Script fixture for rask-morph.js's data-rask-managed handling (both sides of the
 // child-reconciliation filter).
 //
 // data-rask-managed marks nodes that are live but ABSENT from the .NET render payload (a
@@ -12,7 +12,7 @@
 //     (the playground's unbounded empty .pg-code-host growth, issue #419). The guard skips it,
 //     turning the misuse into a harmless no-op.
 //
-// The C# test (MorphManagedGuardTests) runs this in a node subprocess and asserts the JSON line.
+// The C# test (MorphManagedGuardTests) runs this on Jint and asserts what it reports.
 
 
 // ----- Minimal DOM stub (child list with sibling relinking) -----------------------
@@ -22,6 +22,7 @@
 // pasted into a host's scope — there was no other way to reach them, nothing checked that the names
 // in that string still existed, and it stops working the moment a module has real `export`s.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, asStubParent, installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -134,11 +135,11 @@ morph(asDom(stubHead), asDom(makeEl("HEAD")));
 morph(asDom(stubHead), asDom(makeEl("HEAD")));
 const headWatchArmed = g.__raskHeadObserverArmed === true;
 
-process.stdout.write(JSON.stringify({
+report({
     misuseHostCount,     // 1 — no duplicate empty host appended (was 3 after two frames pre-guard)
     misuseMonacoKept,    // true — the original host and its Monaco DOM untouched
     correctHostCount,    // 1 — single host
     correctMonacoKept,   // true — marked child survives a childless incoming host
     headWatchArmed,      // true — arming set the flag an island runtime loading later reads
     handoffCalls         // 1 — the island runtime's watch was handed over once, not per head morph
-}) + "\n");
+});

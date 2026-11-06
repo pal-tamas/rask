@@ -8,6 +8,8 @@
     <!-- Shared test-helper library, not a test project: references xunit.v3.assert (for Assert in
          Markup) but ships no test runner, so dotnet test must not try to execute it. -->
     <IsTestProject>false</IsTestProject>
+    <!-- ScriptFixtures/fixture.ts is the API the test projects' fixtures import, not a component's scoped TypeScript. -->
+    <RaskScopedTsAutoInclude>false</RaskScopedTsAutoInclude>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +19,13 @@
   <ItemGroup>
     <PackageReference Include="xunit.v3.assert"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
+    <!-- ScriptFixture's engine: the *Fixture.ts harnesses run in-process on it, so no test needs Node. -->
+    <PackageReference Include="Jint"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The web globals every fixture runs after, read by WebGlobals. -->
+    <EmbeddedResource Include="ScriptFixtures\web-globals.js" LogicalName="Rask.TestSupport.ScriptFixtures.web-globals.js"/>
   </ItemGroup>
 
   <ItemGroup>

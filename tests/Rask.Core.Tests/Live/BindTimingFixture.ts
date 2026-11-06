@@ -1,9 +1,9 @@
-// Node-driven fixture for rask-input.ts — a bound field that waits: `.Debounce(…)` (data-rask-debounce beside
+// Script fixture for rask-input.ts — a bound field that waits: `.Debounce(…)` (data-rask-debounce beside
 // data-rask-on-input) and `.Blur()` (data-rask-bind-on beside data-rask-on-change).
 //
-// Time passes when the fixture says so (stub-events.ts). The C# test (BindTimingClientTests) runs this in a
-// node subprocess and asserts the JSON line.
+// Time passes when the fixture says so (stub-events.ts). The C# test (BindTimingClientTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {elapse, frame, listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {changeSent, flushInputsNow} from "../../../src/Rask.Core/Resources/rask-input.js";
@@ -193,7 +193,7 @@ const ownedByHost = changeSent(field as unknown as Element);
 flushInputsNow();
 const afterNativeChange = sent.slice();
 
-process.stdout.write(JSON.stringify({
+report({
     beforePause,
     atPause,
     afterPause,
@@ -221,4 +221,4 @@ process.stdout.write(JSON.stringify({
     changedSince,
     ownedByHost,
     afterNativeChange,
-}) + "\n");
+});

@@ -1,23 +1,22 @@
-// Node-driven fixture: what happens to an island callback fired BEFORE the WASM app has booted?
+// Script fixture: what happens to an island callback fired BEFORE the WASM app has booted?
 //
 // A prerendered page mounts its islands from the served HTML, so a visitor can press one seconds
 // before .NET exists. The runtime used to drop that callback with a console warning. It now holds it
 // until the first frame is applied and delivers it — but only to the island that fired it, because
 // handler ids are positional and the prerendered page was rendered by another process.
 //
-// Drives the built rask.wasm.js against a minimal stub DOM and prints one JSON line.
+// Drives the built rask.wasm.js against a minimal stub DOM and reports one JSON value.
 //
-// Usage:  node EarlyIslandCallbackFixture.mjs <rask.wasm.js path> <scenario>
+// Arguments (ScriptFixture.Run):  <rask.wasm.js path> <scenario>
 //   delivered      one callback before boot; the live page still has that island.
 //   other-island   the id belongs to a different island once the app has rendered.
 //   bounded        forty callbacks before boot.
 //   dom-event      a DOM event before boot, which is still dropped (#973).
-import {readFileSync} from "node:fs";
+import {args, report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 
-const [bundlePath, scenario] = process.argv.slice(2);
+const [bundlePath, scenario] = args;
 if (!bundlePath || !scenario) {
-    console.error("usage: node EarlyIslandCallbackFixture.mjs <rask.wasm.js path> <scenario>");
-    process.exit(2);
+    throw new Error("EarlyIslandCallbackFixture takes: <rask.wasm.js path> <scenario>");
 }
 
 interface StubElement {
@@ -100,9 +99,7 @@ globals.setInterval = () => 0;
 const warnings: string[] = [];
 console.warn = (...args: unknown[]) => void warnings.push(args.map(String).join(" "));
 
-const bundleSource = readFileSync(bundlePath, "utf8");
-const moduleUrl = "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(bundleSource)));
-const mod = await import(moduleUrl) as {
+const mod = await import(bundlePath) as {
     setExports(exports: unknown): void;
     applyRender(payload: Uint8Array): void;
 };
@@ -152,4 +149,4 @@ firstFrame();
 await flush();
 await flush();
 
-process.stdout.write(JSON.stringify({dispatchedBeforeBoot, dispatched, warnings}) + "\n");
+report({dispatchedBeforeBoot, dispatched, warnings});

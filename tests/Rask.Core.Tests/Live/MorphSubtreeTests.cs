@@ -5,7 +5,7 @@ namespace Rask.Core.Tests.Live;
 // rask-morph.ts `morph`). MorphSubtree is the Raw-tainted fallback shrunk from a
 // full-document morph to one parent's children: the server emits it (FrameDifferTests
 // pins the op) and the client morphs just that subtree. This exercises the production
-// applyDiff + morph in a Node subprocess and asserts the scoped morph converges without
+// applyDiff + morph in-process on Jint and asserts the scoped morph converges without
 // touching a focused node outside the morphed parent. Real-browser coverage of the same
 // op rides the Playwright E2E guide journeys.
 public sealed class MorphSubtreeTests
@@ -13,16 +13,7 @@ public sealed class MorphSubtreeTests
     [Fact]
     public void MorphSubtree_reconciles_a_tainted_subtree_without_disturbing_focus_outside_it()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("MorphSubtreeFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("MorphSubtreeFixture");
 
         Assert.False(root.GetProperty("threw").GetBoolean(),
             $"applyDiff threw: {root.GetProperty("error").GetString()}");

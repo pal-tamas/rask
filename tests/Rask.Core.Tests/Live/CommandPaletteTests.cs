@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Rask.Core.Tests.Live;
 
 /// <summary>
-///     The rules of the runtime's command palette (<c>rask-command.ts</c>), run under Node: which commands a query
+///     The rules of the runtime's command palette (<c>rask-command.ts</c>), run on Jint: which commands a query
 ///     leaves in the list, and which one an arrow key lights.
 /// </summary>
 public class CommandPaletteTests
@@ -11,10 +11,7 @@ public class CommandPaletteTests
     [Fact]
     public void A_query_keeps_the_commands_that_contain_it_whatever_the_case_or_the_accents()
     {
-        if (NodeFixture.Run("CommandPaletteFixture") is not { } rules)
-        {
-            return;
-        }
+        var rules = ScriptFixture.Run("CommandPaletteFixture");
 
         var kept = new[] { "plain", "anyCase", "accentInTheCommand", "accentInTheQuery", "nothingTyped" }.Select(rule => Says(rules, rule));
 
@@ -25,10 +22,7 @@ public class CommandPaletteTests
     [Fact]
     public void An_arrow_lights_the_next_command_shown_and_stops_at_the_ends()
     {
-        if (NodeFixture.Run("CommandPaletteFixture") is not { } rules)
-        {
-            return;
-        }
+        var rules = ScriptFixture.Run("CommandPaletteFixture");
 
         var (next, back) = (Lit(rules, "next"), Lit(rules, "back"));
         var (atTheEnd, atTheStart) = (Lit(rules, "stopsForward"), Lit(rules, "stopsBack"));
@@ -42,10 +36,7 @@ public class CommandPaletteTests
     [Fact]
     public void With_nothing_lit_an_arrow_lights_the_near_end_and_with_one_lit_it_stays_when_nothing_else_is_shown()
     {
-        if (NodeFixture.Run("CommandPaletteFixture") is not { } rules)
-        {
-            return;
-        }
+        var rules = ScriptFixture.Run("CommandPaletteFixture");
 
         var (first, last) = (Lit(rules, "first"), Lit(rules, "last"));
         var (alone, none, empty) = (Lit(rules, "onlyOne"), Lit(rules, "none"), Lit(rules, "empty"));

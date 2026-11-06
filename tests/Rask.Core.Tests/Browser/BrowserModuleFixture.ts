@@ -1,26 +1,27 @@
-// Node-driven fixture for the shared browser layer (src/Rask.Core/Resources/browser/*.ts).
+// Script fixture for the shared browser layer (src/Rask.Core/Resources/browser/*.ts).
 //
-// Two things are under test here, and the second one is the reason this runs in NODE rather than a
-// browser.
+// Two things are under test here, and the second one is the reason this runs on a bare JS engine rather
+// than a browser.
 //
 //  1. BEHAVIOUR. These modules were extracted out of rask-api.ts, where they had been driven only by
 //     C# through a dotted IJSRuntime identifier. An extraction that compiles and bundles proves
 //     nothing about whether each request is still built the same way — so the mapping of every
 //     moved function is asserted here.
 //
-//  2. SSR SAFETY, by construction. Node has no window and no document. ES imports are hoisted and
+//  2. SSR SAFETY, by construction. The engine has no window and no document. ES imports are hoisted and
 //     evaluated before any statement below, so if ANY module in ./browser/ touched one at import
-//     time, this process would die on the import with a ReferenceError and print nothing. That is
+//     time, this run would die on the import with a ReferenceError and report nothing. That is
 //     precisely the failure a Next or Nuxt server render would hit, and it is why the rule is "side
 //     effects live in globals.ts and nowhere else". Note what is deliberately NOT imported:
 //     ./globals.ts, which assigns to window and is the framework's own entry point.
 //
-//     Node DOES define `navigator` (>= 21), which is the sharper lesson: a module cannot decide it is
-//     on a server by finding no navigator. Every capability check has to name the capability —
+//     A server runtime DOES define `navigator` (Node >= 21; the fixture host does too), which is the
+//     sharper lesson: a module cannot decide it is on a server by finding no navigator. Every capability check has to name the capability —
 //     `navigator.geolocation`, `navigator.mediaDevices` — never merely the object holding it.
 //
-// The C# test (BrowserModuleTests) runs this in a node subprocess and asserts the JSON on stdout.
+// The C# test (BrowserModuleTests) runs this on Jint and asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import * as auth from "../../../src/Rask.Core/Resources/browser/auth.js";
 
 // Reaching this line at all is assertion (2): every import above evaluated with no DOM present.
@@ -28,8 +29,8 @@ const importedWithoutADom = true;
 
 type Any = Record<string, unknown>;
 
-// defineProperty rather than assignment: node >= 21 ships its own `navigator` global as a
-// getter-only accessor, so `globalThis.navigator = …` throws. Worth knowing beyond this fixture —
+// defineProperty rather than assignment: Node >= 21 ships its own `navigator` global as a
+// getter-only accessor, so `globalThis.navigator = …` throws there. Worth knowing beyond this fixture —
 // it means a module cannot rely on `typeof navigator === "undefined"` to detect a server, which is
 // why each function below checks for the capability it needs rather than for a DOM.
 function define(name: string, value: unknown): void {
@@ -62,7 +63,7 @@ async function run(): Promise<Any> {
     await auth.login({email: "ada@example.com", password: "pw"});
     const authLoginRequest = lastRequest;
 
-    // A SERVER render: an absolute base URL, and the visitor's cookie forwarded by hand because node
+    // A SERVER render: an absolute base URL, and the visitor's cookie forwarded by hand because a server
     // has no cookie jar. GET /me carries no CSRF header — it changes nothing.
     captureFetch(204, null);
     await auth.me({baseUrl: "http://127.0.0.1:8080/", headers: {cookie: "rask.auth=abc"}});
@@ -150,9 +151,4 @@ async function run(): Promise<Any> {
     };
 }
 
-run().then(
-    (result) => console.log(JSON.stringify(result)),
-    (error) => {
-        console.error(error);
-        process.exit(1);
-    });
+report(await run());

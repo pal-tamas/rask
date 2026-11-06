@@ -1,4 +1,4 @@
-// The typed stub DOM the Node fixtures build their scenarios on.
+// The typed stub DOM the script fixtures build their scenarios on.
 //
 // Each fixture drives a real framework module — the morph, the diff codec — against nodes in states
 // a browser only reaches through genuine user interaction: a `value` attribute and a `.value`

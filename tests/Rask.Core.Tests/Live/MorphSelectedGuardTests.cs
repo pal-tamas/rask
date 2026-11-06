@@ -20,23 +20,14 @@ namespace Rask.Core.Tests.Live;
 // so one write moves the whole group instead of leaving a single-select momentarily showing its first
 // option between a remove-op and a set-op.
 //
-// Exercises the production rask-morph.ts + rask-dom.ts in a Node subprocess with a stub DOM, alongside
+// Exercises the production rask-morph.ts + rask-dom.ts in-process on Jint with a stub DOM, alongside
 // MorphCheckedGuardTests. Pairs with the WASM/Server E2E journeys, which cover the user-visible side.
 public sealed class MorphSelectedGuardTests
 {
     [Fact]
     public void A_stale_render_does_not_clobber_the_just_picked_option_then_releases()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a
-        // failure: node is not required to build or test Rask, and the browser-observable
-        // half of this behaviour is covered by an E2E test.
-        var result = NodeFixture.Run("MorphSelectedGuardFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("MorphSelectedGuardFixture");
 
         bool Get(string name) => root.GetProperty(name).GetBoolean();
 

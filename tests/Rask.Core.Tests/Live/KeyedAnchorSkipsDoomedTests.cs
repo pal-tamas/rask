@@ -21,15 +21,7 @@ public sealed class KeyedAnchorSkipsDoomedTests
     [Fact]
     public void A_head_whose_survivors_are_already_in_order_moves_nothing()
     {
-        // No node on PATH — the JS-driven reproduction cannot run. Deliberately not a failure: node is
-        // not required to build or test Rask.
-        var result = NodeFixture.Run("KeyedAnchorSkipsDoomedFixture");
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = ScriptFixture.Run("KeyedAnchorSkipsDoomedFixture");
 
         Assert.False(root.GetProperty("threw").GetBoolean(),
             $"keyed head morph threw: {root.GetProperty("error").GetString()}");

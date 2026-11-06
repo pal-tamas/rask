@@ -9,15 +9,9 @@ public sealed class MorphCatchUpTests
     [Fact]
     public void A_catch_up_leaves_what_was_typed_and_ticked_where_it_repeats_the_render_and_takes_what_it_changed()
     {
-        var result = NodeFixture.Run("MorphCatchUpFixture");
+        var result = ScriptFixture.Run("MorphCatchUpFixture");
 
-        // Node is not required to test Rask; the browser half is the E2E above.
-        if (result is null)
-        {
-            return;
-        }
-
-        var root = result.Value;
+        var root = result;
         Assert.Equal("half a thought", root.GetProperty("catchUpRepeats").GetString());
         Assert.Equal("from the server", root.GetProperty("catchUpChanges").GetString());
         Assert.Equal(string.Empty, root.GetProperty("pageRepeats").GetString());

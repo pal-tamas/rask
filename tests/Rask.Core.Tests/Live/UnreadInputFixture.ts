@@ -1,10 +1,11 @@
-// Node-driven fixture for rask-input.ts — a number, date or time input holding text the browser will not hand
+// Script fixture for rask-input.ts — a number, date or time input holding text the browser will not hand
 // over (`validity.badInput`, value ""), and a submit the browser refuses over one.
 //
 // The host here asks rask-input to send what waits first, as both real hosts do (sendTypedFirst). A frame is
 // written `type:value`, with `!kind` after it when it says the field held text back. Time passes when the
-// fixture says so (stub-events.ts). The C# test (UnreadInputClientTests) asserts the JSON line.
+// fixture says so (stub-events.ts). The C# test (UnreadInputClientTests) asserts what it reports.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {elapse, listeners, StubField} from "./stub-events.js";
 import {setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import {sendTypedFirst} from "../../../src/Rask.Core/Resources/rask-input.js";
@@ -218,7 +219,7 @@ elapse(0);
 const noModelSubmits = form.submits;
 const noModelSent = taken();
 
-process.stdout.write(JSON.stringify({
+report({
     noModelCalledOff,
     noModelSubmits,
     noModelSent,
@@ -243,4 +244,4 @@ process.stdout.write(JSON.stringify({
     besideRequiredSubmits,
     leftToTheBrowser,
     leftToTheBrowserSubmits,
-}) + "\n");
+});

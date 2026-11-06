@@ -1,7 +1,8 @@
-// Node-driven fixture for the morph's rule on attributes the page added itself (rask-written.ts): a render takes away
-// only what the server wrote. The C# test (PageAddedAttributeTests) runs this in a node subprocess and reads the JSON
-// line. Node has no MutationObserver, so what the watch would hear is noted by hand with notePageAdded.
+// Script fixture for the morph's rule on attributes the page added itself (rask-written.ts): a render takes away
+// only what the server wrote. The C# test (PageAddedAttributeTests) runs this on Jint and reads what it
+// reports. There is no MutationObserver here, so what the watch would hear is noted by hand with notePageAdded.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {own} from "../../../src/Rask.Core/Resources/rask-owned.js";
 import {notePageAdded} from "../../../src/Rask.Core/Resources/rask-written.js";
@@ -51,11 +52,11 @@ morph(asDom(button), asDom(makeEl("BUTTON")));
 const hookAttributeRemoved = !button.hasAttribute("data-rask-on-click");
 const ownedKept = button.getAttribute("aria-expanded") === "false";
 
-process.stdout.write(JSON.stringify({
+report({
     sizeKept,              // true — the page's width survives two renders that never wrote one
     titleRemoved,          // true — the title the server wrote and dropped is gone
     serverValue,           // "server" — a render writing the attribute takes it over
     writtenThenRemoved,    // true — and a later render that leaves it out removes it
     hookAttributeRemoved,  // true — a dropped data-rask-on-click is removed like any server attribute
     ownedKept,             // true — an owned attribute is the hook's, as before
-}) + "\n");
+});

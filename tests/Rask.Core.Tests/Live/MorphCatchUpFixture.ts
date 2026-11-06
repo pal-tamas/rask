@@ -1,9 +1,10 @@
-// Node-driven fixture for the whole page a connection is sent when it replaces one (MorphCatchUpTests).
+// Script fixture for the whole page a connection is sent when it replaces one (MorphCatchUpTests).
 //
 // The fields stand where the reader left them: typed into or ticked, never sent, focus elsewhere. Each is morphed
 // against a render that repeats what was rendered for it before, and against one that changed it — once as a
 // catch-up, once as any other whole page.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {morph} from "../../../src/Rask.Core/Resources/rask-morph.js";
 import {asDom, installStubGlobals, type StubControl} from "./stub-dom.js";
 
@@ -52,10 +53,10 @@ function ticked(catchUp: boolean, rendered: boolean): boolean {
     return box.checked;
 }
 
-process.stdout.write(JSON.stringify({
+report({
     catchUpRepeats: typed(true, ""),
     catchUpChanges: typed(true, "from the server"),
     pageRepeats: typed(false, ""),
     catchUpRepeatsTick: ticked(true, true),
     pageRepeatsTick: ticked(false, true)
-}) + "\n");
+});

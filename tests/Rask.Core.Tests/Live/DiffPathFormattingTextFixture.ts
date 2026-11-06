@@ -1,4 +1,4 @@
-// Node-driven fixture for the shared diff interpreter's PATH RESOLUTION
+// Script fixture for the shared diff interpreter's PATH RESOLUTION
 // (Rask.Core/Resources/rask-dom.ts `resolvePath` → `relevantChild`).
 //
 // Reproduces #1097: a WASM page's click reached .NET, the handler ran, and a one-op diff frame
@@ -15,13 +15,14 @@
 // null, and UpdateText's `if (textNode)` dropped the op in silence. Every in-place update on every
 // WASM page served from such a shell — the shipped `wasm` template's included — was lost this way.
 //
-// Two scenarios, one JSON line:
+// Two scenarios, one report:
 //   html  the bug: an UpdateText through a formatting newline in <html> must reach its text node.
 //   body  the scope: whitespace under <body> IS rendered, so it must still be counted — a filter
 //         that leaked past <html>/<head> would shift real, visible nodes instead.
 //
 // The C# test (DiffPathFormattingTextTests) runs this and asserts the line.
 
+import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
 import {applyDiff} from "../../../src/Rask.Core/Resources/rask-dom.js";
 import {installStubGlobals, type StubNode, type StubParent} from "./stub-dom.js";
 
@@ -107,8 +108,8 @@ const bodyDoc = documentOf(element("HTML", [
 ]));
 const bodyRun = apply(bodyDoc, [[3, [1, 1, 1, 0, 0], "v2"]]);
 
-process.stdout.write(JSON.stringify({
+report({
     reloaded,
     html: {...htmlRun, text: htmlCounter.textContent},
     body: {...bodyRun, text: bodyCounter.textContent},
-}) + "\n");
+});

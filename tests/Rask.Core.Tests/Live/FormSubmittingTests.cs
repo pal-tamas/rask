@@ -6,21 +6,18 @@ namespace Rask.Core.Tests.Live;
 ///     A form that is submitting takes no second submit: Livewire's <c>wire:submit</c> rule.
 /// </summary>
 /// <remarks>
-///     Drives the production <c>rask-submitting.ts</c> and <c>rask-morph.ts</c> in a Node subprocess against a
+///     Drives the production <c>rask-submitting.ts</c> and <c>rask-morph.ts</c> in-process on Jint against a
 ///     stub DOM with a fake clock (<c>FormSubmittingFixture.ts</c>). The hosts' wiring — the press holds, the ack
 ///     releases — is covered in a real browser by <c>FormSubmitInFlightTests</c>.
 /// </remarks>
 public sealed class FormSubmittingTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("FormSubmittingFixture");
+    private static JsonElement Run() => ScriptFixture.Run("FormSubmittingFixture");
 
     [Fact]
     public void At_the_press_the_submit_buttons_are_disabled_and_the_fields_readonly()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var atPress = root.GetProperty("atPress");
 
@@ -36,10 +33,7 @@ public sealed class FormSubmittingTests
     [Fact]
     public void A_second_submit_while_the_first_is_in_flight_is_refused()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var refused = root.GetProperty("secondRefused").GetBoolean();
         var next = root.GetProperty("takesTheNextSubmit").GetBoolean();
@@ -51,10 +45,7 @@ public sealed class FormSubmittingTests
     [Fact]
     public void A_render_mid_flight_keeps_the_hold_and_its_word_is_what_the_control_gets_after()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var midFlight = root.GetProperty("midFlight");
         var after = root.GetProperty("afterRelease");
@@ -71,10 +62,7 @@ public sealed class FormSubmittingTests
     [Fact]
     public void What_the_render_wrote_before_the_press_stays_the_renders()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var kept = root.GetProperty("renderedKept").GetBoolean();
 
@@ -84,10 +72,7 @@ public sealed class FormSubmittingTests
     [Fact]
     public void A_field_a_render_asks_to_have_corrected_mid_flight_is_handed_back_and_the_rest_stay_held()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var handedBack = root.GetProperty("handedBack");
         var renderedReadonly = root.GetProperty("handedBackKeepsRenderedReadonly").GetBoolean();
@@ -103,10 +88,7 @@ public sealed class FormSubmittingTests
     [Fact]
     public void A_submit_that_never_reports_back_and_a_dropped_connection_both_release_the_form()
     {
-        if (Run() is not { } root)
-        {
-            return;
-        }
+        var root = Run();
 
         var held = root.GetProperty("hungHeld").GetBoolean();
         var timedOut = root.GetProperty("hardTimeoutReleased").GetBoolean();

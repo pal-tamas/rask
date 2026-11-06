@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Rask.TestFiles;
 
 namespace Rask.Wasm.Tests.JsInteropRuntime;
 
@@ -16,7 +15,7 @@ namespace Rask.Wasm.Tests.JsInteropRuntime;
 ///         reads as a hang, and that is why every occurrence cost hours.
 ///     </para>
 ///     <para>
-///         Driven through a Node subprocess against the shipped <c>Browser/main.js</c> rather than asserted
+///         Driven in-process on Jint against the shipped <c>Browser/main.js</c> rather than asserted
 ///         over the file's text, because the thing worth guarding is behaviour under a real rejection —
 ///         which step reports, that it reports once, and above all that it stays silent once the app has
 ///         painted. A text assertion would pass on code that never runs.
@@ -26,9 +25,9 @@ public sealed class BootFailureReportingTests
 {
     /// <summary>The commonest real failure, and the one the issue was opened for.</summary>
     [Fact]
-    public async Task A_runtime_that_will_not_load_says_so_on_the_page_instead_of_spinning()
+    public void A_runtime_that_will_not_load_says_so_on_the_page_instead_of_spinning()
     {
-        var result = await RunFixture("runtime-fails");
+        var result = RunFixture("runtime-fails");
 
         Assert.True(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "A failed boot left no [data-rask-boot-error] on the page. That attribute is what lets an E2E "
@@ -62,9 +61,9 @@ public sealed class BootFailureReportingTests
     ///     guess about how slow the network is.
     /// </summary>
     [Fact]
-    public async Task An_app_that_starts_but_never_renders_is_reported_rather_than_left_spinning()
+    public void An_app_that_starts_but_never_renders_is_reported_rather_than_left_spinning()
     {
-        var result = await RunFixture("never-painted");
+        var result = RunFixture("never-painted");
 
         Assert.True(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "The app finished starting without ever painting and the page still showed the splash screen.");
@@ -86,9 +85,9 @@ public sealed class BootFailureReportingTests
     ///     browser gate caught it; this test could not, because it was asking the same wrong question.
     /// </remarks>
     [Fact]
-    public async Task Once_the_app_has_painted_the_boot_surface_stays_silent()
+    public void Once_the_app_has_painted_the_boot_surface_stays_silent()
     {
-        var result = await RunFixture("already-painted");
+        var result = RunFixture("already-painted");
 
         Assert.False(result.GetProperty("bootErrorAttributeSet").GetBoolean(),
             "The boot surface painted an error over an app that had already mounted.");
@@ -103,9 +102,9 @@ public sealed class BootFailureReportingTests
     ///     it. Asserted on the success path so it cannot be satisfied by the failure path alone.
     /// </summary>
     [Fact]
-    public async Task The_global_failure_handlers_are_installed_before_the_first_await()
+    public void The_global_failure_handlers_are_installed_before_the_first_await()
     {
-        var result = await RunFixture("already-painted");
+        var result = RunFixture("already-painted");
 
         Assert.True(result.GetProperty("unhandledRejectionHandlerRegistered").GetBoolean());
         Assert.True(result.GetProperty("errorHandlerRegistered").GetBoolean());
@@ -116,53 +115,12 @@ public sealed class BootFailureReportingTests
             + "to and their failures go back to being console-only.");
     }
 
-    private static async Task<JsonElement> RunFixture(string scenario)
+    private static JsonElement RunFixture(string scenario)
     {
-        var node = ResolveNode();
-        Assert.SkipWhen(node is null, "node is not on PATH, so the JS-driven boot fixture cannot run.");
+        var mainJs = Path.Combine(LocateRepoRoot(), "src", "Rask.Wasm", "Browser", "main.js");
+        Assert.True(File.Exists(mainJs), $"Boot script missing: {mainJs} — build src/Rask.Wasm first.");
 
-        var repoRoot = LocateRepoRoot();
-        var fixtureScript = Path.Combine(AppContext.BaseDirectory, "node-fixtures", "BootFailureFixture.mjs");
-        var mainJs = Path.Combine(repoRoot, "src", "Rask.Wasm", "Browser", "main.js");
-        Assert.True(File.Exists(fixtureScript), $"Fixture script missing: {fixtureScript}");
-        Assert.True(File.Exists(mainJs), $"Boot script missing: {mainJs}");
-
-        var run = await TestProcess.Run(
-            node!, $"\"{fixtureScript}\" \"{mainJs}\" {scenario}", timeout: TimeSpan.FromSeconds(30),
-            cancellationToken: TestContext.Current.CancellationToken);
-        var stdout = run.StandardOutput;
-        var stderr = run.StandardError;
-
-        Assert.True(run.ExitCode == 0,
-            $"Fixture exited with code {run.ExitCode}. stderr:\n{stderr}\nstdout:\n{stdout}");
-
-        var jsonLine = stdout
-            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .LastOrDefault(s => s.StartsWith('{') && s.EndsWith('}'));
-        Assert.False(jsonLine is null,
-            $"Fixture didn't emit a JSON line. stdout:\n{stdout}\nstderr:\n{stderr}");
-
-        return JsonDocument.Parse(jsonLine!).RootElement.Clone();
-    }
-
-    private static string? ResolveNode()
-    {
-        var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        var separator = OperatingSystem.IsWindows() ? ';' : ':';
-        var exeNames = OperatingSystem.IsWindows() ? new[] { "node.exe", "node.cmd" } : new[] { "node" };
-        foreach (var dir in path.Split(separator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            foreach (var name in exeNames)
-            {
-                var candidate = Path.Combine(dir, name);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-        }
-
-        return null;
+        return ScriptFixture.Run("BootFailureFixture", mainJs, scenario);
     }
 
     private static string LocateRepoRoot()

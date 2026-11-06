@@ -4,20 +4,16 @@ namespace Rask.Core.Tests.Live;
 
 /// <summary>
 ///     What a Server tab sends again on its next connection: every event the last one carried that no ack answered,
-///     in the order it left — driven in a Node subprocess (<c>ResendFixture.ts</c>).
+///     in the order it left — driven in-process on Jint (<c>ResendFixture.ts</c>).
 /// </summary>
 public sealed class ResendFixtureTests
 {
-    private static JsonElement? Run() => NodeFixture.Run("ResendFixture");
+    private static JsonElement Run() => ScriptFixture.Run("ResendFixture");
 
     [Fact]
     public void Events_no_ack_answered_go_again_in_the_order_they_left()
     {
-        // No node on PATH — the fixture cannot run. Not a failure: the Server E2E suite drives the same in a browser.
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var afterAck = result.GetProperty("afterAck");
 
@@ -28,10 +24,7 @@ public sealed class ResendFixtureTests
     [Fact]
     public void An_ack_answers_every_event_up_to_its_own_and_a_frame_with_no_event_is_never_held()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var answered = result.GetProperty("allAnswered");
 
@@ -42,10 +35,7 @@ public sealed class ResendFixtureTests
     [Fact]
     public void A_sign_in_lets_go_of_what_is_held_but_the_next_hello_still_names_the_newest_seq()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var forgotten = result.GetProperty("forgotten");
 
@@ -56,10 +46,7 @@ public sealed class ResendFixtureTests
     [Fact]
     public void What_is_held_is_capped_and_the_oldest_goes_first()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var capped = result.GetProperty("capped");
 
@@ -70,10 +57,7 @@ public sealed class ResendFixtureTests
     [Fact]
     public void The_newest_seq_of_a_frame_is_its_own_or_the_newest_in_its_batch_and_zero_without_one()
     {
-        if (Run() is not { } result)
-        {
-            return;
-        }
+        var result = Run();
 
         var seqs = result.GetProperty("seqs").EnumerateArray().Select(e => e.GetInt32()).ToArray();
 
