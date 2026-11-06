@@ -335,53 +335,6 @@ public class LivePayloadTests
         Assert.Equal(fragment, LivePayload.InjectDevToolsScript(fragment, "/_rask-devtools/host.js"));
     }
 
-    [Fact]
-    public void The_islands_dev_attribute_stamps_where_the_island_dev_server_is()
-    {
-        var injected = LivePayload.InjectIslandsDevAttr(
-            "<html><body class=\"x\"></body></html>", dev: true, "http://localhost:5174");
-
-        // What the island runtime reads to decide whether to load @vite/client — and therefore the
-        // only reason anything hot-replaces at all.
-        Assert.Contains("data-rask-islands-dev=\"http://localhost:5174\"", injected, StringComparison.Ordinal);
-
-        // Stamped onto the existing <body>, not in place of its attributes.
-        Assert.Contains("class=\"x\"", injected, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_islands_dev_attribute_is_never_stamped_outside_development()
-    {
-        // A production page carrying a localhost URL would have every visitor's browser open a
-        // websocket to their own machine.
-        Assert.DoesNotContain(
-            "data-rask-islands-dev",
-            LivePayload.InjectIslandsDevAttr("<html><body></body></html>", dev: false, "http://localhost:5174"),
-            StringComparison.Ordinal);
-
-        Assert.DoesNotContain(
-            "data-rask-islands-dev",
-            LivePayload.InjectIslandsDevAttr("<html><body></body></html>", dev: true, null),
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_islands_dev_attribute_html_encodes_the_url()
-    {
-        var injected = LivePayload.InjectIslandsDevAttr(
-            "<html><body></body></html>", dev: true, "http://localhost:5174/?a=1&b=2");
-
-        Assert.Contains("&amp;b=2", injected, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void The_islands_dev_attribute_leaves_a_page_with_no_body_alone()
-    {
-        const string fragment = "<div>no body here</div>";
-
-        Assert.Equal(fragment, LivePayload.InjectIslandsDevAttr(fragment, dev: true, "http://localhost:5174"));
-    }
-
     private static int CountOccurrences(string haystack, string needle)
     {
         var count = 0;

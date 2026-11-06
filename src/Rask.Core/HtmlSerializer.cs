@@ -190,7 +190,7 @@ internal static class HtmlSerializer
         // Leading Attribute frames = this element's attributes, in emit order.
         var j = ReplayAttributes(frames, i + 1, end, html, writer);
 
-        // Island boundary marker, in the same position Serialize writes it. Like the scoped-CSS
+        // Opaque-subtree boundary marker, in the same position Serialize writes it. Like the scoped-CSS
         // marker below it rides the frame rather than an Attribute frame, so replay has to
         // re-emit it explicitly — and it must, because this HTML is what the full-document
         // morph reconciles against. Dropping it here loses the boundary for exactly the
@@ -454,7 +454,7 @@ internal static class HtmlSerializer
         html.Append("</").Append(tagName).Append('>');
         CloseElementFrame(frames, elementFrameIdx, tagName, opaque, html.Length);
 
-        // A component that renders as an element of its own (an External island) is still a component: the
+        // A component that renders as an element of its own is still a component: the
         // devtools' tree lists it like one. The type test comes first, so every HTML element — all of them
         // Element — pays one type check and never reads the hook.
         if (el is not Element && RaskDevToolsHook.Active is { } elementDevTools)
@@ -538,7 +538,7 @@ internal static class HtmlSerializer
     private static void SerializeElementChildren(Component el, bool opaque, LiveRenderContext? live, HtmlWriter html)
     {
         // The ChildrenArray fast path SKIPS RenderChildren(), so a component that rewrites
-        // its own children (an island wrapping them into slot templates) would be silently
+        // its own children (wrapping them into slot templates, say) would be silently
         // ignored for the common case — the indexer produces exactly this array. Opaque
         // components take the virtual walk instead; `opaque` was already read above, so
         // nothing new is computed on the hot path and every other component is unaffected.
@@ -845,8 +845,8 @@ internal static class HtmlSerializer
     /// </summary>
     /// <remarks>
     ///     A replay re-emits the cached component's frames and re-registers only the handler run on ITS
-    ///     OWN slots. Anything a walk does on behalf of another component — a handler whose slot belongs
-    ///     to an island serialized down the element branch, a head asset that component contributes —
+    ///     OWN slots. Anything a walk does on behalf of another component — a head asset another
+    ///     component contributes —
     ///     would be skipped, so the enclosing subtree must stay on the walk path. Cheap by construction:
     ///     only those callers pay, never the per-element walk.
     /// </remarks>

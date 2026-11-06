@@ -34,7 +34,6 @@ internal sealed class EditorDevHostKestrelSetup(IHostEnvironment environment, ID
             Assembly.GetEntryAssembly(),
             environment.IsDevelopment(),
             environment.ApplicationName,
-            environment.ContentRootPath,
             Environment.GetEnvironmentVariable,
             machine);
 

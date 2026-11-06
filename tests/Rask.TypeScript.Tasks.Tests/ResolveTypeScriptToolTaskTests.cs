@@ -410,7 +410,6 @@ public class ResolveTypeScriptToolTaskTests
             select (Name: name, tool.Version);
 
         var unpinned = packages
-            .Append((Name: "typescript", Version: ReadPinnedCompilerVersion()))
             .Where(p => TypeScriptToolPins.For(p.Name, p.Version) is null)
             .Select(p => $"{p.Name}@{p.Version}")
             .Distinct()
@@ -444,9 +443,8 @@ public class ResolveTypeScriptToolTaskTests
     }
 
     [Theory]
-    // An app's own build resolves these two, so there is a property to set.
+    // An app's own build resolves tsgo, so there is a property to set.
     [InlineData("tsgo", "RaskTsgoIntegrity")]
-    [InlineData("typescript", "RaskExternalTypeScriptIntegrity")]
     // esbuild is only fetched by Rask's own build, where the answer is to record the digest.
     [InlineData("esbuild", "TypeScriptToolPins.cs")]
     public void A_version_Rask_records_no_digest_for_says_so_and_how_to_pin_it(string tool, string remedy)
@@ -601,14 +599,6 @@ public class ResolveTypeScriptToolTaskTests
 
         return (Read("RaskEsbuildVersion"), Read("RaskTsgoVersion"));
     }
-
-    // The compiler library's pin lives with the islands build rather than in Rask.Core.targets.
-    private static string ReadPinnedCompilerVersion() =>
-        XDocument.Load(Path.Combine(
-                PinnedTools.RepositoryRoot(), "src", "Rask.External", "build", "Rask.External.props"))
-            .Descendants()
-            .Single(e => e.Name.LocalName == "RaskExternalTypeScriptVersion")
-            .Value;
 
     /// <summary>The smallest build engine a task needs, keeping what it was told.</summary>
     private sealed class RecordingBuildEngine : IBuildEngine

@@ -84,7 +84,6 @@ const bridge = createBridge(dock, overlay, flash, m => posted.push(m), {
     heardFromPanel: () => panelHeard++,
     setPanelCount: (n: number) => alerts.push(n),
     record() {},
-    island() {},
 });
 const ch = "rask-devtools" as const;
 

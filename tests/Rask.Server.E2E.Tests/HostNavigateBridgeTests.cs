@@ -9,8 +9,7 @@ using static Microsoft.Playwright.Assertions;
 namespace Rask.Server.E2E.Tests;
 
 /// <summary>
-///     <c>__raskHost.navigate</c> on the Server host: the bridge front-end code (the generated <c>@rask/routes</c>, an
-///     island's own handler) navigates through, driven in a real browser over the live socket.
+///     <c>__raskHost.navigate</c> on the Server host: the bridge front-end code navigates in-app through, driven in a real browser over the live socket.
 /// </summary>
 /// <remarks>
 ///     The WASM host's bridge is pinned under node (<c>HostNavigateTests</c> in Rask.Wasm.Tests); this bundle is not run
@@ -26,10 +25,10 @@ public sealed class HostNavigateBridgeTests(PlaywrightFixture playwright) : ICla
         var page = session.Page;
         var entries = await page.EvaluateAsync<int>("() => history.length");
 
-        await page.EvaluateAsync("() => window.__raskHost.navigate('/isle/arrived?from=code')");
+        await page.EvaluateAsync("() => window.__raskHost.navigate('/bridge/arrived?from=code')");
 
         await Expect(page.Locator("#arrived")).ToHaveTextAsync("arrived");
-        Assert.Equal(session.BaseUrl + "/isle/arrived?from=code", page.Url);
+        Assert.Equal(session.BaseUrl + "/bridge/arrived?from=code", page.Url);
         Assert.Equal("kept", await page.EvaluateAsync<string>("() => window.raskProbe"));
         Assert.Equal(entries + 1, await page.EvaluateAsync<int>("() => history.length"));
     }
@@ -41,10 +40,10 @@ public sealed class HostNavigateBridgeTests(PlaywrightFixture playwright) : ICla
         var page = session.Page;
         var entries = await page.EvaluateAsync<int>("() => history.length");
 
-        await page.EvaluateAsync("() => window.__raskHost.navigate('/isle/arrived', true)");
+        await page.EvaluateAsync("() => window.__raskHost.navigate('/bridge/arrived', true)");
 
         await Expect(page.Locator("#arrived")).ToHaveTextAsync("arrived");
-        Assert.Equal(session.BaseUrl + "/isle/arrived", page.Url);
+        Assert.Equal(session.BaseUrl + "/bridge/arrived", page.Url);
         Assert.Equal(entries, await page.EvaluateAsync<int>("() => history.length"));
     }
 
@@ -65,7 +64,7 @@ public sealed class HostNavigateBridgeTests(PlaywrightFixture playwright) : ICla
     // The start page, with the runtime's bridge in place and a probe a reload would lose.
     private async Task<HookSession> OpenAsync()
     {
-        var session = await HookSession.OpenAsync<IslandApp>(playwright, path: "/bridge");
+        var session = await HookSession.OpenAsync<BridgeApp>(playwright, path: "/bridge");
         try
         {
             await Expect(session.Page.Locator("#start")).ToHaveTextAsync("start");
@@ -79,6 +78,17 @@ public sealed class HostNavigateBridgeTests(PlaywrightFixture playwright) : ICla
             throw;
         }
     }
+}
+
+public sealed partial class BridgeApp : Component
+{
+    protected override Component? Render() => Router;
+}
+
+[Route("/bridge/arrived")]
+public sealed partial class BridgeArrivedPage : Component
+{
+    protected override Component? Render() => P.Id("arrived")["arrived"];
 }
 
 [Route("/bridge")]

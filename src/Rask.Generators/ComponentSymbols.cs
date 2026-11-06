@@ -9,9 +9,6 @@ internal static class ComponentSymbols
     /// <summary>The metadata name of <c>Rask.Core.Component</c>.</summary>
     public const string ComponentFullName = "Rask.Core.Component";
 
-    /// <summary>The metadata name of <c>Rask.External.ExternalComponent</c>, the base of every island.</summary>
-    public const string ExternalComponentFullName = "Rask.External.ExternalComponent";
-
     /// <summary>Whether <paramref name="symbol" /> derives, at any depth, from <c>Component</c>.</summary>
     public static bool InheritsFromComponent(INamedTypeSymbol symbol)
     {

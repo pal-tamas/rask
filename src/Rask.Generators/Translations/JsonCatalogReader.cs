@@ -14,8 +14,7 @@ namespace Rask.Generators.Translations;
 ///     Shipping a serializer alongside it is how an analyzer starts failing to load against whatever
 ///     version the IDE already has. The grammar needed here is tiny, and doing it by hand also keeps
 ///     precise line/column offsets, so a defect points at the key rather than at the file. The lexing —
-///     position, whitespace, comments, escapes — is <see cref="JsonScanner" />, shared with the island
-///     props snapshot reader.
+///     position, whitespace, comments, escapes — is <see cref="JsonScanner" />.
 /// </remarks>
 internal static class JsonCatalogReader
 {

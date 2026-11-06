@@ -6,8 +6,7 @@ using Rask.Testing;
 namespace Rask.DevTools.Tests.Panel;
 
 /// <summary>
-///     The Tree tab's detail pane: what the selected component is and every prop it was given, with its type — and what an
-///     island's details say.
+///     The Tree tab's detail pane: what the selected component is and every prop it was given, with its type.
 /// </summary>
 public sealed class DevToolsTreeTabDetailsTests
 {
@@ -28,7 +27,7 @@ public sealed class DevToolsTreeTabDetailsTests
                 new DevToolsReadContext("Int32", "page-size", false, null, null),
             ]);
         var chart = new DevToolsComponentNode(4, "SalesChart", null,
-            [new DescribedProp("Year", "System.Int32", "2026", false)], [], At: "0|1|1", Badge: "React");
+            [new DescribedProp("Year", "System.Int32", "2026", false)], [], At: "0|1|1");
         var shell = new DevToolsComponentNode(5, "ThemeShell", null, [], [row],
             Provides:
             [
@@ -65,18 +64,6 @@ public sealed class DevToolsTreeTabDetailsTests
         Assert.Equal(["Items", "List<Item>", "Count = 2"], rows[1]);
         Assert.Equal("••••", rows[2][2]);
         Assert.Equal("null", rows[3][2]);
-    }
-
-    [Fact]
-    public void An_island_says_it_is_one_and_carries_its_runtime_badge_on_its_row_and_in_the_pane()
-    {
-        var page = Tab(4);
-
-        var details = page.Find("[data-rask-devtools-details]");
-        Assert.Contains("React", details.TextContent);
-        Assert.Contains("An island", details.TextContent);
-        Assert.Contains(page.FindAll("[role=\"treeitem\"]"), r => r.TextContent.Contains("SalesChart", StringComparison.Ordinal)
-                                                                   && r.TextContent.Contains("React", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -13,9 +13,8 @@ namespace Rask.Generators.Json;
 ///         version the IDE already has.
 ///     </para>
 ///     <para>
-///         Shared by the translation catalog reader and the island props snapshot reader, which used to be
-///         one copy of this and would otherwise have become two: the escape table, the line counting and
-///         the comment rule are exactly the things that drift when duplicated.
+///         Kept apart from the translation catalog reader that uses it: the escape table, the line counting
+///         and the comment rule are exactly the things that drift when duplicated.
 ///     </para>
 /// </remarks>
 internal sealed class JsonScanner(string text)

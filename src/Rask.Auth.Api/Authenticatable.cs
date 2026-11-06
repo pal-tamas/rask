@@ -48,8 +48,8 @@ public abstract class Authenticatable<TKey> : Aggregate<TKey, Timestamps, Versio
     /// </summary>
     public string Email { get; private set; } = "";
 
-    // The password hash. Internal, so nothing that serializes a User's public properties (an API response, an island
-    // prop, a data grid) can ever carry it; Rask.Auth maps it explicitly.
+    // The password hash. Internal, so nothing that serializes a User's public properties (an API response, a data
+    // grid) can ever carry it; Rask.Auth maps it explicitly.
     internal string PasswordHash { get; private set; } = "";
 
     /// <summary>When the address was confirmed, or <see langword="null" /> while it has not been.</summary>

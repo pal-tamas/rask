@@ -50,15 +50,8 @@
     <InternalsVisibleTo Include="Rask.Server.HotReload.Tests"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
-    <!-- Islands render a host element whose subtree a foreign renderer owns, so they set Component's
-         OpaqueSubtreeInternal — the seam the live diff and the client morph both read to stop at the
-         island's border. -->
-    <InternalsVisibleTo Include="Rask.Blazor"/>
-    <InternalsVisibleTo Include="Rask.Blazor.Tests"/>
-    <InternalsVisibleTo Include="Rask.External"/>
     <InternalsVisibleTo Include="Rask.Web"/>
     <InternalsVisibleTo Include="Rask.Web.Tests"/>
-    <InternalsVisibleTo Include="Rask.External.Tests"/>
     <!-- Hosts cannot reference the devtools (the devtools reference the hosts), so they meet in Core: the
          loader and the probe seam live here, internal, and Rask.DevTools implements them. -->
     <InternalsVisibleTo Include="Rask.DevTools"/>

@@ -121,31 +121,6 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Fact]
-    public async Task A_package_islands_snapshot_reaches_the_browser_app()
-    {
-        // A package island's chain steps are generated from the committed {Island}.props.json beside its class.
-        // Rask.External finds Client/'s from its source root; Shared/ is outside it, so the companion names those.
-        var project = Slashes(await Generate());
-
-        Assert.Matches(new Regex("<RaskExternalSourceRoot>.*/Client</RaskExternalSourceRoot>"), project);
-        Assert.Contains("/Shared/**/*.props.json\" />", project, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task The_browser_apps_islands_are_built_from_the_apps_own_folder_not_from_obj()
-    {
-        // The companion lives in obj/, where there are no islands and no package.json (#1194). Rask.External
-        // looks where the app keeps them: the front-end files in Client/, npm and Vite beside the app's package.json.
-        var project = Slashes(await Generate());
-
-        var root = new Regex("<RaskExternalRoot>(?<path>[^<]*)</RaskExternalRoot>").Match(project);
-        var sources = new Regex("<RaskExternalSourceRoot>(?<path>[^<]*)</RaskExternalSourceRoot>").Match(project);
-        Assert.True(root.Success, "the companion does not say where the app's package.json is");
-        Assert.True(File.Exists(Path.Combine(root.Groups["path"].Value, "Client", "Program.cs")), root.Groups["path"].Value);
-        Assert.Equal(root.Groups["path"].Value + "/Client", sources.Groups["path"].Value);
-    }
-
-    [Fact]
     public async Task The_companion_publishes_outside_its_own_project_directory()
     {
         // Publishing into the companion's own folder makes each publish an input to the next.

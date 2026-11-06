@@ -16,99 +16,11 @@ namespace Rask.Generators;
 
 public sealed partial class ComponentFactoryGenerator
 {
-    /// <summary>
-    ///     The candidates one class declaration contributes: itself, or — for a package declaration
-    ///     (<c>Mui : ReactPackage</c>) — one island per export, none of which is in source.
-    /// </summary>
-    private static EquatableArray<Candidate> GetCandidates(GeneratorSyntaxContext ctx)
-    {
-        if (ctx.Node is ClassDeclarationSyntax classDecl
-            && ctx.SemanticModel.GetDeclaredSymbol(classDecl) is INamedTypeSymbol symbol
-            && global::Rask.Generators.External.PackageIslands.PackageDeclarations.Read(symbol) is { } declaration)
-        {
-            return PackageCandidates(symbol, classDecl, declaration, ctx.SemanticModel.Compilation);
-        }
-
-        return GetCandidate(ctx) is { } candidate
+    /// <summary>The candidate one class declaration contributes, when it is a component.</summary>
+    private static EquatableArray<Candidate> GetCandidates(GeneratorSyntaxContext ctx) =>
+        GetCandidate(ctx) is { } candidate
             ? new EquatableArray<Candidate>(new[] { candidate })
             : default;
-    }
-
-    /// <summary>
-    ///     A package declaration's islands as candidates: each is the runtime's base class — the same inherited surface
-    ///     a declared <c>sealed partial class MuiButton : ReactComponent</c> would have — named for its export, with its
-    ///     props from the snapshot (<c>WithPackageProps</c>)
-    ///     and its entry on the declaration: <c>Mui.Button</c>.
-    /// </summary>
-    /// <remarks>
-    ///     Synthesized rather than read, because the island class is written by <c>ExternalGenerator</c> and no
-    ///     generator sees another's output. Both expand the declaration through <c>PackageDeclarations</c>, which is what
-    ///     keeps the class and its chain describing one component.
-    /// </remarks>
-    private static EquatableArray<Candidate> PackageCandidates(
-        INamedTypeSymbol declaration,
-        ClassDeclarationSyntax classDecl,
-        global::Rask.Generators.External.PackageIslands.PackageDeclaration read,
-        Compilation compilation)
-    {
-        // The island generator declares nothing for a declaration it reports (RASK056, RASK059), so neither does this:
-        // steps for a class that was never declared would bury the one real diagnostic under errors in generated code.
-        var isPartial = declaration.DeclaringSyntaxReferences.Any(static r =>
-            r.GetSyntax() is ClassDeclarationSyntax c && c.Modifiers.Any(SyntaxKind.PartialKeyword));
-        if (!isPartial
-            || read.Failed is not null
-            || read.Module is not { } module
-            || !global::Rask.Generators.External.PackageIslands.PackageSpecifier.IsBare(module)
-            || global::Rask.Generators.External.PackageIslands.PackageDeclarations.RuntimeBase(compilation, read.Runtime)
-                is not { } runtimeBase)
-        {
-            return default;
-        }
-
-        var ns = declaration.ContainingNamespace.IsGlobalNamespace
-            ? string.Empty
-            : declaration.ContainingNamespace.ToDisplayString();
-        var properties = GetFactoryProperties(runtimeBase, false, compilation);
-        var lifecycle = OverridesLifecycleHook(runtimeBase);
-        var isPublic = IsExternallyVisible(declaration);
-        var inherited = ReachableMemberNames(runtimeBase);
-
-        var result = new List<Candidate>();
-        foreach (var island in read.Islands)
-        {
-            var memberNames = new SortedSet<string>(inherited, StringComparer.Ordinal) { island.Name };
-            result.Add(new Candidate(
-                ns,
-                island.Name,
-                island.Name,
-                ns.Length == 0 ? "global::" + island.Name : $"global::{ns}.{island.Name}",
-                string.Empty,
-                default,
-                string.Empty,
-                HasParameterlessCtor: true,
-                HasDIConstructor: false,
-                isPublic,
-                GenericFactory: null,
-                FormControl: null,
-                new EquatableArray<PropInfo>(properties),
-                IsPartial: true,
-                IsNested: false,
-                IsElement: false,
-                lifecycle,
-                classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
-                classDecl.Identifier.Span.Start,
-                classDecl.Identifier.Span.Length,
-                $"<c>{Prose(island.Export)}</c> from <c>{Prose(module)}</c>.",
-                new EquatableArray<string>(memberNames.ToArray()),
-                default,
-                true,
-                global::Rask.Generators.External.PackageIslands.PackageDeclarations.Facts(
-                    declaration, read, island, runtimeBase),
-                GroupOn(declaration, island.Member)));
-        }
-
-        return new EquatableArray<Candidate>(result.ToArray());
-    }
 
     // [FactoryGeneric] and [RaskChainEntry], the two attributes that shape a candidate's entry.
     private static (GenericFactoryConfig? GenericFactory, string? ChainEntry, List<TagInfo> Tags) ReadFactoryAttributes(
@@ -197,7 +109,6 @@ public sealed partial class ComponentFactoryGenerator
             ReachableMemberNames(symbol),
             EnclosingTypeHeaders(symbol),
             AllEnclosingPartial(symbol),
-            global::Rask.Generators.External.PackageIslands.PackageIslandProps.Facts(symbol),
             ChainGroupOf(symbol, chainEntry ?? symbol.Name),
             new EquatableArray<TagInfo>(tags));
     }
@@ -699,7 +610,6 @@ public sealed partial class ComponentFactoryGenerator
             }
         }
 
-        AppendBlazorParameters(result, symbol);
         SortByDeclaration(result);
         return result;
     }
@@ -839,63 +749,6 @@ public sealed partial class ComponentFactoryGenerator
     private static bool IsDelegateProp(IPropertySymbol prop, Compilation compilation) =>
         prop.Type is INamedTypeSymbol { TypeKind: TypeKind.Delegate }
         || CarrierDelegates(DisplayTypeName(prop.Type, FullyQualifiedNullable, compilation)).Count > 0;
-
-    // A Blazor island's chain steps come from the component it HOSTS rather than from anything it
-    // declares — not redeclaring the hosted component's surface is the point of the feature.
-    //
-    // Appended HERE, in the generator that emits the setters, rather than generated as properties
-    // by BlazorGenerator and picked up on some later pass: one source generator never sees
-    // another's output, so a property written there would be invisible to this and would get no
-    // chain step at all. Both read BlazorParameters.Read so the list cannot diverge — whatever
-    // emits a property must be matched by whatever emits its setter.
-    private static void AppendBlazorParameters(List<PropInfo> result, INamedTypeSymbol symbol)
-    {
-        if (Blazor.BlazorParameters.HostedTypeOf(symbol) is not { } hostedComponent)
-        {
-            return;
-        }
-
-        var islandRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
-        var islandPath = islandRef?.SyntaxTree.FilePath ?? string.Empty;
-        var islandStart = islandRef?.Span.Start ?? 0;
-        var islandLength = islandRef?.Span.Length ?? 0;
-
-        // Against what was actually PRODUCED, not against the walk's `seen`. That set records every
-        // property name walked, including ones immediately skipped for being static — and the
-        // chain entries inherited from RaskMarkup are static members named after components,
-        // so consulting it would silently drop a parameter called Text, Table, Form or Label.
-        // Those are ordinary names for a UI library, and the failure would be no step, no
-        // diagnostic, and no way to pass a value the component plainly declares.
-        foreach (var hosted in Blazor.BlazorParameters.Read(symbol, hostedComponent)
-                     .Where(h => !result.Any(p => string.Equals(p.Name, h.Name, StringComparison.Ordinal))))
-        {
-            result.Add(new PropInfo(
-                hosted.Name,
-                hosted.ChainTypeFqn,
-                // Optional unless the hosted component said otherwise. Defaulting to nullable is
-                // what keeps every call site from having to supply every parameter the component
-                // happens to declare; [EditorRequired] is Blazor's own way of saying a parameter
-                // is mandatory, so it maps onto Rask's required step and nothing else does.
-                IsNullable: !hosted.IsRequired,
-                HasInitializer: false,
-                UserMarkedRequired: hosted.IsRequired,
-                InheritanceDepth: 0,
-                islandPath,
-                islandStart,
-                islandLength,
-                // An EventCallback becomes a plain delegate, and a callback prop on a non-Element
-                // component is auto-wrapped so invoking it re-renders the owning parent.
-                IsAutoRerenderDelegate: hosted.IsEventCallback,
-                IsTypeParameter: false,
-                IsBoundInterfaceProp: false,
-                IsDelegate: hosted.IsEventCallback,
-                InitializerDefault: null,
-                IsInitOnly: false,
-                IsSharedSurfaceProp: false,
-                HasDerivedSetter: false,
-                $"Feeds the hosted component's <c>{hosted.Parameter}</c> parameter."));
-        }
-    }
 
     // Sort: (a) derived-class properties first (lowest depth), then (b) by file path
     // and span — preserves the user's declaration order within each level of the

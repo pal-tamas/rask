@@ -213,7 +213,6 @@ internal sealed partial class DevToolsErrorsTab : Component
         DevToolsErrorKind.Handler => "handler",
         DevToolsErrorKind.Lifecycle => "lifecycle",
         DevToolsErrorKind.Page => "page script",
-        DevToolsErrorKind.Island => "island",
         _ => error.IsWarning ? "warning" : "error",
     };
 

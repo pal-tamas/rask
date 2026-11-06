@@ -886,17 +886,6 @@ public sealed partial class ComponentFactoryGenerator
             }
         }
 
-        // A Blazor island's properties come from the component it hosts, so they are not members yet —
-        // they are generated into a second part of this same class. Without them here, a hosted
-        // parameter named after a component (Label, Title, Form, Select — ordinary names for a UI
-        // library) would land beside the entry injected under that same name, in the same class:
-        // CS0102, and nothing able to hide it. Naming them now makes the injection skip them, through
-        // the collision check that already exists for every other member.
-        foreach (var step in Blazor.BlazorParameters.StepNames(symbol))
-        {
-            names.Add(step);
-        }
-
         return new EquatableArray<string>(names.ToArray());
     }
 

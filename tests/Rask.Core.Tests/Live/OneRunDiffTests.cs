@@ -330,8 +330,8 @@ public partial class OneRunDiffTests : global::Rask.Core.RaskMarkup
     public void An_opaque_sibling_after_the_run_has_its_attributes_patched_and_its_children_left_alone()
     {
         var change = Change(
-            Div[new Island("{\"n\":1}")[Span["mounted by react"]]],
-            Div[Aside["Saved"], new Island("{\"n\":2}")[Span["rendered by rask"], Span["again"]]]);
+            Div[new OpaqueHost("{\"n\":1}")[Span["drawn by a script"]]],
+            Div[Aside["Saved"], new OpaqueHost("{\"n\":2}")[Span["rendered by rask"], Span["again"]]]);
         var mounted = change.Before.At(0, 0, 0);
 
         change.Apply();
@@ -486,9 +486,9 @@ public partial class OneRunDiffTests : global::Rask.Core.RaskMarkup
         internal void Apply() => Before.Apply(Ops, _newFrames);
     }
 
-    private sealed class Island(string props) : Component
+    private sealed class OpaqueHost(string props) : Component
     {
-        protected override string? TagName => "rask-external";
+        protected override string? TagName => "x-chart";
 
         protected override bool OpaqueSubtree => true;
 

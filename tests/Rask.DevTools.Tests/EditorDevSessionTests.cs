@@ -99,16 +99,6 @@ public sealed class EditorDevSessionTests
     }
 
     [Fact]
-    public void An_islands_project_stays_on_localhost()
-    {
-        // Islands load their modules from a Vite dev server over plain HTTP, which an HTTPS page may not do.
-        var machine = new FakeMachine();
-        machine.Files.Add(Path.Combine("/app", "obj", "rask-external", "dev.json"));
-
-        Assert.Null(Resolve(machine));
-    }
-
-    [Fact]
     public void A_port_the_kernel_would_refuse_is_never_bound()
     {
         // Linux after a reboot: the sysctl rask dev sets is gone, and binding 443 would fail startup.
@@ -212,7 +202,7 @@ public sealed class EditorDevSessionTests
         bool isDevelopment = true,
         Func<string, string?>? readEnv = null,
         System.Reflection.Assembly? assembly = null) =>
-        EditorDevHost.Resolve(assembly ?? DevSessionBuild, isDevelopment, "Shop", "/app", readEnv ?? (_ => null), machine);
+        EditorDevHost.Resolve(assembly ?? DevSessionBuild, isDevelopment, "Shop", readEnv ?? (_ => null), machine);
 
     private sealed class FakeMachine : IDevHostMachine
     {

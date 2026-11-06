@@ -10,8 +10,8 @@ namespace Rask.Generators;
 ///     How a file beside a component is paired with it: the same directory, the same name.
 /// </summary>
 /// <remarks>
-///     One definition for every sibling-file convention — scoped CSS, scoped JS and an island's props
-///     snapshot. They carried private copies of these lines, and the copies had already drifted: only the
+///     One definition for every sibling-file convention — scoped CSS and scoped JS. They carried
+///     private copies of these lines, and the copies had already drifted: only the
 ///     scoped-JS one collapsed macOS's <c>/private</c> alias, so a CSS file reached through it paired
 ///     differently from a script beside the same component. A pairing rule that differs between
 ///     conventions is a file that pairs in one and silently not in another.

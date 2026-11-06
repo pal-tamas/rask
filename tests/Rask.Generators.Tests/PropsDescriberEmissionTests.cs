@@ -67,7 +67,7 @@ public class PropsDescriberEmissionTests
             StringComparison.Ordinal);
     }
 
-    // Core names about twenty friend assemblies — the hosts, the islands, Rask.Testing and their test projects —
+    // Core names about twenty friend assemblies — the hosts, Rask.Testing and their test projects —
     // and in every one of them the internal half of `protected internal` IS visible, so the override has to keep
     // both words. This is how the rule surfaced: the devtools' own test project is one of them, and the first
     // component there with a property failed to compile.

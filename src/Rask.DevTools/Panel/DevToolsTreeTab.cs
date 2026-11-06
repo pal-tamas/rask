@@ -167,14 +167,8 @@ internal sealed partial class DevToolsTreeTab : Component
         return Div.Class("flex flex-col gap-2").Data("rask-devtools-details", "")[
             Div.Class("flex flex-wrap items-center gap-2")[
                 Span.Class("font-mono font-semibold")[node.Type],
-                node.Badge is { } badge ? Ui.Badge.Sm.Color(Ui.Color.Blue)[badge] : null,
                 node.Key is { Length: > 0 } key ? Ui.Badge.Sm["key " + key] : null
             ],
-            node.Badge is "Blazor" or null
-                ? null
-                : P.Class("text-xs opacity-60")[
-                    "An island: its own components live in the browser, so the tree ends here. These are the props C# passed it."
-                ],
             node.Props.Count == 0
                 ? P.Class("text-xs opacity-60")["No props."]
                 : Ui.Table[

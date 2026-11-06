@@ -92,59 +92,6 @@ function enqueueRender(apply: () => unknown): void {
     });
 }
 
-// Island callbacks fired before the app took over. A prerendered page mounts its islands from real
-// HTML, so they are clickable seconds before .NET has booted, and a callback dropped there is a click
-// that did nothing. Held until the first frame has been applied — .NET has no session to dispatch
-// into before that either — then delivered only to the island that fired it (see flushEarlyCallbacks).
-const EARLY_CALLBACK_LIMIT = 32;
-let earlyCallbacks: { payload: unknown; island: string }[] | null = [];
-
-function isIslandCallback(payload: unknown): payload is { id: string } {
-    const frame = payload as { type?: unknown; id?: unknown } | null;
-    return !!frame && frame.type === "external" && typeof frame.id === "string";
-}
-
-/** The name of the island whose props carry this handler id, or null when none does. */
-function islandHolding(id: string): string | null {
-    // The id reaches a selector-free substring match, but only ever as h<digits>.
-    if (!/^h\d+$/.test(id)) return null;
-    for (const island of document.querySelectorAll("rask-external")) {
-        if ((island.getAttribute("props") ?? "").includes(`"$h":"${id}"`)) return island.getAttribute("name");
-    }
-    return null;
-}
-
-function holdEarlyCallback(held: { payload: unknown; island: string }[], payload: { id: string }): void {
-    const island = islandHolding(payload.id);
-    if (island === null) {
-        console.warn("[Rask] a callback fired before the app started names no island on the page; dropped.");
-        return;
-    }
-    if (held.length === EARLY_CALLBACK_LIMIT) {
-        console.warn(`[Rask] more than ${EARLY_CALLBACK_LIMIT} island callbacks fired before the app `
-            + "started; the oldest was dropped.");
-        held.shift();
-    }
-    held.push({payload, island});
-}
-
-// Handler ids are positional, and the prerendered page was rendered by another process: an id in it
-// names the same handler only while the first live render matches. So a held callback is delivered
-// only when an island of the SAME name still carries that id — anything else could fire a handler
-// the visitor never touched.
-function flushEarlyCallbacks(): void {
-    const held = earlyCallbacks;
-    earlyCallbacks = null;
-    for (const {payload, island} of held ?? []) {
-        if (islandHolding((payload as { id: string }).id) === island) {
-            void send(payload);
-        } else {
-            console.warn(`[Rask] a callback the '${island}' island fired before the app started was `
-                + "dropped: the page it was fired on is not the page the app rendered.");
-        }
-    }
-}
-
 // The "#fragment" of an intercepted nav-link click. The fragment never leaves the
 // browser (the navigate message carries only path+query, and the history url has no
 // hash), so we stash it here on click and consume it when the matching push reply
@@ -498,8 +445,6 @@ function handle(reply: RaskFrameReply | null): void {
     } else {
         enqueueRender(() => applyFullReply(reply));
     }
-    // Behind the frame, so the ids a held callback is checked against are the live page's.
-    if (earlyCallbacks) _renderQueue = _renderQueue.then(flushEarlyCallbacks, flushEarlyCallbacks);
     // The first frame is in line, and holds the page busy until it is on it: the boot is over.
     if (booting) {
         booting();
@@ -632,10 +577,6 @@ const userWatch = watchUser(() => {
 });
 
 function send(payload: unknown): Promise<void> {
-    if (earlyCallbacks && isIslandCallback(payload)) {
-        holdEarlyCallback(earlyCallbacks, payload);
-        return Promise.resolve();
-    }
     // What the reader typed or chose and has not been sent goes first, whatever this is: a click, a submit,
     // a key, a navigation, an event a behaviour hook raised (rask-input.ts). It joins the call this event
     // crosses into .NET in, ahead of it.
@@ -739,13 +680,12 @@ if (hooks) {
 // And the same two facts again, on a global, for modules that are NOT in this bundle.
 //
 // setHost above is an intra-bundle contract: a shared module imports `send` from rask-host.ts and
-// the bundler resolves it. Rask.External is a separately published package, fetched by the browser
-// from its own URL as its own module graph, so it has no import path to reach that binding at all.
+// the bundler resolves it. Front-end code fetched by the browser from its own URL, as its own module
+// graph, has no import path to reach that binding at all.
 //
 // It must not open a channel of its own either. On this host that would mean an HTTP round trip to
 // a server that may not exist, when the handler it wants is already in this tab's .NET runtime.
-// Going through this bridge keeps an external component's callback a direct JSExport call, exactly
-// like a DOM handler's.
+// Going through this bridge keeps its events a direct JSExport call, exactly like a DOM handler's.
 globalThis.__raskHost = globalThis.__raskHost || {};
 globalThis.__raskHost.send = send;
 globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {

@@ -4,7 +4,7 @@
 // Stub DOM with exactly what the module touches. The C# test (HostErrorsTests) asserts the single JSON line on stdout.
 
 import {
-    addOverlayButton, installErrorsLink, OVERLAY_BUTTON_ATTRIBUTE, PAGE_ERROR_LIMIT, placeOf,
+    addOverlayButton, installErrorsLink, OVERLAY_BUTTON_ATTRIBUTE, PAGE_ERROR_LIMIT,
 } from "../../../src/Rask.DevTools/Resources/host/errors.js";
 import type {DockHandle} from "../../../src/Rask.DevTools/Resources/host/dock.js";
 import type {FrameMessage} from "../../../src/Rask.DevTools/Resources/rask-devtools-frame-protocol.js";
@@ -101,7 +101,6 @@ fire("error", {error: Object.assign(new TypeError("x is undefined"), {stack: "Ty
     message: "Uncaught TypeError: x is undefined", filename: "https://app/app.js", lineno: 3, colno: 7});
 fire("unhandledrejection", {reason: "nope"});
 fire("error", {error: null, message: "Script error.", filename: "https://cdn.example/x.js", lineno: 1, colno: 2});
-link.island("update", new El("rask-external") as unknown as Element, "Chart", new RangeError("bad range"));
 out.alertsBeforePanel = alerts.join(",");
 
 link.show();
@@ -111,7 +110,7 @@ link.heardFromPanel();
 link.heardFromPanel();
 out.postsAfterPanel = posts.map(m => m.kind).join(",");
 const reports = posts.flatMap(m => m.kind === "page-error" ? [m.report] : []);
-out.reports = reports.map(r => `${r.kind}|${r.title}|${r.message}|${r.stack}|${r.island}|${r.phase}|${r.place}`);
+out.reports = reports.map(r => `${r.kind}|${r.title}|${r.message}|${r.stack}`);
 out.reportTimesAreSet = reports.every(r => r.at > 0);
 out.alertAfterHandOver = alerts[alerts.length - 1];
 link.setPanelCount(3);
@@ -131,34 +130,11 @@ const quiet = installErrorsLink(
     {isOpen: () => false, toggle() {}, setAlert: (n: number) => bufferAlerts.push(n)} as unknown as DockHandle,
     m => bufferPosts.push(m));
 for (let i = 0; i < PAGE_ERROR_LIMIT + 5; i++) {
-    quiet.record({kind: "page", title: "Error", message: "e" + i, stack: null, at: 1, island: null, phase: null, place: null});
+    quiet.record({kind: "page", title: "Error", message: "e" + i, stack: null, at: 1});
 }
 out.bufferAlert = bufferAlerts[bufferAlerts.length - 1];
 quiet.heardFromPanel();
 const handed = bufferPosts.flatMap(m => m.kind === "page-error" ? [m.report.message] : []);
 out.bufferHanded = `${handed.length}:${handed[0]}:${handed[handed.length - 1]}`;
-
-// A place for an island's element, counted the way the diff counts slots: managed nodes and whitespace under <html> skipped.
-class Node2 {
-    parentNode: Node2 | null = null;
-    readonly childNodes: Node2[] = [];
-    constructor(readonly nodeType: number, readonly nodeName: string, readonly nodeValue: string | null = null,
-                readonly managed = false) {}
-    hasAttribute(name: string) { return name === "data-rask-managed" && this.managed; }
-    add(child: Node2) { child.parentNode = this; this.childNodes.push(child); return child; }
-}
-const doc2 = new Node2(9, "#document");
-globals.document = doc2;
-const html2 = doc2.add(new Node2(1, "HTML"));
-html2.add(new Node2(1, "HEAD"));
-html2.add(new Node2(3, "#text", "\n  "));
-const body2 = html2.add(new Node2(1, "BODY"));
-body2.add(new Node2(1, "SCRIPT", null, true));
-body2.add(new Node2(1, "MAIN"));
-const main2 = body2.childNodes[1];
-main2.add(new Node2(3, "#text", "hello"));
-const host2 = main2.add(new Node2(1, "RASK-EXTERNAL"));
-out.islandPlace = placeOf(host2 as unknown as Element);
-out.detachedPlace = placeOf(new Node2(1, "DIV") as unknown as Element);
 
 process.stdout.write(JSON.stringify(out) + "\n");

@@ -9,7 +9,7 @@ password — behind Rask's own host-neutral surface. The code you write to read
 the current user or gate a page does not change between hosts.
 
 ```csharp
-// the same three calls on the Server host, in WebAssembly, and inside an island
+// the same three calls on the Server host and in WebAssembly
 public sealed class LoginForm(IAuth auth) : Component
 {
     private async Task SubmitAsync(Credentials c) =>

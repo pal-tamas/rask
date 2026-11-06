@@ -5,13 +5,13 @@ using Rask.Core.Live;
 
 namespace Rask.Core.Tests.Live;
 
-// The diff boundary, which is the load-bearing rule for islands (Rask.External): everything below an
-// opaque element belongs to a foreign renderer — React, Lit, Blazor — and Rask must never patch into
-// it. Two writers on one subtree does not throw; it corrupts on the next parent re-render, so these
+// The diff boundary, which is the load-bearing rule for a component whose subtree a script draws (a kit
+// component's editor or calendar engine): everything below an opaque element belongs to that script, and
+// Rask must never patch into it. Two writers on one subtree does not throw; it corrupts on the next parent re-render, so these
 // tests are the regression guard for a failure that is otherwise silent.
 //
 // Deliberately written against a bare Component that overrides OpaqueSubtree rather than against a
-// real island: the rule belongs to the render engine, and it should hold for anything that claims it.
+// real kit component: the rule belongs to the render engine, and it should hold for anything that claims it.
 public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
 {
     [Fact]
@@ -19,7 +19,7 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     {
         // The client morph reads the attribute; the diff reads the frame flag. Both are needed, so
         // both are pinned — this is the attribute half.
-        var html = HtmlOf(new Host(opaque: true)[Span["mounted by react"]]);
+        var html = HtmlOf(new Host(opaque: true)[Span["drawn by a script"]]);
 
         Assert.Contains("data-rask-opaque", html, StringComparison.Ordinal);
     }
@@ -46,8 +46,8 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void The_children_of_an_opaque_subtree_are_never_patched()
     {
-        // The children differ completely. Rask must still emit nothing: those nodes are React's, and
-        // it is mid-reconcile on its own schedule.
+        // The children differ completely. Rask must still emit nothing: those nodes are the script's,
+        // and it redraws them on its own schedule.
         var before = Frames(new Host(opaque: true)[Span["one"], Div["two"]]);
         var after = Frames(new Host(opaque: true)[Span["ONE"], Div["THREE"], Span["four"]]);
 
@@ -92,8 +92,8 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
     public void Replaying_lean_frames_preserves_opacity()
     {
         // The retained clean-subtree cache round-trips through LeanFrame, which drops every field it
-        // can. Dropping this one would silently un-protect a cached island: the replay writes frames
-        // straight back into the live FrameWriter, so the next diff would walk into React's DOM.
+        // can. Dropping this one would silently un-protect a cached opaque subtree: the replay writes
+        // frames straight back into the live FrameWriter, so the next diff would walk into the script's DOM.
         var captured = Frames(new Host(opaque: true)[Span["mounted"]]);
 
         var lean = new LeanFrame[captured.Length];
@@ -117,15 +117,15 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
         // Frame 0 is the host; the Span child is an Element too, and must NOT inherit the flag.
         var replayedFrames = writer.WrittenSpan.ToArray();
         Assert.Equal(RenderFrameKind.Element, replayedFrames[0].Kind);
-        Assert.True(replayedFrames[0].Opaque, "replayed island frame lost its diff boundary");
+        Assert.True(replayedFrames[0].Opaque, "replayed opaque frame lost its diff boundary");
         Assert.DoesNotContain(replayedFrames[1..], f => f.Opaque);
         Assert.Contains("data-rask-opaque", sb.ToString(), StringComparison.Ordinal);
     }
 
-    // A minimal stand-in for an island host: an element-shaped component that owns its own subtree.
+    // A minimal stand-in for an opaque host: an element-shaped component that owns its own subtree.
     private sealed class Host(bool opaque, string? props = null) : Component
     {
-        protected override string? TagName => "rask-external";
+        protected override string? TagName => "x-chart";
 
         protected override bool OpaqueSubtree => opaque;
 
@@ -135,8 +135,8 @@ public partial class OpaqueSubtreeTests : global::Rask.Core.RaskMarkup
             {
                 // AppendAttr, not sb.Append: it writes the markup AND registers the Attribute frame.
                 // Writing the StringBuilder directly produces correct HTML with no frame behind it, so
-                // the value renders once and then never diffs again — which for an island would mean
-                // props silently stop reaching the adapter after the first paint.
+                // the value renders once and then never diffs again — which for an opaque host would mean
+                // its values silently stop reaching the script after the first paint.
                 AppendAttr(sb, "props", props);
             }
         }

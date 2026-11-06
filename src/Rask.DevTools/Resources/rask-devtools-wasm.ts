@@ -49,7 +49,7 @@ export function install(frameDocument: string, onOpen: () => void, onEvent: (jso
     // Posted only once the frame document is listening: before that the panel has nothing to match a time to.
     installPatchTiming(message => {
         if (ready) frameWindow?.postMessage(message, "*");
-    }, errors.island);
+    });
 
     // Only the panel frame this module created; anything else on the page speaking the same shape is ignored.
     listenToPanel(() => frameWindow, null, () => bridge, message => {

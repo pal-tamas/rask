@@ -82,46 +82,6 @@ public class WasmBundleTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    [Theory]
-    [InlineData("/_rask/external/manifest.json", "application/json")]
-    [InlineData("/_rask/external/assets/Counter-abc123.js", "text/javascript")]
-    public async Task The_bundles_islands_are_served_beside_the_dashboards_catch_all(string path, string mediaType)
-    {
-        // The dashboard maps /_rask/{**path}, and static files are middleware that steps aside once routing picked
-        // an endpoint — so a wasm-hosted app's islands were sent to sign in and never mounted (#1194).
-        using var bundle = new FakeWasmBundleDirectory();
-        bundle.AddIslands();
-        await using var host = await SpaTestServer.CreateAsync(bundle.Path, withDashboard: true);
-
-        var response = await host.Http.GetAsync(path, TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal(mediaType, response.Content.Headers.ContentType?.MediaType);
-    }
-
-    [Fact]
-    public async Task A_missing_island_file_is_a_404_not_a_sign_in()
-    {
-        using var bundle = new FakeWasmBundleDirectory();
-        bundle.AddIslands();
-        await using var host = await SpaTestServer.CreateAsync(bundle.Path, withDashboard: true);
-
-        var response = await host.Http.GetAsync("/_rask/external/assets/Gone-000.js", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task A_bundle_without_islands_leaves_the_dashboards_paths_alone()
-    {
-        using var bundle = new FakeWasmBundleDirectory();
-        await using var host = await SpaTestServer.CreateAsync(bundle.Path, withDashboard: true);
-
-        var response = await host.Http.GetAsync("/_rask/external/manifest.json", TestContext.Current.CancellationToken);
-
-        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
-    }
-
     [Fact]
     public async Task A_client_side_route_gets_the_index_document()
     {

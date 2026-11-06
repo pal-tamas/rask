@@ -24,9 +24,8 @@ namespace Rask.Core;
 // TModel is DAM-annotated because the built-in DataAnnotations pass reflects over the model's public
 // properties, and so does the graph walk that reaches its sub-objects. Without the annotation the
 // trimmer removes those properties from a published WebAssembly build and the form validates NOTHING —
-// silently, with a green build and no IL warning. Same annotation, same reason, as BlazorComponent<T>'s
-// type parameter; the difference is that this one has to travel through the generated chain, which is
-// why ComponentFactoryGenerator repeats it on every declaration it emits.
+// silently, with a green build and no IL warning. The annotation has to travel through the generated
+// chain, which is why ComponentFactoryGenerator repeats it on every declaration it emits.
 /// <summary>
 ///     A form over a model of type <c>TModel</c>. Submission is handled in-process — the bound fields
 ///     are parsed and validated, then <c>OnSubmit</c> or <c>OnInvalidSubmit</c> runs — so there is

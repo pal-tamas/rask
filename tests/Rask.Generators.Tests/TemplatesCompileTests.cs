@@ -5,8 +5,6 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Rask.Api.Generators;
 using Rask.Batteries.Generators;
 using Rask.Cli.Scaffolding;
-using Rask.Generators.Blazor;
-using Rask.Generators.External;
 using Rask.Generators.Validation;
 
 namespace Rask.Generators.Tests;
@@ -88,68 +86,6 @@ public class TemplatesCompileTests
         Assert.True(errors.Count == 0, Describe(errors));
     }
 
-    public static TheoryData<string> FrontEnds() => [.. SpaFramework.All.Select(framework => framework.Key)];
-
-    private static SpaFramework FrontEnd(string key) => SpaFramework.All.Single(framework => framework.Key == key);
-
-    [Theory]
-    [MemberData(nameof(FrontEnds))]
-    public void The_host_of_a_bare_TypeScript_front_end_compiles(string key)
-    {
-        var files = ProjectGenerator.GenerateSpa("/app", "Shop", FrontEnd(key), new ServerBatteries(), "9.9.9").Files;
-
-        var errors = Errors(files, ServerUsings);
-
-        Assert.True(errors.Count == 0, Describe(errors));
-    }
-
-    [Theory]
-    [MemberData(nameof(FrontEnds))]
-    public void The_host_of_a_TypeScript_front_end_with_every_battery_compiles(string key)
-    {
-        var files = ProjectGenerator.GenerateSpa("/app", "Shop", FrontEnd(key), Everything, "9.9.9").Files;
-
-        var errors = Errors(files, ServerUsings);
-
-        Assert.True(errors.Count == 0, Describe(errors));
-    }
-
-    [Theory]
-    [InlineData("react")]
-    [InlineData("vue")]
-    [InlineData("lit", "angular", "svelte")]
-    public void A_server_app_whose_home_page_renders_its_islands_compiles(params string[] islands)
-    {
-        var files = ProjectGenerator.GenerateServer("/app", "Shop", new ServerBatteries(), "9.9.9", islands).Files;
-
-        var errors = Errors(files, ServerUsings);
-
-        Assert.True(errors.Count == 0, Describe(errors));
-    }
-
-    [Theory]
-    [InlineData("lit")]
-    [InlineData("preact", "solid")]
-    public void A_browser_app_whose_home_page_renders_its_islands_compiles(params string[] islands)
-    {
-        var files = ProjectGenerator
-            .GenerateWasm("/app", "Shop", pwa: true, docker: false, "9.9.9", islands: islands).Files;
-
-        var errors = Errors(files, BrowserUsings);
-
-        Assert.True(errors.Count == 0, Describe(errors));
-    }
-
-    [Fact]
-    public void A_server_app_whose_home_page_renders_a_Blazor_island_compiles()
-    {
-        var files = ProjectGenerator.GenerateServer("/app", "Shop", new ServerBatteries(), "9.9.9", ["blazor", "react"]).Files;
-
-        var errors = Errors(files, ServerUsings, RazorClassLibrary(files));
-
-        Assert.True(errors.Count == 0, Describe(errors));
-    }
-
     // The one-project build compiles Client/ into the browser app and leaves it out of the server.
     private static bool InClient(ScaffoldFile file) => file.Path.Contains("/Client/", StringComparison.Ordinal);
 
@@ -202,40 +138,14 @@ public class TemplatesCompileTests
         global using Rask.Auth.Client;
         """;
 
-    /// <summary>
-    ///     The Razor class library a Blazor island hosts its component from, as the reference the app sees.
-    /// </summary>
-    /// <remarks>
-    ///     No Razor compiler runs here, so the component is its own <c>@code</c> block in a class — which is
-    ///     everything the island reads off it: the <c>[Parameter]</c>s its chain steps are generated from.
-    /// </remarks>
-    private static MetadataReference RazorClassLibrary(IEnumerable<ScaffoldFile> files)
-    {
-        var razor = files.Single(f => f.Path.EndsWith("BlazorCounter.razor", StringComparison.Ordinal)).Content;
-        var members = razor[(razor.IndexOf("@code {", StringComparison.Ordinal) + "@code {".Length)..razor.LastIndexOf('}')];
-        var source = $$"""
-            using Microsoft.AspNetCore.Components;
-            namespace Shop.Components;
-            public class BlazorCounter : ComponentBase { {{members}} }
-            """;
-
-        return CSharpCompilation.Create(
-            "Shop.Components",
-            [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest))],
-            GeneratorDriverFixture.BuildReferences(),
-            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)).ToMetadataReference();
-    }
-
-    private static List<Diagnostic> Errors(
-        IEnumerable<ScaffoldFile> files, string usings, MetadataReference? razorClassLibrary = null)
+    private static List<Diagnostic> Errors(IEnumerable<ScaffoldFile> files, string usings)
     {
         var parse = new CSharpParseOptions(LanguageVersion.Latest);
 
-        // The app's own sources: not its test project, and not the Razor class library beside it.
+        // The app's own sources, not its test project.
         var trees = files
             .Where(f => f.Path.EndsWith(".cs", StringComparison.Ordinal)
-                        && !f.Path.Contains(".Tests/", StringComparison.Ordinal)
-                        && !f.Path.Contains(".Components/", StringComparison.Ordinal))
+                        && !f.Path.Contains(".Tests/", StringComparison.Ordinal))
             .Select(f => CSharpSyntaxTree.ParseText(f.Content, parse, f.Path))
             .Append(CSharpSyntaxTree.ParseText(usings, parse, "ImplicitUsings.g.cs"))
             .ToArray();
@@ -243,9 +153,7 @@ public class TemplatesCompileTests
         var compilation = CSharpCompilation.Create(
             "Shop",
             trees,
-            razorClassLibrary is null
-                ? GeneratorDriverFixture.BuildReferences()
-                : [.. GeneratorDriverFixture.BuildReferences(), GeneratorDriverFixture.AssemblyReference("Rask.Blazor"), razorClassLibrary],
+            GeneratorDriverFixture.BuildReferences(),
             new CSharpCompilationOptions(OutputKind.ConsoleApplication, nullableContextOptions: NullableContextOptions.Enable));
 
         CSharpGeneratorDriver
@@ -259,9 +167,7 @@ public class TemplatesCompileTests
                 new AuthUserGenerator().AsSourceGenerator(),
                 new CqrsDispatchGenerator().AsSourceGenerator(),
                 new CqrsCodecGenerator().AsSourceGenerator(),
-                new ApiClientGenerator().AsSourceGenerator(),
-                new ExternalGenerator().AsSourceGenerator(),
-                new BlazorGenerator().AsSourceGenerator())
+                new ApiClientGenerator().AsSourceGenerator())
             .WithUpdatedParseOptions(parse)
             .WithUpdatedAnalyzerConfigOptions(new AppOptions())
             .RunGeneratorsAndUpdateCompilation(compilation, out var generated, out _);

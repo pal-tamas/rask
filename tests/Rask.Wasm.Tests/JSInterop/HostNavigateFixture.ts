@@ -1,8 +1,7 @@
 // Script fixture: what does `__raskHost.navigate(url, replace)` send to .NET?
 //
-// The generated `@rask/routes` module navigates through this bridge, so front-end island code can
-// write `Routes.OrdersPage({ Page: 2 }).Go()` and never a path. It has to take the same road a click
-// on an `a[data-rask-nav]` takes, and refuse a URL that is not this app's.
+// Front-end code loaded as its own module navigates in-app through this bridge. It has to take the
+// same road a click on an `a[data-rask-nav]` takes, and refuse a URL that is not this app's.
 //
 // Drives the built rask.wasm.js against a minimal stub DOM and reports one JSON value.
 //

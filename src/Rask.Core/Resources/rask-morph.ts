@@ -14,7 +14,7 @@
 //    here, and the two files concatenate into one scope in EITHER order, so the
 //    cross-references must resolve regardless of splice ordering (hoisting). Locals,
 //    callbacks, and literals inside them use modern syntax freely.
-//  - No `export` / `import`: this island is spliced inside the Server's classic-script
+//  - No `export` / `import`: this file is spliced inside the Server's classic-script
 //    IIFE, where module syntax is illegal.
 
 // Scripts produced by DOMParser have their "already started" flag set, so the
@@ -527,21 +527,6 @@ function _raskEnsureHeadObserver() {
     // at a head morph / applyDiff, where the records are still pending.
     _raskHeadObserver = new MutationObserver((records) => _raskTagHeadRecords(records));
     _raskHeadObserver.observe(_raskObservedHead, { childList: true });
-    _raskTakeOverHeadObservation();
-}
-
-// This observer only sees nodes added after it arms, and on a prerendered page an island can be mounted long before
-// that: the island runtime (Rask.External's rask-external.js) loads ahead of the page runtime and mounts at once, and a
-// component library styles itself by appending to <head> — react-colorful's <style>, emotion's. Untagged, the takeover
-// morph trimmed it as boot-shell content and the island stayed unstyled for good, because a library injects once.
-//
-// So the island runtime watches <head> itself until this moment and hands over here, synchronously: it tags what it saw
-// and disconnects before any head morph of ours could be mistaken for a library's. The flag is set FIRST, so an island
-// runtime that loads after this point never starts watching at all.
-function _raskTakeOverHeadObservation() {
-    const g = globalThis as { __raskHeadObserverArmed?: boolean; __raskExternalHeadHandoff?: () => void };
-    g.__raskHeadObserverArmed = true;
-    if (typeof g.__raskExternalHeadHandoff === "function") g.__raskExternalHeadHandoff();
 }
 
 // Tag the nodes added by these mutation records — a <style>/<link>/<script> a library injected — with
@@ -707,13 +692,13 @@ function morphNode(fromNode: Node, toNode: Node): void {
             }
         }
     }
-    // This subtree belongs to a foreign renderer — React, Lit, Blazor (see Rask.External).
-    // Attributes above still sync, which is exactly how a changed `props` reaches the adapter; the
+    // This subtree belongs to something that is not Rask — a script that draws into it (Component.OpaqueSubtree).
+    // Attributes above still sync, which is exactly how a changed value reaches that script; the
     // children never do. Pairing them would let a full-document morph (scoped-CSS delivery, reconnect,
-    // any untrusted structural op) delete DOM that renderer owns and is about to reuse.
+    // any untrusted structural op) delete DOM that script owns and is about to reuse.
     //
     // The two sides genuinely disagree here, permanently and by design, which is why this cannot be
-    // softened into a smarter walk. `from` holds whatever the framework rendered; `to` holds the
+    // softened into a smarter walk. `from` holds whatever the script drew; `to` holds the
     // server's idea of it, which is an empty element. A positional walk would trim every mounted node.
     //
     // Distinct from data-rask-managed, which skips a node as a sibling; this one keeps the node and

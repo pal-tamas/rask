@@ -32,18 +32,4 @@ public sealed class MorphManagedGuardTests
         Assert.Equal(1, GetInt("correctHostCount"));
         Assert.True(GetBool("correctMonacoKept"), "a correctly-marked library child was stripped by morph");
     }
-
-    [Fact]
-    public void Arming_the_head_watch_takes_it_over_from_the_island_runtime_once()
-    {
-        // On a prerendered page the island runtime mounts islands before this runtime watches <head>, so a library's
-        // injected <style> (react-colorful, emotion) was trimmed by the takeover morph and the island rendered at zero size.
-        // The island runtime now watches <head> until this one arms and calls its handoff. Arming must set the flag an island
-        // runtime loading later reads, and hand over exactly once rather than on every head morph.
-        var result = ScriptFixture.Run("MorphManagedGuardFixture");
-        Assert.True(result.GetProperty("headWatchArmed").GetBoolean(), "arming the head watch did not set the flag");
-        Assert.Equal(1, result.GetProperty("handoffCalls").GetInt32());
-    }
-
-
 }

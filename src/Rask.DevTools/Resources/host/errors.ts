@@ -1,5 +1,5 @@
 // The page's side of the Errors tab: the count on the pill, what fails on the page itself — a script's uncaught error, a
-// promise rejected with nobody to catch it, an island that failed — and the ways in: the pill's dot, and an "Open in
+// promise rejected with nobody to catch it — and the ways in: the pill's dot, and an "Open in
 // DevTools" button the devtools add to the corner dev-error overlay.
 //
 // A page failure is the page's to report, since no server hears of it. It is counted on the pill at once; the panel lists
@@ -9,7 +9,6 @@
 // The overlay itself belongs to the runtime and ships in every Release page, so nothing of the devtools goes into it
 // there: this module finds the overlay once the runtime has built it, and adds its button from the outside.
 
-import {nodePath} from "../../../Rask.Core/Resources/rask-dom-path.js";
 import {CHANNEL, type FrameMessage, type PageErrorReport} from "../rask-devtools-frame-protocol.js";
 import type {DockHandle} from "./dock.js";
 
@@ -31,8 +30,6 @@ export interface ErrorsLink {
     setPanelCount(count: number): void;
     /** A failure on the page: handed to the panel, or held for it. */
     record(report: PageErrorReport): void;
-    /** The island runtime's hook: an island failed. */
-    island(phase: string, element: Element, name: string | null, error: unknown): void;
 }
 
 /** A report of a thrown or rejected value, whatever it is. */
@@ -49,17 +46,7 @@ export function describeFailure(
             : value === undefined || value === null || error ? fallbackMessage : String(value),
         stack,
         at,
-        island: null,
-        phase: null,
-        place: null,
     };
-}
-
-/** `path|slot|1` for an element, the place format the Tree tab writes, or null when it is not in the document. */
-export function placeOf(element: Element): string | null {
-    const path = nodePath(element);
-    if (!path || path.length === 0) return null;
-    return path.slice(0, -1).join(".") + "|" + path[path.length - 1] + "|1";
 }
 
 export function installErrorsLink(dock: DockHandle, post: (message: FrameMessage) => void): ErrorsLink {
@@ -104,10 +91,6 @@ export function installErrorsLink(dock: DockHandle, post: (message: FrameMessage
             waiting.push(report);
             if (waiting.length > PAGE_ERROR_LIMIT) waiting.shift();
             alert();
-        },
-        island(phase, element, name, error) {
-            const report = describeFailure("island", error, "Error", String(error), Date.now());
-            link.record({...report, island: name, phase, place: placeOf(element)});
         },
     };
 

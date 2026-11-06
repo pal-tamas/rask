@@ -1,13 +1,13 @@
-// Script fixture for the external-component diff boundary in the shared client morph
+// Script fixture for the opaque-subtree diff boundary in the shared client morph
 // (Rask.Core/Resources/rask-morph.ts — the data-rask-opaque early return).
 //
-// The scenario is the one that silently corrupts. What a foreign renderer put in the DOM and what the
+// The scenario is the one that silently corrupts. What a script drew into the DOM and what the
 // server thinks is there permanently disagree: the children below the host were created in the
-// browser by React/Lit/Blazor after mount, and the server's HTML has none of them. So on any
+// browser by that script after mount, and the server's HTML has none of them. So on any
 // full-document morph — scoped-CSS delivery, a reconnect, any untrusted structural op — a positional walk trims
 // every mounted node, and the component goes blank until something re-mounts it.
 //
-// Attributes must still sync across the boundary: that is how a changed `props` reaches the adapter.
+// Attributes must still sync across the boundary: that is how a changed value reaches the script.
 //
 // The C# test (OpaqueMorphTests) runs this on Jint and asserts what it reports.
 //
@@ -88,7 +88,7 @@ function withKids(nodeName: string, children: StubNode[], attrs?: Record<string,
 function liveHost(props: string, opaque: boolean): StubParent {
     const attrs: Record<string, string> = {name: "Chart", props};
     if (opaque) attrs["data-rask-opaque"] = "";
-    return withKids("RASK-EXTERNAL", [
+    return withKids("X-CHART", [
         withKids("DIV", [makeEl("SVG"), makeEl("SPAN", {}, "41,200")], {class: "recharts-wrapper"})
     ], attrs);
 }
@@ -97,7 +97,7 @@ function liveHost(props: string, opaque: boolean): StubParent {
 function renderedHost(props: string, opaque: boolean): StubParent {
     const attrs: Record<string, string> = {name: "Chart", props};
     if (opaque) attrs["data-rask-opaque"] = "";
-    return makeEl("RASK-EXTERNAL", attrs);
+    return makeEl("X-CHART", attrs);
 }
 
 function run(opaque: boolean) {

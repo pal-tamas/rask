@@ -558,16 +558,14 @@ public abstract partial class Component
 
                 return true;
             }
-            // The shape an external component's callback arrives as (see Rask.External). Its
-            // generated wrapper reads the argument out of the frame with code the generator
-            // emitted, so an Action<int> or Action<SomeRecord> is fed without reflection and
-            // without this switch needing a case per argument type.
+            // The raw argument, for a handler that reads the payload itself — so an argument of any
+            // shape is fed without reflection and without this switch needing a case per type.
             //
             // Necessary because there is no general Action<T> case and cannot be: T is only known
             // where the component is compiled. Without it such a delegate fell to the reflective
-            // path, which DynamicInvokes with no arguments — so every argument-taking callback threw
-            // TargetParameterCountException on its first click and the error boundary replaced the
-            // page. It rendered, mounted, and died on use.
+            // path, which DynamicInvokes with no arguments — so it threw
+            // TargetParameterCountException on its first event and the error boundary replaced the
+            // page.
             case Action<JsonElement> ap:
                 ap(payload);
                 return true;
