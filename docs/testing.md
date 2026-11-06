@@ -243,7 +243,7 @@ Assert.True(ctx!.IsModified(new FieldIdentifier(model, nameof(model.Name))));
 The probe renders no markup of its own. Outside a form it captures nothing — the context is ambient only
 within the form's subtree.
 
-`Rask.Core` comes transitively from the app under test (via its `Rask.Server` / `Rask.Wasm` reference),
+`Rask` (the core package) comes transitively from the app under test (via its `Rask.Server` / `Rask.Wasm` reference),
 so a test project only references `Rask.Testing` and the app.
 
 The rest of this guide covers `Rask`'s own in-repo test helpers (`Rask.TestSupport`) and deeper patterns
@@ -262,7 +262,8 @@ database of its own for this test, then opens the URL through the real router, r
 [Fact]
 public async Task An_admin_adds_a_product()
 {
-    var admin = await User.Create(new() { Email = "ann@example.com", Roles = [RaskRoles.Admin] });
+    await Accounts.Create<User>("ann@example.com", "a long passphrase", u => u.GrantRole(RaskRoles.Admin));
+    var admin = await User.Where(u => u.Email == "ann@example.com").First();
     var page = Page.Visit("/products/new").As(admin);
 
     await page.Type("Tea").Into("Name");
@@ -288,7 +289,7 @@ public void A_visitor_is_sent_to_sign_in()
   collection to build in the test. The app starts the way it does in production — pending migrations are
   applied — but opens no port.
 - **A database per test.** Each visit gets fresh database files, so tests never see each other's rows and run
-  side by side. The test's own reads and writes — `User.Create(…)`, `await Product.Count()` — reach the same
+  side by side. The test's own reads and writes — `Accounts.Create(…)`, `await Product.Count()` — reach the same
   database the page does.
 - **`.As(user)`** — visit signed in, as a row of your app's user table (or any `ClaimsPrincipal`), exactly
   as that user would be after signing in: `[Authorize]`, `Authorize.Roles(…)` and `Current.UserId` all see them.
@@ -299,7 +300,7 @@ public void A_visitor_is_sent_to_sign_in()
 A component library has no app to run; there `Page.Visit(url, services)` routes over the services you pass.
 
 **Referencing `Rask.Testing` boots nothing a test did not ask for.** On xUnit v3 every test gets its own app, but
-it waits: only a call with nothing else to go on boots it — `Page.Visit`, a battery's static (`User.Create`,
+it waits: only a call with nothing else to go on boots it — `Page.Visit`, a battery's static (`Accounts.Create`,
 `Jobs.Enqueue`), a read with no database configured. A lookup that has another answer (`Ambient.Services`, an
 `IsOn` check) never does, and a test that sets up its own database never boots the app at all:
 
@@ -403,7 +404,7 @@ public async Task Placing_an_order_mails_the_customer_a_receipt()
     using var mail = Mail.Fake();
     var page = Page.Visit("/orders/new").As(ann);
 
-    page.Type("Tea").Into("Item");
+    await page.Type("Tea").Into("Item");
     await page.Click("Place order");
     await outbox.Run();   // the durable handlers of what was saved run
     await jobs.Run();     // the jobs they enqueued run, through their real handlers
@@ -485,14 +486,14 @@ public void Unset_props_render_empty_button_tags() =>
 [Fact]
 public void Setting_every_prop_emits_the_base_attributes_before_the_tags_own() =>
     Assert.Equal(
-        "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" type=\"submit\" disabled name=\"action\" value=\"save\"></button>",
+        "<button id=\"go\" class=\"btn\" style=\"color:red\" data-test-id=\"primary\" disabled name=\"action\" type=\"submit\" value=\"save\"></button>",
         Button
             .Type(ButtonType.Submit)
             .Disabled()
             .Name("action")
             .Value("save")
             .Id("go")
-            .Class("cta")
+            .Class("btn")
             .Style("color:red")
             .Data("test-id", "primary")
             .ToHtml());
@@ -691,7 +692,7 @@ The page is **busy** while any of these holds, on both hosts:
 | Busy while… | Ends when… |
 |---|---|
 | a handler event (click, submit, key, change) has been sent | the render answering it is on the page (Server: its ack, then the render queue; WASM: the dispatch and the reads it started) |
-| a navigation (a link, Back/Forward, `Navigator.Go`) is in flight | its page is on screen |
+| a navigation (a link, Back/Forward, `Go.To(…)`) is in flight | its page is on screen |
 | a frame has arrived and is not applied | its render is on the page — a body held for its new stylesheet included |
 | a live or debounced field has text not yet sent | it is sent (the next animation frame, or the pause) |
 | a `.Confirm` yes waits for the page to catch up | the press is made again |

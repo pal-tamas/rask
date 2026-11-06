@@ -23,15 +23,15 @@ bool haveDiff = cache.TryComputeDiff(ops, html);  // diff against previous, then
 > `TryComputeDiff` rotates the buffers internally (promotes current → previous) on
 > **every** call — including the first-render `false` return. So you must **never**
 > call `Snapshot()` after it on the same render: `Snapshot()` also rotates, and a
-> second rotation strands `_previous = null` and corrupts the next diff. `LiveSession`
-> tracks this with a `diffPathEntered` flag and only calls `Snapshot()` on the
+> second rotation strands `_previous = null` and corrupts the next diff. `LiveSessionBase`
+> (shared by both hosts) tracks this with a `diffPathEntered` flag and only calls `Snapshot()` on the
 > full-HTML branch *when it did not enter the diff branch*:
 >
 > ```csharp
 > if (!usedDiff)
 > {
 >     LivePayload.BuildPayloadUtf8WithRoot(...);
->     if (!diffPathEntered)            // TryComputeDiff already rotated otherwise
+>     if (!diffPathEntered && commitCache)   // TryComputeDiff already rotated otherwise
 >         _renderCache?.Snapshot();
 > }
 > ```
@@ -59,13 +59,16 @@ zero body ops. Two helpers in `LiveDiffGate` bridge this:
   document.
 
 **Query-only / body-unchanged navigations** produce zero ops but still must `pushState`
-the URL. The session ships the diff anyway when there's a `historyUrl` or a head change,
-even with an empty op list (`LiveSession.cs`):
+the URL. The session ships the diff anyway when there's a `historyUrl` or a head change
+(or a script call or a development error), even with an empty op list
+(`LiveSessionBase.TryWriteDiff`):
 
 ```csharp
-if (_renderCache.TryComputeDiff(_diffOps, html)
-    && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
-    && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
+var carries = historyUrl is not null || headChanged || jsInvokes is not null || devError is not null;
+if (compared
+    && (_diffOps.Count > 0 || carries)
+    && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
+    && !renderCache.LastDiffForcedFullHtml)
 ```
 
 The `"history"` field carries `{ action: "push"|"replace", url }`.
@@ -80,11 +83,13 @@ async handler's continuation can't interleave with the next handler's start.
 The WS receive loop is single-threaded per session. Each inbound handler is chained
 onto `LiveSession.LastHandlerTask`: the new dispatch awaits the prior tail before
 running, then stores its own continuation as the new tail
-(`RaskEndpointExtensions.cs`, `ChainHandlerDispatchAsync`):
+(`RaskEndpointExtensions.cs`, `ChainHandlerDispatchAsync`, linked under a gate by
+`LiveSession.EnqueueOnHandlerChain`):
 
 ```csharp
-capturedSession.LastHandlerTask = ChainHandlerDispatchAsync(
-    capturedSession.LastHandlerTask, capturedSession, handlerId, root, ct);
+session.EnqueueOnHandlerChain(previous => ChainHandlerDispatchAsync(
+    previous, store, session, handlerId, capturedRoot, payloadBytes, metrics,
+    limits.HandlerTimeout, ct));
 ```
 
 This pins start-of-dispatch to WS-arrival order **without blocking the receive loop**
@@ -96,9 +101,9 @@ under ThreadPool contention an `input`→`submit` pair could acquire the lock
 
 ### WASM: a single `SemaphoreSlim`
 
-`WasmLiveSession` guards every dispatch with `_lock = new SemaphoreSlim(1, 1)` held
+`WasmLiveSession` guards every dispatch with `_lock` (a `SemaphoreSlim(1, 1)`) held
 across the awaited handler (`WasmLiveSession.cs`). The render walk is single-threaded
-per session; `InHandlerScope` is a plain instance bool (deliberately *not* `AsyncLocal`)
+per session; `InHandlerScope` (on `LiveSessionBase`) is a plain instance bool (deliberately *not* `AsyncLocal`)
 because the lock is owned by the session as a whole.
 
 ### Events of one task: one frame, one render

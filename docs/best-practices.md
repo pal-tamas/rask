@@ -5,7 +5,7 @@ collects the patterns that keep a Rask app correct, secure, and fast as it grows
 framework rewards, the foot-guns it can't stop for you, and where each one is enforced.
 
 Every item is short on purpose: a rule, *why* it matters, and a link to the deep dive. Many of these
-are also compile-time diagnostics ([RASK001–034](diagnostics.md)) — when the analyzer can catch a
+are also compile-time diagnostics ([RASK001–115](diagnostics.md)) — when the analyzer can catch a
 mistake, the rule notes the ID.
 
 - [Component design](#component-design)
@@ -69,7 +69,8 @@ mistake, the rule notes the ID.
   `<title>`/`<base>` are singletons where the last contributor wins. See
   [getting started §7](getting-started.md#7-the-document-and-the-headassets-override).
 - **Don't fight the attribute order.** Universal attributes always render
-  `id, class, style, data-*, role, tabindex, aria-*` (typed, then the Aria bag), then tag-specific. Tests assert it and it's
+  `id, class, style, title`, the plain globals (`lang, dir, hidden, inert, popover, contenteditable, spellcheck,
+  translate`), `data-*, role, tabindex, aria-*` (typed, then the Aria bag), `Attributes`, then tag-specific. Tests assert it and it's
   stable across releases — match it when asserting on HTML.
 
 ## State, callbacks & events
@@ -234,26 +235,26 @@ mistake, the rule notes the ID.
   store in the browser. Don't reintroduce one by hand.
 - **Gate interactive WASM content that renders before its principal lands with the `Authorize`
   component, not route `[Authorize]`.** Route gating runs once, before the page renders; a WASM
-  provider is still hydrating then, so `Authorize(Authorized:, NotAuthorized:, Authorizing:)` — whose
+  provider is still hydrating then, so `Authorize.Authorized(…).NotAuthorized(…).Authorizing(…)` — whose
   `Authorizing` slot covers exactly that window — is the right tool.
 - **Lean on the built-in URL sanitization.** URL-bearing attributes neutralize dangerous schemes
   (`javascript:`, `vbscript:`) to `about:blank` by default; use `RaskUrl.Trusted(...)` only for URLs
   you control. Treat the **session id as a bearer secret** (HTTPS only, never logged), and set a
   strict **Content-Security-Policy** as middleware before `MapRask` — Rask needs no
-  `script-src 'unsafe-inline'` (only `style-src 'unsafe-inline'` for `Style:` attributes, plus
+  `script-src 'unsafe-inline'` (only `style-src 'unsafe-inline'` for `Style(…)` attributes, plus
   `'wasm-unsafe-eval'` on WASM). Full flows and the [security
   checklist](authentication-hardening.md#security-checklist) live in [authentication](authentication.md).
 
 ## Accessibility
 
-- **Always give `Img` an `Alt`.** A meaningful string for informative images, `Alt: ""` for
+- **Always give `Img` an `Alt`.** A meaningful string for informative images, `.Alt("")` for
   decorative ones (so screen readers skip them). A missing alt is **RASK023**. See
   [accessibility](accessibility.md#images-and-alt-text-rask023).
-- **Reach the full ARIA vocabulary through the `Aria` dictionary**, with typed `Role` and `TabIndex`
-  for the two attributes that aren't `aria-*`. Build higher-level affordances from these primitives
+- **Reach the full ARIA vocabulary through the typed `Aria*` steps** (the `Aria` bag for anything they
+  cannot say), with `Role` and `TabIndex` for the two attributes that aren't `aria-*`. Build higher-level affordances from these primitives
   plus semantic HTML (`Nav`, `Main`, `Label.For(…)`, `Th.Scope(…)`):
   ```csharp
-  Div.Role("status").Aria(new() { ["live"] = "polite" })[_statusMessage]
+  Div.Role(AriaRole.Status).AriaLive(AriaLive.Polite)[_statusMessage]
   ```
 
 ## Performance & memory
@@ -306,7 +307,7 @@ mistake, the rule notes the ID.
 | Async EF/HTTP calls without the token | Thread `Component.CancellationToken` through |
 | Any auth token in `localStorage` | The `HttpOnly` session cookie the battery already sets |
 | `UseAuthentication()` after `MapRask()` (**RASK024**) | Auth → Authorization → Rask, in that order |
-| `Img` without `Alt` (**RASK023**) | Real alt text, or `Alt: ""` for decorative |
+| `Img` without `Alt` (**RASK023**) | Real alt text, or `.Alt("")` for decorative |
 | `for`-loop index captured in a binding lambda | Copy to a per-iteration local, or use `foreach` |
 
 ---

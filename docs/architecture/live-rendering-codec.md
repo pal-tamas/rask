@@ -6,7 +6,7 @@ How the render produces a frame stream alongside HTML, and how the diff codec tu
 
 ## The render walk: HTML + a frame stream in parallel
 
-`HtmlSerializer.Serialize(Component, StringBuilder, FrameWriter?)` does the work.
+`HtmlSerializer.Serialize(Component?, StringBuilder)` (or its `HtmlWriter` overload) does the work.
 It always produces the HTML string. When `FrameSinkScope.Current` is set to a
 `FrameWriter`, it *also* records a parallel `RenderFrame` stream — a compact
 tagged-union modelled on Blazor's `RenderTreeFrame` but trimmed to the variants
@@ -34,8 +34,8 @@ Key fields on `RenderFrame`:
 
 `FrameWriter` rents its backing `RenderFrame[]` from `ArrayPool`, so steady-state
 appends amortize to zero allocation. `FrameSinkScope` is a `[ThreadStatic]` ambient
-holder so the 48 `WriteAttributes(StringBuilder)` overrides can emit `Attribute`
-frames without a signature change (`Live/RenderFrame.cs`).
+holder so the `WriteAttributes(StringBuilder)` overrides can emit `Attribute`
+frames without a signature change (`Live/FrameSinkScope.cs`).
 
 > The `Component` frame's instance ref lets the diff short-circuit: an unchanged
 > component instance that still yields a cached subtree can be skipped.
@@ -89,7 +89,7 @@ no parent to name, does the diff set a force-full-HTML flag (`DiffScratch.ForceF
 
 ### When a diff ships vs full HTML
 
-`LiveDiffMode` (`Live/LiveOptions.cs`) is configured via
+`LiveDiffMode` (`Live/LiveDiffMode.cs`, set on `RaskLiveOptions.DiffMode`) is configured via
 `AddRask(o => o.DiffMode = ...)` / `WasmHostBuilder.CreateDefault(o => ...)`:
 
 - **`Auto`** (default) — *choose-smaller*. Ship the diff whenever it isn't larger
@@ -107,20 +107,23 @@ hosts in one process — and parallel tests — each render in their own mode in
 field. (`PathBase` / `MinifyScopedAssets` remain on the static `LiveOptions` because they back the
 process-wide content-addressed asset registries, which build one shared bundle per process.)
 
-The actual decision lives in `LiveSession.RenderAndSendAsync` (server) and the
-equivalent WASM path. Sketch (`Rask.Server/LiveSession.cs`):
+The actual decision lives in `LiveSessionBase.TryWriteDiff`, shared by both hosts
+(`LiveSession` on the server, `WasmLiveSession` on WASM). Sketch (`Rask.Core/Live/LiveSessionBase.cs`):
 
 ```csharp
-if (_renderCache.TryComputeDiff(_diffOps, html)
-    && (_diffOps.Count > 0 || historyUrl is not null || headChanged)
-    && LiveDiffGate.DiffOpsAreClientSupported(_diffOps))
+var compared = renderCache.TryComputeDiff(_diffOps, commitCache, html.Span);
+var carries = historyUrl is not null || headChanged || jsInvokes is not null || devError is not null;
+if (compared
+    && (_diffOps.Count > 0 || carries)
+    && LiveDiffGate.DiffOpsAreClientSupported(_diffOps)
+    && !renderCache.LastDiffForcedFullHtml)
 {
-    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes, headHtml);
-    var diffBytes = _writeBuffer.WrittenCount;
-    if (diffMode == LiveDiffMode.Forced || diffBytes < html.Length)
-        usedDiff = true;   // ship the diff
-    else
-        _writeBuffer.ResetWrittenCount();   // diff lost on bytes → full HTML
+    LivePayload.BuildPayloadUtf8Diff(_writeBuffer, _diffOps, historyUrl, replace, jsInvokes,
+        headHtml, html.Span, resume, devError);
+    if (DiffMode == LiveDiffMode.Forced
+        || _writeBuffer.WrittenCount - resumeCost - devErrorCost < html.Length)
+        return true;                        // ship the diff
+    _writeBuffer.ResetWrittenCount();       // diff lost on bytes → full HTML
 }
 ```
 
@@ -162,6 +165,7 @@ where `extra` depends on the kind (`LivePayload.cs`):
 [5, [1], 2]                         // RemoveSubtree: length
 [6, [1], 3]                         // MoveSubtree: source slot in Length
 [7, [1], [dst0, src0, dst1, src1]]  // PermutationBatch: flat moves array
+[8, [1], "<li>…</li><li>…</li>"]   // MorphSubtree: the parent's new inner HTML
 ```
 
 > The conceptual shape is `{k, p, n, v, l}` (kind, path, name, value, length); on the
@@ -172,8 +176,8 @@ appears 3+ times across the ops (break-even with table overhead), so an attribut
 burst sharing one name (e.g. 100 ops on `class`) drops the duplicate name to a single
 integer index per op. Small diffs pay no envelope.
 
-The client (`rask.js` / `rask.wasm.js`) applies these via `applyDiff(ops)`. Its
-`resolvePath` walks `parent.childNodes` **filtered to Element/Text/Doctype only**, so
+The client (`rask.js` / `rask.wasm.js`) applies these via `applyDiff(ops, names)`. Its
+`resolvePath` (`rask-dom-path.ts`) walks `parent.childNodes` **filtered to Element/Text/Doctype only**, so
 the path coordinates line up with the server's DOM-relevant frame counting.
 
 `applyDiff` and its helpers live in **one shared module**,

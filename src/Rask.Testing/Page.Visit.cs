@@ -45,7 +45,7 @@ public partial class Page
 
         if (services is null && TestRun.Current?.Services is { } run)
         {
-            // The test's own app, which its earlier User.Create(…) may already have booted.
+            // The test's own app, which its earlier Accounts.Create<User>(…) may already have booted.
             return Open(url, run, visited: true);
         }
 

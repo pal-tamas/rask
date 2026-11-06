@@ -379,7 +379,7 @@ services stop **concurrently**, so each pillar's own grace overlaps the others i
 4. While it waits the deploy says what for, every 30 seconds, from the line the app logs:
 
    ```
-   Stopping app-blue: it claims no new job and finishes the ones it is running (up to 30m, "stopTimeout" in .rask/deploy.json)…
+   Stopping app-blue: it claims no new job and finishes the ones it is running (up to 30m)…
      app-blue is finishing 1 job: AtPump (3m12s) — waited 3m20s of 30m
    ```
 
@@ -575,7 +575,7 @@ fallback the stream and every `POST` beside it.
 
 ## A client-plus-host solution
 
-**No template scaffolds this shape, and none has since the `wasm-hosted` template was removed.** What
+**No template scaffolds this shape: the `wasm-hosted` template writes one project instead.** What
 `rask dev` and `rask deploy` still do is *recognise* it, so a solution built on that template — or by
 hand — keeps working. Three projects in one solution: `MyApp.Client` (the browser-WASM SPA),
 `MyApp.Server` (the ASP.NET host that serves it), and `MyApp.Shared` (a class library both reference).

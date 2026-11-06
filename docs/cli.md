@@ -2,8 +2,9 @@
 
 `Rask.Cli` is a [.NET tool](https://learn.microsoft.com/dotnet/core/tools/global-tools) that gives
 Rask a short, task-focused command line on top of the .NET SDK. It generates, or shells out to `dotnet`,
-for almost everything it does — its one package reference is SQLite, which `rask db backup` needs to take
-a consistent copy of a live database — and it never gets in the way of the tools you already use.
+for almost everything it does — its package references are SQLite, which `rask db backup` needs to take
+a consistent copy of a live database, and Spectre.Console, which draws its help, tables and wizard — and it
+never gets in the way of the tools you already use.
 
 > **In a hurry?** The [cheat sheet](cheatsheet.md) lists every command on one page, and the
 > [recipes](recipes.md) answer "how do I do X?" with the command and the wiring line.
@@ -19,7 +20,7 @@ shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 S
 `dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
 upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
-> `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`,
+> `rask` is a thin, Rask-aware layer over the .NET SDK: it owns scaffolding end to end (`rask new`),
 > and shells out to `dotnet` for the rest — `rask dev` wraps `dotnet watch`, `rask db`
 > wraps `dotnet ef`.
 
@@ -52,6 +53,10 @@ them:
 | `-o` | `--output` |
 | `-n` | `--name` (`rask new`) |
 | `-t` | `--template` |
+| `-s` | `--startup-project` (`rask db`) |
+| `-c` | `--context` (`rask db`) |
+| `-d` | `--domain` (`rask deploy`) |
+| `-e` | `--env` (`rask deploy`) |
 | `-f` | `--follow` |
 | `-y` | `--yes` |
 
@@ -140,14 +145,14 @@ app.Run<App>();
 Turning a battery back on is deleting its line.
 
 Run `rask` (or `rask new`) with no project name and — on a terminal — it walks you through a short
-wizard: the project name, an arrow-key **project type** picker, **styling**, whether to add **auth**,
-and a **battery checklist that arrives fully ticked** — space unticks anything you don't want. Pressing
-enter through it gives you the same project a bare `rask new` does. It then scaffolds exactly as if
-you'd passed the flags.
+wizard: the project name and an arrow-key **project type** picker. That is all it asks — styling is not
+a choice (below), an app with a database has accounts, and every battery the template supports is on, so
+leaving one out is its `--no-` flag on the command line. It prints a summary of what you are getting,
+then scaffolds exactly as if you'd passed the flags; pressing enter through it gives you the same project
+a bare `rask new` does.
 
 The wizard **fills gaps rather than re-asking**: anything already on the command line is kept and its
-question skipped, so `rask new --template wasm --no-pwa` asks only for the name, and a `--no-` flag
-already typed skips the checklist entirely. Piped or in a script (no terminal), a missing name is a
+question skipped, so `rask new --template wasm --no-pwa` asks only for the name. Piped or in a script (no terminal), a missing name is a
 plain error instead, and bare `rask` prints the command list — so automation stays predictable.
 
 Every project also gets a `.gitignore`, an `.editorconfig`, a `.slnx` solution and a `global.json`, and
@@ -225,7 +230,7 @@ MyApp/
     Auth/                         sign-in, registration, sign-out, password reset — your pages to restyle
   Migrations/                     the first migration, which the app applies when it starts
   Resources/Strings.en.json       the text of the UI, compiled into typed members
-  wwwroot/                        manifest.webmanifest, icon.svg, offline.html
+  wwwroot/                        icon.svg, offline.html (the manifest is served at /rask/manifest.webmanifest)
   Properties/launchSettings.json
   MyApp.slnx                      the app and its tests, for `dotnet test` and your IDE
   MyApp.Tests/
@@ -316,6 +321,7 @@ default list: the default set *is* the column.
 | PWA | ✅ | ✅ | ✅ |
 | Web Push | ✅ | — | ✅ |
 | Docker | ✅ | ✅ | ✅ |
+| tests *(the `<Name>.Tests` project)* | ✅ | ✅ | — |
 | localization *(in `appsettings.json`, not a flag)* | ✅ | —² | —² |
 
 ¹ The operator dashboard is Rask components, so it needs a host built on `Rask.Server` to mount it.
@@ -338,7 +344,7 @@ usage error that names both halves:
 
 ```console
 $ rask new X --template wasm --no-data
-Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa.
+Template 'wasm' has nothing to change for: --no-data. It supports: docker, pwa, tests.
 ```
 
 The database-backed batteries need an ASP.NET host to put a database in, which `server` and `wasm-hosted`
@@ -753,7 +759,7 @@ rask db restore backups/app-20260805-081500.db --remote
 
 A friendly wrapper over `dotnet ef` for the everyday migration lifecycle, meant to pair with what
 your feature code needs. It finds the project for you (the single `.csproj` at or above the
-current directory, or — at a wasm-hosted solution's root — its `.Server` project, as `rask dev` does;
+current directory, or — at a client-plus-host solution's root — its `.Server` project, as `rask dev` does;
 override with `--project`), and if the EF Core tools aren't installed it installs
 `dotnet-ef` globally the first time you run it.
 
@@ -972,12 +978,14 @@ through, having already done some of the work.
 
 ```
   ok    rask                0.20.1
+  ok    os                  Darwin 25.6.0 Darwin Kernel Version 25.6.0…
   ok    dotnet sdk          10.0.302
   ok    dotnet-ef           installed
   warn  wasm-tools          not installed
                             Every browser-WASM build needs it — the wasm and wasm-hosted
-                            template, and `dotnet publish` of either. Fix: dotnet workload
-                            install wasm-tools
+                            templates, and `dotnet publish` of either. Without it the build
+                            fails with NETSDK1147, which reads like a broken machine rather
+                            than a missing install. Fix: dotnet workload install wasm-tools
   ok    git                 git version 2.50.1
   ok    ssh                 OpenSSH_9.8p1, LibreSSL 3.3.6
   ok    docker              Docker version 27.3.1, build ce12230
@@ -988,7 +996,8 @@ through, having already done some of the work.
                             Install it: brew install docker-buildx, then add the
                             cliPluginsExtraDirs line its caveat prints to ~/.docker/config.json
   ok    project             /src/Shop
-  ok    database            SQLite
+  ok    rask dev            Shop (Server)
+  ok    rask packages       0.20.1
   fail  .rask/deploy.json   isn't valid JSON: 'o' is an invalid start of a property name…
                             Until it parses, its remembered settings are silently ignored.
 ```

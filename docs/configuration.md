@@ -136,7 +136,7 @@ A few things to know:
 | `Rask:Signaling` | `SignalingOptions` | `Rask.Signaling` | `Path`, `RequireAuthorization`, `AllowedOrigins` (other origins whose pages may connect; the host's own always may) and the relay limits. `AuthorizeRoom` is code-only. |
 | `Rask:Ops` | `OpsOptions` | `Rask.Dashboard` | `AllowAnonymousAccess` is honoured in Development only — see [below](#guard-the-environment-like-code). See [dashboard](dashboard.md). |
 | `Rask:Spa` | `SpaHostingOptions` | `Rask.Spa.Hosting` | Read when `MapRaskSpa` maps the app. `ImmutablePathPrefixes` is appended to; `ExcludeFromFallback` and `OnPrepareResponse` are code-only. See [serving a WebAssembly app](deployment.md#serving-a-webassembly-app). |
-| `Rask:Database:Provider` | — | `Rask` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
+| `Rask:Database:Provider` | — | `Rask.Server` | Which database the app opens at `Rask:ConnectionStrings:App`: `sqlite` (the default), `postgres` or `sqlserver`. Read by `UseRaskDatabase(sp)`, and by `RaskApp` while services are registered. See [choosing the database](data.md#choosing-the-database). |
 | `Rask:Database:MigrateOnStart` | `true` | `Rask.Server` | Whether a `RaskApp` applies its pending migrations when it starts, before any battery's worker runs and before `/health` answers. `false` when something else applies them — a release pipeline running `rask db update`. Read by `RaskApp` while services are registered. In code: `app.Configure(c => c.MigrateOnStart = false)`, which wins over the setting. See [migrations apply themselves on start](data.md#migrations-apply-themselves-on-start). |
 | `Rask:ConnectionStrings:App` | — | `Rask.SQLite`, `Rask.SQLite.EntityFrameworkCore`, `Rask.Postgres`, `Rask.SqlServer` | The application database. Also the default `DatabasePath` for Litestream and snapshots. |
 | `Rask:Sqlite` | `SqliteOptions` | `Rask.SQLite` | The pragmas, `StrictTables`, and `Retry`. Read by `AddRaskSqlite()` and by `UseRaskSqlite(sp)`. See [SQLite](sqlite.md). |
@@ -541,7 +541,7 @@ invalidates it. A rebuild takes a `MaxSessions` slot through the same atomic res
 the reconnect storm after a deploy sheds like ordinary traffic instead of walking past the cap.
 
 > **This needs a persisted key ring.** A record sealed by the container you just replaced can only be
-> opened by the replacement if both share data-protection keys. `rask new` scaffolds that (`/data/keys`,
+> opened by the replacement if both share data-protection keys. `AddRask` wires that (`/data/keys`,
 > on the volume the deploy already mounts) — see [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy).
 > Without it, every record is refused after a deploy and you are back to the reload. Watch
 > `rask.sessions.resume_rejected{reason="unprotect"}`: a spike right after a deploy is exactly that.

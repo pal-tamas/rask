@@ -200,7 +200,7 @@ public sealed partial class ProductPage(IPageResponse response, IProducts produc
 A faulted render still wins with `500` — a page that threw does not get to claim it succeeded. Setting `200` on
 the not-found page is the supported way to express a deliberate soft-404.
 
-`IPageResponse` is legal only during the initial server render (`Render`, `OnMount`, `OnMount`). From an
+`IPageResponse` is legal only during the initial server render (`Render`, `OnMount`). From an
 event handler it **throws**: by then the response is long gone, and a silently dropped status is worse than a
 crash you can see. On WASM it is a no-op — there is no response to shape — so a component calling it runs
 unchanged on both hosts.

@@ -219,7 +219,7 @@ a minute. A claim the account issues itself is not yours to give: returning a ro
 throws, naming it. Roles go through `GrantRole`.
 
 **Nothing has to name it.** A source generator finds the one `Authenticatable` in your project, so
-`AddRaskAuth()` and `modelBuilder.AddRaskAuth()` take no type argument. Two user types is
+`AddRaskAuth<AppDbContext>()` and `modelBuilder.AddRaskAuth()` take no user type argument. Two user types is
 [RASK074](diagnostics.md#rask074). Declare none and you have no accounts, and auth is not wired. An app that
 would rather be explicit can be: `AddRaskAuth<AppDbContext, User>()` and `modelBuilder.AddRaskAuth<User>()`.
 
@@ -723,8 +723,8 @@ app.Configure(c => c.Auth.Configure(o => o.Passkeys = false));
 | `Current` (Rask.Data) | The signed-in user with nothing injected — `Current.UserId` / `RequiredUserId` / `Principal`, `Current.Claim("department")` (the first such claim's value, or `null`) and `Current.IsInRole("Admin")` (`false` when nobody is signed in) — answered the same on the first GET and inside a live event, from the principal the session revalidated for it — and `Current.User` / `RequiredUser`, the user's own row (its read face, `UserRead`), which `Authenticatable` gives your `User` with no line of its own — for code with no constructor to inject into, like a `Product.Create(…)` factory. Set for a live session, every HTTP request and a background job (which runs for the user who enqueued it). See [data.md](data.md#the-current-user--current). |
 | `Authorize` component | Headless declarative gate with `Authorized` / `NotAuthorized` / `Authorizing` slots (see below). |
 | `ClaimsPrincipal.UserId()` / `SessionId()` | The signed-in user's id (to load the row: `User.Where(u => u.Id == id)`) and the session's id (to mark "this device"). |
-| `IAuthSignIn` | Event-handler-only `SignIn(principal, returnUrl, persistent)` / `SignOut(returnUrl)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
-| `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401) or `AccessDeniedPath` (403). |
+| `IAuthSignIn` | Event-handler-only `SignIn(principal, returnUrl, scheme, persistent)` / `SignInWithToken(token, returnUrl)` / `SignOut(returnUrl, scheme)`. Server drives the cookie handshake; WASM signs out via `/auth/logout`. |
+| `[Authorize]` / `[AllowAnonymous]` | Route-level gating evaluated by `RouteAuthorizationGuard` → redirect to the auth scheme's `LoginPath` (401); a signed-in user it refuses gets [the forbidden sentence in the layout](#a-page-the-user-may-not-open) (403). |
 
 ## The first account is the administrator
 
@@ -961,18 +961,18 @@ the current user (`IUserProvider`):
 
 ```csharp
 // Shorthand: children are the "authorized" branch (static content, no principal needed).
-Authorize.Role("admin")[ AdminPanel() ]
+Authorize.Role("admin")[ AdminPanel ]
 
 // Full three-slot form. `Authorized` is a delegate handed the current principal (Blazor's
 // @context.User), so a greeting reads the name with no injected IUserProvider and no subscription.
 Authorize.Roles("admin", "editor")// ANY-of; omit for "any authenticated user"
-.Authorized(user => Div.Class("panel")[ $"Welcome, {user.Identity!.Name}" ]).NotAuthorized(A.Href("/login")[ "Please sign in" ]).Authorizing(Spinner())                     // shown while the principal/policy resolves
+.Authorized(user => Div.Class("panel")[ $"Welcome, {user.Identity!.Name}" ]).NotAuthorized(A.Href("/login")[ "Please sign in" ]).Authorizing(Spinner)                     // shown while the principal/policy resolves
 ```
 
 - **`Authorized`** is `Func<ClaimsPrincipal, Component>` — it receives the signed-in principal and re-runs
   whenever the gate re-renders (i.e. on `IUserProvider.Changed`), so user-dependent markup stays fresh
   on its own. For static authorized content that ignores the user, use the children-indexer shorthand
-  `Authorize(...)[ content ]`.
+  `Authorize.Role(...)[ content ]`.
 - **`Roles`** and the authenticated check are synchronous → no flicker.
 - **`Policy`** (e.g. `Authorize.Policy("over-18")`) resolves via `IAuthorizationService` in the background;
   the `Authorizing` slot shows until it lands.

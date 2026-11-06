@@ -47,7 +47,7 @@ That is the whole setup. The store opens `Rask:ConnectionStrings:Logs`, and a mi
 the key to set. The schema is created on first use, so **there is no migration to add** — unlike the other
 database-backed pillars, this one doesn't touch your `DbContext`.
 
-`rask new MyApp` scaffolds exactly the lines above — the log store is on by default (`--no-logs` leaves it out).
+`rask new MyApp` scaffolds that connection string, and `RaskApp` registers the store — it is on by default (`--no-logs` leaves it out).
 
 ### On PostgreSQL or SQL Server
 
@@ -95,7 +95,7 @@ Every option is `Rask:Logs` in `appsettings.json`:
 ```jsonc
 {
   "Rask": {
-    "Logging": {
+    "Logs": {
       "MinimumLevel": "Warning",        // a floor, not an override — see below
       "Retention": "30.00:00:00",       // "00:00:00" keeps entries forever
       "MaxRows": 250000,                // 0 removes the cap
@@ -150,7 +150,7 @@ will contain. Two levers, and the first is usually the right one:
 
 ```jsonc
 // …or skip a category for this sink only, leaving your console output alone
-"Rask": { "Logging": { "ExcludedCategories": [ "Microsoft.EntityFrameworkCore.Database" ] } }
+"Rask": { "Logs": { "ExcludedCategories": [ "Microsoft.EntityFrameworkCore.Database" ] } }
 ```
 
 **What is already quiet: Rask's own.** The batteries poll — jobs, mail and the outbox every five seconds each,

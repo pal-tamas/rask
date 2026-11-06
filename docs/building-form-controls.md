@@ -198,7 +198,7 @@ re-implementing it. Call them **through the interface** (`((IFormControl<T>)this
 | `RegisterValidator(accessor, ctx)` | `ctx?.RegisterFieldValidator(acc.Field, Validator, () => acc.Getter())` |
 | `InvokeAfterBind(value)` | `await AfterBind.Invoke(v)` as a `Task` — one hook, either shape |
 | `InvokeOnChange(value)` | `await OnChange.Invoke(v)` as a `Task` — one handler, either shape |
-| `ControlledChangeHandler()` | an `Action<string>` DOM handler that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChange` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
+| `ControlledChangeHandler()` | a DOM change handler (a `Func<string, Task>`, returned as `Delegate?` and `null` when no `OnChange` is set) that parses the raw value to `T` (`BindingHelpers.TryParseValue`) and calls `InvokeOnChange` — for controls that wrap a native `<input>`/`<select>` (identity when `T` is string) |
 
 `RegisterValidator` is safe (and required) to call **every render** — passing the collapsed validator each
 time also clears a stale rule when the consumer drops `Validate`.
@@ -287,7 +287,7 @@ for state the control *itself* owns.
 
 ## 7. Checklist
 
-1. `sealed partial class MyControl<T> : Component, IFormControl<T>` — declare the nine interface properties + your
+1. `sealed partial class MyControl<T> : Component, IFormControl<T>` — declare the five interface properties + your
    display props.
 2. In `Render`: in bound mode `ExpressionAccessor.Parse(Bind)` → `ResolveBindingContext` →
    `((IFormControl<T>)this).RegisterValidator(acc, ctx)`; read the current value from the accessor (bound) or

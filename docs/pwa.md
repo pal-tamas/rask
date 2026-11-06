@@ -125,7 +125,7 @@ public sealed partial class InstallButton : Component
     private async Task Prompt()
     {
         var answer = await _prompt!.Prompt();
-        var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
+        var accepted = answer.UserChoice == Types.AppBannerPromptOutcome.Accepted;
         _prompt = null;                                    // the prompt is one-shot
     }
 
@@ -231,7 +231,7 @@ public sealed class DraftQueue(IBackgroundSync sync) : Component, IAsyncDisposab
 {
     private IAsyncDisposable? _subscription;
 
-    public override async Task OnFirstRender()
+    protected override async Task OnFirstRender()
     {
         // Subscribe BEFORE requesting. A sync that landed while the page was still booting is held for
         // the first subscriber, so an event that beat your startup code still reaches it.

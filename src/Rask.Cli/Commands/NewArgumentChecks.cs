@@ -129,10 +129,10 @@ internal static class NewArgumentChecks
             || name.Equals("no-localization", StringComparison.Ordinal)
             || name.Equals("culture", StringComparison.Ordinal))
         {
-            return $"--{name} is gone: the languages an app ships are configured in Program.cs, not on "
-                + "this command line. A new project starts with English, and adding a language is a "
-                + "line in the AddRask(configureCulture: ...) call it already has — see "
-                + "docs/localization.md.";
+            return $"--{name} is gone: the languages an app ships are configured under Rask:Cultures in "
+                + "appsettings.json (wwwroot/appsettings.json for a wasm app), not on this command line. "
+                + "A new project starts with English, and adding a language is an entry in the "
+                + "\"Cultures\" list it already has — see docs/localization.md.";
         }
 
         if (Array.IndexOf(BatteryFlags, name) >= 0)

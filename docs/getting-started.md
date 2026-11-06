@@ -67,9 +67,9 @@ wiring, not sample pages. `wasm` takes the PWA and the Dockerfile; the rest need
 database in. Languages are configured rather than chosen on the command line — a server app starts
 with English in `appsettings.json` (`Rask:Cultures`), and adding another is an entry in
 that list. A browser-WASM
-app registers none, because a language there means shipping ICU: roughly a megabyte of extra download
-that an app formatting nothing culture-sensitive should not pay by default. See
-[localization](localization.md).
+app keeps the same list in `wwwroot/appsettings.json`, starting with English alone, because any other
+language there means shipping ICU: roughly a megabyte of extra download that an app formatting nothing
+culture-sensitive should not pay by default. See [localization](localization.md).
 
 Almost nothing is left to you. Sign-in comes with the app — register, sign in and sign out work out of
 the box, and the first account you create is the administrator (see [authentication](authentication.md)).

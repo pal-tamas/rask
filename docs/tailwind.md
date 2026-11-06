@@ -83,7 +83,7 @@ One file and one link — the whole of it, and all of it already there:
    A host that calls `UseStaticFiles()` itself needs no line for any of this.
 
 **Nothing in the `.csproj`.** There is no Tailwind package to add — the compiler, its MSBuild targets
-and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm`, the way scoped CSS does — and
+and the task that fetches it ship *inside* `Rask.Server` and `Rask.Wasm` — and
 no switch for the kit: the import in `Styles/app.css` is the whole opt-in. The build reads it, writes
 `Styles/vendor/`, and tells the host the kit is already in the app's sheet.
 

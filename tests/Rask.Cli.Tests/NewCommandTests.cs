@@ -758,8 +758,9 @@ public sealed class NewCommandTests
     /// <remarks>
     ///     <c>--culture</c> took a VALUE, which is what makes ignoring it worse than usual: the tag would
     ///     be swallowed as a stray argument and the app scaffolded in English while the command line said
-    ///     Hungarian. Nothing would report it. The message names Program.cs, because "where do I put my
-    ///     languages now" is the only question a reader of this error has.
+    ///     Hungarian. Nothing would report it. The message names <c>Rask:Cultures</c> in appsettings.json,
+    ///     where every template lists its languages, because "where do I put my languages now" is the only
+    ///     question a reader of this error has.
     /// </remarks>
     [Theory]
     [InlineData("--culture", "hu")]
@@ -775,7 +776,9 @@ public sealed class NewCommandTests
 
         Assert.Equal(CliCommand.UsageExitCode, exit);
         Assert.Empty(runner.Invocations);
-        Assert.Contains("Program.cs", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("Rask:Cultures", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("appsettings.json", console.ErrorText, StringComparison.Ordinal);
+        Assert.DoesNotContain("configureCulture", console.ErrorText, StringComparison.Ordinal);
     }
 
     /// <summary>

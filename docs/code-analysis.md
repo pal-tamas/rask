@@ -15,7 +15,7 @@ Every finding is a build error, so a green build means the shipped code is analy
 
 The generator projects additionally run the Roslyn author rules (`EnforceExtendedAnalyzerRules`).
 
-Tests and benchmarks keep the SDK's default set, which keeps the one-minute commit and push hooks inside budget.
+Tests and benchmarks keep the SDK's default set.
 
 ## Where it is wired
 

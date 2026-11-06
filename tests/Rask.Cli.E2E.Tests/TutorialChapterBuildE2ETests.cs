@@ -34,8 +34,15 @@ namespace Rask.Cli.E2E.Tests;
 /// <para>
 /// The chapters build on each other — chapter 4's handler reads <c>Order</c>, which only exists after
 /// chapter 3; chapter 7 rewrites the <c>Order</c> chapter 3 wrote and its handler enqueues chapter 4's
-/// job — so they are walked cumulatively rather than in isolation. Chapter 6 is absent because its
-/// accessor snippet is elided (<c>…</c>), leaving no complete file to write.
+/// job — so they are walked cumulatively rather than in isolation.
+/// </para>
+/// <para>
+/// Typing the whole tutorial in found the next round, in the chapters this walk did not reach yet or reached
+/// only in part. Chapter 5's job handler built <c>OrderReceipt</c> by its chain from a class that is not a
+/// component, which is CS0120 without <c>[RaskMarkup]</c> — the walk compiled the email body but never the
+/// handler that sends it. Chapter 6's accessor returned <c>Cache.Remember(…).For(…)</c> as a <c>Task</c>, which
+/// it is not, and its page was a sketch in comments. Chapter 10's page called a helper it never showed. Each is
+/// a whole file now, and each is compiled here.
 /// </para>
 /// <para>
 /// Opt-in with the rest of the build gates (<c>RASK_CLI_BUILD_E2E=1</c>) because it packs the framework
@@ -54,7 +61,10 @@ public sealed partial class TutorialChapterBuildE2ETests
         var ch3 = Fences("03-orders-and-auth.md");
         var ch4 = Fences("04-background-jobs.md");
         var ch5 = Fences("05-email.md");
+        var ch6 = Fences("06-cache.md");
         var ch7 = Fences("07-outbox-events.md");
+        var ch9 = Fences("09-web-push.md");
+        var ch10 = Fences("10-ops.md");
 
         string Fence(string contains) => Pick(ch2, contains, "2");
 
@@ -120,10 +130,32 @@ public sealed partial class TutorialChapterBuildE2ETests
 
             await Build(csproj, "chapter 4");
 
-            // --- Chapter 5: the email body, a plain component ---
+            // --- Chapter 5: the email body, a plain component, and the handler that sends it ---
+            // The handler replaces chapter 4's, beside the same record. It builds the body by its chain from a
+            // class that is not a component, so this is what proves the chapter says how ([RaskMarkup]).
             Write(fs, shared, "OrderReceipt.cs", Pick(ch5, "Thanks for your order!", "5"));
+            var mailHandler = Pick(ch5, "Mail.Send(", "5");
+            var classStart = mailHandler.IndexOf("[RaskMarkup]", StringComparison.Ordinal);
+            if (classStart < 0)
+            {
+                classStart = mailHandler.IndexOf("public sealed", StringComparison.Ordinal);
+            }
+
+            Write(
+                fs, shared, "SendOrderReceipt.cs",
+                mailHandler[..classStart].Trim()
+                + "\n\nnamespace Shop.Features.Shared;\n\n"
+                + Pick(ch4, "record SendOrderReceipt(Guid OrderId)", "4").Trim() + "\n\n"
+                + mailHandler[classStart..]);
 
             await Build(csproj, "chapter 5");
+
+            // --- Chapter 6: the cache accessor, and the list page reading through it ---
+            // Both are whole files: the finished accessor, and the page with chapter 3's gates still in it.
+            Write(fs, slice, "CatalogCache.cs", Pick(ch6, "Cache.Remember(Key, Load).For(5.Minutes);\n\n    public static Task Forget()", "6"));
+            Write(fs, slice, "ProductsPage.cs", Pick(ch6, "class ProductsPage", "6"));
+
+            await Build(csproj, "chapter 6");
 
             // --- Chapter 7: a domain event through the outbox ---
             // The chapter shows the revised Order.cs whole rather than as a patch, which is both what a
@@ -138,6 +170,18 @@ public sealed partial class TutorialChapterBuildE2ETests
             Write(fs, orders, "OrderPlacedHandler.cs", Pick(ch7, "IDurableHandler<OrderPlaced>", "7"));
 
             await Build(csproj, "chapter 7");
+
+            // --- Chapter 9: the button that subscribes a browser to push ---
+            Write(fs, orders, "NotifyMe.cs", Pick(ch9, "class NotifyMe", "9"));
+
+            await Build(csproj, "chapter 9");
+
+            // --- Chapter 10: the ops page, over every battery's own table ---
+            var ops = Path.Combine(projectDir, "Features", "Ops");
+            fs.CreateDirectory(ops);
+            Write(fs, ops, "OpsPage.cs", Pick(ch10, "[Route(\"/ops\")]", "10"));
+
+            await Build(csproj, "chapter 10");
         }
         finally
         {

@@ -25,9 +25,9 @@
   </ItemGroup>
 
   <!--
-    Deploy next to Rask.Core.targets, which is the file that declares the <UsingTask>. Rask.Core is
-    IsPackable=false and its build/ folder is packed into EVERY host package by
-    src/RaskCoreBuildPack.targets, so this one copy reaches Rask.Server and Rask.Wasm alike — and
+    Deploy next to Rask.Core.targets, which is the file that declares the <UsingTask>. Rask.Core.csproj
+    packs its build/ folder into the `Rask` package (build/ and buildTransitive/), which every host
+    package depends on, so this one copy reaches Rask.Server and Rask.Wasm apps alike — and
     $(MSBuildThisFileDirectory) resolves identically for an in-repo consumer and for a NuGet one,
     which gets build/ verbatim. Same arrangement as Rask.Tailwind.Tasks.
   -->
