@@ -169,7 +169,7 @@ var page     = await Product.OrderBy(p => p.Name).Skip(20).Take(20);  // a table
 
 // Cache a query for the session, from Render — refetched by itself after any Product write (Rask.Query):
 var count = QueryClient.Query(QueryKey.For<Product>("count"), () => Product.Count());
-count.IsLoading ? Ui.Text.Role("status")["Loading…"] : Text($"{count.Data} products")
+count.IsLoading ? Ui.Text.Role("status")["Loading…"] : Text[$"{count.Data} products"]
 var save = QueryClient.Command();                    // pending/error state for a write; save.IsPending disables Save
 
 // Cache an expensive read; invalidate on write:

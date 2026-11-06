@@ -971,6 +971,16 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **The component, forms, routing, interop, kit and localization docs match today's API.** Snippets that would not
+  compile now do: a form's submit state is `f.Submitting`, `Aria`/`Attributes`/`Data` take pairs instead of a `new()`
+  bag, `Text[…]` is indexed, `Select` opens with `Value`, `Ui.Input` with `Bind`, and components come from their
+  chain, not a factory call. Stale claims are gone: `AccessibleLabel` and `UiClassNames.cs` do not exist, scoped CSS
+  ships in `Rask` itself, no CI job runs a full WASM AOT publish, and the MDN snapshot moves by its follower.
+- **The data, battery and auth docs match today's API.** The logging and dashboard settings blocks named
+  `Rask:Logging`/`Rask:Dashboard`, which nothing reads; they now name `Rask:Logs` and `Rask:Ops`. Snippets that
+  would not compile now do: `Body(html)` is `Html(html)`, a form's submit state is `f.Submitting`, overrides are
+  `protected`, components come from their chain, not `new`, and `RaskServerOptions.MaxInboundFramesPerSecond`
+  replaces an internal type. Claims about what `rask new` scaffolds now say what `RaskApp`/`AddRask` wire.
 - **The site's picker journeys no longer go red on the 6th of a month, or on a busy machine (#1304).** The datetime
   picker example opens five days on at 10:30, and the journey pressed the month's 11th enabled day: on the 6th that
   is the chosen day, which Flux's picker takes as "no day", so the 14:30 picked next had no day to join and the

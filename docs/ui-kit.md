@@ -82,7 +82,7 @@ C# component framework that ships no script of its own:
   `RaskString` keys. The kit speaks English and Hungarian out of the box, in the languages your app lists in
   `SupportedCultures`; a `Resources/RaskStrings.{culture}.json` in your app adds a language or changes a word
   ([every key and its English](localization.md#translating-the-frameworks-own-text)).
-- **Simple first, composable after.** `Ui.Input.Label("Email").Description(…)` is one line; `Ui.Navlist` with
+- **Simple first, composable after.** `Ui.Input.Bind(() => m.Email).Label("Email").Description(…)` is one line; `Ui.Navlist` with
   `Ui.NavlistGroup`s and `Ui.NavlistItem`s, or a `Ui.Menu` with `Ui.MenuSubmenu`s, is there when one line is not enough.
 
 ## Wiring it up
@@ -887,8 +887,7 @@ Ui.Link.As(Ui.LinkAs.Button).OnClick(Save)["Create account →"] // a <button ty
 Each value is also a step — `Ui.Heading.Xl`, `Ui.Text.Subtle`, `Ui.Link.Ghost` — except the three that are also HTML
 tags: write `Variant(Ui.TextVariant.Strong)` and `As(Ui.LinkAs.Button)`, because `.Strong`, `.Button` and `.A` on a
 component are the inherited tag entries. Each is one HTML element, so
-`Id`, `Class`, `Style`, `Data`, `Aria` and the events are the element's own. There is no subheading: the line under
-a heading is a `Ui.Text`, as on Flux's page. A heading is zinc-800 (white in dark), text zinc-500 (white at 70%),
+`Id`, `Class`, `Style`, `Data`, `Aria` and the events are the element's own. A heading is zinc-800 (white in dark), text zinc-500 (white at 70%),
 and a link takes the accent with an underline at a fifth of it that fills in under the pointer.
 
 ## Application layout
@@ -994,7 +993,7 @@ Grouped by what each piece is for.
 
 ## Who owns the state
 
-The kit ships no JavaScript (the [editor](#rich-text-editor)'s engine apart), and that constraint decides the shape of every interactive component. It
+The kit ships no JavaScript (the [editor](#rich-text-editor)'s and the [phone](#phone)'s engines apart), and that constraint decides the shape of every interactive component. It
 resolves three ways, and which one a component takes is a property of what the platform can do rather
 than of anyone's preference.
 
@@ -1207,8 +1206,8 @@ as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboa
 
 ## Form controls
 
-**All twelve** of the kit's data-input controls implement `IFormControl<T>`, so each works in the two
-shapes every Rask input does:
+**Every one** of the kit's data-input controls works in the two shapes every Rask input does — `Bind` or
+`Value` — and those whose value is a `T` implement `IFormControl<T>`:
 
 ```csharp
 Form.Model(_order)[
@@ -1324,7 +1323,7 @@ The files reach the page through `OnFiles`, and the page draws the list from its
 progress, previews and the reference: **[rask.sh/ui/file-upload](https://rask.sh/ui/file-upload/)**.
 
 **A field with no value yet opens on its type alone**: `Ui.Input.Of<string>().Label("Search")`. A form
-control's openings are its mode pins, so a required step like `Label` never gets to pin `T` — without
+control's openings are its mode pins, so a step like `Label` never gets to pin `T` — without
 `Of` a controlled field with nothing in it would have to invent a value to compile. `Of` is the
 controlled mode: the parent still owns whatever the field ends up with.
 
@@ -1380,8 +1379,9 @@ absent from the compiled sheet and the component renders **with no styling whats
 misaligned, not the wrong colour: unstyled. The build stays green and the markup carries exactly the
 class the call site asked for.
 
-That is why every class the kit can write is spelled out as a complete literal in `UiClassNames.cs`,
-and why the axes above are closed enums rather than strings.
+That is why every class the kit can write is spelled out as a complete literal in its source — in each
+component's own file, `UiButtonClasses.cs` for the button — and why the axes above are closed enums rather
+than strings.
 
 If you write the accent yourself, there is nothing to copy: the kit's `@theme` reaches your Tailwind build
 through `@import "./vendor/rask-ui.css"`, so `bg-accent/10` or `text-accent-content` in your own markup
@@ -1394,10 +1394,10 @@ below `sm`. A dialog is a bottom sheet on a phone and a centred card above it, b
 dialog at 360px either overflows or shrinks its content past reading. The tab bar scrolls sideways
 rather than wrapping, so the header is exactly one row tall however many tabs there are.
 
-**Every control has a name.** A label is required, not optional, and it becomes the accessible name
-rather than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
-what a field is for vanishes exactly when a reader might check it. An icon-only button names itself with
-`AccessibleLabel`, written as `aria-label`; a spinner is `aria-hidden` with its words beside it; a toast's
+**Every control has a name.** A field's `Label` becomes its accessible name, a real `<label for>`, rather
+than a placeholder — a placeholder disappears the moment typing starts, so the one thing saying
+what a field is for vanishes exactly when a reader might check it. An icon-only button is named with
+`.AriaLabel("…")` or a `Tooltip`; a spinner is `aria-hidden` with its words beside it; a toast's
 variant changes its **icon** and not only its colour.
 
 ## Names

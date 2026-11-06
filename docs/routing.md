@@ -332,10 +332,10 @@ Other binding-related analyzers worth knowing:
 Route/query binding feeds the lifecycle: `Updated*` fires on first render and whenever a bound param actually
 changes value. See [lifecycle.md](lifecycle.md).
 
-A worked example: the **data table** at `/table` holds *all* of its UI state — the search filter,
-the sort column and direction, the current page and page size — in `[QueryParam]` properties, and writes each
-header click and pager button back through `Go.With`. Because the state lives in the URL, it's
-shareable and bookmarkable, and browser back/forward replay it for free. The source (the whole page, verbatim):
+A worked example: the kit's **table** page at `/ui/table` keeps its list's UI state — the search filter,
+the sort column and direction, the current page — in the query string, and writes each search, header click
+and pager button back through `Go.With`. Because the state lives in the URL, it's shareable and bookmarkable,
+and browser back/forward replay it for free.
 
 ## Nested routes — `[ParentRoute]` + `Outlet`
 

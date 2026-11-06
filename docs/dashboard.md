@@ -18,7 +18,7 @@ builder.Services.AddAuthorization(o =>
     o.AddPolicy(RaskDashboardPolicies.Access, p => p.RequireRole("Admin")));
 ```
 
-`rask new` wires both lines for you — the dashboard is on by default (`--no-ops` leaves it out).
+`RaskApp` wires both lines for you — the policy as the `admin` role while accounts are on — and the dashboard is on by default (`rask new --no-ops` leaves it out).
 
 ## Where it can run
 
@@ -140,7 +140,7 @@ Reading tells you what broke; these fix it.
 ```jsonc
 {
   "Rask": {
-    "Dashboard": {
+    "Ops": {
       "Actions": "All"
     }
   }
@@ -165,7 +165,7 @@ you pass.
 ```jsonc
 {
   "Rask": {
-    "Dashboard": {
+    "Ops": {
       "LogBufferSize": 500,
       "LogMinimumLevel": "Information"
       // "CaptureLogs": false      // the logging provider drops everything
@@ -254,7 +254,7 @@ a dashboard left open on a wall display is a real cost, not a free convenience.
 ```jsonc
 {
   "Rask": {
-    "Dashboard": {
+    "Ops": {
       "RefreshInterval": "00:00:05",
       "MaxPollDuration": "00:10:00",
       "PageSize": 50

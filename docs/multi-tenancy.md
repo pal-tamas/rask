@@ -452,8 +452,8 @@ tenant, and `onChosen` runs only for an allowed choice. Leaving posts `null` and
 
 A live page chooses exactly as with Rask.Auth — `Auth.ActInTenant(partner.Id, returnUrl: "/orders")`,
 `Auth.LeaveTenant(returnUrl: "/tenants")` — and the choice is handed to `onChosen` on the browser's own request
-(the sign-in relay's single-use ticket), which then loads `returnUrl` in the new tenant. From WebAssembly or a
-TypeScript front end, post to the path yourself.
+(the sign-in relay's single-use ticket), which then loads `returnUrl` in the new tenant. From WebAssembly or any
+other client, post to the path yourself.
 
 ### A scope of your own
 
