@@ -971,6 +971,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **`llms.txt` matches the corrected docs.** An assistant reading it no longer writes `Ui.Swap`,
+  `Ui.Toast.OnDismiss`, `AccessibleLabel`, `SqlitePragmaOptions` (it is `SqliteOptions`), a bare
+  `AppBannerPromptOutcome` (it is `Types.AppBannerPromptOutcome`) or `Body(html)` (it is `Html(html)`), or looks for
+  `UiClassNames.cs` or `DataGrid*` text keys. It now says that `rask db backup` does archive disk-stored files beside
+  the database, while Litestream and snapshots do not, and it lists the RASK092/RASK093 quick-fixes.
 - **The component, forms, routing, interop, kit and localization docs match today's API.** Snippets that would not
   compile now do: a form's submit state is `f.Submitting`, `Aria`/`Attributes`/`Data` take pairs instead of a `new()`
   bag, `Text[…]` is indexed, `Select` opens with `Value`, `Ui.Input` with `Bind`, and components come from their
