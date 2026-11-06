@@ -119,6 +119,18 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Ui.DayAndTime` — a day and a time in one row, bound to one `DateTime?` — and `Ui.DatePicker.Typed()` (#1297).**
+  Before: TA and Eszaf each kept a `Moments` helper and two model properties taking the moment apart —
+  `FromDay { get => Moments.Day(From); set => From = Moments.OnDay(From, value); }`, `FromTime` likewise,
+  `Moments.Pickers(() => _form.FromDay, () => _form.FromTime, rule: …, live: true)` — and a `DayPicker(s)` extension
+  (`.Hu()` / `.Typed()`). After: `Ui.DayAndTime.Bind(() => _form.From).Validate(…).Live()` draws Flux's typed date picker
+  and typed time picker side by side, the time beneath the day where the row has no room (a phone). The time waits for
+  a day and goes with it; a new day keeps the time to the second, and a time left at the hour and minute it shows keeps
+  the seconds. A `DateTime?` the model does not require has the day's ×; a required one or a `DateTime` never empties.
+  Half typed, it says "Enter a valid date." / "Enter a valid time." under the pair, from the catalog.
+  `Ui.DatePicker.Bind(…).Typed()` is the typed input with the selectable header, in the culture's order; on a range,
+  two fields named "Start" and "End" ("Kezdet", "Vége"). Owner-approved, not Flux's. A Hungarian typed date now ends on
+  its full stop, `2026. 11. 06.`, as the culture writes it.
 - **`Format.Money` and `Format.Number(x, atMost: 2)`.** Before: each app wrote its own —
   `$"{Format.Number(Math.Round(total, 2, MidpointRounding.AwayFromZero))} Ft"`. After: `Format.Money(total)` writes at
   most two places with no padding zeros, in the culture's country's currency where the culture puts it (`1 200 Ft`,

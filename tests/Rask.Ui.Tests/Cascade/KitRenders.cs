@@ -69,13 +69,16 @@ internal static partial class KitRenders
         }
     }
 
+    // A generic that binds one kind of value only, closed over it rather than over a string it would refuse.
+    private static readonly Dictionary<Type, Type> ClosedOver = new() { [typeof(UiDayAndTime<>)] = typeof(DateTime?) };
+
     // A component that needs a service, a parent's scope or a required prop does not render alone: null.
     private static string? Render(Type type, Action<object> set)
     {
         try
         {
             var closed = type.IsGenericTypeDefinition
-                ? type.MakeGenericType([.. type.GetGenericArguments().Select(_ => typeof(string))])
+                ? type.MakeGenericType([.. type.GetGenericArguments().Select(_ => ClosedOver.GetValueOrDefault(type, typeof(string)))])
                 : type;
             var component = (global::Rask.Core.Component)Activator.CreateInstance(closed)!;
             ClassOf(closed)!.SetValue(component, AppClass);

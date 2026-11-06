@@ -27,7 +27,7 @@ namespace Rask;
 /// </para>
 /// </remarks>
 /// <typeparam name="T">What is chosen: a day or a range.</typeparam>
-public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind, IUiLockable
+public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T>, IUiFormControl, IUiClock, IDeferredBind, IUiLockable, IUiRelaysUnread
 {
     private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal)
     {
@@ -45,6 +45,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
 
     private readonly string _popover = UiDatePickerIds.Next();
     private string? _ownId;
+
+    // Where it says what it cannot take when it is a part of another control (IUiRelaysUnread), as last drawn.
+    private Func<string, Task>? _relay;
     private (bool Held, T? Value, T? Given) _own;
 
     // The typed fields the reader emptied, a bit a slot: a range is nothing chosen once both are.
@@ -192,6 +195,9 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     /// <inheritdoc />
     DateOnly? IUiClock.Today { get; set; }
 
+    /// <inheritdoc />
+    Func<string, Task>? IUiRelaysUnread.Relay => _relay;
+
     string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
         : UiFieldId.Derive(Id, Bind, Label);
@@ -222,6 +228,7 @@ public abstract partial class UiDatePickerControl<T> : Component, IFormControl<T
     {
         var field = UiWithField.For(this);
         UiDatePickerModes.Check(Mode, Bound);
+        _relay = UiUnreadRelay.Around();
         var (acc, ctx, bound) = UiFormCommit.Resolve<T>(this);
         var committed = Bind is null && _own.Held && EqualityComparer<T?>.Default.Equals(Value, _own.Given) ? _own.Value : bound;
         var options = Options();

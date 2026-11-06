@@ -161,7 +161,8 @@ internal static class UiFormCommit
         ReaderEdits.Note((Component)control);
         if (accessor is null || context is null)
         {
-            return Task.CompletedTask;
+            // A part of another control says it under that one's field (IUiRelaysUnread).
+            return control is IUiRelaysUnread { Relay: { } relay } ? relay(said) : Task.CompletedTask;
         }
 
         return PendingBinds.Commit((Component)control, accessor.Field, context, shown, Note, static () => Task.CompletedTask);

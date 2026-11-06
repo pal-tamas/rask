@@ -207,6 +207,12 @@ internal static class UiDocsCatalog
         "A form's footer in one line: Delete that asks first, Cancel back to the list and Save, drawn as Flux draws a form's "
         + "footer and worded in the reader's language.");
 
+    public static UiDocsEntry DayAndTime { get; } = new(
+        Routes.UiDayAndTimePage(), "Day and time", Components,
+        "Day and time in C#: Ui.DayAndTime",
+        "A typed day and a typed time in one row, bound to one DateTime?: the time drops beneath the day on a phone, and "
+        + "unchanged seconds are kept.");
+
     public static UiDocsEntry Empty { get; } = new(
         Routes.UiEmptyPage(), "Empty state", Components,
         "Empty state in C#: Ui.Empty",
@@ -467,7 +473,7 @@ internal static class UiDocsCatalog
         Introduction, Theming, DarkMode,
         Header, Sidebar,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
-        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag, FormButtons,
+        ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, Empty, Field, FileUpload, Filters, Flag, FormButtons,
         Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,
         Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle, Tooltip,
     ];

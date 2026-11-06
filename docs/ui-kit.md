@@ -46,7 +46,8 @@ Ui.Button.Primary["Save"]
 [Rich text editor](https://rask.sh/ui/editor/), [Composer](https://rask.sh/ui/composer/) and
 [Toggle](https://rask.sh/ui/toggle/), the kit's own [Confirm](https://rask.sh/ui/confirm/),
 [Confirm leave](https://rask.sh/ui/confirm-leave/), [Filters](https://rask.sh/ui/filters/),
-[Form buttons](https://rask.sh/ui/form-buttons/) and [Row actions](https://rask.sh/ui/row-actions/), with
+[Form buttons](https://rask.sh/ui/form-buttons/), [Row actions](https://rask.sh/ui/row-actions/) and
+[Day and time](https://rask.sh/ui/day-and-time/), with
 [theming](https://rask.sh/ui/theming/) and [dark mode](https://rask.sh/ui/dark-mode/).
 
 ## Principles
@@ -664,6 +665,44 @@ Ui.TableRow.Key(pump.Id + "-detail")[Ui.TableCell.ColSpan(3)[Details(pump)]]
 Live: **[rask.sh/ui/empty](https://rask.sh/ui/empty/)**, **[rask.sh/ui/page-header](https://rask.sh/ui/page-header/)** and the
 fold-out row on **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
+## A day and a time
+
+**A moment a form asks for, as a day and a time of that day in one row** (#1297) — Flux's typed date picker and time
+picker side by side, the way both TA and Eszaf asked for one (the one-button `Ui.DatetimePicker` was not wanted for
+it). Not one of Flux's components; the owner's, 2026-11-04.
+
+```csharp
+// before: two model properties taking the moment apart, and a helper drawing the two pickers
+public DateOnly? FromDay { get => Moments.Day(From); set => From = Moments.OnDay(From, value); }
+public TimeOnly? FromTime { get => Moments.Time(From); set => From = Moments.AtTime(From, value); }
+Moments.Pickers(() => _form.FromDay, () => _form.FromTime, rule: ChipRules.NotBefore, live: true)
+
+// after: one DateTime? bound whole
+Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
+```
+
+- **One row, wrapping**: the day takes the room (`min-w-48 flex-1`), the time a third of it (`w-36`, `w-44` where the clock has AM/PM); where the row has
+  no room for both, as on a phone, the time goes beneath the day. Nothing scrolls sideways.
+- **The day** is `Ui.DatePicker…Typed()`: typed in the culture's own order and separators (hu `2026. 11. 06.`, en-US
+  `11/06/2026`) or picked in the calendar, whose header chooses the month and the year. **The time** is
+  `Ui.TimePicker` typed, 24-hour or 12-hour as the culture writes it. Both follow `Locale`, the current culture unless set.
+- **No day is no moment**: the time is disabled until a day is given, and a day taken away takes its time with it. A
+  first day is its first minute.
+- **Seconds** — the rule: a new day keeps the moment's time to the tick. The time field writes hours and minutes, so a
+  time left at the hour and the minute the value already shows keeps the value whole, seconds and all (a save never
+  loses seconds nobody changed); any other time has none. A moment kept in UTC or local time keeps its `Kind`.
+- **Required-ness is the member's**, as for `.Choices`: a `DateTime?` the model does not require has the day's × and
+  empties to `null`; a required one has none and, emptied, says "The … field is required." at the save; a `DateTime`
+  cannot be empty, and an emptied day says "This field is required." at once and keeps its moment.
+- **Messages** stand under the pair, in the member's name: a day or a time half typed ("Enter a valid date." /
+  "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
+  while one shows.
+
+`Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
+header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named
+from the catalog ("Kezdet" / "Vége" in Hungarian). Live: **[rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/)**,
+**[rask.sh/ui/date-picker](https://rask.sh/ui/date-picker/)**.
+
 ## Printing
 
 The kit prints what a page says and leaves off what it does — a **departure from Flux**, which prints its screen.
@@ -986,7 +1025,7 @@ Grouped by what each piece is for.
 | **Data display** | `Ui.Accordion` `Ui.AccordionItem` `Ui.AccordionHeading` `Ui.AccordionContent` `Ui.Avatar` `Ui.AvatarGroup` `Ui.Badge` `Ui.BadgeClose` `Ui.Card` `Ui.CardHeader` `Ui.CardHeading` `Ui.CardSubheading` `Ui.CardActions` `Ui.CardBody` `Ui.CardFooter` `Ui.CardBleed` `Ui.Carousel` `Ui.CarouselSlide` `Ui.CarouselControls` `Ui.Flag` `Ui.Kanban` `Ui.KanbanColumn` `Ui.KanbanColumnHeader` `Ui.KanbanColumnCards` `Ui.KanbanColumnFooter` `Ui.KanbanCard` `Ui.Table` `Ui.TableColumns` `Ui.TableColumn` `Ui.TableRows` `Ui.TableRow` `Ui.TableCell` `Ui.Timeline` `Ui.TimelineItem` `Ui.TimelineIndicator` `Ui.TimelineContent` `Ui.TimelineBlock` `Ui.TimelineSubgrid` `Ui.Chart` `Ui.ChartSvg` `Ui.ChartViewport` `Ui.ChartLine` `Ui.ChartArea` `Ui.ChartPoint` `Ui.ChartBar` `Ui.ChartGroup` `Ui.ChartStack` `Ui.ChartPie` `Ui.ChartAxis` `Ui.ChartAxisTick` `Ui.ChartAxisGrid` `Ui.ChartAxisLine` `Ui.ChartAxisMark` `Ui.ChartZeroLine` `Ui.ChartCursor` `Ui.ChartTooltip` `Ui.ChartTooltipHeading` `Ui.ChartTooltipValue` `Ui.ChartTooltipIndicator` `Ui.ChartSummary` `Ui.ChartSummaryValue` `Ui.ChartLegend` `Ui.ChartLegendIndicator` |
 | **Navigation** | `Ui.Navbar` `Ui.NavbarItem` `Ui.Navlist` `Ui.NavlistItem` `Ui.NavlistGroup` `Ui.Brand` `Ui.Profile` `Ui.Breadcrumbs` `Ui.BreadcrumbsItem` `Ui.Link` `Ui.Pagination` `Ui.TabGroup` `Ui.Tabs` `Ui.Tab` `Ui.TabPanel` |
 | **Feedback** | `Ui.Callout` `Ui.CalloutHeading` `Ui.CalloutText` `Ui.CalloutLink` `Ui.Progress` `Ui.Skeleton` `Ui.SkeletonLine` `Ui.SkeletonGroup` `Ui.Toast` `Ui.ToastGroup` `Ui.Tooltip` `Ui.TooltipContent` |
-| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Calendar` `Ui.DatePicker` `Ui.DatetimePicker` `Ui.DatetimePickerButton` |
+| **Data input** | `Ui.Input` `Ui.Textarea` `Ui.Composer` `Ui.Select` `Ui.SelectOption` `Ui.SelectGroup` `Ui.SelectOptionCreate` `Ui.SelectOptionEmpty` `Ui.SelectButton` `Ui.SelectInput` `Ui.SelectSearch` `Ui.ColorPicker` `Ui.ColorPickerArea` `Ui.ColorPickerSlider` `Ui.ColorPickerInput` `Ui.ColorPickerSwatches` `Ui.ColorPickerSwatch` `Ui.ColorPickerDropper` `Ui.Autocomplete` `Ui.AutocompleteItem` `Ui.Pillbox` `Ui.PillboxOption` `Ui.PillboxOptionCreate` `Ui.PillboxOptionEmpty` `Ui.PillboxSearch` `Ui.PillboxTrigger` `Ui.PillboxInput` `Ui.FileUpload` `Ui.FileUploadDropzone` `Ui.FileItem` `Ui.FileItemRemove` `Ui.Checkbox` `Ui.CheckboxGroup` `Ui.CheckboxAll` `Ui.CheckboxIndicator` `Ui.RadioGroup` `Ui.Radio` `Ui.RadioIndicator` `Ui.Switch` `Ui.Toggle` `Ui.Slider` `Ui.SliderTick` `Ui.Field` `Ui.Label` `Ui.Description` `Ui.Error` `Ui.Fieldset` `Ui.Legend` `Ui.Otp` `Ui.OtpInput` `Ui.OtpSeparator` `Ui.OtpGroup` `Ui.Phone` `Ui.Calendar` `Ui.DatePicker` `Ui.DatetimePicker` `Ui.DatetimePickerButton` `Ui.TimePicker` `Ui.DayAndTime` |
 | **Layout** | `Ui.Separator` |
 | **Layout** | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
 | **Support** | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `UiPaginator`, `Ui.Breakpoint`, `UiStylesheet` |

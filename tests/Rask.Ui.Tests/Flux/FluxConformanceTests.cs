@@ -275,6 +275,7 @@ public sealed class FluxConformanceTests
         [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's pencil and bin, as Flux draws a row's action (#1298)",
         [typeof(UiEmpty)] = "the owner, 2026-11-04: a list's empty state, as Flux's account overview demo draws its empty row (#1283, TA gap B3)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",
+        [typeof(UiDayAndTime<>)] = "the owner, 2026-11-04: a moment as Flux's typed date picker and time picker in one row, not the datetime picker (#1297)",
     };
 
     /// <summary>
