@@ -4,8 +4,7 @@ Every `Component` can override five lifecycle hooks. Each is one `Task`-returnin
 well-defined point around a render, and behaves identically on the Server and WASM hosts (only the transport
 differs). This page documents the hooks, their order, the async rules, and the gotchas.
 
-See also: [routing.md](routing.md) for how route/query params drive `OnUpdated`, and the README *Lifecycle
-reference* table for a one-glance summary.
+See also: [routing.md](routing.md) for how route/query params drive `OnUpdated`.
 
 ## The hooks
 
@@ -400,7 +399,7 @@ ErrorBoundary.Fallback((ex, retry) => Div[
     P["Could not load the rows."],
     Button.OnClick(retry)["Try again"]
 ])[
-    RowList()
+    RowList
 ]
 ```
 
@@ -609,7 +608,7 @@ navigates away:
 ```csharp
 public sealed partial class CancellationProbe : Component
 {
-    public required Action<string> Log { get; set; }
+    public Callback<string> Log { get; set; }
     public required int InstanceId { get; set; }
 
     protected override async Task OnMount()
@@ -617,11 +616,11 @@ public sealed partial class CancellationProbe : Component
         try
         {
             await Task.Delay(2500.Milliseconds, CancellationToken);
-            Log($"#{InstanceId} completed");
+            await Log.Invoke($"#{InstanceId} completed");
         }
         catch (OperationCanceledException)
         {
-            Log($"#{InstanceId} cancelled");
+            await Log.Invoke($"#{InstanceId} cancelled");
         }
     }
 }
@@ -648,7 +647,7 @@ handler is back under the editor's lifetime. With a `HandlerTimeout` configured 
 its owner's lifetime and the same timeout as the event that raised it. More in
 [callbacks](composition-callbacks-context.md#callbacks-child--parent).
 
-Mount the probe to start a 2.5-second `Task.Delay` inside `OnMount`; click **Unmount** before it settles to
+Mount the probe to start a ten-second wait inside `OnMount`; click **Unmount** before it settles to
 cancel — the probe records what happened into the log:
 
 <!-- demo:cancellation -->

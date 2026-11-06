@@ -7,7 +7,7 @@ For what happens *before* that first paint — waiting for a page's async data, 
 page needs a live connection at all, and what status and cache headers the response carries — see
 [Render modes](../render-modes.md). This document picks up once a session exists.
 
-It expands the *Live runtime & diff codec* section of [`CLAUDE.md`](../../CLAUDE.md) with code
+It expands the *live diff runtime* line of [`CLAUDE.md`](../../CLAUDE.md) with code
 grounding. File references point at `src/Rask.Core/Live/`, `src/Rask.Server/`, and
 `src/Rask.Wasm/`.
 
@@ -43,23 +43,27 @@ re-render reaches the browser DOM — differs by host:
   payload that's pushed back down the socket.
 - **WASM** (`Rask.Wasm`): there is no socket. `WasmLiveSession` is driven through
   `[JSImport]`/`[JSExport]` boundaries declared in `JSInterop.cs`. JS calls
-  `[JSExport] DispatchAsync(byte[] json)` to deliver an event; .NET pushes the
-  resulting payload back with the `[JSImport("applyRender")] ApplyRender(byte[])`
-  import (the JSExport source generator doesn't support `Task<byte[]>` returns, so
-  the result is *pushed*, not returned — see the comment in `JSInterop.cs`).
+  `[JSExport] Dispatch(byte[] json)` to deliver an event; .NET pushes the
+  resulting payload back with the `[JSImport("applyRender")] ApplyRender(Span<byte>)`
+  import, marshalled as a `MemoryView` — a zero-copy view over the session's write
+  buffer that the JS side reads synchronously, so the result is *pushed*, not returned
+  (see the comments in `JSInterop.cs`).
 
 ### The runtime `<script>` is auto-injected
 
 `HtmlSerializer` injects the runtime as the **last child of `<body>`** — you never
 write `RaskRuntimeScript()`. On serializing the `</body>` close it resolves the
 host-registered `IRaskRuntimeScript` from DI and serializes its tag inline
-(`HtmlSerializer.cs`, the `tagName == "body"` branch):
+(`HtmlSerializer.cs`, `CloseShellElement`):
 
 ```csharp
-if (tagName == "body" && live?.Services?.GetService<IRaskRuntimeScript>() is { } runtime
-                      && runtime.Render() is { } runtimeScript)
+if (string.Equals(tagName, "body", StringComparison.Ordinal))
 {
-    Serialize(runtimeScript, sb);
+    live.BodyWritten = true;
+    if (live.Services?.GetService<IRaskRuntimeScript>() is { } runtime)
+    {
+        AppendRuntimeScript(runtime, html);
+    }
 }
 ```
 

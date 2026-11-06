@@ -43,11 +43,11 @@ when the form is saved does not need it — see [bind timing](#bind-timing).
 `Bind` is an `Expression<Func<TProp>>`. The chain step reads the expression and
 derives everything from the bound property:
 
-- **Input name** ← the property name (`name="Name"`). Override with `Name:`.
+- **Input name** ← the property name (`name="Name"`). Override with `.Name(…)`.
 - **Input type** ← the property's CLR type (`BindingHelpers.DefaultInputType`):
   `bool → checkbox`, every numeric primitive `→ number`, `DateOnly → date`,
   `DateTime`/`DateTimeOffset` `→ datetime-local`, `TimeOnly`/`TimeSpan` `→ time`, everything else
-  `→ text`. Override with `Type:` — an `InputType` enum value. The full set is
+  `→ text`. Override with `.Type(…)` — an `InputType` enum value. The full set is
   `Text`, `Search`, `Tel`, `Url`, `Email`, `Password`, `Number`, `Checkbox`, `Radio`, `File`, `Range`,
   `Color`, `Date`, `DatetimeLocal` (renders `datetime-local`), `Time`, `Week`, `Month`, `Hidden`,
   `Button`, `Submit`, `Reset`, `Image`. The *string-only* family (`Text`/`Search`/`Tel`/`Url`/`Email`/
@@ -466,7 +466,7 @@ are done — on the Server host with that submit's ack, in a WebAssembly app whe
 double click, a second Enter or a script's `requestSubmit()` meanwhile is dropped in the browser and never
 sent, so a non-repeatable save (an upload, a payment) runs once. The fields stay in what is sent:
 `readonly`, unlike `disabled`, keeps a value in the form data. A render meanwhile does not hand the
-controls back early, and what it says of them (`.Disabled(submitting)` below) is what they are left with —
+controls back early, and what it says of them (`.Disabled(f.Submitting)` below) is what they are left with —
 except a field it shows a message under: a submit whose rule awaits a lookup draws what it already knows at
 that await, and the field it calls wrong is handed back then, so the first key of the correction is heard.
 The button's spinner still waits its 200 ms, so a fast save never flashes one. A plain button's `OnClick`
@@ -475,12 +475,13 @@ is not held: Livewire disables nothing for `wire:click`.
 ### Children that follow the submit
 
 Children are normally a fixed list. Give the form a **function** instead and it is called on every
-render with whether a submit is in flight, so the markup can say so without the page tracking it:
+render with the state of its submit — `f.Submitting` while one is in flight, `f.Error` for what the last one
+threw — so the markup can say so without the page tracking it:
 
 ```csharp
-Form.Model(_model).OnSubmit(Save)[submitting => [
-    Input.Bind(() => _model.Username).Disabled(submitting),
-    Button.Type(ButtonType.Submit).Disabled(submitting)[submitting ? "Saving…" : "Sign up"]
+Form.Model(_model).OnSubmit(Save)[f => [
+    Input.Bind(() => _model.Username).Disabled(f.Submitting),
+    Button.Type(ButtonType.Submit).Disabled(f.Submitting)[f.Submitting ? "Saving…" : "Sign up"]
 ]]
 ```
 
@@ -523,7 +524,7 @@ Form.Model(_model)[Input.Bind(() => _model.Username), Button.Type(ButtonType.Sub
 ```
 
 Only a form offers the function form. It is an indexer declared on `Form` itself, so
-`Div[submitting => …]` does not compile — there is no submit state behind a `<div>` to report. See
+`Div[f => …]` does not compile — there is no submit state behind a `<div>` to report. See
 [`Form`](../src/Rask.Core/Dom/HTMLFormElement.cs).
 
 ### Asking before an action
@@ -702,7 +703,7 @@ Three things to know:
 ### Auto-created vs explicit `Context`
 
 By default the form creates (and caches per model reference) its own `EditContext` — it persists
-across renders of the same model, so field state survives re-renders. Pass `Context:` to own the
+across renders of the same model, so field state survives re-renders. Pass `.Context(…)` to own the
 instance yourself when you need to drive validation imperatively, register an
 `IAsyncFieldValidator`, or tune `ValidatingStickyMs`:
 
@@ -717,7 +718,7 @@ Form.Model(_model).OnSubmit(m => _submission = "Saved").Context(_ctx)[
 ]
 ```
 
-`Form` requires either `Model` or `Context` — they are the two ways to open its chain.
+`Form` opens with `Model`, its one required step; `Context` is an optional step after it.
 
 ### Binding a data model
 
@@ -883,7 +884,7 @@ A list that takes more than one answer says so on the listbox itself, with
 and has no way to learn that a second one is allowed — the options look identical either way, so
 the fact that several may be chosen lives nowhere else.
 
-If you build your own control from the core `Input`/`Validation.Message` primitives (§9), mirror the same
+If you build your own control from the core `Input`/`Validation.Message` primitives ([building form controls](building-form-controls.md)), mirror the same
 three attributes so the field stays accessible: `aria-invalid` on the control, `aria-describedby` from
 the control to the message `id`, and `role="alert"` on the message container. See
 [accessibility.md](accessibility.md#form-validation).

@@ -28,7 +28,7 @@ builder.Services.AddDbContextFactory<CatalogDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 ```
 
-> Production tip: swap `UseSqlite` for `UseRaskSqlite` (the standalone `Rask.SQLite` package) to apply
+> Production tip: swap `UseSqlite` for `UseRaskSqlite` (the `Rask.SQLite.EntityFrameworkCore` package) to apply
 > the production pragma set — WAL, `foreign_keys=ON`, a `busy_timeout`, `synchronous=NORMAL`
 > — on every connection. It takes the service provider (`(sp, o) => o.UseRaskSqlite(sp)`) and reads the
 > connection string from `Rask:ConnectionStrings:App`. Set `Rask:Sqlite:Retry:Enabled` for an opt-in
@@ -87,9 +87,9 @@ window — a timer tick, a fire-and-forget continuation, or an external event/ob
 subscription (e.g. `OnMount() => store.Changed += StateHasChanged`). See
 [lifecycle.md](lifecycle.md) for the auto-re-render rule.
 
-## How the sample is organised
+## How to organise it
 
-The sample uses **vertical slices**: code is grouped by use case (`ProductsPage`, `NewProductPage`,
+Use **vertical slices**: code is grouped by use case (`ProductsPage`, `NewProductPage`,
 `EditProductPage`), each slice owning its page, its own form model, and its own EF Core access — no
 shared repository or service layer. The only shared things are the app shell, a form-error template,
 and the Catalog domain.
@@ -184,15 +184,14 @@ entity.Property(p => p.Price)
     .HasConversion(money => money.Cents, cents => Money.FromCents(cents));
 ```
 
-The sample does this, and its integration tests assert the column is `INTEGER` and that values
-round-trip exactly. It is also the conventional way to represent money. Reach for it when the shape of
+It is also the conventional way to represent money. Reach for it when the shape of
 the data calls for it — not, any longer, to dodge a correctness problem.
 
 ## Schema & seeding
 
-The sample calls `EnsureCreatedAsync()` on startup and seeds a few rows through the aggregate's
-`Create` factory (so even seed data honours the invariants). `EnsureCreated` is the simplest correct
-choice for a sample with no schema history — a real app with an evolving schema would use
+Calling `EnsureCreatedAsync()` on startup and seeding a few rows through the aggregate's `Create`
+factory (so even seed data honours the invariants) is the simplest correct choice for an app with no
+schema history — a real app with an evolving schema would use
 `Database.MigrateAsync()` with EF Core migrations instead.
 
 ## Testing

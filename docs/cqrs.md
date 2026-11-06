@@ -4,8 +4,8 @@
 and events — and their handlers, then dispatch through `IDispatcher`. The generator wires every
 handler at compile time, so dispatch does **no runtime reflection and no assembly scanning**. That is
 the whole point: it publishes clean under the WASM/AOT trimmer, where a reflection-based mediator
-cannot. It is standalone — it depends only on `Microsoft.Extensions.DependencyInjection.Abstractions`
-and works in any .NET app, not just Rask.
+cannot. It is standalone — it depends only on the `Microsoft.Extensions` DI, configuration and hosting
+abstractions plus `Rask.Wire` (the codec primitives), and works in any .NET app, not just Rask.
 
 > Rask encourages **vertical slices**: a handler owns its own data access, through [`Rask.Data`](data.md)
 > or [plain EF Core](data-access.md), with no shared repository or service layer in between.
@@ -452,7 +452,7 @@ trim-safe:
 - **Handlers must live in a loaded assembly.** Registration is driven by a per-assembly
   `[ModuleInitializer]`, which runs when the CLR first loads that assembly. If your handlers are in a
   separate library that nothing touches before `AddRaskCqrs()`, they won't be registered. In practice a
-  Rask/Blazor app already uses types from its handler assemblies at startup; if yours doesn't, reference
+  Rask app already uses types from its handler assemblies at startup; if yours doesn't, reference
   any type from that assembly (or keep handlers in the app assembly).
 - **One handler per query/command, app-wide.** RASK028 catches duplicates within a compilation. Two
   handlers for the *same* request type in *different* assemblies aren't diagnosed (no whole-program

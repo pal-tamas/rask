@@ -274,7 +274,7 @@ its method runs on it when you call it, in a click (WebAssembly):
 _install = await Window.OnBeforeInstallPrompt(e => _deferred = e);
 // … in the install button's click:
 var answer = await _deferred.Prompt();                            // PromptResponseObject
-var accepted = answer.UserChoice == AppBannerPromptOutcome.Accepted;
+var accepted = answer.UserChoice == Types.AppBannerPromptOutcome.Accepted;
 ```
 
 The spec moved the outcome from the old `userChoice` promise onto what `prompt()` answers with, so it is read there.

@@ -318,7 +318,7 @@ If you are formatting a value to send somewhere rather than to show someone, pas
 public sealed partial class LanguageMenu(IRaskCulture culture) : Component
 {
     protected override Component Render() =>
-        Select.OnChange(e => culture.Set(e.Value ?? "en"))[
+        Select.Value(culture.UICulture.Name).OnChange(name => culture.Set(name))[
             culture.Supported.Select(c => Option.Value(c.Name)[c.NativeName])
         ];
 }
@@ -492,8 +492,8 @@ them is a `RaskString` key with its English beside it in the code, and is looked
 2. **the UI kit's own** translation — `Rask.Ui` ships **Hungarian** (`hu`) beside its English
 3. the English
 
-So an app that lists `hu` in `SupportedCultures` gets a Hungarian pager, select, date picker, editor toolbar
-and data grid with no catalog of its own, and a language switch repaints them like any other text. The kit's
+So an app that lists `hu` in `SupportedCultures` gets a Hungarian pager, select, date picker and editor toolbar
+with no catalog of its own, and a language switch repaints them like any other text. The kit's
 translations apply only to the languages your app says it ships — an app with no `SupportedCultures` keeps
 the English whatever the server's or the browser's language is. Month and weekday names, dates and numbers
 are not in any catalog: they come from the culture. So does the word a `Ui.DatetimePicker` writes between its

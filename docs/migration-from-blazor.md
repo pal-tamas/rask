@@ -174,8 +174,8 @@ Identical idea, no association ceremony. Drop a sibling `{Component}.css` next t
 `{Component}.cs` and it's auto-globbed, scoped to that type, and hot-reloaded under
 `dotnet watch` — Blazor-parity descendant scoping. There is no per-selector opt-out
 (no `:global(...)`, no `::deep`): global styles for shell tags like `body`/`html`, brand
-palettes, or framework classes go in a plain `wwwroot` stylesheet linked from your App's
-`<Head>`.
+palettes, or framework classes go in `Styles/app.css` (which Rask links for you), or in a plain `wwwroot`
+stylesheet linked from your root's `HeadAssets` override.
 
 ## Behavioural gotchas
 
@@ -195,8 +195,7 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
   component class.** Stock Roslyn/ReSharper navigate a generated symbol to its
   generated document. Use the IDE's **"Navigate to Type of Symbol"** for a one-action
   jump to the component class. (Every generated member carries a `<see cref>`
-  breadcrumb and `[DebuggerStepThrough]`, so hover/Quick-Doc offers a navigable link
-  and the debugger steps over the generated code into yours.)
+  breadcrumb, so hover/Quick-Doc offers a navigable link to the property it sets.)
 
 - **Keyed lists matter — and Rask warns when you forget.** Like Blazor's `@key`,
   pass `.Key(…)` on list items so inserts/removes/reorders reconcile by identity
@@ -207,10 +206,12 @@ palettes, or framework classes go in a plain `wwwroot` stylesheet linked from yo
 - **`Go` is event-handler-only.** Calling it outside a handler throws. Read
   the current route from `RouteState`; change it with `Go` from a handler.
 
-- **Lifecycle re-fire rules differ.** `Updated*` fires on first render and
+- **Lifecycle re-fire rules differ.** `OnUpdated()` fires on first render and
   whenever a bound prop or route/query param actually changes — a bare
   event-handler re-render does **not** re-fire it. Don't call `StateHasChanged()` in
-  `Unmount*`. Faulted async hooks log to `Console.Error` and don't re-render (a
+  `OnUnmount()`. A faulted async hook re-renders the nearest `ErrorBoundary` with its
+  fallback; with none above it, the fault is logged under the `Rask.Lifecycle` category
+  (and listed in the DevTools Errors tab) and the component does not re-render (a
   placeholder that never resolves usually means an async hook threw).
 
 ## What stays the same

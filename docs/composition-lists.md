@@ -7,9 +7,9 @@ Windowed and reorderable lists, transient toast messages, drag-and-drop, and err
 ## Virtualize — windowed lists
 
 `Virtualize.Items<T>` is **headless**: *you* render the scroll container and rows from a
-`VirtualizationState ctx`, and it tells you which slice is visible. The first argument is
+`VirtualizationContext<T> ctx`, and it tells you which slice is visible. The first argument is
 the body builder; pass **exactly one** of `Items` (positional or named) or `ItemsProvider`,
-plus `ItemSize` (row height in px, required) and optional `OverscanCount`.
+plus `ItemSize` (row height in px, 32 unless you say) and optional `OverscanCount`.
 
 It is the one place on the surface that is a **method call rather than a chain**, and for a reason a
 chain cannot work around: a chain infers its type argument from the step that opens it, and `T` here
@@ -21,8 +21,8 @@ Virtualize.Items<Row>(
     ctx => Div.Style("height:400px; overflow:auto;").OnScroll(ctx.OnScroll)[
         Div.Style($"height:{ctx.OffsetBefore}px"),          // top spacer
         Table[Tbody[
-            ctx.VisibleItems.Select(item => Tr.Style($"height:{ctx.ItemSize}px;").Data(new() { ["rask-key"] = item.Index.ToString() })[  // key → reuse <tr> on scroll
-                Td[item.IsPlaceholder ? "—" : item.Value!.Name])
+            ctx.VisibleItems.Select(item => Tr.Style($"height:{ctx.ItemSize}px;").Data("rask-key", item.Index.ToString())[  // key → reuse <tr> on scroll
+                Td[item.IsPlaceholder ? "—" : item.Value!.Name]])
         ]],
         Div.Style($"height:{ctx.OffsetAfter}px")             // bottom spacer
     ],

@@ -118,12 +118,12 @@ An `Add*` whose settings are durations and types rather than knobs returns its s
 and has no delegate at all: `AddSessionRevalidator<AccountCheck>().Keep(5.Seconds).ForgetOnSave<User>()`. The
 rule still holds, because every step is optional and the bare call has a working default.
 
-**`AddRaskWebPush` is the standing exception**, and the reasoning is worth stating because it is the
-line the rule stops at. Sending needs a VAPID key pair, which cannot have a default: a generated one
-would silently break every existing subscription on restart, and an absent one turns every send into a
-runtime failure. Making the delegate required means you cannot forget what the signature will not let
-you omit — a compile error rather than a startup one. The rule holds everywhere a default is
-*possible*; where none is, prefer the compiler over a good error message.
+**`AddRaskWebPush` is where the rule stops**, and the reasoning is worth stating. Sending needs a VAPID
+key pair, which cannot have a default: a generated one would silently break every existing subscription
+on restart. Its delegate is optional like every other, and the pair is read from `Rask:Push`; the sender
+alone (`AddRaskWebPush()`) refuses to start without it, and the battery (`AddRaskWebPush<TContext>()`)
+starts so the subscribe endpoints work on a fresh clone, and its first send names the missing settings. The
+rule holds everywhere a default is *possible*; where none is, fail early and say what to set.
 
 ### 8. Machinery is hidden
 
@@ -240,8 +240,9 @@ that skipped generated code would skip the part people actually call. It also ca
 cleanly: path-scoped `.editorconfig` severity does not reach generator-produced trees, so an exclusion
 would have to be a project-wide `NoWarn`, which is a hole rather than a rule.
 
-The files are per target framework because `Rask.Core`, `Rask.Wasm`, `Rask.SQLite.Browser`
-and `Rask` build for the server and browser targets with genuinely different surfaces. Every project
+The files are per target framework because `Rask.Core`, `Rask.Data`, `Rask.DevTools`,
+`Rask.SQLite.Browser`, `Rask.Ui`, `Rask.Wasm` and `Rask.Xlsx` build for the server and browser targets,
+whose surfaces can genuinely differ. Every project
 uses the same layout, including the ones with a single framework today — so a project that gains a
 second one gets an empty baseline to fill rather than a gate that quietly starts contradicting itself.
 

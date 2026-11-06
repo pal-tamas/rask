@@ -47,7 +47,7 @@ everything after `--` becomes the script's arguments.
 
 | Option | Environment equivalent | Effect |
 |---|---|---|
-| `--version <v>` | `RASK_INSTALL_PACKAGE` pins the package | install a specific `Rask.Cli` version |
+| `--version <v>` | | install a specific `Rask.Cli` version |
 | `--prerelease` | | install the latest [nightly](development-workflow.md) prerelease |
 | `--no-sdk` | | never install the .NET SDK, even when none is found |
 | `--no-ef` | | skip `dotnet-ef` (`rask db` installs it on first use anyway) |

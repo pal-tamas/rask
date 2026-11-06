@@ -138,8 +138,8 @@ Two gates, use both: `[Authorize]` at the route (redirects anonymous deep-links 
 [Authorize]                                    // route-level; from Microsoft.AspNetCore.Authorization
 public sealed partial class NewProductPage : Component { … }
 
-Authorize[ NewProductButton() ]              // rendered only for signed-in users
-Authorize.Role("admin")[ DeleteProductButton(product.Id) ]
+Authorize[ NewProductButton ]                // rendered only for signed-in users
+Authorize.Role("admin")[ DeleteProductButton.Id(product.Id) ]
 ```
 
 The login page itself is already there: `/login`, `/register` and `/logout` are built in, and you

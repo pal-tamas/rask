@@ -58,7 +58,7 @@ public sealed class Call(IWebRtc rtc) : Component, IAsyncDisposable
 `Listen` hands you an `IReadOnlyList<RtcMessage>`, not one message at a time, and `OnIceCandidates`
 does the same. That is not a convenience — it is what keeps the Server host alive. Each push from the
 browser costs one inbound WebSocket frame, and the host closes a socket that exceeds its inbound frame rate
-(`RaskServerLimits.MaxInboundFramesPerSecond`, 1000 by default). A busy data channel delivered one message
+(`RaskServerOptions.MaxInboundFramesPerSecond`, `Rask:Server` in configuration, 1000 by default). A busy data channel delivered one message
 per push would end the session in under a second; an ICE gathering burst would spike it. The framework
 buffers on a short timer instead, which bounds the push rate no matter how fast the peer sends. WASM gets
 the same shape, so the two hosts stay identical.

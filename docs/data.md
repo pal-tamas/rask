@@ -1144,10 +1144,10 @@ public sealed partial class NewProductPage : Component
     private readonly ProductModel _product = new();
 
     protected override Component Render() =>
-        Form.Model(_product).OnSubmit(Create)[submitting => [
+        Form.Model(_product).OnSubmit(Create)[f => [
             Ui.Input.Bind(() => _product.Name).Label("Name"),
             Ui.Input.Bind(() => _product.Price!.Amount).Label("Price"),
-            Ui.Button.Submit.Disabled(submitting)["Create"],
+            Ui.Button.Submit.Disabled(f.Submitting)["Create"],
         ]];
 
     private async Task Create(ProductModel product)
@@ -2972,8 +2972,8 @@ A longer cache key cannot be stored there; `ICache` rejects it with an error nam
 
 ## Notes
 
-- **Server-side.** These interceptors run against a real EF Core provider (SQLite by default in Rask);
-  they are not used on the WASM client.
+- **A real provider.** These interceptors run against a real EF Core provider (SQLite by default in Rask) —
+  in a WebAssembly app too, over the browser's SQLite ([above](#wiring-when-rask-is-not-hosting)).
 - **Trim/AOT-safe.** The model convention runs at startup (not the hot path) and uses no runtime handler
   reflection; domain-event dispatch goes through `Rask.Cqrs`' source-generated registry.
 - **Durable delivery.** For at-least-once, crash-safe events, pair the entity with

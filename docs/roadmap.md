@@ -26,7 +26,7 @@ service to operate.
 | **Background jobs** | ✅ | [`Rask.Jobs`](jobs.md) — durable enqueued/delayed/recurring work on the app's own database, at-least-once with backoff. |
 | **Transactional email** | ✅ | [`Rask.Mail`](mail.md) — durable email queued on the app's own database, delivered off the request thread over SMTP; bodies are Rask components. |
 | **Cache** | ✅ | [`Rask.Cache`](cache.md) — a developer-facing cache on the app's own database; standard `IDistributedCache` plus a typed `ICache` with `Cache.Remember(…).For(…)`, absolute/sliding expiry. |
-| **File storage** | ✅ | [`Rask.Storage`](file-storage.md) — uploads kept on disk, in an S3-compatible bucket or in Azure Blob, with a `StoredFile` row per file on the app's own database; content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. Files on the disk provider are not yet backed up. |
+| **File storage** | ✅ | [`Rask.Storage`](file-storage.md) — uploads kept on disk, in an S3-compatible bucket or in Azure Blob, with a `StoredFile` row per file on the app's own database; content types sniffed from the bytes, public and temporary URLs, downloads behind your own check. Files on the disk provider are backed up only by `rask db backup` (not by Litestream or snapshots). |
 | **Production SQLite** | ✅ | [`sqlite.md`](sqlite.md) — WAL/busy-timeout pragmas, continuous backup (Litestream), snapshots. |
 | **The door out of one box** | ❌ | Not shipped — the PostgreSQL and SQL Server providers exist, but `rask new` starts on SQLite and `rask deploy` provisions SQLite only ([below](#another-database)). Jobs, mail and the outbox do **lease** the work they claim ([`scaling.md`](scaling.md#running-more-than-one-instance)), so the claim is safe when several processors race and a lease bounds, but does not eliminate, a duplicate side effect. See [below](#not-shipped). |
 | **Auth — sign-in** | ✅ | [`authentication.md`](authentication.md) — the cookie session, claims, authorization, and hardening guidance. |
@@ -87,7 +87,7 @@ actually is.
 No CRDT replication, no op log. Several devices sharing one database with no server between them is not
 something Rask does. (Files uploaded *to* the server are a different matter and have
 [shipped](file-storage.md): kept on disk, in an S3-compatible bucket or in Azure Blob — though files on the
-disk provider are not yet covered by any backup.)
+disk provider are covered only by `rask db backup`, not by Litestream or snapshots.)
 
 ### Rate limiting
 No general request rate limiting in the framework. The accounts battery does throttle what it owns — failed

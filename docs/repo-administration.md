@@ -24,9 +24,10 @@ anyone can open issues and PRs — but **only the owner (@pal-tamas) can merge**
 
 **CI runs the gates after the push, and blocks nothing.** The owner's own work lands on `main` by a
 direct push, so a required check would have nothing to hold: by the time `ci.yml` runs, the commit is
-already there. It runs the format check, the warnings-as-errors build, the unit suite, the browser
-E2E journeys, the CLI build and the template gate on every push to `main` and on every pull request,
-and a red `main` is fixed forward. See [development-workflow.md](development-workflow.md#ci).
+already there. It runs the gates each change can reach — the warnings-as-errors build and unit suite,
+the analyzer and format shards, the browser E2E journeys, the CLI build and the template gate — on every
+push to `main` and on every pull request (`full.yml` runs all of them once a day), and a red `main` is
+fixed forward. See [development-workflow.md](development-workflow.md#ci).
 
 **What a red run does stop is publishing.** `pages.yml` publishes only from a commit a push run of `ci` on
 `main` passed, and `nightly.yml` only from one whose run has a green `build` job (until 1.0; see
@@ -65,7 +66,7 @@ JSON
 
 Only ever require a check that actually runs on every PR. A required check that is skipped — by a path
 filter, or because its workflow was deleted — blocks the branch for ever with no way to satisfy it.
-The gate jobs are named by `gates.yml`'s matrix (`build`, `format src`, `browser E2E 1/3`, …); requiring one
+The gate jobs are named by `gates.yml`'s matrix (`build`, `analyzers 1/4`, `browser E2E 1/3`, …); requiring one
 means keeping that name in step with the list there.
 
 The reviews-and-restrictions half, set once (example):
@@ -84,5 +85,6 @@ gh api -X PUT repos/pal-tamas/rask/branches/main/protection \
   publishing**. Two policies under the `pal-tamas` account (nuget.org → Trusted Publishing) name repository
   owner `pal-tamas`, repository `rask`, and the workflow file `nightly.yml` and `release.yml`; the jobs carry
   `permissions: id-token: write`. Nothing expires or has to be rotated.
-- `NUGET_API_KEY` — only the release's *Unlist superseded versions* step (needs the **Unlist** scope).
+- `NUGET_API_KEY` — only the release's *Unlist superseded versions* step and the `unlist-retired.yml`
+  workflow (needs the **Unlist** scope).
 - `GITHUB_TOKEN` — provided automatically (GitHub Packages + releases).
