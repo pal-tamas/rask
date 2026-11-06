@@ -1,9 +1,0 @@
-{
-  "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "latest",
-    "svelte": "latest",
-    "svelte-check": "latest",
-    "typescript": "latest"
-  },
-  "runtime": "svelte"
-}

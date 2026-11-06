@@ -76,13 +76,12 @@ internal sealed class ArgumentSchema
         char? shortName = null,
         string? valueHint = null,
         string? description = null,
-        string? group = null,
-        IReadOnlyList<string>? choices = null)
+        string? group = null)
     {
         _options.Add(longName);
         _multiOptions.Add(longName);
         Register(longName, shortName);
-        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group, choices));
+        _declared.Add(new OptionInfo(longName, shortName, IsFlag: false, valueHint, description, group));
         return this;
     }
 
@@ -177,7 +176,7 @@ internal sealed class ArgumentSchema
         }
 
         values.Add(value);
-        return TakeChoiceRun(args, i, longName, values, state.Errors);
+        return i;
     }
 
     /// <summary><c>--name=value</c> or <c>-n</c> as the name and the inline value, if any.</summary>
@@ -189,36 +188,6 @@ internal sealed class ArgumentSchema
         return equals >= 0
             ? (isLong, body[..equals], body[(equals + 1)..])
             : (isLong, body, null);
-    }
-
-    /// <summary>
-    /// A multi-option that declares CHOICES also takes several values in a row, so
-    /// <c>--islands react angular blazor</c> reads the way it is written rather than forcing the
-    /// flag to be repeated three times. Bounded by the choice list: consumption stops at the
-    /// first token that is not one, which is what keeps <c>rask new --islands react Shop</c> from
-    /// swallowing the app's name. Without declared choices there is nothing to stop on, so
-    /// the option stays strictly one-value-per-occurrence.
-    /// </summary>
-    private int TakeChoiceRun(IReadOnlyList<string> args, int i, string longName, List<string> values, List<string> errors)
-    {
-        var allowed = _declared
-            .FirstOrDefault(o => o.LongName.Equals(longName, StringComparison.Ordinal))?.Choices;
-
-        if (allowed is null)
-        {
-            return i;
-        }
-
-        while (i + 1 < args.Count
-            && !IsOptionToken(args[i + 1])
-            && allowed.Contains(args[i + 1], StringComparer.OrdinalIgnoreCase))
-        {
-            var extra = args[++i];
-            TryNormalizeChoice(longName, ref extra, errors);
-            values.Add(extra);
-        }
-
-        return i;
     }
 
     /// <summary>What <see cref="Parse"/> collects on its way through the tokens.</summary>

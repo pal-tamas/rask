@@ -3,19 +3,14 @@
   <!--
     The TEMPLATE gate: every template `rask new` offers is scaffolded for real and built for real.
 
-    It exists because that was not true of eleven of the fifteen. Only server, wasm and react were ever
-    scaffolded-and-built (ProjectGeneratorBuildE2ETests), plus angular for its Tailwind output — and no
-    meta template was built by anything at all: the meta lane's only gate publishes a hand-written stub
-    csproj against stand-in files, so nothing proved a real Nuxt or SvelteKit app compiles.
+    It exists because a template that is only unit-tested can scaffold an app that does not compile, with
+    every unit test green.
 
     Separate from Rask.Cli.E2E.Tests, which keeps the CLI-BEHAVIOUR gates (watch, deploy, devhost, the
     tutorial chapters) and the finer-grained artifact assertions. The split is by subject: that project
     asks "does the CLI do the right thing", this one asks "does what it wrote compile and run".
 
-    ENV-GUARDED in two tiers, because the costs differ by two orders of magnitude:
-      RASK_TEMPLATE_E2E=1           the C# half of every template — minutes
-      RASK_TEMPLATE_FRONTEND_E2E=1  plus each client's real npm install and production build, which is
-                                    4.5-6 minutes PER template on a cold cache
+    ENV-GUARDED: RASK_TEMPLATE_E2E=1 packs this commit's packages and builds every template — minutes.
   -->
 
   <PropertyGroup>

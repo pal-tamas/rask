@@ -18,7 +18,6 @@
     <PackageReference Include="Rask.DevTools" Version="{{RaskVersion}}"/>
   </ItemGroup>
 
-
   <!--
     The browser app lives in Client/ (and what both halves share in Shared/). Its project is generated
     into obj/ from those folders — Client/Program.cs is what switches that on — so the references only the
@@ -30,34 +29,6 @@
     <RaskClientPackageReference Include="Rask.Cqrs.Client" Version="{{RaskVersion}}"/>
     <RaskClientPackageReference Include="Rask.Query" Version="{{RaskVersion}}"/>
     <!-- rask:end -->
-    <!-- rask:if islands -->
-    <!-- Islands, which the pages in Client/ render: the base classes a .tsx/.vue/.svelte/.ts component
-         derives from, plus the MSBuild layer that discovers each pair in Client/, generates its prop types and
-         bundles it with Vite, from the package.json beside this file. -->
-    <RaskClientPackageReference Include="Rask.External" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
-    <!-- rask:if islands-blazor -->
-    <!-- A real Blazor component hosted as an ordinary Rask component in the browser app. No npm side: the
-         Razor SDK compiles the .razor. -->
-    <RaskClientPackageReference Include="Rask.Blazor" Version="{{RaskVersion}}"/>
-    <!-- rask:end -->
   </ItemGroup>
-
-  <!-- rask:if islands-blazor -->
-  <PropertyGroup>
-    <!-- The library lives in a folder of this project and its files are its own: without this, the
-         second build would compile the library's obj/ into this app and stop on duplicate attributes. -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);Company.RaskServer.Components/**</DefaultItemExcludes>
-    <RaskScopedSourceExclude>$(RaskScopedSourceExclude);Company.RaskServer.Components\**</RaskScopedSourceExclude>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <!-- The Razor Class Library holding this app's Blazor components, referenced by the browser app whose pages
-         render them. A separate project because a .razor compiled in the same project as its island is generated
-         during that same compilation, so Rask cannot read its [Parameter]s and generates no chain steps for them
-         (RASK066). -->
-    <RaskClientProjectReference Include="Company.RaskServer.Components\Company.RaskServer.Components.csproj"/>
-  </ItemGroup>
-  <!-- rask:end -->
 
 </Project>

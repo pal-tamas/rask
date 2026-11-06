@@ -23,8 +23,7 @@ public sealed class TemplateCatalogTests
     [Fact]
     public void Unknown_key_falls_back_to_default_and_returns_false()
     {
-        // Deliberately not a plausible framework name: "angular" stood in for "unknown" here until
-        // Angular became a template, which turned this into a test of nothing.
+        // Deliberately not a plausible template name, so a template added later cannot turn this into a test of nothing.
         Assert.False(TemplateCatalog.TryGet("cobol", out var template));
         Assert.Equal(TemplateCatalog.Default, template);
     }
@@ -68,6 +67,13 @@ public sealed class TemplateCatalogTests
     /// </remarks>
     [Theory]
     [InlineData("native")]
+    [InlineData("react")]
+    [InlineData("preact")]
+    [InlineData("vue")]
+    [InlineData("angular")]
+    [InlineData("solid")]
+    [InlineData("svelte")]
+    [InlineData("lit")]
     public void A_removed_template_is_gone(string key)
     {
         Assert.False(TemplateCatalog.TryGet(key, out _));

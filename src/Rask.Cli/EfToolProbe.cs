@@ -17,8 +17,7 @@ internal static class EfToolProbe
     ///         Mirrors the <c>Microsoft.EntityFrameworkCore</c> version in
     ///         <c>Directory.Packages.props</c>, which is the version a scaffolded app actually restores
     ///         through <c>Rask.Data</c>. <c>EfToolProbeTests</c> reads that file and fails if the two ever
-    ///         disagree — the same arrangement <see cref="NodeRequirement" /> uses, and for the same
-    ///         reason: one number, stated twice, drifts silently otherwise.
+    ///         disagree, because one number stated twice drifts silently otherwise.
     ///     </para>
     ///     <para>
     ///         Below it, every <c>rask db</c> command prints "The Entity Framework tools version 'x' is

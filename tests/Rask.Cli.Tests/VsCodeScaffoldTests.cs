@@ -34,12 +34,6 @@ public sealed class VsCodeScaffoldTests
     {
         yield return ("server", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version));
         yield return ("wasm-hosted", ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version));
-        yield return ("server --islands react", ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["react"]));
-
-        foreach (var framework in SpaFramework.All)
-        {
-            yield return (framework.Key, ProjectGenerator.GenerateSpa(Root, "App", framework, new ServerBatteries(), Version));
-        }
     }
 
     [Fact]
@@ -121,8 +115,8 @@ public sealed class VsCodeScaffoldTests
     [Fact]
     public void A_component_nests_its_paired_files()
     {
-        // Scoped CSS/TypeScript, a .tsx/Lit island and a package island's props snapshot are paired with the
-        // component's .cs by file name — the same pairing the build does, so the explorer shows them as one.
+        // Scoped CSS and TypeScript are paired with the component's .cs by file name — the same pairing the
+        // build does, so the explorer shows them as one.
         foreach (var (label, result) in AllScaffolds())
         {
             using var settings = JsonDocument.Parse(Index(result)[".vscode/settings.json"], Jsonc);
@@ -130,7 +124,7 @@ public sealed class VsCodeScaffoldTests
 
             var nested = settings.RootElement.GetProperty("explorer.fileNesting.patterns").GetProperty("*.cs").GetString()!
                 .Split(',', StringSplitOptions.TrimEntries);
-            Assert.Equal(["${capture}.css", "${capture}.ts", "${capture}.tsx", "${capture}.props.json"], nested);
+            Assert.Equal(["${capture}.css", "${capture}.ts"], nested);
         }
     }
 
@@ -150,7 +144,7 @@ public sealed class VsCodeScaffoldTests
             var entry = files.GetValueOrDefault(VsCodeAssembly.TailwindEntry);
             if (entry is null || !VsCodeAssembly.ImportsTailwind(entry))
             {
-                // A SPA or meta host's C# side has no Tailwind: nothing to complete, nothing to install.
+                // No Tailwind stylesheet: nothing to complete, nothing to install.
                 Assert.DoesNotContain("tailwindCSS", files[".vscode/settings.json"], StringComparison.Ordinal);
                 Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended);
                 continue;
@@ -179,39 +173,16 @@ public sealed class VsCodeScaffoldTests
     [Fact]
     public void Each_scaffold_recommends_the_extensions_for_what_it_holds()
     {
-        var scaffolds = AllScaffolds()
-            .Append((Label: "server --islands vue", Result: ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["vue"])))
-            .Append((Label: "server --islands svelte", Result: ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries(), Version, ["svelte"])));
-
-        var recommended = scaffolds.ToDictionary(s => s.Label, s => Recommended(Index(s.Result)), StringComparer.Ordinal);
+        var recommended = AllScaffolds().ToDictionary(s => s.Label, s => Recommended(Index(s.Result)), StringComparer.Ordinal);
 
         string[] everywhere = ["ms-dotnettools.csdevkit", "editorconfig.editorconfig", "usernamehw.errorlens"];
-        string[] frameworks = ["vue.volar", "svelte.svelte-vscode", "angular.ng-template"];
         foreach (var (label, ids) in recommended)
         {
             Assert.True(ids.Take(everywhere.Length).SequenceEqual(everywhere), $"{label}: {string.Join(", ", ids)}");
         }
 
-        Assert.DoesNotContain(recommended["server"], frameworks.Contains);
-        // Vite+ lints and formats every Vite front end and island project; only Angular keeps ESLint, and
-        // nothing ships Prettier any more.
-        const string vitePlus = "VoidZero.vite-plus-extension-pack";
-        Assert.DoesNotContain(vitePlus, recommended["server"]);
-        Assert.DoesNotContain(vitePlus, recommended["wasm"]);
-        Assert.Contains(vitePlus, recommended["server --islands react"]);
-        Assert.DoesNotContain(recommended["server --islands react"], frameworks.Contains);
-        Assert.Contains(vitePlus, recommended["react"]);
-        Assert.DoesNotContain(recommended["react"], frameworks.Contains);
-        Assert.Contains("dbaeumer.vscode-eslint", recommended["angular"]);
-        Assert.DoesNotContain(vitePlus, recommended["angular"]);
-        Assert.All(recommended.Where(r => r.Key != "angular"), r => Assert.DoesNotContain("dbaeumer.vscode-eslint", r.Value));
-        Assert.All(recommended.Values, ids => Assert.DoesNotContain("esbenp.prettier-vscode", ids));
-        Assert.DoesNotContain("bradlc.vscode-tailwindcss", recommended["react"]);
-        Assert.Contains("vue.volar", recommended["server --islands vue"]);
-        Assert.Contains("vue.volar", recommended["vue"]);
-        Assert.Contains("svelte.svelte-vscode", recommended["server --islands svelte"]);
-        Assert.Contains("svelte.svelte-vscode", recommended["svelte"]);
-        Assert.Contains("angular.ng-template", recommended["angular"]);
+        // Every template compiles Tailwind, and nothing else is recommended: there is no JavaScript toolchain to lint.
+        Assert.All(recommended.Values, ids => Assert.Equal([.. everywhere, "bradlc.vscode-tailwindcss"], ids));
     }
 
     private static List<string?> Recommended(Dictionary<string, string> files)

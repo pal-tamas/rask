@@ -8,7 +8,6 @@ namespace Rask.Cli.Tests;
 public sealed class TemplateBuildCacheTests
 {
     private const string NuGetCache = "--mount=type=cache,id=rask-nuget,target=/root/.nuget/packages";
-    private const string NpmCache = "--mount=type=cache,id=rask-npm,target=/root/.npm";
     private const string TailwindCache = "--mount=type=cache,id=rask-tailwind,target=/root/.rask/tailwind";
     private const string ChromeCache = "--mount=type=cache,id=rask-chrome,target=/chrome,sharing=locked";
 
@@ -61,19 +60,19 @@ public sealed class TemplateBuildCacheTests
     }
 
     [Fact]
-    public void Every_npm_step_in_a_template_image_runs_under_the_npm_cache()
+    public void No_template_image_installs_node_or_runs_npm()
     {
         var images = Dockerfiles();
 
-        var uncached = images
+        var node = images
             .SelectMany(file => Runs(file)
-                .Where(run => (run.Contains("npm ci", StringComparison.Ordinal) || IsFrontEndPublish(file, run))
-                    && !run.Contains(NpmCache, StringComparison.Ordinal))
+                .Where(run => run.Contains("npm ", StringComparison.Ordinal) || run.Contains("nodejs", StringComparison.Ordinal)
+                    || run.Contains("nodesource", StringComparison.Ordinal))
                 .Select(run => $"{Path.GetRelativePath(Root, file)}: {run}"))
             .ToList();
 
-        Assert.Contains(images, file => File.ReadAllText(file).Contains("npm ci", StringComparison.Ordinal));
-        Assert.True(uncached.Count == 0, "These steps download npm packages on every build:\n  " + string.Join("\n  ", uncached));
+        Assert.NotEmpty(images);
+        Assert.True(node.Count == 0, "These steps need Node in the image:\n  " + string.Join("\n  ", node));
     }
 
     [Fact]
@@ -108,9 +107,6 @@ public sealed class TemplateBuildCacheTests
 
     private static List<string> Dockerfiles() =>
         [.. Directory.EnumerateFiles(Root, "Dockerfile", SearchOption.AllDirectories).Order(StringComparer.Ordinal)];
-
-    private static bool IsFrontEndPublish(string dockerfile, string run) =>
-        run.Contains("dotnet publish", StringComparison.Ordinal) && File.Exists(Path.Combine(Path.GetDirectoryName(dockerfile)!, "client", "package.json"));
 
     /// <summary>Each RUN instruction with its continuation lines joined, so a flag on any line of it counts.</summary>
     private static IEnumerable<string> Runs(string dockerfile)

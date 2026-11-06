@@ -5,18 +5,18 @@ using Rask.Cli.Commands;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-///     The seven dependencies <c>rask doctor</c> reports on, each probed independently (#883).
+///     The dependencies <c>rask doctor</c> reports on, each probed independently (#883).
 /// </summary>
 /// <remarks>
 ///     <para>
-///         `doctor` probed three of the seven things the CLI shells out to. The other four — the
-///         `wasm-tools` workload, Node, npm, `git` and `ssh` — were each discovered by failure instead,
+///         `doctor` probed three of the things the CLI shells out to. The others — the
+///         `wasm-tools` workload, `git` and `ssh` — were each discovered by failure instead,
 ///         and the workload's failure is the least legible of the lot: NETSDK1147 reads like a broken
 ///         machine rather than a missing install.
 ///     </para>
 ///     <para>
 ///         Every probe here is driven through <c>CaptureByExecutable</c>. The old fake answered every
-///         <c>CaptureAsync</c> with one fixed result, and since all six tools are asked
+///         <c>CaptureAsync</c> with one fixed result, and since every tool is asked
 ///         <c>--version</c>, a test could not tell them apart — a probe wired to the wrong executable
 ///         would have passed. Each case below makes exactly one tool missing or old and leaves the rest
 ///         healthy, so a row can only go yellow for its own reason.
@@ -32,8 +32,6 @@ public sealed class DoctorDependencyTests
         {
             ("dotnet", "workload") => new ProcessResult(0, "Installed Workload Id\n---\nwasm-tools\n", ""),
             ("dotnet", _) => new ProcessResult(0, "10.0.302", ""),
-            ("node", _) => new ProcessResult(0, $"v{NodeRequirement.ScaffoldLine}", ""),
-            ("npm", _) => new ProcessResult(0, "11.19.0", ""),
             ("git", _) => new ProcessResult(0, "git version 2.50.1", ""),
             // OpenSSH prints its banner to STDERR and leaves stdout empty. This is the shape that made
             // the shared stdout-only helper unusable for ssh.
@@ -69,13 +67,11 @@ public sealed class DoctorDependencyTests
 
         var names = Names(console.OutText);
 
-        // The three that existed, and the four that were discovered by failure.
+        // The three that existed, and the ones that were discovered by failure.
         Assert.Contains("dotnet sdk", names);
         Assert.Contains("dotnet-ef", names);
         Assert.Contains("docker", names);
         Assert.Contains("wasm-tools", names);
-        Assert.Contains("node", names);
-        Assert.Contains("npm", names);
         Assert.Contains("git", names);
         Assert.Contains("ssh", names);
         Assert.Contains("docker buildx", names);
@@ -91,7 +87,7 @@ public sealed class DoctorDependencyTests
         var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        foreach (var name in new[] { "wasm-tools", "node", "npm", "git", "ssh", "docker", "docker buildx" })
+        foreach (var name in new[] { "wasm-tools", "git", "ssh", "docker", "docker buildx" })
         {
             Assert.Equal("Ok", StatusOf(console.OutText, name));
         }
@@ -193,67 +189,19 @@ public sealed class DoctorDependencyTests
     }
 
     [Fact]
-    public async Task A_missing_node_is_reported_against_the_islands_that_need_it()
+    public async Task Neither_node_nor_npm_is_asked_about_because_nothing_needs_them()
     {
-        var (console, command) = Build(Except("node", NotOnPath));
+        var process = new FakeProcessRunner { CaptureByExecutable = Healthy };
+        var console = new StringConsole();
+        var fs = new FakeFileSystem();
+        fs.Seed($"{ProjectDir}/App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"></Project>");
 
-        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
+        await new DoctorCommand(console, fs, process, ProjectDir).ExecuteAsync(["--json"], CancellationToken.None);
 
-        Assert.Equal(0, exit);
-        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
-        Assert.Contains("islands", console.OutText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_node_below_the_island_build_floor_is_reported_even_though_it_is_present()
-    {
-        var (console, command) = Build(Except("node", () => new ProcessResult(0, "v22.11.0", "")));
-
-        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
-        Assert.Contains("RASKISLAND001", console.OutText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_node_that_cannot_load_libatomic_is_named_with_the_package_that_fixes_it()
-    {
-        // Node 26's Linux build on a minimal image: on PATH, executable, and dead in the loader. The
-        // shared probe folded that exit into "not found" and suggested installing what was installed.
-        var (console, command) = Build(Except("node", () => new ProcessResult(
-            127, "",
-            "node: error while loading shared libraries: libatomic.so.1: cannot open shared object file")));
-
-        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
-        Assert.Contains("cannot start", console.OutText, StringComparison.Ordinal);
-        Assert.Contains("libatomic1", console.OutText, StringComparison.Ordinal);
-        Assert.DoesNotContain("not found", ValueOf(console.OutText, "node"), StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_node_that_fails_to_start_for_another_reason_points_at_its_own_words()
-    {
-        var (console, command) = Build(Except("node", () => new ProcessResult(1, "", "Illegal instruction")));
-
-        await command.ExecuteAsync(["--json"], CancellationToken.None);
-
-        Assert.Equal("Warn", StatusOf(console.OutText, "node"));
-        Assert.Contains("Illegal instruction", console.OutText, StringComparison.Ordinal);
-        Assert.DoesNotContain("libatomic", console.OutText, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public async Task A_node_at_the_island_build_floor_is_not_warned_about()
-    {
-        var (console, command) = Build(Except("node", () => new ProcessResult(0, $"v{NodeRequirement.BuildFloor}", "")));
-
-        await command.ExecuteAsync(["--json"], CancellationToken.None);
-
-        Assert.Equal("Ok", StatusOf(console.OutText, "node"));
+        var names = Names(console.OutText);
+        Assert.DoesNotContain("node", names);
+        Assert.DoesNotContain("npm", names);
+        Assert.DoesNotContain(process.Invocations, call => call.FileName is "node" or "npm");
     }
 
     [Fact]
@@ -332,17 +280,6 @@ public sealed class DoctorDependencyTests
 
         Assert.Equal(0, exit);
         Assert.Equal("Warn", StatusOf(console.OutText, "git"));
-    }
-
-    [Fact]
-    public async Task A_missing_npm_is_reported_against_the_client_dev_server()
-    {
-        var (console, command) = Build(Except("npm", NotOnPath));
-
-        var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
-
-        Assert.Equal(0, exit);
-        Assert.Equal("Warn", StatusOf(console.OutText, "npm"));
     }
 
     [Fact]

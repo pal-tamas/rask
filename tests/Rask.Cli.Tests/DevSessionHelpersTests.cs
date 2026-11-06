@@ -4,74 +4,11 @@ using Rask.Hosting.Shared;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-///     The dev-session helpers <c>rask dev</c> and an editor-launched app share: the islands pointer, the
-///     dev script, and the dev-server process that has to survive a debugger's hard stop without leaving a
-///     port taken.
+///     The dev-session helpers <c>rask dev</c> and an editor-launched app share: the dev-server process that
+///     has to survive a debugger's hard stop without leaving a port taken.
 /// </summary>
 public sealed class DevSessionHelpersTests
 {
-    // ---- islands pointer ----
-
-    [Fact]
-    public void A_pointer_naming_a_real_config_is_read()
-    {
-        using var project = new TempProject();
-        var config = project.Write("obj/rask-external/vite.config.mjs", "export default {}");
-        project.Write("obj/rask-external/dev.json", $$"""{ "url": "http://localhost:5174", "config": "{{config.Replace('\\', '/')}}" }""");
-
-        var pointer = IslandDevPointer.TryRead(project.Path);
-
-        Assert.NotNull(pointer);
-        Assert.Equal("http://localhost:5174", pointer!.Value.Url);
-    }
-
-    // ---- island dev command ----
-
-    // Islands are served by Vite+ alone: its `vite` is an alias to a core with no `vite` command.
-    [Fact]
-    public void Islands_are_served_with_vp_dev_over_the_pointer_s_config()
-    {
-        Assert.Equal("npx", IslandDevCommand.FileName);
-        Assert.Equal(
-            ["--no-install", "vp", "dev", "--config", "/c/vite.config.mjs"],
-            IslandDevCommand.Arguments("/c/vite.config.mjs"));
-    }
-
-    [Theory]
-    [InlineData("""{ "url": "http://localhost:5174", "config": "/no/such/vite.config.mjs" }""")] // config missing
-    [InlineData("""{ "url": "http://localhost:5174", """)]                                     // half-written
-    [InlineData("""{ "url": 5174, "config": "x" }""")]                                           // wrong shape
-    [InlineData("""{ "config": "x" }""")]                                                        // older writer
-    public void A_pointer_that_cannot_be_used_yet_reads_as_none(string json)
-    {
-        using var project = new TempProject();
-        project.Write("obj/rask-external/dev.json", json);
-
-        Assert.Null(IslandDevPointer.TryRead(project.Path));
-    }
-
-    [Fact]
-    public async Task Waiting_gives_up_quietly()
-    {
-        using var project = new TempProject();
-
-        Assert.Null(await IslandDevPointer.WaitAsync(project.Path, TimeSpan.FromMilliseconds(300), CancellationToken.None));
-    }
-
-    // ---- dev script ----
-
-    [Theory]
-    [InlineData("""{ "scripts": { "dev": "vite", "start": "x" } }""", "dev")]
-    [InlineData("""{ "scripts": { "start": "ng serve" } }""", "start")]   // the Angular CLI's name
-    [InlineData("""{ "scripts": { "build": "vite build" } }""", "dev")]
-    [InlineData("""{ "scripts": "not an object" }""", "dev")]
-    [InlineData("""{ not json""", "dev")]
-    [InlineData(null, "dev")]
-    public void The_dev_script_is_the_one_the_manifest_names(string? manifest, string expected)
-    {
-        Assert.Equal(expected, DevScript.FromManifest(manifest));
-    }
-
     // ---- orphaned dev servers ----
 
     [Fact]
@@ -145,14 +82,6 @@ public sealed class DevSessionHelpersTests
     private sealed class TempProject : IDisposable
     {
         public string Path { get; } = Directory.CreateTempSubdirectory("rask-devsession-").FullName;
-
-        public string Write(string relative, string content)
-        {
-            var full = System.IO.Path.Combine(Path, relative.Replace('/', System.IO.Path.DirectorySeparatorChar));
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(full)!);
-            File.WriteAllText(full, content);
-            return full;
-        }
 
         public void Dispose() => Directory.Delete(Path, recursive: true);
     }

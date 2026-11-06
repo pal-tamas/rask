@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Rask.Cli.Commands;
 using Rask.Hosting.Shared;
 
@@ -18,38 +17,29 @@ namespace Rask.Cli.Tests;
 /// </remarks>
 public sealed class DevSessionPropertyTests
 {
-    private static readonly string[] Properties =
-        ["RaskSpaBuild", "RaskExternalDevServer"];
-
     [Fact]
     public async Task A_dev_session_flips_every_package_property()
     {
-        var values = await Evaluate($"-p:{DevCommand.DevSessionProperty}=true");
+        var value = await EvaluateSpaBuild($"-p:{DevCommand.DevSessionProperty}=true");
 
-        Assert.Equal("false", values["RaskSpaBuild"]);
-        Assert.Equal("true", values["RaskExternalDevServer"]);
+        Assert.Equal("false", value);
     }
 
     [Fact]
     public async Task Without_one_every_package_keeps_its_production_default()
     {
-        var values = await Evaluate();
+        var value = await EvaluateSpaBuild();
 
-        Assert.Equal("true", values["RaskSpaBuild"]);
-        Assert.Equal("false", values["RaskExternalDevServer"]);
+        Assert.Equal("true", value);
     }
 
     [Fact]
     public async Task An_explicit_value_beats_the_dev_session()
     {
         // How `rask dev --no-hot-reload` keeps a WebAssembly client on its published bundle: RaskSpaBuild=true.
-        var values = await Evaluate(
-            $"-p:{DevCommand.DevSessionProperty}=true",
-            "-p:RaskSpaBuild=true",
-            "-p:RaskExternalDevServer=false");
+        var value = await EvaluateSpaBuild($"-p:{DevCommand.DevSessionProperty}=true", "-p:RaskSpaBuild=true");
 
-        Assert.Equal("true", values["RaskSpaBuild"]);
-        Assert.Equal("false", values["RaskExternalDevServer"]);
+        Assert.Equal("true", value);
     }
 
     [Theory]
@@ -65,7 +55,8 @@ public sealed class DevSessionPropertyTests
         Assert.Contains("'$(RaskDevSession)' == 'true'", text, StringComparison.Ordinal);
     }
 
-    private static async Task<Dictionary<string, string>> Evaluate(params string[] extra)
+    // One -getProperty prints the bare value; several print a JSON document.
+    private static async Task<string> EvaluateSpaBuild(params string[] extra)
     {
         var root = RepoRoot();
         var directory = Directory.CreateTempSubdirectory("rask-devsession-");
@@ -78,22 +69,19 @@ public sealed class DevSessionPropertyTests
                 $"""
                  <Project>
                    <Import Project="{Path.Combine(root, "src", "Rask.Spa.Hosting", "build", "Rask.Spa.Hosting.props")}" />
-                   <Import Project="{Path.Combine(root, "src", "Rask.External", "build", "Rask.External.props")}" />
                  </Project>
                  """);
 
             var result = await TestProcess.Run(
                 "dotnet",
-                ["msbuild", project, "-nologo", .. Properties.Select(property => $"-getProperty:{property}"), .. extra],
+                ["msbuild", project, "-nologo", "-getProperty:RaskSpaBuild", .. extra],
                 directory.FullName);
 
             Assert.True(
                 result.ExitCode == 0,
                 $"dotnet msbuild failed ({result.ExitCode}):{Environment.NewLine}{result.Output}");
 
-            using var json = JsonDocument.Parse(result.StandardOutput);
-            return json.RootElement.GetProperty("Properties").EnumerateObject()
-                .ToDictionary(p => p.Name, p => p.Value.GetString() ?? string.Empty, StringComparer.Ordinal);
+            return result.StandardOutput.Trim();
         }
         finally
         {

@@ -109,8 +109,8 @@ public sealed class PackagingContractTests
         // whether anything in the project PRODUCES the file. `Foo.Tasks.dll` alongside a ProjectReference
         // to `Foo.Tasks.csproj` is an unbuilt tree; anything else is the NU5019 trap this test exists for.
         //
-        // The project's own bundle step is the second producer (#1163): Rask.Wasm and Rask.External
-        // pack gitignored JavaScript that esbuild writes from TypeScript during their build.
+        // The project's own bundle step is the second producer (#1163): Rask.Wasm packs gitignored
+        // JavaScript that esbuild writes from TypeScript during its build.
         var offenders = new SortedSet<string>(StringComparer.Ordinal);
         var unbuilt = new SortedSet<string>(StringComparer.Ordinal);
 
@@ -893,7 +893,7 @@ public sealed class PackagingContractTests
         // Nothing else in the repo can see this. In-repo builds import the real file straight off
         // disk via Directory.Build.props, so build, unit and E2E all pass; only `dotnet pack`
         // notices, and only the nightly/release workflows pack. Rask.Bootstrap hit it first,
-        // Rask.External repeated it. Hence a contract, not a comment.
+        // and a second package repeated it. Hence a contract, not a comment.
         var offenders = new List<string>();
 
         foreach (var csproj in RepoFiles.EnumerateSourceFiles(Path.Combine(_repoRoot, "src")).Where(f => f.EndsWith(".csproj", StringComparison.Ordinal)))
@@ -933,7 +933,7 @@ public sealed class PackagingContractTests
         // Disabling the generated props means taking over its job. The SDK still packs
         // build/Microsoft.AspNetCore.StaticWebAssets*.props, but nothing imports them unless our file
         // does - and without them a consumer gets no URL for the package's wwwroot assets, so every
-        // island fails to mount with a 404 that points nowhere near this file.
+        // script the package ships fails with a 404 that points nowhere near this file.
         string[] required =
         [
             "Microsoft.AspNetCore.StaticWebAssets.props",

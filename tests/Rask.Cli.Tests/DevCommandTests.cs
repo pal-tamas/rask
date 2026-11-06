@@ -444,8 +444,7 @@ public sealed class DevCommandTests
     /// <summary>
     ///     A watch session is a dev session, and says so with ONE property that each referenced package
     ///     expands for itself: the WASM host serves its client's <b>build</b> output (a published bundle is
-    ///     trimmed, and trimming folds <c>MetadataUpdater.IsSupported</c> to false), the SPA and meta lanes
-    ///     skip their production front-end build, and islands come from a Vite dev server. The scaffolded
+    ///     trimmed, and trimming folds <c>MetadataUpdater.IsSupported</c> to false). The scaffolded
     ///     VS Code build task passes the same property, which is what keeps F5 and <c>rask dev</c> in step.
     /// </summary>
     [Fact]
@@ -469,7 +468,7 @@ public sealed class DevCommandTests
     [Fact]
     public void A_plain_run_is_not_a_dev_session()
     {
-        // --once is a plain `dotnet run` against a real build — a published WASM bundle, a built front end.
+        // --once is a plain `dotnet run` against a real build — a published WASM bundle.
         Assert.DoesNotContain(
             Args(kind: DevTemplateKind.WasmHosted, once: true),
             a => a.Contains(DevCommand.DevSessionProperty, StringComparison.Ordinal));

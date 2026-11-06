@@ -21,36 +21,6 @@ public sealed partial class HomePage : Component
                             Li["Pages go in ", Chip("Client/"), ", message records in ", Chip("Shared/")],
                             Li["Edit ", Chip("Client/Pages/HomePage.cs"), " — the page updates as you save"]
                         ],
-                        // rask:if islands-any
-                        // Each one is an ordinary component: a .cs in Client/Features/Islands/ beside the file that renders it.
-                        Div.Class("space-y-3 rounded-lg bg-zinc-800/5 p-4 text-sm dark:bg-white/10")[
-                            // rask:if islands-react
-                            ReactCounter.Caption("React island"),
-                            // rask:end
-                            // rask:if islands-preact
-                            PreactCounter.Caption("Preact island"),
-                            // rask:end
-                            // rask:if islands-vue
-                            VueCounter.Caption("Vue island"),
-                            // rask:end
-                            // rask:if islands-svelte
-                            SvelteCounter.Caption("Svelte island"),
-                            // rask:end
-                            // rask:if islands-solid
-                            SolidCounter.Caption("Solid island"),
-                            // rask:end
-                            // rask:if islands-lit
-                            LitBadge.Caption("Lit island"),
-                            // rask:end
-                            // rask:if islands-angular
-                            AngularCounter.Caption("Angular island"),
-                            // rask:end
-                            // rask:if islands-blazor
-                            BlazorCounterIsland.Caption("Blazor island"),
-                            // rask:end
-                            Ui.Text.Sm["Islands live in ", Chip("Client/Features/Islands/")]
-                        ],
-                        // rask:end
                         Div.Class("flex justify-end")[
                             Ui.Button.Primary.Href("https://rask.sh/docs/guides/spa/")["Read the guide"]
                         ]

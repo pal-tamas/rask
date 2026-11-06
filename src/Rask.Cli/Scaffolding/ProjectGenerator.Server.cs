@@ -10,8 +10,7 @@ internal static partial class ProjectGenerator
         string targetDirectory,
         string name,
         ServerBatteries batteries,
-        string version,
-        IReadOnlyList<string>? islands = null)
+        string version)
     {
         ArgumentNullException.ThrowIfNull(batteries);
 
@@ -22,7 +21,7 @@ internal static partial class ProjectGenerator
         batteries = batteries.Normalized();
 
         var files = TemplateMaterializer.Files(
-            targetDirectory, "server", name, batteries, version, islands,
+            targetDirectory, "server", name, batteries, version,
             vsCode: VsCodeSetup.Host);
 
         files = WithProgramCs(

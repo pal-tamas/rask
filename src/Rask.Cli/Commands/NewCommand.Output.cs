@@ -39,7 +39,6 @@ internal sealed partial class NewCommand
         }
 
         WriteHeading($"Creating {template.DisplayName} '{name}'…");
-        result = await ChooseFrontEndVersionsAsync(result, cancellationToken).ConfigureAwait(false);
         WriteScaffoldFiles(result);
 
         var (restoreFailed, buildFailed) = await RestoreAndBuildAsync(
@@ -168,22 +167,5 @@ internal sealed partial class NewCommand
         return _fileSystem.FileExists(resolved)
             ? $"--output '{output}' is a file. Point it at a directory (it's created if missing)."
             : null;
-    }
-
-    // The client's floating packages, chosen now so the project starts on the newest set that installs together.
-    private async Task<ScaffoldResult> ChooseFrontEndVersionsAsync(ScaffoldResult result, CancellationToken cancellationToken)
-    {
-        if (Npm is null)
-        {
-            return result;
-        }
-
-        var (chosen, warning) = await FrontEndVersions.PinAsync(result, Npm, cancellationToken).ConfigureAwait(false);
-        if (warning is not null)
-        {
-            Console.WriteErrorLine(warning, ConsoleStyle.Dim);
-        }
-
-        return chosen;
     }
 }

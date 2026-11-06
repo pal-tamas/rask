@@ -11,8 +11,8 @@ a single host over SSH — all with short, Rask-aware commands.
 curl -sSL https://rask.sh/rask.sh | sh
 ```
 
-That adds the .NET SDK, this tool, and the dependencies it shells out to (`dotnet-ef`, the
-`wasm-tools` workload, Node for islands) — all under `$HOME`, no `sudo`. Already have the
+That adds the .NET SDK, this tool, and the dependencies it shells out to (`dotnet-ef` and the
+`wasm-tools` workload) — all under `$HOME`, no `sudo`. Already have the
 .NET 10 SDK and want only the tool:
 
 ```bash
@@ -45,7 +45,7 @@ rask info
 
 | Command | What it does |
 |---|---|
-| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted`, or a TypeScript front end on a Rask host: `react\|preact\|vue\|angular\|solid\|svelte\|lit`; `--islands react` and the rest add front-end components as islands) with **every battery the template supports** — database, accounts, CQRS, jobs, mail, cache, outbox, snapshots, logs, the operator dashboard, PWA, Web Push, Docker, localization; `--no-<battery>` leaves one out. Every template is generated directly — no `dotnet new` needed. |
+| `rask new <name>` | Create a project from a Rask template (`--template server\|wasm\|wasm-hosted`) with **every battery the template supports** — database, accounts, CQRS, jobs, mail, cache, outbox, snapshots, logs, the operator dashboard, PWA, Web Push, Docker, localization; `--no-<battery>` leaves one out. Every template is generated directly — no `dotnet new` needed. |
 | `rask db <add\|remove\|list\|update\|drop>` | Manage EF Core migrations — a friendly `dotnet ef` wrapper that finds the project and installs `dotnet-ef` on demand. |
 | `rask deploy` | Build and run the app on a single host over SSH (`docker -H ssh://…`). Sets a bare box up first (Docker, a non-root deploy login, firewall, SSH hardening) after asking. `--domain` fronts it with auto-HTTPS Caddy; deploys are zero-downtime and multiple apps share one box. `--github-actions` writes a workflow that deploys on push. |
 | `rask dev` | Run the app with C# Hot Reload (`dotnet watch run`). Finds the project itself, restarts on edits hot reload can't apply, `--open` for a browser. `--once` for a plain run. Args after `--` reach the app. |

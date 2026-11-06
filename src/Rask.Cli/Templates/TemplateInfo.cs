@@ -23,7 +23,7 @@ internal sealed record TemplateInfo(
     ///         than kept as flags that restate what the file already says.
     ///     </para>
     ///     <para>
-    ///         Every template but the TypeScript front ends ships it. On browser-WASM the list lives in
+    ///         Every template ships it. On browser-WASM the list lives in
     ///         <c>Rask:Cultures</c> too (<c>wwwroot/appsettings.json</c>, or the host's file for a hosted client),
     ///         and the build ships ICU — about a megabyte — only once it names a language other than English, so
     ///         the English a new app starts with costs nothing.

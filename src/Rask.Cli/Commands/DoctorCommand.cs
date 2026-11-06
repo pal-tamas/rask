@@ -147,16 +147,6 @@ internal sealed class DoctorCommand(
         // documented only in prose in the README.
         checks.Add(await WorkloadCheckAsync(sdk, cancellationToken).ConfigureAwait(false));
 
-        checks.Add(await NodeCheckAsync(cancellationToken).ConfigureAwait(false));
-
-        var npm = await CaptureAsync(["--version"], cancellationToken, "npm").ConfigureAwait(false);
-        checks.Add(npm is null
-            ? new DoctorCheck(
-                "npm", DoctorStatus.Warn, "not found",
-                "`rask dev` starts the client dev server with it on a front-end template. "
-                + "It ships with Node.js.")
-            : new DoctorCheck("npm", DoctorStatus.Ok, npm, null));
-
         var git = await CaptureAsync(["--version"], cancellationToken, "git").ConfigureAwait(false);
         checks.Add(git is null
             ? new DoctorCheck(
@@ -219,7 +209,7 @@ internal sealed class DoctorCommand(
             return new DoctorCheck("dotnet sdk", DoctorStatus.Fail, "not found", "Install .NET from https://dot.net.");
         }
 
-        var version = NodeRequirement.Parse(sdk);
+        var version = ToolVersion.Parse(sdk);
         if (version is not null && version.Major < DotnetFloor)
         {
             return new DoctorCheck(
@@ -258,66 +248,6 @@ internal sealed class DoctorCommand(
         {
             return null;
         }
-    }
-
-    /// <summary>
-    ///     Asks <c>node --version</c> itself rather than through <see cref="CaptureAsync" />, because a
-    ///     node that is ON the PATH but cannot start is a different answer from no node at all.
-    /// </summary>
-    /// <remarks>
-    ///     The shared helper folds a non-zero exit into "not found", which is how a Node 26 unpacked onto
-    ///     a minimal Linux image — present, executable, and failing in the loader on a missing
-    ///     <c>libatomic.so.1</c> — was reported as missing, with an install hint for a thing already installed.
-    /// </remarks>
-    private async Task<DoctorCheck> NodeCheckAsync(CancellationToken cancellationToken)
-    {
-        ProcessResult result;
-        try
-        {
-            result = await _process.CaptureAsync("node", ["--version"], null, cancellationToken).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Not on PATH throws rather than exiting non-zero, same as every other probe here.
-            return NodeCheck(null);
-        }
-
-        if (result.ExitCode != 0)
-        {
-            var said = Shorten(string.Concat(result.StandardError, result.StandardOutput).Trim());
-            return new DoctorCheck(
-                "node", DoctorStatus.Warn,
-                said.Length == 0 ? $"cannot start (exit {result.ExitCode})" : $"cannot start: {said}",
-                NodeRequirement.StartFailureHint(said));
-        }
-
-        var reported = result.StandardOutput.Trim();
-        return NodeCheck(reported.Length == 0 ? null : reported);
-    }
-
-    /// <summary>The Node row, measured against the floor island and front-end builds enforce.</summary>
-    private static DoctorCheck NodeCheck(string? node)
-    {
-        if (node is null)
-        {
-            return new DoctorCheck(
-                "node", DoctorStatus.Warn, "not found",
-                "Only islands (`rask new --islands …`) and a front-end template (`--template react`) need it. "
-                + NodeRequirement.InstallHint);
-        }
-
-        // Warn, never fail: an app with neither builds on any Node, or none.
-        var version = NodeRequirement.Parse(node);
-        if (version is not null && version < NodeRequirement.BuildFloor)
-        {
-            return new DoctorCheck(
-                "node", DoctorStatus.Warn,
-                $"{node} (below {NodeRequirement.BuildFloor})",
-                "An app with islands fails to build with RASKISLAND001, a front-end template with RASKSPA005. "
-                + NodeRequirement.InstallHint);
-        }
-
-        return new DoctorCheck("node", DoctorStatus.Ok, node, null);
     }
 
     /// <summary>Are the wasm-tools workloads installed? Every browser-WASM build needs them.</summary>
@@ -362,7 +292,7 @@ internal sealed class DoctorCommand(
         // Only on an 11-or-later SDK, and only as a warning: a server app never relinks anything. The
         // version is the one the caller already captured and SdkCheck already parsed — asking
         // `dotnet --version` again here spent a second process to learn what was in hand.
-        if (NodeRequirement.Parse(sdk)?.Major is >= 11 && !ids.Contains("wasm-tools-net10"))
+        if (ToolVersion.Parse(sdk)?.Major is >= 11 && !ids.Contains("wasm-tools-net10"))
         {
             return new DoctorCheck(
                 "wasm-tools", DoctorStatus.Warn, "wasm-tools-net10 missing",

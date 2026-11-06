@@ -10,16 +10,15 @@ namespace Rask.Cli.Scaffolding;
 ///     <para>
 ///         Committed fragments (<c>src/Rask.Templates/_vscode*/</c>) rather than a copy in each template, because
 ///         the files are the same for every template of a kind — the only thing that differs is the project's
-///         name, which is the placeholder every template already uses. Assembled the way
-///         <see cref="IslandAssembly" /> assembles islands. A later fragment replaces a file of the same path from
+///         name, which is the placeholder every template already uses. A later fragment replaces a file of the same path from
 ///         an earlier one, so <see cref="VsCodeSetup.WasmHost" /> is the host setup with one file swapped.
 ///     </para>
 ///     <para>
 ///         Why F5 rather than attaching to <c>rask dev</c>: the runtime refuses to apply a hot-reload update
 ///         while a debugger is attached, so <c>dotnet watch</c> and a debugger cannot share a process. Under
 ///         F5 the editor's debugger launches the app — edits need a restart there, and <c>rask dev</c> stays
-///         the live-edit loop — and the build's <c>RaskDevSession=true</c> is what tells the app to start its
-///         own front-end dev servers. (C# Dev Kit's debug hot reload was tried for this launch and reported
+///         the live-edit loop — and the build's <c>RaskDevSession=true</c> is what tells the app it runs as an
+///         editor-launched dev session. (C# Dev Kit's debug hot reload was tried for this launch and reported
 ///         unavailable, so nothing here promises it.)
 ///     </para>
 ///     <para>
@@ -74,11 +73,11 @@ internal static class VsCodeAssembly
 
     /// <summary>
     ///     What <c>.vscode/extensions.json</c> recommends, why, and whether this project needs it — read from the
-    ///     files the scaffold wrote, so vue islands on a server app get Volar as the vue template does.
+    ///     files the scaffold wrote.
     /// </summary>
     /// <remarks>
-    ///     Generated rather than a fragment: a fragment replaces the whole file, and Tailwind × islands is a
-    ///     product no set of committed files keeps in step.
+    ///     Generated rather than a fragment: a fragment replaces the whole file, and whether a project compiles
+    ///     Tailwind is read from what the template wrote rather than kept in step by hand.
     /// </remarks>
     private static readonly (string Id, string Why, Func<string, IReadOnlyList<ScaffoldFile>, bool> Wanted)[] Recommendations =
     [
@@ -95,28 +94,7 @@ internal static class VsCodeAssembly
         ("bradlc.vscode-tailwindcss",
             "Tailwind CSS IntelliSense: class completion inside Div.Class(\"…\"), set up in settings.json.",
             CompilesTailwind),
-        // The Angular client's linting: the one front end that keeps ESLint, because angular-eslint is wired
-        // into the Angular CLI's builder rather than into a Vite config.
-        ("dbaeumer.vscode-eslint", "ESLint: the front end's eslint.config.mjs, as you type.",
-            static (_, files) => Any(files, name => name.StartsWith("eslint.config.", StringComparison.Ordinal))),
-        ("VoidZero.vite-plus-extension-pack",
-            "Vite+: the front end's vite.config — Oxlint as you type, Oxfmt on save.",
-            static (_, files) => files.Any(IsVitePlusConfig)),
-        ("vue.volar", "Vue (Official): .vue single-file components.",
-            static (_, files) => Any(files, name => name.EndsWith(".vue", StringComparison.Ordinal))),
-        ("svelte.svelte-vscode", "Svelte: .svelte components.",
-            static (_, files) => Any(files, name => name.EndsWith(".svelte", StringComparison.Ordinal))),
-        ("angular.ng-template", "Angular Language Service: completion and checking inside Angular templates.",
-            static (_, files) => Any(files, name => string.Equals(name, "angular.json", StringComparison.Ordinal))),
     ];
-
-    private static bool Any(IReadOnlyList<ScaffoldFile> files, Func<string, bool> name) =>
-        files.Any(f => name(Path.GetFileName(f.Path)));
-
-    // A front end's or an island project's one toolchain config: lint and format live in it (VitePlusToolchain).
-    private static bool IsVitePlusConfig(ScaffoldFile file) =>
-        Path.GetFileName(file.Path) is "vite.config.ts" or "vite.config.mjs"
-        && file.Content.Contains($"from '{VitePlusToolchain.Package}'", StringComparison.Ordinal);
 
     private static ScaffoldFile ExtensionsJson(string targetDirectory, IReadOnlyList<ScaffoldFile> files)
     {

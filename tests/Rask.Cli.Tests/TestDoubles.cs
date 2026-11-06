@@ -178,9 +178,9 @@ internal sealed class FakeProcessRunner : IProcessRunner
     ///     <see cref="CaptureHandler" />.
     /// </summary>
     /// <remarks>
-    ///     `rask doctor` probes dotnet, node, npm, git, ssh and docker, and every one of them is
+    ///     `rask doctor` probes dotnet, git, ssh and docker, and every one of them is
     ///     `--version`. Keyed on arguments alone a handler cannot tell them apart, so every doctor test
-    ///     was really asserting that all six tools report the same string — which is why a probe could
+    ///     was really asserting that every tool reports the same string — which is why a probe could
     ///     have been wired to the wrong executable and stayed green. Throwing a
     ///     <see cref="System.ComponentModel.Win32Exception" /> from here is how a test says "this one is
     ///     not on PATH", since that is what the real runner does.

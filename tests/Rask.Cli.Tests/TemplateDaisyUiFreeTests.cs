@@ -3,8 +3,7 @@ using System.Text.RegularExpressions;
 namespace Rask.Cli.Tests;
 
 /// <summary>
-///     No template draws with daisyUI: the C# pages use the kit's components and plain Tailwind, and the
-///     front ends plain Tailwind.
+///     No template draws with daisyUI: the C# pages use the kit's components and plain Tailwind.
 /// </summary>
 /// <remarks>
 ///     A daisyUI class left in a template keeps rendering for as long as the kit still ships the plugin,
@@ -15,7 +14,7 @@ public sealed partial class TemplateDaisyUiFreeTests
 {
     private static readonly string RepoRoot = CliBuildE2E.FindRepoRoot();
 
-    private static readonly string[] Drawn = [".cs", ".css", ".html", ".ts", ".tsx", ".vue", ".svelte", ".razor"];
+    private static readonly string[] Drawn = [".cs", ".css", ".html", ".ts"];
 
     // daisyUI's component classes, as whole tokens of a class attribute.
     private static readonly HashSet<string> Components = new(StringComparer.Ordinal)
@@ -67,7 +66,6 @@ public sealed partial class TemplateDaisyUiFreeTests
         var files = Directory
             .EnumerateFiles(root, "*", SearchOption.AllDirectories)
             .Where(p => Drawn.Contains(Path.GetExtension(p), StringComparer.Ordinal))
-            .Where(p => !p.Contains($"{Path.DirectorySeparatorChar}node_modules{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Select(p => (Path.GetRelativePath(root, p), File.ReadAllText(p)))
             .ToArray();
 

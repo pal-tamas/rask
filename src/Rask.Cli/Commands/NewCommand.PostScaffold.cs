@@ -31,9 +31,8 @@ internal sealed partial class NewCommand
         // which names neither the file nor the error. A build says it plainly and stops.
         Console.WriteLine("Building…", ConsoleStyle.Dim);
 
-        // The same front-end skip the migration step uses: with the batteries on, a plain build runs
-        // the bundler (or, on the meta lane, a full production front-end build) — minutes of silence
-        // for output nobody reads before `rask dev` turns both off again.
+        // The same client-publish skip the migration step uses: a plain wasm-hosted build publishes the
+        // browser half — minutes of silence for output nobody reads before `rask dev` turns it off again.
         var buildFailed = await _process.RunAsync(
             "dotnet",
             ["build", restoreTarget, .. SkipFrontEndBuild.Select(p => $"-p:{p.Key}={p.Value}")],
