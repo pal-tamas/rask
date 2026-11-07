@@ -6,12 +6,10 @@
   "@webref/elements": "2.9.2",
   "@webref/events": "1.27.1",
   "@webref/idl": "3.86.0",
-  "parse5": "8.1.0",
-  "webidl2": "24.5.0",
   "webref/dfns": "6ac6259c96b11e0aea5c34a16822eb06add278c9",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
-  "w3c/aria": "f894ef467d1b68b5879fd7b92d362e233843e7c8"
+  "w3c/aria": "33d8d163195413deee9023b9df4d8d55bd6866cc"
  },
  "engines": [
   "chrome",
