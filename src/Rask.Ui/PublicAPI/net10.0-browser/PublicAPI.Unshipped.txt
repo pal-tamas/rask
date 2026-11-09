@@ -9225,3 +9225,34 @@ static Rask.Ui.Choice<T>.operator !=(Rask.Ui.Choice<T> left, Rask.Ui.Choice<T> r
 static Rask.Ui.Choice<T>.operator ==(Rask.Ui.Choice<T> left, Rask.Ui.Choice<T> right) -> bool
 static Rask.UiSelectChoices.Choices<T>(this Rask.UiSelect<T?>! select, System.Collections.Generic.IEnumerable<Rask.Ui.Choice<T>>! choices) -> Rask.UiSelect<T?>!
 static Rask.UiSelectChoices.Choices<T>(this Rask.UiSelect<T?>! select, System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiSelect<T?>!
+Rask.RaskSeed_UiAppFrame
+Rask.RaskSeed_UiAppFrame.Brand(string! Brand) -> Rask.UiAppFrame!
+Rask.RaskSeed_UiAppFrame.Key(object? key) -> Rask.RaskSeed_UiAppFrame
+Rask.RaskSeed_UiAppFrame.RaskSeed_UiAppFrame() -> void
+Rask.UiAppFrame
+Rask.UiAppFrame.Brand.get -> string!
+Rask.UiAppFrame.Brand.set -> void
+Rask.UiAppFrame.Logo.get -> string?
+Rask.UiAppFrame.Logo.set -> void
+Rask.UiAppFrame.LogoDark.get -> string?
+Rask.UiAppFrame.LogoDark.set -> void
+Rask.UiAppFrame.Notices.get -> Rask.Core.Component?
+Rask.UiAppFrame.Notices.set -> void
+Rask.UiAppFrame.SignOut.get -> Rask.Core.Routing.RouteUrl?
+Rask.UiAppFrame.SignOut.set -> void
+Rask.UiAppFrame.Tenant.get -> string?
+Rask.UiAppFrame.Tenant.set -> void
+Rask.UiAppFrame.UiAppFrame() -> void
+Rask.UiAppFrame.User.get -> string?
+Rask.UiAppFrame.User.set -> void
+static Rask.Ui.AppFrame.get -> Rask.RaskSeed_UiAppFrame
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAppFrame(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAppFrame(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAppFrame(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.Brand(this Rask.UiAppFrame! __b, string! value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.Logo(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.LogoDark(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.Notices(this Rask.UiAppFrame! __b, Rask.Core.Component? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.SignOut(this Rask.UiAppFrame! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!

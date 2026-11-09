@@ -48,6 +48,12 @@ internal static class UiDocsCatalog
         + "rail of icons, with no script.",
         "sidebar");
 
+    public static UiDocsEntry AppFrame { get; } = new(
+        Routes.UiAppFramePage(), "App frame", Layouts,
+        "App frame in C#: Ui.AppFrame",
+        "An app's whole frame in one line: the menu in Flux's sidebar, breadcrumbs back to a list as it was left, the "
+        + "signed-in user and a sign-out that asks first.");
+
     public static UiDocsEntry Accordion { get; } = new(
         Routes.UiAccordionPage(), "Accordion", Components,
         "Accordion component in C#: Ui.Accordion",
@@ -489,7 +495,7 @@ internal static class UiDocsCatalog
     public static IReadOnlyList<UiDocsEntry> All { get; } =
     [
         Introduction, Theming, DarkMode,
-        Header, Sidebar,
+        Header, Sidebar, AppFrame,
         Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart, Checkbox,
         ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag, FormButtons, FormTabs,
         Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress, Radio, RowActions, Select,

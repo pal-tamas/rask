@@ -132,6 +132,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`Ui.AppFrame` — an app's whole frame in one line: sidebar menu, breadcrumbs from it, user and sign-out (#1296).**
+  Before: TA and Eszaf each hand-wrote ~100 lines of `Layout.cs` — `Ui.Sidebar`/`Ui.Header`/`Ui.Main` with the same
+  ground, an `IsCurrent` rule for rows beneath a list, a `Crumbs()` method, a 13-line sign-out `Ui.Modal`, and the
+  `Ui.Toast`/`Ui.ConfirmLeave`/`Ui.Confirm` mounts. After:
+  `Ui.AppFrame.Brand("PPTA").User(name).SignOut(SignOut.Path)[Ui.SidebarNav[…rows and groups…], Outlet]`. The row of
+  the page shown, or of the list it is beneath, is lit and its group opened; the trail is home › group › list › the
+  page's title, the list's step going back to the list as it was left (filters kept, an editor dialog's key dropped), the
+  last two steps on a phone. `Tenant`, `Logo`/`LogoDark` and `Notices` are optional steps; the accent stays the app's
+  `--color-accent`. Owner-approved, not Flux: drawn of Flux's sidebar layout and parts.
 - **`Ui.DayAndTime` — a day and a time in one row, bound to one `DateTime?` — and `Ui.DatePicker.Typed()` (#1297).**
   Before: TA and Eszaf each kept a `Moments` helper and two model properties taking the moment apart —
   `FromDay { get => Moments.Day(From); set => From = Moments.OnDay(From, value); }`, `FromTime` likewise,

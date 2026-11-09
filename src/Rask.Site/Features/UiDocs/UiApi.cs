@@ -336,6 +336,20 @@ internal static partial class UiApi
         ]),
     ];
 
+    public static IReadOnlyList<UiApiPart> AppFrame { get; } =
+    [
+        new("Ui.AppFrame", typeof(UiAppFrame), NotFlux, "An app's frame: each Ui.SidebarNav among its children is the menu in Flux's sidebar, everything else (the Outlet) is the main; the header holds the phone's toggle and breadcrumbs written from the menu.",
+        [
+            new("Brand", typeof(string), "The app's name at the top of the sidebar, leading home. Required, and taken first.", "text: Ui.AppFrame.Brand(\"PPTA\")"),
+            new("Logo", typeof(string), "The logo's URL, before the name; all of the brand in a narrowed sidebar."),
+            new("LogoDark", typeof(string), "The logo shown in dark mode instead."),
+            new("Tenant", typeof(string), "What the pages are shown inside — a partner, a tenant — in a line under the brand."),
+            new("User", typeof(string), "Who is signed in, at the sidebar's foot."),
+            new("SignOut", typeof(Rask.Core.Routing.RouteUrl?), "Where signing out goes, an endpoint that answers a GET: the profile's menu holds the sign-out row, which asks first in the catalog's words.", "a URL: \"/logout\""),
+            new("Notices", typeof(Component), "What stands at the header's end: how background work is getting on."),
+        ]),
+    ];
+
     public static IReadOnlyList<UiApiPart> FormButtons { get; } =
     [
         new("Ui.FormButtons", typeof(UiFormButtons), NotFlux, "A form's footer as Flux draws one: Delete at the start, then Cancel back to the list and Save.",
@@ -975,7 +989,7 @@ internal static partial class UiApi
     public static IEnumerable<UiApiPart> All =>
         new[]
         {
-            Header, Sidebar, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
+            Header, Sidebar, AppFrame, Accordion, Autocomplete, Avatar, Badge, Brand, Button, Breadcrumbs, Calendar, Callout, Card, Carousel, Chart,
             Checkbox, ColorPicker, Command, Context, Composer, Confirm, ConfirmLeave, DatePicker, DatetimePicker, DayAndTime, Dropdown, Editor, EditorDialog, Empty, Field, FileUpload, Filters, Flag,
             FormButtons, FormTabs, Heading, Icon, Input, Kanban, Modal, Navbar, Navlist, NotFound, Otp, PageHeader, Pagination, Phone, Pillbox, Popover, Profile, Progress,
             Radio, RowActions, Select, Separator, Skeleton, Slider, Switch, Table, Tabs, Text, Textarea, Timeline, TimePicker, Toast, Toggle,
