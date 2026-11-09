@@ -16,7 +16,8 @@
       - CA1716 off (rask-strict.globalconfig): a Visual Basic keyword in a C# app's name, Features/Shared included
       - in a test project, RASK116: a test named as a sentence, and CA1707 off, which forbids the underscores a
         sentence is joined with (rask-strict-tests.globalconfig)
-      - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors
+      - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors; a NuGet audit
+        finding (NU1901-NU1904) stays a warning
 
     Read here, in the TARGETS, not in Rask.props: NuGet imports a package's props before the app's csproj is
     evaluated, so a props file never sees a <RaskStrict> written in the csproj. Every property set here is read
@@ -39,8 +40,13 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
+  <!-- A NuGet audit finding (NU1901-NU1904: a package with a known vulnerability, low to critical) stays a warning:
+       an advisory published against a dependency would otherwise fail every build of the app, a new one included,
+       until the package is moved — the warning names it and the move is the app's to make. Appended, so an app's
+       own WarningsNotAsErrors is kept. -->
   <PropertyGroup Condition=" '$(_RaskStrictLevel)' == 'errors' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
 
   <!-- A <RaskStrict> in the csproj alone comes too late for the documentation file, and the compiler's request

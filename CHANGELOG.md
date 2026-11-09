@@ -8,6 +8,9 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`<RaskStrict>errors</RaskStrict>` leaves a NuGet audit finding a warning.** Before: an advisory published against
+  any dependency (NU1901–NU1904) failed every strict build, a freshly scaffolded app included, until the package moved.
+  After: those four stay warnings, appended to the app's own `WarningsNotAsErrors`; every other warning still fails.
 - **`rask new` apps start strict: `<RaskStrict>errors</RaskStrict>` in a scaffolded `Directory.Build.props`.** Before:
   a new app built with nullable on and nothing else enforced. After: the app and its tests build with the .NET analyzers
   at `latest-recommended`, the `.editorconfig`'s style rules (an unused `using` is IDE0005), test names as sentences
