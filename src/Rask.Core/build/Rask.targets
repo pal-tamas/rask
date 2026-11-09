@@ -7,6 +7,9 @@
     Not guarded: the file is packed from this same folder, so it is always beside this one. In the repo
     nothing imports this file — Directory.Build.targets imports Rask.Core.targets straight off disk — so the
     integration is only ever imported once per project.
+
+    Rask.Strict.targets is the app's opt-in quality gate (<RaskStrict>); it does nothing unless the app sets it.
   -->
   <Import Project="$(MSBuildThisFileDirectory)Rask.Core.targets"/>
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Strict.targets"/>
 </Project>

@@ -132,6 +132,12 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`<RaskStrict>` — an app's opt-in quality gate, from what the .NET SDK and Rask already ship.** Before: an app had no
+  gate of Rask's; TA kept a 13-line `.editorconfig`, Eszaf nothing, and nullable, the .NET analyzers and test names were
+  checked by habit. After: `<RaskStrict>warnings</RaskStrict>` in the app's `Directory.Build.props` turns on `Nullable`,
+  the .NET analyzers at `latest-recommended`, `EnforceCodeStyleInBuild` and, in its test projects, the new RASK116 (a
+  test named as a sentence) — all as warnings; `errors` (or `true`) adds `TreatWarningsAsErrors`. No third-party analyzer
+  package; unset changes nothing ([code analysis](docs/code-analysis.md#strict-mode-for-your-app-raskstrict)).
 - **`RaskSite<Program>` — an app's E2E host in Rask.Testing.Playwright: its own build as a process, every page walked.**
   Before: TA hand-wrote a 280-line `Site.cs` (free port, `dotnet Ta.dll` from a path worked out by hand, a three-minute
   `/version` poll, Chromium, a storage-state cache per user, a `problems` list, killing the process tree) and kept its

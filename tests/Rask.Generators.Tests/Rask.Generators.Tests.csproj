@@ -81,6 +81,8 @@
     <RaskTestReads Include="..\..\src\**\*.cs" />
     <RaskTestReads Include="..\..\src\**\*.targets" />
     <RaskTestReads Include="..\..\src\**\*.props" />
+    <RaskTestReads Include="..\..\src\Rask.Core\build\*.globalconfig" />
+    <RaskTestReads Include="..\..\global.json" />
     <RaskTestReads Include="..\..\src\**\*.csproj" />
     <RaskTestReads Include="..\..\.github\workflows\**" />
     <RaskTestReads Include="..\..\NUGET.md" />

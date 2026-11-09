@@ -17,6 +17,53 @@ The generator projects additionally run the Roslyn author rules (`EnforceExtende
 
 Tests and benchmarks keep the SDK's default set.
 
+## Strict mode for your app: `<RaskStrict>`
+
+None of the analyzer packages above reach an app built on Rask. What an app can switch on is `<RaskStrict>`, a
+quality gate made only of what the .NET SDK and Rask already ship — no third-party analyzer package. Write it in
+the app's `Directory.Build.props`, so its test projects get it too:
+
+```xml
+<!-- before: nothing — nullable is whatever each project says, warnings never fail the build -->
+
+<!-- after: Directory.Build.props, beside the .slnx -->
+<Project>
+  <PropertyGroup>
+    <RaskStrict>warnings</RaskStrict>   <!-- day one; `errors` once the list is worked down -->
+  </PropertyGroup>
+</Project>
+```
+
+| | `warnings` | `errors` (or `true`) |
+|---|---|---|
+| `Nullable` `enable` (overrides a project's own `disable`) | ✓ | ✓ |
+| .NET analyzers at `AnalysisLevel` `latest-recommended` (unless the app set a level) | ✓ | ✓ |
+| `EnforceCodeStyleInBuild`: the `.editorconfig`'s IDE rules report in `dotnet build` | ✓ | ✓ |
+| [RASK116](diagnostics.md#rask116), a test named as a sentence, in every `*.Tests` / `IsTestProject` project | ✓ | ✓ |
+| `TreatWarningsAsErrors`: every warning above, and Rask's own RASK warnings, fail the build | | ✓ |
+
+Unset or `false` changes nothing; any other word stops the build and names the two levels. Start at `warnings`: the
+build stays green and the list shows up in the IDE and in `dotnet build`. Move to `errors` once it is empty. A project
+that is not ready yet sets `<RaskStrict>false</RaskStrict>` in its own csproj, which wins over the
+`Directory.Build.props`.
+
+What it looks like in an app that turned nullable off and never ran the analyzers:
+
+```csharp
+public string Customer(int id) { string name = null; return name; }
+// before: builds clean
+// warnings: warning CS8600: Converting null literal or possible null value to non-nullable type.
+// errors:   error CS8600: …  — the build stops
+```
+
+```csharp
+[Fact] public void AddItem() { … }                     // ⚠ RASK116: 'AddItem' does not read as a sentence: fewer than three words
+[Fact] public void Add_puts_the_item_in_the_cart() { … } // reads as what it proves
+```
+
+The formatting and style rules come from the app's `.editorconfig`, never from MSBuild: `rask new` writes one into every
+app (`.editorconfig` at the root), and an app made before it copies that file from a fresh `rask new` app.
+
 ## Where it is wired
 
 - `Directory.Packages.props` — one version per analyzer package.

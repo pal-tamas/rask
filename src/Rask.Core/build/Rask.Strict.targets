@@ -1,0 +1,51 @@
+<Project>
+  <!--
+    <RaskStrict> — the quality gate an app opts into, built only from what the .NET SDK and Rask already ship
+    (no third-party analyzer package). Set it in the app's Directory.Build.props so its test projects get it too:
+
+      warnings  every check below runs, and reports as a WARNING — the day-one setting: the build stays green
+                while the list is worked down
+      errors    the same checks, and every warning fails the build (TreatWarningsAsErrors)
+      true      the same as errors
+
+    Empty or false changes nothing. What it turns on:
+      - Nullable enable (an app's own `disable` included: strict is the switch that says otherwise)
+      - the .NET analyzers at AnalysisLevel latest-recommended, unless the app chose a level itself
+      - EnforceCodeStyleInBuild, so the .editorconfig's IDE rules report in `dotnet build`, not only in an editor
+      - in a test project, RASK116: a test named as a sentence (rask-strict-tests.globalconfig)
+      - at errors: TreatWarningsAsErrors, which also raises Rask's own RASK warnings to errors
+
+    Read here, in the TARGETS, not in Rask.props: NuGet imports a package's props before the app's csproj is
+    evaluated, so a props file never sees a <RaskStrict> written in the csproj. Every property set here is read
+    by a target (Csc, the SDK's analyzer targets imported after this file), so it still takes effect.
+  -->
+  <PropertyGroup>
+    <_RaskStrictLevel>$(RaskStrict.Trim().ToLowerInvariant())</_RaskStrictLevel>
+    <_RaskStrictLevel Condition=" '$(_RaskStrictLevel)' == 'true' ">errors</_RaskStrictLevel>
+    <_RaskStrictLevel Condition=" '$(_RaskStrictLevel)' == 'false' ">off</_RaskStrictLevel>
+    <_RaskStrictLevel Condition=" '$(_RaskStrictLevel)' == '' ">off</_RaskStrictLevel>
+    <_RaskStrictOn Condition=" '$(_RaskStrictLevel)' == 'warnings' Or '$(_RaskStrictLevel)' == 'errors' ">true</_RaskStrictOn>
+    <_RaskStrictTestProject Condition=" '$(IsTestProject)' == 'true' Or $(MSBuildProjectName.EndsWith('.Tests')) ">true</_RaskStrictTestProject>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(_RaskStrictOn)' == 'true' ">
+    <Nullable>enable</Nullable>
+    <AnalysisLevel Condition=" '$(AnalysisLevel)' == '' ">latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(_RaskStrictLevel)' == 'errors' ">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- EditorConfigFiles, the item Csc reads, not GlobalAnalyzerConfigFiles: Roslyn's targets fold that one into this
+       one when they are imported, which is before this file, so an item added to it here would never reach Csc. -->
+  <ItemGroup Condition=" '$(_RaskStrictOn)' == 'true' And '$(_RaskStrictTestProject)' == 'true' ">
+    <EditorConfigFiles Include="$(MSBuildThisFileDirectory)rask-strict-tests.globalconfig"/>
+  </ItemGroup>
+
+  <Target Name="_RaskStrictCheckLevel" BeforeTargets="CoreCompile"
+          Condition=" '$(_RaskStrictLevel)' != 'off' And '$(_RaskStrictOn)' != 'true' ">
+    <Error Text="&lt;RaskStrict&gt;$(RaskStrict)&lt;/RaskStrict&gt; is not a level Rask knows: write warnings (every check reports as a warning) or errors (every warning fails the build); true means errors, false turns it off."/>
+  </Target>
+</Project>

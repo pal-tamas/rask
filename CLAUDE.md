@@ -147,15 +147,15 @@ dotnet run --project src/Rask.Site
 Routing/lifecycle (`docs/routing.md`, `docs/lifecycle.md`), scoped CSS/TypeScript + typed browser APIs
 (`docs/js-interop.md`, `docs/browser-apis.md` — the wrapper map), forms +
 validation (`docs/forms.md`), auth (`docs/authentication.md`), context/callbacks (`docs/composition.md`),
-diagnostics RASK001–115, RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
+diagnostics RASK001–116, RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 retired (`docs/diagnostics.md` — analyzer descriptors are the source of truth), getting
 started / migration / testing / architecture (`docs/`). Trimming: `src/Rask.Site` must
 `dotnet publish -c Release` with zero IL warnings — new reflection needs a DAM annotation or justified suppression.
 
 ## Conventions
 - **HTML elements are GENERATED from MDN** (`src/Rask.Core/Dom/mdn.snapshot.json`, moved daily by the `mdn` follower in `upstream.yml`, never by the build): MDN type names
   (`HTMLAnchorElement`), entries named after tags (`A`), IDL attribute names (`ColSpan`). Missing/behaviour → `add-html-tag` skill.
-- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–115 are documented in `docs/diagnostics.md`
-  (RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 are retired and never recycled; the next free id is RASK116). **Grep `src/`
+- **New diagnostic** → `add-diagnostic` skill. Diagnostic IDs RASK001–116 are documented in `docs/diagnostics.md`
+  (RASK027/030/032/034/042/046–050/054/056–059/061–066/075–081/091/100 are retired and never recycled; the next free id is RASK117). **Grep `src/`
   for the id before you claim it, AND again before you merge** — FOUR assemblies allocate in this space
   (`Rask.Generators`, `Rask.Batteries.Generators`, `Rask.Api.Generators`, and `Rask.Generators.Shared`'s
   source-linked `RegistryGeneratorBase`) and

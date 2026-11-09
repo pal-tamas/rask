@@ -1,0 +1,5 @@
+# Added by Rask.Strict.targets to a test project of an app that sets <RaskStrict>. RASK116 ships switched off,
+# because a test name is only a sentence by convention; a strict app's tests are held to it.
+is_global = true
+
+dotnet_diagnostic.RASK116.severity = warning

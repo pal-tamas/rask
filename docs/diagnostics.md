@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK115, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK116, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -127,6 +127,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK113](#rask113) | Error | More than one aggregate says `ITenant` or `IUser` |
 | [RASK114](#rask114) | Error | The tenant's or the user's key cannot be the current one |
 | [RASK115](#rask115) | Warning | Tenant-scoped tables and no tenant aggregate |
+| [RASK116](#rask116) | Warning (off unless `<RaskStrict>`) | Test is not named as a sentence |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2750,3 +2751,27 @@ public sealed class Invoice : Aggregate<int, PerTenant<int>> { }   // ⚠ RASK11
 
 **Fix:** say `ITenant` on the tenant aggregate. A project whose tenant lives in another assembly (a feature library)
 silences it with `<NoWarn>$(NoWarn);RASK115</NoWarn>`.
+
+## RASK116
+
+**Test is not named as a sentence** · Warning (off unless the app sets `<RaskStrict>`)
+
+A test's name is what the runner prints when it fails, so it says what the test proves: at least three words joined
+by underscores, most of them lower-case prose, and none of the scaffolding words `Should`, `Given`, `When`, `Then`,
+`Test`, `Returns`, `Throws`. Names the test is about (`Cart`, `OnMount`) keep their casing and stay the minority. It
+checks every xUnit `[Fact]`/`[Theory]`, NUnit `[Test]`/`[TestCase]`/`[TestCaseSource]` and MSTest `[TestMethod]`.
+
+The rule ships switched off. [`<RaskStrict>`](code-analysis.md#strict-mode-for-your-app-raskstrict) turns it on in an
+app's test projects; `dotnet_diagnostic.RASK116.severity = warning` in an `.editorconfig` turns it on anywhere.
+
+```csharp
+[Fact] public void AddItem() { }                        // ⚠ RASK116
+[Fact] public void Should_add_the_item() { }            // ⚠ RASK116 — scaffolding word "Should"
+[Fact] public void Add_puts_the_item_in_the_cart() { }  // ✓
+```
+
+```text
+'AddItem' does not read as a sentence: fewer than three words — name it after what it proves, like Remember_loads_once_then_serves_from_the_cache
+```
+
+**Fix:** rename the test after what it proves.
