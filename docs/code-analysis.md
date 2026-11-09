@@ -15,7 +15,10 @@ Every finding is a build error, so a green build means the shipped code is analy
 
 The generator projects additionally run the Roslyn author rules (`EnforceExtendedAnalyzerRules`).
 
-Tests and benchmarks keep the SDK's default set.
+Tests and benchmarks keep the SDK's default set, plus [RASK116](diagnostics.md#rask116) as an error in every `*.Tests`
+project: a test is named as a sentence. `Directory.Build.targets` gives each one the analyzer — Rask.Generators where
+the project already loads it, else `tests/Rask.TestNames.Analyzer`, the same source file alone — and `.editorconfig`
+raises it under `tests/`.
 
 ## Strict mode for your app: `<RaskStrict>`
 
