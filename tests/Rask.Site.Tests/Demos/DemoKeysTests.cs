@@ -18,7 +18,8 @@ public sealed partial class DemoKeysTests : global::Rask.Core.RaskMarkup
     public async Task No_page_or_demo_writes_one_key_twice_for_a_type()
     {
         _ = typeof(PwaPage);
-        var paths = RaskPrerender.PlanRoutes().Paths.Concat(new GuidePrerenderPaths().Paths()).Distinct(StringComparer.Ordinal);
+        var paths = RaskPrerender.PlanRoutes().Paths.Concat(new GuidePrerenderPaths().Paths())
+            .Concat(new global::Rask.Site.Features.UiDocs.AppFrameDemoPrerenderPaths().Paths()).Distinct(StringComparer.Ordinal);
         var repeated = new ConcurrentQueue<string>();
         var previous = RaskDiagnostics.Sink;
         RaskDiagnostics.Sink = e =>

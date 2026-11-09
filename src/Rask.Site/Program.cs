@@ -47,6 +47,8 @@ host.UsePwa(new WebAppManifest
 // the prerender pass skips it — and the guides are the site, so skipping it means every guide ships to
 // crawlers as an empty boot shell while the publish reports every page it knew about as written.
 host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.GuidePrerenderPaths>();
+// The app frame demo's driver pages, which its drivers list links: the same reason, one demo's worth.
+host.Services.AddSingleton<Rask.Core.Live.IPrerenderPaths, Rask.Site.Features.UiDocs.AppFrameDemoPrerenderPaths>();
 
 // These pages contribute their sidebar entries here rather than in ShowcaseLayout's own table.
 //

@@ -1,0 +1,24 @@
+<Project>
+
+  <!--
+    Where each app this test project references was built, so `new RaskSite<Program>()` runs the app's OWN build
+    from the app's own folder (its appsettings.json, its wwwroot) rather than the copy beside the tests. Written into
+    the test assembly as [AssemblyMetadata] — one pair per referenced project — and read by RaskSite at start.
+    A project without them (another build system, RaskSiteRecordApps=false) runs the copy beside the tests instead.
+  -->
+  <Target Name="RaskSiteRecordApps" BeforeTargets="GetAssemblyAttributes" DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(RaskSiteRecordApps)' != 'false' ">
+    <ItemGroup>
+      <_RaskSiteApp Include="@(_ResolvedProjectReferencePaths)" Condition=" '%(Extension)' == '.dll' " />
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>Rask.Testing.Playwright.Host:%(_RaskSiteApp.Filename)</_Parameter1>
+        <_Parameter2>%(_RaskSiteApp.FullPath)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>Rask.Testing.Playwright.Project:%(_RaskSiteApp.Filename)</_Parameter1>
+        <_Parameter2>%(_RaskSiteApp.MSBuildSourceProjectFile)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+</Project>

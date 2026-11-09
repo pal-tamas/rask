@@ -1,4 +1,57 @@
 #nullable enable
+Rask.Testing.PageProblems
+Rask.Testing.PageProblems.Count.get -> int
+Rask.Testing.PageProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<string!>!
 Rask.Testing.PageSettling
+Rask.Testing.PageWalk
+Rask.Testing.PageWalk.As(string! name) -> Rask.Testing.PageWalk!
+Rask.Testing.PageWalk.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter
+Rask.Testing.PageWalk.ToTask() -> System.Threading.Tasks.Task!
+Rask.Testing.RaskSite
+Rask.Testing.RaskSite.Address.get -> System.Uri!
+Rask.Testing.RaskSite.Admin.get -> string!
+Rask.Testing.RaskSite.Admin.set -> void
+Rask.Testing.RaskSite.ContentRoot.get -> string!
+Rask.Testing.RaskSite.ContentRoot.set -> void
+Rask.Testing.RaskSite.Contexts.get -> Microsoft.Playwright.BrowserNewContextOptions!
+Rask.Testing.RaskSite.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Rask.Testing.RaskSite.Environment.get -> System.Collections.Generic.IDictionary<string!, string?>!
+Rask.Testing.RaskSite.Folder.get -> string!
+Rask.Testing.RaskSite.Health.get -> string!
+Rask.Testing.RaskSite.Health.set -> void
+Rask.Testing.RaskSite.Host.get -> string!
+Rask.Testing.RaskSite.Log.get -> string!
+Rask.Testing.RaskSite.Password.get -> string!
+Rask.Testing.RaskSite.Password.set -> void
+Rask.Testing.RaskSite.PhoneWidth.get -> int
+Rask.Testing.RaskSite.PhoneWidth.set -> void
+Rask.Testing.RaskSite.RaskSite(string! host) -> void
+Rask.Testing.RaskSite.Said(string! text) -> bool
+Rask.Testing.RaskSite.SignIn.get -> System.Func<Microsoft.Playwright.IPage!, string!, System.Threading.Tasks.Task!>?
+Rask.Testing.RaskSite.SignIn.set -> void
+Rask.Testing.RaskSite.SignInPage.get -> string!
+Rask.Testing.RaskSite.SignInPage.set -> void
+Rask.Testing.RaskSite.SignedIn(string! name) -> System.Threading.Tasks.Task<Microsoft.Playwright.IPage!>!
+Rask.Testing.RaskSite.SignedOut() -> System.Threading.Tasks.Task<Microsoft.Playwright.IPage!>!
+Rask.Testing.RaskSite.Start() -> System.Threading.Tasks.Task!
+Rask.Testing.RaskSite.StartWithin.get -> System.TimeSpan
+Rask.Testing.RaskSite.StartWithin.set -> void
+Rask.Testing.RaskSite.Walk(string! path) -> Rask.Testing.PageWalk!
+Rask.Testing.RaskSite.Watch(Microsoft.Playwright.IPage! page) -> Rask.Testing.PageProblems!
+Rask.Testing.RaskSite<TProgram>
+Rask.Testing.RaskSite<TProgram>.RaskSite() -> void
+Rask.Testing.SitePages
+Rask.Testing.SitePages.And(params string![]! paths) -> Rask.Testing.SitePages!
+Rask.Testing.SitePages.GetEnumerator() -> System.Collections.Generic.IEnumerator<string!>!
+Rask.Testing.SitePages.Without(params string![]! paths) -> Rask.Testing.SitePages!
+Rask.Testing.WalkException
+Rask.Testing.WalkException.Path.get -> string!
+Rask.Testing.WalkException.Problems.get -> System.Collections.Generic.IReadOnlyCollection<string!>!
+Rask.Testing.WalkException.WalkException() -> void
+Rask.Testing.WalkException.WalkException(string! message) -> void
+Rask.Testing.WalkException.WalkException(string! message, System.Exception! innerException) -> void
+override Rask.Testing.PageProblems.ToString() -> string!
 static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IFrame! frame, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
 static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IPage! page, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
+static Rask.Testing.PageWalk.implicit operator System.Threading.Tasks.Task!(Rask.Testing.PageWalk! walk) -> System.Threading.Tasks.Task!
+static Rask.Testing.RaskSite.Pages<TProgram>() -> Rask.Testing.SitePages!

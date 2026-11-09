@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    RaskSite without a browser: the pages it lists, where it finds the app's build, and the app's process — started on
+    a port of its own, waited for, ended. It runs Rask.Testing.Fixture.App the way an app's own E2E project runs its app:
+    referenced, and started by RaskSite<Program>. The walks themselves, which need Chromium, are in
+    Rask.Site.E2E.Tests (RaskSiteWalkTests).
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+    <PackageReference Include="xunit.v3"/>
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit"/>
+    <Using Include="Rask.Testing"/>
+  </ItemGroup>
+
+  <!-- A package reference imports this itself; a project reference does not. -->
+  <Import Project="..\..\src\Rask.Testing.Playwright\build\Rask.Testing.Playwright.targets"/>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
+    <ProjectReference Include="..\Rask.Testing.Fixture.App\Rask.Testing.Fixture.App.csproj"/>
+  </ItemGroup>
+
+</Project>
