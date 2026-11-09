@@ -302,6 +302,20 @@
     stay on one framework — the `rask` tool rolls forward onto any newer runtime instead — sets
     <RaskTargetFrameworksExempt>true</RaskTargetFrameworksExempt> and says why.
   -->
+  <!--
+    Every test is named as a sentence: RASK116, the rule a <RaskStrict> app's tests are held to, switched on as an
+    error for tests/ in .editorconfig. It ships off, in Rask.Generators. A *.Tests project that already loads
+    Rask.Generators as an analyzer has it; every other one gets tests/Rask.TestNames.Analyzer here — the same source
+    file and nothing else, because Rask.Generators would bring every RASK rule into suites that break them on purpose.
+  -->
+  <ItemGroup Condition=" $(MSBuildProjectName.EndsWith('.Tests'))
+                         AND $(MSBuildProjectDirectory.Replace('\', '/').StartsWith('$(MSBuildThisFileDirectory.Replace('\', '/'))tests/'))
+                         AND '@(ProjectReference->WithMetadataValue('Filename', 'Rask.Generators')->WithMetadataValue('OutputItemType', 'Analyzer'))' == '' ">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)tests\Rask.TestNames.Analyzer\Rask.TestNames.Analyzer.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
   <Target Name="RaskVerifyTargetFrameworks" BeforeTargets="CoreCompile"
           Condition=" '$(RaskPublicApiTracked)' == 'true' AND '$(RaskTargetFrameworksExempt)' != 'true' ">
     <Error Condition=" '$(TargetFrameworks)' != '$(RaskNetTargets)' AND '$(TargetFrameworks)' != '$(RaskNetTargets);$(RaskBrowserTfm)' "

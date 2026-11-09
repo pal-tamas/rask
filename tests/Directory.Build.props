@@ -108,13 +108,9 @@
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Every test project checks that its own tests are named as sentences (see the file). Linked into each one
-       rather than run once centrally, because the gate runs only the projects a change touches — a central
-       check would miss a bad name added anywhere else. Only `*.Tests` projects: the benchmarks, fixtures and
-       shared test libraries under tests/ are not test projects. -->
+  <!-- A test named as a sentence is RASK116, an analyzer every *.Tests project gets from Directory.Build.targets
+       and .editorconfig makes an error under tests/: a compile-time check, so it runs wherever that project builds. -->
   <ItemGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
-    <Compile Include="$(MSBuildThisFileDirectory)Shared/TestNamesReadAsSentences.cs"
-             Link="Conventions/TestNamesReadAsSentences.cs" />
     <!-- One way to run a process to completion: both streams read at once, and a timeout that kills the tree. -->
     <Compile Include="$(MSBuildThisFileDirectory)Shared.TestFiles/TestProcess.cs"
              Link="Shared/TestProcess.cs" />

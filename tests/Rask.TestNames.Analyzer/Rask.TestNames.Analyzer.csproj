@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    RASK116 (a test named as a sentence) for this repository's own test projects, with nothing else.
+
+    The rule ships in Rask.Generators, which a <RaskStrict> app already loads. A test project here that does not
+    reference Rask.Generators as an analyzer would get every generator and every RASK rule with it, and those
+    suites deliberately do what the rules forbid (a component made with `new` to test it alone), so it gets this
+    instead: the same source file, compiled on its own. Directory.Build.targets references it from each such
+    *.Tests project, and .editorconfig makes RASK116 an error under tests/.
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <NoWarn>$(NoWarn);RS2008</NoWarn>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Rask.Generators\Analyzers\TestNameSentenceAnalyzer.cs" Link="TestNameSentenceAnalyzer.cs"/>
+    <Compile Include="..\..\src\Rask.Generators\DiagnosticHelp.cs" Link="DiagnosticHelp.cs"/>
+  </ItemGroup>
+
+</Project>

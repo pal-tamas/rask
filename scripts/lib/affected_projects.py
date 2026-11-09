@@ -209,6 +209,14 @@ def main() -> None:
             if not target.startswith("../"):
                 test_reads.append((glob_regex(target), key))
 
+    # An edge no csproj names: Directory.Build.targets gives every test project the test-name analyzer (RASK116), so
+    # a change to its rule recompiles, and re-checks, every one of them.
+    test_names = "tests/Rask.TestNames.Analyzer/Rask.TestNames.Analyzer.csproj"
+    for p in projects:
+        key = str(p.relative_to(root)).replace("\\", "/")
+        if key.startswith("tests/") and key.endswith(".Tests.csproj"):
+            dependents.setdefault(test_names, set()).add(key)
+
     affected: set[str] = set()
     for rel in changed:
         readers = {dependent for tdir, dependent in linked_dirs if rel == tdir or rel.startswith(tdir + "/")}

@@ -15,7 +15,10 @@ Every finding is a build error, so a green build means the shipped code is analy
 
 The generator projects additionally run the Roslyn author rules (`EnforceExtendedAnalyzerRules`).
 
-Tests and benchmarks keep the SDK's default set.
+Tests and benchmarks keep the SDK's default set, plus [RASK116](diagnostics.md#rask116) as an error in every `*.Tests`
+project: a test is named as a sentence. `Directory.Build.targets` gives each one the analyzer — Rask.Generators where
+the project already loads it, else `tests/Rask.TestNames.Analyzer`, the same source file alone — and `.editorconfig`
+raises it under `tests/`.
 
 ## Strict mode for your app: `<RaskStrict>`
 
@@ -44,6 +47,7 @@ clean under it. An app made before that writes it in its own `Directory.Build.pr
 | [RASK116](diagnostics.md#rask116), a test named as a sentence, in every `*.Tests` / `IsTestProject` project | ✓ | ✓ |
 | Off: CA1716 (a Visual Basic keyword such as `Shared` in a name), and CA1707 (underscores) in a test project | ✓ | ✓ |
 | `TreatWarningsAsErrors`: every warning above, and Rask's own RASK warnings, fail the build | | ✓ |
+| …except a NuGet audit finding (NU1901–NU1904, a dependency with a known vulnerability), which stays a warning — appended to the app's own `WarningsNotAsErrors` | | ✓ |
 
 Unset or `false` changes nothing; any other word stops the build and names the two levels. Start at `warnings`: the
 build stays green and the list shows up in the IDE and in `dotnet build`. Move to `errors` once it is empty. A project

@@ -304,3 +304,8 @@ dotnet_diagnostic.MA0004.severity = none
 # framework — nothing consumes it from VB — so a name that is the HTML tag or the repo's verb stays that name.
 [src/**.cs]
 dotnet_diagnostic.CA1716.severity = none
+
+# Every test is named as a sentence: what it proves, in words joined by underscores (RASK116, docs/diagnostics.md).
+# It ships off; Directory.Build.targets gives each *.Tests project the analyzer, and this makes it an error.
+[tests/**.cs]
+dotnet_diagnostic.RASK116.severity = error

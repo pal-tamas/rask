@@ -114,6 +114,10 @@ expect "a template file does not force the whole solution" \
 # future narrowing of the graph cannot quietly make the most load-bearing project in the repo cheap.
 expect "Rask.Core reaches Rask.Server.Tests" \
   "src/Rask.Core/Components/Div.cs" scoped "tests/Rask.Server.Tests/Rask.Server.Tests.csproj"
+# Directory.Build.targets, not a csproj, gives every test project the test-name analyzer, so its rule reaches a
+# suite that references nothing of the framework's.
+expect "the test-name rule reaches every test project" \
+  "src/Rask.Generators/Analyzers/TestNameSentenceAnalyzer.cs" scoped "tests/Rask.Xlsx.Tests/Rask.Xlsx.Tests.csproj"
 
 # --- files a test reads at runtime (<RaskTestReads/> in the test's csproj) ------------------------
 # A file outside src/ and tests/ scopes to the tests that declare reading it, instead of FULL — which

@@ -92,6 +92,24 @@ public sealed class RaskStrictBuildTests
     }
 
     [Fact]
+    public async Task At_errors_a_NuGet_audit_finding_stays_a_warning_beside_the_app_s_own_exceptions()
+    {
+        // Asserted on the evaluated property, not on a real NU1903: an advisory comes from nuget.org's vulnerability
+        // feed, which a hermetic test cannot fake. NuGet reads WarningsNotAsErrors itself, so the property is the switch.
+        using var app = new ThrowawayApp(
+            "Shop", strict: "errors", nullable: "enable", "<WarningsNotAsErrors>CS0618</WarningsNotAsErrors>");
+        using var warned = new ThrowawayApp("Shop", strict: "warnings", nullable: "enable");
+
+        var errors = await app.Evaluate("WarningsNotAsErrors", "TreatWarningsAsErrors");
+        var exceptions = errors["WarningsNotAsErrors"].Split(';');
+        var atWarnings = (await warned.Evaluate("WarningsNotAsErrors", "TreatWarningsAsErrors"))["WarningsNotAsErrors"];
+
+        Assert.Equal("true", errors["TreatWarningsAsErrors"]);
+        Assert.Equal(["CS0618", "NU1901", "NU1902", "NU1903", "NU1904"], exceptions.Where(code => code.Length > 0));
+        Assert.DoesNotContain("NU190", atWarnings, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Only_a_test_project_gets_the_test_name_rule()
     {
         using var app = new ThrowawayApp("Shop", strict: "errors", nullable: "enable");
@@ -109,7 +127,7 @@ public sealed class RaskStrictBuildTests
         private readonly string _dir = Path.Combine(Path.GetTempPath(), "rask-strict-" + Guid.NewGuid().ToString("N")[..8]);
         private readonly string _project;
 
-        public ThrowawayApp(string name, string? strict, string nullable)
+        public ThrowawayApp(string name, string? strict, string nullable, string ownProperties = "")
         {
             _project = name + ".csproj";
             var root = RepoRoot();
@@ -128,6 +146,7 @@ public sealed class RaskStrictBuildTests
                   <PropertyGroup>
                     <TargetFramework>net10.0</TargetFramework>
                     <Nullable>{nullable}</Nullable>
+                    {ownProperties}
                   </PropertyGroup>
                   <ItemGroup>
                     <Analyzer Include="{typeof(TestNameSentenceAnalyzer).Assembly.Location}" />
