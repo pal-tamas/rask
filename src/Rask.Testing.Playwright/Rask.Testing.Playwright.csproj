@@ -19,8 +19,10 @@
     <None Remove="NUGET.md" />
     <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
     <!-- Records where each referenced app's build is, for RaskSite<Program> (see build/Rask.Testing.Playwright.targets).
-         build/ only: it is the test project that references the app, never a project that references the test. -->
+         Twinned under buildTransitive/ like every hook, so a shared test-helper project that brings the package
+         along records its consumer's apps too. -->
     <None Include="build\**" Pack="true" PackagePath="build\" />
+    <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>
