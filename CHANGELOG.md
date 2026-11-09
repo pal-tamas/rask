@@ -1059,6 +1059,11 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A row of a searching `Ui.Select`/`Ui.Pillbox` pressed as the search's answer arrives is picked.** Before: a press
+  read from the list as drawn, landing just after the pause sent what was typed, reached the page once the answer had
+  moved the rows; the row's handler named its old place, so the press ran nothing and the value stayed (the flaky
+  `UiKitSelectTests` `.Choices(find, held:)` journey). After: a row's handler names only its value, so the press picks
+  the row that holds that value wherever the answer put it; a value no row holds any more still picks nothing.
 - **A double press on an edited editor's cross now asks whether to leave, instead of silently keeping it open.**
   Before: with something typed or picked in a `Ui.ConfirmLeave`-guarded form inside a `Ui.Modal`, the first press
   of a double press on the corner's cross asked the leave question, and the second landed on that question's

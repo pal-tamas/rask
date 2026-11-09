@@ -99,14 +99,16 @@ public abstract partial class UiSelectControl<T>
             .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
         // Held, the browser picks it (rask-list-held.ts): the page hears the answer with the next action.
-        return (off || Held ? item : Wired(item, row.Index, row.Value))[
+        return (off || Held ? item : Wired(item, row.Value))[
             RowContent(row.Option)
         ];
     }
 
-    // A row's handler closes over its place and its value and nothing else: not the row, whose option the page
-    // writes again in every render of its own, and not the view (Latest).
-    private HTMLDivElement Wired(HTMLDivElement item, int index, T value) => item.OnClick(() => PickedAsync(index, value));
+    // A row's handler closes over its value and nothing else: not its place, which a search's answer or a new order
+    // of the rows moves; not the row, whose option the page writes again in every render of its own; and not the
+    // view (Latest). So a press read from a page the rows have moved on since finds the handler of the row that
+    // holds that value now (Component.StaleEvents), wherever it is.
+    private HTMLDivElement Wired(HTMLDivElement item, T value) => item.OnClick(() => PickedAsync(value));
 
     private string RowLook(UiSelectOption option)
     {

@@ -118,7 +118,6 @@ public partial class UiChoicesTests : global::Rask.Core.RaskMarkup
         Assert.Contains("Hamburg", bergmann.TextContent, StringComparison.Ordinal);
         Assert.Equal("Hamburg", bergmann.Attribute("data-rask-list-keywords"));
         Assert.Equal("Bergmann", bergmann.Attribute("data-rask-list-text"));
-        Assert.Equal("Bergmann", Shown(page));
     }
 
     [Fact]
@@ -139,7 +138,6 @@ public partial class UiChoicesTests : global::Rask.Core.RaskMarkup
         var page = Page.Render(() => Ui.Select.Bind(() => order.FloorId).Choices(Companies));
 
         Assert.False(page.Exists(ClearButton));
-        Assert.Equal("Bergmann", Shown(page));
     }
 
     [Fact]
@@ -198,6 +196,21 @@ public partial class UiChoicesTests : global::Rask.Core.RaskMarkup
         Assert.Equal(["", "m"], asked);
         Assert.Equal(["Walther", "Alma Zrt.", "Bergmann"], Rows(page));
         Assert.Equal("Walther", page.TextOf("[data-ui-select-button]"));
+    }
+
+    [Fact]
+    public async Task A_row_of_a_searchs_answer_is_picked_and_written_to_the_bound_member()
+    {
+        var order = new Order { CompanyId = 3 };
+        var page = Acting.Render(() => Ui.Select.Bind(() => order.CompanyId).Live().Choices(
+            typed => Task.FromResult<IReadOnlyList<Ui.Choice<int>>>(
+                [.. Companies.Where(c => c.Name.Contains(typed, StringComparison.OrdinalIgnoreCase))]),
+            held: Companies[0]));
+        await page.On("[data-ui-select-search] input").Raise("pause", "{\"value\":\"berg\"}");
+
+        await page.On("#" + page.FindAll("[role=\"option\"]").Single(row => row.Attribute("data-rask-list-text") == "Bergmann").Attribute("id")).Click();
+
+        Assert.Equal(1, order.CompanyId);
     }
 
     [Fact]

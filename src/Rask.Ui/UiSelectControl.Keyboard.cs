@@ -108,12 +108,13 @@ public abstract partial class UiSelectControl<T>
 
     // ----- Picking -------------------------------------------------------------------------------------
 
-    // The row pressed is the one that held `value` when the press was read. A press that outlived its page finds
-    // this handler by that value (Component.StaleEvents), so the row at `index` now is the one the reader saw.
-    private Task PickedAsync(int index, T value)
+    // The row pressed is the one that holds `value` now: the one the reader saw, wherever the answer to a search
+    // that was on its way when it was pressed has put it. A value no row holds any more picks nothing.
+    private Task PickedAsync(T value)
     {
         var view = Latest;
-        if (index >= view.Parts.Rows.Count || !Same(view.Parts.Rows[index].Value, value) || view.Skips(index))
+        var index = view.Parts.Rows.FindIndex(row => Same(row.Value, value));
+        if (index < 0 || view.Skips(index))
         {
             return Task.CompletedTask;
         }

@@ -41,7 +41,7 @@ public sealed partial class SelectPressFromAnOlderPageTests : global::Rask.Core.
     }
 
     [Fact]
-    public async Task A_row_pressed_before_the_list_was_answered_with_other_rows_picks_nothing()
+    public async Task A_row_pressed_before_the_list_was_answered_in_another_order_picks_the_row_pressed()
     {
         string[] offered = Pistols;
         List<string> picked = [];
@@ -53,8 +53,45 @@ public sealed partial class SelectPressFromAnOlderPageTests : global::Rask.Core.
 
         var heard = await Hear(cache, page, presses[0], At(10));
 
-        Assert.False(heard);
+        Assert.True(heard);
+        Assert.Equal(["Glock"], picked);
+    }
+
+    [Fact]
+    public async Task A_row_pressed_before_the_list_was_answered_without_it_picks_nothing()
+    {
+        string[] offered = Pistols;
+        List<string> picked = [];
+        var page = Listbox(() => picked, values => picked = [.. values], () => offered);
+        using var cache = new SessionRenderCache();
+        var presses = Ids(Render(cache, page), "click");
+        offered = ["Walther", "Beretta"];
+        Render(cache, page);
+
+        await Hear(cache, page, presses[0], At(10));
+
         Assert.Empty(picked);
+    }
+
+    [Fact]
+    public async Task A_row_pressed_while_the_search_was_answered_picks_that_row_from_the_answer()
+    {
+        int? picked = 3;
+        var page = new StubComponent(() => Ui.Select.Value(picked).OnChange(value => picked = value).Choices(
+            typed => Task.FromResult<IReadOnlyList<Ui.Choice<int>>>(
+                [.. Pistols.Select((name, at) => new Ui.Choice<int>(at + 1, name)).Where(c => c.Name.Contains(typed, StringComparison.OrdinalIgnoreCase))]),
+            held: new Ui.Choice<int>(3, "Walther")));
+        using var cache = new SessionRenderCache();
+        var loaded = Render(cache, page);
+        // The rows as loaded are Beretta, Glock, Walther: the reader presses the second.
+        var press = Regex.Matches(loaded, "data-rask-on-click=\"([^\"]+)\" role=\"option\"", RegexOptions.None, TimeSpan.FromSeconds(1))[1].Groups[1].Value;
+        var pause = Ids(loaded, "pause")[0];
+        await Hear(cache, page, pause, "{\"value\":\"l\",\"v\":0}");
+
+        var heard = await Hear(cache, page, press, At(10));
+
+        Assert.True(heard);
+        Assert.Equal(1, picked);
     }
 
     private static StubComponent Listbox(Func<List<string>> picked, Action<ICollection<string>> onChange, Func<string[]>? offered = null) =>

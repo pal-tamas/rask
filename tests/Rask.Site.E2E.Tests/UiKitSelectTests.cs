@@ -78,6 +78,32 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(button).ToContainTextAsync("Berlin Cargo");
     });
 
+    // The press lands in the timer task right after the one that sends what was typed (both wait the pause, and the
+    // browser runs them in the order they were set), so it is read from the list as drawn and reaches the page after
+    // the answer has moved its row.
+    [Fact]
+    public Task A_row_pressed_as_the_search_answers_is_the_row_picked() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        var button = Page.Locator("#ui-select-choices-search");
+        await button.ClickAsync();
+        await Expect(Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[data-ui-option]:visible")).ToHaveCountAsync(8);
+
+        await Page.EvaluateAsync("""
+            () => {
+                const list = document.querySelector('#ui-select-choices-search').closest('[data-ui-select]');
+                const field = list.querySelector('[data-ui-select-search] input');
+                const row = [...list.querySelectorAll('[data-ui-option]')].find(r => r.textContent.includes('Berlin Cargo'));
+                field.value = 'berl';
+                field.dispatchEvent(new InputEvent('input', { bubbles: true }));
+                setTimeout(() => row.click(), Number(field.getAttribute('data-rask-debounce')));
+            }
+            """);
+
+        await Expect(Page.Locator("[data-testid='ui-select-choices-state']")).ToContainTextAsync("Driver: 5.");
+        await Expect(button).ToContainTextAsync("Berlin Cargo");
+    });
+
     [Fact]
     public Task The_native_select_reports_its_pick() => RunAsync(async () =>
     {
