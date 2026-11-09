@@ -51,8 +51,8 @@ internal static class UiDocsCatalog
     public static UiDocsEntry AppFrame { get; } = new(
         Routes.UiAppFramePage(), "App frame", Layouts,
         "App frame in C#: Ui.AppFrame",
-        "An application's whole frame in one line: the menu in Flux's sidebar, breadcrumbs written from it that lead "
-        + "back to a list as it was left, the signed-in user and a sign-out that asks first.");
+        "An app's whole frame in one line: the menu in Flux's sidebar, breadcrumbs back to a list as it was left, the "
+        + "signed-in user and a sign-out that asks first.");
 
     public static UiDocsEntry Accordion { get; } = new(
         Routes.UiAccordionPage(), "Accordion", Components,

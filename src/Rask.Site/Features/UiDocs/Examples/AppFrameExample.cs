@@ -10,16 +10,19 @@ public sealed partial class AppFrameExample : Component
 {
     protected override Component? HeadAssets => UiLayoutDemo.Meta("App frame", UiDocsCatalog.AppFrame);
 
+    // The wrapper stands in for the app's <body> (its Shell's min-h-screen bg-white dark:bg-zinc-800): the frame's grid.
     protected override Component? Render() =>
-        Ui.AppFrame.Brand("Acme Fuels").Logo("/img/rask-mark.svg").Tenant("Northern depot").User("Mara Lind")
-            .SignOut(Routes.UiAppFramePage())[
-            Ui.SidebarNav[
-                Ui.SidebarItem.Key("home").Icon(Ui.IconName.Home).Href(Routes.AppFrameHomeDemoPage())["Home"],
-                Ui.SidebarItem.Key("drivers").Icon(Ui.IconName.Identification).Href(Routes.AppFrameDriversDemoPage())["Drivers"],
-                Ui.SidebarGroup.Key("fleet").Expandable(true).Icon(Ui.IconName.Truck).Heading("Fleet")[
-                    Ui.SidebarItem.Key("vehicles").Icon(Ui.IconName.Truck).Href(Routes.AppFrameVehiclesDemoPage())["Vehicles"]
-                ]
-            ],
-            Outlet
+        Div.Class("min-h-screen bg-white antialiased dark:bg-zinc-800")[
+            Ui.AppFrame.Brand("Acme Fuels").Logo("/img/rask-mark.svg").Tenant("Northern depot").User("Mara Lind")
+                .SignOut(Routes.UiAppFramePage())[
+                Ui.SidebarNav[
+                    Ui.SidebarItem.Key("home").Icon(Ui.IconName.Home).Href(Routes.AppFrameHomeDemoPage())["Home"],
+                    Ui.SidebarItem.Key("drivers").Icon(Ui.IconName.Identification).Href(Routes.AppFrameDriversDemoPage())["Drivers"],
+                    Ui.SidebarGroup.Key("fleet").Expandable(true).Icon(Ui.IconName.Truck).Heading("Fleet")[
+                        Ui.SidebarItem.Key("vehicles").Icon(Ui.IconName.Truck).Href(Routes.AppFrameVehiclesDemoPage())["Vehicles"]
+                    ]
+                ],
+                Outlet
+            ]
         ];
 }

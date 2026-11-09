@@ -1094,6 +1094,8 @@ public sealed partial class Layout : Component
 }
 ```
 
+- **Its grid is the `<body>`:** the app's `Shell` gives it `min-h-screen bg-white dark:bg-zinc-800`, as for any Flux
+  layout, so the sidebar runs the page's full height.
 - **Its children:** each `Ui.SidebarNav` is the menu (pinned between the brand and the profile while it scrolls);
   everything else — the `Outlet`, and with it the built-in 404 and 403 — is the main.
 - **Lit by the address:** the row of the page shown, or of the list it is beneath (`/drivers/7` lights Drivers), and
