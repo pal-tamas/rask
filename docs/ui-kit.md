@@ -1068,6 +1068,47 @@ is the sidebar's own (`Ui.SidebarNav`); anywhere else it is **`Ui.Navlist`**
 **`Ui.Separator`** and **`Ui.Heading`** have pages of their own too; **`Ui.Spacer`** is `flex: 1`, pushing what
 follows it to the far end of a row or a column.
 
+### An app's whole frame
+
+**`Ui.AppFrame`** (not Flux's: the owner approved it, #1296) is the layout an app on the kit writes anyway, in one line:
+Flux's sidebar layout with the menu in the sidebar, breadcrumbs written from that menu in the header, who is signed in
+at the sidebar's foot with a sign-out that asks first, and the page in the main.
+
+```csharp
+[Authorize]
+[Route("/")]
+public sealed partial class Layout : Component
+{
+    protected override Component? Render() =>
+        Ui.AppFrame.Brand("PPTA").Tenant(Current.PartnerName).User(Current.Name).SignOut(SignOut.Path)
+            .Notices(PumpNotices.Key("notices"))[
+            Ui.SidebarNav[
+                Ui.SidebarItem.Icon(Ui.IconName.Home).Href(Routes.HomePage())["Home"],
+                Ui.SidebarItem.Icon(Ui.IconName.Fire).Href(Routes.PumpsPage())["Pumps"],
+                Ui.SidebarGroup.Expandable(true).Icon(Ui.IconName.CircleStack).Heading("Records")[
+                    Ui.SidebarItem.Icon(Ui.IconName.Identification).Href(Routes.DriversPage())["Drivers"]
+                ]
+            ],
+            Outlet
+        ];
+}
+```
+
+- **Its children:** each `Ui.SidebarNav` is the menu (pinned between the brand and the profile while it scrolls);
+  everything else — the `Outlet`, and with it the built-in 404 and 403 — is the main.
+- **Lit by the address:** the row of the page shown, or of the list it is beneath (`/drivers/7` lights Drivers), and
+  the group holding it is opened. A row's own `.Current(…)` wins; a string link (an old front end) is never lit.
+  Home is the row every other row is beneath (`/`).
+- **The trail:** home › group › list › the page's `PageTitle`. The list's step leads back to it **as it was left** —
+  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps.
+- **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
+  `Ui.MenuItem.Href(url).SignOut()`.
+- **The look is shared:** the zinc ground and edges are the kit's; an app's own is its accent (`--color-accent` in its
+  stylesheet, [Re-skinning](#re-skinning)) and its `Logo(url)`. It works the same on Server and WebAssembly; a
+  WebAssembly app needs no `Ui.SidebarScript` for it, as its sidebar has no rail.
+
+The live demo and its reference: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)**.
+
 ### Card
 
 `Ui.Card` is [Flux UI's card](https://fluxui.dev/components/card), part for part: `Ui.CardHeader` (`Ui.CardHeading`,

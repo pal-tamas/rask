@@ -59,7 +59,14 @@ public sealed partial class UiEditorDialog : Component
     {
         // The address opens and closes it, so it renders again whenever the address moves.
         LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
-        var open = Editing(UiTableAddress.Route()) is not null;
+        var route = UiTableAddress.Route();
+        // Its key is no part of where the list stands: the frame's way back to the list leaves it out.
+        if (route is not null)
+        {
+            UiListAddresses.Of(route).Dialog(In);
+        }
+
+        var open = Editing(route) is not null;
 
         return Ui.Modal.Key("ui-editor-dialog:" + In).Flyout(Wide is true).Class(Wide is true ? Sheet : Box, Class).Open(open).OnClose(Close)[
             open ? Body() : null
