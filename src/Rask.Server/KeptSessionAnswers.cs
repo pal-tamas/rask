@@ -7,8 +7,8 @@ namespace Rask.Server;
 
 /// <summary>
 ///     The answers the app's <see cref="ISessionRevalidator" /> gave, kept for <see cref="SessionUserKeeping.Keep" />
-///     under the user's id and <see cref="PrincipalFingerprint" />, and dropped, all of them, the moment a save of a type
-///     <c>.ForgetOnSave&lt;T&gt;()</c> named commits in this process.
+///     under the user's id and <see cref="PrincipalFingerprint" />; one user's dropped by <see cref="Forget(string)" />, and
+///     all of them the moment a save of a type <c>.ForgetOnSave&lt;T&gt;()</c> named commits in this process.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -16,18 +16,21 @@ namespace Rask.Server;
 ///         aside): another token expiry, another chosen tenant or another sign-in is asked for itself.
 ///     </para>
 ///     <para>
-///         All of them are dropped, not the saved user's: a save says which types it wrote, not which rows. A load that
-///         a save overtook — the save committed while the question was on its way — is answered and not kept. A save
+///         A save drops all of them, not the saved user's: a save says which types it wrote, not which rows. A save
 ///         in another process is seen when the kept answer runs out.
 ///     </para>
+///     <para>
+///         Each user's answers live in a <see cref="UserAnswers" /> of their own, taken BEFORE the app is asked. Dropping
+///         one takes it out of the store, so an answer the app was giving meanwhile — read before the change it was
+///         dropped for — lands in a set nothing reads any more: a forget or a save racing a question always wins.
+///     </para>
 /// </remarks>
-internal sealed class KeptSessionAnswers(SessionUserKeeping keeping, TimeProvider clock) : ISavedTypeWatcher
+internal sealed class KeptSessionAnswers(SessionUserKeeping keeping, TimeProvider clock) : ISavedTypeWatcher, ISessions
 {
-    // Past this many, a store also sweeps out what has run out: one entry per principal that used the app lately.
+    // Past this many users, a store also sweeps out what has run out: one entry per user who used the app lately.
     private const int SweepAbove = 1024;
 
-    private readonly ConcurrentDictionary<string, Kept> _kept = new(StringComparer.Ordinal);
-    private long _forgotten;
+    private readonly ConcurrentDictionary<string, UserAnswers> _kept = new(StringComparer.Ordinal);
 
     /// <summary><paramref name="app" />'s answer about <paramref name="principal" />, as kept or as it answers now.</summary>
     public async ValueTask<ClaimsPrincipal?> Answer(
@@ -39,43 +42,44 @@ internal sealed class KeptSessionAnswers(SessionUserKeeping keeping, TimeProvide
             return await app.Revalidate(principal, cancellationToken).ConfigureAwait(false);
         }
 
-        var key = userId + "\n" + PrincipalFingerprint.Of(principal);
+        var fingerprint = PrincipalFingerprint.Of(principal);
         var now = clock.GetUtcNow();
-        if (_kept.TryGetValue(key, out var kept) && now < kept.Until)
+        var answers = _kept.GetOrAdd(userId, static _ => new UserAnswers());
+        if (answers.TryGetValue(fingerprint, out var kept) && now < kept.Until)
         {
             // "Unchanged" is handed back as the instance asked about, which costs the session nothing.
             return kept.Unchanged ? principal : kept.Answer;
         }
 
-        var before = Interlocked.Read(ref _forgotten);
         var answer = await app.Revalidate(principal, cancellationToken).ConfigureAwait(false);
-        if (Interlocked.Read(ref _forgotten) == before)
-        {
-            var unchanged = ReferenceEquals(answer, principal);
-            var entry = new Kept(unchanged, unchanged ? null : answer, now + keep);
-            _kept[key] = entry;
-
-            // A save that committed between the check and the store has cleared already: take it back out.
-            if (Interlocked.Read(ref _forgotten) != before)
-            {
-                _kept.TryRemove(new KeyValuePair<string, Kept>(key, entry));
-            }
-
-            SweepWhenLarge(now);
-        }
-
+        var unchanged = ReferenceEquals(answer, principal);
+        answers[fingerprint] = new Kept(unchanged, unchanged ? null : answer, now + keep);
+        SweepWhenLarge(now);
         return answer;
+    }
+
+    /// <inheritdoc />
+    public void Forget(string userId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userId);
+        _kept.TryRemove(userId, out _);
+    }
+
+    /// <inheritdoc />
+    public void Forget(ClaimsPrincipal user)
+    {
+        ArgumentNullException.ThrowIfNull(user);
+        if (RaskEndpointExtensions.UserKey(user) is { Length: > 0 } userId)
+        {
+            _kept.TryRemove(userId, out _);
+        }
     }
 
     /// <inheritdoc />
     public bool Watches(Type aggregate) => keeping.ForgetsOnSaveOf(aggregate);
 
     /// <inheritdoc />
-    public void Saved(IReadOnlyCollection<Type> aggregates)
-    {
-        Interlocked.Increment(ref _forgotten);
-        _kept.Clear();
-    }
+    public void Saved(IReadOnlyCollection<Type> aggregates) => _kept.Clear();
 
     private void SweepWhenLarge(DateTimeOffset now)
     {
@@ -84,15 +88,27 @@ internal sealed class KeptSessionAnswers(SessionUserKeeping keeping, TimeProvide
             return;
         }
 
-        foreach (var (key, kept) in _kept)
+        foreach (var (userId, answers) in _kept)
         {
-            if (now >= kept.Until)
+            foreach (var (fingerprint, kept) in answers)
             {
-                _kept.TryRemove(new KeyValuePair<string, Kept>(key, kept));
+                if (now >= kept.Until)
+                {
+                    answers.TryRemove(new KeyValuePair<string, Kept>(fingerprint, kept));
+                }
+            }
+
+            // An answer stored into it meanwhile goes with it: a question asked again, never a stale answer.
+            if (answers.IsEmpty)
+            {
+                _kept.TryRemove(new KeyValuePair<string, UserAnswers>(userId, answers));
             }
         }
     }
 
     // An unchanged answer keeps no principal: the next asker gets its own back.
     private sealed record Kept(bool Unchanged, ClaimsPrincipal? Answer, DateTimeOffset Until);
+
+    // One user's answers, one per principal fingerprint. Its identity is what a forget invalidates.
+    private sealed class UserAnswers() : ConcurrentDictionary<string, Kept>(StringComparer.Ordinal);
 }

@@ -138,6 +138,12 @@ them until tagged releases begin.
   the .NET analyzers at `latest-recommended`, `EnforceCodeStyleInBuild` and, in its test projects, the new RASK116 (a
   test named as a sentence) — all as warnings; `errors` (or `true`) adds `TreatWarningsAsErrors`. No third-party analyzer
   package; unset changes nothing ([code analysis](docs/code-analysis.md#strict-mode-for-your-app-raskstrict)).
+- **`Sessions.Forget(user)` drops what `AddSessionRevalidator<T>().Keep(…)` kept about one user, for every open tab.**
+  Before: only a Rask.Data save of `.ForgetOnSave<T>()`'s type dropped kept answers, so a change no save says — an
+  administrator choosing another partner — left another tab acting as the old partner for up to the `.Keep` window,
+  and Eszaf kept its own snapshot cache instead of `AddSessionRevalidator`. After: `Sessions.Forget(http.User)` (or
+  `Sessions.Forget(userId)`, or an injected `ISessions`) after the change makes every page of that user ask the
+  revalidator again at its next event; other users keep theirs, and a forget racing a revalidation always wins.
 - **`RaskSite<Program>` — an app's E2E host in Rask.Testing.Playwright: its own build as a process, every page walked.**
   Before: TA hand-wrote a 280-line `Site.cs` (free port, `dotnet Ta.dll` from a path worked out by hand, a three-minute
   `/version` poll, Chromium, a storage-state cache per user, a `problems` list, killing the process tree) and kept its

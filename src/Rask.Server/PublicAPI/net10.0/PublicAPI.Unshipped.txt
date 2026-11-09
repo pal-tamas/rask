@@ -190,6 +190,12 @@ Rask.Server.SessionRevalidatorBuilder.ForgetOnSave<TEntity>() -> Rask.Server.Ses
 Rask.Server.SessionRevalidatorBuilder.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 Rask.Server.SessionRevalidatorExtensions
 static Rask.Server.SessionRevalidatorExtensions.AddSessionRevalidator<T>(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Rask.Server.SessionRevalidatorBuilder!
+Rask.Server.ISessions
+Rask.Server.ISessions.Forget(string! userId) -> void
+Rask.Server.ISessions.Forget(System.Security.Claims.ClaimsPrincipal! user) -> void
+Rask.Server.Sessions
+static Rask.Server.Sessions.Forget(string! userId) -> void
+static Rask.Server.Sessions.Forget(System.Security.Claims.ClaimsPrincipal! user) -> void
 Rask.Server.DataBuilder<TContext>
 Rask.Server.DataBuilder<TContext>.OwnsSchema(System.Action<Rask.Server.SchemaOwnership!>? configure = null) -> Rask.Server.DataBuilder<TContext!>!
 Rask.Server.DataBuilder<TContext>.Services.get -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

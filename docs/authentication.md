@@ -407,6 +407,25 @@ builder.Services.AddSessionRevalidator<TokenRevalidator>().Keep(5.Seconds).Forge
 | `.Keep(5.Seconds)` | `T`'s answer — `null` included — answers every event for that long without asking `T` again, filed under the user's id (`ClaimTypes.NameIdentifier`, or `ClaimTypes.Name`) and **every claim of the principal** but `iat` and `nbf`. Two tabs of one user with the same claims share it; a principal with another `exp`, another chosen tenant or another sign-in is asked for itself. The price is how long a change made elsewhere (another instance, a hand-run SQL update) can go unseen |
 | `.ForgetOnSave<Account>()` | drops **every** kept answer the moment a save of an `Account` commits through Rask.Data in this process — a page's, a request's or a background job's, never a rolled-back one — so disabling a user or taking a role here counts at their next event. An answer a save overtook is handed on and not kept |
 
+**A change no save says.** A user who chose another partner, a sign-in ended by hand, a right granted in another
+system: nothing is saved, so `.ForgetOnSave` hears nothing, and an open tab could act on the kept answer for up to
+`.Keep(…)`. Tell Rask yourself, after the change:
+
+```csharp
+// before: another tab of this user went on as the old partner for up to five seconds
+choices.Chosen(userId, partner);
+
+// after: every open tab of this user asks TokenRevalidator again at its next event
+choices.Chosen(userId, partner);
+Sessions.Forget(http.User);   // or Sessions.Forget(userId), or an injected ISessions
+```
+
+It drops **that user's** kept answers only — every principal they hold, every tab — and leaves everyone else's.
+An answer the revalidator was giving as it is called is handed on and not kept, so the forget always wins. It
+reaches this process; another instance sees the change when its kept answer runs out. With no
+`AddSessionRevalidator<T>()` nothing is kept and it does nothing; outside any work (a hosted service, a timer)
+inject `ISessions` instead.
+
 An answer that kept the principal it was asked about hands each asker back its own instance, so it still costs the
 session nothing. A principal with neither a user id claim nor `.Keep` is asked about every time.
 

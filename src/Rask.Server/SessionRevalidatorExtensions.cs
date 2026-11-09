@@ -35,6 +35,8 @@ public static class SessionRevalidatorExtensions
         services.AddSingleton(sp => new KeptSessionAnswers(keeping, sp.GetService<TimeProvider>() ?? TimeProvider.System));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<ISavedTypeWatcher, KeptSessionAnswers>(
             static sp => sp.GetRequiredService<KeptSessionAnswers>()));
+        services.RemoveAll<ISessions>();
+        services.AddSingleton<ISessions>(static sp => sp.GetRequiredService<KeptSessionAnswers>());
         services.AddSingleton<ISessionRevalidator>(static sp =>
             new KeptSessionRevalidator(sp.GetRequiredService<T>(), sp.GetRequiredService<KeptSessionAnswers>()));
 
