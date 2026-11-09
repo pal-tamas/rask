@@ -1,5 +1,3 @@
-using Rask.Wire;
-
 namespace Company.RaskServer.Features.Auth;
 
 // What the pages say for each refusal. A class of its own because inside a markup host a page's bare name is

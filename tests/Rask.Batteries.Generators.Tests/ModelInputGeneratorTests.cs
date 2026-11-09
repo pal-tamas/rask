@@ -36,6 +36,36 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void A_doc_comment_names_an_inherited_column_on_the_type_that_declares_it()
+    {
+        // `Product.Version` is declared on Aggregate<TId>, and a cref through a derived type does not reach an
+        // inherited member: an app that writes a documentation file (every <RaskStrict> app) failed on CS1574.
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            {
+                private Product() { }
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+        var documented = CSharpSyntaxTree.ParseText(
+            source,
+            new CSharpParseOptions(LanguageVersion.Latest, DocumentationMode.Diagnose),
+            path: "ProductModel.g.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+        var unresolved = run.Compilation.AddSyntaxTrees(documented).GetDiagnostics(TestContext.Current.CancellationToken)
+            .Where(d => d.Id == "CS1574" && d.Location.SourceTree == documented);
+
+        Assert.Contains("<see cref=\"global::Rask.Data.Aggregate{TId}.Version\" />", source, StringComparison.Ordinal);
+        Assert.Contains("<see cref=\"global::Shop.Product.Name\" />", source, StringComparison.Ordinal);
+        Assert.Empty(unresolved);
+    }
+
+    [Fact]
     public void A_column_that_cannot_be_null_is_required_on_the_form_and_checked_before_a_write()
     {
         var run = Run("""

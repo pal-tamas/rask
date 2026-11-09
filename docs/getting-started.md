@@ -163,6 +163,10 @@ WASM templates differ mainly in `Program.cs`):
   renders `HomePage` in-process with [`Rask.Testing`](testing.md) and checks its greeting. `dotnet test`
   runs it; `{Project}.slnx` lists both projects. `rask new --no-tests` leaves it out.
 
+- **`Directory.Build.props`** — `<RaskStrict>errors</RaskStrict>`, for the app and its tests: nullable on, the .NET
+  analyzers, the `.editorconfig`'s style rules in the build, test names that read as sentences, and every warning an
+  error. A clean build stays clean; `warnings` or `false` loosens it ([strict mode](code-analysis.md#strict-mode-for-your-app-raskstrict)).
+
 That's the whole starter app — no example `Counter` or `Weather` pages to clean up. You'll add your own
 screens next; a **scoped `.css`** or **`.ts`** file is as easy as dropping `{Component}.css` next to a
 `{Component}.cs` (same folder, same base name) — its selectors apply only to that component, no leaks.

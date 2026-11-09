@@ -246,7 +246,7 @@ public sealed partial class ModelInputGenerator
         var entityType = entity.FullyQualifiedName;
         foreach (var member in entity.Members)
         {
-            s.Append("    /// <summary>The form value of <see cref=\"").Append(entityType).Append('.')
+            s.Append("    /// <summary>The form value of <see cref=\"").Append(member.DeclaredOn ?? entityType).Append('.')
                 .Append(member.Name).AppendLine("\" />.</summary>");
             foreach (var attribute in member.Attributes)
             {

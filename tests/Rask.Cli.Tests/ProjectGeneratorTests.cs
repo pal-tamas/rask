@@ -35,11 +35,27 @@ public sealed class ProjectGeneratorTests
 
     /// <summary>
     /// A template's own files plus the hygiene set every template writes regardless of flags — the
-    /// .gitignore, the .editorconfig, the solution, and the global.json that pins the SDK band
-    /// (TemplateMaterializer.WithGlobalJson).
+    /// .gitignore, the .editorconfig, the Directory.Build.props that turns on RaskStrict, the solution, and the
+    /// global.json that pins the SDK band (TemplateMaterializer.WithGlobalJson).
     /// </summary>
     private static string[] WithHygiene(IEnumerable<string> files) =>
-        [.. files, ".gitignore", ".editorconfig", "App.slnx", "global.json"];
+        [.. files, ".gitignore", ".editorconfig", "Directory.Build.props", "App.slnx", "global.json"];
+
+    [Fact]
+    public void Every_template_starts_the_app_and_its_tests_strict()
+    {
+        ScaffoldResult[] scaffolds =
+        [
+            ProjectGenerator.GenerateServer(Root, "App", Full(), Version),
+            ProjectGenerator.GenerateWasm(Root, "App", pwa: true, docker: false, Version),
+            ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries(), Version),
+        ];
+
+        var props = scaffolds.Select(result => Index(result)["Directory.Build.props"]).ToList();
+
+        // At the root, beside the .slnx, so the test project in its folder is under it too.
+        Assert.All(props, file => Assert.Contains("<RaskStrict>errors</RaskStrict>", file, StringComparison.Ordinal));
+    }
 
     [Fact]
     public void Base_project_emits_the_core_files_and_packages_with_no_flags()

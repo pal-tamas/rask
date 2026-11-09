@@ -159,6 +159,11 @@ Every project also gets a `.gitignore`, an `.editorconfig`, a `.slnx` solution a
 is initialized as a git repository with one commit — `--no-git` skips that, and it is skipped
 automatically inside an existing repository.
 
+Every project starts strict: its `Directory.Build.props` says `<RaskStrict>errors</RaskStrict>`, so the app and its
+tests build with nullable on, the .NET analyzers, the `.editorconfig`'s style rules and RASK116 (a test named as a
+sentence), every warning an error. Write `warnings` there to see the list without failing the build
+([strict mode](code-analysis.md#strict-mode-for-your-app-raskstrict)).
+
 A `server` or `wasm` app also gets a test project, `<Name>.Tests/`, listed in the `.slnx` beside the app,
 with one passing test — so `dotnet test` is green before you have written anything. `--no-tests` leaves
 it out.

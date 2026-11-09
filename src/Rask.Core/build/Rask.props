@@ -19,4 +19,7 @@
          property (CS0119). The entries reach every component by inheritance from RaskMarkup instead,
          and the tags' types by the entry. -->
   </ItemGroup>
+
+  <!-- The early half of the app's opt-in quality gate, <RaskStrict>; Rask.Strict.targets is the rest. -->
+  <Import Project="$(MSBuildThisFileDirectory)Rask.Strict.props"/>
 </Project>

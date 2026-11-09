@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;
 
@@ -35,14 +34,14 @@ public sealed partial class ResetPasswordPage(IAuth auth) : AuthPage
         : string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Token) ? Incomplete
         : Ask;
 
-    private Component Done =>
+    private static Component Done =>
         [
             Title("Password changed"),
             Ok("reset-done", "Your password has been changed, and every session for this account is signed out."),
             Ui.Text[Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
-    private Component Incomplete =>
+    private static Component Incomplete =>
         [
             Title("That link is incomplete"),
             Error("reset-error", "Open the link from your email in full, or ask for a new one."),

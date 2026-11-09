@@ -1,6 +1,5 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
-using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;
 
@@ -17,8 +16,8 @@ public sealed class PasskeyModel
 public sealed partial class DevicesPage(IAuth auth, IUserProvider users, IWebAuthn webAuthn) : AuthPage
 {
     private readonly PasskeyModel _passkey = new();
-    private IReadOnlyList<SessionRead> _sessions = [];
-    private IReadOnlyList<PasskeyRead> _passkeys = [];
+    private List<SessionRead> _sessions = [];
+    private List<PasskeyRead> _passkeys = [];
     private bool _signedOutOthers;
     private bool _passkeysSupported;
     private AuthError _passkeyError;

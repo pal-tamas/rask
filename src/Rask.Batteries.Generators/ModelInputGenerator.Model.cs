@@ -396,8 +396,15 @@ public sealed partial class ModelInputGenerator
                 : null,
             new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
             new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
-            IsRequiredByType(member, valueObject, property));
+            IsRequiredByType(member, valueObject, property),
+            DeclaredOn: CrefTypeOf(property.ContainingType));
     }
+
+    // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
+    // member (`User.Version`, declared on Aggregate<TId>, is CS1574 in an app that writes a documentation file), so it
+    // names the declaring type, in a cref's own generic spelling: global::Rask.Data.Aggregate{TId}.
+    private static string CrefTypeOf(INamedTypeSymbol type) =>
+        type.OriginalDefinition.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat).Replace('<', '{').Replace('>', '}');
 
     // A column the aggregate declares non-nullable cannot be emptied: the form model's value is nullable only so a
     // form can start blank, so a null there is a field the user cleared — an error, never a silent 0 on create or a

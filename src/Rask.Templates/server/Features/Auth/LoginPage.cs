@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;
 

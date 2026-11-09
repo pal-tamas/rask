@@ -1,0 +1,14 @@
+<Project>
+  <!--
+    The early half of <RaskStrict> (Rask.Strict.targets is the rest). Only a value set in Directory.Build.props is
+    seen here: NuGet imports a package's props after that file and before the csproj.
+
+    IDE0005 (an unused using) runs in `dotnet build` only when the compiler writes a documentation file, and the SDK
+    decides that from GenerateDocumentationFile before any package's targets run, so it is turned on here. CS1591
+    (a public member without an XML comment) is what that would add, and an app is not a documented library.
+  -->
+  <PropertyGroup Condition=" '$(RaskStrict)' != '' And '$(RaskStrict)' != 'false' ">
+    <GenerateDocumentationFile Condition=" '$(GenerateDocumentationFile)' == '' ">true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+</Project>

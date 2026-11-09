@@ -52,6 +52,24 @@ public sealed class RaskStrictBuildTests
     }
 
     [Fact]
+    public async Task An_unused_using_is_reported_by_the_build_and_a_shared_folder_is_not()
+    {
+        // IDE0005 runs in a build only with a documentation file, which Rask.Strict.props turns on (CS1591 stays
+        // quiet); Features/Shared is where `rask new` keeps what features share, and CA1716 calls Shared a VB keyword.
+        using var app = new ThrowawayApp("Shop", strict: "warnings", nullable: "enable");
+        app.Write(".editorconfig", "root = true\n[*.cs]\ndotnet_diagnostic.IDE0005.severity = warning\n");
+        app.Write("Money.cs", "using System.Text;\nnamespace Shop.Features.Shared;\npublic static class Money { public static int Zero => 0; }\n");
+
+        var (exitCode, output) = await app.Build();
+
+        Assert.True(exitCode == 0, output);
+        Assert.Contains("warning IDE0005", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("CA1716", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("CS1591", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("EnableGenerateDocumentationFile", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_strict_test_project_reports_a_test_not_named_as_a_sentence()
     {
         using var tests = new ThrowawayApp("Shop.Tests", strict: "warnings", nullable: "enable");
@@ -70,6 +88,7 @@ public sealed class RaskStrictBuildTests
         Assert.True(exitCode == 0, output);
         Assert.Contains("warning RASK116: 'AddItem'", output, StringComparison.Ordinal);
         Assert.DoesNotContain("'Add_puts_the_item_in_the_cart'", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("CA1707", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -96,20 +115,33 @@ public sealed class RaskStrictBuildTests
             var root = RepoRoot();
             Directory.CreateDirectory(Path.Combine(_dir, "obj"));
             File.Copy(Path.Combine(root, "global.json"), Path.Combine(_dir, "global.json"));
+            // Where the docs say to write it, so the test project beside the app gets it too.
+            Write("Directory.Build.props", $"""
+                <Project>
+                  <PropertyGroup>
+                    {(strict is null ? "" : $"<RaskStrict>{strict}</RaskStrict>")}
+                  </PropertyGroup>
+                </Project>
+                """);
             Write(_project, $"""
                 <Project Sdk="Microsoft.NET.Sdk">
                   <PropertyGroup>
                     <TargetFramework>net10.0</TargetFramework>
                     <Nullable>{nullable}</Nullable>
-                    {(strict is null ? "" : $"<RaskStrict>{strict}</RaskStrict>")}
                   </PropertyGroup>
                   <ItemGroup>
                     <Analyzer Include="{typeof(TestNameSentenceAnalyzer).Assembly.Location}" />
                   </ItemGroup>
                 </Project>
                 """);
-            // Where NuGet writes a package's targets import (obj/<project>.nuget.g.targets): the SDK imports every
-            // obj/<project>.*.targets after the project file, before its own analyzer targets.
+            // Where NuGet writes a package's imports (obj/<project>.nuget.g.props and .targets): the SDK imports every
+            // obj/<project>.*.props after Directory.Build.props, and every obj/<project>.*.targets after the project
+            // file, before its own analyzer targets.
+            Write(Path.Combine("obj", _project + ".rask.props"), $"""
+                <Project>
+                  <Import Project="{Path.Combine(root, "src", "Rask.Core", "build", "Rask.Strict.props")}" />
+                </Project>
+                """);
             Write(Path.Combine("obj", _project + ".rask.targets"), $"""
                 <Project>
                   <Import Project="{Path.Combine(root, "src", "Rask.Core", "build", "Rask.Strict.targets")}" />

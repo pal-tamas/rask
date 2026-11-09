@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`rask new` apps start strict: `<RaskStrict>errors</RaskStrict>` in a scaffolded `Directory.Build.props`.** Before:
+  a new app built with nullable on and nothing else enforced. After: the app and its tests build with the .NET analyzers
+  at `latest-recommended`, the `.editorconfig`'s style rules (an unused `using` is IDE0005), test names as sentences
+  (RASK116) and every warning an error; all three templates build clean under it. `<RaskStrict>` now also writes a
+  documentation file (so IDE0005 runs in the build, CS1591 off), and turns off CA1716 (`Shared` is a VB keyword) and, in
+  tests, CA1707 (underscores). Write `warnings` in `Directory.Build.props` to report without failing.
 - **BREAKING (Rask.Ui): `Ui.RowActions` is the ⋯ menu only; its pencil-and-bin shape and `Ui.ColumnWidth.Actions` are
   gone.** One shape for a row's actions, as the owner decided (2026-11-06). Before:
   `Ui.TableColumn.Actions` … `Ui.RowActions.Edit(url).Remove(…)` drew a muted pencil and bin, and `.Menu()` switched to
@@ -1087,6 +1093,10 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A generated form model's doc comment no longer names an inherited column through the entity.** Before:
+  `UserModel.Version` said `<see cref="User.Version" />`, which C# cannot resolve for a member declared on
+  `Aggregate<TId>`, so an app writing a documentation file (every `<RaskStrict>` app) got CS1574 in generated code.
+  After: the cref names the declaring type, `Aggregate{TId}.Version`.
 - **A row of a searching `Ui.Select`/`Ui.Pillbox` pressed as the search's answer arrives is picked.** Before: a press
   read from the list as drawn, landing just after the pause sent what was typed, reached the page once the answer had
   moved the rows; the row's handler named its old place, so the press ran nothing and the value stayed (the flaky

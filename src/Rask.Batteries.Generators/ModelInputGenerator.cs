@@ -316,7 +316,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> Attributes,
         EquatableArray<string> Checks,
         bool RequiredByType = false,
-        bool KeyPart = false);
+        bool KeyPart = false,
+        string? DeclaredOn = null);
 
     private sealed record Write(
         ModelWriteKind Kind,

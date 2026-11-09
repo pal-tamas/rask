@@ -1,0 +1,6 @@
+# Added by Rask.Strict.targets to every project of an app that sets <RaskStrict>.
+is_global = true
+
+# A name that is a Visual Basic keyword (Shared, Select, Option, Get): an app is C#, and Features/Shared is where
+# `rask new` keeps what features share. Rask turns it off in its own repository for the same reason.
+dotnet_diagnostic.CA1716.severity = none

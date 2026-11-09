@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;
 
@@ -42,7 +41,7 @@ public sealed partial class ConfirmEmailPage(IAuth auth) : AuthPage
             Ui.Text[Ui.Link.Href(Routes.LoginPage())["Sign in"], "."]
         ];
 
-    private Component Confirmed =>
+    private static Component Confirmed =>
         [
             Title("Email confirmed"),
             Ok("confirm-ok", "Your email address is confirmed."),

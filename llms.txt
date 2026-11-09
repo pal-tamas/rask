@@ -1929,6 +1929,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   **An app's opt-in gate: `<RaskStrict>warnings</RaskStrict>`** in its `Directory.Build.props` (Rask package targets, no third-party analyzers):
   Nullable enable, .NET analyzers `latest-recommended`, `EnforceCodeStyleInBuild`, RASK116 (test named as a sentence) in `*.Tests` projects — as warnings;
   `errors`/`true` adds `TreatWarningsAsErrors`; unset/`false` = no change; the style rules stay in the `.editorconfig` `rask new` writes.
+  `rask new` writes `<RaskStrict>errors</RaskStrict>` into every app's `Directory.Build.props`; strict also writes a doc file (IDE0005 in the build, CS1591 off), turns off CA1716 and, in tests, CA1707.
 - [Public API style](docs/api-style.md): the naming rules every public member obeys, and the PublicAPI.txt gate that enforces them.
 - [Repo administration](docs/repo-administration.md): The GitHub settings behind the repository: branch protection on main, required code owner review, why no status checks are required, and workflow secrets.
 - [Live-rendering internals](docs/architecture/live-rendering.md): How one C# component tree stays live after first paint: a shared render and diff pipeline, sent over a WebSocket on ASP.NET Core or JSImport on WebAssembly.

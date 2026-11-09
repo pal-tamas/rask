@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Rask's quality gate, for this app and its tests: nullable on, the .NET analyzers at latest-recommended,
+         the .editorconfig's style rules in the build, test names read as sentences (RASK116), and every warning
+         an error. `warnings` reports the same list without failing the build; `false` turns it off.
+         https://rask.sh/docs/guides/code-analysis/#strict-mode-for-your-app-raskstrict -->
+    <RaskStrict>errors</RaskStrict>
+  </PropertyGroup>
+</Project>

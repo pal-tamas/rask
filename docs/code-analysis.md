@@ -20,8 +20,9 @@ Tests and benchmarks keep the SDK's default set.
 ## Strict mode for your app: `<RaskStrict>`
 
 None of the analyzer packages above reach an app built on Rask. What an app can switch on is `<RaskStrict>`, a
-quality gate made only of what the .NET SDK and Rask already ship — no third-party analyzer package. Write it in
-the app's `Directory.Build.props`, so its test projects get it too:
+quality gate made only of what the .NET SDK and Rask already ship — no third-party analyzer package. A new app has it
+already: `rask new` writes `<RaskStrict>errors</RaskStrict>` into its `Directory.Build.props`, and every template builds
+clean under it. An app made before that writes it in its own `Directory.Build.props`, so its test projects get it too:
 
 ```xml
 <!-- before: nothing — nullable is whatever each project says, warnings never fail the build -->
@@ -39,13 +40,16 @@ the app's `Directory.Build.props`, so its test projects get it too:
 | `Nullable` `enable` (overrides a project's own `disable`) | ✓ | ✓ |
 | .NET analyzers at `AnalysisLevel` `latest-recommended` (unless the app set a level) | ✓ | ✓ |
 | `EnforceCodeStyleInBuild`: the `.editorconfig`'s IDE rules report in `dotnet build` | ✓ | ✓ |
+| A documentation file, so IDE0005 (an unused `using`) runs in the build; CS1591 (no XML comment) stays off | ✓ | ✓ |
 | [RASK116](diagnostics.md#rask116), a test named as a sentence, in every `*.Tests` / `IsTestProject` project | ✓ | ✓ |
+| Off: CA1716 (a Visual Basic keyword such as `Shared` in a name), and CA1707 (underscores) in a test project | ✓ | ✓ |
 | `TreatWarningsAsErrors`: every warning above, and Rask's own RASK warnings, fail the build | | ✓ |
 
 Unset or `false` changes nothing; any other word stops the build and names the two levels. Start at `warnings`: the
 build stays green and the list shows up in the IDE and in `dotnet build`. Move to `errors` once it is empty. A project
 that is not ready yet sets `<RaskStrict>false</RaskStrict>` in its own csproj, which wins over the
-`Directory.Build.props`.
+`Directory.Build.props`. Write the switch in `Directory.Build.props` rather than a csproj: the documentation file is
+settled before a csproj is read, so in a csproj alone IDE0005 reports only in the editor.
 
 What it looks like in an app that turned nullable off and never ran the analyzers:
 

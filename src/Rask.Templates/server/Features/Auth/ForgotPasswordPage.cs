@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Rask.Wire;
 
 namespace Company.RaskServer.Features.Auth;
 
@@ -23,7 +22,7 @@ public sealed partial class ForgotPasswordPage(IAuth auth) : AuthPage
 
     protected override Component? Content => _sent ? Sent : Ask;
 
-    private Component Sent =>
+    private static Component Sent =>
         [
             Title("Check your email"),
             Ok("forgot-sent", "If an account exists for that address, a link to choose a new password is on its way."),

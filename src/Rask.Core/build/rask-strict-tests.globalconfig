@@ -1,5 +1,9 @@
-# Added by Rask.Strict.targets to a test project of an app that sets <RaskStrict>. RASK116 ships switched off,
-# because a test name is only a sentence by convention; a strict app's tests are held to it.
+# Added by Rask.Strict.targets to a test project of an app that sets <RaskStrict>.
 is_global = true
 
+# A test is named as a sentence. RASK116 ships switched off, because that is a convention; a strict app's tests
+# are held to it.
 dotnet_diagnostic.RASK116.severity = warning
+
+# A sentence is words joined by underscores, which CA1707 (no underscores in a member name) forbids.
+dotnet_diagnostic.CA1707.severity = none
