@@ -1,16 +1,22 @@
+using System.Collections.Concurrent;
 using Microsoft.Playwright;
 using Rask.Testing;
 
-namespace Rask.Site.E2E.Tests;
+namespace Rask.Server.E2E.Tests;
 
 /// <summary>
 ///     Rask.Testing.Playwright's <see cref="RaskSite{TProgram}" /> over a real app: Rask.Testing.Fixture.App, referenced the
-///     way an app's own E2E project references its app, started as a process of its own, every page walked in Chromium.
+///     way an app's own E2E project references its app, started as a process of its own, its pages walked in Chromium.
 /// </summary>
+/// <remarks>
+///     The pages are named rather than listed with <c>RaskSite.Pages&lt;Program&gt;()</c>: listing them runs the fixture's
+///     route registry, which would register its pages into this process's route table, where this suite's own hosts
+///     route. Rask.Testing.Playwright.Tests lists them, in a process of its own.
+/// </remarks>
 public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : IClassFixture<RaskSiteWalkTests.FixtureSite>
 {
     // /wide fails on purpose (below). /admin is behind [Authorize] on an app with Rask.Auth off: there for no one.
-    public static TheoryData<string> Pages() => [.. RaskSite.Pages<global::Program>().Without("/wide", "/admin")];
+    public static TheoryData<string> Pages() => ["/", "/login", "/save"];
 
     [Theory]
     [MemberData(nameof(Pages))]
@@ -46,9 +52,21 @@ public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : ICla
 
         var cookies = await second.Context.CookiesAsync();
         Assert.Contains(cookies, cookie => cookie is { Name: "who", Value: "ann" });
-        Assert.Equal(1, site.SignIns);
+        Assert.Equal(1, site.SignInsOf("ann"));
         await first.Context.CloseAsync();
         await second.Context.CloseAsync();
+    }
+
+    [Fact]
+    public async Task Pages_asked_for_one_person_at_once_share_one_sign_in()
+    {
+        var pages = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ => site.SignedIn("carol")));
+
+        Assert.Equal(1, site.SignInsOf("carol"));
+        foreach (var page in pages)
+        {
+            await page.Context.CloseAsync();
+        }
     }
 
     [Fact]
@@ -56,21 +74,21 @@ public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : ICla
     {
         await site.Walk("/save").As("bob");
 
-        Assert.True(site.SignIns >= 1);
+        Assert.Equal(1, site.SignInsOf("bob"));
     }
 
     /// <summary>The fixture app, signing a person in its own way: a cookie naming them, set on the sign-in page.</summary>
     public sealed class FixtureSite : RaskSite<global::Program>
     {
-        private int _signIns;
+        private readonly ConcurrentDictionary<string, int> _signIns = new(StringComparer.Ordinal);
 
         public FixtureSite() => SignIn = async (page, name) =>
         {
             await page.GotoAsync("/login");
             await page.Context.AddCookiesAsync([new Cookie { Name = "who", Value = name, Url = Address.ToString() }]);
-            Interlocked.Increment(ref _signIns);
+            _signIns.AddOrUpdate(name, 1, (_, count) => count + 1);
         };
 
-        public int SignIns => Volatile.Read(ref _signIns);
+        public int SignInsOf(string name) => _signIns.GetValueOrDefault(name);
     }
 }
