@@ -55,6 +55,7 @@ public sealed class PageMetaTests
         // that stalls or faults was visible only as a line in a publish log.
         return RaskPrerender.PlanRoutes().Paths
             .Concat(new GuidePrerenderPaths().Paths())
+            .Concat(new global::Rask.Site.Features.UiDocs.AppFrameDemoPrerenderPaths().Paths())
             .Distinct(StringComparer.Ordinal)
             .OrderBy(path => path, StringComparer.Ordinal);
     }
