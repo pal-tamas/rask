@@ -38,6 +38,13 @@ public sealed partial class SavePage : Component
     protected override Component? Render() => Button.Type(ButtonType.Button).OnClick(() => Toast.Success("Saved"))["Save"];
 }
 
+/// <summary>A page wider than a phone: a walk at phone width must name the table that does not fit.</summary>
+[Route("/wide")]
+public sealed partial class WidePage : Component
+{
+    protected override Component? Render() => Table.Id("orders").Style("width: 900px")[Tr[Td["Too wide for a phone"]]];
+}
+
 [Route("/login")]
 public sealed partial class LoginPage : Component
 {

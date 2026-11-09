@@ -1,5 +1,7 @@
 using Microsoft.Playwright;
+using Rask.Cli.Commands;
 using Rask.Cli.Scaffolding;
+using Rask.Testing;
 
 namespace Rask.Templates.E2E.Tests;
 
@@ -72,12 +74,66 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     }
 
     /// <summary>
+    ///     A scaffolded app passes Rask.Testing.Playwright's walk on every page a visitor opens, and on a page behind its
+    ///     sign-in as its administrator — signed in through Rask.Auth's own API, as the app's first account.
+    /// </summary>
+    /// <remarks>
+    ///     The walk an app's own E2E project runs (docs/testing.md, "Testing an app end to end"), over the app <c>rask new</c>
+    ///     writes: a console error, a failed request, a not-found or forbidden page, or a page wider than a phone fails it.
+    /// </remarks>
+    [Fact]
+    public async Task A_scaffolded_app_walks_whole_signed_out_and_as_its_administrator()
+    {
+        Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
+
+        var (projectDirectory, name) = await ScaffoldAndBuildAsync("server", "Walk");
+        try
+        {
+            // The first migration, as `rask new` makes it: the accounts live in tables only a migration creates.
+            var console = new StringConsole();
+            var db = new DbCommand(console, new SystemFileSystem(), new ProcessRunner(), projectDirectory,
+                new Dictionary<string, string>(StringComparer.Ordinal) { ["RaskSpaBuild"] = "false" });
+            var migrated = await db.ExecuteAsync(["add", "Init", "--project", Path.Combine(projectDirectory, name + ".csproj")],
+                TestContext.Current.CancellationToken);
+            Assert.True(migrated == 0, $"the first migration failed.\n{console.OutText}\n{console.ErrorText}");
+            var (rebuilt, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -m:1");
+            Assert.True(rebuilt == 0, $"the app does not build with its migration:\n{CliBuildE2E.Diagnostics(output)}");
+
+            await using var site = new RaskSite(Path.Combine(projectDirectory, "bin", "Debug", "net10.0", name + ".dll"))
+            {
+                ContentRoot = projectDirectory,
+            };
+
+            foreach (var path in (string[])["/", "/login", "/register", "/forgot-password"])
+            {
+                await site.Walk(path);
+            }
+
+            // Behind the sign-in: a walk signed in that is sent to /login fails, so this passing is the sign-in holding.
+            await site.Walk("/devices").As(site.Admin);
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(Path.GetDirectoryName(projectDirectory)!);
+        }
+    }
+
+    /// <summary>
     ///     Scaffolds the template, builds it, and starts the host.
     /// </summary>
     private static async Task<ScaffoldedHost> BuildAndRunAsync(string key, TimeSpan readyTimeout)
     {
+        var (projectDirectory, name) = await ScaffoldAndBuildAsync(key, "Jny");
+        return await ScaffoldedHost.StartAsync(projectDirectory, Path.Combine(projectDirectory, name + ".csproj"), readyTimeout);
+    }
+
+    /// <summary>
+    ///     Scaffolds the template under a name starting <paramref name="prefix" /> and builds it.
+    /// </summary>
+    private static async Task<(string ProjectDirectory, string Name)> ScaffoldAndBuildAsync(string key, string prefix)
+    {
         var (feed, version) = await CliBuildE2E.LocalFeed.Value;
-        var name = "Jny" + key.Replace("-", "", StringComparison.Ordinal);
+        var name = prefix + key.Replace("-", "", StringComparison.Ordinal);
         var work = TemplateBuildE2ETests.NewWorkingDirectory();
         var projectDirectory = Path.Combine(work, name);
 
@@ -94,6 +150,6 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
             exit == 0,
             $"--template {key} does not build:\n{CliBuildE2E.Diagnostics(output)}");
 
-        return await ScaffoldedHost.StartAsync(projectDirectory, projectFile, readyTimeout);
+        return (projectDirectory, name);
     }
 }
