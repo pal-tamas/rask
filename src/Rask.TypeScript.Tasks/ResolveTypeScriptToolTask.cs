@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.Build.Framework;
+using Rask.Build;
 using Task = Microsoft.Build.Utilities.Task;
 
 namespace Rask.TypeScript.Tasks;
@@ -149,7 +150,11 @@ public sealed class ResolveTypeScriptToolTask : Task
             // Fatal: there is nothing else to try, and continuing would produce an app whose TypeScript
             // silently never compiled.
             var tried = TransientRetry.IsTransient(ex) ? $" (asked {TransientRetry.Waits.Count + 1} times)" : "";
-            Log.LogError($"Rask.TypeScript: could not fetch {packageName}@{Version}{tried} — {ex.Message}");
+            Log.LogError(
+                $"Rask.TypeScript: could not fetch {packageName}@{Version}{tried} — {ex.Message}. Unpack {tarball} "
+                + $"into '{directory}' yourself (dropping its leading package/ directory), or keep '{CacheRoot}' between "
+                + "CI runs so a registry outage never reaches the build (actions/cache: see "
+                + "https://rask.sh/docs/guides/deployment#caching-the-builds-tools-in-ci).");
             return false;
         }
 
@@ -189,7 +194,7 @@ public sealed class ResolveTypeScriptToolTask : Task
         // Verified rather than trusted: these bytes are about to be executed by the build.
         var expected = RecordedIntegrity(packageName) ?? PublishedIntegrity(http, packageName);
 
-        var bytes = Ask(() => Get(http, tarballUrl).ReadAsByteArrayAsync().GetAwaiter().GetResult(), packageName);
+        var bytes = Ask(() => HttpFetch.Bytes(http, tarballUrl), packageName);
         var actual = Sha512Integrity(bytes);
         if (!string.Equals(expected, actual, StringComparison.Ordinal))
         {
@@ -199,20 +204,6 @@ public sealed class ResolveTypeScriptToolTask : Task
         }
 
         return bytes;
-    }
-
-    // The body of a successful answer; any other answer is thrown with its status as a number, never parsed from text.
-    private static HttpContent Get(HttpClient http, string url)
-    {
-        var response = http.GetAsync(url).GetAwaiter().GetResult();
-        if (!response.IsSuccessStatusCode)
-        {
-            var status = (int)response.StatusCode;
-            response.Dispose();
-            throw new RegistryAnswerException(status, url);
-        }
-
-        return response.Content;
     }
 
     // A registry or a runner's network that fails for a moment is asked again; an answer that will not change is not.
@@ -240,7 +231,7 @@ public sealed class ResolveTypeScriptToolTask : Task
             + $"against the integrity its own registry publishes. {HowToPin()}");
 
         var metadata = Ask(
-            () => Get(http, TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version)).ReadAsStringAsync().GetAwaiter().GetResult(),
+            () => HttpFetch.Text(http, TypeScriptTools.VersionDocumentUrl(Registry, packageName, Version)),
             packageName);
 
         // A metadata document that carries no SHA-512 is a failure, not "nothing to check".

@@ -37,8 +37,16 @@
        kit's fonts it prints with. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.ChromePin.props" />
+    <!-- ChromiumBuildFetchTests runs MSBuild over the targets and the shared fetch they compile. -->
+    <RaskTestReads Include="..\..\src\Rask.Pdf\build\Rask.Pdf.targets" />
+    <RaskTestReads Include="..\..\src\Rask.Build.Shared\**" />
     <RaskTestReads Include="..\..\src\Rask.Site\wwwroot\demos\pdf\**" />
     <RaskTestReads Include="..\..\src\Rask.Ui\Fonts\**" />
+  </ItemGroup>
+
+  <!-- A loopback release host that answers 504 on cue and counts requests, for ChromiumBuildFetchTests. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\FlakyHttpServer.cs" Link="Shared\FlakyHttpServer.cs"/>
   </ItemGroup>
 
   <!-- rask.sh's PDF demo: the very report the site shows, printed here — the site is static and cannot print. -->

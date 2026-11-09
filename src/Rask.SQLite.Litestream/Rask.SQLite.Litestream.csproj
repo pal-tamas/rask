@@ -52,6 +52,9 @@
   <ItemGroup>
     <None Include="build\**" Pack="true" PackagePath="build\"/>
     <None Include="build\**" Pack="true" PackagePath="buildTransitive\%(RecursiveDir)%(Filename)%(Extension)"/>
+    <!-- The shared verified fetch (retries, SHA-256, atomic move), compiled as an inline task by the targets above. -->
+    <None Include="..\Rask.Build.Shared\Rask.FetchVerifiedFile.targets;..\Rask.Build.Shared\RaskFetchVerifiedFile.cs"
+          Pack="true" PackagePath="build\;buildTransitive\" Visible="false"/>
   </ItemGroup>
 
   <ItemGroup>

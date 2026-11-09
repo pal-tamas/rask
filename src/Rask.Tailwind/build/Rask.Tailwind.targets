@@ -117,7 +117,9 @@
                             CacheRoot="$(RaskTailwindCacheRoot)"
                             ExecutablePath="$(RaskTailwindPath)"
                             Offline="$(RaskTailwindOffline)"
-                            ExpectedSha256="$(RaskTailwindSha256)">
+                            ExpectedSha256="$(RaskTailwindSha256)"
+                            ReleaseBaseUrl="$(RaskTailwindReleaseBaseUrl)"
+                            RetryWaits="$(_RaskFetchRetryWaits)">
       <Output TaskParameter="ToolPath" PropertyName="_RaskTailwindTool"/>
     </ResolveTailwindCliTask>
   </Target>

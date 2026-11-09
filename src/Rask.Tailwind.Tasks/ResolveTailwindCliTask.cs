@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.Build.Framework;
+using Rask.Build;
 using Task = Microsoft.Build.Utilities.Task;
 
 namespace Rask.Tailwind.Tasks;
@@ -27,7 +28,8 @@ namespace Rask.Tailwind.Tasks;
 ///     <para>
 ///         A build-time download is a real hazard and this repo has the scar: Litestream's build props
 ///         fetched a binary on every build, which broke offline builds and errored outright on a RID with
-///         no published asset — hence <c>RaskLitestreamDownload=false</c>. Three things make this
+///         no published asset — hence <c>RaskLitestreamDownload=false</c> — and later failed every server
+///         app's build during a GitHub outage, for a binary none of them needed. Three things make this
 ///         different: it is fetched <b>once</b> into a per-user cache rather than per build, the version
 ///         is <b>pinned</b> rather than floating, and <c>RaskTailwindPath</c> replaces the download
 ///         outright where one cannot work. The first build of a scaffolded app is what populates the cache;
@@ -59,6 +61,12 @@ public sealed class ResolveTailwindCliTask : Task
     ///     (<c>RaskTailwindSha256</c>). Empty for the pinned version, whose digests are in <see cref="TailwindPins" />.
     /// </summary>
     public string ExpectedSha256 { get; set; } = string.Empty;
+
+    /// <summary>Where releases are downloaded from (<c>RaskTailwindReleaseBaseUrl</c>), for a mirror. Empty for GitHub.</summary>
+    public string ReleaseBaseUrl { get; set; } = TailwindCli.DefaultReleaseBaseUrl;
+
+    /// <summary>The pauses between attempts, in seconds, <c>;</c>-separated. Empty for the shared default.</summary>
+    public string RetryWaits { get; set; } = string.Empty;
 
     /// <summary>The executable to run.</summary>
     [Output]
@@ -96,7 +104,7 @@ public sealed class ResolveTailwindCliTask : Task
         {
             Log.LogError(
                 $"Rask.Tailwind: '{path}' is not there and RaskTailwindOffline is set, so it will not be "
-                + $"fetched. Download {TailwindCli.DownloadUrl(Version, assetName)} and put it at that "
+                + $"fetched. Download {TailwindCli.DownloadUrl(Version, assetName, ReleaseBaseUrl)} and put it at that "
                 + "path — the cache is per user, so seeding it once serves every project on this "
                 + "machine — set RaskTailwindPath to a Tailwind binary you already have, or unset "
                 + "RaskTailwindOffline and let this build fetch it.");
@@ -136,13 +144,17 @@ public sealed class ResolveTailwindCliTask : Task
                 + "the new digest.");
             return false;
         }
-        catch (Exception ex) when (ex is HttpRequestException or IOException or WebException)
+        catch (Exception ex) when (ex is HttpRequestException or IOException or WebException
+                                       or System.Threading.Tasks.TaskCanceledException)
         {
+            var tried = TransientRetry.IsTransient(ex) ? $" (asked {TransientRetry.Parse(RetryWaits).Count + 1} times)" : "";
             Log.LogError(
-                $"Rask.Tailwind: could not fetch the Tailwind {Version} CLI ({ex.Message}). Download "
-                + $"{TailwindCli.DownloadUrl(Version, assetName)} and put it at '{path}' — the cache is per "
-                + "user, so seeding it once serves every project on this machine — or set RaskTailwindPath "
-                + "to a Tailwind binary you already have.");
+                $"Rask.Tailwind: could not fetch the Tailwind {Version} CLI{tried} ({ex.Message}). Download "
+                + $"{TailwindCli.DownloadUrl(Version, assetName, ReleaseBaseUrl)} and put it at '{path}' — the cache is per "
+                + "user, so seeding it once serves every project on this machine — keep '"
+                + CacheRoot + "' between CI runs so a release host's outage never reaches the build (actions/cache: "
+                + "see https://rask.sh/docs/guides/deployment#caching-the-builds-tools-in-ci), or set "
+                + "RaskTailwindPath to a Tailwind binary you already have.");
             return false;
         }
 
@@ -165,8 +177,7 @@ public sealed class ResolveTailwindCliTask : Task
         using var http = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         var expected = RecordedChecksum(assetName) ?? PublishedChecksum(http, assetName);
 
-        var bytes = http.GetByteArrayAsync(TailwindCli.DownloadUrl(Version, assetName))
-            .GetAwaiter().GetResult();
+        var bytes = Ask(() => HttpFetch.Bytes(http, TailwindCli.DownloadUrl(Version, assetName, ReleaseBaseUrl)));
 
         // Verified rather than trusted: this file is about to be executed by the build.
         var actual = Sha256(bytes);
@@ -194,11 +205,20 @@ public sealed class ResolveTailwindCliTask : Task
             + "RaskTailwindSha256 to the SHA-256 of the asset for this platform to pin it.");
 
         // A missing entry in the manifest is a failure, not "nothing to check".
-        return TailwindCli.ExpectedChecksum(
-                   http.GetStringAsync(TailwindCli.ChecksumUrl(Version)).GetAwaiter().GetResult(), assetName)
+        return TailwindCli.ExpectedChecksum(Ask(() => HttpFetch.Text(http, TailwindCli.ChecksumUrl(Version, ReleaseBaseUrl))), assetName)
                ?? throw new IOException(
                    $"the release's sha256sums.txt does not list '{assetName}', so the download could not be verified");
     }
+
+    // A release host that fails for a moment (GitHub answering 502/504) is asked again; an answer that will not
+    // change is not.
+    private T Ask<T>(Func<T> request) =>
+        TransientRetry.Run(
+            request,
+            TransientRetry.Parse(RetryWaits),
+            (ex, next) => Log.LogMessage(
+                MessageImportance.High,
+                $"Rask.Tailwind: fetching the Tailwind {Version} CLI failed ({ex.Message}); asking again, attempt {next} of {TransientRetry.Parse(RetryWaits).Count + 1}…"));
 
     private static void Install(byte[] bytes, string path)
     {

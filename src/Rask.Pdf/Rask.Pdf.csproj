@@ -62,6 +62,9 @@
     <None Include="build\Rask.Pdf.props" Pack="true" PackagePath="build/" Visible="false" />
     <None Include="build\Rask.Pdf.targets" Pack="true" PackagePath="build/" Visible="false" />
     <None Include="build\Rask.Pdf.ChromePin.props" Pack="true" PackagePath="build/" Visible="false" />
+    <!-- The shared verified fetch (retries, SHA-256, atomic move), compiled as an inline task by Rask.Pdf.targets. -->
+    <None Include="..\Rask.Build.Shared\Rask.FetchVerifiedFile.targets;..\Rask.Build.Shared\RaskFetchVerifiedFile.cs"
+          Pack="true" PackagePath="build/" Visible="false" />
     <None Include="buildTransitive\Rask.Pdf.props" Pack="true" PackagePath="buildTransitive/" Visible="false" />
     <None Include="buildTransitive\Rask.Pdf.targets" Pack="true" PackagePath="buildTransitive/" Visible="false" />
   </ItemGroup>

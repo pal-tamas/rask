@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+    RaskFetchVerifiedFile: the one fetch a package's build uses for a native binary (retries with growing pauses on
+    5xx/timeouts, SHA-256 checked before anything is unpacked, moved into the cache atomically). Compiled from
+    RaskFetchVerifiedFile.cs beside this file by RoslynCodeTaskFactory, because the packages that need it
+    (Rask.SQLite.Litestream, Rask.Pdf) ship no task assembly; it is compiled only when a fetch actually runs, so a
+    build whose cache is warm pays nothing. MSBuild's own DownloadFile is not enough: it asks again on 500 and 408
+    only, so a release host answering 502/503/504 failed the build on the first try.
+
+    Shipped by each package that needs it; whichever is imported first registers the task.
+  -->
+  <PropertyGroup>
+    <_RaskFetchVerifiedFileImported>true</_RaskFetchVerifiedFileImported>
+  </PropertyGroup>
+
+  <UsingTask TaskName="RaskFetchVerifiedFile"
+             TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <Task>
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)RaskFetchVerifiedFile.cs" />
+    </Task>
+  </UsingTask>
+
+</Project>

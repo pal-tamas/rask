@@ -1,13 +1,18 @@
 <Project>
 
   <!--
-    Consumer-facing knobs for the litestream binary that Rask.SQLite.Litestream downloads at build.
-    Override any of these in your project (or with -p:) — e.g. set RaskLitestreamDownload=false in an
-    air-gapped build and provide your own binary via LitestreamOptions.ExecutablePath.
+    Consumer-facing knobs for the litestream binary Rask.SQLite.Litestream bundles next to an app.
+    Override any of these in your project (or with -p:).
   -->
   <PropertyGroup>
-    <!-- Master switch. When false, nothing is downloaded and no binary is copied to the output. -->
-    <RaskLitestreamDownload Condition="'$(RaskLitestreamDownload)' == ''">true</RaskLitestreamDownload>
+    <!--
+      Whether to bundle the binary. Left empty it is decided for you: an app that references
+      Rask.SQLite.Litestream ITSELF gets it; an app that only has it through Rask.Server (every server app does,
+      SQL Server and PostgreSQL ones included) does not — that app runs litestream from its container image, as the
+      scaffolded Dockerfile does, or not at all. true bundles it regardless; false never fetches (air-gapped builds:
+      supply your own binary via LitestreamOptions.ExecutablePath).
+    -->
+    <RaskLitestreamDownload Condition="'$(RaskLitestreamDownload)' == ''"></RaskLitestreamDownload>
 
     <!-- The litestream release to fetch (no leading 'v'). Change this AND supply the matching SHA-256
          via RaskLitestreamSha256 to pin a different version; otherwise the checksum verification for the
@@ -20,6 +25,11 @@
     <!-- Optional: pin the SHA-256 yourself (required when RaskLitestreamVersion is changed from the
          default, since the built-in checksums only cover that version). -->
     <RaskLitestreamSha256 Condition="'$(RaskLitestreamSha256)' == ''"></RaskLitestreamSha256>
+
+    <!-- The per-user cache the binary is fetched into once and reused from: <root>/<version>/<rid>/litestream.
+         Keep it between CI runs (actions/cache) and a release host's outage never reaches the build. -->
+    <RaskLitestreamCacheRoot Condition="'$(RaskLitestreamCacheRoot)' == '' AND '$(OS)' == 'Windows_NT'">$(USERPROFILE)\.rask\litestream</RaskLitestreamCacheRoot>
+    <RaskLitestreamCacheRoot Condition="'$(RaskLitestreamCacheRoot)' == ''">$(HOME)/.rask/litestream</RaskLitestreamCacheRoot>
   </PropertyGroup>
 
 </Project>
