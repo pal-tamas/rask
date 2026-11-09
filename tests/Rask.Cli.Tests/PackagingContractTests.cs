@@ -126,13 +126,15 @@ public sealed class PackagingContractTests
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var bundled = BundleOutputs(project);
 
-            foreach (var none in project.Descendants("None"))
-            {
-                var include = none.Attribute("Include")?.Value;
+            // MSBuild reads `Include="a;b"` as two items, so each path is checked on its own.
+            var packed = project.Descendants("None")
+                .Where(none => none.Attribute("Pack")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) == true)
+                .SelectMany(none => (none.Attribute("Include")?.Value ?? "")
+                    .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
-                if (include is null ||
-                    none.Attribute("Pack")?.Value.Equals("true", StringComparison.OrdinalIgnoreCase) != true ||
-                    include.Contains('*', StringComparison.Ordinal) ||
+            foreach (var include in packed)
+            {
+                if (include.Contains('*', StringComparison.Ordinal) ||
                     include.Contains('$', StringComparison.Ordinal))
                 {
                     continue;
