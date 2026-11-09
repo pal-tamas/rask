@@ -31,6 +31,11 @@
     <PackageReference Include="Microsoft.Build.Utilities.Core"/>
   </ItemGroup>
 
+  <!-- A loopback release host that answers 504 on cue and counts requests, for the shared fetch's tests. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\FlakyHttpServer.cs" Link="Shared\FlakyHttpServer.cs"/>
+  </ItemGroup>
+
   <!-- Files these tests read from disk at runtime that no reference brings in. Never evaluated: it is
        read by scripts/lib/affected_projects.py, so a change to one of these runs these tests. -->
   <ItemGroup Condition="false">

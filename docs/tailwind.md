@@ -176,7 +176,8 @@ compile, which is what lets a class library in the same solution ignore all of t
 | `RaskTailwindOutput` | `wwwroot/css/app.css` | Where the compiled CSS lands. |
 | `RaskTailwindMinify` | `true` in Release | Minified for production, readable in devtools while you work. |
 | `RaskTailwindOffline` | `false` | Never reach the network. A missing binary fails the build naming the file to place and the exact path it goes at, instead of downloading it. For builds that must be hermetic. |
-| `RaskTailwindCacheRoot` | `~/.rask/tailwind` | Where fetched binaries are cached. |
+| `RaskTailwindCacheRoot` | `~/.rask/tailwind` | Where fetched binaries are cached. Keep it between CI runs — see [Caching the build's tools in CI](deployment.md#caching-the-builds-tools-in-ci). |
+| `RaskTailwindReleaseBaseUrl` | GitHub releases | Where the binary is downloaded from: a mirror, or an internal proxy. The pinned SHA-256 is checked either way. |
 | `RaskTailwindClassList` | unset | For a component **library** that compiles a sheet of its own: a path to write every class that sheet defines, one per line, for an app's Tailwind build to read with `@source`. It is how `Rask.Ui` hands its classes over. |
 | `RaskTailwindSourceRoot` | the project | The folder Tailwind runs in, and so where its source detection starts. `Rask.Ui` points it at a copy of its C# with the comments taken out, so a word of prose is never compiled as a class. |
 | `RaskUiTailwind` | follows the stylesheet | Whether the build writes the kit's Tailwind sources into `Styles/vendor/`: on when the stylesheet imports `rask-ui.css` (or `rask-ui.kit.css`), off otherwise. `true`/`false` decides it regardless. |
@@ -200,8 +201,12 @@ way to skip the stylesheet:
 - **Offline, with nothing cached.** The error prints the download URL and the exact path to put it
   at. The cache is per user rather than per project, so seeding it once serves every build on the
   machine — which is how a hermetic or air-gapped build is set up.
-- **The download failed.** The error prints the same URL and cache path, so you can fetch the file
-  another way and place it, or point `RaskTailwindPath` at a binary you already have.
+- **The download failed.** A release host answering 5xx, or a connection that times out, is asked again
+  first — seven attempts, 90 seconds of pauses — so a brief GitHub outage costs a wait, not a red build.
+  Past that, the error prints the same URL and cache path, so you can fetch the file another way and
+  place it, or point `RaskTailwindPath` at a binary you already have. On CI, keep the cache between runs
+  ([Caching the build's tools in CI](deployment.md#caching-the-builds-tools-in-ci)) and only a cold
+  runner ever downloads it.
 
 ## See also
 

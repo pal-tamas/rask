@@ -280,6 +280,43 @@ the job, not get reconfigured by CI.
 > `.rask/deploy.json` records the *names* of the variables your app needs (never their values), and a
 > deploy that doesn't supply one of them refuses rather than starting the app misconfigured.
 
+### Caching the build's tools in CI
+
+A Rask build runs a few native binaries it fetches itself — no Node, no global installs. Each is pinned,
+**SHA-256-verified**, fetched once into a per-user cache and then reused **without touching the network**; a
+first fetch that meets a release host answering 5xx or timing out is asked again (seven attempts, 90 seconds
+of pauses) before it fails, and the failure names the cache path to seed.
+
+| Tool | Fetched when | Cache (Linux · macOS) | Windows | Moved by |
+|---|---|---|---|---|
+| Tailwind CLI | every build of a Tailwind app | `~/.rask/tailwind` | `%LOCALAPPDATA%\rask\tailwind` | `RaskTailwindCacheRoot` |
+| tsgo, esbuild | an app with scoped TypeScript | `~/.rask/typescript` | `%LOCALAPPDATA%\rask\typescript` | `RaskTypeScriptCacheRoot` |
+| litestream | an app that references `Rask.SQLite.Litestream` itself ([details](sqlite.md#the-litestream-binary-is-fetched-for-you)) | `~/.rask/litestream` | `%USERPROFILE%\.rask\litestream` | `RaskLitestreamCacheRoot` |
+| Chrome for Testing shell | an app that references `Rask.Pdf` | `~/.cache/rask` · `~/Library/Caches/Rask` | `%LOCALAPPDATA%\Rask\Cache` | `RaskPdfChromiumCache` |
+
+A CI runner starts with an empty home, so without a cache every run is a first fetch — and a GitHub outage is
+a red build. Keep the caches between runs; with GitHub Actions that is one step before the build:
+
+```yaml
+      - name: Cache Rask's build tools
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.rask
+            ~/.cache/rask
+          # The pins move with the Rask package version, which lives in the project files.
+          key: rask-tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.csproj', '**/Directory.Packages.props') }}
+          restore-keys: |
+            rask-tools-${{ runner.os }}-${{ runner.arch }}-
+```
+
+Every cache is keyed by version inside (`<root>/<version>/…`), so restoring an older one is safe: a new pin
+is simply one more folder.
+
+The workflow `rask deploy --github-actions` writes needs none of this: it builds the image **on your host**,
+where the template Dockerfile keeps the same caches in BuildKit cache mounts (`rask-tailwind`,
+`rask-typescript`, `rask-chrome`) across deploys.
+
 ## Backups
 
 Two different questions, two answers. **"Let me look at what production has"**, or "that migration was a

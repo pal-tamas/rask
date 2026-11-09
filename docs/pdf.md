@@ -118,6 +118,11 @@ Rask.Pdf prints with the **Chrome for Testing headless shell**, at one pinned ve
 | The container image | The scaffolded Dockerfile has `dotnet publish` fetch it into a BuildKit cache mount (once per pin, not per deploy) and copy it out with `-p:RaskPdfChromiumCopyTo=/chrome-shell`, then copies it to `/opt/rask/chrome`, and installs the libraries it links against plus fonts — only when the app references Rask.Pdf. About 510 MB more on `aspnet:10.0`. It also sets `Rask__Pdf__NoSandbox=true` — see [In a container](#in-a-container). |
 | Anywhere else | Install Chromium or Google Chrome and set `Rask:Pdf:ChromiumPath`; the build's fetch is off with `<RaskPdfDownloadChromium>false</RaskPdfDownloadChromium>`. |
 
+A first fetch that meets Chrome for Testing's host answering 5xx or timing out is asked again (seven attempts, 90 seconds of
+pauses) before the build fails naming the cache folder; on CI, keep that folder between runs
+([Caching the build's tools in CI](deployment.md#caching-the-builds-tools-in-ci)). `RaskPdfChromeBaseUrl` points the
+fetch at a mirror; the pinned SHA-256 is checked either way.
+
 An app scaffolded before Rask.Pdf existed adds the same lines to its Dockerfile: copy them from any template's
 (`src/Rask.Templates/server/Dockerfile`). The pin moves with Rask's daily dependency run, only ever to a Stable
 release at least a week old.

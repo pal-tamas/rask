@@ -38,4 +38,16 @@
     <ProjectReference Include="..\..\src\Rask.SQLite.Litestream\Rask.SQLite.Litestream.csproj"/>
   </ItemGroup>
 
+  <!-- A loopback release host that answers 504 on cue and counts requests, for the build-fetch tests. -->
+  <ItemGroup>
+    <Compile Include="..\Shared.TestFiles\FlakyHttpServer.cs" Link="Shared\FlakyHttpServer.cs"/>
+  </ItemGroup>
+
+  <!-- Files these tests read from disk at runtime that no reference brings in (LitestreamBuildFetchTests runs
+       MSBuild over them). Never evaluated: read by scripts/lib/affected_projects.py. -->
+  <ItemGroup Condition="false">
+    <RaskTestReads Include="..\..\src\Rask.SQLite.Litestream\build\**" />
+    <RaskTestReads Include="..\..\src\Rask.Build.Shared\**" />
+  </ItemGroup>
+
 </Project>

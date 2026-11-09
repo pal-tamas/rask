@@ -668,17 +668,31 @@ while verification reports `Failed`.
 
 ### The litestream binary is fetched for you
 
-By default the package **downloads the `litestream` binary at build/publish time** and drops it next to
-your app, so there's nothing to install — the default `ExecutablePath` finds it automatically. The
-binary for the target runtime (Linux x64/arm64/armv7, macOS x64/arm64, Windows x64/arm64) is fetched
-once into a per-user cache (`~/.rask/litestream/<version>/<rid>`), **SHA-256-verified** against a pinned
-checksum, and reused by later builds. Knobs (in your project or with `-p:`):
+An app that **references `Rask.SQLite.Litestream` itself** gets the `litestream` binary dropped next to it,
+so there's nothing to install — the default `ExecutablePath` finds it automatically. The binary for the
+target runtime (Linux x64/arm64/armv7, macOS x64/arm64, Windows x64/arm64) is fetched once into a per-user
+cache (`~/.rask/litestream/<version>/<rid>`), **SHA-256-verified** against a pinned checksum, and reused by
+later builds without touching the network.
+
+An app that only has the package **through `Rask.Server`** — every server app, SQL Server and PostgreSQL ones
+included — fetches nothing. A scaffolded app runs litestream from its container image (the template
+`Dockerfile` copies it in), and an app that never sets `Rask:Litestream:ReplicaUrl` never runs it at all.
+
+The binary runs beside the **published** app, so a release host that is down never fails a plain build: the
+first fetch is asked again on 5xx and timeouts (seven attempts, 90 seconds of pauses), and if it still
+fails the build carries on with a warning. `dotnet publish` is where it is required, and fails naming the
+cache to seed. On CI, keep that cache between runs —
+[Caching the build's tools in CI](deployment.md#caching-the-builds-tools-in-ci).
+
+Knobs (in your project or with `-p:`):
 
 | Property | Purpose |
 |---|---|
-| `RaskLitestreamDownload` | `false` to skip the download (air-gapped builds); provide your own binary via `ExecutablePath`. |
+| `RaskLitestreamDownload` | Unset: decided as above. `true` bundles the binary for any app (a `Rask.Server` app that runs litestream outside a container); `false` never fetches (air-gapped builds — provide your own binary via `ExecutablePath`). |
 | `RaskLitestreamVersion` | Pin a different litestream version (also set `RaskLitestreamSha256`). |
 | `RaskLitestreamSha256` | The expected checksum when you override the version. |
+| `RaskLitestreamReleaseBaseUrl` | Where releases are downloaded from — a mirror. The checksum is checked either way. |
+| `RaskLitestreamCacheRoot` | Where fetched binaries are cached (`~/.rask/litestream`). |
 
 > Building on a platform litestream doesn't ship (or with the download off)? Install `litestream`
 > yourself and point `ExecutablePath` at it — a bundled binary next to the app always wins, otherwise a

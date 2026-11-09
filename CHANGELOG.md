@@ -1050,6 +1050,18 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A GitHub outage no longer fails the build of an app that does not need what GitHub was asked for.** Before:
+  `Rask.SQLite.Litestream`'s buildTransitive targets fetched the litestream binary on EVERY build of EVERY server app
+  (Rask.Server depends on the package), SQL Server and PostgreSQL apps included, and GitHub's release downloads
+  answering 504 failed them with MSB3923; the Tailwind CLI fetch failed the same way on the first 504. After: litestream
+  is bundled only for an app that references `Rask.SQLite.Litestream` itself (or sets `RaskLitestreamDownload=true`;
+  `false` still turns it off), and an unreachable host is a warning at build and an error only at `dotnet publish`.
+  Every native binary the build fetches — Tailwind, tsgo, esbuild, litestream, Chrome for Testing — now goes through
+  one fetch (`src/Rask.Build.Shared`): a cached file touches no network, a 5xx or a timeout is asked again (seven
+  attempts, 90 seconds of pauses), and a failure names the cache folder to seed. New mirror knobs
+  `RaskTailwindReleaseBaseUrl` and `RaskPdfChromeBaseUrl`, and `RaskLitestreamCacheRoot`; the template Dockerfiles
+  keep tsgo in a BuildKit cache mount too. CI: cache `~/.rask` and `~/.cache/rask` — see
+  [Caching the build's tools in CI](docs/deployment.md#caching-the-builds-tools-in-ci).
 - **A chain built after a hook's `await` no longer writes into the page's tree while the next render walks it.**
   Before: a hook's continuation still carried the render context it captured, so `Span["x"]` (or a
   `Ui.Pillbox.Choices(find, …)` answer building its option rows after the search's await) filed itself as a child

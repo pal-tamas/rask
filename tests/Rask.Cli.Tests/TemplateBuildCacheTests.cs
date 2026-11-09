@@ -9,6 +9,7 @@ public sealed class TemplateBuildCacheTests
 {
     private const string NuGetCache = "--mount=type=cache,id=rask-nuget,target=/root/.nuget/packages";
     private const string TailwindCache = "--mount=type=cache,id=rask-tailwind,target=/root/.rask/tailwind";
+    private const string TypeScriptCache = "--mount=type=cache,id=rask-typescript,target=/root/.rask/typescript";
     private const string ChromeCache = "--mount=type=cache,id=rask-chrome,target=/chrome,sharing=locked";
 
     private static readonly string Root = Path.Combine(CliBuildE2E.FindRepoRoot(), "src", "Rask.Templates");
@@ -42,6 +43,21 @@ public sealed class TemplateBuildCacheTests
 
         Assert.NotEmpty(images);
         Assert.True(uncached.Count == 0, "These steps download the Tailwind CLI on every build:\n  " + string.Join("\n  ", uncached));
+    }
+
+    [Fact]
+    public void Every_template_publish_compiles_its_typescript_with_the_cached_tsgo()
+    {
+        var images = Dockerfiles();
+
+        var uncached = images
+            .SelectMany(file => Runs(file)
+                .Where(run => run.Contains("dotnet publish", StringComparison.Ordinal) && !run.Contains(TypeScriptCache, StringComparison.Ordinal))
+                .Select(run => $"{Path.GetRelativePath(Root, file)}: {run}"))
+            .ToList();
+
+        Assert.NotEmpty(images);
+        Assert.True(uncached.Count == 0, "These steps download tsgo on every build:\n  " + string.Join("\n  ", uncached));
     }
 
     [Fact]
