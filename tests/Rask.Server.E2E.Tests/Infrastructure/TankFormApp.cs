@@ -31,8 +31,10 @@ public sealed partial class TankApp : Component
     protected override Component? Render() => Router;
 }
 
+// Not at "/": the built-in 404 nests under the root layout, so a guarded layout there would answer every other
+// suite's unrouted page in this assembly with a challenge.
 [Authorize]
-[Route("/")]
+[Route("/tank")]
 public sealed partial class TankLayout(IUserProvider users, RouteState route) : Component
 {
     protected override Component? HeadAssets => Title[route.Title is { } title ? title + " | PPTA" : "PPTA"];

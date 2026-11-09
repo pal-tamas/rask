@@ -29,7 +29,7 @@ public sealed class ReportedTankFormTests(PlaywrightFixture playwright) : IClass
     {
         SocketFrames? frames = null;
         await using var session = await HookSession.OpenAsync<TankApp>(
-            playwright, path: "/signin?to=/uj/" + path, pathBase: "/uj", environment: "Development", cookieSignIn: true, beside: SignsIn,
+            playwright, path: "/signin?to=/uj/tank/" + path, pathBase: "/uj", environment: "Development", cookieSignIn: true, beside: SignsIn,
             beforeLoad: opened =>
             {
                 frames = SocketFrames.Of(opened);

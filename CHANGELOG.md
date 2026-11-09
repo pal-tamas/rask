@@ -1050,6 +1050,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A double press on an edited editor's cross now asks whether to leave, instead of silently keeping it open.**
+  Before: with something typed or picked in a `Ui.ConfirmLeave`-guarded form inside a `Ui.Modal`, the first press
+  of a double press on the corner's cross asked the leave question, and the second landed on that question's
+  backdrop and counted as a press outside — "stay", answered before the question had faded in — so the editor the
+  reader closed stayed open with nothing on screen to say why (reported on two live Rask.Server apps' `?edit=`
+  editor dialogs, and the same for `Ui.EditorDialog`). After: only the first press of a sequence (`detail` 1) on a
+  modal's backdrop dismisses it; the question stays up and leaving closes the editor.
 - **A chain built after a hook's `await` no longer writes into the page's tree while the next render walks it.**
   Before: a hook's continuation still carried the render context it captured, so `Span["x"]` (or a
   `Ui.Pillbox.Choices(find, …)` answer building its option rows after the search's await) filed itself as a child

@@ -285,6 +285,12 @@ function installModal(doc: Document): void {
     // A press outside. The backdrop is the dialog's own pseudo-element, so the press arrives ON the dialog,
     // outside its box. Both ends of the press have to be outside: dragging a selection out of a field and
     // letting go over the backdrop is not a dismissal.
+    //
+    // Nor is the second press of a double one (`detail` counts the presses of one sequence). The first press
+    // decided: it dismissed the dialog already, or it was what opened it — the cross of an editor that asks
+    // about its unsaved form, "Cancel" — and the second lands on the backdrop of the question the first one
+    // raised. Taken as a press outside, it answered "stay" before the question had faded in, and the editor
+    // the reader closed stayed open with nothing on screen to say why.
     let downOutside: Element | null = null;
     listen("pointerdown", function (e) {
         const dialog = e.target;
@@ -296,6 +302,9 @@ function installModal(doc: Document): void {
             return;
         }
         downOutside = null;
+        if (e.detail > 1) {
+            return;
+        }
         const by = dialog.getAttribute(MODAL);
         // closedby="any" is the platform doing this already, where it exists.
         if (by === "press" || (by === "any" && !("closedBy" in dialog && (dialog as Dialog).closedBy === "any"))) {

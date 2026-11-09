@@ -643,3 +643,11 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128223
+# 2026-11-09, the second press of a double press never dismisses a modal as a press outside (rask-overlay.ts: it
+# landed on the backdrop of the leave guard's question the first press raised, and answered "stay"):
+# rask-hooks.js 128,223 -> 128,237 (+14); rask.js and rask.wasm.js unchanged. Measured locally (the bundle gate's
+# esbuild 0.28.2 with its flags, --minify) on 66417e5b8 plus this change.
+bundle,bytes
+rask.js,114018
+rask.wasm.js,100401
+rask-hooks.js,128237
