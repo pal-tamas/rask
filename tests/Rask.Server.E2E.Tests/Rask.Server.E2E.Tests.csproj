@@ -62,6 +62,9 @@
     <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
     <!-- WaitForRaskTests: the browser-test wait the package ships, driven against this host. -->
     <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
+    <!-- RaskSiteWalkTests: RaskSite<Program> runs this app as a process of its own and walks its pages. Here, with the
+         server journeys, because the app is a RaskApp: in the site's suite it made every battery reach the site gate. -->
+    <ProjectReference Include="..\Rask.Testing.Fixture.App\Rask.Testing.Fixture.App.csproj"/>
     <!-- LiveEventListenerTests: a page that handles a published event, registered by the battery generator. -->
     <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
                       OutputItemType="Analyzer"
@@ -84,5 +87,8 @@
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\Rask.Ui.Tests\Flux\flux.snapshot.json" />
   </ItemGroup>
+
+  <!-- Records where the fixture app was built, as Rask.Testing.Playwright's package does for an app's own tests. -->
+  <Import Project="..\..\src\Rask.Testing.Playwright\build\Rask.Testing.Playwright.targets"/>
 
 </Project>

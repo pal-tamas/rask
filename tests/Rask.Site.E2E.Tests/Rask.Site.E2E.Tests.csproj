@@ -48,12 +48,7 @@
   <ItemGroup>
     <!-- WaitForRaskWasmTests: the browser-test wait the package ships, driven against the WebAssembly host. -->
     <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
-    <!-- RaskSiteWalkTests: RaskSite<Program> runs this app as a process of its own and walks its pages. -->
-    <ProjectReference Include="..\Rask.Testing.Fixture.App\Rask.Testing.Fixture.App.csproj"/>
   </ItemGroup>
-
-  <!-- Records where the fixture app was built, as Rask.Testing.Playwright's package does for an app's own tests. -->
-  <Import Project="..\..\src\Rask.Testing.Playwright\build\Rask.Testing.Playwright.targets"/>
 
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />

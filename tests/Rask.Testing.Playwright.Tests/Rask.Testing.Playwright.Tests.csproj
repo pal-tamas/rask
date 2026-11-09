@@ -4,7 +4,7 @@
     RaskSite without a browser: the pages it lists, where it finds the app's build, and the app's process — started on
     a port of its own, waited for, ended. It runs Rask.Testing.Fixture.App the way an app's own E2E project runs its app:
     referenced, and started by RaskSite<Program>. The walks themselves, which need Chromium, are in
-    Rask.Site.E2E.Tests (RaskSiteWalkTests).
+    Rask.Server.E2E.Tests (RaskSiteWalkTests).
   -->
   <PropertyGroup>
     <TargetFramework>$(RaskTestTarget)</TargetFramework>
