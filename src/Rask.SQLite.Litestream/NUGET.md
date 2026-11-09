@@ -14,9 +14,11 @@ Builds on [`Rask.SQLite`](https://www.nuget.org/packages/Rask.SQLite), whose WAL
 what Litestream requires and whose non-blocking busy-retry writes the verification sentinel, plus
 [CliWrap](https://github.com/Tyrrrz/CliWrap) to drive the binary.
 
-> The `litestream` binary is **downloaded at build time** and dropped next to your app (SHA-256-verified,
-> cached, tiny package) — nothing to install. Opt out with `-p:RaskLitestreamDownload=false` and set your
-> own `ExecutablePath`.
+> The `litestream` binary is **downloaded once** and dropped next to an app that references this package
+> itself (SHA-256-verified, cached per user, tiny package) — nothing to install. A build never fails over it:
+> an unreachable release host is a warning at build and an error only at `dotnet publish`. An app that has
+> the package only through `Rask.Server` fetches nothing. `-p:RaskLitestreamDownload=true|false` decides it
+> yourself; with `false`, set your own `ExecutablePath`.
 
 ## Install
 

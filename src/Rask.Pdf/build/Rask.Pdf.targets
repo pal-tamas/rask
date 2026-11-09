@@ -17,8 +17,16 @@
 
   <Import Project="$(MSBuildThisFileDirectory)Rask.Pdf.ChromePin.props" Condition="'$(RaskPdfChromeVersion)' == ''" />
 
+  <Import Project="$(MSBuildThisFileDirectory)Rask.FetchVerifiedFile.targets"
+          Condition="'$(_RaskFetchVerifiedFileImported)' != 'true' And Exists('$(MSBuildThisFileDirectory)Rask.FetchVerifiedFile.targets')" />
+  <!-- In this repository the shared fetch lives in one place rather than beside each package's targets. -->
+  <Import Project="$(MSBuildThisFileDirectory)../../Rask.Build.Shared/Rask.FetchVerifiedFile.targets"
+          Condition="'$(_RaskFetchVerifiedFileImported)' != 'true' And Exists('$(MSBuildThisFileDirectory)../../Rask.Build.Shared/Rask.FetchVerifiedFile.targets')" />
+
   <PropertyGroup>
     <RaskPdfDownloadChromium Condition="'$(RaskPdfDownloadChromium)' == ''">true</RaskPdfDownloadChromium>
+    <!-- Where Chrome for Testing is downloaded from (override for a mirror). -->
+    <RaskPdfChromeBaseUrl Condition="'$(RaskPdfChromeBaseUrl)' == ''">https://storage.googleapis.com/chrome-for-testing-public</RaskPdfChromeBaseUrl>
 
     <_RaskPdfArch>$([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)</_RaskPdfArch>
     <_RaskPdfPlatform Condition="$([MSBuild]::IsOSPlatform('Linux')) And '$(_RaskPdfArch)' == 'X64'">linux64</_RaskPdfPlatform>
@@ -58,25 +66,21 @@
       <_RaskPdfMarker>$(_RaskPdfDir)/.verified</_RaskPdfMarker>
       <_RaskPdfArchive>chrome-headless-shell-$(_RaskPdfPlatform).zip</_RaskPdfArchive>
       <_RaskPdfDownload>$(_RaskPdfDir)/$(_RaskPdfArchive).$([System.Guid]::NewGuid().ToString('N')).part</_RaskPdfDownload>
-      <_RaskPdfUrl>https://storage.googleapis.com/chrome-for-testing-public/$(RaskPdfChromeVersion)/$(_RaskPdfPlatform)/$(_RaskPdfArchive)</_RaskPdfUrl>
+      <_RaskPdfUrl>$(RaskPdfChromeBaseUrl)/$(RaskPdfChromeVersion)/$(_RaskPdfPlatform)/$(_RaskPdfArchive)</_RaskPdfUrl>
       <_RaskPdfFetch Condition="!Exists('$(_RaskPdfMarker)')">true</_RaskPdfFetch>
     </PropertyGroup>
 
     <Message Condition="'$(_RaskPdfFetch)' == 'true'" Importance="high"
              Text="Rask.Pdf: fetching Chrome for Testing headless shell $(RaskPdfChromeVersion) ($(_RaskPdfPlatform)) into $(_RaskPdfDir) — once per version." />
     <MakeDir Condition="'$(_RaskPdfFetch)' == 'true'" Directories="$(_RaskPdfDir)" />
-    <DownloadFile Condition="'$(_RaskPdfFetch)' == 'true'"
-                  SourceUrl="$(_RaskPdfUrl)"
-                  DestinationFolder="$(_RaskPdfDir)"
-                  DestinationFileName="$([System.IO.Path]::GetFileName('$(_RaskPdfDownload)'))"
-                  Retries="2" />
-    <GetFileHash Condition="'$(_RaskPdfFetch)' == 'true'" Files="$(_RaskPdfDownload)" Algorithm="SHA256">
-      <Output TaskParameter="Hash" PropertyName="_RaskPdfActualSha256" />
-    </GetFileHash>
-    <Delete Condition="'$(_RaskPdfFetch)' == 'true' And '$(_RaskPdfActualSha256.ToLowerInvariant())' != '$(_RaskPdfChromeSha256)'"
-            Files="$(_RaskPdfDownload)" />
-    <Error Condition="'$(_RaskPdfFetch)' == 'true' And '$(_RaskPdfActualSha256.ToLowerInvariant())' != '$(_RaskPdfChromeSha256)'"
-           Text="Rask.Pdf: $(_RaskPdfUrl) has SHA-256 $(_RaskPdfActualSha256.ToLowerInvariant()), not the pinned $(_RaskPdfChromeSha256). Nothing was unpacked. A proxy that rewrites downloads, or a changed archive: report it, and meanwhile set RaskPdfDownloadChromium=false and Rask:Pdf:ChromiumPath." />
+    <RaskFetchVerifiedFile Condition="'$(_RaskPdfFetch)' == 'true'"
+                           Url="$(_RaskPdfUrl)"
+                           DestinationFile="$(_RaskPdfDownload)"
+                           Sha256="$(_RaskPdfChromeSha256)"
+                           Product="Rask.Pdf"
+                           CacheDirectory="$(RaskPdfChromiumCache)"
+                           RetryWaits="$(_RaskFetchRetryWaits)"
+                           Remedy="Or set RaskPdfDownloadChromium=false and Rask:Pdf:ChromiumPath to a Chromium you have." />
     <Unzip Condition="'$(_RaskPdfFetch)' == 'true'" SourceFiles="$(_RaskPdfDownload)" DestinationFolder="$(_RaskPdfDir)" />
     <!-- MSBuild's Unzip does not carry the archive's executable bits. -->
     <Exec Condition="'$(_RaskPdfFetch)' == 'true' And !$([MSBuild]::IsOSPlatform('Windows'))"

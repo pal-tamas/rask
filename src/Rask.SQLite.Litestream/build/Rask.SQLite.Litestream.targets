@@ -1,14 +1,44 @@
 <Project>
 
   <!--
-    Downloads the litestream binary for the target runtime at build/publish time and copies it next to
-    the app, so a Rask.SQLite.Litestream consumer needs no separate install. The binary is fetched once
-    into a per-user cache (~/.rask/litestream/<version>/<rid>), SHA-256-verified against the pinned
-    checksum, and reused by later builds. Disable with RaskLitestreamDownload=false (then supply your own
-    litestream via LitestreamOptions.ExecutablePath). See build/Rask.SQLite.Litestream.props for knobs.
+    Bundles the litestream binary for the target runtime next to an app that references Rask.SQLite.Litestream
+    itself, so it needs no separate install. Fetched once into a per-user cache
+    ($(RaskLitestreamCacheRoot)/<version>/<rid>), SHA-256-verified against the pinned checksum, and reused by every
+    later build without touching the network.
+
+    Only an app that wants it: one that has the package only through Rask.Server (every server app, SQL Server and
+    PostgreSQL ones included) fetches nothing, because a scaffolded app runs litestream from its container image
+    and a hand-wired one that never sets Rask:Litestream:ReplicaUrl never runs it at all. A GitHub outage used to
+    fail such a build on a binary it had no use for (MSB3923).
+
+    Nor does a plain build fail over it: the binary runs beside the PUBLISHED app, so an unreachable release host is
+    a warning at build and an error only at publish. RaskLitestreamDownload=true/false overrides the decision. See
+    build/Rask.SQLite.Litestream.props for the knobs.
   -->
 
-  <Target Name="_RaskResolveLitestreamAsset" Condition="'$(RaskLitestreamDownload)' == 'true'">
+  <Import Project="$(MSBuildThisFileDirectory)Rask.FetchVerifiedFile.targets"
+          Condition="'$(_RaskFetchVerifiedFileImported)' != 'true' and Exists('$(MSBuildThisFileDirectory)Rask.FetchVerifiedFile.targets')" />
+  <!-- In this repository the shared fetch lives in one place rather than beside each package's targets. -->
+  <Import Project="$(MSBuildThisFileDirectory)../../Rask.Build.Shared/Rask.FetchVerifiedFile.targets"
+          Condition="'$(_RaskFetchVerifiedFileImported)' != 'true' and Exists('$(MSBuildThisFileDirectory)../../Rask.Build.Shared/Rask.FetchVerifiedFile.targets')" />
+
+  <!--
+    Whether this app wants the binary. A property cannot test an item at evaluation (properties are all evaluated
+    before any item), so the decision is a target's.
+  -->
+  <Target Name="_RaskDecideLitestream">
+    <ItemGroup Condition="'$(RaskLitestreamDownload)' == ''">
+      <_RaskLsDirectReference Include="@(PackageReference)" Condition="'%(Identity)' == 'Rask.SQLite.Litestream'" />
+      <_RaskLsDirectReference Include="@(ProjectReference)" Condition="'%(Filename)' == 'Rask.SQLite.Litestream'" />
+    </ItemGroup>
+    <PropertyGroup>
+      <_RaskLsWanted>$(RaskLitestreamDownload)</_RaskLsWanted>
+      <_RaskLsWanted Condition="'$(_RaskLsWanted)' == '' and '@(_RaskLsDirectReference)' != ''">true</_RaskLsWanted>
+      <_RaskLsWanted Condition="'$(_RaskLsWanted)' != 'true'">false</_RaskLsWanted>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="_RaskResolveLitestreamAsset" DependsOnTargets="_RaskDecideLitestream">
     <PropertyGroup>
       <!-- Target RID, or the build host when building portable (no RID). -->
       <_RaskLsRid>$(RuntimeIdentifier)</_RaskLsRid>
@@ -41,9 +71,7 @@
       <_RaskLsAsset>litestream-$(RaskLitestreamVersion)-$(_RaskLsOs)-$(_RaskLsArch)$(_RaskLsExt)</_RaskLsAsset>
       <_RaskLsUrl>$(RaskLitestreamReleaseBaseUrl)/v$(RaskLitestreamVersion)/$(_RaskLsAsset)</_RaskLsUrl>
 
-      <_RaskLsHome Condition="$([MSBuild]::IsOSPlatform('Windows'))">$([System.Environment]::GetEnvironmentVariable('USERPROFILE'))</_RaskLsHome>
-      <_RaskLsHome Condition="!$([MSBuild]::IsOSPlatform('Windows'))">$([System.Environment]::GetEnvironmentVariable('HOME'))</_RaskLsHome>
-      <_RaskLsCacheDir>$([System.IO.Path]::Combine('$(_RaskLsHome)', '.rask', 'litestream', '$(RaskLitestreamVersion)', '$(_RaskLsRid)'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsCacheDir>
+      <_RaskLsCacheDir>$([System.IO.Path]::Combine('$(RaskLitestreamCacheRoot)', '$(RaskLitestreamVersion)', '$(_RaskLsRid)'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsCacheDir>
       <_RaskLsArchivePath>$(_RaskLsCacheDir)$(_RaskLsAsset)</_RaskLsArchivePath>
       <_RaskLsBinary>$(_RaskLsCacheDir)litestream$(_RaskLsExeSuffix)</_RaskLsBinary>
 
@@ -59,53 +87,12 @@
     </PropertyGroup>
   </Target>
 
-  <Target Name="_RaskDownloadLitestream"
-          Condition="'$(RaskLitestreamDownload)' == 'true' and '$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="_RaskResolveLitestreamAsset"
+  <!-- Bundled next to the app on build and publish, when it is wanted and fetched. -->
+  <Target Name="_RaskBundleLitestream"
+          Condition="'$(DesignTimeBuild)' != 'true'"
+          DependsOnTargets="_RaskResolveLitestreamAsset;_RaskFetchLitestream"
           BeforeTargets="AssignTargetPaths">
-
-    <Warning Condition="'$(_RaskLsSupported)' != 'true'"
-             Text="Rask.SQLite.Litestream: litestream ships no binary for runtime '$(_RaskLsRid)'. Install litestream and set LitestreamOptions.ExecutablePath, or set RaskLitestreamDownload=false." />
-
-    <!--
-      Fetched, verified and unpacked in a directory of this build's own, then moved into the cache. The
-      cache is per user, so two projects building for the first time at once (a solution, a test run)
-      shared one archive path: one download failed on the other's open file and the hash read a file
-      still being written. A rename is atomic, and both movers carry the same verified bytes.
-    -->
-    <PropertyGroup Condition="'$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')">
-      <_RaskLsFetch>true</_RaskLsFetch>
-      <_RaskLsStageDir>$(_RaskLsCacheDir).stage-$([System.Guid]::NewGuid().ToString('N'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsStageDir>
-      <_RaskLsArchivePath>$(_RaskLsStageDir)$(_RaskLsAsset)</_RaskLsArchivePath>
-    </PropertyGroup>
-
-    <MakeDir Condition="'$(_RaskLsFetch)' == 'true'" Directories="$(_RaskLsStageDir)" />
-
-    <DownloadFile Condition="'$(_RaskLsFetch)' == 'true'"
-                  SourceUrl="$(_RaskLsUrl)"
-                  DestinationFolder="$(_RaskLsStageDir)"
-                  DestinationFileName="$(_RaskLsAsset)" />
-
-    <GetFileHash Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' != ''"
-                 Files="$(_RaskLsArchivePath)" Algorithm="SHA256">
-      <Output TaskParameter="Hash" PropertyName="_RaskLsActualSha" />
-    </GetFileHash>
-    <Error Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' != '' and '$(_RaskLsActualSha.ToLowerInvariant())' != '$(_RaskLsSha.ToLowerInvariant())'"
-           Text="Rask.SQLite.Litestream: checksum mismatch for $(_RaskLsAsset). Expected $(_RaskLsSha), got $(_RaskLsActualSha). The download may be corrupt or tampered with." />
-    <Warning Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsSha)' == ''"
-             Text="Rask.SQLite.Litestream: no pinned checksum for litestream $(RaskLitestreamVersion) on $(_RaskLsRid); set RaskLitestreamSha256 to verify the download." />
-
-    <!-- Extract the binary (litestream / litestream.exe), then move it into the cache. -->
-    <Exec Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsIsZip)' != 'true'"
-          Command="tar -xzf &quot;$(_RaskLsArchivePath)&quot; -C &quot;$(_RaskLsStageDir)&quot;" />
-    <Unzip Condition="'$(_RaskLsFetch)' == 'true' and '$(_RaskLsIsZip)' == 'true'"
-           SourceFiles="$(_RaskLsArchivePath)" DestinationFolder="$(_RaskLsStageDir)" />
-    <Move Condition="'$(_RaskLsFetch)' == 'true' and !Exists('$(_RaskLsBinary)')"
-          SourceFiles="$(_RaskLsStageDir)litestream$(_RaskLsExeSuffix)" DestinationFiles="$(_RaskLsBinary)" />
-    <RemoveDir Condition="'$(_RaskLsFetch)' == 'true'" Directories="$(_RaskLsStageDir)" ContinueOnError="true" />
-
-    <!-- Copy it next to the app on build and publish. -->
-    <ItemGroup Condition="'$(_RaskLsSupported)' == 'true' and Exists('$(_RaskLsBinary)')">
+    <ItemGroup Condition="'$(_RaskLsWanted)' == 'true' and '$(_RaskLsSupported)' == 'true' and Exists('$(_RaskLsBinary)')">
       <None Include="$(_RaskLsBinary)">
         <Link>litestream$(_RaskLsExeSuffix)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -115,17 +102,65 @@
     </ItemGroup>
   </Target>
 
+  <!--
+    Fetched only when not cached: a cache hit is one Exists() and no network at all. The archive is fetched and
+    verified by RaskFetchVerifiedFile, then unpacked in a directory of this build's own and moved into the cache,
+    so two projects building for the first time at once never share a half-written file.
+  -->
+  <Target Name="_RaskFetchLitestream" Condition="'$(_RaskLsWanted)' == 'true'">
+    <Warning Condition="'$(_RaskLsSupported)' != 'true'"
+             Text="Rask.SQLite.Litestream: litestream ships no binary for runtime '$(_RaskLsRid)'. Install litestream and set LitestreamOptions.ExecutablePath, or set RaskLitestreamDownload=false." />
+
+    <PropertyGroup Condition="'$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')">
+      <_RaskLsFetch>true</_RaskLsFetch>
+      <_RaskLsStageDir>$(_RaskLsCacheDir).stage-$([System.Guid]::NewGuid().ToString('N'))$([System.IO.Path]::DirectorySeparatorChar)</_RaskLsStageDir>
+      <_RaskLsArchivePath>$(_RaskLsStageDir)$(_RaskLsAsset)</_RaskLsArchivePath>
+      <!-- Needed by a publish, not by a build: the binary runs beside the published app. -->
+      <_RaskLsRequired>false</_RaskLsRequired>
+      <_RaskLsRequired Condition="'$(_IsPublishing)' == 'true'">true</_RaskLsRequired>
+    </PropertyGroup>
+
+    <RaskFetchVerifiedFile Condition="'$(_RaskLsFetch)' == 'true'"
+                           Url="$(_RaskLsUrl)"
+                           DestinationFile="$(_RaskLsArchivePath)"
+                           Sha256="$(_RaskLsSha)"
+                           Product="Rask.SQLite.Litestream"
+                           CacheDirectory="$(RaskLitestreamCacheRoot)"
+                           Required="$(_RaskLsRequired)"
+                           RetryWaits="$(_RaskFetchRetryWaits)"
+                           Remedy="Or set RaskLitestreamDownload=false and run litestream from the container image (docs/sqlite.md).">
+      <Output TaskParameter="Fetched" PropertyName="_RaskLsFetched" />
+    </RaskFetchVerifiedFile>
+
+    <!-- Extract the binary (litestream / litestream.exe), then move it into the cache. -->
+    <Exec Condition="'$(_RaskLsFetched)' == 'true' and '$(_RaskLsIsZip)' != 'true'"
+          Command="tar -xzf &quot;$(_RaskLsArchivePath)&quot; -C &quot;$(_RaskLsStageDir)&quot;" />
+    <Unzip Condition="'$(_RaskLsFetched)' == 'true' and '$(_RaskLsIsZip)' == 'true'"
+           SourceFiles="$(_RaskLsArchivePath)" DestinationFolder="$(_RaskLsStageDir)" />
+    <Move Condition="'$(_RaskLsFetched)' == 'true' and !Exists('$(_RaskLsBinary)')"
+          SourceFiles="$(_RaskLsStageDir)litestream$(_RaskLsExeSuffix)" DestinationFiles="$(_RaskLsBinary)" />
+    <RemoveDir Condition="'$(_RaskLsFetch)' == 'true'" Directories="$(_RaskLsStageDir)" ContinueOnError="true" />
+  </Target>
+
+  <!-- A publish that wanted the binary and has none fails, rather than shipping an app whose backup cannot start. -->
+  <Target Name="_RaskRequireLitestreamForPublish"
+          BeforeTargets="PrepareForPublish"
+          DependsOnTargets="_RaskResolveLitestreamAsset">
+    <Error Condition="'$(_RaskLsWanted)' == 'true' and '$(_RaskLsSupported)' == 'true' and !Exists('$(_RaskLsBinary)')"
+           Text="Rask.SQLite.Litestream: this publish bundles litestream, and '$(_RaskLsBinary)' was never fetched. Build once with network access (or seed $(RaskLitestreamCacheRoot)), or set RaskLitestreamDownload=false and run litestream from the container image." />
+  </Target>
+
   <!-- MSBuild's copy doesn't carry the Unix exec bit, so restore it on the copied binary. -->
   <Target Name="_RaskChmodLitestreamBuild"
           AfterTargets="Build"
-          Condition="'$(RaskLitestreamDownload)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows'))">
-    <Exec Condition="Exists('$(TargetDir)litestream')" Command="chmod +x &quot;$(TargetDir)litestream&quot;" />
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Condition="'$(_RaskLsWanted)' == 'true' and Exists('$(TargetDir)litestream')" Command="chmod +x &quot;$(TargetDir)litestream&quot;" />
   </Target>
 
   <Target Name="_RaskChmodLitestreamPublish"
           AfterTargets="Publish"
-          Condition="'$(RaskLitestreamDownload)' == 'true' and !$([MSBuild]::IsOSPlatform('Windows'))">
-    <Exec Condition="Exists('$(PublishDir)litestream')" Command="chmod +x &quot;$(PublishDir)litestream&quot;" />
+          Condition="!$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Condition="'$(_RaskLsWanted)' == 'true' and Exists('$(PublishDir)litestream')" Command="chmod +x &quot;$(PublishDir)litestream&quot;" />
   </Target>
 
 </Project>

@@ -15,9 +15,11 @@ RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
     dotnet restore
 COPY . .
 # The publish restores again: a no-op while the cache holds the packages, a download only if the builder pruned
-# them. The Tailwind CLI the stylesheet compiles with is cached the same way, once per version.
+# them. The Tailwind CLI the stylesheet compiles with, and tsgo for scoped TypeScript, are cached the same way, once
+# per version: a deploy then never reaches GitHub or npm for them.
 RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
     --mount=type=cache,id=rask-tailwind,target=/root/.rask/tailwind \
+    --mount=type=cache,id=rask-typescript,target=/root/.rask/typescript \
     dotnet publish "Company.RaskServer.csproj" -c Release -o /app
 
 FROM nginx:alpine

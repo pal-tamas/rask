@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Xml.Linq;
+using Rask.TestFiles;
 
 namespace Rask.Tailwind.Tasks.Tests;
 
@@ -40,8 +41,10 @@ public class TailwindPinsTests
     }
 
     [Fact]
-    public void A_binary_that_is_not_the_expected_one_fails_the_build_and_installs_nothing()
+    public async Task A_binary_that_is_not_the_expected_one_fails_the_build_and_installs_nothing()
     {
+        // From a loopback "release host", so the refusal is tested whatever GitHub is doing today.
+        await using var host = new FlakyHttpServer(System.Text.Encoding.ASCII.GetBytes("a replaced release asset"));
         var cache = Path.Combine(Path.GetTempPath(), "rask-tailwind-swapped-" + Guid.NewGuid().ToString("n"));
         var engine = new RecordingEngine();
         var task = new ResolveTailwindCliTask
@@ -50,6 +53,7 @@ public class TailwindPinsTests
             Version = TailwindPins.Version,
             CacheRoot = cache,
             ExpectedSha256 = new string('0', 64),
+            ReleaseBaseUrl = host.BaseUrl,
         };
 
         var resolved = task.Execute();

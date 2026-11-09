@@ -1,3 +1,5 @@
+using Rask.Build;
+
 namespace Rask.TypeScript.Tasks.Tests;
 
 /// <summary>
@@ -35,13 +37,13 @@ public class TransientRetryTests
             () =>
             {
                 attempts++;
-                throw new RegistryAnswerException(404, "https://registry.npmjs.org/x.tgz");
+                throw new HttpAnswerException(404, "https://registry.npmjs.org/x.tgz");
             },
             TwoWaits,
             (_, _) => { },
             _ => { }));
 
-        Assert.IsType<RegistryAnswerException>(failure);
+        Assert.IsType<HttpAnswerException>(failure);
         Assert.Equal(1, attempts);
     }
 
@@ -68,13 +70,14 @@ public class TransientRetryTests
     [InlineData(500, true)]
     [InlineData(502, true)]
     [InlineData(503, true)]
+    [InlineData(504, true)]
     [InlineData(408, true)]
     [InlineData(429, true)]
     [InlineData(404, false)]
     [InlineData(403, false)]
     public void A_registry_answer_is_asked_again_only_when_it_could_change(int status, bool asksAgain)
     {
-        var failure = new RegistryAnswerException(status, "https://registry.npmjs.org/x.tgz");
+        var failure = new HttpAnswerException(status, "https://registry.npmjs.org/x.tgz");
 
         var transient = TransientRetry.IsTransient(failure);
 

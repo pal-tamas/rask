@@ -190,20 +190,21 @@ internal static class TailwindCli
             File.Exists)
         ?? "/bin/chmod";
 
+    /// <summary>Where Tailwind's releases are downloaded from, unless a mirror is named (<c>RaskTailwindReleaseBaseUrl</c>).</summary>
+#pragma warning disable S1075 // This IS the configurable default S1075 asks for: RaskTailwindReleaseBaseUrl replaces it.
+    public const string DefaultReleaseBaseUrl = "https://github.com/tailwindlabs/tailwindcss/releases/download";
+#pragma warning restore S1075
+
     /// <summary>The release URL for a pinned version.</summary>
-    public static string DownloadUrl(string version, string assetName) =>
-        string.Format(
-            CultureInfo.InvariantCulture,
-            "https://github.com/tailwindlabs/tailwindcss/releases/download/v{0}/{1}",
-            version,
-            assetName);
+    public static string DownloadUrl(string version, string assetName, string releaseBaseUrl = DefaultReleaseBaseUrl) =>
+        string.Format(CultureInfo.InvariantCulture, "{0}/v{1}/{2}", BaseOf(releaseBaseUrl), version, assetName);
 
     /// <summary>The checksum manifest published beside the binaries.</summary>
-    public static string ChecksumUrl(string version) =>
-        string.Format(
-            CultureInfo.InvariantCulture,
-            "https://github.com/tailwindlabs/tailwindcss/releases/download/v{0}/sha256sums.txt",
-            version);
+    public static string ChecksumUrl(string version, string releaseBaseUrl = DefaultReleaseBaseUrl) =>
+        string.Format(CultureInfo.InvariantCulture, "{0}/v{1}/sha256sums.txt", BaseOf(releaseBaseUrl), version);
+
+    private static string BaseOf(string releaseBaseUrl) =>
+        string.IsNullOrWhiteSpace(releaseBaseUrl) ? DefaultReleaseBaseUrl : releaseBaseUrl.Trim().TrimEnd('/');
 
     /// <summary>
     ///     The expected SHA-256 for one asset, read from the release's <c>sha256sums.txt</c>.

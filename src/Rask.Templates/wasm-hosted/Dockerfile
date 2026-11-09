@@ -13,13 +13,15 @@ RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
     dotnet restore
 COPY . .
 # The publish restores again: a no-op while the cache holds the packages, a download only if the builder pruned
-# them. The Tailwind CLI the stylesheet compiles with is cached the same way, once per version. An app that
+# them. The Tailwind CLI the stylesheet compiles with, and tsgo for scoped TypeScript, are cached the same way, once
+# per version: a deploy then never reaches GitHub or npm for them. An app that
 # references Rask.Pdf prints with the pinned Chrome for Testing headless shell: the publish fetches it into the
 # /chrome cache mount once per pin, after checking its SHA-256, and copies this pin's shell to /chrome-shell —
 # inside this RUN, because a cache mount is not part of the image. For any other app the folder stays empty
 # and costs nothing.
 RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
     --mount=type=cache,id=rask-tailwind,target=/root/.rask/tailwind \
+    --mount=type=cache,id=rask-typescript,target=/root/.rask/typescript \
     --mount=type=cache,id=rask-chrome,target=/chrome,sharing=locked \
     dotnet publish "Company.RaskServer.csproj" -c Release -o /app \
       -p:RaskPdfChromiumCache=/chrome -p:RaskPdfChromiumCopyTo=/chrome-shell \

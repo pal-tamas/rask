@@ -8,7 +8,7 @@ public sealed class LitestreamOptions
 {
     /// <summary>
     /// Path to the <c>litestream</c> executable. Defaults to <c>"litestream"</c>, which resolves to the
-    /// binary the package drops next to your app at build time (see <c>RaskLitestreamDownload</c>), then
+    /// binary the package drops next to an app that references it directly (see <c>RaskLitestreamDownload</c>), then
     /// falls back to a <c>PATH</c> lookup. Set an absolute path to use a specific binary
     /// (e.g. <c>/usr/local/bin/litestream</c>).
     /// </summary>

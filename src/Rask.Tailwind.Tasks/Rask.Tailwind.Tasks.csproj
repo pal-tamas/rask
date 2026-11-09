@@ -33,6 +33,11 @@
           SkipUnchangedFiles="true"/>
   </Target>
 
+  <!-- The one fetch every native binary goes through: retries with growing pauses, the HTTP status as a number. -->
+  <ItemGroup>
+    <Compile Include="..\Rask.Build.Shared\RaskFetchVerifiedFile.cs" Link="Shared\RaskFetchVerifiedFile.cs"/>
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Tailwind.Tasks.Tests"/>
   </ItemGroup>

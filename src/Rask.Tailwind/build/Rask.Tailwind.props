@@ -38,6 +38,9 @@
          that must be hermetic. -->
     <RaskTailwindOffline Condition="'$(RaskTailwindOffline)' == ''">false</RaskTailwindOffline>
 
+    <!-- Where Tailwind's releases are downloaded from: a mirror, or an internal proxy. Empty for GitHub. -->
+    <RaskTailwindReleaseBaseUrl Condition="'$(RaskTailwindReleaseBaseUrl)' == ''"></RaskTailwindReleaseBaseUrl>
+
     <!-- Your stylesheet: the one that says `@import "tailwindcss";` plus whatever you add. -->
     <RaskTailwindInput Condition="'$(RaskTailwindInput)' == ''">Styles/app.css</RaskTailwindInput>
 

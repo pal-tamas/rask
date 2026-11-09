@@ -68,7 +68,8 @@ Set it, and `RaskApp` does two things:
   for its settings.
 
 The csproj sets `RaskLitestreamDownload=false`: the binary belongs in the Docker image, which the scaffolded
-`Dockerfile` copies it into, rather than being fetched during everyone's build.
+`Dockerfile` copies it into, rather than being fetched during everyone's build. (An app that has the package
+only through `Rask.Server`, as this one does, would fetch nothing anyway; the line just says so out loud.)
 
 Set the replica when you deploy:
 
