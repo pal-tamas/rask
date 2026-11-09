@@ -90,8 +90,8 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 `benchmarks/` any more. Adding a third root means teaching
 `scripts/lib/affected_projects.py`'s `PROJECT_ROOTS` about it, or a scoped run skips it.
 - **Every test is named as a sentence and shaped in three blocks** (setup · action · checks, blank-line separated):
-  `Remember_loads_once_then_serves_from_the_cache`. `tests/Shared/TestNamesReadAsSentences.cs`, linked into every
-  `*.Tests` project, fails the build's tests on a name that isn't one.
+  `Remember_loads_once_then_serves_from_the_cache`. RASK116 (the analyzer a `<RaskStrict>` app's tests get) is an
+  error in every `*.Tests` project (`Directory.Build.targets` + `.editorconfig`): a name that isn't one fails the build.
 - **A test that reads a file from disk outside its project DECLARES it** (`<RaskTestReads/>` in a `Condition="false"`
   ItemGroup of its csproj) — the gates are scoped, and an undeclared read is skipped when that file changes.
 - `tests/Rask.*.Tests` — unit/integration, mostly one per `src/` project. `tests/Rask.*.E2E.Tests` — the

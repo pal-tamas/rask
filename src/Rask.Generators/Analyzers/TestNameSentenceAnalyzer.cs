@@ -8,8 +8,8 @@ namespace Rask.Generators.Analyzers;
 
 // RASK116 — a test whose name is not a sentence. A test's name is what the runner prints and the first thing the
 // reader of a failure sees, so it says what the test proves: `Remember_loads_once_then_serves_from_the_cache`, not
-// `GetOrCreate_RunsFactoryOnce`. The same rule Rask holds its own suites to (tests/Shared/TestNamesReadAsSentences.cs):
-// three words or more, most of them lower-case prose, and none of the scaffolding words a template leaves behind.
+// `GetOrCreate_RunsFactoryOnce`: three words or more, most of them lower-case prose, and none of the scaffolding words a
+// template leaves behind. Rask's own suites are held to it too (Directory.Build.targets, tests/Rask.TestNames.Analyzer).
 //
 // Off by default — it is a convention, not a bug. An app's <RaskStrict> switches it on in its test projects
 // (build/rask-strict-tests.globalconfig); `dotnet_diagnostic.RASK116.severity = warning` does it by hand.
