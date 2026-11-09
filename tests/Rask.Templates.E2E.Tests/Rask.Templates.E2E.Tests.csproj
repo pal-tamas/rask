@@ -38,6 +38,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Cli\Rask.Cli.csproj"/>
+    <!-- RaskSite walks a scaffolded app (TemplateJourneyE2ETests): the package an app's own E2E project uses. -->
+    <ProjectReference Include="..\..\src\Rask.Testing.Playwright\Rask.Testing.Playwright.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

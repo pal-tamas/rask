@@ -132,6 +132,22 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **`RaskSite<Program>` — an app's E2E host in Rask.Testing.Playwright: its own build as a process, every page walked.**
+  Before: TA hand-wrote a 280-line `Site.cs` (free port, `dotnet Ta.dll` from a path worked out by hand, a three-minute
+  `/version` poll, Chromium, a storage-state cache per user, a `problems` list, killing the process tree) and kept its
+  pages in a list by hand; Eszaf had none. After: `[assembly: AssemblyFixture(typeof(RaskSite<Program>))]`, then
+  `public static TheoryData<string> Pages() => [.. RaskSite.Pages<Program>()];` and
+  `public Task Every_page_opens_whole(string path) => site.Walk(path).As(site.Admin);`. The site runs the app project's
+  own build from its own folder (the package's build records where), with `ASPNETCORE_ENVIRONMENT=Testing` and a SQLite
+  database of its own, waits for `/health`, shares one Chromium, and ends the app with every process it started.
+  `site.Walk(path)` fails on a not-found or forbidden answer, a console or page error, a request to the app that
+  failed or answered 400+, a live connection opened twice or closed, the error overlay, and a page wider than a phone
+  (naming the widest element); walked `.As(name)`, also on being sent to sign in. `site.SignedIn(site.Admin)` signs in once through Rask.Auth — its API, or the `/login`
+  and `/register` pages `rask new` writes; the administrator is the first account, claimed with the app's one-time
+  token — or through the app's own `site.SignIn`.
+  `RaskSite.Pages<Program>()` lists every page the generated route table opens without a value (`.And(…)`,
+  `.Without(…)`); `site.Watch(page)` collects the same problems on a page a test drives. See docs/testing.md,
+  "Testing an app end to end".
 - **`Ui.AppFrame` — an app's whole frame in one line: sidebar menu, breadcrumbs from it, user and sign-out (#1296).**
   Before: TA and Eszaf each hand-wrote ~100 lines of `Layout.cs` — `Ui.Sidebar`/`Ui.Header`/`Ui.Main` with the same
   ground, an `IsCurrent` rule for rows beneath a list, a `Crumbs()` method, a 13-line sign-out `Ui.Modal`, and the

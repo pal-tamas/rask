@@ -716,3 +716,140 @@ design, so what is typed into it is not busy until that action is taken.
 This replaces a hand-rolled "settled" helper — counting sent and acknowledged events, waiting for
 `[aria-busy=true]` or a skeleton to go, and a "DOM quiet for 300 ms" window, which never settles on a live page and
 settles too early on a slow one.
+
+---
+
+## 8. Testing an app end to end
+
+`Page.Visit` runs your app in the test process, without a browser. For the few things only a real browser and a
+real server show — the page's stylesheet loading, the live connection staying open, a layout that fits a phone —
+an app's E2E project runs the app **as a process of its own** and drives it with Playwright. `RaskSite<Program>`, in
+the same `Rask.Testing.Playwright` package, is that host:
+
+```bash
+dotnet add package Rask.Testing.Playwright
+```
+
+```csharp
+using Rask.Testing;
+
+// One site for the whole test assembly: the app is started once, on first use, and ended after the last test.
+[assembly: AssemblyFixture(typeof(RaskSite<Program>))]
+
+public sealed class EveryPageTests(RaskSite<Program> site)
+{
+    public static TheoryData<string> Pages() => [.. RaskSite.Pages<Program>().Without("/logout")];
+
+    [Theory]
+    [MemberData(nameof(Pages))]
+    public Task Every_page_opens_whole_for_a_visitor(string path) => site.Walk(path);
+
+    [Theory]
+    [MemberData(nameof(Pages))]
+    public Task Every_page_opens_whole_for_the_administrator(string path) => site.Walk(path).As(site.Admin);
+}
+```
+
+- **The app's own build, in a process of its own.** The test project references the app, so the app is built with
+  the tests; `RaskSite<Program>` runs that build (`dotnet App.dll`) from the app's own folder — its
+  `appsettings.json`, its `wwwroot` — on a free port, and waits until its health check (`/health` on a `RaskApp`)
+  answers. Nothing runs in the test process, so what a test sees is what a deployment serves.
+- **A database of its own.** The app runs with `ASPNETCORE_ENVIRONMENT=Testing` and its database and log store as
+  SQLite files in the run's own folder (`site.Folder`), deleted when the site is disposed. Pending migrations are
+  applied as the app starts.
+- **One browser.** Chromium is installed on first use and launched once; every page is a context of its own, so no
+  cookie or storage reaches the next test. Every page resolves a relative URL against the app:
+  `await page.GotoAsync("/orders")`.
+- **Signed in once.** `await site.SignedIn(site.Admin)` hands back a page signed in as the app's administrator — the
+  first account, registered with the app's one-time token, through Rask.Auth's API where the app maps it (a
+  WebAssembly app's host) and through the `/login` and `/register` pages `rask new` writes otherwise. Any other name
+  is registered as an ordinary account. The first page for a name signs in; every later one starts from its cookies.
+  `await site.SignedOut()` is a visitor's page.
+- **`site.Walk(path)`** opens the page and fails — with every problem it found, and the last lines the app wrote — on
+  an answer that is not a success (the not-found page, the forbidden one), a console or page error, a request to the
+  app that failed or answered 400 or worse, a live connection opened twice or closed, the error overlay, and a page
+  wider than a phone held upright (390 px; it names the element reaching furthest). `.As(name)` walks it signed in,
+  and fails too when the page sends them to sign in (`site.SignInPage`, `/login`) — the sign-in did not hold.
+- **`RaskSite.Pages<Program>()`** lists every page the app's route table opens without a value, in path order —
+  the generated table, joined through its layouts the way the router joins them. A page that needs one
+  (`/orders/{id}`) is left out; add it with a value: `.And("/orders/1")`. Leave out a page a walk must not open
+  with `.Without("/logout")`.
+- **`site.Watch(page)`** collects the same problems on a page a test drives itself: `var problems = site.Watch(page);`
+  … `Assert.Empty(problems);`. `site.Log` is everything the app wrote; `site.Said("…")` asks whether it wrote a line.
+
+An app sets its site up in a class of its own:
+
+```csharp
+[assembly: AssemblyFixture(typeof(Site))]
+
+public sealed class Site : RaskSite<Program>
+{
+    public Site()
+    {
+        Environment["TA_DATABASE_URL"] = System.Environment.GetEnvironmentVariable("TA_TEST_DATABASE_URL");
+        Health = "/version";                                  // an app that maps its own health check
+        Password = System.Environment.GetEnvironmentVariable("TA_SMOKE_PASSWORD") ?? "";  // its test accounts' password
+        Contexts.ViewportSize = new() { Width = 1600, Height = 1000 };
+        Contexts.Locale = "hu-HU";
+        SignIn = async (page, name) =>                        // an app that signs in its own way
+        {
+            await page.GotoAsync("/login");
+            await page.GetByLabel("Felhasználónév").FillAsync(name);
+            await page.GetByRole(AriaRole.Textbox, new() { Name = "Jelszó" }).FillAsync(Password);
+            await page.GetByRole(AriaRole.Button, new() { Name = "Bejelentkezés" }).ClickAsync();
+            await page.WaitForURLAsync(url => !new Uri(url).AbsolutePath.StartsWith("/login", StringComparison.Ordinal));
+        };
+    }
+}
+```
+
+`Environment` is the app's environment over the test process's own; a `null` value removes a variable, and
+`Rask__Section__Key` is the setting `Rask:Section:Key` — an app on SQL Server names its test database there. A test
+that only reads the site runs side by side with others; xUnit's collections decide the rest, as before.
+
+**Before** — every app wrote its own host fixture (one app's was 280 lines) and a hand-kept list of its pages:
+
+```csharp
+public sealed class Site : IAsyncLifetime
+{
+    public async ValueTask InitializeAsync()
+    {
+        Address = $"http://localhost:{FreePort()}";
+        var app = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Ta"));
+        var host = Path.Combine(app, Path.GetRelativePath(/* … */), "Ta.dll");
+        var start = new ProcessStartInfo("dotnet", [host]) { WorkingDirectory = app, /* redirects… */ };
+        start.Environment["ASPNETCORE_URLS"] = Address;
+        _host = Process.Start(start)!;
+        _host.OutputDataReceived += (_, line) => Heard(line.Data, log);
+        await Answering();                                    // poll /version for three minutes
+        Microsoft.Playwright.Program.Main(["install", "chromium"]);
+        _playwright = await Playwright.CreateAsync();
+        Browser = await _playwright.Chromium.LaunchAsync();
+    }
+
+    public async Task<IPage> SignedIn(string username, IList<string>? problems = null) { /* storage-state cache, semaphore… */ }
+    private async Task<IPage> NewPage(string? state, IList<string>? problems) { /* PageError, Response >= 400… */ }
+    public async ValueTask DisposeAsync() { /* browser, playwright, Kill(entireProcessTree: true)… */ }
+    private async Task Answering() { /* … */ }
+    private static int FreePort() { /* … */ }
+}
+
+public static readonly string[] Pages = ["/home", "/orders", "/partners", /* … kept by hand */];
+```
+
+**After** — the site, the sign-in that is the app's own, and one line for the pages:
+
+```csharp
+public sealed class Site : RaskSite<Program>
+{
+    public Site() => SignIn = async (page, name) => { /* the app's sign-in form */ };
+}
+
+public static TheoryData<string> Pages() => [.. RaskSite.Pages<Program>()];
+
+[Theory, MemberData(nameof(Pages))]
+public Task Every_page_opens_whole(string path) => site.Walk(path).As("smoke-user");
+```
+
+`new RaskSite("path/to/App.dll")` runs an app the test project does not reference — a publish folder, a scaffold a
+test just built — from that folder, or from `ContentRoot` when it is set.

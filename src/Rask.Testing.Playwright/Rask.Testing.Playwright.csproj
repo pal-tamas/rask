@@ -7,9 +7,9 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Testing.Playwright</PackageId>
-    <Title>Rask.Testing.Playwright — wait for a Rask page to settle in Playwright browser tests</Title>
-    <Description>await page.WaitForRask() in a Playwright for .NET test waits until a Rask page has settled: every event answered and its render on the page, every navigation landed, the connection open, what was typed sent. No sleeps, no DOM-quiet windows, no polling for spinners, and it settles on a live page that keeps pushing renders. Reads the runtime's data-rask-busy mark on html, on both the Server and the WebAssembly host. The Rask answer to Livewire's waitForLivewire() for Laravel Dusk.</Description>
-    <PackageTags>rask playwright e2e end-to-end browser-testing testing wait settle livewire dotnet net10</PackageTags>
+    <Title>Rask.Testing.Playwright — run a Rask app for Playwright browser tests, walk its pages, wait for it to settle</Title>
+    <Description>Browser tests for a Rask app. RaskSite&lt;Program&gt; starts the app's own build as a process of its own on a free port, over a database of its own, waits for its health check, and hands out pages in one shared Chromium — signed out, or await site.SignedIn(site.Admin), signed in once and reused. await site.Walk("/orders") opens a page and fails on a console or page error, a failed request, a not-found or forbidden answer, a dropped connection, or a page wider than a phone; RaskSite.Pages&lt;Program&gt;() lists every page the app's route table can open without a value, for a walk-every-page test. await page.WaitForRask() waits until a page has settled: every event answered and its render on the page, every navigation landed, the connection open, what was typed sent — no sleeps, no DOM-quiet windows. The Rask answer to Laravel Dusk.</Description>
+    <PackageTags>rask playwright e2e end-to-end browser-testing testing smoke walk settle livewire dusk dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview
@@ -18,12 +18,24 @@
     <None Remove="$(MSBuildThisFileDirectory)..\..\NUGET.md" />
     <None Remove="NUGET.md" />
     <None Include="NUGET.md" Pack="true" PackagePath="" Visible="false" />
+    <!-- Records where each referenced app's build is, for RaskSite<Program> (see build/Rask.Testing.Playwright.targets).
+         build/ only: it is the test project that references the app, never a project that references the test. -->
+    <None Include="build\**" Pack="true" PackagePath="build\" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The one dependency: the browser driver the test project already uses. No Rask assembly: the contract is
-         the data-rask-busy mark on the page, so this works against any Rask version that writes it. -->
+    <!-- The browser driver the test project already uses. -->
     <PackageReference Include="Microsoft.Playwright"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- RaskSite.Pages<Program>() reads the app's route table. WaitForRask needs no Rask assembly — its contract is
+         the data-rask-busy mark on the page — but a test project that references its app has Rask already. -->
+    <ProjectReference Include="..\Rask.Core\Rask.Core.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rask.Testing.Playwright.Tests"/>
   </ItemGroup>
 
 </Project>
