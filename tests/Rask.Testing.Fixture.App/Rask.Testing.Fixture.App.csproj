@@ -11,17 +11,12 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <RaskPublicApiTracked>false</RaskPublicApiTracked>
-    <!-- The kit's precompiled sheet in wwwroot, which every page links: an app with no Tailwind build of its own opts
-         in, and RaskSiteWalkTests (Rask.Site.E2E.Tests) fails a page whose stylesheet is missing. -->
-    <RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
     <!-- PrivateAssets="all" from the host, so an in-repo app names it itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
-    <!-- Named, as a package app's Rask.Server reference is, so Rask.Ui's build writes the sheet above. -->
-    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
