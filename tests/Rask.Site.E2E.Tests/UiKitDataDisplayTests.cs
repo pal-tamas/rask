@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
@@ -173,16 +174,58 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
 
         var slot = await item.EvaluateAsync<string>(
             "d => { const s = getComputedStyle(d, '::details-content'); return s.transitionProperty + ' | ' + s.transitionDuration + ' | ' + s.transitionTimingFunction; }");
-        // Clicked and timed in the page: a click sent from here would spend the 100ms on the way.
-        var midway = await item.EvaluateAsync<double>(
-            "d => new Promise(done => { d.querySelector('summary').click(); setTimeout(() => done(d.getBoundingClientRect().height), 100); })");
-        await Expect(item.GetByText("30-day money-back guarantee")).ToBeVisibleAsync();
-        await Page.WaitForTimeoutAsync(300);
-        var open = (await item.BoundingBoxAsync())!.Height;
+        // The browser's own height transition, stepped by DevTools' animation clock instead of sampled against the
+        // wall's, which a loaded runner cannot hold (it once read the item still closed 100ms in). Page script cannot
+        // reach it: Chromium hands no ::details-content transition to getAnimations(). The page's animations are
+        // slowed a hundredfold before the click, so the quarter second cannot run out before the transition is
+        // paused; it is then moved to 100ms, measured, and moved to its end.
+        var cdp = await Page.Context.NewCDPSessionAsync(Page);
+        var started = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
+        cdp.Event("Animation.animationStarted").OnEvent += (_, e) =>
+        {
+            var animation = e!.Value.GetProperty("animation");
+            if (animation.GetProperty("type").GetString() == "CSSTransition" && animation.GetProperty("name").GetString() == "height")
+            {
+                started.TrySetResult(animation);
+            }
+        };
+        await cdp.SendAsync("Animation.enable");
+        await cdp.SendAsync("Animation.setPlaybackRate", new Dictionary<string, object> { ["playbackRate"] = 0.01 });
+        double midway = 0, open = 0;
+        JsonElement? height = null;
+        try
+        {
+            await item.EvaluateAsync("d => d.querySelector('summary').click()");
+            if (await Task.WhenAny(started.Task, Task.Delay(TimeSpan.FromSeconds(15))) == started.Task)
+            {
+                height = await started.Task;
+                var id = new[] { height.Value.GetProperty("id").GetString()! };
+                await cdp.SendAsync("Animation.setPaused", new Dictionary<string, object> { ["animations"] = id, ["paused"] = true });
+                midway = await SeekAsync(cdp, id, 100, item);
+                open = await SeekAsync(cdp, id, 250, item);
+            }
+        }
+        finally
+        {
+            await cdp.SendAsync("Animation.setPlaybackRate", new Dictionary<string, object> { ["playbackRate"] = 1 });
+            await cdp.DetachAsync();
+        }
 
+        await Expect(item.GetByText("30-day money-back guarantee")).ToBeVisibleAsync();
         Assert.StartsWith("height, content-visibility, overflow | 0.25s, 0.25s, 0s | cubic-bezier(0.4, 0, 0.2, 1)", slot, StringComparison.Ordinal);
-        Assert.True(midway > closed + 1 && midway < open - 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
+        Assert.True(height.HasValue, "opening the item started no height transition: it snapped open");
+        Assert.Equal(250, height.Value.GetProperty("source").GetProperty("duration").GetDouble());
+        // 100ms is 40% of the run, which Tailwind's default curve has 61% of the way open.
+        Assert.True(open > closed + 10, $"the item opened from {closed}px to only {open}px");
+        Assert.True(Math.Abs(midway - (closed + ((open - closed) * 0.614))) < 1, $"100ms in, the item was {midway}px between {closed}px and {open}px");
     });
+
+    /// <summary>Moves the held animations to <paramref name="ms" /> into their run and measures the item there.</summary>
+    private static async Task<double> SeekAsync(ICDPSession cdp, string[] animations, double ms, ILocator item)
+    {
+        await cdp.SendAsync("Animation.seekAnimations", new Dictionary<string, object> { ["animations"] = animations, ["currentTime"] = ms });
+        return await item.EvaluateAsync<double>("d => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(d.getBoundingClientRect().height))))");
+    }
 
     [Fact]
     public Task A_card_draws_its_parts_as_Flux_does() => RunAsync(async () =>

@@ -97,7 +97,8 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
         // The announced value, and the bar: 72% of the track once the 300ms move has finished.
         await Expect(progress).ToHaveAttributeAsync("aria-valuenow", "72");
         await Expect(progress).ToHaveAttributeAsync("style", new Regex("--ui-progress-percentage:72%"));
-        await Page.WaitForTimeoutAsync(400);
+        // Waited on, not timed: a loaded runner can still be mid-move 400ms after the click.
+        await progress.EvaluateAsync("p => Promise.all(p.getAnimations({ subtree: true }).map(a => a.finished))");
         var track = await progress.BoundingBoxAsync();
         var bar = await progress.Locator("div").BoundingBoxAsync();
         Assert.Equal(0.72, Math.Round(bar!.Width / track!.Width, 2));
