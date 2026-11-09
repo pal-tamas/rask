@@ -34,7 +34,8 @@ public sealed class SessionRevalidatorBuilder
     /// <remarks>
     ///     What it costs is how long a change made elsewhere — another instance of the app, a hand-run SQL update —
     ///     can go unseen by a page that is open. A save in this process through Rask.Data is seen at once with
-    ///     <see cref="ForgetOnSave{TEntity}" />.
+    ///     <see cref="ForgetOnSave{TEntity}" />; a change no save says — another chosen tenant — with
+    ///     <see cref="Sessions.Forget(System.Security.Claims.ClaimsPrincipal)" />.
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="duration" /> is negative.</exception>
     public SessionRevalidatorBuilder Keep(TimeSpan duration)
