@@ -58,6 +58,12 @@ import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+// What the reader chooses in a file input is checked, kept for its preview, and marks its form — in that order, on
+// the way down, ahead of this host's own listeners. A press can call an upload off.
+import "../../Rask.Core/Resources/rask-file-checks.js";
+import "../../Rask.Core/Resources/rask-preview.js";
+import "../../Rask.Core/Resources/rask-dirty.js";
+import "../../Rask.Core/Resources/rask-upload-cancel.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, awaiting, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
@@ -1943,7 +1949,9 @@ import {
                 trackUpload(upload, payload);
             }).catch((err) => {
                 upload.end();
-                console.error("Rask: file upload failed", err);
+                // Called off by the reader (rask-upload.ts): the request was aborted on purpose, and the page is
+                // sent nothing.
+                if (!upload.cancelled) console.error("Rask: file upload failed", err);
             });
             return;
         }
@@ -1973,6 +1981,8 @@ import {
                 xhr.upload.onprogress = (e) => {
                     if (e.lengthComputable) upload.progress(e.loaded, e.total);
                 };
+                // Calling the upload off stops the request still carrying the files; the handler never hears of them.
+                upload.stopping(() => xhr.abort());
             }
             xhr.onload = () => {
                 if (xhr.status < 200 || xhr.status >= 300) {

@@ -37,6 +37,12 @@ import { holdForm, isSubmitting, releaseForm } from "../../Rask.Core/Resources/r
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+// What the reader chooses in a file input is checked, kept for its preview, and marks its form — in that order, on
+// the way down, ahead of this host's own listeners. A press can call an upload off.
+import "../../Rask.Core/Resources/rask-file-checks.js";
+import "../../Rask.Core/Resources/rask-preview.js";
+import "../../Rask.Core/Resources/rask-dirty.js";
+import "../../Rask.Core/Resources/rask-upload-cancel.js";
 // Says `data-rask-offline` on <html> while the browser is offline (rask-offline.ts).
 import "../../Rask.Core/Resources/rask-offline.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
@@ -736,6 +742,8 @@ document.addEventListener("change", (e) => {
         const metas = registerFiles(asInput, files);
         // Marked until the handler and its render are done; what it has read of the files is its progress.
         const upload = beginUpload(asInput);
+        // Calling the upload off cancels the handler reading these files, or the one about to (WasmUploadCancels).
+        upload.stopping(() => dotnetExports?.Rask?.Wasm?.JSInterop?.CancelUpload?.(metas.map((m) => m.ref)));
         send({id: t.getAttribute("data-rask-on-files"), type: "files", files: metas}).finally(upload.end);
         return;
     }

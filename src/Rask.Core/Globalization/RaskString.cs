@@ -758,4 +758,13 @@ public enum RaskString
 
     /// <summary>What a tab of <c>Ui.FormTabs</c> says to a screen reader beside its red count: how many of its fields to correct.</summary>
     FormTabsInvalid,
+
+    /// <summary>What a file upload says, in the browser, of a chosen file larger than it takes: the file's name, the most it takes.</summary>
+    FileTooLarge,
+
+    /// <summary>What a file upload says, in the browser, of a chosen file of a kind it does not take: the file's name.</summary>
+    FileNotAccepted,
+
+    /// <summary>The accessible name of the button that calls off a file upload in flight.</summary>
+    FileUploadCancel,
 }

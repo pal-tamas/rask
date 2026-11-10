@@ -78,6 +78,7 @@ public partial class HookBundleContractTests
         ["data-rask-managed"] = "the morph's own mark",
         ["data-rask-saved"] = "on a data-rask-confirm-leave",
         ["data-rask-edited"] = "on a data-rask-confirm-leave",
+        ["data-rask-settled"] = "on a data-rask-confirm-leave",
         ["data-rask-unguarded"] = "on or around a field inside a data-rask-confirm-leave",
         ["data-rask-leave"] = "the parts of Ui.ConfirmLeave's dialog, which a data-rask-confirm-leave asks in",
         ["data-rask-confirm-dialog"] = "the parts of Ui.Confirm's dialog, a data-rask-modal",

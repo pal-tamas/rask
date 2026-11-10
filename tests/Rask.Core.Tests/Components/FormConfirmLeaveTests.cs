@@ -50,7 +50,7 @@ public partial class FormConfirmLeaveTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public async Task A_form_never_told_to_confirm_leaving_carries_no_guard_even_after_a_save()
+    public async Task A_form_never_told_to_confirm_leaving_carries_no_guard_and_still_says_it_saved()
     {
         var model = new Draft { Title = "Notes" };
         var page = Page.Render(() => Form.Model(model).OnSubmit(_ => { })[Input.Bind(() => model.Title)]);
@@ -58,7 +58,7 @@ public partial class FormConfirmLeaveTests : global::Rask.Core.RaskMarkup
         await page.On("form").Submit();
 
         Assert.Null(page.Attr("data-rask-confirm-leave"));
-        Assert.Null(page.Attr("data-rask-saved"));
+        Assert.Equal("1", page.Attr("data-rask-saved"));
     }
 
     [Fact]

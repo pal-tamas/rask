@@ -150,6 +150,23 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **A form marks what the reader changed, and can start again.** Before: whether a form held unsaved values was
+  known only to `ConfirmLeave`, inside the runtime; a page could not show it, and putting a form back meant setting
+  every property and clearing the messages by hand. After: the browser writes `data-dirty` on every model `<form>` and
+  on each field whose value differs from the one it had — at once, no round trip, a value typed back is clean again —
+  so `data-dirty:` styles it; an accepted submit clears it and a refused one keeps it. In C#, `f.Unsaved`
+  (`Form.Model(m)[f => …]`) and `EditContext.IsModifiedAny` say the same on the server, value-based (`IsModified(field)`
+  is value-based now too); `EditContext.Reset()` puts every bound field back to its original and clears touched,
+  modified and messages ("save and add another"); `EditContext.MarkSaved()` makes what the fields hold the original
+  with no submit, for an autosave (`.Blur()` + `AfterBind`, recipe in `docs/forms.md`).
+- **Rask.Ui: a file upload refuses, previews and cancels in the browser.** Before: `Accept` only filtered the picker, a
+  file of any size was sent before the handler could refuse it, a preview needed the bytes read back as a `data:`
+  address, and an upload in flight could not be stopped. After: `Ui.FileUpload.MaxSize(2.Megabytes)` and `Accept`
+  are checked the moment files are chosen or dropped — a refused file is never sent and a sentence under the upload
+  names it (English and Hungarian), the rest of the choice goes on; `Ui.FileItem.Preview(file)` draws a chosen picture
+  from the file itself through an object URL revoked with the item; `Ui.FileUploadDropzone.WithProgress()` draws a
+  cross beside its bar that calls the upload off (Server: the request is aborted; WASM: the handler's ambient token is
+  cancelled).
 - **Rask.Ui: a long select or pillbox draws only the rows in view.** Before: `Ui.Select`'s listbox and combobox and
   `Ui.Pillbox` drew every option — a select of TA's 1098 vehicles put 1098 rows on the page at every render, and every
   one travelled over the wire on Server. After: up to 100 options nothing changes (Flux's examples, and parity, stay as

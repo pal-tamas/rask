@@ -68,6 +68,28 @@ request's own progress on the Server host, and in a WebAssembly app — where no
 files the handler has read through `OpenReadStream`
 ([the `data-rask-loading` hook](js-interop-runtime.md#behaviour-hooks-data-rask-)).
 
+What the browser can decide, it decides before anything is sent:
+
+```csharp
+Ui.FileUpload.Label("Photos").Multiple().Accept("image/*").MaxSize(2.Megabytes).OnFiles(Keep)[
+    Ui.FileUploadDropzone.Heading("Drop photos here").Text("Pictures up to 2 MB").WithProgress()
+],
+_photos.Select((photo, index) =>
+    Ui.FileItem.Key(photo.Name + index).Heading(photo.Name).Size(photo.Size).Preview(photo)
+        .Actions(Ui.FileItemRemove.OnClick(() => _photos.RemoveAt(index))))
+```
+
+- **Refused before it is sent.** A file over `MaxSize`, or of a kind `Accept` does not name (`.pdf`, `image/*`,
+  `application/pdf`), is taken out of the choice the moment it is chosen or dropped; a sentence under the upload
+  names it in the visitor's language, the dropzone turns red, and `OnFiles` hears only the rest. A file exactly
+  `MaxSize` is taken. The server's limits ([`RaskUploadOptions`](configuration.md)) still stand behind it.
+- **Previewed from the file.** `Ui.FileItem.Preview(photo)` shows a chosen picture at once — the browser draws it
+  from the file it holds, through an address that lives as long as the item. No byte is sent or stored for it; a
+  file that is no picture keeps its icon.
+- **Called off.** The cross beside the bar stops an upload in flight: the Server host aborts the request, and the
+  handler never runs; a WebAssembly app cancels the handler reading the files (its ambient token), so a save it
+  awaits stops too. The same file can be chosen again at once.
+
 > A `IRaskFile` is only valid while the handler is on the stack — read whatever you need (bytes, metadata)
 > before returning. The mutating handler lives inside the component so its field updates re-render the right
 > subtree.

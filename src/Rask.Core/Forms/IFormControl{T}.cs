@@ -132,6 +132,9 @@ public interface IFormControl<T> : IFormControl
         // sibling deriving from the same model property would go stale.
         context.TrackBindingOwner(accessor.Field,
             accessor.Owner as Component ?? BindingConsumerRegistry.Resolve(this));
+
+        // What the field holds the first time it is drawn is its original: what IsModified and Reset go back to.
+        context.Remember(accessor.Field, accessor);
     }
 
     // Runs the post-bind hook with the freshly-bound value. `Invoke` hands back a completed ValueTask for a

@@ -54,6 +54,9 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     private int _readerEdits;
     private int _savedReaderEdits;
 
+    // The context's count of resets and MarkSaved calls this form last drew (EditContext.Settled).
+    private int _settledSeen;
+
     private TModel _model = default!;
 
 
@@ -217,17 +220,24 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             return base.RenderChildren();
         }
 
-        var built = factory(new FormSubmit(_submitting, _submitError));
+        var built = factory(new FormSubmit(_submitting, _submitError, Unsaved()));
         return built is IReadOnlyCollection<Component?> ? built : built.ToArray();
+    }
+
+    // Whether a bound field holds a value no accepted submit carried: the server's word (EditContext.IsModifiedAny).
+    private bool Unsaved()
+    {
+        var context = Context ?? (Model is not null && LiveRenderContext.CurrentSync is { } live ? live.GetOrCreateEditContext(Model) : null);
+        return context?.IsModifiedAny == true;
     }
 
     protected override IDisposable? EnterChildrenScope()
     {
         var bound = Model is null && Context is null ? null : EditContextScope.Push(ResolveContext());
 
-        // A form that asks before it is left says so to the walk: what is drawn in it tells it of the
-        // reader's changes the browser raises no event for (ReaderEdits).
-        return ConfirmLeave is not null && LiveRenderContext.CurrentSync is { } live ? ReaderEdits.Write(live, this, bound) : bound;
+        // A form says so to the walk: what is drawn in it tells it of the reader's changes the browser raises no
+        // event for (ReaderEdits), which its `data-dirty` mark and a guard against leaving both count.
+        return bound is not null && LiveRenderContext.CurrentSync is { } live ? ReaderEdits.Write(live, this, bound) : bound;
     }
 
     internal EditContext ResolveContext()
@@ -259,6 +269,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         }
 
         RegisterBuiltInValidators(ctx);
+        ctx.Form = this;
 
         // Whichever shape was given; null clears a prior registration so a re-render that drops the
         // validator does not leave a stale callback behind.
@@ -358,7 +369,7 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 // Only here: a refused submit and a handler that threw both leave the form unsaved.
                 if (isValid)
                 {
-                    Accept(carried);
+                    Accept(carried, ctx);
                 }
             }
 #pragma warning disable CA1031 // Any failure of the app's own save is the page's to render, not the framework's to choose between.
@@ -454,9 +465,9 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         base.WriteAttributes(sb);
         Delegate? submit;
         var validated = Model is not null || Context is not null;
-        if (validated)
+        var ctx = validated ? ResolveContext() : null;
+        if (ctx is not null)
         {
-            var ctx = ResolveContext();
             submit = BuildSubmitBridge(ctx);
             ctx.SubmitHandler = submit;
         }
@@ -480,18 +491,43 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         if (ConfirmLeave is { } message)
         {
             AppendAttr(sb, "data-rask-confirm-leave", message);
-            if (_acceptedSubmits > 0)
-            {
-                // An attribute rather than a message of its own: it rides the render the submit already
-                // causes, the morph applies it like any other, and it is still there for a browser that
-                // reads it later. The value only has to differ from the one before.
-                AppendAttr(sb, "data-rask-saved", _acceptedSubmits);
-            }
+        }
 
-            if (_readerEdits != _savedReaderEdits)
-            {
-                AppendAttr(sb, "data-rask-edited", null);
-            }
+        if (ctx is not null)
+        {
+            WriteSavedMarks(sb, ctx);
+        }
+    }
+
+    // What the browser needs to mark the form and its fields `data-dirty` (rask-dirty.ts) and to know whether a
+    // guarded one holds anything to lose (rask-leave.ts). Attributes rather than messages of their own: they ride
+    // the render a submit or a reset already causes, the morph applies them like any other, and they are still
+    // there for a browser that reads them later. Each count only has to differ from the one before.
+    private void WriteSavedMarks(StringBuilder sb, EditContext ctx)
+    {
+        if (_acceptedSubmits > 0)
+        {
+            AppendAttr(sb, "data-rask-saved", _acceptedSubmits);
+        }
+
+        if (ctx.Settled > 0)
+        {
+            AppendAttr(sb, "data-rask-settled", ctx.Settled);
+        }
+
+        // Put back or said saved since the last render: every pick made before it goes with it.
+        if (ctx.Settled != _settledSeen)
+        {
+            _settledSeen = ctx.Settled;
+            _savedReaderEdits = _readerEdits;
+        }
+
+        // A pick in a control drawn in C# that no accepted submit, reset or MarkSaved has carried: the browser heard
+        // none of it. Counted, not compared: a pick may change what no bound field holds (a list the page keeps, a
+        // file taken off), so a pick put back is still a pick.
+        if (_readerEdits != _savedReaderEdits)
+        {
+            AppendAttr(sb, "data-rask-edited", null);
         }
     }
 
@@ -503,20 +539,16 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
         return _readerEdits;
     }
 
-    private void Accept(int carried)
+    private void Accept(int carried, EditContext ctx)
     {
         _acceptedSubmits++;
         _savedReaderEdits = carried;
+        ctx.NoteSaved();
     }
 
     // Drawn again only for the first change since the form was last clean: the mark is there after it.
     void IGuardedForm.NoteReaderEdit()
     {
-        if (ConfirmLeave is null)
-        {
-            return;
-        }
-
         var wasClean = _readerEdits == _savedReaderEdits;
         _readerEdits++;
         if (wasClean)

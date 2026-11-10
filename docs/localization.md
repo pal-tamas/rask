@@ -740,6 +740,9 @@ they say when you set nothing.
 | `SidebarSearch` | Sidebar | `Search` |
 | `CommandEmpty` | Command | `No results found` |
 | `FileItemRemove` | File upload | `Remove file` |
+| `FileTooLarge` | File upload: a chosen file over `.MaxSize(…)`, said in the browser | `{0} is larger than {1}.` |
+| `FileNotAccepted` | File upload: a chosen file `.Accept(…)` does not name, said in the browser | `{0} is not a kind of file this takes.` |
+| `FileUploadCancel` | File upload: the button that calls an upload off | `Cancel upload` |
 | `ValidationRequired` | Validation | `This field is required.` |
 | `ValidationWholeNumber` | Validation | `Enter a whole number.` |
 | `ValidationNumber` | Validation | `Enter a number.` |

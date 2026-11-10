@@ -23,5 +23,11 @@ namespace Rask.Core.Components;
 ///     What the last submit threw, or <c>null</c> when it succeeded — cleared when the next one starts.
 ///     The exception itself, so the page decides what to say about it.
 /// </param>
+/// <param name="Unsaved">
+///     Whether a field holds a value no accepted submit carried — <c>EditContext.IsModifiedAny</c>, so a field
+///     changed and changed back is saved again. The server's word: it hears a value when the field sends it.
+///     The browser marks the same thing at once, with no round trip, as <c>data-dirty</c> on the
+///     <c>&lt;form&gt;</c> and on each changed field — style it with Tailwind's <c>data-dirty:</c>.
+/// </param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public readonly record struct FormSubmit(bool Submitting, Exception? Error);
+public readonly record struct FormSubmit(bool Submitting, Exception? Error, bool Unsaved);

@@ -157,6 +157,7 @@ public static partial class DemoRegistry
             ["form-controls-select"] = () => CodeSample.Files(["FormControlsSelectDemo.cs"]).Result(FormControlsSelectDemo),
             ["form-submit-state"] = () => CodeSample.Files(["FormSubmitStateDemo.cs"]).Result(FormSubmitStateDemo),
             ["form-confirm-leave"] = () => CodeSample.Files(["FormConfirmLeaveDemo.cs"]).Result(FormConfirmLeaveDemo),
+            ["form-dirty"] = () => CodeSample.Files(["FormDirtyDemo.cs"]).Result(FormDirtyDemo),
             ["form-confirm"] = () => CodeSample.Files(["FormConfirmDemo.cs"]).Result(FormConfirmDemo),
             ["floating-labels"] = () => CodeSample.Files(["FloatingLabelsDemo.cs", "AccountModel.cs"]).Result(FloatingLabelsDemo),
 

@@ -1,3 +1,5 @@
+using Rask.Core.Globalization;
+
 namespace Rask;
 
 /// <summary>
@@ -9,7 +11,13 @@ namespace Rask;
 ///     there: <c>data-dragging</c> and <c>data-loading</c> on the upload, the input being disabled. With
 ///     <see cref="WithProgress" /> the bar is as wide as <c>--ui-file-upload-progress</c> and the figure beside it
 ///     is <c>--ui-file-upload-progress-as-string</c>: Flux's two variables under the kit's prefix, which the
-///     upload fills from the runtime's own (<c>--rask-progress</c>) while files are on their way.
+///     upload fills from the runtime's own (<c>--rask-progress</c>) while files are on their way. Beside the bar
+///     is a button that calls the upload off (<c>data-rask-upload-cancel</c>): the runtime stops the files on their
+///     way, and the page hears nothing of them. Flux draws no such button; it is there only while files go.
+///     <para>
+///     A file the upload refused in the browser (<see cref="UiFileUpload.MaxSize" />, <see cref="UiFileUpload.Accept" />)
+///     draws the area's border red until a choice passes.
+///     </para>
 /// </remarks>
 public sealed partial class UiFileUploadDropzone : UiElement
 {
@@ -18,7 +26,14 @@ public sealed partial class UiFileUploadDropzone : UiElement
         + "dark:border-white/10 dark:bg-white/10 "
         + "in-data-dragging:border-zinc-300 in-data-dragging:bg-zinc-100 "
         + "dark:in-data-dragging:border-white/20 dark:in-data-dragging:bg-white/15 "
+        + "in-data-invalid:border-red-500 dark:in-data-invalid:border-red-400 "
         + "peer-disabled:pointer-events-none peer-disabled:opacity-75";
+
+    // Out of sight and out of reach at rest: the bar is only faded out, and an invisible button would still take a press.
+    private const string Cancel =
+        "invisible relative z-20 -my-1 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md "
+        + "text-zinc-400 hover:bg-zinc-800/5 hover:text-zinc-800 in-data-loading:visible "
+        + "dark:text-white/60 dark:hover:bg-white/15 dark:hover:text-white";
 
     private const string Stacked = "flex-col items-center justify-center border-2 [:where(&)]:px-6 [:where(&)]:py-5 sm:px-16 sm:py-10";
 
@@ -102,7 +117,13 @@ public sealed partial class UiFileUploadDropzone : UiElement
                     Div.Class("h-1 grow rounded-full bg-zinc-200 dark:bg-white/10")[
                         Div.Class("h-full w-(--ui-file-upload-progress) rounded-full bg-zinc-500 dark:bg-white")
                     ],
-                    Div.Class(Figure)
+                    Div.Class(Figure),
+                    Button.Type(ButtonType.Button)
+                        .Data("rask-upload-cancel", "")
+                        .AriaLabel(RaskStrings.Get(RaskString.FileUploadCancel, "Cancel upload"))
+                        .Class(Cancel)[
+                        Ui.Icon.Name(Ui.IconName.XMark).Micro
+                    ]
                 ],
                 Span.Class("in-data-loading:opacity-0")[Text]
             ]

@@ -81,7 +81,7 @@ internal sealed class PendingBinds(Component root)
         // The reader has edited the field, whatever the model says: the form is dirty, and a message about the
         // value being replaced goes, as it does under a field at the first key. The control is drawn again with
         // the pick. Nothing else is, because the model has not changed.
-        context?.NoteEdited(field);
+        context?.NoteEdited(field, value);
         control.StateHasChanged();
         return Task.CompletedTask;
     }

@@ -3764,6 +3764,9 @@ Rask.Core.Forms.EditContext.HasAsyncDelegateValidators.get -> bool
 Rask.Core.Forms.EditContext.HasAsyncValidators.get -> bool
 Rask.Core.Forms.EditContext.HasValidationMessages() -> bool
 Rask.Core.Forms.EditContext.IsModified(Rask.Core.Forms.FieldIdentifier field) -> bool
+Rask.Core.Forms.EditContext.IsModifiedAny.get -> bool
+Rask.Core.Forms.EditContext.MarkSaved() -> void
+Rask.Core.Forms.EditContext.Reset() -> void
 Rask.Core.Forms.EditContext.IsTouched(Rask.Core.Forms.FieldIdentifier field) -> bool
 Rask.Core.Forms.EditContext.IsValidating(Rask.Core.Forms.FieldIdentifier field) -> bool
 Rask.Core.Forms.EditContext.IsValidatingAny.get -> bool
@@ -7794,12 +7797,14 @@ static Rask.Markup.VirtualizeModel.get -> Rask.Core.Components.RaskSeed_Virtuali
 Rask.Trigger
 Rask.Validation
 Rask.Core.Components.FormSubmit
-Rask.Core.Components.FormSubmit.Deconstruct(out bool Submitting, out System.Exception? Error) -> void
+Rask.Core.Components.FormSubmit.Deconstruct(out bool Submitting, out System.Exception? Error, out bool Unsaved) -> void
 Rask.Core.Components.FormSubmit.Equals(Rask.Core.Components.FormSubmit other) -> bool
 Rask.Core.Components.FormSubmit.Error.get -> System.Exception?
 Rask.Core.Components.FormSubmit.Error.init -> void
 Rask.Core.Components.FormSubmit.FormSubmit() -> void
-Rask.Core.Components.FormSubmit.FormSubmit(bool Submitting, System.Exception? Error) -> void
+Rask.Core.Components.FormSubmit.FormSubmit(bool Submitting, System.Exception? Error, bool Unsaved) -> void
+Rask.Core.Components.FormSubmit.Unsaved.get -> bool
+Rask.Core.Components.FormSubmit.Unsaved.init -> void
 Rask.Core.Components.FormSubmit.Submitting.get -> bool
 Rask.Core.Components.FormSubmit.Submitting.init -> void
 RaskBuilderSettersRask_Core.extension(Rask.Core.Components.NavLink!)
@@ -19531,3 +19536,6 @@ Rask.Core.Globalization.RaskString.PageNotFound = 234 -> Rask.Core.Globalization
 Rask.Core.Globalization.RaskString.RowActionsView = 235 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.SelectChoose = 236 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FormTabsInvalid = 237 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FileTooLarge = 238 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FileNotAccepted = 239 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FileUploadCancel = 240 -> Rask.Core.Globalization.RaskString

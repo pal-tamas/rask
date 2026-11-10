@@ -282,6 +282,9 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("RowActionsView", 0),
         ("SelectChoose", 0),
         ("FormTabsInvalid", 1),
+        ("FileTooLarge", 2),
+        ("FileNotAccepted", 1),
+        ("FileUploadCancel", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

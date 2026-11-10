@@ -184,14 +184,32 @@ public partial class ReaderChangesMakeTheFormUnsavedTests : global::Rask.Core.Ra
     }
 
     [Fact]
-    public async Task A_form_that_does_not_ask_before_leaving_is_not_marked()
+    public async Task A_form_that_does_not_ask_before_leaving_is_marked_all_the_same_for_its_dirty_mark()
     {
         var answers = new Answers();
         var page = Page.Render(() => Form.Model(answers).OnSubmit(() => { })[Ui.Select.Bind(() => answers.One).Listbox[Options()]]);
 
         await HeldList.PickFirst(page);
 
+        Assert.NotNull(page.Find("form").Attribute(Edited));
+        Assert.Null(page.Find("form").Attribute("data-rask-confirm-leave"));
+    }
+
+    [Fact]
+    public async Task Starting_the_form_again_takes_the_mark_away()
+    {
+        var answers = new Answers();
+        var form = new Rask.Core.Forms.EditContext(answers);
+        var page = Page.Render(() => Div[
+            Form.Model(answers).Context(form).OnSubmit(() => { })[Ui.Select.Bind(() => answers.One).Listbox[Options()]],
+            Button.Id("again").OnClick(() => form.Reset())["again"]
+        ]);
+        await HeldList.PickFirst(page);
+
+        await page.On("#again").Click();
+
         Assert.Null(page.Find("form").Attribute(Edited));
+        Assert.Equal("1", page.Find("form").Attribute("data-rask-settled"));
     }
 
     [Fact]

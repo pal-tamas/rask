@@ -531,6 +531,86 @@ Only a form offers the function form. It is an indexer declared on `Form` itself
 `Div[f => …]` does not compile — there is no submit state behind a `<div>` to report. See
 [`Form`](../src/Rask.Core/Dom/HTMLFormElement.cs).
 
+### Marking what changed
+
+The browser marks a form the reader changed — at once, with no round trip: `data-dirty` on the `<form>` and
+on every field whose value is not the one it had (Livewire's `wire:dirty`). Style it with Tailwind's
+`data-dirty:` variant; nothing has to be turned on:
+
+```csharp
+Form.Model(_model).OnSubmit(Save).Class("group")[
+    Ui.Input.Bind(() => _model.Name).Label("Name").Class("data-dirty:border-amber-400"),
+    Ui.Text.Class("hidden group-data-dirty:block")["Unsaved changes"],
+    Ui.Button.Submit.Primary["Save"]
+]
+```
+
+It is a difference, not a history: a field typed into and typed back is clean again, and so is the form. A
+checkbox is compared by whether it is checked, a select by what is selected, a radio with its group, a file
+input by whether it holds files. A control drawn in C# — a listbox, a pillbox, a calendar — marks the form
+rather than itself, until a save or a reset: its pick is a press the page hears or a hidden input it writes, with no
+value of the reader's own to compare, so a pick put back still counts. A submit the form accepts clears every
+mark; one it refuses clears none, and a value typed while the save was on its way stays marked. A list's search
+box, or anything else marked `data-rask-unguarded`, is never counted.
+
+<!-- demo:form-dirty -->
+
+In C#, the same thing is the server's word: `f.Unsaved` in [children that follow the
+submit](#children-that-follow-the-submit), and `EditContext.IsModifiedAny` (`IsModified(field)` for one field).
+It hears a value when the field sends it — with the next action, at a pause, or as it is typed (see
+[bind timing](#bind-timing)) — so draw what must show *as the reader types* from `data-dirty`, and decide from
+`IsModifiedAny`:
+
+```csharp
+Form.Model(_model).OnSubmit(Save)[f => [
+    Ui.Input.Bind(() => _model.Name).Label("Name"),
+    f.Unsaved ? Ui.Badge.Color(Ui.Color.Amber)["Not saved yet"] : null,
+    Ui.Button.Submit.Primary["Save"],
+]]
+```
+
+### Starting the form again
+
+`EditContext.Reset()` puts every bound field back to its original value — the one it held when the form
+was first drawn, or when a submit was last accepted — and forgets what the reader did: touched, modified,
+every message, every `data-dirty` mark. It is Livewire's `reset()`, for *Save and add another*:
+
+```csharp
+readonly EditContext _form;
+public NewProductPage() => _form = new EditContext(_model);
+
+protected override Component Render() =>
+    Form.Model(_model).Context(_form).OnSubmit(Save)[ … ];
+
+async Task Save(Product product)
+{
+    await Product.Create(product);
+    _form.Reset();          // the fields as they were drawn, ready for the next product
+}
+```
+
+Only fields a control is bound to are put back; a property no control draws is the page's own. A list is
+refilled in place and an array replaced by a copy; another kind of collection keeps what it holds.
+
+### Saving as the reader goes
+
+An autosave is a field that sends when the reader leaves it, an `AfterBind` that saves, and the dirty mark for
+what is still waiting:
+
+```csharp
+Form.Model(_note).Context(_form)[
+    Ui.Textarea.Bind(() => _note.Text).Blur()
+        .AfterBind(async _ => { await Note.Save(_note); _form.MarkSaved(); })
+        .Class("data-dirty:bg-amber-50"),
+    Ui.Text.Class("in-data-dirty:block hidden")["Saving when you leave the field…"]
+]
+```
+
+`.Blur()` sends the text once, when the reader leaves the field; `AfterBind` runs with it written to the model;
+`MarkSaved()` makes what was saved the original — with no submit to say so — and the mark goes. Until then the field says `data-dirty` — from the
+first key, in the browser — and a [`ConfirmLeave`](#ask-before-leaving-unsaved-changes) on the form asks before
+the reader walks away from it. `.Debounce(500.Milliseconds)` in place of `.Blur()` saves at each pause instead.
+
 ### Asking before an action
 
 `.Confirm("…")` asks the reader before a click or a submit is sent — in the browser's own `confirm` dialog, or

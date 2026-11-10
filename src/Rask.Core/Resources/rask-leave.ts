@@ -8,7 +8,9 @@
 // SAVED IS THE SERVER'S TO SAY. The form carries `data-rask-saved`, a number its render changes after every
 // submit that passed validation and ran its handler. When it has changed, the edits made before the last
 // `submit` event are saved; one typed after that submit left is not. Read when somebody asks, so there is no
-// observer, and a refused submit — which changes nothing — leaves the form unsaved.
+// observer, and a refused submit — which changes nothing — leaves the form unsaved. `data-rask-settled` changes
+// when the page put every field back or said all is saved (`EditContext.Reset()`, `MarkSaved()`): then nothing the
+// reader did before it is left to lose.
 //
 // WHAT ONLY THE PAGE HEARD. A control drawn in C# — a listbox, a calendar, a colour sheet — changes its value
 // on a press the browser raises no `input` for. The page hears that press, and says so on the form: it carries
@@ -45,6 +47,7 @@ const MESSAGE = "data-rask-confirm-leave";
 const GUARDED = "form[" + MESSAGE + "]";
 const SAVED = "data-rask-saved";
 const EDITED = "data-rask-edited";
+const SETTLED = "data-rask-settled";
 const UNGUARDED = "[data-rask-unguarded]";
 
 interface Edits {
@@ -56,18 +59,27 @@ interface Edits {
     saved: number;
     /** `data-rask-saved` as it was when `saved` was last brought up to date. */
     at: string | null;
+    /** `data-rask-settled` as it was then. */
+    settled: string | null;
 }
 
 const forms = new WeakMap<Element, Edits>();
 
 function edits(form: Element): Edits {
     const at = form.getAttribute(SAVED);
+    const settled = form.getAttribute(SETTLED);
     let known = forms.get(form);
     if (!known) {
-        forms.set(form, known = {made: 0, sent: 0, saved: 0, at});
-    } else if (known.at !== at) {
-        known.at = at;
-        known.saved = known.sent;
+        forms.set(form, known = {made: 0, sent: 0, saved: 0, at, settled});
+    } else {
+        if (known.at !== at) {
+            known.at = at;
+            known.saved = known.sent;
+        }
+        if (known.settled !== settled) {
+            known.settled = settled;
+            known.saved = known.sent = known.made;
+        }
     }
     return known;
 }

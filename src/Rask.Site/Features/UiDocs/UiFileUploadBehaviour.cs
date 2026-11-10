@@ -9,6 +9,8 @@ internal sealed partial class UiFileUploadBehaviour : Component
             Input(),
             Dragging(),
             Files(),
+            Checks(),
+            Cancelling(),
             Previews()
         ];
 
@@ -42,10 +44,32 @@ internal sealed partial class UiFileUploadBehaviour : Component
             + "built in a static helper that closed over the list alone would remove the file and redraw nothing.",
         ]);
 
+    private static UiDocsTopic Checks() =>
+        UiDocsTopic.Key("checks").Heading("Refused before it is sent").Paragraphs([
+            "`MaxSize(2.Megabytes)` and `Accept(\"image/*\")` are checked in the browser the moment files are chosen or "
+            + "dropped. A file too large, or of a kind `Accept` does not name (an ending such as `.pdf`, a whole type such "
+            + "as `image/*`, or one exact type), is taken out of the choice before any of it is sent, and a sentence under "
+            + "the upload names it, in the visitor's language; the dropzone is drawn red until a choice passes. The other "
+            + "files chosen with it go on, and `OnFiles` hears only those. The server's own limits still stand behind it.",
+        ]);
+
+    private static UiDocsTopic Cancelling() =>
+        UiDocsTopic.Key("cancelling").Heading("Calling an upload off").Paragraphs([
+            "With `WithProgress()` the dropzone draws a cross beside its bar while files go. On the Server host it stops "
+            + "the request still carrying them, and the page hears nothing of them; in a WebAssembly app it cancels the "
+            + "handler reading them, whose `Ambient` cancellation a save it awaits honours. The input is emptied, so "
+            + "choosing the same file again starts again. Files that have all arrived on the Server host and whose "
+            + "handler is running are past calling off.",
+        ]);
+
     private static UiDocsTopic Previews() =>
         UiDocsTopic.Key("previews").Heading("Previews").Paragraphs([
-            "A preview of a file that was only just chosen is the page's to make: read the picture in `OnFiles` and hand "
-            + "`Ui.FileItem.Image` a `data:` address, or the address it was stored under. Take the type from the browser "
-            + "only for the few an `<img>` draws, and cap the size, as the first example does.",
+            "`Ui.FileItem.Preview(file)`, with the `IRaskFile` the handler received, shows a chosen picture at once: the "
+            + "browser draws it from the file it still holds, and no byte is sent or stored for it. The address it uses "
+            + "lives exactly as long as the picture is on the page. A file that is no image keeps the icon, and so does "
+            + "one this tab did not see chosen (after a reload).",
+            "For a picture already saved, hand `Ui.FileItem.Image` the address it was stored under, or read it in "
+            + "`OnFiles` into a `data:` address as the first example does: take the type from the browser only for the "
+            + "few an `<img>` draws, and cap the size.",
         ]);
 }

@@ -9257,3 +9257,9 @@ static RaskBuilderSettersRask_Ui.Notices(this Rask.UiAppFrame! __b, Rask.Core.Co
 static RaskBuilderSettersRask_Ui.SignOut(this Rask.UiAppFrame! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
+Rask.UiFileItem.Preview.get -> Rask.Core.Forms.IRaskFile?
+Rask.UiFileItem.Preview.set -> void
+Rask.UiFileUpload.MaxSize.get -> long?
+Rask.UiFileUpload.MaxSize.set -> void
+static RaskBuilderSettersRask_Ui.Preview(this Rask.UiFileItem! __b, Rask.Core.Forms.IRaskFile? value) -> Rask.UiFileItem!
+static RaskBuilderSettersRask_Ui.MaxSize(this Rask.UiFileUpload! __b, long? value) -> Rask.UiFileUpload!

@@ -287,6 +287,7 @@ interface RaskWasmExports {
                 PullDownload?(token: string): Uint8Array;
                 Dispatch?(payload: Uint8Array): Promise<void> | void;
                 ReadsSettled?(): Promise<void> | void;
+                CancelUpload?(refs: string[]): void;
                 /** Who the browser carries now, as WasmUserWatch answers it (rask-wasm-auth.ts). */
                 AskWho?(): Promise<string>;
                 StopHostedServices?(): void;

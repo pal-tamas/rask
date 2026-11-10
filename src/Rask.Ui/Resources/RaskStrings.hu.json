@@ -61,6 +61,9 @@
   "SelectSelectedSuffix": "kiválasztva",
   "SelectChoose": "Válasszon…",
   "FormTabsInvalid": "Javítandó mezők: {0}",
+  "FileTooLarge": "A(z) {0} túl nagy: legfeljebb {1} lehet.",
+  "FileNotAccepted": "A(z) {0} nem választható: ilyen típusú fájlt ez a mező nem fogad.",
+  "FileUploadCancel": "Feltöltés megszakítása",
 
   "DatetimePickerPlaceholder": "Válasszon dátumot és időpontot",
   "DatetimePickerRangePlaceholder": "Válasszon kezdő és záró időpontot",

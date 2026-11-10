@@ -510,7 +510,7 @@ public abstract partial class Component
             var files = FileListReader.Read(payload);
             try
             {
-                await InvokeWithRenderingAsync(() => filesHandler(files)).ConfigureAwait(false);
+                await UploadCancellation.Run(owner, files, () => InvokeWithRenderingAsync(() => filesHandler(files))).ConfigureAwait(false);
             }
             finally { ReleaseFiles(files); }
 

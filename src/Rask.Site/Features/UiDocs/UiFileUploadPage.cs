@@ -34,6 +34,11 @@ public sealed partial class UiFileUploadPage : Component
                 .Blurb("One file, kept by the page until it is saved or removed."),
             UiDocsExample.Key("ui-upload-multiple").Heading("Multiple files upload").File("FileUploadMultipleExample.cs").Demo(FileUploadMultipleExample).Testid("ui-upload-multiple")
                 .Blurb("Several files, each with its own remove button named after it."),
+            UiDocsExample.Key("ui-upload-checked").Heading("Checked and previewed in the browser").File("FileUploadCheckedExample.cs")
+                .Demo(FileUploadCheckedExample).Testid("ui-upload-checked")
+                .Blurb("MaxSize and Accept refuse a file before any of it is sent, and say which under the upload. Preview "
+                       + "draws a chosen picture from the file itself, with no byte sent for it. The cross beside the bar "
+                       + "calls an upload off while it goes."),
             UiFileUploadBehaviour
         ];
 }

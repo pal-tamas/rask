@@ -693,6 +693,8 @@ public sealed class FluxConformanceTests
         ["flux:timeline.indicator/Color=Stone"] = "as Slate",
         ["flux:file-upload/OnFiles"] = "`wire:model`: the files chosen or dropped reach the page as an event, Rask's upload, where Flux fills a Livewire property",
         ["flux:file-upload/Accept"] = "the `<input type=file>`'s own `accept`, forwarded to it as Flux forwards an attribute",
+        ["flux:file-upload/MaxSize"] = "Livewire's `max:` upload rule (`#[Validate('image|max:1024')]`), checked in the browser before the file is sent rather than after",
+        ["flux:file-item/Preview"] = "Livewire's `temporaryUrl()`, the address Flux's examples hand `image`: drawn by the browser from the chosen file, with no temporary upload behind it",
         ["flux:file-item.remove/OnClick"] = "`wire:click`",
         ["flux:file-item.remove/AriaLabel"] = "`aria-label`, which Flux's reference lists under the directives and not under the props",
         // The calendar, the date picker and the time picker.

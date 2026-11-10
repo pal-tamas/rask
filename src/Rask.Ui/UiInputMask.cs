@@ -7,8 +7,9 @@ namespace Rask;
 ///     written as it stands — <c>(999) 999-9999</c> turns <c>7161234567</c> into <c>(716) 123-4567</c>.
 /// </summary>
 /// <remarks>
-///     Applied to the value the control draws and to the value it commits. Holding each keystroke to the
-///     pattern as it is typed needs script in the page, which the kit does not ship.
+///     Applied to the value the control draws and to the value it commits. Each keystroke is held to the pattern
+///     as it is typed by the runtime (<c>data-rask-mask</c>, <c>rask-field.ts</c>), with the caret kept where it
+///     was; this is the same pattern on the server's side, for the value that arrives and the one drawn back.
 /// </remarks>
 internal static class UiInputMask
 {

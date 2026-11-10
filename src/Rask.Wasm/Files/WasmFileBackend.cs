@@ -3,8 +3,13 @@ using Rask.Core.Forms;
 
 namespace Rask.Wasm.Files;
 
-internal sealed class WasmFileBackend : IBrowserFileBackend
+internal sealed class WasmFileBackend : IBrowserFileBackend, ICancellableFiles
 {
+    // The reader's cancel of an upload, by the refs of its files (WasmUploadCancels): what the handler that
+    // receives them runs under.
+    public CancellationToken CancellationOf(IReadOnlyList<IRaskFile> files) =>
+        WasmUploadCancels.Open(files.OfType<WasmRaskFile>().Select(static file => file.Ref));
+
     public IRaskFile Create(JsonElement metadata)
     {
         var @ref = metadata.TryGetProperty("ref", out var r) && r.ValueKind == JsonValueKind.String
@@ -35,6 +40,8 @@ internal sealed class WasmFileBackend : IBrowserFileBackend
 
     public void Release(IEnumerable<IRaskFile> files)
     {
+        WasmUploadCancels.Close(files.OfType<WasmRaskFile>().Select(static file => file.Ref));
+
         // JS-side file registry holds File references; entries are cleared by JS on the next
         // change/submit, so no synchronous release is needed here. The dispatcher still calls
         // this for symmetry with the server backend.

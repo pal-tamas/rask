@@ -82,6 +82,13 @@ internal static partial class JSInterop
     public static Task ReadsSettled() => _session?.ReadsSettledAsync() ?? Task.CompletedTask;
 
     /// <summary>
+    ///     The reader called off the upload of the files under <paramref name="refs" /> (<c>rask-upload.ts</c>): the
+    ///     handler receiving them is cancelled, or is cancelled as it starts.
+    /// </summary>
+    [JSExport]
+    public static void CancelUpload(string[] refs) => WasmUploadCancels.Cancel(refs);
+
+    /// <summary>
     ///     Asks who the browser carries now, for the tab's user watch (<c>rask-wasm-auth.ts</c>): the answer
     ///     <c>WasmUserWatch</c> gives, or none before the page is up.
     /// </summary>

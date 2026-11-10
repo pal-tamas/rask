@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 
 namespace Rask.Core.Forms;
 
@@ -38,8 +39,10 @@ public sealed partial class EditContext : IDisposable
     // The component that authored each field's bind expression (recorded when the control registers its
     // validator). A two-way write re-renders this consumer so derived UI it owns — even a sibling of the
     // Form, outside the control's own re-render scope — refreshes with no StateHasChanged. Mirrors the
-    // controlled-mode AutoCallback owner-rerender, for bound mode.
-    private readonly Dictionary<FieldIdentifier, Component?> _bindingOwners = new();
+    // controlled-mode AutoCallback owner-rerender, for bound mode. Beside it, how to read and write the field and
+    // what it held when it was first drawn (EditContext.Originals): one entry per bound field, kept in this one
+    // dictionary so a bound field costs a context nothing more than it did.
+    private readonly Dictionary<FieldIdentifier, Binding> _bindingOwners = new();
     private Delegate? _formDelegate;
 
     // What a validator that throws leaves on its field: a crashed rule must not crash the form.
@@ -352,13 +355,15 @@ public sealed partial class EditContext : IDisposable
     }
 
     /// <summary>
-    ///     Whether the user has changed this field's value since the form loaded.
+    ///     Whether the reader changed this field to a value other than its original — the one it held when the
+    ///     form was first drawn, when a submit was last accepted, or when the form was last
+    ///     <see cref="Reset">reset</see>. Changed back again, it is not modified.
     /// </summary>
     /// <param name="field">The field to ask about.</param>
     public bool IsModified(FieldIdentifier field)
     {
         MarkReader();
-        return _states.TryGetValue(field, out var s) && s.Modified;
+        return _states.TryGetValue(field, out var s) && Differs(field, s);
     }
 
     /// <summary>
@@ -437,7 +442,11 @@ public sealed partial class EditContext : IDisposable
     // Records the consumer that owns a field's bind expression so a write can re-render it. Idempotent per
     // render. A binding closed over a non-component root has no owner to re-render and is recorded all the
     // same: being here is what says a control on the form is bound to the field (IsBound).
-    internal void TrackBindingOwner(FieldIdentifier field, Component? owner) => _bindingOwners[field] = owner;
+    internal void TrackBindingOwner(FieldIdentifier field, Component? owner)
+    {
+        ref var binding = ref CollectionsMarshal.GetValueRefOrAddDefault(_bindingOwners, field, out _);
+        binding.Owner = owner;
+    }
 
     /// <summary>
     ///     Records that a field's value changed: marks it modified, raises <see cref="FieldChanged" />, and
@@ -449,6 +458,8 @@ public sealed partial class EditContext : IDisposable
     {
         var s = GetOrCreate(field);
         s.Modified = true;
+        s.HasPick = false;
+        s.Pick = null;
         ForgetUnread(field);
         ClearFailuresNaming(field);
         FieldChanged?.Invoke(this, new FieldChangedEventArgs(field));
@@ -456,9 +467,9 @@ public sealed partial class EditContext : IDisposable
         // Re-render the binding's authoring component so its derived UI (including siblings outside the
         // Form / the control) reflects the new model value — the bound-mode counterpart of the
         // controlled-OnChange consumer re-render. The control already re-renders itself; this covers the host.
-        if (_bindingOwners.TryGetValue(field, out var owner))
+        if (_bindingOwners.TryGetValue(field, out var binding))
         {
-            owner?.StateHasChanged();
+            binding.Owner?.StateHasChanged();
         }
     }
 
@@ -473,10 +484,13 @@ public sealed partial class EditContext : IDisposable
 
     // The reader chose a value the session holds until the next action (PendingBinds): the field is edited,
     // and what was said about the value it replaces no longer applies. The model has not changed, so nothing
-    // is announced and nobody is drawn again.
-    internal void NoteEdited(FieldIdentifier field)
+    // is announced and nobody is drawn again; the pick is what IsModified compares until it is written.
+    internal void NoteEdited(FieldIdentifier field, object? pick)
     {
-        GetOrCreate(field).Modified = true;
+        var state = GetOrCreate(field);
+        state.Modified = true;
+        state.HasPick = true;
+        state.Pick = pick;
         ClearMessages(field);
     }
 
@@ -600,6 +614,10 @@ public sealed partial class EditContext : IDisposable
         // the field is no longer alive.
         public DateTimeOffset? StickyUntilUtc;
         public bool Touched;
+
+        // A pick a control drawn in C# holds and has not written yet (PendingBinds).
+        public object? Pick;
+        public bool HasPick;
     }
 
     private readonly struct DelegateRegistration
