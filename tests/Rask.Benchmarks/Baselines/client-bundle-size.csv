@@ -672,3 +672,11 @@ bundle,bytes
 rask.js,114222
 rask.wasm.js,99588
 rask-hooks.js,132252
+# 2026-11-10, the create row's wait (above) on top of the table/tabs/chart accessibility block (rask-scroll-edges.ts):
+# both landed the same day, so this block sets all three to what the merged tree measures, locally with the bundle
+# gate's esbuild 0.28.2 and flags (--minify) on d85594170: rask.js 114,364, rask.wasm.js 99,729, rask-hooks.js 132,735
+# (the accessibility block's 114,222 / 99,588 / 132,252 plus this change's +142 / +141 / +483, byte for byte).
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,132735
