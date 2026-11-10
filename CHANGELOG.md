@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
+  issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push
+  run alone, which runs only the gates a push can reach — so on 2026-11-09, with `main`'s `full` run red on the CLI
+  build and templates and its `ci` green, the tools and intl-tel-input followers each opened an issue (#1311, #1312)
+  for `main`'s red. After: a gate red in `main`'s last `full` run counts as `main`'s too, unless a newer `ci` push run
+  passed it.
 - **A strict app publishes past a dependency's trim warnings, migrates without restyling EF Core's code, and builds
   the tutorial as typed.** Before: under `rask new`'s `<RaskStrict>errors</RaskStrict>`, a browser bundle's publish
   failed on `IL2104: Assembly 'Microsoft.JSInterop' produced trim warnings`; the first `rask db` migration failed the

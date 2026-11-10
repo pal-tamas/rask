@@ -355,7 +355,8 @@ try three days earlier, and its nightly already existed. `pick` now writes what 
   itself*). Each follower is a job of its own (`upstream-follow.yml`, `follow.sh <follower>`): its
   commit is gated by what it can reach and THEN landed on `main`, with nobody watching — so a release
   the gates refuse holds back that source only. A refusal for a gate `main` is already red on
-  (`scripts/upstream/main-already-red.sh`) is not upstream's: the commit waits on
+  (`scripts/upstream/main-already-red.sh`: red in `main`'s last `ci` push run, or in its last `full` run
+  and not passed by a `ci` run since — the scoped `ci` skips what a push cannot reach) is not upstream's: the commit waits on
   `upstream-waits/<follower>` and is followed again when `main`'s `ci` next passes on a push. Every
   source keeps ONE issue, opened only when it needs a person — the gates refused what it shipped, or
   Flux UI moved — and closed by its next green run. The Flux lock
