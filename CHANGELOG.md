@@ -18,6 +18,15 @@ them until tagged releases begin.
   Every kit tooltip, both hosts.
 
 ### Changed
+- **A search that asks the page feels like Flux's: it asks sooner, spins at once, and its create row waits.** Before: a
+  select's, pillbox's or `.Choices(find)`'s search asked 250 ms after the last key and its field spun 200 ms after that
+  (~450 ms), and a create row could be pressed while the answer was still on its way. After: it asks after 150 ms
+  (Livewire's `wire:model.live`, measured on fluxui.dev); a list's search field takes `data-loading` and its spinner
+  the moment the question leaves (`data-rask-loading-now`, which any element can carry — buttons keep the 200 ms
+  delay); and `Ui.SelectOptionCreate` / `Ui.PillboxOptionCreate` is `aria-disabled`, stepped over by the keys and refuses
+  a click while a search is out, and once pressed spins and holds the list open until its handler is done — one option made, however
+  often it is pressed. An empty list still says "Loading..." while a search is out (Flux keeps "No results found":
+  an owner-approved departure). The docs' and site's searches answer with the best twenty (`.Take(20)`), as Flux's.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
@@ -198,6 +207,13 @@ them until tagged releases begin.
   confirmation, and the stopped statuses; Retry no longer resets a job whose last attempt is still running.
   **Upgrade:** two new columns, `Stopped` and `StartedAt`: `rask db add AddJobStop && rask db update` (until then the
   processor logs exactly that). See [docs/jobs.md](docs/jobs.md#stop-a-job-give-it-a-limit-read-a-lane).
+- **Rask.Jobs' stop, limits and lane view are proven on SQL Server and PostgreSQL** (the provider gate,
+  `Rask.Providers.E2E.Tests`' `SqlServerJobStopTests`/`PostgresJobStopTests`). Before: only SQLite ran them. After, on
+  each server: the `AddJobStop` migration over a table that already holds pending, running, processed and dead-lettered
+  jobs (the missing-column hint first, every row kept with `Stopped`/`StartedAt` null, the due ones run); `Jobs.Lanes`
+  as one query; a stop of a running and of a waiting lane job; a time limit and an idle limit cut at the watch's tick;
+  the first reason standing when a stop and a limit meet; a row deleted or marked done from outside; `int`/`integer`
+  and `datetime2`/`timestamptz` round trips.
 - **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
   sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
   scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen
