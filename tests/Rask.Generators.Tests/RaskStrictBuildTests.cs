@@ -105,8 +105,26 @@ public sealed class RaskStrictBuildTests
         var atWarnings = (await warned.Evaluate("WarningsNotAsErrors", "TreatWarningsAsErrors"))["WarningsNotAsErrors"];
 
         Assert.Equal("true", errors["TreatWarningsAsErrors"]);
-        Assert.Equal(["CS0618", "NU1901", "NU1902", "NU1903", "NU1904"], exceptions.Where(code => code.Length > 0));
+        Assert.Equal(
+            ["CS0618", "NU1901", "NU1902", "NU1903", "NU1904"],
+            exceptions.Where(code => code.StartsWith("CS", StringComparison.Ordinal) || code.StartsWith("NU", StringComparison.Ordinal)));
         Assert.DoesNotContain("NU190", atWarnings, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task At_errors_a_dependency_s_trim_findings_stay_warnings_and_the_app_s_own_do_not()
+    {
+        // The trimmer folds a referenced assembly's warnings into one IL2104 (IL3053 for AOT) and reports the app's own
+        // assembly warning by warning; it reads WarningsNotAsErrors itself. Asserted on the property: a real publish
+        // is minutes, and the summary needs a dependency that warns.
+        using var app = new ThrowawayApp("Shop", strict: "errors", nullable: "enable");
+
+        var exceptions = (await app.Evaluate("WarningsNotAsErrors", "TreatWarningsAsErrors"))["WarningsNotAsErrors"].Split(';');
+
+        Assert.Contains("IL2104", exceptions);
+        Assert.Contains("IL3053", exceptions);
+        Assert.DoesNotContain("IL2026", exceptions);
+        Assert.DoesNotContain("IL3050", exceptions);
     }
 
     [Fact]

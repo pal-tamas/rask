@@ -136,23 +136,27 @@ A receipt must not be lost, so `Features/Orders/OrderPlacedHandler.cs` is durabl
 chapter 4's receipt job, so the receipt is now derived from the order's own transaction:
 
 ```csharp
-using Microsoft.Extensions.Logging;
 using Shop.Features.Shared;
 
 namespace Shop.Features.Orders;
 
-public sealed class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
+public sealed partial class OrderPlacedHandler(ILogger<OrderPlacedHandler> logger)
     : IDurableHandler<OrderPlaced>
 {
     public async Task Handle(OrderPlaced e)
     {
-        logger.LogInformation("Order {Id} placed", e.Id);
+        Placed(logger, e.Id);
         await Jobs.Enqueue(new SendOrderReceipt(e.Id));
     }
+
+    [LoggerMessage(LogLevel.Information, "Order {Id} placed")]
+    private static partial void Placed(ILogger logger, Guid id);
 }
 ```
 
 It's the one thing in this chapter you implement rather than call. Nothing registers it: it's found at build time.
+The log line is a `[LoggerMessage]` method, .NET's own way to log without formatting a message nobody reads —
+the analyzers a new app builds with (CA1848) ask for it over `logger.LogInformation(…)`.
 
 Because its outbox row committed atomically with the order, the handler is guaranteed to run **eventually**,
 even if the app is killed the instant after the sale — which closes the gap Chapter 4 left open. Delivery is

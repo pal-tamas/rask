@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A strict app publishes past a dependency's trim warnings, migrates without restyling EF Core's code, and builds
+  the tutorial as typed.** Before: under `rask new`'s `<RaskStrict>errors</RaskStrict>`, a browser bundle's publish
+  failed on `IL2104: Assembly 'Microsoft.JSInterop' produced trim warnings`; the first `rask db` migration failed the
+  next build (IDE0005, IDE0161, CA1861 in `Migrations/`); and the tutorial broke the rules from chapter 5 on (a type
+  outside a namespace, an `if` without braces, `logger.LogInformation` (CA1848), a page owning a
+  `CancellationTokenSource` without being `IDisposable` (CA1001), `using`s every app already has). After: IL2104/IL3053
+  — a referenced assembly's trim/AOT summary — stay warnings while the app's own trim warnings still fail; the
+  scaffolded `.editorconfig` marks `Migrations/` as generated code (and CA1861 off there); and chapters 5, 7, 9 and 10
+  are written the way a strict app builds (a `[LoggerMessage]` method, an `IDisposable` ops page).
 - **`<RaskStrict>errors</RaskStrict>` leaves a NuGet audit finding a warning.** Before: an advisory published against
   any dependency (NU1901–NU1904) failed every strict build, a freshly scaffolded app included, until the package moved.
   After: those four stay warnings, appended to the app's own `WarningsNotAsErrors`; every other warning still fails.
@@ -1105,6 +1114,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A searching `Ui.Select`/`Ui.Pillbox` opened without typing offers what the page's search finds now, not what it
+  found when the select was built.** Before: the select asked its `.Search(…)` (or `.Choices(find, held:)`) for `""`
+  once, when the page first built it — which a page does before it has read its rows (a filter in force in a closed
+  `Ui.Filters` panel, a picker whose rows a query or `OnMount` is still reading), so the answer was empty and the list
+  opened on "No results found" (Nincs találat) until something was typed (TA's vehicle and group filters, 2026-11-10).
+  After: a search the page hands over in a later render is asked again what the last one was asked; the same search (a
+  method, a lambda over nothing that changed) is not asked twice.
 - **A generated form model's doc comment no longer names an inherited column through the entity.** Before:
   `UserModel.Version` said `<see cref="User.Version" />`, which C# cannot resolve for a member declared on
   `Aggregate<TId>`, so an app writing a documentation file (every `<RaskStrict>` app) got CS1574 in generated code.

@@ -47,6 +47,10 @@
   <PropertyGroup Condition=" '$(_RaskStrictLevel)' == 'errors' ">
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <!-- The same for a DEPENDENCY's trim and AOT findings at publish: the trimmer folds each referenced assembly's
+         warnings into one, IL2104 (trim) or IL3053 (AOT), and the app cannot fix code it does not own (Microsoft.JSInterop
+         is one today). The app's own assembly is reported warning by warning (IL2026, IL3050, …), and those stay errors. -->
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);IL2104;IL3053</WarningsNotAsErrors>
   </PropertyGroup>
 
   <!-- A <RaskStrict> in the csproj alone comes too late for the documentation file, and the compiler's request

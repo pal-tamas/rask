@@ -79,10 +79,11 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
     /// <summary>
     ///     The options for what is typed, answered by the page:
     ///     <c>.Search(async typed =&gt; (await Tag.Named(typed, 20)).Select(t =&gt; Ui.PillboxOption.Value(t.Id)[t.Name]))</c>.
-    ///     As on <see cref="UiSelectControl{T}.Search" />: asked for <c>""</c> when the pillbox mounts and once typing
-    ///     pauses, and every picked option stays in the list while a search does not find it.
+    ///     As on <see cref="UiSelectControl{T}.Search" />: asked for <c>""</c> when the pillbox mounts, once typing
+    ///     pauses and whenever the page hands over another search, and every picked option stays in the list while a
+    ///     search does not find it.
     /// </summary>
-    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set; }
+    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set => UiAskedSearch.Take(this, ref field, value); }
 
     /// <summary>True for a pillbox that cannot be opened or changed.</summary>
     public bool? Disabled { get; set; }
