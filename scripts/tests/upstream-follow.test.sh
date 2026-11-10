@@ -3,7 +3,8 @@
 # What upstream-follow.yml leans on, against a fake `gh` that answers from saved API replies:
 # follow.sh names its followers and refuses one it does not have; issue.sh --close closes only the open
 # issue of that exact title; main-already-red.sh calls a red main's only when EVERY red gate is red on
-# main's last decided full run too — anything else must open the follower's issue.
+# main too — in its last decided ci push run, or in its last decided full run unless a newer ci run passed
+# it — and anything else must open the follower's issue.
 #
 # This decides, with nobody reading it, whether a person is asked. Calling upstream's red main's would
 # silence a broken release; the other way round is the daily false alarm it replaces.
@@ -59,11 +60,14 @@ printf '[{"number":8,"title":"Upstream: mdn could not be followed","state":"OPEN
 "$root/scripts/upstream/issue.sh" --close "Upstream: mdn could not be followed" "Followed"
 check "--close closes the open one"           "issue close 8 --comment Followed" "$(grep '^issue close' "$FAKE/calls")"
 
+# verdict <our jobs> <ci conclusion> <ci jobs> [<full conclusion> <full jobs> [<ci created> <full created>]]
 verdict() {
   rm -rf "$FAKE"
   reply repos/o/r/actions/runs/1/jobs "$1"
-  reply repos/o/r/actions/workflows/ci.yml/runs "{\"workflow_runs\":[{\"id\":2,\"conclusion\":\"cancelled\"},{\"id\":3,\"conclusion\":\"$2\"}]}"
+  reply repos/o/r/actions/workflows/ci.yml/runs "{\"workflow_runs\":[{\"id\":2,\"conclusion\":\"cancelled\",\"created_at\":\"2026-11-09T15:00:00Z\"},{\"id\":3,\"conclusion\":\"$2\",\"created_at\":\"${6:-2026-11-09T13:56:00Z}\"}]}"
   reply repos/o/r/actions/runs/3/jobs "$3"
+  reply repos/o/r/actions/workflows/full.yml/runs "{\"workflow_runs\":[{\"id\":4,\"conclusion\":\"${4:-success}\",\"created_at\":\"${7:-2026-11-09T13:56:30Z}\"}]}"
+  reply repos/o/r/actions/runs/4/jobs "${5:-$(jobs)}"
   if "$root/scripts/upstream/main-already-red.sh" 1 "mdn / " >/dev/null; then echo main; else echo upstream; fi
 }
 
@@ -72,6 +76,17 @@ check "every red gate red on main is main's"  main     "$(verdict "$ours" failur
 check "one red gate main has not is upstream's" upstream "$(verdict "$ours" failure "$(jobs 'gates / benchmarks=failure' 'gates / templates=success')")"
 check "a green main makes every red upstream's" upstream "$(verdict "$ours" success "$(jobs)")"
 check "a red outside the gates is the follower's" upstream "$(verdict "$(jobs 'mdn / land=failure')" failure "$(jobs 'gates / benchmarks=failure')")"
+
+# main's ci is scoped: a gate it did not reach is red on main only as full saw it (2026-11-09, CLI build + templates).
+reds="$(jobs 'gates / benchmarks=failure' 'gates / templates=failure')"
+check "a gate the scoped ci skipped and full failed is main's" main \
+  "$(verdict "$ours" success "$(jobs 'gates / benchmarks=skipped' 'gates / templates=skipped')" failure "$reds")"
+check "red in ci and red in full together are main's" main \
+  "$(verdict "$ours" failure "$(jobs 'gates / benchmarks=failure' 'gates / templates=skipped')" failure "$(jobs 'gates / templates=failure')")"
+check "full's red a newer ci passed is upstream's" upstream \
+  "$(verdict "$ours" success "$(jobs 'gates / benchmarks=success' 'gates / templates=skipped')" failure "$reds" 2026-11-10T09:00:00Z 2026-11-09T13:56:30Z)"
+check "full's red an OLDER ci passed is still main's" main \
+  "$(verdict "$ours" success "$(jobs 'gates / benchmarks=success' 'gates / templates=success')" failure "$reds" 2026-11-09T12:00:00Z 2026-11-09T13:56:30Z)"
 
 if [ "$failures" -gt 0 ]; then
   echo "upstream follow: $failures check(s) failed" >&2
