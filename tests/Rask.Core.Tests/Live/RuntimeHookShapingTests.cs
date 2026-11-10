@@ -322,6 +322,28 @@ public sealed class RuntimeHookShapingTests
     }
 
     [Fact]
+    public void A_row_menu_taller_than_a_phone_is_held_inside_the_viewport_from_a_row_at_the_top_the_middle_and_the_bottom()
+    {
+        var root = Run();
+
+        var rowMenu = root.GetProperty("place").GetProperty("rowMenu").EnumerateArray().Select(Landed).ToArray();
+
+        // Under the row at the top, held to the 488 px left above the edge; over the rows lower down, from 5 px under
+        // the top. Slid back from the right edge each time: its end on the ⋯'s, 25 px past it, would hang 19 px off.
+        Assert.Equal(["193 107 488", "193 5 290", "193 5 550"], rowMenu);
+    }
+
+    [Fact]
+    public void A_held_height_leaves_room_for_the_padding_and_border_a_box_without_a_reset_adds_to_it()
+    {
+        var root = Run();
+
+        var frame = root.GetProperty("place").GetProperty("frame").EnumerateArray().Select(side => side.GetDouble()).ToArray();
+
+        Assert.Equal([12d, 0d], frame);
+    }
+
+    [Fact]
     public void A_menu_at_the_pointer_reaches_back_from_it_and_opens_over_it_at_the_bottom_of_the_viewport()
     {
         var root = Run();

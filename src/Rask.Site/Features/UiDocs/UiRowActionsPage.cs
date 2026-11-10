@@ -31,6 +31,10 @@ public sealed partial class UiRowActionsPage : Component
                        + "apart and in red, asking first. None is required; a row nothing can be done with has no ⋯. The cell "
                        + "keeps to the table's right edge while the other columns scroll under it; its column is "
                        + "Ui.TableColumn.RowMenu. Inside a keyed row it needs no key of its own: a press that arrives "
-                       + "after a row above it went still reaches its own row.")
+                       + "after a row above it went still reaches its own row."),
+            UiDocsExample.Key("ui-row-actions-long").Heading("A long menu").File("RowActionsLongMenuExample.cs").Demo(RowActionsLongMenuExample).Testid("ui-row-actions-long")
+                .Blurb("Ui.MenuGroup names a run of actions. A menu taller than the room it has, by its row, is held to that "
+                       + "room — on the side of the row with more of it, 5 pixels from the viewport's edge — and scrolls "
+                       + "inside, opening at its first action; the arrow keys scroll each action they reach into view.")
         ];
 }
