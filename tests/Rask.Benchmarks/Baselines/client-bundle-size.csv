@@ -651,3 +651,13 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128237
+# 2026-11-10, a WebAssembly navigation focused and announced as a Server one is, the top bar at 150 ms in the app's
+# accent, and a refused submit focusing its first invalid field — one shared module each (rask-route-focus.ts,
+# rask-progress.ts, rask-first-invalid.ts), which both runtimes now import where the Server host had its own copy
+# and the WASM host had none: rask.js 114,209 -> 115,859 (+1,650), rask.wasm.js 99,575 -> 103,262 (+3,687),
+# rask-hooks.js unchanged. Measured locally (Release, the gate's esbuild) on af922ad58, whose own sizes match CI's
+# run 42804015661 (114,209 / 130,729) — this block also takes main's rask-hooks.js, which no block had recorded.
+bundle,bytes
+rask.js,115859
+rask.wasm.js,103262
+rask-hooks.js,130729

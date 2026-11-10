@@ -486,7 +486,8 @@ reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 
 `Ui.FormTabs` is the kit's own (owner-approved, not Flux's): a long form split into Flux's tabs, each tab saying in a
 red `Ui.Badge` how many of the fields it holds are invalid, and every refused save opening the first tab that holds
-one. It stands inside the `Form` and reads that form's messages itself, so the page hands it nothing — no
+one — and, once that tab is shown, focusing its first invalid field (the runtime's, on every form; see
+[accessibility](accessibility.md#a-refused-submit-takes-the-reader-to-the-first-mistake)). It stands inside the `Form` and reads that form's messages itself, so the page hands it nothing — no
 `EditContext`, no refusal counter, no `OnInvalidSubmit`. A tab names what it holds with the member expressions a control
 binds; a member that is an object or a collection holds every field it reaches, so an editor's rows are held by their
 list. A field no tab holds is counted by none, and a tab that holds nothing (a document, a history) never shows a

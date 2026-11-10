@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A refused submit takes the reader to the first mistake, on both hosts.** Before: the rules failing, or a save
+  throwing field failures, drew the messages and left focus on the Save button — a keyboard or screen-reader user had
+  to hunt for what was wrong, on a tab `Ui.FormTabs` had just switched to. After: focus moves to the first field marked
+  `aria-invalid="true"` (in document order, on screen, inside a kit control's wrapper if the mark is there) and it is
+  scrolled into view — after the refused tab is shown — unless the reader moved focus elsewhere while the submit was
+  in flight. The form renders its refusal count (`data-rask-refused`) so the runtime tells a refusal from a save.
+- **A WebAssembly navigation is focused and announced as a Server one is, and the progress bar waits 150 ms in the
+  app's accent.** Before: on WASM a link left focus on the link that was gone and said nothing to a screen reader, and
+  the Server host's top bar waited 300 ms and was always purple. After: one runtime module serves both hosts — focus
+  moves into the new page's `<main>` (or its `<h1>`, or the `#fragment`'s element), the new `<title>` is announced in a
+  polite live region (Back and Forward included), and the bar shows only for an answer slower than 150 ms (Livewire's
+  value), drawn in `--color-accent` with Rask's purple as the fallback, and still for `prefers-reduced-motion`.
 - **A strict app publishes past a dependency's trim warnings, migrates without restyling EF Core's code, and builds
   the tutorial as typed.** Before: under `rask new`'s `<RaskStrict>errors</RaskStrict>`, a browser bundle's publish
   failed on `IL2104: Assembly 'Microsoft.JSInterop' produced trim warnings`; the first `rask db` migration failed the
