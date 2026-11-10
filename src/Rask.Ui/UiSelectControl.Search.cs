@@ -25,6 +25,11 @@ public abstract partial class UiSelectControl<T>
     // Which question was asked last.
     private int _asked;
 
+    // What was asked last, and of which search: a page that hands another search — one over the rows it has read
+    // since — is asked it again.
+    private string _question = string.Empty;
+    private Fn<string, Task<IEnumerable<Component?>>>? _askedOf;
+
     /// <summary>Whether the page answers what is typed through <see cref="Search" />.</summary>
     private bool Asks => Asked is not null;
 
@@ -32,6 +37,15 @@ public abstract partial class UiSelectControl<T>
     // Before anything is typed the list offers what an empty search finds. A server page waits for it, so the first
     // HTML already carries the rows.
     protected override Task OnMount() => Asks ? AnswerAsync(string.Empty) : Task.CompletedTask;
+
+    /// <inheritdoc />
+    // A search the page hands over in a later render is asked again what the last one was asked. The page builds the
+    // select as soon as it renders it — a filter in a closed panel, a picker whose rows a query is still reading — so
+    // the first answer can come from a search over no rows at all, and the list opened on "No results found" until
+    // something was typed (TA, 2026-11-10). The same search (a method, a lambda over nothing that changed) is not
+    // asked again.
+    protected override Task OnUpdated() =>
+        Asks && !UiAskedSearch.Same(Asked, _askedOf) ? AnswerAsync(_question) : Task.CompletedTask;
 
     // Asks the page, and keeps the answer if no later question has been asked meanwhile. What is typed is trimmed: a
     // space typed after a word asks nothing new.
@@ -42,6 +56,8 @@ public abstract partial class UiSelectControl<T>
             return;
         }
 
+        _question = typed;
+        _askedOf = search;
         var asked = ++_asked;
         var answer = search.Invoke(typed.Trim()) is { } pending ? await pending.ConfigureAwait(false) : null;
         if (asked != _asked)

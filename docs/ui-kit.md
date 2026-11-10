@@ -1364,7 +1364,8 @@ own, a prefix, `Clearable()`), `Searchable()` filters it in the browser by text 
 over a collection picks several, and `.Combobox` is an input that filters. `Filter(false)` hands the search to the
 page, with `Debounce` on `Ui.SelectSearch` or `Ui.SelectInput` for one query a word, and `Ui.SelectOptionCreate`
 offers to make what was typed. For a list too long to send whole, `Search` hands the select the question itself — it
-asks for `""` when it mounts and again once typing pauses (250 ms), waits as Flux's backend search does while the answer is on its way
+asks for `""` when it mounts, again once typing pauses (250 ms), and again when a render hands it another search (one
+over rows the page has read since), waits as Flux's backend search does while the answer is on its way
 (the rows stay, the field's clear button fades or a combobox spins, an empty list says "Loading..."), says
 "No results found" when there is none (both from the catalog, Hungarian too), and keeps every picked option in
 the list while a search does not find it:

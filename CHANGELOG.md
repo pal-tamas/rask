@@ -1096,6 +1096,13 @@ them until tagged releases begin.
   when a component counts as changed are unchanged. Nothing to change in an app.
 
 ### Fixed
+- **A searching `Ui.Select`/`Ui.Pillbox` opened without typing offers what the page's search finds now, not what it
+  found when the select was built.** Before: the select asked its `.Search(…)` (or `.Choices(find, held:)`) for `""`
+  once, when the page first built it — which a page does before it has read its rows (a filter in force in a closed
+  `Ui.Filters` panel, a picker whose rows a query or `OnMount` is still reading), so the answer was empty and the list
+  opened on "No results found" (Nincs találat) until something was typed (TA's vehicle and group filters, 2026-11-10).
+  After: a search the page hands over in a later render is asked again what the last one was asked; the same search (a
+  method, a lambda over nothing that changed) is not asked twice.
 - **A generated form model's doc comment no longer names an inherited column through the entity.** Before:
   `UserModel.Version` said `<see cref="User.Version" />`, which C# cannot resolve for a member declared on
   `Aggregate<TId>`, so an app writing a documentation file (every `<RaskStrict>` app) got CS1574 in generated code.

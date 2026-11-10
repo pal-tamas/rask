@@ -70,12 +70,13 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <remarks>
     ///     Flux's backend search — <c>:filter="false"</c> with <c>wire:model.live.debounce</c> on the search — held by the
     ///     select itself. Asked for <c>""</c> when the select mounts, then once typing has paused (250 ms, or the search
-    ///     slot's <c>Debounce</c>); the list says it is loading while an answer is on its way, and the answer replaces the
+    ///     slot's <c>Debounce</c>), and again whenever the page hands over another search (a lambda over rows it has
+    ///     read since); the list says it is loading while an answer is on its way, and the answer replaces the
     ///     rows. The options written as children are the rows before the first answer — the one the value holds, say, so
     ///     the select can name it. A picked option stays first in the list while a search does not find it. A listbox
     ///     with a search field unless <c>Combobox</c> says otherwise.
     /// </remarks>
-    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set; }
+    public Fn<string, Task<IEnumerable<Component?>>>? Search { get; set => UiAskedSearch.Take(this, ref field, value); }
 
     /// <summary>What the list says when a search matches nothing. "No results found" when unset.</summary>
     public string? Empty { get; set; }

@@ -61,8 +61,12 @@ internal static class UiChoices
         changed = before is null || before.MayBeEmpty != mayBeEmpty
             || before.Said is not Search<T> last || !last.Find.Equals(find) || !Same(last.Held, shown);
 
-        var asking = new Fn<string, Task<IEnumerable<Component?>>>(async typed =>
-            Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills));
+        // The same search as the last render's while nothing it closes over has changed: a select asks a search it has
+        // not asked yet again, and this one would be new every render.
+        var asking = !changed && before!.Find is { } same
+            ? same
+            : new Fn<string, Task<IEnumerable<Component?>>>(async typed =>
+                Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills));
 
         return new UiChosen(new Search<T>(find, shown), Options(shown, pills), asking, mayBeEmpty);
     }
