@@ -22,6 +22,12 @@
 //   top       after a pick emptied the search the cursor goes back to the first row;
 //   held      a pick, a pill taken off, the clear button wait for the next action: the browser draws them and
 //             holds the answers (rask-list-held.ts).
+// A WINDOWED list (`data-rask-list-window="<row height> <set> <rows>"` on the box that scrolls the rows) has only the
+// rows its scroll shows on the page, each saying its place (`aria-posinset`, from 1). The page narrows it, and draws
+// the rows wherever the box is scrolled to; here the keys go on past the rows drawn — they scroll the box to the row
+// they land on and light it once the page has drawn it — Home and End go to either end, the first picked row
+// (`data-rask-list-picked`) is where the list opens, and type-ahead asks the page (`data-rask-list-seek`), which
+// answers with the row it found (`data-rask-list-sought="<question> <row>"`). A new set of rows starts at the top.
 // A text input the page listens to (`data-rask-on-input`, or `data-rask-on-pause` for a search that waits) is
 // told what this module writes into it as it is told what the reader types — once, and only when the page
 // thinks otherwise: a search it never heard is dropped unsaid, the pause being counted for it called off.
@@ -55,6 +61,8 @@ const TRIGGER = "[aria-haspopup=listbox]";
 // What an open list keeps from the page behind it and from a form around it.
 const CONTAIN = ["Enter", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"];
 const TYPE_AHEAD_MS = 500;
+const WINDOW = "data-rask-list-window";
+const SEEK = "[data-rask-list-seek]";
 
 interface State {
     /** The lit row. */
@@ -86,6 +94,14 @@ interface State {
     searched: boolean;
     /** A row was just picked: the input goes on to say something new. */
     anew: boolean;
+    /** In a windowed list: the lit row's place, kept while it is scrolled out of the rows drawn. */
+    at: number;
+    /** In a windowed list: the place a key landed on that is not drawn yet, and which way it went. */
+    wanted: number;
+    toward: 1 | -1;
+    /** In a windowed list: the set of rows the cursor is among, and the type-ahead question being answered. */
+    set: string;
+    seeking: number;
 }
 
 const states = new WeakMap<Element, State>();
@@ -111,6 +127,7 @@ function stateOf(root: Element): State {
         states.set(root, state = {
             cursor: null, id: "", pointed: false, auto: false, none: false, top: false, typing: false, acts: false,
             said: null, over: null, shown: false, pressed: false, resumes: false, heard: "", searched: false, anew: false,
+            at: -1, wanted: -1, toward: 1, set: "", seeking: 0,
         });
     }
     return state;
@@ -233,6 +250,7 @@ function light(root: Element, row: HTMLElement | null, pointed: boolean = false)
     }
     state.cursor = row;
     state.id = row ? row.id : "";
+    state.at = row ? placeOf(row) : -1;
     state.pointed = !!row && pointed;
     state.auto = false;
     if (row) {
@@ -246,13 +264,13 @@ function light(root: Element, row: HTMLElement | null, pointed: boolean = false)
 // a search the page answered puts it on the first row of the answer, not on the row it happened to be on.
 function place(root: Element, again: boolean = false): void {
     const state = stateOf(root);
-    const rows = rowsOf(root);
-    let at = state.cursor;
-    if (at && !at.isConnected && state.id) {
-        // A render put another element in the row's place.
-        const again = page!.getElementById(state.id);
-        at = again && rows.indexOf(again) >= 0 ? again : null;
+    const box = windowOf(root);
+    if (box) {
+        placeWindowed(root, box);
+        return;
     }
+    const rows = rowsOf(root);
+    const at = current(state, rows);
     if (at && rows.indexOf(at) >= 0 && !skips(at) && !(again && state.auto)) {
         const auto = state.auto;
         light(root, at, state.pointed);
@@ -277,6 +295,183 @@ function place(root: Element, again: boolean = false): void {
     }
     light(root, picked || first);
     state.auto = true;
+}
+
+// The lit row as the page has it now: a render may have put another element in its place.
+function current(state: State, rows: HTMLElement[]): HTMLElement | null {
+    const at = state.cursor;
+    if (at && !at.isConnected && state.id) {
+        const again = page!.getElementById(state.id);
+        return again && rows.indexOf(again) >= 0 ? again : null;
+    }
+    return at;
+}
+
+// ----- A windowed list ------------------------------------------------------------------------------------
+
+/** The box that scrolls a windowed list's rows, or null for a list the page draws whole. */
+function windowOf(root: Element): HTMLElement | null {
+    const popup = popupOf(root);
+    if (!popup) {
+        return null;
+    }
+    return popup.hasAttribute(WINDOW) ? popup : popup.querySelector<HTMLElement>("[" + WINDOW + "]");
+}
+
+/** What `data-rask-list-window` says: each row's height, which set of rows this is, and how many there are. */
+function windowSays(box: Element): {height: number; set: string; rows: number} {
+    const words = (box.getAttribute(WINDOW) || "").split(" ");
+    return {height: Number(words[0]) || 32, set: words[1] || "", rows: Number(words[2]) || 0};
+}
+
+/** A row's place among the rows on offer, from 0; -1 for a row that says none (the create row). */
+function placeOf(row: Element): number {
+    const said = row.getAttribute("aria-posinset");
+    return said === null ? -1 : Number(said) - 1;
+}
+
+function rowAt(root: Element, at: number): HTMLElement | null {
+    for (const row of rowsOf(root)) {
+        if (placeOf(row) === at) {
+            return row;
+        }
+    }
+    return null;
+}
+
+/**
+ * Scrolls the box so the row at `at` is in it, by the least movement: the page hears the scroll and draws the rows
+ * there. A box already there is told again, for a page whose rows are not the ones the box shows (it was shut).
+ */
+function bring(root: Element, box: HTMLElement, at: number): void {
+    const popup = popupOf(root);
+    if (!popup || !isShown(popup)) {
+        return;
+    }
+    const height = windowSays(box).height;
+    const top = (parseFloat(getComputedStyle(box).paddingTop) || 0) + at * height;
+    const before = box.scrollTop;
+    if (top < box.scrollTop) {
+        box.scrollTop = top;
+    } else if (top + height > box.scrollTop + box.clientHeight) {
+        box.scrollTop = top + height - box.clientHeight;
+    }
+    if (box.scrollTop === before) {
+        box.dispatchEvent(new Event("scroll"));
+    }
+}
+
+/**
+ * Lights the row at `at`, or the first one past it `dir`'s way the cursor may land on. One that is not drawn yet is
+ * scrolled to, and lit once the page has drawn it (placeWindowed).
+ */
+function goTo(root: Element, box: HTMLElement, at: number, dir: 1 | -1): void {
+    const state = stateOf(root);
+    const rows = windowSays(box).rows;
+    state.wanted = -1;
+    for (let i = at; i >= 0 && i < rows; i += dir) {
+        const row = rowAt(root, i);
+        if (!row) {
+            state.wanted = i;
+            state.toward = dir;
+            bring(root, box, i);
+            return;
+        }
+        if (!skips(row)) {
+            light(root, row);
+            return;
+        }
+    }
+}
+
+// The rows of a windowed list changed — the page drew those of a scroll, a search, a found row: the cursor lands where a
+// key or type-ahead sent it, stays on its row while it is drawn, goes dark while its row is scrolled away, and starts
+// on the first picked row, or the first, in a new set of rows.
+function placeWindowed(root: Element, box: HTMLElement): void {
+    const state = stateOf(root);
+    const says = windowSays(box);
+    if (says.set !== state.set) {
+        const fresh = state.set !== "";
+        state.set = says.set;
+        if (fresh) {
+            state.cursor = null;
+            state.id = "";
+            state.at = -1;
+            state.wanted = -1;
+            box.scrollTop = 0;
+        }
+    }
+    const sought = (box.getAttribute("data-rask-list-sought") || "").split(" ");
+    if (state.seeking && Number(sought[0]) === state.seeking) {
+        state.seeking = 0;
+        goTo(root, box, Number(sought[1]), 1);
+        return;
+    }
+    if (state.wanted >= 0) {
+        goTo(root, box, state.wanted, state.toward);
+        return;
+    }
+    const rows = rowsOf(root);
+    const lit = current(state, rows) || (state.at >= 0 ? rowAt(root, state.at) : null);
+    if (lit && rows.indexOf(lit) >= 0 && !skips(lit)) {
+        const auto = state.auto;
+        light(root, lit, state.pointed);
+        state.auto = auto;
+        return;
+    }
+    if (state.none || state.at >= 0) {
+        // No row lit, or the lit one scrolled away: nothing is lit until a key or the pointer says, or it is back.
+        const at = state.at;
+        const none = state.none;
+        light(root, null);
+        state.at = at;
+        state.none = none;
+        return;
+    }
+    const picked = Number(box.getAttribute("data-rask-list-picked") || "-1");
+    goTo(root, box, !state.top && picked >= 0 ? picked : 0, 1);
+    state.auto = true;
+}
+
+// The arrows in a windowed list: a row at a time by its place, past the rows drawn. With no row lit ArrowDown lands on
+// the first and ArrowUp on the last; the create row is the one past the end it is written at.
+function stepWindowed(root: Element, box: HTMLElement, dir: 1 | -1): void {
+    const state = stateOf(root);
+    const rows = windowSays(box).rows;
+    const popup = popupOf(root);
+    const create = popup ? popup.querySelector<HTMLElement>("[" + CREATE + "]") : null;
+    const first = rowsOf(root).filter(function (row) { return placeOf(row) >= 0; })[0];
+    const leads = !!create && !!first && !!(create.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING);
+    let from = state.wanted >= 0 ? state.wanted : state.at;
+    if (state.cursor && state.cursor === create) {
+        from = leads ? -1 : rows;
+    } else if (from < 0) {
+        from = dir === 1 ? -1 : rows;
+    }
+    const to = from + dir;
+    if (to >= 0 && to < rows) {
+        goTo(root, box, to, dir);
+    } else if (create && !skips(create) && leads === (to < 0)) {
+        state.wanted = -1;
+        light(root, create);
+    }
+}
+
+// Type-ahead in a windowed list: the page has every row's words, and answers with the row the letters land on — lit in
+// an open list, picked in a shut one.
+let seeks = 0;
+
+function seek(root: Element, key: string, shown: boolean): void {
+    const field = root.querySelector<HTMLInputElement>(SEEK);
+    if (!field) {
+        return;
+    }
+    const now = Date.now();
+    typed = now - typedAt > TYPE_AHEAD_MS ? key : typed + key;
+    typedAt = now;
+    const state = stateOf(root);
+    state.seeking = shown ? ++seeks : 0;
+    say(field, [shown ? state.seeking : 0, shown ? 1 : 0, shown ? state.at : -1, typed, key].join("\n"), "input");
 }
 
 // Hides what the search leaves out. A list the page filters is left as rendered.
@@ -462,6 +657,9 @@ function opened(root: Element, popup: Element): void {
         state.none = false;
         state.top = false;
         state.acts = false;
+        state.at = -1;
+        state.wanted = -1;
+        state.seeking = 0;
     }
     state.resumes = false;
     expand(root, popup, true);
@@ -524,6 +722,11 @@ function show(root: Element): void {
 }
 
 function step(root: Element, dir: 1 | -1): void {
+    const box = windowOf(root);
+    if (box) {
+        stepWindowed(root, box, dir);
+        return;
+    }
     const state = stateOf(root);
     const rows = rowsOf(root);
     const at = state.cursor ? rows.indexOf(state.cursor) : -1;
@@ -688,6 +891,11 @@ if (page) {
         }
         if (state.cursor) {
             reveal(state.cursor);
+        }
+        const box = windowOf(root);
+        if (box) {
+            // Shut, the box may have gone back to its top, and the rows drawn are where it was: the page hears where it is.
+            bring(root, box, state.wanted >= 0 ? state.wanted : Math.max(state.at, 0));
         }
     }, true);
 
@@ -880,6 +1088,11 @@ if (page) {
                 press(state.cursor);
             } else if (key === "Tab") {
                 setShown(popup, false);
+            } else if ((key === "Home" || key === "End") && windowOf(root)) {
+                const box = windowOf(root)!;
+                goTo(root, box, key === "Home" ? 0 : windowSays(box).rows - 1, key === "Home" ? 1 : -1);
+            } else if (letters && windowOf(root)) {
+                seek(root, key, true);
             } else if (letters) {
                 const hit = ahead(root, key);
                 if (hit) {
@@ -895,6 +1108,8 @@ if (page) {
             // A <button> is pressed by Space by itself; any other trigger opens on it here.
             e.preventDefault();
             show(root);
+        } else if (letters && windowOf(root)) {
+            seek(root, key, false);
         } else if (letters) {
             // On a shut list a letter picks, as a native select's does.
             press(ahead(root, key));

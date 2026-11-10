@@ -16,11 +16,22 @@ public abstract partial class UiSelectControl<T>
                 HasSearchField ? UiListboxLook.Column : UiListboxLook.Scrolls,
                 PillPopupLook(),
                 OptionsClass)
-            .Attributes(PopupMarks());
+            .Attributes(PopupMarks(view));
 
         return HasSearchField
-            ? popup[SearchField(view), ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList, UiListboxLook.ListOverscroll, PillListLook()))[Rows(view)]]
-            : ListRole(popup)[Rows(view)];
+            ? popup[SearchField(view), Scrolling(ListRole(Div.Id(ListId).Class(UiSelectLook.SearchedList, UiListboxLook.ListOverscroll, PillListLook())), view)[Rows(view)]]
+            : Scrolling(ListRole(popup), view)[Rows(view)];
+    }
+
+    // The box that scrolls the rows: a windowed list hears where it is, and says how its rows are drawn (WindowMarks).
+    private HTMLDivElement Scrolling(HTMLDivElement list, View view)
+    {
+        if (view.Window is null)
+        {
+            return list;
+        }
+
+        return HasSearchField ? list.OnScroll(Scrolled).Attributes(WindowMarks(view)) : list.OnScroll(Scrolled);
     }
 
     // On every list, one answer or several: Flux's listbox says so whatever it holds.
@@ -29,14 +40,27 @@ public abstract partial class UiSelectControl<T>
 
     // Opened and shut in the browser, by the trigger and the keys (rask-list.ts): the page says nothing of it,
     // and hears nothing.
-    private Dictionary<string, string?> PopupMarks() => new(StringComparer.Ordinal)
+    private Dictionary<string, string?> PopupMarks(View view)
     {
-        [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
-        // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
-        ["data-rask-lock"] = null,
-        ["style"] = UiAnchor.Under(Prefixed, Position, Align),
-        ["data-rask-place"] = UiAnchor.Place(Position, Align),
-    };
+        var marks = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            [Pills is null || HasSearchField ? "data-ui-options" : "data-ui-listbox-options"] = null,
+            // While the list is open the page behind it neither scrolls nor takes the pointer, as on Flux.
+            ["data-rask-lock"] = null,
+            ["style"] = UiAnchor.Under(Prefixed, Position, Align),
+            ["data-rask-place"] = UiAnchor.Place(Position, Align),
+        };
+        if (view.Window is not null && !HasSearchField)
+        {
+            // The popup is the list, and what scrolls it.
+            foreach (var (name, value) in WindowMarks(view))
+            {
+                marks[name] = value;
+            }
+        }
+
+        return marks;
+    }
 
     // Every row the control writes is keyed — the options by their own key or their place, the rest by name — so
     // an option created while the list is open is a keyed change the live diff ships. Only a list that holds
@@ -54,7 +78,15 @@ public abstract partial class UiSelectControl<T>
             yield return CreateRow(view, leading);
         }
 
-        foreach (var block in view.Parts.Blocks)
+        if (view.Window is { } window)
+        {
+            foreach (var row in WindowRows(view, window))
+            {
+                yield return row;
+            }
+        }
+
+        foreach (var block in view.Window is null ? view.Parts.Blocks : [])
         {
             if (block.Other is { } other)
             {
@@ -86,16 +118,19 @@ public abstract partial class UiSelectControl<T>
             .Role("presentation")
             .Data("rask-list-group", block.Rows.Count.ToString(CultureInfo.InvariantCulture))[group.Label];
 
-    private Component OptionRow(View view, Row row)
+    // `at` is the row's place among the rows on offer, in a windowed list: it says how many there are and which it is, and
+    // is as tall as every other.
+    private Component OptionRow(View view, Row row, int at = -1)
     {
         var off = row.Option.Disabled == true;
         var picked = view.IsPicked(row);
         var item = Div
             .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(CultureInfo.InvariantCulture))
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
+            .Style(at < 0 ? null : "height:" + view.RowHeight.ToString(CultureInfo.InvariantCulture) + "px")
             .Role("option")
             .Class(RowLook(row.Option), row.Option.Class)
-            .Aria(UiOptionAria.For(off, picked))
+            .Aria(at < 0 ? UiOptionAria.For(off, picked) : UiOptionAria.For(off, picked, at + 1, view.Shown.Count))
             .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
         // Held, the browser picks it (rask-list-held.ts): the page hears the answer with the next action.

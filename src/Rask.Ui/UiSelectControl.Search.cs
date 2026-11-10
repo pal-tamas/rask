@@ -52,6 +52,7 @@ public abstract partial class UiSelectControl<T>
         // A pillbox's options are its own parts: the select reads them as its options.
         Func<Component?, Component?> read = Pills is null ? static row => row : UiPillboxParts.Translate;
         _found = [.. (answer ?? []).Select(read)];
+        _answers++;
     }
 
     // The children the select draws: what the page wrote, with its options and groups replaced by the answer — the

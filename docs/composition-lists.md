@@ -65,6 +65,11 @@ spacer heights change. It is the provider-mode sibling of `InitialClientHeight`,
 reason: the first render happens before the thing that knows the answer has answered. Ignored in
 items mode, where the count is never in doubt.
 
+**The kit's long lists sit on the same window.** `Ui.Select` (listbox and combobox) and `Ui.Pillbox` draw every option
+up to a hundred, as Flux does, and past that only the rows in view — on the arithmetic `Virtualize` uses, held by the
+select itself so its rows stay its own. Nothing to write: a select of 1098 vehicles puts about thirty rows on the page,
+searches all of them, and its keys, type-ahead and ARIA reach every one ([UI kit](ui-kit.md#select)).
+
 **Items mode** — a fixed in-memory list, windowed:
 
 <!-- demo:virtualize-items -->

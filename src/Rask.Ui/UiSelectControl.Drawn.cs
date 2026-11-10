@@ -7,6 +7,7 @@ public abstract partial class UiSelectControl<T>
 {
     private Component Drawn(UiWithField field, Parts parts, IReadOnlyList<T> picked)
     {
+        DecideWindow(parts);
         var view = Read(field, parts, picked);
 
         // Every child is keyed: the posted values change in number. Keyed, each is an insert or a removal the
@@ -18,6 +19,7 @@ public abstract partial class UiSelectControl<T>
             Popup(view),
             .. PostedValues(view),
             HeldFaces(view),
+            SeekField(view),
         ];
 
         return Div.Class(UiSelectLook.Root, Class).Attributes(RootMarks())[children];

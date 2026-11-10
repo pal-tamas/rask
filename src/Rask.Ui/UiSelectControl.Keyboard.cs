@@ -28,7 +28,8 @@ public abstract partial class UiSelectControl<T>
     private string SearchId => Prefixed + "-search";
 
     /// <summary>Whether the browser hides the rows a search leaves out; otherwise the page answers the search.</summary>
-    private bool HidesRows => Searches && Filter != false && !Asks;
+    /// <remarks>A windowed list has only some of its rows on the page: the select narrows it (FiltersItself).</remarks>
+    private bool HidesRows => Searches && Filter != false && !Asks && !_windowed;
 
     // ----- What is typed -------------------------------------------------------------------------------
 
@@ -48,7 +49,7 @@ public abstract partial class UiSelectControl<T>
     private async Task HearAsync(string text)
     {
         _search = text;
-        if ((!_hears.HasValue && !Asks) || (_pause > 0 && string.Equals(text, _heard, StringComparison.Ordinal)))
+        if ((!_hears.HasValue && !Asks && !FiltersItself) || (_pause > 0 && string.Equals(text, _heard, StringComparison.Ordinal)))
         {
             return;
         }
@@ -80,7 +81,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         var hearing = UiSearchPause.Over(marks, _pause, HearAsync);
-        if (_pause == 0 && (_hears.HasValue || Asks))
+        if (_pause == 0 && (_hears.HasValue || Asks || FiltersItself))
         {
             hearing = new Dictionary<string, string?>(marks, StringComparer.Ordinal)
             {

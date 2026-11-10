@@ -141,6 +141,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Ui: a long select or pillbox draws only the rows in view.** Before: `Ui.Select`'s listbox and combobox and
+  `Ui.Pillbox` drew every option — a select of TA's 1098 vehicles put 1098 rows on the page at every render, and every
+  one travelled over the wire on Server. After: up to 100 options nothing changes (Flux's examples, and parity, stay as
+  they were); past 100 the list is windowed on Core's virtualization — the rows its scroll shows and ten either side,
+  between two spacers — so the reader scrolls through the whole list without typing. The search narrows the whole list
+  (on the server, by the browser's rules), the arrow keys, `Home`, `End` and type-ahead reach rows past the window and
+  scroll it there, the list opens on the picked row, and rows say `aria-setsize`/`aria-posinset`. No new step: the same
+  options, `.Choices(…)` and `Search` answers are windowed by themselves. Core's `VirtualizeModel` now keeps its scroll
+  maths in an internal `VirtualScroll`, shared with the kit.
 - **`<RaskStrict>` — an app's opt-in quality gate, from what the .NET SDK and Rask already ship.** Before: an app had no
   gate of Rask's; TA kept a 13-line `.editorconfig`, Eszaf nothing, and nullable, the .NET analyzers and test names were
   checked by habit. After: `<RaskStrict>warnings</RaskStrict>` in the app's `Directory.Build.props` turns on `Nullable`,

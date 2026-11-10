@@ -22,6 +22,18 @@ public abstract partial class UiSelectControl<T>
         /// <summary>How many rows answer the search: every row, but for the picked ones a search the page answers keeps.</summary>
         internal int Found { get; init; }
 
+        /// <summary>The rows on offer, in order: every row, or those a search left in a list the select narrows itself.</summary>
+        internal List<Row> Shown { get; init; } = [];
+
+        /// <summary>The rows of a windowed list the scroll box shows; null for a list drawn whole.</summary>
+        internal Core.Virtualization.VirtualWindow? Window { get; init; }
+
+        /// <summary>How tall each row of a windowed list is, in pixels.</summary>
+        internal int RowHeight { get; init; }
+
+        /// <summary>Where the first picked row is among <see cref="Shown" />, or -1.</summary>
+        internal int PickedAt => Shown.FindIndex(IsPicked);
+
         /// <summary>
         ///     The answers that have something to show, in the order they were picked: each from its row, or
         ///     as the select last drew it once a render took the row away.
@@ -57,10 +69,15 @@ public abstract partial class UiSelectControl<T>
     {
         ReadSearch(parts);
         var search = SearchText(parts);
+        var shown = Shown(parts, picked, search);
+        var rowHeight = RowHeightOf(parts);
         var view = new View(field, parts, picked, search)
         {
             CreateShown = parts.Create is { } create && (HidesRows || OffersCreate(create, parts, search)),
-            Found = Found(parts),
+            Found = FiltersItself ? shown.Count : Found(parts),
+            Shown = shown,
+            Window = WindowOf(shown, rowHeight),
+            RowHeight = rowHeight,
         };
         Remember(view);
         _latest = view;

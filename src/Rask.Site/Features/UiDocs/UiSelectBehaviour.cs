@@ -75,7 +75,7 @@ internal sealed partial class UiSelectBehaviour : Component
             UiDocsKeys.Column("Key").Rows([
                 ("Click, Space, ArrowDown, ArrowUp", "Open, with the cursor on the chosen option, or the first when there is none."),
                 ("ArrowDown, ArrowUp", "Move the cursor past a disabled option. They stop at either end; there is no wrap."),
-                ("Home, End, PageUp, PageDown", "Nothing, as on Flux."),
+                ("Home, End, PageUp, PageDown", "Nothing, as on Flux. In a list of more than a hundred options, Home and End go to the first and the last."),
                 ("Enter", "Picks the lit row and closes; with `Multiple()` it switches the row and the list stays open. On the closed button it does nothing."),
                 ("Escape, a click elsewhere", "Close; the focus returns to the button."),
                 ("Tab", "Closes, picks nothing, and moves on."),
@@ -96,5 +96,9 @@ internal sealed partial class UiSelectBehaviour : Component
             + "`aria-selected`. A drawn select posts nothing by itself, so one with a `Name` carries its answer in hidden "
             + "inputs. A press on a row names its own row, and a bound select then writes its member with the next "
             + "action, or at once with `.Live()`.",
+            "A list of more than a hundred options draws only the rows in view and ten either side, between two spacers "
+            + "as tall as the rows they stand for (`data-rask-list-window`); Flux draws every one. The search narrows the "
+            + "whole list on the page's side, the arrow keys and type-ahead scroll to a row that is not drawn yet and light it "
+            + "once it is, every row says `aria-setsize` and `aria-posinset`, and a pick is sent at once.",
         ]);
 }

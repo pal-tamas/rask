@@ -24,7 +24,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                  {
                      "ui-select", "ui-select-sm", "ui-select-groups", "ui-listbox", "ui-select-button", "ui-select-clearable",
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
-                     "ui-select-width", "ui-select-search", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
+                     "ui-select-width", "ui-select-search", "ui-select-long", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
                      "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
                      "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",

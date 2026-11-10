@@ -615,6 +615,10 @@ Ui.Table.Of(Listed)
 A heading the page gives its own `OnSort` keeps it. A table that is not drawn from a query takes `Empty` too: its one
 row shows when it has no rows.
 
+A table is not windowed as a [long select](#select) is: `PageIn` already bounds what is on the page to one page of rows
+(15 unless said), read from the database a page at a time, and a page's rows are the page's own markup, of any height.
+For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](composition-lists.md#virtualize--windowed-lists).
+
 ### Column widths, row actions and a form's buttons
 
 **Three pieces every list app copied, now the kit's** (not Flux's: additions the owner approved, 2026-11-04, #1298).
@@ -1395,6 +1399,26 @@ Ui.Select.Bind(() => model.DriverId).Choices(Driver.Named, held: driver)
 Everything it fills in is a default: `.Placeholder(…)`, `.Clearable(…)`, `.Searchable(false)` or `.Combobox` say
 otherwise, `.AfterBind(…)` runs after a pick, and options written as children come after the rows.
 
+**A long list draws only the rows in view** (not Flux's, which draws every option). Up to a hundred options a drawn
+list — listbox, combobox, pillbox, `.Choices(…)`, the rows a `Search` answers — is drawn whole, as Flux draws it; past
+a hundred it is windowed on [Core's virtualization](composition-lists.md#virtualize--windowed-lists): the rows its
+scroll shows and ten either side, between two spacers that keep the box as tall as the whole list, so the reader
+scrolls through all 1098 vehicles without typing. There is nothing to write — the same options, the same steps:
+
+```csharp
+Ui.Select.Bind(() => model.VehicleId).Listbox.Searchable()[
+    vehicles.Select(v => Ui.SelectOption.Value(v.Id)[v.Plate])      // 1098 of them: about thirty are on the page
+]
+```
+
+The search narrows the **whole** list (the select does it, by the browser's rules: case, accents and `Keywords`), the
+arrow keys go on past the rows drawn and the list scrolls to the row they land on, `Home` and `End` go to either end,
+type-ahead finds any row, the list opens on the picked row, and every row says `aria-setsize` and `aria-posinset` so
+a screen reader counts all of them. A pick is the press on a row, as ever, and is sent at once: a windowed list holds
+no pick in the browser for the next action. Every row is as tall as the next (32px, 60 with a description), and a list
+with groups or children of the page's own between its options is drawn whole. The browser's own `<select>` (the
+default variant) always holds every option: use `.Listbox` for a long one.
+
 An option's `Key` names it inside its own select, so two selects on one page may key theirs by the same ids. An open list sends the page nothing until a row is picked — and a bound select
 sends nothing at the pick either, one answer or several: the browser draws it (the words, the count, the ticked rows)
 and the value travels with the next action, as Flux's `wire:model` (`.Live()` sends it at once). Every example, the
@@ -1415,7 +1439,7 @@ pill that can be taken off again, bound to a collection. `Searchable()`, `.Combo
 `Filter(false)` with `Debounce` for options found on the server — or `Search(async typed => …)`, as on the select, which
 asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. Rows of another
 table are `.Choices(vehicles)` (or `.Choices(find, held: picked)`), as on the select: searched, in the reader's
-alphabet, the detail as muted words after the name in the list and the name alone on the pill. It is the select's list under another trigger, so its keys are the runtime's. Bound, a pick, a pill's cross and
+alphabet, the detail as muted words after the name in the list and the name alone on the pill. It is the select's list under another trigger, so its keys are the runtime's, and past a hundred options it draws only the rows in view, as the select does ([a long list](#select)). Bound, a pick, a pill's cross and
 Backspace in the empty input send nothing: the browser draws the pills and the answers travel with the next action,
 as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboard and the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.
 

@@ -34,13 +34,12 @@ namespace Rask.Core.Components;
 /// </summary>
 public sealed class VirtualizeModel : Component
 {
+    private readonly VirtualScroll _scroll = new();
     private CancellationTokenSource? _activeFetch;
     private Dictionary<int, object?>? _cache;
-    private int _clientHeight;
     private IEnumerable? _lastItems;
     private Delegate? _lastProvider;
     private Action<Event>? _onScrollDelegate;
-    private int _scrollTop;
     private int _totalCount;
     private bool _totalCountKnown;
 
@@ -116,7 +115,7 @@ public sealed class VirtualizeModel : Component
     // VirtualizeModel reads mutable internal state (scroll position, item cache, total count
     // from the async provider) that the framework can't observe through props alone, so
     // every render must re-execute. Without this, the cached Div from the last render
-    // would be returned even after a scroll event changed _scrollTop. Same reasoning as
+    // would be returned even after a scroll event moved the window. Same reasoning as
     // Router/Outlet — see Component.BypassRenderCache.
     protected override bool BypassRenderCache => true;
 
@@ -179,21 +178,14 @@ public sealed class VirtualizeModel : Component
         var body = RequireValidProps();
 
         var itemSize = ItemSize;
-        var clientHeight = _clientHeight > 0
-            ? _clientHeight
-            : Math.Max(InitialClientHeight ?? 0, itemSize);
+        var initialClientHeight = InitialClientHeight ?? 0;
         var overscan = Math.Max(0, OverscanCount ?? 0);
 
         var totalCount = CurrentTotalCount();
 
-        var startIndex = Math.Max(0, (_scrollTop / itemSize) - overscan);
-        var endIndex = Math.Min(
-            totalCount,
-            ((_scrollTop + clientHeight + itemSize - 1) / itemSize) + overscan);
-        if (endIndex < startIndex)
-        {
-            endIndex = startIndex;
-        }
+        var window = _scroll.Window(itemSize, overscan, totalCount, initialClientHeight);
+        var startIndex = window.Start;
+        var endIndex = window.End;
 
         var visibleCount = endIndex - startIndex;
         var values = new object?[visibleCount];
@@ -207,13 +199,13 @@ public sealed class VirtualizeModel : Component
         else
         {
             FillFromCache(startIndex, visibleCount, values, indices, placeholders);
-            ScheduleAsyncFetch(startIndex, visibleCount, placeholders, overscan, clientHeight, itemSize);
+            ScheduleAsyncFetch(startIndex, visibleCount, placeholders, overscan, _scroll.Height(itemSize, initialClientHeight), itemSize);
         }
 
         _onScrollDelegate ??= HandleScroll;
 
-        var offsetBefore = startIndex * itemSize;
-        var offsetAfter = Math.Max(0, totalCount - endIndex) * itemSize;
+        var offsetBefore = window.OffsetBefore;
+        var offsetAfter = window.OffsetAfter;
 
         var state = new VirtualizationState(
             values,
@@ -387,29 +379,9 @@ public sealed class VirtualizeModel : Component
         }
     }
 
-    // Taller than any scroll box a real screen can show; the overscan still applies on top.
-    private const int MaxClientHeight = 16_384;
-
-    private const int MaxScrollTop = int.MaxValue / 2;
-
-    // The scroll box travels with a scroll as e.Target, as MDN's JavaScript reads it: e.target.scrollTop.
-    private void HandleScroll(Event e)
-    {
-        if (e.Target is not { } box)
-        {
-            return;
-        }
-
-        // Both numbers are the client's word. An unbounded height would make one frame render — or fetch —
-        // the whole list this component exists to window, and an unbounded offset would overflow the sum.
-        _scrollTop = (int)Math.Clamp(box.ScrollTop, 0, MaxScrollTop);
-        if (box.ClientHeight > 0)
-        {
-            _clientHeight = Math.Min(box.ClientHeight, MaxClientHeight);
-        }
-        // The dispatcher's post-handler render already picks up this state mutation —
-        // the owner is marked _stateDirty when TryInvokeHandlerAsync looks up the handler.
-    }
+    // The dispatcher's post-handler render already picks up this state mutation — the owner is marked _stateDirty
+    // when TryInvokeHandlerAsync looks up the handler.
+    private void HandleScroll(Event e) => _scroll.Read(e);
 
     private static int CountItems(IEnumerable source)
     {

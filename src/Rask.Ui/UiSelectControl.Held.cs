@@ -23,7 +23,8 @@ public abstract partial class UiSelectControl<T>
     private const string HeldClear = "data-rask-list-clear";
 
     /// <summary>Whether a pick is held in the browser until the next action: bound, waiting, rows of its own.</summary>
-    private bool Held => Filter != false && !Asks && CommitDraws;
+    /// <remarks>Not a windowed list: its rows come and go with the scroll, and the browser cannot draw a pick it has no row of.</remarks>
+    private bool Held => Filter != false && !Asks && !_windowed && CommitDraws;
 
     // The bound field, first in the control: the answers the page drew, as form values (UiFormValues), in the order
     // they were picked. The browser writes the reader's picks into it, and it goes ahead of the next action. No
