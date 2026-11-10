@@ -41,6 +41,14 @@ dotnet_naming_style.prefixed_with_i.capitalization = pascal_case
 # The app's vocabulary: a battery's namespace is here before the first file uses it, so an unused one is not noise.
 dotnet_diagnostic.IDE0005.severity = none
 
+# rask:if data
+[Migrations/**.cs]
+# Written by EF Core (`rask db`), not by you: the analyzers and style rules leave generated code alone.
+generated_code = true
+# EF Core's own shape, which the CA analyzers still read in code marked generated.
+dotnet_diagnostic.CA1861.severity = none
+# rask:end
+
 [*.{json,yml,yaml,xml,csproj,slnx,props,targets}]
 indent_size = 2
 

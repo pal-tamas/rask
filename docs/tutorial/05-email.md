@@ -27,6 +27,8 @@ Give it the order data and build a real body. A component carries data on **publ
 its chain sets), so add an `OrderId` and a `Total` and render them:
 
 ```csharp
+namespace Shop.Features.Shared;
+
 public sealed partial class OrderReceipt : Component
 {
     public Guid OrderId { get; set; }
@@ -81,7 +83,10 @@ public sealed partial class SendOrderReceiptHandler : IJobHandler<SendOrderRecei
     public async Task Handle(SendOrderReceipt job)
     {
         var order = await Order.Where(o => o.Id == job.OrderId).FirstOrDefault();
-        if (order is null) return;
+        if (order is null)
+        {
+            return;
+        }
 
         // Hard-coded recipient for now — Order has no customer-email field yet; add one and use it here.
         await Mail.Send(

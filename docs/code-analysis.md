@@ -48,12 +48,15 @@ clean under it. An app made before that writes it in its own `Directory.Build.pr
 | Off: CA1716 (a Visual Basic keyword such as `Shared` in a name), and CA1707 (underscores) in a test project | ✓ | ✓ |
 | `TreatWarningsAsErrors`: every warning above, and Rask's own RASK warnings, fail the build | | ✓ |
 | …except a NuGet audit finding (NU1901–NU1904, a dependency with a known vulnerability), which stays a warning — appended to the app's own `WarningsNotAsErrors` | | ✓ |
+| …and a dependency's trim or AOT summary at publish (IL2104, IL3053: the app cannot fix a package's code); the app's own trim warnings (IL2026, IL3050, …) still fail | | ✓ |
 
 Unset or `false` changes nothing; any other word stops the build and names the two levels. Start at `warnings`: the
 build stays green and the list shows up in the IDE and in `dotnet build`. Move to `errors` once it is empty. A project
 that is not ready yet sets `<RaskStrict>false</RaskStrict>` in its own csproj, which wins over the
 `Directory.Build.props`. Write the switch in `Directory.Build.props` rather than a csproj: the documentation file is
-settled before a csproj is read, so in a csproj alone IDE0005 reports only in the editor.
+settled before a csproj is read, so in a csproj alone IDE0005 reports only in the editor. Code a tool writes for you —
+EF Core's `Migrations/` — is marked generated in the `.editorconfig` `rask new` writes (`[Migrations/**.cs]`,
+`generated_code = true`), so the rules leave it alone; an older app adds that section too.
 
 What it looks like in an app that turned nullable off and never ran the analyzers:
 
