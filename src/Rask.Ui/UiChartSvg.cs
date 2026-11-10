@@ -30,17 +30,25 @@ public sealed partial class UiChartSvg : Component
     // walk of the page — sixty charts on one page were each drawn again whenever one of them was measured.
     private Drawing? _drawn;
 
+    // What the drawing says to a screen reader, and what it was said from (compared by identity, as the drawing is).
+    private (IEnumerable<Component?>? Children, UiChartData Data, bool Horizontal, UiChartScope? Scope, CultureInfo Culture, UiChartDescription Said, string Table)? _described;
+
+    // The id its rows' table goes by, which the drawing names as its description: this drawing's, for its life.
+    private readonly string _tableId = "ui-chart-rows-" + UiInstanceCounter.Next().ToString(CultureInfo.InvariantCulture);
+
     // Nearer than any two boxes a layout tells apart (a sixty-fourth of a pixel).
     private const double Same = 1d / 1024;
 
     private sealed record Drawing(
         IEnumerable<Component?>? Children, UiChartData Data, bool Horizontal, double Width, double Height, string? Gutter, string? Class,
-        CultureInfo Culture, string Svg, UiChartPlot? Plot, UiChartParts Parts, (string Box, IReadOnlyDictionary<string, string?> Marks)? Place)
+        CultureInfo Culture, UiChartDescription Said, string Svg, UiChartPlot? Plot, UiChartParts Parts,
+        (string Box, IReadOnlyDictionary<string, string?> Marks)? Place)
     {
         // The parts and the rows by IDENTITY: a page that renders again hands over new ones, and one that does
         // not cannot have changed them.
-        internal bool IsOf(IEnumerable<Component?>? children, UiChartData data, bool horizontal, double width, double height, string? gutter, string? @class) =>
-            ReferenceEquals(Children, children) && ReferenceEquals(Data, data) && Horizontal == horizontal
+        internal bool IsOf(
+            IEnumerable<Component?>? children, UiChartData data, bool horizontal, double width, double height, string? gutter, string? @class, UiChartDescription said) =>
+            ReferenceEquals(Children, children) && ReferenceEquals(Said, said) && ReferenceEquals(Data, data) && Horizontal == horizontal
             && Math.Abs(Width - width) < Same && Math.Abs(Height - height) < Same
             && string.Equals(Gutter, gutter, StringComparison.Ordinal) && string.Equals(Class, @class, StringComparison.Ordinal)
             && ReferenceEquals(Culture, CultureInfo.CurrentCulture);
@@ -64,28 +72,47 @@ public sealed partial class UiChartSvg : Component
         var scope = Context.Get<UiChartScope>();
         var data = scope?.Data ?? Nothing;
         var horizontal = scope?.Horizontal == true;
+        var (said, table) = Describe(scope, data, horizontal);
         if (_measured is not { } box)
         {
-            // No box yet, so no drawing: an empty field is no box, and the hook answers it with the real one.
-            return UiChartHover.Over(string.Empty, Measured, null);
+            // No box yet, so no drawing: an empty field is no box, and the hook answers it with the real one. The rows
+            // are there for a screen reader already.
+            return RaskFragment([UiChartHover.Over(string.Empty, Measured, null), Raw.Value(table)]);
         }
 
         var (width, height) = box;
-        if (_drawn?.IsOf(Children, data, horizontal, width, height, Gutter, Class) != true)
+        if (_drawn?.IsOf(Children, data, horizontal, width, height, Gutter, Class, said) != true)
         {
-            _drawn = Draw(data, horizontal, width, height);
+            _drawn = Draw(data, horizontal, width, height, said);
         }
 
         var area = _drawn is { Plot: { } plot, Place: { } place } ? UiChartHover.Area(place, plot, _drawn.Parts) : null;
-        return RaskFragment([Raw.Value(_drawn.Svg), UiChartHover.Over(Size(width, height), Measured, area)]);
+        return RaskFragment([Raw.Value(_drawn.Svg), UiChartHover.Over(Size(width, height), Measured, area), Raw.Value(table)]);
     }
 
-    private Drawing Draw(UiChartData data, bool horizontal, double width, double height)
+    // What the drawing says to a screen reader, said again only when what it is said from has changed.
+    private (UiChartDescription Said, string Table) Describe(UiChartScope? scope, UiChartData data, bool horizontal)
+    {
+        if (_described is not { } described
+            || !ReferenceEquals(described.Children, Children) || !ReferenceEquals(described.Data, data) || described.Horizontal != horizontal
+            || !ReferenceEquals(described.Scope, scope) || !ReferenceEquals(described.Culture, CultureInfo.CurrentCulture))
+        {
+            var said = UiChartDescription.Of(new UiChartParts(Children, data), data, horizontal, scope?.Named ?? []);
+            described = (Children, data, horizontal, scope, CultureInfo.CurrentCulture, said, said.Table(_tableId));
+            _described = described;
+        }
+
+        return (described.Said, described.Table);
+    }
+
+    private Drawing Draw(UiChartData data, bool horizontal, double width, double height, UiChartDescription said)
     {
         var parts = new UiChartParts(Children, data);
         var svg = new StringBuilder(16384)
             .Append("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" viewBox=\"0 0 ").Number(width).Append(' ').Number(height)
-            .Append("\" class=\"").Append(System.Net.WebUtility.HtmlEncode(UiClass.Compose("absolute inset-0 block size-full overflow-hidden", Class))).Append("\">");
+            .Append("\" class=\"").Append(System.Net.WebUtility.HtmlEncode(UiClass.Compose("absolute inset-0 block size-full overflow-hidden", Class)))
+            .Append("\" role=\"img\" aria-label=\"").Append(System.Net.WebUtility.HtmlEncode(said.Label))
+            .Append("\" aria-describedby=\"").Append(_tableId).Append("\">");
         UiChartPlot? plot = null;
         if (parts.Pie is { } pie)
         {
@@ -100,7 +127,7 @@ public sealed partial class UiChartSvg : Component
         }
 
         return new Drawing(
-            Children, data, horizontal, width, height, Gutter, Class, CultureInfo.CurrentCulture, svg.ToString(), plot, parts,
+            Children, data, horizontal, width, height, Gutter, Class, CultureInfo.CurrentCulture, said, svg.ToString(), plot, parts,
             plot is null ? null : UiChartHover.Place(plot));
     }
 

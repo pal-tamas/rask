@@ -150,6 +150,15 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
+  sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
+  scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen
+  reader read as loose tick labels. After: the sorted heading carries `aria-sort="ascending"|"descending"` (set by
+  `Sorted()`/`Direction()` or by `SortIn`'s address), other headings none; a table with a sticky column marks its scroll
+  area `data-rask-scroll-edges` and the runtime writes Flux's `data-scrolled-right`/`-left` on it as it scrolls and
+  resizes, on both hosts (the CSS scroll-timeline fallback is gone); `Home`/`End` focus and select the first/last tab
+  that is not disabled; and the chart's drawing is `role="img"` with a generated `aria-label` (kind, series, reach) and
+  `aria-describedby` a visually hidden table of its rows. No visual change, no new public API.
 - **Rask.Ui: a long select or pillbox draws only the rows in view.** Before: `Ui.Select`'s listbox and combobox and
   `Ui.Pillbox` drew every option — a select of TA's 1098 vehicles put 1098 rows on the page at every render, and every
   one travelled over the wire on Server. After: up to 100 options nothing changes (Flux's examples, and parity, stay as

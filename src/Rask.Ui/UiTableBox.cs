@@ -8,8 +8,9 @@ internal static class UiTableBox
 {
     /// <summary>
     ///     Flux's sticky cell: held at the scroll area's left edge in the first column, its right edge in the last. The
-    ///     <c>::after</c> hangs off the inner side and carries the shadow <c>ui.css</c> draws once columns have scrolled
-    ///     under it (Flux's <c>in-data-scrolled-*</c> waits on a mark its script writes, which the kit has no script for).
+    ///     <c>::after</c> hangs off the inner side and carries the shadow once columns have scrolled under it: Flux's
+    ///     <c>in-data-scrolled-*</c>, on the marks the runtime writes on the scroll area of a table with a sticky heading
+    ///     (<c>data-rask-scroll-edges</c>, rask-scroll-edges.ts).
     /// </summary>
     internal const string Stuck =
         "z-10 first:sticky first:left-0 last:sticky last:right-0 "
