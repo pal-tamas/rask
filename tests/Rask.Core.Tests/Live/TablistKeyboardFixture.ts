@@ -5,7 +5,7 @@
 // exercised — the focus-and-press half needs a browser and is covered by the site's E2E.
 
 import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
-import {pageSays, tabAfter} from "../../../src/Rask.Core/Resources/rask-tabs.js";
+import {pageSays, tabAfter, tabFor} from "../../../src/Rask.Core/Resources/rask-tabs.js";
 
 const free = [false, false, false];
 const middleOff = [false, true, false];
@@ -38,4 +38,12 @@ report({
     onlyOneLeft: tabAfter([true, false, true], 1, 1),
     noneLeft: tabAfter([true, true], 0, 1),
     empty: tabAfter([], -1, 1),
+    home: tabFor("Home", free, 2),
+    end: tabFor("End", free, 0),
+    homePastDisabled: tabFor("Home", [true, false, false], 2),
+    endPastDisabled: tabFor("End", runOff, 0),
+    homeFromNowhere: tabFor("Home", free, -1),
+    endWithNoneLeft: tabFor("End", [true, true], 0),
+    arrowByKey: tabFor("ArrowDown", free, 0),
+    otherKey: tabFor("Enter", free, 0),
 });

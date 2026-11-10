@@ -651,3 +651,12 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128237
+# 2026-11-10, table/tabs/chart accessibility: Home/End in a tablist (rask-tabs.ts) and a sticky column's scroll
+# marks (rask-scroll-edges.ts, new; `scroll-edges` in the hook loader's list): rask-hooks.js 130,729 -> 132,252
+# (+1,523); rask.js 114,209 -> 114,222 (+13) and rask.wasm.js 99,575 -> 99,588 (+13), the loader's list. The
+# "before" is CI's own measurement on main (run 42804015661); the after measured locally with the bundle gate's
+# esbuild 0.28.2 and flags (--minify), which reproduced that "before" byte for byte.
+bundle,bytes
+rask.js,114222
+rask.wasm.js,99588
+rask-hooks.js,132252

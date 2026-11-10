@@ -759,6 +759,60 @@ public enum RaskString
     /// <summary>What a tab of <c>Ui.FormTabs</c> says to a screen reader beside its red count: how many of its fields to correct.</summary>
     FormTabsInvalid,
 
+    /// <summary>What a <c>Ui.Chart</c> of lines is called to a screen reader: the start of its drawing's name.</summary>
+    ChartLine,
+
+    /// <summary>What a <c>Ui.Chart</c> of areas is called to a screen reader.</summary>
+    ChartArea,
+
+    /// <summary>What a <c>Ui.Chart</c> of bars is called to a screen reader.</summary>
+    ChartBar,
+
+    /// <summary>What a <c>Ui.Chart</c> of points alone is called to a screen reader.</summary>
+    ChartScatter,
+
+    /// <summary>What a <c>Ui.Chart</c> pie is called to a screen reader.</summary>
+    ChartPie,
+
+    /// <summary>What a <c>Ui.Chart</c> pie with a hole is called to a screen reader.</summary>
+    ChartDonut,
+
+    /// <summary>What a <c>Ui.Chart</c> mixing kinds, or drawing none, is called to a screen reader.</summary>
+    Chart,
+
+    /// <summary>What a <c>Ui.Chart</c>'s name says to a screen reader of a chart with no rows.</summary>
+    ChartNoData,
+
+    /// <summary>How many rows a <c>Ui.Chart</c> has, and its first and last row's names, to a screen reader.</summary>
+    ChartDataPoints,
+
+    /// <summary>What a <c>Ui.Chart</c> of one row says of it to a screen reader.</summary>
+    ChartDataPoint,
+
+    /// <summary>How many slices a <c>Ui.Chart</c> pie has, and its first and last, to a screen reader.</summary>
+    ChartSlices,
+
+    /// <summary>What a <c>Ui.Chart</c> pie of one slice says of it to a screen reader.</summary>
+    ChartSlice,
+
+    /// <summary>The least and the most value of a <c>Ui.Chart</c>, to a screen reader.</summary>
+    ChartValueRange,
+
+    /// <summary>The heading of a <c>Ui.Chart</c>'s one series nothing names, in the table of its rows a screen reader reads.</summary>
+    ChartColumnValue,
+
+    /// <summary>The heading of a <c>Ui.Chart</c>'s series nothing names, beside others, in the table of its rows.</summary>
+    ChartColumnSeries,
+
+    /// <summary>The heading of a <c>Ui.Chart</c>'s row numbers, in the table of its rows, where nothing names a row.</summary>
+    ChartColumnRow,
+
+    /// <summary>The heading of a <c>Ui.Chart</c>'s rows named by a date, in the table of its rows.</summary>
+    ChartColumnDate,
+
+    /// <summary>The heading of a <c>Ui.Chart</c>'s rows named by a label, in the table of its rows.</summary>
+    ChartColumnLabel,
+
     /// <summary>
     ///     What a filter badge says after its label when the filter holds two or more names
     ///     (<c>Ui.Filter.Shown(names)</c>). <c>{0}</c> is how many.

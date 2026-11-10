@@ -101,7 +101,10 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     /// <inheritdoc />
     /// <remarks>What this heading writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
     protected override string? ResolveClass() =>
-        UiTableBox.WithClass(Lists[(((Width is { } width ? (int)width + 1 : 0) * Aligns) + (int)(Align ?? Implied)) * 4 + (Sortable is true ? 2 : 0) + (Sticky is true || UiColumnWidths.Sticks(Width) ? 1 : 0)], Class);
+        UiTableBox.WithClass(Lists[(((Width is { } width ? (int)width + 1 : 0) * Aligns) + (int)(Align ?? Implied)) * 4 + (Sortable is true ? 2 : 0) + (Sticks ? 1 : 0)], Class);
+
+    /// <summary>Whether the column stays in view while the others scroll under it: told so, or a row menu's.</summary>
+    internal bool Sticks => Sticky is true || UiColumnWidths.Sticks(Width);
 
     // The edge the width's values keep to, where the call site names none.
     private Ui.Align Implied => Width is { } width ? UiColumnWidths.Align(width) : default;
@@ -124,25 +127,42 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
             : [];
 
     /// <inheritdoc />
-    /// <remarks>The sort handler stands in for the click for the length of the walk, as the resolved ARIA does.</remarks>
+    /// <remarks>
+    ///     The sort handler stands in for the click for the length of the walk, as the resolved ARIA does; and the
+    ///     heading the rows are sorted by says which way, in <c>aria-sort</c>, unless the call site said otherwise.
+    /// </remarks>
     protected override void WriteAttributes(StringBuilder sb)
     {
-        if (Sortable is not true || !OnSort.HasValue)
+        var sort = AriaSort;
+        var click = OnClick;
+        AriaSort = sort ?? Says();
+        if (Sortable is true && OnSort.HasValue)
         {
-            base.WriteAttributes(sb);
-            return;
+            OnClick = click.HasValue ? new Callback<PointerEvent>(e => ClickThenSort(click, e)) : OnSort;
         }
 
-        var click = OnClick;
-        OnClick = click.HasValue ? new Callback<PointerEvent>(e => ClickThenSort(click, e)) : OnSort;
         try
         {
             base.WriteAttributes(sb);
         }
         finally
         {
+            AriaSort = sort;
             OnClick = click;
         }
+    }
+
+    // What a screen reader is told of the sort (WAI-ARIA): which way the sorted column runs, and nothing on any other
+    // heading — a sortable column the rows are not sorted by carries no aria-sort, not "none". Only where the heading
+    // draws the sort, as its chevron is: a heading that is not sortable says nothing of it.
+    private Rask.Core.AriaSort? Says()
+    {
+        if (Sortable is not true || Sorted is not true)
+        {
+            return null;
+        }
+
+        return Direction is Ui.TableColumnDirection.Desc ? Rask.Core.AriaSort.Descending : Rask.Core.AriaSort.Ascending;
     }
 
     void IUiHost.WriteHostAttributes(StringBuilder sb) => WriteAttributes(sb);

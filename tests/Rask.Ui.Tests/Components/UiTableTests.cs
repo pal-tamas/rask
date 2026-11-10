@@ -233,6 +233,20 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_table_with_a_sticky_heading_asks_the_runtime_to_mark_its_scrolled_edges()
+    {
+        var sticky = Ui.Table[Ui.TableColumns[Ui.TableColumn.Sticky()["ID"], Ui.TableColumn["Customer"]]].ToHtml();
+        var rowMenu = Ui.Table[Ui.TableColumns[Ui.TableColumn["Customer"], Ui.TableColumn.Width(Ui.ColumnWidth.RowMenu)]].ToHtml();
+
+        var plain = Ui.Table[Ui.TableColumns[Ui.TableColumn["ID"], Ui.TableColumn["Customer"]]].ToHtml();
+
+        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-scroll-edges=\"\"><table ", sticky);
+        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-scroll-edges=\"\"><table ", rowMenu);
+        Assert.DoesNotContain("data-rask-scroll-edges", plain, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-scroll-edges", Ui.Table.ToHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_strong_cell_takes_the_heading_colour_and_weight()
     {
         var plain = Ui.TableCell["$49.00"].ToHtml();
@@ -325,6 +339,58 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
         Assert.Contains("d=\"M11.78 9.78", ascending, StringComparison.Ordinal);
         Assert.Contains("d=\"M4.22 6.22", descending, StringComparison.Ordinal);
         Assert.DoesNotContain("opacity-0", ascending + descending, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_sorted_heading_tells_a_screen_reader_which_way_it_runs()
+    {
+        var ascending = Ui.TableColumn.Sortable().Sorted()["Date"].ToHtml();
+
+        var descending = Ui.TableColumn.Sortable().Sorted().Direction(Ui.TableColumnDirection.Desc)["Date"].ToHtml();
+        var stated = Ui.TableColumn.Sortable().Sorted().Direction(Ui.TableColumnDirection.Asc)["Date"].ToHtml();
+
+        Assert.Matches("^<th [^>]*aria-sort=\"ascending\"", ascending);
+        Assert.Matches("^<th [^>]*aria-sort=\"descending\"", descending);
+        Assert.Matches("^<th [^>]*aria-sort=\"ascending\"", stated);
+    }
+
+    [Fact]
+    public void A_heading_the_rows_are_not_sorted_by_says_nothing_of_the_sort()
+    {
+        var sortable = Ui.TableColumn.Sortable()["Date"].ToHtml();
+        var unsorted = Ui.TableColumn.Sortable().Sorted(false).Direction(Ui.TableColumnDirection.Desc)["Date"].ToHtml();
+
+        var plain = Ui.TableColumn.Sorted().Direction(Ui.TableColumnDirection.Desc)["Date"].ToHtml();
+
+        Assert.DoesNotContain("aria-sort", sortable, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", unsorted, StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", plain, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_call_sites_own_aria_sort_wins_and_is_kept_between_renders()
+    {
+        var column = Ui.TableColumn.Sortable().Sorted().AriaSort(Rask.Core.AriaSort.Other);
+
+        var first = column["Date"].ToHtml();
+        var second = column.ToHtml();
+
+        Assert.Matches("^<th [^>]*aria-sort=\"other\"", first);
+        Assert.Equal(first, second);
+        Assert.Equal(Rask.Core.AriaSort.Other, column.AriaSort);
+    }
+
+    [Fact]
+    public void A_sorted_heading_with_a_sort_handler_says_its_direction_and_keeps_its_click()
+    {
+        var page = Page.Render(Ui.Table[Ui.TableColumns[
+            Ui.TableColumn.Sortable().Sorted().Direction(Ui.TableColumnDirection.Desc).OnSort(() => { })["Date"]
+        ]]);
+
+        var heading = System.Text.RegularExpressions.Regex.Match(page.Html, "<th [^>]*>").Value;
+
+        Assert.Contains("aria-sort=\"descending\"", heading, StringComparison.Ordinal);
+        Assert.Contains("data-rask-on-click", heading, StringComparison.Ordinal);
     }
 
     [Fact]
