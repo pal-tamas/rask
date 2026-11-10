@@ -72,11 +72,10 @@ must never be served — which is why `Push.PublicKey` and `/_rask/push/key` han
 ## 3. Subscribe a browser
 
 From a page, ask the browser, then keep the answer. The browser's side is MDN's own `PushManager`, from
-`Rask.Web`; `Push` is the battery's:
+`Rask.Web` (every app imports it already); `Push` is the battery's:
 
 ```csharp
 using System.Buffers.Text; // Base64Url
-using Rask.Web;            // Navigator — MDN's browser APIs
 using Rask.WebPush;        // Push
 
 namespace Shop.Features.Orders;
@@ -149,7 +148,10 @@ public sealed class OrderShippedHandler : IDurableHandler<OrderShipped>
     public async Task Handle(OrderShipped notification)
     {
         var order = await Order.Where(o => o.Id == notification.Id).FirstOrDefault();
-        if (order?.CustomerId is not { } customer) return;
+        if (order?.CustomerId is not { } customer)
+        {
+            return;
+        }
 
         await Push.Send(WebPushMessage.Text("Order shipped", $"Order {order.Id} is on its way.", $"/orders/{order.Id}"))
             .To(customer);

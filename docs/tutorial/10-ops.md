@@ -99,22 +99,22 @@ ForeignKeys = await ScalarAsync(db, "PRAGMA foreign_keys", ct),   // → 1
 
 ## The whole page
 
-Here are the pieces put together, as `Features/Ops/OpsPage.cs`. `Job` and `QueuedMail` are in namespaces every
-Shop file already imports; `OutboxMessage` needs `using Rask.Outbox;`. The page shows the same rows as the
-dashboard below, so it is gated on the same **admin** role. `_stopped` is cancelled when the page unmounts,
+Here are the pieces put together, as `Features/Ops/OpsPage.cs`. `Job`, `QueuedMail` and `OutboxMessage` are in
+namespaces every Shop file already imports. The page shows the same rows as the
+dashboard below, so it is gated on the same **admin** role. `_stopped` is cancelled when the page leaves the
+render tree — Rask calls `Dispose` on a component that is `IDisposable`, and a type that owns a disposable says so —
 which is what ends the loop when the tab closes, and the refresh uses its token (`ct`) rather than the page's
 `CancellationToken`: the loop runs between events, where nothing else would cancel it.
 
 ```csharp
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Rask.Outbox;
 
 namespace Shop.Features.Ops;
 
 [Authorize(Roles = "admin")]
 [Route("/ops")]
-public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactory) : Component
+public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactory) : Component, IDisposable
 {
     // About five minutes of 1 Hz polling per open tab, then the page stops asking.
     private const int MaxTicks = 300;
@@ -130,11 +130,10 @@ public sealed partial class OpsPage(IDbContextFactory<RaskAppDbContext> dbFactor
         _ = Poll();
     }
 
-    protected override Task OnUnmount()
+    public void Dispose()
     {
         _stopped.Cancel();
         _stopped.Dispose();
-        return Task.CompletedTask;
     }
 
     private async Task Poll()
