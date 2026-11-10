@@ -651,16 +651,6 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128237
-# 2026-11-10, a WebAssembly navigation focused and announced as a Server one is, the top bar at 150 ms in the app's
-# accent, and a refused submit focusing its first invalid field — one shared module each (rask-route-focus.ts,
-# rask-progress.ts, rask-first-invalid.ts), which both runtimes now import where the Server host had its own copy
-# and the WASM host had none: rask.js 114,209 -> 115,859 (+1,650), rask.wasm.js 99,575 -> 103,262 (+3,687),
-# rask-hooks.js unchanged. Measured locally (Release, the gate's esbuild) on af922ad58, whose own sizes match CI's
-# run 42804015661 (114,209 / 130,729) — this block also takes main's rask-hooks.js, which no block had recorded.
-bundle,bytes
-rask.js,115859
-rask.wasm.js,103262
-rask-hooks.js,130729
 # 2026-11-10, table/tabs/chart accessibility: Home/End in a tablist (rask-tabs.ts) and a sticky column's scroll
 # marks (rask-scroll-edges.ts, new; `scroll-edges` in the hook loader's list): rask-hooks.js 130,729 -> 132,252
 # (+1,523); rask.js 114,209 -> 114,222 (+13) and rask.wasm.js 99,575 -> 99,588 (+13), the loader's list. The
@@ -669,4 +659,13 @@ rask-hooks.js,130729
 bundle,bytes
 rask.js,114222
 rask.wasm.js,99588
+rask-hooks.js,132252
+# 2026-11-10, a WebAssembly navigation focused and announced as a Server one is, the top bar at 150 ms in the app's
+# accent, and a refused submit focusing its first invalid field — one shared module each (rask-route-focus.ts,
+# rask-progress.ts, rask-first-invalid.ts), which both runtimes import where the Server host had its own copy and the
+# WASM host had none: rask.js 114,222 -> 115,872 (+1,650), rask.wasm.js 99,588 -> 103,275 (+3,687), rask-hooks.js
+# unchanged at 132,252. Measured locally on the merged tree with the bundle gate's own command (client-bundle-size).
+bundle,bytes
+rask.js,115872
+rask.wasm.js,103275
 rask-hooks.js,132252
