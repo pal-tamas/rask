@@ -21,6 +21,13 @@ internal static class UiSearchPause
     /// </summary>
     internal static readonly TimeSpan Asked = TimeSpan.FromMilliseconds(250);
 
+    /// <summary>
+    ///     The pause before a windowed list the select narrows itself hears what was typed, unless a slot's <c>Debounce</c>
+    ///     says otherwise: on a server a key is a round trip, so a burst of them is one; in the browser it costs nothing,
+    ///     and every key is heard.
+    /// </summary>
+    internal static TimeSpan? Windowed => OperatingSystem.IsBrowser() ? null : TimeSpan.FromMilliseconds(100);
+
     /// <summary>The pause in milliseconds, or 0 when every keystroke is heard.</summary>
     /// <param name="debounce">The field's <c>Debounce</c> step.</param>
     /// <remarks>With no page behind the render there is no handler to name, and nothing to wait for.</remarks>

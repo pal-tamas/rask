@@ -1412,7 +1412,9 @@ Ui.Select.Bind(() => model.VehicleId).Listbox.Searchable()[
 ]
 ```
 
-The search narrows the **whole** list (the select does it, by the browser's rules: case, accents and `Keywords`), the
+The search narrows the **whole** list (the select does it, by the browser's rules: case, accents and `Keywords`; on a
+Server host once typing has paused 100 ms, unless `Ui.SelectSearch.Debounce(…)` says otherwise, and at every key in
+WASM), the
 arrow keys go on past the rows drawn and the list scrolls to the row they land on, `Home` and `End` go to either end,
 type-ahead finds any row, the list opens on the picked row, and every row says `aria-setsize` and `aria-posinset` so
 a screen reader counts all of them. A pick is the press on a row, as ever, and is sent at once: a windowed list holds

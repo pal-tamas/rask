@@ -74,7 +74,7 @@ public partial class LongSelectBytesTests(ITestOutputHelper output) : global::Ra
     {
         var page = Page.Render(Windowed);
 
-        await page.On("[data-ui-select-search] input").Input("0999");
+        await page.On("[data-ui-select-search] input").Raise("pause", "{\"value\":\"0999\"}");
 
         var frame = Assert.Single(DiffGuardAttribute.Frames());
         Say("search narrowing to one row bytes", Bytes(frame));

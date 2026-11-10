@@ -41,6 +41,10 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
     private static int[] Places(Page page) =>
         [.. page.FindAll("[role=\"option\"]").Select(row => int.Parse(row.Attribute("aria-posinset")!, CultureInfo.InvariantCulture))];
 
+    // What a search field sends once typing has paused (rask-input.ts counts the pause in the browser).
+    private static Task Pause(Page page, string field, string text) =>
+        page.On(field).Raise("pause", "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(text) + "}");
+
     private static Task Scroll(Page page, int top) =>
         page.On(Box).Raise("scroll", "{\"target\":{\"scrollTop\":" + top.ToString(CultureInfo.InvariantCulture) + ",\"clientHeight\":320,\"scrollHeight\":32000}}");
 
@@ -113,12 +117,48 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
     {
         var page = Acting.Render(() => Searchable(1000));
 
-        await page.On(Field).Input("vehicle 09");
+        await Pause(page, Field, "vehicle 09");
 
         Assert.Equal("99", page.FindAll("[role=\"option\"]")[0].Attribute("aria-setsize"));
         Assert.Equal("Vehicle 0901", Rows(page)[0]);
         Assert.Equal("32 2 99", page.Find(Box).Attribute(UiWindowMarks.Window));
-        Assert.NotNull(page.Find(Field).Attribute("data-rask-on-input"));
+    }
+
+    [Fact]
+    public void On_a_server_the_search_of_a_windowed_list_waits_a_tenth_of_a_second_for_typing_to_pause()
+    {
+        var page = Acting.Render(() => Searchable(1000));
+
+        var field = page.Find(Field);
+
+        Assert.Equal("100", field.Attribute("data-rask-debounce"));
+        Assert.NotNull(field.Attribute("data-rask-on-pause"));
+        Assert.Null(field.Attribute("data-rask-on-input"));
+    }
+
+    [Fact]
+    public void A_debounce_the_page_gives_the_search_wins_over_the_windowed_lists_own()
+    {
+        var page = Acting.Render(() =>
+            Ui.Select.Value(_picked).OnChange(value => _picked = value).Listbox.Searchable()[
+                Ui.SelectSearch.Debounce(400.Milliseconds),
+                Options(1000)
+            ]);
+
+        var field = page.Find(Field);
+
+        Assert.Equal("400", field.Attribute("data-rask-debounce"));
+    }
+
+    [Fact]
+    public void A_list_of_a_hundred_options_still_hides_its_rows_in_the_browser_at_every_key()
+    {
+        var page = Acting.Render(() => Searchable(100));
+
+        var field = page.Find(Field);
+
+        Assert.Null(field.Attribute("data-rask-debounce"));
+        Assert.Contains("filter", page.Find("[data-rask-list]").Attribute("data-rask-list")!.Split(' '));
     }
 
     [Fact]
@@ -127,11 +167,11 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
         var page = Acting.Render(() => Searchable(1000));
         await Scroll(page, 600 * 32);
 
-        await page.On(Field).Input("nothing like it");
+        await Pause(page, Field, "nothing like it");
 
         Assert.Empty(Rows(page));
         Assert.Null(page.Find("[data-ui-listbox-empty]").Attribute("data-hidden"));
-        await page.On(Field).Input("");
+        await Pause(page, Field, "");
         Assert.Equal(Enumerable.Range(1, 20), Places(page));
     }
 
@@ -215,9 +255,9 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
         _picked = 3;
         var page = Acting.Render(() => Ui.Select.Value(_picked).OnChange(value => _picked = value).Combobox[Options(1000)]);
 
-        await page.On("input[role=\"combobox\"]").Input("Vehicle 0003");
+        await Pause(page, "input[role=\"combobox\"]", "Vehicle 0003");
         var said = page.Find(Box).Attribute(UiWindowMarks.Window);
-        await page.On("input[role=\"combobox\"]").Input("eppel");
+        await Pause(page, "input[role=\"combobox\"]", "eppel");
 
         Assert.Equal("1000", said!.Split(' ')[2]);
         Assert.Equal(["Zeppelin"], Rows(page));

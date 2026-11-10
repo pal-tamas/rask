@@ -40,7 +40,12 @@ public abstract partial class UiSelectControl<T>
         var typed = IsCombobox || PillsCombobox;
         _hears = (typed ? parts.Input?.OnInput : parts.Search?.OnInput) ?? default;
         var debounce = typed ? parts.Input?.Debounce : parts.Search?.Debounce;
-        _pause = Asks ? UiSearchPause.Of(debounce ?? UiSearchPause.Asked) : UiSearchPause.Of(_hears, debounce);
+        _pause = (Asks, FiltersItself) switch
+        {
+            (true, _) => UiSearchPause.Of(debounce ?? UiSearchPause.Asked),
+            (_, true) => UiSearchPause.Of(debounce ?? UiSearchPause.Windowed),
+            _ => UiSearchPause.Of(_hears, debounce),
+        };
     }
 
     // The page's own search: every keystroke, the text a pause ended on, or what the browser wrote into the

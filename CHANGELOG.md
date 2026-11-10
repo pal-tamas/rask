@@ -155,7 +155,7 @@ them until tagged releases begin.
   one travelled over the wire on Server. After: up to 100 options nothing changes (Flux's examples, and parity, stay as
   they were); past 100 the list is windowed on Core's virtualization — the rows its scroll shows and ten either side,
   between two spacers — so the reader scrolls through the whole list without typing. The search narrows the whole list
-  (on the server, by the browser's rules), the arrow keys, `Home`, `End` and type-ahead reach rows past the window and
+  (by the browser's rules; on a Server host after a 100 ms pause unless a `Debounce` says otherwise), the arrow keys, `Home`, `End` and type-ahead reach rows past the window and
   scroll it there, the list opens on the picked row, and rows say `aria-setsize`/`aria-posinset`. No new step: the same
   options, `.Choices(…)` and `Search` answers are windowed by themselves. Core's `VirtualizeModel` now keeps its scroll
   maths in an internal `VirtualScroll`, shared with the kit.
