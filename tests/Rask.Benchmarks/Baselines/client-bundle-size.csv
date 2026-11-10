@@ -651,15 +651,6 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128237
-# 2026-11-10, a tooltip opens on focus only when focus was navigated to, never when a closing menu hands it back
-# (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus showed
-# it): rask-hooks.js +285 on 197cb6a8c (130,729 -> 131,014; main had grown 2,492 past the last block without
-# refreshing it, inside the gate's 2%, which this change crossed); rask.js and rask.wasm.js unchanged. Measured
-# locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on 197cb6a8c plus this change.
-bundle,bytes
-rask.js,114018
-rask.wasm.js,100401
-rask-hooks.js,131014
 # 2026-11-10, table/tabs/chart accessibility: Home/End in a tablist (rask-tabs.ts) and a sticky column's scroll
 # marks (rask-scroll-edges.ts, new; `scroll-edges` in the hook loader's list): rask-hooks.js 130,729 -> 132,252
 # (+1,523); rask.js 114,209 -> 114,222 (+13) and rask.wasm.js 99,575 -> 99,588 (+13), the loader's list. The
@@ -669,3 +660,12 @@ bundle,bytes
 rask.js,114222
 rask.wasm.js,99588
 rask-hooks.js,132252
+# 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
+# back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
+# showed it): rask-hooks.js 132,252 -> 132,537 (+285), on top of the table/tabs/chart block above; rask.js and
+# rask.wasm.js unchanged from it. Measured locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on
+# that block's main merged with this change.
+bundle,bytes
+rask.js,114222
+rask.wasm.js,99588
+rask-hooks.js,132537
