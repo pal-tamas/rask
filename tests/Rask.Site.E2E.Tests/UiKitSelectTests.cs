@@ -87,7 +87,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await OpenUiPageAsync("select", "Select");
         var button = Page.Locator("#ui-select-choices-search");
         await button.ClickAsync();
-        await Expect(Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[data-ui-option]:visible")).ToHaveCountAsync(8);
+        await Expect(Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button }).Locator("[data-ui-option]:visible")).ToHaveCountAsync(20);
 
         await Page.EvaluateAsync("""
             () => {
@@ -232,17 +232,17 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         var button = Page.Locator("#ui-select-server");
         var field = scope.Locator("[data-ui-select-search] input");
 
-        // Named before anything is found, by the option written as a child; the first eight are there on opening.
+        // Named before anything is found, by the option written as a child; the first twenty are there on opening.
         await Expect(button).ToContainTextAsync("Bergmann Logistik");
         await button.ClickAsync();
         await Expect(field).ToBeFocusedAsync();
-        await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(8);
+        await Expect(scope.Locator("[data-ui-option]")).ToHaveCountAsync(20);
 
         // While the slow store answers, the field waits and the rows drawn stay, as on Flux.
         await WatchTheWaitAsync(field);
         await field.FillAsync("berl");
         var berl = await TheWaitAsync(field);
-        Assert.Equal(8, berl.Rows);
+        Assert.Equal(20, berl.Rows);
         // The partner the value holds stays first, whatever the search found.
         await Expect(scope.Locator("[data-ui-option]")).ToHaveTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
         // Typing lit the first row, as on Flux; the arrow goes on to the next and Enter picks it.
@@ -273,7 +273,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
     // The select as it was the moment the runtime marked its field waiting (`data-loading`).
     private sealed record Waiting(int Rows, string? Before, string? FontSize);
 
-    // Records the select the moment its search field is marked waiting. The mark lasts from 200 ms after the question
+    // Records the select the moment its search field is marked waiting. The mark lasts from the moment the question leaves
     // until the answer — a window an assertion that polls can step over on a slow runner — so it is caught when it is
     // written, by the field's own MutationObserver, never by sampling.
     private static Task WatchTheWaitAsync(ILocator field) => field.EvaluateAsync(
@@ -407,5 +407,65 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Page.Keyboard.PressAsync("Enter");
 
         await Expect(Page.Locator("[data-testid='ui-select-create-state']")).ToHaveTextAsync("Project: Onboarding.");
+    });
+
+    // Flux's create row with a backend search, measured on fluxui.dev (2026-11-10): out of reach while a search is on its
+    // way, so no option is made of a search about to change, and spinning once pressed until the option is made. The
+    // example's store and its create both take 600 ms. What the row says is caught as it is written, by an observer of
+    // its own (as `WatchTheWaitAsync` does), never by sampling a window a slow runner can step over.
+    [Theory]
+    [InlineData(1280, 720, "Onboarding")]
+    [InlineData(390, 844, "Outreach")]
+    public Task A_create_row_waits_for_the_search_and_spins_until_its_option_is_made(int width, int height, string words) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("select", "Select");
+        await Page.SetViewportSizeAsync(width, height);
+        try
+        {
+            var scope = Page.Locator("[data-testid='ui-select-create-search']");
+            var input = scope.Locator("input[role='combobox']");
+            var create = scope.Locator("[data-ui-option-create]");
+            var anything = new System.Text.RegularExpressions.Regex(".*");
+            await input.ScrollIntoViewIfNeededAsync();
+            await input.ClickAsync();
+            await input.PressSequentiallyAsync(words);
+            await Expect(create).ToBeVisibleAsync();
+            await Expect(input).Not.ToHaveAttributeAsync("data-loading", anything);
+            await create.EvaluateAsync(
+                """
+                row => {
+                    const field = row.closest('[data-ui-select]').querySelector('input[role=combobox]');
+                    const popup = row.closest('[popover]');
+                    window.__raskCreate = [];
+                    new MutationObserver(() => window.__raskCreate.push({
+                        searching: field.hasAttribute('data-loading'),
+                        off: row.getAttribute('aria-disabled'),
+                        spins: row.hasAttribute('data-loading'),
+                        busy: row.getAttribute('aria-busy'),
+                        open: popup.matches(':popover-open'),
+                    })).observe(row, { attributes: true, attributeFilter: ['aria-disabled', 'data-loading', 'aria-busy'] });
+                }
+                """);
+
+            // One more letter: the search goes out, and the row is off the moment it does, until the answer.
+            await input.PressSequentiallyAsync("s");
+            await Page.WaitForFunctionAsync("() => window.__raskCreate.some(s => s.off === 'true')");
+            await Expect(input).Not.ToHaveAttributeAsync("data-loading", anything);
+            await Expect(create).Not.ToHaveAttributeAsync("aria-disabled", anything);
+            await create.ClickAsync();
+
+            await Expect(scope.Locator("[data-testid='ui-select-create-search-state']")).ToHaveTextAsync($"Project: {words}s.");
+            await Expect(scope.Locator("[popover]")).Not.ToBeVisibleAsync();
+            Assert.Null(await input.GetAttributeAsync("aria-busy"));
+            var seen = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__raskCreate");
+            var states = seen.EnumerateArray().ToList();
+            Assert.Contains(states, s => s.GetProperty("searching").GetBoolean() && s.GetProperty("off").GetString() == "true");
+            Assert.DoesNotContain(states, s => s.GetProperty("searching").GetBoolean() && s.GetProperty("off").ValueKind == System.Text.Json.JsonValueKind.Null);
+            Assert.Contains(states, s => s.GetProperty("spins").GetBoolean() && s.GetProperty("busy").GetString() == "true" && s.GetProperty("open").GetBoolean());
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
     });
 }

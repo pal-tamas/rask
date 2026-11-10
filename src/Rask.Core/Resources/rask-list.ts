@@ -55,6 +55,8 @@ import {disown, isShown, listen, near, own, page, seam, setShown} from "./rask-o
 
 const ROOT = "[data-rask-list]";
 const CREATE = "data-rask-list-create";
+// What the runtime writes on what waits on its handler (rask-loading.ts).
+const LOADING = "data-loading";
 const REMOVE = "[data-rask-list-remove]";
 const OPTION = "[role=option],[" + CREATE + "]";
 const TRIGGER = "[aria-haspopup=listbox]";
@@ -102,6 +104,8 @@ interface State {
     /** In a windowed list: the set of rows the cursor is among, and the type-ahead question being answered. */
     set: string;
     seeking: number;
+    /** The create row pressed, whose handler the list stays open for: shut once it has its answer. */
+    creating: HTMLElement | null;
 }
 
 const states = new WeakMap<Element, State>();
@@ -127,7 +131,7 @@ function stateOf(root: Element): State {
         states.set(root, state = {
             cursor: null, id: "", pointed: false, auto: false, none: false, top: false, typing: false, acts: false,
             said: null, over: null, shown: false, pressed: false, resumes: false, heard: "", searched: false, anew: false,
-            at: -1, wanted: -1, toward: 1, set: "", seeking: 0,
+            at: -1, wanted: -1, toward: 1, set: "", seeking: 0, creating: null,
         });
     }
     return state;
@@ -601,8 +605,10 @@ function watch(): void {
         return;
     }
     // A render changed the rows of an open list — a search answered, an option made: the new ones are hidden
-    // and lit as the old ones were. Only while a list is open; nothing is watched otherwise.
+    // and lit as the old ones were. And the runtime marked or unmarked something waiting (`data-loading`): the
+    // search field, or a create row pressed. Only while a list is open; nothing is watched otherwise.
     watcher = new MutationObserver(function (records) {
+        const drawn = records.some(function (record) { return record.type === "childList"; });
         open.forEach(function (root) {
             const popup = root.isConnected ? popupOf(root) : null;
             if (!popup) {
@@ -610,12 +616,13 @@ function watch(): void {
                 return;
             }
             for (const record of records) {
-                if (popup.contains(record.target)) {
+                if (record.type === "childList" && popup.contains(record.target)) {
                     refilter(root, true);
                     break;
                 }
             }
-            if (stateOf(root).acts) {
+            waits(root);
+            if (drawn && stateOf(root).acts) {
                 // The pointer picked and the list stayed open: a pill added to the trigger pushes the rows down
                 // under a pointer at rest, and Flux's cursor is on whichever row is under it then.
                 // Once the trigger has grown and the list has been placed under it again (rask-place.ts does
@@ -628,7 +635,33 @@ function watch(): void {
         });
         unwatch();
     });
-    watcher.observe(page.documentElement, {subtree: true, childList: true});
+    watcher.observe(page.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: [LOADING]});
+}
+
+// While the list's search is out its create row takes no press, from the pointer or the keys, as Flux's (measured on
+// fluxui.dev, 2026-11-10): an option made of a search the answer is about to change is the duplicate this stops. The
+// field says it waits from the moment the question leaves (`data-loading`, rask-loading.ts), the row greys by CSS,
+// and here it says `aria-disabled` — which the cursor and Enter step over, as any disabled row. And a create row
+// pressed holds the list open, its spinner turning, until its handler is done; then it shuts as after any pick.
+function waits(root: Element): void {
+    const state = stateOf(root);
+    const popup = popupOf(root);
+    const made = state.creating;
+    if (made) {
+        if (made.isConnected && made.hasAttribute(LOADING)) {
+            return;
+        }
+        state.creating = null;
+        if (popup) {
+            setShown(popup, false);
+        }
+        return;
+    }
+    const create = popup ? popup.querySelector<HTMLElement>("[" + CREATE + "]") : null;
+    if (create) {
+        const field = fieldOf(root);
+        mark(create, "aria-disabled", field && field.hasAttribute(LOADING) ? "true" : null);
+    }
 }
 
 // Lights the row the pointer is resting on, when it is one of this list's.
@@ -662,8 +695,10 @@ function opened(root: Element, popup: Element): void {
         state.seeking = 0;
     }
     state.resumes = false;
+    state.creating = null;
     expand(root, popup, true);
     refilter(root);
+    waits(root);
 }
 
 // The list is shut for good: what was typed to search it goes, and a text input says what its kind says.
@@ -697,6 +732,7 @@ function closed(root: Element, popup: Element): void {
     const state = stateOf(root);
     open.delete(root);
     unwatch();
+    state.creating = null;
     expand(root, popup, false);
     const keeps = state.pressed && state.shown;
     state.pressed = false;
@@ -798,6 +834,11 @@ function picked(root: Element, row: HTMLElement, pointed: boolean): void {
     // After this click has reached the page's own handler, not before: what closing empties, a create row's
     // handler still has to be sent.
     afterClick(function () {
+        if (create && row.hasAttribute(LOADING)) {
+            // Its handler is still out: the list stays, the row's spinner turning, until it is done (`waits`).
+            state.creating = row;
+            return;
+        }
         if (!stays) {
             setShown(popup, false);
             return;

@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **A search that asks the page feels like Flux's: it asks sooner, spins at once, and its create row waits.** Before: a
+  select's, pillbox's or `.Choices(find)`'s search asked 250 ms after the last key and its field spun 200 ms after that
+  (~450 ms), and a create row could be pressed while the answer was still on its way. After: it asks after 150 ms
+  (Livewire's `wire:model.live`, measured on fluxui.dev); a list's search field takes `data-loading` and its spinner
+  the moment the question leaves (`data-rask-loading-now`, which any element can carry — buttons keep the 200 ms
+  delay); and `Ui.SelectOptionCreate` / `Ui.PillboxOptionCreate` is `aria-disabled`, stepped over by the keys and refuses
+  a click while a search is out, and once pressed spins and holds the list open until its handler is done — one option made, however
+  often it is pressed. An empty list still says "Loading..." while a search is out (Flux keeps "No results found":
+  an owner-approved departure). The docs' and site's searches answer with the best twenty (`.Take(20)`), as Flux's.
 - **A strict app publishes past a dependency's trim warnings, migrates without restyling EF Core's code, and builds
   the tutorial as typed.** Before: under `rask new`'s `<RaskStrict>errors</RaskStrict>`, a browser bundle's publish
   failed on `IL2104: Assembly 'Microsoft.JSInterop' produced trim warnings`; the first `rask db` migration failed the
