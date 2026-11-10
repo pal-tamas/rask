@@ -1,0 +1,9 @@
+<Project>
+
+  <!-- The fixtures the gate's self-tests run (scripts/tests/test-host-crash.test.sh) are built exactly as a
+       real suite under tests/ is — the same test SDK, xUnit v3 adapter and RaskTestResults wiring — or they
+       would prove the gate against a configuration no suite has. They live here, outside tests/ and every
+       solution, so no gate, scoper or `dotnet test Rask.slnx` ever discovers a test written to fail. -->
+  <Import Project="$(MSBuildThisFileDirectory)../../../tests/Directory.Build.props" />
+
+</Project>

@@ -55,7 +55,15 @@ it: CI runs the format check, the build, the tests and the browser journeys afte
    dotnet build tests/Rask.Core.Tests -c Release
    dotnet test tests/Rask.Core.Tests -c Release --no-build
    ```
-   Narrow further to one class (`--filter FullyQualifiedName~ATests`) while iterating. The build runs in parallel by default —
+   Narrow further to one class (`--filter FullyQualifiedName~ATests`) while iterating. The suites run
+   through VSTest, so that is the filter: xUnit's own `-- --filter-class ATests` is read as a RunSettings
+   argument and silently runs everything. **Read the exit code, not the summary line**: a test that kills
+   its host (stack overflow, `Environment.FailFast`, `Environment.Exit`) prints `[FATAL ERROR]` and then
+   `Passed!` for the tests that reported before it died, with exit code 1 — which a `| tail` loses. The
+   gates run tests through `scripts/lib/dotnet-test.sh`, which reads the TRX files back
+   (`scripts/lib/test_verdict.py`) and fails a run whose host died, hung for 15 minutes, or reported fewer
+   tests than xUnit discovered ([#1308](https://github.com/pal-tamas/rask/issues/1308);
+   `scripts/tests/test-host-crash.test.sh` proves it). The build runs in parallel by default —
    don't add `-m:1` (the former WASM copy-race workaround is fixed at the source in
    `Rask.Spa.Hosting.targets`, which skips a referenced client's nested publish under `RaskWasm=false`).
 
