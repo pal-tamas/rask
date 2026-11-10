@@ -13,8 +13,9 @@ namespace Rask.Server.E2E.Tests;
 /// <remarks>
 ///     Recorded on Flux UI's live tabs page on 2026-10-08, every example: all four arrows move focus AND
 ///     select, around the ends, and never scroll the page; they pass over the "Add tab" action, which Tab
-///     reaches; Home and End are the page's. Nothing on the page asks for a hook but the role, so this is also
-///     the proof that a tablist alone loads the bundle.
+///     reaches. Home and End go to the first and last tab (WAI-ARIA's tabs pattern, which Flux leaves to the page; owner,
+///     2026-11-10). Nothing on the page asks for a hook but the role, so this is also the proof that a tablist alone
+///     loads the bundle.
 /// </remarks>
 public sealed class RuntimeHookTabsTests(PlaywrightFixture playwright) : IClassFixture<PlaywrightFixture>
 {
@@ -58,7 +59,7 @@ public sealed class RuntimeHookTabsTests(PlaywrightFixture playwright) : IClassF
     }
 
     [Fact]
-    public async Task Home_and_End_stay_the_pages_and_an_arrow_on_the_action_button_starts_from_the_selected_tab()
+    public async Task Home_and_End_select_the_first_and_last_tab_and_an_arrow_on_the_action_button_starts_from_the_selected_tab()
     {
         await using var session = await HookSession.OpenAsync<TabsHookPage>(playwright);
         var page = session.Page;
@@ -67,16 +68,38 @@ public sealed class RuntimeHookTabsTests(PlaywrightFixture playwright) : IClassF
 
         await page.FocusAsync("#one");
         await page.Keyboard.PressAsync("End");
+        var afterEnd = await session.FocusAsync();
+        await Expect(page.Locator("#selected")).ToHaveTextAsync("selected=three");
         await page.Keyboard.PressAsync("Home");
-        var afterHomeAndEnd = await session.FocusAsync();
+        var afterHome = await session.FocusAsync();
+        await Expect(page.Locator("#selected")).ToHaveTextAsync("selected=one");
+        await page.Keyboard.PressAsync("Home");
         await page.FocusAsync("#add");
         await page.Keyboard.PressAsync("ArrowRight");
 
-        Assert.Equal("one", afterHomeAndEnd);
+        Assert.Equal("three", afterEnd);
+        Assert.Equal("one", afterHome);
         Assert.Equal("three", await session.FocusAsync());
         await Expect(page.Locator("#selected")).ToHaveTextAsync("selected=three");
         await Expect(page.Locator("#added")).ToHaveTextAsync("added=0");
-        Assert.Equal("End Home ArrowRight!", await page.EvaluateAsync<string>("() => window.keys.join(' ')"));
+        Assert.Equal("End! Home! Home! ArrowRight!", await page.EvaluateAsync<string>("() => window.keys.join(' ')"));
+        Assert.Equal(0, await page.EvaluateAsync<double>("() => scrollY"));
+    }
+
+    [Fact]
+    public async Task Home_and_End_on_a_button_outside_a_tablist_stay_the_pages()
+    {
+        await using var session = await HookSession.OpenAsync<TabsHookPage>(playwright);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.EvaluateAsync("() => { window.keys = []; document.addEventListener('keydown', e => window.keys.push(e.key + (e.defaultPrevented ? '!' : ''))); }");
+
+        await page.FocusAsync("#outside");
+        await page.Keyboard.PressAsync("End");
+        await page.Keyboard.PressAsync("Home");
+
+        Assert.Equal("End Home", await page.EvaluateAsync<string>("() => window.keys.join(' ')"));
+        await Expect(page.Locator("#selected")).ToHaveTextAsync("selected=one");
     }
 }
 
@@ -100,6 +123,7 @@ public sealed partial class TabsHookPage : Component
             Tab("three", disabled: false),
             Button.Key("add").Id("add").Type(ButtonType.Button).OnClick(() => _added++)["Add tab"]
         ],
+        Button.Id("outside").Type(ButtonType.Button)["Outside"],
         Div.Style("height:3000px")
     ];
 

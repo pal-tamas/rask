@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Changed
+- **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
+  tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
+- **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
+  issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push
+  run alone, which runs only the gates a push can reach — so on 2026-11-09, with `main`'s `full` run red on the CLI
+  build and templates and its `ci` green, the tools and intl-tel-input followers each opened an issue (#1311, #1312)
+  for `main`'s red. After: a gate red in `main`'s last `full` run counts as `main`'s too, unless a newer `ci` push run
+  passed it.
 - **A strict app publishes past a dependency's trim warnings, migrates without restyling EF Core's code, and builds
   the tutorial as typed.** Before: under `rask new`'s `<RaskStrict>errors</RaskStrict>`, a browser bundle's publish
   failed on `IL2104: Assembly 'Microsoft.JSInterop' produced trim warnings`; the first `rask db` migration failed the
@@ -98,6 +107,12 @@ them until tagged releases begin.
   the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
   `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json` (`scripts/lib/format-scope.sh`). With no scope
   base — the daily whole run, a release — nothing is formatted. Until 1.0.
+- **CI: a test that kills its host can no longer pass the unit gate unseen (#1308).** Before: a stack overflow,
+  `Environment.FailFast` or `Environment.Exit` in a test printed `[FATAL ERROR]` and then `Passed! … 707` of 903,
+  and only the exit code said otherwise. After: the gate runs tests through `scripts/lib/dotnet-test.sh`, which
+  writes a TRX file per project and fails the run when one records a dead or aborted host, an error, or fewer
+  results than xUnit discovered test cases (`scripts/lib/test_verdict.py`); a test hung for 15 minutes fails and is
+  named. `scripts/tests/test-host-crash.test.sh` kills a fixture suite's host each of those ways and asserts red.
 - **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
   rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
   in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
@@ -167,6 +182,15 @@ them until tagged releases begin.
   from the file itself through an object URL revoked with the item; `Ui.FileUploadDropzone.WithProgress()` draws a
   cross beside its bar that calls the upload off (Server: the request is aborted; WASM: the handler's ambient token is
   cancelled).
+- **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
+  sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
+  scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen
+  reader read as loose tick labels. After: the sorted heading carries `aria-sort="ascending"|"descending"` (set by
+  `Sorted()`/`Direction()` or by `SortIn`'s address), other headings none; a table with a sticky column marks its scroll
+  area `data-rask-scroll-edges` and the runtime writes Flux's `data-scrolled-right`/`-left` on it as it scrolls and
+  resizes, on both hosts (the CSS scroll-timeline fallback is gone); `Home`/`End` focus and select the first/last tab
+  that is not disabled; and the chart's drawing is `role="img"` with a generated `aria-label` (kind, series, reach) and
+  `aria-describedby` a visually hidden table of its rows. No visual change, no new public API.
 - **Rask.Ui: a long select or pillbox draws only the rows in view.** Before: `Ui.Select`'s listbox and combobox and
   `Ui.Pillbox` drew every option — a select of TA's 1098 vehicles put 1098 rows on the page at every render, and every
   one travelled over the wire on Server. After: up to 100 options nothing changes (Flux's examples, and parity, stay as

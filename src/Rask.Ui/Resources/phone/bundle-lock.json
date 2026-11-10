@@ -2,9 +2,9 @@
   "lockVersion": 1,
   "packages": {
     "data/cldr-localenames-full": {
-      "version": "48.0.0",
-      "resolved": "https://registry.npmjs.org/cldr-localenames-full/-/cldr-localenames-full-48.0.0.tgz",
-      "integrity": "sha512-H6ZG0+1rjwsg7gqFeIAa2TTab9fWA7/b7U0ovxA2YJSI5tGumyM5sVchY5f/q0kn/9AtseGKwrTb9UDC4xmghw=="
+      "version": "49.0.0",
+      "resolved": "https://registry.npmjs.org/cldr-localenames-full/-/cldr-localenames-full-49.0.0.tgz",
+      "integrity": "sha512-nTBCysDVK+JHb2hPhb26fJGp9+Lw0mOiqVsJ/9aTEQIduBTnghTSLgZitsM7FLa1Vjr0K0hfBQMdBgoyDxK0nQ=="
     },
     "node_modules/intl-tel-input": {
       "version": "29.2.3",
