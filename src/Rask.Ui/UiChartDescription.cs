@@ -12,7 +12,9 @@ namespace Rask;
 /// <remarks>
 ///     <para>
 ///         Not Flux's, whose chart says nothing to a screen reader: an addition the owner approved (2026-11-10). It draws
-///         nothing: the table is <c>sr-only</c>. Its words are the <c>Chart…</c> keys of <see cref="RaskString" />.
+///         nothing: the table sits in an <c>sr-only</c> box, since a table given <c>sr-only</c> itself grows to fit its
+///         cells — a table is never narrower than its content. Its words are the <c>Chart…</c> keys of
+///         <see cref="RaskString" />.
 ///     </para>
 ///     <para>
 ///         A series is named by what the page already named it with: the tooltip value or the legend entry that reads
@@ -58,11 +60,11 @@ internal sealed class UiChartDescription
     /// <summary>The SVG's accessible name: <c>"Line chart: Visitors. 16 data points, 9/22/2026 to 10/7/2026. Values from 115 to 300."</c></summary>
     internal string Label { get; private set; } = "";
 
-    /// <summary>The rows as an <c>sr-only</c> table under <paramref name="id" />: a heading per column, a row per row.</summary>
+    /// <summary>The rows as a table in an <c>sr-only</c> box, under <paramref name="id" />: a heading per column, a row per row.</summary>
     internal string Table(string id)
     {
         var table = new StringBuilder(64 + (Data.Count * 16 * (_values.Count + 1)))
-            .Append("<table class=\"sr-only\" id=\"").Append(id).Append("\"><thead><tr><th scope=\"col\">").Append(WebUtility.HtmlEncode(Index.Name)).Append("</th>");
+            .Append("<div class=\"sr-only\" data-ui-chart-rows><table id=\"").Append(id).Append("\"><thead><tr><th scope=\"col\">").Append(WebUtility.HtmlEncode(Index.Name)).Append("</th>");
         foreach (var column in _values)
         {
             table.Append("<th scope=\"col\">").Append(WebUtility.HtmlEncode(column.Name)).Append("</th>");
@@ -80,7 +82,7 @@ internal sealed class UiChartDescription
             table.Append("</tr>");
         }
 
-        return table.Append("</tbody></table>").ToString();
+        return table.Append("</tbody></table></div>").ToString();
     }
 
     /// <summary>What the chart drawn from <paramref name="parts" /> says to a screen reader.</summary>

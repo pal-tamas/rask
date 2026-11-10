@@ -41,7 +41,7 @@ public partial class UiChartTests
         var table = Table(html);
 
         Assert.StartsWith("ui-chart-rows-", described, StringComparison.Ordinal);
-        Assert.StartsWith("<table class=\"sr-only\" id=\"" + described + "\">", table, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"sr-only\" data-ui-chart-rows><table id=\"" + described + "\">", table, StringComparison.Ordinal);
         Assert.Equal(["Date", "Visitors"], Headings(table));
         Assert.Equal(16, Rows(table).Length);
         Assert.Equal(("9/22/2026", "171"), Rows(table)[0]);
@@ -60,7 +60,7 @@ public partial class UiChartTests
             (200, 100)));
 
         var ids = Regex.Matches(html, "aria-describedby=\"([^\"]+)\"").Select(match => match.Groups[1].Value).ToArray();
-        var tables = Regex.Matches(html, "<table class=\"sr-only\" id=\"([^\"]+)\"").Select(match => match.Groups[1].Value).ToArray();
+        var tables = Regex.Matches(html, "<div class=\"sr-only\" data-ui-chart-rows><table id=\"([^\"]+)\"").Select(match => match.Groups[1].Value).ToArray();
 
         Assert.Equal(2, ids.Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(ids, tables);
@@ -77,7 +77,7 @@ public partial class UiChartTests
 
         Assert.Contains("viewBox=\"0 0 300 120\"", page.Html, StringComparison.Ordinal);
         Assert.Equal(first, Regex.Match(page.Html, "aria-describedby=\"([^\"]+)\"").Groups[1].Value);
-        Assert.Contains("<table class=\"sr-only\" id=\"" + first + "\">", page.Html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"sr-only\" data-ui-chart-rows><table id=\"" + first + "\">", page.Html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public partial class UiChartTests
     // Its accessible name, as a screen reader reads it.
     private static string Label(string svg) => System.Net.WebUtility.HtmlDecode(Regex.Match(svg, "aria-label=\"([^\"]*)\"").Groups[1].Value);
 
-    private static string Table(string html) => Regex.Match(html, "<table class=\"sr-only\".*?</table>", RegexOptions.Singleline).Value;
+    private static string Table(string html) => Regex.Match(html, "<div class=\"sr-only\" data-ui-chart-rows><table .*?</table>", RegexOptions.Singleline).Value;
 
     private static string[] Headings(string table) =>
         [.. Regex.Matches(table, "<th scope=\"col\">([^<]*)</th>").Select(match => System.Net.WebUtility.HtmlDecode(match.Groups[1].Value))];

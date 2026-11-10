@@ -178,7 +178,7 @@ public sealed class UiKitAccessibilityTests(WasmExampleAppFixture app, Playwrigh
             var table = Page.Locator($"table#{described}");
             await Expect(table.Locator("tbody tr")).ToHaveCountAsync(16);
             await Expect(table.Locator("thead th")).ToHaveTextAsync(["Date", "Visitors"]);
-            var box = (await table.BoundingBoxAsync())!;
+            var box = (await table.Locator("xpath=..").BoundingBoxAsync())!;
             Assert.True(box.Width <= 1 && box.Height <= 1, $"the rows' table shows: {box.Width}x{box.Height}.");
             await lines.ScrollIntoViewIfNeededAsync();
             await Expect(lines).ToHaveAttributeAsync("aria-label", new System.Text.RegularExpressions.Regex(
