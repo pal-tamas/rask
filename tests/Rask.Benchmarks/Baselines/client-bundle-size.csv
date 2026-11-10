@@ -672,15 +672,6 @@ bundle,bytes
 rask.js,114222
 rask.wasm.js,99588
 rask-hooks.js,132252
-# 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
-# back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
-# showed it): rask-hooks.js 132,252 -> 132,537 (+285), on top of the table/tabs/chart block above; rask.js and
-# rask.wasm.js unchanged from it. Measured locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on
-# that block's main merged with this change.
-bundle,bytes
-rask.js,114222
-rask.wasm.js,99588
-rask-hooks.js,132537
 # 2026-11-10, the create row's wait (above) on top of the table/tabs/chart accessibility block (rask-scroll-edges.ts):
 # both landed the same day, so this block sets all three to what the merged tree measures, locally with the bundle
 # gate's esbuild 0.28.2 and flags (--minify) on d85594170: rask.js 114,364, rask.wasm.js 99,729, rask-hooks.js 132,735
@@ -689,3 +680,12 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,132735
+# 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
+# back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
+# showed it): +285 on rask-hooks.js alone. This block sets all three to what the merged tree measures with the blocks
+# above (and c5ed10189's scroll-edges fix), locally with the bundle gate's esbuild 0.28.2 and flags (--minify):
+# rask-hooks.js 132,735 -> 133,057; rask.js and rask.wasm.js as the block above.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133057
