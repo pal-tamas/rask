@@ -266,7 +266,6 @@ Rask.Dashboard.Panels.ISystemPanelReader.Replication(System.Threading.Cancellati
 Rask.Dashboard.Panels.ISystemPanelReader.Snapshots(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Dashboard.Panels.BackupSnapshotInfo!>!>!
 Rask.Dashboard.Panels.ISystemPanelReader.Verification(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Rask.Dashboard.Panels.BackupVerificationInfo?>!
 Rask.Dashboard.Panels.QueueCounts
-Rask.Dashboard.Panels.QueueCounts.Deconstruct(out int Due, out int Delayed, out int Failed, out int Processed) -> void
 Rask.Dashboard.Panels.QueueCounts.Delayed.get -> int
 Rask.Dashboard.Panels.QueueCounts.Delayed.init -> void
 Rask.Dashboard.Panels.QueueCounts.Due.get -> int
@@ -278,7 +277,6 @@ Rask.Dashboard.Panels.QueueCounts.Outstanding.get -> int
 Rask.Dashboard.Panels.QueueCounts.Processed.get -> int
 Rask.Dashboard.Panels.QueueCounts.Processed.init -> void
 Rask.Dashboard.Panels.QueueCounts.QueueCounts() -> void
-Rask.Dashboard.Panels.QueueCounts.QueueCounts(int Due, int Delayed, int Failed, int Processed) -> void
 Rask.Dashboard.Panels.QueueFilter
 Rask.Dashboard.Panels.QueueFilter.Delayed = 2 -> Rask.Dashboard.Panels.QueueFilter
 Rask.Dashboard.Panels.QueueFilter.Due = 1 -> Rask.Dashboard.Panels.QueueFilter
@@ -466,3 +464,17 @@ static Rask.Dashboard.Pages.__RaskNav_StoragePage.Go(string? Search = null) -> R
 static Rask.Dashboard.Pages.__RaskNav_StoragePage.extension(Rask.Dashboard.Pages.StoragePage!).Go(string? Search = null) -> Rask.Core.GoTo!
 static Rask.Dashboard.Pages.__RaskNav_SystemPage.Go() -> Rask.Core.GoTo!
 static Rask.Dashboard.Pages.__RaskNav_SystemPage.extension(Rask.Dashboard.Pages.SystemPage!).Go() -> Rask.Core.GoTo!
+Rask.Dashboard.Panels.QueueCounts.Deconstruct(out int Due, out int Delayed, out int Failed, out int Processed, out int Running) -> void
+Rask.Dashboard.Panels.QueueCounts.QueueCounts(int Due, int Delayed, int Failed, int Processed, int Running = 0) -> void
+Rask.Dashboard.Panels.QueueCounts.Running.get -> int
+Rask.Dashboard.Panels.QueueCounts.Running.init -> void
+Rask.Dashboard.Panels.QueueFilter.Running = 5 -> Rask.Dashboard.Panels.QueueFilter
+Rask.Dashboard.Panels.QueueRow.ClaimedUntil.get -> System.DateTime?
+Rask.Dashboard.Panels.QueueRow.ClaimedUntil.init -> void
+Rask.Dashboard.Panels.QueueRow.IsRunning(System.DateTime now) -> bool
+Rask.Dashboard.Panels.QueueRow.Lane.get -> string?
+Rask.Dashboard.Panels.QueueRow.Lane.init -> void
+Rask.Dashboard.Panels.QueueRow.StartedAt.get -> System.DateTime?
+Rask.Dashboard.Panels.QueueRow.StartedAt.init -> void
+Rask.Dashboard.Panels.QueueRow.Stopped.get -> Rask.Background.JobStop?
+Rask.Dashboard.Panels.QueueRow.Stopped.init -> void

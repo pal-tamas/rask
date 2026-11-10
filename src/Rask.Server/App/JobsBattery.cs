@@ -31,10 +31,19 @@ public static class JobsBattery
             ArgumentNullException.ThrowIfNull(make);
             return Declared.GetValue(jobs, Stage).Run(make);
         }
+
+        /// <summary>
+        ///     Says when a running <typeparamref name="TJob" /> stops by itself, in the step that follows:
+        ///     <c>c.Jobs.Limit&lt;AtPump&gt;().After(30.Minutes).IdleFor(5.Minutes)</c>.
+        /// </summary>
+        /// <typeparam name="TJob">The job the limits hold for.</typeparam>
+        /// <returns>The limit's steps: <c>.After(…)</c>, <c>.IdleFor(…)</c>.</returns>
+        public Limiting<TJob> Limit<TJob>()
+            where TJob : IJob => Declared.GetValue(jobs, Stage).Limit<TJob>();
     }
 
-    // One Configure per battery, however many jobs it declares: it copies each into the options being applied, so the
-    // duplicate-name rule sees them beside any declared inside Configure(o => o.Run<…>()).
+    // One Configure per battery, however many jobs and limits it declares: it copies each into the options being applied, so
+    // the duplicate-name rule sees them beside any declared inside Configure(o => o.Run<…>()), and a limit wins over config.
     private static JobsOptions Stage(Battery<JobsOptions> jobs)
     {
         var declared = new JobsOptions();
@@ -44,6 +53,8 @@ public static class JobsBattery
             {
                 options.Adopt(job);
             }
+
+            options.AdoptLimits(declared);
         });
 
         return declared;

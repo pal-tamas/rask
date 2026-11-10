@@ -169,6 +169,7 @@ public sealed class JobsHarness : IAsyncDisposable
         services.AddSingleton(Recorder);
         services.AddSingleton(Gate);
         services.AddSingleton(Lanes);
+        services.AddSingleton(Pulses);
         services.AddSingleton<TimeProvider>(Clock); // registered first so AddRaskJobs' TryAddSingleton keeps it
         services.AddRaskCqrs();
         services.AddRaskJobs<JobsDbContext>(o =>
@@ -176,7 +177,7 @@ public sealed class JobsHarness : IAsyncDisposable
             o.PollInterval = TimeSpan.FromMilliseconds(20);
             configure?.Invoke(o);
         });
-        services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={DbPath}"));
+        services.AddDbContextFactory<JobsDbContext>(o => o.UseSqlite($"Data Source={DbPath}").AddInterceptors(Commands));
     }
 
     public string DbPath { get; }
@@ -186,6 +187,9 @@ public sealed class JobsHarness : IAsyncDisposable
 
     public FakeTimeProvider Clock { get; }
 
+    /// <summary>Every query the jobs' contexts read with — counted, and failed on purpose when a test says so.</summary>
+    public CommandCounter Commands { get; } = new();
+
     public Recorder Recorder { get; } = new();
 
     /// <summary>Latches for <see cref="GateJob"/>, so a test can hold a handler open across a shutdown.</summary>
@@ -193,6 +197,9 @@ public sealed class JobsHarness : IAsyncDisposable
 
     /// <summary>Latches for <see cref="LaneJob"/>, one pair per tag.</summary>
     public LaneGate Lanes { get; } = new();
+
+    /// <summary>The test's lever on a <see cref="ChattyJob"/>: each pulse makes it report progress once.</summary>
+    public Pulses Pulses { get; } = new();
 
     public IJobs Queue => _provider.GetRequiredService<IJobs>();
 
@@ -275,6 +282,16 @@ public sealed class JobsHarness : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Waits until the processor's watch has looked at the running jobs twice more — so whatever the clock now says has been
+    /// seen by a whole look, started after the test moved it.
+    /// </summary>
+    public Task WatchedAsync()
+    {
+        var seen = Jobs.Looks;
+        return WaitUntilAsync(() => Task.FromResult(Jobs.Looks >= seen + 2));
+    }
+
     public async ValueTask DisposeAsync()
     {
         await _provider.DisposeAsync();
@@ -311,5 +328,33 @@ internal sealed class CapturingLoggerProvider(System.Collections.Concurrent.Conc
             ArgumentNullException.ThrowIfNull(formatter);
             sink.Add(formatter(state, exception));
         }
+    }
+}
+
+/// <summary>Counts the queries read through the jobs' contexts, and fails the ones a test names.</summary>
+public sealed class CommandCounter : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+{
+    private int _reads;
+
+    /// <summary>How many queries have been read since the counter started.</summary>
+    public int Reads => Volatile.Read(ref _reads);
+
+    /// <summary>A query this says yes to fails, as a database that is briefly away fails it.</summary>
+    public Func<string, bool>? Fail { get; set; }
+
+    public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+        System.Data.Common.DbCommand command,
+        Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+        Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        Interlocked.Increment(ref _reads);
+        if (Fail?.Invoke(command.CommandText) == true)
+        {
+            throw new InvalidOperationException("The database is away (a test said so).");
+        }
+
+        return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
     }
 }

@@ -58,6 +58,12 @@ ten-minute job holds up its own lane only. Adds the `Lane` column: `rask db add 
 answer - or throws `JobFailedException` with its error; it is tried once. Cancelling the wait (or `.Within(2.Minutes)`
 running out) stops the waiting, never the job. Adds two columns: `rask db add AddJobResult && rask db update`.
 
+**Stop a job, or let it stop itself.** `await Jobs.Stop(id)` cancels a running job's `Current.Cancellation` on whichever
+host runs it (a waiting one never runs); `c.Jobs.Limit<AtPump>().After(30.Minutes).IdleFor(5.Minutes)` stops it at a
+time limit, or when no `Jobs.Report(…)` came for that long. A stopped job is not failed and not retried, and its lane
+moves on at once. `await Jobs.Lanes(pumpIds)` reads what runs and what waits in many lanes in one query. Adds two
+columns: `rask db add AddJobStop && rask db update`.
+
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the
