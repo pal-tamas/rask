@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A suite whose one test kills or hangs its own test host on request (HOST_CRASH_MODE), so
+       scripts/tests/test-host-crash.test.sh can prove the gate's runner fails such a run (#1308). Never in a
+       solution, and outside tests/, so nothing but that self-test ever runs it. -->
+  <PropertyGroup>
+    <TargetFramework>$(RaskTestTarget)</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

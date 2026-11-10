@@ -98,6 +98,12 @@ them until tagged releases begin.
   the tests over the `.cs` files changed since the scope base, and over every file when the change touches an
   `.editorconfig`, a `Directory.*.props`/`.targets` or `global.json` (`scripts/lib/format-scope.sh`). With no scope
   base — the daily whole run, a release — nothing is formatted. Until 1.0.
+- **CI: a test that kills its host can no longer pass the unit gate unseen (#1308).** Before: a stack overflow,
+  `Environment.FailFast` or `Environment.Exit` in a test printed `[FATAL ERROR]` and then `Passed! … 707` of 903,
+  and only the exit code said otherwise. After: the gate runs tests through `scripts/lib/dotnet-test.sh`, which
+  writes a TRX file per project and fails the run when one records a dead or aborted host, an error, or fewer
+  results than xUnit discovered test cases (`scripts/lib/test_verdict.py`); a test hung for 15 minutes fails and is
+  named. `scripts/tests/test-host-crash.test.sh` kills a fixture suite's host each of those ways and asserts red.
 - **CI: the unit tests run in the `build` job, over its output.** The `unit`, `unit 1/2` and `unit 2/2` jobs each
   rebuilt the solution the analyzer build had just built (364 s apiece); `build` now runs the tests right after it —
   in a scoped run the test projects the change reaches, as `scripts/lib/affected_gates.py` decides. A scoped build
