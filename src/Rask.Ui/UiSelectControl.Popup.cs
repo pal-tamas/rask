@@ -215,7 +215,7 @@ public abstract partial class UiSelectControl<T>
         marks["data-rask-list-empty"] = null;
 
         // A list the page answers: the row says Flux's `when-loading` words instead while a field of the select waits on
-        // the answer — the runtime marks it `data-loading` once the question has gone 200 ms unanswered (rask-loading.ts).
+        // the answer — the runtime marks it `data-loading` the moment the question leaves (rask-loading.ts).
         // Measured on fluxui.dev's backend search (2026-11-05): the rows drawn stay until the answer is here, the row only
         // shows, as ever, when no other does, and its words are its own text — so the loading ones are drawn over them
         // by CSS from `data-rask-list-loading`, and the row holds nothing more than Flux's.
@@ -225,7 +225,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         return Div.Key("ui:empty").Class(UiListboxLook.Empty, HidesRows ? null : UiListboxLook.EmptyWhileAsked, slot?.Class).Attributes(marks)[
-            _busy ? [Loading(slot)] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
+            Busy ? [Loading(slot)] : slot?.Children ?? [Empty ?? RaskStrings.Get(RaskString.SelectEmpty, "No results found")]
         ];
     }
 
@@ -239,7 +239,11 @@ public abstract partial class UiSelectControl<T>
         var index = view.CreateIndex;
         var marks = RowMarks("data-ui-option-create", picked: false, hidden: Searches && (HidesRows || !view.CreateShown));
         marks["data-rask-list-create"] = Searches ? Math.Max(create.MinLength ?? 1, 1).ToString(CultureInfo.InvariantCulture) : string.Empty;
-        if (_busy)
+        // Pressed, it spins at once and takes no second press until its handler is done (rask-loading.ts), and the
+        // list stays open meanwhile (rask-list.ts), as Flux's: one option made, however often it is pressed.
+        marks["data-rask-loading"] = null;
+        marks[UiSearchPause.LoadsAtOnce] = null;
+        if (Busy)
         {
             marks["data-loading"] = "true";
         }
