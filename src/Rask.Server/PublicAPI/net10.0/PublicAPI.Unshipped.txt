@@ -171,10 +171,12 @@ Rask.Configurable<TOptions>.Configurable() -> void
 Rask.Configurable<TOptions>.Configure(System.Action<TOptions!>! configure) -> Rask.Configurable<TOptions!>!
 Rask.JobsBattery
 Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!)
+Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!).Limit<TJob>() -> Rask.Background.Limiting<TJob>!
 Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!).Run<TJob>() -> Rask.Background.RecurringJob!
 Rask.JobsBattery.extension(Rask.Battery<Rask.Background.JobsOptions!>!).Run<TJob>(System.Func<TJob>! make) -> Rask.Background.RecurringJob!
 Rask.RaskAppOptions.Live.get -> Rask.Configurable<Rask.Core.Live.RaskLiveOptions!>!
 Rask.RaskAppOptions.Server.get -> Rask.Configurable<Rask.Server.RaskServerOptions!>!
+static Rask.JobsBattery.Limit<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs) -> Rask.Background.Limiting<TJob>!
 static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs) -> Rask.Background.RecurringJob!
 static Rask.JobsBattery.Run<TJob>(this Rask.Battery<Rask.Background.JobsOptions!>! jobs, System.Func<TJob>! make) -> Rask.Background.RecurringJob!
 Rask.RaskAppOptions.Outbox.get -> Rask.Settings<Rask.Outbox.OutboxOptions!>!

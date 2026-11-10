@@ -39,8 +39,15 @@ public sealed partial class JobProcessor<TContext>(
     // The lanes at work: each is one task, and the poll loop goes on while they run.
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Task, byte> _running = new();
 
-    // The jobs in a handler right now, by id: what a stopping instance says it is waiting for.
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, (string Type, long StartedAt)> _inFlight = new();
+    // The jobs in a handler right now, by id: what a stopping instance says it is waiting for, and what the watch looks at.
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<long, JobRun> _inFlight = new();
+
+    private readonly JobWatch<TContext> _watch = new(contextFactory, timeProvider, logger);
+
+    private int _looks;
+
+    /// <summary>How many times the watch has looked at the running jobs: what a test waits on after it moves the clock.</summary>
+    internal int Looks => Volatile.Read(ref _looks);
 
     private CancellationTokenSource _grace = new();
 
@@ -109,7 +116,9 @@ public sealed partial class JobProcessor<TContext>(
                     .SetProperty(j => j.ClaimedUntil, until)
                     .SetProperty(j => j.Attempts, j => j.Attempts + 1)
                     // Claimed work is no longer waiting: the same work may wait behind it from here on.
-                    .SetProperty(j => j.WaitingKey, (string?)null),
+                    .SetProperty(j => j.WaitingKey, (string?)null)
+                    // Last, the newest column: a database that lacks an older one is named that older one's migration first.
+                    .SetProperty(j => j.StartedAt, now),
                 cancellationToken)
             .ConfigureAwait(false);
 
@@ -141,6 +150,11 @@ public sealed partial class JobProcessor<TContext>(
             .Distinct()
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+
+        // And a lane whose job still runs HERE, whatever its row says: a row marked done or deleted from outside frees the
+        // lane in the table before this host has stopped the work, and the lane's next job waits for it — so the first is the
+        // one stopped, and two never run at once on this host.
+        busy.AddRange(_inFlight.Values.Where(run => run.Lane is not null).Select(run => run.Lane));
 
         // Jobs without a lane are a batch, one after the other, as they always were - and a batch of this
         // instance at a time. Other instances take their own: without a lane nothing is held back.
@@ -195,6 +209,7 @@ public sealed partial class JobProcessor<TContext>(
         using var registration = stoppingToken.Register(() => grace.CancelAfter(options.ShutdownGracePeriod));
         using var renewing = new CancellationTokenSource();
         var renewals = RenewLeasesAsync(renewing.Token);
+        var watching = WatchAsync(renewing.Token);
         using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
@@ -231,6 +246,7 @@ public sealed partial class JobProcessor<TContext>(
             await WaitForRunningJobsAsync().ConfigureAwait(false);
             await renewing.CancelAsync().ConfigureAwait(false);
             await renewals.ConfigureAwait(false);
+            await watching.ConfigureAwait(false);
         }
     }
 
@@ -295,10 +311,25 @@ public sealed partial class JobProcessor<TContext>(
         }
     }
 
-    private static string ShortName(string type)
+    /// <summary>
+    /// Looks at the jobs running here once a poll, and stops those that must stop (<see cref="JobWatch{TContext}"/>). Its own
+    /// loop, so a job is still stopped at its limit while a stopping host waits for it.
+    /// </summary>
+    private async Task WatchAsync(CancellationToken stop)
     {
-        var cut = type.LastIndexOfAny(['.', '+']);
-        return cut < 0 ? type : type[(cut + 1)..];
+        using var timer = new PeriodicTimer(options.PollInterval);
+        try
+        {
+            while (await timer.WaitForNextTickAsync(stop).ConfigureAwait(false))
+            {
+                await _watch.Look([.. _inFlight.Values], stop).ConfigureAwait(false);
+                Interlocked.Increment(ref _looks);
+            }
+        }
+        catch (OperationCanceledException) when (stop.IsCancellationRequested)
+        {
+            // Stopped: every lane has finished.
+        }
     }
 
     private void ReportRunningJobs()
@@ -314,7 +345,7 @@ public sealed partial class JobProcessor<TContext>(
 
     // "AtPump (3m12s), Backup (4s)": each job's short type name and how long it has been running.
     private string DescribeInFlight() =>
-        string.Join(", ", _inFlight.Values.Select(j => $"{ShortName(j.Type)} ({Compact(timeProvider.GetElapsedTime(j.StartedAt))})"));
+        string.Join(", ", _inFlight.Values.Select(j => $"{JobSerializerRegistry.ShortName(j.Type)} ({Compact(timeProvider.GetElapsedTime(j.StartedTimestamp))})"));
 
     private static string Compact(TimeSpan elapsed)
     {
@@ -343,49 +374,65 @@ public sealed partial class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            if (IsMissingColumn(ex, nameof(Job.ClaimToken)) || IsMissingColumn(ex, nameof(Job.ClaimedUntil)))
+            if (!ReportMissingColumn(ex))
             {
-                // The generic message would send someone reading a stack trace instead of running two
-                // commands. This failure is also invisible without it: the exception is swallowed here,
-                // so the app looks healthy while logging the same error every poll, forever.
-                LeaseColumnsMissing(logger, ex, "scaling.md#running-more-than-one-instance");
-                return;
+                CycleFailed(logger, ex);
             }
-
-            if (IsMissingColumn(ex, nameof(Job.UserId)))
-            {
-                // The same silent failure as the lease columns above, from a later upgrade. Checked second, so
-                // a database missing both is sent to the older migration first.
-                UserColumnMissing(logger, ex);
-                return;
-            }
-
-            if (IsMissingColumn(ex, nameof(Job.Lane)))
-            {
-                LaneColumnMissing(logger, ex);
-                return;
-            }
-
-            if (IsMissingColumn(ex, nameof(Job.WaitingKey)))
-            {
-                WaitingKeyColumnMissing(logger, ex);
-                return;
-            }
-
-            if (IsMissingColumn(ex, nameof(Job.UserClaims)))
-            {
-                UserClaimsColumnMissing(logger, ex);
-                return;
-            }
-
-            if (IsMissingColumn(ex, nameof(Job.Awaited)) || IsMissingColumn(ex, nameof(Job.Result)))
-            {
-                ResultColumnsMissing(logger, ex);
-                return;
-            }
-
-            CycleFailed(logger, ex);
         }
+    }
+
+    // A column a later Rask.Jobs added and this database lacks: said with the two commands that add it, rather than as the
+    // generic failure. Answers whether it was one.
+    private bool ReportMissingColumn(Exception ex)
+    {
+        if (IsMissingColumn(ex, nameof(Job.ClaimToken)) || IsMissingColumn(ex, nameof(Job.ClaimedUntil)))
+        {
+            // The generic message would send someone reading a stack trace instead of running two
+            // commands. This failure is also invisible without it: the exception is swallowed here,
+            // so the app looks healthy while logging the same error every poll, forever.
+            LeaseColumnsMissing(logger, ex, "scaling.md#running-more-than-one-instance");
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.UserId)))
+        {
+            // The same silent failure as the lease columns above, from a later upgrade. Checked second, so
+            // a database missing both is sent to the older migration first.
+            UserColumnMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.Lane)))
+        {
+            LaneColumnMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.WaitingKey)))
+        {
+            WaitingKeyColumnMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.UserClaims)))
+        {
+            UserClaimsColumnMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.Awaited)) || IsMissingColumn(ex, nameof(Job.Result)))
+        {
+            ResultColumnsMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingColumn(ex, nameof(Job.Stopped)) || IsMissingColumn(ex, nameof(Job.StartedAt)))
+        {
+            StopColumnsMissing(logger, ex);
+            return true;
+        }
+
+        return false;
     }
 
     private async Task DrainAsync(CancellationToken cancellationToken)
@@ -460,12 +507,26 @@ public sealed partial class JobProcessor<TContext>(
                     return false;
                 }
 
-                if (!await RunAsync(job, graceToken, cancellationToken).ConfigureAwait(false))
+                try
                 {
-                    return false; // leave this and the rest for the next run
+                    switch (await RunAsync(job, graceToken, cancellationToken).ConfigureAwait(false))
+                    {
+                        case Outcome.Interrupted:
+                            return false; // leave this and the rest for the next run
+                        case Outcome.Theirs:
+                            // Ended outside the processor: their row, their outcome. Detached, or the next job's save writes it.
+                            db.Entry(job).State = EntityState.Detached;
+                            break;
+                        default:
+                            await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+                            break;
+                    }
+                }
+                finally
+                {
+                    options.Signals.Over(job.Id);
                 }
 
-                await SaveOutcomeAsync(db, job).ConfigureAwait(false);
                 if (job.Awaited)
                 {
                     options.Signals.Saved(job.Id);
@@ -487,7 +548,7 @@ public sealed partial class JobProcessor<TContext>(
         }
     }
 
-    private async Task<bool> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
+    private async Task<Outcome> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
     {
         var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
         if (command is null)
@@ -497,37 +558,41 @@ public sealed partial class JobProcessor<TContext>(
             // production queue starts abandoning work, so it must not be invisible to metrics.
             Fail(job, $"No registered job type '{job.Type}'.");
             UnregisteredType(logger, job.Id, job.Type);
-            return true;
+            return Outcome.Ours;
         }
 
-        var startedAt = timeProvider.GetTimestamp();
-        _inFlight[job.Id] = (job.Type, startedAt);
+        // Its own token, tied to the host's grace: stopping this job cancels this one and no other.
+        var run = new JobRun(job, timeProvider, graceToken);
+        _inFlight[job.Id] = run;
+        options.Signals.Began(run);
+        job.Began(run.Started);
         try
         {
-            job.Answered(await DispatchAsync(job, command, graceToken).ConfigureAwait(false));
-            job.Completed(timeProvider.GetUtcNow().UtcDateTime);
-            job.Release();
-            metrics.Processed(job.Type, timeProvider.GetElapsedTime(startedAt).TotalMilliseconds);
+            // Asked to stop before it started — on a host that has since gone, or between its claim and now: it never runs.
+            if (job.Stopped is { } asked)
+            {
+                run.TryStop(asked);
+                return Stopped(job, run, asked);
+            }
+
+            var (after, idleFor) = options.LimitsOf(job.Type, (IJob)command);
+            run.Limit(after, idleFor);
+            var answer = await DispatchAsync(job, command, run).ConfigureAwait(false);
+
+            // Once a stop is asked the job ends stopped, whatever its handler went on to return.
+            return run.End() is { } why ? Stopped(job, run, why) : Done(job, run, answer);
+        }
+        catch (Exception) when (run.End() is not null)
+        {
+            // Whatever the work threw once it was stopped — the cancellation it was handed, or a database call that gave up
+            // on it — is the stop, not a failure.
+            return Stopped(job, run, run.Stopped!.Value);
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
-            // Shutdown outlived the grace. Attempts and RunAt are deliberately untouched: a
-            // redeploy is not a failed attempt, and counting it would march never-failing work
-            // toward its dead letter at the cadence you deploy. The row stays immediately eligible
-            // and re-runs whole on restart — metered and logged so a grace period that is too
-            // short for the work is visible rather than silent.
-            //
-            // The filter stays on the HOST token, not the grace token: the grace deadline is only
-            // ever armed by the host token firing, so any grace expiry necessarily satisfies it,
-            // while a handler's own OperationCanceledException still falls through to the generic
-            // catch below and counts as the real failure it is.
-            // Attempts and the lease are both given back by StopAsync, which owns every row this
-            // instance still holds — including ones claimed in this batch but never started. It
-            // cannot be done here: returning false skips the per-item SaveChanges, so an
-            // in-memory edit would be discarded while the claim's increment is already on disk.
-            metrics.Interrupted(job.Type);
-            InterruptedByShutdown(logger, ex, job.Id, job.Type);
-            return false;
+            // On the HOST token, not the grace token: only the host token arms the grace, so a grace expiry satisfies it, while
+            // a handler's own cancellation counts below as the failure it is. A shutdown is not a stop: nothing stopped it.
+            return Interrupted(job, ex);
         }
 #pragma warning disable CA1031 // A failing job must not stop the drain or crash the app — record + retry with backoff.
         catch (Exception ex)
@@ -535,18 +600,83 @@ public sealed partial class JobProcessor<TContext>(
         {
             Fail(job, ex.Message);
             JobFailed(logger, ex, job.Id, job.Attempts);
+            return Outcome.Ours;
         }
         finally
         {
+            run.End();
             _inFlight.TryRemove(job.Id, out _);
+            run.Release();
+        }
+    }
+
+    private Outcome Done(Job job, JobRun run, string? answer)
+    {
+        job.Answered(answer);
+        job.Completed(timeProvider.GetUtcNow().UtcDateTime);
+        job.Release();
+        metrics.Processed(job.Type, timeProvider.GetElapsedTime(run.StartedTimestamp).TotalMilliseconds);
+        return Outcome.Ours;
+    }
+
+    // Shutdown outlived the grace. Attempts and RunAt are deliberately untouched: a redeploy is not a failed attempt, and
+    // counting it would march never-failing work toward its dead letter at the cadence you deploy. The row stays immediately
+    // eligible and re-runs whole on restart — metered and logged so a grace period that is too short for the work is visible
+    // rather than silent. Attempts and the lease are both given back by StopAsync, which owns every row this instance still
+    // holds — including ones claimed in this batch but never started. It cannot be done here: an interrupted lane skips the
+    // per-item SaveChanges, so an in-memory edit would be discarded while the claim's increment is already on disk.
+    private Outcome Interrupted(Job job, OperationCanceledException ex)
+    {
+        metrics.Interrupted(job.Type);
+        InterruptedByShutdown(logger, ex, job.Id, job.Type);
+        return Outcome.Interrupted;
+    }
+
+    // A stopped job ends as stopped: processed, its claim given back, not failed and not tried again. Except when it was ended
+    // outside the processor — then the row is left exactly as whoever ended it left it.
+    private Outcome Stopped(Job job, JobRun run, JobStop why)
+    {
+        metrics.Stopped(job.Type, why);
+        switch (why)
+        {
+            case JobStop.DoneElsewhere:
+                JobDoneElsewhere(logger, job.Id, job.Type, job.Lane);
+                return Outcome.Theirs;
+            case JobStop.TimeLimit:
+                JobStoppedAtLimit(logger, job.Id, job.Type, job.Lane, run.After, run.Started, run.LastProgress);
+                break;
+            case JobStop.Idle:
+                JobStoppedIdle(logger, job.Id, job.Type, job.Lane, run.IdleFor, run.LastProgress);
+                break;
+            default:
+                JobStopped(logger, job.Id, job.Type, job.Lane);
+                break;
         }
 
-        return true;
+        job.Ended(why, timeProvider.GetUtcNow().UtcDateTime);
+        job.Release();
+        return Outcome.Ours;
+    }
+
+    // What becomes of a job's row once its run is over.
+    private enum Outcome
+    {
+        // Its outcome is ours to save: done, failed or stopped.
+        Ours,
+
+        // Ended outside the processor; nothing is written over it.
+        Theirs,
+
+        // Cut short by shutdown: left claimed for StopAsync to hand back.
+        Interrupted,
     }
 
     // Answers what the handler returned, as the JSON the row keeps for a caller awaiting it (Jobs.Run).
-    private async Task<string?> DispatchAsync(Job job, ICommand command, CancellationToken graceToken)
+    private async Task<string?> DispatchAsync(Job job, ICommand command, JobRun run)
     {
+        // The job's own token: Current.Cancellation in its handler, cancelled by its stop or the end of the host's grace.
+        var token = run.Token;
+
         // A fresh scope per job isolates scoped handler dependencies (e.g. a DbContext) between jobs.
         var scope = scopeFactory.CreateAsyncScope();
         await using var jobScope = scope.ConfigureAwait(false);
@@ -567,7 +697,7 @@ public sealed partial class JobProcessor<TContext>(
 
         // With the rights that user had when they enqueued it AND still has, as the scope's signed-in user, and the
         // scope ambient like a request's: so Current.Principal, an [Authorize] check and Pdf.From all see them.
-        var principal = await JobPrincipal.For(job, scope.ServiceProvider.GetService<IAccountPrincipals>(), graceToken)
+        var principal = await JobPrincipal.For(job, scope.ServiceProvider.GetService<IAccountPrincipals>(), token)
             .ConfigureAwait(false);
         if (principal is not null)
         {
@@ -575,19 +705,20 @@ public sealed partial class JobProcessor<TContext>(
         }
 
         // Its tenant's and user's own rows read now, so Current.Tenant in the handler is a lookup.
-        await CurrentRows.Prime(graceToken).ConfigureAwait(false);
+        await CurrentRows.Prime(token).ConfigureAwait(false);
 
         using var ambient = Ambient.Enter(scope.ServiceProvider);
 
-        // So a job that awaits a job of its own lane is refused rather than waiting for itself forever.
-        using var lane = JobInFlight.Enter(job.Lane);
+        // So Jobs.Stopped and Jobs.Report reach this run, and a job that awaits a job of its own lane is refused rather than
+        // waiting for itself forever.
+        using var inFlight = JobInFlight.Enter(run);
 
         if (command is IJob runnable)
         {
-            return await runnable.SendThrough(dispatcher, graceToken).ConfigureAwait(false);
+            return await runnable.SendThrough(dispatcher, token).ConfigureAwait(false);
         }
 
-        await dispatcher.Send(command, graceToken).ConfigureAwait(false);
+        await dispatcher.Send(command, token).ConfigureAwait(false);
         return null;
     }
 
@@ -909,6 +1040,37 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added Awaited and Result columns (what lets a caller await a job's answer with Jobs.Run) that this database does not have. "
             + "Run: rask db add AddJobResult && rask db update.")]
     private static partial void ResultColumnsMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added Stopped and StartedAt columns (what lets a running job be stopped, by hand or at a limit) that this database does not have. "
+            + "Run: rask db add AddJobStop && rask db update.")]
+    private static partial void StopColumnsMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        EventName = "JobStopped",
+        Level = LogLevel.Information,
+        Message = "Job {Id} ({Type}, lane {Lane}) was stopped on request.")]
+    private static partial void JobStopped(ILogger logger, long id, string type, string? lane);
+
+    [LoggerMessage(
+        EventName = "JobStoppedAtLimit",
+        Level = LogLevel.Warning,
+        Message = "Job {Id} ({Type}, lane {Lane}) was stopped at its time limit {Limit}; started {Started:u}, last progress {Progress:u}.")]
+    private static partial void JobStoppedAtLimit(
+        ILogger logger, long id, string type, string? lane, TimeSpan? limit, DateTime started, DateTime progress);
+
+    [LoggerMessage(
+        EventName = "JobStoppedIdle",
+        Level = LogLevel.Warning,
+        Message = "Job {Id} ({Type}, lane {Lane}) reported no progress for {Idle} and was stopped; last progress {Progress:u}.")]
+    private static partial void JobStoppedIdle(ILogger logger, long id, string type, string? lane, TimeSpan? idle, DateTime progress);
+
+    [LoggerMessage(
+        EventName = "JobDoneElsewhere",
+        Level = LogLevel.Warning,
+        Message = "Job {Id} ({Type}, lane {Lane}) was marked done or deleted outside the processor; stopped.")]
+    private static partial void JobDoneElsewhere(ILogger logger, long id, string type, string? lane);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Job processing cycle failed; retrying on the next poll.")]
     private static partial void CycleFailed(ILogger logger, Exception exception);

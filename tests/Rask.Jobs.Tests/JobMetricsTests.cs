@@ -27,6 +27,44 @@ public sealed class JobMetricsTests
     }
 
     [Fact]
+    public async Task A_stopped_job_is_counted_as_stopped_with_why_and_never_as_failed()
+    {
+        await using var h = new JobsHarness();
+        using var collector = new MetricCollector(h.Get<JobMetrics>());
+        await h.Queue.Enqueue(new ParkJob("metered"), TestContext.Current.CancellationToken).InLane("pump-1");
+        await h.Processor.StartAsync(CancellationToken.None);
+        try
+        {
+            await h.Entered("metered");
+
+            await h.Queue.Stop(await h.IdOf("metered"), TestContext.Current.CancellationToken);
+            await h.WaitUntilAsync(() => Task.FromResult(collector.Sum("rask.jobs.stopped") >= 1));
+
+            Assert.Equal(1, collector.Sum("rask.jobs.stopped"));
+            Assert.Equal("asked", collector.LastTag("rask.jobs.stopped", "reason"));
+            Assert.Equal("Rask.Background.Tests.ParkJob", collector.LastTag("rask.jobs.stopped", "job.type"));
+            Assert.Equal(0, collector.Sum("rask.jobs.failed"));
+            Assert.Equal(0, collector.Sum("rask.jobs.processed"));
+        }
+        finally
+        {
+            await h.Processor.StopAsync(CancellationToken.None);
+        }
+    }
+
+    [Theory]
+    [InlineData(JobStop.Asked, "asked")]
+    [InlineData(JobStop.TimeLimit, "time-limit")]
+    [InlineData(JobStop.Idle, "idle")]
+    [InlineData(JobStop.DoneElsewhere, "done-elsewhere")]
+    public void Each_reason_has_its_own_tag(JobStop why, string tag)
+    {
+        var reason = JobMetrics.Reason(why);
+
+        Assert.Equal(tag, reason);
+    }
+
+    [Fact]
     public async Task A_failing_job_counts_every_attempt_and_dead_letters_once()
     {
         // MaxAttempts: 2 with no backoff, so both attempts happen inside the test rather than an hour apart.

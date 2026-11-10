@@ -11,6 +11,7 @@ namespace Rask.Background;
 internal sealed class JobSignals
 {
     private readonly ConcurrentDictionary<long, TaskCompletionSource> _finished = new();
+    private readonly ConcurrentDictionary<long, JobRun> _runs = new();
     private TaskCompletionSource _wake = NewLatch();
 
     /// <summary>Completes on the next <see cref="Wake"/>. Taken before a poll, so a wake during it is not missed.</summary>
@@ -35,4 +36,16 @@ internal sealed class JobSignals
     }
 
     private static TaskCompletionSource NewLatch() => new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Job <paramref name="run" /> is in its handler on this host — until its outcome is saved (<see cref="Over" />).</summary>
+    public void Began(JobRun run) => _runs[run.Id] = run;
+
+    /// <summary>Job <paramref name="id" />'s outcome is saved, or left to whoever ended it: it is no longer this host's.</summary>
+    public void Over(long id) => _runs.TryRemove(id, out _);
+
+    /// <summary>
+    ///     Job <paramref name="id" /> as this host runs it, or null when it runs nowhere here: what a stop asked on this host
+    ///     cancels at once, and what tells a lane's view that work whose row is still claimed has ended here.
+    /// </summary>
+    public JobRun? Run(long id) => _runs.GetValueOrDefault(id);
 }
