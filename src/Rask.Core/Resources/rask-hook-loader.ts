@@ -50,6 +50,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " persist uncheck-on-navigate"                              // rask-persist
     + " carousel carousel-controls"                               // rask-carousel
     + " scroll-to"                                                // rask-scroll
+    + " scroll-edges"                                             // rask-scroll-edges
     + " switch"                                                   // rask-switch
     + " time-list"                                                // rask-time-list
     + " phone"                                                    // rask-phone

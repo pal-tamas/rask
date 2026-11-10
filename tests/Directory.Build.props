@@ -66,6 +66,14 @@
     <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
   </PropertyGroup>
 
+  <!-- Where a gate's run writes this project's TRX and blame files: a directory per project, so the
+       projects one `dotnet test Rask.slnx` runs side by side never write the same file. The gate passes
+       RaskTestResults (scripts/lib/dotnet-test.sh) and then checks every TRX under it
+       (scripts/lib/test_verdict.py) — a host that died must not read as a pass (#1308). -->
+  <PropertyGroup Condition="'$(RaskTestResults)' != ''">
+    <VSTestResultsDirectory>$(RaskTestResults)/$(MSBuildProjectName)</VSTestResultsDirectory>
+  </PropertyGroup>
+
   <!-- Bound how many tests one assembly runs at once.
 
        This is the second half of the machine's slot budget (scripts/lib/machine-lane.sh). That budget

@@ -111,6 +111,16 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </summary>
     public string? Result { get; private set; }
 
+    /// <summary>
+    ///     Why the job was stopped, or null. Set on a row still running, it is a stop asked (<c>Jobs.Stop(id)</c>) that the host
+    ///     running it acts on at its next look; set on a processed row, it is how the job ended — stopped, not done and not
+    ///     failed. <see cref="JobStop.DoneElsewhere" /> is never written: that row is whoever ended it's.
+    /// </summary>
+    public JobStop? Stopped { get; private set; }
+
+    /// <summary>When the job was last claimed to run (UTC), or null while it has never been: what "started 12 minutes ago" reads.</summary>
+    public DateTime? StartedAt { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -175,6 +185,19 @@ public sealed class Job : Aggregate<long, Timestamps>
     {
         ProcessedAt = at;
         Error = null;
+    }
+
+    /// <summary>Records when its handler started (UTC) — later than the claim for a job that waited behind others of its batch.</summary>
+    /// <param name="at">When it started.</param>
+    internal void Began(DateTime at) => StartedAt = at;
+
+    /// <summary>Records a job that was stopped before it finished: processed, with why, and neither done nor failed.</summary>
+    /// <param name="why">Why it was stopped.</param>
+    /// <param name="at">When it ended (UTC).</param>
+    internal void Ended(JobStop why, DateTime at)
+    {
+        ProcessedAt = at;
+        Stopped = why;
     }
 
     /// <summary>Records why an attempt failed, and when the job may next be tried.</summary>

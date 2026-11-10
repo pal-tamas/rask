@@ -29,11 +29,18 @@ internal static partial class VirtualizationScroll
     public const int ItemSizePx = 24;
     public const int ViewportHeightPx = 240;
 
-    private static readonly FieldInfo ScrollTopField = typeof(RaskVirtualize)
+    // The scroll position lives in the model's VirtualScroll (shared with the kit's windowed lists).
+    private static readonly FieldInfo ScrollField = typeof(RaskVirtualize)
+                                                        .GetField("_scroll",
+                                                            BindingFlags.Instance | BindingFlags.NonPublic)
+                                                    ?? throw new InvalidOperationException(
+                                                        "Rask.Core.Components.VirtualizeModel._scroll field not found");
+
+    private static readonly FieldInfo ScrollTopField = ScrollField.FieldType
                                                            .GetField("_scrollTop",
                                                                BindingFlags.Instance | BindingFlags.NonPublic)
                                                        ?? throw new InvalidOperationException(
-                                                           "Rask.Core.Components.VirtualizeModel._scrollTop field not found");
+                                                           "Rask.Core.Virtualization.VirtualScroll._scrollTop field not found");
 
     /// <summary>
     ///     Construct the Rask tree once. The returned root holds a reference to the
@@ -74,7 +81,7 @@ internal static partial class VirtualizationScroll
     }
 
     public static void SetScrollTop(RaskVirtualize virt, int scrollTop) =>
-        ScrollTopField.SetValue(virt, scrollTop);
+        ScrollTopField.SetValue(ScrollField.GetValue(virt), scrollTop);
 
     public sealed class BlazorAllRows : ComponentBase
     {

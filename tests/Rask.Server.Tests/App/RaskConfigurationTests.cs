@@ -198,6 +198,23 @@ public sealed class RaskConfigurationTests
         Assert.All(jobs, j => Assert.NotNull(j.Schedule));
     }
 
+    [Fact]
+    public void A_limit_set_on_the_battery_wins_over_configuration_part_by_part()
+    {
+        void Arrange(RaskApp app) => app.Configure(c => c.Jobs.Limit<PurgeStaleCarts>().After(TimeSpan.FromMinutes(30)));
+        var settings = new Dictionary<string, string?>
+        {
+            ["Rask:Jobs:Limit:PurgeStaleCarts:After"] = "02:00:00",
+            ["Rask:Jobs:Limit:PurgeStaleCarts:IdleFor"] = "00:05:00",
+        };
+
+        var options = Build(settings, Arrange).Services.GetRequiredService<Rask.Background.JobsOptions>();
+
+        Assert.Equal(
+            ((TimeSpan?)TimeSpan.FromMinutes(30), (TimeSpan?)TimeSpan.FromMinutes(5)),
+            options.LimitsOf(typeof(PurgeStaleCarts).FullName!.Replace('+', '.'), new PurgeStaleCarts()));
+    }
+
     internal sealed record PurgeStaleCarts : Rask.Background.IJob;
 
     internal sealed record NightlyBackup : Rask.Background.IJob;

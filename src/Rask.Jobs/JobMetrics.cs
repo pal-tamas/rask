@@ -28,6 +28,7 @@ public sealed class JobMetrics : IDisposable
     private readonly Counter<long> _failed;
     private readonly Counter<long> _deadLettered;
     private readonly Counter<long> _interrupted;
+    private readonly Counter<long> _stopped;
     private readonly Histogram<double> _duration;
     private readonly ObservableGauge<int> _pendingGauge;
     private readonly ObservableGauge<int> _deadLetterGauge;
@@ -53,6 +54,9 @@ public sealed class JobMetrics : IDisposable
         _interrupted = _meter.CreateCounter<long>(
             "rask.jobs.interrupted", "{job}",
             "Jobs cancelled by shutdown before they finished. They re-run on restart and count no attempt.");
+        _stopped = _meter.CreateCounter<long>(
+            "rask.jobs.stopped", "{job}",
+            "Jobs stopped before they finished: asked to, at a time limit, idle, or ended outside the processor. Not failures.");
         _duration = _meter.CreateHistogram<double>(
             "rask.jobs.duration", "ms", "Wall-clock duration of a job execution.");
 
@@ -111,6 +115,24 @@ public sealed class JobMetrics : IDisposable
     /// </summary>
     public void Interrupted(string jobType) =>
         _interrupted.Add(1, new KeyValuePair<string, object?>("job.type", jobType));
+
+    /// <summary>
+    ///     Records a job stopped before it finished, tagged with why (<c>reason</c>: <c>asked</c>, <c>time-limit</c>, <c>idle</c>,
+    ///     <c>done-elsewhere</c>). Deliberately not a <see cref="Failed" />: a stopped job is not tried again.
+    /// </summary>
+    public void Stopped(string jobType, JobStop reason) =>
+        _stopped.Add(
+            1,
+            new KeyValuePair<string, object?>("job.type", jobType),
+            new KeyValuePair<string, object?>("reason", Reason(reason)));
+
+    internal static string Reason(JobStop reason) => reason switch
+    {
+        JobStop.TimeLimit => "time-limit",
+        JobStop.Idle => "idle",
+        JobStop.DoneElsewhere => "done-elsewhere",
+        _ => "asked",
+    };
 
     /// <inheritdoc/>
     public void Dispose() => _meter.Dispose();

@@ -89,8 +89,11 @@ idle=""
 loose=""
 for shard in $(seq 1 "$shard_n"); do
   share="$(printf '%s\n' "$cs_files" | rask_format_share "$deal" "$shard")"
-  printf '%s\n' "$share" | grep -q '^dir'$'\t' || idle="$idle $shard"
-  printf '%s\n' "$share" | grep -q '^file'$'\t' && loose="$loose $shard"
+  # A here-string, not `printf | grep -q`: grep -q exits at its first match, printf then dies of SIGPIPE
+  # on a share too large for the pipe, and under pipefail the match reads as a miss — a row that went
+  # red only on a loaded machine.
+  grep -q '^dir'$'\t' <<<"$share" || idle="$idle $shard"
+  grep -q '^file'$'\t' <<<"$share" && loose="$loose $shard"
   shared_dirs="$shared_dirs$(printf '%s\n' "$share" | awk -F'\t' '$1 == "dir" { print $2 }')
 "
 done

@@ -190,6 +190,81 @@ Upgrading adds the `Awaited` and `Result` columns: `rask db add AddJobResult && 
 false in the database too, so a host still on an older Rask.Jobs during a blue/green switch keeps enqueuing ordinary
 jobs. Until the migration runs, the processor logs exactly that command.
 
+### Stop a job, give it a limit, read a lane
+
+A job that hangs holds its lane for as long as the process lives — a pump that stopped answering keeps every other
+job of that pump waiting. Three things end it, and none of them is a failure: the job **ends stopped**, its claim and
+its lane are given back at once, the lane's next job runs on the same host, and it is never tried again.
+
+```csharp
+// By hand — a button, an admin page, the dashboard's Stop. By row id, on whichever host runs it:
+await Jobs.Stop(lane.Running!.Id);                                    // false: already done, already stopped, or no such job
+
+// By itself, at a time limit and when it reports no progress — Program.cs, beside the schedules:
+app.Configure(c => c.Jobs.Limit<AtPump>().After(30.Minutes).IdleFor(5.Minutes));
+app.Configure(c => c.Jobs.Limit<AtPump>().After(job => job.Task == PumpTask.Status ? 1.Minute : 15.Minutes));
+
+// Inside the handler, every report is progress, and restarts the IdleFor clock:
+Jobs.Report($"{kept} of {total} fuelings");
+```
+
+- **Stopping cancels `Current.Cancellation`** — the job's own token, never another job's. Work that passes it on
+  stops by itself; there is nothing else to write. A handler that wants to say *why* on its own board reads
+  `Jobs.Stopped` (`JobStop.Asked`, `TimeLimit`, `Idle`, `DoneElsewhere`; null while it runs on):
+  ```csharp
+  catch (Exception) when (Jobs.Stopped is { } why) { board.Say(job.Pump, why); throw; }
+  ```
+- **Whatever it throws or returns after the stop is the stop.** A database call that gave up on the cancelled token
+  is not a failure, and a handler that swallows the cancellation and returns still ends stopped. Nothing is retried,
+  nothing is dead-lettered, and no `Error` is written. Work it saved before the stop stays saved.
+- **The first reason stands.** A second `Jobs.Stop`, or a limit passed after it, answers false and changes nothing.
+- **Who may stop a job is the app's to decide.** `Jobs.Stop` checks no rights and sees every tenant's jobs, as the
+  processor does — so put it behind the same check as the button that calls it (an admin role, the job's owner).
+- **A waiting job never runs.** `Jobs.Stop` on a job still in its lane ends it at once; the job running in front of it
+  runs on. Stopping by id rather than "whatever runs in the lane now" means a click that lands just as one job ends
+  never stops the next.
+- **An awaited job throws `JobStoppedException`** at its `await Jobs.Run(job)` — an `OperationCanceledException` that
+  carries `.Stop`, never a `JobFailedException`.
+- **The limits are measured from when the handler starts**, so time waiting in the lane never counts. `.After(…)`
+  holds however much the job reports; `.IdleFor(…)` cuts a job at exactly that long without a `Jobs.Report` (not a
+  second before). A type with no `IdleFor` is never cut for being quiet. `Jobs.Report` keeps its words in memory on
+  the host running the job, and does nothing outside a job.
+- **No job has a time limit unless you give it one.** `JobsOptions.StopAfter` (`Rask:Jobs:StopAfter`, default
+  infinite) is the limit of every job whose type names none — opt in; a backup that runs all night is not cut off by a
+  default nobody chose. Per type, configuration says the same as code — `Rask:Jobs:Limit:AtPump:After` and
+  `Rask:Jobs:Limit:AtPump:IdleFor`, by the short type name — and code wins, part by part.
+- **Marked done or deleted from outside, a running job stops** within one `PollInterval`: the host looks at the rows of
+  the jobs it runs, by id, on every poll, so the same work enqueued again is never taken for it. The row is left as
+  whoever ended it left it (`JobStop.DoneElsewhere` is never written), and the dashboard's Delete of a running row now
+  really stops its work. Until that look, the lane's next job waits on this host, so two jobs of a lane never run at
+  once here; across hosts the gap is that one poll.
+- **A handler that ignores its token holds its lane** until it returns — one at a time is what a lane is for. The
+  dashboard shows it as `stopping`, and the processor logs `JobIgnoresStop` once a minute, naming it.
+- **Shutdown is not a stop.** A job cut short by the end of the host's budget re-runs on the next boot, as
+  [below](#shutdown); `Jobs.Stopped` is null in it.
+
+What runs in a lane, and what waits behind it, is one query for any number of lanes:
+
+```csharp
+var lanes = await Jobs.Lanes(pumpIds);                                // every lane asked for is answered, idle or not
+var lane = lanes[pump.Id];
+if (lane.Running is { Job: AtPump now, Stopping: false } running) { … }  // what runs, its Id, Started, Attempts
+foreach (var waiting in lane.Waiting) { … }                           // what waits, in the order the lane takes it
+var one = await Jobs.Lane(pump.Id);
+```
+
+A job waiting out a retry's backoff is waiting, with its `Due` ahead; a dead letter, a processed job and a stopped one
+are left out; a job whose payload no longer reads is listed with `Job == null` and its `Type`, rather than failing the
+view.
+
+Logged: `JobStopped` (on request), `JobStoppedAtLimit` and `JobStoppedIdle` (warnings, with the start and the last
+progress), `JobDoneElsewhere`, `JobIgnoresStop`, and `JobWatchFailed` when the poll's look cannot reach the database —
+it stops nothing then, and looks again on the next poll. The metric `rask.jobs.stopped` counts stops, tagged
+`reason` = `asked`, `time-limit`, `idle` or `done-elsewhere`.
+
+Upgrading adds the `Stopped` and `StartedAt` columns: `rask db add AddJobStop && rask db update`. Until the migration
+runs, the processor logs exactly that command.
+
 ## Inside `Db.Transaction`
 
 A job enqueued inside [`Db.Transaction`](data.md#a-check-and-the-writes-it-guards-dbtransaction) is a row in
@@ -283,8 +358,9 @@ picks the same job up a second time, however long it runs.
 
 **The job author's contract:**
 
-- **Honour the token.** `Current.Cancellation` is cancelled only when the
-  stop budget ends. Pass it to every awaited call, and stop cleanly when it fires.
+- **Honour the token.** `Current.Cancellation` is cancelled when the stop budget ends — and when the job is
+  [stopped](#stop-a-job-give-it-a-limit-read-a-lane), by hand or at a limit. Pass it to every awaited call, and stop
+  cleanly when it fires.
 - **Make the job idempotent.** A job cancelled at the end of the budget — or killed with the container — re-runs
   *whole* on the next boot, not from where it stopped. It does **not** count a failed attempt (a redeploy is not
   a failure); `rask.jobs.interrupted` counts these, and a warning is logged.

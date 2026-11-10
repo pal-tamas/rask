@@ -44,4 +44,19 @@ public interface IJobs
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     Task Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Stops job <paramref name="id"/>: a running job is cancelled and ends stopped, a waiting one never runs. The primitive
+    /// under <c>Jobs.Stop(id)</c>; call that.
+    /// </summary>
+    /// <returns><see langword="false"/> when the job is done already, stopped already, or does not exist.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Task<bool> Stop(long id, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The state of <paramref name="lanes"/>, in one read: every lane asked for is in the answer, idle or not. The primitive
+    /// under <c>Jobs.Lanes(…)</c> and <c>Jobs.Lane(…)</c>; call those.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    Task<IReadOnlyDictionary<string, JobLane>> Lanes(IEnumerable<string> lanes, CancellationToken cancellationToken = default);
 }

@@ -82,6 +82,14 @@ public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFact
     public Task Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken = default) =>
         RunAndWait(job, lane, within, cancellationToken);
 
+    /// <inheritdoc/>
+    public Task<bool> Stop(long id, CancellationToken cancellationToken = default) =>
+        new JobStops<TContext>(contextFactory, timeProvider, options).Stop(id, cancellationToken);
+
+    /// <inheritdoc/>
+    public Task<IReadOnlyDictionary<string, JobLane>> Lanes(IEnumerable<string> lanes, CancellationToken cancellationToken = default) =>
+        new JobLaneView<TContext>(contextFactory, timeProvider, options).Read(lanes, cancellationToken);
+
     // Its own write, never the ambient transaction's: inside Db.Transaction the row would be invisible to the processor
     // until a commit that waits for this very await. So that case is refused, naming what to write instead.
     private async Task<string?> RunAndWait(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken)

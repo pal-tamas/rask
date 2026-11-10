@@ -1,19 +1,22 @@
 namespace Rask.Background;
 
 /// <summary>
-///     The lane of the job this flow is running, if it is running one — so a job that awaits another job of its own lane
-///     (<c>await Jobs.Run(next).InLane(myLane)</c>) is refused instead of waiting forever: the lane runs one job at a time,
-///     and the one it would wait for queues behind the one waiting.
+///     The job this flow is running, if it is running one: what <c>Jobs.Stopped</c> and <c>Jobs.Report(…)</c> reach, and its
+///     lane — so a job that awaits another job of its own lane (<c>await Jobs.Run(next).InLane(myLane)</c>) is refused instead
+///     of waiting forever: the lane runs one job at a time, and the one it would wait for queues behind the one waiting.
 /// </summary>
 internal static class JobInFlight
 {
-    private static readonly AsyncLocal<Running?> Current = new();
+    private static readonly AsyncLocal<JobRun?> Current = new();
 
-    /// <summary>Marks this flow as running a job of <paramref name="lane"/> (null: the default lane) until disposed.</summary>
-    public static IDisposable Enter(string? lane)
+    /// <summary>The job this flow runs, or null outside any.</summary>
+    public static JobRun? Run => Current.Value;
+
+    /// <summary>Marks this flow as running <paramref name="run" /> until disposed.</summary>
+    public static IDisposable Enter(JobRun run)
     {
         var previous = Current.Value;
-        Current.Value = new Running(lane);
+        Current.Value = run;
         return new Leave(previous);
     }
 
@@ -30,9 +33,7 @@ internal static class JobInFlight
         }
     }
 
-    private sealed record Running(string? Lane);
-
-    private sealed class Leave(Running? previous) : IDisposable
+    private sealed class Leave(JobRun? previous) : IDisposable
     {
         public void Dispose() => Current.Value = previous;
     }
