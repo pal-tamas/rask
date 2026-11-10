@@ -282,6 +282,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("RowActionsView", 0),
         ("SelectChoose", 0),
         ("FormTabsInvalid", 1),
+        ("FiltersSelectedCount", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

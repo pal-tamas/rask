@@ -308,7 +308,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         const string button = "flex items-center gap-1 -my-1 -ms-2 -me-2 px-2 py-1 [text-align:inherit] [text-indent:inherit] "
             + @"[text-shadow:inherit] [text-transform:inherit] [word-spacing:inherit] in-[.group\/end-align]:flex-row-reverse "
-            + @"in-[.group\/end-align]:-me-2 in-[.group\/end-align]:-ms-8";
+            + @"in-[.group\/end-align]:pe-0 in-[.group\/end-align]:-ms-8";
         Assert.Contains("<button class=\"" + button + "\"", atStart, StringComparison.Ordinal);
         Assert.Contains("<button class=\"" + button + "\"", atEnd, StringComparison.Ordinal);
         Assert.StartsWith("group/end-align group/sortable ", Classes(atEnd, "<th "), StringComparison.Ordinal);

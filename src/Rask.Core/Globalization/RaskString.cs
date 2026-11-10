@@ -758,4 +758,10 @@ public enum RaskString
 
     /// <summary>What a tab of <c>Ui.FormTabs</c> says to a screen reader beside its red count: how many of its fields to correct.</summary>
     FormTabsInvalid,
+
+    /// <summary>
+    ///     What a filter badge says after its label when the filter holds two or more names
+    ///     (<c>Ui.Filter.Shown(names)</c>). <c>{0}</c> is how many.
+    /// </summary>
+    FiltersSelectedCount,
 }

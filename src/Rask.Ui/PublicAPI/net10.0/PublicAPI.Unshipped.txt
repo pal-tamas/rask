@@ -9257,3 +9257,5 @@ static RaskBuilderSettersRask_Ui.Notices(this Rask.UiAppFrame! __b, Rask.Core.Co
 static RaskBuilderSettersRask_Ui.SignOut(this Rask.UiAppFrame! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
+Rask.UiFilterShown
+static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!

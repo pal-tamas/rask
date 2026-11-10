@@ -1283,7 +1283,11 @@ own `Debounce` wins. A member without `[QueryParam]` fails as the page renders, 
 as its picker writes it or the preset that made it, a checkbox's label alone — each with a cross that takes that key
 out, and Clear all from two on, which takes every filter's key (and the page) out in one move and leaves the sort alone.
 `Ui.Filters.OnOpen(…)` runs as the panel opens. A filter no control can say — a select of several answers, until a
-collection `[QueryParam]` exists — goes in `Ui.Filter.Label("Labels").Shown(…).OnRemove(…)[control]`. A range is one
+collection `[QueryParam]` exists — goes in `Ui.Filter.Label("Labels").Shown(…).OnRemove(…)[control]`. Handed the names it holds, `.Shown(names)` says one
+by its name ("Vehicles: ABC-123") and two or more by their count ("Vehicles: 40 selected", `FiltersSelectedCount`)
+with every name in a tooltip on the badge that wraps (hover, keyboard focus, a tap); no names is no filter. A badge
+never widens the page: words longer than its row end in an ellipsis, the whole of them in its `title`, and its cross
+stays in reach. A range is one
 query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
 it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 

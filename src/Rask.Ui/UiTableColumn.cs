@@ -24,10 +24,12 @@ public sealed partial class UiTableColumn : UiElement, IUiHost
     // The label and the sort button follow the heading's alignment group, so neither has a list per alignment.
     private const string Label = @"flex in-[.group\/center-align]:justify-center in-[.group\/end-align]:justify-end";
 
-    // An end-aligned heading draws its chevron before the label, hung into the space on that side.
+    // An end-aligned heading draws its chevron before the label, hung into the space on that side, and ends its words
+    // where its numbers end (TA, 2026-11-10): SortEdge keeps the button inside the heading, so it gives up its end
+    // padding instead. Flux's docs show no sortable column at the end to measure.
     private const string SortButton = "flex items-center gap-1 -my-1 -ms-2 -me-2 px-2 py-1 "
         + "[text-align:inherit] [text-indent:inherit] [text-shadow:inherit] [text-transform:inherit] [word-spacing:inherit] "
-        + @"in-[.group\/end-align]:flex-row-reverse in-[.group\/end-align]:-me-2 in-[.group\/end-align]:-ms-8";
+        + @"in-[.group\/end-align]:flex-row-reverse in-[.group\/end-align]:pe-0 in-[.group\/end-align]:-ms-8";
 
     private const string SortIcon = "rounded-sm text-zinc-400 group-hover/sortable:text-zinc-800 dark:group-hover/sortable:text-white";
 
