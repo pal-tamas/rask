@@ -45,6 +45,35 @@ const showing = new Set<Element>();
 let touched: Element | null = null;
 let touchedNow = false;
 
+// The roots whose tooltip keyboard focus showed, until focus leaves them or a press lands in them: only such a
+// tooltip outlives the pointer leaving. One the pointer showed over a trigger that merely HAS focus — handed back
+// by a menu that closed — goes with the pointer.
+const keyed = new WeakSet<Element>();
+
+// What the reader last did: a key or a press. Read only for focus that comes from nowhere (a focusin with no
+// relatedTarget), to tell the first Tab into a page — or a shortcut's own focus() — from focus a script hands back
+// after a press.
+let lastInput: "key" | "press" = "press";
+
+/**
+ * Focus HANDED BACK rather than navigated to: it comes out of a popover (or a dialog) that does not hold the new
+ * focus — a menu closed by a pick or by Escape, where the browser returns focus to the button that opened it — or
+ * it comes from nowhere after a press: rask-menu-keys.ts handing focus back after a click outside. Chrome and WebKit count either as :focus-visible (a script's focus after a key, or after an
+ * `autofocus` menu had it), so :focus-visible alone cannot tell it from a Tab. A Tab, or a move between two controls
+ * of one popover or of the page (a toolbar's arrow keys), is navigation, and shows it.
+ *
+ * Measured on Flux UI's editor (2026-11-10, `flux tooltip-focus-return`): its link button wears a tooltip and opens
+ * a dropdown; closed by a click inside, a click outside or Escape — after a mouse open and after Enter alike — focus
+ * is back on the button, matching :focus-visible after Escape, and the tooltip does not show. A Tab onto it does.
+ */
+export function handedBack(to: Node, from: Pick<Element, "closest"> | null, last: string): boolean {
+    if (!from) {
+        return last === "press";
+    }
+    const panel = from.closest("[popover], dialog");
+    return !!panel && !panel.contains(to);
+}
+
 function focusVisibleIn(root: Element): boolean {
     const active = page!.activeElement;
     try {
@@ -162,7 +191,7 @@ function leftWhileAway(e: Event): void {
 // The pointer seen over neither the trigger nor the tooltip. Keyboard focus keeps it: a reader who tabbed here
 // and nudged the mouse still needs the label.
 function leaveTooltip(root: Element): void {
-    if (!focusVisibleIn(root)) {
+    if (!keyed.has(root) || !focusVisibleIn(root)) {
         tip(root, false);
     }
 }
@@ -222,10 +251,14 @@ if (page) {
     }, {capture: true, passive: true});
 
     // Keyboard focus shows it, a click's focus does not: :focus-visible is the browser's own answer to
-    // "did this arrive by keyboard".
+    // "did this arrive by keyboard". Focus handed back to the trigger is not keyboard navigation, whatever
+    // :focus-visible says of it (handedBack).
     listen("focusin", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        if (tooltip && !dismissed.has(tooltip) && focusVisibleIn(tooltip)) {
+        const from = (e as FocusEvent).relatedTarget;
+        if (tooltip && !dismissed.has(tooltip) && focusVisibleIn(tooltip)
+            && !handedBack(e.target as Node, from instanceof Element ? from : null, lastInput)) {
+            keyed.add(tooltip);
             tip(tooltip, true);
         }
     }, true);
@@ -235,6 +268,9 @@ if (page) {
     // still be reached. A plain one closes, and so does either when focus moves on to another element.
     listen("focusout", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
+        if (tooltip && crosses(tooltip, e)) {
+            keyed.delete(tooltip);
+        }
         if (tooltip && crosses(tooltip, e) && !tooltip.matches(":hover")
             && ((e as FocusEvent).relatedTarget instanceof Node || !tooltip.querySelector("[aria-expanded]"))) {
             tip(tooltip, false);
@@ -242,7 +278,11 @@ if (page) {
     }, true);
 
     listen("pointerdown", function (e) {
+        lastInput = "press";
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
+        if (tooltip) {
+            keyed.delete(tooltip);
+        }
         // A press anywhere else closes whatever is still showing.
         for (const other of Array.from(showing)) {
             if (other !== tooltip) {
@@ -266,6 +306,7 @@ if (page) {
     }, {capture: true, passive: true});
 
     listen("keydown", function (e) {
+        lastInput = "key";
         if (e.key !== "Escape" || !showing.size) {
             return;
         }

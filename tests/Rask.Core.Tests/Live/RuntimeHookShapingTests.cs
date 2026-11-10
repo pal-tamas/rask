@@ -160,6 +160,16 @@ public sealed class RuntimeHookShapingTests
         Assert.Equal([4, 4, 1, 1, -1, -1], list.GetProperty("ahead").EnumerateArray().Select(e => e.GetInt32()).ToArray());
     }
 
+    [Fact]
+    public void Focus_out_of_a_menu_or_handed_back_after_a_press_is_told_from_focus_the_keyboard_moved()
+    {
+        var root = Run();
+
+        var handed = root.GetProperty("handed").EnumerateArray().Select(e => e.GetBoolean()).ToArray();
+
+        Assert.Equal([true, true, true, false, false, false], handed);
+    }
+
     private static string[] Words(JsonElement array) => [.. array.EnumerateArray().Select(e => e.GetString()!)];
 
     [Fact]

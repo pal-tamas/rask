@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **A kit tooltip no longer opens when focus comes back to its trigger after a menu closes.** Before: on a list whose
+  `Ui.RowActions` ⋯ wears the tooltip "Actions", opening its menu with the mouse and closing it — a pick, a click
+  outside, or Escape — handed focus back to the ⋯, which Chrome and WebKit count as `:focus-visible`, so the tooltip
+  opened and stayed until the next click. After: `data-rask-tooltip` (`rask-hover.ts`) opens a tooltip on focus only
+  when the keyboard moved it there — a Tab, an arrow key, a shortcut's `focus()` — never when it is handed back by a
+  closing popover or dialog, or by a script after a press; a tooltip the pointer showed over a trigger that merely has
+  focus leaves with the pointer. As Flux UI's does (measured on its editor's link button, `flux tooltip-focus-return`).
+  Every kit tooltip, both hosts.
+
 ### Changed
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
