@@ -24,9 +24,9 @@ public sealed partial class ChartMultipleLinesExample : Component
                 ]
             ],
             Div.Class("flex justify-center gap-4 pt-4")[
-                Ui.ChartLegend.Key("instagram").Label("Instagram")[Ui.ChartLegendIndicator.Class("bg-green-400")],
-                Ui.ChartLegend.Key("twitter").Label("Twitter")[Ui.ChartLegendIndicator.Class("bg-blue-400")],
-                Ui.ChartLegend.Key("facebook").Label("Facebook")[Ui.ChartLegendIndicator.Class("bg-red-400")]
+                Ui.ChartLegend.Key("instagram").Field((Social s) => s.Instagram).Label("Instagram")[Ui.ChartLegendIndicator.Class("bg-green-400")],
+                Ui.ChartLegend.Key("twitter").Field((Social s) => s.Twitter).Label("Twitter")[Ui.ChartLegendIndicator.Class("bg-blue-400")],
+                Ui.ChartLegend.Key("facebook").Field((Social s) => s.Facebook).Label("Facebook")[Ui.ChartLegendIndicator.Class("bg-red-400")]
             ]
         ];
 

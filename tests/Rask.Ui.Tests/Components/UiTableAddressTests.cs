@@ -122,6 +122,48 @@ public sealed partial class UiTableAddressTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Only_the_heading_the_address_sorts_by_tells_a_screen_reader_which_way()
+    {
+        var descending = Page.Visit("/ui-table-address/suppliers?sort=vat&dir=desc");
+
+        var ascending = Page.Visit("/ui-table-address/suppliers?sort=vat");
+        var unasked = Page.Visit("/ui-table-address/suppliers");
+
+        Assert.Contains("aria-sort=\"descending\"", Heading(descending.Html, "vat-heading"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", Heading(descending.Html, "name-heading"), StringComparison.Ordinal);
+        Assert.Contains("aria-sort=\"ascending\"", Heading(ascending.Html, "vat-heading"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", Heading(ascending.Html, "name-heading"), StringComparison.Ordinal);
+        Assert.Contains("aria-sort=\"ascending\"", Heading(unasked.Html, "name-heading"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", Heading(unasked.Html, "vat-heading"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_press_moves_aria_sort_with_the_sort()
+    {
+        var page = Page.Visit("/ui-table-address/suppliers");
+
+        await page.On("#vat-heading").Click();
+        var moved = page.Html;
+        await page.On("#vat-heading").Click();
+
+        Assert.Contains("aria-sort=\"ascending\"", Heading(moved, "vat-heading"), StringComparison.Ordinal);
+        Assert.DoesNotContain("aria-sort", Heading(moved, "name-heading"), StringComparison.Ordinal);
+        Assert.Contains("aria-sort=\"descending\"", Heading(page.Html, "vat-heading"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_list_sorted_by_one_column_says_its_direction_as_it_turns()
+    {
+        var page = Page.Visit("/ui-table-address/groups");
+
+        var first = Heading(page.Html, "group-heading");
+        await page.On("#group-heading").Click();
+
+        Assert.Contains("aria-sort=\"ascending\"", first, StringComparison.Ordinal);
+        Assert.Contains("aria-sort=\"descending\"", Heading(page.Html, "group-heading"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void With_nothing_in_the_address_the_first_sortable_heading_is_sorted_ascending()
     {
         var page = Page.Visit("/ui-table-address/suppliers");

@@ -21,8 +21,10 @@
 // keys are how the others are reached. ArrowRight and ArrowDown go to the next tab, ArrowLeft and ArrowUp to
 // the previous, past any that is disabled and around the ends. The tab arrived at is focused AND pressed:
 // selection follows focus. From a button in the row that is not a tab ("Add tab") the arrows start at the
-// selected tab. Only `button[role=tab]` takes part. Home and End are not handled: they stay the page's.
-// Measured on Flux UI's tabs, key for key.
+// selected tab. Only `button[role=tab]` takes part. Measured on Flux UI's tabs, key for key.
+//
+// HOME AND END go to the first and the last tab that is not disabled, focused and pressed as an arrow's is: the
+// WAI-ARIA tabs pattern's, which Flux UI's tabs leave to the page (an addition the owner approved, 2026-11-10).
 //
 // A page with a `[role=tablist]` loads the hooks (rask-hook-loader.ts), as one with an `input[role=switch]` does.
 
@@ -30,6 +32,7 @@ import {listen, named, near, own, page} from "./rask-owned.js";
 
 const LIST = "[role=tablist]";
 const SAYS = "data-rask-tabs";
+const KEYS = new Set(["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"]);
 
 /** The index an arrow key lands on: the next tab that way which is not disabled, around the ends; -1 with none. */
 export function tabAfter(disabled: readonly boolean[], from: number, step: 1 | -1): number {
@@ -42,6 +45,28 @@ export function tabAfter(disabled: readonly boolean[], from: number, step: 1 | -
         }
     }
     return -1;
+}
+
+/**
+ * The index `key` lands on in a tablist whose tabs are `disabled` or not, from the tab at `from` (-1 when focus is
+ * on none): the arrows step, Home and End go to the first and the last tab that is not disabled. -1 when the key
+ * is not one of those, or no tab can be reached.
+ */
+export function tabFor(key: string, disabled: readonly boolean[], from: number): number {
+    switch (key) {
+        case "ArrowRight":
+        case "ArrowDown":
+            return tabAfter(disabled, from, 1);
+        case "ArrowLeft":
+        case "ArrowUp":
+            return tabAfter(disabled, from, -1);
+        case "Home":
+            return tabAfter(disabled, -1, 1);
+        case "End":
+            return tabAfter(disabled, -1, -1);
+        default:
+            return -1;
+    }
 }
 
 function wordOf(said: string | null): [string, string | null] {
@@ -157,10 +182,8 @@ if (page) {
         if (e.ctrlKey || e.altKey || e.metaKey) {
             return;
         }
-        const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1
-            : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
         const target = e.target;
-        const list = step !== 0 && target instanceof HTMLButtonElement ? near(target, LIST) : null;
+        const list = KEYS.has(e.key) && target instanceof HTMLButtonElement ? near(target, LIST) : null;
         if (!list) {
             return;
         }
@@ -168,7 +191,7 @@ if (page) {
         const tabs = tabsOf(list);
         const here = tabs.findIndex(function (tab) { return tab === target; });
         const from = here >= 0 ? here : tabs.findIndex(function (tab) { return tab.getAttribute("aria-selected") === "true"; });
-        const to = tabAfter(tabs.map(function (tab) { return tab.disabled; }), from, step === 1 ? 1 : -1);
+        const to = tabFor(e.key, tabs.map(function (tab) { return tab.disabled; }), from);
         if (to < 0) {
             return;
         }

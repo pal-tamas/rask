@@ -75,6 +75,9 @@ public sealed partial class UiTable : UiElement, IUiHost
 
     private static readonly UiPartMarker Marker = new("ui-table");
 
+    private static readonly IReadOnlyDictionary<string, string?> ScrollEdges =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-scroll-edges"] = "" };
+
     // The least width in rem of this render's columns, or null when no heading names a width.
     private int? _least;
 
@@ -229,8 +232,15 @@ public sealed partial class UiTable : UiElement, IUiHost
             box = box.Data(marks);
         }
 
+        var area = Div.Class(ScrollArea);
+        if (Headings(Children).Any(heading => heading.Sticks))
+        {
+            // A sticky column casts its shadow once rows scroll under it: the runtime marks which sides hide some.
+            area = area.Data(ScrollEdges);
+        }
+
         return box[
-            Div.Class(ScrollArea)[
+            area[
                 HostedElement.Tag("table").Owner(this)[Children ?? []]
             ],
             pager

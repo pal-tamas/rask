@@ -42,6 +42,15 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
     /// <summary>Maps the entity onto the shared row shape. Applied after filtering, never before.</summary>
     protected abstract Expression<Func<TEntity, QueueRow>> Projection { get; }
 
+    /// <summary>Whether this queue says which of its rows are in a handler right now — jobs do; mail and the outbox do not.</summary>
+    protected virtual bool ShowsRunning => false;
+
+    /// <summary>The rows in a handler at <paramref name="now"/>. None, for a queue that does not say.</summary>
+    protected virtual IQueryable<TEntity> OnlyRunning(IQueryable<TEntity> rows, DateTime now) => rows.Where(_ => false);
+
+    /// <summary>The rows NOT in a handler at <paramref name="now"/>, so a running row is counted once. All of them, by default.</summary>
+    protected virtual IQueryable<TEntity> WithoutRunning(IQueryable<TEntity> rows, DateTime now) => rows;
+
     /// <summary>
     /// Registered AND mapped. Both halves matter: a package reference without
     /// <c>modelBuilder.AddRaskX()</c> leaves the service registered but every query throwing, which is
@@ -65,7 +74,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
             Due: await CountAsync(db, QueueFilter.Due, now, cancellationToken).ConfigureAwait(false),
             Delayed: await CountAsync(db, QueueFilter.Delayed, now, cancellationToken).ConfigureAwait(false),
             Failed: await CountAsync(db, QueueFilter.Failed, now, cancellationToken).ConfigureAwait(false),
-            Processed: await CountAsync(db, QueueFilter.Processed, now, cancellationToken).ConfigureAwait(false));
+            Processed: await CountAsync(db, QueueFilter.Processed, now, cancellationToken).ConfigureAwait(false),
+            Running: ShowsRunning ? await CountAsync(db, QueueFilter.Running, now, cancellationToken).ConfigureAwait(false) : 0);
     }
 
     public async Task<(IReadOnlyList<QueueRow> Rows, int Total)> Page(
@@ -153,7 +163,8 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
 
         var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var dbScope = db.ConfigureAwait(false);
-        return await db.Set<TEntity>()
+        // Not a row whose last attempt is running: its Attempts already reads as given up, and resetting it would run it again.
+        return await WithoutRunning(db.Set<TEntity>(), now)
             .Where(scope)
             .Where(e => EF.Property<DateTime?>(e, "ProcessedAt") == null && EF.Property<int>(e, "Attempts") >= max)
             .ExecuteUpdateAsync(
@@ -175,17 +186,19 @@ internal abstract class QueuePanelBase<TContext, TEntity>(IDbContextFactory<TCon
         var runAt = RunAtProperty;
         var max = MaxAttempts;
 
+        // A running row is its own slice: not due (it has started), and not a dead letter while its last attempt runs.
         return filter switch
         {
-            QueueFilter.Due => rows.Where(e =>
+            QueueFilter.Running => OnlyRunning(rows, now),
+            QueueFilter.Due => WithoutRunning(rows, now).Where(e =>
                 EF.Property<DateTime?>(e, "ProcessedAt") == null
                 && EF.Property<int>(e, "Attempts") < max
                 && EF.Property<DateTime>(e, runAt) <= now),
-            QueueFilter.Delayed => rows.Where(e =>
+            QueueFilter.Delayed => WithoutRunning(rows, now).Where(e =>
                 EF.Property<DateTime?>(e, "ProcessedAt") == null
                 && EF.Property<int>(e, "Attempts") < max
                 && EF.Property<DateTime>(e, runAt) > now),
-            QueueFilter.Failed => rows.Where(e =>
+            QueueFilter.Failed => WithoutRunning(rows, now).Where(e =>
                 EF.Property<DateTime?>(e, "ProcessedAt") == null
                 && EF.Property<int>(e, "Attempts") >= max),
             QueueFilter.Processed => rows.Where(e => EF.Property<DateTime?>(e, "ProcessedAt") != null),

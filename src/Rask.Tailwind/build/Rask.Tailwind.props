@@ -22,7 +22,7 @@
       (Tailwind.MSBuild, the community package, defaults this to `latest` — which is exactly the
       reproducibility hazard this avoids.) Bump it deliberately.
     -->
-    <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.4</RaskTailwindVersion>
+    <RaskTailwindVersion Condition="'$(RaskTailwindVersion)' == ''">4.3.5</RaskTailwindVersion>
 
     <!--
       RaskTailwindPath — unset by default. The engine is Tailwind's standalone binary, fetched once per

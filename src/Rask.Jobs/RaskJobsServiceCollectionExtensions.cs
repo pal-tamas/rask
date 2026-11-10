@@ -58,6 +58,7 @@ public static class RaskJobsServiceCollectionExtensions
     private static void Bind(IConfiguration section, JobsOptions options)
     {
         section.Bind(options);
+        BindLimits(section.GetSection("Limit"), options);
 
         if (section["TimeZone"] is not { Length: > 0 } id)
         {
@@ -75,5 +76,43 @@ public static class RaskJobsServiceCollectionExtensions
                 + "as 'Europe/Budapest', or leave it unset for UTC.",
                 ex);
         }
+    }
+
+    /// <summary>
+    /// Binds <c>Rask:Jobs:Limit:&lt;TypeName&gt;:After</c> and <c>…:IdleFor</c>: a dictionary keyed by the job's short type name,
+    /// which the binder would read into nothing, because the limits are not a property the options expose.
+    /// </summary>
+    private static void BindLimits(IConfigurationSection limits, JobsOptions options)
+    {
+        foreach (var type in limits.GetChildren())
+        {
+            var rule = new JobLimit
+            {
+                After = Duration(type, "After"),
+                IdleFor = Duration(type, "IdleFor"),
+            };
+            if (options.ConfiguredLimits.TryGetValue(type.Key, out var bound))
+            {
+                bound.Take(rule);
+            }
+            else
+            {
+                options.ConfiguredLimits[type.Key] = rule;
+            }
+        }
+    }
+
+    private static TimeSpan? Duration(IConfigurationSection type, string key)
+    {
+        if (type[key] is not { Length: > 0 } value)
+        {
+            return null;
+        }
+
+        return TimeSpan.TryParse(value, System.Globalization.CultureInfo.InvariantCulture, out var duration)
+            ? duration
+            : throw new InvalidOperationException(
+                $"Rask:Jobs:Limit:{type.Key}:{key} is '{value}', which is not a duration. Write it as hh:mm:ss: '00:30:00' is "
+                + "thirty minutes.");
     }
 }

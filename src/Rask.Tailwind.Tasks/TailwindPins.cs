@@ -23,17 +23,17 @@ namespace Rask.Tailwind.Tasks;
 internal static class TailwindPins
 {
     /// <summary>The version the table below is for.</summary>
-    public const string Version = "4.3.4";
+    public const string Version = "4.3.5";
 
     private static readonly Dictionary<string, string> Sha256ByAsset = new(StringComparer.Ordinal)
     {
-        ["tailwindcss-linux-arm64"] = "f6d7baae1d350ed3a2defe98d0b5cc58e37400c0173b2e38d42f690ccc4bbfe1",
-        ["tailwindcss-linux-arm64-musl"] = "64853a5d1321b9622eeceb16e28d26889fca409e3b1a2f95453088f776461e44",
-        ["tailwindcss-linux-x64"] = "149a8ece5b855587a9c10de6da9dcbcfad0e47c4ed5dca219f721b3eae39d817",
-        ["tailwindcss-linux-x64-musl"] = "2a5456987c41ce3311e423b603842af425ea5ac44505162dd348d43ed3b909fd",
-        ["tailwindcss-macos-arm64"] = "a516a11b439bfbb5ecd4a2d13b75e6cdcc284dc710aed8731e31d2e5c03895a4",
-        ["tailwindcss-macos-x64"] = "7ec771593a1fb8bbd204f70429361b0158f7989e4136bc68d04513bf543a15ba",
-        ["tailwindcss-windows-x64.exe"] = "ad84612696f3be102fa005d4827f0df84c7b4570d31c06865ce5fde0311478af",
+        ["tailwindcss-linux-arm64"] = "ffcd0d21dbd7c605dc12743ff0c0b47debc963c86b399674084c1c8f2c96ecad",
+        ["tailwindcss-linux-arm64-musl"] = "564dad3028c029b0c69042c66a7a79873ed7289b73fcb7b37973fbf79cb9a32f",
+        ["tailwindcss-linux-x64"] = "e47695cee3f0d90623a91f3939b08bdee610eb5ad99340adff9d4145b284d6cc",
+        ["tailwindcss-linux-x64-musl"] = "bb050edd13f15006d872a9bb1772b908618a8df6806d30bf095cba26a09e640b",
+        ["tailwindcss-macos-arm64"] = "f3f4f5d1727e2b693b8f1c9a1492b5dd87008c86ea286bee1589cb458e6235fc",
+        ["tailwindcss-macos-x64"] = "a63702686a3ed048b3135d84a73be49ea9d47f880c9b20e54b3ef60934ad8cdf",
+        ["tailwindcss-windows-x64.exe"] = "2803583268c53f4713e89943e211081fddb186c0a4a7d07b5c342c6ae853ec95",
     };
 
     /// <summary>The recorded digest of <paramref name="assetName" />, or null for a version Rask does not pin.</summary>

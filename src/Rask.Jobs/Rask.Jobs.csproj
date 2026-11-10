@@ -55,6 +55,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <!-- Reads which limits a battery's c.Jobs.Limit<T>() left on the options, beside configuration's. -->
+    <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <!-- The real-server suite races ClaimAsync from many "instances" against one database. -->
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
   </ItemGroup>
