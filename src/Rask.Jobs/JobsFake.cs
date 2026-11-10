@@ -139,6 +139,19 @@ public sealed class JobsFake : IJobs, IDisposable
         return Dispatcher.Send(job, cancellationToken);
     }
 
+    // Nothing runs on its own here, so nothing can be stopped.
+    Task<bool> IJobs.Stop(long id, CancellationToken cancellationToken) => Task.FromResult(false);
+
+    // The fake holds no rows, so every lane asked for is idle.
+    Task<IReadOnlyDictionary<string, JobLane>> IJobs.Lanes(IEnumerable<string> lanes, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(lanes);
+        IReadOnlyDictionary<string, JobLane> idle = lanes
+            .Distinct(StringComparer.Ordinal)
+            .ToDictionary(lane => lane, lane => new JobLane(lane, null, []), StringComparer.Ordinal);
+        return Task.FromResult(idle);
+    }
+
     private void RecordRun(IJob job, string? lane)
     {
         ArgumentNullException.ThrowIfNull(job);

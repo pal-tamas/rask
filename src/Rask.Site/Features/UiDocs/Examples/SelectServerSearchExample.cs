@@ -15,7 +15,7 @@ public sealed partial class SelectServerSearchExample : Component
             Ui.Text.Data("testid", "ui-select-server-state")[$"Partner: {(_partnerId is { } id ? $"{id}" : "none")}. Searches: {_searches}."]
         ];
 
-    // The store's answer: the best eight for what was typed — a query, here over a list, and slow enough to read
+    // The store's answer: the best twenty for what was typed, as Flux's backend search takes — a query, here over a list, and slow enough to read
     // the loading row.
     private async Task<IEnumerable<Component?>> Find(string typed)
     {
@@ -25,6 +25,6 @@ public sealed partial class SelectServerSearchExample : Component
             await Task.Delay(700.Milliseconds);
         }
 
-        return PartnerStore.Named(typed).Take(8).Select(p => Ui.SelectOption.Key(p.Id).Value(p.Id)[p.Name]);
+        return PartnerStore.Named(typed).Take(20).Select(p => Ui.SelectOption.Key(p.Id).Value(p.Id)[p.Name]);
     }
 }

@@ -72,6 +72,13 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
+- **2026-11-10 — table, tabs and chart say more to a screen reader and the keyboard.** A sorted `Ui.TableColumn`
+  carries `aria-sort`; `Home`/`End` in a `Ui.Tabs` row go to the first/last tab that is not disabled (Flux's leave
+  them to the page); a `Ui.Chart`'s SVG is `role="img"` with a generated `aria-label` and `aria-describedby` a table of
+  its rows in an `sr-only` box marked `data-ui-chart-rows`, which `flux parity` counts as no child (`Extra` in
+  `ParityComparer`). A sticky column's scroll marks are Flux's own (`data-scrolled-*`), written by
+  `rask-scroll-edges.ts`. No look changes. `UiChartTests.Described`, `UiTableTests`, `ScrollEdgesTests`,
+  `TablistKeyboardTests`, `UiKitAccessibilityTests`, `UiTableChartAccessibilityTests`.
 - **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
   scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `flux parity` lets
@@ -152,7 +159,7 @@ departure in behaviour carries none.
   unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
 - **2026-11-04 — `Search` on `Ui.Select` and `Ui.Pillbox` (#1284).** Flux's backend search is the page's `$search`, a
   query over it and `:filter="false"`. The kit holds it: `.Search(async typed => …)` asks for "" on mount and the trimmed
-  text at a 250 ms pause, drops an answer to an older question, keeps every picked option FIRST in the list while a search
+  text at a 150 ms pause (250 ms until 2026-11-10), drops an answer to an older question, keeps every picked option FIRST in the list while a search
   misses it (Flux leaves that to the query), and runs the first search on mount even for a select never opened (owner,
   2026-11-05: keep). Only those two depart. Waiting is Flux's, measured 2026-11-05 on its backend-search examples
   (`/select` #15, `/pillbox` #6, answers held back 2.5 s): the rows drawn stay; a combobox shows a size-5 zinc-400 spinner
@@ -161,6 +168,16 @@ departure in behaviour carries none.
   by CSS from `data-rask-list-loading` so the row's text stays Flux's. The runtime marks a field whose search went at
   its pause `data-loading` too. `flux parity-select` holds the open lists. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
   `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
+- **2026-11-10 — a search that asks the page says "Loading..." while it is out.** Flux (measured on fluxui.dev's
+  backend-search examples, 2026-11-10) goes on saying "No results found" in an empty list until the answer comes; the
+  kit's empty row says `when-loading` ("Loading...", `Ui.SelectOptionEmpty.WhenLoading`) from the moment the question
+  leaves — owner's call: "No results" for a question not yet answered is wrong. Everything else of the wait is Flux's,
+  measured the same day: the question leaves 150 ms after the last key (`wire:model.live`, `UiSearchPause.Asked`), the
+  field takes `data-loading` and its spinner at once (`data-rask-loading-now`, rask-loading.ts), and the create row is
+  disabled (`aria-disabled`, stepped over by the keys, a click refused by rask-clicks.ts, and the select makes nothing of
+  a create that reaches it while its search or another create is out) and spins once pressed until it is done, the
+  list held open meanwhile (rask-list.ts). `UiSelectAskedSearchTests`, `UiSearchWaitTests`, `FieldLoadingTests`,
+  `CreateRowClickTests`, `CreateRowWaitsTests` (Server E2E), the site's `ui-select-create-search` E2E.
 - **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
   Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
   primary Save, a danger Delete at the start), `Ui.RowActions` IS the row's last cell (`Ui.TableCell.End`, `py-0`, sticky on `Ui.Main`'s surface) holding Flux's table

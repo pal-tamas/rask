@@ -157,7 +157,9 @@ public sealed partial class ParityComparer(string slug, bool layout, IReadOnlySe
     // …and the box in a color picker's dialog that only the stylesheet sizes, which is how the page learns
     // whether the dialog is Flux's sheet: Flux asks the window. And the one in a calendar, which is how the page
     // learns that it is drawn for a phone.
-    private static readonly string[] Extra = ["data-ui-chart-hover", "data-ui-color-picker-sheet", "data-ui-calendar-narrow"];
+    // data-ui-chart-rows: a chart's rows as a table for a screen reader alone, clipped to a pixel (UiChartDescription;
+    // owner, 2026-11-10). Flux's chart has none.
+    private static readonly string[] Extra = ["data-ui-chart-hover", "data-ui-chart-rows", "data-ui-color-picker-sheet", "data-ui-calendar-narrow"];
 
     // A popup is placed by script in Flux (`position: absolute` and an inset it computes) and by CSS anchor
     // positioning here (a popover in the top layer is `position: fixed`, the gap a margin). For exactly that pair,

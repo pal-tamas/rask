@@ -16,10 +16,12 @@ public sealed class JobsOptions
     /// How long a claimed job stays invisible to other processor instances. Default 5 minutes.
     /// </summary>
     /// <remarks>
-    /// This is the recovery window, not a timeout: nothing cancels a job that overruns it. The instance
-    /// running a job renews its lease every third of this while the job runs, so a job longer than the lease
-    /// is never picked up by a second instance — the new container of a deploy included. A processor that
-    /// dies mid-job stops renewing, and its work is claimable again after this long.
+    /// This is the recovery window, not a timeout: overrunning it cancels nothing. The instance running a job
+    /// renews its lease every third of this while the job runs, so a job longer than the lease is never picked
+    /// up by a second instance — the new container of a deploy included. A processor that dies mid-job stops
+    /// renewing, and its work is claimable again after this long. To stop a job that runs too long, give it a
+    /// time limit — <see cref="Limit{TJob}" />, or <see cref="StopAfter" /> for every job — or stop it by hand
+    /// with <c>Jobs.Stop(id)</c>.
     /// </remarks>
     public TimeSpan LeaseDuration { get; set; } = TimeSpan.FromMinutes(5);
 
@@ -58,6 +60,14 @@ public sealed class JobsOptions
     public TimeSpan ShutdownGracePeriod { get; set; } = Timeout.InfiniteTimeSpan;
 
     /// <summary>
+    /// The time limit of every job whose type has none of its own (<see cref="Limit{TJob}" />): a job still running this
+    /// long after its handler started is stopped (<see cref="JobStop.TimeLimit" />), ends stopped and is not tried again.
+    /// <see cref="Timeout.InfiniteTimeSpan" /> — the default — is no limit: a backup that takes all night is not cut off
+    /// because nobody thought to name it. Bound from <c>Rask:Jobs:StopAfter</c>.
+    /// </summary>
+    public TimeSpan StopAfter { get; set; } = Timeout.InfiniteTimeSpan;
+
+    /// <summary>
     /// The zone a calendar schedule's wall-clock time is read in — <c>.Daily.At(3, 0)</c> means 3am here.
     /// Defaults to UTC, so the same app keeps the same schedule on every machine it is deployed to; set it
     /// when "3am" has to mean 3am where your customers are, and it will follow daylight saving.
@@ -73,6 +83,12 @@ public sealed class JobsOptions
 
     /// <summary>The registered recurring jobs.</summary>
     internal List<RecurringJob> Recurring { get; } = [];
+
+    /// <summary>The limits declared in code, by the job's registered type name.</summary>
+    internal Dictionary<string, JobLimit> Limits { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The limits read from <c>Rask:Jobs:Limit:&lt;TypeName&gt;</c>, by the job's short type name.</summary>
+    internal Dictionary<string, JobLimit> ConfiguredLimits { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// The registered recurring jobs, in registration order — the schedule an operator or an ops dashboard
@@ -136,5 +152,62 @@ public sealed class JobsOptions
         var adopted = new RecurringJob(job.Name, job.Factory, Recurring);
         adopted.RefuseADuplicateName(job.Name);
         Recurring.Add(job.Schedule is { } schedule ? adopted.With(schedule) : adopted);
+    }
+
+    /// <summary>
+    /// Says when a running <typeparamref name="TJob"/> stops by itself — the limit is a step:
+    /// <c>Limit&lt;AtPump&gt;().After(30.Minutes)</c>, <c>Limit&lt;AtPump&gt;().After(job =&gt; job.Cap)</c>,
+    /// <c>Limit&lt;Import&gt;().IdleFor(5.Minutes)</c>. The bare call sets nothing. A job stopped at a limit ends stopped,
+    /// not failed: it is not tried again. <c>Rask:Jobs:Limit:&lt;TypeName&gt;:After</c> and <c>…:IdleFor</c> set the same
+    /// limits from configuration; what code says wins.
+    /// </summary>
+    /// <typeparam name="TJob">The job the limits hold for.</typeparam>
+    public Limiting<TJob> Limit<TJob>()
+        where TJob : IJob
+    {
+        var key = JobSerializerRegistry.TypeName(typeof(TJob));
+        if (!Limits.TryGetValue(key, out var rule))
+        {
+            rule = new JobLimit();
+            Limits[key] = rule;
+        }
+
+        return new Limiting<TJob>(rule);
+    }
+
+    /// <summary>
+    /// Machinery: takes in the limits declared somewhere else — on the battery, as <c>c.Jobs.Limit&lt;T&gt;()</c> — part by
+    /// part, so a later declaration of a limit wins over an earlier one.
+    /// </summary>
+    /// <param name="declared">The options the limits were declared on.</param>
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    public void AdoptLimits(JobsOptions declared)
+    {
+        ArgumentNullException.ThrowIfNull(declared);
+        foreach (var (type, rule) in declared.Limits)
+        {
+            if (!Limits.TryGetValue(type, out var mine))
+            {
+                mine = new JobLimit();
+                Limits[type] = mine;
+            }
+
+            mine.Take(rule);
+        }
+    }
+
+    /// <summary>
+    /// The limits of <paramref name="job"/>, registered as <paramref name="type"/>: code's first, then configuration's, part by
+    /// part, and <see cref="StopAfter"/> for a time limit neither names.
+    /// </summary>
+    internal (TimeSpan? After, TimeSpan? IdleFor) LimitsOf(string type, IJob job)
+    {
+        Limits.TryGetValue(type, out var code);
+        ConfiguredLimits.TryGetValue(JobSerializerRegistry.ShortName(type), out var configured);
+
+        var rule = code is { LimitsTime: true } ? code : configured;
+        TimeSpan? appWide = StopAfter == Timeout.InfiniteTimeSpan ? null : StopAfter;
+        var after = rule is { LimitsTime: true } ? rule.AfterFor(job) : appWide;
+        return (after, code?.IdleFor ?? configured?.IdleFor);
     }
 }

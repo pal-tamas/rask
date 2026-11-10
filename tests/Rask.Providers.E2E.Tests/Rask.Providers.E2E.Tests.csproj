@@ -20,6 +20,8 @@
     <Compile Include="..\Rask.Data.Tests\ValueObjectMappingShapes.cs" Link="ValueObjectMappingShapes.cs"/>
     <!-- The value collections of every nullability, asked of every provider. -->
     <Compile Include="..\Rask.Data.Tests\ValueCollectionNullabilityShapes.cs" Link="ValueCollectionNullabilityShapes.cs"/>
+    <!-- The jobs' clock, moved by hand while the poll ticks for real: the stop and limit tests on every provider. -->
+    <Compile Include="..\Rask.Jobs.Tests\FakeTimeProvider.cs" Link="FakeTimeProvider.cs"/>
   </ItemGroup>
 
   <ItemGroup>

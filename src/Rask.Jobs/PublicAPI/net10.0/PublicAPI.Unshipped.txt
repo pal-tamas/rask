@@ -388,3 +388,85 @@ static Rask.Background.Jobs.Run(Rask.Background.IJob! job, System.Threading.Canc
 static Rask.Background.Jobs.Run<TResult>(Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>
 static Rask.Background.JobsExtensions.Run(this Rask.Background.IJobs! jobs, Rask.Background.IJob! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running
 static Rask.Background.JobsExtensions.Run<TResult>(this Rask.Background.IJobs! jobs, Rask.Background.IJob<TResult>! job, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Running<TResult>
+Rask.Background.IJobs.Lanes(System.Collections.Generic.IEnumerable<string!>! lanes, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, Rask.Background.JobLane!>!>!
+Rask.Background.IJobs.Stop(long id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Background.Job.StartedAt.get -> System.DateTime?
+Rask.Background.Job.Stopped.get -> Rask.Background.JobStop?
+Rask.Background.JobBacklog<TContext>.Lanes(System.Collections.Generic.IEnumerable<string!>! lanes, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, Rask.Background.JobLane!>!>!
+Rask.Background.JobBacklog<TContext>.Stop(long id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+Rask.Background.JobLane
+Rask.Background.JobLane.<Clone>$() -> Rask.Background.JobLane!
+Rask.Background.JobLane.Deconstruct(out string! Name, out Rask.Background.LaneJob? Running, out System.Collections.Generic.IReadOnlyList<Rask.Background.LaneJob!>! Waiting) -> void
+Rask.Background.JobLane.Equals(Rask.Background.JobLane? other) -> bool
+Rask.Background.JobLane.IsIdle.get -> bool
+Rask.Background.JobLane.JobLane(string! Name, Rask.Background.LaneJob? Running, System.Collections.Generic.IReadOnlyList<Rask.Background.LaneJob!>! Waiting) -> void
+Rask.Background.JobLane.Name.get -> string!
+Rask.Background.JobLane.Name.init -> void
+Rask.Background.JobLane.Running.get -> Rask.Background.LaneJob?
+Rask.Background.JobLane.Running.init -> void
+Rask.Background.JobLane.Waiting.get -> System.Collections.Generic.IReadOnlyList<Rask.Background.LaneJob!>!
+Rask.Background.JobLane.Waiting.init -> void
+Rask.Background.JobMetrics.Stopped(string! jobType, Rask.Background.JobStop reason) -> void
+Rask.Background.JobRead.StartedAt.get -> System.DateTime?
+Rask.Background.JobRead.StartedAt.init -> void
+Rask.Background.JobRead.Stopped.get -> Rask.Background.JobStop?
+Rask.Background.JobRead.Stopped.init -> void
+Rask.Background.JobStop
+Rask.Background.JobStop.Asked = 1 -> Rask.Background.JobStop
+Rask.Background.JobStop.DoneElsewhere = 4 -> Rask.Background.JobStop
+Rask.Background.JobStop.Idle = 3 -> Rask.Background.JobStop
+Rask.Background.JobStop.TimeLimit = 2 -> Rask.Background.JobStop
+Rask.Background.JobStoppedException
+Rask.Background.JobStoppedException.JobStoppedException() -> void
+Rask.Background.JobStoppedException.JobStoppedException(Rask.Background.JobStop stop) -> void
+Rask.Background.JobStoppedException.JobStoppedException(System.Threading.CancellationToken token) -> void
+Rask.Background.JobStoppedException.JobStoppedException(string! message) -> void
+Rask.Background.JobStoppedException.JobStoppedException(string! message, System.Exception! innerException) -> void
+Rask.Background.JobStoppedException.JobStoppedException(string? message, System.Exception? innerException, System.Threading.CancellationToken token) -> void
+Rask.Background.JobStoppedException.JobStoppedException(string? message, System.Threading.CancellationToken token) -> void
+Rask.Background.JobStoppedException.JobType.get -> string?
+Rask.Background.JobStoppedException.JobType.init -> void
+Rask.Background.JobStoppedException.Stop.get -> Rask.Background.JobStop
+Rask.Background.JobStoppedException.Stop.init -> void
+Rask.Background.JobsOptions.AdoptLimits(Rask.Background.JobsOptions! declared) -> void
+Rask.Background.JobsOptions.Limit<TJob>() -> Rask.Background.Limiting<TJob>!
+Rask.Background.JobsOptions.StopAfter.get -> System.TimeSpan
+Rask.Background.JobsOptions.StopAfter.set -> void
+Rask.Background.LaneJob
+Rask.Background.LaneJob.<Clone>$() -> Rask.Background.LaneJob!
+Rask.Background.LaneJob.Attempts.get -> int
+Rask.Background.LaneJob.Attempts.init -> void
+Rask.Background.LaneJob.Deconstruct(out long Id, out Rask.Background.IJob? Job, out string! Type, out System.DateTime Due, out System.DateTime? Started, out int Attempts, out bool Stopping) -> void
+Rask.Background.LaneJob.Due.get -> System.DateTime
+Rask.Background.LaneJob.Due.init -> void
+Rask.Background.LaneJob.Equals(Rask.Background.LaneJob? other) -> bool
+Rask.Background.LaneJob.Id.get -> long
+Rask.Background.LaneJob.Id.init -> void
+Rask.Background.LaneJob.Job.get -> Rask.Background.IJob?
+Rask.Background.LaneJob.Job.init -> void
+Rask.Background.LaneJob.LaneJob(long Id, Rask.Background.IJob? Job, string! Type, System.DateTime Due, System.DateTime? Started, int Attempts, bool Stopping) -> void
+Rask.Background.LaneJob.Started.get -> System.DateTime?
+Rask.Background.LaneJob.Started.init -> void
+Rask.Background.LaneJob.Stopping.get -> bool
+Rask.Background.LaneJob.Stopping.init -> void
+Rask.Background.LaneJob.Type.get -> string!
+Rask.Background.LaneJob.Type.init -> void
+Rask.Background.Limiting<TJob>
+Rask.Background.Limiting<TJob>.After(System.Func<TJob, System.TimeSpan>! limit) -> Rask.Background.Limiting<TJob>!
+Rask.Background.Limiting<TJob>.After(System.TimeSpan limit) -> Rask.Background.Limiting<TJob>!
+Rask.Background.Limiting<TJob>.IdleFor(System.TimeSpan idle) -> Rask.Background.Limiting<TJob>!
+override Rask.Background.JobLane.Equals(object? obj) -> bool
+override Rask.Background.JobLane.GetHashCode() -> int
+override Rask.Background.JobLane.ToString() -> string!
+override Rask.Background.LaneJob.Equals(object? obj) -> bool
+override Rask.Background.LaneJob.GetHashCode() -> int
+override Rask.Background.LaneJob.ToString() -> string!
+static Rask.Background.JobLane.operator !=(Rask.Background.JobLane? left, Rask.Background.JobLane? right) -> bool
+static Rask.Background.JobLane.operator ==(Rask.Background.JobLane? left, Rask.Background.JobLane? right) -> bool
+static Rask.Background.Jobs.Lane(string! lane, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Rask.Background.JobLane!>!
+static Rask.Background.Jobs.Lanes(System.Collections.Generic.IEnumerable<string!>! lanes, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyDictionary<string!, Rask.Background.JobLane!>!>!
+static Rask.Background.Jobs.Report(string! progress) -> void
+static Rask.Background.Jobs.Stop(long id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<bool>!
+static Rask.Background.Jobs.Stopped.get -> Rask.Background.JobStop?
+static Rask.Background.LaneJob.operator !=(Rask.Background.LaneJob? left, Rask.Background.LaneJob? right) -> bool
+static Rask.Background.LaneJob.operator ==(Rask.Background.LaneJob? left, Rask.Background.LaneJob? right) -> bool

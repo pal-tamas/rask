@@ -2,7 +2,8 @@ using System.Text.Json;
 
 namespace Rask.Core.Tests.Live;
 
-// The runtime's tablist keyboard: the arrow keys move to the next tab that is not disabled, around the ends.
+// The runtime's tablist keyboard: the arrow keys move to the next tab that is not disabled, around the ends, and
+// Home and End to the first and the last.
 //
 // It is a behaviour hook (rask-tabs.ts) because C# can neither move focus nor keep an arrow key from scrolling the page.
 // The rule — which tab — is a pure function, driven here in-process on Jint; that the tab is then focused
@@ -84,6 +85,33 @@ public sealed class TablistKeyboardTests
         Assert.Equal(1, alone);
         Assert.Equal(-1, none);
         Assert.Equal(-1, empty);
+    }
+
+    [Fact]
+    public void Home_and_end_go_to_the_first_and_last_tab_that_is_not_disabled()
+    {
+        var moves = ScriptFixture.Run("TablistKeyboardFixture");
+
+        var (home, end) = (Landed(moves, "home"), Landed(moves, "end"));
+        var (homePast, endPast, fromNowhere) = (Landed(moves, "homePastDisabled"), Landed(moves, "endPastDisabled"), Landed(moves, "homeFromNowhere"));
+
+        Assert.Equal(0, home);
+        Assert.Equal(2, end);
+        Assert.Equal(1, homePast);
+        Assert.Equal(4, endPast);
+        Assert.Equal(0, fromNowhere);
+    }
+
+    [Fact]
+    public void A_key_that_is_not_an_arrow_home_or_end_goes_nowhere()
+    {
+        var moves = ScriptFixture.Run("TablistKeyboardFixture");
+
+        var (arrow, other, none) = (Landed(moves, "arrowByKey"), Landed(moves, "otherKey"), Landed(moves, "endWithNoneLeft"));
+
+        Assert.Equal(1, arrow);
+        Assert.Equal(-1, other);
+        Assert.Equal(-1, none);
     }
 
     private static int Landed(JsonElement moves, string move) => moves.GetProperty(move).GetInt32();

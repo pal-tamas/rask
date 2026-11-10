@@ -11,7 +11,9 @@ public abstract partial class UiSelectControl<T>
     private string _search = string.Empty;
 
     // A handler of the page's is running: a search it answers, or the option it is creating.
-    private bool _busy;
+    private int _out;
+
+    private bool Busy => Volatile.Read(ref _out) > 0;
 
     // Who hears what is typed — the search field's slot, or the input's — as the last render read it.
     private Callback<string> _hears;
@@ -60,7 +62,7 @@ public abstract partial class UiSelectControl<T>
         }
 
         _heard = text;
-        _busy = true;
+        Interlocked.Increment(ref _out);
         try
         {
             await _hears.Invoke(text).ConfigureAwait(false);
@@ -68,7 +70,7 @@ public abstract partial class UiSelectControl<T>
         }
         finally
         {
-            _busy = false;
+            Interlocked.Decrement(ref _out);
         }
     }
 
@@ -91,6 +93,8 @@ public abstract partial class UiSelectControl<T>
             hearing = new Dictionary<string, string?>(marks, StringComparer.Ordinal)
             {
                 ["data-rask-on-input"] = live.RegisterHandler((Func<string, Task>)HearAsync),
+                // It asks the page at every key, and says it waits the moment it asks, as one that pauses first.
+                [UiSearchPause.LoadsAtOnce] = null,
             };
         }
         else if (creates)
@@ -148,20 +152,22 @@ public abstract partial class UiSelectControl<T>
             return;
         }
 
+        // A search of the page's, or this create, is still out: the browser offered no row to press (rask-list.ts), and a
+        // press that came anyway — two at once from a host that runs them side by side — makes nothing a second time.
         var view = Latest;
-        if (view.Parts.Create is not { } create || view.Skips(view.CreateIndex))
+        if (Busy || view.Parts.Create is not { } create || view.Skips(view.CreateIndex))
         {
             return;
         }
 
-        _busy = true;
+        Interlocked.Increment(ref _out);
         try
         {
             await create.OnClick.Invoke(SearchText(view.Parts)).ConfigureAwait(false);
         }
         finally
         {
-            _busy = false;
+            Interlocked.Decrement(ref _out);
         }
 
         // The browser shuts the list and empties what was typed; the option is made of it, so it is forgotten here too.

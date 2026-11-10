@@ -4,7 +4,7 @@ namespace Rask.Background;
 
 /// <summary>
 ///     Waits for an awaited job's row to say how it ended, on whichever host ran it: its answer, or its failure as a
-///     <see cref="JobFailedException"/>. Reads the row once a poll, and at once when this process's processor says it saved
+///     <see cref="JobFailedException"/>, or its stop as a <see cref="JobStoppedException"/>. Reads the row once a poll, and at once when this process's processor says it saved
 ///     the outcome. Giving up — the caller's token, or <c>.Within(…)</c> — stops the waiting and leaves the job alone.
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the jobs table.</typeparam>
@@ -51,13 +51,19 @@ internal sealed class JobWait<TContext>(IDbContextFactory<TContext> contextFacto
         var row = await db.Set<Job>()
             .AsNoTracking()
             .Where(j => j.Id == id)
-            .Select(j => new { j.ProcessedAt, j.Result, j.Error, j.ClaimToken })
+            .Select(j => new { j.ProcessedAt, j.Result, j.Error, j.ClaimToken, j.Stopped })
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
         if (row is null)
         {
             throw new InvalidOperationException($"Job {id} ({type}) was deleted before it finished, so nothing will answer it.");
+        }
+
+        // Stopped is a cancellation, never an answer: what it did before it stopped is kept, and nothing was answered.
+        if (row is { ProcessedAt: not null, Stopped: { } stop })
+        {
+            throw new JobStoppedException(stop) { JobType = type };
         }
 
         if (row.ProcessedAt is not null)

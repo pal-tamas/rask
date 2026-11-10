@@ -67,8 +67,8 @@ public sealed partial class QueuePage(
         // Row identity plus attempt count is enough to notice any change that matters: a row moving state
         // changes the filter it appears in, and a retry bumps Attempts.
         return string.Join('|',
-            [$"{_counts.Due}:{_counts.Delayed}:{_counts.Failed}:{_counts.Processed}:{_total}",
-             .. _rows.Select(r => $"{r.Id}:{r.Attempts}:{r.ProcessedAt?.Ticks ?? 0}")]);
+            [$"{_counts.Due}:{_counts.Delayed}:{_counts.Failed}:{_counts.Processed}:{_counts.Running}:{_total}",
+             .. _rows.Select(r => $"{r.Id}:{r.Attempts}:{r.ProcessedAt?.Ticks ?? 0}:{r.Stopped}:{r.ClaimedUntil?.Ticks ?? 0}")]);
     }
 
     /// <inheritdoc />
@@ -116,6 +116,7 @@ public sealed partial class QueuePage(
         Div.Class("-mx-2 overflow-x-auto px-2")[
             Ui.Navbar.Class("py-0")[
                 CountItem(QueueFilter.Outstanding, "Outstanding", _counts.Outstanding, alarming: false),
+                Jobs is null ? null : CountItem(QueueFilter.Running, "Running", _counts.Running, alarming: false),
                 CountItem(QueueFilter.Due, "Due", _counts.Due, alarming: false),
                 CountItem(QueueFilter.Delayed, "Delayed", _counts.Delayed, alarming: false),
                 CountItem(QueueFilter.Failed, "Failed", _counts.Failed, alarming: _counts.Failed > 0),
@@ -131,7 +132,12 @@ public sealed partial class QueuePage(
             .Badge(count.ToString(CultureInfo.CurrentCulture))
             .BadgeColor(alarming ? Ui.Color.Red : null)[label];
 
-    private bool IsDead(QueueRow row) => row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts;
+    // The jobs queue — the one that says what runs, in which lane, and can stop a job. Null for mail and the outbox.
+    private IJobsQueuePanel? Jobs => _panel as IJobsQueuePanel;
+
+    // A job whose last attempt is running reads as out of attempts, and is not a dead letter until it has ended.
+    private bool IsDead(QueueRow row) =>
+        row.ProcessedAt is null && row.Attempts >= _panel!.MaxAttempts && !row.IsRunning(timeProvider.GetUtcNow().UtcDateTime);
 
     /// <summary>
     /// The rows behind the selected count.
@@ -167,7 +173,8 @@ public sealed partial class QueuePage(
                 Ui.TableColumn.Class("w-24 hidden md:table-cell")["#"],
                 // Flush with the page below md, where the id before it has no column: Flux unpads only a first cell.
                 Ui.TableColumn.Class("max-md:ps-0")[TypeColumnLabel()],
-                Ui.TableColumn.Class("w-28")["When"],
+                Jobs is null ? null : Ui.TableColumn.Class("w-32")["Lane"],
+                Ui.TableColumn.Class("w-32")["When"],
                 Ui.TableColumn.Class("w-24 hidden md:table-cell")["Attempts"],
                 Ui.TableColumn.Class("w-36")["Status"],
                 Ui.TableColumn.Class("w-60")
@@ -176,7 +183,8 @@ public sealed partial class QueuePage(
                 _rows.Select(r => Ui.TableRow.Key(r.Id)[
                     Ui.TableCell.Class("hidden font-mono md:table-cell")[$"{r.Id}"],
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Class("truncate max-md:ps-0").Title(r.Type)[r.Type],
-                    Ui.TableCell[Span.Title(r.CreatedAt.ToString("u"))[DashboardParts.Ago(r.CreatedAt, now)]],
+                    Jobs is null ? null : Ui.TableCell.Class("truncate font-mono").Title(r.Lane ?? "")[r.Lane ?? "—"],
+                    Ui.TableCell[When(r, now)],
                     Ui.TableCell.Class("hidden md:table-cell")[$"{r.Attempts}"],
                     Ui.TableCell[StatusBadge(r, IsDead(r), now)],
                     Ui.TableCell.Class("py-0")[Div.Class("flex justify-end gap-2")[RowButtons(r, IsDead(r))]]
@@ -204,18 +212,36 @@ public sealed partial class QueuePage(
             .OnClick(() => Open(row.Id))["Details"];
     }
 
+    // A running job reads from when it started; everything else from when it was queued.
+    private static Component When(QueueRow row, DateTime now) =>
+        row.IsRunning(now) && row.StartedAt is { } started
+            ? Span.Title(started.ToString("u"))[$"started {DashboardParts.Ago(started, now)}"]
+            : Span.Title(row.CreatedAt.ToString("u"))[DashboardParts.Ago(row.CreatedAt, now)];
+
     private static string StatusText(QueueRow row, bool isDead, DateTime now) => row switch
     {
+        { ProcessedAt: not null, Stopped: { } why } => StoppedText(why),
         { ProcessedAt: not null } => "done",
+        _ when row.IsRunning(now) => row.Stopped is null ? "running" : "stopping",
         _ when isDead => "dead letter",
         _ when row.RunAt > now => $"retries in {DashboardParts.Duration(row.RunAt - now)}",
         _ => "due",
     };
 
+    private static string StoppedText(Rask.Background.JobStop why) => why switch
+    {
+        Rask.Background.JobStop.TimeLimit => "stopped: time limit",
+        Rask.Background.JobStop.Idle => "stopped: no progress",
+        Rask.Background.JobStop.DoneElsewhere => "stopped: done elsewhere",
+        _ => "stopped",
+    };
+
     private static Component StatusBadge(QueueRow row, bool isDead, DateTime now) =>
         Ui.Badge.Sm.Color(row switch
         {
+            { ProcessedAt: not null, Stopped: not null } => Ui.Color.Amber,
             { ProcessedAt: not null } => Ui.Color.Green,
+            _ when row.IsRunning(now) => row.Stopped is null ? Ui.Color.Sky : Ui.Color.Amber,
             _ when isDead => Ui.Color.Red,
             _ when row.RunAt > now => (Ui.Color?)null,
             _ => Ui.Color.Blue,
@@ -251,6 +277,10 @@ public sealed partial class QueuePage(
                 DashboardFacts[
                     DashboardFact.Key("id").Label("ID").Value($"#{row.Id}").Mono(true),
                     DashboardFact.Key("queue").Label("Queue").Value(_panel!.Title),
+                    Jobs is not null && row.Lane is { } lane ? DashboardFact.Key("lane").Label("Lane").Value(lane).Mono(true) : null,
+                    Jobs is not null && row.StartedAt is { } started
+                        ? DashboardFact.Key("started").Label("Last started").Value(started.ToString("u")).Mono(true)
+                        : null,
                     DashboardFact.Key("status").Label("Status").Value(StatusText(row, isDead, now))
                         .Danger(isDead),
                     DashboardFact.Key("attempts").Label("Total attempts")
@@ -327,6 +357,17 @@ public sealed partial class QueuePage(
                     async ct => await _panel!.Retry(row.Id, ct).ConfigureAwait(false) > 0
                         ? $"Re-queued #{row.Id}."
                         : $"#{row.Id} was already picked up."))["Retry"];
+        }
+
+        if (Jobs is { } jobs && row is { ProcessedAt: null, Stopped: null } && options.Actions.HasFlag(RaskDashboardActions.Destructive))
+        {
+            yield return Ui.Button.Red.Sm
+                .Key("stop")
+                .OnClick(() => RunAsync(
+                    "Stop this job? It ends as stopped and is not tried again.",
+                    async ct => await jobs.Stop(row.Id, ct).ConfigureAwait(false)
+                        ? $"Stopping #{row.Id}."
+                        : $"#{row.Id} had already ended and was left alone."))["Stop"];
         }
 
         if (row.ProcessedAt is null && options.Actions.HasFlag(RaskDashboardActions.Destructive))
