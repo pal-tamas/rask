@@ -694,9 +694,15 @@ rask_phase "generators in Debug (for the formatter)"
 tsc_filter=""
 
 echo "==> Unit & integration tests (excludes the browser E2E)"
-# --blame-crash: when a test host dies below the managed layer, the run reports "Test host process
-# crashed" with no exception, no stack and not even the name of the test that was running — and since
-# the solution runs ~40 assemblies at once, the last lines of console output belong to whichever OTHER
+# Every run below goes through rask_dotnet_test, which also reads the TRX files back and fails a run
+# whose host died or that reported fewer tests than xUnit discovered — a crashed host still prints
+# `Passed!` for the tests it reached (#1308).
+# shellcheck source=lib/dotnet-test.sh
+. "$root/scripts/lib/dotnet-test.sh"
+
+# --blame-crash, which rask_dotnet_test passes: when a test host dies below the managed layer, the run
+# reports "Test host process crashed" with no exception, no stack and not even the name of the test
+# that was running — and since the solution runs ~40 assemblies at once, the last lines of console output belong to whichever OTHER
 # assembly happened to be writing, which is how #769 spent an investigation on Rask.Server.Tests over a
 # crash in an assembly that reported more tests than Rask.Server.Tests has. Blame writes a per-host
 # sequence file naming the test in flight and collects a dump, so the next occurrence is diagnosable
@@ -785,11 +791,9 @@ elif [ -n "$scope_projects" ]; then
 
       (
         test_began=$SECONDS
-        dotnet test "$root/$tp" -c Release --no-build -m:1 \
-          --blame-crash \
-          --results-directory "$root/artifacts/test-blame" \
-          --logger "console;verbosity=normal"
-        test_exit=$?
+        test_exit=0
+        rask_dotnet_test "$root/artifacts/test-results/$(basename "$(dirname "$tp")")" -- \
+          "$root/$tp" -c Release --no-build -m:1 || test_exit=$?
         echo "$((SECONDS - test_began))" >"$scope_log.secs"
         exit "$test_exit"
       ) >"$scope_log" 2>&1 &
@@ -830,12 +834,12 @@ else
   # them — Rask.Site.E2E.Tests, Rask.Cli.E2E.Tests — and covers the next one without anybody
   # remembering to widen it. Naming a single suite here is how a newly-added E2E project silently
   # starts running inside the unit gate — which once cost it 14.9s of `dotnet publish` on every commit.
-  dotnet test Rask.slnx -c Release --no-build -m:"$test_slots" \
-    --filter "FullyQualifiedName!~.E2E.Tests.$tsc_filter" \
-    --blame-crash \
-    --results-directory "$root/artifacts/test-blame" \
-    --logger "console;verbosity=normal"
-  unit_status=$?
+  # Every test of an end-to-end assembly is filtered out here on purpose, so those alone are exempt from
+  # the verdict's "every discovered test ran" count; they keep its crash and outcome checks.
+  unit_status=0
+  rask_dotnet_test "$root/artifacts/test-results/all" --count-exempt '\.E2E\.Tests$' -- \
+    Rask.slnx -c Release --no-build -m:"$test_slots" \
+    --filter "FullyQualifiedName!~.E2E.Tests.$tsc_filter" || unit_status=$?
 fi
 rask_phase "tests"
 

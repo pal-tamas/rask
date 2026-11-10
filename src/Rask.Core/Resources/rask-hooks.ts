@@ -30,6 +30,7 @@ import "./rask-confirm-dialog.js"; // data-rask-confirm asked in Ui.Confirm (dat
 import "./rask-persist.js";  // data-rask-persist, data-rask-uncheck-on-navigate
 import "./rask-carousel.js"; // data-rask-carousel
 import "./rask-scroll.js";   // data-rask-scroll-to
+import "./rask-scroll-edges.js"; // data-rask-scroll-edges: a table's sticky column casts its shadow once scrolled under
 import "./rask-switch.js";   // data-rask-switch
 import "./rask-submit.js";   // data-rask-submit-keys
 import "./rask-grow.js";     // data-rask-grow

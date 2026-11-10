@@ -479,7 +479,8 @@ segmented control or pills, over panels or on their own. The selected tab is the
 `Value(_tab).OnChange(…)`, or neither and the row keeps track itself. Switching is drawn in the browser and sends
 nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"` when `Findable()`), so a form in tabs
 keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
-arrows select as they go, and a tab is never a link. Every example, the keyboard, Flux's attributes as steps and the
+arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. Every example, the
+keyboard, Flux's attributes as steps and the
 reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 
 ### A long form's tabs
@@ -527,8 +528,10 @@ page keeps the sorted column, its direction and the page number (`Sortable()`, `
 `w-full` on the table and a width on every column but one keep the columns still from page to page
 (`ContainerClass("min-w-0")` inside a grid or a flex row). A cell's and a heading's look is written once, in the kit's
 sheet, so a cell writes only what differs and a list of thousands of rows stays small; your class on a cell wins as it
-is (`ps-10`, `text-xs`). Every example, the dimming marks, the steady-columns recipe, sticky parts, bleed, whose class
-wins, and the reference of its steps:
+is (`ps-10`, `text-xs`). The heading the rows are sorted by says so to a screen reader (`aria-sort`), and a sticky
+column casts its shadow once columns scroll under it, from marks the runtime writes on the scroll area
+([accessibility.md](accessibility.md#tables-and-charts)). Every example, the dimming marks, the steady-columns recipe,
+sticky parts, bleed, whose class wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 **`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:
@@ -1503,8 +1506,10 @@ reference: **[rask.sh/ui/popover](https://rask.sh/ui/popover/)**.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: `Ui.Chart.Value(rows)` and a selector
 per part (`.Field((Visit v) => v.Visitors)`), the scales, ticks and paths computed in the render for the box the
-browser measured, and the cursor, tooltip, summary and a pie's slice following the pointer in the browser. Every
-example, the axes, formats, sizing and pointer rules, and the reference of its steps:
+browser measured, and the cursor, tooltip, summary and a pie's slice following the pointer in the browser. A screen
+reader hears the drawing as an image named by its kind, series and reach, described by its rows in a hidden table
+([accessibility.md](accessibility.md#tables-and-charts)). Every example, the axes, formats, sizing and pointer rules,
+and the reference of its steps:
 **[rask.sh/ui/chart](https://rask.sh/ui/chart/)**.
 
 **`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened

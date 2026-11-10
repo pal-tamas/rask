@@ -733,6 +733,24 @@ they say when you set nothing.
 | `SignOutQuestion` | A menu item's `.SignOut()`: what it asks first | `Are you sure you want to sign out?` |
 | `SelectChoose` | Select and pillbox given rows by `.Choices(…)`, while nothing is chosen | `Choose...` |
 | `FormTabsInvalid` | Form tabs: what a tab's red count says to a screen reader | `Fields to correct: {0}` |
+| `ChartLine` | Chart (a screen reader's name for a chart of lines) | `Line chart` |
+| `ChartArea` | Chart (… of areas) | `Area chart` |
+| `ChartBar` | Chart (… of bars) | `Bar chart` |
+| `ChartScatter` | Chart (… of points alone) | `Scatter chart` |
+| `ChartPie` | Chart (… pie) | `Pie chart` |
+| `ChartDonut` | Chart (… donut) | `Donut chart` |
+| `Chart` | Chart (… of mixed kinds) | `Chart` |
+| `ChartNoData` | Chart (a chart with no rows) | `No data.` |
+| `ChartDataPoints` | Chart (how many rows, the first and last) | `{0} data points, {1} to {2}.` |
+| `ChartDataPoint` | Chart (a chart of one row) | `1 data point, {0}.` |
+| `ChartSlices` | Chart (how many slices, the first and last) | `{0} slices, {1} to {2}.` |
+| `ChartSlice` | Chart (a pie of one slice) | `1 slice, {0}.` |
+| `ChartValueRange` | Chart (the least and the most value) | `Values from {0} to {1}.` |
+| `ChartColumnValue` | Chart (the rows' table: a series nothing names) | `Value` |
+| `ChartColumnSeries` | Chart (the rows' table: an unnamed series beside others) | `Series {0}` |
+| `ChartColumnRow` | Chart (the rows' table: rows nothing names) | `Row` |
+| `ChartColumnDate` | Chart (the rows' table: rows named by a date) | `Date` |
+| `ChartColumnLabel` | Chart (the rows' table: rows named by a label) | `Label` |
 | `OtpCharacter` | OTP input | `Character {0} of {1}` |
 | `SliderRangeStart` | Slider | `{0} start range` |
 | `SliderRangeEnd` | Slider | `{0} end range` |

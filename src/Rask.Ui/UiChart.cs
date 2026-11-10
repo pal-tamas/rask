@@ -42,8 +42,34 @@ public sealed partial class UiChart : Component
     /// <inheritdoc />
     protected override Component? Render() =>
         Div.Class("relative block", Class).Data(Marker.With(null))[
-            Context.Provide(new UiChartScope(Value, Horizontal == true, Pie(Children)))[Children ?? []]
+            Context.Provide(new UiChartScope(Value, Horizontal == true, Pie(Children), Named(Children)))[Children ?? []]
         ];
+
+    // The parts that name the rows and the series, wherever they sit beside the drawing: in a tooltip, a viewport, a div.
+    private static List<Component> Named(IEnumerable<Component?>? parts)
+    {
+        var named = new List<Component>();
+        Collect(parts, named);
+        return named;
+    }
+
+    private static void Collect(IEnumerable<Component?>? parts, List<Component> named)
+    {
+        foreach (var part in parts ?? [])
+        {
+            switch (part)
+            {
+                case null or UiChartSvg:
+                    break;
+                case UiChartTooltipHeading or UiChartTooltipValue or UiChartLegend:
+                    named.Add(part);
+                    break;
+                default:
+                    Collect(part.Children, named);
+                    break;
+            }
+        }
+    }
 
     // The pie is declared inside the drawing, and the tooltip beside it names the hovered slice's colour.
     private static UiChartPie? Pie(IEnumerable<Component?>? parts)

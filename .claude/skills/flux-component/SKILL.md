@@ -72,6 +72,13 @@ departure in behaviour carries none.
 - **2026-10-12 — `Ui.ColorPicker`, text typed that is no colour.** Flux puts the last colour back and says
   nothing. A picker bound in a form keeps the text in the field, says "Enter a valid color." with the next action
   and blocks the save (`UiColorPicker.RefuseAsync`); one with no form to say it in puts the colour back, as Flux.
+- **2026-11-10 — table, tabs and chart say more to a screen reader and the keyboard.** A sorted `Ui.TableColumn`
+  carries `aria-sort`; `Home`/`End` in a `Ui.Tabs` row go to the first/last tab that is not disabled (Flux's leave
+  them to the page); a `Ui.Chart`'s SVG is `role="img"` with a generated `aria-label` and `aria-describedby` a table of
+  its rows in an `sr-only` box marked `data-ui-chart-rows`, which `flux parity` counts as no child (`Extra` in
+  `ParityComparer`). A sticky column's scroll marks are Flux's own (`data-scrolled-*`), written by
+  `rask-scroll-edges.ts`. No look changes. `UiChartTests.Described`, `UiTableTests`, `ScrollEdgesTests`,
+  `TablistKeyboardTests`, `UiKitAccessibilityTests`, `UiTableChartAccessibilityTests`.
 - **2026-10-14 — `Ui.Table`'s scroll frame is `relative`.** Flux's is static, so an absolutely placed child of a
   cell (a `Ui.Checkbox`'s hidden input, an `sr-only` heading, a badge) escapes the frame and the whole page
   scrolls sideways on a phone — both apps hit it. One class, nothing else visible changes. `flux parity` lets

@@ -171,7 +171,7 @@ public sealed partial class ChartHookPage : Component
     private const string Layout =
         "body{margin:0}.relative{position:relative}.absolute{position:absolute}.block{display:block}.inset-0{inset:0}"
         + ".size-full{width:100%;height:100%}.hidden{display:none}.wide{aspect-ratio:3/1}.square{aspect-ratio:1}"
-        + ".pointer-events-none{pointer-events:none}";
+        + ".pointer-events-none{pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}";
 
     protected override Component? HeadAssets => [Markup.Title["chart hooks"], Markup.Style[Raw.Value(Layout)]];
 
