@@ -188,6 +188,13 @@ them until tagged releases begin.
   confirmation, and the stopped statuses; Retry no longer resets a job whose last attempt is still running.
   **Upgrade:** two new columns, `Stopped` and `StartedAt`: `rask db add AddJobStop && rask db update` (until then the
   processor logs exactly that). See [docs/jobs.md](docs/jobs.md#stop-a-job-give-it-a-limit-read-a-lane).
+- **Rask.Jobs' stop, limits and lane view are proven on SQL Server and PostgreSQL** (the provider gate,
+  `Rask.Providers.E2E.Tests`' `SqlServerJobStopTests`/`PostgresJobStopTests`). Before: only SQLite ran them. After, on
+  each server: the `AddJobStop` migration over a table that already holds pending, running, processed and dead-lettered
+  jobs (the missing-column hint first, every row kept with `Stopped`/`StartedAt` null, the due ones run); `Jobs.Lanes`
+  as one query; a stop of a running and of a waiting lane job; a time limit and an idle limit cut at the watch's tick;
+  the first reason standing when a stop and a limit meet; a row deleted or marked done from outside; `int`/`integer`
+  and `datetime2`/`timestamptz` round trips.
 - **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
   sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
   scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen
