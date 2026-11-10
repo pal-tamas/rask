@@ -91,8 +91,9 @@ if (page) {
     const scan = function (node: Node): void {
         // A table the morph put in an area already watched: its width is the one that changes now.
         const host = node.parentElement && node.parentElement.closest("[" + ATTR + "]");
-        if (sized && host instanceof HTMLElement && node === host.firstElementChild) {
-            sized.observe(node);
+        const table = host instanceof HTMLElement ? host.firstElementChild : null;
+        if (sized && host instanceof HTMLElement && table && node === table) {
+            sized.observe(table);
             measure(host);
         }
         if (node instanceof Element) {
