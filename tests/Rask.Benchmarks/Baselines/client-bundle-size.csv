@@ -736,3 +736,10 @@ bundle,bytes
 rask.js,114377
 rask.wasm.js,99742
 rask-hooks.js,133810
+# 2026-11-11, the focused-and-announced WASM navigation, progress bar and first-invalid field (+1,650 / +3,687, above)
+# merged with the keyboard focus reveal (+13 each, rask-hooks.js +407): measured locally on the merged tree with the
+# bundle gate's own command — rask.js 116,027, rask.wasm.js 103,429, rask-hooks.js 133,810.
+bundle,bytes
+rask.js,116027
+rask.wasm.js,103429
+rask-hooks.js,133810
