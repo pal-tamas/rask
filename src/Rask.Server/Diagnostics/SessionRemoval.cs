@@ -15,6 +15,9 @@ internal enum SessionRemoval
     /// <summary>Its page redirected while it was served, so nothing would ever connect to it.</summary>
     Redirected,
 
+    /// <summary>Its tab was out of sight and said it held nothing unsaved: the page waits in the tab's resume record.</summary>
+    Hibernated,
+
     /// <summary>The host is shutting down.</summary>
     Shutdown,
 

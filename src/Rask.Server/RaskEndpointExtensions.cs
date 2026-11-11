@@ -48,6 +48,7 @@ using Rask.Server.Authentication;
 using Rask.Server.DevTools;
 using Rask.Server.Diagnostics;
 using Rask.Server.Files;
+using Rask.Server.Hibernation;
 using Rask.Server.Http;
 using Rask.Server.JSInterop;
 using Rask.Server.Transport;
@@ -327,6 +328,15 @@ public static partial class RaskEndpointExtensions
         // Graceful shutdown for the live sessions: announce, settle in-flight handlers, close each socket
         // with a real handshake, dispose awaited. Registered unconditionally — a drain is not an opt-in.
         services.AddHostedService<RaskDrainService>();
+        // A hidden tab's session let go into the tab's resume record, and rebuilt from it when the tab is looked at
+        // again. Nothing to set: on wherever resume is, with the values every host runs with.
+        services.TryAddSingleton<SessionHibernationOptions>();
+        services.TryAddSingleton(static sp => new SessionHibernation(
+            sp.GetRequiredService<LiveSessionStore>(),
+            sp.GetRequiredService<SessionHibernationOptions>(),
+            sp.GetRequiredService<SessionResumeSupport>()));
+        services.AddHostedService(static sp => new SessionHibernationService(
+            sp.GetRequiredService<SessionHibernation>(), sp.GetService<TimeProvider>()));
     }
 
     private static LiveSessionStore CreateSessionStore(IServiceProvider sp)
@@ -2273,7 +2283,7 @@ public static partial class RaskEndpointExtensions
             return new(queued);
         }
 
-        if (hasType && HandledInline(session, root, type))
+        if (hasType && HandledInline(session, root, type, store))
         {
             return new(new FrameOutcome(FrameStatus.Handled, null));
         }
@@ -2491,7 +2501,7 @@ public static partial class RaskEndpointExtensions
     }
 
     // The frames answered on the reader itself, without a render.
-    private static bool HandledInline(LiveSession session, JsonElement root, JsonElement type)
+    private static bool HandledInline(LiveSession session, JsonElement root, JsonElement type, LiveSessionStore store)
     {
         if (type.ValueEquals("jsResult"u8))
         {
@@ -2512,8 +2522,23 @@ public static partial class RaskEndpointExtensions
             return true;
         }
 
-        // The tab went out of sight or came back: what polls waits for it (PageVisibility). No render needed.
-        return PageVisibility.Heard(root, session.Services);
+        if (type.ValueEquals("hibernate"u8))
+        {
+            // The tab's answer to an offer to hibernate (SessionHibernation). No render needed.
+            SessionHibernation.Answered(session, root, store);
+            return true;
+        }
+
+        // The tab went out of sight or came back: what polls waits for it (PageVisibility), and a tab out of sight long
+        // enough is asked to hibernate (SessionHibernation). No render needed.
+        if (!PageVisibility.Heard(root, session.Services))
+        {
+            return false;
+        }
+
+        session.Hibernation.Seen(
+            session.Services.GetRequiredService<PageVisibility>().Hidden, store.Clock.GetTimestamp());
+        return true;
     }
 
     // Backpressure circuit-breaker: bound both the number of dispatches queued on the chain
@@ -2621,7 +2646,7 @@ public static partial class RaskEndpointExtensions
         // After publishing, not before: a stale connection's cleanup that ran in between could otherwise arm a
         // removal nothing cancels. (The removal also skips a session with an open connection when it fires.)
         store.CancelPendingRemoval(session.Id);
-        session.Leaving = false;
+        session.Reattached();
 
         try
         {
@@ -3599,6 +3624,7 @@ public static partial class RaskEndpointExtensions
         session.Services.GetRequiredService<RouteState>().Table = selector.TableFor(path);
         session.OwnsPath = other => selector.SameApplication(path, other);
         session.SignInRoutes = selector.TableFor(RouteAuthorizationGuard.ChallengePath);
+        session.Resumable = selector.CanResume;
     }
 
     // When the session's route has moved to a path another application on this host owns, tells the client to

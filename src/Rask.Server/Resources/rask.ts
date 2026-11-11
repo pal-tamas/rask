@@ -18,7 +18,7 @@ import {
     raskNotePendingValue,
     raskRadioGroup,
 } from "../../Rask.Core/Resources/rask-morph.js";
-import { changeFrame, changeSent, remember, sendTypedFirst, waitsForAction } from "../../Rask.Core/Resources/rask-input.js";
+import { changeFrame, changeSent, holdsUnsent, remember, sendTypedFirst, waitsForAction } from "../../Rask.Core/Resources/rask-input.js";
 import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
@@ -56,12 +56,13 @@ import {
 } from "./rask-http-transport.js";
 import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "../../Rask.Core/Resources/rask-auth-watch.js";
 import { createUnacked, newestSeq } from "./rask-resend.js";
+import { hibernationRefusal, holdsEdits, mediaPlaying } from "./rask-hibernate.js";
 import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
-import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
+import { BUSY_MARK, holdsUnsaved, mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, awaiting, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
@@ -304,15 +305,27 @@ import {
         bootedWithUser: root.hasAttribute("data-rask-user"),
     });
     if (authChannel) authChannel.onmessage = () => authWatch.noticed(true);
+    // A tab waking from hibernation asks nobody who it is: the connection it opens carries the cookie as it is now,
+    // and a question naming the session it let go would be answered as a change, and drop that connection.
+    function noticed(): void {
+        if (!hibernated && !waking) authWatch.noticed();
+    }
     document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") authWatch.noticed();
-        else authWatch.left();
+        if (document.visibilityState === "visible") {
+            noticed();
+            wake();
+        } else {
+            authWatch.left();
+        }
     });
-    window.addEventListener("focus", () => authWatch.noticed());
+    window.addEventListener("focus", () => noticed());
     window.addEventListener("blur", () => authWatch.left());
     // A page brought back from the back/forward cache was never told anything while it was there.
     window.addEventListener("pageshow", (e: PageTransitionEvent) => {
-        if (e.persisted) authWatch.noticed();
+        if (e.persisted) {
+            noticed();
+            wake();
+        }
     });
     // The overlay's words, in the page's language: the first response carries them in a
     // `<script type="application/json" id="rask-texts">` (a JSON array, in the order below) — RaskStrings.Get, so an
@@ -377,6 +390,14 @@ import {
     let overlayTimer: ReturnType<typeof setTimeout> | null = null;
     let sessionExpired = false;
     let serverShuttingDown = false;
+    // The tab agreed to hibernate (rask-hibernate.ts): its session on the server is let go, and the page waits,
+    // unconnected and unchanged, until the tab is looked at again. Then it connects, and the server rebuilds the page
+    // from the record the offer carried.
+    let hibernated = false;
+    // Set from waking until the server answers: a record it refuses (expired, another user) reloads the page quietly.
+    let waking = false;
+    // Calls into the browser the server asked for, from the frame that carried them until they are answered.
+    let jsCallsRunning = 0;
     // The one free retry a known redeploy gets before the ordinary backoff takes over. Without it a
     // replacement that isn't up yet would spin: every failed connect closes, and every close would take
     // the immediate-retry branch again.
@@ -612,7 +633,22 @@ import {
             // have). Drop it: replaying a record the server has already refused just fails again on
             // every future reconnect, and keeps a stale page's state alive across the reload.
             forgetResumeToken();
+            // A tab that slept past its record's lifetime held nothing unsaved when it agreed to sleep: it loads the
+            // page again, where the reader left it, with nothing to say about it.
+            if (waking) {
+                waking = false;
+                sessionExpired = true;
+                saveRestorePoint();
+                location.reload();
+                return;
+            }
             showSessionExpired();
+            return;
+        }
+        waking = false;
+        // The server asks a tab out of sight to hibernate. Carries no html.
+        if (data.type === "hibernate") {
+            answerHibernation(data);
             return;
         }
         // The path we navigated to belongs to another application on this host (a mounted one, or the
@@ -710,8 +746,47 @@ import {
         enqueueRender(() => applyFullReply(data));
     }
 
+    // The server offers to let this tab's session go while it is out of sight. The offer carries a record sealed now,
+    // which the tab keeps whatever it answers. Yes only when the record carries everything that matters
+    // (rask-hibernate.ts); the server asks again later otherwise.
+    function answerHibernation(data: { resume?: unknown }): void {
+        if (typeof data.resume === "string") rememberResumeToken(data.resume);
+        const why = hibernationRefusal({
+            hidden: document.visibilityState === "hidden",
+            unsaved: holdsUnsaved() || holdsUnsent() || holdsEdits(root!),
+            media: mediaPlaying(document),
+            calls: jsCallsRunning + dotNetPending.size,
+            busy: document.documentElement.hasAttribute(BUSY_MARK),
+            waiting: queue.length + unacked.again().length,
+        });
+        hibernated = why === null;
+        // The close that follows is the runtime's own doing, never evidence that the network drops sockets.
+        if (hibernated) deliberateClose = true;
+        unasked(() => send(why === null ? {type: "hibernate", ok: true} : {type: "hibernate", ok: false, why}));
+    }
+
+    // The tab is looked at again. A hibernated tab connects, and the server rebuilds its page from the record; one
+    // whose session the server kept after all goes on with it.
+    function wake(): void {
+        if (!hibernated) return;
+        hibernated = false;
+        if (open || (conn && (conn.isOpen || conn.isConnecting))) return;
+        waking = true;
+        // What the reader does before the page is back waits; it would reach a page about to be redrawn.
+        setInert(true);
+        connect();
+    }
+
     function scheduleReconnect(code?: number): void {
         if (reconnectTimer !== null || sessionExpired) return;
+        // The server closed the connection the tab agreed to let go: nothing is wrong, and nothing is shown.
+        if (hibernated) {
+            open = false;
+            resetPending();
+            connecting(false);
+            if (document.visibilityState === "visible") wake();
+            return;
+        }
         connecting(true);
         // Dropped on purpose, to be opened again with the cookie as it is now: no backoff, and nothing on screen.
         // What the reader does meanwhile waits in the queue and leaves on the new connection.
@@ -1298,7 +1373,7 @@ import {
             if (httpConn && conn === httpConn) httpConn.leave();
         });
         window.addEventListener("online", function () {
-            if (open || sessionExpired) return;
+            if (open || sessionExpired || hibernated) return;
             if (reconnectTimer !== null) {
                 clearTimeout(reconnectTimer);
                 reconnectTimer = null;
@@ -1976,6 +2051,7 @@ import {
 
     function dispatchJsInvoke(inv: RaskFrameJsInvoke): void {
         if (!inv || typeof inv.identifier !== "string" || typeof inv.id !== "number") return;
+        jsCallsRunning++;
         // Hold scoped-JS invokes until (a) every user-Head-declared CDN dep has loaded AND
         // (b) the per-component <script src="/_rask/a/{hash}.js"> has executed (so
         // window.Rask.{TypeName} exists). The polling tick wakes parked invokes when the
@@ -1995,7 +2071,10 @@ import {
             (typeof inv.argsJson === "string") ? inv.argsJson : "[]",
             (typeof inv.resultType === "number") ? inv.resultType : 0,
             (typeof inv.targetInstanceId === "number") ? inv.targetInstanceId : 0,
-            (success, result, error) => sendJsResult(taskId, success, result, error));
+            (success, result, error) => {
+                jsCallsRunning--;
+                sendJsResult(taskId, success, result, error);
+            });
     }
 
     /**

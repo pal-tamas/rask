@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A tab hidden for five minutes hibernates: the server frees its session, and the page comes back when the tab
+  is shown (#1322).** Rask's answer to Blazor's circuit pause, with nothing to turn on and nothing stored on the
+  server. Before: a background tab held its component tree, DI scope and buffers for as long as its socket stayed
+  open — hours, on a memory-tight box. After: the server offers (`hibernate`, carrying a record sealed that moment),
+  the tab agrees only while it holds nothing the record cannot carry (unsent or unsaved input, playing media, an
+  interop call, an unanswered event), the session is disposed, and on `visibilitychange` the tab reconnects and the
+  page is rebuilt from its [resume record](docs/configuration.md#hibernating-hidden-tabs) — address and declared
+  `IPersistentState`, as after a restart; subscriptions and timers start again with the remount. Short of memory
+  (85 % of what the process may use) or of `MaxSessions` slots (90 %), the host asks tabs hidden 30 s, longest-hidden
+  first. On wherever `SessionResume` is; new metrics `rask.sessions.hibernated{trigger}` and
+  `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server

@@ -495,7 +495,11 @@ public sealed partial class OrdersPage(IPersistentState state) : Component
 {
     private string _filter = "";
 
-    protected override void OnMount() => state.TryGet<string>("filter", out _filter!);
+    protected override Task OnMount()
+    {
+        state.TryGet<string>("filter", out _filter!);
+        return Task.CompletedTask;
+    }
 
     private void Search(string term)
     {
@@ -545,6 +549,71 @@ the reconnect storm after a deploy sheds like ordinary traffic instead of walkin
 > on the volume the deploy already mounts) — see [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy).
 > Without it, every record is refused after a deploy and you are back to the reload. Watch
 > `rask.sessions.resume_rejected{reason="unprotect"}`: a spike right after a deploy is exactly that.
+
+## Hibernating hidden tabs
+
+A tab left in the background still holds its session: the component tree, the DI scope and the buffers a page
+costs ([sizing `MaxSessions`](#sizing-maxsessions-for-a-memory-budget)). Most of those tabs are never looked at
+again for hours. So a tab that has been **out of sight for five minutes hibernates**: the server lets its session
+go, and the tab gets its page back from its [resume record](#surviving-a-restart-or-a-redeploy) the moment it is
+shown again. It is Blazor's circuit pause, with nothing to turn on and nothing to store on the server — the record
+lives in the tab.
+
+```text
+tab hidden 5 min ──► server: {"type":"hibernate","resume":"…"}      offer, with a record sealed now
+                 ◄── tab:    {"type":"hibernate","ok":true}          only if it holds nothing the record cannot carry
+                     server closes the connection, disposes the session — its memory is free
+tab shown       ──► hello + record ──► page rebuilt: same address, declared state, a new session
+```
+
+**What comes back is what a restart brings back:** the page's address and what you declared through
+`IPersistentState`. The page is mounted again, so its subscriptions, timers and loads start again — nothing to
+re-establish by hand. Undeclared fields come back as the page's defaults, which is why the declaration matters:
+
+```csharp
+protected override Task OnMount()
+{
+    state.TryGet("step", out _step);
+    return Task.CompletedTask;
+}
+
+private void Next()
+{
+    _step++;
+    state.Persist("step", _step);   // a hidden wizard wakes on the same step
+}
+```
+
+**It waits while anything would be lost.** The tab says no — and is asked again a minute later — while it holds:
+
+- **input**: text typed into a field and not sent yet, a field edited away from what the page drew before the edit,
+  or a [`ConfirmLeave`](forms.md) form with edits no accepted submit carried. A guarded form decides for its own
+  fields: once it is saved, the page may hibernate even though its fields were edited;
+- **media**: a `<video>` or `<audio>` playing;
+- **interop**: a call into the browser under way, or a `DotNet.invokeMethodAsync` waiting for its answer;
+- **busy**: an event not answered yet, a frame waiting to be sent, the page still settling;
+- or it is **shown** again by the time the offer arrives.
+
+The server, for its part, does not offer while a handler is running or queued, a call for the browser is waiting
+to leave, a command is mid-write, or a sign-in is in flight; and never for a page that cannot be resumed — resume
+off, no Data Protection, a state bag over its 16 KB budget, a devtools panel.
+
+**When the host is short of memory or slots, it asks sooner.** Once memory in use passes 85 % of what the
+process may use (the container's limit, where there is one) or the store holds 90 % of `MaxSessions`, tabs hidden
+for 30 seconds are asked too — the longest-hidden first, enough to bring the store back to 80 % of the cap, or a
+quarter of them at a time for memory. The tab still decides: pressure never takes an unsaved edit.
+
+**Security is the record's:** sealed under its own data-protection purpose, bound to the user it was issued to,
+refused after `ResumeTokenLifetime` (1 hour by default, counted from the offer). A tab hidden longer than that
+reloads quietly where the reader left it when it is shown — it held nothing unsaved when it agreed to sleep. A
+"yes" the server did not ask for is ignored. Each tab is its own session with its own record, so other tabs of the
+same reader are untouched.
+
+**Nothing to configure.** It is on wherever [resume](#surviving-a-restart-or-a-redeploy) is, and
+`"SessionResume": false` turns both off. A tab the browser has frozen cannot answer, and keeps its session. Watch
+`rask.sessions.hibernated` and `rask.sessions.hibernation_deferred` ([observability](observability.md#metrics)).
+`dotnet run -c Release --project tests/Rask.Benchmarks -- session-hibernation` measures what one frees on your page
+and what rebuilding it costs.
 
 ## Sizing `MaxSessions` for a memory budget
 

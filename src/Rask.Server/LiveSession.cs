@@ -21,7 +21,7 @@ namespace Rask.Server;
 // Render/diff/payload pipeline + the IJSRuntime queue live in LiveSessionBase (Core), shared with
 // the WASM host. LiveSession adds the WebSocket transport: the socket lifecycle, reconnect/force-
 // resend, the dispatch lock, out-of-band sends, and the zero-copy double-buffered send dedup.
-internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
+internal sealed partial class LiveSession : LiveSessionBase, IAsyncDisposable
 {
     // Serialises individual RenderAndSendAsync calls within one handler dispatch. The dispatcher's
     // outer Lock pins single-handler-at-a-time; this inner gate keeps the mid-await render (on the
@@ -1225,7 +1225,11 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
     ///     The drain's deadline — the same one that aborts the socket, so the close is tried for exactly as
     ///     long as it could still reach the client.
     /// </param>
-    internal async Task CloseForShutdownAsync(CancellationToken ct)
+    internal Task CloseForShutdownAsync(CancellationToken ct) =>
+        CloseTransportAsync(LiveTransportClose.GoingAway, "server-shutdown", ct);
+
+    // Ends the open connection politely, behind the render lock — see CloseForShutdownAsync.
+    private async Task CloseTransportAsync(LiveTransportClose reason, string description, CancellationToken ct)
     {
         if (Volatile.Read(ref _transport) is not { IsOpen: true })
         {
@@ -1243,8 +1247,7 @@ internal sealed class LiveSession : LiveSessionBase, IAsyncDisposable
                 return;
             }
 
-            await transport.CloseAsync(
-                LiveTransportClose.GoingAway, "server-shutdown", ct).ConfigureAwait(false);
+            await transport.CloseAsync(reason, description, ct).ConfigureAwait(false);
         }
         finally
         {

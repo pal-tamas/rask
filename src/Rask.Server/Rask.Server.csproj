@@ -93,6 +93,8 @@
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <!-- Same surface as Rask.Server.Tests; a separate assembly so MetadataUpdaterSupport can be on. -->
     <InternalsVisibleTo Include="Rask.Server.HotReload.Tests"/>
+    <!-- The hibernation journey shortens the host's internal hibernation timings (SessionHibernationOptions). -->
+    <InternalsVisibleTo Include="Rask.Server.E2E.Tests"/>
     <!--
       The session-footprint / session-churn capacity reports construct real LiveSessions to measure
       per-session retained memory. LiveSession, LiveSessionStore.Create and RenderInitialRoot are all

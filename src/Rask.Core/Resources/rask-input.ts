@@ -269,6 +269,11 @@ function flushInputs(): void {
     noteTyping();
 }
 
+/** Whether something the reader typed or chose is still to be sent: a value waiting for an action, a pause, a frame. */
+export function holdsUnsent(): boolean {
+    return unsent.size > 0 || inputPending.size > 0 || held.size > 0 || counting(paused) || counting(asking);
+}
+
 export function flushInputsNow(): void {
     if (sending) return;
     if (inputRaf) {

@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using Rask.Server.Hibernation;
 
 namespace Rask.Server.Diagnostics;
 
@@ -19,6 +20,8 @@ public sealed class RaskMetrics : IDisposable
     private readonly Counter<long> _framesRejected;
     private readonly Counter<long> _sessionsResumed;
     private readonly Counter<long> _sessionsResumeRejected;
+    private readonly Counter<long> _sessionsHibernated;
+    private readonly Counter<long> _hibernationsDeferred;
     private readonly Histogram<double> _renderDuration;
     private readonly Histogram<long> _payloadBytes;
     private readonly Counter<long> _handlersDispatched;
@@ -64,6 +67,12 @@ public sealed class RaskMetrics : IDisposable
             "rask.sessions.resumed", "{session}", "Sessions rebuilt from a client's resume record.");
         _sessionsResumeRejected = _meter.CreateCounter<long>(
             "rask.sessions.resume_rejected", "{session}", "Resume records refused, tagged with the reason.");
+        _sessionsHibernated = _meter.CreateCounter<long>(
+            "rask.sessions.hibernated", "{session}",
+            "Sessions of a tab out of sight let go into the tab's resume record, tagged with what asked: hidden or pressure.");
+        _hibernationsDeferred = _meter.CreateCounter<long>(
+            "rask.sessions.hibernation_deferred", "{session}",
+            "Hibernations a tab or its session put off, tagged with why: shown, busy, input, media, interop or server.");
         _sessionsAbandonedAtDrain = _meter.CreateCounter<long>(
             "rask.shutdown.sessions.abandoned", "{session}",
             "Live sessions still connected when the shutdown drain budget ran out (their sockets were aborted).");
@@ -169,6 +178,14 @@ public sealed class RaskMetrics : IDisposable
     /// </summary>
     public void FrameRejected(string reason) =>
         _framesRejected.Add(1, new KeyValuePair<string, object?>("reason", reason));
+
+    /// <summary>Counts a session let go into its tab's resume record, tagged with what asked (<c>trigger</c>).</summary>
+    internal void SessionHibernated(HibernationTrigger trigger) =>
+        _sessionsHibernated.Add(1, new KeyValuePair<string, object?>("trigger", HibernationTriggers.Tag(trigger)));
+
+    /// <summary>Counts a hibernation put off, tagged with why (<c>reason</c>), one of a fixed few.</summary>
+    internal void HibernationDeferred(string reason) =>
+        _hibernationsDeferred.Add(1, new KeyValuePair<string, object?>("reason", reason));
 
     /// <summary>Counts a page rebuilt on a host that had never heard of the session, from the client's record.</summary>
     public void SessionResumed() => _sessionsResumed.Add(1);

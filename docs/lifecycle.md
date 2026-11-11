@@ -598,6 +598,13 @@ conceptually a *lifecycle hook* (unsubscribe from an event, stop a timer you sta
 
 <!-- demo:disposal-unmount -->
 
+## A hidden tab's page is mounted again
+
+A tab out of sight for five minutes [hibernates](configuration.md#hibernating-hidden-tabs): its session is
+disposed — every `OnUnmount` and `Dispose` runs — and the page is mounted again, from its address and its declared
+`IPersistentState`, when the tab is shown. So a subscription, a timer or a load started in `OnMount` starts again by
+itself; a value held only in a field comes back as its default. Persist what the reader would miss.
+
 ## Cancellation tied to component lifetime
 
 Every component exposes a `protected CancellationToken CancellationToken`. It's allocated lazily (a component that

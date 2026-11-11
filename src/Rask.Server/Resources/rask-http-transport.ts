@@ -392,7 +392,8 @@ export function openHttpConnection(options: HttpConnectionOptions): LiveConnecti
 
     const parse = createSseParser((event, data) => {
         if (event === "close") {
-            end(data === "server-shutdown" ? 1001 : data === "leave" || data === "session-unknown" ? 1000 : 1008, data);
+            end(data === "server-shutdown" ? 1001
+                : data === "leave" || data === "session-unknown" || data === "hibernate" ? 1000 : 1008, data);
             return;
         }
 

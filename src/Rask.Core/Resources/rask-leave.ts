@@ -159,6 +159,10 @@ if (page) {
         return dialog ? false : window.confirm(message);
     };
     seam.leave = ask;
+    // Whether a hidden tab holds edits no accepted submit carried, so it does not hibernate (rask-hibernate.ts).
+    seam.unsaved = function (): boolean {
+        return unsavedMessage(doc) !== null;
+    };
 
     const unloading = function (e: BeforeUnloadEvent): void {
         if (unsavedMessage(doc) === null) {

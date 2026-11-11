@@ -65,6 +65,7 @@ your user count.** Splitting a 200-row grid into pages of 20 buys more than a bi
 | --- | --- |
 | Brief network blip | Nothing. The socket reconnects against the intact session within `SessionGracePeriod` (30 s). |
 | A starved browser connects after `UnconnectedSessionGracePeriod` (10 s) | Nothing. The page's own [first-page record](configuration.md#surviving-a-restart-or-a-redeploy) rebuilds it where it stands instead of reloading it. |
+| Tab hidden for five minutes | Nothing until it is shown: its session [hibernated](configuration.md#hibernating-hidden-tabs) into the tab's record, freeing the server's memory, and the page is rebuilt when the tab is looked at again. |
 | Tab backgrounded past the grace period | The session is gone, but the page is [rebuilt from the client's resume record](configuration.md#surviving-a-restart-or-a-redeploy) — same route, whatever state the app declared. |
 | Deploy or restart | The departing host [hands clients over](deployment.md#the-shutdown-ladder): they reconnect immediately and rebuild, rather than sitting out a backoff and reloading. |
 | Host at capacity | New sessions get `503` + `Retry-After`; `/health` reports Degraded at 80% of `MaxSessions` so an orchestrator sheds first. |

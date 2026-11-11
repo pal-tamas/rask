@@ -352,6 +352,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
 - [Live pages](docs/render-modes.md): EVERY Rask.Server page is live — there are no render modes, no `[RenderMode]`, no static pages and no WebAssembly handover.
   The GET creates the session (a `503` when `MaxSessions` is full;
   one that never connects is released after `UnconnectedSessionGracePeriod`), renders, and answers `Cache-Control: no-store, no-cache, must-revalidate, private`.
+  A tab HIDDEN 5 min HIBERNATES (docs/configuration.md#hibernating-hidden-tabs): the server offers, the tab agrees only with no unsent/unsaved input, playing media, interop call or unanswered event, the session is disposed, and on show the page is rebuilt from the tab's resume record (address + `IPersistentState`; OnMount runs again) — sooner (30 s hidden, longest first) when memory is >85 % or the store >90 % of `MaxSessions`; nothing to configure, off with `SessionResume=false`.
   The initial GET waits for async data in waves up to `o.QuiescenceTimeout` (default 5 s, `Zero` disables;
   JS-blocked work and detached loops are not waited on;
   `Rask.Query` queries are);
@@ -1763,7 +1764,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Delegates/builders stay code-only (`AuthorizeRoom`, `ExcludeFromFallback`, `OnPrepareResponse`, `Run<T>()`, `AddBehavior`/`AddOpenBehavior`), and browser/WASM apps are code-only.
   OLD KEYS ARE SILENTLY IGNORED: `ConnectionStrings:App`/`Logs`, `Litestream:ReplicaUrl`, `Sqlite:SnapshotDirectory` (now `Rask:Snapshots:DestinationDirectory`), `WebPush:PublicKey`/`PrivateKey`/`Subject` (now `Rask:Push:VapidKeys:*`/`Subject`), `Mail:PickupDirectory`, flat `Rask:<ServerOption>` (now `Rask:Server:<Option>`);
   `UseRaskSqlite(sp)`/`UseRaskPostgres(sp)`/`AddRaskSqlite()`/`AddRaskLogging()` lost their connection-string parameter.
-  Also the live/server/upload option tables, shutdown drain, session resume and MaxSessions sizing.
+  Also the live/server/upload option tables, shutdown drain, session resume, hidden-tab hibernation and MaxSessions sizing.
   `Rask:Database:Provider` (sqlite|postgres|sqlserver) is read at registration by RaskApp, and by `UseRaskDatabase(sp)` when the context options are built.
 - [Deployment](docs/deployment.md): containerizing the apps — every template scaffolds, by default (`--no-docker` leaves it out), a production multi-stage Dockerfile (+ `.dockerignore`): the `server` template builds on the .NET SDK image and run on `aspnet:10.0` (non-root, port 8080, `UseHttpsRedirection` no-ops in-container so terminate TLS at the proxy and forward the WebSocket upgrade);
   the standalone `wasm` bundle publishes then serves from `nginx:alpine` with a bundled `nginx.conf` (SPA `try_files` fallback, `application/wasm` MIME, `gzip_static` for the baked `*.gz`).

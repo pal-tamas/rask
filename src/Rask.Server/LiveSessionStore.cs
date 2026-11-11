@@ -198,6 +198,11 @@ public sealed class LiveSessionStore : IAsyncDisposable
         {
             Interlocked.Decrement(ref _liveCount);
             _metrics?.SessionEvicted();
+            if (why == SessionRemoval.Hibernated)
+            {
+                _metrics?.SessionHibernated(session.Hibernation.Trigger);
+            }
+
             RecentRemovals.Add(id, why, limit, Clock.GetTimestamp());
             Lifecycle.Removed(session, why, limit, _sessions.Count);
             return session;
@@ -420,6 +425,14 @@ public sealed class LiveSessionStore : IAsyncDisposable
         if (session.Leaving)
         {
             ScheduleRemoval(session.Id, TimeSpan.Zero, SessionRemoval.Left);
+            return;
+        }
+
+        // The tab is out of sight and holds the page's record: the memory goes now, and the page comes back from the
+        // record when the tab is looked at again (SessionHibernation).
+        if (session.Hibernation.Agreed)
+        {
+            ScheduleRemoval(session.Id, TimeSpan.Zero, SessionRemoval.Hibernated);
             return;
         }
 
