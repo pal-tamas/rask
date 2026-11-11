@@ -17,6 +17,13 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A tap on a phone opens a tooltip, and the last end-aligned sort heading stands over its numbers again.** Before:
+  a finger's tooltip (`data-rask-tooltip`) closed again when the press the tap ends in landed a frame after the finger
+  did — on a busy page, or a person's ordinary 50–150 ms tap — so `Ui.Filter.Shown(names)`'s badge showed no names on a
+  phone; and the keyboard ring's 4px of room moved an end-aligned sortable last heading's words 4px in from its
+  numbers. After: a finger lifted within 300 ms is a tap and leaves the tooltip shown (one that rested longer still
+  hides it, as on Flux); and that heading's button ends on the frame's edge with its words, its inset ring
+  (`outline-offset: -2px`) needing no room past it. No tooltip after a mouse click closes a menu, as before.
 - **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
   gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
   max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its

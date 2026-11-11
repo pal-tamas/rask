@@ -1122,6 +1122,10 @@
   outside the scroll frame, and the ring there was cut. At that edge the button hangs nowhere and keeps 4px for the
   ring: the words stand 4px in from the cells under them, and nothing else moves. In `rask-ui-corrections`, above the
   button's own `-ms-2`/`-me-2`.
+
+  Except a last heading aligned to the end: its words end where its numbers end (TA, 2026-11-10), so its button
+  keeps no end padding and ends on the frame's edge with them. The ring needs no room there either — it is drawn
+  inside the button's own box (`outline-offset: -2px`, THE KEYBOARD RING), so nothing of it is past the frame.
 */
 @layer rask-ui-corrections {
   [data-ui-column]:first-child [data-ui-table-sortable] {
@@ -1132,6 +1136,10 @@
   [data-ui-column]:last-child [data-ui-table-sortable] {
     margin-inline-end: 0;
     padding-inline-end: 0.25rem;
+  }
+
+  [data-ui-column]:last-child.group\/end-align [data-ui-table-sortable] {
+    padding-inline-end: 0;
   }
 }
 

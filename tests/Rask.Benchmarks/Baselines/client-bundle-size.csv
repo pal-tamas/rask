@@ -689,3 +689,11 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133057
+# 2026-11-11, a finger's tap leaves its tooltip shown however many frames pass before it lifts (rask-hover.ts: a tap
+# is a finger lifted within TAP_MS, measured from its pointerdown to its pointerup, in place of the one-frame flag):
+# rask-hooks.js 133,057 -> 133,170 (+113); rask.js and rask.wasm.js unchanged. Measured locally with the bundle
+# gate's esbuild and flags (Release, --minify) on 87e509c03 with this change.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133170
