@@ -21,7 +21,7 @@ internal static class WorksheetWriter
             throw new ArgumentException($"Sheet '{sheet.Name}' has {sheet.Headings.Count} columns; Excel allows {MaxColumns}.", nameof(sheet));
         }
 
-        var rows = sheet.Rows.ToList();
+        var rows = sheet.Written.ToList();
         var last = $"{ColumnName(sheet.Headings.Count - 1)}{rows.Count + 1}";
 
         // the row that sums a fold up stands above it, as on the page; the headings stay while the rows scroll

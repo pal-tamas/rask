@@ -61,20 +61,4 @@ public static partial class Xlsx
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
-
-    /// <summary>One sheet of a workbook: its name, its heading row, its rows - and a last row that sums them all up, which no filter hides.</summary>
-    public sealed class Sheet(string name, IReadOnlyList<string> headings, IEnumerable<IReadOnlyList<object?>> rows, IReadOnlyList<object?>? total = null)
-    {
-        /// <summary>The name on the sheet's tab: at most 31 characters, none of <c>[ ] : * ? / \</c>.</summary>
-        public string Name { get; } = name;
-
-        /// <summary>The heading row.</summary>
-        public IReadOnlyList<string> Headings { get; } = headings;
-
-        /// <summary>The rows below the headings.</summary>
-        public IEnumerable<IReadOnlyList<object?>> Rows { get; } = rows;
-
-        /// <summary>The last row, which sums the others up.</summary>
-        public IReadOnlyList<object?>? Total { get; } = total;
-    }
 }

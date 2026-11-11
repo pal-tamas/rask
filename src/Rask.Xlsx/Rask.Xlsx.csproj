@@ -7,9 +7,9 @@
     <IsPackable>true</IsPackable>
 
     <PackageId>Rask.Xlsx</PackageId>
-    <Title>Rask.Xlsx — an Excel workbook from a list of rows</Title>
-    <Description>Writes an Excel workbook (.xlsx) from headings and rows with nothing but System.IO.Compression: bold frozen headings with a sort-and-filter button, fitted columns, amounts with thousands, days and moments, rows folded under the one before them, and a total row that follows the filter. Xlsx.Write(sheet, headings, rows) returns the file's bytes. Zero dependencies; runs on the server and in the browser.</Description>
-    <PackageTags>xlsx excel spreadsheet export openxml workbook dotnet net10</PackageTags>
+    <Title>Rask.Xlsx — an Excel workbook from a list of rows, and back</Title>
+    <Description>Writes an Excel workbook (.xlsx) from headings and rows with nothing but System.IO.Compression: bold frozen headings with a sort-and-filter button, fitted columns, amounts with thousands, days and moments, rows folded under the one before them, and a total row that follows the filter. Xlsx.Write(sheet, headings, rows) returns the file's bytes; Xlsx.Read(file) reads a sheet back with a cell by its heading (row["Litres"]), dates from their number format and merged multi-row headings with HeadingsOn(3, 4). Zero dependencies; runs on the server and in the browser.</Description>
+    <PackageTags>xlsx excel spreadsheet export import reader openxml workbook dotnet net10</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
