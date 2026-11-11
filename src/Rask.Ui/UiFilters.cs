@@ -79,7 +79,9 @@ public sealed partial class UiFilters : Component
                 _presses.Add(clearAll);
             }
 
-            return Div.Class("flex flex-wrap items-center gap-2").Data(BadgesMarker.With(null))[
+            // Never wider than the row it is placed in, nor kept from narrowing by its words: a badge that says a long
+            // list (TA's forty vehicles) is cut off with an ellipsis instead of giving the page a sideways scrollbar.
+            return Div.Class("flex min-w-0 max-w-full flex-wrap items-center gap-2").Data(BadgesMarker.With(null))[
                 KeyedBadges(active),
                 clearAll?[RaskStrings.Get(RaskString.FiltersClearAll, "Clear all")]
             ];
@@ -165,7 +167,8 @@ public sealed partial class UiFilters : Component
         // One box, so a header row that spreads its children apart places the button and not the closed panel.
         return Div.Class("flex shrink-0 items-center").Data(Marker.With(null))[
             Ui.ModalTrigger.Name(name)[
-                Ui.Button.Sm.Icon(Ui.IconName.Funnel)[
+                // The kit's own button size, as tall as the buttons a list's header places beside it.
+                Ui.Button.Icon(Ui.IconName.Funnel)[
                     RaskStrings.Get(RaskString.Filters, "Filters"),
                     // The count as Flux draws one beside a label (its nav bar badge): 8px after the words, a 20px block.
                     active == 0 ? null : UiNavItemMarkup.Badge(active.ToString(CultureInfo.CurrentCulture), null, null, "ms-2 inline-block", marked: false)
@@ -198,10 +201,24 @@ public sealed partial class UiFilters : Component
 
     private Component Badge(UiFilterEntry entry, object key)
     {
-        var remove = Ui.BadgeClose.AriaLabel(RaskStrings.Get(RaskString.FilterRemove, "Remove filter {0}", entry.Label)).OnClick(() => RemoveAsync(entry));
+        var remove = Ui.BadgeClose.AriaLabel(RaskStrings.Get(RaskString.FilterRemove, "Remove filter {0}", entry.Label))
+            .Class("shrink-0")
+            .OnClick(() => RemoveAsync(entry));
         _presses.Add(remove);
 
-        return Ui.Badge.Sm.Key(key)[entry.Words, remove];
+        // The words give way to the row's width and end in an ellipsis; the cross keeps its size, so a cut-off badge
+        // can still be taken off.
+        var words = entry.Words;
+        var badge = Ui.Badge.Sm.Class("min-w-0 max-w-full");
+
+        // A filter of several names says how many, and lists every one in a tooltip that wraps. Any other carries the
+        // whole of its words in its title, for the ellipsis.
+        return entry.Names is { } names
+            ? Ui.Tooltip.Key(key).Class("min-w-0 max-w-full")[
+                badge[Span.Class("truncate")[words], remove],
+                Ui.TooltipContent.Class("max-w-xs whitespace-normal break-words")[string.Join(", ", names)]
+            ]
+            : badge.Title(words).Key(key)[Span.Class("truncate")[words], remove];
     }
 
     // The id of the table the set drives — its own, or one the set gives it — written as aria-controls on the badge

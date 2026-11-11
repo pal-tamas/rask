@@ -19549,3 +19549,4 @@ Rask.Core.Globalization.RaskString.ChartColumnSeries = 252 -> Rask.Core.Globaliz
 Rask.Core.Globalization.RaskString.ChartColumnRow = 253 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ChartColumnDate = 254 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ChartColumnLabel = 255 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FiltersSelectedCount = 256 -> Rask.Core.Globalization.RaskString

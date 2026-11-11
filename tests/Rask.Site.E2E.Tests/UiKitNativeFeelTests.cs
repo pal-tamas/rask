@@ -184,29 +184,4 @@ public sealed class UiKitNativeFeelTests(WasmExampleAppFixture app, PlaywrightFi
         await Expect(element).ToBeAttachedAsync(new LocatorAssertionsToBeAttachedOptions { Timeout = 15_000 });
         return await element.EvaluateAsync<string>("(el, key) => getComputedStyle(el)[key]", property);
     }
-
-    // A phone's screen — touch and a phone's viewport — for the length of `body`, then the desktop page back.
-    private async Task OnAPhoneAsync(Func<Task> body)
-    {
-        var desktop = Page;
-        await using var phone = await desktop.Context.Browser!.NewContextAsync(new BrowserNewContextOptions
-        {
-            BaseURL = BaseUrl,
-            ViewportSize = new ViewportSize { Width = 390, Height = 844 },
-            IsMobile = true,
-            HasTouch = true,
-        });
-        await phone.RouteAsync("**://fonts.googleapis.com/**", route => route.AbortAsync());
-        await phone.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
-        Page = await phone.NewPageAsync();
-        await SlowMachine.ApplyAsync(Page);
-        try
-        {
-            await body();
-        }
-        finally
-        {
-            Page = desktop;
-        }
-    }
 }

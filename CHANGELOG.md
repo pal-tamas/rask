@@ -7,6 +7,48 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
+  the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
+  wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
+  Case III MXM120"), two or more by their count ("Vehicles: 40 selected", the new `RaskString.FiltersSelectedCount`,
+  „40 kiválasztva”) with every name in a tooltip on the badge that wraps and stays on the screen (hover, keyboard
+  focus, a tap). A literal `Shown(null)` is now ambiguous between the two steps: leave the step out, or write
+  `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
+
+### Fixed
+- **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
+  gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
+  max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its
+  size, so a cut-off badge can still be taken off.
+- **The `Ui.Filters` "Filters" button is the kit's default button size** (40px, was `Sm`'s 32px), as tall as the
+  `Ui.Button`s and `Ui.Toggle`s a list's header places beside it.
+- **A sortable `Ui.TableColumn.End` ends its heading where its numbers end.** Before: the sort button's end padding
+  stayed in (the edge rule that keeps it inside the heading outweighed the pull meant to take it back), so TA's
+  "Liter" heading stood 8px left of its right-aligned numbers. After: an end-aligned sort button gives up its end
+  padding, and heading and cells share one edge, at 1280 and 390.
+### Fixed
+- **Rask.Ui's keyboard focus ring is the app's accent, and nothing clips it.** Before: a button, tab, link, nav item,
+  checkbox, radio or switch kept the browser's blue ring (Flux leaves it to the browser), drawn OUTSIDE the control —
+  on TA's list, Safari's blue glow round `Ui.RowActions`' ⋯ in the table's sticky last cell, cut in half by the
+  table's scroll frame. After: every element the keyboard focuses draws 2px of `--color-accent` inside its own box
+  (one zero-weight `:where(:focus-visible)` rule in `@layer rask`, so an app's own buttons and links follow and any
+  utility still wins), a box, radio or switch on what the reader sees of it, inside it too (a selection box in a
+  table's first column sits on the scroll frame's edge); a primary button, a ticked box, a switch that is on, a chosen
+  pill tab, day or preset adds a band of `--color-accent-foreground` inside the ring so it shows on the accent fill;
+  a sort button in a table's first or last heading no longer hangs past the scroll frame (its words stand 4px in). `:focus-visible` only — a press draws nothing. An owner-approved departure from Flux
+  (flux-component's list); `flux parity` / `flux parity-focus` hold it. `UiKeyboardRingTests`, and an E2E sweep that
+  Tabs through every control of the kit's showcase pages and TA's list shape on the Server host, at 1280 and 390,
+  light and dark: every ring the accent, none cut by a box around it (`UiKitKeyboardRingTests`, `KeyboardRingTests`).
+- **A kit tooltip no longer opens when focus comes back to its trigger after a menu closes.** Before: on a list whose
+  `Ui.RowActions` ⋯ wears the tooltip "Actions", opening its menu with the mouse and closing it — a pick, a click
+  outside, or Escape — handed focus back to the ⋯, which Chrome and WebKit count as `:focus-visible`, so the tooltip
+  opened and stayed until the next click. After: `data-rask-tooltip` (`rask-hover.ts`) opens a tooltip on focus only
+  when the keyboard moved it there — a Tab, an arrow key, a shortcut's `focus()` — never when it is handed back by a
+  closing popover or dialog, or by a script after a press; a tooltip the pointer showed over a trigger that merely has
+  focus leaves with the pointer. As Flux UI's does (measured on its editor's link button, `flux tooltip-focus-return`).
+  Every kit tooltip, both hosts.
+
 ### Changed
 - **A refused submit takes the reader to the first mistake, on both hosts.** Before: the rules failing, or a save
   throwing field failures, drew the messages and left focus on the Save button — a keyboard or screen-reader user had
@@ -20,6 +62,15 @@ them until tagged releases begin.
   moves into the new page's `<main>` (or its `<h1>`, or the `#fragment`'s element), the new `<title>` is announced in a
   polite live region (Back and Forward included), and the bar shows only for an answer slower than 150 ms (Livewire's
   value), drawn in `--color-accent` with Rask's purple as the fallback, and still for `prefers-reduced-motion`.
+- **A search that asks the page feels like Flux's: it asks sooner, spins at once, and its create row waits.** Before: a
+  select's, pillbox's or `.Choices(find)`'s search asked 250 ms after the last key and its field spun 200 ms after that
+  (~450 ms), and a create row could be pressed while the answer was still on its way. After: it asks after 150 ms
+  (Livewire's `wire:model.live`, measured on fluxui.dev); a list's search field takes `data-loading` and its spinner
+  the moment the question leaves (`data-rask-loading-now`, which any element can carry — buttons keep the 200 ms
+  delay); and `Ui.SelectOptionCreate` / `Ui.PillboxOptionCreate` is `aria-disabled`, stepped over by the keys and refuses
+  a click while a search is out, and once pressed spins and holds the list open until its handler is done — one option made, however
+  often it is pressed. An empty list still says "Loading..." while a search is out (Flux keeps "No results found":
+  an owner-approved departure). The docs' and site's searches answer with the best twenty (`.Take(20)`), as Flux's.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
@@ -200,6 +251,13 @@ them until tagged releases begin.
   confirmation, and the stopped statuses; Retry no longer resets a job whose last attempt is still running.
   **Upgrade:** two new columns, `Stopped` and `StartedAt`: `rask db add AddJobStop && rask db update` (until then the
   processor logs exactly that). See [docs/jobs.md](docs/jobs.md#stop-a-job-give-it-a-limit-read-a-lane).
+- **Rask.Jobs' stop, limits and lane view are proven on SQL Server and PostgreSQL** (the provider gate,
+  `Rask.Providers.E2E.Tests`' `SqlServerJobStopTests`/`PostgresJobStopTests`). Before: only SQLite ran them. After, on
+  each server: the `AddJobStop` migration over a table that already holds pending, running, processed and dead-lettered
+  jobs (the missing-column hint first, every row kept with `Stopped`/`StartedAt` null, the due ones run); `Jobs.Lanes`
+  as one query; a stop of a running and of a waiting lane job; a time limit and an idle limit cut at the watch's tick;
+  the first reason standing when a stop and a limit meet; a row deleted or marked done from outside; `int`/`integer`
+  and `datetime2`/`timestamptz` round trips.
 - **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
   sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
   scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen

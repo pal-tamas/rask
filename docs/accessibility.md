@@ -220,6 +220,21 @@ rather than the focus, the runtime also scrolls the named row back into view whe
 and in a virtualized tree — where that row is not rendered at all — it scrolls to where the row will be,
 which is what loads it.
 
+## The focus ring
+
+Rask.Ui rings whatever the keyboard focuses in the app's accent (`--color-accent`, resolved for light and dark):
+2px laid **inside** the control's own box (`outline-offset: -2px`), so a table's scroll frame, a sidebar or a dialog
+never cuts it — a row's ⋯ in a table's sticky last cell is ringed whole. It is `:focus-visible` only, as the browser
+judges it, so a press with the mouse draws nothing. A checkbox, radio or switch is ringed on the box the reader sees
+— a selection box in a table's first column too; where the fill IS the accent (a primary button, a ticked box, a
+switch that is on, a chosen pill tab or day) a 2px band of `--color-accent-foreground` lies inside the ring so it
+still shows. A field draws its own accent ring: its border and
+an inset 1px ring.
+
+The rule is one zero-weight `:where(:focus-visible)` in the kit's `@layer rask`, so your own buttons and links are
+ringed in your accent too, and any utility of yours (`focus-visible:outline-*`, `outline-hidden`) wins. Menu rows and
+listbox options are lit rather than ringed, as Flux UI's are.
+
 ## Menus
 
 An element with `role="menu"` is a list with a cursor inside it, and the cursor is where FOCUS is: the row the

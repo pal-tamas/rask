@@ -32,6 +32,9 @@ public static class Departed
         // 2026-10-14: Ui.Table's scroll frame — the box holding the <table> itself — is `relative`, so it holds what
         // its cells place absolutely.
         new((example, node) => example.ChildrenOf(node).Any(c => c.Tag == "table"), ["position"]),
+        // 2026-11-10, THE KEYBOARD RING (ui.css): a sort button in a table's first or last heading does not hang into the
+        // gutter past the scroll frame's edge, where its ring would be cut; it stands 4px in from that edge instead.
+        new((example, node) => Marked(node, ["data-ui-table-sortable"]), ["marginLeft", "marginRight", "paddingLeft", "paddingRight", "width"]),
         // 2026-11-02, NATIVE FEEL (ui.css): a control selects no text, waits for no second tap and opens no long-press
         // callout. `user-select` inherits in Blink, so what is inside a control computes it too.
         new((example, node) => example.WithAncestors(node).Any(n => Chrome(example, n)), ["userSelect", "webkitUserSelect", "touchAction", "webkitTouchCallout"]),
@@ -49,7 +52,7 @@ public static class Departed
     ///     2026-11-03, A FOCUSED FIELD (ui.css): the kit rings a focused field in the accent — no outline, the border and
     ///     an inset 1px ring in <c>--color-accent</c> — where Flux leaves the browser's own outline. parity-focus holds
     ///     these of its cases to that ring in every step where Flux's field draws one; a button, tab, checkbox, radio or
-    ///     switch is not among them and keeps Flux's ring.
+    ///     switch is not among them: it draws THE KEYBOARD RING (<see cref="KeyboardRing" />).
     /// </summary>
     public static readonly IReadOnlySet<string> FocusAccent = new HashSet<string>(StringComparer.Ordinal)
     {
@@ -84,12 +87,27 @@ public static class Departed
     public static List<string> From(Example example, MeasuredNode node) =>
         Departures.Where(d => d.Matches(example, node)).SelectMany(d => d.Keys).ToList();
 
-    /// <summary>The style keys whose <c>:focus-visible</c> change may differ from Flux's on the kit's <paramref name="node" />: a field ringed in the accent.</summary>
+    /// <summary>
+    ///     2026-11-10, THE KEYBOARD RING (ui.css): every other control the keyboard focuses is ringed in the accent — 2px,
+    ///     inside its box (round a box, radio, switch or toggle), with a band of the accent's foreground where the fill is
+    ///     the accent — where Flux leaves the browser's own outline. parity-focus holds its other cases to that ring.
+    /// </summary>
+    public static readonly IReadOnlySet<string> KeyboardRing = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "button", "checkbox", "radio", "switch", "tabs", "navlist item", "dropdown trigger",
+    };
+
+    private static readonly string[] RingKeys = ["outlineStyle", "outlineWidth", "outlineColor", "outlineOffset", "boxShadow"];
+
+    /// <summary>
+    ///     The style keys whose <c>:focus-visible</c> change may differ from Flux's on the kit's <paramref name="node" />: a
+    ///     field ringed in the accent, and every other node's outline and inset band (THE KEYBOARD RING).
+    /// </summary>
     public static IReadOnlyList<string> FocusFrom(MeasuredNode node)
     {
         var field = (node.Tag is "input" or "textarea" or "select" && node.Has("data-ui-control") && !Untyped.Contains(node.Attr("type") ?? "\0"))
             || Marked(node, FocusFields) || Marked(node, FocusParts);
-        return field ? FocusKeys : [];
+        return field ? FocusKeys : RingKeys;
     }
 
     private static bool Marked(MeasuredNode node, string[] names) => names.Any(node.Has);

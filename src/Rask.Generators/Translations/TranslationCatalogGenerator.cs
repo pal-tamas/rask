@@ -300,6 +300,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("ChartColumnRow", 0),
         ("ChartColumnDate", 0),
         ("ChartColumnLabel", 0),
+        ("FiltersSelectedCount", 1),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

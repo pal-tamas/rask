@@ -70,6 +70,29 @@ public sealed partial class SameLabelFiltersPage : Component
     }
 }
 
+/// <summary>
+///     TA's list header: the Filters button beside a plain button and a toggle, and one badge that names forty vehicles,
+///     longer than any row it is placed in.
+/// </summary>
+[Route("/ui-filters-tests/long-badge")]
+public sealed partial class LongBadgePage : Component
+{
+    /// <summary>The forty vehicles, as the badge says them.</summary>
+    internal static readonly string Vehicles =
+        string.Join(", ", Enumerable.Range(1, 40).Select(n => "Vehicle " + n.ToString("00", CultureInfo.InvariantCulture)));
+
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[Ui.Filter.Label("Vehicles").Shown(Vehicles)];
+
+        return Main[
+            Div[filters, Ui.Button.Id("export")["Export"], Ui.Toggle.Id("archived").Icon(Ui.IconName.ArchiveBox)],
+            filters.Badges
+        ];
+    }
+}
+
 /// <summary>A filter box over a <c>bool?</c> member: an absent key is the box left unticked.</summary>
 [Route("/ui-filters-tests/nullable-box")]
 public sealed partial class NullableBoxPage : Component
@@ -376,6 +399,127 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void A_long_badge_is_cut_off_with_an_ellipsis_and_says_the_whole_of_it_in_its_title()
+    {
+        var page = Page.Visit("/ui-filters-tests/long-badge");
+
+        var row = page.Find("[data-ui-filters-badges]");
+        var badge = page.Find("[data-ui-filters-badges] > [data-ui-badge]");
+        var words = page.Find("[data-ui-filters-badges] > [data-ui-badge] > span");
+        var remove = page.Find("[data-ui-filters-badges] > [data-ui-badge] > [data-ui-badge-close]");
+
+        Assert.Equal("Vehicles: " + LongBadgePage.Vehicles, badge.Attribute("title"));
+        Assert.Equal("Vehicles: " + LongBadgePage.Vehicles, words.TextContent);
+        Assert.Contains("truncate", Classes(words));
+        Assert.Contains("min-w-0", Classes(badge));
+        Assert.Contains("max-w-full", Classes(badge));
+        Assert.Contains("shrink-0", Classes(remove));
+        Assert.Contains("min-w-0", Classes(row));
+        Assert.Contains("max-w-full", Classes(row));
+    }
+
+    [Fact]
+    public void The_filters_button_is_as_tall_as_a_default_button_and_a_toggle_beside_it()
+    {
+        var page = Page.Visit("/ui-filters-tests/long-badge");
+
+        var filters = Classes(page.Find("[data-ui-filters] [data-ui-modal-trigger] button"));
+        var export = Classes(page.Find("#export"));
+        var toggle = Classes(page.Find("#archived"));
+
+        Assert.Contains("h-10", filters);
+        Assert.DoesNotContain("h-8", filters);
+        Assert.Contains("h-10", export);
+        Assert.Contains("[:where(&)]:size-10", toggle);
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("hu")]
+    public void A_filter_handed_no_names_is_not_in_force(string language)
+    {
+        var page = InLanguage(language, () => NamedFilter([]));
+
+        var badges = page.Exists("[data-ui-filters-badges]");
+
+        Assert.False(badges);
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("hu")]
+    public void A_filter_handed_one_name_says_it_with_the_whole_of_it_in_its_title(string language)
+    {
+        var page = InLanguage(language, () => NamedFilter(["00001 - Case III MXM120"]));
+
+        var badge = page.Find("[data-ui-filters-badges] > [data-ui-badge]");
+
+        Assert.Equal("Vehicles: 00001 - Case III MXM120", badge.Attribute("title"));
+        Assert.Equal("Vehicles: 00001 - Case III MXM120", page.TextOf("[data-ui-filters-badges] [data-ui-badge] > span"));
+        Assert.False(page.Exists("[data-ui-filters-badges] [data-ui-tooltip]"));
+    }
+
+    [Theory]
+    [InlineData("en", 2, "Vehicles: 2 selected")]
+    [InlineData("hu", 2, "Vehicles: 2 kiválasztva")]
+    [InlineData("en", 40, "Vehicles: 40 selected")]
+    [InlineData("hu", 40, "Vehicles: 40 kiválasztva")]
+    public void A_filter_handed_several_names_counts_them_and_lists_every_one_in_a_tooltip(string language, int count, string says)
+    {
+        var names = Enumerable.Range(1, count).Select(n => "Van " + n.ToString("00", CultureInfo.InvariantCulture)).ToList();
+        var page = InLanguage(language, () => NamedFilter(names));
+
+        var words = page.TextOf("[data-ui-filters-badges] > [data-ui-tooltip] > [data-ui-badge] > span");
+        var tooltip = page.TextOf("[data-ui-filters-badges] > [data-ui-tooltip] > [data-ui-tooltip-content]");
+        var badge = page.Find("[data-ui-filters-badges] > [data-ui-tooltip] > [data-ui-badge]");
+
+        Assert.Equal(says, words);
+        Assert.Equal(string.Join(", ", names), tooltip);
+        Assert.Null(badge.Attribute("title"));
+        Assert.Contains("whitespace-normal", Classes(page.Find("[data-ui-tooltip-content]")));
+        Assert.Contains("max-w-xs", Classes(page.Find("[data-ui-tooltip-content]")));
+    }
+
+    [Fact]
+    public void A_text_shown_after_the_names_is_the_filters_words_and_has_no_tooltip()
+    {
+        // A page that says the filter in its own words after the names, as a later branch of its render would.
+        var filter = Ui.Filter.Label("Vehicles").Shown(["A", "B", "C"]);
+        filter.Shown("every van");
+        var filters = Ui.Filters[filter];
+        var page = Page.Render(() => Main[filters.Badges]);
+
+        var words = page.TextOf("[data-ui-filters-badges] [data-ui-badge] > span");
+
+        Assert.Equal("Vehicles: every van", words);
+        Assert.False(page.Exists("[data-ui-tooltip]"));
+    }
+
+    private static Component? NamedFilter(IEnumerable<string> names)
+    {
+        var filters = Ui.Filters[Ui.Filter.Label("Vehicles").Shown(names)];
+        return Main[filters, filters.Badges];
+    }
+
+    // The filter is built in the language, as a page is: what its badge says is decided as it is written.
+    private static Page InLanguage(string language, Func<Component?> render)
+    {
+        var before = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(language);
+        try
+        {
+            return Page.Render(render);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = before;
+        }
+    }
+
+    private static string[] Classes(Rask.Testing.HtmlNode element) =>
+        (element.Attribute("class") ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+    [Fact]
     public void A_filter_with_no_children_is_a_badge_alone()
     {
         var filter = Ui.Filter.Label("Tag").Shown("Urgent");
@@ -388,7 +532,7 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
     [Fact]
     public void A_filter_with_a_control_draws_it_in_the_panel()
     {
-        var filter = Ui.Filter.Label("Tags").Shown(null)[Ui.Input.Of<string>().Label("Tags")];
+        var filter = Ui.Filter.Label("Tags").Shown((string?)null)[Ui.Input.Of<string>().Label("Tags")];
 
         var html = filter.ToHtml();
 

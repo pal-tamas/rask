@@ -79,6 +79,8 @@
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\Repository.cs" Link="Infrastructure\Repository.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\SlowMachine.cs" Link="Infrastructure\SlowMachine.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\KeyboardRing.cs" Link="Infrastructure\KeyboardRing.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\TooltipWalk.cs" Link="Infrastructure\TooltipWalk.cs"/>
     <Compile Include="..\Rask.Ui.Tests\Live\ReportColumnsDraft.cs" Link="ReportColumnsDraft.cs"/>
   </ItemGroup>
 

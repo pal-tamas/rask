@@ -58,4 +58,19 @@ public sealed class FieldLoadingTests
         Assert.False(after);
         Assert.True(buttonBusy);
     }
+
+    [Fact]
+    public void A_field_that_says_now_is_marked_the_moment_its_question_leaves_and_a_button_still_waits_the_delay()
+    {
+        var root = Run();
+
+        var now = root.GetProperty("now");
+
+        Assert.True(now.GetProperty("atOnce").GetBoolean());
+        Assert.False(now.GetProperty("busy").GetBoolean());
+        Assert.False(now.GetProperty("otherAtOnce").GetBoolean());
+        Assert.True(now.GetProperty("still").GetBoolean());
+        Assert.False(now.GetProperty("afterEnd").GetBoolean());
+        Assert.False(now.GetProperty("quickLeft").GetBoolean());
+    }
 }

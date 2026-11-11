@@ -147,10 +147,26 @@ departure in behaviour carries none.
   accent at `:focus-visible` — inside their own box, so no `overflow` around them clips it; red stays red when
   invalid. A box holding a typed field (date/time typed parts, colour picker, pillbox) is ringed while its input
   has focus; a typed date/time part is lit by a 1px accent outline inside the box. Buttons, tabs, checkboxes, radios
-  and switches keep the browser's keyboard ring, as Flux's; a trigger pressed by the mouse draws nothing, as Flux's.
+  and switches draw THE KEYBOARD RING (2026-11-10, below); a trigger pressed by the mouse draws nothing, as Flux's.
   `flux parity-focus` holds those steps to the accent ring instead of Flux's outline (`Departed.FocusAccent` in
   `scripts/flux/Flux/Lib/Departed.cs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
   (Server E2E: a field in a table row in a flyout, unclipped).
+- **2026-11-10 — THE KEYBOARD RING (`THE KEYBOARD RING` in `Styles/ui.css`, `@layer rask`, `:where(:focus-visible)`).**
+  Flux leaves keyboard focus on a button, tab, link, nav item, checkbox, radio or switch to the browser: a blue `auto`
+  ring drawn OUTSIDE the control, which an `overflow` frame cuts (TA, Safari: `Ui.RowActions`' ⋯ in a table's sticky
+  last cell). The kit draws `outline: 2px solid var(--color-accent)` at `outline-offset: -2px` — the app's accent, inside
+  the control's box, never clipped — on every element the keyboard focuses (an app's own too; any utility wins, so menu
+  rows and options keep Flux's `outline-hidden`). A box, radio or switch (a label round a hidden input) draws the
+  same ring on what the reader sees (`UiFocusLook.Ring`, inside: a box in a table's first column sits on the scroll
+  frame's edge); the toggle loses its `outline-offset-2`. Where the fill IS the accent (a primary button, a ticked
+  box, a switch that is on, a chosen pill, pill tab, day or preset) a 2px band of `--color-accent-foreground` lies
+  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST or LAST heading hangs no 8px into the
+  gutter past the scroll frame there (Flux's `-ms-2`/`-me-2`): it keeps 4px for the ring instead, so those words stand
+  4px in from the cells under them (`ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and
+  width go). A press draws nothing, as Flux's. `flux parity` lets the outline keys and `boxShadow` go on
+  a forced `:focus-visible` (`Departed.FocusFrom`); `flux parity-focus` holds its other cases to that ring
+  (`Departed.KeyboardRing`). `UiKeyboardRingTests` (the rule), `KeyboardRingTests` (Server E2E) and the site's
+  `UiKitKeyboardRingTests` (every focusable Tabbed to, at 1280 and 390, light and dark: the accent, unclipped).
 - **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the
   paginator. The kit can keep them in the address: a heading's press writes the sorted column and direction (Flux's
   cycle — another column ascending, the sorted one turned round), `PageIn` draws `Ui.Pagination` of links (always, as
@@ -159,7 +175,7 @@ departure in behaviour carries none.
   unchanged. `UiTableAddressTests`, the site's `ui-table-list` E2E.
 - **2026-11-04 — `Search` on `Ui.Select` and `Ui.Pillbox` (#1284).** Flux's backend search is the page's `$search`, a
   query over it and `:filter="false"`. The kit holds it: `.Search(async typed => …)` asks for "" on mount and the trimmed
-  text at a 250 ms pause, drops an answer to an older question, keeps every picked option FIRST in the list while a search
+  text at a 150 ms pause (250 ms until 2026-11-10), drops an answer to an older question, keeps every picked option FIRST in the list while a search
   misses it (Flux leaves that to the query), and runs the first search on mount even for a select never opened (owner,
   2026-11-05: keep). Only those two depart. Waiting is Flux's, measured 2026-11-05 on its backend-search examples
   (`/select` #15, `/pillbox` #6, answers held back 2.5 s): the rows drawn stay; a combobox shows a size-5 zinc-400 spinner
@@ -168,6 +184,16 @@ departure in behaviour carries none.
   by CSS from `data-rask-list-loading` so the row's text stays Flux's. The runtime marks a field whose search went at
   its pause `data-loading` too. `flux parity-select` holds the open lists. `FluxConformanceTests.Translations` row `flux:select/Search` (the pillbox's `search` is a Flux slot name already);
   `UiSelectAskedSearchTests`, the site's `ui-select-server` E2E.
+- **2026-11-10 — a search that asks the page says "Loading..." while it is out.** Flux (measured on fluxui.dev's
+  backend-search examples, 2026-11-10) goes on saying "No results found" in an empty list until the answer comes; the
+  kit's empty row says `when-loading` ("Loading...", `Ui.SelectOptionEmpty.WhenLoading`) from the moment the question
+  leaves — owner's call: "No results" for a question not yet answered is wrong. Everything else of the wait is Flux's,
+  measured the same day: the question leaves 150 ms after the last key (`wire:model.live`, `UiSearchPause.Asked`), the
+  field takes `data-loading` and its spinner at once (`data-rask-loading-now`, rask-loading.ts), and the create row is
+  disabled (`aria-disabled`, stepped over by the keys, a click refused by rask-clicks.ts, and the select makes nothing of
+  a create that reaches it while its search or another create is out) and spins once pressed until it is done, the
+  list held open meanwhile (rask-list.ts). `UiSelectAskedSearchTests`, `UiSearchWaitTests`, `FieldLoadingTests`,
+  `CreateRowClickTests`, `CreateRowWaitsTests` (Server E2E), the site's `ui-select-create-search` E2E.
 - **2026-11-04 — a list's pieces (#1298): `Ui.FormButtons`, `Ui.RowActions`, `UiTableColumn.Width`, `UiTableCell.Cut`.**
   Both apps kept near-copies. `Ui.FormButtons` is Flux's form footer (`flex gap-2`, spacer, ghost Cancel — a link back —,
   primary Save, a danger Delete at the start), `Ui.RowActions` IS the row's last cell (`Ui.TableCell.End`, `py-0`, sticky on `Ui.Main`'s surface) holding Flux's table

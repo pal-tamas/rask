@@ -33,6 +33,12 @@ public sealed partial class UiFiltersPage : Component
             UiDocsExample.Key("ui-filters-own").Heading("A filter of your own").File("UiFiltersPage.Filter.cs").Demo(FilterExample()).Testid("ui-filters-own")
                 .Blurb("Ui.Filter carries a filter the set cannot read from a control, such as a select of several "
                        + "answers: the page says what it is called, what it holds and how it is taken off."),
+            UiDocsExample.Key("ui-filters-long").Heading("Many names, long words").File("UiFiltersPage.Long.cs").Demo(LongFilterExample()).Testid("ui-filters-long")
+                .Blurb("Handed names, .Shown(names) says one by its name and two or more by their count — \"Vehicles: 40 "
+                       + "selected\" — listing every one in a tooltip that opens on hover, keyboard focus or a tap. A badge "
+                       + "never makes the page wider than the screen: words longer than the row end in an ellipsis, the whole "
+                       + "of them in the badge's title, and its cross stays in reach. The Filters button is as tall as the "
+                       + "buttons and toggles a list's header places beside it."),
             UiFiltersBehaviour
         ];
 }

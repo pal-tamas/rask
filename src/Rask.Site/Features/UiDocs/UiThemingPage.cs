@@ -77,7 +77,11 @@ public sealed partial class UiThemingPage : Component
                        + "zinc-800, and white in dark mode."),
             CodeBlock.Source(AccentSnippet).Language("css"),
             Ui.Text.Sm.Subtle["The names are Flux's: --color-accent, --color-accent-content and "
-                              + "--color-accent-foreground, light in @theme and dark under .dark."]
+                              + "--color-accent-foreground, light in @theme and dark under .dark."],
+            Ui.Text["The accent also rings whatever the keyboard focuses — a button, a tab, a link, a "
+                    + "box, a field: 2px of --color-accent laid inside the control's own box, so a table's scroll frame "
+                    + "or a sidebar never cuts it, with a band of --color-accent-foreground inside it where the fill is "
+                    + "the accent. A press draws no ring. Press Tab on this page to see it."]
         ],
         UiDocsSection.Key("font").Heading("Font")[
             Ui.Text["Rask.Ui is drawn in Inter, as Flux is, and its charts lay their labels out with Inter's metrics. "

@@ -31,9 +31,9 @@ public sealed partial class SelectChoicesExample : Component
             ]
         ];
 
-    // The store's answer: the best eight for what was typed — a query, here over a list.
+    // The store's answer: the best twenty for what was typed, as Flux's backend search takes — a query, here over a list.
     private static Task<IReadOnlyList<Ui.Choice<int>>> Drivers(string typed) =>
-        Task.FromResult<IReadOnlyList<Ui.Choice<int>>>([.. PartnerStore.Named(typed).Take(8).Select(p => new Ui.Choice<int>(p.Id, p.Name))]);
+        Task.FromResult<IReadOnlyList<Ui.Choice<int>>>([.. PartnerStore.Named(typed).Take(20).Select(p => new Ui.Choice<int>(p.Id, p.Name))]);
 
     public sealed class Delivery
     {

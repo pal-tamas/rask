@@ -94,8 +94,8 @@ internal static class UiPillboxLook
     internal static string TriggerSize(bool small) =>
         small ? "min-h-6 py-1 ps-1 pe-2 rounded-md text-sm" : "min-h-10 py-[7px] ps-[7px] pe-3 rounded-lg text-base sm:text-sm";
 
-    /// <summary>The trigger that holds an input: a text cursor, and the browser's own ring while the input has focus.</summary>
-    internal const string TriggerWithInput = "cursor-text focus-within:[outline:-webkit-focus-ring-color_auto]";
+    /// <summary>The trigger that holds an input: a text cursor. The ring while the input has focus is the accent's (A FOCUSED FIELD, ui.css).</summary>
+    internal const string TriggerWithInput = "cursor-text";
 
     /// <summary>
     ///     The trigger with nothing to type into, which a press opens: the hand, as every pressable kit part shows

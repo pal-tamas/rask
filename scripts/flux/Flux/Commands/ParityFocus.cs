@@ -206,7 +206,10 @@ public sealed partial class ParityFocus : IFluxCommand
                 var step = steps[at];
                 var both = await Task.WhenAll(new[] { "flux", "rask" }.Select(side => Walk(step, side)));
                 var (theirs, mine) = (both[0], both[1]);
-                var diffs = Departed.FocusAccent.Contains(step.Test.Name) && Rings(theirs).Count > 0 ? Accented(theirs, mine) : CompareRings(theirs, mine, step.Engine);
+                var diffs = Rings(theirs).Count == 0 ? CompareRings(theirs, mine, step.Engine)
+                    : Departed.FocusAccent.Contains(step.Test.Name) ? Accented(theirs, mine)
+                    : Departed.KeyboardRing.Contains(step.Test.Name) ? KeyboardRinged(theirs, mine)
+                    : CompareRings(theirs, mine, step.Engine);
                 results[at] = new Result(step, theirs, mine, diffs);
             }
         }));
@@ -365,6 +368,32 @@ public sealed partial class ParityFocus : IFluxCommand
             if (!outline || !shadow || !border)
             {
                 diffs.Add($"not the accent ring on {S(r, "on")}: {S(r, "outline")} | {S(r, "boxShadow")} | {S(r, "border")}");
+            }
+        }
+
+        return diffs;
+    }
+
+    // THE KEYBOARD RING (Departed.KeyboardRing): where Flux's control draws the browser's outline, the kit's draws 2px
+    // solid in the accent, and nothing else but the band of the accent's foreground inside an accent fill. Where focus
+    // is, and :focus-visible, are still Flux's.
+    private static List<string> KeyboardRinged(JsonObject flux, JsonObject mine)
+    {
+        var diffs = new List<string>();
+        Placed(flux, mine, diffs);
+        var ring = $"solid 2px {S(mine, "accent")} ";
+        if (!Rings(mine).Any(r => S(r, "outline").StartsWith(ring, StringComparison.Ordinal)))
+        {
+            diffs.Add($"no keyboard ring ({ring.Trim()})");
+        }
+
+        foreach (var r in Rings(mine))
+        {
+            var outline = S(r, "outline") == "none" || S(r, "outline").StartsWith(ring, StringComparison.Ordinal);
+            var shadow = S(r, "boxShadow") == "(unchanged)" || S(r, "boxShadow").Contains("0px 0px 0px 4px inset", StringComparison.Ordinal);
+            if (!outline || !shadow || S(r, "border") != "(unchanged)")
+            {
+                diffs.Add($"not the keyboard ring on {S(r, "on")}: {S(r, "outline")} | {S(r, "boxShadow")} | {S(r, "border")}");
             }
         }
 

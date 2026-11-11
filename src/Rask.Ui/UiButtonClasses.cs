@@ -57,7 +57,7 @@ internal static class UiButtonClasses
     internal static string Variant(Ui.ButtonVariant variant, bool hued) => (variant, hued) switch
     {
         (Ui.ButtonVariant.Primary, _) =>
-            "bg-accent hover:bg-accent/90 [:where(&)]:text-accent-foreground border border-black/10 dark:border-0",
+            "bg-accent hover:bg-accent/90 [:where(&)]:text-accent-foreground border border-black/10 dark:border-0 " + UiFocusLook.OnAccent,
         (Ui.ButtonVariant.Danger, _) =>
             "bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500 [:where(&)]:text-white",
         (Ui.ButtonVariant.Filled, false) =>

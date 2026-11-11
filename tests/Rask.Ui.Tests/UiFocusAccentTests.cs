@@ -2,8 +2,8 @@ namespace Rask.UiTests;
 
 /// <summary>
 ///     A FOCUSED FIELD (owner, 2026-11-03): a focused field draws no browser outline but its border and an INSET ring in
-///     the app's accent, which no frame around it can clip; a button, tab, checkbox, radio or switch keeps the
-///     browser's keyboard ring. Read from the COMPILED sheet.
+///     the app's accent, which no frame around it can clip; a button, tab, checkbox, radio or switch draws THE KEYBOARD
+///     RING instead (UiKeyboardRingTests). Read from the COMPILED sheet.
 /// </summary>
 public sealed class UiFocusAccentTests
 {
@@ -16,7 +16,7 @@ public sealed class UiFocusAccentTests
         "[data-ui-color-picker-button]", "[data-ui-pillbox-trigger]", "[data-ui-color-picker-trigger]",
     ];
 
-    private static readonly string[] KeepTheBrowsersRing =
+    private static readonly string[] RingedByTheKeyboardRing =
         ["[data-ui-button]", "[data-ui-tab]", "[data-ui-checkbox]", "[data-ui-radio]", "[data-ui-switch]", "[data-ui-navlist-item]"];
 
     [Fact]
@@ -45,13 +45,13 @@ public sealed class UiFocusAccentTests
     }
 
     [Fact]
-    public void A_box_or_a_tick_keeps_the_browsers_keyboard_ring()
+    public void A_box_or_a_tick_is_not_ringed_as_a_field()
     {
         var rule = AccentRule();
 
         var selector = rule.Selector;
 
-        Assert.All(KeepTheBrowsersRing, part => Assert.DoesNotContain(part, selector, StringComparison.Ordinal));
+        Assert.All(RingedByTheKeyboardRing, part => Assert.DoesNotContain(part, selector, StringComparison.Ordinal));
         Assert.Contains("[type=checkbox]", selector, StringComparison.Ordinal);
         Assert.Contains("[type=radio]", selector, StringComparison.Ordinal);
     }

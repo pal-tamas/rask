@@ -97,7 +97,28 @@ advance(LOADING_DELAY_MS);
 const buttonBusy = button.hasAttribute("aria-busy");
 endLoading(pressed);
 
+// A list's search field says it waits the moment its question leaves (`data-rask-loading-now`); a button beside it
+// still waits the delay out.
+const search = new Field("INPUT", {"data-rask-on-pause": "h5", "data-rask-loading-now": ""});
+const asked = beginLoading(search as unknown as Element, null, false);
+const nowAtOnce = search.hasAttribute("data-loading");
+const nowBusy = search.hasAttribute("aria-busy");
+const other = new Field("BUTTON", {});
+const otherTicket = beginLoading(other as unknown as Element);
+const otherAtOnce = other.hasAttribute("data-loading");
+advance(LOADING_DELAY_MS);
+const nowStill = search.hasAttribute("data-loading");
+endLoading(asked);
+endLoading(otherTicket);
+const nowAfterEnd = search.hasAttribute("data-loading");
+
+// Answered within the same frame, it is marked and unmarked: nothing of the mark is left behind.
+const quick = new Field("INPUT", {"data-rask-loading-now": ""});
+endLoading(beginLoading(quick as unknown as Element, null, false));
+const quickLeft = quick.hasAttribute("data-loading");
+
 report({
+    now: {atOnce: nowAtOnce, busy: nowBusy, otherAtOnce, still: nowStill, afterEnd: nowAfterEnd, quickLeft},
     target,
     beforeDelay,
     duringLoading,

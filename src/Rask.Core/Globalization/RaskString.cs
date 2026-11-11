@@ -812,4 +812,10 @@ public enum RaskString
 
     /// <summary>The heading of a <c>Ui.Chart</c>'s rows named by a label, in the table of its rows.</summary>
     ChartColumnLabel,
+
+    /// <summary>
+    ///     What a filter badge says after its label when the filter holds two or more names
+    ///     (<c>Ui.Filter.Shown(names)</c>). <c>{0}</c> is how many.
+    /// </summary>
+    FiltersSelectedCount,
 }
