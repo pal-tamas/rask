@@ -5,16 +5,18 @@ using Microsoft.Extensions.Caching.Memory;
 namespace Rask.Providers.E2E.Tests;
 
 /// <summary>
-/// SQL Server, proved without a server: the tenant in flight is a typed literal in the SQL, so each tenant gets a
-/// plan of its own instead of the first tenant's sniffed plan (TA, A11). Execution needs a host that can run the
-/// image, which Apple Silicon cannot — <see cref="SqlServerTenantPlanExecutionTests" /> runs on ci/release.
+/// SQL Server, proved without a server: the tenant in flight is a typed PARAMETER, and Across names none. Until EF
+/// Core 11 it was a literal, so each tenant got a plan of its own instead of the first tenant's sniffed plan (TA, A11);
+/// EF Core 11 refuses EF.Constant in a query filter, and getting per-tenant plans back is #1321. Execution needs a host
+/// that can run the image, which Apple Silicon cannot — <see cref="SqlServerTenantPlanExecutionTests" /> runs on
+/// ci/release.
 /// </summary>
 public sealed class SqlServerTenantPlanTests
 {
     private const string Offline = "Server=(local);Database=rask_translation_only;Trusted_Connection=True";
 
     [Fact]
-    public void The_tenant_filter_is_in_the_model_and_names_the_tenant_as_a_guid_literal()
+    public void The_tenant_filter_is_in_the_model_and_binds_the_tenant_as_a_guid_parameter()
     {
         using var db = SqlServerContext();
         var tenant = Guid.NewGuid();
@@ -26,12 +28,13 @@ public sealed class SqlServerTenantPlanTests
         }
 
         Assert.NotNull(db.Model.FindEntityType(typeof(Ledger))!.FindProperty(Columns.TenantId));
-        Assert.Contains($"[l].[TenantId] = '{tenant}'", sql, StringComparison.Ordinal);
-        Assert.DoesNotContain("@", sql, StringComparison.Ordinal);
+        Assert.Contains("[l].[TenantId] = @", sql, StringComparison.Ordinal);
+        Assert.Contains($"= '{tenant}';", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain(" OR ", sql, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void A_numbered_tenant_is_an_int_column_compared_with_an_int_literal()
+    public void A_numbered_tenant_is_an_int_column_compared_with_an_int_parameter()
     {
         using var db = SqlServerContext();
 
@@ -42,8 +45,8 @@ public sealed class SqlServerTenantPlanTests
         }
 
         Assert.Equal("int", db.Model.FindEntityType(typeof(Depot))!.FindProperty(Columns.TenantId)!.GetColumnType());
-        Assert.Contains("[d].[TenantId] = 987654", sql, StringComparison.Ordinal);
-        Assert.DoesNotContain("@", sql, StringComparison.Ordinal);
+        Assert.Contains("[d].[TenantId] = @", sql, StringComparison.Ordinal);
+        Assert.Contains("int = 987654;", sql, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -123,8 +126,8 @@ public sealed class SqlServerTenantPlanTests
             }
         }
 
-        // EF Core 10 keeps the literal out of the compiled-query key and renders it when the command is built.
-        Assert.Equal(1, cache.Count - before);
+        // One compiled query and the SQL it renders for a tenant in flight: the count does not grow with the tenants.
+        Assert.InRange(cache.Count - before, 1, 2);
     }
 
     [Fact]

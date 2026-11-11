@@ -212,7 +212,7 @@ test ! -d /root/.dotnet || { echo 'a bad flag still installed an SDK'; exit 1; }
 
 # --- 7. the Windows twin, as far as a Linux box can take it -------------------------------------
 # Nobody working on this repo runs Windows, so rask.ps1 would otherwise ship having never been
-# executed at all. PowerShell arrives as a dotnet tool rather than from the powershell image, which
+# executed at all. PowerShell comes with the SDK image (a dotnet tool where it does not), not the powershell image, which
 # publishes no arm64 manifest — this way the case runs on an Apple Silicon laptop and on CI alike.
 #
 # The Windows-only halves are switched off deliberately: USERPROFILE/LOCALAPPDATA do not exist here
@@ -223,7 +223,9 @@ test ! -d /root/.dotnet || { echo 'a bad flag still installed an SDK'; exit 1; }
 run_case "rask.ps1's control flow and tool install work" "$pwsh_image" "
 set -eu
 export DOTNET_CLI_HOME=/root
-dotnet tool install --global PowerShell >/dev/null
+# The SDK image ships pwsh already; the tool is the fallback for one that does not. (On sdk:11.0 the
+# tool's newest release, 7.7.0, names a powershell.linux-x64 package nuget.org does not serve.)
+command -v pwsh >/dev/null || dotnet tool install --global PowerShell >/dev/null
 export PATH=\"/root/.dotnet/tools:\$PATH\"
 
 # -NoPath is deliberately NOT passed: a 'User'-scope PATH write is a Windows registry concept, and

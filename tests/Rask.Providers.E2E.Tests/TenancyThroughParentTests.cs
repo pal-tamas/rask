@@ -147,8 +147,9 @@ public sealed class SqlServerTenancyThroughParentTests : IAsyncLifetime
         Assert.Equal(2, where.Split("EXISTS (").Length - 1);
         Assert.Contains("[through_parent].[Driver]", where, StringComparison.Ordinal);
         Assert.Contains("[through_parent].[Vehicle]", where, StringComparison.Ordinal);
-        Assert.Contains($"[TenantId] = N'{_acme}'", where, StringComparison.Ordinal);
-        Assert.DoesNotContain("@", where, StringComparison.Ordinal);
+        // A parameter since EF Core 11, which refuses EF.Constant in a query filter (#1321). The Across arm still folds
+        // away: no " = 1" for it.
+        Assert.Contains("[TenantId] = @", where, StringComparison.Ordinal);
         Assert.DoesNotContain(" = 1", where, StringComparison.Ordinal);
     }
 
