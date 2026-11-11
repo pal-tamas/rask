@@ -487,6 +487,20 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
     }
 
     [Fact]
+    public async Task A_tap_that_outlasts_a_few_frames_still_leaves_the_tooltip_shown()
+    {
+        await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright, Phone);
+        var page = session.Page;
+        var cdp = await page.Context.NewCDPSessionAsync(page);
+
+        await FingerDownAsync(cdp, page, "#tip-trigger", held: 80);
+        await FingerUpAsync(cdp, page);
+
+        // A person's tap is down 50-150 ms, several frames: the owner's tap opens the tooltip however busy the page.
+        Assert.True(await session.ShownAsync("#bubble"), "a tap did not leave the tooltip shown");
+    }
+
+    [Fact]
     public async Task Once_a_finger_has_shown_a_tooltip_no_finger_shows_one_again_until_a_mouse_moves()
     {
         await using var session = await HookSession.OpenAsync<PointerHookPage>(playwright, Phone);
@@ -507,15 +521,15 @@ public sealed class RuntimeHookPointerTests(PlaywrightFixture playwright) : ICla
         Assert.True(afterMouse);
     }
 
-    // A finger put down on the middle of `selector` and held there; a tap would be over within one frame.
-    private static async Task FingerDownAsync(ICDPSession cdp, IPage page, string selector)
+    // A finger put down on the middle of `selector` and held there, longer than a tap (rask-hover.ts's TAP_MS).
+    private static async Task FingerDownAsync(ICDPSession cdp, IPage page, string selector, int held = 500)
     {
         await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object>
         {
             ["type"] = "touchStart",
             ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = await CenterX(page, selector), ["y"] = await CenterY(page, selector) } },
         });
-        await page.WaitForTimeoutAsync(100);
+        await page.WaitForTimeoutAsync(held);
     }
 
     // The finger lifted, and the click the browser makes of it come.

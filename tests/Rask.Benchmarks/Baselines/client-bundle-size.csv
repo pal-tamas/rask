@@ -697,6 +697,14 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133057
+# 2026-11-11, a finger's tap leaves its tooltip shown however many frames pass before it lifts (rask-hover.ts: a tap
+# is a finger lifted within TAP_MS, measured from its pointerdown to its pointerup, in place of the one-frame flag):
+# rask-hooks.js 133,057 -> 133,170 (+113); rask.js and rask.wasm.js unchanged. Measured locally with the bundle
+# gate's esbuild and flags (Release, --minify) on 87e509c03 with this change.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133170
 # 2026-11-11, the tall row menu merged with origin/main's tooltip focus-return work (rask-hover.ts, +233 on top of
 # the blocks above): measured locally on 5f4851bb9 with the bundle gate's esbuild 0.28.2 and flags (--minify):
 # rask-hooks.js 133,057 -> 133,290; rask.js and rask.wasm.js unchanged.
@@ -704,3 +712,18 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133290
+# 2026-11-11, the tap that leaves a tooltip shown (+113, above) merged with the tall row menu block: measured locally
+# on the merged tree (Release, the bundle gate's esbuild and --minify): rask-hooks.js 133,290 -> 133,403; rask.js and
+# rask.wasm.js unchanged.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133403
+# 2026-11-11, a control the keyboard reaches is revealed whole in its scroll area (data-rask-reveal-focus, rask-focus.ts):
+# measured locally on the merged tree (Release, the bundle gate's esbuild and --minify): rask-hooks.js 133,403 -> 133,810
+# (+407, the focusin listener and revealIn); rask.js 114,364 -> 114,377 and rask.wasm.js 99,729 -> 99,742 (+13 each,
+# " reveal-focus" in the hook loader's attribute list).
+bundle,bytes
+rask.js,114377
+rask.wasm.js,99742
+rask-hooks.js,133810
