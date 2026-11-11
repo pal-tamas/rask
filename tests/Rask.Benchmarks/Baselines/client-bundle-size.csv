@@ -697,3 +697,10 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133057
+# 2026-11-11, the tall row menu merged with origin/main's tooltip focus-return work (rask-hover.ts, +233 on top of
+# the blocks above): measured locally on 5f4851bb9 with the bundle gate's esbuild 0.28.2 and flags (--minify):
+# rask-hooks.js 133,057 -> 133,290; rask.js and rask.wasm.js unchanged.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133290
