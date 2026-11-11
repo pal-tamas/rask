@@ -205,7 +205,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(0, exit);
         var all = runner.Invocations.ToList();
         int Lock = all.FindIndex(i => i.Arguments.Contains(ProxyCommands.LockContainer));
-        int Unlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
+        int Unlock = all.FindIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
         int Gate = all.FindIndex(i => i.Arguments.Contains("container:demo-green"));
         int Reload = all.FindIndex(i => i.Arguments.Contains("reload"));
         int Relist = all.FindLastIndex(Reload, i => i.Arguments.Contains("ps"));
@@ -236,8 +236,8 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(["--host", "deploy@box", "--domain", "demo.example.com", "--app", "demo"], CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Equal(3, attempts);
-        Assert.Contains("Another deploy is switching the proxy on this box (eszaf from ci-runner at 2026-10-20 09:14:03Z)", console.OutText, StringComparison.Ordinal);
+        Assert.Equal(4, attempts); // two refused, the switch's, and the clean-up's
+        Assert.Contains("Another deploy is using this box's shared proxy or disk (eszaf from ci-runner at 2026-10-20 09:14:03Z)", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(0, exit);
         Assert.True(box.HasNetwork);
         var meaningful = order.Where(step => step != "other").ToList();
-        Assert.Equal(["lock", "create", "start", "lock"], meaningful);
+        Assert.Equal(["lock", "create", "start", "lock", "lock"], meaningful); // the last: the clean-up once it serves
     }
 
     [Fact]

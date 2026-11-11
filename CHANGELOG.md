@@ -36,6 +36,14 @@ them until tagged releases begin.
   while the page has yet to answer, and when nothing tells the page at all: a local gesture still sends nothing.
   A reader's close the page heard and answered with "still open" now opens it again — set the field in
   `OnClose` / `OnToggle`, as the docs always said.
+- **`rask deploy` no longer fills the box's disk.** Before: every deploy left the image it replaced as `:previous`
+  and the one before that untagged, with its build cache, and nothing removed them — a shared VPS running two apps
+  reached 350 GB of 368 GB (255 images, 1401 build-cache entries, 288.7 GB). After: a deploy that serves runs
+  `docker image prune -f` (dangling only — never `-a`, so every `:current`/`:previous` and rollback stay) and
+  `docker builder prune -af --reserved-space 20GB` (there `-a` removes no image, and without it the shared cache
+  records — 199.7 of 221 GB on that box — are never pruned) under the box's deploy lock, and says what they freed; a failing
+  prune only warns. Before it builds it refuses a box with under 3 GiB free (warns under 10 GiB) and prints what
+  to run, and `rask deploy status` shows the free and reclaimable space.
 - **The keyboard ring reaches the controls it missed, and nothing cuts it.** Before: a typed date's month, day and
   year hung their ring a pixel outside the row of parts that clips them; a `Ui.Input` file field drew nothing (its
   input is hidden, and "Choose file" was not told); a browser date field lost its ring on its calendar button; and
