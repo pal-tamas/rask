@@ -17,7 +17,7 @@ import "./rask-place.js";    // data-rask-place
 import "./rask-menu.js";     // data-rask-menu-pointer, data-rask-safe-area
 import "./rask-field.js";    // data-rask-copy / -focus / -clear / -mask / -mask-money / -big-step
 import "./rask-keys.js";     // data-rask-contain-keys, data-rask-listbox-button, data-rask-roving
-import "./rask-focus.js";    // data-rask-focus-follows / -focus-target, aria-activedescendant, data-rask-press-keeps-focus
+import "./rask-focus.js";    // data-rask-focus-follows / -focus-target, aria-activedescendant, data-rask-press-keeps-focus, data-rask-reveal-focus
 import "./rask-toggle.js";   // data-rask-toggle, aria-expanded on a popover's invokers
 import "./rask-drag.js";     // data-rask-drag, data-rask-drag-inset
 import "./rask-requires.js"; // data-rask-requires

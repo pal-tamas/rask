@@ -40,6 +40,33 @@ internal static class XmlText
         return escaped.ToString();
     }
 
+    /// <summary>Text as a workbook holds it, with Excel's <c>_x0001_</c> escapes read back into the characters they stand for.</summary>
+    public static string Unescape(string text)
+    {
+        var at = text.IndexOf("_x", StringComparison.OrdinalIgnoreCase);
+        if (at < 0)
+        {
+            return text;
+        }
+
+        var plain = new StringBuilder(text.Length);
+        plain.Append(text, 0, at);
+        while (at < text.Length)
+        {
+            if (text[at] == '_' && LooksLikeEscape(text, at))
+            {
+                plain.Append((char)int.Parse(text.AsSpan(at + 2, 4), NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+                at += 7;
+            }
+            else
+            {
+                plain.Append(text[at++]);
+            }
+        }
+
+        return plain.ToString();
+    }
+
     private static bool NeedsEscape(string text)
     {
         for (var at = 0; at < text.Length; at++)

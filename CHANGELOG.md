@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
+  (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
+  { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
+  and browser. Cells come back as the writer's own types (`string`, `decimal`, `bool`, `Xlsx.Day`/`Xlsx.Moment` from the
+  cell's date format in 1900 and 1904 workbooks, a formula's cached value); `HeadingsOn` spreads merged headings and
+  joins two heading rows into one name. `Sheet.Rows` is now `IEnumerable<Xlsx.Row>` (a row is still an
+  `IReadOnlyList<object?>`). Bounded against zip bombs, no DTD. A heading several columns share (a title merged
+  across them, read as the headings) throws naming those columns and the way out (`HeadingsOn`, or `row[0]`).
+  Guide: rask.sh/docs/xlsx.
 - **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
   the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
   wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
@@ -27,6 +36,17 @@ them until tagged releases begin.
   while the page has yet to answer, and when nothing tells the page at all: a local gesture still sends nothing.
   A reader's close the page heard and answered with "still open" now opens it again — set the field in
   `OnClose` / `OnToggle`, as the docs always said.
+- **The keyboard ring reaches the controls it missed, and nothing cuts it.** Before: a typed date's month, day and
+  year hung their ring a pixel outside the row of parts that clips them; a `Ui.Input` file field drew nothing (its
+  input is hidden, and "Choose file" was not told); a browser date field lost its ring on its calendar button; and
+  at a phone's width a table's last heading or row button, or a scrollable navbar's last link, took the focus half
+  past the frame, ring cut, since the browser leaves a control it can partly see where it is. After: the date part
+  is ringed inside itself, "Choose file" and an upload's dropzone draw the accent ring inside, a date or time field
+  stays ringed while anything in it has the focus, and a table's scroll area and a `Ui.Navbar.Scrollable()` bring a
+  control the keyboard reaches whole into view (`data-rask-reveal-focus`). The navbar docs' wide examples scroll.
+- **`Xlsx.Write` writes a day before 1 March 1900 as the day Excel shows.** Before: `new Xlsx.Day(new DateTime(1900, 1, 1))`
+  opened as 2 January 1900, because Excel counts a 29 February 1900 that never was. After: the serial skips that day,
+  as Excel's does, and `Xlsx.Read` reads it back as the same day.
 - **A tap on a phone opens a tooltip, and the last end-aligned sort heading stands over its numbers again.** Before:
   a finger's tooltip (`data-rask-tooltip`) closed again when the press the tap ends in landed a frame after the finger
   did — on a busy page, or a person's ordinary 50–150 ms tap — so `Ui.Filter.Shown(names)`'s badge showed no names on a
@@ -72,6 +92,18 @@ them until tagged releases begin.
   Every kit tooltip, both hosts.
 
 ### Changed
+- **A refused submit takes the reader to the first mistake, on both hosts.** Before: the rules failing, or a save
+  throwing field failures, drew the messages and left focus on the Save button — a keyboard or screen-reader user had
+  to hunt for what was wrong, on a tab `Ui.FormTabs` had just switched to. After: focus moves to the first field marked
+  `aria-invalid="true"` (in document order, on screen, inside a kit control's wrapper if the mark is there) and it is
+  scrolled into view — after the refused tab is shown — unless the reader moved focus elsewhere while the submit was
+  in flight. The form renders its refusal count (`data-rask-refused`) so the runtime tells a refusal from a save.
+- **A WebAssembly navigation is focused and announced as a Server one is, and the progress bar waits 150 ms in the
+  app's accent.** Before: on WASM a link left focus on the link that was gone and said nothing to a screen reader, and
+  the Server host's top bar waited 300 ms and was always purple. After: one runtime module serves both hosts — focus
+  moves into the new page's `<main>` (or its `<h1>`, or the `#fragment`'s element), the new `<title>` is announced in a
+  polite live region (Back and Forward included), and the bar shows only for an answer slower than 150 ms (Livewire's
+  value), drawn in `--color-accent` with Rask's purple as the fallback, and still for `prefers-reduced-motion`.
 - **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
   a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:
   ArrowDown on a ⋯ that has a `Ui.Tooltip` (every `Ui.RowActions` has one) did nothing. Focus from the keyboard shows

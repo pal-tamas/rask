@@ -453,10 +453,11 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
     {
         base.WriteAttributes(sb);
         Delegate? submit;
+        EditContext? ctx = null;
         var validated = Model is not null || Context is not null;
         if (validated)
         {
-            var ctx = ResolveContext();
+            ctx = ResolveContext();
             submit = BuildSubmitBridge(ctx);
             ctx.SubmitHandler = submit;
         }
@@ -474,6 +475,14 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
                 // model has none: nothing of the page's stands between a field the browser calls invalid
                 // and that handler, so the browser's own refusal of the submit is left standing (rask-input.ts).
                 AppendAttr(sb, "data-rask-unvalidated", null);
+            }
+
+            // How many submits the form has refused: a submit whose answer moves it was refused, and the runtime
+            // takes the reader to the first invalid field (rask-first-invalid.ts). Rides the render the submit
+            // already causes, as data-rask-saved does.
+            if (ctx is { Refusals: > 0 and var refusals })
+            {
+                AppendAttr(sb, "data-rask-refused", refusals);
             }
         }
 

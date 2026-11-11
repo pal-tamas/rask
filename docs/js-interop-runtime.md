@@ -516,6 +516,7 @@ the page DID hear and answered with "still open" is opened again: set the field 
 | `data-rask-focus-follows` + `data-rask-focus-target` | a container, and the one element in it that should hold focus | When a render moves the target mark — or replaces the element that carried it — while focus is ON that element, the new target is focused. Focus anywhere else is never taken. A render that leaves no target in that container lets focus fall where the browser drops it — another container's target is never taken, so two calendars on a page keep to themselves. (No kit calendar asks for it any more: `data-rask-calendar` keeps its own focus.) |
 | `aria-activedescendant` | a `[role=combobox]` or `[role=listbox]` | When it changes, the option it names is scrolled into view inside its nearest scrolling ancestor, by the least movement; the page never scrolls. (A `[role=tree]` has its own rule, which also handles virtualized rows.) |
 | `data-rask-press-keeps-focus` | any element | A mouse press on it or inside it does not move focus. |
+| `data-rask-reveal-focus` | a scroll area (a `Ui.Table`'s, a `Ui.Navbar.Scrollable()`) | A control inside it focused from the keyboard (`:focus-visible`) is scrolled whole into the area's view, by the least movement on each axis; nothing else scrolls, and a press scrolls nothing. |
 
 ### Gestures, capabilities and uploads
 

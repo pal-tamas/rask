@@ -38,9 +38,9 @@ public sealed partial class RowActionsLongMenuExample : Component
                             .View(Routes.UiTablePage())
                             .Edit(Routes.UiFormButtonsPage())
                             .Remove(() => _pumps.Remove(pump), "Delete pump", $"Delete {pump}?")[
-                                Ui.MenuGroup.Key("read").Heading("Read")[Reads.Select(what => Ui.MenuItem.Key(what).OnClick(() => { _asked = $"{pump}: {what}."; })[what])],
-                                Ui.MenuGroup.Key("write").Heading("Write")[Writes.Select(what => Ui.MenuItem.Key(what).OnClick(() => { _asked = $"{pump}: {what}."; })[what])],
-                                Ui.MenuGroup.Key("stopping")[Ui.MenuItem.Key("stop").Danger.Icon(Ui.IconName.StopCircle).OnClick(() => { _asked = $"{pump}: stopped."; })["Stop"]]
+                                Ui.MenuGroup.Heading("Read")[Reads.Select(what => Ui.MenuItem.Key($"{pump}/{what}").OnClick(() => { _asked = $"{pump}: {what}."; })[what])],
+                                Ui.MenuGroup.Heading("Write")[Writes.Select(what => Ui.MenuItem.Key($"{pump}/{what}").OnClick(() => { _asked = $"{pump}: {what}."; })[what])],
+                                Ui.MenuGroup[Ui.MenuItem.Danger.Icon(Ui.IconName.StopCircle).OnClick(() => { _asked = $"{pump}: stopped."; })["Stop"]]
                             ]
                     ])
                 ]

@@ -23,7 +23,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
     {
         var html = Orders().ToHtml();
 
-        Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0\"><div class=\"relative block overflow-auto\"><table ", html, StringComparison.Ordinal);
+        Assert.StartsWith("<div class=\"flex flex-col *:data-ui-pagination:shrink-0\"><div class=\"relative block overflow-auto\" data-rask-reveal-focus=\"\"><table ", html, StringComparison.Ordinal);
         Assert.EndsWith("</table></div></div>", html, StringComparison.Ordinal);
     }
 
@@ -37,7 +37,7 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
             Ui.TableRows[Ui.TableRow[Ui.TableCell[Ui.Checkbox.Label("Pick")]]]
         ].ToHtml();
 
-        Assert.Contains("<div class=\"relative block overflow-auto\"><table ", html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"relative block overflow-auto\" data-rask-reveal-focus=\"\"><table ", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -240,10 +240,21 @@ public partial class UiTableTests : global::Rask.Core.RaskMarkup
 
         var plain = Ui.Table[Ui.TableColumns[Ui.TableColumn["ID"], Ui.TableColumn["Customer"]]].ToHtml();
 
-        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-scroll-edges=\"\"><table ", sticky);
-        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-scroll-edges=\"\"><table ", rowMenu);
+        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-reveal-focus=\"\" data-rask-scroll-edges=\"\"><table ", sticky);
+        Assert.Matches("<div class=\"relative block overflow-auto\" data-rask-reveal-focus=\"\" data-rask-scroll-edges=\"\"><table ", rowMenu);
         Assert.DoesNotContain("data-rask-scroll-edges", plain, StringComparison.Ordinal);
         Assert.DoesNotContain("data-rask-scroll-edges", Ui.Table.ToHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Every_tables_scroll_area_brings_a_control_the_keyboard_reaches_whole_into_view()
+    {
+        var plain = Ui.Table[Ui.TableColumns[Ui.TableColumn["ID"], Ui.TableColumn["Customer"]]].ToHtml();
+        var sticky = Ui.Table[Ui.TableColumns[Ui.TableColumn.Sticky()["ID"]]].ToHtml();
+
+        var marked = new[] { plain, sticky, Ui.Table.ToHtml() };
+
+        Assert.All(marked, html => Assert.Contains("overflow-auto\" data-rask-reveal-focus=\"\"", html, StringComparison.Ordinal));
     }
 
     [Fact]
