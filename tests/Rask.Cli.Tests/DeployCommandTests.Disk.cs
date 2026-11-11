@@ -47,16 +47,20 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public void The_prunes_never_remove_a_tagged_image()
+    public void The_image_prune_never_takes_all_and_the_cache_prune_always_does()
     {
         var host = "deploy@box";
 
         var images = PruneCommands.BuildImagePruneArguments(host);
         var cache = PruneCommands.BuildBuilderPruneArguments(host);
+        var legacy = PruneCommands.BuildBuilderPruneArguments(host, PruneCommands.LegacyBuildCacheFlag);
 
+        // image prune -a would delete every :previous (the rollback image); dangling only.
         Assert.Equal(["-H", "ssh://deploy@box", "image", "prune", "-f"], images);
-        Assert.Equal(["-H", "ssh://deploy@box", "builder", "prune", "-f", "--reserved-space", "20GB"], cache);
-        Assert.DoesNotContain(images.Concat(cache), arg => arg is "-a" or "--all" or "--filter");
+        Assert.DoesNotContain(images, arg => arg is "-a" or "-af" or "-fa" or "--all");
+        // builder prune removes no image, and without -a it skips the shared records that are most of the cache.
+        Assert.Equal(["-H", "ssh://deploy@box", "builder", "prune", "-af", "--reserved-space", "20GB"], cache);
+        Assert.Equal(["-H", "ssh://deploy@box", "builder", "prune", "-af", "--keep-storage", "20GB"], legacy);
     }
 
     [Fact]
@@ -233,7 +237,7 @@ public sealed partial class DeployCommandTests
         Assert.Equal(1, exit);
         Assert.Contains("box is nearly out of disk: 2.1 GB free of 395 GB on /. Nothing was changed.", console.ErrorText, StringComparison.Ordinal);
         Assert.Contains("docker -H ssh://deploy@box image prune -f", console.ErrorText, StringComparison.Ordinal);
-        Assert.Contains("docker -H ssh://deploy@box builder prune -f --keep-storage 20GB", console.ErrorText, StringComparison.Ordinal);
+        Assert.Contains("docker -H ssh://deploy@box builder prune -af --keep-storage 20GB", console.ErrorText, StringComparison.Ordinal);
         Assert.DoesNotContain(runner.Invocations, i => i.Arguments.Contains("tag") || i.Arguments.Contains("build"));
     }
 
@@ -342,7 +346,7 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
-    public async Task The_dry_run_shows_the_prunes_and_never_an_all()
+    public async Task The_dry_run_shows_the_prunes_and_never_an_image_prune_of_all()
     {
         var console = new StringConsole();
         var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
@@ -351,7 +355,7 @@ public sealed partial class DeployCommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("docker -H ssh://deploy@box image prune -f\n", console.OutText.ReplaceLineEndings("\n"), StringComparison.Ordinal);
-        Assert.Contains("docker -H ssh://deploy@box builder prune -f --reserved-space 20GB", console.OutText, StringComparison.Ordinal);
-        Assert.DoesNotContain("prune -a", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("docker -H ssh://deploy@box builder prune -af --reserved-space 20GB", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("image prune -a", console.OutText, StringComparison.Ordinal);
     }
 }

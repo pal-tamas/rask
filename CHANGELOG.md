@@ -30,7 +30,8 @@ them until tagged releases begin.
   and the one before that untagged, with its build cache, and nothing removed them — a shared VPS running two apps
   reached 350 GB of 368 GB (255 images, 1401 build-cache entries, 288.7 GB). After: a deploy that serves runs
   `docker image prune -f` (dangling only — never `-a`, so every `:current`/`:previous` and rollback stay) and
-  `docker builder prune -f --reserved-space 20GB` under the box's deploy lock, and says what they freed; a failing
+  `docker builder prune -af --reserved-space 20GB` (there `-a` removes no image, and without it the shared cache
+  records — 199.7 of 221 GB on that box — are never pruned) under the box's deploy lock, and says what they freed; a failing
   prune only warns. Before it builds it refuses a box with under 3 GiB free (warns under 10 GiB) and prints what
   to run, and `rask deploy status` shows the free and reclaimable space.
 - **`Xlsx.Write` writes a day before 1 March 1900 as the day Excel shows.** Before: `new Xlsx.Day(new DateTime(1900, 1, 1))`

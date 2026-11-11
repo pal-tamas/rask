@@ -41,8 +41,8 @@ internal sealed partial class DeployCommand
     private async Task WriteFreeSpaceCommandsAsync(string host)
     {
         await Console.Error.WriteLineAsync($"  docker -H ssh://{host} image prune -f").ConfigureAwait(false);
-        await Console.Error.WriteLineAsync($"  docker -H ssh://{host} builder prune -f --keep-storage {BuildCacheKept}").ConfigureAwait(false);
-        await Console.Error.WriteLineAsync($"  (`docker -H ssh://{host} system df` shows what takes the space; never `image prune -a`, which deletes the :{PreviousTag} images rollback needs)").ConfigureAwait(false);
+        await Console.Error.WriteLineAsync($"  docker -H ssh://{host} builder prune -af --keep-storage {BuildCacheKept}").ConfigureAwait(false);
+        await Console.Error.WriteLineAsync($"  (`docker -H ssh://{host} system df` shows what takes the space. -a is safe on `builder prune`, which removes no image; never `image prune -a`, which deletes the :{PreviousTag} images rollback needs)").ConfigureAwait(false);
     }
 
     /// <summary>

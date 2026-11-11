@@ -13,9 +13,14 @@ namespace Rask.Cli.Commands;
 /// container runs, which includes <c>:previous</c> — the image <c>rask deploy rollback</c> restores. Tagged images,
 /// and any image a container uses, are never dangling, so every app's <c>:current</c>, <c>:latest</c> and
 /// <c>:previous</c> survive, and so do the proxy's and the probe's.</item>
-/// <item><c>docker builder prune -f --reserved-space 20GB</c> trims the build cache, least recently used first, down to
+/// <item><c>docker builder prune -af --reserved-space 20GB</c> trims the build cache, least recently used first, down to
 /// <see cref="BuildCacheKept"/>: what the next builds reuse stays, and the cache stays bounded however often a box
-/// deploys (an age filter alone would not bound it). BuildKit never removes cache a running build is using. The flag
+/// deploys. <b>Here <c>-a</c> is required, and safe</b>: <c>builder prune</c> acts on the build cache only and never
+/// removes an image, tagged or not; without <c>-a</c> it skips every record an image shares, which is nearly all of
+/// it — measured on a real box (BuildKit v0.34, containerd image store), <c>--keep-storage 20GB</c> alone left 221 GB
+/// of which 199.7 GB was shared, and <c>--filter until=72h</c> alone freed nothing. The opposite of
+/// <c>image prune</c>, where <c>-a</c> is fatal. An age filter alone would not bound a busy box either, so the bound
+/// is the size, which under <c>-a</c> counts every record. BuildKit never removes cache a running build is using. The flag
 /// is the docker client's, not the box's: buildx renamed <c>--keep-storage</c> to <c>--reserved-space</c> (v0.17+,
 /// the old name kept as a deprecated alias), and a client without buildx knows only the old name — so a client that
 /// says <c>unknown flag</c> is asked again with <see cref="LegacyBuildCacheFlag"/>.</item>
@@ -30,11 +35,13 @@ internal static class PruneCommands
 
     internal const string LegacyBuildCacheFlag = "--keep-storage";
 
+    /// <summary>Dangling images only. Never add <c>-a</c> here: it would delete every <c>:previous</c> rollback image.</summary>
     internal static IReadOnlyList<string> BuildImagePruneArguments(string host) =>
         [.. Prefix(host), "image", "prune", "-f"];
 
+    /// <summary>The build cache, shared records included (<c>-a</c>), down to <see cref="BuildCacheKept"/>. Removes no image.</summary>
     internal static IReadOnlyList<string> BuildBuilderPruneArguments(string host, string flag = BuildCacheFlag) =>
-        [.. Prefix(host), "builder", "prune", "-f", flag, BuildCacheKept];
+        [.. Prefix(host), "builder", "prune", "-af", flag, BuildCacheKept];
 
     /// <summary>Whether a docker client refused a flag it does not know — an older one, asked with a newer flag's name.</summary>
     internal static bool IsUnknownFlag(string error) => error.Contains("unknown flag", StringComparison.Ordinal);

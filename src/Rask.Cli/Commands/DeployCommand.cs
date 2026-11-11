@@ -439,7 +439,7 @@ internal sealed partial class DeployCommand : CliCommand
             PrintSwitchPlan(writer, host, slug, domain, container, healthEnabled ? healthPath : "/", dns);
         }
 
-        writer.WriteLine("  # once it serves, under the box's lock: remove untagged images (never -a: :previous is the rollback) and trim the build cache");
+        writer.WriteLine("  # once it serves, under the box's lock: remove untagged images (image prune, never -a: :previous is the rollback), then trim the build cache (builder prune -a: shared records too, and it removes no image)");
         Line(BuildLockArguments(host, slug));
         Line(PruneCommands.BuildImagePruneArguments(host));
         Line(PruneCommands.BuildBuilderPruneArguments(host));

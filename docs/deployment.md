@@ -269,7 +269,7 @@ and says what it freed:
 
 ```bash
 docker -H ssh://<host> image prune -f                          # dangling images only
-docker -H ssh://<host> builder prune -f --reserved-space 20GB  # build cache, least recently used first
+docker -H ssh://<host> builder prune -af --reserved-space 20GB # build cache, least recently used first
 ```
 
 ```
@@ -282,9 +282,16 @@ counts only the image records it removes, not the layers it lets go.
 
 `image prune` without `-a` removes only images no tag names and no container uses, so every app's `:current`,
 `:latest` and `:previous` stay — `rask deploy rollback` always has its image. **Never run `image prune -a` on a
-deploy box**: it deletes every `:previous`. The build cache is trimmed to 20 GB, keeping what was used last —
-what the next builds reuse — and BuildKit never removes cache a running build is using (`--reserved-space` is
-what buildx v0.17+ calls `--keep-storage`; a docker client that doesn't know it is asked with the old name). A deploy that fails
+deploy box**: it deletes every `:previous`.
+
+On `builder prune` it is the other way round: `-a` is **required, and safe**. `builder prune` acts on the build
+cache only and never removes an image, tagged or not; without `-a` it skips every cache record an image shares,
+which is nearly all of it. On a real box (BuildKit v0.34, containerd image store) `--keep-storage 20GB` alone left
+221 GB, 199.7 GB of it shared, and `--filter until=72h` alone freed nothing; with `-a` the same cleanup freed
+138.5 GB. The cache is trimmed to 20 GB, counting every record under `-a`, keeping what was used last — what the
+next builds reuse — and BuildKit never removes cache a running build is using. A size bound rather than an age
+filter, because an age filter does not bound a box that deploys often. (`--reserved-space` is what buildx v0.17+
+calls `--keep-storage`; a docker client that doesn't know it is asked with the old name.) A deploy that fails
 prunes nothing. If the lock stays busy for a minute the clean-up is skipped and the next deploy does it; a prune
 that fails or stalls (each has four minutes, so both end inside the lock's ten-minute lease) is a warning, never
 a failed deploy.

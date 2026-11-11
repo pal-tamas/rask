@@ -934,7 +934,7 @@ colour, and how long it has been up — and tells you whether a rollback is curr
 disk the box has free, and what `docker system df` says could be reclaimed.
 
 Every deploy that serves then removes the images earlier deploys left untagged (`docker image prune -f`,
-never `-a`, so `:previous` stays) and trims the build cache to 20 GB, under the box's deploy lock; a box with
+never `-a`, so `:previous` stays) and trims the build cache to 20 GB (`docker builder prune -af`, where `-a` removes no image), under the box's deploy lock; a box with
 under 3 GiB free is refused before the build. See [The box's disk](deployment.md#the-boxs-disk).
 
 `rollback` exists for the failure the blue-green swap can't catch. That swap protects you from a release
