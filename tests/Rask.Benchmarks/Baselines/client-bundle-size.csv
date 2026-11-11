@@ -712,3 +712,10 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133290
+# 2026-11-11, the tap that leaves a tooltip shown (+113, above) merged with the tall row menu block: measured locally
+# on the merged tree (Release, the bundle gate's esbuild and --minify): rask-hooks.js 133,290 -> 133,403; rask.js and
+# rask.wasm.js unchanged.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133403
