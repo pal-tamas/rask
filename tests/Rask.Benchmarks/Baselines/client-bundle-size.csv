@@ -750,3 +750,10 @@ bundle,bytes
 rask.js,116692
 rask.wasm.js,104091
 rask-hooks.js,134544
+# 2026-11-11, Escape refused for the modal it goes to wherever focus rests, and an open against the page's word
+# closed by the sweep however it came about (rask-overlay.ts; eszaf's forced-open modal): measured locally with the
+# Release bundles — rask.js 116,692 and rask.wasm.js 104,091 unchanged, rask-hooks.js 134,544 -> 134,805.
+bundle,bytes
+rask.js,116692
+rask.wasm.js,104091
+rask-hooks.js,134805
