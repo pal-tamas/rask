@@ -32,6 +32,12 @@
 // `OnInput` search, a change) marks its field until that event's answer, released where a pressed button's is.
 // Only `data-loading`: a field being typed into is not `aria-busy`, and nothing around it is marked.
 //
+// And at once, with no delay: `data-rask-loading-now` on the element that waits. A list's search field asks after a
+// pause of its own (rask-input.ts), so the reader has already waited for it; Flux's backend search shows its spinner
+// the moment the request leaves (measured on fluxui.dev, 2026-11-10), and a select's create row greys while a search
+// is out (rask-list.ts) — 200 ms more would leave it pressable on an answer about to change it. Only that element:
+// the scope around it keeps the delay, and so does every control without the mark.
+//
 // No DOM access at import: shared by both host bundles and imported by a script fixture with a stub DOM.
 
 export const LOADING_DELAY_MS = 200;
@@ -44,6 +50,7 @@ export const LOADING_HARD_TIMEOUT_MS = 30000;
 export const LOADING_ATTR = "data-loading";
 export const BUSY_ATTR = "aria-busy";
 export const OPT_ATTR = "data-rask-loading";
+export const NOW_ATTR = "data-rask-loading-now";
 
 export const SCOPE = "within";
 
@@ -178,6 +185,7 @@ export function beginLoading(el: Element | null, from: Element | null = el, busy
     hold(controls, el);
     hold(scopes, scope);
     live.add(ticket);
+    if (el && attr(el, NOW_ATTR) !== null) stamp(controls, el, busy);
 
     ticket.show = setTimeout(() => {
         ticket.show = null;

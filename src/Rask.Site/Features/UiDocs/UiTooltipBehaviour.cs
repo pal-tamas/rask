@@ -37,7 +37,9 @@ internal sealed partial class UiTooltipBehaviour : Component
             + "a disabled button), is in the top layer, where no card can clip it, and behaves as Flux's does, step "
             + "for step (`flux parity-tooltip` walks both): shown the moment the pointer arrives or keyboard focus does, "
             + "gone the moment the pointer leaves unless that focus is still there, dismissed by Escape, and hidden by "
-            + "a press on the trigger until the pointer has left and come back. The pointer cannot rest on it.",
+            + "a press on the trigger until the pointer has left and come back. The pointer cannot rest on it. Focus "
+            + "a menu hands back to its button as it closes — a pick, a click outside, Escape — is not keyboard "
+            + "focus: the button's tooltip stays shut, as Flux's does.",
         ])[
             UiDocsKeys.Column("Tooltip").Rows([
                 ("Any trigger", "The runtime opens it, on the pointer and on keyboard focus. Escape dismisses it."),

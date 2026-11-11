@@ -49,7 +49,7 @@ internal static class HookBundleTag
         "data-rask-confirm-leave",
         "data-rask-persist", "data-rask-uncheck-on-navigate",
         "data-rask-carousel", "data-rask-carousel-controls",
-        "data-rask-scroll-to",
+        "data-rask-scroll-to", "data-rask-scroll-edges",
         "data-rask-switch",
         "data-rask-time-list",
         "data-rask-phone",

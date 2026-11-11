@@ -479,7 +479,8 @@ segmented control or pills, over panels or on their own. The selected tab is the
 `Value(_tab).OnChange(…)`, or neither and the row keeps track itself. Switching is drawn in the browser and sends
 nothing; the panels not shown stay rendered and `hidden` (`hidden="until-found"` when `Findable()`), so a form in tabs
 keeps what was typed on every panel, and a tab switch never counts as an unsaved change in a `ConfirmLeave` form. The
-arrows select as they go, and a tab is never a link. Every example, the keyboard, Flux's attributes as steps and the
+arrows select as they go, Home and End go to the first and the last tab, and a tab is never a link. Every example, the
+keyboard, Flux's attributes as steps and the
 reference: **[rask.sh/ui/tabs](https://rask.sh/ui/tabs/)**.
 
 ### A long form's tabs
@@ -527,8 +528,10 @@ page keeps the sorted column, its direction and the page number (`Sortable()`, `
 `w-full` on the table and a width on every column but one keep the columns still from page to page
 (`ContainerClass("min-w-0")` inside a grid or a flex row). A cell's and a heading's look is written once, in the kit's
 sheet, so a cell writes only what differs and a list of thousands of rows stays small; your class on a cell wins as it
-is (`ps-10`, `text-xs`). Every example, the dimming marks, the steady-columns recipe, sticky parts, bleed, whose class
-wins, and the reference of its steps:
+is (`ps-10`, `text-xs`). The heading the rows are sorted by says so to a screen reader (`aria-sort`), and a sticky
+column casts its shadow once columns scroll under it, from marks the runtime writes on the scroll area
+([accessibility.md](accessibility.md#tables-and-charts)). Every example, the dimming marks, the steady-columns recipe,
+sticky parts, bleed, whose class wins, and the reference of its steps:
 **[rask.sh/ui/table](https://rask.sh/ui/table/)**.
 
 **`Ui.Table.Of(query)` draws it from a [Rask.Query](query.md) query, with skeleton rows while it loads** (not Flux's:
@@ -1161,6 +1164,9 @@ A **field** is marked the same way once the event that sent its value is unanswe
 `aria-busy` — so your own CSS can say `data-loading:opacity-70` on an input that searches as it is typed. The kit
 draws nothing for it: Flux's input draws no loading state of its own (its `icon:trailing="loading"` is an icon you
 put there), so `Ui.Input` shows no spinner by itself; style one yourself with `in-data-loading:` if you want one.
+A field or control that says `data-rask-loading-now` is marked the moment its event leaves, with no 200 ms delay: the
+kit writes it on the search field of a select, pillbox and autocomplete that asks the page (the reader has waited out
+the pause already, and Flux's search spins at once) and on a create row.
 
 **The wait ends when the page is whole, not when the handler returns.** A handler's own intermediate state is
 not painted while it runs, and the page it answers with waits 150 ms for the reads it started
@@ -1368,11 +1374,12 @@ own, a prefix, `Clearable()`), `Searchable()` filters it in the browser by text 
 over a collection picks several, and `.Combobox` is an input that filters. `Filter(false)` hands the search to the
 page, with `Debounce` on `Ui.SelectSearch` or `Ui.SelectInput` for one query a word, and `Ui.SelectOptionCreate`
 offers to make what was typed. For a list too long to send whole, `Search` hands the select the question itself — it
-asks for `""` when it mounts, again once typing pauses (250 ms), and again when a render hands it another search (one
-over rows the page has read since), waits as Flux's backend search does while the answer is on its way
-(the rows stay, the field's clear button fades or a combobox spins, an empty list says "Loading..."), says
-"No results found" when there is none (both from the catalog, Hungarian too), and keeps every picked option in
-the list while a search does not find it:
+asks for `""` when it mounts, again once typing pauses (150 ms, Livewire's `wire:model.live`), and again when a render
+hands it another search (one over rows the page has read since), waits as Flux's backend search does from the moment
+the question leaves (the rows stay, the field's clear button fades or a combobox spins, a create row greys and takes no
+press, an empty list says "Loading..."), says "No results found" when there is none (both from the catalog, Hungarian
+too), and keeps every picked option in the list while a search does not find it. Answer with the best twenty, as
+Flux's backend search does (`.Take(20)`): the reader narrows a long list by typing, not by scrolling.
 
 ```csharp
 Ui.Select.Bind(() => model.PartnerId).Placeholder("Choose a partner...").Search(async typed =>
@@ -1390,12 +1397,23 @@ with `A`, `Cs` after `Cu`, `Dzs` after `Dz`), a row's detail as the muted line u
 too, and "Choose..." from the catalog ("Válasszon…" in Hungarian). Whether it can be cleared is the bound member's to
 say: `int?` or `string?` that the model does not require gets the cross, `int` and a required member never do, and a
 required member's message is the model's own rule's. For a list too long to send whole, hand it the search instead;
-the row the value holds is named before anything is found and stays first while a search misses it:
+the row the value holds is named before anything is found and stays first while a search misses it. It is asked as
+`Search` is — once typing pauses 150 ms — and answers with the best twenty too:
 
 ```csharp
 Ui.Select.Bind(() => model.CompanyId).Choices(companies)        // Ui.Choice<int>[]: new(c.Id, c.Name, c.City)
-Ui.Select.Bind(() => model.DriverId).Choices(Driver.Named, held: driver)
+Ui.Select.Bind(() => model.DriverId).Choices(Drivers, held: driver)
+
+// The best twenty for what was typed.
+static async Task<IReadOnlyList<Ui.Choice<int>>> Drivers(string typed) =>
+    [.. (await Driver.Where(d => d.Name.Contains(typed)).Take(20).ToList()).Select(d => new Ui.Choice<int>(d.Id, d.Name))];
 ```
+
+**A create row waits for the search, as Flux's does.** While a search's question is out, `Ui.SelectOptionCreate`
+greys, says `aria-disabled`, is stepped over by the arrows and Enter and refuses a click that reaches it anyway, so
+nothing is made of text the answer is about to change; pressed, it spins at once, refuses a second press and holds the list open until its handler is done.
+And one departure the owner chose: while a search is out an empty list says "Loading..." (`WhenLoading`), where
+Flux goes on saying "No results found" until the answer comes.
 
 Everything it fills in is a default: `.Placeholder(…)`, `.Clearable(…)`, `.Searchable(false)` or `.Combobox` say
 otherwise, `.AfterBind(…)` runs after a pick, and options written as children come after the rows.
@@ -1488,8 +1506,10 @@ reference: **[rask.sh/ui/popover](https://rask.sh/ui/popover/)**.
 
 **`Ui.Chart` is Flux's chart, part by part, drawn in C#.** No chart library: `Ui.Chart.Value(rows)` and a selector
 per part (`.Field((Visit v) => v.Visitors)`), the scales, ticks and paths computed in the render for the box the
-browser measured, and the cursor, tooltip, summary and a pie's slice following the pointer in the browser. Every
-example, the axes, formats, sizing and pointer rules, and the reference of its steps:
+browser measured, and the cursor, tooltip, summary and a pie's slice following the pointer in the browser. A screen
+reader hears the drawing as an image named by its kind, series and reach, described by its rows in a hidden table
+([accessibility.md](accessibility.md#tables-and-charts)). Every example, the axes, formats, sizing and pointer rules,
+and the reference of its steps:
 **[rask.sh/ui/chart](https://rask.sh/ui/chart/)**.
 
 **`Ui.Link.External()` opens in a new tab.** `target="_blank"` with `rel="noopener noreferrer"` (a new tab opened

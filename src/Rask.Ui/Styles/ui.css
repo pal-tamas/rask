@@ -395,50 +395,6 @@
 }
 
 /*
-  A STICKY TABLE COLUMN CASTS A SHADOW ONCE SOMETHING HAS SCROLLED UNDER IT, and not before.
-
-  Flux marks its scroll area from script (`data-scrolled-right`) and styles on that. The kit ships no
-  script, and does not need one for this: a keyframe on the cell's ::after, driven by how far the nearest
-  scroller — the table's scroll area — has moved sideways, switches the shadow on. `step-end` over the
-  first pixel makes it a switch rather than a fade, which is what Flux's is.
-
-  The keyframe sets a custom property rather than the shadow itself. An animated box-shadow computes to a
-  transparent shadow at rest, not to `none`; an unregistered property has nothing to interpolate, so at
-  rest it is simply unset.
-
-  Behind @supports because a browser without scroll timelines would run it as an ordinary animation of no
-  length, land on the last frame, and draw the shadow on a table that has not moved.
-*/
-@layer rask {
-  @keyframes ui-table-scrolled {
-    to {
-      --ui-table-scrolled: inset 8px 0 8px -8px rgb(0 0 0 / 0.05);
-    }
-  }
-
-  /* A sticky LAST column casts its shadow the other way, until the columns beside it have scrolled all the way out. */
-  @keyframes ui-table-scrolled-end {
-    from {
-      --ui-table-scrolled: inset -8px 0 8px -8px rgb(0 0 0 / 0.05);
-    }
-  }
-
-  @supports (animation-timeline: scroll()) {
-    :is([data-ui-column], [data-ui-cell]):is(.first\:sticky:first-child, .last\:sticky:last-child)::after {
-      box-shadow: var(--ui-table-scrolled, none);
-      animation: ui-table-scrolled step-end both;
-      animation-timeline: scroll(nearest inline);
-      animation-range: 0 1px;
-    }
-
-    :is([data-ui-column], [data-ui-cell]).last\:sticky:last-child:not(:first-child)::after {
-      animation-name: ui-table-scrolled-end;
-      animation-range: calc(100% - 1px) 100%;
-    }
-  }
-}
-
-/*
   EVERY HEADING AND EVERY CELL OF A TABLE LOOKS THE SAME, SO THE LOOK IS WRITTEN ONCE, HERE (owner, 2026-11-02).
 
   Flux writes its whole look on each cell — some 200 characters of classes, thirteen times a row — and a list of

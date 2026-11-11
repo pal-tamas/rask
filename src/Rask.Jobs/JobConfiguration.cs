@@ -54,5 +54,9 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // Defaulted in the database too, so a host still on a Rask.Jobs from before Jobs.Run - a blue/green switch runs
         // both - inserts rows that know nothing of the column, and they are ordinary jobs.
         builder.Property(x => x.Awaited).HasDefaultValue(false);
+
+        // Why a job was stopped, as its number: nullable, so a host from before Jobs.Stop inserts rows that were never asked to.
+        builder.Property(x => x.Stopped);
+        builder.Property(x => x.StartedAt);
     }
 }

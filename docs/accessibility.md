@@ -266,19 +266,36 @@ An element with `role="tablist"` is a ring of `<button role="tab">`s of which on
 tab stop (`tabindex="0"`, the rest `-1`), and the runtime gives it the arrow keys (a
 [behaviour hook](js-interop-runtime.md#keys-and-focus), loaded by a page that carries a tablist): **ArrowRight** and
 **ArrowDown** move to the next tab, **ArrowLeft** and **ArrowUp** to the previous, past any tab that is
-`disabled` and around the ends. The tab arrived at is focused **and pressed**, so its own click handler runs
+`disabled` and around the ends; **Home** and **End** go to the first and the last tab that is not disabled (the
+WAI-ARIA tabs pattern's — Flux's own tabs leave them to the page; an addition the owner approved, 2026-11-10). The tab
+arrived at is focused **and pressed**, so its own click handler runs
 exactly as a pointer would run it: selection follows focus, with no Enter or Space. The key's default is
 prevented, so an arrow does not scroll the page behind the row. From a button in the row that is not a tab —
 an "Add tab" action — the arrows start from the selected tab.
 
 Tab leaves the row for whatever comes next, which in a `Ui.TabGroup` is the shown `role="tabpanel"`
 (`tabindex="0"`, named by its tab through `aria-labelledby`; the tab names it back with `aria-controls`).
-Home and End are not handled and stay the page's — the behaviour of the Flux tabs Rask UI mirrors. Only
-buttons take part: a link you give `role="tab"` goes somewhere, and an arrow key must not navigate.
+The keys are the same in a vertical row of tabs. Only buttons take part: a link you give `role="tab"` goes somewhere, and an arrow key must not navigate.
 Rask UI's `Ui.Tabs` builds on this; so does any `tablist` you write by hand. `Ui.Tabs` also leaves the
 selecting to the runtime (`data-rask-tabs`): `aria-selected`, the tab stop and the shown panel move in the
 press itself, before any answer from the server, so a screen reader hears the new tab at once. See
 [ui-kit.md](ui-kit.md#tabs).
+
+## Tables and charts
+
+A sortable `Ui.TableColumn` the rows are sorted by says which way in `aria-sort` (`ascending` or `descending`) —
+whether the page sets `Sorted()`/`Direction()` itself or the table keeps its sort in the address (`SortIn`). Every
+other heading carries no `aria-sort`, not `none`, as WAI-ARIA asks; an `AriaSort(…)` of your own wins. A table with a
+sticky column marks its scroll area with `data-rask-scroll-edges`, and the runtime marks which sides hide columns
+(`data-scrolled-right`, `data-scrolled-left`), which is what draws the sticky column's shadow — a cue that more of
+the table lies beyond it.
+
+A `Ui.Chart` is drawn as an SVG that a screen reader cannot read, so the drawing is `role="img"`, named by what it
+shows — `aria-label="Line chart: Visitors. 16 data points, 9/22/2026 to 10/7/2026. Values from 115 to 300."` — and
+described (`aria-describedby`) by a visually hidden table of its rows: a heading for the row (the tooltip's heading,
+the pie's label or the index axis) and a column per series, written as the tooltip or legend writes it. A series is
+named by the `Ui.ChartTooltipValue` or `Ui.ChartLegend` that reads the same numbers; one nothing names is "Value", or
+"Series 2" beside others. The words of the name are English for now. Nothing about the chart's look changes.
 
 ## Controls that are waiting
 

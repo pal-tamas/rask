@@ -1514,6 +1514,11 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   cancelling the wait or `.Within(2.Minutes)` (TimeoutException) stops the WAIT, never the job; a dead caller's job still runs;
   refused inside `Db.Transaction` and from a job of the same lane (would wait forever);
   plain `IJob` can be awaited too (`await Jobs.Run(job).InLane(id)`); migration `rask db add AddJobResult`.
+  STOP + LIMITS + LANE VIEW: `await Jobs.Stop(id)` (row id; `Task<bool>`, false when done/already stopped/missing) cancels a running job's `Current.Cancellation` on whichever host runs it, a waiting one never runs;
+  `c.Jobs.Limit<AtPump>().After(30.Minutes)` / `.After(job => …)` / `.IdleFor(5.Minutes)` (idle = no `Jobs.Report("…")` for that long; measured from handler start), config `Rask:Jobs:Limit:<TypeName>:After|IdleFor`, app-wide `JobsOptions.StopAfter` (`Rask:Jobs:StopAfter`, default infinite), code wins;
+  a stopped job ends STOPPED (`Job.Stopped`: `JobStop.Asked|TimeLimit|Idle|DoneElsewhere`), never failed/retried/dead-lettered; `Jobs.Stopped` in the handler says why; an awaited one throws `JobStoppedException : OperationCanceledException` (`.Stop`);
+  a row marked done/deleted from outside stops its job within one PollInterval (`DoneElsewhere`, row left as is); a handler ignoring its token holds the lane (`JobIgnoresStop` logged once a minute);
+  `await Jobs.Lanes(ids)` / `Jobs.Lane(id)` → `JobLane{Name, Running, Waiting, IsIdle}` of `LaneJob{Id, Job, Type, Due, Started, Attempts, Stopping}` in ONE query; metric `rask.jobs.stopped{reason}`; migration `rask db add AddJobStop`.
   The hosted `JobProcessor<TContext>` (BackgroundService, PeriodicTimer poll) claims due jobs (ProcessedAt==null && Attempts<MaxAttempts && RunAt<=now, oldest first, BatchSize), dispatches each via IDispatcher.Send((ICommand)job) in a fresh scope, stamps ProcessedAt;
   on failure Attempts++/Error and pushes RunAt out by exponential backoff (BaseRetryDelay×2^(n-1) capped at MaxRetryDelay) up to MaxAttempts (default 25) → then a dead letter kept for inspection;
   completed jobs purged after Retention (default 7d, Zero=keep).

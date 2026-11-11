@@ -651,3 +651,41 @@ bundle,bytes
 rask.js,114018
 rask.wasm.js,100401
 rask-hooks.js,128237
+# 2026-11-10, a search that asks the page spins at once and its create row waits (rask-loading.ts: an element that
+# says `data-rask-loading-now` is marked the moment its dispatch leaves; rask-list.ts: a create row is aria-disabled
+# while the list's search is out, and holds the list open, spinning, until its own handler is done; rask-clicks.ts: a
+# click on a create row saying aria-disabled is refused). This change's own delta, measured locally (the bundle gate's
+# esbuild 0.28.2 with its flags, --minify) on af922ad58: rask.js 114,209 -> 114,351 (+142), rask.wasm.js 99,575 ->
+# 99,716 (+141), rask-hooks.js 130,729 -> 131,212 (+483). The block sets all three to what main measures with it: the
+# windowed list (d40663a95) had grown rask-hooks.js +2,492 with no refresh, to within 0.1% of the 2% tolerance, and
+# this change's +483 would have crossed it.
+bundle,bytes
+rask.js,114351
+rask.wasm.js,99716
+rask-hooks.js,131212
+# 2026-11-10, table/tabs/chart accessibility: Home/End in a tablist (rask-tabs.ts) and a sticky column's scroll
+# marks (rask-scroll-edges.ts, new; `scroll-edges` in the hook loader's list): rask-hooks.js 130,729 -> 132,252
+# (+1,523); rask.js 114,209 -> 114,222 (+13) and rask.wasm.js 99,575 -> 99,588 (+13), the loader's list. The
+# "before" is CI's own measurement on main (run 42804015661); the after measured locally with the bundle gate's
+# esbuild 0.28.2 and flags (--minify), which reproduced that "before" byte for byte.
+bundle,bytes
+rask.js,114222
+rask.wasm.js,99588
+rask-hooks.js,132252
+# 2026-11-10, the create row's wait (above) on top of the table/tabs/chart accessibility block (rask-scroll-edges.ts):
+# both landed the same day, so this block sets all three to what the merged tree measures, locally with the bundle
+# gate's esbuild 0.28.2 and flags (--minify) on d85594170: rask.js 114,364, rask.wasm.js 99,729, rask-hooks.js 132,735
+# (the accessibility block's 114,222 / 99,588 / 132,252 plus this change's +142 / +141 / +483, byte for byte).
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,132735
+# 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
+# back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
+# showed it): +285 on rask-hooks.js alone. This block sets all three to what the merged tree measures with the blocks
+# above (and c5ed10189's scroll-edges fix), locally with the bundle gate's esbuild 0.28.2 and flags (--minify):
+# rask-hooks.js 132,735 -> 133,057; rask.js and rask.wasm.js as the block above.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133057

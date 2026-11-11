@@ -93,6 +93,12 @@ export function handlerClick(e: MouseEvent): Element | null {
         if (!invoker) { e.preventDefault(); }
         return null;
     }
+    // A list's create row while its search is out (rask-list.ts): greyed, it takes no pointer, and the keys step over
+    // it — and a click that reaches it anyway (assistive tech, a script) makes nothing of a search about to change.
+    if (t.hasAttribute("data-rask-list-create") && t.getAttribute("aria-disabled") === "true") {
+        e.preventDefault();
+        return null;
+    }
     // Asked last, of a click that would otherwise go (rask-confirm.ts). Said no to, the click does nothing at
     // all: not the handler, and not the popover or the command it would have opened.
     if (!confirmed(t)) {

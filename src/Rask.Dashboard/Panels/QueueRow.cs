@@ -23,4 +23,21 @@ public sealed record QueueRow(
     DateTime? ProcessedAt,
     int Attempts,
     string? Error,
-    string Payload);
+    string Payload)
+{
+    /// <summary>The lane a job runs in, or null — the default lane, and every row of mail and the outbox.</summary>
+    public string? Lane { get; init; }
+
+    /// <summary>When a job was last claimed to run (UTC), or null.</summary>
+    public DateTime? StartedAt { get; init; }
+
+    /// <summary>When a job's claim runs out (UTC): while it is ahead, the job runs. Null when nobody holds it.</summary>
+    public DateTime? ClaimedUntil { get; init; }
+
+    /// <summary>Why a job was stopped — on a running row, that it is stopping. Null for one that was not.</summary>
+    public Rask.Background.JobStop? Stopped { get; init; }
+
+    /// <summary>Whether the row is in a handler at <paramref name="now"/>: claimed, and not yet ended.</summary>
+    /// <param name="now">The moment asked about (UTC).</param>
+    public bool IsRunning(DateTime now) => ProcessedAt is null && ClaimedUntil > now;
+}

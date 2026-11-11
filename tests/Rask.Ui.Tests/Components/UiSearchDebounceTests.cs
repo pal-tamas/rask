@@ -304,6 +304,7 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
         Assert.Null(field.Attribute("data-rask-debounce"));
         Assert.Null(field.Attribute("data-rask-on-pause"));
         Assert.Null(field.Attribute("data-rask-on-input"));
+        Assert.Null(field.Attribute("data-rask-loading-now"));
         Assert.Equal(["ber"], _heard);
     }
 
@@ -317,6 +318,7 @@ public partial class UiSearchDebounceTests : global::Rask.Core.RaskMarkup
         await Pause(page, Input, "ber");
 
         Assert.Equal("250", field.Attribute("data-rask-debounce"));
+        Assert.NotNull(field.Attribute("data-rask-loading-now"));
         Assert.Null(field.Attribute("data-rask-on-input"));
         Assert.Equal("text filter", ListKind(page, "[data-ui-autocomplete]"));
         Assert.Equal(["ber"], _heard);
