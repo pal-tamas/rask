@@ -680,3 +680,11 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,132735
+# 2026-11-10, a tall row menu (rask-menu-keys.ts: ArrowDown on a dropdown's trigger asks the popover whether it is open,
+# not the aria-expanded a tooltip on the trigger writes; rask-place.ts: a held height leaves room for the padding and
+# border of a content-box panel): rask-hooks.js 132,735 -> 133,005 (+270); rask.js and rask.wasm.js unchanged.
+# Measured locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on d131183a6.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133005
