@@ -249,6 +249,7 @@ public static partial class BuilderRuntime
                 // complement is what was written; the deferred reset then handles the rest on the kept
                 // instance exactly as it would have on the provisional one.
                 slot.Copy?.Invoke(target, chosen, ~slot.PendingMask);
+                (target as ICarriesHandSteps)?.CarryTo(chosen);
                 slots[i] = slot with { Target = chosen };
             }
 

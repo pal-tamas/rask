@@ -17,6 +17,11 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A `.Choices(rows)` select or pillbox keyed after its rows lists the rows the page read since its first render.**
+  Before: `Ui.Select.Bind(f).Choices(rows).Key(…)` — TA's picker shape — kept the rows of the render that first filed
+  it, so a picker whose rows an editor reads in `OnMount` opened on "No results found" ("Nincs találat") with no row
+  at all (TA, nightly .3033). `.Choices` is no prop, so a key claim's replay of the chain did not carry it. After: the
+  claim hands it to the instance the key keeps, live or not, select or pillbox.
 - **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
   gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
   max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its

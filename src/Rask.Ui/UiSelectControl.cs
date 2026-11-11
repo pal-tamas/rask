@@ -23,7 +23,7 @@ namespace Rask;
 ///     renders the rows and hears a pick.
 ///     </para>
 /// </remarks>
-public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind, IUiLockable
+public abstract partial class UiSelectControl<T> : Component, IUiFormControl, IDeferredBind, IUiLockable, ICarriesHandSteps
 {
     private readonly int _instance = UiInstanceCounter.Next();
 
@@ -157,7 +157,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     private bool IsMultiple => HoldsMany && Multiple != false;
 
     // A select the page searches is drawn: a listbox with a search field, unless it says it is a combobox.
-    private Ui.SelectVariant Shape => Variant ?? (Asked is null && _choosing is null ? Ui.SelectVariant.Default : Ui.SelectVariant.Listbox);
+    private Ui.SelectVariant Shape => Variant ?? (Asked is null && Choosing is null ? Ui.SelectVariant.Default : Ui.SelectVariant.Listbox);
 
     // A pillbox with an input among its pills is typed into there, and needs no field over its list.
     private bool HasSearchField => Shape == Ui.SelectVariant.Listbox && (SearchesByItself || (Asked is not null && !PillsCombobox));
@@ -192,6 +192,7 @@ public abstract partial class UiSelectControl<T> : Component, IUiFormControl, ID
     /// <inheritdoc />
     protected override Component? Render()
     {
+        _choices?.Drawn();
         if (Multiple == true && !HoldsMany)
         {
             throw new InvalidOperationException(

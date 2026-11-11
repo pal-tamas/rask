@@ -25,7 +25,7 @@ namespace Rask;
 ///     search field over the list; <c>.Combobox</c> puts the input among the pills.
 ///     </para>
 /// </remarks>
-public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T>>, IDeferredBind
+public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T>>, IDeferredBind, ICarriesHandSteps
 {
     /// <summary>The answers, when the page holds them. Pair it with <see cref="OnChange" />.</summary>
     public ICollection<T>? Value { get; set; }
@@ -103,10 +103,11 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
     /// <inheritdoc />
     protected override Component? Render()
     {
+        _choices?.Drawn();
         UiPillboxTrigger? trigger = null;
         UiPillboxSearch? search = null;
         // The rows `.Choices(…)` made come first, before the options and parts the page wrote.
-        List<Component?> parts = [.. _choosing?.Rows ?? []];
+        List<Component?> parts = [.. Choosing?.Rows ?? []];
         foreach (var child in Children ?? [])
         {
             switch (child)
@@ -135,13 +136,13 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
         return list
             .Listbox
             .Multiple()
-            .Placeholder(Placeholder ?? (_choosing is null ? null : UiChoices.Placeholder))
+            .Placeholder(Placeholder ?? (Choosing is null ? null : UiChoices.Placeholder))
             .Label(Label)
             .Description(Description)
             .Size(Size == Ui.PillboxSize.Sm ? Ui.SelectSize.Sm : null)
-            .Searchable(Searchable == true || search is not null || (Searchable is null && _choosing is not null && Variant != Ui.PillboxVariant.Combobox))
+            .Searchable(Searchable == true || search is not null || (Searchable is null && Choosing is not null && Variant != Ui.PillboxVariant.Combobox))
             .Filter(Filter)
-            .Search(Search ?? _choosing?.Find)
+            .Search(Search ?? Choosing?.Find)
             .Disabled(Disabled)
             .Invalid(Invalid)
             .Id(Id)
