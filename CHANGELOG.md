@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
+  the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
+  wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
+  Case III MXM120"), two or more by their count ("Vehicles: 40 selected", the new `RaskString.FiltersSelectedCount`,
+  „40 kiválasztva”) with every name in a tooltip on the badge that wraps and stays on the screen (hover, keyboard
+  focus, a tap). A literal `Shown(null)` is now ambiguous between the two steps: leave the step out, or write
+  `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
+
+### Fixed
+- **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
+  gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
+  max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its
+  size, so a cut-off badge can still be taken off.
+- **The `Ui.Filters` "Filters" button is the kit's default button size** (40px, was `Sm`'s 32px), as tall as the
+  `Ui.Button`s and `Ui.Toggle`s a list's header places beside it.
+- **A sortable `Ui.TableColumn.End` ends its heading where its numbers end.** Before: the sort button's end padding
+  stayed in (the edge rule that keeps it inside the heading outweighed the pull meant to take it back), so TA's
+  "Liter" heading stood 8px left of its right-aligned numbers. After: an end-aligned sort button gives up its end
+  padding, and heading and cells share one edge, at 1280 and 390.
 ### Fixed
 - **Rask.Ui's keyboard focus ring is the app's accent, and nothing clips it.** Before: a button, tab, link, nav item,
   checkbox, radio or switch kept the browser's blue ring (Flux leaves it to the browser), drawn OUTSIDE the control —

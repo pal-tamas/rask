@@ -5198,7 +5198,7 @@ th .w-14
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
 th .**:data-ui-table-sortable:last:me-0 .group/sortable
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
-button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-me-2 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .items-center .px-2 .py-1
+button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .in-[.group\/end-align]:pe-0 .items-center .px-2 .py-1
 div
 div .dark:group-hover/sortable:text-white .group-hover/sortable:text-zinc-800 .rounded-sm .text-zinc-400
 div .group-hover/sortable:opacity-100 .opacity-0
@@ -5206,7 +5206,7 @@ svg .[:where(&amp;)]:size-4 .shrink-0
 path
 th .**:data-ui-table-sortable:last:me-0 .group/sortable .w-32
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
-button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-me-2 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .items-center .px-2 .py-1
+button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .in-[.group\/end-align]:pe-0 .items-center .px-2 .py-1
 div
 div .dark:group-hover/sortable:text-white .group-hover/sortable:text-zinc-800 .rounded-sm .text-zinc-400
 div .group-hover/sortable:opacity-100 .opacity-0
@@ -5214,7 +5214,7 @@ svg .[:where(&amp;)]:size-4 .shrink-0
 path
 th .**:data-ui-table-sortable:last:me-0 .group/sortable .w-36
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
-button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-me-2 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .items-center .px-2 .py-1
+button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .in-[.group\/end-align]:pe-0 .items-center .px-2 .py-1
 div
 div .dark:group-hover/sortable:text-white .group-hover/sortable:text-zinc-800 .rounded-sm .text-zinc-400
 div .group-hover/sortable:opacity-100 .opacity-0
@@ -5222,7 +5222,7 @@ svg .[:where(&amp;)]:size-4 .shrink-0
 path
 th .**:data-ui-table-sortable:last:me-0 .group/sortable .w-24
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
-button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-me-2 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .items-center .px-2 .py-1
+button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .in-[.group\/end-align]:pe-0 .items-center .px-2 .py-1
 div
 div .dark:group-hover/sortable:text-white .group-hover/sortable:text-zinc-800 .rounded-sm .text-zinc-400
 div .group-hover/sortable:opacity-100 .opacity-0
@@ -5230,7 +5230,7 @@ svg .[:where(&amp;)]:size-4 .shrink-0
 path
 th .**:data-ui-table-sortable:last:me-0 .group/sortable .w-32
 div .flex .in-[.group\/center-align]:justify-center .in-[.group\/end-align]:justify-end
-button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-me-2 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .items-center .px-2 .py-1
+button .-me-2 .-ms-2 .-my-1 .[text-align:inherit] .[text-indent:inherit] .[text-shadow:inherit] .[text-transform:inherit] .[word-spacing:inherit] .flex .gap-1 .in-[.group\/end-align]:-ms-8 .in-[.group\/end-align]:flex-row-reverse .in-[.group\/end-align]:pe-0 .items-center .px-2 .py-1
 div
 div .dark:group-hover/sortable:text-white .group-hover/sortable:text-zinc-800 .rounded-sm .text-zinc-400
 div .group-hover/sortable:opacity-100 .opacity-0

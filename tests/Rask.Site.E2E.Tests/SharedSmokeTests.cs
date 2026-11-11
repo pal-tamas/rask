@@ -229,6 +229,31 @@ public abstract partial class SharedSmokeTests : IAsyncLifetime
         await WaitForInteractiveAsync();
     }
 
+    // A phone's screen — touch and a phone's viewport — for the length of `body`, then the desktop page back.
+    protected async Task OnAPhoneAsync(Func<Task> body)
+    {
+        var desktop = Page;
+        await using var phone = await desktop.Context.Browser!.NewContextAsync(new BrowserNewContextOptions
+        {
+            BaseURL = BaseUrl,
+            ViewportSize = new ViewportSize { Width = 390, Height = 844 },
+            IsMobile = true,
+            HasTouch = true,
+        });
+        await phone.RouteAsync("**://fonts.googleapis.com/**", route => route.AbortAsync());
+        await phone.RouteAsync("**://fonts.gstatic.com/**", route => route.AbortAsync());
+        Page = await phone.NewPageAsync();
+        await SlowMachine.ApplyAsync(Page);
+        try
+        {
+            await body();
+        }
+        finally
+        {
+            Page = desktop;
+        }
+    }
+
     protected async Task RunAsync(Func<Task> body, [CallerMemberName] string testName = "")
     {
         var traced = false;

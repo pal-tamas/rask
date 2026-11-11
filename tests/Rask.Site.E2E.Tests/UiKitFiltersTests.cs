@@ -43,6 +43,65 @@ public sealed class UiKitFiltersTests(WasmExampleAppFixture app, PlaywrightFixtu
     });
 
     [Fact]
+    public Task On_a_desktop_long_and_many_names_keep_the_header_in_the_page() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(1280, 800);
+
+        await AssertLongAndManyNamesAsync(phone: false);
+    });
+
+    [Fact]
+    public Task On_a_phone_long_and_many_names_keep_the_header_in_the_page() => RunAsync(() => OnAPhoneAsync(() => AssertLongAndManyNamesAsync(phone: true)));
+
+    // The "Many names, long words" example: no sideways scroll, the route ellipsed with its words in the title, the
+    // vans counted with every one in a tooltip (hover, or a tap on a phone) kept on the screen, the header's three
+    // buttons one height, and a cross that still takes the cut-off badge off.
+    private async Task AssertLongAndManyNamesAsync(bool phone)
+    {
+        await OpenUiPageAsync("filters", "Filters");
+        var example = Page.Locator("[data-testid='ui-filters-long']");
+        await example.ScrollIntoViewIfNeededAsync();
+        var route = example.Locator("[data-ui-filters-badges] [data-ui-badge][title]");
+        var vans = example.Locator("[data-ui-filters-badges] > [data-ui-tooltip]");
+        await Expect(route).ToHaveCountAsync(1);
+
+        var overflow = await Page.EvaluateAsync<double>("() => document.documentElement.scrollWidth - innerWidth");
+        var cut = await route.Locator("span").EvaluateAsync<bool>("s => s.scrollWidth > s.clientWidth");
+        var title = await route.GetAttributeAsync("title");
+        var heights = await example.EvaluateAsync<double[]>(
+            "e => [e.querySelector('[data-ui-filters] [data-ui-modal-trigger] button'), e.querySelector('[data-ui-dropdown] button'), e.querySelector('[data-ui-toggle]')].map(b => b.getBoundingClientRect().height)");
+
+        Assert.True(overflow <= 0, $"the page scrolls {overflow}px sideways");
+        Assert.True(cut, "the route's words are not cut off");
+        Assert.StartsWith("Route: Budapest, Tatabánya", title, StringComparison.Ordinal);
+        Assert.Equal([40d, 40d, 40d], heights);
+        await Expect(vans.Locator("[data-ui-badge] > span")).ToHaveTextAsync("Vehicles: 40 selected");
+        Assert.Null(await vans.Locator("[data-ui-badge]").GetAttributeAsync("title"));
+
+        var words = vans.Locator("[data-ui-badge] > span");
+        if (phone)
+        {
+            await words.TapAsync();
+        }
+        else
+        {
+            await words.HoverAsync();
+        }
+
+        var tooltip = vans.Locator("[data-ui-tooltip-content]");
+        await Expect(tooltip).ToBeVisibleAsync();
+        await Expect(tooltip).ToContainTextAsync("Van 01, Van 02");
+        await Expect(tooltip).ToContainTextAsync("Van 40");
+        var box = await tooltip.EvaluateAsync<double[]>("t => { const r = t.getBoundingClientRect(); return [r.left, r.right, r.width, innerWidth, r.height]; }");
+        Assert.True(box[0] >= 0 && box[1] <= box[3], $"the tooltip runs off the screen: {box[0]}..{box[1]} of {box[3]}");
+        Assert.True(box[2] < box[3] - 20 && box[4] > 40, $"the tooltip is {box[2]} x {box[4]}px, not wrapped");
+
+        await route.Locator("[data-ui-badge-close]").ClickAsync();
+
+        await Expect(route).ToHaveCountAsync(0);
+    }
+
+    [Fact]
     public Task A_lazy_modal_holds_nothing_until_it_opens() => RunAsync(async () =>
     {
         await OpenUiPageAsync("modal", "Modal");

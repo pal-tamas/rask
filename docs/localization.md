@@ -825,6 +825,7 @@ they say when you set nothing.
 | `FiltersClearAll` | Filters | `Clear all` |
 | `FiltersClose` | Filters | `Close` |
 | `FilterRemove` | Filters | `Remove filter {0}` |
+| `FiltersSelectedCount` | Filters: a badge of two or more names, `Ui.Filter.Shown(names)` | `{0} selected` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |
