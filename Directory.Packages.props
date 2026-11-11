@@ -25,17 +25,10 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="11.0.0" />
-    <!--
-      EF Core is HELD at 11.0.0-rc.3 (the four entries below), one step behind the rest of the 11.0.0 platform, until
-      Npgsql.EntityFrameworkCore.PostgreSQL 11.0.0 ships: Npgsql's only EF Core 11 provider, 11.0.0-rc.3, pins EF Core
-      to EXACTLY that build, and Rask.Server carries Rask.Postgres into every app. On EF Core 11.0.0 every app restored
-      with NU1608 ("outside the dependency constraint"), an error under -warnaserror. Move all five to 11.0.0
-      together, and drop EfCoreHeldForNpgsql in PackagePinFamilyTests.
-    -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0-rc.3.26522.148" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0-rc.3.26522.148" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="11.0.0" />
@@ -57,8 +50,7 @@
     <!-- Rask.Postgres. Npgsql versions on its own line (11.0.x tracks EF Core 11 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
          A RELEASE CANDIDATE on purpose: 11.0.0-rc.3 is the newest Npgsql provider for EF Core 11, and EF Core 10's
-         provider does not load under EF Core 11. It holds EF Core at rc.3 too (see above); move both to 11.0.0 the
-         day it ships. -->
+         provider does not load under EF Core 11. Move it to 11.0.0 the day that ships (Dependabot will offer it). -->
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="11.0.0-rc.3" />
     <!-- Test-only: Rask.Pdf.Tests reads the printed PDFs back (text, page sizes, page count). Rask.Pdf itself has
          no dependency. -->

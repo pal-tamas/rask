@@ -40,6 +40,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Server\Rask.Server.csproj"/>
+    <!-- Rask:Database:Provider=postgres: the package a Postgres app adds; Rask.Server finds it by name (PostgresLoader). -->
+    <ProjectReference Include="..\..\src\Rask.Postgres\Rask.Postgres.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Query\Rask.Query.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>
     <!-- WebRootAssetFallbackTests: the operator dashboard mounted beside a WebAssembly app MapRaskSpa serves. -->

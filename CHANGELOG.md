@@ -88,14 +88,31 @@ them until tagged releases begin.
   template Dockerfiles build on `sdk:11.0` and run on `aspnet:11.0`, the scaffolded deploy workflow sets up `11.0.x`,
   `rask.sh`/`rask.ps1` install the 11.0 channel, and `rask doctor` reports an SDK below 11 (and on a newer SDK asks for
   `wasm-tools-net11`). An app on Rask now needs the .NET 11 SDK. The platform packages move to 11.0.0 (ASP.NET Core,
-  Microsoft.Extensions.*, Microsoft.Data.Sqlite, System.*), MSBuild's task API to 18.11 (Dependabot's
+  EF Core, Microsoft.Extensions.*, Microsoft.Data.Sqlite, System.*), MSBuild's task API to 18.11 (Dependabot's
   18.10 hold is lifted). The `Microsoft.Extensions.*` abstractions .NET 11 now ships in the shared framework are no
   longer referenced as packages (NU1510). EF Core 11 lets an index name a complex property, so Rask.Data's unique rules
   and constraint names read an index's scalar columns and leave any other index to the database.
-  **EF Core is held at 11.0.0-rc.3 (go-live), and `Rask.Postgres` rides on `Npgsql.EntityFrameworkCore.PostgreSQL`
-  11.0.0-rc.3** — the only EF Core 11 provider Npgsql has published, and it pins EF Core to exactly its own rc.3
-  build; on EF Core 11.0.0 every app (Rask.Server carries Rask.Postgres) restored with NU1608. Both move to 11.0.0
-  together the day Npgsql 11.0.0 ships.
+  `rask db`'s dotnet-ef floor reads a prerelease EF Core pin by its release part. EF Core 11 refuses `EF.Constant` in a
+  query filter, so the tenant filter's "every tenant" arm is now a NULL test of a parameter that EF Core folds away
+  per value: `Tenant.Across` still drops the filter and a tenant in flight is still a plain equality, with no
+  catch-all OR. What it cannot keep: SQL Server folding the TENANT itself into the SQL against plan sniffing — the
+  tenant is a parameter on every provider now. .NET 11 converts a `double` to `decimal` exactly
+  (`(decimal)0.3` is `0.29999999999999998889…`), so `Format.Number(double, atMost)` and `Ui.Slider`/`Ui.ColorPicker`
+  take the shortest decimal that reads back as the double, as .NET 10's 15-digit rounding did; EF Core 11 writes
+  `COLLATE "EF_DECIMAL"` quoted.
+- **BREAKING: `Rask.Server` no longer carries `Rask.Postgres`; a PostgreSQL app adds it** (`dotnet add package
+  Rask.Postgres`). Npgsql's only EF Core 11 provider is `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3, so
+  `Rask.Postgres` ships as a release candidate (`0.24.0-rc.1` beside a stable `0.24.0`, from `RaskPostgresPreRelease`
+  in its csproj) and a stable package cannot depend on it (NU5104). Before: every server app got Npgsql through
+  `Rask.Server`. After: `Rask:Database:Provider=postgres` still needs no code — `UseRaskDatabase(sp)` and `RaskApp`
+  find the package by name (`PostgresLoader`, trimming-safe) — and without the package the app fails at start with
+  "Rask:Database:Provider is postgres, but this app does not reference Rask.Postgres: add the Rask.Postgres package."
+  That provider pins EF Core to exactly 11.0.0-rc.3.26522.148 while Rask is on 11.0.0, so a Postgres app restores
+  with NU1608; add `<NoWarn>$(NoWarn);NU1608</NoWarn>` under warnings-as-errors. An app referencing EF Core itself
+  pins `11.0.0` for every `Microsoft.EntityFrameworkCore*` and `Microsoft.Extensions.*` package (the table is in
+  docs/data.md#postgresql). The hold ends with Npgsql's stable provider: Dependabot raises it (the pin is in
+  Directory.Packages.props, not ignored), and `PostgresHoldTests` fails that pull request until the suffix, the
+  NoWarns and `PostgresLoader` go and `Rask.Server` references `Rask.Postgres` again.
 - **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
   a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:
   ArrowDown on a ⋯ that has a `Ui.Tooltip` (every `Ui.RowActions` has one) did nothing. Focus from the keyboard shows

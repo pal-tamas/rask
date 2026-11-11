@@ -90,10 +90,23 @@ public static partial class Format
             : Number(value);
 
     /// <inheritdoc cref="Number(decimal, int?)" />
-    public static string Number(double value, int? atMost) =>
-        atMost is { } places
-            ? Math.Round(value, Rounding(places), MidpointRounding.AwayFromZero).ToString(AtMost(places), Culture)
-            : Number(value);
+    /// <remarks>
+    ///     Rounded as the number READS, not as the binary double holds it: 2.675 is stored as 2.67499999…, which .NET
+    ///     11's exact double-to-decimal conversion no longer hides, so the decimal path rounds the shortest decimal that
+    ///     reads back as <paramref name="value" /> (<see cref="ShortestDecimal" />). A double beyond any decimal keeps
+    ///     the double's own rounding.
+    /// </remarks>
+    public static string Number(double value, int? atMost)
+    {
+        if (atMost is not { } places)
+        {
+            return Number(value);
+        }
+
+        return Math.Abs(value) < 1e28
+            ? Number(ShortestDecimal.Of(value), places)
+            : Math.Round(value, Rounding(places), MidpointRounding.AwayFromZero).ToString(AtMost(places), Culture);
+    }
 
     private static CultureInfo Culture => RaskCulture.Current;
 

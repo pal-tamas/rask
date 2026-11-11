@@ -56,6 +56,12 @@
     <NoWarn>$(NoWarn);BL0016</NoWarn>
   </PropertyGroup>
 
+  <!-- NU1608: a suite that reaches Npgsql's release-candidate EF Core 11 provider (Rask.Postgres) restores EF Core 11.0.0
+       past the exact rc.3 build that provider asks for. See src/Rask.Postgres/Rask.Postgres.csproj; goes with it. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup>
     <RaskTestTarget Condition=" '$(RaskTestTarget)' == '' ">$(RaskPrimaryNetTarget)</RaskTestTarget>
   </PropertyGroup>

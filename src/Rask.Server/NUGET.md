@@ -5,8 +5,8 @@ size — with every battery. Pages and components are plain C#; this package ren
 HTTP response and keeps every page live over a WebSocket, sending only the DOM changes a click or a timer
 produced, with an HTTP fallback where a socket cannot open.
 
-- **Batteries included, all on:** a database (SQLite by default; PostgreSQL or SQL Server by
-  `Rask:Database:Provider`), the mediator and query cache, accounts, background jobs, transactional email,
+- **Batteries included, all on:** a database (SQLite by default; SQL Server, or PostgreSQL with the
+  `Rask.Postgres` package added, by `Rask:Database:Provider`), the mediator and query cache, accounts, background jobs, transactional email,
   cache, file storage, the outbox, an operator dashboard at `/_rask`, durable logs, Web Push, SQLite
   snapshots and continuous backup. Referencing this package is what turns them on.
 - Depends on [`Rask`](https://www.nuget.org/packages/Rask), the shared core (components, the chain,

@@ -8,7 +8,7 @@
 
     <PackageId>Rask.Server</PackageId>
     <Title>Rask — ASP.NET server host, batteries included</Title>
-    <Description>The ASP.NET host for Rask, a full-stack .NET web framework, with every battery: database (SQLite, PostgreSQL or SQL Server, picked by Rask:Database:Provider), mediator and query cache, accounts, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, SQLite snapshots and continuous backup. Renders Rask components with live updates over a WebSocket. RaskApp.Create(args).Run&lt;App&gt;() is the whole Program.cs, and RaskApp.Create(args).Serve() the whole server of a WebAssembly client; app.Configure(c => c.Jobs.Off()) is how an app does without one. Depends on Rask, the shared core.</Description>
+    <Description>The ASP.NET host for Rask, a full-stack .NET web framework, with every battery: database (SQLite or SQL Server, and PostgreSQL with the Rask.Postgres package, picked by Rask:Database:Provider), mediator and query cache, accounts, background jobs, transactional email, cache, file storage, outbox, operator dashboard, durable logs, Web Push, SQLite snapshots and continuous backup. Renders Rask components with live updates over a WebSocket. RaskApp.Create(args).Run&lt;App&gt;() is the whole Program.cs, and RaskApp.Create(args).Serve() the whole server of a WebAssembly client; app.Configure(c => c.Jobs.Off()) is how an app does without one. Depends on Rask, the shared core.</Description>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -49,8 +49,11 @@
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.SQLite.EntityFrameworkCore\Rask.SQLite.EntityFrameworkCore.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- The other databases Rask:Database:Provider can name. Bundled rather than left to the app so switching is a
-         configuration edit and nothing else: UseRaskDatabase(sp) calls these directly, with no reflection. -->
-    <ProjectReference Include="..\Rask.Postgres\Rask.Postgres.csproj" PrivateAssets="none" ExcludeAssets="build"/>
+         configuration edit and nothing else: UseRaskDatabase(sp) calls these directly, with no reflection.
+         EXCEPT Rask.Postgres, for now: it ships as a release candidate while Npgsql's EF Core 11 provider is one, and
+         a stable package cannot depend on a prerelease one (NU5104). A Postgres app adds the Rask.Postgres package
+         and UseRaskDatabase finds it by name (App/PostgresLoader.cs). It is bundled again when Npgsql's provider is
+         stable (Rask.Postgres.csproj, RaskPostgresPreRelease). -->
     <ProjectReference Include="..\Rask.SqlServer\Rask.SqlServer.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <ProjectReference Include="..\Rask.Auth\Rask.Auth.csproj" PrivateAssets="none" ExcludeAssets="build"/>
     <!-- HTTP endpoints: Rask.Api carries the hosting and the client generator, Rask.Api.Client the runtime the

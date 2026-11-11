@@ -149,6 +149,16 @@ fresh leftover
 python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
 same "a leftover of another version is refused" "$?" "2"
 
+fresh held
+rm "$dir"/*.nupkg
+( version="0.24.0"; the_set "$dir"; rm "$dir/Rask.Postgres.0.24.0.nupkg"
+  version="0.24.0-rc.1"; package "$dir" Rask.Postgres Rask.Server=0.24.0 )
+python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
+same "a stable set may hold one package as a prerelease of its version" "$?" "0"
+( version="0.25.0-rc.1"; package "$dir" Rask.Other )
+python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
+same "...but not a prerelease of another version" "$?" "2"
+
 echo "==> publish_packages: the push"
 
 fresh happy

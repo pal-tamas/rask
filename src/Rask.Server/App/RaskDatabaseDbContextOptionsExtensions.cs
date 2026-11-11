@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Rask.Postgres;
 using Rask.SQLite;
 using Rask.SqlServer;
 
@@ -54,7 +53,7 @@ public static class RaskDatabaseDbContextOptionsExtensions
         // same options: EF Core builds its internal services once for each when they differ.
         return Rask.Data.RaskDbContext.WithSharedWarnings((RaskDatabase.Provider(services.GetService<IConfiguration>()) switch
         {
-            RaskDatabaseProvider.Postgres => optionsBuilder.UseRaskPostgres(services),
+            RaskDatabaseProvider.Postgres => PostgresLoader.Use(optionsBuilder, services),
             RaskDatabaseProvider.SqlServer => optionsBuilder.UseRaskSqlServer(services),
             _ => optionsBuilder.UseRaskSqlite(services),
         }).WithBatteryTables(tables));

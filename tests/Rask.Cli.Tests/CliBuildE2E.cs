@@ -28,7 +28,7 @@ internal static class CliBuildE2E
     internal static readonly string[] FeedPackages =
     [
         "Rask",                             // the shared core every host depends on — the chain, routing, forms, the generators
-        "Rask.Postgres",                    // Rask.Server depends on it — the provider Rask:Database:Provider=postgres picks
+        "Rask.Postgres",                    // a Postgres app adds it — the provider Rask:Database:Provider=postgres picks
         "Rask.SqlServer",                   // and sqlserver
         "Rask.Server",                      // server template: the host and every battery, RaskApp included
         "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half

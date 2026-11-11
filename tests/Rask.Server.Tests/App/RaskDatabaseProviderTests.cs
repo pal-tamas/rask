@@ -26,6 +26,27 @@ public sealed class RaskDatabaseProviderTests
         protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskLogging();
     }
 
+    [Fact]
+    public void The_postgres_provider_is_found_by_the_name_Rask_Server_asks_for()
+    {
+        // Rask.Server no longer references Rask.Postgres (a release candidate), so it asks for the provider by name. A
+        // rename on either side would compile, and leave every Postgres app with "add the Rask.Postgres package".
+        var type = Type.GetType(PostgresLoader.ProviderTypeName, throwOnError: false);
+
+        var provider = type is null ? null : Activator.CreateInstance(type);
+
+        Assert.IsAssignableFrom<Rask.Data.IRaskDatabaseProvider>(provider);
+    }
+
+    [Fact]
+    public void A_postgres_app_without_the_package_is_told_to_add_it()
+    {
+        var message = PostgresLoader.MissingPackage;
+
+        Assert.Contains("add the Rask.Postgres package", message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Database:Provider is postgres", message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(null, "Microsoft.EntityFrameworkCore.Sqlite", "Data Source=:memory:")]
     [InlineData("sqlite", "Microsoft.EntityFrameworkCore.Sqlite", "Data Source=:memory:")]

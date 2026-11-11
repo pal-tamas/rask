@@ -713,7 +713,9 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   Each page is SPLICED into the boot shell (its import map, preload and scripts are kept), and the shell's `<head>` COMMENTS are dropped from the published page while staying in the source — `<script>`/`<style>` raw text, conditional comments and `<!--!`/`@license`/`@preserve` are kept (rask.sh saved 1,697 B raw / 769 B gzip).
   WASM only;
   per-page budget 30s.
-- [PostgreSQL](docs/data.md#postgresql): the `Rask.Postgres` package (in `Rask.Server`;
+- [PostgreSQL](docs/data.md#postgresql): the `Rask.Postgres` package — a Postgres app ADDS it (`dotnet add package Rask.Postgres`; NOT in `Rask.Server` while it
+  ships as a release candidate on Npgsql's rc EF Core 11 provider; Rask.Server finds it by name, and without it a `postgres` setting fails at start: "add the Rask.Postgres package";
+  the app sees NU1608 until Npgsql's stable provider, `<NoWarn>$(NoWarn);NU1608</NoWarn>` under -warnaserror;
   chosen with `Rask:Database:Provider`) — SQLite stays the default.
   `o.UseRaskPostgres(sp, configure?)` (connection string from `Rask:ConnectionStrings:App`, options from `Rask:Postgres` then the callback) is a drop-in for `UseNpgsql` that puts production session timeouts into the connection string as STARTUP PARAMETERS (`Options=-c statement_timeout=…`) — they become the session DEFAULTS, so they survive the pool's DISCARD ALL, cost NO round trip per query (a SET per open would), and reach code that opens the DbConnection directly;
   a `-c` already in the connection string wins;

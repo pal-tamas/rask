@@ -23,7 +23,7 @@ public sealed class EfToolProbeTests
             .Attribute("Version")!.Value;
 
         Assert.Equal(
-            Version.Parse(pinned),
+            Version.Parse(pinned.Split('-', 2)[0]),
             EfToolProbe.Floor);
     }
 

@@ -1,3 +1,5 @@
+using Rask.Core.Globalization;
+
 namespace Rask;
 
 /// <summary>
@@ -20,13 +22,13 @@ internal static class UiSliderValue
         null => [],
         int number => [number],
         long number => [number],
-        float number => [(decimal)number],
-        double number => [(decimal)number],
+        float number => [ShortestDecimal.Of(number)],
+        double number => [ShortestDecimal.Of(number)],
         decimal number => [number],
         int[] pair => Array.ConvertAll(pair, number => (decimal)number),
         long[] pair => Array.ConvertAll(pair, number => (decimal)number),
-        float[] pair => Array.ConvertAll(pair, number => (decimal)number),
-        double[] pair => Array.ConvertAll(pair, number => (decimal)number),
+        float[] pair => Array.ConvertAll(pair, ShortestDecimal.Of),
+        double[] pair => Array.ConvertAll(pair, ShortestDecimal.Of),
         decimal[] pair => pair,
         _ => throw new NotSupportedException(Unsupported),
     };

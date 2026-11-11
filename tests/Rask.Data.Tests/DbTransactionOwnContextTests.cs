@@ -2,6 +2,7 @@ using System.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Rask.Data.Tests;
@@ -246,7 +247,13 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
     [Fact]
     public async Task Migrate_on_a_joined_context_is_refused_as_schema_work()
     {
-        await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        // The app's own options, with EF Core 11's MigrationsNotFound (an error by default) let through: this model
+        // has no migrations, and Migrate must reach its first command for Rask to refuse it.
+        await using var app = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
+        var options = new DbContextOptionsBuilder<RaskDbContext>((DbContextOptions<RaskDbContext>)app.GetService<IDbContextOptions>())
+            .ConfigureWarnings(w => w.Ignore(RelationalEventId.MigrationsNotFound))
+            .Options;
+        await using var db = new RaskDbContext(options);
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => Db.Transaction(async () =>
         {
@@ -278,8 +285,9 @@ public sealed class DbTransactionOwnContextTests : IAsyncLifetime
     {
         await using var db = await Contexts.CreateDbContextAsync(TestContext.Current.CancellationToken);
 
+        // Schema work: EnsureCreated. (MigrateAsync was here too; on a model with no migrations EF Core 11 throws
+        // MigrationsNotFound by design, which says nothing about Db.Transaction.)
         var created = await db.Database.EnsureCreatedAsync(TestContext.Current.CancellationToken);
-        await db.Database.MigrateAsync(TestContext.Current.CancellationToken);
         await using (var own = await db.Database.BeginTransactionAsync(TestContext.Current.CancellationToken))
         {
             db.Add(Widget.Create("tongs"));

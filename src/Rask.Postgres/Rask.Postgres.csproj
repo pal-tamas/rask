@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
+    <!-- Npgsql's release-candidate EF Core 11 provider pins EF Core exactly; see the references below. -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
@@ -22,7 +24,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Npgsql's EF Core 11 provider is a release candidate (11.0.0-rc.3) that pins EF Core to EXACTLY its own rc.3
+      build. The two direct references lift EF Core to the 11.0.0 release the rest of Rask is on (a direct reference
+      is nearest, so it wins), which turns the NU1107 conflict into the NU1608 warning "outside the dependency
+      constraint", silenced below and in tests/Directory.Build.props: a release candidate is API-frozen against its
+      GA. An app that adds this package sees the same NU1608 (docs/data-access.md). All of it goes with the move to
+      Npgsql's stable provider: the two references, the NoWarns, RaskPostgresPreRelease, and Rask.Server bundles
+      this package again.
+    -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
   </ItemGroup>
 
@@ -44,5 +57,24 @@
   <ItemGroup>
     <ProjectReference Include="..\Rask.Data\Rask.Data.csproj"/>
   </ItemGroup>
+
+  <!--
+    HELD AS A RELEASE CANDIDATE while Npgsql.EntityFrameworkCore.PostgreSQL, the EF Core 11 provider this package rides on,
+    is one. A stable tag (v0.24.0) packs this package as 0.24.0-rc.1 and every other package as 0.24.0, so nothing
+    stable depends on a prerelease (NU5104) — Rask.Server no longer references it; a Postgres app adds it. A nightly
+    is a prerelease already and keeps MinVer's version. Goes away with the move to Npgsql's stable provider, together
+    with the NU1608 NoWarn above and Rask.Server's PostgresLoader (which becomes a reference again): PostgresHoldTests
+    fails the day Directory.Packages.props pins a stable Npgsql while this property is still set (#1320).
+  -->
+  <PropertyGroup>
+    <RaskPostgresPreRelease>rc.1</RaskPostgresPreRelease>
+  </PropertyGroup>
+
+  <Target Name="RaskPostgresHeldAsPreRelease" AfterTargets="MinVer"
+          Condition=" '$(RaskPostgresPreRelease)' != '' AND '$(MinVerPreRelease)' == '' AND '$(MinVerMajor)' != '' ">
+    <PropertyGroup>
+      <PackageVersion>$(MinVerMajor).$(MinVerMinor).$(MinVerPatch)-$(RaskPostgresPreRelease)</PackageVersion>
+    </PropertyGroup>
+  </Target>
 
 </Project>

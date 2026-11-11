@@ -24,8 +24,12 @@ internal static class EfToolProbe
     ///         to do. That is a chore with a known fix, on a tool this CLI installed in the first place,
     ///         so it is carried out rather than recited.
     ///     </para>
+    ///     <para>
+    ///         The pin's release part: a prerelease pin ("11.0.0-rc.3.26522.148", while EF Core is held for Npgsql)
+    ///         is floored at its release, the way an installed tool's version is read below.
+    ///     </para>
     /// </remarks>
-    public static readonly Version Floor = Version.Parse(EfCorePin.Version);
+    public static readonly Version Floor = Version.Parse(EfCorePin.Version.Split('-', 2)[0]);
 
     public static async Task<bool> IsInstalledAsync(IProcessRunner process, CancellationToken cancellationToken)
         => await InstalledVersionAsync(process, cancellationToken).ConfigureAwait(false) is not null;
