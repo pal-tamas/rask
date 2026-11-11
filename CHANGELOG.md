@@ -26,6 +26,11 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A scaffolded app's Docker image restores from the project's own `nuget.config` (#1307).** Before: the server,
+  wasm-hosted and wasm Dockerfiles copied only the csproj before `dotnet restore`, so a private feed or package
+  source mapping was not in the image yet and the restore failed or silently went to nuget.org. After: the restore
+  layer also copies `nuget.config`, `Directory.*` (Directory.Packages.props, Directory.Build.props) and
+  `global.json` — as patterns, so a project without one of them still builds.
 - **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
   slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
   one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost
