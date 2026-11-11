@@ -190,7 +190,9 @@ public sealed class XlsxReadTests
 
         var error = Assert.Throws<InvalidOperationException>(() => row["Plate"]);
 
-        Assert.Contains("row[0]", error.Message, StringComparison.Ordinal);
+        Assert.Contains("Columns A, B are all headed 'Plate'", error.Message, StringComparison.Ordinal);
+        Assert.Contains("row[0] for column A", error.Message, StringComparison.Ordinal);
+        Assert.Contains("HeadingsOn(", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

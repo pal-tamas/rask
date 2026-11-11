@@ -14,7 +14,9 @@ them until tagged releases begin.
   and browser. Cells come back as the writer's own types (`string`, `decimal`, `bool`, `Xlsx.Day`/`Xlsx.Moment` from the
   cell's date format in 1900 and 1904 workbooks, a formula's cached value); `HeadingsOn` spreads merged headings and
   joins two heading rows into one name. `Sheet.Rows` is now `IEnumerable<Xlsx.Row>` (a row is still an
-  `IReadOnlyList<object?>`). Bounded against zip bombs, no DTD. Guide: rask.sh/docs/xlsx.
+  `IReadOnlyList<object?>`). Bounded against zip bombs, no DTD. A heading several columns share (a title merged
+  across them, read as the headings) throws naming those columns and the way out (`HeadingsOn`, or `row[0]`).
+  Guide: rask.sh/docs/xlsx.
 - **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
   the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
   wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -

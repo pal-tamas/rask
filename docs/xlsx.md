@@ -127,6 +127,12 @@ A column's heading is its cells on those rows, top to bottom, **joined by a spac
 left out. A merged cell's text stands over every column and row it spans, and a cell merged down over several
 heading rows (`A3:A4`) is taken once — so `Rendszám` is not `Rendszám Rendszám`.
 
+**A title merged across the top makes every column it covers share one heading.** Read without `HeadingsOn`, a sheet
+whose row 1 is a title merged over `A1:B1` has `Headings` `["Title", "Title"]`; `row["Title"]` then throws an
+`InvalidOperationException` naming the columns that share it, rather than guessing. Read the headings from the rows
+under the title (`HeadingsOn(2)`), or, on a label/value sheet with no headings at all, read the cells by place:
+`row[0]`, `row[1]`.
+
 ### What a cell reads back as
 
 The writer's own types:

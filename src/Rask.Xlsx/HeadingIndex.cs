@@ -8,7 +8,7 @@ internal sealed class HeadingIndex
 {
     private readonly IReadOnlyList<string> headings;
     private readonly Dictionary<string, int> columns = new(StringComparer.OrdinalIgnoreCase);
-    private readonly HashSet<string> twice = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<int>> twice = new(StringComparer.OrdinalIgnoreCase);
 
     public HeadingIndex(IReadOnlyList<string> headings)
     {
@@ -18,7 +18,13 @@ internal sealed class HeadingIndex
             var heading = headings[column]?.Trim();
             if (!string.IsNullOrEmpty(heading) && !columns.TryAdd(heading, column))
             {
-                twice.Add(heading);
+                if (!twice.TryGetValue(heading, out var shared))
+                {
+                    shared = [columns[heading]];
+                    twice.Add(heading, shared);
+                }
+
+                shared.Add(column);
             }
         }
     }
@@ -34,8 +40,12 @@ internal sealed class HeadingIndex
                 + "If they stand lower on the sheet, read them from there: Xlsx.Read(file).HeadingsOn(3, 4).");
         }
 
-        return twice.Contains(key)
-            ? throw new InvalidOperationException($"More than one column is headed '{key}'; read the cell by its place instead, as row[{column}] for the first.")
-            : column;
+        return twice.TryGetValue(key, out var shared) ? throw Ambiguous(key, shared) : column;
     }
+
+    // Columns A and B both headed by one title merged across them is the usual cause: a title row read as the headings.
+    private static InvalidOperationException Ambiguous(string heading, List<int> shared) =>
+        new($"Columns {string.Join(", ", shared.Select(WorksheetWriter.ColumnName))} are all headed '{heading}', so row[\"{heading}\"] "
+            + $"cannot choose one. Read the cell by its place, as row[{shared[0]}] for column {WorksheetWriter.ColumnName(shared[0])}; "
+            + "or, if that heading is a title merged across them, read the headings from the rows below it: Xlsx.Read(file).HeadingsOn(2).");
 }
