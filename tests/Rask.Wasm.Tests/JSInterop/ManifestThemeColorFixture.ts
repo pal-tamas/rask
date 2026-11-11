@@ -29,6 +29,9 @@ interface StubElement {
     media: string;
     parentNode: StubElement | null;
     _children: StubElement[];
+    style: Record<string, string>;
+    _attrs: Record<string, string>;
+    setAttribute(name: string, value: string): void;
     appendChild(child: StubElement): StubElement;
 }
 
@@ -42,6 +45,10 @@ function el(tagName: string, props: Partial<StubElement> = {}): StubElement {
         media: "",
         parentNode: null,
         _children: [],
+        // The route announcer the runtime puts on the page as it starts (rask-route-focus.ts) is one of these.
+        style: {},
+        _attrs: {},
+        setAttribute: (name: string, value: string) => void (e._attrs[name] = String(value)),
         appendChild: (child: StubElement) => {
             e._children.push(child);
             child.parentNode = e;
@@ -54,7 +61,7 @@ function el(tagName: string, props: Partial<StubElement> = {}): StubElement {
 
 let head = el("head");
 
-// <html> as far as the runtime touches it: it marks it data-rask-busy while it boots (rask-owned.ts busy()).
+// <html> as far as the runtime touches it: it marks it data-rask-busy while it boots (rask-owned.ts busy())...
 function html(): object {
     const attrs = new Map<string, string>();
     return {
@@ -63,6 +70,8 @@ function html(): object {
         getAttribute: (name: string) => attrs.get(name) ?? null,
         setAttribute: (name: string, value: string) => void attrs.set(name, String(value)),
         removeAttribute: (name: string) => void attrs.delete(name),
+        // ...and hangs its route announcer off it (rask-route-focus.ts).
+        appendChild: (child: object) => child,
     };
 }
 

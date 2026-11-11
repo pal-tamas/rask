@@ -14,6 +14,8 @@ if (!bundlePath || cookieName === undefined || queryKey === undefined) {
 
 const element = () => ({
     nodeType: 1,
+    // The runtime puts its route announcer on the page as it starts (rask-route-focus.ts), styling it inline.
+    style: {},
     hasAttribute: () => false,
     getAttribute: () => null,
     setAttribute: () => { },

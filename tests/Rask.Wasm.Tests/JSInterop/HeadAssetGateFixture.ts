@@ -52,6 +52,7 @@ interface StubElement {
     hasAttribute(name: string): boolean;
     getAttribute(name: string): string | null;
     setAttribute(name: string, value: string): void;
+    style: Record<string, string>;
     removeAttribute(name: string): void;
     addEventListener(type: string, fn: (event: unknown) => void): void;
 
@@ -74,6 +75,8 @@ function makeStubElement(tagName: string): StubElement {
     const el: StubElement = {
         nodeType: 1,
         tagName: tagName.toUpperCase(),
+        // The runtime puts its route announcer on the page as it starts (rask-route-focus.ts), styling it inline.
+        style: {},
         _children: [],
         parentNode: null,
         textContent: "",
