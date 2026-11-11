@@ -147,10 +147,26 @@ departure in behaviour carries none.
   accent at `:focus-visible` — inside their own box, so no `overflow` around them clips it; red stays red when
   invalid. A box holding a typed field (date/time typed parts, colour picker, pillbox) is ringed while its input
   has focus; a typed date/time part is lit by a 1px accent outline inside the box. Buttons, tabs, checkboxes, radios
-  and switches keep the browser's keyboard ring, as Flux's; a trigger pressed by the mouse draws nothing, as Flux's.
+  and switches draw THE KEYBOARD RING (2026-11-10, below); a trigger pressed by the mouse draws nothing, as Flux's.
   `flux parity-focus` holds those steps to the accent ring instead of Flux's outline (`Departed.FocusAccent` in
   `scripts/flux/Flux/Lib/Departed.cs`); every other step is Flux's. `UiFocusAccentTests` (the rule), `FocusAccentTests`
   (Server E2E: a field in a table row in a flyout, unclipped).
+- **2026-11-10 — THE KEYBOARD RING (`THE KEYBOARD RING` in `Styles/ui.css`, `@layer rask`, `:where(:focus-visible)`).**
+  Flux leaves keyboard focus on a button, tab, link, nav item, checkbox, radio or switch to the browser: a blue `auto`
+  ring drawn OUTSIDE the control, which an `overflow` frame cuts (TA, Safari: `Ui.RowActions`' ⋯ in a table's sticky
+  last cell). The kit draws `outline: 2px solid var(--color-accent)` at `outline-offset: -2px` — the app's accent, inside
+  the control's box, never clipped — on every element the keyboard focuses (an app's own too; any utility wins, so menu
+  rows and options keep Flux's `outline-hidden`). A box, radio or switch (a label round a hidden input) draws the
+  same ring on what the reader sees (`UiFocusLook.Ring`, inside: a box in a table's first column sits on the scroll
+  frame's edge); the toggle loses its `outline-offset-2`. Where the fill IS the accent (a primary button, a ticked
+  box, a switch that is on, a chosen pill, pill tab, day or preset) a 2px band of `--color-accent-foreground` lies
+  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST or LAST heading hangs no 8px into the
+  gutter past the scroll frame there (Flux's `-ms-2`/`-me-2`): it keeps 4px for the ring instead, so those words stand
+  4px in from the cells under them (`ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and
+  width go). A press draws nothing, as Flux's. `flux parity` lets the outline keys and `boxShadow` go on
+  a forced `:focus-visible` (`Departed.FocusFrom`); `flux parity-focus` holds its other cases to that ring
+  (`Departed.KeyboardRing`). `UiKeyboardRingTests` (the rule), `KeyboardRingTests` (Server E2E) and the site's
+  `UiKitKeyboardRingTests` (every focusable Tabbed to, at 1280 and 390, light and dark: the accent, unclipped).
 - **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the
   paginator. The kit can keep them in the address: a heading's press writes the sorted column and direction (Flux's
   cycle — another column ascending, the sorted one turned round), `PageIn` draws `Ui.Pagination` of links (always, as

@@ -13,7 +13,7 @@ public sealed partial class UiFiltersPage
         List<string> tagged = [.. (Tagged ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries)];
 
         var filters = Ui.Filters[
-            Ui.Filter.Label("Labels").Shown(tagged.Count == 0 ? null : string.Join(", ", tagged)).OnRemove(() => Go.With("labels", null))[
+            Ui.Filter.Label("Labels").Shown(tagged).OnRemove(() => Go.With("labels", null))[
                 Ui.Select.Values((ICollection<string>)tagged).Label("Labels").Listbox.Multiple().Placeholder("Any label")
                     .OnChange((ICollection<string> picked) => Go.With("labels", picked.Count == 0 ? null : string.Join(',', picked)))[
                     Labels.Select(label => Ui.SelectOption.Key(label).Value(label)[label])

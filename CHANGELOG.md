@@ -7,6 +7,48 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
+  the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
+  wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
+  Case III MXM120"), two or more by their count ("Vehicles: 40 selected", the new `RaskString.FiltersSelectedCount`,
+  „40 kiválasztva”) with every name in a tooltip on the badge that wraps and stays on the screen (hover, keyboard
+  focus, a tap). A literal `Shown(null)` is now ambiguous between the two steps: leave the step out, or write
+  `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
+
+### Fixed
+- **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
+  gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
+  max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its
+  size, so a cut-off badge can still be taken off.
+- **The `Ui.Filters` "Filters" button is the kit's default button size** (40px, was `Sm`'s 32px), as tall as the
+  `Ui.Button`s and `Ui.Toggle`s a list's header places beside it.
+- **A sortable `Ui.TableColumn.End` ends its heading where its numbers end.** Before: the sort button's end padding
+  stayed in (the edge rule that keeps it inside the heading outweighed the pull meant to take it back), so TA's
+  "Liter" heading stood 8px left of its right-aligned numbers. After: an end-aligned sort button gives up its end
+  padding, and heading and cells share one edge, at 1280 and 390.
+### Fixed
+- **Rask.Ui's keyboard focus ring is the app's accent, and nothing clips it.** Before: a button, tab, link, nav item,
+  checkbox, radio or switch kept the browser's blue ring (Flux leaves it to the browser), drawn OUTSIDE the control —
+  on TA's list, Safari's blue glow round `Ui.RowActions`' ⋯ in the table's sticky last cell, cut in half by the
+  table's scroll frame. After: every element the keyboard focuses draws 2px of `--color-accent` inside its own box
+  (one zero-weight `:where(:focus-visible)` rule in `@layer rask`, so an app's own buttons and links follow and any
+  utility still wins), a box, radio or switch on what the reader sees of it, inside it too (a selection box in a
+  table's first column sits on the scroll frame's edge); a primary button, a ticked box, a switch that is on, a chosen
+  pill tab, day or preset adds a band of `--color-accent-foreground` inside the ring so it shows on the accent fill;
+  a sort button in a table's first or last heading no longer hangs past the scroll frame (its words stand 4px in). `:focus-visible` only — a press draws nothing. An owner-approved departure from Flux
+  (flux-component's list); `flux parity` / `flux parity-focus` hold it. `UiKeyboardRingTests`, and an E2E sweep that
+  Tabs through every control of the kit's showcase pages and TA's list shape on the Server host, at 1280 and 390,
+  light and dark: every ring the accent, none cut by a box around it (`UiKitKeyboardRingTests`, `KeyboardRingTests`).
+- **A kit tooltip no longer opens when focus comes back to its trigger after a menu closes.** Before: on a list whose
+  `Ui.RowActions` ⋯ wears the tooltip "Actions", opening its menu with the mouse and closing it — a pick, a click
+  outside, or Escape — handed focus back to the ⋯, which Chrome and WebKit count as `:focus-visible`, so the tooltip
+  opened and stayed until the next click. After: `data-rask-tooltip` (`rask-hover.ts`) opens a tooltip on focus only
+  when the keyboard moved it there — a Tab, an arrow key, a shortcut's `focus()` — never when it is handed back by a
+  closing popover or dialog, or by a script after a press; a tooltip the pointer showed over a trigger that merely has
+  focus leaves with the pointer. As Flux UI's does (measured on its editor's link button, `flux tooltip-focus-return`).
+  Every kit tooltip, both hosts.
+
 ### Changed
 - **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
   a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:

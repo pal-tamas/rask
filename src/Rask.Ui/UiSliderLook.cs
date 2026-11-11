@@ -32,7 +32,7 @@ internal static partial class UiSliderLook
     internal const string Thumb =
         "absolute top-1/2 -translate-x-1/2 -translate-y-1/2 [:where(&)]:size-4 rounded-full bg-white "
         + "shadow-[0_1px_2px_0_rgba(0,0,0,0.05),0_2px_4px_0_rgba(0,0,0,0.1)] ring-1 ring-black/15 dark:ring-black/30 "
-        + "focus-within:z-10 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[color:-webkit-focus-ring-color]";
+        + "focus-within:z-10 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent";
 
     // The control itself: invisible, laid over the stretch of track its thumb can reach, with a thumb of no
     // width — so a press anywhere on it lands the value under the pointer, as a press on Flux's track does.

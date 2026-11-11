@@ -254,6 +254,7 @@
   "FiltersClearAll": "Összes törlése",
   "FiltersClose": "Bezárás",
   "FilterRemove": "{0} szűrő törlése",
+  "FiltersSelectedCount": "{0} kiválasztva",
   "ValidationNotFound": "Az itt kiválasztott elem nem létezik.",
   "ValidationDuplicateRow": "Ugyanaz a sor kétszer szerepel a listában.",
   "ValidationDateMin": "Válasszon {0} vagy későbbi dátumot.",

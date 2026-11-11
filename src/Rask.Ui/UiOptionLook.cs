@@ -25,17 +25,20 @@ internal static class UiOptionLook
     internal const string Native = "sr-only";
 
     /// <summary>
-    ///     The keyboard's focus ring, which Flux leaves to the browser, drawn where the input is seen. The hand
-    ///     over the control is the kit sheet's: a label around a box or a radio that is not disabled. A disabled one
+    ///     The keyboard's focus ring in the accent (<see cref="UiFocusLook.Ring" />), drawn where the input is seen. The
+    ///     hand over the control is the kit sheet's: a label around a box or a radio that is not disabled. A disabled one
     ///     keeps the browser's <c>auto</c> said outright, as Flux's does, whatever it sits in.
     /// </summary>
-    internal const string Focus = "has-disabled:cursor-auto has-[:focus-visible]:[outline:auto_1px_-webkit-focus-ring-color]";
+    internal const string Focus = "has-disabled:cursor-auto " + UiFocusLook.Ring;
+
+    /// <summary>The same ring, laid inside what the reader sees, where no frame around it can clip it.</summary>
+    internal const string FocusInside = Focus + " " + UiFocusLook.Inside;
 
     /// <summary>A checkbox drawn as its box alone.</summary>
-    internal const string Checkbox = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-[.3rem] outline-offset-2 " + Focus;
+    internal const string Checkbox = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-[.3rem] " + FocusInside;
 
     /// <summary>A radio drawn as its dot alone.</summary>
-    internal const string Radio = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-full outline-offset-2 " + Focus;
+    internal const string Radio = "group/option [:where(&)]:flex [:where(&)]:size-[1.125rem] [:where(&)]:mt-px [:where(&)]:rounded-full " + FocusInside;
 
     /// <summary>The box a tick is drawn in.</summary>
     internal const string CheckboxIndicator = Box + " [:where(&)]:rounded-[.3rem]";
@@ -65,7 +68,7 @@ internal static class UiOptionLook
         + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
         + "after:absolute after:-inset-px after:rounded-lg has-checked:after:bg-zinc-800/[2.5%] dark:has-checked:after:bg-white/10 "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
-        + Focus;
+        + FocusInside;
 
     /// <summary>The icon and the words of a card, beside its indicator.</summary>
     internal const string CardBody = "flex flex-1 gap-2";
@@ -88,7 +91,8 @@ internal static class UiOptionLook
         + "has-checked:bg-accent has-checked:text-accent-foreground "
         + "has-checked:hover:bg-accent has-checked:hover:text-accent-foreground "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
-        + Focus;
+        + UiFocusLook.OnAccentChecked + " "
+        + FocusInside;
 
     /// <summary>A button: Flux's outline button, with the accent border when chosen.</summary>
     internal const string Button =
@@ -98,7 +102,7 @@ internal static class UiOptionLook
         + "dark:border-zinc-600 dark:bg-zinc-700 dark:text-white dark:hover:border-zinc-500 "
         + "has-checked:border-accent has-checked:hover:border-accent dark:has-checked:bg-white/15 "
         + "after:absolute after:-inset-px after:rounded-lg has-checked:after:bg-zinc-800/[2.5%] dark:has-checked:after:bg-white/10 "
-        + Focus;
+        + FocusInside;
 
     /// <summary>A button's icon: faint until the button is chosen.</summary>
     internal const string ButtonIcon =
@@ -111,7 +115,7 @@ internal static class UiOptionLook
         + "has-checked:bg-white has-checked:text-zinc-800 has-checked:shadow-xs "
         + "dark:has-checked:bg-white/20 dark:has-checked:text-white "
         + "has-disabled:opacity-50 dark:has-disabled:opacity-75 "
-        + Focus;
+        + FocusInside;
 
     /// <summary>A segment's icon.</summary>
     internal const string SegmentIcon =
@@ -127,6 +131,8 @@ internal static class UiOptionLook
         + "group-has-checked/option:border-transparent group-has-checked/option:bg-accent group-has-checked/option:shadow-none "
         + "group-data-indeterminate/option:border-transparent group-data-indeterminate/option:bg-accent "
         + "group-data-indeterminate/option:shadow-none "
+        + "group-has-checked/option:group-has-[:focus-visible]/option:shadow-[inset_0_0_0_4px_var(--color-accent-foreground)] "
+        + "group-data-indeterminate/option:group-has-[:focus-visible]/option:shadow-[inset_0_0_0_4px_var(--color-accent-foreground)] "
         + "group-has-disabled/option:border-zinc-200 group-has-disabled/option:opacity-75 group-has-disabled/option:shadow-none "
         + "dark:group-has-disabled/option:border-white/5 "
         + "group-has-checked/option:group-has-disabled/option:border-transparent "

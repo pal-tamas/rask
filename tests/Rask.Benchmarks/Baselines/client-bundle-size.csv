@@ -688,3 +688,12 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133005
+# 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
+# back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
+# showed it): +285 on rask-hooks.js alone. This block sets all three to what the merged tree measures with the blocks
+# above (and c5ed10189's scroll-edges fix), locally with the bundle gate's esbuild 0.28.2 and flags (--minify):
+# rask-hooks.js 132,735 -> 133,057; rask.js and rask.wasm.js as the block above.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133057

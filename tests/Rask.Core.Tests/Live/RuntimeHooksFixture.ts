@@ -20,6 +20,7 @@ import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
 import {framed, landing} from "../../../src/Rask.Core/Resources/rask-place.js";
 import {filtered, fold} from "../../../src/Rask.Core/Resources/rask-list.js";
 import {stepFrom, typeAhead} from "../../../src/Rask.Core/Resources/rask-menu-keys.js";
+import {handedBack} from "../../../src/Rask.Core/Resources/rask-hover.js";
 
 // Flux UI's own select: the seven options of its listbox, and the three of its "create" combobox.
 const plain = (label: string) => ({label, keywords: null as string | null, keep: false});
@@ -34,6 +35,13 @@ function lands(x: number, y: number, place = "bottom start 5 0", w = 192, h = 29
     const to = landing(place, {x, y, w: 126, h: 40}, w, h, vw, vh, rtl);
     return [to.x, to.y, to.cap];
 }
+
+// A menu button and the menu it opens, as handedBack sees them: a row inside the popover, a button on the page.
+const trigger = {} as Node;
+const row = {} as Node;
+const menu = {contains: (node: Node) => node === row} as unknown as Element;
+const inMenu = {closest: () => menu} as unknown as Pick<Element, "closest">;
+const onPage = {closest: () => null} as unknown as Pick<Element, "closest">;
 
 const phone = "(999) 999-9999";
 const a = {} as Element;
@@ -171,4 +179,9 @@ report({
             landing("bottom end 5 0", {x: 600, y: 300, w: 0, h: 0}, 200, 1500, 1920, 1080, false, true)].map((to) => [to.x, to.y, to.cap]),
     },
     owned: {held, otherName, otherElement, released: !ownsAttr(a, "data-open"), checked: ownsChecked(b)},
+    // Focus on a tooltip's trigger: out of the menu it opened (a pick, Escape), from nowhere after a press (a click
+    // outside, handed back by script); then the navigated cases — from nowhere after a key (the first Tab into a page,
+    // a shortcut's focus()), a Tab from a button on the page, and a move between two rows of one popover.
+    handed: [handedBack(trigger, inMenu, "press"), handedBack(trigger, inMenu, "key"), handedBack(trigger, null, "press"),
+        handedBack(trigger, null, "key"), handedBack(trigger, onPage, "key"), handedBack(row, inMenu, "key")],
 });

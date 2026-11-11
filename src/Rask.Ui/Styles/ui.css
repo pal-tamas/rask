@@ -761,7 +761,8 @@
   }
 
   [data-ui-file-upload] > input:focus-visible ~ * {
-    outline: auto 1px -webkit-focus-ring-color;
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
   }
 }
 
@@ -1043,7 +1044,7 @@
     part inside it is lit by the accent's outline of its own, inside the box.
   - `:focus-visible`, as the browser judges it: a text field is ringed however it was focused, a trigger only
     from the keyboard — a press on one draws nothing, as Flux's draws nothing.
-  - Buttons, tabs, checkboxes, radios and switches keep the browser's keyboard ring, as Flux's do.
+  - Everything else that takes the keyboard is ringed by THE KEYBOARD RING, below.
 
   In `rask-ui-corrections`, the one layer above `utilities`: it replaces the border colour the field's own classes
   give it. An app recolours it by its accent (`--color-accent`), which is the point.
@@ -1084,6 +1085,53 @@
     [data-ui-second-input], [data-ui-meridiem-input]):focus-visible {
     outline: 1px solid var(--color-accent);
     outline-offset: 0;
+  }
+}
+
+/*
+  THE KEYBOARD RING — a departure from Flux (owner, 2026-11-10; flux-component's list).
+
+  Flux leaves keyboard focus on a button, tab, link, nav item, checkbox, radio or switch to the browser: Chrome's
+  blue `auto` ring, Safari's thicker blue glow, both drawn OUTSIDE the control — so a control at the edge of an
+  `overflow` box is cut: Ui.RowActions' ⋯ in a table's sticky last cell, a first-column link, a tab at a scrolled
+  row's end. Here every element the keyboard focuses draws the same ring: 2px of the app's ACCENT (zinc-800 by
+  default, white in dark, amber in an app that says so), laid INSIDE its own box (`outline-offset: -2px`), where no
+  frame around it can clip it.
+
+  - `:focus-visible` only, as the browser judges it: a press draws nothing, as on Flux.
+  - In `@layer rask` at no weight, keyed on nothing of the kit's, so an app's own button or link is ringed in its
+    accent too, and any utility wins: a menu row or option, highlighted rather than ringed as Flux's are, keeps
+    its `outline-hidden`. A box, radio or switch is a label round a hidden input: its own classes draw the same
+    ring on what the reader sees (UiFocusLook.Ring), inside it as well — a box in a table's first column sits on
+    the scroll frame's edge.
+  - A field draws its own ring (A FOCUSED FIELD, above), which replaces this one.
+  - Where the fill IS the accent (a primary button, a ticked box, a switch that is on, a chosen pill or pill tab,
+    a chosen day or preset) an accent ring would
+    vanish into it: those add a 2px band of `--color-accent-foreground` inside the ring (their own classes).
+*/
+@layer rask {
+  :where(:focus-visible) {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -2px;
+  }
+}
+
+/*
+  …and a table's sort button. Flux hangs it 8px into the gutter each side of its heading, so its press area reaches
+  past the words. In the first heading (no start padding, as Flux's) and the last (none at the end) that gutter is
+  outside the scroll frame, and the ring there was cut. At that edge the button hangs nowhere and keeps 4px for the
+  ring: the words stand 4px in from the cells under them, and nothing else moves. In `rask-ui-corrections`, above the
+  button's own `-ms-2`/`-me-2`.
+*/
+@layer rask-ui-corrections {
+  [data-ui-column]:first-child [data-ui-table-sortable] {
+    margin-inline-start: 0;
+    padding-inline-start: 0.25rem;
+  }
+
+  [data-ui-column]:last-child [data-ui-table-sortable] {
+    margin-inline-end: 0;
+    padding-inline-end: 0.25rem;
   }
 }
 
