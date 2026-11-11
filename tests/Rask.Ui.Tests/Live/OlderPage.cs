@@ -19,10 +19,14 @@ internal sealed class OlderPage : IDisposable
     {
         _page = page;
         Loaded = Render();
+        Latest = Loaded;
     }
 
     /// <summary>The page the browser loaded, and reads every event from.</summary>
     public string Loaded { get; }
+
+    /// <summary>The page the last event was answered with.</summary>
+    public string Latest { get; private set; }
 
     /// <summary>The ids of the loaded page's handlers for one DOM event, in document order.</summary>
     public List<string> Ids(string domEvent) =>
@@ -44,10 +48,13 @@ internal sealed class OlderPage : IDisposable
     {
         using var frame = JsonDocument.Parse(payload);
         var heard = await _page.TryInvokeHandlerAsync(id, frame.RootElement);
-        Render();
+        Latest = Render();
 
         return heard;
     }
+
+    /// <summary>A render the page makes of its own — what it read meanwhile — sent to the browser.</summary>
+    public string Rerender() => Latest = Render();
 
     public void Dispose() => _cache.Dispose();
 

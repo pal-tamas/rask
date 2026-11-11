@@ -27,7 +27,10 @@
 // A touch DOES show a tooltip. Measured on Flux UI's tooltip page on a phone (2026-10-27): the finger's
 // pointerenter shows it and its pointerleave, a moment later, hides nothing. Lifting the finger is a press
 // (the mousedown the browser makes of the tap), which hides a tooltip shown before the frame it lands in —
-// so an instant tap leaves it shown and a finger that rested hides it again. A second tap hides it, as does a
+// so an instant tap leaves it shown and a finger that rested hides it again. A frame is shorter than a person's
+// tap (a finger is down 50–150 ms), and a busy page or browser lets one pass under the quickest: here a TAP —
+// the finger lifted within TAP_MS of landing — leaves it shown (owner, 2026-11-11: a tooltip opens on a tap),
+// and only a finger that rested longer hides it as it lifts. A second tap hides it, as does a
 // tap elsewhere. And once a finger has shown one, Flux shows no tooltip of the page to a finger again — not
 // even another one — until a mouse moves.
 
@@ -41,9 +44,12 @@ const HOVER = "data-rask-hover";
 const dismissed = new WeakSet<Element>();
 const showing = new Set<Element>();
 
-// The tooltip a finger showed, until a mouse moves; and whether that was in the frame still running.
+// The tooltip a finger showed, until a mouse moves; and how long the finger that last landed was down (to its
+// lift; while it is still down, Infinity).
 let touched: Element | null = null;
-let touchedNow = false;
+let fingerAt = 0;
+let fingerHeld = Infinity;
+const TAP_MS = 300;
 
 // The roots whose tooltip keyboard focus showed, until focus leaves them or a press lands in them: only such a
 // tooltip outlives the pointer leaving. One the pointer showed over a trigger that merely HAS focus — handed back
@@ -213,8 +219,6 @@ if (page) {
             tip(tooltip, true);
             if (touch) {
                 touched = tooltip;
-                touchedNow = true;
-                requestAnimationFrame(function () { touchedNow = false; });
             } else {
                 watch(tooltip, e as PointerEvent);
             }
@@ -279,6 +283,10 @@ if (page) {
 
     listen("pointerdown", function (e) {
         lastInput = "press";
+        if ((e as PointerEvent).pointerType === "touch") {
+            fingerAt = e.timeStamp;
+            fingerHeld = Infinity;
+        }
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
         if (tooltip) {
             keyed.delete(tooltip);
@@ -297,10 +305,16 @@ if (page) {
         }
     }, {capture: true, passive: true});
 
-    // The press a tap ends in, on the tooltip a finger showed: it hides it, unless that was this frame.
+    listen("pointerup", function (e) {
+        if ((e as PointerEvent).pointerType === "touch") {
+            fingerHeld = e.timeStamp - fingerAt;
+        }
+    }, {capture: true, passive: true});
+
+    // The press a tap ends in, on the tooltip a finger showed: it hides it, unless that finger only tapped.
     listen("mousedown", function (e) {
         const tooltip = near(e.target, "[" + TOOLTIP + "]");
-        if (tooltip && tooltip === touched && !touchedNow && !near(e.target, "[popover]")) {
+        if (tooltip && tooltip === touched && fingerHeld >= TAP_MS && !near(e.target, "[popover]")) {
             tip(tooltip, false);
         }
     }, {capture: true, passive: true});

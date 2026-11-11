@@ -1044,6 +1044,9 @@
     part inside it is lit by the accent's outline of its own, inside the box.
   - `:focus-visible`, as the browser judges it: a text field is ringed however it was focused, a trigger only
     from the keyboard — a press on one draws nothing, as Flux's draws nothing.
+  - The browser's own date and time fields on `:focus-within`: Tab walks their parts and then their calendar or
+    clock button, and on that button Chromium counts the field neither `:focus` nor `:focus-visible` — the ring
+    went out while the field still held the keyboard.
   - Everything else that takes the keyboard is ringed by THE KEYBOARD RING, below.
 
   In `rask-ui-corrections`, the one layer above `utilities`: it replaces the border colour the field's own classes
@@ -1056,6 +1059,7 @@
     [data-ui-select-button], [data-ui-date-picker-button], [data-ui-time-picker-button], [data-ui-datetime-picker-button],
     [data-ui-color-picker-button], [data-ui-color-picker-popover-input], [data-ui-pillbox-trigger]
   ):focus-visible,
+  :where(input[data-ui-control]:is([type="date"], [type="time"], [type="datetime-local"], [type="month"], [type="week"])):focus-within,
   :where(
     [data-ui-date-picker] [data-ui-group-target]:not(button), [data-ui-time-picker] [data-ui-group-target]:not(button),
     [data-ui-color-picker-trigger], [data-ui-pillbox-trigger]
@@ -1075,7 +1079,11 @@
     box-shadow: inset 0 0 0 1px var(--color-red-500);
   }
 
-  /* What a ringed box holds draws no ring of its own; a typed date's or time's part is lit inside the box. */
+  /*
+    What a ringed box holds draws no ring of its own; a typed date's or time's part is lit inside the box — on the
+    pixel each side of its digits (UiDatePickerLook.Segment), inside the part itself: the row of parts clips what
+    overflows it, and a ring hung outside the first or last part was cut there.
+  */
   :where([data-ui-date-picker], [data-ui-time-picker], [data-ui-color-picker-trigger], [data-ui-pillbox-trigger])
     :where(input, [role="spinbutton"], [contenteditable]):not([data-ui-control]):focus-visible {
     outline: none;
@@ -1084,7 +1092,7 @@
   :is([data-ui-month-input], [data-ui-day-input], [data-ui-year-input], [data-ui-hour-input], [data-ui-minute-input],
     [data-ui-second-input], [data-ui-meridiem-input]):focus-visible {
     outline: 1px solid var(--color-accent);
-    outline-offset: 0;
+    outline-offset: -1px;
   }
 }
 
@@ -1122,6 +1130,10 @@
   outside the scroll frame, and the ring there was cut. At that edge the button hangs nowhere and keeps 4px for the
   ring: the words stand 4px in from the cells under them, and nothing else moves. In `rask-ui-corrections`, above the
   button's own `-ms-2`/`-me-2`.
+
+  Except a last heading aligned to the end: its words end where its numbers end (TA, 2026-11-10), so its button
+  keeps no end padding and ends on the frame's edge with them. The ring needs no room there either — it is drawn
+  inside the button's own box (`outline-offset: -2px`, THE KEYBOARD RING), so nothing of it is past the frame.
 */
 @layer rask-ui-corrections {
   [data-ui-column]:first-child [data-ui-table-sortable] {
@@ -1132,6 +1144,10 @@
   [data-ui-column]:last-child [data-ui-table-sortable] {
     margin-inline-end: 0;
     padding-inline-end: 0.25rem;
+  }
+
+  [data-ui-column]:last-child.group\/end-align [data-ui-table-sortable] {
+    padding-inline-end: 0;
   }
 }
 

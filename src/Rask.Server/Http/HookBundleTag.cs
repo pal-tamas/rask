@@ -38,7 +38,7 @@ internal static class HookBundleTag
         "data-rask-copy", "data-rask-clear", "data-rask-clear-keys", "data-rask-focus", "data-rask-view", "data-rask-mask", "data-rask-mask-money",
         "data-rask-big-step", "role",
         "data-rask-contain-keys", "data-rask-listbox-button", "data-rask-roving",
-        "data-rask-focus-follows", "data-rask-press-keeps-focus", "aria-activedescendant",
+        "data-rask-focus-follows", "data-rask-press-keeps-focus", "data-rask-reveal-focus", "aria-activedescendant",
         "data-rask-toggle", "data-rask-command",
         "data-rask-drag",
         "data-rask-requires",

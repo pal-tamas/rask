@@ -42,7 +42,14 @@ public static class KeyboardRing
           const outlined = el => { const s = getComputedStyle(el); return s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0; };
           const shadowed = el => getComputedStyle(el).boxShadow.includes('inset');
           let bearer = null;
-          for (let up = active, hops = 0; up && hops < 4; up = up.parentElement, hops++) {
+          // A hidden input that something after it stands for (a file input's "Choose file", an upload's dropzone): that
+          // is what is seen, so that is what rings.
+          if (!drawn(active)) {
+            for (let next = active.nextElementSibling; next && !bearer; next = next.nextElementSibling) {
+              if (drawn(next) && outlined(next)) bearer = next;
+            }
+          }
+          for (let up = active, hops = 0; up && hops < 4 && !bearer; up = up.parentElement, hops++) {
             // A field's box that holds the typed input (a pillbox, a colour or date picker) rings itself: its border and
             // an inset ring, in the accent.
             const boxed = up !== active && shadowed(up) && getComputedStyle(up).borderTopColor === accentAt(up);

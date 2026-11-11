@@ -1730,6 +1730,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
 - [Excel export](docs/xlsx.md): the `Rask.Xlsx` package (`dotnet add package Rask.Xlsx`, namespace `Rask.Workbooks`, zero dependencies, net10.0 and net10.0-browser).
   `byte[] file = Xlsx.Write("Invoices", ["Number", "Day", "Amount"], rows, total: [new Xlsx.Strong("Total"), null, new Xlsx.Sum()])` returns an .xlsx (serve with `Xlsx.ContentType`);
   `Xlsx.Write(params Xlsx.Sheet[])` for several sheets.
+  Read: `Xlsx.Read(byte[] file[, string sheet])` returns the same `Xlsx.Sheet` (the first sheet, or one by name without regard to case), headings on row 1; `.HeadingsOn(3, 4)` re-reads the headings from those 1-based rows (a merged cell spreads over its range, the rows' parts joined by a space) with the data from the next row.
+  `foreach (var row in sheet.Rows) row["Litres"]` — `Xlsx.Row` is an IReadOnlyList<object?> plus a by-heading indexer (case-insensitive, trimmed; an unknown heading throws KeyNotFoundException listing the headings). Cells read back as string, decimal, bool, null, `Xlsx.Day`/`Xlsx.Moment` (from a date number format; 1900 system with its leap bug, and 1904), a formula as its cached value; a broken file or a zip bomb (256 MB per part, 10M cells) throws InvalidDataException.
   Cells: string (always text, never a formula), numbers, decimal (an amount: 2-4 decimals, thousands), bool, `Xlsx.Day`/`Xlsx.Moment` (a raw DateTime/DateOnly/DateTimeOffset is written as one), `Xlsx.Strong(v)`, `Xlsx.Formula(text, now)`, `Xlsx.Sum` (total row, SUBTOTAL), `Xlsx.Folded(row)` (Excel outline).
   Headings are bold, frozen, with autoFilter;
   columns fitted.

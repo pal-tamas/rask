@@ -32,8 +32,7 @@ internal static class CellValue
     public static string Invariant(decimal number) => (number / 1.0000000000000000000000000000m).ToString(CultureInfo.InvariantCulture);
 
     // Excel counts days from the end of 1899; the time of day is the fraction.
-    public static string Serial(DateTime wallClock) =>
-        (wallClock - new DateTime(1899, 12, 30, 0, 0, 0, DateTimeKind.Unspecified)).TotalDays.ToString("R", CultureInfo.InvariantCulture);
+    public static string Serial(DateTime wallClock) => ExcelSerial.From(wallClock).ToString("R", CultureInfo.InvariantCulture);
 
     public static ArgumentException Refuse(object value) => new(
         value is double or float

@@ -101,6 +101,7 @@ public static partial class BuilderRuntime
             // As a Key step does (ClaimKey): the whole chain ran on the provisional instance, so all of it is replayed
             // onto the one the row kept, and the deferred reset and commit follow the slot onto it.
             slot.Copy?.Invoke(child, chosen, ~slot.PendingMask);
+            (child as ICarriesHandSteps)?.CarryTo(chosen);
             slots[at] = slot with { Target = chosen };
             Place(container, index, chosen);
         }

@@ -16,7 +16,13 @@ public sealed partial class UiNavbar : Component
     public string? Class { get; set; }
 
     /// <inheritdoc />
-    protected override Component? Render() =>
-        Nav.Class("[:where(&)]:flex items-center [:where(&)]:gap-[2px] [:where(&)]:py-3", Scrollable == true ? "overflow-x-auto overflow-y-hidden" : null, Class)
-            .Attributes(("data-ui-navbar", null))[Children ?? []];
+    protected override Component? Render()
+    {
+        var nav = Nav.Class("[:where(&)]:flex items-center [:where(&)]:gap-[2px] [:where(&)]:py-3", Scrollable == true ? "overflow-x-auto overflow-y-hidden" : null, Class)
+            .Attributes(("data-ui-navbar", null));
+
+        // Scrollable, a link the keyboard reaches is scrolled whole into view, its ring with it (rask-focus.ts): the
+        // browser leaves one it can partly see where it is.
+        return (Scrollable == true ? nav.Data("rask-reveal-focus", "") : nav)[Children ?? []];
+    }
 }

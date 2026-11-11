@@ -352,14 +352,26 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
         var upload = Page.Locator("[data-testid='ui-upload-inline'] [data-ui-file-upload]");
         await upload.ScrollIntoViewIfNeededAsync();
 
-        // The real input holds the focus, out of sight; the ring is drawn on the dropzone beside it.
+        // The real input holds the focus, out of sight; THE KEYBOARD RING is drawn on the dropzone beside it: 2px of the
+        // app's accent, laid inside the dropzone, where no frame around it can cut it.
         await upload.Locator("input[type=file]").FocusAsync();
         await Page.Keyboard.PressAsync("Shift+Tab");
         await Page.Keyboard.PressAsync("Tab");
         await Expect(upload.Locator("input[type=file]")).ToBeFocusedAsync();
-        var outline = await upload.Locator("[data-ui-file-upload-dropzone]")
-            .EvaluateAsync<string>("z => getComputedStyle(z).outlineStyle");
-        Assert.Equal("auto", outline);
+        var ring = await upload.Locator("[data-ui-file-upload-dropzone]").EvaluateAsync<string[]>(
+            """
+            async z => {
+              // Read once the ring has faded in: mid-way its colour is a mix, written in another space.
+              await Promise.all(z.getAnimations().map(a => a.finished.catch(() => null)));
+              const s = getComputedStyle(z);
+              const probe = document.body.appendChild(document.createElement('i'));
+              probe.style.color = s.getPropertyValue('--color-accent').trim();
+              const accent = getComputedStyle(probe).color;
+              probe.remove();
+              return [s.outlineStyle, s.outlineWidth, s.outlineOffset, s.outlineColor === accent ? 'accent' : s.outlineColor];
+            }
+            """);
+        Assert.Equal(["solid", "2px", "-2px", "accent"], ring);
 
         var chooser = await Page.RunAndWaitForFileChooserAsync(() => Page.Keyboard.PressAsync("Space"));
         Assert.True(chooser.IsMultiple);

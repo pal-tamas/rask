@@ -93,11 +93,12 @@ internal static class UiInputLook
     /// <summary>A file input's shell: the real input out of sight, a button and the chosen name in a row.</summary>
     internal const string File = "relative [:where(&)]:flex items-center [:where(&)]:gap-4 cursor-auto";
 
-    /// <summary>"Choose file", drawn as Flux's outline button.</summary>
+    /// <summary>"Choose file", drawn as Flux's outline button, and ringed while the hidden input before it has the keyboard.</summary>
     internal const string FileButton =
         "relative flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-medium whitespace-nowrap cursor-pointer "
         + "border border-zinc-200 border-b-zinc-300/80 hover:border-b-zinc-200 dark:border-zinc-600 dark:border-b-zinc-600 dark:hover:border-b-zinc-600 "
-        + "bg-white hover:bg-zinc-50 dark:bg-zinc-700 dark:hover:bg-zinc-600/75 text-zinc-800 dark:text-white shadow-xs";
+        + "bg-white hover:bg-zinc-50 dark:bg-zinc-700 dark:hover:bg-zinc-600/75 text-zinc-800 dark:text-white shadow-xs "
+        + UiFocusLook.ForHiddenInput;
 
     /// <summary>The chosen file's name, cut short with an ellipsis.</summary>
     internal const string FileName =
