@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
+  (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
+  { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
+  and browser. Cells come back as the writer's own types (`string`, `decimal`, `bool`, `Xlsx.Day`/`Xlsx.Moment` from the
+  cell's date format in 1900 and 1904 workbooks, a formula's cached value); `HeadingsOn` spreads merged headings and
+  joins two heading rows into one name. `Sheet.Rows` is now `IEnumerable<Xlsx.Row>` (a row is still an
+  `IReadOnlyList<object?>`). Bounded against zip bombs, no DTD. A heading several columns share (a title merged
+  across them, read as the headings) throws naming those columns and the way out (`HeadingsOn`, or `row[0]`).
+  Guide: rask.sh/docs/xlsx.
 - **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
   the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
   wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
@@ -24,6 +33,16 @@ them until tagged releases begin.
   `docker builder prune -f --reserved-space 20GB` under the box's deploy lock, and says what they freed; a failing
   prune only warns. Before it builds it refuses a box with under 3 GiB free (warns under 10 GiB) and prints what
   to run, and `rask deploy status` shows the free and reclaimable space.
+- **`Xlsx.Write` writes a day before 1 March 1900 as the day Excel shows.** Before: `new Xlsx.Day(new DateTime(1900, 1, 1))`
+  opened as 2 January 1900, because Excel counts a 29 February 1900 that never was. After: the serial skips that day,
+  as Excel's does, and `Xlsx.Read` reads it back as the same day.
+- **A tap on a phone opens a tooltip, and the last end-aligned sort heading stands over its numbers again.** Before:
+  a finger's tooltip (`data-rask-tooltip`) closed again when the press the tap ends in landed a frame after the finger
+  did — on a busy page, or a person's ordinary 50–150 ms tap — so `Ui.Filter.Shown(names)`'s badge showed no names on a
+  phone; and the keyboard ring's 4px of room moved an end-aligned sortable last heading's words 4px in from its
+  numbers. After: a finger lifted within 300 ms is a tap and leaves the tooltip shown (one that rested longer still
+  hides it, as on Flux); and that heading's button ends on the frame's edge with its words, its inset ring
+  (`outline-offset: -2px`) needing no room past it. No tooltip after a mouse click closes a menu, as before.
 - **A `.Choices(rows)` select or pillbox keyed after its rows lists the rows the page read since its first render.**
   Before: `Ui.Select.Bind(f).Choices(rows).Key(…)` — TA's picker shape — kept the rows of the render that first filed
   it, so a picker whose rows an editor reads in `OnMount` opened on "No results found" ("Nincs találat") with no row

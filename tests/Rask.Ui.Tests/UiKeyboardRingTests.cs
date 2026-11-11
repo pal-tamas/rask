@@ -102,6 +102,20 @@ public sealed class UiKeyboardRingTests
     }
 
     [Fact]
+    public void A_last_heading_aligned_to_the_end_keeps_its_words_over_its_numbers_and_its_ring_inside()
+    {
+        var rules = Rules();
+
+        var end = Assert.Single(rules, r => r.Selector.StartsWith("[data-ui-column]:last-child.group", StringComparison.Ordinal)
+            && r.Selector.EndsWith("end-align [data-ui-table-sortable]", StringComparison.Ordinal));
+        var ring = Assert.Single(rules, r => r.Selector == ":where(:focus-visible)");
+
+        Assert.Contains("padding-inline-end:0", end.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain("margin", end.Body, StringComparison.Ordinal);
+        Assert.Contains("outline-offset:-2px", ring.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void A_primary_button_lays_a_band_of_the_accents_foreground_inside_the_ring()
     {
         var primary = Ui.Button.Key("save").Primary["Save"].ToHtml().AsText();
