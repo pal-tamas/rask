@@ -558,7 +558,7 @@ Every template drops a production-ready multi-stage `Dockerfile` (+ `.dockerigno
 project:
 
 ```bash
-rask new MyApp                                   # Kestrel app → aspnet:10.0 runtime image
+rask new MyApp                                   # Kestrel app → aspnet:11.0 runtime image
 rask new MyApp --template wasm                   # static WASM bundle → nginx:alpine
 ```
 
@@ -577,7 +577,7 @@ daemon, fails on `RUN --mount`. `docker builder prune` empties the cache.
 ## Server app (`--template server`)
 
 A server-side Rask app is a Kestrel web server. The scaffolded Dockerfile builds on the .NET SDK
-image and runs on `mcr.microsoft.com/dotnet/aspnet:10.0`, which already runs as a **non-root** user
+image and runs on `mcr.microsoft.com/dotnet/aspnet:11.0`, which already runs as a **non-root** user
 and listens on **port 8080** (`ASPNETCORE_HTTP_PORTS=8080`).
 
 ```bash

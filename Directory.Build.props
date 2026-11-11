@@ -20,7 +20,7 @@
     <!-- The fallback for a package that names no tags of its own — Rask, Rask.Server, Rask.Wasm and the other
          hosts. nuget.org search matches tags, and "web component framework wasm net10" matched nothing a
          .NET developer looking for a web framework types. -->
-    <PackageTags>web framework components csharp dotnet aspnetcore webassembly wasm ssr blazor-alternative full-stack fullstack web-framework efcore cqrs sqlite net10</PackageTags>
+    <PackageTags>web framework components csharp dotnet aspnetcore webassembly wasm ssr blazor-alternative full-stack fullstack web-framework efcore cqrs sqlite net11</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -73,12 +73,12 @@
     framework — an app runs on one runtime, and tooling loads into the compiler or MSBuild. Test projects
     name theirs as RaskTestTarget, in tests/Directory.Build.props.
 
-    .NET 10 (LTS) is the only version today, and global.json pins the SDK to its band. A second version is
+    .NET 11 is the only version today, and global.json pins the SDK to its band. A second version is
     added HERE, as `$(RaskPrimaryNetTarget);netN.0`, and every package follows.
   -->
   <PropertyGroup>
-    <RaskPrimaryNetTarget>net10.0</RaskPrimaryNetTarget>
-    <RaskPrimaryBrowserTarget>net10.0-browser</RaskPrimaryBrowserTarget>
+    <RaskPrimaryNetTarget>net11.0</RaskPrimaryNetTarget>
+    <RaskPrimaryBrowserTarget>net11.0-browser</RaskPrimaryBrowserTarget>
     <RaskNetTargets>$(RaskPrimaryNetTarget)</RaskNetTargets>
     <RaskBrowserTfm>$(RaskPrimaryBrowserTarget)</RaskBrowserTfm>
   </PropertyGroup>
@@ -104,6 +104,14 @@
     -->
     <GenerateDocumentationFile Condition=" !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.StartsWith('Rask.Benchmarks')) AND !$(MSBuildProjectName.StartsWith('Rask.Site')) ">true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!--
+      TEMPORARY, until Npgsql.EntityFrameworkCore.PostgreSQL 11.0.0 ships. Its newest EF Core 11 provider is
+      11.0.0-rc.3, which pins EF Core to exactly its own rc.3 build; Rask.Postgres lifts EF Core to the 11.0.0
+      release with direct references, and NuGet reports the lifted constraint as NU1608 in every project whose
+      graph reaches Npgsql. A per-package NoWarn on the reference does not reach it. Delete this line with those
+      references when the provider is bumped (see Rask.Postgres.csproj).
+    -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
   <!--
     The .NET analyzers run at latest-recommended for everything under src/ — the shipped code. Tests and

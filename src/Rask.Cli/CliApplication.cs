@@ -75,7 +75,7 @@ internal sealed class CliApplication
 
         if (first is "-v" or "--version" or "version")
         {
-            await _console.Out.WriteLineAsync(CliMetadata.Version).ConfigureAwait(false);
+            await _console.Out.WriteLineAsync(CliMetadata.Version, cancellationToken).ConfigureAwait(false);
             return 0;
         }
 

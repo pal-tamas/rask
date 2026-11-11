@@ -111,7 +111,7 @@ public sealed partial class HomePage : Component
                                 .Attributes(("target", "_blank"), ("rel", "noopener"))["GitHub"]
                         ],
                         Div.Class("mt-8 flex flex-wrap gap-2")[
-                            Span.Class(Badge)[B[".NET 10"]],
+                            Span.Class(Badge)[B[".NET 11"]],
                             Span.Class(Badge)["MIT"],
                             Span.Class(Badge)[B["Server"], " · WASM"],
                             Span.Class(Badge)[B["SQLite"], " · Postgres · SQL Server"]
@@ -337,7 +337,7 @@ public sealed partial class HomePage : Component
         Section.Class(SectionPad)[
             Div.Class(Wrap)[
                 Div.Class("mx-auto mb-10 max-w-2xl text-center")[
-                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 10 SDK"],
+                    P.Class($"{Eyebrow} justify-center")["Prerequisite · .NET 11 SDK"],
                     H2.Class(H2Class)["Up and running in one command."]
                 ],
                 InstallTabs
@@ -371,7 +371,7 @@ public sealed partial class HomePage : Component
                         A.Href("https://www.nuget.org/packages/Rask.Server").Target("_blank").Rel("noopener")["NuGet"],
                         A.Href("https://github.com/pal-tamas/rask").Target("_blank").Rel("noopener")["GitHub"]
                     ],
-                    P.Class("mt-8 text-xs text-zinc-500 dark:text-white/70")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 10 · MIT."]
+                    P.Class("mt-8 text-xs text-zinc-500 dark:text-white/70")["Rask — Norwegian / Danish / Swedish for ", B["fast"], ". Built with .NET 11 · MIT."]
                 ]
             ]
         ];

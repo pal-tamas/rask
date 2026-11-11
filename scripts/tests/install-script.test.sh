@@ -50,22 +50,22 @@ installed() { if rask_workload_installed "$1" "$2"; then printf 'yes'; else prin
 # The shape `dotnet workload list` prints: a header, a row per workload, then prose.
 workload_list_pair='Installed Workload Id      Manifest Version      Installation Source
 --------------------------------------------------------------------------------
-wasm-tools                 11.0.0-rc.1/11.0.100  SDK 11.0.100
-wasm-tools-net10           10.0.12/11.0.100      SDK 11.0.100
+wasm-tools                 12.0.0/12.0.100       SDK 12.0.100
+wasm-tools-net11           11.0.0/12.0.100       SDK 12.0.100
 
 Use `dotnet workload search` to search for available workloads.'
-workload_list_net10_only='Installed Workload Id      Manifest Version      Installation Source
+workload_list_net11_only='Installed Workload Id      Manifest Version      Installation Source
 --------------------------------------------------------------------------------
-wasm-tools-net10           10.0.12/11.0.100      SDK 11.0.100'
+wasm-tools-net11           11.0.0/12.0.100       SDK 12.0.100'
 
 echo "==> rask_workload_installed"
 check "wasm-tools, both installed"             yes "$(installed wasm-tools "$workload_list_pair")"
-check "wasm-tools-net10, both installed"       yes "$(installed wasm-tools-net10 "$workload_list_pair")"
-# The bug this matcher exists for: `wasm-tools-net10` starts with `wasm-tools`, so a prefix test called
-# the pair installed on a machine carrying only the net10 half — and the browser build then failed with
+check "wasm-tools-net11, both installed"       yes "$(installed wasm-tools-net11 "$workload_list_pair")"
+# The bug this matcher exists for: `wasm-tools-net11` starts with `wasm-tools`, so a prefix test called
+# the pair installed on a machine carrying only the net11 half — and the browser build then failed with
 # the NETSDK1147 the installer step is meant to prevent.
-check "wasm-tools, only net10 installed"       no  "$(installed wasm-tools "$workload_list_net10_only")"
-check "wasm-tools-net10, only net10 installed" yes "$(installed wasm-tools-net10 "$workload_list_net10_only")"
+check "wasm-tools, only net11 installed"       no  "$(installed wasm-tools "$workload_list_net11_only")"
+check "wasm-tools-net11, only net11 installed" yes "$(installed wasm-tools-net11 "$workload_list_net11_only")"
 check "neither, empty list"                    no  "$(installed wasm-tools '')"
 # The word appears in the header and the trailing prose; neither is a row.
 check "prose alone is not an install"          no  "$(installed wasm-tools 'Use dotnet workload search wasm-tools to find it.')"
@@ -73,18 +73,18 @@ check "prose alone is not an install"          no  "$(installed wasm-tools 'Use 
 # --- rask_dotnet_ok --------------------------------------------------------------------------
 # Real `dotnet --list-sdks` output: "<version> [<path>]", newest last, one per line.
 
-sdk_ok() { if printf '%s\n' "$1" | rask_dotnet_ok "${2:-10}"; then printf 'yes'; else printf 'no'; fi; }
+sdk_ok() { if printf '%s\n' "$1" | rask_dotnet_ok "${2:-11}"; then printf 'yes'; else printf 'no'; fi; }
 
 echo "==> rask_dotnet_ok"
-check "10.0.400 present" yes "$(sdk_ok '10.0.400 [/usr/share/dotnet/sdk]')"
-check "only 8.0 and 9.0" no "$(sdk_ok '8.0.404 [/usr/share/dotnet/sdk]
-9.0.305 [/usr/share/dotnet/sdk]')"
-check "9.0 and 10.0 side by side" yes "$(sdk_ok '9.0.305 [/usr/share/dotnet/sdk]
-10.0.100 [/usr/share/dotnet/sdk]')"
+check "11.0.100 present" yes "$(sdk_ok '11.0.100 [/usr/share/dotnet/sdk]')"
+check "only 9.0 and 10.0" no "$(sdk_ok '9.0.305 [/usr/share/dotnet/sdk]
+10.0.400 [/usr/share/dotnet/sdk]')"
+check "10.0 and 11.0 side by side" yes "$(sdk_ok '10.0.400 [/usr/share/dotnet/sdk]
+11.0.100 [/usr/share/dotnet/sdk]')"
 # RollForward=Major (Rask.Cli.csproj:14) means a newer major runs the tool fine. Demanding exactly
-# 10 would reinstall an SDK on every .NET 11 box.
-check "11.0 alone satisfies the floor" yes "$(sdk_ok '11.0.100 [/usr/share/dotnet/sdk]')"
-check "a preview 10.0 counts" yes "$(sdk_ok '10.0.100-preview.5.25277.114 [/usr/share/dotnet/sdk]')"
+# 11 would reinstall an SDK on every .NET 12 box.
+check "12.0 alone satisfies the floor" yes "$(sdk_ok '12.0.100 [/usr/share/dotnet/sdk]')"
+check "a preview 11.0 counts" yes "$(sdk_ok '11.0.100-preview.5.26277.114 [/usr/share/dotnet/sdk]')"
 check "no SDKs at all" no "$(sdk_ok '')"
 
 # --- rask_profile_file -----------------------------------------------------------------------

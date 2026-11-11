@@ -2,7 +2,7 @@
 
 `Rask.Xlsx` writes an Excel workbook (`.xlsx`) from headings and rows and hands back its bytes. It uses nothing
 but `System.IO.Compression` and hand-written OOXML — **zero dependencies**, and pure managed code, so it runs on a
-server and in a WebAssembly app alike (`net10.0` and `net10.0-browser`).
+server and in a WebAssembly app alike (`net11.0` and `net11.0-browser`).
 
 ```bash
 dotnet add package Rask.Xlsx

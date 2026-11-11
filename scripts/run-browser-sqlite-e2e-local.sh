@@ -82,7 +82,7 @@ fi
 rask_e2e_await_slots
 
 echo "==> Browser SQLite journeys (Rask.SQLite.Browser.E2E.Tests)"
-dotnet test "$project/bin/Release/net10.0/Rask.SQLite.Browser.E2E.Tests.dll" --logger "console;verbosity=normal"
+dotnet test "$project/bin/Release/net11.0/Rask.SQLite.Browser.E2E.Tests.dll" --logger "console;verbosity=normal"
 
 echo
 echo "==> Browser SQLite E2E passed."

@@ -58,7 +58,7 @@ internal static class GitHubActionsWorkflow
 
               - uses: actions/setup-dotnet@v6
                 with:
-                  dotnet-version: '10.0.x'
+                  dotnet-version: '11.0.x'
 
               # Secrets reach the script as environment variables, never as ${{ }} in its text: that is
               # pasted in before the shell parses it, so a quote or a $( in a secret would be run.

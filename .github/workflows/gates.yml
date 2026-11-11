@@ -204,7 +204,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: site-wwwroot
-          path: src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+          path: src/Rask.Site/bin/Release/net11.0-browser/publish/wwwroot
           retention-days: 1   # read by this run's shards, minutes from now, and by nothing else
           if-no-files-found: error
 
@@ -239,7 +239,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: site-wwwroot
-          path: src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+          path: src/Rask.Site/bin/Release/net11.0-browser/publish/wwwroot
 
       # The gate scripts install Chromium themselves; the system libraries it links are the runner's.
       - name: ${{ matrix.gate.name }}

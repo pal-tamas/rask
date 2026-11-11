@@ -10,7 +10,7 @@
     <Title>Rask.Postgres — production PostgreSQL for EF Core</Title>
     <Description>PostgreSQL for .NET apps on Entity Framework Core: `UseRaskPostgres(...)` is a drop-in replacement for `UseNpgsql` that applies the production session settings (`statement_timeout`, `lock_timeout`, `idle_in_transaction_session_timeout`) to every connection the context opens and turns on Npgsql's transient-failure retrying. It also implements Rask.Data's full-text search (`HasFullTextSearch`, `Search(text)`, `FullText.Highlight`/`Snippet`) on a stored generated tsvector column with a GIN index, ranked by `ts_rank_cd`. SQLite stays Rask's default; this is the door out when one box is no longer enough.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a standalone data-layer helper. -->
-    <PackageTags>postgres postgresql npgsql database entity-framework-core efcore interceptor dotnet net10</PackageTags>
+    <PackageTags>postgres postgresql npgsql database entity-framework-core efcore interceptor dotnet net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -22,10 +22,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      Npgsql's EF Core 11 provider is a release candidate (11.0.0-rc.3) that pins EF Core to EXACTLY its own rc.3
+      build. The two direct references lift EF Core to the 11.0.0 release the rest of Rask is on (a direct reference
+      is nearest, so it wins), which turns the NU1107 conflict into the NU1608 warning "outside the dependency
+      constraint", silenced repo-wide in Directory.Build.props: a release candidate is API-frozen against its GA.
+      Delete the two references and that NoWarn when Npgsql ships 11.0.0.
+    -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
-    <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
 
   <!-- UseRaskPostgres(services) binds Rask:Postgres and reads Rask:ConnectionStrings:App. The configuration binding

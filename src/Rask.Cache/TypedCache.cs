@@ -47,7 +47,7 @@ internal sealed class TypedCache(IDistributedCache store, IOptions<CacheOptions>
     {
         try
         {
-            return (JsonTypeInfo<T>)_json.GetTypeInfo(typeof(T));
+            return _json.GetTypeInfo<T>();
         }
         catch (Exception e) when (e is NotSupportedException or InvalidOperationException)
         {

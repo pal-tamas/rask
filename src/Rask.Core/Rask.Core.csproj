@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <!--
-      Multi-targets net10.0-browser purely so the trim + AOT Roslyn analysers run over Core's own
-      source (they are ignored on plain net10.0 — NETSDK1210). Core is IsPackable=false (it ships
+      Multi-targets net11.0-browser purely so the trim + AOT Roslyn analysers run over Core's own
+      source (they are ignored on plain net11.0 — NETSDK1210). Core is IsPackable=false (it ships
       transitively from the host packages), so the extra TFM changes no published package; it only
       gives the warnings-as-errors build continuous IL2xxx/IL3050 coverage for the framework's
       AOT-sensitive paths (routing, forms binding).
@@ -25,8 +25,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Primitives"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.ObjectPool"/>
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
     <!--

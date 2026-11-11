@@ -552,7 +552,7 @@ heavy build still running names it ([#850](https://github.com/pal-tamas/rask/iss
 
 ## Dependencies
 
-The standing rule is **the latest LTS** — .NET and every tool a build fetches. Nothing in the repo,
+The standing rule is **the latest release** — .NET (11 today) and every tool a build fetches. Nothing in the repo,
 the build or a scaffolded app needs Node or npm: TypeScript and esbuild arrive as native binaries, and
 so does Tailwind. A scaffolder is a
 recommendation every new project inherits, so a maintenance-only pin hands users a runtime that has
@@ -561,7 +561,7 @@ stopped getting security patches.
 **What updates itself.** `.github/dependabot.yml` covers, weekly: NuGet (the repo's central versions
 and `scripts/tools/RaskRename`'s and `scripts/tools/KitBundle`'s own), GitHub Actions (the workflows and the shared
 `.github/actions/setup`) and the base images of every template
-`Dockerfile` and `scripts/devhost` (.NET held to its 10.0 LTS line). Everything Dependabot cannot read is
+`Dockerfile` and `scripts/devhost` (.NET held to its 11.0 line). Everything Dependabot cannot read is
 moved daily by a follower under `scripts/upstream/`, run by `follow.sh` in `upstream.yml`, each with a
 self-test over saved upstream answers (`scripts/tests/upstream-*.test.sh`). The followers, their commands and
 the files each writes are ONE list, `scripts/upstream/followers.json`; its `manual` part names what is still

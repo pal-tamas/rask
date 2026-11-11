@@ -79,7 +79,7 @@
       WebAssembly client pays nothing.
 
       "Exactly one" is COUNTED from the list, never read off HasSingleTargetFramework: MSBuild sets that flag
-      from which property a project uses, so a one-entry <TargetFrameworks>net10.0-browser</TargetFrameworks>
+      from which property a project uses, so a one-entry <TargetFrameworks>net11.0-browser</TargetFrameworks>
       reports false although it names one framework, which is all the paths need.
     -->
     <MSBuild Projects="@(_RaskSpaWasmClient)"
@@ -96,7 +96,7 @@
            Text="Rask.Spa.Hosting: the WebAssembly client @(_RaskSpaWasmClient) reported no target framework, so the bundle it publishes cannot be located."/>
     <Error Condition="'@(_RaskSpaWasmClient->Count())' == '1' AND '@(_RaskSpaWasmFramework->Count())' &gt; '1'"
            Code="RASKSPA009"
-           Text="Rask.Spa.Hosting: the WebAssembly client @(_RaskSpaWasmClient) must build for exactly one framework for its bundle to be served, but it targets '@(_RaskSpaWasmFramework)'. Give it a single &lt;TargetFramework&gt;, such as net10.0-browser."/>
+           Text="Rask.Spa.Hosting: the WebAssembly client @(_RaskSpaWasmClient) must build for exactly one framework for its bundle to be served, but it targets '@(_RaskSpaWasmFramework)'. Give it a single &lt;TargetFramework&gt;, such as net11.0-browser."/>
     <PropertyGroup Condition="'@(_RaskSpaWasmClient->Count())' == '1'">
       <_RaskSpaWasmProject>%(_RaskSpaWasmClient.FullPath)</_RaskSpaWasmProject>
       <_RaskSpaWasmBin>$([System.IO.Path]::GetDirectoryName('%(_RaskSpaWasmClient.FullPath)'))/bin/$(Configuration)/@(_RaskSpaWasmFramework)</_RaskSpaWasmBin>

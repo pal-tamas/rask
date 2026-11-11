@@ -100,7 +100,7 @@ dotnet test tests/Rask.Site.Tests --filter "FullyQualifiedName~PageMeta|FullyQua
 dotnet test tests/Rask.Wasm.Tests --filter FullyQualifiedName~WasmPrerender
 # the published bundle — what GitHub Pages will serve
 dotnet publish src/Rask.Site -c Release
-W=src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot
+W=src/Rask.Site/bin/Release/net11.0-browser/publish/wwwroot
 grep -c '<lastmod>' $W/sitemap.xml; head -20 $W/llms.txt; head -5 $W/docs/guides/cqrs.md
 grep -o 'application/ld[^"]*json' $W/docs/guides/cqrs/index.html   # the '+' is written as &#x2B;
 bash scripts/run-e2e-local.sh   # SiteExampleTests fetches the same files over HTTP

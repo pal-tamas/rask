@@ -16,14 +16,14 @@ fingerprinted and resolved through the page's import map, so `/_framework/dotnet
 direct GET**. The app only exists once a real browser boots the runtime. The committed driver
 `.claude/skills/run-rask/driver.cs` does that with the repo's existing **Microsoft.Playwright** (.NET)
 dependency — the same version the E2E suite uses, browsers already in the `ms-playwright` cache. It's
-a .NET 10 *file-based app*: **no Node, no npm, no csproj** — just `dotnet run driver.cs`.
+a .NET 11 *file-based app*: **no Node, no npm, no csproj** — just `dotnet run driver.cs`.
 
 All paths below are relative to the repo root (the unit). Run everything from there unless told
 otherwise.
 
 ## Prerequisites
 
-- **.NET 10 SDK** — that's the whole toolchain; the driver pulls `Microsoft.Playwright` via NuGet
+- **.NET 11 SDK** — that's the whole toolchain; the driver pulls `Microsoft.Playwright` via NuGet
   (version comes from `Directory.Packages.props`, so the `#:package` directive is intentionally
   unversioned — Central Package Management supplies it).
 - **Playwright browsers** — already present in `~/Library/Caches/ms-playwright` (installed for the
@@ -152,7 +152,7 @@ route to real HTML, so the handover it measures does not exist in the dev host.
 
 ```bash
 dotnet publish src/Rask.Site -c Release -m:1
-cd src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot && python3 -m http.server 5090
+cd src/Rask.Site/bin/Release/net11.0-browser/publish/wwwroot && python3 -m http.server 5090
 ```
 
 It samples the document every 50ms from before the first byte of page script and prints only the frames

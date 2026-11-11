@@ -50,6 +50,20 @@ them until tagged releases begin.
   Every kit tooltip, both hosts.
 
 ### Changed
+- **Rask moves to .NET 11: every package ships `net11.0` (and `net11.0-browser` for WASM) ONLY, and `rask new`
+  scaffolds .NET 11.** Before: `net10.0`, a `global.json` on the 10.0 band, the `aspnet:10.0`/`sdk:10.0` images.
+  After: the repo's and every scaffold's `global.json` pin the 11.0 band (`11.0.100` / `11.0.0`, `latestFeature`), the
+  template Dockerfiles build on `sdk:11.0` and run on `aspnet:11.0`, the scaffolded deploy workflow sets up `11.0.x`,
+  `rask.sh`/`rask.ps1` install the 11.0 channel, and `rask doctor` reports an SDK below 11 (and on a newer SDK asks for
+  `wasm-tools-net11`). An app on Rask now needs the .NET 11 SDK. The platform packages move to 11.0.0 (ASP.NET Core,
+  EF Core, Microsoft.Extensions.*, Microsoft.Data.Sqlite, System.*), MSBuild's task API to 18.11 (Dependabot's
+  18.10 hold is lifted). The `Microsoft.Extensions.*` abstractions .NET 11 now ships in the shared framework are no
+  longer referenced as packages (NU1510). EF Core 11 lets an index name a complex property, so Rask.Data's unique rules
+  and constraint names read an index's scalar columns and leave any other index to the database.
+  **`Rask.Postgres` rides on `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3** — the only EF Core 11 provider Npgsql
+  has published; it pins EF Core to exactly its own rc.3 build, so Rask.Postgres lifts EF Core to 11.0.0 with direct
+  references and an app whose graph reaches it sees NuGet's NU1608 ("outside the dependency constraint") warning
+  until Npgsql ships 11.0.0, when it moves to GA.
 - **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
   a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:
   ArrowDown on a ⋯ that has a `Ui.Tooltip` (every `Ui.RowActions` has one) did nothing. Focus from the keyboard shows

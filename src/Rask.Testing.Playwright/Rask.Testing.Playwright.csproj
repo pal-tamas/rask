@@ -9,7 +9,7 @@
     <PackageId>Rask.Testing.Playwright</PackageId>
     <Title>Rask.Testing.Playwright — run a Rask app for Playwright browser tests, walk its pages, wait for it to settle</Title>
     <Description>Browser tests for a Rask app. RaskSite&lt;Program&gt; starts the app's own build as a process of its own on a free port, over a database of its own, waits for its health check, and hands out pages in one shared Chromium — signed out, or await site.SignedIn(site.Admin), signed in once and reused. await site.Walk("/orders") opens a page and fails on a console or page error, a failed request, a not-found or forbidden answer, a dropped connection, or a page wider than a phone; RaskSite.Pages&lt;Program&gt;() lists every page the app's route table can open without a value, for a walk-every-page test. await page.WaitForRask() waits until a page has settled: every event answered and its render on the page, every navigation landed, the connection open, what was typed sent — no sleeps, no DOM-quiet windows. The Rask answer to Laravel Dusk.</Description>
-    <PackageTags>rask playwright e2e end-to-end browser-testing testing smoke walk settle livewire dusk dotnet net10</PackageTags>
+    <PackageTags>rask playwright e2e end-to-end browser-testing testing smoke walk settle livewire dusk dotnet net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework overview

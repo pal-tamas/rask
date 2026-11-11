@@ -143,8 +143,8 @@
 
       NOT A HARD-CODED TFM, and that is the whole point of the two steps below.
 
-      It was `obj/net10.0/ui.generated.css`. Rask.Ui multi-targets net10.0;net10.0-browser, so that
-      path exists only if something built the net10.0 face — which a developer's machine always has,
+      It was `obj/net11.0/ui.generated.css`. Rask.Ui multi-targets net11.0;net11.0-browser, so that
+      path exists only if something built the net11.0 face — which a developer's machine always has,
       and a clean CI checkout building a browser-WASM app never does. The published site at rask.sh
       shipped ENTIRELY UNSTYLED for exactly this reason: every colour the kit's components write lives in
       this sheet, so with it missing nothing had a colour. The page was

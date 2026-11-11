@@ -2599,7 +2599,7 @@ and no quick-fix.
 | --- | --- | --- |
 | `RASKSPA006` | A host references more than one WebAssembly client. | A host serves one client — give each its own host. |
 | `RASKSPA008` | The WebAssembly client reported no target framework, so its bundle cannot be located. | Give the client project a `<TargetFramework>`. |
-| `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net10.0-browser`. |
+| `RASKSPA009` | The WebAssembly client targets several frameworks. | Give it exactly one, such as `net11.0-browser`. |
 | `RASKDOM001` | Contributors only: the MDN snapshot could not be turned into element types. | The message names the member that collides. |
 | `RASKDOM002` | Contributors only: an event name has a part the emitter cannot split into words. | Add the word to `DomEventEmitter.Words`. |
 

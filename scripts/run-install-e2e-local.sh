@@ -37,7 +37,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 image="${RASK_INSTALL_E2E_IMAGE:-debian:trixie-slim}"
-pwsh_image="${RASK_INSTALL_E2E_PWSH_IMAGE:-mcr.microsoft.com/dotnet/sdk:10.0}"
+pwsh_image="${RASK_INSTALL_E2E_PWSH_IMAGE:-mcr.microsoft.com/dotnet/sdk:11.0}"
 
 failures=0
 cases=0

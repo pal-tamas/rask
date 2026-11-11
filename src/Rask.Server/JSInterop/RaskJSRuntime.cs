@@ -75,12 +75,16 @@ internal sealed class RaskJSRuntime : RaskJSRuntimeBase
         // invocationResult.ResultJson is already serialised against this runtime's
         // JsonSerializerOptions (including IJSObjectReference handle ids); we just package
         // it into a WS message and let the client-side DotNet shim parse it.
+        // BL0016 reads these two as JS interop calls: they are this runtime's own helpers building the reply to one,
+        // and nothing in them calls JS.
+#pragma warning disable BL0016
         var payload = BuildDotNetResultJson(
             invocationInfo.CallId,
             invocationResult.Success,
             invocationResult.Success ? invocationResult.ResultJson : null,
             invocationResult.Success ? null : FailureMessage(session, invocationInfo, invocationResult.Exception),
             type: "dotNetResult");
+#pragma warning restore BL0016
         _ = session.SendOutOfBandAsync(payload);
     }
 

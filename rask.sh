@@ -2,7 +2,7 @@
 # rask.sh — install the `rask` CLI and the dependencies it actually needs.
 #
 # `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
-# .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
+# .NET 11 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
 # `rask db` needs dotnet-ef and every browser-wasm build needs the wasm-tools workload. Otherwise each
 # of those is discovered by failure — a raw MSBuild error for a missing workload. This script
 # front-loads them. Nothing Rask builds or runs needs Node, so it installs none.
@@ -33,13 +33,13 @@ set -eu
 # Every value is overridable from the environment. That is also the seam the tests drive: they point
 # the URLs at a local fixture tree and the install dirs at a mktemp, so no test touches a real box.
 
-RASK_INSTALL_DOTNET_CHANNEL="${RASK_INSTALL_DOTNET_CHANNEL:-10.0}"
+RASK_INSTALL_DOTNET_CHANNEL="${RASK_INSTALL_DOTNET_CHANNEL:-11.0}"
 # Empty by default, and passed to dotnet-install only when set: a released channel needs no quality, and
-# an empty one is an argument error rather than a no-op. Set it to `preview` (with CHANNEL=11.0 and
-# MAJOR=11) to install an SDK whose channel has not shipped yet. No flag of its own — this is the same
+# an empty one is an argument error rather than a no-op. Set it to `preview` (with CHANNEL=12.0 and
+# MAJOR=12) to install an SDK whose channel has not shipped yet. No flag of its own — this is the same
 # environment seam every other install location here already uses.
 RASK_INSTALL_DOTNET_QUALITY="${RASK_INSTALL_DOTNET_QUALITY:-}"
-RASK_INSTALL_DOTNET_MAJOR="${RASK_INSTALL_DOTNET_MAJOR:-10}"
+RASK_INSTALL_DOTNET_MAJOR="${RASK_INSTALL_DOTNET_MAJOR:-11}"
 RASK_INSTALL_DOTNET_ROOT="${RASK_INSTALL_DOTNET_ROOT:-${DOTNET_ROOT:-$HOME/.dotnet}}"
 RASK_INSTALL_DOTNET_SCRIPT_URL="${RASK_INSTALL_DOTNET_SCRIPT_URL:-https://dot.net/v1/dotnet-install.sh}"
 RASK_INSTALL_PACKAGE="${RASK_INSTALL_PACKAGE:-Rask.Cli}"
@@ -137,7 +137,7 @@ rask_version_field() {
 
 # stdin: the output of `dotnet --list-sdks`. 0 when any listed SDK has a major >= $1.
 # Rask.Cli sets RollForward=Major (Rask.Cli.csproj:14), so a newer major is fine — we must NOT
-# demand exactly 10, or this script would reinstall an SDK on every .NET 11 box.
+# demand exactly 11, or this script would reinstall an SDK on every .NET 12 box.
 #
 # The loop reads from a here-doc rather than a pipe on purpose: `... | while read` runs the loop in a
 # subshell, where setting _found would be lost and the function would always report "not found".
@@ -250,7 +250,7 @@ rask_local_dotnet() {
 # Prepending to PATH is not enough. POSIX shells cache command lookups: `dotnet` is resolved once —
 # during detection, when the only one on the box is the system's — and that resolution is reused for
 # the rest of the script even after PATH has been changed to put ours first. So on a machine with an
-# older system SDK, we would install .NET 10 and then hand the tool install to .NET 9, which fails
+# older system SDK, we would install .NET 11 and then hand the tool install to an older SDK, which fails
 # with "Settings file 'DotnetToolSettings.xml' was not found in the package" — an error that says
 # nothing about the SDK version it was actually run under.
 rask_dotnet_bin() {
@@ -577,22 +577,25 @@ step_ef() {
     fi
 }
 
-# Which wasm workloads this SDK needs. On .NET 11 and later a net10.0-browser app — every app `rask new`
-# scaffolds today — relinks only with the net10 toolchain, so the pair is needed rather than the one.
+# Which wasm workloads this SDK needs. On an SDK newer than the targeted major (a .NET 12 SDK, say) a
+# net11.0-browser app — every app `rask new` scaffolds today — relinks only with the net11 toolchain, so
+# the pair is needed rather than the one.
 rask_wasm_workloads() {
     # head -n1 BEFORE cut: `dotnet --version` can print a notice alongside the version (this very SDK
     # prints NETSDK1057 on a preview), and over multi-line input `cut` yields a multi-line $major — which
-    # trips the non-numeric guard below and silently drops wasm-tools-net10 on a .NET 11 box, failing
+    # trips the non-numeric guard below and silently drops wasm-tools-net11 on a .NET 12 box, failing
     # open into the NETSDK1147 this step exists to prevent.
     major="$(rask_dotnet --version 2>/dev/null | head -n 1 | cut -d. -f1)"
     case "$major" in
         ''|*[!0-9]*) printf 'wasm-tools' ;;
-        *) [ "$major" -ge 11 ] && printf 'wasm-tools wasm-tools-net10' || printf 'wasm-tools' ;;
+        *) [ "$major" -gt "$RASK_INSTALL_DOTNET_MAJOR" ] \
+            && printf 'wasm-tools wasm-tools-net%s' "$RASK_INSTALL_DOTNET_MAJOR" \
+            || printf 'wasm-tools' ;;
     esac
 }
 
-# Is one workload id installed? The FIRST column, matched WHOLE: `wasm-tools-net10` begins with
-# `wasm-tools`, so a prefix test reports the pair present on a machine that has only the net10 half —
+# Is one workload id installed? The FIRST column, matched WHOLE: `wasm-tools-net11` begins with
+# `wasm-tools`, so a prefix test reports the pair present on a machine that has only the net11 half —
 # and the browser build then fails with the NETSDK1147 this check exists to prevent.
 #
 # `>/dev/null`, not `-q`: `-q` exits on the first match and leaves printf writing into a closed pipe. Harmless

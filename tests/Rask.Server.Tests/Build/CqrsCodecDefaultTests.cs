@@ -59,7 +59,7 @@ public sealed class CqrsCodecDefaultTests : IDisposable
         File.WriteAllText(Path.Combine(_dir, "Host.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
                 {properties}
               </PropertyGroup>
               <Import Project="{Path.Combine(SrcDir, "Rask.Server", "build", "Rask.Server.targets")}"/>

@@ -6,7 +6,7 @@
     The Windows twin of rask.sh, with the same behaviour and the same checks.
 
     `dotnet tool install -g Rask.Cli` is one line, but it only works on a box that already has the
-    .NET 10 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
+    .NET 11 SDK, and it installs the tool and nothing else. The CLI shells out to more than that:
     `rask db` needs dotnet-ef and every browser-wasm build needs the wasm-tools workload. Otherwise
     each of those is discovered by failure. This script front-loads them. Nothing Rask builds or runs
     needs Node, so it installs none.
@@ -55,12 +55,12 @@ $ProgressPreference = 'SilentlyContinue'   # a progress bar over `irm | iex` is 
 # --- configuration ---------------------------------------------------------------------------
 # Overridable from the environment, the same seam rask.sh exposes.
 
-$DotnetChannel = if ($env:RASK_INSTALL_DOTNET_CHANNEL) { $env:RASK_INSTALL_DOTNET_CHANNEL } else { '10.0' }
+$DotnetChannel = if ($env:RASK_INSTALL_DOTNET_CHANNEL) { $env:RASK_INSTALL_DOTNET_CHANNEL } else { '11.0' }
 # Empty by default, and passed to dotnet-install only when set: a released channel needs no quality, and
-# an empty one is an argument error rather than a no-op. Set it to 'preview' (with CHANNEL=11.0 and
-# MAJOR=11) to install an SDK whose channel has not shipped yet. Mirrors RASK_INSTALL_DOTNET_QUALITY in rask.sh.
+# an empty one is an argument error rather than a no-op. Set it to 'preview' (with CHANNEL=12.0 and
+# MAJOR=12) to install an SDK whose channel has not shipped yet. Mirrors RASK_INSTALL_DOTNET_QUALITY in rask.sh.
 $DotnetQuality = if ($env:RASK_INSTALL_DOTNET_QUALITY) { $env:RASK_INSTALL_DOTNET_QUALITY } else { '' }
-$DotnetMajor = if ($env:RASK_INSTALL_DOTNET_MAJOR) { [int] $env:RASK_INSTALL_DOTNET_MAJOR } else { 10 }
+$DotnetMajor = if ($env:RASK_INSTALL_DOTNET_MAJOR) { [int] $env:RASK_INSTALL_DOTNET_MAJOR } else { 11 }
 $DotnetRoot = if ($env:RASK_INSTALL_DOTNET_ROOT) { $env:RASK_INSTALL_DOTNET_ROOT } else { Join-Path $env:USERPROFILE '.dotnet' }
 $DotnetScriptUrl = if ($env:RASK_INSTALL_DOTNET_SCRIPT_URL) { $env:RASK_INSTALL_DOTNET_SCRIPT_URL } else { 'https://dot.net/v1/dotnet-install.ps1' }
 $Package = if ($env:RASK_INSTALL_PACKAGE) { $env:RASK_INSTALL_PACKAGE } else { 'Rask.Cli' }
@@ -96,7 +96,7 @@ function Stop-Install {
 # --- helpers ---------------------------------------------------------------------------------
 
 # The dotnet to use, by absolute path when we installed one. Same reasoning as rask.sh: prepending to
-# PATH is not enough to guarantee the SDK we just installed is the one that runs, and handing a net10.0
+# PATH is not enough to guarantee the SDK we just installed is the one that runs, and handing a net11.0
 # tool install to an older SDK fails with "Settings file 'DotnetToolSettings.xml' was not found in the
 # package" — an error that says nothing about the version it ran under.
 function Get-DotnetPath {
@@ -109,8 +109,8 @@ function Get-DotnetPath {
     return $null
 }
 
-# Rask.Cli sets RollForward=Major, so any newer major runs the tool. Demanding exactly 10 would
-# reinstall an SDK on every .NET 11 box.
+# Rask.Cli sets RollForward=Major, so any newer major runs the tool. Demanding exactly 11 would
+# reinstall an SDK on every .NET 12 box.
 function Test-DotnetSdk {
     $dotnet = Get-DotnetPath
     if (-not $dotnet) { return $false }
@@ -279,20 +279,20 @@ function Step-WasmTools {
     if ($NoWasmTools) { return }
     Write-Step 'Installing the wasm-tools workloads (browser-wasm builds)'
 
-    # On .NET 11 and later a net10.0-browser app — every app `rask new` scaffolds today — relinks only with
-    # the net10 toolchain, so the pair is needed rather than the one.
+    # On an SDK newer than the targeted major (a .NET 12 SDK, say) a net11.0-browser app — every app
+    # `rask new` scaffolds today — relinks only with the net11 toolchain, so the pair is needed rather than the one.
     $sdkMajor = 0
     # The FIRST line before splitting: `dotnet --version` can print a notice alongside the version, and
-    # over several lines the split lands on whichever one came first — dropping wasm-tools-net10 on a
-    # .NET 11 box, which fails open into the NETSDK1147 this step exists to prevent. Mirrors rask.sh.
+    # over several lines the split lands on whichever one came first — dropping wasm-tools-net11 on a
+    # .NET 12 box, which fails open into the NETSDK1147 this step exists to prevent. Mirrors rask.sh.
     $sdkVersion = (& (Get-DotnetPath) --version 2>$null) | Select-Object -First 1
     [int]::TryParse((($sdkVersion -split '\.')[0]), [ref] $sdkMajor) | Out-Null
-    $workloads = if ($sdkMajor -ge 11) { @('wasm-tools', 'wasm-tools-net10') } else { @('wasm-tools') }
+    $workloads = if ($sdkMajor -gt $DotnetMajor) { @('wasm-tools', "wasm-tools-net$DotnetMajor") } else { @('wasm-tools') }
 
     $listed = & (Get-DotnetPath) workload list 2>$null
     foreach ($workload in $workloads) {
-        # The FIRST column, matched WHOLE: `wasm-tools-net10` begins with `wasm-tools`, so a prefix test
-        # reports the pair present on a machine that has only the net10 half, and the browser build then
+        # The FIRST column, matched WHOLE: `wasm-tools-net11` begins with `wasm-tools`, so a prefix test
+        # reports the pair present on a machine that has only the net11 half, and the browser build then
         # fails with the NETSDK1147 this check exists to prevent.
         if ($listed | Select-String -Pattern "^$workload(\s|$)" -Quiet) {
             Write-Detail "$workload already installed"

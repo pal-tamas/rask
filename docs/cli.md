@@ -16,7 +16,7 @@ curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 That puts a `rask` command on your `PATH`, along with the .NET SDK and the dependencies the CLI
-shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 11 SDK,
 `dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
 upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
@@ -168,24 +168,24 @@ A `server` or `wasm` app also gets a test project, `<Name>.Tests/`, listed in th
 with one passing test — so `dotnet test` is green before you have written anything. `--no-tests` leaves
 it out.
 
-**`global.json` decides which SDK compiles the app**, and it names the .NET 10 band:
+**`global.json` decides which SDK compiles the app**, and it names the .NET 11 band:
 
 ```json
 {
   "sdk": {
-    "version": "10.0.0",
+    "version": "11.0.0",
     "rollForward": "latestFeature"
   }
 }
 ```
 
 Without it the SDK picks the newest one installed. On a machine that also carries the next major in
-preview, that means a `net10.0` app is compiled by an `11.0.x` release candidate — it builds, tells you
+preview, that means a `net11.0` app is compiled by a `12.0.x` release candidate — it builds, tells you
 so once per build (`NETSDK1057`), and quietly hands two people on the same repository different
 compilers. `latestFeature` takes the newest SDK **within** the band and never crosses a major, so you
-get `10.0.400` if you have it and the next patch when you install one.
+get `11.0.200` if you have it and the next patch when you install one.
 
-The version is the band floor, `10.0.0`, rather than a real SDK release, and that matters while a band
+The version is the band floor, `11.0.0`, rather than a real SDK release, and that matters while a band
 is still in preview: a release candidate sorts *below* the release it is a candidate for, and
 roll-forward only ever goes up — so pinning the release would resolve nothing at all on a machine
 holding the candidate, and `allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
@@ -680,7 +680,7 @@ What F5 does:
 | Step | What happens |
 | --- | --- |
 | Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes. |
-| Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings and Just My Code on. |
+| Launch | The C# debugger runs `bin/Debug/net11.0/<App>.dll` with the launch profile's settings and Just My Code on. |
 | Address | `https://<name>.test` when an earlier `rask dev` already set that name up on this machine (with `:5001` on macOS, where the pf redirect cannot be checked without root); the launch profile's localhost otherwise. F5 never prompts and never changes the machine. |
 | Browser | The app prints `Rask dev: open <url>` once it is listening, and VS Code opens it. |
 

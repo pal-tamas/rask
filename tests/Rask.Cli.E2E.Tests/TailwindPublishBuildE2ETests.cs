@@ -156,7 +156,7 @@ public sealed class TailwindPublishBuildE2ETests
                 $"""
                  <Project Sdk="Microsoft.NET.Sdk.Razor">
                    <PropertyGroup>
-                     <TargetFramework>net10.0</TargetFramework>
+                     <TargetFramework>net11.0</TargetFramework>
                      <StaticWebAssetBasePath>_content/RTwLib</StaticWebAssetBasePath>
                    </PropertyGroup>
                    <ItemGroup>
@@ -170,7 +170,7 @@ public sealed class TailwindPublishBuildE2ETests
                 $"""
                  <Project Sdk="Microsoft.NET.Sdk.Web">
                    <PropertyGroup>
-                     <TargetFramework>net10.0</TargetFramework>
+                     <TargetFramework>net11.0</TargetFramework>
                      <!-- WebApplication comes from Microsoft.AspNetCore.Builder, which the Web SDK adds
                           only as an IMPLICIT using. Without this the one-line host does not compile and
                           the test fails at the publish, long before it can say anything about CSS. -->

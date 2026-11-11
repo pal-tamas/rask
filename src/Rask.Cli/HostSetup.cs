@@ -133,7 +133,7 @@ internal sealed class HostSetup(IConsole console, IProcessRunner process)
         if (plan.NewUser is not null && !await VerifyAsync(deployTarget, VerifyScript, cancellationToken).ConfigureAwait(false))
         {
             console.WriteErrorLine($"Couldn't connect as '{deployTarget}' after creating it — stopping here.", ConsoleStyle.Error);
-            await console.Error.WriteLineAsync("Nothing that could lock you out has been changed: the firewall and SSH config are untouched.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync("Nothing that could lock you out has been changed: the firewall and SSH config are untouched.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 
@@ -176,7 +176,7 @@ internal sealed class HostSetup(IConsole console, IProcessRunner process)
         if (!await VerifyAsync(deployTarget, HostSetup.ReachableScript, cancellationToken).ConfigureAwait(false))
         {
             console.WriteErrorLine($"Locked out: can't reach '{deployTarget}' after hardening the host.", ConsoleStyle.Error);
-            await console.Error.WriteLineAsync($"Leave it alone — the guard on the box reverts the firewall and SSH changes in about {HostBootstrap.GuardDelay}. Then try again.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync($"Leave it alone — the guard on the box reverts the firewall and SSH changes in about {HostBootstrap.GuardDelay}. Then try again.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 
@@ -186,7 +186,7 @@ internal sealed class HostSetup(IConsole console, IProcessRunner process)
         if (!await DisarmAsync(deployTarget, disarmAsRoot, cancellationToken).ConfigureAwait(false))
         {
             console.WriteErrorLine($"Set the host up, but couldn't switch off its rollback guard — it will undo the firewall and SSH hardening in about {HostBootstrap.GuardDelay}.", ConsoleStyle.Error);
-            await console.Error.WriteLineAsync($"Nothing is broken and the box stays reachable. Re-run `rask deploy --setup-host` once it has reverted.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync($"Nothing is broken and the box stays reachable. Re-run `rask deploy --setup-host` once it has reverted.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 
@@ -224,11 +224,11 @@ internal sealed class HostSetup(IConsole console, IProcessRunner process)
         if (await VerifyAsync(deployTarget, ReachableScript, cancellationToken).ConfigureAwait(false)
             && await DisarmAsync(deployTarget, disarmAsRoot, cancellationToken).ConfigureAwait(false))
         {
-            await console.Error.WriteLineAsync("The host is still reachable and nothing was rolled back.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync("The host is still reachable and nothing was rolled back.", cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await console.Error.WriteLineAsync($"The host is no longer reachable — the guard reverts the firewall and SSH changes in about {HostBootstrap.GuardDelay}.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync($"The host is no longer reachable — the guard reverts the firewall and SSH changes in about {HostBootstrap.GuardDelay}.", cancellationToken).ConfigureAwait(false);
         }
     }
 

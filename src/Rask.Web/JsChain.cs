@@ -344,7 +344,7 @@ internal sealed class JsChain
             return null!;
         }
 
-        var handle = value.Deserialize((JsonTypeInfo<IJSObjectReference>)reading.Options.GetTypeInfo(typeof(IJSObjectReference)))!;
+        var handle = value.Deserialize(reading.Options.GetTypeInfo<IJSObjectReference>())!;
         reading.Component.LifetimeTokenInternal.Register(static h => _ = ((IJSObjectReference)h!).DisposeAsync().AsTask(), handle);
         return wrap(new JsChain(null, StepRoot, null, null, handle, reading.JsRuntime));
     }
@@ -379,7 +379,7 @@ internal sealed class JsChain
         public T As<[DynamicallyAccessedMembers(Json)] T>() =>
             Options is null || Raw.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined
                 ? default!
-                : Raw.Deserialize((JsonTypeInfo<T>)Options.GetTypeInfo(typeof(T)))!;
+                : Raw.Deserialize(Options.GetTypeInfo<T>())!;
     }
 
     private static T Arg<[DynamicallyAccessedMembers(Json)] T>(JsonElement args, int index) =>

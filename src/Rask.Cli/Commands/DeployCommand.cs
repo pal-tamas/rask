@@ -261,7 +261,7 @@ internal sealed partial class DeployCommand : CliCommand
         catch (TimeoutException stalled)
         {
             Console.WriteErrorLine($"{stalled.Message} on {plan.Host} — stopped the deploy there.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync("Traffic moves to a new version only once it has passed its checks, so unless the switch above finished, the previous version keeps serving. See what runs: rask deploy status").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("Traffic moves to a new version only once it has passed its checks, so unless the switch above finished, the previous version keeps serving. See what runs: rask deploy status", cancellationToken).ConfigureAwait(false);
             return 1;
         }
     }

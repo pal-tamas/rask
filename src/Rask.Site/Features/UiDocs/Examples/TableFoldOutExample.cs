@@ -9,7 +9,7 @@ public sealed partial class TableFoldOutExample : Component
         ("Pump 2", "AdBlue", "Pistol 3 · 412 l this month"),
     ];
 
-    private readonly HashSet<string> _open = ["Pump 1"];
+    private readonly HashSet<string> _open = [with(StringComparer.Ordinal), "Pump 1"];
 
     protected override Component? Render() =>
         Ui.Table.Id("utf-pumps").ContainerClass("min-w-0")[

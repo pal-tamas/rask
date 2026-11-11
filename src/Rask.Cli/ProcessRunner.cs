@@ -107,7 +107,7 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         {
             // Straight through first: the developer's view of watch must not lag behind our bookkeeping,
             // and an observer that throws must not swallow the line it was given.
-            await sink.WriteLineAsync(line).ConfigureAwait(false);
+            await sink.WriteLineAsync(line, cancellationToken).ConfigureAwait(false);
 
             try
             {

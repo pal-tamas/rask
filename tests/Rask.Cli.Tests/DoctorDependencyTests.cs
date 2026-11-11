@@ -31,7 +31,7 @@ public sealed class DoctorDependencyTests
         (executable, arguments.Count > 0 ? arguments[0] : "") switch
         {
             ("dotnet", "workload") => new ProcessResult(0, "Installed Workload Id\n---\nwasm-tools\n", ""),
-            ("dotnet", _) => new ProcessResult(0, "10.0.302", ""),
+            ("dotnet", _) => new ProcessResult(0, "11.0.100", ""),
             ("git", _) => new ProcessResult(0, "git version 2.50.1", ""),
             // OpenSSH prints its banner to STDERR and leaves stdout empty. This is the shape that made
             // the shared stdout-only helper unusable for ssh.
@@ -96,7 +96,7 @@ public sealed class DoctorDependencyTests
     [Fact]
     public async Task A_missing_wasm_tools_workload_is_named_before_a_build_hits_NETSDK1147()
     {
-        var (console, command) = Build(Except("dotnet", () => new ProcessResult(0, "10.0.302", "")));
+        var (console, command) = Build(Except("dotnet", () => new ProcessResult(0, "11.0.100", "")));
 
         var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
 
@@ -140,28 +140,28 @@ public sealed class DoctorDependencyTests
         + "--------------------------------------------\n";
 
     [Fact]
-    public async Task The_net11_SDK_is_told_it_also_needs_the_net10_toolchain()
+    public async Task The_net12_SDK_is_told_it_also_needs_the_net11_toolchain()
     {
-        // The .NET 11 SDK relinks a net10.0-browser app only with the net10 toolchain. Without it the
+        // A .NET 12 SDK relinks a net11.0-browser app only with the net11 toolchain. Without it the
         // browser build fails with NETSDK1147 even though wasm-tools IS installed — the same illegible
         // failure this row exists to pre-empt, on a machine that looks equipped.
-        var (console, command) = Build(Machine("11.0.100", WorkloadHeader + "wasm-tools      10.0.12/11.0.100\n"));
+        var (console, command) = Build(Machine("12.0.100", WorkloadHeader + "wasm-tools      11.0.0/12.0.100\n"));
 
         var exit = await command.ExecuteAsync(["--json"], CancellationToken.None);
 
         Assert.Equal(0, exit);
         Assert.Equal("Warn", StatusOf(console.OutText, "wasm-tools"));
-        Assert.Contains("dotnet workload install wasm-tools-net10", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("dotnet workload install wasm-tools-net11", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task A_net11_SDK_carrying_both_workloads_is_not_warned_about()
+    public async Task A_net12_SDK_carrying_both_workloads_is_not_warned_about()
     {
         // The negative control for the row above: without it, that test would pass on a doctor that
-        // warns on every .NET 11 machine, whatever is installed.
+        // warns on every .NET 12 machine, whatever is installed.
         var (console, command) = Build(Machine(
-            "11.0.100",
-            WorkloadHeader + "wasm-tools           10.0.12/11.0.100\nwasm-tools-net10     10.0.12/11.0.100\n"));
+            "12.0.100",
+            WorkloadHeader + "wasm-tools           11.0.0/12.0.100\nwasm-tools-net11     11.0.0/12.0.100\n"));
 
         await command.ExecuteAsync(["--json"], CancellationToken.None);
 
@@ -169,13 +169,13 @@ public sealed class DoctorDependencyTests
     }
 
     [Fact]
-    public async Task The_net10_toolchain_alone_does_not_count_as_wasm_tools()
+    public async Task The_net11_toolchain_alone_does_not_count_as_wasm_tools()
     {
-        // The bug the exact match exists for: `wasm-tools-net10` STARTS WITH `wasm-tools`, so a prefix
-        // test reports a machine carrying only the net10 toolchain as fully equipped — and the build
+        // The bug the exact match exists for: `wasm-tools-net11` STARTS WITH `wasm-tools`, so a prefix
+        // test reports a machine carrying only the net11 toolchain as fully equipped — and the build
         // then fails with the NETSDK1147 this row promised was not coming.
         var (console, command) = Build(Machine(
-            "10.0.302", WorkloadHeader + "wasm-tools-net10     10.0.12/11.0.100\n"));
+            "11.0.100", WorkloadHeader + "wasm-tools-net11     11.0.0/12.0.100\n"));
 
         await command.ExecuteAsync(["--json"], CancellationToken.None);
 
@@ -183,9 +183,9 @@ public sealed class DoctorDependencyTests
         Assert.Contains("dotnet workload install wasm-tools", console.OutText, StringComparison.Ordinal);
 
         // And it asks for the one that is missing. "install wasm-tools" is a SUBSTRING of "install
-        // wasm-tools-net10", so the assertion above alone would be satisfied by a doctor that told this
+        // wasm-tools-net11", so the assertion above alone would be satisfied by a doctor that told this
         // machine to install the toolchain it already has.
-        Assert.DoesNotContain("install wasm-tools-net10", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("install wasm-tools-net11", console.OutText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -288,7 +288,7 @@ public sealed class DoctorDependencyTests
         // Presence was never the whole question: a .NET 9 box showed a green row and then failed at the
         // first build, because the row printed whatever string the tool returned.
         var (console, command) = Build((exe, args) => exe == "dotnet" && args.Count > 0 && args[0] != "workload"
-            ? new ProcessResult(0, "9.0.404", "")
+            ? new ProcessResult(0, "10.0.302", "")
             : Healthy(exe, args));
 
         await command.ExecuteAsync(["--json"], CancellationToken.None);
@@ -305,7 +305,7 @@ public sealed class DoctorDependencyTests
         var (console, command) = Build((exe, args) => exe switch
         {
             "dotnet" when args.Count > 0 && args[0] == "workload" => new ProcessResult(0, "", ""),
-            "dotnet" => new ProcessResult(0, "10.0.302", ""),
+            "dotnet" => new ProcessResult(0, "11.0.100", ""),
             _ => NotOnPath(),
         });
 

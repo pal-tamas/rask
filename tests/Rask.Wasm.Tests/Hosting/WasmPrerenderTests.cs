@@ -633,7 +633,7 @@ public class WasmPrerenderTests : IDisposable
     [Fact]
     public void Prerendering_is_off_unless_it_is_asked_for()
     {
-        // It cannot be inferred from a non-browser target framework: this assembly builds for net10.0
+        // It cannot be inferred from a non-browser target framework: this assembly builds for net11.0
         // for its own tests, and those call RunAsync expecting a boot. Inferring it would turn every
         // one of them into a prerender pass.
         Assert.Null(Environment.GetEnvironmentVariable(WasmPrerender.OutputVariable));

@@ -37,7 +37,7 @@ public sealed partial class Counter : Component
 
 > **Prerequisites: none.** The installer below adds whatever is missing — the **.NET SDK** and the
 > `wasm-tools` workload the WASM templates need — all under `$HOME`, no
-> `sudo`. Already have the .NET 10 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
+> `sudo`. Already have the .NET 11 SDK? `dotnet tool install -g Rask.Cli` is the whole story.
 
 ```bash
 curl -sSL https://rask.sh/rask.sh | sh   # the rask CLI — scaffold, migrate, run, deploy

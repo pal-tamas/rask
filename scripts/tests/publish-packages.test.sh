@@ -42,7 +42,7 @@ nuspec = f'''<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata>
 <id>{pid}</id><version>{version}</version>
 <repository type="git" url="https://example.invalid/rask.git" commit="{commit}" />
-<dependencies><group targetFramework="net10.0">{rows}</group></dependencies>
+<dependencies><group targetFramework="net11.0">{rows}</group></dependencies>
 </metadata></package>'''
 with zipfile.ZipFile(f"{directory}/{pid}.{version}.nupkg", "w") as z:
     z.writestr(f"{pid}.nuspec", nuspec)

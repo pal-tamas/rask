@@ -9,7 +9,7 @@
     <PackageId>Rask.Xlsx</PackageId>
     <Title>Rask.Xlsx — an Excel workbook from a list of rows</Title>
     <Description>Writes an Excel workbook (.xlsx) from headings and rows with nothing but System.IO.Compression: bold frozen headings with a sort-and-filter button, fitted columns, amounts with thousands, days and moments, rows folded under the one before them, and a total row that follows the filter. Xlsx.Write(sheet, headings, rows) returns the file's bytes. Zero dependencies; runs on the server and in the browser.</Description>
-    <PackageTags>xlsx excel spreadsheet export openxml workbook dotnet net10</PackageTags>
+    <PackageTags>xlsx excel spreadsheet export openxml workbook dotnet net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

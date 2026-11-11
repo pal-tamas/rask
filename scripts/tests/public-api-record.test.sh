@@ -13,7 +13,7 @@ tmp="$(mktemp -d -t rask-public-api-record.XXXXXX)"
 trap 'rm -rf "$tmp"' EXIT
 
 project="$tmp/src/Rask.Thing/Rask.Thing.csproj"
-for tfm in net10.0 net10.0-browser; do
+for tfm in net11.0 net11.0-browser; do
   mkdir -p "$tmp/src/Rask.Thing/PublicAPI/$tfm"
   printf '#nullable enable\nRask.Alpha\nRask.Gone.get -> string!\nRask.Zeta\n' \
     > "$tmp/src/Rask.Thing/PublicAPI/$tfm/PublicAPI.Unshipped.txt"
@@ -21,10 +21,10 @@ done
 touch "$project"
 
 cat > "$tmp/build.log" <<EOF
-$tmp/src/Rask.Thing/Thing.cs(4,19): warning RS0016: Symbol 'Rask.Thing.Say(string! text = "it's") -> void' is not part of the declared public API (https://example.invalid/RS0016) [$project::TargetFramework=net10.0]
-$tmp/src/Rask.Thing/Thing.cs(4,19): warning RS0016: Symbol 'Rask.Thing.Say(string! text = "it's") -> void' is not part of the declared public API (https://example.invalid/RS0016) [$project::TargetFramework=net10.0]
-$tmp/src/Rask.Thing/PublicAPI/net10.0/PublicAPI.Unshipped.txt(3,1): warning RS0017: Symbol 'Rask.Gone.get -> string!' is part of the declared API, but is either not public or could not be found (https://example.invalid/RS0017) [$project::TargetFramework=net10.0]
-$tmp/src/Rask.Thing/Thing.cs(9,5): warning CS0168: The variable 'x' is declared but never used [$project::TargetFramework=net10.0]
+$tmp/src/Rask.Thing/Thing.cs(4,19): warning RS0016: Symbol 'Rask.Thing.Say(string! text = "it's") -> void' is not part of the declared public API (https://example.invalid/RS0016) [$project::TargetFramework=net11.0]
+$tmp/src/Rask.Thing/Thing.cs(4,19): warning RS0016: Symbol 'Rask.Thing.Say(string! text = "it's") -> void' is not part of the declared public API (https://example.invalid/RS0016) [$project::TargetFramework=net11.0]
+$tmp/src/Rask.Thing/PublicAPI/net11.0/PublicAPI.Unshipped.txt(3,1): warning RS0017: Symbol 'Rask.Gone.get -> string!' is part of the declared API, but is either not public or could not be found (https://example.invalid/RS0017) [$project::TargetFramework=net11.0]
+$tmp/src/Rask.Thing/Thing.cs(9,5): warning CS0168: The variable 'x' is declared but never used [$project::TargetFramework=net11.0]
 EOF
 
 python3 -I "$root/scripts/public-api/record.py" --log "$tmp/build.log" >/dev/null
@@ -37,10 +37,10 @@ check() {
 echo "==> public-api record"
 check "the reported framework gains the new member in place and loses the stale one" \
   "$(printf '#nullable enable\nRask.Alpha\nRask.Thing.Say(string! text = "it'"'"'s") -> void\nRask.Zeta')" \
-  "$(cat "$tmp/src/Rask.Thing/PublicAPI/net10.0/PublicAPI.Unshipped.txt")"
+  "$(cat "$tmp/src/Rask.Thing/PublicAPI/net11.0/PublicAPI.Unshipped.txt")"
 check "a framework the build said nothing about is untouched" \
   "$(printf '#nullable enable\nRask.Alpha\nRask.Gone.get -> string!\nRask.Zeta')" \
-  "$(cat "$tmp/src/Rask.Thing/PublicAPI/net10.0-browser/PublicAPI.Unshipped.txt")"
+  "$(cat "$tmp/src/Rask.Thing/PublicAPI/net11.0-browser/PublicAPI.Unshipped.txt")"
 
 [ "$failures" -eq 0 ] || { echo "public-api record: $failures failed" >&2; exit 1; }
 echo "public-api record: ok"

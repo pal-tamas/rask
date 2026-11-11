@@ -11,7 +11,7 @@ or send a pull request (fork → branch → PR). Review and merge are handled by
 
 ## Prerequisites
 
-- .NET 10 SDK (`net10.0`; `net10.0-browser` for the WASM projects).
+- .NET 11 SDK (`net11.0`; `net11.0-browser` for the WASM projects).
 - For the E2E suite: Playwright browsers (`pwsh tests/Rask.Site.E2E.Tests/bin/.../playwright.ps1 install`).
 
 ## Build & test loop

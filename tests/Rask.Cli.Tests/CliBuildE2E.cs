@@ -195,7 +195,7 @@ internal static class CliBuildE2E
         var core = Directory.GetFiles(feed, "Rask.*.nupkg")
             .Single(path => char.IsDigit(Path.GetFileName(path)["Rask.".Length]));
         using var coreZip = System.IO.Compression.ZipFile.OpenRead(core);
-        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net10.0/Rask.Core.dll");
+        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
 
         // And the hosts no longer bundle it: one copy per process, from one package.
         using var server = System.IO.Compression.ZipFile.OpenRead(serverPackage);

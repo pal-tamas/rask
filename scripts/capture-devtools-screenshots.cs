@@ -5,7 +5,7 @@
 //
 //   dotnet run scripts/capture-devtools-screenshots.cs -- <app url> <out dir>
 //
-// A .NET 10 file-based app on the repo's own Microsoft.Playwright (its version is Directory.Packages.props'), with
+// A .NET 11 file-based app on the repo's own Microsoft.Playwright (its version is Directory.Packages.props'), with
 // the Chromium that package installs: no Node, no npm, no csproj.
 //
 // Every step waits on what the reader of the guide will see — the pill, a tab, a row — rather than on time, and

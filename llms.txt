@@ -137,7 +137,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   message records go in Shared/ and handlers stay out of the download by living outside Client/ and Shared/.
   Without a DATABASE it sets `Rask:Cqrs:Server:RequireAuthenticatedUser=false` in appsettings.json with a comment saying why — accounts live in the database, so without one there is no authentication to require and the secure default left on would make every message answer 401;
   `--output` overrides the target directory;
-  **every** template also writes a `.gitignore`, an `.editorconfig`, a `<Name>.slnx` and a `global.json` pinning the .NET 10 SDK band (`10.0.0` + `rollForward: latestFeature` — the band FLOOR, because a pin naming a real release resolves nothing while that band is still a release candidate, and `latestMajor` would keep selecting the preview SDK this exists to avoid), and initializes a git repository with one commit AFTER the first migration, so `Migrations/` is in it (`--no-git` opts out;
+  **every** template also writes a `.gitignore`, an `.editorconfig`, a `<Name>.slnx` and a `global.json` pinning the .NET 11 SDK band (`11.0.0` + `rollForward: latestFeature` — the band FLOOR, because a pin naming a real release resolves nothing while that band is still a release candidate, and `latestMajor` would keep selecting the preview SDK this exists to avoid), and initializes a git repository with one commit AFTER the first migration, so `Migrations/` is in it (`--no-git` opts out;
   skipped automatically inside an existing repo) — the things whose absence is paid for later by someone else.
   **Styling is not a decision: Tailwind is built in** — there is no flag, no package to add and no off switch.
   Every template scaffolds a `Styles/app.css` holding one `@import "tailwindcss"` (no config file, no content array, no PostCSS — v4 detects the sources itself, C# string literals included) and the host package compiles it at build time.
@@ -706,7 +706,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   The bundle still serves those routes at runtime, so it costs an optimisation rather than breaking the page;
   the usual cause is a page injecting a browser-only API.
   A pass that writes NO pages raises a build warning, asked of the OUTPUT rather than the exit code, because "it ran" and "it produced something" are different questions.
-  HOW: a browser-wasm assembly cannot execute on the desktop, so the app's own sources compile a SECOND time for the app's own server target (net10.0) into a companion in `obj/rask-prerender/` carrying the app's own project and package references — including `Program.cs`, deliberately, because that is where services are registered and `WasmHostBuilder.Run` prerenders instead of booting when `RASK_PRERENDER_OUT` is set, so the app's REAL entry point drives the pass and there is no second place to keep registrations in sync.
+  HOW: a browser-wasm assembly cannot execute on the desktop, so the app's own sources compile a SECOND time for the app's own server target (net11.0) into a companion in `obj/rask-prerender/` carrying the app's own project and package references — including `Program.cs`, deliberately, because that is where services are registered and `WasmHostBuilder.Run` prerenders instead of booting when `RASK_PRERENDER_OUT` is set, so the app's REAL entry point drives the pass and there is no second place to keep registrations in sync.
   An app with a URL per language (`UseCulture(c => c.UrlPrefix = true)`) gets every page once PER LANGUAGE (`/`, `/en`, `/en/about`), each in its own language with its `<html lang>`, canonical, `hreflang` alternates + `x-default`, and sitemap `xhtml:link` alternates (see Localization).
   Engine is public for direct use: `RaskPrerender.PlanRoutes()` (`.Paths`/`.Skipped`) and `RaskPrerender.RenderDocument(app, services, budget)`, which takes no route on purpose — the caller holds the route table and seeds `RouteState.Path`.
   Check `Faulted`/`TimedOut` before writing.
@@ -1128,7 +1128,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   as a palette it sits in a bare `Ui.Modal` opened by `Ui.ModalTrigger.Name("search").Shortcut("mod+k")[Ui.Input.Of<string>().As(Ui.InputAs.Button)…]`, with `Ui.CommandInput.Closable()`.
   Flux UI's navigation in C# (`Ui.Navbar`/`Ui.NavbarItem`, `Ui.Navlist`/`Ui.NavlistItem`/`Ui.NavlistGroup`, `Ui.Brand`, `Ui.Profile`, `Ui.Breadcrumbs`/`Ui.BreadcrumbsItem`, `Ui.Avatar`/`Ui.AvatarGroup` — the current item worked out from the route), and the standalone `Rask.Ui` package — FLUX UI's component catalogue as typed Rask components (clean-room from fluxui.dev's public docs, held to them by parity tests), and what the framework's own surfaces (the `/_rask` console, the landing site, the docs showcase) are drawn with.
   Its theme is Flux's alone: the zinc scale, `--color-accent`/`--color-accent-content`/`--color-accent-foreground`, and a `dark` class.
-  Multi-targets every shipped target (`net10.0` and `net10.0-browser`), unlike `Rask.Dashboard` which is server-only because its panels read a DbContext;
+  Multi-targets every shipped target (`net11.0` and `net11.0-browser`), unlike `Rask.Dashboard` which is server-only because its panels read a DbContext;
   this is markup and nothing else.
   ONE COMPONENT PER FILE, named after the type, so the file list in `src/Rask.Ui` is the component list.
   A component that IS one HTML element derives from `UiElement` (an `Element`).
@@ -1727,7 +1727,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `AddRaskWebPush()` (no context) = the sender alone.
   The subscribe route is open to anyone, so it is bounded: `Rask:Push:MaxAnonymousSubscribers` (10 000 signed-out rows, then 429), ten subscribes a minute per client, `RequireUser` for signed-in-only apps;
   a send never follows a redirect, refuses a name that resolves to a private/loopback/link-local address, times out after `SendTimeout` (10 s), and a broadcast sends eight at a time.
-- [Excel export](docs/xlsx.md): the `Rask.Xlsx` package (`dotnet add package Rask.Xlsx`, namespace `Rask.Workbooks`, zero dependencies, net10.0 and net10.0-browser).
+- [Excel export](docs/xlsx.md): the `Rask.Xlsx` package (`dotnet add package Rask.Xlsx`, namespace `Rask.Workbooks`, zero dependencies, net11.0 and net11.0-browser).
   `byte[] file = Xlsx.Write("Invoices", ["Number", "Day", "Amount"], rows, total: [new Xlsx.Strong("Total"), null, new Xlsx.Sum()])` returns an .xlsx (serve with `Xlsx.ContentType`);
   `Xlsx.Write(params Xlsx.Sheet[])` for several sheets.
   Cells: string (always text, never a formula), numbers, decimal (an amount: 2-4 decimals, thousands), bool, `Xlsx.Day`/`Xlsx.Moment` (a raw DateTime/DateOnly/DateTimeOffset is written as one), `Xlsx.Strong(v)`, `Xlsx.Formula(text, now)`, `Xlsx.Sum` (total row, SUBTOTAL), `Xlsx.Folded(row)` (Excel outline).
@@ -1762,7 +1762,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   `UseRaskSqlite(sp)`/`UseRaskPostgres(sp)`/`AddRaskSqlite()`/`AddRaskLogging()` lost their connection-string parameter.
   Also the live/server/upload option tables, shutdown drain, session resume and MaxSessions sizing.
   `Rask:Database:Provider` (sqlite|postgres|sqlserver) is read at registration by RaskApp, and by `UseRaskDatabase(sp)` when the context options are built.
-- [Deployment](docs/deployment.md): containerizing the apps — every template scaffolds, by default (`--no-docker` leaves it out), a production multi-stage Dockerfile (+ `.dockerignore`): the `server` template builds on the .NET SDK image and run on `aspnet:10.0` (non-root, port 8080, `UseHttpsRedirection` no-ops in-container so terminate TLS at the proxy and forward the WebSocket upgrade);
+- [Deployment](docs/deployment.md): containerizing the apps — every template scaffolds, by default (`--no-docker` leaves it out), a production multi-stage Dockerfile (+ `.dockerignore`): the `server` template builds on the .NET SDK image and run on `aspnet:11.0` (non-root, port 8080, `UseHttpsRedirection` no-ops in-container so terminate TLS at the proxy and forward the WebSocket upgrade);
   the standalone `wasm` bundle publishes then serves from `nginx:alpine` with a bundled `nginx.conf` (SPA `try_files` fallback, `application/wasm` MIME, `gzip_static` for the baked `*.gz`).
   GitHub Pages / sub-path via `/p:RaskPathBase=`.
   One-command deploy of that Dockerfile: `rask deploy --host root@box [--domain app.example.com]` builds the image on the box over SSH and runs it — with `--domain` a shared Caddy proxy adds automatic HTTPS and deploys are zero-downtime (blue-green), multiple apps to one host.

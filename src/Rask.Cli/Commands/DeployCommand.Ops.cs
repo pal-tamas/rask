@@ -83,7 +83,7 @@ internal sealed partial class DeployCommand
         if (apps.Count == 0)
         {
             Console.WriteLine($"Nothing deployed on {HostName(host)} yet.", ConsoleStyle.Dim);
-            await Console.Out.WriteLineAsync("Run `rask deploy` to ship this app.").ConfigureAwait(false);
+            await Console.Out.WriteLineAsync("Run `rask deploy` to ship this app.", cancellationToken).ConfigureAwait(false);
             return 0;
         }
 
@@ -91,7 +91,7 @@ internal sealed partial class DeployCommand
         Console.Ansi.Write(new RaggedRight(new Padder(StatusTable(apps, slug), new Padding(2, 0, 0, 0))));
 
         // Whether a rollback is even possible is the other half of "what's the state of this app".
-        await Console.Out.WriteLineAsync().ConfigureAwait(false);
+        await Console.Out.WriteLineAsync(cancellationToken).ConfigureAwait(false);
         var rollbackTo = await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false);
         Console.WriteLine(
             rollbackTo is null
@@ -160,7 +160,7 @@ internal sealed partial class DeployCommand
         if (container is null)
         {
             Console.WriteErrorLine($"'{slug}' isn't running on {HostName(host)} — nothing to show logs for.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync("Run `rask deploy status` to see what is deployed.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("Run `rask deploy status` to see what is deployed.", cancellationToken).ConfigureAwait(false);
             return 1;
         }
 

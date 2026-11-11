@@ -99,7 +99,7 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
             var (rebuilt, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -m:1");
             Assert.True(rebuilt == 0, $"the app does not build with its migration:\n{CliBuildE2E.Diagnostics(output)}");
 
-            await using var site = new RaskSite(Path.Combine(projectDirectory, "bin", "Debug", "net10.0", name + ".dll"))
+            await using var site = new RaskSite(Path.Combine(projectDirectory, "bin", "Debug", "net11.0", name + ".dll"))
             {
                 ContentRoot = projectDirectory,
             };

@@ -47,7 +47,7 @@ public sealed class KitTailwindDeliveryTests
     [Fact]
     public void The_in_repo_fallback_names_no_target_framework()
     {
-        // The precompiled sheet's fallback named net10.0 once and shipped rask.sh grey from a checkout
+        // The precompiled sheet's fallback named net11.0 once and shipped rask.sh grey from a checkout
         // that had only built the browser face (KitStylesheetResolutionTests). The class list is build
         // output too, so it resolves the same two ways: the consumer's own face, then any.
         var literals = Regex.Matches(_targets, @"obj/net\d+\.\d+[a-z-]*/rask-ui\.classes\.txt");
@@ -282,7 +282,7 @@ public sealed class KitTailwindDeliveryTests
             File.WriteAllText(Path.Combine(Directory, "App.proj"), $"""
                 <Project>
                   <PropertyGroup>
-                    <TargetFramework>net10.0</TargetFramework>
+                    <TargetFramework>net11.0</TargetFramework>
                     <IntermediateOutputPath>obj/</IntermediateOutputPath>
                     <RaskTailwindInput>Styles/app.css</RaskTailwindInput>
                     {properties}

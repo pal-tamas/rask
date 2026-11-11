@@ -15,7 +15,7 @@ public class DoctorCommandTests
     ///     every command shells out to the SDK — so the default here is a realistic version rather than
     ///     the fake's empty one, or every test would be asserting against a broken machine.
     /// </param>
-    private static (StringConsole Console, FakeFileSystem Fs, DoctorCommand Command) Build(string sdk = "10.0.302")
+    private static (StringConsole Console, FakeFileSystem Fs, DoctorCommand Command) Build(string sdk = "11.0.100")
     {
         var console = new StringConsole();
         var fs = new FakeFileSystem();

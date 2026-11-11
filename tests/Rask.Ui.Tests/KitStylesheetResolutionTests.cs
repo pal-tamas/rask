@@ -7,9 +7,9 @@ namespace Rask.UiTests;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         The in-repo fallback looked for <c>obj/net10.0/ui.generated.css</c>, a literal path.
-///         <c>Rask.Ui</c> multi-targets <c>net10.0;net10.0-browser</c>, so that file exists only where
-///         something has built the <c>net10.0</c> face — which a developer's machine always has and a
+///         The in-repo fallback looked for <c>obj/net11.0/ui.generated.css</c>, a literal path.
+///         <c>Rask.Ui</c> multi-targets <c>net11.0;net11.0-browser</c>, so that file exists only where
+///         something has built the <c>net11.0</c> face — which a developer's machine always has and a
 ///         clean CI checkout publishing a browser-WASM app never does.
 ///     </para>
 ///     <para>

@@ -8,7 +8,7 @@ namespace Rask.Cli.Tests;
 ///     The <c>global.json</c> every scaffold writes: which SDK builds a scaffolded app.
 /// </summary>
 /// <remarks>
-///     Without it the SDK picks the newest one installed, so a <c>net10.0</c> app on a machine that also
+///     Without it the SDK picks the newest one installed, so a <c>net11.0</c> app on a machine that also
 ///     carries the next major in preview is compiled by a release candidate — it builds, says NETSDK1057
 ///     once per build, and quietly hands two people on the same repository different compilers.
 /// </remarks>
@@ -35,7 +35,7 @@ public sealed class GlobalJsonPinTests
             pin.Path);
 
         var sdk = Sdk(pin.Content);
-        Assert.Equal("10.0.0", sdk.GetProperty("version").GetString());
+        Assert.Equal("11.0.0", sdk.GetProperty("version").GetString());
         Assert.Equal("latestFeature", sdk.GetProperty("rollForward").GetString());
     }
 

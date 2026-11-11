@@ -208,7 +208,7 @@ internal sealed partial class DeployCommand
             Console.WriteErrorLine(
                 "  ! No Litestream replica configured — this app's database exists only on this box's disk.",
                 ConsoleStyle.Warning);
-            await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask:Litestream:ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("    Turn on continuous backup:  rask deploy --env \"Rask:Litestream:ReplicaUrl=s3://your-bucket/app\"  (see docs/sqlite.md)", cancellationToken).ConfigureAwait(false);
         }
 
         // With --domain the deploy names the public origin itself. On a bare port it cannot know the address people
@@ -218,7 +218,7 @@ internal sealed partial class DeployCommand
             Console.WriteErrorLine(
                 "  ! No public address set — confirm and reset emails will not be sent until there is one.",
                 ConsoleStyle.Warning);
-            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask:Auth:PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask:Auth:PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)", cancellationToken).ConfigureAwait(false);
         }
 
         WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
@@ -244,12 +244,12 @@ internal sealed partial class DeployCommand
                 return true;
             case BuildEnd.WentQuiet:
                 Console.WriteErrorLine($"The build printed nothing for {StopTimeout.Format(Deadlines.BuildIdle)} — stopped it. The previous version keeps serving.", ConsoleStyle.Error);
-                await Console.Error.WriteLineAsync($"  Its last line: {build.LastLine ?? "(none)"}").ConfigureAwait(false);
-                await Console.Error.WriteLineAsync($"  A download inside the build most likely stalled, or the connection to {plan.Host} did; deploy again. A step silent that long by design needs a higher \"{DeployDeadlines.BuildIdleKey}\" in {config}.").ConfigureAwait(false);
+                await Console.Error.WriteLineAsync($"  Its last line: {build.LastLine ?? "(none)"}", cancellationToken).ConfigureAwait(false);
+                await Console.Error.WriteLineAsync($"  A download inside the build most likely stalled, or the connection to {plan.Host} did; deploy again. A step silent that long by design needs a higher \"{DeployDeadlines.BuildIdleKey}\" in {config}.", cancellationToken).ConfigureAwait(false);
                 return false;
             case BuildEnd.TimedOut:
                 Console.WriteErrorLine($"The build ran past {StopTimeout.Format(Deadlines.Build)} — stopped it. The previous version keeps serving.", ConsoleStyle.Error);
-                await Console.Error.WriteLineAsync($"  A build that needs longer needs a higher \"{DeployDeadlines.BuildKey}\" in {config}.").ConfigureAwait(false);
+                await Console.Error.WriteLineAsync($"  A build that needs longer needs a higher \"{DeployDeadlines.BuildKey}\" in {config}.", cancellationToken).ConfigureAwait(false);
                 return false;
             default:
                 Console.WriteErrorLine("Docker build failed — its output is above. Run `docker build .` locally to reproduce it, then deploy again.", ConsoleStyle.Error);
@@ -271,7 +271,7 @@ internal sealed partial class DeployCommand
         }
 
         await RetireContainerAsync(host, slug, ShutdownBudget.PortModeStopTimeout, cancellationToken, PortModeAdvice).ConfigureAwait(false);
-        await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Starting {slug} on port {port}…", cancellationToken).ConfigureAwait(false);
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
         try
@@ -354,7 +354,7 @@ internal sealed partial class DeployCommand
         if (await ResolveRollbackImageAsync(host, slug, cancellationToken).ConfigureAwait(false) is null)
         {
             Console.WriteErrorLine($"{reason} There is no previous image to fall back to.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync("This is the app's first deploy, so there is no earlier version to go back to. Fix the problem above and deploy again.").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync("This is the app's first deploy, so there is no earlier version to go back to. Fix the problem above and deploy again.", cancellationToken).ConfigureAwait(false);
             return 1;
         }
 
@@ -383,7 +383,7 @@ internal sealed partial class DeployCommand
         // The live containers are the source of truth. Read here for the current color of this app (to pick the
         // next) and the pre-checks; the switch reads them again under the lock, since this listing is stale by then.
         // The four reads the pre-checks need don't depend on each other, so they are asked together, not in turn.
-        await Console.Out.WriteLineAsync($"Reading what runs on {HostName(host)}…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Reading what runs on {HostName(host)}…", cancellationToken).ConfigureAwait(false);
         var listing = ListAppsAsync(host, cancellationToken);
         var files = ReadAppFilesAsync(host, cancellationToken);
         var proxyLabel = Capture(BuildCaddyDnsLabelArguments(host), cancellationToken);
@@ -560,7 +560,7 @@ internal sealed partial class DeployCommand
         // failed reload) can leave it behind, and `docker run --name` would otherwise collide.
         await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false); // ignore-absent
 
-        await Console.Out.WriteLineAsync($"Starting {newContainer} ({SiteDomains.Describe(domain)})…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Starting {newContainer} ({SiteDomains.Describe(domain)})…", cancellationToken).ConfigureAwait(false);
         // In domain mode the app is reached internally on its container port; no host port is published.
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
@@ -606,7 +606,7 @@ internal sealed partial class DeployCommand
         {
             await DumpLogsAsync(host, newContainer, env, cancellationToken).ConfigureAwait(false);
             await Run(BuildRemoveArguments(host, newContainer), cancellationToken).ConfigureAwait(false);
-            await Console.Error.WriteLineAsync(HealthFailureMessage(healthPath, rolledBack: true)).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(HealthFailureMessage(healthPath, rolledBack: true), cancellationToken).ConfigureAwait(false);
             return false;
         }
 
@@ -630,7 +630,7 @@ internal sealed partial class DeployCommand
     // after the container is up, and the deploy moves on the moment it answers.
     private async Task<bool> WaitUntilHealthyAsync(string host, string container, string healthPath, int containerPort, CancellationToken cancellationToken)
     {
-        await Console.Out.WriteLineAsync($"Checking that {container} answers {healthPath}…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Checking that {container} answers {healthPath}…", cancellationToken).ConfigureAwait(false);
         var started = Clock.GetTimestamp();
         var healthy = await Readiness.UntilAsync(
             async () => await Run(BuildHealthCheckArguments(host, container, healthPath, containerPort), cancellationToken).ConfigureAwait(false) == 0,
@@ -669,12 +669,12 @@ internal sealed partial class DeployCommand
         var logs = await Capture(BuildLogsArguments(host, container), cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(logs.StandardOutput))
         {
-            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardOutput.TrimEnd(), env)).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardOutput.TrimEnd(), env), cancellationToken).ConfigureAwait(false);
         }
 
         if (!string.IsNullOrWhiteSpace(logs.StandardError))
         {
-            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardError.TrimEnd(), env)).ConfigureAwait(false);
+            await Console.Error.WriteLineAsync(MaskSecrets(logs.StandardError.TrimEnd(), env), cancellationToken).ConfigureAwait(false);
         }
     }
 

@@ -37,8 +37,8 @@ vsblazor="tests/Rask.Benchmarks.VsBlazor/Rask.Benchmarks.VsBlazor.csproj"
 #
 # Asserted rather than assumed, below, because a wrong path here would turn into "command not found"
 # and, on the `|| status=1` lines, read exactly like a benchmark regression.
-standalone_bin="tests/Rask.Benchmarks/bin/Release/net10.0/Rask.Benchmarks"
-vsblazor_bin="tests/Rask.Benchmarks.VsBlazor/bin/Release/net10.0/Rask.Benchmarks.VsBlazor"
+standalone_bin="tests/Rask.Benchmarks/bin/Release/net11.0/Rask.Benchmarks"
+vsblazor_bin="tests/Rask.Benchmarks.VsBlazor/bin/Release/net11.0/Rask.Benchmarks.VsBlazor"
 
 # BUILD FIRST, and never --no-build on its own. `--check` reads the baseline from
 # AppContext.BaseDirectory — the copy under bin/ — not from the source tree. Editing the CSV and
@@ -96,7 +96,7 @@ echo "==> Client bundle-size gate (rask.js, rask.wasm.js, rask-hooks.js)"
 rm -f src/Rask.Wasm/Browser/rask.wasm.js
 # The behaviour hooks' bundle is written beside it by the same target, under the same stamp.
 rm -f src/Rask.Wasm/Browser/rask-hooks.js
-rm -f src/Rask.Wasm/obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp
+rm -f src/Rask.Wasm/obj/Release/net11.0-browser/rask-bundles/rask.wasm.stamp
 dotnet build src/Rask.Server/Rask.Server.csproj -c Release -p:MinVerSkip=true >/dev/null
 dotnet build src/Rask.Wasm/Rask.Wasm.csproj -c Release -p:MinVerSkip=true >/dev/null
 "$standalone_bin" client-bundle-size --check || status=1

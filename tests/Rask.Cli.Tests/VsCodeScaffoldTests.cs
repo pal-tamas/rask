@@ -238,9 +238,9 @@ public sealed class VsCodeScaffoldTests
             Assert.Equal("coreclr", config.GetProperty("type").GetString());
             Assert.Equal("launch", config.GetProperty("request").GetString());
 
-            // The program path assumes net10.0 and the default output layout; the csproj has to agree.
-            Assert.Equal("${workspaceFolder}/bin/Debug/net10.0/App.dll", config.GetProperty("program").GetString());
-            Assert.Contains("<TargetFramework>net10.0</TargetFramework>", files["App.csproj"], StringComparison.Ordinal);
+            // The program path assumes net11.0 and the default output layout; the csproj has to agree.
+            Assert.Equal("${workspaceFolder}/bin/Debug/net11.0/App.dll", config.GetProperty("program").GetString());
+            Assert.Contains("<TargetFramework>net11.0</TargetFramework>", files["App.csproj"], StringComparison.Ordinal);
 
             // What makes a handler's exception stop on its throw line rather than inside Rask.
             Assert.True(config.GetProperty("justMyCode").GetBoolean(), label);

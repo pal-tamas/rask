@@ -40,7 +40,7 @@
   </ItemGroup>
 
   <!--
-    The site is a net10.0-browser EXE, and a net10.0 test project cannot ProjectReference one — so its
+    The site is a net11.0-browser EXE, and a net11.0 test project cannot ProjectReference one — so its
     sources are LINKED and compiled here a second time, the way tests/Rask.Example.Site.Tests already
     did before the merge. Program.cs is excluded because it is top-level statements: including it would
     give this assembly a second entry point.
@@ -129,7 +129,7 @@
     <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Web\Rask.Web.csproj"/>
     <!-- The linked sources include the WASM-only demos. Rask.Wasm multi-targets
-         net10.0;net10.0-browser, so this net10.0 suite gets the net10.0 face of the same API — which is
+         net11.0;net11.0-browser, so this net11.0 suite gets the net11.0 face of the same API — which is
          also how the prerender companion compiles these files. -->
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Cqrs\Rask.Cqrs.csproj"/>

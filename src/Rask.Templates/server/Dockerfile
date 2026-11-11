@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build: compile on the .NET SDK image, run on the smaller aspnet runtime.
-# The aspnet:10.0 image already runs as a non-root user and listens on port 8080
+# The aspnet:11.0 image already runs as a non-root user and listens on port 8080
 # (ASPNETCORE_HTTP_PORTS=8080) — no extra hardening needed for a basic deploy.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 
 # Restore first (cached layer): only the csproj invalidates it, so code edits reuse the cache.
@@ -27,7 +27,7 @@ RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
       -p:RaskPdfChromiumCache=/chrome -p:RaskPdfChromiumCopyTo=/chrome-shell \
  && mkdir -p /chrome-shell
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
+FROM mcr.microsoft.com/dotnet/aspnet:11.0
 WORKDIR /app
 COPY --from=build /chrome-shell /opt/rask/chrome
 

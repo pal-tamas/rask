@@ -40,8 +40,8 @@ internal static class DockerProbe
 
         // Nothing is built locally — the build context ships to the host's daemon — but the CLI is
         // still the client for every `docker -H ssh://` call, so it has to be here.
-        await console.Error.WriteLineAsync("Docker isn't installed or isn't on your PATH. `rask deploy` uses the Docker CLI to build and run your app on the host.").ConfigureAwait(false);
-        await console.Error.WriteLineAsync($"  Install Docker: {InstallHint()}").ConfigureAwait(false);
+        await console.Error.WriteLineAsync("Docker isn't installed or isn't on your PATH. `rask deploy` uses the Docker CLI to build and run your app on the host.", cancellationToken).ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  Install Docker: {InstallHint()}", cancellationToken).ConfigureAwait(false);
         return false;
     }
 
@@ -72,8 +72,8 @@ internal static class DockerProbe
         }
 
         console.WriteErrorLine($"Can't build here: {BuildxProbe.Problem}", ConsoleStyle.Error);
-        await console.Error.WriteLineAsync($"  {BuildxProbe.FixHint()}").ConfigureAwait(false);
-        await console.Error.WriteLineAsync($"  Nothing was sent to the host. See {BuildxProbe.DocsReference}.").ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  {BuildxProbe.FixHint()}", cancellationToken).ConfigureAwait(false);
+        await console.Error.WriteLineAsync($"  Nothing was sent to the host. See {BuildxProbe.DocsReference}.", cancellationToken).ConfigureAwait(false);
         return false;
     }
 

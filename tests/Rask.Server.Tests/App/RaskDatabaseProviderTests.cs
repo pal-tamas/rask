@@ -281,13 +281,14 @@ public sealed class RaskDatabaseProviderTests
     ///     reporting that first would hide the real mistake.
     /// </summary>
     [Fact]
-    public void The_provider_mismatch_is_the_first_thing_start_up_reports()
+    public async Task The_provider_mismatch_is_the_first_thing_start_up_reports()
     {
         var app = CreateApp(settings: null);
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseNpgsql(PostgresApp));
         var built = app.Build<MinimalApp>();
 
-        var error = Assert.ThrowsAny<Exception>(() => built.Services.GetRequiredService<IStartupValidator>().Validate());
+        var error = await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await built.Services.GetRequiredService<IAsyncStartupValidator>().ValidateAsync(TestContext.Current.CancellationToken));
 
         Assert.IsType<InvalidOperationException>(error);
         Assert.Contains("Rask:Database:Provider is sqlite", error.Message, StringComparison.Ordinal);

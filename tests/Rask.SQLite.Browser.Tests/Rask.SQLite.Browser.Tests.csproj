@@ -27,7 +27,6 @@
          lever under CPM — transitive pinning does not move it. See Directory.Packages.props. -->
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection"/>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Logging"/>
   </ItemGroup>
 

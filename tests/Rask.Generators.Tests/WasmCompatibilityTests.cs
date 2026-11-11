@@ -76,7 +76,7 @@ public class WasmCompatibilityTests
 
     private static ImmutableArray<MetadataReference> CreateWasmStyleReferences()
     {
-        // Filter the test runtime's assemblies to those a net10.0-browser project would have.
+        // Filter the test runtime's assemblies to those a net11.0-browser project would have.
         // Excludes Microsoft.AspNetCore.* (the shared framework that WASM cannot consume).
         var trusted = ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? string.Empty)
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);

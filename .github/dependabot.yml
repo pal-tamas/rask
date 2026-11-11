@@ -17,7 +17,7 @@ updates:
       # would raise the compiler floor for every downstream Rask consumer. Keep these pinned to
       # the SDK's Roslyn version; bump them by hand alongside an SDK-band update.
       #
-      # The SDK band is stated in global.json and .github/actions/setup/action.yml (10.0.x), and in
+      # The SDK band is stated in global.json and .github/actions/setup/action.yml (11.0.x), and in
       # rask.sh (RASK_INSTALL_DOTNET_CHANNEL); that is what "the build SDK" means here.
       #
       # .Features used to be listed here too, for a reason worth keeping in mind if it ever comes
@@ -29,19 +29,8 @@ updates:
       # from Directory.Packages.props as well.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
       - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
-      #
-      # MSBuild's task API — compile-only (ExcludeAssets="runtime") in the five src/*.Tasks projects,
-      # with runtime assets in their test projects. 18.10 is the .NET 11 SDK line: it and its
-      # exactly-pinned Microsoft.Build.Framework [18.10.1] ship lib/net11.0 + lib/net472 ONLY, where
-      # 18.9.6 ships lib/net10.0. The failure mode is the dangerous one — a net10.0 project still
-      # COMPILES, because it binds ref/netstandard2.0, so the build is green and only the tests that
-      # load a task fail, with FileNotFoundException on Microsoft.Build.{Utilities.Core,Framework},
-      # Version=15.1.0.0. That was 70 failures across the four *.Tasks.Tests projects; PR #1064 was
-      # closed for it. Lift this when the repo targets net11.0, and bump both halves together.
-      - dependency-name: "Microsoft.Build.Utilities.Core"
-        versions: [">=18.10.0"]
     groups:
-      # The .NET platform stack ships as one versioned family (10.0.x) and lands in a single
+      # The .NET platform stack ships as one versioned family (11.0.x) and lands in a single
       # Directory.Packages.props — group it so a patch wave is one PR. Ungrouped members each open
       # their own PR against that one file, and those PRs then conflict pairwise.
       microsoft-extensions:
@@ -125,7 +114,7 @@ updates:
       prefix: build
       include: scope
     ignore:
-      # Rask targets net10.0 only (the LTS); 11.0 is not an LTS release. Patches still flow.
+      # Rask targets net11.0 only; a new major is a deliberate move (global.json, RaskPrimaryNetTarget). Patches still flow.
       - dependency-name: "mcr.microsoft.com/dotnet/*"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
       # The same release as RaskLitestreamVersion, which scripts/upstream/litestream.py moves with its digests.

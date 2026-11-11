@@ -107,7 +107,7 @@ assert_red "unrecorded public member" "RS0016" \
 # source and left the file, which is exactly the shape of a half-finished API change.
 stale_baseline="$tmp/stale-baseline"
 cp -R "$baseline_copy" "$stale_baseline"
-printf 'Rask.Cache.ThisTypeDoesNotExist\n' >> "$stale_baseline/net10.0/PublicAPI.Unshipped.txt"
+printf 'Rask.Cache.ThisTypeDoesNotExist\n' >> "$stale_baseline/net11.0/PublicAPI.Unshipped.txt"
 assert_red "baseline entry with no member" "RS0017" "-p:RaskPublicApiDir=$stale_baseline/"
 
 # And the way this gate would come to pass by not running: no baseline at all, so the analyzer has

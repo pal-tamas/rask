@@ -8,7 +8,7 @@ namespace Rask.WebPush;
 // mints a development pair while it is still writing files to disk, and Rask.Cli source-links THIS
 // file rather than taking a package reference on a library it needs twenty lines from. That is also
 // why the class is internal and returns a tuple: source-linking the public record instead would put
-// a type on the tool's public API surface, which is otherwise empty (PublicAPI/net10.0), and a tool
+// a type on the tool's public API surface, which is otherwise empty (PublicAPI/net11.0), and a tool
 // has no public surface to spend.
 internal static class VapidKeyMaterial
 {

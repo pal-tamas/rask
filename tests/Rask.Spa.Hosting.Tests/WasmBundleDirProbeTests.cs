@@ -33,9 +33,9 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     [Fact]
     public async Task The_bundle_dir_names_the_clients_declared_framework()
     {
-        WriteClient("<TargetFramework>net10.0-browser</TargetFramework>");
+        WriteClient("<TargetFramework>net11.0-browser</TargetFramework>");
 
-        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
+        Assert.EndsWith("/bin/Debug/net11.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
     {
         // A bundle is published for ONE framework. Picking one of several would bake a path that is right
         // or wrong depending on which the publish happened to build.
-        WriteClient("<TargetFrameworks>net10.0;net10.0-browser</TargetFrameworks>");
+        WriteClient("<TargetFrameworks>net11.0;net11.0-browser</TargetFrameworks>");
 
         var result = await Run();
 
@@ -67,9 +67,9 @@ public sealed class WasmBundleDirProbeTests : IDisposable
         // One framework spelled as a list is still one framework. MSBuild reports HasSingleTargetFramework
         // false for any <TargetFrameworks> project, so a probe that trusted the flag refused this client —
         // one the old XmlPeek fallback had served correctly — over a problem that was not there.
-        WriteClient("<TargetFrameworks>net10.0-browser</TargetFrameworks>");
+        WriteClient("<TargetFrameworks>net11.0-browser</TargetFrameworks>");
 
-        Assert.EndsWith("/bin/Debug/net10.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
+        Assert.EndsWith("/bin/Debug/net11.0-browser/publish/wwwroot", await Probe(), StringComparison.Ordinal);
     }
 
     private void WriteClient(string frameworkElement, string? inheritedFramework = null)
@@ -99,7 +99,7 @@ public sealed class WasmBundleDirProbeTests : IDisposable
         File.WriteAllText(Path.Combine(host, "Host.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
               </PropertyGroup>
               <ItemGroup>
                 <ProjectReference Include="../Client/Client.csproj"

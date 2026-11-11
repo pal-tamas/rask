@@ -293,8 +293,9 @@ internal static partial class JSInterop
     /// </summary>
     internal static List<string>? AppliedFrames { get; set; }
 
-    // No page to apply the frame to.
-    public static void ApplyRender(Span<byte> payload)
+    // No page to apply the frame to. Read-only where the JSImport takes a Span (a MemoryView must be one); a caller's
+    // Span converts to it, so the one call site compiles against both.
+    public static void ApplyRender(ReadOnlySpan<byte> payload)
     {
         if (AppliedFrames is not { } frames)
         {

@@ -60,7 +60,7 @@ internal static class HostProbe
         catch (Win32Exception)
         {
             // No ssh binary at all — launching it throws rather than returning non-zero.
-            await console.Error.WriteLineAsync("`ssh` isn't installed or isn't on your PATH. `rask deploy` needs it to reach the host.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync("`ssh` isn't installed or isn't on your PATH. `rask deploy` needs it to reach the host.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 
@@ -72,12 +72,12 @@ internal static class HostProbe
             {
                 // ssh already explained itself (permission denied / host key / name resolution) —
                 // its message beats anything we'd invent.
-                await console.Error.WriteLineAsync().ConfigureAwait(false);
-                await console.Error.WriteLineAsync(Indent(detail)).ConfigureAwait(false);
-                await console.Error.WriteLineAsync().ConfigureAwait(false);
+                await console.Error.WriteLineAsync(cancellationToken).ConfigureAwait(false);
+                await console.Error.WriteLineAsync(Indent(detail), cancellationToken).ConfigureAwait(false);
+                await console.Error.WriteLineAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            await console.Error.WriteLineAsync($"Make sure `ssh {target.Destination}` works non-interactively — key-based auth, with the host key already trusted.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync($"Make sure `ssh {target.Destination}` works non-interactively — key-based auth, with the host key already trusted.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 
@@ -85,7 +85,7 @@ internal static class HostProbe
         if (!facts.Complete)
         {
             console.WriteErrorLine($"The host check on '{target}' didn't complete — couldn't tell what's installed on the box.", ConsoleStyle.Error);
-            await console.Error.WriteLineAsync("This usually means the login shell isn't POSIX-compatible or prints a banner. Rask won't guess and change the host blind.").ConfigureAwait(false);
+            await console.Error.WriteLineAsync("This usually means the login shell isn't POSIX-compatible or prints a banner. Rask won't guess and change the host blind.", cancellationToken).ConfigureAwait(false);
             return null;
         }
 

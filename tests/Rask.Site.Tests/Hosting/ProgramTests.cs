@@ -3,8 +3,8 @@ using Rask.Site.Features;
 
 namespace Rask.Site.Tests.Hosting;
 
-// Rask.Site targets net10.0-browser and can't be directly invoked from a
-// net10.0 test process. The DI registration shape lives in ExampleServiceCollectionExtensions
+// Rask.Site targets net11.0-browser and can't be directly invoked from a
+// net11.0 test process. The DI registration shape lives in ExampleServiceCollectionExtensions
 // inside Rask.Site so it can be unit-tested without booting a WASM runtime;
 // Program.cs is then a one-liner that wires the same extension into WasmHostBuilder.
 public sealed class ProgramTests

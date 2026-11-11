@@ -252,7 +252,7 @@ public sealed class WasmHostBuilder
         // nothing to learn and keeps the registrations in one place.
         //
         // Asked for by environment variable rather than inferred from a non-browser target framework:
-        // this assembly also builds for net10.0 for its own tests, and those call Run expecting a
+        // this assembly also builds for net11.0 for its own tests, and those call Run expecting a
         // boot.
         if (WasmPrerender.RequestedOutput is { Length: > 0 } prerenderOutput)
         {

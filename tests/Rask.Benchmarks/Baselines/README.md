@@ -21,7 +21,7 @@ render path should compare against these and quote the delta in its description.
 > `rask.wasm.js` is written into a *source* directory both configurations share, while MSBuild's
 > up-to-date **stamp** is per-configuration — so a Release build after a Debug one is SKIPPED and
 > the file measured is the Debug one, three times the size. The script therefore deletes
-> `obj/Release/net10.0-browser/rask-bundles/rask.wasm.stamp` before rebuilding, and the report
+> `obj/Release/net11.0-browser/rask-bundles/rask.wasm.stamp` before rebuilding, and the report
 > refuses outright to measure a bundle that is not minified. Both exist because the gate's first
 > run after a browser E2E gate reported a 74 KB regression that was not real. The tolerance is ±2% rather than byte-exact — esbuild's
 > output can shift a few bytes on a minifier bump nobody here chose, while the regression worth

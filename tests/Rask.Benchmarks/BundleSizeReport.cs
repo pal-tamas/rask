@@ -141,9 +141,9 @@ internal static class BundleSizeReport
         // depends on whether the project builds native: browser-wasm/ appears only on the relink path.
         string[] candidates =
         [
-            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net10.0-browser", "publish",
+            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net11.0-browser", "publish",
                 "wwwroot", "_framework"),
-            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net10.0-browser", "browser-wasm",
+            Path.Combine(root, "src", "Rask.Site", "bin", "Release", "net11.0-browser", "browser-wasm",
                 "publish", "wwwroot", "_framework")
         ];
 
