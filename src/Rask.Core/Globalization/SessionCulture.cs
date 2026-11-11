@@ -32,7 +32,7 @@ public sealed class SessionCulture : IRaskCulture
         foreach (var name in options.SupportedCultures)
         {
             // Without culture data a language still resolves by name — its text is looked up by the tag — but
-            // formats as the invariant culture. English is what such a runtime formats in anyway, which is why a
+            // formats as the invariant culture. English formats as US English there (InvariantEnglish), which is why a
             // WASM app that names only English ships no ICU, so its absence is nothing to report.
             if (RaskCultureResolver.TryResolve(name, out var culture))
             {

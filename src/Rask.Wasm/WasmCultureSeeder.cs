@@ -78,7 +78,7 @@ internal static class WasmCultureSeeder
     {
         if (IsConfigured(services, out _) && services.GetService(typeof(IRaskCulture)) is IRaskCulture { Supported.Count: > 0 } culture)
         {
-            Pin(culture.Culture, culture.UICulture);
+            Pin(FormattingCulture.Of(culture.Culture), culture.UICulture);
         }
     }
 
@@ -106,11 +106,11 @@ internal static class WasmCultureSeeder
         return options is { SupportedCultures.Count: > 0 };
     }
 
-    // The invariant culture when the runtime ships no culture data, which is what such an app formats in anyway.
+    // English's text, written as US English: from culture data, or without any from InvariantEnglish (#1305).
     private static void PinDocumentLanguage()
     {
         _ = RaskCultureResolver.TryResolve(RaskCulture.UnconfiguredLanguage, out var culture);
-        Pin(culture, culture);
+        Pin(FormattingCulture.Of(culture), culture);
     }
 
     private static void Pin(CultureInfo culture, CultureInfo uiCulture)

@@ -26,6 +26,17 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
+  Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
+  `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,
+  `2026 March` and `15:04`. After: while a page renders and a handler runs, `Culture` and `CultureInfo.CurrentCulture`
+  are the language's main country's culture (`en` → `en-US`, `hu` → `hu-HU`, as `CultureInfo.CreateSpecificCulture`
+  names it); `UICulture`, `<html lang>`, the URL's language and the culture cookie stay the language configured. A
+  browser app still ships no ICU for English (the smallest bundle): Rask carries US English's currency, number,
+  percent and date/time patterns built in (`InvariantEnglish`, a handful of values: +2,048 bytes of `Rask.Core.dll`, no ICU), held to
+  the runtime's own en-US by a test, and a test assembly that runs without culture data proves the page, a handler
+  and the process all write `$19.99`, `3/14/2026` and `3:04 PM`. Another language without ICU still formats as the
+  invariant culture.
 - **A page's title settling no longer turns the next press into a whole page in Rask's diff harness (#1303).** A
   layout that shows `RouteState.Title` over a page with a `PageTitle` is walked twice when the title changes, and the
   second walk threw away every frame of the writer, including the ones its host had opened around the walk — the
