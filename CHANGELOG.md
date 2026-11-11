@@ -17,6 +17,16 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
+  slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
+  one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost
+  for good — eszaf's distribution modal stayed open after the server had closed it and toasted, and pressing "run"
+  again did nothing because the page already said closed. After: once the page has its answers, after any render
+  that touches those attributes, and when the tab comes back, one shared sweep (rask-owned.ts, `converges`) brings
+  every such dialog and popover back to the server's last word. What the reader opened or shut is still theirs
+  while the page has yet to answer, and when nothing tells the page at all: a local gesture still sends nothing.
+  A reader's close the page heard and answered with "still open" now opens it again — set the field in
+  `OnClose` / `OnToggle`, as the docs always said.
 - **A tap on a phone opens a tooltip, and the last end-aligned sort heading stands over its numbers again.** Before:
   a finger's tooltip (`data-rask-tooltip`) closed again when the press the tap ends in landed a frame after the finger
   did — on a busy page, or a person's ordinary 50–150 ms tap — so `Ui.Filter.Shown(names)`'s badge showed no names on a

@@ -71,7 +71,10 @@ internal sealed partial class UiModalBehaviour : Component
             "It is the same modal: the dialog says `data-rask-modal-open` and the runtime shows and closes it to "
             + "match, so it is in the top layer behind the same backdrop, Escape and a click outside run `OnCancel` "
             + "then `OnClose`, and focus returns when it closes. `OnClose` is where the page hears that the reader "
-            + "closed it: set the field there, or the page goes on saying it is open.",
+            + "closed it: set the field there, or the page goes on saying it is open and the runtime opens it again.",
+            "What the page says last is what the browser shows, however slow the line: a close that arrives while "
+            + "the dialog is still animating, or one the browser did not carry out the first time, is carried out "
+            + "once the page has its answers.",
             "A modal with neither a `Name` nor `Open` is open for as long as the page renders it. A modal without a "
             + "`Key` beside keyed ones is fine: it keeps its instance by its order among the unkeyed modals of the "
             + "page.",

@@ -243,6 +243,8 @@ A `[popover]` carrying `data-rask-popover-open="true"|"false"` is shown or hidde
 changes — how a controlled menu opens from C#, which cannot call `showPopover()`. Escape and a press outside
 are the browser's and win until the server has answered them: a reply rendered before it heard of one does not
 open the popover again, and the toggle the runtime's own show or hide raises is not reported as the reader's.
+Once the page has its answers the runtime brings every such popover and dialog back to what the server last said,
+so a show or hide the browser declined mid-transition is not lost (docs/js-interop-runtime.md).
 
 ## Tooltips
 

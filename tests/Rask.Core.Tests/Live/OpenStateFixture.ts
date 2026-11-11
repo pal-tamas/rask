@@ -8,12 +8,12 @@
 // The C# test (OpenStateTests) runs this on Jint and asserts what it reports.
 
 import {report} from "../../Rask.TestSupport/ScriptFixtures/fixture.js";
-import {elapse, listeners} from "./stub-events.js";
+import {elapse, frame, listeners} from "./stub-events.js";
 import {StubPopover} from "./stub-open.js";
 import {send, setHost} from "../../../src/Rask.Core/Resources/rask-host.js";
 import "../../../src/Rask.Core/Resources/rask-events.js";
 import "../../../src/Rask.Core/Resources/rask-dom.js";
-import {answered, drive, keepsOpen} from "../../../src/Rask.Core/Resources/rask-owned.js";
+import {answered, awaiting, drive, keepsOpen} from "../../../src/Rask.Core/Resources/rask-owned.js";
 
 const OPEN = "data-rask-popover-open";
 let seq = 0;
@@ -151,7 +151,76 @@ const runtimeClose = taken();
 listeners.close({type: "close", target: dialog});
 const readerClose = taken();
 
+// ----- The server's last word, carried out in the end (rask-owned.ts, `converges`) -----
+// Whatever the scenarios above left behind is swept first, so each below starts from a page that agrees.
+frame();
+taken();
+
+// The page shut the list while the browser was mid-transition: hidePopover() threw and the attribute never changes
+// again. The next frame carries the "false" out — and the page is told nothing of it.
+list = listbox();
+list.rendered(OPEN, "true");
+list.raise();
+list.refusesNext = true;
+list.rendered(OPEN, "false");
+const leftOpenByTheThrow = list.open;
+frame();
+list.raise();
+const thrown = {leftOpenByTheThrow, shut: !list.open, sent: taken()};
+
+// The same throw, with nothing rendered after it: the page stops waiting on an answer, and the sweep that follows
+// shuts the list.
+list = listbox();
+list.rendered(OPEN, "true");
+list.raise();
+frame();
+const answering = awaiting();
+list.refusesNext = true;
+list.rendered(OPEN, "false");
+list.refusesNext = true;
+frame(); // the observer's own sweep finds it in transition again
+const stillOpen = list.open;
+answering();
+frame();
+const quiet = {stillOpen, shut: !list.open};
+list.raise();
+taken();
+
+// The reader shut a list the page shows and the page was never told (no handler hears its toggle): theirs. No
+// sweep opens it again until a render changes its mind.
+const untoldList = new StubPopover({[OPEN]: "true", popover: ""});
+untoldList.rendered(OPEN, "true");
+untoldList.raise();
+untoldList.hidePopover();
+untoldList.raise();
+frame();
+const done = awaiting();
+done();
+frame();
+const untoldStaysShut = !untoldList.open;
+untoldList.rendered(OPEN, "false");
+untoldList.rendered(OPEN, "true");
+const reopenedByTheNextRender = untoldList.open;
+untoldList.raise();
+const untold = {untoldStaysShut, reopenedByTheNextRender, sent: taken()};
+
+// The reader shut a list, the page heard it, and its answer still says open: the server's word wins.
+list = listbox();
+list.rendered(OPEN, "true");
+list.raise();
+list.hidePopover();
+list.raise();
+const shutWhileUnanswered = !list.open;
+answered(1);
+frame();
+const heardAndKept = {shutWhileUnanswered, open: list.open, sent: taken()};
+list.raise();
+
 report({
+    thrown,
+    quiet,
+    untold,
+    heardAndKept,
     reported,
     stale,
     answer,
