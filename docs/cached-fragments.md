@@ -14,6 +14,8 @@ The first request mounts `SalesSummary`, waits for its data as any first `GET` d
 Every request after that, for ten minutes, is handed the markup — `SalesSummary` is never mounted, so its query never
 runs.
 
+<!-- demo:cached-report -->
+
 ## What it varies by
 
 A fragment is stored under its name plus everything it varies by. Three things are **always** in the key:

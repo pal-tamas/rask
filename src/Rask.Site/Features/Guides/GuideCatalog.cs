@@ -275,6 +275,11 @@ public static class GuideCatalog
             SearchTitle = "Component lifecycle hooks in C#",
             Description = "The lifecycle hooks a component can override, their order and sync vs async rules, plus disposal, cancellation tied to component lifetime and hosted services.",
         },
+        new("cached-fragments", "Cached fragments", "A region's markup drawn once and served to later requests.", "Frontend")
+        {
+            SearchTitle = "Cache a rendered page region across requests in C#",
+            Description = "Keep the markup of an expensive part of a page — a dashboard, a long option list — and serve it to later requests, keyed per tenant, user and culture.",
+        },
         new("render-modes", "Live pages", "Every page live: WebSocket or HTTP fallback, waiting for async data, status codes, redirects.", "Frontend")
         {
             SearchTitle = "Live server-rendered pages without hydration in C#",
