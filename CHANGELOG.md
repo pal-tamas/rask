@@ -26,6 +26,24 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
+  slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
+  one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost
+  for good — eszaf's distribution modal stayed open after the server had closed it and toasted, and pressing "run"
+  again did nothing because the page already said closed. After: once the page has its answers, after any render
+  that touches those attributes, and when the tab comes back, one shared sweep (rask-owned.ts, `converges`) brings
+  every such dialog and popover back to the server's last word. What the reader opened or shut is still theirs
+  while the page has yet to answer, and when nothing tells the page at all: a local gesture still sends nothing.
+  A reader's close the page heard and answered with "still open" now opens it again — set the field in
+  `OnClose` / `OnToggle`, as the docs always said.
+- **`rask deploy` no longer fills the box's disk.** Before: every deploy left the image it replaced as `:previous`
+  and the one before that untagged, with its build cache, and nothing removed them — a shared VPS running two apps
+  reached 350 GB of 368 GB (255 images, 1401 build-cache entries, 288.7 GB). After: a deploy that serves runs
+  `docker image prune -f` (dangling only — never `-a`, so every `:current`/`:previous` and rollback stay) and
+  `docker builder prune -af --reserved-space 20GB` (there `-a` removes no image, and without it the shared cache
+  records — 199.7 of 221 GB on that box — are never pruned) under the box's deploy lock, and says what they freed; a failing
+  prune only warns. Before it builds it refuses a box with under 3 GiB free (warns under 10 GiB) and prints what
+  to run, and `rask deploy status` shows the free and reclaimable space.
 - **The keyboard ring reaches the controls it missed, and nothing cuts it.** Before: a typed date's month, day and
   year hung their ring a pixel outside the row of parts that clips them; a `Ui.Input` file field drew nothing (its
   input is hidden, and "Choose file" was not told); a browser date field lost its ring on its calendar button; and
@@ -113,6 +131,18 @@ them until tagged releases begin.
   docs/data.md#postgresql). The hold ends with Npgsql's stable provider: Dependabot raises it (the pin is in
   Directory.Packages.props, not ignored), and `PostgresHoldTests` fails that pull request until the suffix, the
   NoWarns and `PostgresLoader` go and `Rask.Server` references `Rask.Postgres` again.
+- **A refused submit takes the reader to the first mistake, on both hosts.** Before: the rules failing, or a save
+  throwing field failures, drew the messages and left focus on the Save button — a keyboard or screen-reader user had
+  to hunt for what was wrong, on a tab `Ui.FormTabs` had just switched to. After: focus moves to the first field marked
+  `aria-invalid="true"` (in document order, on screen, inside a kit control's wrapper if the mark is there) and it is
+  scrolled into view — after the refused tab is shown — unless the reader moved focus elsewhere while the submit was
+  in flight. The form renders its refusal count (`data-rask-refused`) so the runtime tells a refusal from a save.
+- **A WebAssembly navigation is focused and announced as a Server one is, and the progress bar waits 150 ms in the
+  app's accent.** Before: on WASM a link left focus on the link that was gone and said nothing to a screen reader, and
+  the Server host's top bar waited 300 ms and was always purple. After: one runtime module serves both hosts — focus
+  moves into the new page's `<main>` (or its `<h1>`, or the `#fragment`'s element), the new `<title>` is announced in a
+  polite live region (Back and Forward included), and the bar shows only for an answer slower than 150 ms (Livewire's
+  value), drawn in `--color-accent` with Rask's purple as the fallback, and still for `prefers-reduced-motion`.
 - **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
   a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:
   ArrowDown on a ⋯ that has a `Ui.Tooltip` (every `Ui.RowActions` has one) did nothing. Focus from the keyboard shows

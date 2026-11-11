@@ -9,9 +9,10 @@
 //     on Flux UI's popover, which closes.
 //   * A DIALOG A RENDER OPENS (data-rask-modal-open). A render can only write attributes, and `open` on a
 //     <dialog> shows it non-modally: no top layer, no ::backdrop, no inert page. So the dialog says
-//     data-rask-modal-open="true" | "false" and this calls showModal() / close() to match — on a CHANGE only,
-//     so a reader who closes it with Escape while the page still says "true" is not fought; the page hears
-//     the close event and catches up.
+//     data-rask-modal-open="true" | "false" and this calls showModal() / close() to match when it changes, and
+//     again whenever the page has its answers and the dialog still shows something else (rask-owned.ts,
+//     `converges`). A reader who closes it with Escape is not fought while the page has yet to hear of it, nor
+//     when nothing tells the page; one it heard and still answers "true" is opened again.
 //   * HOW A MODAL IS DISMISSED (data-rask-modal). `closedby` covers three of the four combinations of
 //     "Escape closes" and "a press outside closes" and is missing from some engines; the fourth — outside
 //     yes, Escape no — it cannot say at all. data-rask-modal="any | press | escape | none" says all four.
@@ -25,7 +26,7 @@
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
 
-import {disown, drive, isShown, listen, near, own, page, setShown, stands} from "./rask-owned.js";
+import {converges, disown, drive, isShown, listen, near, own, page, setShown, stands, sweepSoon, untold} from "./rask-owned.js";
 
 type Dialog = HTMLDialogElement & { requestClose?: (value?: string) => void; closedBy?: string };
 
@@ -203,17 +204,21 @@ function showModal(dialog: Dialog): void {
         if (!dialog.open) {
             dialog.showModal();
         }
-        mark(dialog, true);
+        mark(dialog, dialog.open);
     } catch (e) {
         // not connected, or it is an open popover
     }
 }
 
 function close(dialog: Dialog): void {
-    if (dialog.open) {
-        dialog.close();
+    try {
+        if (dialog.open) {
+            dialog.close();
+        }
+    } catch (e) {
+        // the browser would not close it now: the next sweep tries again (rask-owned.ts, `converges`)
     }
-    mark(dialog, false);
+    mark(dialog, dialog.open);
 }
 
 // Closes the way the reader asked: a cancel the page may refuse, then the close. Flux's modal fires `cancel`
@@ -235,11 +240,26 @@ function reconcile(el: Element): void {
     if (want === "true") {
         opened.add(el);
         drive(el, function () { showModal(el); });
-    } else if (opened.has(el)) {
-        // "false", or the render stopped saying anything: either way it no longer wants it open.
+    } else if (opened.has(el) || (want === "false" && el.open)) {
+        // "false", or the render stopped saying anything: either way it no longer wants it open. Open while the page
+        // says "false" is open against the server's word however it came about — a "true" this hook never saw
+        // carried out, or a dialog shown again some other way.
         opened.delete(el);
         drive(el, function () { close(el); });
     }
+}
+
+// Whether a dialog shows what its page last said: open and modal for "true", closed for anything else.
+function matches(dialog: HTMLDialogElement): boolean {
+    return dialog.getAttribute(MODAL_OPEN) === "true" ? dialog.open && dialog.matches(":modal") : !dialog.open;
+}
+
+// The page's last word on every dialog it opens and closes, carried out again (rask-owned.ts, `converges`): a
+// dialog that already matches is left as it is, and one the reader closed without the page hearing stays closed.
+function sweep(doc: Document): void {
+    doc.querySelectorAll<HTMLDialogElement>("dialog[" + MODAL_OPEN + "]").forEach(function (el) {
+        if (!untold(el) && !matches(el)) reconcile(el);
+    });
 }
 
 function scan(root: Element): void {
@@ -264,8 +284,10 @@ function installModal(doc: Document): void {
                     if (n instanceof Element) scan(n);
                 });
             }
+            sweepSoon();
         }).observe(doc.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: [MODAL_OPEN]});
         scan(doc.documentElement);
+        converges(function () { sweep(doc); });
     }
 
     // data-open follows the dialog, however it was opened or closed. `toggle` on a dialog is recent, so

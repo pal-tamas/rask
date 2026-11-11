@@ -697,6 +697,15 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133057
+# 2026-11-11, a WebAssembly navigation focused and announced as a Server one is, the top bar at 150 ms in the app's
+# accent, and a refused submit focusing its first invalid field — one shared module each (rask-route-focus.ts,
+# rask-progress.ts, rask-first-invalid.ts), which both runtimes import where the Server host had its own copy and the
+# WASM host had none: rask.js 114,364 -> 116,014 (+1,650), rask.wasm.js 99,729 -> 103,416 (+3,687), rask-hooks.js
+# unchanged at 133,057. Measured locally on the merged tree with the bundle gate's own command (client-bundle-size).
+bundle,bytes
+rask.js,116014
+rask.wasm.js,103416
+rask-hooks.js,133057
 # 2026-11-11, a finger's tap leaves its tooltip shown however many frames pass before it lifts (rask-hover.ts: a tap
 # is a finger lifted within TAP_MS, measured from its pointerdown to its pointerup, in place of the one-frame flag):
 # rask-hooks.js 133,057 -> 133,170 (+113); rask.js and rask.wasm.js unchanged. Measured locally with the bundle
@@ -727,3 +736,17 @@ bundle,bytes
 rask.js,114377
 rask.wasm.js,99742
 rask-hooks.js,133810
+# 2026-11-11, the focused-and-announced WASM navigation, progress bar and first-invalid field (+1,650 / +3,687, above)
+# merged with the keyboard focus reveal (+13 each, rask-hooks.js +407): measured locally on the merged tree with the
+# bundle gate's own command — rask.js 116,027, rask.wasm.js 103,429, rask-hooks.js 133,810.
+bundle,bytes
+rask.js,116027
+rask.wasm.js,103429
+rask-hooks.js,133810
+# 2026-11-11, the sweep that carries out the server's last word on every modal and popover it opens (rask-owned.ts,
+# `converges`; eszaf's modal that stayed open): measured locally on the tree merged with main, with the bundle gate's
+# own command — rask.js 116,027 -> 116,692, rask.wasm.js 103,429 -> 104,091, rask-hooks.js 133,810 -> 134,544.
+bundle,bytes
+rask.js,116692
+rask.wasm.js,104091
+rask-hooks.js,134544

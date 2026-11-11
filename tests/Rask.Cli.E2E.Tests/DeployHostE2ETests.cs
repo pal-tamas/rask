@@ -377,6 +377,36 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Equal("VERSION-TWO", await ServedBodyAsync("opsapp"));
     }
 
+    /// <summary>
+    /// Each deploy leaves the image two versions back untagged; the clean-up after a deploy removes it, and with a real
+    /// daemon behind it proves what no mock can: <c>image prune</c> keeps every tagged image, so the rollback image
+    /// survives three deploys and the rollback still serves it.
+    /// </summary>
+    [Fact]
+    public async Task Three_deploys_leave_no_untagged_image_and_rollback_still_has_its_image()
+    {
+        var project = Start(out var console, out var command);
+        string[] args = ["--host", host.Host, "--domain", "rask-prune.test", "--app", "pruneapp"];
+
+        foreach (var version in new[] { "VERSION-ONE", "VERSION-TWO", "VERSION-THREE" })
+        {
+            File.WriteAllText(Path.Combine(project, "Dockerfile"), AppWithMarker(version));
+            Assert.True(await command.ExecuteAsync(args, CancellationToken.None) == 0, $"{version} deploy failed.\n{console.OutText}\n{console.ErrorText}");
+        }
+
+        Assert.Contains("Cleaning up old images and build cache", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("Reclaimed ", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Cleaning up failed", console.ErrorText, StringComparison.Ordinal);
+        var (_, dangling) = await host.DockerAsync("images", "--filter", "dangling=true", "--format", "{{.ID}}");
+        Assert.Equal(string.Empty, dangling.Trim());
+        var (tagsExit, tags) = await host.DockerAsync("image", "inspect", "--format", "{{.Id}}", "pruneapp:current", "pruneapp:previous");
+        Assert.True(tagsExit == 0, $"a tag the rollback needs is gone: {tags}");
+        var back = new StringConsole();
+        var exit = await Command(project, back).ExecuteAsync(["rollback", "--host", host.Host, "--app", "pruneapp"], CancellationToken.None);
+        Assert.True(exit == 0, $"rollback failed.\n{back.OutText}\n{back.ErrorText}");
+        Assert.Equal("VERSION-TWO", await ServedBodyAsync("pruneapp"));
+    }
+
     [Fact]
     public async Task Rollback_refuses_when_there_is_no_previous_image()
     {

@@ -930,7 +930,12 @@ is** rather than as `.rask/deploy.json` remembers it. They need a host (from the
 nothing else — no Dockerfile, no build.
 
 `status` lists every Rask-managed app sharing the box, with its URL or published port, its blue/green
-colour, and how long it has been up — and tells you whether a rollback is currently possible.
+colour, and how long it has been up — and tells you whether a rollback is currently possible, how much
+disk the box has free, and what `docker system df` says could be reclaimed.
+
+Every deploy that serves then removes the images earlier deploys left untagged (`docker image prune -f`,
+never `-a`, so `:previous` stays) and trims the build cache to 20 GB (`docker builder prune -af`, where `-a` removes no image), under the box's deploy lock; a box with
+under 3 GiB free is refused before the build. See [The box's disk](deployment.md#the-boxs-disk).
 
 `rollback` exists for the failure the blue-green swap can't catch. That swap protects you from a release
 that *fails* — one that won't start, or won't answer its health check. It can do nothing about a release

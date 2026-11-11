@@ -22,7 +22,7 @@ import {
     reviveScript,
 } from "./rask-morph.js";
 import {_relevantNodeTypes, invisibleToFrameWalk, isElement, relevantChild, resolvePath} from "./rask-dom-path.js";
-import {drive, keepsOpen, stands, unasked} from "./rask-owned.js";
+import {converges, drive, keepsOpen, stands, sweepSoon, unasked, untold} from "./rask-owned.js";
 import {noteAttributeSet} from "./rask-submitting.js";
 import {beginPatch, endPatch, serverWrote} from "./rask-written.js";
 
@@ -865,9 +865,10 @@ export function applyFrameInvokes(
 // ----- Controlled popovers (data-rask-popover-open) ----------------------
 // C# cannot call showPopover(), and a render can only write attributes. So a [popover] that carries
 // data-rask-popover-open="true" | "false" is shown or hidden to match, whenever the attribute changes or the
-// element arrives. Only on a CHANGE: a reader who closes the popover with Escape while the page still says
-// "true" is not fought — the page hears the toggle event and updates, or it does not, and either way the next
-// time it changes its mind is the next time this acts. Rask UI's controlled Ui.Dropdown is built on it.
+// element arrives, and swept back to it once the page has its answers (rask-owned.ts, `converges`): a show or
+// hide the browser declined mid-transition is not lost. A reader who closes the popover with Escape is not
+// fought while the page has yet to answer, nor when nothing tells the page; one the page heard and still
+// answers "true" is shown again. Rask UI's controlled Ui.Dropdown is built on it.
 //
 // A change is not carried out while the reader's own toggle of that popover is still unanswered: the render
 // that brings it is older than what the reader did (rask-owned.ts, "the reader's last word").
@@ -911,10 +912,19 @@ export function applyFrameInvokes(
                 if (isElement(n)) scan(n);
             });
         }
+        sweepSoon();
     }).observe(document.documentElement, {
         subtree: true, childList: true, attributes: true, attributeFilter: ["data-rask-popover-open"]
     });
     scan(document.documentElement);
+
+    // The page's last word on every popover it shows and hides, carried out again (rask-owned.ts, `converges`).
+    // reconcile() leaves one that already matches as it is; one the reader moved without the page hearing is theirs.
+    converges(function () {
+        document.querySelectorAll("[data-rask-popover-open]").forEach(function (el) {
+            if (!untold(el)) reconcile(el);
+        });
+    });
 })();
 
 // ----- Labels that are buttons (label[role="button"]) ---------------------

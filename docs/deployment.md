@@ -257,6 +257,51 @@ and so do its names. A deploy that asks for a name another app's file still hold
 starts, naming the file; if that app is gone for good, remove it:
 `docker -H ssh://<host> exec rask-caddy rm /data/rask/sites/<app>.caddy`.
 
+### The box's disk
+
+Every deploy moves `<app>:current` to `<app>:previous` and builds a new `:current`, so the image that was
+`:previous` loses its last tag. It is left behind *dangling*, and the build cache it was made from stays
+with it. Nothing used to remove them: a box deploying two apps a few times a day filled a 368 GB disk.
+
+**Once a deploy serves** — its health gate passed, and with `--domain` the check through the proxy too —
+it cleans up, under the box's deploy lock (so never while another app's deploy is switching the proxy),
+and says what it freed:
+
+```bash
+docker -H ssh://<host> image prune -f                          # dangling images only
+docker -H ssh://<host> builder prune -af --reserved-space 20GB # build cache, least recently used first
+```
+
+```
+Cleaning up old images and build cache on box…
+  Reclaimed 1.2GB of old images and 14.6GB of build cache. Now 84.3 GB free of 395 GB on / (61.8 GB freed).
+```
+
+The last number is the disk's own (`df` before and after): with the containerd image store, `image prune`
+counts only the image records it removes, not the layers it lets go.
+
+`image prune` without `-a` removes only images no tag names and no container uses, so every app's `:current`,
+`:latest` and `:previous` stay — `rask deploy rollback` always has its image. **Never run `image prune -a` on a
+deploy box**: it deletes every `:previous`.
+
+On `builder prune` it is the other way round: `-a` is **required, and safe**. `builder prune` acts on the build
+cache only and never removes an image, tagged or not; without `-a` it skips every cache record an image shares,
+which is nearly all of it. On a real box (BuildKit v0.34, containerd image store) `--keep-storage 20GB` alone left
+221 GB, 199.7 GB of it shared, and `--filter until=72h` alone freed nothing; with `-a` the same cleanup freed
+138.5 GB. The cache is trimmed to 20 GB, counting every record under `-a`, keeping what was used last — what the
+next builds reuse — and BuildKit never removes cache a running build is using. A size bound rather than an age
+filter, because an age filter does not bound a box that deploys often. (`--reserved-space` is what buildx v0.17+
+calls `--keep-storage`; a docker client that doesn't know it is asked with the old name.) A deploy that fails
+prunes nothing. If the lock stays busy for a minute the clean-up is skipped and the next deploy does it; a prune
+that fails or stalls (each has four minutes, so both end inside the lock's ten-minute lease) is a warning, never
+a failed deploy.
+
+**Before it builds**, a deploy reads the free space where Docker keeps images (`docker info`'s root and
+`/var/lib/containerd`, the tighter of the two) over SSH. Below 3 GiB it stops before anything moves — a full
+disk also stops every app on the box from writing its database — and prints the two commands above; below
+10 GiB (or a fifth of a smaller disk) it warns and goes on. `rask deploy status` shows the free space and what
+`docker system df` says could be reclaimed.
+
 ### Deploying from GitHub Actions
 
 ```bash

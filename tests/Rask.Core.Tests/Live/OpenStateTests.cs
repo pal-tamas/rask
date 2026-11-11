@@ -115,4 +115,51 @@ public sealed class OpenStateTests
         Assert.Equal(["close"], Sent(dialog, "runtimeClose"));
         Assert.Equal(["close"], Sent(dialog, "readerClose"));
     }
+
+    [Fact]
+    public void A_close_the_browser_threw_at_is_carried_out_on_the_next_frame_and_tells_the_page_nothing()
+    {
+        var root = Run();
+
+        var thrown = root.GetProperty("thrown");
+
+        Assert.True(thrown.GetProperty("leftOpenByTheThrow").GetBoolean());
+        Assert.True(thrown.GetProperty("shut").GetBoolean());
+        Assert.Empty(Sent(thrown));
+    }
+
+    [Fact]
+    public void A_close_still_not_carried_out_is_carried_out_once_the_page_stops_waiting()
+    {
+        var root = Run();
+
+        var quiet = root.GetProperty("quiet");
+
+        Assert.True(quiet.GetProperty("stillOpen").GetBoolean());
+        Assert.True(quiet.GetProperty("shut").GetBoolean());
+    }
+
+    [Fact]
+    public void What_the_reader_shut_without_the_page_hearing_stays_shut_until_a_render_changes_its_mind()
+    {
+        var root = Run();
+
+        var untold = root.GetProperty("untold");
+
+        Assert.True(untold.GetProperty("untoldStaysShut").GetBoolean());
+        Assert.True(untold.GetProperty("reopenedByTheNextRender").GetBoolean());
+        Assert.Empty(Sent(untold));
+    }
+
+    [Fact]
+    public void A_close_the_page_heard_and_answered_with_open_is_opened_again_by_the_servers_word()
+    {
+        var root = Run();
+
+        var kept = root.GetProperty("heardAndKept");
+
+        Assert.True(kept.GetProperty("shutWhileUnanswered").GetBoolean());
+        Assert.True(kept.GetProperty("open").GetBoolean());
+        Assert.Equal(["toggle:closed"], Sent(kept));
+    }
 }

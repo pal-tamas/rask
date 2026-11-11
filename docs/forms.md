@@ -852,6 +852,12 @@ Form.Model(m).OnSubmit(Save)[
 
 See [form tabs in the UI kit](ui-kit.md#a-long-forms-tabs).
 
+**Focus goes to the first mistake.** After every refused submit — the rules failed, or the save threw field
+failures — focus moves to the first field marked invalid, in document order, and it is scrolled into view; inside
+`Ui.FormTabs`, once the tab holding it is shown. A submit that went through moves nothing, and a reader who moved
+focus elsewhere while the save was in flight is left there. Both hosts, nothing to wire — see
+[accessibility](accessibility.md#a-refused-submit-takes-the-reader-to-the-first-mistake).
+
 ### Controls at a glance
 
 Every input works in two shapes — **controlled** (`Value` + `OnChange`, the parent owns the value) and

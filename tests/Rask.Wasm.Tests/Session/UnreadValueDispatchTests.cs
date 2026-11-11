@@ -9,7 +9,8 @@ using Rask.Wasm.Tests.Infrastructure;
 namespace Rask.Wasm.Tests.Session;
 
 // The browser host's half of an edit form whose field received text its type cannot hold: the stored value is
-// not saved in its place. The field says what it could not read and the submit handler does not run.
+// not saved in its place. The field says what it could not read and the submit handler does not run; the reply to
+// the refused submit moves only the form's refusal count (data-rask-refused).
 [Collection("WasmSession")]
 public class UnreadValueDispatchTests() : ResettingTestBase(LiveDiffMode.DisabledFull)
 {
@@ -24,12 +25,15 @@ public class UnreadValueDispatchTests() : ResettingTestBase(LiveDiffMode.Disable
         var submit = MarkupAssert.RequireAttr(initial, "data-rask-on-submit");
 
         var said = Html(await session.DispatchAsync(Frame(new { id = change, type = "change", value = typed })));
-        var afterSubmit = await session.DispatchAsync(Frame(new { id = submit, type = "submit", form = new { } }));
+        var afterSubmit = Html(await session.DispatchAsync(Frame(new { id = submit, type = "submit", form = new { } })));
 
         Assert.Contains($"<p class=\"said\">{sentence}</p>", said, StringComparison.Ordinal);
         Assert.Contains("saved=none;stored=6500;", said, StringComparison.Ordinal);
-        // A refused submit leaves the page as the value's own frame drew it: the reply carries nothing to draw.
-        Assert.Empty(afterSubmit);
+        // A refused submit's reply moves only the form's refusal count, which takes the reader to the field
+        // (rask-first-invalid.ts): the handler did not run and the field still says what it could not read.
+        Assert.Contains("data-rask-refused=\"1\"", afterSubmit, StringComparison.Ordinal);
+        Assert.Contains("saved=none;stored=6500;", afterSubmit, StringComparison.Ordinal);
+        Assert.Contains($"<p class=\"said\">{sentence}</p>", afterSubmit, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -41,11 +45,12 @@ public class UnreadValueDispatchTests() : ResettingTestBase(LiveDiffMode.Disable
         var submit = MarkupAssert.RequireAttr(initial, "data-rask-on-submit");
 
         var said = Html(await session.DispatchAsync(Frame(new { id = change, type = "change", value = "", bad = "number" })));
-        var afterSubmit = await session.DispatchAsync(Frame(new { id = submit, type = "submit", form = new { } }));
+        var afterSubmit = Html(await session.DispatchAsync(Frame(new { id = submit, type = "submit", form = new { } })));
 
         Assert.Contains("<p class=\"said\">Enter a whole number.</p>", said, StringComparison.Ordinal);
         Assert.Contains("saved=none;stored=6500;", said, StringComparison.Ordinal);
-        Assert.Empty(afterSubmit);
+        Assert.Contains("data-rask-refused=\"1\"", afterSubmit, StringComparison.Ordinal);
+        Assert.Contains("saved=none;stored=6500;", afterSubmit, StringComparison.Ordinal);
     }
 
     private static byte[] Frame(object frame) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(frame));

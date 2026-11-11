@@ -16,6 +16,9 @@ const doc = page.document as Record<string, unknown>;
 doc.documentElement = new StubField({});
 doc.querySelector = function () { return null; };
 (doc.documentElement as unknown as Record<string, unknown>).querySelectorAll = function () { return []; };
+// The busy mark a wait puts on <html> (rask-owned.ts, `awaiting`).
+(doc.documentElement as unknown as Record<string, unknown>).setAttribute = function () {};
+page.queueMicrotask ??= function (run: () => void) { run(); };
 page.addEventListener = function () {};
 page.MutationObserver = class {
     constructor(private readonly heard: Heard) {
@@ -26,14 +29,26 @@ page.MutationObserver = class {
     }
 };
 
+// Every popover made so far, for the runtime's sweeps to find by attribute (`document.querySelectorAll`).
+const made: StubPopover[] = [];
+const earlierQuery = doc.querySelectorAll as (selector: string) => unknown[];
+doc.querySelectorAll = function (selector: string) {
+    const named = selector.match(/^\[([\w-]+)]$/);
+    return named ? made.filter((popover) => popover.hasAttribute(named[1])) : earlierQuery(selector);
+};
+
 /** A popover, a dialog or a details as the runtime reads one. */
 export class StubPopover extends StubField {
     private shown = false;
     private from: string | null = null;
 
+    /** The next show or hide throws, as the browser's does on a popover in the middle of a transition. */
+    refusesNext = false;
+
     constructor(private readonly marks: Record<string, string>, tagName = "DIV") {
         super(marks);
         this.tagName = tagName;
+        made.push(this);
     }
 
     get open(): boolean {
@@ -59,6 +74,10 @@ export class StubPopover extends StubField {
     private set(open: boolean): void {
         if (this.shown === open) {
             return;
+        }
+        if (this.refusesNext) {
+            this.refusesNext = false;
+            throw new Error("InvalidStateError");
         }
         const states = {oldState: open ? "closed" : "open", newState: open ? "open" : "closed"};
         listeners.beforetoggle({type: "beforetoggle", target: this, ...states});

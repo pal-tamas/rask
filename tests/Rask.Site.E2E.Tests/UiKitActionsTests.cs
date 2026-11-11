@@ -817,6 +817,35 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(log).ToContainTextAsync("deleted the order", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
     });
 
+    // The browser once not carrying out what the page said (BrowserRefuses) — the open, or the close a handler made —
+    // and the page still ends up showing the page's last word: a modal the page closed stayed open in production.
+    [Theory]
+    [InlineData(1280)]
+    [InlineData(390)]
+    public Task The_state_driven_modal_shows_the_pages_last_word_when_the_browser_once_did_not_carry_it_out(int width) => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(width, 800);
+        await OpenUiPageAsync("modal", "Modal");
+        await BrowserRefuses.InstallAsync(Page);
+
+        var scope = Page.Locator("[data-testid='ui-modal-state']");
+        var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
+        var dialog = scope.Locator("dialog");
+
+        for (var run = 0; run < 5; run++)
+        {
+            await BrowserRefuses.NextAsync(Page, "showModal");
+            await opener.ClickAsync();
+            await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+            Assert.True(await dialog.EvaluateAsync<bool>("d => d.matches(':modal')"), "the dialog opened, but not as a modal");
+
+            await BrowserRefuses.NextAsync(Page, "close");
+            await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete", Exact = true }).ClickAsync();
+            await Expect(dialog).ToHaveAttributeAsync("data-rask-modal-open", "false");
+            await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        }
+    });
+
     [Fact]
     public Task The_state_driven_modal_closes_on_a_click_outside_and_from_a_modal_close() => RunAsync(async () =>
     {

@@ -52,6 +52,12 @@ interface Seam {
     holds?: number;
     /** Whether a microtask to take the busy mark off is already queued. */
     clearing?: boolean;
+    /** What each hook that carries out a server-owned open state runs to bring the page back to it (`converges`). */
+    sweeps?: (() => void)[];
+    /** Whether a sweep is already waiting for the next frame. */
+    sweeping?: boolean;
+    /** What the reader opened or shut without the page being told: theirs until a render changes its mind. */
+    untold?: WeakSet<Element>;
 }
 
 /**
@@ -86,6 +92,8 @@ seam.waiting ||= new Set<Element>();
 seam.ours ||= new WeakMap<Element, Ours>();
 seam.told ||= new WeakMap<Element, string>();
 seam.quiet ||= [];
+seam.sweeps ||= [];
+seam.untold ||= new WeakSet<Element>();
 
 const owned = seam.owned;
 
@@ -398,9 +406,12 @@ function isOpen(el: Element): boolean {
 function release(el: Element, word: Word): void {
     seam.said.delete(el);
     seam.waiting.delete(el);
+    // What the reader did and the page never heard stays theirs; what it heard, it has answered (`converges`).
+    if (word.told) seam.untold!.delete(el); else seam.untold!.add(el);
     if (word.late) {
         word.late(el);
     }
+    sweepSoon();
 }
 
 /**
@@ -488,6 +499,7 @@ function expect(el: Element, before: boolean, after: boolean): void {
 /** Runs `act`, the runtime opening or shutting `el` to match a render. */
 export function drive(el: Element, act: () => void): void {
     const before = isOpen(el);
+    seam.untold!.delete(el);
     seam.acting = el;
     try {
         act();
@@ -537,4 +549,70 @@ export function keepsOpen(el: Element, name: string, open: boolean): boolean {
 function setDetails(details: Element, open: boolean): void {
     expect(details, details.hasAttribute("open"), open);
     if (open) details.setAttribute("open", ""); else details.removeAttribute("open");
+}
+
+// ----- The server's word, carried out in the end --------------------------------------------------------
+//
+// A hook that carries out an open state the page renders (data-rask-modal-open, data-rask-popover-open) acts
+// when the attribute CHANGES. That is one chance, and a slow line or a slow processor is enough to lose it: a
+// change refused while the reader's word stood, a showModal() or hidePopover() the browser threw at mid-transition,
+// a dialog the morph moved out of the top layer, a tab in the background when the render landed. Each left the
+// browser showing what the server had already taken away — a modal the server closed stayed open, its "run"
+// button now pressing on a page that no longer had it open (eszaf, 2026-11-11).
+//
+// So every such hook also hands over a SWEEP: a pass over its elements that brings each one's live state to what
+// its attribute says, and leaves alone one that already matches. The sweeps run a frame after the page stops
+// waiting on anything (`whenQuiet`: the server's answer to everything sent is on the page), a frame after any
+// reader's word is let go, and when the tab comes back into view. Whatever happened in between, the page
+// converges on the server's last word.
+//
+// Two things a sweep never undoes. The reader's word while it stands — `stands` refuses it, as it refuses a
+// render. And what the reader opened or shut where the page was never told (`untold`: no handler heard it):
+// no render has spoken since, so there is nothing newer than the reader's hand to carry out. A purely local
+// gesture is therefore still the reader's, and still sends nothing.
+
+/** Whether the reader opened or shut `el` and nothing told the page: a sweep leaves its state to them. */
+export function untold(el: Element): boolean {
+    return seam.untold!.has(el);
+}
+
+function sweepAll(): void {
+    seam.sweeping = false;
+    for (const sweep of seam.sweeps!) {
+        try {
+            sweep();
+        } catch (e) {
+            // one hook failing must not cost the others their pass
+        }
+    }
+}
+
+/** Runs every sweep on the next frame, once however often it is asked for before then. */
+export function sweepSoon(): void {
+    if (seam.sweeping || !seam.sweeps!.length) {
+        return;
+    }
+    seam.sweeping = true;
+    if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(sweepAll);
+    } else {
+        setTimeout(sweepAll, 0);
+    }
+}
+
+let sweepsWired = false;
+
+/** Hands the runtime a pass that brings the elements one hook carries out back to what their render says. */
+export function converges(sweep: () => void): void {
+    seam.sweeps!.push(sweep);
+    if (sweepsWired) {
+        return;
+    }
+    sweepsWired = true;
+    whenQuiet(sweepSoon);
+    if (page) {
+        page.addEventListener("visibilitychange", function () {
+            if (page!.visibilityState === "visible") sweepSoon();
+        });
+    }
 }

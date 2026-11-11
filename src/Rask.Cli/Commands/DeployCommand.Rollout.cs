@@ -195,6 +195,12 @@ internal sealed partial class DeployCommand
     {
         var (host, slug, env) = (plan.Host, plan.Slug, plan.Env);
 
+        // Before anything moves — even the tags below — so a box too full to build on is left exactly as it was.
+        if (!await HasRoomToBuildAsync(host, cancellationToken).ConfigureAwait(false))
+        {
+            return 1;
+        }
+
         // Move the live image aside before the build takes its tag, so the version being replaced stays
         // recoverable by `rask deploy rollback`. It fails harmlessly on a first deploy (no :current yet).
         await Run(BuildRetagArguments(host, slug, CurrentTag, PreviousTag), cancellationToken).ConfigureAwait(false); // ignore-absent
@@ -227,9 +233,18 @@ internal sealed partial class DeployCommand
             return 1;
         }
 
-        return plan.Domain is null
+        var deployed = plan.Domain is null
             ? await DeployPortAsync(host, slug, plan.Port, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken).ConfigureAwait(false)
             : await DeployWithProxyAsync(host, slug, plan.Domain, plan.ContainerPort, env, plan.ProjectSetting, plan.EnvFile, plan.HealthEnabled, plan.HealthPath, cancellationToken, redirects: plan.Redirects, dns: plan.Dns, dnsEnvFile: plan.DnsEnvFile).ConfigureAwait(false);
+
+        // Only once the new version serves (its health gate, and in domain mode the check through the proxy, passed),
+        // still under this app's lock: what earlier deploys left behind goes. A failed deploy keeps everything.
+        if (deployed == 0)
+        {
+            await CleanUpHostAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        }
+
+        return deployed;
     }
 
     /// <summary>Build the image on the box, within the build's deadlines; when it doesn't build, say why. Nothing has moved yet.</summary>

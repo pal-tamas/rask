@@ -440,6 +440,16 @@ once the answer is on the page. And the toggle the runtime raises by opening or 
 is not sent back: `OnToggle` and `OnBeforeToggle` hear what the reader did, not the page's own change of mind.
 A dialog's `OnClose` hears every close, the page's own included.
 
+**And the server's word is carried out in the end.** Acting on a change of the attribute alone gives the runtime one
+chance, and a slow line or a slow processor can lose it: a close the browser declined mid-transition, a change
+refused while the reader's word stood, a tab out of view when the render landed. So a frame after the page stops
+waiting on any answer, a frame after any render that touches one of these attributes, and when the tab comes back
+into view, the runtime sweeps every popover and dialog carrying `data-rask-popover-open` / `data-rask-modal-open`
+back to what its attribute says. Two things a sweep leaves alone: one the reader's word still holds, and one the
+reader opened or shut where nothing told the page (no handler hears its `toggle` or `close`) — no render has
+spoken since, so it stays as the reader left it, and a purely local gesture still sends nothing. A reader's close
+the page DID hear and answered with "still open" is opened again: set the field in `OnClose` / `OnToggle`.
+
 | Attribute | On | What the runtime does |
 | --- | --- | --- |
 | *(none)* | any `popover` / `popover="auto"` | When focus leaves an open one for anything but its own `popovertarget` button it closes, and so it does when focus leaves that button for anything but the popover; when a press outside closed it and focus is on `<body>`, focus goes to that button. A `popover="manual"` is left alone. |

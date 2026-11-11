@@ -23,7 +23,9 @@ import {
     preloadNewHeadStylesheets,
     waitForUnappliedHeadCss,
 } from "../../Rask.Core/Resources/rask-scoped.js";
-import { focusArrived } from "../../Rask.Core/Resources/rask-autofocus.js";
+import { hideProgress, PROGRESS_DELAY_MS, showProgress } from "../../Rask.Core/Resources/rask-progress.js";
+import { backOrForward, installRouteAnnouncer, navigationShown } from "../../Rask.Core/Resources/rask-route-focus.js";
+import { submitAnswered, watchSubmit, type SubmitWatch } from "../../Rask.Core/Resources/rask-first-invalid.js";
 import { pollDevStatus, showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -1312,11 +1314,11 @@ import {
     // Slow-link pending-action indicator. A handler event (click/input/change/submit)
     // is tagged with a monotonic seq; the server replies {type:"ack",seq} once it has
     // processed the dispatch — crucially even when the render dedupes and ships no frame.
-    // If no ack lands within PENDING_LATENCY_MS we surface a thin top-of-viewport bar so
-    // a high-latency user sees that their action registered; it clears when the matching
+    // If no ack lands within PENDING_LATENCY_MS we surface a thin top-of-viewport bar (rask-progress.ts, shared
+    // with the WASM host) so a high-latency user sees that their action registered; it clears when the matching
     // (or any later) ack arrives. A hard timeout backstops a genuinely lost frame. This
     // is distinct from — and sits one z-index below — the full reconnect overlay above.
-    const PENDING_LATENCY_MS = 300;
+    const PENDING_LATENCY_MS = PROGRESS_DELAY_MS;
     const PENDING_HARD_TIMEOUT_MS = 10000;
     let seqCounter = 0;
     let outstandingSeq = 0;
@@ -1324,7 +1326,6 @@ import {
     let pendingTimer: ReturnType<typeof setTimeout> | null = null;
     let pendingHardTimer: ReturnType<typeof setTimeout> | null = null;
     let pendingVisible = false;
-    const pendingBar = installPendingBar();
 
     // Navigation reuses the same top progress bar as a handler round-trip, tracked separately so a slow
     // route render surfaces progress even though a `navigate` frame carries no handler seq/ack. The bar
@@ -1334,9 +1335,9 @@ import {
     let navAnswered: (() => void) | null = null;
     let navBarTimer: ReturnType<typeof setTimeout> | null = null;
     let navHardTimer: ReturnType<typeof setTimeout> | null = null;
-    // Polite live region that announces the new page on a forward navigation (keyboard/SR users get told
-    // the route changed; the visible bar alone is silent to assistive tech).
-    const routeAnnouncer = installRouteAnnouncer();
+    // Polite live region that announces the new page on a navigation (keyboard/SR users get told the route
+    // changed; the visible bar alone is silent to assistive tech). Shared with the WASM host (rask-route-focus.ts).
+    installRouteAnnouncer();
 
     function beginNav() {
         navInFlight = true;
@@ -1380,72 +1381,6 @@ import {
         }
 
         hidePendingBar();
-    }
-
-    function installRouteAnnouncer() {
-        const el = document.createElement("div");
-        el.setAttribute("data-rask-managed", "");
-        el.setAttribute("aria-live", "polite");
-        el.setAttribute("aria-atomic", "true");
-        el.className = "rask-route-announcer";
-        el.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;"
-            + "clip:rect(0 0 0 0);white-space:nowrap;border:0;";
-        document.documentElement.appendChild(el);
-        return el;
-    }
-
-    // Forward navigation committed: announce the new page (its <title>, morphed in) and move focus into
-    // the new page so keyboard/SR users continue from it rather than the now-removed link. `preferred` is
-    // the in-page anchor a fragment nav scrolled to (focus it), else the main content is used. A page that
-    // asks for focus itself (`autofocus`, rask-autofocus.ts) has it already: it is announced and left there.
-    function focusAndAnnounceRoute(preferred: HTMLElement | null, focused: boolean): void {
-        if (routeAnnouncer) {
-            routeAnnouncer.textContent = "";
-            const title = document.title || location.pathname;
-            // Defer so the reset registers before the new text (some SRs coalesce same-tick changes).
-            setTimeout(function () { routeAnnouncer.textContent = title; }, 50);
-        }
-
-        const target = preferred
-            || document.querySelector("main, [role=main]")
-            || document.querySelector("h1");
-        if (focused || !target) {
-            return;
-        }
-
-        // Make it programmatically focusable if it isn't already. Add the blur cleanup only AFTER a
-        // successful focus, and back the tabindex out if focus throws, so a detached target can't leak a
-        // client-injected tabindex + dangling listener onto server-owned DOM.
-        const addedTabindex = !target.hasAttribute("tabindex");
-        if (addedTabindex) {
-            target.setAttribute("tabindex", "-1");
-        }
-
-        try {
-            target.focus({preventScroll: true});
-            focused = true;
-        } catch {
-            try {
-                target.focus();
-                focused = true;
-            } catch {
-                // focus target vanished
-            }
-        }
-
-        if (!focused) {
-            if (addedTabindex) {
-                target.removeAttribute("tabindex");
-            }
-            return;
-        }
-
-        if (addedTabindex) {
-            target.addEventListener("blur", function onBlur() {
-                target.removeAttribute("tabindex");
-                target.removeEventListener("blur", onBlur);
-            });
-        }
     }
 
     function stampSeq(payload: Record<string, unknown>): Record<string, unknown> | undefined {
@@ -1508,12 +1443,20 @@ import {
     // the page, which is later than its ack when that render is still in the queue.
     const awaitedBySeq = new Map<number, () => void>();
 
+    // Each submit in flight, as it was pressed (rask-first-invalid.ts): looked at again once its render is on the page.
+    const submitBySeq = new Map<number, SubmitWatch>();
+
     function answerUpTo(seq: number): void {
         answered(seq);
         for (const [each, done] of awaitedBySeq) {
             if (each > seq) continue;
             awaitedBySeq.delete(each);
             done();
+        }
+        for (const [each, watch] of submitBySeq) {
+            if (each > seq) continue;
+            submitBySeq.delete(each);
+            submitAnswered(watch);
         }
     }
 
@@ -1577,42 +1520,12 @@ import {
     function showPendingBar() {
         pendingTimer = null;
         pendingVisible = true;
-        if (pendingBar) pendingBar.setAttribute("data-show", "");
+        showProgress();
     }
 
     function hidePendingBar() {
         pendingVisible = false;
-        if (pendingBar) pendingBar.removeAttribute("data-show");
-    }
-
-    function installPendingBar() {
-        // Managed siblings of the server-rendered tree (data-rask-managed), so the morph
-        // diff treats them as invisible and never trims them — same convention as the
-        // reconnect overlay.
-        const style = document.createElement("style");
-        style.setAttribute("data-rask-pending", "");
-        style.setAttribute("data-rask-managed", "");
-        style.textContent =
-            ".rask-pending{position:fixed;top:0;left:0;right:0;height:2px;" +
-            "z-index:2147483646;pointer-events:none;overflow:hidden;display:none;}" +
-            ".rask-pending[data-show]{display:block;}" +
-            ".rask-pending__bar{position:absolute;top:0;left:0;height:100%;width:40%;" +
-            "background:linear-gradient(90deg,rgba(124,58,237,0),#7C3AED,rgba(124,58,237,0));" +
-            "animation:rask-pending-slide 1s ease-in-out infinite;}" +
-            "@keyframes rask-pending-slide{0%{transform:translateX(-100%);}" +
-            "100%{transform:translateX(350%);}}";
-        document.head.appendChild(style);
-
-        const el = document.createElement("div");
-        el.className = "rask-pending";
-        el.setAttribute("data-rask-managed", "");
-        el.setAttribute("data-rask-pending", "");
-        el.setAttribute("aria-hidden", "true");
-        const bar = document.createElement("div");
-        bar.className = "rask-pending__bar";
-        el.appendChild(bar);
-        document.documentElement.appendChild(el);
-        return el;
+        hideProgress();
     }
 
     // Parks a first-render Rask.X invoke until the head's assets have settled and window.Rask.X exists
@@ -1631,31 +1544,11 @@ import {
             endNav();
         }
 
-        if (!history || history.action === "replace") {
-            _pendingScrollHash = "";
-            focusArrived(history);
-            return;
-        }
-        const hash = _pendingScrollHash;
+        // The fragment is a forward navigation's only: one that replaced its entry leaves the scroll to the browser.
+        const hash = history && history.action !== "replace" ? _pendingScrollHash : "";
         _pendingScrollHash = "";
-        let anchor = null;
-        if (hash && hash.length > 1) {
-            try {
-                anchor = document.querySelector(hash) ||
-                    document.getElementById(decodeURIComponent(hash.slice(1)));
-            } catch (e) {
-                anchor = null;
-            }
-        }
-
-        if (anchor) {
-            anchor.scrollIntoView();
-        } else {
-            window.scrollTo(0, 0);
-        }
-        // Forward navigation: focus the anchor the link targeted (else the main content) and announce the
-        // route — a fragment deep-link is still a route change for keyboard/SR users.
-        focusAndAnnounceRoute(anchor as HTMLElement | null, focusArrived(history, !!anchor));
+        // Scroll to the top or the link's fragment, focus into the new page and announce it (rask-route-focus.ts).
+        navigationShown(history, hash);
     }
 
     // Diff-mode render application (wire format matches LivePayload.BuildPayloadUtf8Diff).
@@ -1914,6 +1807,8 @@ import {
     }
 
     window.addEventListener("popstate", () => {
+        // Its page is announced when it arrives, though Back and Forward leave focus and scroll where they are.
+        backOrForward();
         beginNav();
         send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
     });
@@ -2022,6 +1917,9 @@ import {
         // with it: from the press, so the files uploading first are waited on too (rask-submitting.ts).
         const hold = holdForm(t);
         if (!hold) return;
+        // Where focus was at the press, and what the form had refused: a refusal takes the reader to the first
+        // invalid field once its render is on the page (rask-first-invalid.ts).
+        const watch = watchSubmit(t);
         // The form's own button shows the wait: it is what was pressed. Enter in a field submits through the
         // form's default button, which the browser reports as the submitter too.
         const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
@@ -2035,6 +1933,7 @@ import {
                 }
                 if (ticket) loadingBySeq.set(payload.seq, ticket);
                 formBySeq.set(payload.seq, hold);
+                submitBySeq.set(payload.seq, watch);
             },
             (err: unknown) => {
                 endLoading(ticket);
