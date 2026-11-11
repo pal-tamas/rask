@@ -22,7 +22,15 @@ Rask.Workbooks.Xlsx.Moment.WallClock.get -> System.DateTime
 Rask.Workbooks.Xlsx.Sheet
 Rask.Workbooks.Xlsx.Sheet.Headings.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Rask.Workbooks.Xlsx.Sheet.Name.get -> string!
-Rask.Workbooks.Xlsx.Sheet.Rows.get -> System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>!
+Rask.Workbooks.Xlsx.Row
+Rask.Workbooks.Xlsx.Row.Count.get -> int
+Rask.Workbooks.Xlsx.Row.GetEnumerator() -> System.Collections.Generic.IEnumerator<object?>!
+Rask.Workbooks.Xlsx.Row.this[int index].get -> object?
+Rask.Workbooks.Xlsx.Row.this[string! heading].get -> object?
+Rask.Workbooks.Xlsx.Sheet.HeadingsOn(params int[]! rows) -> Rask.Workbooks.Xlsx.Sheet!
+Rask.Workbooks.Xlsx.Sheet.Rows.get -> System.Collections.Generic.IEnumerable<Rask.Workbooks.Xlsx.Row!>!
+static Rask.Workbooks.Xlsx.Read(byte[]! file) -> Rask.Workbooks.Xlsx.Sheet!
+static Rask.Workbooks.Xlsx.Read(byte[]! file, string! sheet) -> Rask.Workbooks.Xlsx.Sheet!
 Rask.Workbooks.Xlsx.Sheet.Sheet(string! name, System.Collections.Generic.IReadOnlyList<string!>! headings, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<object?>!>! rows, System.Collections.Generic.IReadOnlyList<object?>? total = null) -> void
 Rask.Workbooks.Xlsx.Sheet.Total.get -> System.Collections.Generic.IReadOnlyList<object?>?
 Rask.Workbooks.Xlsx.Strong

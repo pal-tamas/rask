@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
+  (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
+  { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
+  and browser. Cells come back as the writer's own types (`string`, `decimal`, `bool`, `Xlsx.Day`/`Xlsx.Moment` from the
+  cell's date format in 1900 and 1904 workbooks, a formula's cached value); `HeadingsOn` spreads merged headings and
+  joins two heading rows into one name. `Sheet.Rows` is now `IEnumerable<Xlsx.Row>` (a row is still an
+  `IReadOnlyList<object?>`). Bounded against zip bombs, no DTD. Guide: rask.sh/docs/xlsx.
 - **`Ui.Filter.Shown(names)` says a filter of several answers the way a reader can take in.** Before: a page joined
   the names itself (`.Shown(string.Join(", ", Vehicles))`), and TA's "Járművek: <40 vehicles>" badge was one line as
   wide as all of them. After: `.Shown(Vehicles)` — no names is no filter, one is said by its name ("Vehicles: 00001 -
@@ -17,6 +24,9 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **`Xlsx.Write` writes a day before 1 March 1900 as the day Excel shows.** Before: `new Xlsx.Day(new DateTime(1900, 1, 1))`
+  opened as 2 January 1900, because Excel counts a 29 February 1900 that never was. After: the serial skips that day,
+  as Excel's does, and `Xlsx.Read` reads it back as the same day.
 - **A tap on a phone opens a tooltip, and the last end-aligned sort heading stands over its numbers again.** Before:
   a finger's tooltip (`data-rask-tooltip`) closed again when the press the tap ends in landed a frame after the finger
   did — on a busy page, or a person's ordinary 50–150 ms tap — so `Ui.Filter.Shown(names)`'s badge showed no names on a
