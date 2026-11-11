@@ -33,6 +33,7 @@ public sealed class UiKitFormTabsTests(WasmExampleAppFixture app, PlaywrightFixt
 
         await scope.Locator("#uft-save").ClickAsync();
         await Expect(details).ToHaveAttributeAsync("aria-selected", "true", new() { Timeout = 10_000 });
+        await Expect(scope.Locator("#uft-email")).ToBeFocusedAsync();
         await Expect(details.Locator("[data-ui-form-tab-count]")).ToHaveAttributeAsync("data-ui-form-tab-count", "1");
         await Expect(address.Locator("[data-ui-form-tab-count]")).ToHaveAttributeAsync("data-ui-form-tab-count", "2");
         var badge = await address.Locator("[data-ui-badge]").GetAttributeAsync("class");
@@ -40,6 +41,7 @@ public sealed class UiKitFormTabsTests(WasmExampleAppFixture app, PlaywrightFixt
         await scope.Locator("#uft-email").FillAsync("ops@aminoff.example");
         await scope.Locator("#uft-save").ClickAsync();
         await Expect(address).ToHaveAttributeAsync("aria-selected", "true", new() { Timeout = 10_000 });
+        await Expect(scope.Locator("#uft-street")).ToBeFocusedAsync();
         await Expect(details.Locator("[data-ui-form-tab-count]")).ToHaveCountAsync(0);
         await Expect(address.Locator("[data-ui-form-tab-count]")).ToHaveAttributeAsync("data-ui-form-tab-count", "2");
         await scope.Locator("#uft-street").FillAsync("Storgata 1");
@@ -50,6 +52,43 @@ public sealed class UiKitFormTabsTests(WasmExampleAppFixture app, PlaywrightFixt
         await Expect(scope.Locator("[data-ui-form-tab-count]")).ToHaveCountAsync(0);
         Assert.Equal(0, clean);
         Assert.Contains("text-red-700", badge, StringComparison.Ordinal);
+    });
+
+    [Fact]
+    public Task On_a_phone_a_refused_save_opens_the_tab_and_focuses_its_first_invalid_field_on_screen() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(390, 844);
+        await OpenUiPageAsync("form-tabs", "Form tabs");
+        var scope = Page.Locator("[data-testid='ui-form-tabs']");
+        await scope.ScrollIntoViewIfNeededAsync();
+        await scope.Locator("#uft-email").FillAsync("ops@aminoff.example");
+        await scope.GetByRole(AriaRole.Tab, new() { Name = "Notes" }).ClickAsync();
+
+        await scope.Locator("#uft-save").ClickAsync();
+        await Expect(scope.Locator("#uft-street")).ToBeFocusedAsync(new() { Timeout = 10_000 });
+
+        await Expect(scope.GetByRole(AriaRole.Tab, new() { Name = "Address" })).ToHaveAttributeAsync("aria-selected", "true");
+        await Expect(scope.Locator("#uft-street")).ToBeInViewportAsync();
+    });
+
+    [Fact]
+    public Task A_reader_who_moves_on_before_the_refusal_is_drawn_keeps_their_place() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("form-tabs", "Form tabs");
+        var scope = Page.Locator("[data-testid='ui-form-tabs']");
+        var elsewhere = Page.Locator("#elsewhere");
+        await scope.ScrollIntoViewIfNeededAsync();
+
+        // The press, and the reader moving to a field outside the form in the same moment, before .NET has
+        // answered. The field is the runtime's to leave alone (data-rask-managed), so no render takes it away.
+        await scope.Locator("#uft-save").EvaluateAsync(
+            "b => { const i = document.createElement('input'); i.id = 'elsewhere'; i.setAttribute('data-rask-managed', ''); document.body.appendChild(i); b.click(); i.focus(); }");
+        await Expect(scope.GetByRole(AriaRole.Tab, new() { Name = "Details" })).ToHaveAttributeAsync("aria-selected", "true", new() { Timeout = 10_000 });
+        await Expect(scope.Locator("#uft-email")).ToHaveAttributeAsync("aria-invalid", "true");
+        await Page.WaitForTimeoutAsync(300);
+
+        await Expect(elsewhere).ToBeFocusedAsync();
+        await Expect(scope.Locator("#uft-email")).Not.ToBeFocusedAsync();
     });
 
     [Fact]

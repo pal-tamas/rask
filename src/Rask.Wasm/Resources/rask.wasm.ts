@@ -21,7 +21,9 @@ import {
 } from "../../Rask.Core/Resources/rask-scoped.js";
 import { raskReadFileChunk, raskRegisterFiles } from "../../Rask.Core/Resources/rask-files.js";
 import { beginUpload } from "../../Rask.Core/Resources/rask-upload.js";
-import { focusArrived } from "../../Rask.Core/Resources/rask-autofocus.js";
+import { waitOn } from "../../Rask.Core/Resources/rask-progress.js";
+import { backOrForward, installRouteAnnouncer, navigationShown } from "../../Rask.Core/Resources/rask-route-focus.js";
+import { submitAnswered, watchSubmit } from "../../Rask.Core/Resources/rask-first-invalid.js";
 import { showDevError } from "../../Rask.Core/Resources/rask-deverror.js";
 import { showHotReloadPill } from "../../Rask.Core/Resources/rask-hotreload.js";
 import { createInvokeGate } from "../../Rask.Core/Resources/rask-head-assets.js";
@@ -386,29 +388,12 @@ function applyHistory(history: RaskFrameReply["history"]): void {
 // carried a "#fragment" matching an element, scroll there instead of the top.
 // Call this only after the new body has committed so the anchor target exists.
 function applyNavScroll(history: RaskFrameReply["history"]): void {
-    if (!history || history.action === "replace") {
-        _pendingScrollHash = "";
-        focusArrived(history);
-        return;
-    }
-    const hash = _pendingScrollHash;
+    // The fragment is a forward navigation's only: one that replaced its entry leaves the scroll to the browser.
+    const hash = history && history.action !== "replace" ? _pendingScrollHash : "";
     _pendingScrollHash = "";
-    if (hash && hash.length > 1) {
-        let el = null;
-        try {
-            el = document.querySelector(hash) ||
-                document.getElementById(decodeURIComponent(hash.slice(1)));
-        } catch (e) {
-            el = null;
-        }
-        if (el) {
-            el.scrollIntoView();
-            focusArrived(history, true);
-            return;
-        }
-    }
-    window.scrollTo(0, 0);
-    focusArrived(history);
+    // Scroll to the top or the link's fragment, focus into the new page and announce it — the Server host's
+    // navigation, from the same module (rask-route-focus.ts).
+    navigationShown(history, hash);
 }
 
 function handle(reply: RaskFrameReply | null): void {
@@ -585,11 +570,14 @@ function send(payload: unknown): Promise<void> {
     const ticket = beginLoading(fieldTarget(payload), null, false);
     // What the hooks wait on (rask-owned.ts): a handler event or a navigation, until its page is whole.
     const done = isHandlerEvent(payload) || isNavigation(payload) ? awaiting() : null;
+    // And the top bar says so if the answer takes a while (rask-progress.ts) — rarely, as .NET is in this tab.
+    const progress = done ? waitOn() : null;
     const answered = userWatch.leave(() => leave(payload));
     if (ticket || done) {
         answered.then(settled).finally(() => {
             endLoading(ticket);
             if (done) done();
+            if (progress) progress();
         });
     }
     return answered;
@@ -694,6 +682,9 @@ globalThis.__raskHost.navigate = (href: string, replace?: boolean) => {
     else console.error(`[Rask] navigate: "${href}" is not a URL of this app, so nothing navigated.`);
 };
 
+// The polite live region a navigation's page is announced through (rask-route-focus.ts).
+installRouteAnnouncer();
+
 document.addEventListener("click", (e) => {
     const url = navLinkClick(e);
     if (url) navigate(url, false);
@@ -712,6 +703,8 @@ function navigate(url: URL, replace: boolean): void {
 }
 
 window.addEventListener("popstate", () => {
+    // Its page is announced when it arrives, though Back and Forward leave focus and scroll where they are.
+    backOrForward();
     send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});
 });
 
@@ -759,6 +752,8 @@ document.addEventListener("submit", (e) => {
     // (rask-submitting.ts). The form's own button shows the wait. Mirrors rask.ts.
     const hold = holdForm(t);
     if (!hold) return;
+    // A refusal takes the reader to the first invalid field once its render is on the page (rask-first-invalid.ts).
+    const watch = watchSubmit(t);
     const submitter = loadingTarget((e as SubmitEvent).submitter ?? null);
     const fileInputs = t.querySelectorAll<HTMLInputElement>('input[type="file"][name]');
     const fileFields: Record<string, unknown> = {};
@@ -781,6 +776,7 @@ document.addEventListener("submit", (e) => {
     sent.then(settled).finally(() => {
         endLoading(ticket);
         releaseForm(hold);
+        submitAnswered(watch);
     });
 });
 
