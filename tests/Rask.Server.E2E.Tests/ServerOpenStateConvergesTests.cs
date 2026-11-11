@@ -107,7 +107,10 @@ public sealed class ServerOpenStateConvergesTests(PlaywrightFixture playwright) 
         await cdp.SendAsync("Network.enable");
         await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
         {
-            ["offline"] = false, ["latency"] = 120, ["downloadThroughput"] = -1, ["uploadThroughput"] = -1,
+            ["offline"] = false,
+            ["latency"] = 120,
+            ["downloadThroughput"] = -1,
+            ["uploadThroughput"] = -1,
         });
     }
 }

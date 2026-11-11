@@ -34,7 +34,10 @@ public sealed class ModalClosedAfterSlowSubmitTests(PlaywrightFixture playwright
         await cdp.SendAsync("Network.enable");
         await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>
         {
-            ["offline"] = false, ["latency"] = latency, ["downloadThroughput"] = -1, ["uploadThroughput"] = -1,
+            ["offline"] = false,
+            ["latency"] = latency,
+            ["downloadThroughput"] = -1,
+            ["uploadThroughput"] = -1,
         });
         var random = new Random(width + cpu + latency);
 
