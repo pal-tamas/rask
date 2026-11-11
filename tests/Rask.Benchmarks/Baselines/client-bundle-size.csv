@@ -743,3 +743,10 @@ bundle,bytes
 rask.js,116027
 rask.wasm.js,103429
 rask-hooks.js,133810
+# 2026-11-11, the sweep that carries out the server's last word on every modal and popover it opens (rask-owned.ts,
+# `converges`; eszaf's modal that stayed open): measured locally on the tree merged with main, with the bundle gate's
+# own command — rask.js 116,027 -> 116,692, rask.wasm.js 103,429 -> 104,091, rask-hooks.js 133,810 -> 134,544.
+bundle,bytes
+rask.js,116692
+rask.wasm.js,104091
+rask-hooks.js,134544
