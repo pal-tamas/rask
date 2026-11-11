@@ -212,7 +212,13 @@ judges it, so a press with the mouse draws nothing. A checkbox, radio or switch 
 — a selection box in a table's first column too; where the fill IS the accent (a primary button, a ticked box, a
 switch that is on, a chosen pill tab or day) a 2px band of `--color-accent-foreground` lies inside the ring so it
 still shows. A field draws its own accent ring: its border and
-an inset 1px ring.
+an inset 1px ring — a browser date or time field keeps it while its calendar or clock button has the focus. A hidden
+input rings what stands for it: a file field's "Choose file", an upload's dropzone.
+
+A control the keyboard reaches is never left half past its frame: a table's scroll area and a
+`Ui.Navbar.Scrollable()` carry `data-rask-reveal-focus`, and the runtime scrolls a control focused from the keyboard
+whole into view, by the least movement — the browser scrolls to one wholly hidden but leaves one it can partly see
+where it is, its ring cut at the frame. A press scrolls nothing.
 
 The rule is one zero-weight `:where(:focus-visible)` in the kit's `@layer rask`, so your own buttons and links are
 ringed in your accent too, and any utility of yours (`focus-visible:outline-*`, `outline-hidden`) wins. Menu rows and

@@ -719,3 +719,11 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133403
+# 2026-11-11, a control the keyboard reaches is revealed whole in its scroll area (data-rask-reveal-focus, rask-focus.ts):
+# measured locally on the merged tree (Release, the bundle gate's esbuild and --minify): rask-hooks.js 133,403 -> 133,810
+# (+407, the focusin listener and revealIn); rask.js 114,364 -> 114,377 and rask.wasm.js 99,729 -> 99,742 (+13 each,
+# " reveal-focus" in the hook loader's attribute list).
+bundle,bytes
+rask.js,114377
+rask.wasm.js,99742
+rask-hooks.js,133810
