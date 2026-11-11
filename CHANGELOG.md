@@ -26,6 +26,13 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A page's title settling no longer turns the next press into a whole page in Rask's diff harness (#1303).** A
+  layout that shows `RouteState.Title` over a page with a `PageTitle` is walked twice when the title changes, and the
+  second walk threw away every frame of the writer, including the ones its host had opened around the walk — the
+  `<body>` frame `Rask.Testing`'s render watch puts the page in, so the first press after it read as
+  `RemoveSubtree`/`InsertSubtree` of the root. The second walk now drops only what the first pass wrote. A live
+  Server session was never affected (its writer is empty when the walk starts): its first press after a title
+  is a diff of a few dozen bytes, now held by a socket test and a browser journey at 1280 and 390 px.
 - **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
   slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
   one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost

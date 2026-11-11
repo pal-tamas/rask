@@ -57,6 +57,20 @@ public sealed class FrameWriter : IDisposable
     }
 
     /// <summary>
+    ///     Forgets every frame from <paramref name="count" /> on, keeping the ones before it: a walk taken again
+    ///     drops what its first pass wrote, and nothing the caller wrote around the walk before it began.
+    /// </summary>
+    internal void TruncateTo(int count)
+    {
+        if (_runFrame >= count)
+        {
+            DropTextRun();
+        }
+
+        Count = count;
+    }
+
+    /// <summary>
     ///     Open a regular HTML element. Returns the frame index so the caller
     ///     can pass it back to <see cref="CloseElement" /> to patch in the subtree length
     ///     and the HTML byte range.
