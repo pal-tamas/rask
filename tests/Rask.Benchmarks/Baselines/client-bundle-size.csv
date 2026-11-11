@@ -680,6 +680,14 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,132735
+# 2026-11-10, a tall row menu (rask-menu-keys.ts: ArrowDown on a dropdown's trigger asks the popover whether it is open,
+# not the aria-expanded a tooltip on the trigger writes; rask-place.ts: a held height leaves room for the padding and
+# border of a content-box panel): rask-hooks.js 132,735 -> 133,005 (+270); rask.js and rask.wasm.js unchanged.
+# Measured locally (the bundle gate's esbuild 0.28.2 with its flags, --minify) on d131183a6.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133005
 # 2026-11-10, a tooltip opens on focus only when the keyboard moved it there, never when a closing menu hands it
 # back (rask-hover.ts: handedBack, and a tooltip the pointer showed leaves with the pointer unless keyboard focus
 # showed it): +285 on rask-hooks.js alone. This block sets all three to what the merged tree measures with the blocks
@@ -689,3 +697,10 @@ bundle,bytes
 rask.js,114364
 rask.wasm.js,99729
 rask-hooks.js,133057
+# 2026-11-11, the tall row menu merged with origin/main's tooltip focus-return work (rask-hover.ts, +233 on top of
+# the blocks above): measured locally on 5f4851bb9 with the bundle gate's esbuild 0.28.2 and flags (--minify):
+# rask-hooks.js 133,057 -> 133,290; rask.js and rask.wasm.js unchanged.
+bundle,bytes
+rask.js,114364
+rask.wasm.js,99729
+rask-hooks.js,133290

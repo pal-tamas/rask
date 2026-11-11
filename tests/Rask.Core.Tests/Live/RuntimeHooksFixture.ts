@@ -17,7 +17,7 @@ import {provides} from "../../../src/Rask.Core/Resources/rask-requires.js";
 import {daysIn, pastedDate, pivotYear, segmentDigit, yearDigit} from "../../../src/Rask.Core/Resources/rask-segments.js";
 import {beside, lineOf, nearestRow, sameBox, sizeText} from "../../../src/Rask.Core/Resources/rask-plot.js";
 import {progressOf} from "../../../src/Rask.Core/Resources/rask-upload.js";
-import {landing} from "../../../src/Rask.Core/Resources/rask-place.js";
+import {framed, landing} from "../../../src/Rask.Core/Resources/rask-place.js";
 import {filtered, fold} from "../../../src/Rask.Core/Resources/rask-list.js";
 import {stepFrom, typeAhead} from "../../../src/Rask.Core/Resources/rask-menu-keys.js";
 import {handedBack} from "../../../src/Rask.Core/Resources/rask-hover.js";
@@ -159,6 +159,12 @@ report({
         beside: [lands(800, 400, "right center 5 0"), lands(1789, 400, "right center 5 0"), lands(800, 1035, "right center 5 0")],
         // Taller than the room: the roomier side, and that room less 5 px as its height.
         tall: [lands(800, 400, "bottom start 5 0", 192, 1292), lands(800, 540, "bottom start 5 0", 192, 1292), lands(800, 400, "right start 5 0", 192, 1292)],
+        // A row's ⋯ menu of eighteen actions (Ui.RowActions: bottom end, offset -25) on a 390 by 600 phone, from a
+        // row at the top, in the middle and at the bottom: under it or over it, never past either edge.
+        rowMenu: [70, 300, 560].map((y) => landing("bottom end 5 -25", {x: 352, y, w: 32, h: 32}, 192, 692, 390, 600, false))
+            .map((to) => [to.x, to.y, to.cap]),
+        // What padding and border add to a held height: under content-box their sum, under border-box nothing.
+        frame: [framed("content-box", ["5px", "5px", "1px", "1px"]), framed("border-box", ["5px", "5px", "1px", "1px"])],
         // As tall as the room, 5 px from the edge, or taller: held to it. A pixel shorter: not.
         brim: [lands(800, 300, "top start 5 0", 192, 291), lands(800, 300, "top start 5 0", 192, 290), lands(800, 300, "top start 5 0", 192, 289)],
         // Wider than the viewport: its start edge 5 px in, the rest past the other edge.

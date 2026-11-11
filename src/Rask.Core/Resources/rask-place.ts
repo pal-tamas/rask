@@ -187,6 +187,22 @@ interface Placing {
     size: {w: number; h: number};
     /** The height the last landing held it to. */
     cap: number | null;
+    /** What its padding and border add to a `max-height` under `box-sizing: content-box`; 0 under `border-box`. */
+    frame: number;
+}
+
+// What a panel's padding and border add above and below the height its `max-height` holds. A page with no reset —
+// the kit's own sheet carries none — leaves a panel `content-box`, and a cap written as the room left would run the
+// panel's padding and border past the viewport's edge.
+/** What padding and border, in computed values top and bottom, add to a `max-height` under `boxSizing`. */
+export function framed(boxSizing: string, sides: readonly string[]): number {
+    return boxSizing === "border-box" ? 0
+        : sides.reduce(function (sum, side) { return sum + (parseFloat(side) || 0); }, 0);
+}
+
+function frameOf(panel: Element): number {
+    const style = getComputedStyle(panel);
+    return framed(style.boxSizing, [style.paddingTop, style.paddingBottom, style.borderTopWidth, style.borderBottomWidth]);
 }
 
 // The inset that hangs a panel at the side and alignment it asks for, in page coordinates.
@@ -337,6 +353,7 @@ if (page) {
                 a: !a || held.anchor === panel || (at && !at.width && !at.height) ? null : a,
                 rtl: getComputedStyle(panel).direction === "rtl",
                 natural: {w: box.width, h: box.height}, size: {w: box.width, h: box.height}, cap: null,
+                frame: frameOf(panel),
             };
         });
         const lands = function (p: Placing, free: boolean): string {
@@ -345,7 +362,7 @@ if (page) {
             }
             const to = landing(p.place, p.a, p.size.w, p.size.h, vw, vh, p.rtl, free || !p.anchored);
             p.cap = to.cap;
-            return rule(p.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap);
+            return rule(p.n, (to.y + view.scrollY) + "px auto auto " + (to.x + view.scrollX) + "px", to.cap === null ? null : to.cap - p.frame);
         };
         // Then where it HANGS, at the side and alignment it asks for: one by an edge is laid out in the room left
         // there — squeezed, down to its min-width — and placed at the size it has there, as Flux's is.
