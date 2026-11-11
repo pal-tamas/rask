@@ -34,6 +34,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The debugger files no Release publish may carry; the CLI E2E asks the same of a scaffold's publish. -->
+    <Compile Include="..\Shared.TestFiles\DebuggerFreePublish.cs" Link="DebuggerFreePublish.cs"/>
+  </ItemGroup>
+
   <!--
     An ordering edge and nothing else: _RaskBundleBrowserFixtures below runs ResolveTypeScriptToolTask
     out of the assembly this project builds. Without the edge a solution build may reach this project
