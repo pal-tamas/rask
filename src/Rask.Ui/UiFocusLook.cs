@@ -21,6 +21,13 @@ internal static class UiFocusLook
     /// </summary>
     internal const string Ring = "has-[:focus-visible]:[outline:2px_solid_var(--color-accent)]";
 
+    /// <summary>
+    ///     What stands for a hidden input that comes before it (a file input's "Choose file"): the accent ring, inside it,
+    ///     while that input has the keyboard's focus — the input itself is out of sight, so its own ring is seen by no one.
+    /// </summary>
+    internal const string ForHiddenInput =
+        "[input:focus-visible~&]:[outline:2px_solid_var(--color-accent)] [input:focus-visible~&]:-outline-offset-2";
+
     /// <summary>The ring laid inside the control's own box, where no frame around it can clip it.</summary>
     internal const string Inside = "-outline-offset-2";
 }

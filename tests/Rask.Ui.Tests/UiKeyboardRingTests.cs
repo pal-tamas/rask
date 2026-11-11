@@ -122,6 +122,42 @@ public sealed class UiKeyboardRingTests
         Assert.DoesNotContain(Band, underlined, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void A_typed_dates_part_is_lit_inside_itself_so_the_row_of_parts_cuts_none_of_it()
+    {
+        var rules = Rules();
+
+        var part = Assert.Single(rules, r => r.Selector.Contains("[data-ui-month-input]", StringComparison.Ordinal)
+                                             && r.Body.Contains("outline:1pxsolidvar(--color-accent)", StringComparison.Ordinal));
+
+        Assert.Contains("outline-offset:-1px", part.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_file_inputs_choose_button_is_ringed_inside_while_its_hidden_input_has_the_keyboard()
+    {
+        var html = Ui.Input.Of<string>().Type(Rask.Core.InputType.File).Label("Logo").ToHtml().AsText();
+
+        var button = html[html.IndexOf("data-ui-button", StringComparison.Ordinal)..];
+
+        Assert.Contains(UiFocusLook.ForHiddenInput, html, StringComparison.Ordinal);
+        Assert.Contains("class=\"sr-only\"", html, StringComparison.Ordinal);
+        Assert.Contains("Choose file", button, StringComparison.Ordinal);
+        Assert.Contains(Rules(), r => r.Selector.Contains("input:focus-visible~", StringComparison.Ordinal)
+                                      && r.Body.Contains("outline:2pxsolidvar(--color-accent)", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_browser_date_field_stays_ringed_while_its_calendar_button_has_the_keyboard()
+    {
+        var rules = Rules();
+
+        var field = Assert.Single(rules, r => r.Body.Contains("box-shadow:inset0001pxvar(--color-accent)", StringComparison.Ordinal));
+
+        Assert.Contains("[type=date]", field.Selector.Replace("\"", "", StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains("):focus-within,", field.Selector.Replace(" ", "", StringComparison.Ordinal), StringComparison.Ordinal);
+    }
+
     private static List<(string Selector, string Body)> Rules() =>
         UiStylesheetTests.Rules(UiStylesheet.Css)
             .Select(r => (r.Selector, Body: r.Body.Replace(" ", "", StringComparison.Ordinal).Replace("\n", "", StringComparison.Ordinal)))

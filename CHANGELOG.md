@@ -17,6 +17,14 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **The keyboard ring reaches the controls it missed, and nothing cuts it.** Before: a typed date's month, day and
+  year hung their ring a pixel outside the row of parts that clips them; a `Ui.Input` file field drew nothing (its
+  input is hidden, and "Choose file" was not told); a browser date field lost its ring on its calendar button; and
+  at a phone's width a table's last heading or row button, or a scrollable navbar's last link, took the focus half
+  past the frame, ring cut, since the browser leaves a control it can partly see where it is. After: the date part
+  is ringed inside itself, "Choose file" and an upload's dropzone draw the accent ring inside, a date or time field
+  stays ringed while anything in it has the focus, and a table's scroll area and a `Ui.Navbar.Scrollable()` bring a
+  control the keyboard reaches whole into view (`data-rask-reveal-focus`). The navbar docs' wide examples scroll.
 - **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
   gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
   max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its

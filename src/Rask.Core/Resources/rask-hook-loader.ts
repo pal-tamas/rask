@@ -38,7 +38,7 @@ export const HOOK_ATTRIBUTES: string[] = (
     + " menu-pointer safe-area"                                   // rask-menu
     + " copy clear clear-keys focus view mask mask-money big-step"// rask-field
     + " contain-keys listbox-button roving"                       // rask-keys
-    + " focus-follows press-keeps-focus"                          // rask-focus
+    + " focus-follows press-keeps-focus reveal-focus"             // rask-focus
     + " toggle"                                                   // rask-toggle
     + " drag"                                                     // rask-drag
     + " requires"                                                 // rask-requires

@@ -75,8 +75,12 @@ public sealed partial class UiTable : UiElement, IUiHost
 
     private static readonly UiPartMarker Marker = new("ui-table");
 
+    // A control the keyboard reaches in the area is scrolled whole into its view, its ring with it (rask-focus.ts).
+    private static readonly IReadOnlyDictionary<string, string?> RevealFocus =
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reveal-focus"] = "" };
+
     private static readonly IReadOnlyDictionary<string, string?> ScrollEdges =
-        new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-scroll-edges"] = "" };
+        new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reveal-focus"] = "", ["rask-scroll-edges"] = "" };
 
     // The least width in rem of this render's columns, or null when no heading names a width.
     private int? _least;
@@ -232,12 +236,8 @@ public sealed partial class UiTable : UiElement, IUiHost
             box = box.Data(marks);
         }
 
-        var area = Div.Class(ScrollArea);
-        if (Headings(Children).Any(heading => heading.Sticks))
-        {
-            // A sticky column casts its shadow once rows scroll under it: the runtime marks which sides hide some.
-            area = area.Data(ScrollEdges);
-        }
+        // A sticky column casts its shadow once rows scroll under it: the runtime marks which sides hide some.
+        var area = Div.Class(ScrollArea).Data(Headings(Children).Any(heading => heading.Sticks) ? ScrollEdges : RevealFocus);
 
         return box[
             area[
