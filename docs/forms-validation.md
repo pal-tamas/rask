@@ -479,6 +479,48 @@ exist — so attribute and object-level errors surface together (ASP.NET Core MV
 A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`Validation.Summary`); a
 populated one tags the named field.
 
+### An async attribute
+
+.NET 11's asynchronous rules work in a form with nothing declared: an `AsyncValidationAttribute` is awaited
+(`IsValidAsync`), and an `IAsyncValidatableObject`'s `ValidateAsync` runs in place of its `Validate`. A uniqueness
+check is an attribute on the model, its lookup a service from the scope:
+
+```csharp
+public sealed class SignUp
+{
+    [Required, EmailAddress, UniqueEmail] public string Email { get; set; } = "";
+}
+
+public sealed class UniqueEmailAttribute() : AsyncValidationAttribute("{0} is already registered.")
+{
+    protected override ValidationResult? IsValid(object? value, ValidationContext context) =>
+        throw new NotSupportedException("Looked up asynchronously.");
+
+    protected override async Task<ValidationResult?> IsValidAsync(object? value, ValidationContext context, CancellationToken ct)
+    {
+        var users = context.GetRequiredService<IDbContextFactory<AppDb>>();
+        await using var db = await users.CreateDbContextAsync(ct);
+        return await db.Users.AnyAsync(u => u.Email == (string)value!, ct)
+            ? new ValidationResult(FormatErrorMessage((string)value!), [context.MemberName!])
+            : ValidationResult.Success;
+    }
+}
+```
+
+<!-- demo:validation-async-attribute -->
+
+- **Synchronous rules first.** `[Required]` and `[EmailAddress]` run as before; the lookup is asked only once
+  they pass, so an empty or malformed address never reaches the database.
+- **While it runs** the field reads `IsValidating` and the `Validation.Indicator` shows — the same as any
+  [async validator](#async-validators-and-the-validating-indicator). A field with no async rule stays synchronous.
+- **Latest wins.** The field checks when its [bind timing](forms.md#bind-timing) says — on change, or at a
+  `.Debounce(…)` pause — and a value changed again cancels the lookup in flight: its token is cancelled, and an
+  answer that arrives anyway is dropped.
+- **A lookup that throws is never a pass.** The field says *Validation could not be completed.*, the form will not
+  submit past it, and the exception goes to the [log](observability.md#structured-logging) with the model and member named.
+- **The server asks again.** A [dispatched request](validation.md#requests) and a minimal API body await the
+  same attributes before the handler runs; only .NET's synchronous `Validator` calls `IsValid`.
+
 ### In the reader's language
 
 An attribute with no `ErrorMessage` of its own speaks the reader's language: .NET ships its attributes' English
@@ -489,6 +531,35 @@ hosszúnak kell lennie.*; an English reader still reads .NET's own text, word fo
 `ErrorMessageResourceType` and an attribute class of your own always say what they say. It holds on the Server
 and in the browser, in a form and in a request validated before its handler runs — so a Hungarian app has no
 reason to turn the automatic validators off.
+
+#### Messages from your own resources
+
+An app that keeps its own wording in resources says so the .NET 11 way — the platform's two calls, nothing of
+Rask's:
+
+```csharp
+builder.Services.AddLocalization();
+builder.Services.AddValidation(o => o.LocalizerProvider = (_, factory) => factory.Create(typeof(ValidationMessages)));
+```
+
+```xml
+<!-- Resources/ValidationMessages.hu.resx -->
+<data name="RequiredAttribute_Error"><value>A(z) {0} megadása kötelező.</value></data>
+<data name="SignUp_Email_UniqueEmailAttribute_Error"><value>Ezzel az e-mail-címmel már regisztráltak.</value></data>
+```
+
+A failed attribute is then looked up with .NET's own keys, in this order — the attribute's `ErrorMessage` itself,
+`{Type}_{Member}_{Attribute}_Error`, `{Type}_{Attribute}_Error`, `{Attribute}_Error` — and the template found is
+filled in by the attribute (`ValidationAttribute.FormatMessage`): `{0}` is the field's display name (`[Display]` or
+`[DisplayName]`, itself looked up in the same resources), and a `[Range]`'s `{1}` and `{2}` are its bounds. The
+same resources word a form, a dispatched request and a minimal API, on the Server and in the browser, in the
+reader's language. Without a `LocalizerProvider`, .NET's default applies: resources named after each model.
+
+Your resources are the app speaking, so they come first; the [strings catalog](localization.md#a-models-validation-attributes)
+words whatever they have no key for, and .NET's English the rest. An `ErrorMessageResourceType` keeps its own
+resource. With no `IStringLocalizerFactory` registered, nothing changes. Calling `AddValidation()` does not
+switch on .NET's own minimal-API filter for endpoints Rask validates: those keep the one
+[rejection shape](validation.md#rejected).
 
 A custom `ValidationAttribute` (with DI via `ctx.GetService<T>()`):
 
@@ -613,6 +684,8 @@ Three ways to validate asynchronously:
    // Form.Model(_model).Context(_ctx)[ … ]
    ```
 3. **FluentValidation `MustAsync`** — async rules ride the discovered validator, which is wrapped as an `IAsyncFieldValidator`.
+4. **An `AsyncValidationAttribute` or an `IAsyncValidatableObject`** — .NET 11's DataAnnotations, awaited by the form
+   with nothing declared: [an async attribute](#an-async-attribute).
 
 Each `await` in a handler triggers a re-render, so a `Validation.Indicator` can surface while a
 check is in flight:

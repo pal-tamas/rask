@@ -307,6 +307,15 @@ public sealed partial class HTMLFormElement<[DynamicallyAccessedMembers(Dynamica
             ctx.AddValidator(new DataAnnotationsFieldValidator(services));
         }
 
+        // .NET 11's async rules — an AsyncValidationAttribute, an IAsyncValidatableObject — are awaited by a second
+        // half, registered only for a model that reaches one (a cached answer per type), and BEFORE a discovered
+        // validator, so an attribute's message shadows a discovered one on the same field as it always has.
+        if (!ctx.HasAsyncValidator(typeof(DataAnnotationsAsyncValidator))
+            && AsyncAnnotationRules.Reached(ctx.Model.GetType()))
+        {
+            ctx.AddValidator(new DataAnnotationsAsyncValidator(services));
+        }
+
         // Ask whether one EXISTS; do not build it. Building here threw out of Render() for a validator
         // with constructor dependencies when the render had no scope, and it froze the rules at the
         // first render — the registered instance survived every later render, so a hot-reloaded RuleFor

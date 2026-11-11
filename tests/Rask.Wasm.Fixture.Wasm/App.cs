@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
@@ -43,6 +44,33 @@ public sealed partial class DeskPage(IUserProvider users, HttpClient http, IAuth
         }
     }
 }
+
+/// <summary>
+///     A form whose messages come from the app's own resources: Hungarian for a Hungarian reader, .NET's English for
+///     an English one.
+/// </summary>
+[Route("/signup")]
+public sealed partial class SignUpPage : Component
+{
+    private readonly SignUp _signUp = new();
+
+    protected override Component? Render() =>
+        Form.Model(_signUp)[
+            Input.Bind(() => _signUp.Email).Id("email"),
+            Validation.Message.Template(messages => P.Id("email-error")[messages[0]]).For(() => _signUp.Email),
+            Button.Type(ButtonType.Submit).Id("save")["save"]
+        ];
+}
+
+public sealed class SignUp
+{
+    [Required]
+    [Display(Name = "E-mail")]
+    public string Email { get; set; } = "";
+}
+
+// The app's shared validation resources: Messages/ValidationMessages.hu.resx.
+public sealed class ValidationMessages;
 
 [Route("/login")]
 public sealed partial class SignInPage : Component

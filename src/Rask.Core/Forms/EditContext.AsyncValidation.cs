@@ -133,7 +133,7 @@ public sealed partial class EditContext
 
         // Fast sync path: nothing async to await. Inline first, then attribute-driven, and
         // first-error-wins short-circuits as soon as any stage flags the field.
-        if (!fieldDelegateIsAsync && !AwaitsValidators(committed))
+        if (!fieldDelegateIsAsync && !AwaitsValidators(field, committed))
         {
             if (hasFieldDelegate)
             {
@@ -155,17 +155,30 @@ public sealed partial class EditContext
             field, state, fieldReg, hasFieldDelegate, fieldDelegateIsAsync, committed, cts).ConfigureAwait(false);
     }
 
-    // A value still being typed is not put to the store, so a keystroke with nothing else to await stays synchronous.
-    private bool AwaitsValidators(bool committed)
+    // Whether checking this field awaits a registered validator. A value still being typed is not put to the store,
+    // and a validator scoped to other fields (an async attribute elsewhere on the model) is not asked, so a keystroke
+    // with nothing else to await stays synchronous.
+    private bool AwaitsValidators(FieldIdentifier field, bool committed)
     {
-        var awaited = _asyncValidators.Count;
-        if (!committed && awaited > 0 && _asyncValidators[^1] is StoreRuleValidator)
+#pragma warning disable S3267 // per keystroke: no enumerator/closure allocation
+        foreach (var v in _asyncValidators)
+#pragma warning restore S3267
         {
-            awaited--;
+            if (Asks(v, field, committed))
+            {
+                return true;
+            }
         }
 
-        return awaited > 0;
+        return false;
     }
+
+    private static bool Asks(IAsyncFieldValidator validator, FieldIdentifier field, bool committed) => validator switch
+    {
+        StoreRuleValidator => committed,
+        IFieldScopedValidator scoped => scoped.Covers(field),
+        _ => true,
+    };
 
     private async ValueTask<bool> ValidateFieldPendingAsync(
         FieldIdentifier field, FieldState state, DelegateRegistration fieldReg, bool hasFieldDelegate,
@@ -252,7 +265,7 @@ public sealed partial class EditContext
     {
         foreach (var v in _asyncValidators)
         {
-            if (!committed && v is StoreRuleValidator)
+            if (!Asks(v, field, committed))
             {
                 continue;
             }

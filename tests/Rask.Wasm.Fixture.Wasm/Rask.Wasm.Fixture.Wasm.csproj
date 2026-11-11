@@ -23,10 +23,14 @@
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>full</TrimMode>
     <NoWarn>$(NoWarn);IL2104</NoWarn>
+    <!-- Hungarian is one of the fixture's languages (Program.cs): ICU ships, so hu-HU is a culture of its own. -->
+    <RaskGlobalization>true</RaskGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
+    <!-- AddLocalization(): what a WASM app adds for resources of its own (the server has it in its framework). -->
+    <PackageReference Include="Microsoft.Extensions.Localization"/>
     <!-- PrivateAssets="all" from the above, so an in-repo app names them itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Auth.Client\Rask.Auth.Client.csproj"/>

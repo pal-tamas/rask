@@ -37,7 +37,7 @@ internal sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValida
     }
 
     /// <inheritdoc />
-    public ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
+    public async ValueTask<IReadOnlyList<RequestValidationError>> Validate(TRequest request)
     {
         // One switch means one switch. On the server c.Validation.Off() also clears
         // CqrsOptions.ValidateRequests, so this is redundant there; on WebAssembly there is no options
@@ -45,14 +45,15 @@ internal sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValida
         // and quietly leave requests being validated.
         if (request is null || !RaskValidation.AutoValidate)
         {
-            return ValueTask.FromResult<IReadOnlyList<RequestValidationError>>([]);
+            return [];
         }
 
-        // The same pass a Form runs, shaped for a caller with no EditContext.
-        var entries = DataAnnotationsFieldValidator.Validate(request, _services);
+        // The same pass a Form runs, shaped for a caller with no EditContext — its async rules awaited.
+        var entries = await DataAnnotationsFieldValidator.ValidateAwaited(request, _services, Ambient.CancellationToken)
+            .ConfigureAwait(false);
         if (entries.Count == 0)
         {
-            return ValueTask.FromResult<IReadOnlyList<RequestValidationError>>([]);
+            return [];
         }
 
         var errors = new List<RequestValidationError>(entries.Count);
@@ -61,6 +62,6 @@ internal sealed class DataAnnotationsRequestValidator<TRequest> : IRequestValida
             errors.Add(new RequestValidationError(entry.Field, entry.Message));
         }
 
-        return ValueTask.FromResult<IReadOnlyList<RequestValidationError>>(errors);
+        return errors;
     }
 }

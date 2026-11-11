@@ -12,7 +12,7 @@ For the analyzer IDs referenced here (`RASK001`, `RASK022`, …) see [diagnostic
 
 ## On this page
 
-- [Validation](forms-validation.md) — inline `.Validate(…)` on a field or the form, async rules, rules in a value object; then DataAnnotations and FluentValidation.
+- [Validation](forms-validation.md) — inline `.Validate(…)` on a field or the form, async rules, rules in a value object; then DataAnnotations (async attributes and messages from your own resources included) and FluentValidation.
 - [Nested models & control groups](forms-advanced.md) — complex models, radio/checkbox groups, custom controls.
 
 ---

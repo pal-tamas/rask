@@ -133,7 +133,9 @@ public static class RaskApiValidation
     {
         ArgumentNullException.ThrowIfNull(builder);
 
-        return builder.AddEndpointFilter(ValidateEndpointAsync);
+        // .NET's own endpoint validation (AddValidation(), which an app calls to configure its localized messages)
+        // steps aside here: this filter runs the same attributes and answers in the one shape a Rask client reads.
+        return builder.DisableValidation().AddEndpointFilter(ValidateEndpointAsync);
     }
 
     // ---- the two seams -------------------------------------------------------------------------
@@ -170,7 +172,8 @@ public static class RaskApiValidation
 
             // The attribute pass. A minimal API has no ModelState, so unlike the controller filter this
             // one runs it — the same DataAnnotationsFieldValidator a form and a dispatched request use.
-            foreach (var entry in DataAnnotationsFieldValidator.Validate(argument, services))
+            foreach (var entry in await DataAnnotationsFieldValidator.ValidateAwaited(argument, services, http.RequestAborted)
+                         .ConfigureAwait(false))
             {
                 Add(ref errors, entry.Field, entry.Message);
             }

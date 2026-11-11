@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **.NET 11's async DataAnnotations work in a form, with nothing declared (#1324).** Before: a uniqueness check on a
+  model was an `IAsyncFieldValidator` added to an `EditContext` you built yourself, and an `AsyncValidationAttribute`
+  was asked synchronously (its `IsValid`). After: `[Required, EmailAddress, UniqueEmail] public string Email` — the
+  attribute's `IsValidAsync` is awaited once the synchronous rules pass, an `IAsyncValidatableObject`'s
+  `ValidateAsync` runs in place of its `Validate`, the field reads `IsValidating` while the lookup is out (a field
+  with no async rule stays synchronous), a value changed again cancels the lookup in flight and drops a late answer,
+  and a lookup that throws says "Validation could not be completed." on its field — the form never submits past it,
+  and the exception is logged. A dispatched request and a minimal API body await the same attributes. Server and
+  WASM. No new public API. Guide: rask.sh/docs/forms-validation#an-async-attribute.
+- **A form's validation messages come from the app's own resources, the .NET 11 way (#1325).** Before: Hungarian
+  came only from Rask's `RaskStrings` catalog, one sentence per attribute, and an app's resources were not asked.
+  After: `AddLocalization()` + `AddValidation(o => o.LocalizerProvider = (_, f) => f.Create(typeof(ValidationMessages)))`
+  and a failed attribute is looked up with .NET's keys — its `ErrorMessage`, `{Type}_{Member}_{Attribute}_Error`,
+  `{Type}_{Attribute}_Error`, `{Attribute}_Error` — and written by the attribute's own `FormatMessage`, `{0}` the
+  `[Display]`/`[DisplayName]` name (looked up too). In the reader's language, in forms, dispatched requests and
+  minimal APIs, both hosts; the app's resources first, then the catalog, then .NET's English. An
+  `ErrorMessageResourceType` keeps its own resource; with no localizer nothing changes. `AddValidation()` no longer
+  switches on .NET's own minimal-API filter for endpoints Rask validates (`RequireRaskValidation` disables it), so
+  they keep the one rejection shape. No new public API; the `Rask` package now depends on `Microsoft.Extensions.Validation`
+  (11.0.0, its options type). Guide: rask.sh/docs/forms-validation#messages-from-your-own-resources.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server

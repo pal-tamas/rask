@@ -603,6 +603,10 @@ public sealed class Supplier
   class of your own, says exactly what it said.
 - **Where no catalog has the key** — every English reader, and a language neither your app nor the kit
   translates — .NET's own text stands, word for word.
+- **Your own resources come first.** An app that registers .NET 11's localized validation messages —
+  `AddLocalization()` and `AddValidation(o => o.LocalizerProvider = …)` — has them asked before this catalog, with
+  .NET's keys (`RequiredAttribute_Error`, `SignUp_Email_RequiredAttribute_Error`, …); see
+  [messages from your own resources](forms-validation.md#messages-from-your-own-resources).
 
 ### Every key
 

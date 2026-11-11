@@ -16,6 +16,11 @@ namespace Rask.Core.Forms;
 ///     <see cref="IValidatableObject" /> and every nested sub-object and collection item reachable
 ///     from the root.
 ///     <para>
+///         The asynchronous rules of .NET 11 — an <see cref="AsyncValidationAttribute" /> and an
+///         <see cref="IAsyncValidatableObject" /> — are awaited by the asynchronous half a <c>Form</c> registers beside
+///         this one; for those objects this pass asks only the synchronous attributes.
+///     </para>
+///     <para>
 ///         A <c>Form</c> registers this for you — see <see cref="RaskValidation.AutoValidate" /> to turn
 ///         that off. Client-side validation is a convenience, never a control: always validate again on
 ///         the server.
@@ -24,7 +29,7 @@ namespace Rask.Core.Forms;
 public sealed class DataAnnotationsFieldValidator : IFieldValidator
 {
     // What a failure that brought no message of its own says.
-    private const string Invalid = "Invalid value.";
+    internal const string Invalid = "Invalid value.";
 
     private readonly IServiceProvider? _services;
 
@@ -57,6 +62,30 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         foreach (var node in ModelGraphWalker.Walk(model))
         {
             foreach (var (member, message) in validator.ResultsFor(node))
+            {
+                entries.Add(new ValidationEntry(member, message));
+            }
+        }
+
+        return entries;
+    }
+
+    // The same pass for a caller that can await: a dispatched request, an endpoint. An object with async rules
+    // (AsyncAnnotationRules) is validated as .NET's asynchronous Validator would — its async attributes awaited, never
+    // asked synchronously — and every other object exactly as Validate above validates it.
+    internal static async ValueTask<IReadOnlyList<ValidationEntry>> ValidateAwaited(
+        object model, IServiceProvider? services, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        var entries = new List<ValidationEntry>();
+        var validator = new DataAnnotationsFieldValidator(services);
+        foreach (var node in ModelGraphWalker.Walk(model).ToList())
+        {
+            var results = AsyncAnnotationRules.Of(node.GetType()) is { } rules
+                ? await AsyncAnnotationPass.Results(node, rules, services, faulted: null, cancellationToken).ConfigureAwait(false)
+                : validator.ResultsFor(node);
+            foreach (var (member, message) in results)
             {
                 entries.Add(new ValidationEntry(member, message));
             }
@@ -102,8 +131,16 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        // An object with async rules is the asynchronous half's, whole, when the form has it: asked here, an async
+        // attribute would be asked synchronously, and an IAsyncValidatableObject's synchronous Validate run as well.
+        var awaited = context.HasAsyncValidator(typeof(DataAnnotationsAsyncValidator));
         foreach (var node in ModelGraphWalker.Walk(context.Model))
         {
+            if (awaited && AsyncAnnotationRules.Of(node.GetType()) is not null)
+            {
+                continue;
+            }
+
             foreach (var (member, message) in ResultsFor(node))
             {
                 context.AddValidationMessage(new FieldIdentifier(node, member), message);
@@ -137,7 +174,20 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         var ctx = NewValidationContext(owner);
         ctx.MemberName = field.FieldName;
         var results = new List<ValidationResult>();
-        Validator.TryValidateProperty(prop.GetValue(owner), ctx, results);
+
+        // With the asynchronous half on the form, a field's async attributes and an IAsyncValidatableObject's rules
+        // are its to await: this asks the field's synchronous attributes only, and those first.
+        var rules = context.HasAsyncValidator(typeof(DataAnnotationsAsyncValidator))
+            ? AsyncAnnotationRules.Of(owner.GetType())
+            : null;
+        if (rules?.Find(field.FieldName) is { Async.Length: > 0 } member)
+        {
+            Validator.TryValidateValue(prop.GetValue(owner), ctx, results, member.AllSync);
+        }
+        else
+        {
+            Validator.TryValidateProperty(prop.GetValue(owner), ctx, results);
+        }
 
         foreach (var r in results)
         {
@@ -147,7 +197,7 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         // IValidatableObject is a whole-object rule, so re-run it for per-field revalidation
         // and surface only results that name this field. Cross-field rules referencing the
         // active field stay reactive; rules targeting other fields don't bleed in.
-        if (owner is IValidatableObject validatable)
+        if (owner is IValidatableObject validatable && rules is not { AsyncObject: true })
         {
             var fullCtx = NewValidationContext(owner);
             foreach (var r in validatable.Validate(fullCtx)
@@ -168,7 +218,7 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         Justification = "TryValidateObject reflects over the node's runtime type — same trim contract " +
                         "as the root: the consumer is responsible for preserving every reachable model " +
                         "type's public properties, typically via [DynamicallyAccessedMembers].")]
-    private IEnumerable<(string Member, string Message)> ResultsFor(object node)
+    private List<(string Member, string Message)> ResultsFor(object node)
     {
         var results = new List<ValidationResult>();
         var ctx = NewValidationContext(node);
@@ -196,6 +246,7 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
         // pass has no EditContext behind it, and without this a dispatched request would put every
         // object-level failure on the wire twice.
         var seen = new HashSet<(string, string)>();
+        var failures = new List<(string Member, string Message)>();
 
         // ValidationResult.Success IS null, and an IValidatableObject is free to yield it — the BCL
         // filters those out, so anything hand-rolling this loop has to as well or it dereferences
@@ -207,11 +258,10 @@ public sealed class DataAnnotationsFieldValidator : IFieldValidator
             IEnumerable<string> fields = members.Count == 0 ? [string.Empty] : members;
 
             // HashSet.Add is the "not seen yet" test: it records the pair as it passes it.
-            foreach (var pair in fields.Select(m => (m, message)).Where(seen.Add))
-            {
-                yield return pair;
-            }
+            failures.AddRange(fields.Select(m => (m, message)).Where(seen.Add));
         }
+
+        return failures;
     }
 
     // ASP.NET Core / Blazor parity: ValidationContext is constructed with the render-scoped

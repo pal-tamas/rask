@@ -43,7 +43,7 @@ public sealed partial class EditContext : IDisposable
     private Delegate? _formDelegate;
 
     // What a validator that throws leaves on its field: a crashed rule must not crash the form.
-    private const string CouldNotValidate = "Validation could not be completed.";
+    internal const string CouldNotValidate = "Validation could not be completed.";
 
     /// <summary>Creates a context for <paramref name="model" />, the object whose fields are edited.</summary>
     /// <param name="model">The form's model. Fields bind to its properties, and to those of any nested
