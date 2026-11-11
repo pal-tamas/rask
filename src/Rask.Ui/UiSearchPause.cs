@@ -16,10 +16,18 @@ namespace Rask;
 internal static class UiSearchPause
 {
     /// <summary>
-    ///     The pause before a control that asks the page itself (<c>Search</c>) asks it, unless a slot's <c>Debounce</c>
-    ///     says otherwise: a word, not a letter, as both apps' pickers waited.
+    ///     The pause before a control that asks the page itself (<c>Search</c>, <c>.Choices(find)</c>) asks it, unless a
+    ///     slot's <c>Debounce</c> says otherwise: Livewire's <c>wire:model.live</c>, which Flux's backend search is
+    ///     written with — measured on fluxui.dev (2026-11-10), its question leaves 150 ms after the last key.
     /// </summary>
-    internal static readonly TimeSpan Asked = TimeSpan.FromMilliseconds(250);
+    internal static readonly TimeSpan Asked = TimeSpan.FromMilliseconds(150);
+
+    /// <summary>
+    ///     On a field whose text asks the page: the runtime marks it waiting (<c>data-loading</c>) the moment its
+    ///     question leaves, not 200 ms later as a button (<c>rask-loading.ts</c>) — the reader has waited out the
+    ///     pause already, and Flux's spinner shows at once.
+    /// </summary>
+    internal const string LoadsAtOnce = "data-rask-loading-now";
 
     /// <summary>
     ///     The pause before a windowed list the select narrows itself hears what was typed, unless a slot's <c>Debounce</c>
@@ -54,6 +62,7 @@ internal static class UiSearchPause
         {
             ["data-rask-debounce"] = pause.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["data-rask-on-pause"] = live.RegisterHandler(atPause),
+            [LoadsAtOnce] = null,
         };
     }
 }

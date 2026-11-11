@@ -21,6 +21,7 @@ public sealed class RaskJobsOptionsBindingTests
         ["Rask:Jobs:MaxRetryDelay"] = "00:30:00",
         ["Rask:Jobs:Retention"] = "2.00:00:00",
         ["Rask:Jobs:ShutdownGracePeriod"] = "00:00:03",
+        ["Rask:Jobs:StopAfter"] = "01:30:00",
         ["Rask:Jobs:TimeZone"] = "Europe/Budapest",
     };
 
@@ -39,6 +40,7 @@ public sealed class RaskJobsOptionsBindingTests
         Assert.Equal(TimeSpan.FromMinutes(30), options.MaxRetryDelay);
         Assert.Equal(TimeSpan.FromDays(2), options.Retention);
         Assert.Equal(TimeSpan.FromSeconds(3), options.ShutdownGracePeriod);
+        Assert.Equal(TimeSpan.FromMinutes(90), options.StopAfter);
         Assert.Equal(TimeZoneInfo.FindSystemTimeZoneById("Europe/Budapest"), options.TimeZone);
     }
 
@@ -121,6 +123,69 @@ public sealed class RaskJobsOptionsBindingTests
         using var provider = services.BuildServiceProvider();
 
         Assert.Equal(25, provider.GetRequiredService<JobsOptions>().MaxAttempts);
+    }
+
+    [Fact]
+    public void A_job_types_limits_bind_from_its_short_name()
+    {
+        using var provider = Provider(new()
+        {
+            ["Rask:Jobs:Limit:ParkJob:After"] = "00:30:00",
+            ["Rask:Jobs:Limit:ParkJob:IdleFor"] = "00:05:00",
+        });
+
+        var options = provider.GetRequiredService<JobsOptions>();
+
+        Assert.Equal(
+            ((TimeSpan?)TimeSpan.FromMinutes(30), (TimeSpan?)TimeSpan.FromMinutes(5)),
+            options.LimitsOf("Rask.Background.Tests.ParkJob", new ParkJob("x")));
+    }
+
+    [Fact]
+    public void A_limit_in_code_wins_over_configuration_part_by_part()
+    {
+        using var provider = Provider(
+            new()
+            {
+                ["Rask:Jobs:Limit:ParkJob:After"] = "00:30:00",
+                ["Rask:Jobs:Limit:ParkJob:IdleFor"] = "00:05:00",
+                ["Rask:Jobs:StopAfter"] = "02:00:00",
+            },
+            o => o.Limit<ParkJob>().After(TimeSpan.FromMinutes(10)));
+
+        var options = provider.GetRequiredService<JobsOptions>();
+
+        Assert.Equal(
+            ((TimeSpan?)TimeSpan.FromMinutes(10), (TimeSpan?)TimeSpan.FromMinutes(5)),
+            options.LimitsOf("Rask.Background.Tests.ParkJob", new ParkJob("x")));
+        Assert.Equal(
+            ((TimeSpan?)TimeSpan.FromHours(2), (TimeSpan?)null),
+            options.LimitsOf("Rask.Background.Tests.ChattyJob", new ChattyJob("x")));
+    }
+
+    [Fact]
+    public void Without_configuration_no_job_has_a_time_limit()
+    {
+        using var provider = Provider([]);
+
+        var options = provider.GetRequiredService<JobsOptions>();
+
+        Assert.Equal(Timeout.InfiniteTimeSpan, options.StopAfter);
+        Assert.Equal(((TimeSpan?)null, (TimeSpan?)null), options.LimitsOf("Rask.Background.Tests.ParkJob", new ParkJob("x")));
+    }
+
+    [Theory]
+    [InlineData("Rask:Jobs:Limit:ParkJob:After", "soon")]
+    [InlineData("Rask:Jobs:Limit:ParkJob:IdleFor", "00:00:00")]
+    [InlineData("Rask:Jobs:Limit:ParkJob:After", "-00:01:00")]
+    [InlineData("Rask:Jobs:StopAfter", "00:00:00")]
+    public void A_bad_limit_fails_the_boot_naming_its_key(string key, string value)
+    {
+        using var provider = Provider(new() { [key] = value });
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<JobsOptions>());
+
+        Assert.Contains(key, ex.Message, StringComparison.Ordinal);
     }
 
     private static ServiceProvider Provider(Dictionary<string, string?> settings, Action<JobsOptions>? configure = null)

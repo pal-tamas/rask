@@ -16,6 +16,7 @@ internal sealed class JobsOptionsValidator : IValidateOptions<JobsOptions>
         CheckPolling(options, failures);
         CheckRetries(options, failures);
         CheckShutdownGracePeriod(options.ShutdownGracePeriod, failures);
+        CheckLimits(options, failures);
 
         // `o.Run<Backup>();` with no cadence compiles and would then never run — the quietest possible
         // failure, so it is refused at boot instead.
@@ -78,6 +79,28 @@ internal sealed class JobsOptionsValidator : IValidateOptions<JobsOptions>
         if (options.Retention < TimeSpan.Zero)
         {
             failures.Add("Rask:Jobs:Retention cannot be negative.");
+        }
+    }
+
+    // A limit of zero or less would stop every job of its type the moment it starts: refused, naming the key that says it.
+    private static void CheckLimits(JobsOptions options, List<string> failures)
+    {
+        if (options.StopAfter != Timeout.InfiniteTimeSpan && options.StopAfter <= TimeSpan.Zero)
+        {
+            failures.Add("Rask:Jobs:StopAfter must be positive, or left unset for no time limit.");
+        }
+
+        foreach (var (type, rule) in options.ConfiguredLimits)
+        {
+            if (rule.After is { } after && after <= TimeSpan.Zero)
+            {
+                failures.Add($"Rask:Jobs:Limit:{type}:After must be positive.");
+            }
+
+            if (rule.IdleFor is { } idle && idle <= TimeSpan.Zero)
+            {
+                failures.Add($"Rask:Jobs:Limit:{type}:IdleFor must be positive.");
+            }
         }
     }
 

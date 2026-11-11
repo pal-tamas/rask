@@ -27,8 +27,26 @@ them until tagged releases begin.
   stayed in (the edge rule that keeps it inside the heading outweighed the pull meant to take it back), so TA's
   "Liter" heading stood 8px left of its right-aligned numbers. After: an end-aligned sort button gives up its end
   padding, and heading and cells share one edge, at 1280 and 390.
+### Fixed
+- **A kit tooltip no longer opens when focus comes back to its trigger after a menu closes.** Before: on a list whose
+  `Ui.RowActions` ⋯ wears the tooltip "Actions", opening its menu with the mouse and closing it — a pick, a click
+  outside, or Escape — handed focus back to the ⋯, which Chrome and WebKit count as `:focus-visible`, so the tooltip
+  opened and stayed until the next click. After: `data-rask-tooltip` (`rask-hover.ts`) opens a tooltip on focus only
+  when the keyboard moved it there — a Tab, an arrow key, a shortcut's `focus()` — never when it is handed back by a
+  closing popover or dialog, or by a script after a press; a tooltip the pointer showed over a trigger that merely has
+  focus leaves with the pointer. As Flux UI's does (measured on its editor's link button, `flux tooltip-focus-return`).
+  Every kit tooltip, both hosts.
 
 ### Changed
+- **A search that asks the page feels like Flux's: it asks sooner, spins at once, and its create row waits.** Before: a
+  select's, pillbox's or `.Choices(find)`'s search asked 250 ms after the last key and its field spun 200 ms after that
+  (~450 ms), and a create row could be pressed while the answer was still on its way. After: it asks after 150 ms
+  (Livewire's `wire:model.live`, measured on fluxui.dev); a list's search field takes `data-loading` and its spinner
+  the moment the question leaves (`data-rask-loading-now`, which any element can carry — buttons keep the 200 ms
+  delay); and `Ui.SelectOptionCreate` / `Ui.PillboxOptionCreate` is `aria-disabled`, stepped over by the keys and refuses
+  a click while a search is out, and once pressed spins and holds the list open until its handler is done — one option made, however
+  often it is pressed. An empty list still says "Loading..." while a search is out (Flux keeps "No results found":
+  an owner-approved departure). The docs' and site's searches answer with the best twenty (`.Take(20)`), as Flux's.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
@@ -186,6 +204,36 @@ them until tagged releases begin.
   out together, after a `Reading what runs on <host>…` line. See [Deployment](docs/deployment.md).
 
 ### Added
+- **Rask.Jobs: a running job can be stopped — by hand, at a time limit, or when it stops reporting progress — and a
+  lane can be read.** Before: nothing cancelled a job but shutdown (`LeaseDuration` is a recovery window, not a
+  timeout), so a hung job held its lane for as long as the process lived; a row deleted or marked done from outside —
+  the dashboard's Delete included — left its job running; and an app that needed any of this wrote its own (TA's
+  `PumpStops`/`PumpLimits`/`PumpLaneView`, ~450 lines). After:
+  `await Jobs.Stop(id)` (`IJobs.Stop` injected) cancels that job's own `Current.Cancellation` on whichever host runs it,
+  and a waiting job never runs; `c.Jobs.Limit<AtPump>().After(30.Minutes).IdleFor(5.Minutes)` — or
+  `.After(job => …)`, or `Rask:Jobs:Limit:AtPump:After`/`:IdleFor`, code winning part by part, and the opt-in
+  app-wide `JobsOptions.StopAfter` (`Rask:Jobs:StopAfter`, default infinite) — stops it by itself, measured from its
+  handler's start on the processor's clock; every `Jobs.Report("…")` (new: the smallest form of #1293's progress,
+  in memory, a no-op outside a job) restarts the idle clock. A stopped job ends **stopped** (`Job.Stopped`:
+  `JobStop.Asked`/`TimeLimit`/`Idle`), not failed: no retry, no dead letter, no `Error`, its claim and lane given back
+  at once, the lane's next job running on the same host. `Jobs.Stopped` says why inside the handler; an awaited job
+  throws `JobStoppedException : OperationCanceledException` (`.Stop`). A row marked done or deleted from outside stops
+  its job within one `PollInterval` (`JobStop.DoneElsewhere`, its row left as is), read by row id so the same work
+  enqueued again is never mistaken for it; a handler that ignores its token holds its lane and is logged
+  (`JobIgnoresStop`) once a minute. `await Jobs.Lanes(ids)` / `Jobs.Lane(id)` read what runs and what waits
+  (`JobLane`, `LaneJob`) in one query. New logs `JobStopped`, `JobStoppedAtLimit`, `JobStoppedIdle`,
+  `JobDoneElsewhere`, `JobIgnoresStop`, `JobWatchFailed`; metric `rask.jobs.stopped{reason}`. The `/_rask` Jobs queue
+  gets a Running slice (`QueueFilter.Running`, `QueueCounts.Running`), a Lane column, a Stop row button behind a
+  confirmation, and the stopped statuses; Retry no longer resets a job whose last attempt is still running.
+  **Upgrade:** two new columns, `Stopped` and `StartedAt`: `rask db add AddJobStop && rask db update` (until then the
+  processor logs exactly that). See [docs/jobs.md](docs/jobs.md#stop-a-job-give-it-a-limit-read-a-lane).
+- **Rask.Jobs' stop, limits and lane view are proven on SQL Server and PostgreSQL** (the provider gate,
+  `Rask.Providers.E2E.Tests`' `SqlServerJobStopTests`/`PostgresJobStopTests`). Before: only SQLite ran them. After, on
+  each server: the `AddJobStop` migration over a table that already holds pending, running, processed and dead-lettered
+  jobs (the missing-column hint first, every row kept with `Stopped`/`StartedAt` null, the due ones run); `Jobs.Lanes`
+  as one query; a stop of a running and of a waiting lane job; a time limit and an idle limit cut at the watch's tick;
+  the first reason standing when a stop and a limit meet; a row deleted or marked done from outside; `int`/`integer`
+  and `datetime2`/`timestamptz` round trips.
 - **Rask UI's table, tabs and chart say more to a screen reader and the keyboard** (owner, 2026-11-10). Before: a
   sorted `Ui.TableColumn` drew its chevron and said nothing; a sticky column never cast its shadow in a browser without
   scroll-driven animations (Firefox); `Home`/`End` in a `Ui.Tabs` row did nothing; and a `Ui.Chart` was an SVG a screen

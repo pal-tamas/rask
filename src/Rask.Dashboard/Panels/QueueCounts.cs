@@ -10,9 +10,10 @@ namespace Rask.Dashboard.Panels;
 /// <param name="Delayed">Waiting on a backoff or a scheduled time.</param>
 /// <param name="Failed">Out of attempts and still unprocessed — dead letters.</param>
 /// <param name="Processed">Completed.</param>
+/// <param name="Running">In a handler right now. Always zero for a queue that does not say what runs (mail, the outbox).</param>
 [StructLayout(LayoutKind.Auto)]
-public readonly record struct QueueCounts(int Due, int Delayed, int Failed, int Processed)
+public readonly record struct QueueCounts(int Due, int Delayed, int Failed, int Processed, int Running = 0)
 {
     /// <summary>Everything not yet processed, whatever the reason.</summary>
-    public int Outstanding => Due + Delayed + Failed;
+    public int Outstanding => Due + Delayed + Failed + Running;
 }

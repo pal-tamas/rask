@@ -96,10 +96,48 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
 
         await Pause(page, " ber ");
 
-        Assert.Equal("250", page.Find(Field).Attribute("data-rask-debounce"));
+        Assert.Equal("150", page.Find(Field).Attribute("data-rask-debounce"));
         Assert.NotNull(page.Find(Field).Attribute("data-rask-on-pause"));
         Assert.Equal(["", "ber"], _asked);
         Assert.Equal(["Beretta", "Bersa"], Rows(page));
+    }
+
+    [Fact]
+    public void The_search_field_and_a_combobox_input_say_they_wait_the_moment_they_ask()
+    {
+        var listbox = Acting.Render(One);
+        var combobox = Acting.Render(() => Ui.Select.Value(_picked).OnChange(value => _picked = value).Combobox.Search(Find));
+
+        var field = listbox.Find(Field);
+        var input = combobox.Find("input[role=\"combobox\"]");
+
+        Assert.NotNull(field.Attribute("data-rask-loading-now"));
+        Assert.NotNull(input.Attribute("data-rask-loading-now"));
+    }
+
+    [Fact]
+    public void A_field_that_asks_nothing_waits_on_nothing()
+    {
+        var page = Acting.Render(() => Ui.Select.Value(_picked).OnChange(value => _picked = value).Listbox.Searchable()[
+            Ui.SelectOption.Value(1)["Glock"], Ui.SelectOption.Value(2)["Beretta"]
+        ]);
+
+        var field = page.Find(Field);
+
+        Assert.Null(field.Attribute("data-rask-loading-now"));
+    }
+
+    [Fact]
+    public void The_create_row_spins_at_once_when_pressed_and_refuses_a_second_press()
+    {
+        var page = Acting.Render(() => Ui.Select.Value(_picked).OnChange(value => _picked = value).Search(Find)[
+            Ui.SelectOptionCreate.OnClick(_ => { })["Create partner"]
+        ]);
+
+        var create = page.Find("[data-ui-option-create]");
+
+        Assert.NotNull(create.Attribute("data-rask-loading"));
+        Assert.NotNull(create.Attribute("data-rask-loading-now"));
     }
 
     [Fact]
@@ -234,7 +272,7 @@ public partial class UiSelectAskedSearchTests : global::Rask.Core.RaskMarkup
         await page.On(input).Raise("pause", "{\"value\":\"wal\"}");
 
         Assert.False(page.Exists(Field));
-        Assert.Equal("250", page.Find(input).Attribute("data-rask-debounce"));
+        Assert.Equal("150", page.Find(input).Attribute("data-rask-debounce"));
         Assert.Equal(["Walther"], Rows(page));
         // Flux's spinner beside the chevron, and room for it, while the input waits on the answer.
         Assert.Contains("data-loading:pe-16", page.Find(input).Attribute("class")!.Split(' '));
