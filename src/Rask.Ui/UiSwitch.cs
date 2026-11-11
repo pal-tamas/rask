@@ -27,7 +27,7 @@ public sealed partial class UiSwitch : Component, IFormControl<bool>, IUiFormCon
         + "bg-zinc-800/15 has-checked:bg-accent "
         + "dark:border dark:border-white/20 dark:bg-transparent dark:has-checked:border-0 dark:has-checked:bg-accent "
         + "has-disabled:opacity-50 dark:has-disabled:border-white/10 "
-        + "outline-offset-2 " + UiOptionLook.Focus;
+        + UiFocusLook.OnAccentChecked + " " + UiOptionLook.FocusInside;
 
     // 14px, 3px from the edge it rests against: 12px of travel.
     private const string Thumb =

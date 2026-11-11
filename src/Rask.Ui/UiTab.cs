@@ -199,11 +199,13 @@ public sealed partial class UiTab : Component
         "data-selected:bg-accent hover:data-selected:bg-accent dark:data-selected:bg-accent "
         + "dark:hover:data-selected:bg-accent data-selected:text-accent-foreground "
         + "hover:data-selected:text-accent-foreground dark:data-selected:text-accent-foreground "
-        + "dark:hover:data-selected:text-accent-foreground";
+        + "dark:hover:data-selected:text-accent-foreground "
+        + "data-selected:focus-visible:shadow-[inset_0_0_0_4px_var(--color-accent-foreground)]";
     private const string PillPaintBase =
         "data-selected:bg-zinc-800 hover:data-selected:bg-zinc-800 data-selected:text-white "
         + "hover:data-selected:text-white dark:data-selected:bg-white dark:hover:data-selected:bg-white "
-        + "dark:data-selected:text-zinc-800 dark:hover:data-selected:text-zinc-800";
+        + "dark:data-selected:text-zinc-800 dark:hover:data-selected:text-zinc-800 "
+        + "data-selected:focus-visible:shadow-[inset_0_0_0_4px_currentColor]";
 
     private const string Unavailable = "disabled:pointer-events-none disabled:opacity-50 dark:disabled:opacity-75";
 }

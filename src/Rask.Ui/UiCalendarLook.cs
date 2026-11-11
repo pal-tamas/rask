@@ -81,7 +81,7 @@ internal static class UiCalendarLook
 
     internal const string DaySelected =
         "flex flex-col items-center justify-center rounded-lg text-sm font-medium "
-        + "bg-accent text-accent-foreground";
+        + "bg-accent text-accent-foreground " + UiFocusLook.OnAccent;
 
     internal const string DayStatic = "relative flex items-center justify-center rounded-lg text-sm font-medium text-zinc-800 dark:text-white";
 

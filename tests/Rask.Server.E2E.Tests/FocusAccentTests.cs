@@ -50,7 +50,7 @@ public sealed class FocusAccentTests(PlaywrightFixture playwright) : IClassFixtu
     }
 
     [Fact]
-    public async Task A_button_keeps_the_browsers_keyboard_ring()
+    public async Task A_button_draws_the_keyboard_ring_in_the_accent()
     {
         await using var session = await OpenAsync();
         var page = session.Page;
@@ -58,7 +58,8 @@ public sealed class FocusAccentTests(PlaywrightFixture playwright) : IClassFixtu
         await page.Keyboard.PressAsync("Tab");
         await page.FocusAsync("#save");
 
-        await Expect(page.Locator("#save")).Not.ToHaveCSSAsync("outline-style", "none");
+        await Expect(page.Locator("#save")).ToHaveCSSAsync("outline-style", "solid");
+        await Expect(page.Locator("#save")).ToHaveCSSAsync("outline-offset", "-2px");
     }
 
     private async Task<HookSession> OpenAsync()

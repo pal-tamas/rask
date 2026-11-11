@@ -7,6 +7,20 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Rask.Ui's keyboard focus ring is the app's accent, and nothing clips it.** Before: a button, tab, link, nav item,
+  checkbox, radio or switch kept the browser's blue ring (Flux leaves it to the browser), drawn OUTSIDE the control —
+  on TA's list, Safari's blue glow round `Ui.RowActions`' ⋯ in the table's sticky last cell, cut in half by the
+  table's scroll frame. After: every element the keyboard focuses draws 2px of `--color-accent` inside its own box
+  (one zero-weight `:where(:focus-visible)` rule in `@layer rask`, so an app's own buttons and links follow and any
+  utility still wins), a box, radio or switch on what the reader sees of it, inside it too (a selection box in a
+  table's first column sits on the scroll frame's edge); a primary button, a ticked box, a switch that is on, a chosen
+  pill tab, day or preset adds a band of `--color-accent-foreground` inside the ring so it shows on the accent fill;
+  a sort button in a table's first or last heading no longer hangs past the scroll frame (its words stand 4px in). `:focus-visible` only — a press draws nothing. An owner-approved departure from Flux
+  (flux-component's list); `flux parity` / `flux parity-focus` hold it. `UiKeyboardRingTests`, and an E2E sweep that
+  Tabs through every control of the kit's showcase pages and TA's list shape on the Server host, at 1280 and 390,
+  light and dark: every ring the accent, none cut by a box around it (`UiKitKeyboardRingTests`, `KeyboardRingTests`).
+
 ### Changed
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
