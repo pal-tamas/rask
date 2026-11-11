@@ -373,15 +373,11 @@ public abstract partial class SharedSmokeTests
 
         // Forward navigation moves focus into the new page's <main> and announces the route via the
         // aria-live region, so keyboard/screen-reader users continue from the new page (not the stale
-        // nav link) and hear the change. Server live-runtime only (rask.js) for now; the WASM host's
-        // navigation path is a follow-up.
-        if (FixtureName == "Server")
-        {
-            await Expect(Page.Locator("main.page-main")).ToBeFocusedAsync(
-                new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
-            await Expect(Page.Locator(".rask-route-announcer")).Not.ToBeEmptyAsync(
-                new LocatorAssertionsToBeEmptyOptions { Timeout = 3_000 });
-        }
+        // nav link) and hear the change — on both hosts (rask-route-focus.ts).
+        await Expect(Page.Locator("main.page-main")).ToBeFocusedAsync(
+            new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
+        await Expect(Page.Locator(".rask-route-announcer")).Not.ToBeEmptyAsync(
+            new LocatorAssertionsToBeEmptyOptions { Timeout = 3_000 });
 
         var count = Page.Locator("#cqrs-count");
         await Expect(count).ToHaveTextAsync("0", new LocatorAssertionsToHaveTextOptions { Timeout = 15_000 });
@@ -1394,6 +1390,8 @@ public abstract partial class SharedSmokeTests
         await Expect(route.GetByText(refusal))
             .ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await Expect(route.Locator("#v13-name")).ToHaveAttributeAsync("aria-invalid", "true");
+        // And the refusal takes the reader back to the field it names (rask-first-invalid.ts).
+        await Expect(route.Locator("#v13-name")).ToBeFocusedAsync();
         await route.Locator("#v13-name").FillAsync("Wien – Graz");
         await Expect(route.GetByText(refusal)).ToBeHiddenAsync();
         await route.Locator("button[type=submit]").ClickAsync();
@@ -1946,7 +1944,7 @@ public abstract partial class SharedSmokeTests
             if (opts.OfflineReconnect)
             {
                 // Server only: on a high-latency link a handler round-trip should surface the
-                // slow-link pending bar (it appears past the ~300ms threshold) and then clear
+                // slow-link pending bar (it appears past the 150 ms threshold) and then clear
                 // when the ack/render lands. 1.5s latency keeps the bar up long enough to assert
                 // without racing the reply.
                 await cdp.SendAsync("Network.emulateNetworkConditions", new Dictionary<string, object>

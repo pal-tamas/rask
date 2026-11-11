@@ -173,8 +173,8 @@ whole shell, so there's no teardown.
 
 ### Server: the pending-action bar and the handler ack
 
-`rask.js` installs a managed (`data-rask-managed`) 2px top-of-viewport bar that
-appears when a handler round-trip outlives `PENDING_LATENCY_MS` (~300ms) and clears
+`rask.js` shows a managed (`data-rask-managed`) 2px top-of-viewport bar (`rask-progress.ts`, shared with the WASM host) that
+appears when a handler round-trip outlives `PENDING_LATENCY_MS` (150 ms) and clears
 when the reply lands — distinct from, and one z-index below, the full reconnect
 overlay. It is driven by an **opt-in ack protocol**:
 

@@ -42,7 +42,8 @@ public partial class UiNavbarTests : global::Rask.Core.RaskMarkup
 
         Assert.DoesNotContain("overflow", plain, StringComparison.Ordinal);
         Assert.StartsWith(
-            "<nav class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-[2px] [:where(&amp;)]:py-3 overflow-x-auto overflow-y-hidden\" data-ui-navbar>", scrollable, StringComparison.Ordinal);
+            "<nav class=\"[:where(&amp;)]:flex items-center [:where(&amp;)]:gap-[2px] [:where(&amp;)]:py-3 overflow-x-auto overflow-y-hidden\" data-rask-reveal-focus=\"\" data-ui-navbar>", scrollable, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-rask-reveal-focus", plain, StringComparison.Ordinal);
     }
 
     [Fact]

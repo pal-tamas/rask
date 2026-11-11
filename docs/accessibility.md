@@ -159,6 +159,23 @@ Building your own control from the core `Input`/`Validation.Message` primitives?
 attributes: `.AriaInvalid(AriaInvalid.True).AriaDescribedBy(errorId)` on the control, and give the message
 element that id. See [forms-validation.md](forms-validation.md).
 
+### A refused submit takes the reader to the first mistake
+
+When a submit is **refused** — the form's rules failed, or the save threw field failures — the runtime moves focus
+to the first field marked `aria-invalid="true"`, in document order, and scrolls it to the middle of the view
+(smoothly, or at once for a reader who asked for reduced motion). Both hosts do it, with nothing to wire:
+
+- **Only a refusal.** The form renders how many submits it has refused (`data-rask-refused`); a submit whose answer
+  moved that count was refused. A submit that went through moves no focus, whatever else is still marked. The
+  browser's own constraint check (`required`, `type="email"`) already focuses its field and sends nothing.
+- **Only what can take focus.** A field not on screen, disabled or inside an `inert` part is passed over. A kit
+  control whose mark sits on a wrapper (`Ui.Select`, `Ui.DatePicker`, `Ui.Pillbox`) hands focus to the first
+  focusable thing inside it — its trigger or its input.
+- **On the right tab.** `Ui.FormTabs` opens the tab holding the first invalid field on a refusal; the field is
+  focused once that tab is shown.
+- **Not over the reader.** A reader who moved focus elsewhere while the submit was in flight — into another field,
+  a menu — stays there.
+
 ## Focus trapping (overlays)
 
 Any element that carries `data-rask-focus-trap` gets accessible-overlay focus management from the
@@ -212,7 +229,13 @@ judges it, so a press with the mouse draws nothing. A checkbox, radio or switch 
 — a selection box in a table's first column too; where the fill IS the accent (a primary button, a ticked box, a
 switch that is on, a chosen pill tab or day) a 2px band of `--color-accent-foreground` lies inside the ring so it
 still shows. A field draws its own accent ring: its border and
-an inset 1px ring.
+an inset 1px ring — a browser date or time field keeps it while its calendar or clock button has the focus. A hidden
+input rings what stands for it: a file field's "Choose file", an upload's dropzone.
+
+A control the keyboard reaches is never left half past its frame: a table's scroll area and a
+`Ui.Navbar.Scrollable()` carry `data-rask-reveal-focus`, and the runtime scrolls a control focused from the keyboard
+whole into view, by the least movement — the browser scrolls to one wholly hidden but leaves one it can partly see
+where it is, its ring cut at the frame. A press scrolls nothing.
 
 The rule is one zero-weight `:where(:focus-visible)` in the kit's `@layer rask`, so your own buttons and links are
 ringed in your accent too, and any utility of yours (`focus-visible:outline-*`, `outline-hidden`) wins. Menu rows and
@@ -337,10 +360,14 @@ A `NavLink` to the page being shown writes `aria-current="page"` beside its acti
 announces as "current page", where a class says nothing. An empty `ActiveClass` opts out of both, and an
 `aria-current` the call site sets wins. Rask UI's `Ui.NavbarItem` and `Ui.NavlistItem` are built on it.
 
-Client-side (SPA) route changes on the Server live runtime are handled accessibly without any wiring:
+Client-side (SPA) route changes are handled accessibly without any wiring, the same on the Server host and in
+WebAssembly (one runtime module, `rask-route-focus.ts`, serves both):
 
-- **Progress.** A slow server-side route render surfaces the top progress bar (the same one a slow
-  handler round-trip uses), after a ~300 ms grace so a fast navigation never flashes it.
+- **Progress.** A navigation or a handler whose answer takes longer than **150 ms** (Livewire's measured
+  value) surfaces a thin bar along the top of the viewport, so a fast one never flashes it. It is drawn in the
+  app's accent (`--color-accent`, which Rask UI's theme sets; Rask's purple where an app has none), and holds
+  still for a reader who asked for reduced motion. In WebAssembly the page renders in the tab, so it is rarely
+  seen there.
 - **Focus.** A forward navigation moves focus into the new page's `<main>` (or its first
   `<h1>`), so a keyboard user continues from the new page instead of the now-removed nav link at the top
   of the document. Give your layout a `<main>` (`Main[...]`) to anchor this. A page that asks for focus
@@ -348,10 +375,11 @@ Client-side (SPA) route changes on the Server live runtime are handled accessibl
 - **Announcement.** The new page's `<title>` is announced through a polite `aria-live` region, so a
   screen-reader user hears the route changed — wherever focus went.
 
-Back/Forward (popstate) navigation leaves scroll to the browser's native restoration, and moves focus only
-to an `autofocus` field that arrives with the page. (The progress bar, the move to `<main>` and the
-announcement are the Server host's today; the WASM navigation path is a follow-up. `autofocus` is acted on
-by both hosts.)
+A link to a `#fragment` scrolls to and focuses the element it names; a page with neither a `<main>` nor an
+`<h1>` leaves focus where it is and is still announced. Back/Forward (popstate) navigation is announced too,
+but leaves scroll to the browser's native restoration and moves focus only to an `autofocus` field that
+arrives with the page. A replaced address the reader did not go Back for — a query the page set, a redirect —
+is the same page and says nothing.
 
 ### `autofocus` on a page reached in place
 

@@ -13,6 +13,11 @@
 //     about virtualized rows.)
 //   * data-rask-press-keeps-focus: a mouse press on it (or inside it) does not move focus. Flux UI's colour
 //     area is dragged with focus left wherever it was.
+//   * data-rask-reveal-focus on a scroll area (a table's, a scrollable navbar): a control the KEYBOARD reaches
+//     inside it is brought whole into the area's view, by the least movement, sideways too. The browser scrolls
+//     to one wholly out of view but leaves one it can partly see where it is — a table's last heading or row
+//     button half past the frame at a phone's width, its focus ring cut there. A press scrolls nothing: the
+//     pointer is on what it pressed.
 
 import {listen, near, page} from "./rask-owned.js";
 
@@ -54,8 +59,30 @@ export function reveal(option: Element): void {
     }
 }
 
+/** Brings `el` whole into `area`'s view, by the least movement on each axis; nothing else scrolls. */
+export function revealIn(el: Element, area: HTMLElement): void {
+    const box = el.getBoundingClientRect();
+    const frame = area.getBoundingClientRect();
+    const left = frame.left + area.clientLeft;
+    const top = frame.top + area.clientTop;
+    const x = scrollBy(box.left, box.right, left, left + area.clientWidth);
+    const y = scrollBy(box.top, box.bottom, top, top + area.clientHeight);
+    if (x || y) {
+        area.scrollBy({left: x, top: y, behavior: "instant"});
+    }
+}
+
 if (page) {
     const doc = page;
+
+    listen("focusin", function (e) {
+        const t = e.target;
+        const area = t instanceof Element && t.matches(":focus-visible") ? near(t, "[data-rask-reveal-focus]") : null;
+        if (area && area !== t) {
+            revealIn(t as Element, area);
+        }
+    }, true);
+
     // The target that has focus, while it has it. Null whenever focus is anywhere else.
     let from: Element | null = null;
     // …and the container it was in then: once a render has taken the target out, it has none to ask.
