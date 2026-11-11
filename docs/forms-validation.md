@@ -557,7 +557,8 @@ reader's language. Without a `LocalizerProvider`, .NET's default applies: resour
 
 Your resources are the app speaking, so they come first; the [strings catalog](localization.md#a-models-validation-attributes)
 words whatever they have no key for, and .NET's English the rest. An `ErrorMessageResourceType` keeps its own
-resource. With no `IStringLocalizerFactory` registered, nothing changes. Calling `AddValidation()` does not
+resource. As in .NET, an `ErrorMessage` of your own is only the FIRST key: where your resources have no entry
+for it, the convention keys still apply to it, so a `RequiredAttribute_Error` rewords every `[Required]`. With no `IStringLocalizerFactory` registered, nothing changes. Calling `AddValidation()` does not
 switch on .NET's own minimal-API filter for endpoints Rask validates: those keep the one
 [rejection shape](validation.md#rejected).
 
