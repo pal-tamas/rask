@@ -22,16 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!--
-      Npgsql's EF Core 11 provider is a release candidate (11.0.0-rc.3) that pins EF Core to EXACTLY its own rc.3
-      build. The two direct references lift EF Core to the 11.0.0 release the rest of Rask is on (a direct reference
-      is nearest, so it wins), which turns the NU1107 conflict into the NU1608 warning "outside the dependency
-      constraint", silenced repo-wide in Directory.Build.props: a release candidate is API-frozen against its GA.
-      Delete the two references and that NoWarn when Npgsql ships 11.0.0.
-    -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
   </ItemGroup>
 

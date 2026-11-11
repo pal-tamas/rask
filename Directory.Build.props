@@ -104,14 +104,6 @@
     -->
     <GenerateDocumentationFile Condition=" !$(MSBuildProjectName.EndsWith('.Tests')) AND !$(MSBuildProjectName.StartsWith('Rask.Benchmarks')) AND !$(MSBuildProjectName.StartsWith('Rask.Site')) ">true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
-    <!--
-      TEMPORARY, until Npgsql.EntityFrameworkCore.PostgreSQL 11.0.0 ships. Its newest EF Core 11 provider is
-      11.0.0-rc.3, which pins EF Core to exactly its own rc.3 build; Rask.Postgres lifts EF Core to the 11.0.0
-      release with direct references, and NuGet reports the lifted constraint as NU1608 in every project whose
-      graph reaches Npgsql. A per-package NoWarn on the reference does not reach it. Delete this line with those
-      references when the provider is bumped (see Rask.Postgres.csproj).
-    -->
-    <NoWarn>$(NoWarn);NU1608</NoWarn>
   </PropertyGroup>
   <!--
     The .NET analyzers run at latest-recommended for everything under src/ — the shipped code. Tests and

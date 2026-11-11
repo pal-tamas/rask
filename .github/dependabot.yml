@@ -29,6 +29,11 @@ updates:
       # from Directory.Packages.props as well.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"
       - dependency-name: "Microsoft.CodeAnalysis.CSharp.Workspaces"
+      #
+      # EF Core is held at 11.0.0-rc.3 because Npgsql's EF Core 11 provider (11.0.0-rc.3) pins it exactly: on
+      # 11.0.0 every app restores with NU1608 (Directory.Packages.props). Lift this when Npgsql 11.0.0 lands, and
+      # move EF Core and the provider together.
+      - dependency-name: "Microsoft.EntityFrameworkCore*"
     groups:
       # The .NET platform stack ships as one versioned family (11.0.x) and lands in a single
       # Directory.Packages.props — group it so a patch wave is one PR. Ungrouped members each open

@@ -106,14 +106,25 @@ public sealed class PackagePinFamilyTests
     ///     group makes Dependabot open ONE PR; it does not make a hand-edit keep them aligned, and a
     ///     scaffolded project restores against whatever these resolve to.
     /// </remarks>
+    /// <summary>
+    ///     TEMPORARY: the EF Core build Npgsql's only EF Core 11 provider (11.0.0-rc.3) pins EXACTLY. EF Core is held
+    ///     there, as one version of its own, until Npgsql 11.0.0 ships; then this goes and EF Core rejoins the family.
+    /// </summary>
+    private const string EfCoreHeldForNpgsql = "11.0.0-rc.3.26522.148";
+
     [Fact]
     public void The_dotnet_platform_stack_is_on_one_version()
     {
-        var family = RepoPins.Packages()
+        var pins = RepoPins.Packages().ToList();
+        var efCore = pins.Where(p => p.Key.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)).ToList();
+        Assert.Single(efCore.Select(p => p.Value).Distinct(StringComparer.Ordinal));
+
+        var family = pins
             .Where(p =>
                 p.Key.StartsWith("Microsoft.Extensions.", StringComparison.Ordinal)
                 || p.Key.StartsWith("Microsoft.AspNetCore.", StringComparison.Ordinal)
-                || p.Key.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                || (p.Key.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal)
+                    && !string.Equals(p.Value, EfCoreHeldForNpgsql, StringComparison.Ordinal))
                 || p.Key is "Microsoft.Data.Sqlite" or "Microsoft.JSInterop")
             .ToList();
 

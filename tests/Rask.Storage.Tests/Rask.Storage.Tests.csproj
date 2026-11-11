@@ -20,10 +20,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
     <!-- The stored-file table's shape is pinned on all three providers, from the model alone: no server is started. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer"/>
-    <!-- The direct EF Core references: the rc provider pins EF Core exactly; see Rask.Postgres.csproj. -->
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
     <!-- Lifts the vulnerable copy SqlClient brings; see Directory.Packages.props. -->
     <PackageReference Include="System.Security.Cryptography.Pkcs"/>
     <!-- Security: pulls the patched SQLitePCLRaw 3.x bundle over the 2.1.11 one
