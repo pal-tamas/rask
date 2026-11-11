@@ -24,6 +24,11 @@ them until tagged releases begin.
   numbers. After: a finger lifted within 300 ms is a tap and leaves the tooltip shown (one that rested longer still
   hides it, as on Flux); and that heading's button ends on the frame's edge with its words, its inset ring
   (`outline-offset: -2px`) needing no room past it. No tooltip after a mouse click closes a menu, as before.
+- **A `.Choices(rows)` select or pillbox keyed after its rows lists the rows the page read since its first render.**
+  Before: `Ui.Select.Bind(f).Choices(rows).Key(…)` — TA's picker shape — kept the rows of the render that first filed
+  it, so a picker whose rows an editor reads in `OnMount` opened on "No results found" ("Nincs találat") with no row
+  at all (TA, nightly .3033). `.Choices` is no prop, so a key claim's replay of the chain did not carry it. After: the
+  claim hands it to the instance the key keeps, live or not, select or pillbox.
 - **A `Ui.Filters` badge never widens the page.** Before: a badge's words were one unbreakable line, so a long one
   gave the whole page a sideways scrollbar (TA production). After: the badge row and each badge are `min-w-0
   max-w-full`, the words end in an ellipsis with the whole of them in the badge's `title`, and the cross keeps its
@@ -57,6 +62,17 @@ them until tagged releases begin.
   Every kit tooltip, both hosts.
 
 ### Changed
+- **A tall `Ui.Dropdown` menu opens from the keyboard when its trigger has a tooltip, and stays inside the viewport on
+  a page with no CSS reset** (TA's pumps: a `Ui.RowActions` ⋯ menu of eighteen actions in three groups). Before:
+  ArrowDown on a ⋯ that has a `Ui.Tooltip` (every `Ui.RowActions` has one) did nothing. Focus from the keyboard shows
+  the tooltip, the tooltip marks the button `aria-expanded="true"`, and the menu's opener read that as "already open".
+  On a page whose only stylesheet is the kit's (no border-box reset), a menu held to the room under its row also ran
+  its padding and border, 12 px, past the viewport's bottom edge. After: the opener asks the popover itself whether it
+  is open. The held height leaves room for the padding and border a `content-box` panel adds. Opened from a row at
+  the top, the middle or the bottom of a phone or a desktop, the menu's box is inside the viewport, it opens scrolled
+  to its first action, it scrolls to its last, and the arrow keys bring each action they reach into view. Proved on
+  both hosts at 390 × 600 and 1280 × 800 (`ATallRowMenuTests`, `UiKitLongMenuTests`). The row actions page on rask.sh
+  has a new "A long menu" example.
 - **A search that asks the page feels like Flux's: it asks sooner, spins at once, and its create row waits.** Before: a
   select's, pillbox's or `.Choices(find)`'s search asked 250 ms after the last key and its field spun 200 ms after that
   (~450 ms), and a create row could be pressed while the answer was still on its way. After: it asks after 150 ms

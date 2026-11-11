@@ -3,8 +3,10 @@ namespace Rask;
 // `.Choices(…)`: several rows of another table, picked out of a list the pillbox draws from rows rather than options.
 public sealed partial class UiPillbox<T>
 {
-    // What the last `.Choices(…)` said; null for a pillbox of options written as children.
-    private UiChosen? _choosing;
+    // What the last `.Choices(…)` said, and the step that said it; null for a pillbox of options written as children.
+    private UiChoosing? _choices;
+
+    private UiChosen? Choosing => _choices?.Chosen;
 
     /// <summary>
     ///     Offers <paramref name="choices" />: a search field over them, in the reader's alphabet, and the catalog's
@@ -26,8 +28,10 @@ public sealed partial class UiPillbox<T>
     /// <returns>This pillbox.</returns>
     public UiPillbox<T> Choices(IEnumerable<Ui.Choice<T>> choices)
     {
-        _choosing = UiChoices.Held(choices, mayBeEmpty: false, _choosing, out var changed, pills: true);
-        Changed(changed);
+        // The rows are read once, here: a Key written after this step replays it onto the instance the key keeps.
+        ArgumentNullException.ThrowIfNull(choices);
+        Ui.Choice<T>[] rows = [.. choices];
+        Choose(before => (UiChoices.Held(rows, mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
 
@@ -47,16 +51,19 @@ public sealed partial class UiPillbox<T>
     /// <returns>This pillbox.</returns>
     public UiPillbox<T> Choices(Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>>? held = null)
     {
-        _choosing = UiChoices.Asked(find, held ?? [], mayBeEmpty: false, _choosing, out var changed, pills: true);
-        Changed(changed);
+        Ui.Choice<T>[] shown = [.. held ?? []];
+        Choose(before => (UiChoices.Asked(find, shown, mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
 
-    private void Changed(bool changed)
+    private void Choose(Func<UiChosen?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
+
+    /// <inheritdoc />
+    void ICarriesHandSteps.CarryTo(Component kept)
     {
-        if (changed)
+        if (kept is UiPillbox<T> other && _choices is { } mine)
         {
-            BuilderRuntime.MarkChanged(this);
+            mine.CarryTo(other, other._choices ??= new UiChoosing());
         }
     }
 }

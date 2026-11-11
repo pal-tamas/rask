@@ -48,17 +48,21 @@ public sealed partial class UiSelect<T>
         where TValue : T => Offer(find, held);
 
     // Unconstrained, for UiSelectChoices too: a select of `int?` takes rows of `int`, which C# cannot say as a constraint.
+    // The rows are read once, here: a Key written after this step replays it onto the instance the key keeps.
     internal UiSelect<T> Offer<TValue>(IEnumerable<Ui.Choice<TValue>> choices)
     {
-        var chosen = UiChoices.Held(choices, MayBeEmpty, Chosen, out var changed);
-        Choose(chosen, changed);
+        ArgumentNullException.ThrowIfNull(choices);
+        Ui.Choice<TValue>[] rows = [.. choices];
+        var mayBeEmpty = MayBeEmpty;
+        Choose(before => (UiChoices.Held(rows, mayBeEmpty, before, out var changed), changed));
         return this;
     }
 
     internal UiSelect<T> Offer<TValue>(Func<string, Task<IReadOnlyList<Ui.Choice<TValue>>>> find, Ui.Choice<TValue>? held)
     {
-        var chosen = UiChoices.Asked(find, held is { } row ? [row] : [], MayBeEmpty, Chosen, out var changed);
-        Choose(chosen, changed);
+        Ui.Choice<TValue>[] shown = held is { } row ? [row] : [];
+        var mayBeEmpty = MayBeEmpty;
+        Choose(before => (UiChoices.Asked(find, shown, mayBeEmpty, before, out var changed), changed));
         return this;
     }
 

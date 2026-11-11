@@ -170,12 +170,11 @@ if (page) {
         }
 
         // A menu button is the invoker of a popover that is, or holds, a menu. Flux UI says aria-haspopup="true"
-        // on it whatever it opens, so the attribute's value does not tell; the panel does.
-        if (e.key === "ArrowDown"
-            && t.hasAttribute("aria-haspopup") && t.hasAttribute("popovertarget")
-            && t.getAttribute("aria-expanded") !== "true") {
+        // on it whatever it opens, so the attribute's value does not tell; the panel does. Whether it is open is
+        // the panel's to say too: a tooltip on the button, shown as focus lands on it, marks the button expanded.
+        if (e.key === "ArrowDown" && t.hasAttribute("aria-haspopup") && t.hasAttribute("popovertarget")) {
             const panel = doc.getElementById(t.getAttribute("popovertarget") || "");
-            const opened = panel && (panel.getAttribute("role") === "menu" ? panel : panel.querySelector("[role=menu]"));
+            const opened = panel && !isShown(panel) && (panel.getAttribute("role") === "menu" ? panel : panel.querySelector("[role=menu]"));
             if (!opened) {
                 return;
             }
