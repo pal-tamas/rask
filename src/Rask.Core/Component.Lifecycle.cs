@@ -319,6 +319,9 @@ public abstract partial class Component
         // settled task and the loop simply takes one more wave over correct state.
         quiescence?.Track(painted, this);
 
+        // A cached fragment being walked around this hook holds its markup back until the hook has painted.
+        Components.Cached.NoteWork(painted);
+
         // The hook is part of the event whose render started it, and that event's services stay its own until it is
         // done — a navigation has long been sent by the time a slow read comes back.
         if (render is { Handle: LiveSessionBase session })

@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK116, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK117, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -128,6 +128,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK114](#rask114) | Error | The tenant's or the user's key cannot be the current one |
 | [RASK115](#rask115) | Warning | Tenant-scoped tables and no tenant aggregate |
 | [RASK116](#rask116) | Warning (off unless `<RaskStrict>`) | Test is not named as a sentence |
+| [RASK117](#rask117) | Error | A cached fragment holds something interactive |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -2775,3 +2776,33 @@ app's test projects; `dotnet_diagnostic.RASK116.severity = warning` in an `.edit
 ```
 
 **Fix:** rename the test after what it proves.
+
+## RASK117
+
+**A cached fragment holds something interactive** · Error
+
+[`Cached`](cached-fragments.md) stores the markup it drew and serves it to every later request as plain HTML. An
+event handler (`OnClick`, `OnSubmit`, any `On…` step), a binding (`Bind`) or an element reference (`Ref`) written into
+its children would reach the next visitor dead — nothing would be listening.
+
+```csharp
+Cached.Name("cart")[
+    Button.OnClick(AddToCart)["Add"]          // ✗ RASK117
+]
+```
+
+```text
+'OnClick' inside Cached[ … ] would be served to later visitors as static HTML, where nothing answers it; move it outside the cached fragment
+```
+
+**Fix:** keep only static markup inside the fragment and put the interactive part next to it:
+
+```csharp
+Div[
+    Cached.Name("cart-summary")[CartSummary],
+    Button.OnClick(AddToCart)["Add"]
+]
+```
+
+The analyzer sees what is written in the fragment's own children. A handler inside a component the fragment wraps is
+refused at run time instead, by the first render that would store it, with the same advice.

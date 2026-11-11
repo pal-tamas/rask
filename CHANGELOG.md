@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
+  dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
+  round it was `Cache.Remember` on the data, which still paid the render. After:
+  `Cached.Name("sales-summary").For(10.Minutes)[SalesSummary]` — the first request draws it and stores the markup once
+  its data has landed; every later one is handed the markup and `SalesSummary` is never mounted. Keyed by name plus,
+  always, the tenant, the signed-in user and the culture; `.VaryByQuery("status")`, `.VaryByRoute()`,
+  `.VaryByHeader("User-Agent")`, `.VaryBy(id)` add to it and `.AcrossUsers()` shares one copy per tenant. Absolute
+  (`.For`) and sliding (`.Sliding`) expiry; `.Tags("catalog")` + `await CachedFragments.Forget("catalog")`. Kept in the
+  app's `HybridCache` when it registered one, else in process bounded by `CachedOptions.SizeLimit`; in WebAssembly in
+  the tab. Refuses to store a handler, a binding, an element reference or a head contribution — at compile time
+  (RASK117) when written in the fragment, at run time when inside a component it wraps. Guide: docs/cached-fragments.md.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server

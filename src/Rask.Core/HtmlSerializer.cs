@@ -312,6 +312,10 @@ internal static class HtmlSerializer
                 SerializeElement(el, tagName, html, frames);
                 break;
 
+            case Cached cached:
+                SerializeCached(cached, html, frames);
+                break;
+
             default:
                 SerializeComponent(component, html, frames);
                 break;
@@ -748,6 +752,33 @@ internal static class HtmlSerializer
 
         // Mark that our parent's subtree now contains a user component (us).
         _sawNestedComponent = true;
+    }
+
+    // A cached fragment is walked like any component, inside a bracket that sees what its walk wrote and what it
+    // started: on a miss, that markup is what it stores once the work has settled. Only a live render stores — a
+    // render without one writes no handler markers, so the refusal could not see what it would be keeping.
+    private static void SerializeCached(Cached cached, HtmlWriter html, FrameWriter? frames)
+    {
+        var live = LiveRenderContext.CurrentSync;
+        if (live is null || !cached.Capturing)
+        {
+            SerializeComponent(cached, html, frames);
+            return;
+        }
+
+        var start = html.Length;
+        var heads = live.HeadAssets.Contributions;
+        Cached.EnterWalk(cached);
+        try
+        {
+            SerializeComponent(cached, html, frames);
+        }
+        finally
+        {
+            Cached.LeaveWalk(cached);
+        }
+
+        cached.Captured(html.Slice(start, html.Length), live.HeadAssets.Contributions != heads);
     }
 
     private static void AttachToLiveTree(Component component, LiveRenderContext liveCtx)

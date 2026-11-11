@@ -48,13 +48,18 @@ internal sealed class HeadAssetRegistry
     // at the start of each render before the walk re-populates it.
     public void Clear()
     {
+        Contributions = 0;
         _orderedHtml.Clear();
         _orderedKeys.Clear();
         _seen.Clear();
     }
 
+    /// <summary>How many contributions this render has made, duplicates included — a cached fragment's walk compares it.</summary>
+    internal int Contributions { get; private set; }
+
     public void Add(Component head)
     {
+        Contributions++;
         if (head is Fragment fragment && fragment.Children is { } children)
         {
 #pragma warning disable S3267 // hot path: no enumerator/closure allocation

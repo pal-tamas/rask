@@ -155,6 +155,11 @@ is Redis's own business: configure it there, or say it per call with `.For(…)`
 would still work, but it also registers the purge worker and so keeps needing the `CacheEntry` table and a
 migration for it — which is exactly what this overload removes.
 
+## Caching markup
+
+To cache what a part of a page *draws* rather than a value it reads, wrap it in
+[`Cached`](cached-fragments.md): `Cached.Name("sales").For(10.Minutes)[SalesSummary]`.
+
 ## Notes
 
 - **Server-side.** The store is your EF Core database and the purger is a hosted service — this is not a

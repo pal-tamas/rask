@@ -371,6 +371,9 @@ public static partial class RaskEndpointExtensions
         // Outside an event, a render and a job, a static call reaches the HTTP request in progress (Current.Service<T>()).
         RequestAmbient.Register(services);
 
+        // Where Cached fragments are kept: the app's HybridCache when it has one, an in-process store otherwise.
+        Caching.FragmentStoreRegistration.Register(services);
+
         // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
         // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));

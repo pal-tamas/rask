@@ -40,6 +40,10 @@ internal sealed class HtmlWriter
         }
     }
 
+    /// <summary>The chars written from <paramref name="start" /> up to <paramref name="end" />, as a string.</summary>
+    public string Slice(int start, int end) =>
+        _sb is { } sb ? sb.ToString(start, end - start) : new string(_chars, start, end - start);
+
     /// <summary>A writer appending to <paramref name="sb" />; hand it back with <see cref="Release" />.</summary>
     public static HtmlWriter Over(StringBuilder sb)
     {

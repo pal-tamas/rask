@@ -19550,3 +19550,63 @@ Rask.Core.Globalization.RaskString.ChartColumnRow = 253 -> Rask.Core.Globalizati
 Rask.Core.Globalization.RaskString.ChartColumnDate = 254 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ChartColumnLabel = 255 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FiltersSelectedCount = 256 -> Rask.Core.Globalization.RaskString
+Rask.CachedFragments
+Rask.CachedOptions
+Rask.CachedOptions.CachedOptions() -> void
+Rask.CachedOptions.DefaultLifetime.get -> System.TimeSpan
+Rask.CachedOptions.DefaultLifetime.set -> void
+Rask.CachedOptions.MaxEntrySize.get -> long
+Rask.CachedOptions.MaxEntrySize.set -> void
+Rask.CachedOptions.SizeLimit.get -> long
+Rask.CachedOptions.SizeLimit.set -> void
+Rask.Core.Components.Cached
+Rask.Core.Components.Cached.AcrossUsers.get -> bool
+Rask.Core.Components.Cached.AcrossUsers.set -> void
+Rask.Core.Components.Cached.Cached() -> void
+Rask.Core.Components.Cached.For.get -> System.TimeSpan?
+Rask.Core.Components.Cached.For.set -> void
+Rask.Core.Components.Cached.Name.get -> string!
+Rask.Core.Components.Cached.Name.set -> void
+Rask.Core.Components.Cached.Sliding.get -> System.TimeSpan?
+Rask.Core.Components.Cached.Sliding.set -> void
+Rask.Core.Components.Cached.Tags.get -> string![]?
+Rask.Core.Components.Cached.Tags.set -> void
+Rask.Core.Components.Cached.VaryBy.get -> object?
+Rask.Core.Components.Cached.VaryBy.set -> void
+Rask.Core.Components.Cached.VaryByHeader.get -> string![]?
+Rask.Core.Components.Cached.VaryByHeader.set -> void
+Rask.Core.Components.Cached.VaryByQuery.get -> string![]?
+Rask.Core.Components.Cached.VaryByQuery.set -> void
+Rask.Core.Components.Cached.VaryByRoute.get -> bool
+Rask.Core.Components.Cached.VaryByRoute.set -> void
+Rask.Core.Components.Cached.this[params Rask.Core.Component?[]! children].get -> Rask.Core.Components.Cached!
+Rask.Core.Components.RaskSeed_Cached
+Rask.Core.Components.RaskSeed_Cached.Key(object? key) -> Rask.Core.Components.RaskSeed_Cached
+Rask.Core.Components.RaskSeed_Cached.Name(string! Name) -> Rask.Core.Components.Cached!
+Rask.Core.Components.RaskSeed_Cached.RaskSeed_Cached() -> void
+static Rask.CachedFragments.Forget(string! nameOrTag, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+static Rask.Core.RaskMarkup.Cached -> Rask.Core.Components.RaskSeed_Cached
+static Rask.Markup.Cached.get -> Rask.Core.Components.RaskSeed_Cached
+static RaskBuilderSettersRask_Core.AcrossUsers(this Rask.Core.Components.Cached! __b) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.AcrossUsers(this Rask.Core.Components.Cached! __b, bool value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.For(this Rask.Core.Components.Cached! __b, System.TimeSpan? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.Name(this Rask.Core.Components.Cached! __b, string! value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.Sliding(this Rask.Core.Components.Cached! __b, System.TimeSpan? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.Tags(this Rask.Core.Components.Cached! __b, string![]? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.VaryBy(this Rask.Core.Components.Cached! __b, object? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.VaryByHeader(this Rask.Core.Components.Cached! __b, string![]? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.VaryByQuery(this Rask.Core.Components.Cached! __b, string![]? value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.VaryByRoute(this Rask.Core.Components.Cached! __b) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.VaryByRoute(this Rask.Core.Components.Cached! __b, bool value) -> Rask.Core.Components.Cached!
+static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Cached(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Core.__RaskResetEager_Rask_Core_Components_Cached(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Cached(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskEntriesRask_Core.Cached.get -> Rask.Core.Components.RaskSeed_Cached
+Rask.CachedSteps
+Rask.CachedSteps.extension(Rask.Core.Components.Cached!)
+Rask.CachedSteps.extension(Rask.Core.Components.Cached!).Tags(string! tag, params string![]! more) -> Rask.Core.Components.Cached!
+Rask.CachedSteps.extension(Rask.Core.Components.Cached!).VaryByHeader(string! name, params string![]! more) -> Rask.Core.Components.Cached!
+Rask.CachedSteps.extension(Rask.Core.Components.Cached!).VaryByQuery(string! name, params string![]! more) -> Rask.Core.Components.Cached!
+static Rask.CachedSteps.Tags(this Rask.Core.Components.Cached! fragment, string! tag, params string![]! more) -> Rask.Core.Components.Cached!
+static Rask.CachedSteps.VaryByHeader(this Rask.Core.Components.Cached! fragment, string! name, params string![]! more) -> Rask.Core.Components.Cached!
+static Rask.CachedSteps.VaryByQuery(this Rask.Core.Components.Cached! fragment, string! name, params string![]! more) -> Rask.Core.Components.Cached!
