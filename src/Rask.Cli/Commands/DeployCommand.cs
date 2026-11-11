@@ -409,6 +409,7 @@ internal sealed partial class DeployCommand : CliCommand
 
         writer.WriteLine($"  # take {slug}'s own deploy lock for the whole deploy (renewed while held, so another deploy of {slug} waits):");
         Line(BuildAppLockArguments(host, slug, slug));
+        writer.WriteLine($"  # check over ssh that the box has room to build (stops below {DiskSpace.Format(DiskSpace.Minimum)} free, warns below {DiskSpace.Format(DiskSpace.Comfortable)})");
         Line(BuildBuildArguments(host, slug, dockerfile, contextDir));
         if (domain is null)
         {
@@ -437,6 +438,12 @@ internal sealed partial class DeployCommand : CliCommand
 
             PrintSwitchPlan(writer, host, slug, domain, container, healthEnabled ? healthPath : "/", dns);
         }
+
+        writer.WriteLine("  # once it serves, under the box's lock: remove untagged images (never -a: :previous is the rollback) and trim the build cache");
+        Line(BuildLockArguments(host, slug));
+        Line(PruneCommands.BuildImagePruneArguments(host));
+        Line(PruneCommands.BuildBuilderPruneArguments(host));
+        writer.WriteLine($"  # release the box's lock, then {slug}'s own");
     }
 
     /// <summary>The dry run's part under the box's deploy lock: the proxy, this app's file, the reload and the check.</summary>
@@ -470,7 +477,7 @@ internal sealed partial class DeployCommand : CliCommand
         Line(BuildThroughProxyArguments(host, CaddyRouteCheck.ProbeHost(SiteDomains.Primary(domain)), checkPath));
         writer.WriteLine("  # release the box's lock; under the app's own, stop the previous color — it finishes its running jobs first:");
         Line(BuildStopArguments(host, $"{slug}-<previous color>", StopBudget));
-        writer.WriteLine("  # then remove it, and release the app's lock");
+        writer.WriteLine("  # then remove it");
     }
 
     /// <summary>

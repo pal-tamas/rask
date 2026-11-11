@@ -103,7 +103,7 @@ public sealed partial class DeployCommandTests
 
         Assert.Equal(0, exit);
         var all = runner.Invocations.ToList();
-        int BoxUnlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
+        int BoxUnlock = all.FindIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
         int Retire = all.FindIndex(i => i.Arguments.SequenceEqual(DockerCommands.BuildStopArguments("deploy@box", "demo-blue", ShutdownBudget.DefaultStopTimeout)));
         int AppUnlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", "rask-deploy-lock-demo"]);
         Assert.True(BoxUnlock >= 0 && BoxUnlock < Retire, "other apps' deploys do not wait out this app's drain");

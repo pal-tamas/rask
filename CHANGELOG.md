@@ -17,6 +17,13 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **`rask deploy` no longer fills the box's disk.** Before: every deploy left the image it replaced as `:previous`
+  and the one before that untagged, with its build cache, and nothing removed them — a shared VPS running two apps
+  reached 350 GB of 368 GB (255 images, 1401 build-cache entries, 288.7 GB). After: a deploy that serves runs
+  `docker image prune -f` (dangling only — never `-a`, so every `:current`/`:previous` and rollback stay) and
+  `docker builder prune -f --reserved-space 20GB` under the box's deploy lock, and says what they freed; a failing
+  prune only warns. Before it builds it refuses a box with under 3 GiB free (warns under 10 GiB) and prints what
+  to run, and `rask deploy status` shows the free and reclaimable space.
 - **A `.Choices(rows)` select or pillbox keyed after its rows lists the rows the page read since its first render.**
   Before: `Ui.Select.Bind(f).Choices(rows).Key(…)` — TA's picker shape — kept the rows of the render that first filed
   it, so a picker whose rows an editor reads in `OnMount` opened on "No results found" ("Nincs találat") with no row

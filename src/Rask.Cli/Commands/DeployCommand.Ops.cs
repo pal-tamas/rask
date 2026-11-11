@@ -98,6 +98,7 @@ internal sealed partial class DeployCommand
                 ? $"  No previous image for '{slug}' — `rask deploy rollback` has nothing to go back to yet."
                 : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo}).",
             ConsoleStyle.Dim);
+        await WriteDiskStatusAsync(host, cancellationToken).ConfigureAwait(false);
 
         return 0;
     }

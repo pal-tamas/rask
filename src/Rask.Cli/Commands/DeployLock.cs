@@ -24,11 +24,13 @@ internal sealed class DeployLock
     private readonly Func<string, string, IReadOnlyList<string>> _take;
     private readonly bool _heartbeat;
     private readonly LockTiming _timing;
+    private readonly ConsoleStyle _giveUp;
 
     private DeployLock(
-        IConsole console, IProcessRunner process, string workingDirectory, string container, string waitingFor, Func<string, string, IReadOnlyList<string>> take, bool heartbeat, LockTiming timing)
+        IConsole console, IProcessRunner process, string workingDirectory, string container, string waitingFor, Func<string, string, IReadOnlyList<string>> take, bool heartbeat, LockTiming timing, ConsoleStyle giveUp = ConsoleStyle.Error)
     {
         _timing = timing;
+        _giveUp = giveUp;
         _console = console;
         _process = process;
         _workingDirectory = workingDirectory;
@@ -38,8 +40,12 @@ internal sealed class DeployLock
         _heartbeat = heartbeat;
     }
 
-    internal static DeployLock ForBox(IConsole console, IProcessRunner process, string workingDirectory, LockTiming timing) =>
-        new(console, process, workingDirectory, LockContainer, "switching the proxy on this box", BuildLockArguments, heartbeat: false, timing);
+    /// <summary>
+    /// The box's lock. <paramref name="giveUp"/> styles what is said when it can't be had: an error for a deploy that then
+    /// stops, a warning for work that is skipped instead (the clean-up after a deploy that already succeeded).
+    /// </summary>
+    internal static DeployLock ForBox(IConsole console, IProcessRunner process, string workingDirectory, LockTiming timing, ConsoleStyle giveUp = ConsoleStyle.Error) =>
+        new(console, process, workingDirectory, LockContainer, "using this box's shared proxy or disk", BuildLockArguments, heartbeat: false, timing, giveUp);
 
     internal static DeployLock ForApp(IConsole console, IProcessRunner process, string workingDirectory, string slug, LockTiming timing) =>
         new(console, process, workingDirectory, AppLockContainer(slug), $"deploying '{slug}' to this box", (host, owner) => BuildAppLockArguments(host, slug, owner), heartbeat: true, timing);
@@ -66,7 +72,7 @@ internal sealed class DeployLock
 
             if (!IsHeld(taken.StandardError))
             {
-                _console.WriteErrorLine($"Could not take the deploy lock {_container} on {host}: {FirstLine(taken.StandardError)}", ConsoleStyle.Error);
+                _console.WriteErrorLine($"Could not take the deploy lock {_container} on {host}: {FirstLine(taken.StandardError)}", _giveUp);
                 return null;
             }
 
@@ -77,8 +83,8 @@ internal sealed class DeployLock
             }
         }
 
-        _console.WriteErrorLine($"Gave up waiting for the deploy lock {_container} on {host}, held by {Describe(holder)}.", ConsoleStyle.Error);
-        _console.WriteErrorLine($"If no deploy is running, free it: docker -H ssh://{host} rm -f {_container}", ConsoleStyle.Error);
+        _console.WriteErrorLine($"Gave up waiting for the deploy lock {_container} on {host}, held by {Describe(holder)}.", _giveUp);
+        _console.WriteErrorLine($"If no deploy is running, free it: docker -H ssh://{host} rm -f {_container}", _giveUp);
         return null;
     }
 

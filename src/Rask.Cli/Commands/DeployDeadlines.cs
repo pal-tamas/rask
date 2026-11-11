@@ -24,6 +24,13 @@ internal sealed record DeployDeadlines(TimeSpan Step, TimeSpan Build, TimeSpan B
 
     internal static readonly TimeSpan MaximumBuild = TimeSpan.FromHours(6);
 
+    /// <summary>
+    /// The most one prune after a deploy may take. It runs under the box's lock, whose lease is fixed
+    /// (<see cref="ProxyCommands.LockLeaseSeconds"/>): the image prune and the build-cache prune together must end
+    /// before it does, or another deploy could take the lock while they still run.
+    /// </summary>
+    internal static readonly TimeSpan Prune = TimeSpan.FromMinutes(4);
+
     /// <summary>Every other docker call — a tag, a run, an inspect, a probe, a proxy reload — answers in seconds.</summary>
     internal static DeployDeadlines Default { get; } = new(TimeSpan.FromMinutes(5), DefaultBuild, DefaultBuildIdle, TimeSpan.FromMinutes(1));
 
@@ -35,6 +42,7 @@ internal sealed record DeployDeadlines(TimeSpan Step, TimeSpan Build, TimeSpan B
         Verb(arguments) switch
         {
             "build" => Build,
+            "image" or "builder" when arguments.Contains("prune", StringComparer.Ordinal) => Step < Prune ? Step : Prune,
             "logs" when arguments.Contains("--follow", StringComparer.Ordinal) || arguments.Contains("-f", StringComparer.Ordinal) => null,
             "stop" when StopSeconds(arguments) is { } seconds => Step + TimeSpan.FromSeconds(seconds),
             _ => Step,
