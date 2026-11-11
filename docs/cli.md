@@ -173,7 +173,7 @@ it out.
 ```json
 {
   "sdk": {
-    "version": "11.0.0",
+    "version": "11.0.100",
     "rollForward": "latestFeature"
   }
 }
@@ -185,10 +185,13 @@ so once per build (`NETSDK1057`), and quietly hands two people on the same repos
 compilers. `latestFeature` takes the newest SDK **within** the band and never crosses a major, so you
 get `11.0.200` if you have it and the next patch when you install one.
 
-The version is the band floor, `11.0.0`, rather than a real SDK release, and that matters while a band
-is still in preview: a release candidate sorts *below* the release it is a candidate for, and
-roll-forward only ever goes up — so pinning the release would resolve nothing at all on a machine
-holding the candidate, and `allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
+The version is the band's first **released** SDK, `11.0.100`, so every later feature band and patch
+satisfies it and no release candidate does: a candidate sorts *below* the release it is a candidate for,
+and roll-forward only ever goes up. That is deliberate. The .NET 11 release candidates carry the
+WebAssembly debug proxy that [CVE-2026-102870](https://www.cve.org/CVERecord?id=CVE-2026-102870) was fixed
+in, and a Debug build of a browser app starts that proxy. On a machine with only a candidate, install the
+released SDK; [`rask doctor`](#rask-doctor--check-before-you-hit-it) says so, and the
+[installer](installation.md) installs it beside the candidate.
 
 The trade is that a machine with **only** a newer major fails outright instead of building on it. Run
 [`rask doctor`](#rask-doctor--check-before-you-hit-it) if a scaffold will not restore: it reads this

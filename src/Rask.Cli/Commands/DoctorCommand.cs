@@ -218,6 +218,15 @@ internal sealed class DoctorCommand(
                 + $"{DotnetFloor} from https://dot.net — a global.json here can also be pinning an older one.");
         }
 
+        if (version is not null && version.Major == DotnetFloor && IsReleaseCandidate(sdk, version))
+        {
+            return new DoctorCheck(
+                "dotnet sdk", DoctorStatus.Warn, $"{sdk} (a pre-release of {DotnetTarget.SdkPin})",
+                $"A new app's global.json asks for {DotnetTarget.SdkPin} or later, which no pre-release satisfies, and "
+                + $"the .NET {DotnetFloor} pre-releases carry the WebAssembly debugger fixed for CVE-2026-102870. "
+                + $"Install the released .NET {DotnetFloor} SDK from https://dot.net.");
+        }
+
         return new DoctorCheck("dotnet sdk", DoctorStatus.Ok, sdk, null);
     }
 
@@ -230,6 +239,13 @@ internal sealed class DoctorCommand(
     ///     A hand-edited or half-written file simply drops the version from the advice, which still
     ///     names the file.
     /// </remarks>
+    // A pre-release that sorts below the scaffold pin: a .NET 11 RC (11.0.100-rc.2…), never a preview of a later
+    // feature band (11.0.300-preview…), which sorts above it and already carries every fix the release had.
+    private static bool IsReleaseCandidate(string reported, Version version) =>
+        reported.Contains('-', StringComparison.Ordinal)
+        && ToolVersion.Parse(DotnetTarget.SdkPin) is { } pin
+        && version <= pin;
+
     private string? PinnedSdkVersion(string path)
     {
         try

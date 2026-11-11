@@ -84,7 +84,12 @@ check "10.0 and 11.0 side by side" yes "$(sdk_ok '10.0.400 [/usr/share/dotnet/sd
 # RollForward=Major (Rask.Cli.csproj:14) means a newer major runs the tool fine. Demanding exactly
 # 11 would reinstall an SDK on every .NET 12 box.
 check "12.0 alone satisfies the floor" yes "$(sdk_ok '12.0.100 [/usr/share/dotnet/sdk]')"
-check "a preview 11.0 counts" yes "$(sdk_ok '11.0.100-preview.5.26277.114 [/usr/share/dotnet/sdk]')"
+# A scaffold's global.json floors at the GA 11.0.100, which no release candidate satisfies (and the
+# candidates carry the debug proxy CVE-2026-102870 fixed), so a box with only one is not done.
+check "a release candidate alone does not count" no "$(sdk_ok '11.0.100-rc.2.26475.104 [/usr/share/dotnet/sdk]')"
+check "a release candidate beside the release" yes "$(sdk_ok '11.0.100-rc.2.26475.104 [/usr/share/dotnet/sdk]
+11.0.100 [/usr/share/dotnet/sdk]')"
+check "a preview counts when a preview was asked for" yes "$(RASK_INSTALL_DOTNET_QUALITY=preview; sdk_ok '12.0.100-preview.1.27077.1 [/usr/share/dotnet/sdk]' 12)"
 check "no SDKs at all" no "$(sdk_ok '')"
 
 # --- rask_profile_file -----------------------------------------------------------------------

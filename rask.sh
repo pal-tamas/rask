@@ -139,6 +139,11 @@ rask_version_field() {
 # Rask.Cli sets RollForward=Major (Rask.Cli.csproj:14), so a newer major is fine — we must NOT
 # demand exactly 11, or this script would reinstall an SDK on every .NET 12 box.
 #
+# A prerelease SDK (a `-rc.N`/`-preview.N` suffix) does not count unless RASK_INSTALL_DOTNET_QUALITY asks
+# for one: a scaffold's global.json floors at the GA release (11.0.100), which no release candidate
+# satisfies, and the release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in.
+# A box holding only an RC therefore gets the released SDK installed beside it.
+#
 # The loop reads from a here-doc rather than a pipe on purpose: `... | while read` runs the loop in a
 # subshell, where setting _found would be lost and the function would always report "not found".
 rask_dotnet_ok() {
@@ -148,6 +153,9 @@ rask_dotnet_ok() {
     while IFS= read -r _do_line; do
         [ -n "$_do_line" ] || continue
         _do_version="${_do_line%% *}"
+        case "$_do_version" in
+            *-*) [ -n "$RASK_INSTALL_DOTNET_QUALITY" ] || continue ;;
+        esac
         if [ "$(rask_version_field "${_do_version#v}" 1)" -ge "$_do_min" ]; then
             _do_found=0
         fi

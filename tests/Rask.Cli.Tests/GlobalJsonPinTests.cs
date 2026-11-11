@@ -35,7 +35,7 @@ public sealed class GlobalJsonPinTests
             pin.Path);
 
         var sdk = Sdk(pin.Content);
-        Assert.Equal("11.0.0", sdk.GetProperty("version").GetString());
+        Assert.Equal("11.0.100", sdk.GetProperty("version").GetString());
         Assert.Equal("latestFeature", sdk.GetProperty("rollForward").GetString());
     }
 
@@ -56,20 +56,51 @@ public sealed class GlobalJsonPinTests
     }
 
     /// <summary>
-    ///     The pin names the band FLOOR, never a real SDK version.
+    ///     The pin is the band's first RELEASED SDK: every release from it on satisfies it, and no release candidate
+    ///     does.
     /// </summary>
     /// <remarks>
-    ///     Measured, not assumed, on a band still in preview: a pin naming the release resolves NOTHING
-    ///     while only its release candidate is installed — the candidate sorts below the release, and
-    ///     roll-forward only ever goes up. The floor is satisfied by every SDK in the band.
+    ///     The .NET 11 candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build
+    ///     of a browser app starts that proxy. The SDK orders versions by SemVer precedence, where a candidate sorts
+    ///     BELOW the release it is a candidate for, and <c>latestFeature</c> only rolls up within the pin's
+    ///     major.minor — the two rules <see cref="Satisfies" /> applies.
     /// </remarks>
-    [Fact]
-    public void The_pin_is_a_band_floor_that_a_release_candidate_still_satisfies()
+    [Theory]
+    [InlineData("11.0.100", true)]
+    [InlineData("11.0.101", true)]
+    [InlineData("11.0.200", true)]
+    [InlineData("11.0.300-preview.1.27012.3", true)]
+    [InlineData("11.0.100-rc.1.26425.128", false)]
+    [InlineData("11.0.100-rc.2.26475.104", false)]
+    [InlineData("10.0.400", false)]
+    [InlineData("12.0.100", false)]
+    public void The_pin_is_the_first_release_of_the_band_which_no_release_candidate_satisfies(string installed, bool satisfies)
     {
-        var version = Sdk(Pin("server").Content).GetProperty("version").GetString();
+        var pin = Sdk(Pin("server").Content).GetProperty("version").GetString()!;
 
-        Assert.EndsWith(".0.0", DotnetTarget.SdkPin, StringComparison.Ordinal);
-        Assert.Equal(DotnetTarget.SdkPin, version);
+        var answer = Satisfies(installed, pin);
+
+        Assert.Equal(DotnetTarget.SdkPin, pin);
+        Assert.Equal(satisfies, answer);
+    }
+
+    private static bool Satisfies(string installed, string pin)
+    {
+        var (have, haveCandidate) = Split(installed);
+        var (want, wantCandidate) = Split(pin);
+        if (have.Major != want.Major || have.Minor != want.Minor)
+        {
+            return false;
+        }
+
+        var core = have.CompareTo(want);
+        return core > 0 || (core == 0 && (!haveCandidate || wantCandidate));
+    }
+
+    private static (Version Core, bool Prerelease) Split(string version)
+    {
+        var dash = version.IndexOf('-', StringComparison.Ordinal);
+        return dash < 0 ? (Version.Parse(version), false) : (Version.Parse(version[..dash]), true);
     }
 
     [Fact]

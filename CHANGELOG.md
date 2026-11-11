@@ -7,6 +7,15 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Security
+- **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
+  release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
+  starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
+  `11.0.100` with `rollForward: latestFeature`; `rask doctor` tells a machine on an RC to install the release, and
+  `rask.sh`/`rask.ps1` install the released SDK beside an RC instead of counting it. Rask's own build resolves the
+  patched proxy (`Microsoft.NET.Sdk.WebAssembly.Pack` 11.0.0), and a test now fails if a Release publish of a
+  scaffolded or the site's WebAssembly app ever carries the debugger.
+
 ### Added
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)

@@ -10,13 +10,15 @@ namespace Rask.Cli.Scaffolding;
 /// </remarks>
 internal static class DotnetTarget
 {
-    /// <summary>The version a scaffold's <c>global.json</c> names: the band floor, never a real SDK version.</summary>
+    /// <summary>The version a scaffold's <c>global.json</c> names: the band's first RELEASED SDK.</summary>
     /// <remarks>
-    ///     Naming a real installed version would pin the output to whatever happened to be on the scaffolding
-    ///     machine, which is not something a committed file should say. The floor matches the earliest
-    ///     possible SDK in the band, so every later one — prerelease or not — rolls forward onto it.
+    ///     Never the SDK installed on the scaffolding machine, which would pin the output to whatever happened to
+    ///     be there; the band's first GA release, so every later feature band and patch rolls forward onto it and
+    ///     no release candidate does. A candidate sorts below the release it is a candidate for, and the
+    ///     .NET 11 candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in — a Debug build of a
+    ///     browser app starts that proxy, so a scaffold must not build on one.
     /// </remarks>
-    public const string SdkPin = "11.0.0";
+    public const string SdkPin = "11.0.100";
 
     /// <summary>
     ///     The <c>global.json</c> every scaffold writes: the app is built by an SDK of its OWN major.
