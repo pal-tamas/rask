@@ -757,3 +757,11 @@ bundle,bytes
 rask.js,116692
 rask.wasm.js,104091
 rask-hooks.js,134805
+# 2026-11-12, a link to a #fragment keeps its hash (#1310: rask-fragment.ts, which both runtimes carry, leaves a
+# fragment-only popstate to the browser and writes every navigation's history entry): measured on the tree merged
+# with main, with the bundle gate's own command — rask.js 116,692 -> 116,801, rask.wasm.js 104,091 -> 104,265,
+# rask-hooks.js 134,805 unchanged.
+bundle,bytes
+rask.js,116801
+rask.wasm.js,104265
+rask-hooks.js,134805
