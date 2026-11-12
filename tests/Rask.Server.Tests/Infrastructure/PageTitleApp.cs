@@ -116,3 +116,35 @@ public sealed partial class PageTitleSlowPage : Component
 
     protected override Component? Render() => _name is null ? P["Loading"] : H1[_name];
 }
+
+// #1303: a layout that shows its page's title beside a button of its own, over a page that declares one.
+[Route("/pressed")]
+public sealed partial class PageTitlePressLayout(RouteState route) : Component
+{
+    private int _presses;
+
+    protected override Component? Render() =>
+        Div[
+            Button.Id("go").OnClick(() => _presses++)["Go"],
+            P.Id("asked")[$"Pressed {_presses} on {route.Title}"],
+            Main[Outlet]
+        ];
+}
+
+[Route("child")]
+[ParentRoute(typeof(PageTitlePressLayout))]
+public sealed partial class PageTitlePressChildPage : Component
+{
+    protected override string? PageTitle => "Kid";
+
+    protected override Component? Render() => P["child"];
+}
+
+[Route("sibling")]
+[ParentRoute(typeof(PageTitlePressLayout))]
+public sealed partial class PageTitlePressSiblingPage : Component
+{
+    protected override string? PageTitle => "Sib";
+
+    protected override Component? Render() => P["sibling"];
+}

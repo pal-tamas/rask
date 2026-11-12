@@ -33,6 +33,7 @@ public abstract partial class Component
         // each hook falls back to its own component's (LifecycleSyncContext), as it does outside a handler.
         using var ownLifetimes = Ambient.Enter(CancellationToken.None);
         using var ownDispatch = DispatchEventTokenScope.Suspend();
+        var framesBefore = FrameSinkScope.Current?.Count ?? 0;
         var html = WalkAsLiveRoot(services, publishOnly, sink, out var walkAgain);
         // A page that navigated as it mounted is not walked again: the route has moved, and the next walk is the
         // host's to make — after that route's guard, and of a page the reader is to see.
@@ -44,8 +45,10 @@ public abstract partial class Component
         // The page's title changed, and a layout that shows it had already rendered when the walk reached
         // the page (see LiveRenderContext.SettleRouteTitle). Walked once more and no further: the title is
         // settled now, and a page whose title differs every time it is read must not hold the frame back
-        // for ever. Publish-only, so nothing that has just had its OnRendered gets it twice.
-        FrameSinkScope.Current?.Reset();
+        // for ever. Publish-only, so nothing that has just had its OnRendered gets it twice. Only the first
+        // pass's frames go: whoever pushed the writer may have opened frames around the walk before it began —
+        // a document's <body> that the walk renders into — and the diff measures the page inside them (#1303).
+        FrameSinkScope.Current?.TruncateTo(framesBefore);
         return WalkAsLiveRoot(services, publishOnly: true, sink, out _);
     }
 
