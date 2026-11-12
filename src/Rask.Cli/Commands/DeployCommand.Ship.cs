@@ -97,7 +97,7 @@ internal sealed partial class DeployCommand
     /// </summary>
     private async Task<bool> ShipImageAsync(string host, string slug, CancellationToken cancellationToken)
     {
-        await Console.Out.WriteLineAsync($"Sending {slug}:{CurrentTag} to {HostName(host)}…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Sending {slug}:{CurrentTag} to {HostName(host)}…", cancellationToken).ConfigureAwait(false);
         var sent = await _process.PipeAsync("docker", BuildSaveArguments(slug), BuildLoadArguments(host), _workingDirectory, cancellationToken).ConfigureAwait(false);
         await Capture(BuildLocalImageRemoveArguments(slug), cancellationToken).ConfigureAwait(false);
         if (sent != 0)
