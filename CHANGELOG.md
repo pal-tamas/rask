@@ -26,6 +26,13 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **A link to a `#fragment` keeps it, on both hosts (#1310).** Before: a plain `<a href="#section">` moved the page
+  and then lost the hash — the browser's `popstate` was answered with a replace navigation that wrote back the
+  address .NET knows, which has no fragment — so the address bar, Back to it, and a shared link all dropped the
+  section. After: a move between fragments of the page on show is left to the browser (it scrolls, and Back/Forward
+  walk between sections) and nothing is sent; Back from another page to `/page#section` keeps its hash. One module
+  both runtimes share (`rask-fragment.ts`) writes every navigation's history entry. The site's sign-out example
+  points at `#signed-out` again.
 - **A scaffolded app's Docker image restores from the project's own `nuget.config` (#1307).** Before: the server,
   wasm-hosted and wasm Dockerfiles copied only the csproj before `dotnet restore`, so a private feed or package
   source mapping was not in the image yet and the restore failed or silently went to nuget.org. After: the restore
