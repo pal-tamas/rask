@@ -16,9 +16,9 @@ public sealed class HybridFragmentStoreTests
     {
         var store = new HybridFragmentStore(_cache, new CachedOptions(), _time);
 
-        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:sales"]);
-        var found = await store.Get("k");
-        var missing = await store.Get("other");
+        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:sales"], cancellationToken: TestContext.Current.CancellationToken);
+        var found = await store.Get("k", cancellationToken: TestContext.Current.CancellationToken);
+        var missing = await store.Get("other", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("<p>sales</p>", found);
         Assert.Null(missing);
@@ -29,10 +29,10 @@ public sealed class HybridFragmentStoreTests
     public async Task The_absolute_deadline_holds_even_when_the_cache_would_keep_it_longer()
     {
         var store = new HybridFragmentStore(_cache, new CachedOptions(), _time);
-        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), []);
+        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), [], cancellationToken: TestContext.Current.CancellationToken);
 
         _time.Advance(TimeSpan.FromMinutes(6));
-        var found = await store.Get("k");
+        var found = await store.Get("k", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Null(found);
     }
@@ -41,14 +41,14 @@ public sealed class HybridFragmentStoreTests
     public async Task A_sliding_fragment_is_moved_on_when_half_its_window_is_spent_and_never_past_its_deadline()
     {
         var store = new HybridFragmentStore(_cache, new CachedOptions(), _time);
-        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(4)), ["t"]);
+        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(10), TimeSpan.FromMinutes(4)), ["t"], cancellationToken: TestContext.Current.CancellationToken);
         var writesAfterSet = _cache.Writes;
 
         _time.Advance(TimeSpan.FromMinutes(1));
-        await store.Get("k");
+        await store.Get("k", cancellationToken: TestContext.Current.CancellationToken);
         var writesBeforeHalf = _cache.Writes;
         _time.Advance(TimeSpan.FromMinutes(2));
-        await store.Get("k");
+        await store.Get("k", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(writesAfterSet, writesBeforeHalf);
         Assert.Equal(writesAfterSet + 1, _cache.Writes);
@@ -60,10 +60,10 @@ public sealed class HybridFragmentStoreTests
     public async Task Forgetting_a_tag_is_the_caches_remove_by_tag()
     {
         var store = new HybridFragmentStore(_cache, new CachedOptions(), _time);
-        await store.Set("a", "<p>a</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:catalog"]);
-        await store.Set("b", "<p>b</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:other"]);
+        await store.Set("a", "<p>a</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:catalog"], cancellationToken: TestContext.Current.CancellationToken);
+        await store.Set("b", "<p>b</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), ["rask:cached:other"], cancellationToken: TestContext.Current.CancellationToken);
 
-        await store.Forget("rask:cached:catalog");
+        await store.Forget("rask:cached:catalog", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(["b"], _cache.Entries.Keys);
     }
@@ -73,7 +73,7 @@ public sealed class HybridFragmentStoreTests
     {
         var store = new HybridFragmentStore(_cache, new CachedOptions { MaxEntrySize = 8 }, _time);
 
-        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), []);
+        await store.Set("k", "<p>sales</p>", new FragmentLifetime(TimeSpan.FromMinutes(5), null), [], cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(_cache.Entries);
     }

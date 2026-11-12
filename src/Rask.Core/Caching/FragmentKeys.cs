@@ -58,8 +58,11 @@ internal static class FragmentKeys
             return null;
         }
 
-        Append(parts, "c", CultureInfo.CurrentCulture.Name);
-        Append(parts, "ui", CultureInfo.CurrentUICulture.Name);
+        // The render's own cultures — the formatting one is the language's country since #1305 ("en" writes en-US money),
+        // and both are what the markup was written in.
+        var live = Live.LiveRenderContext.Current;
+        Append(parts, "c", (live?.Culture ?? CultureInfo.CurrentCulture).Name);
+        Append(parts, "ui", (live?.UICulture ?? CultureInfo.CurrentUICulture).Name);
 
         if (!AppendWhere(parts, fragment, services) || !AppendHeaders(parts, fragment, services))
         {
