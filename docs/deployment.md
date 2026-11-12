@@ -14,14 +14,27 @@ VPS that has nothing on it but SSH:
 
 ```bash
 rask deploy --host root@box --domain app.example.com
-# → sets the box up (Docker, a deploy login, firewall, SSH hardening), builds the image on it,
-#   and serves https://app.example.com with an auto-issued cert
+# → sets the box up (Docker, a deploy login, firewall, SSH hardening), builds the image here,
+#   sends it to the box, and serves https://app.example.com with an auto-issued cert
 ```
 
-It builds and runs the app **on the host over SSH** — every deploy step is `docker -H ssh://<host> …`,
-so there's no registry, no local Docker daemon, and no image tarball to copy; the build context ships
-to the host's daemon and builds there. It deploys the [scaffolded](#scaffolding-a-dockerfile)
-Dockerfile below (override with `--dockerfile`).
+It **builds the image on your machine** (or the CI runner) and **runs it on the host over SSH** — every step
+on the box is `docker -H ssh://<host> …`, and there's no registry. The build is for the host's platform: the
+deploy asks both Docker engines (`docker version`), and builds with `--platform linux/<the host's arch>` — an
+arm64 Mac deploying to an amd64 VPS builds under emulation, slower but still off the box. The image then goes
+over the same SSH connection, gzip-compressed and never written to a file on either end:
+
+```bash
+docker build --platform linux/amd64 -t app:current --label rask.release=v26.11.11.13.12.02 -f Dockerfile .
+docker save app:current | gzip | docker -H ssh://<host> load    # then tagged :latest there; the copy here is removed
+```
+
+The box only loads and runs images, so a small VPS hosting several apps never runs out of memory because two
+of them are building at once, and the build cache lives where the build runs. When this machine has no Linux
+Docker engine (only the CLI, or Docker Desktop in Windows-container mode), or the host's platform can't be
+read, the deploy says so in one line and builds on the host instead, as earlier versions always did
+(`docker -H ssh://<host> build …`). It deploys the [scaffolded](#scaffolding-a-dockerfile) Dockerfile below
+(override with `--dockerfile`).
 
 A deploy (and a rollback) logs in **once**: it forwards the host's Docker socket over one SSH connection
 (`ssh -N -L <private socket>:/var/run/docker.sock`) and sends every step through it, instead of paying an SSH
@@ -59,6 +72,12 @@ only to TCP — so leave it (and `AllowStreamLocalForwarding`) at the default `y
   [job](jobs.md#shutdown), but the ones it is running run to the end — the deploy waits for it to exit, up to
   the app's `"stopTimeout"` in `.rask/deploy.json` (default `30m`), and prints what it is waiting for. See
   [the shutdown ladder](#the-shutdown-ladder).
+- **Every deploy is a named release.** The deploy names the release by the UTC moment it starts —
+  `v26.11.11.13.12.02` (`vYY.MM.DD.HH.mm.ss`) — sets it on the container as `Rask__Version`, and labels the
+  image with it (`rask.release`), so `rask deploy rollback` brings the old name back with the old build. An app
+  that maps [`MapRaskVersion()`](observability.md) answers it on `/version`. Name it yourself with
+  `--env Rask:Version=<name>`; that one is never remembered as a required variable. See
+  [Release names and `/version`](#release-names-and-version).
 - **No step waits forever.** The build may run 45 minutes in all and go 15 minutes without printing a line;
   past either it is stopped, the deploy says which and shows the build's last line, and the previous version
   keeps serving. While a build is quiet the deploy says so once a minute
@@ -98,15 +117,16 @@ only to TCP — so leave it (and `AllowStreamLocalForwarding`) at the default `y
   them as `{env.…}` placeholders — never into `.rask/deploy.json`, a label or the output. The proxy is
   labelled `rask.dns=azure`, so every later deploy (CI's, with no credentials) keeps it as it is; a wildcard
   on a box with no provider fails before anything starts.
-- **Many apps, one box.** Each app is a separate `--domain` with its own file in the proxy, and a deploy
-  writes only its own, under a box-wide lock — so a second app never disturbs the first, even when both
-  deploy in the same minute.
+- **Many apps, one box, deployed at once.** Each app is a separate `--domain` with its own file in the proxy.
+  A deploy holds its **app's lock** for its whole length (two deploys of one app take turns), and the
+  **box's lock** only for the seconds it switches the shared proxy or prunes — so two different apps, from two
+  CI pipelines, deploy in parallel and neither disturbs the other. Nothing between them needs announcing.
 - **No domain?** Omit `--domain` to publish the app on `--port` (default `8080`) and put your own
   reverse proxy / TLS in front — see the container sections below.
 - **One box, and how far it goes.** [Scaling](scaling.md) has the measured numbers — sessions held and
   events served — plus where the wall actually is and what to do when you reach it.
 
-**Prerequisites:** the Docker CLI locally, with its buildx plugin (the [build cache](#scaffolding-a-dockerfile) needs it), and a host you can `ssh` into non-interactively with a key.
+**Prerequisites:** Docker locally — the CLI with its buildx plugin (the [build cache](#scaffolding-a-dockerfile) needs it), and an engine to build with (without one the host builds) — and a host you can `ssh` into non-interactively with a key.
 `rask doctor` reports both, and a deploy whose docker has no buildx stops before it touches the host, naming
 the fix (`brew install docker-buildx` on macOS, `apt-get install docker-buildx-plugin` on Debian/Ubuntu);
 Podman's `docker` needs no plugin and is never asked.
@@ -259,9 +279,9 @@ starts, naming the file; if that app is gone for good, remove it:
 
 ### The box's disk
 
-Every deploy moves `<app>:current` to `<app>:previous` and builds a new `:current`, so the image that was
-`:previous` loses its last tag. It is left behind *dangling*, and the build cache it was made from stays
-with it. Nothing used to remove them: a box deploying two apps a few times a day filled a 368 GB disk.
+Every deploy moves `<app>:current` to `<app>:previous` and loads (or builds) a new `:current`, so the image that
+was `:previous` loses its last tag. It is left behind *dangling* — and on a box that builds, the build cache it
+was made from stays with it. Nothing used to remove them: a box deploying two apps a few times a day filled a 368 GB disk.
 
 **Once a deploy serves** — its health gate passed, and with `--domain` the check through the proxy too —
 it cleans up, under the box's deploy lock (so never while another app's deploy is switching the proxy),
@@ -308,13 +328,33 @@ disk also stops every app on the box from writing its database — and prints th
 rask deploy --github-actions   # writes .github/workflows/deploy.yml and prints the secrets to add
 ```
 
-The workflow runs the same `rask deploy` on every push to `main`. Host, domain and port come from the
-committed `.rask/deploy.json`, so only two secrets are needed — the command prints the exact `gh` lines:
+The workflow runs the same `rask deploy` on main **once your CI has passed**: it triggers on `workflow_run` of
+the repository's CI workflow (`ci.yml`, or the only other workflow that runs on push), for `main`, and its job
+runs only for a successful run of a push — then checks out exactly the commit CI passed
+(`github.event.workflow_run.head_sha`), not whatever `main` has moved on to. A repository with no CI workflow yet
+gets a workflow that deploys every push to `main`, with a comment saying what to change once it has one. Manual
+runs (`workflow_dispatch`) always work. One deploy of an app runs at a time (`concurrency`, never cancelled
+half-way); different apps' pipelines deploy to the same box in parallel.
+
+The image is built **on the runner** — GitHub's runners have Docker with buildx — for the box's platform, and
+sent to the box compressed; the box never builds. Host, domain and port come from the committed
+`.rask/deploy.json`, so only two secrets are needed. Give each repository a **deploy-only key** of its own —
+the command prints these lines with your host and app filled in:
 
 ```bash
-gh secret set RASK_SSH_PRIVATE_KEY < ~/.ssh/id_ed25519
+ssh-keygen -t ed25519 -N '' -C rask-deploy-shop -f ~/.ssh/rask-deploy-shop
+ssh deploy@box.example.com "echo 'restrict,port-forwarding $(cat ~/.ssh/rask-deploy-shop.pub)' >> ~/.ssh/authorized_keys"
+gh secret set RASK_SSH_PRIVATE_KEY < ~/.ssh/rask-deploy-shop
 gh secret set RASK_SSH_KNOWN_HOSTS --body "$(ssh-keyscan box.example.com 2>/dev/null)"
 ```
+
+`restrict` takes away everything a deploy doesn't use — a terminal, agent and X11 forwarding, the login's rc
+file — and `port-forwarding` gives back the one thing it does: the forward of the host's Docker socket every
+step goes over. The key logs in as the deploy user (the one `rask deploy --setup-host` made), so it can do what
+a deploy does — that user is in the `docker` group, which on any Docker host is as good as root, so keep the
+secret as you would a root key. Revoke it by deleting its line from `~/.ssh/authorized_keys` on the box; delete
+the local copy once the secret is set. `RASK_SSH_KNOWN_HOSTS` pins the host's key, so the runner never trusts
+an impostor.
 
 Pass app secrets to the container by adding `--env "Key=${{ secrets.SOMETHING }}"` to the workflow's
 deploy step. The generated workflow deploys with `--no-setup-host` on purpose: **set the box up once
@@ -358,9 +398,35 @@ a red build. Keep the caches between runs; with GitHub Actions that is one step 
 Every cache is keyed by version inside (`<root>/<version>/…`), so restoring an older one is safe: a new pin
 is simply one more folder.
 
-The workflow `rask deploy --github-actions` writes needs none of this: it builds the image **on your host**,
-where the template Dockerfile keeps the same caches in BuildKit cache mounts (`rask-tailwind`,
-`rask-typescript`, `rask-chrome`) across deploys.
+The workflow `rask deploy --github-actions` writes builds the image with the template Dockerfile, which keeps
+these in BuildKit cache mounts (`rask-tailwind`, `rask-typescript`, `rask-chrome`). On a GitHub-hosted runner
+each run starts with an empty build cache, so those tools (and the NuGet restore) are fetched once per deploy —
+on the runner, not the box.
+
+## Release names and `/version`
+
+Every `rask deploy` names its release by the UTC moment it starts, `vYY.MM.DD.HH.mm.ss` — `v26.11.11.13.12.02` —
+and passes it to the container as `Rask__Version` (configuration key `Rask:Version`). The image carries it too, as
+the label `rask.release`, so a `rask deploy rollback` (or the automatic one of a `--port` deploy) tells the restored
+container its own, older name. Name a release yourself with `--env Rask:Version=<name>` (a git SHA, a tag); a
+deploy that names none goes back to the moment. The key is never recorded in `.rask/deploy.json`'s required
+variables, since every deploy names its own.
+
+Map the endpoint that answers it, outside any `/api` group — an app that filters its API to known callers would
+otherwise answer the deploy's probe with a `404`:
+
+```csharp
+app.MapEndpoints(e => e.MapRaskVersion());   // GET /version → {"version":"v26.11.11.13.12.02"}
+```
+
+`MapRaskVersion()` answers the first of: the configured `Rask:Version`; a `version.json` beside the app
+(`AppContext.BaseDirectory`, written by a pipeline that names releases itself — the same shape the endpoint
+answers, `{"version":"2026.11.11-build.42"}`; any other shape is ignored); the app's informational version
+(MinVer's, from the git tag). It is anonymous and `Cache-Control: no-store`.
+
+`/version` also makes a good **health path**: it answers without a database, a sign-in or a session, so
+`rask deploy --health-path /version` gates the swap on the new container serving at all, and the response says
+which release did.
 
 ## Backups
 
@@ -402,6 +468,7 @@ Beyond your own `--env` values, every deployed container gets:
 | `Rask__ConnectionStrings__App=Data Source=/data/app.db` | Points the app at the mounted volume, so the database survives container replacement. |
 | `Rask__ConnectionStrings__Logs=Data Source=/data/logs.db` | Same volume, for [`Rask.Logging`](logging.md)'s own file. Ignored by an app that doesn't use it. |
 | `Rask__Auth__PublicOrigin=https://<domain>` (with `--domain`; the first one when there are several) | Where confirm and reset emails point. Outside Development the app never takes it from a request's `Host` header, so without it those emails are not sent. On a bare `--port` deploy pass it yourself: `--env Rask:Auth:PublicOrigin=http://your-host:8080`. |
+| `Rask__Version=v<yy.MM.dd.HH.mm.ss>` | The release name — the UTC moment the deploy started — which `MapRaskVersion()` answers on `/version`. A rollback restores the old image's own name. Your own `--env Rask:Version=…` replaces it. See [Release names](#release-names-and-version). |
 | `--log-opt max-size=10m --log-opt max-file=3` | Docker's `json-file` logs are unbounded by default; on a one-box deploy a chatty app filling the disk takes down every other app sharing it. |
 | `--security-opt no-new-privileges` | A compromised process can't gain rights through setuid binaries. Nothing a Rask app does needs to escalate. |
 | `--restart unless-stopped` | The app comes back after a reboot or a daemon restart. |

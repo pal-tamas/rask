@@ -8,6 +8,26 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
+  (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
+  built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
+  engine), streamed as `docker save | gzip | docker -H ssh://host load`, tagged `:current`/`:latest` there, and the
+  local copy removed; the health gate, blue-green swap, `:previous` rollback tag and post-deploy prune are unchanged.
+  No registry, no new flag. A machine with no Linux Docker engine builds on the host as before, said in one line.
+  Two different apps deploy to one box in parallel: each holds only its own app lock for the whole deploy, and the
+  box lock just for the seconds of the proxy switch and prune.
+- **Every deploy is a named release, and `/version` answers it.** `rask deploy` names the release by the UTC moment it
+  starts (`v26.11.11.13.12.02`), sets `Rask__Version` on the container and labels the image `rask.release`, so a
+  rollback restores the old name with the old build; `--env Rask:Version=<name>` names it yourself (never recorded as
+  a required variable). `MapRaskVersion()` answers the configured `Rask:Version` first, then a `version.json`
+  (`{"version":"…"}`) beside the app, then the assembly's informational version. Map it outside any `/api` group;
+  it makes a good `--health-path /version`.
+- **`rask deploy --github-actions` deploys what CI passed, with a deploy-only key.** Before: the workflow deployed every
+  push to `main`, CI green or not, and told you to reuse your own SSH key. After: it triggers on `workflow_run` of the
+  repository's CI workflow (`ci.yml`, or its only push workflow) for `main`, runs only for a successful run of a push,
+  and checks out the commit CI passed; with no CI workflow it falls back to push, with a comment saying how to
+  switch. The command prints a per-repository key recipe (`restrict,port-forwarding` in the box's
+  `authorized_keys`) next to the two `gh secret set` lines.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
