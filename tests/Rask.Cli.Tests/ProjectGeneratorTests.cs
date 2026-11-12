@@ -385,6 +385,28 @@ public sealed class ProjectGeneratorTests
         Assert.DoesNotContain(".dockerignore", off.Keys);
     }
 
+    // #1307: a private feed in the project's nuget.config, or a package version in Directory.Packages.props, is in the
+    // image when restore runs. Patterns, so a project without one of them still builds.
+    [Fact]
+    public void Every_template_image_restores_with_the_projects_nuget_config_and_directory_files()
+    {
+        ScaffoldResult[] scaffolds =
+        [
+            ProjectGenerator.GenerateServer(Root, "App", new ServerBatteries { Docker = true }, Version),
+            ProjectGenerator.GenerateWasm(Root, "App", pwa: false, docker: true, Version),
+            ProjectGenerator.GenerateWasmHosted(Root, "App", new ServerBatteries { Docker = true }, Version),
+        ];
+
+        var dockerfiles = scaffolds.Select(result => Index(result)["Dockerfile"]).ToList();
+
+        Assert.All(dockerfiles, dockerfile =>
+        {
+            var copy = dockerfile.IndexOf(
+                """COPY ["App.csproj", "[Nn]u[Gg]et.[Cc]onfig", "Directory.*", "global.json*", "./"]""", StringComparison.Ordinal);
+            Assert.InRange(copy, 0, dockerfile.IndexOf("dotnet restore", StringComparison.Ordinal));
+        });
+    }
+
     // "test every scenario" — all 8 flag combinations keep the invariants: core files always present,
     // no placeholder leakage, packages always include the framework, opt-in files exactly track their flag.
     [Theory]

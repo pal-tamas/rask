@@ -65,6 +65,7 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, awaiting, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { addressShown, onlyFragmentMoved, writeEntry } from "../../Rask.Core/Resources/rask-fragment.js";
 import { pagesCaughtUpBy, submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import { connectionIs } from "../../Rask.Core/Resources/rask-offline.js";
 import { busy, busyUntil, busyWhile } from "../../Rask.Core/Resources/rask-busy.js";
@@ -1569,13 +1570,7 @@ import {
             applyDiff((data.ops ?? []) as DiffOp[], Array.isArray(data.names) ? data.names : undefined);
             if (devtools) devtools.commit(data, startedAt);
             if (data.history && typeof data.history.url === "string") {
-                let diffTarget = prependBase(data.history.url);
-                if (data.history.action === "replace") {
-                    history.replaceState({rask: true}, "", diffTarget);
-                } else {
-                    if (_pendingScrollHash) diffTarget += _pendingScrollHash;
-                    history.pushState({rask: true}, "", diffTarget);
-                }
+                writeEntry(prependBase(data.history.url), data.history.action === "replace", _pendingScrollHash);
             }
             applyNavScroll(data.history);
             // Re-scan so newly-added scoped <script>/<link> feed the Rask.* invoke gate, then dispatch
@@ -1635,13 +1630,7 @@ import {
                 invokeGate.scanHeadAssets();
             }
             if (data.history && typeof data.history.url === "string") {
-                let fullTarget = prependBase(data.history.url);
-                if (data.history.action === "replace") {
-                    history.replaceState({rask: true}, "", fullTarget);
-                } else {
-                    if (_pendingScrollHash) fullTarget += _pendingScrollHash;
-                    history.pushState({rask: true}, "", fullTarget);
-                }
+                writeEntry(prependBase(data.history.url), data.history.action === "replace", _pendingScrollHash);
             }
             applyNavScroll(data.history);
             applyFrameInvokes(data, dispatchJsInvoke);
@@ -1806,7 +1795,10 @@ import {
             : {type: "navigate", path: stripBase(url.pathname), query: url.search});
     }
 
+    addressShown();
     window.addEventListener("popstate", () => {
+        // A move between #fragments of this page is the browser's alone (rask-fragment.ts).
+        if (onlyFragmentMoved()) return;
         // Its page is announced when it arrives, though Back and Forward leave focus and scroll where they are.
         backOrForward();
         beginNav();
