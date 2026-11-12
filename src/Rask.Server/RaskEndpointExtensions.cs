@@ -200,6 +200,10 @@ public static partial class RaskEndpointExtensions
         // hand-wired host that calls UseStaticFiles() and writes its own <link> gets it too.
         Http.AppStylesheet.Register(services);
 
+        // And the UI kit's precompiled sheet, out of the kit's assembly, at the address every page with the kit on and
+        // no kit in its own sheet links (#1315) — so no app links a sheet nothing serves.
+        Http.KitStylesheet.Register(services);
+
         // Errors by default: a request that is not a page — an endpoint, a controller — answers a problem document
         // when it throws, with a status from RaskServerOptions.Answer's table. MapRask puts the handler in the pipeline.
         Errors.ProblemAnswers.Add(services);

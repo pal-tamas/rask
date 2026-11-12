@@ -26,6 +26,14 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **An app with the UI kit and no Tailwind build no longer links a `/css/rask-ui.css` nothing serves (#1315).**
+  Before: `RaskApp` and the WASM host linked the kit's precompiled sheet whenever the kit was on and the app's sheet
+  did not import it, but only `RaskUiWriteStylesheet` put a file there — every page answered its stylesheet with a 404
+  and the kit drew unstyled. After: a Rask.Server host (RaskApp or hand-wired) answers `/css/rask-ui.css` from the
+  kit's own assembly, compressed and kept for a year under its `?v=`; a browser app's build adds the sheet to its static
+  web assets from the package (or, in-repo, the kit's build output), so it is served in development and published.
+  `RaskUiWriteStylesheet` in a project that references the kit by `ProjectReference` now also builds from a clean
+  checkout: the sheet is looked for after the project references are built, not before.
 - **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
   Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
   `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,

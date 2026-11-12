@@ -139,11 +139,17 @@ order in a compiled app sheet, and `UiLayerOrderTests` in the kit's precompiled 
 
 ### One sheet, never two
 
-The kit also compiles a sheet of its own (`UiStylesheet.Css`, or `UiStylesheet.Href()` after
-`<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` writes it to `wwwroot/css/rask-ui.css`). **That
+The kit also compiles a sheet of its own (`UiStylesheet.Css`, served at `UiStylesheet.Href()`). **That
 sheet is for a surface with no Tailwind build of its own** — `Rask.DevTools` inlines it into a panel
 drawn inside somebody else's page; an app that draws only with `Ui.*` components and writes no
 utilities can link it and run no Tailwind at all.
+
+`RaskApp` and the WASM host link it by themselves whenever the kit is on and the app's own sheet does not
+import it, and the sheet is always there to answer: a Rask.Server host serves `/css/rask-ui.css` out of the
+kit's assembly (compressed, cached for a year under its `?v=`), and a browser app's build adds it to the
+app's static web assets from the package, so `dotnet publish` ships it. Nothing to switch on, nothing written
+into your tree. `<RaskUiWriteStylesheet>true</RaskUiWriteStylesheet>` still copies the file into
+`wwwroot/css/rask-ui.css` for a host that serves only what is on disk.
 
 It must not sit in a document beside an app's own Tailwind output, which is how every Rask app used to
 be wired. Both sheets put utilities in `@layer utilities`, CSS layers do not merge across `<link>`
