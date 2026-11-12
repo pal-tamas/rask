@@ -750,3 +750,18 @@ bundle,bytes
 rask.js,116692
 rask.wasm.js,104091
 rask-hooks.js,134544
+# 2026-11-11, Escape refused for the modal it goes to wherever focus rests, and an open against the page's word
+# closed by the sweep however it came about (rask-overlay.ts; eszaf's forced-open modal): measured locally with the
+# Release bundles — rask.js 116,692 and rask.wasm.js 104,091 unchanged, rask-hooks.js 134,544 -> 134,805.
+bundle,bytes
+rask.js,116692
+rask.wasm.js,104091
+rask-hooks.js,134805
+# 2026-11-12, a link to a #fragment keeps its hash (#1310: rask-fragment.ts, which both runtimes carry, leaves a
+# fragment-only popstate to the browser and writes every navigation's history entry): measured on the tree merged
+# with main, with the bundle gate's own command — rask.js 116,692 -> 116,801, rask.wasm.js 104,091 -> 104,265,
+# rask-hooks.js 134,805 unchanged.
+bundle,bytes
+rask.js,116801
+rask.wasm.js,104265
+rask-hooks.js,134805

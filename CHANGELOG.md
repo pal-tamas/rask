@@ -44,6 +44,27 @@ them until tagged releases begin.
   `RemoveSubtree`/`InsertSubtree` of the root. The second walk now drops only what the first pass wrote. A live
   Server session was never affected (its writer is empty when the walk starts): its first press after a title
   is a diff of a few dozen bytes, now held by a socket test and a browser journey at 1280 and 390 px.
+- **A link to a `#fragment` keeps it, on both hosts (#1310).** Before: a plain `<a href="#section">` moved the page
+  and then lost the hash — the browser's `popstate` was answered with a replace navigation that wrote back the
+  address .NET knows, which has no fragment — so the address bar, Back to it, and a shared link all dropped the
+  section. After: a move between fragments of the page on show is left to the browser (it scrolls, and Back/Forward
+  walk between sections) and nothing is sent; Back from another page to `/page#section` keeps its hash. One module
+  both runtimes share (`rask-fragment.ts`) writes every navigation's history entry. The site's sign-out example
+  points at `#signed-out` again.
+- **A scaffolded app's Docker image restores from the project's own `nuget.config` (#1307).** Before: the server,
+  wasm-hosted and wasm Dockerfiles copied only the csproj before `dotnet restore`, so a private feed or package
+  source mapping was not in the image yet and the restore failed or silently went to nuget.org. After: the restore
+  layer also copies `nuget.config`, `Directory.*` (Directory.Packages.props, Directory.Build.props) and
+  `global.json` — as patterns, so a project without one of them still builds.
+- **Escape no longer closes a modal set `.Escapable(false)` once it has been open a moment.**
+  Before: the runtime refused the key only when focus was inside the dialog, and a `Ui.Modal` hands focus to a
+  placeholder that is gone 150 ms after it opens, so from then on focus rested on the page and Escape closed the
+  dialog. Now the key is refused for the modal it goes to, the topmost one, wherever focus rests.
+- **A state-driven modal (`Ui.Modal.Open(bool)`) that something opened against the page's word closes again.**
+  Before: a modal the server had closed and a script then opened with `showModal()` stayed open through presses and
+  the renders that answered them, because the runtime held an open nobody told the page about as the reader's own.
+  Now an open dialog whose `data-rask-modal-open` says it is closed is closed at the next sweep, a frame later and
+  again after any answer; a reader's untold close of a modal the page keeps open is still left alone.
 - **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
   slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
   one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost

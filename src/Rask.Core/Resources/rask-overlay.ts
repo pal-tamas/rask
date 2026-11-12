@@ -12,7 +12,8 @@
 //     data-rask-modal-open="true" | "false" and this calls showModal() / close() to match when it changes, and
 //     again whenever the page has its answers and the dialog still shows something else (rask-owned.ts,
 //     `converges`). A reader who closes it with Escape is not fought while the page has yet to hear of it, nor
-//     when nothing tells the page; one it heard and still answers "true" is opened again.
+//     when nothing tells the page; one it heard and still answers "true" is opened again. Open while the page says
+//     closed is closed again however it came about (`sweep`).
 //   * HOW A MODAL IS DISMISSED (data-rask-modal). `closedby` covers three of the four combinations of
 //     "Escape closes" and "a press outside closes" and is missing from some engines; the fourth — outside
 //     yes, Escape no — it cannot say at all. data-rask-modal="any | press | escape | none" says all four.
@@ -172,13 +173,20 @@ function installSwipeKeepsOpen(doc: Document): void {
 
 // ----- Modal dialogs ---------------------------------------------------------------------------------
 
+// When each dialog that asked was last opened, to tell which of several open modals is on top (`requested`).
+const openedAt = new WeakMap<Element, number>();
+let opens = 0;
+
 // Only on a dialog that asked: one carrying either attribute. Any other dialog on the page is left as it is.
 function mark(dialog: Element, open: boolean): void {
     if (open && (dialog.hasAttribute(MODAL) || dialog.hasAttribute(MODAL_OPEN))) {
         const was = dialog.hasAttribute("data-open");
         own(dialog, "data-open");
         dialog.setAttribute("data-open", "");
-        if (!was) report(dialog, true);
+        if (!was) {
+            openedAt.set(dialog, ++opens);
+            report(dialog, true);
+        }
     } else if (!open && dialog.hasAttribute("data-open")) {
         dialog.removeAttribute("data-open");
         disown(dialog, "data-open");
@@ -256,15 +264,46 @@ function matches(dialog: HTMLDialogElement): boolean {
 
 // The page's last word on every dialog it opens and closes, carried out again (rask-owned.ts, `converges`): a
 // dialog that already matches is left as it is, and one the reader closed without the page hearing stays closed.
+//
+// One OPEN against the page's word is closed however it came about, heard or not. Nothing in the page opens a
+// dialog the page opens and closes itself, so it is a script's showModal(), or an open the browser kept while a
+// close was lost, and it is not the reader's to keep: a modal makes the rest of the page inert, and its buttons
+// act on state the server has already let go of (eszaf, 2026-11-11: forced open after the server closed it, it
+// stayed open through a press and the render that answered it). The next sweep closes it: a frame after its
+// `toggle`, so it never settles in, and again after any answer.
 function sweep(doc: Document): void {
     doc.querySelectorAll<HTMLDialogElement>("dialog[" + MODAL_OPEN + "]").forEach(function (el) {
-        if (!untold(el) && !matches(el)) reconcile(el);
+        if (!matches(el) && (!untold(el) || openAgainstThePage(el))) reconcile(el);
     });
+}
+
+function openAgainstThePage(dialog: HTMLDialogElement): boolean {
+    return dialog.open && dialog.getAttribute(MODAL_OPEN) !== "true";
 }
 
 function scan(root: Element): void {
     if (root.hasAttribute(MODAL_OPEN)) reconcile(root);
     root.querySelectorAll("[" + MODAL_OPEN + "]").forEach(reconcile);
+}
+
+// The modal a close request goes to. The engine sends Escape to the topmost modal whatever has focus, and focus
+// often rests on nothing inside one: Ui.Modal's placeholder takes it as the dialog opens and is gone 150 ms later
+// (ui.css). So: the modal focus is in when it is in one, and otherwise the open modal opened last. Asked only of
+// the focused element, an Escape pressed a moment after the dialog opened closed one that says it does not close
+// on Escape.
+function requested(doc: Document, target: EventTarget | null): HTMLElement | null {
+    const inside = near(target, "dialog:modal");
+    if (inside) {
+        return inside;
+    }
+    const open = doc.querySelectorAll<HTMLDialogElement>("dialog:modal");
+    let top: HTMLDialogElement | null = null;
+    for (let i = 0; i < open.length; i++) {
+        if (!top || (openedAt.get(open[i]) || 0) >= (openedAt.get(top) || 0)) {
+            top = open[i];
+        }
+    }
+    return top;
 }
 
 function outside(dialog: Element, e: MouseEvent): boolean {
@@ -341,9 +380,9 @@ function installModal(doc: Document): void {
         if (e.key !== "Escape") {
             return;
         }
-        const dialog = near(e.target, "dialog[" + MODAL + "]");
+        const dialog = requested(doc, e.target);
         const by = dialog ? dialog.getAttribute(MODAL) : null;
-        if (dialog && (by === "press" || by === "none") && dialog.matches(":modal")) {
+        if (by === "press" || by === "none") {
             e.preventDefault();
         }
     }, true);
