@@ -106,6 +106,47 @@ public class PageTitleTests
         Assert.Contains("<span id=\"crumb\">Slow record</span>", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task The_first_press_after_the_title_settled_is_answered_with_a_diff_like_every_later_one()
+    {
+        using var host = RaskTestHost.Create<PageTitleApp>();
+        var html = await host.Http.GetStringAsync("/pressed/child", TestContext.Current.CancellationToken);
+        var handler = MarkupAssert.FirstHandlerId(html);
+        using var ws = await Attach(host, html);
+        var kinds = new List<string?>();
+
+        for (var press = 1; press <= 3; press++)
+        {
+            await ws.SendJsonAsync(new { id = handler, type = "click" }, ct: TestContext.Current.CancellationToken);
+            var frame = await ws.TryReceiveTextAsync(Wait);
+            Assert.NotNull(frame);
+            Assert.Contains($"Pressed {press} on Kid", frame, StringComparison.Ordinal);
+            using var doc = JsonDocument.Parse(frame);
+            kinds.Add(doc.RootElement.GetProperty("kind").GetString());
+        }
+
+        Assert.Equal(["diff", "diff", "diff"], kinds);
+    }
+
+    [Fact]
+    public async Task The_first_press_after_a_navigation_to_another_title_is_answered_with_a_diff()
+    {
+        using var host = RaskTestHost.Create<PageTitleApp>();
+        var html = await host.Http.GetStringAsync("/pressed/child", TestContext.Current.CancellationToken);
+        var handler = MarkupAssert.FirstHandlerId(html);
+        using var ws = await Attach(host, html);
+        await ws.SendJsonAsync(new { type = "navigate", path = "/pressed/sibling", query = "" }, TestContext.Current.CancellationToken);
+        Assert.NotNull(await ws.TryReceiveTextAsync(Wait));
+
+        await ws.SendJsonAsync(new { id = handler, type = "click" }, ct: TestContext.Current.CancellationToken);
+        var frame = await ws.TryReceiveTextAsync(Wait);
+
+        Assert.NotNull(frame);
+        Assert.Contains("Pressed 1 on Sib", frame, StringComparison.Ordinal);
+        using var doc = JsonDocument.Parse(frame);
+        Assert.Equal("diff", doc.RootElement.GetProperty("kind").GetString());
+    }
+
     private static async Task<WebSocket> Connect(RaskTestHost host, string path) =>
         await Attach(host, await host.Http.GetStringAsync(path, TestContext.Current.CancellationToken));
 

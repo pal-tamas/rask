@@ -48,6 +48,7 @@
     <InternalsVisibleTo Include="Rask.Server.HotReload.Tests"/>
     <InternalsVisibleTo Include="Rask.Wasm"/>
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
+    <InternalsVisibleTo Include="Rask.Wasm.Invariant.Tests"/>
     <InternalsVisibleTo Include="Rask.Web"/>
     <InternalsVisibleTo Include="Rask.Web.Tests"/>
     <!-- Hosts cannot reference the devtools (the devtools reference the hosts), so they meet in Core: the

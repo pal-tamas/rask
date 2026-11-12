@@ -127,6 +127,7 @@
         <Project Path="tests/Rask.Xlsx.Tests/Rask.Xlsx.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.E2E.Tests/Rask.Wasm.E2E.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Fixture.Wasm/Rask.Wasm.Fixture.Wasm.csproj" />
+        <Project Path="tests/Rask.Wasm.Invariant.Tests/Rask.Wasm.Invariant.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tasks.Tests/Rask.Wasm.Tasks.Tests.csproj" />
         <Project Path="tests/Rask.Wasm.Tests/Rask.Wasm.Tests.csproj" />
         <Project Path="tests/Rask.Wire.Tests/Rask.Wire.Tests.csproj" />
