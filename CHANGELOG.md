@@ -156,6 +156,9 @@ them until tagged releases begin.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
+- **`Ui.Editor`'s engine is on Tiptap 3.33.1** (was 3.33.0, a patch release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 54 bytes (451,814 -> 451,868), which the
+  tiptap follower leaves to the owner; approved, landed by hand (#1263).
 - **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
   issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push
   run alone, which runs only the gates a push can reach — so on 2026-11-09, with `main`'s `full` run red on the CLI
