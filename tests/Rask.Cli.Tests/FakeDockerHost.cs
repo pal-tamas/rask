@@ -333,6 +333,13 @@ internal sealed class FakeDockerHost
         public Task<int> RunTeeAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, Action<string> onLine, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
             RunAsync(fileName, arguments, workingDirectory, cancellationToken, environment);
 
+        // The image built here reaches the box: the save runs locally, the load on the box.
+        public async Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken)
+        {
+            var sent = await RunAsync(fileName, source, workingDirectory, cancellationToken).ConfigureAwait(false);
+            return sent != 0 ? sent : await RunAsync(fileName, sink, workingDirectory, cancellationToken).ConfigureAwait(false);
+        }
+
         public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null)
         {
             if (Before is not null)

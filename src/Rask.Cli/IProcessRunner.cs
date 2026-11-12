@@ -59,4 +59,22 @@ internal interface IProcessRunner
         Action<string> onLine,
         CancellationToken cancellationToken,
         IReadOnlyDictionary<string, string>? environment = null);
+
+    /// <summary>
+    /// Run <paramref name="fileName"/> twice as one pipeline, <c>source | gzip | sink</c>: everything the first writes
+    /// to standard output reaches the second's standard input gzip-compressed (the fastest level). Both keep their
+    /// standard error, and the sink its standard output, on this console. Returns the source's exit code when it
+    /// failed, else the sink's.
+    /// </summary>
+    /// <remarks>
+    /// Made for <c>docker save | docker -H ssh://host load</c>, which is how <c>rask deploy</c> ships an image it built
+    /// here to the box: <c>docker load</c> reads gzip itself, so only the compressed bytes cross the network, and the
+    /// image is never written to a file on either end. Cancelling kills both.
+    /// </remarks>
+    Task<int> PipeAsync(
+        string fileName,
+        IReadOnlyList<string> source,
+        IReadOnlyList<string> sink,
+        string? workingDirectory,
+        CancellationToken cancellationToken);
 }

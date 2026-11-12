@@ -33,6 +33,9 @@ internal sealed class HeldSshRunner(FakeProcessRunner inner) : IProcessRunner
         }
     }
 
+    public Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken) =>
+        inner.PipeAsync(fileName, source, sink, workingDirectory, cancellationToken);
+
     public Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
         inner.CaptureAsync(fileName, arguments, workingDirectory, cancellationToken, environment);
 

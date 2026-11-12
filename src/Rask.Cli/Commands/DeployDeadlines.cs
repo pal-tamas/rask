@@ -41,7 +41,8 @@ internal sealed record DeployDeadlines(TimeSpan Step, TimeSpan Build, TimeSpan B
     internal TimeSpan? For(IReadOnlyList<string> arguments) =>
         Verb(arguments) switch
         {
-            "build" => Build,
+            // A load receives a whole image built here: it may take as long as building it on the box would have.
+            "build" or "load" => Build,
             "image" or "builder" when arguments.Contains("prune", StringComparer.Ordinal) => Step < Prune ? Step : Prune,
             "logs" when arguments.Contains("--follow", StringComparer.Ordinal) || arguments.Contains("-f", StringComparer.Ordinal) => null,
             "stop" when StopSeconds(arguments) is { } seconds => Step + TimeSpan.FromSeconds(seconds),

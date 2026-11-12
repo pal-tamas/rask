@@ -261,17 +261,27 @@ app.MapHealthChecks("/health/live",
 
 ## Which build is running
 
-`MapRaskVersion()` answers `GET /version` with the app's informational version — the one MinVer stamps from the
-release tag, so it carries the prerelease height and the commit:
+`MapRaskVersion()` answers `GET /version` with the running release, the first of:
+
+1. the configured **`Rask:Version`** (`Rask__Version` in the environment) — which `rask deploy` sets to the UTC
+   moment of the deploy, `v26.11.11.13.12.02` ([release names](deployment.md#release-names-and-version));
+2. a **`version.json`** beside the app (`AppContext.BaseDirectory`), `{"version":"…"}` — the shape the endpoint
+   answers, for a pipeline that names its releases itself; a file of any other shape is ignored;
+3. the app's **informational version** — the one MinVer stamps from the release tag, so it carries the
+   prerelease height and the commit.
 
 ```csharp
 app.MapEndpoints(e => e.MapRaskVersion());            // a RaskApp
-app.MapRaskVersion("/api/version");                   // a host wired by hand, at a path of your own
+app.MapRaskVersion("/version");                       // a host wired by hand
 ```
 
 ```json
-{"version":"1.4.0-alpha.0.12+3f2a9c1"}
+{"version":"v26.11.11.13.12.02"}
 ```
+
+Map it **outside any `/api` group**: an app that filters its API to known callers would answer a deploy's probe
+or an uptime check with a `404`. It needs no database or session, which also makes it a good
+`rask deploy --health-path /version`.
 
 It is anonymous, so a deploy script or an uptime probe asks without signing in (a fallback authorization policy
 does not reach it), and it is served `Cache-Control: no-store`, so a proxy never answers with the build before last.

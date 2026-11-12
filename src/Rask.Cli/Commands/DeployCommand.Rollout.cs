@@ -20,7 +20,7 @@ internal sealed partial class DeployCommand
                 PersistPlan(plan);
             }
 
-            return WriteGitHubActionsWorkflow(plan.SshTarget, plan.Host, plan.DryRun);
+            return WriteGitHubActionsWorkflow(plan.SshTarget, plan.Slug, plan.DryRun);
         }
 
         if (plan.DryRun)
@@ -122,6 +122,8 @@ internal sealed partial class DeployCommand
 
     private async Task<int> RunActionAsync(DeployPlan plan, CancellationToken cancellationToken)
     {
+        // Only a deploy names a release; a rollback restores the one its image was built as.
+        _release = null;
         return plan.Action switch
         {
             // A deploy and a rollback hold the app's lock throughout: two at once of one app would pick the same colour.
@@ -201,9 +203,8 @@ internal sealed partial class DeployCommand
             return 1;
         }
 
-        // Move the live image aside before the build takes its tag, so the version being replaced stays
-        // recoverable by `rask deploy rollback`. It fails harmlessly on a first deploy (no :current yet).
-        await Run(BuildRetagArguments(host, slug, CurrentTag, PreviousTag), cancellationToken).ConfigureAwait(false); // ignore-absent
+        // The release is named once, when the deploy starts: the image is labelled with it and the container told it.
+        _release = ReleaseName.Given(env) ?? ReleaseName.At(Clock.GetUtcNow());
 
         // The deploy mounts a volume and points the app at a SQLite file on it, and the graceful-stop
         // budget below exists so a replicator can flush before the container dies. Say plainly when there
@@ -227,8 +228,7 @@ internal sealed partial class DeployCommand
             await Console.Error.WriteLineAsync("    Name it:  rask deploy --env \"Rask:Auth:PublicOrigin=http://your-host:" + plan.Port.ToString(CultureInfo.InvariantCulture) + "\"  (or deploy with --domain)", cancellationToken).ConfigureAwait(false);
         }
 
-        WriteHeading($"Building {slug}:{CurrentTag} on {host}…");
-        if (!await BuildImageAsync(plan, cancellationToken).ConfigureAwait(false))
+        if (!await BuildAndLandImageAsync(plan, cancellationToken).ConfigureAwait(false))
         {
             return 1;
         }
@@ -247,11 +247,11 @@ internal sealed partial class DeployCommand
         return deployed;
     }
 
-    /// <summary>Build the image on the box, within the build's deadlines; when it doesn't build, say why. Nothing has moved yet.</summary>
-    private async Task<bool> BuildImageAsync(DeployPlan plan, CancellationToken cancellationToken)
+    /// <summary>Build the image (here, or on the box), within the build's deadlines; when it doesn't build, say why. Nothing serving has moved.</summary>
+    private async Task<bool> BuildImageAsync(DeployPlan plan, IReadOnlyList<string> arguments, CancellationToken cancellationToken)
     {
         var build = new ImageBuild(Console, _process, _workingDirectory, Deadlines);
-        var end = await build.RunAsync(BuildBuildArguments(plan.Host, plan.Slug, plan.Dockerfile, plan.ContextDir), cancellationToken).ConfigureAwait(false);
+        var end = await build.RunAsync(arguments, cancellationToken).ConfigureAwait(false);
         var config = Path.Combine(".rask", "deploy.json");
         switch (end)
         {
@@ -291,7 +291,7 @@ internal sealed partial class DeployCommand
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain: null, color: null, port, env, containerPort, tag, runtimeEnv, stopTimeout: ShutdownBudget.PortModeStopTimeout, release: await ReleaseForAsync(host, slug, tag, env, cancellationToken).ConfigureAwait(false)), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -577,11 +577,12 @@ internal sealed partial class DeployCommand
 
         await Console.Out.WriteLineAsync($"Starting {newContainer} ({SiteDomains.Describe(domain)})…", cancellationToken).ConfigureAwait(false);
         // In domain mode the app is reached internally on its container port; no host port is published.
+        var release = await ReleaseForAsync(host, slug, tag, env, cancellationToken).ConfigureAwait(false);
         var runtimeEnv = WriteEnvFile(slug, env);
         int started;
         try
         {
-            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv, redirects, StopBudget), cancellationToken).ConfigureAwait(false);
+            started = await Run(BuildRunArguments(host, slug, domain, newColor, containerPort, env, containerPort, tag, runtimeEnv, redirects, StopBudget, release), cancellationToken).ConfigureAwait(false);
         }
         finally
         {

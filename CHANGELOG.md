@@ -17,6 +17,26 @@ them until tagged releases begin.
   scaffolded or the site's WebAssembly app ever carries the debugger.
 
 ### Added
+- **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
+  (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
+  built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
+  engine), streamed as `docker save | gzip | docker -H ssh://host load`, tagged `:current`/`:latest` there, and the
+  local copy removed; the health gate, blue-green swap, `:previous` rollback tag and post-deploy prune are unchanged.
+  No registry, no new flag. A machine with no Linux Docker engine builds on the host as before, said in one line.
+  Two different apps deploy to one box in parallel: each holds only its own app lock for the whole deploy, and the
+  box lock just for the seconds of the proxy switch and prune.
+- **Every deploy is a named release, and `/version` answers it.** `rask deploy` names the release by the UTC moment it
+  starts (`v26.11.11.13.12.02`), sets `Rask__Version` on the container and labels the image `rask.release`, so a
+  rollback restores the old name with the old build; `--env Rask:Version=<name>` names it yourself (never recorded as
+  a required variable). `MapRaskVersion()` answers the configured `Rask:Version` first, then a `version.json`
+  (`{"version":"…"}`) beside the app, then the assembly's informational version. Map it outside any `/api` group;
+  it makes a good `--health-path /version`.
+- **`rask deploy --github-actions` deploys what CI passed, with a deploy-only key.** Before: the workflow deployed every
+  push to `main`, CI green or not, and told you to reuse your own SSH key. After: it triggers on `workflow_run` of the
+  repository's CI workflow (`ci.yml`, or its only push workflow) for `main`, runs only for a successful run of a push,
+  and checks out the commit CI passed; with no CI workflow it falls back to push, with a comment saying how to
+  switch. The command prints a per-repository key recipe (`restrict,port-forwarding` in the box's
+  `authorized_keys`) next to the two `gh secret set` lines.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
@@ -35,6 +55,14 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **An app with the UI kit and no Tailwind build no longer links a `/css/rask-ui.css` nothing serves (#1315).**
+  Before: `RaskApp` and the WASM host linked the kit's precompiled sheet whenever the kit was on and the app's sheet
+  did not import it, but only `RaskUiWriteStylesheet` put a file there — every page answered its stylesheet with a 404
+  and the kit drew unstyled. After: a Rask.Server host (RaskApp or hand-wired) answers `/css/rask-ui.css` from the
+  kit's own assembly, compressed and kept for a year under its `?v=`; a browser app's build adds the sheet to its static
+  web assets from the package (or, in-repo, the kit's build output), so it is served in development and published.
+  `RaskUiWriteStylesheet` in a project that references the kit by `ProjectReference` now also builds from a clean
+  checkout: the sheet is looked for after the project references are built, not before.
 - **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
   Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
   `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,

@@ -45,6 +45,16 @@ internal sealed class StallingRunner(IProcessRunner inner, Func<IReadOnlyList<st
         return await inner.CaptureAsync(fileName, arguments, workingDirectory, cancellationToken, environment).ConfigureAwait(false);
     }
 
+    public async Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken)
+    {
+        if (stalls(sink))
+        {
+            await StallAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        return await inner.PipeAsync(fileName, source, sink, workingDirectory, cancellationToken).ConfigureAwait(false);
+    }
+
     private async Task StallAsync(CancellationToken cancellationToken)
     {
         try

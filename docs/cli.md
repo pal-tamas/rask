@@ -843,14 +843,18 @@ go with the old file for the same reason: left behind, SQLite replays them over 
 rask deploy --host root@box --domain app.example.com      # bare VPS → live HTTPS site (sets the box up first)
 rask deploy --host deploy@box --port 8080                 # no domain: publish a port, bring your own TLS
 rask deploy                                               # redeploy: host/domain remembered
-rask deploy --github-actions                              # write a workflow that deploys on push to main
+rask deploy --github-actions                              # write a workflow that deploys main once CI passes
 rask deploy --dry-run --host deploy@box --domain app.example.com   # print the docker commands, run nothing
 ```
 
-One command builds your app's Docker image **on the box** and runs it. Every deploy step is
-`docker -H ssh://<host> …`, so there's no registry, no local Docker daemon, and no image tarball to
-copy — the build context ships to the host's daemon over SSH and builds there. It deploys the
-`Dockerfile` that `rask new` scaffolds (point at another with `--dockerfile`).
+One command builds your app's Docker image **here** — for the box's platform (`--platform linux/<its arch>`) —
+sends it to the box (`docker save | gzip | docker -H ssh://<host> load`, compressed, no registry) and runs it
+there. Every step on the box is `docker -H ssh://<host> …`, and the box never builds, so several apps on one
+small VPS can deploy at once without running it out of memory. With no Linux Docker engine on this machine the
+image is built on the box instead, said in one line. Each deploy is a named release, the UTC moment it starts
+(`v26.11.11.13.12.02`), set on the container as `Rask__Version` — what `MapRaskVersion()` answers on `/version`
+([release names](deployment.md#release-names-and-version)). It deploys the `Dockerfile` that `rask new`
+scaffolds (point at another with `--dockerfile`).
 
 **Handed a box that isn't ready, it sets it up** — installs Docker, creates a non-root `deploy` login
 with your keys, configures a firewall (one that covers Docker's published ports, which ufw does not
@@ -916,7 +920,7 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
 | `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |
 | `--no-health-check` | Gate only on the container running (skip the HTTP probe) — for apps without a health endpoint. Remembered. |
-| `--github-actions` | Write `.github/workflows/deploy.yml` (deploy on push to main) and print the secrets to add. Touches no host. |
+| `--github-actions` | Write `.github/workflows/deploy.yml` (deploy main once CI passes) and print how to make its deploy-only key and set the secrets. Touches no host. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
 ### After it's live — `status`, `logs`, `rollback`
@@ -975,8 +979,11 @@ host/domain/port for repeat deploys but **never stores secrets** — pass those 
 each time.
 
 **Deploying from CI.** `rask deploy --github-actions` writes a workflow that runs this same command on
-every push to `main`, and prints the two `gh secret set` lines it needs (an SSH key and the host's
-fingerprint). Everything else comes from the committed `.rask/deploy.json`. It deploys with
+`main` once the repository's CI workflow has passed on it (`workflow_run`; every push to `main` when there is no
+CI workflow yet), building on the runner, and prints how to make a **deploy-only key** for the repository
+(`restrict,port-forwarding` in the box's `authorized_keys`) and the two `gh secret set` lines it needs (that key
+and the host's fingerprint) — see [Deploying from GitHub Actions](deployment.md#deploying-from-github-actions).
+Everything else comes from the committed `.rask/deploy.json`. It deploys with
 `--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
 
 ## `rask doctor` — check before you hit it
