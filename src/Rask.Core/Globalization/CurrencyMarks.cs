@@ -10,31 +10,11 @@ namespace Rask.Core.Globalization;
 /// </summary>
 internal static class CurrencyMarks
 {
-    // A neutral culture's country's culture ("hu" → "hu-HU"), and the currency of each culture asked of, by name.
-    private static readonly ConcurrentDictionary<string, CultureInfo> Countries = new(StringComparer.Ordinal);
+    // The currency of each culture asked of, by name.
     private static readonly ConcurrentDictionary<string, string> Currencies = new(StringComparer.Ordinal);
 
     // A read-only culture's patterns with another currency's code in its sign's place, made once per pair.
     private static readonly ConditionalWeakTable<NumberFormatInfo, ConcurrentDictionary<string, NumberFormatInfo>> Resigned = new();
-
-    /// <summary>
-    ///     The culture an amount is written in: <paramref name="culture" />, or for a language alone its main country's,
-    ///     since a neutral culture names no currency and writes <c>¤</c>.
-    /// </summary>
-    internal static CultureInfo Of(CultureInfo culture)
-    {
-        if (!culture.IsNeutralCulture)
-        {
-            return culture;
-        }
-
-        return Countries.GetOrAdd(culture.Name, static name =>
-        {
-            var country = CultureInfo.CreateSpecificCulture(name);
-            // With no culture data a language has no country, and the invariant culture is all there is.
-            return country.Name.Length == 0 ? CultureInfo.GetCultureInfo(name) : CultureInfo.GetCultureInfo(country.Name);
-        });
-    }
 
     /// <summary><paramref name="currency" /> as an ISO 4217 code: three letters, upper case.</summary>
     internal static string Code(string currency)
@@ -100,8 +80,16 @@ internal static class CurrencyMarks
     }
 
     // The ISO 4217 code of the culture's country's currency; none for the invariant culture, which has no country.
-    private static string? CurrencyOf(CultureInfo culture) =>
-        culture.Name.Length == 0 || culture.IsNeutralCulture ? null : Currencies.GetOrAdd(culture.Name, RegionCurrency);
+    // US English without culture data has no region to ask, and is the United States' by construction.
+    private static string? CurrencyOf(CultureInfo culture)
+    {
+        if (InvariantEnglish.Is(culture))
+        {
+            return InvariantEnglish.Currency;
+        }
+
+        return culture.Name.Length == 0 || culture.IsNeutralCulture ? null : Currencies.GetOrAdd(culture.Name, RegionCurrency);
+    }
 
     private static string RegionCurrency(string culture)
     {

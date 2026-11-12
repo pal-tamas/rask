@@ -85,7 +85,9 @@ public sealed class LiveRenderContext : IDisposable
 
         // A render with no session — a build-time prerender — takes the culture its caller pushed for it.
         var pushed = _handle is null ? Globalization.RaskCultureScope.Current : null;
-        Culture = _handle?.Culture ?? pushed?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+        var culture = _handle?.Culture ?? pushed?.Culture ?? System.Globalization.CultureInfo.CurrentCulture;
+        // Values are written in the language's country's culture: "en" names no currency, and wrote ¤19.99 (#1305).
+        Culture = Globalization.RaskCulture.IsEnabled ? Globalization.FormattingCulture.Of(culture) : culture;
         UICulture = _handle?.UICulture ?? pushed?.UICulture ?? System.Globalization.CultureInfo.CurrentUICulture;
         HasCulture = _handle?.HasCulture ?? pushed is not null;
 

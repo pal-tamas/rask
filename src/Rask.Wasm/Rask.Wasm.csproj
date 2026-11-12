@@ -117,6 +117,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
+    <InternalsVisibleTo Include="Rask.Wasm.Invariant.Tests"/>
   </ItemGroup>
 
   <!--

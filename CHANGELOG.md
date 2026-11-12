@@ -37,6 +37,45 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
+  Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
+  `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,
+  `2026 March` and `15:04`. After: while a page renders and a handler runs, `Culture` and `CultureInfo.CurrentCulture`
+  are the language's main country's culture (`en` → `en-US`, `hu` → `hu-HU`, as `CultureInfo.CreateSpecificCulture`
+  names it); `UICulture`, `<html lang>`, the URL's language and the culture cookie stay the language configured. A
+  browser app still ships no ICU for English (the smallest bundle): Rask carries US English's currency, number,
+  percent and date/time patterns built in (`InvariantEnglish`, a handful of values: +2,048 bytes of `Rask.Core.dll`, no ICU), held to
+  the runtime's own en-US by a test, and a test assembly that runs without culture data proves the page, a handler
+  and the process all write `$19.99`, `3/14/2026` and `3:04 PM`. Another language without ICU still formats as the
+  invariant culture.
+- **A page's title settling no longer turns the next press into a whole page in Rask's diff harness (#1303).** A
+  layout that shows `RouteState.Title` over a page with a `PageTitle` is walked twice when the title changes, and the
+  second walk threw away every frame of the writer, including the ones its host had opened around the walk — the
+  `<body>` frame `Rask.Testing`'s render watch puts the page in, so the first press after it read as
+  `RemoveSubtree`/`InsertSubtree` of the root. The second walk now drops only what the first pass wrote. A live
+  Server session was never affected (its writer is empty when the walk starts): its first press after a title
+  is a diff of a few dozen bytes, now held by a socket test and a browser journey at 1280 and 390 px.
+- **A link to a `#fragment` keeps it, on both hosts (#1310).** Before: a plain `<a href="#section">` moved the page
+  and then lost the hash — the browser's `popstate` was answered with a replace navigation that wrote back the
+  address .NET knows, which has no fragment — so the address bar, Back to it, and a shared link all dropped the
+  section. After: a move between fragments of the page on show is left to the browser (it scrolls, and Back/Forward
+  walk between sections) and nothing is sent; Back from another page to `/page#section` keeps its hash. One module
+  both runtimes share (`rask-fragment.ts`) writes every navigation's history entry. The site's sign-out example
+  points at `#signed-out` again.
+- **A scaffolded app's Docker image restores from the project's own `nuget.config` (#1307).** Before: the server,
+  wasm-hosted and wasm Dockerfiles copied only the csproj before `dotnet restore`, so a private feed or package
+  source mapping was not in the image yet and the restore failed or silently went to nuget.org. After: the restore
+  layer also copies `nuget.config`, `Directory.*` (Directory.Packages.props, Directory.Build.props) and
+  `global.json` — as patterns, so a project without one of them still builds.
+- **Escape no longer closes a modal set `.Escapable(false)` once it has been open a moment.**
+  Before: the runtime refused the key only when focus was inside the dialog, and a `Ui.Modal` hands focus to a
+  placeholder that is gone 150 ms after it opens, so from then on focus rested on the page and Escape closed the
+  dialog. Now the key is refused for the modal it goes to, the topmost one, wherever focus rests.
+- **A state-driven modal (`Ui.Modal.Open(bool)`) that something opened against the page's word closes again.**
+  Before: a modal the server had closed and a script then opened with `showModal()` stayed open through presses and
+  the renders that answered them, because the runtime held an open nobody told the page about as the reader's own.
+  Now an open dialog whose `data-rask-modal-open` says it is closed is closed at the next sweep, a frame later and
+  again after any answer; a reader's untold close of a modal the page keeps open is still left alone.
 - **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
   slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
   one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost
@@ -146,6 +185,9 @@ them until tagged releases begin.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
+- **`Ui.Editor`'s engine is on Tiptap 3.33.1** (was 3.33.0, a patch release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 54 bytes (451,814 -> 451,868), which the
+  tiptap follower leaves to the owner; approved, landed by hand (#1263).
 - **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
   issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push
   run alone, which runs only the gates a push can reach — so on 2026-11-09, with `main`'s `full` run red on the CLI
