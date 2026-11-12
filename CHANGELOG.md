@@ -18,7 +18,9 @@ them until tagged releases begin.
   (`.For`) and sliding (`.Sliding`) expiry; `.Tags("catalog")` + `await CachedFragments.Forget("catalog")`. Kept in the
   app's `HybridCache` when it registered one, else in process bounded by `CachedOptions.SizeLimit`; in WebAssembly in
   the tab. Refuses to store a handler, a binding, an element reference or a head contribution — at compile time
-  (RASK117) when written in the fragment, at run time when inside a component it wraps. Guide: docs/cached-fragments.md.
+  (RASK117) when written in the fragment, at run time when inside a component it wraps. A 500-order dashboard page:
+  1015 KB → 74 KB allocated and ~1.15 ms → ~10 µs per request on a hit (`CachedFragmentBenchmarks`).
+  Guide: docs/cached-fragments.md.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
