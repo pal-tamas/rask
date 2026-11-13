@@ -14,7 +14,7 @@
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="Jint" Version="4.17.0" />
     <PackageVersion Include="MailKit" Version="4.18.1" />
-    <PackageVersion Include="Markdig" Version="1.4.0" />
+    <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.294" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
     <PackageVersion Include="Microsoft.AspNetCore.Authorization" Version="11.0.0" />
