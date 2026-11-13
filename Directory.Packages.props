@@ -11,7 +11,7 @@
     <PackageVersion Include="CliWrap" Version="3.10.5" />
     <PackageVersion Include="ColorCode.HTML" Version="2.0.15" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
-    <PackageVersion Include="FluentValidation" Version="12.1.1" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="Jint" Version="4.17.0" />
     <PackageVersion Include="MailKit" Version="4.18.1" />
     <PackageVersion Include="Markdig" Version="1.4.0" />
