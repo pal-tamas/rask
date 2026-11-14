@@ -1,12 +1,12 @@
 {
  "schema": 1,
  "sources": {
-  "@mdn/browser-compat-data": "8.1.8",
-  "@webref/css": "8.7.8",
+  "@mdn/browser-compat-data": "8.1.9",
+  "@webref/css": "8.7.9",
   "@webref/elements": "2.9.2",
-  "@webref/events": "1.27.1",
-  "@webref/idl": "3.86.0",
-  "webref/dfns": "6ac6259c96b11e0aea5c34a16822eb06add278c9",
+  "@webref/events": "1.28.0",
+  "@webref/idl": "3.87.0",
+  "webref/dfns": "722dfe5afb9ff7376d2354d29b42bbe2cc03cb5d",
   "w3c/uievents-code": "b201684d1de0af90bc403814bbdee6aa96647130",
   "w3c/uievents-key": "140cae88d6039b3fb1a51787978678115111c433",
   "w3c/aria": "2263442a76fffe5887af5ae76a9a8281836c5ab0"
@@ -2508,7 +2508,8 @@
       "value": "hint",
       "support": {
        "chrome": "151",
-       "firefox": "153"
+       "firefox": "153",
+       "safari": "27.3"
       },
       "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popover-hint"
      }
@@ -4888,7 +4889,6 @@
   "GamepadButton",
   "GamepadEvent",
   "GamepadHapticActuator",
-  "GamepadPose",
   "Geolocation",
   "GeolocationCoordinates",
   "GeolocationPosition",
@@ -5755,19 +5755,6 @@
    "members": [
     {
      "kind": "attribute",
-     "name": "startContainer",
-     "type": "Node",
-     "readonly": true,
-     "support": {
-      "chrome": "90",
-      "firefox": "69",
-      "safari": "14.1"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/AbstractRange/startContainer",
-     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-range-startcontainer①"
-    },
-    {
-     "kind": "attribute",
      "name": "startOffset",
      "type": "unsigned long",
      "readonly": true,
@@ -5778,19 +5765,6 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/AbstractRange/startOffset",
      "spec": "https://dom.spec.whatwg.org/#ref-for-dom-range-startoffset①"
-    },
-    {
-     "kind": "attribute",
-     "name": "endContainer",
-     "type": "Node",
-     "readonly": true,
-     "support": {
-      "chrome": "90",
-      "firefox": "69",
-      "safari": "14.1"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/AbstractRange/endContainer",
-     "spec": "https://dom.spec.whatwg.org/#ref-for-dom-range-endcontainer①"
     },
     {
      "kind": "attribute",
@@ -14613,7 +14587,8 @@
    "exposed": true,
    "support": {
     "chrome": "126",
-    "firefox": "149"
+    "firefox": "149",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/CloseWatcher",
    "spec": "https://html.spec.whatwg.org/multipage/interaction.html#closewatcher",
@@ -14625,7 +14600,8 @@
      "args": [],
      "support": {
       "chrome": "126",
-      "firefox": "149"
+      "firefox": "149",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CloseWatcher/requestClose",
      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-closewatcher-requestclose"
@@ -14637,7 +14613,8 @@
      "args": [],
      "support": {
       "chrome": "126",
-      "firefox": "149"
+      "firefox": "149",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CloseWatcher/close",
      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-closewatcher-close"
@@ -14649,7 +14626,8 @@
      "args": [],
      "support": {
       "chrome": "126",
-      "firefox": "149"
+      "firefox": "149",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CloseWatcher/destroy",
      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-closewatcher-destroy"
@@ -14666,7 +14644,8 @@
      ],
      "support": {
       "chrome": "126",
-      "firefox": "149"
+      "firefox": "149",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CloseWatcher/CloseWatcher",
      "spec": "https://html.spec.whatwg.org/multipage/interaction.html#dom-closewatcher"
@@ -16112,7 +16091,8 @@
      "readonly": true,
      "support": {
       "chrome": "150",
-      "firefox": "151"
+      "firefox": "151",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSContainerRule/conditions",
      "spec": "https://drafts.csswg.org/css-conditional-5/#dom-csscontainerrule-conditions"
@@ -16510,9 +16490,9 @@
      "kind": "attribute",
      "name": "ascentOverride",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-ascentoverride"
     },
@@ -16520,9 +16500,9 @@
      "kind": "attribute",
      "name": "ascent-override",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-ascent-override"
     },
@@ -16530,9 +16510,9 @@
      "kind": "attribute",
      "name": "descentOverride",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-descentoverride"
     },
@@ -16540,9 +16520,9 @@
      "kind": "attribute",
      "name": "descent-override",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-descent-override"
     },
@@ -16550,9 +16530,9 @@
      "kind": "attribute",
      "name": "lineGapOverride",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-linegapoverride"
     },
@@ -16560,9 +16540,9 @@
      "kind": "attribute",
      "name": "line-gap-override",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "spec": "https://drafts.csswg.org/css-fonts/#dom-cssfontfacedescriptors-line-gap-override"
     }
@@ -16797,9 +16777,9 @@
    "parent": "CSSRule",
    "abstract": true,
    "exposed": true,
-   "experimental": true,
    "support": {
-    "chrome": "139"
+    "chrome": "139",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionDeclarations",
    "spec": "https://drafts.csswg.org/css-mixins/#the-function-declarations-interface",
@@ -16809,9 +16789,9 @@
      "name": "style",
      "type": "CSSFunctionDescriptors",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionDeclarations/style",
      "spec": "https://drafts.csswg.org/css-mixins/#dom-cssfunctiondeclarations-style"
@@ -16822,9 +16802,9 @@
    "parent": "CSSStyleDeclaration",
    "abstract": true,
    "exposed": true,
-   "experimental": true,
    "support": {
-    "chrome": "139"
+    "chrome": "139",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionDescriptors",
    "spec": "https://drafts.csswg.org/css-mixins/#cssfunctiondescriptors",
@@ -16833,9 +16813,9 @@
      "kind": "attribute",
      "name": "result",
      "type": "CSSOMString",
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionDescriptors/result",
      "spec": "https://drafts.csswg.org/css-mixins/#dom-cssfunctiondescriptors-result"
@@ -16846,9 +16826,9 @@
    "parent": "CSSGroupingRule",
    "abstract": true,
    "exposed": true,
-   "experimental": true,
    "support": {
-    "chrome": "139"
+    "chrome": "139",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionRule",
    "spec": "https://drafts.csswg.org/css-mixins/#the-function-interface",
@@ -16858,9 +16838,9 @@
      "name": "name",
      "type": "CSSOMString",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionRule/name",
      "spec": "https://drafts.csswg.org/css-mixins/#dom-cssfunctionrule-name"
@@ -16870,9 +16850,9 @@
      "name": "getParameters",
      "returns": "sequence<FunctionParameter>",
      "args": [],
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionRule/getParameters",
      "spec": "https://drafts.csswg.org/css-mixins/#dom-cssfunctionrule-getparameters"
@@ -16882,9 +16862,9 @@
      "name": "returnType",
      "type": "CSSOMString",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "139"
+      "chrome": "139",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSFunctionRule/returnType",
      "spec": "https://drafts.csswg.org/css-mixins/#dom-cssfunctionrule-returntype"
@@ -17740,6 +17720,17 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/CSSMediaRule/media",
      "spec": "https://drafts.csswg.org/css-conditional-3/#dom-cssmediarule-media"
+    },
+    {
+     "kind": "attribute",
+     "name": "matches",
+     "type": "boolean",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "safari": "27.3"
+     },
+     "spec": "https://drafts.csswg.org/css-conditional-3/#dom-cssmediarule-matches"
     }
    ]
   },
@@ -20173,7 +20164,19 @@
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/CSSSupportsRule",
    "spec": "https://drafts.csswg.org/css-conditional-3/#the-csssupportsrule-interface",
-   "members": []
+   "members": [
+    {
+     "kind": "attribute",
+     "name": "matches",
+     "type": "boolean",
+     "readonly": true,
+     "experimental": true,
+     "support": {
+      "safari": "27.3"
+     },
+     "spec": "https://drafts.csswg.org/css-conditional-3/#dom-csssupportsrule-matches"
+    }
+   ]
   },
   "CSSTransformComponent": {
    "parent": null,
@@ -31184,6 +31187,7 @@
     "firefox": "158",
     "safari": "17.4"
    },
+   "mdn": "https://developer.mozilla.org/docs/Web/API/EXT_polygon_offset_clamp",
    "spec": "https://registry.khronos.org/webgl/extensions/EXT_polygon_offset_clamp/",
    "members": [
     {
@@ -31209,6 +31213,7 @@
       "firefox": "158",
       "safari": "17.4"
      },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/EXT_polygon_offset_clamp/polygonOffsetClampEXT",
      "spec": "https://registry.khronos.org/webgl/extensions/EXT_polygon_offset_clamp/"
     }
    ]
@@ -32568,18 +32573,6 @@
     },
     {
      "kind": "attribute",
-     "name": "stretch",
-     "type": "CSSOMString",
-     "support": {
-      "chrome": "35",
-      "firefox": "41",
-      "safari": "10"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/FontFace/stretch",
-     "spec": "https://drafts.csswg.org/css-font-loading/#dom-fontface-stretch"
-    },
-    {
-     "kind": "attribute",
      "name": "unicodeRange",
      "type": "CSSOMString",
      "support": {
@@ -32631,7 +32624,8 @@
      "type": "CSSOMString",
      "support": {
       "chrome": "87",
-      "firefox": "89"
+      "firefox": "89",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/FontFace/ascentOverride",
      "spec": "https://drafts.csswg.org/css-font-loading/#dom-fontfacedescriptors-ascentoverride"
@@ -32642,7 +32636,8 @@
      "type": "CSSOMString",
      "support": {
       "chrome": "87",
-      "firefox": "89"
+      "firefox": "89",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/FontFace/descentOverride",
      "spec": "https://drafts.csswg.org/css-font-loading/#dom-fontfacedescriptors-descentoverride"
@@ -32653,10 +32648,23 @@
      "type": "CSSOMString",
      "support": {
       "chrome": "87",
-      "firefox": "89"
+      "firefox": "89",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/FontFace/lineGapOverride",
      "spec": "https://drafts.csswg.org/css-font-loading/#dom-fontfacedescriptors-linegapoverride"
+    },
+    {
+     "kind": "attribute",
+     "name": "sizeAdjust",
+     "type": "CSSOMString",
+     "support": {
+      "chrome": "92",
+      "firefox": "92",
+      "safari": "17"
+     },
+     "mdn": "https://developer.mozilla.org/docs/Web/API/FontFace/sizeAdjust",
+     "spec": "https://drafts.csswg.org/css-font-loading/#dom-fontface-sizeadjust"
     },
     {
      "kind": "attribute",
@@ -33231,42 +33239,6 @@
    "members": [
     {
      "kind": "attribute",
-     "name": "hand",
-     "type": "GamepadHand",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/Gamepad/hand",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepad-hand"
-    },
-    {
-     "kind": "attribute",
-     "name": "hapticActuators",
-     "type": "FrozenArray<GamepadHapticActuator>",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/Gamepad/hapticActuators",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepad-hapticactuators"
-    },
-    {
-     "kind": "attribute",
-     "name": "pose",
-     "type": "GamepadPose?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/Gamepad/pose",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepad-pose"
-    },
-    {
-     "kind": "attribute",
      "name": "id",
      "type": "DOMString",
      "readonly": true,
@@ -33484,26 +33456,6 @@
    "spec": "https://w3c.github.io/gamepad/#gamepadhapticactuator-interface",
    "members": [
     {
-     "kind": "operation",
-     "name": "pulse",
-     "returns": "Promise<boolean>",
-     "args": [
-      {
-       "name": "value",
-       "type": "double"
-      },
-      {
-       "name": "duration",
-       "type": "double"
-      }
-     ],
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadHapticActuator/pulse",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadhapticactuator-pulse"
-    },
-    {
      "kind": "attribute",
      "name": "effects",
      "type": "FrozenArray<GamepadHapticEffectType>",
@@ -33548,115 +33500,6 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadHapticActuator/reset",
      "spec": "https://w3c.github.io/gamepad/#dom-gamepadhapticactuator-reset"
-    }
-   ]
-  },
-  "GamepadPose": {
-   "parent": null,
-   "abstract": true,
-   "exposed": true,
-   "experimental": true,
-   "support": {
-    "firefox": "55"
-   },
-   "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose",
-   "spec": "https://w3c.github.io/gamepad/extensions.html#gamepadpose-interface",
-   "members": [
-    {
-     "kind": "attribute",
-     "name": "hasOrientation",
-     "type": "boolean",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/hasOrientation",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasorientation"
-    },
-    {
-     "kind": "attribute",
-     "name": "hasPosition",
-     "type": "boolean",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/hasPosition",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasposition"
-    },
-    {
-     "kind": "attribute",
-     "name": "position",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/position",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position"
-    },
-    {
-     "kind": "attribute",
-     "name": "linearVelocity",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/linearVelocity",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity"
-    },
-    {
-     "kind": "attribute",
-     "name": "linearAcceleration",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/linearAcceleration",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration"
-    },
-    {
-     "kind": "attribute",
-     "name": "orientation",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/orientation",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation"
-    },
-    {
-     "kind": "attribute",
-     "name": "angularVelocity",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/angularVelocity",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity"
-    },
-    {
-     "kind": "attribute",
-     "name": "angularAcceleration",
-     "type": "Float32Array?",
-     "readonly": true,
-     "experimental": true,
-     "support": {
-      "firefox": "55"
-     },
-     "mdn": "https://developer.mozilla.org/docs/Web/API/GamepadPose/angularAcceleration",
-     "spec": "https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration"
     }
    ]
   },
@@ -34189,7 +34032,8 @@
      "secure": true,
      "support": {
       "chrome": "144",
-      "firefox": "141"
+      "firefox": "141",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/GPUAdapterInfo/subgroupMinSize",
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-subgroupminsize"
@@ -34202,7 +34046,8 @@
      "secure": true,
      "support": {
       "chrome": "144",
-      "firefox": "141"
+      "firefox": "141",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/GPUAdapterInfo/subgroupMaxSize",
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-subgroupmaxsize"
@@ -35794,7 +35639,8 @@
    "secure": true,
    "support": {
     "chrome": "144",
-    "firefox": "141"
+    "firefox": "141",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/GPUError",
    "spec": "https://gpuweb.github.io/gpuweb/#gpuerror",
@@ -35807,7 +35653,8 @@
      "secure": true,
      "support": {
       "chrome": "144",
-      "firefox": "141"
+      "firefox": "141",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/GPUError/message",
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpuerror-message"
@@ -37500,7 +37347,7 @@
      "secure": true,
      "support": {
       "chrome": "146",
-      "firefox": "151",
+      "firefox": "159",
       "safari": "27"
      },
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinvertexstage"
@@ -37513,7 +37360,7 @@
      "secure": true,
      "support": {
       "chrome": "146",
-      "firefox": "151",
+      "firefox": "159",
       "safari": "27"
      },
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinfragmentstage"
@@ -37540,7 +37387,7 @@
      "secure": true,
      "support": {
       "chrome": "146",
-      "firefox": "151",
+      "firefox": "159",
       "safari": "27"
      },
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragetexturesinvertexstage"
@@ -37553,7 +37400,7 @@
      "secure": true,
      "support": {
       "chrome": "146",
-      "firefox": "151",
+      "firefox": "159",
       "safari": "27"
      },
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gpusupportedlimits-maxstoragebuffersinfragmentstage"
@@ -37977,9 +37824,9 @@
      "type": "(GPUTextureViewDimension or undefined)",
      "readonly": true,
      "secure": true,
-     "experimental": true,
      "support": {
-      "chrome": "146"
+      "chrome": "146",
+      "safari": "27.3"
      },
      "spec": "https://gpuweb.github.io/gpuweb/#dom-gputexture-texturebindingviewdimension"
     },
@@ -38840,7 +38687,8 @@
      ],
      "support": {
       "chrome": "140",
-      "firefox": "150"
+      "firefox": "150",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/HighlightRegistry/highlightsFromPoint",
      "spec": "https://drafts.csswg.org/css-highlight-api-1/#dom-highlightregistry-highlightsfrompoint"
@@ -40243,7 +40091,33 @@
       "firefox": "144",
       "safari": "26.2"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-command"
+     "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-command",
+     "keywords": [
+      {
+       "value": "toggle-popover"
+      },
+      {
+       "value": "show-popover"
+      },
+      {
+       "value": "hide-popover"
+      },
+      {
+       "value": "close"
+      },
+      {
+       "value": "request-close",
+       "support": {
+        "chrome": "139",
+        "firefox": "144",
+        "safari": "26.2"
+       },
+       "spec": "https://html.spec.whatwg.org/multipage/form-elements.html#attr-button-command-request-close"
+      },
+      {
+       "value": "show-modal"
+      }
+     ]
     },
     {
      "attr": "commandfor",
@@ -40432,7 +40306,18 @@
       "safari": "17"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/button#popovertargetaction",
-     "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popovertargetaction"
+     "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popovertargetaction",
+     "keywords": [
+      {
+       "value": "toggle"
+      },
+      {
+       "value": "show"
+      },
+      {
+       "value": "hide"
+      }
+     ]
     }
    ],
    "members": [
@@ -41173,7 +41058,8 @@
      "type": "DOMString",
      "support": {
       "chrome": "134",
-      "firefox": "141"
+      "firefox": "141",
+      "safari": "27.3"
      },
      "spec": "https://html.spec.whatwg.org/multipage/interactive-elements.html#attr-dialog-closedby",
      "keywords": [
@@ -41221,7 +41107,8 @@
      "type": "DOMString",
      "support": {
       "chrome": "134",
-      "firefox": "141"
+      "firefox": "141",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLDialogElement/closedBy",
      "spec": "https://html.spec.whatwg.org/multipage/interactive-elements.html#dom-dialog-closedby"
@@ -41677,6 +41564,32 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/HTMLElement/popover",
      "spec": "https://html.spec.whatwg.org/multipage/popover.html#dom-popover"
+    },
+    {
+     "kind": "attribute",
+     "name": "headingOffset",
+     "type": "unsigned long",
+     "reflect": "headingoffset",
+     "reflectRange": [
+      0,
+      8
+     ],
+     "experimental": true,
+     "support": {
+      "safari": "27.3"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dom.html#dom-headingoffset"
+    },
+    {
+     "kind": "attribute",
+     "name": "headingReset",
+     "type": "boolean",
+     "reflect": "headingreset",
+     "experimental": true,
+     "support": {
+      "safari": "27.3"
+     },
+     "spec": "https://html.spec.whatwg.org/multipage/dom.html#dom-headingreset"
     },
     {
      "kind": "attribute",
@@ -44209,7 +44122,18 @@
       "safari": "17"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/HTML/Reference/Elements/input#popovertargetaction",
-     "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popovertargetaction"
+     "spec": "https://html.spec.whatwg.org/multipage/popover.html#attr-popovertargetaction",
+     "keywords": [
+      {
+       "value": "toggle"
+      },
+      {
+       "value": "show"
+      },
+      {
+       "value": "hide"
+      }
+     ]
     }
    ],
    "members": [
@@ -45358,7 +45282,12 @@
       "chrome": "105",
       "safari": "18.2"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-blocking"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-link-blocking",
+     "keywords": [
+      {
+       "value": "render"
+      }
+     ]
     },
     {
      "attr": "disabled",
@@ -46696,7 +46625,7 @@
    "support": {
     "safari": "27"
    },
-   "spec": "https://immersive-web.github.io/model-element/#htmlmodelelement-interface",
+   "spec": "https://immersive-web.github.io/model-element/#htmlmodelelement",
    "members": [
     {
      "kind": "attribute",
@@ -48037,7 +47966,12 @@
       "chrome": "105",
       "safari": "18.2"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-blocking"
+     "spec": "https://html.spec.whatwg.org/multipage/scripting.html#attr-script-blocking",
+     "keywords": [
+      {
+       "value": "render"
+      }
+     ]
     },
     {
      "attr": "crossorigin",
@@ -49139,7 +49073,12 @@
       "chrome": "105",
       "safari": "18.2"
      },
-     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-style-blocking"
+     "spec": "https://html.spec.whatwg.org/multipage/semantics.html#attr-style-blocking",
+     "keywords": [
+      {
+       "value": "render"
+      }
+     ]
     }
    ],
    "members": [
@@ -51912,7 +51851,8 @@
      ],
      "support": {
       "chrome": "141",
-      "firefox": "153"
+      "firefox": "153",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/IDBIndex/getAllRecords",
      "spec": "https://w3c.github.io/IndexedDB/#ref-for-dom-idbindex-getallrecords①"
@@ -52418,7 +52358,8 @@
      ],
      "support": {
       "chrome": "141",
-      "firefox": "153"
+      "firefox": "153",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/IDBObjectStore/getAllRecords",
      "spec": "https://w3c.github.io/IndexedDB/#dom-idbobjectstore-getallrecords"
@@ -52584,7 +52525,8 @@
    "exposed": true,
    "support": {
     "chrome": "141",
-    "firefox": "153"
+    "firefox": "153",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/IDBRecord",
    "spec": "https://w3c.github.io/IndexedDB/#record-interface",
@@ -52596,7 +52538,8 @@
      "readonly": true,
      "support": {
       "chrome": "141",
-      "firefox": "153"
+      "firefox": "153",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/IndexedDB/#dom-idbrecord-key"
     },
@@ -52607,7 +52550,8 @@
      "readonly": true,
      "support": {
       "chrome": "141",
-      "firefox": "153"
+      "firefox": "153",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/IndexedDB/#dom-idbrecord-primarykey"
     },
@@ -52618,7 +52562,8 @@
      "readonly": true,
      "support": {
       "chrome": "141",
-      "firefox": "153"
+      "firefox": "153",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/IndexedDB/#dom-idbrecord-value"
     }
@@ -53645,7 +53590,8 @@
    "secure": true,
    "support": {
     "chrome": "94",
-    "firefox": "133"
+    "firefox": "133",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder",
    "spec": "https://w3c.github.io/webcodecs/#imagedecoder-interface",
@@ -53658,7 +53604,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/type",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-type"
@@ -53671,7 +53618,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/complete",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-complete"
@@ -53684,7 +53632,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/completed",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-completed"
@@ -53697,7 +53646,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/tracks",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-tracks"
@@ -53716,7 +53666,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/decode",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-decode"
@@ -53729,7 +53680,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/reset",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-reset"
@@ -53742,7 +53694,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/close",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-close"
@@ -53759,7 +53712,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/ImageDecoder",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-imagedecoder"
@@ -53779,7 +53733,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageDecoder/isTypeSupported_static",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagedecoder-istypesupported"
@@ -53793,7 +53748,8 @@
    "secure": true,
    "support": {
     "chrome": "94",
-    "firefox": "133"
+    "firefox": "133",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrack",
    "spec": "https://w3c.github.io/webcodecs/#imagetrack-interface",
@@ -53806,7 +53762,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrack/animated",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetrack-animated"
@@ -53819,7 +53776,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrack/frameCount",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetrack-framecount"
@@ -53832,7 +53790,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrack/repetitionCount",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetrack-repetitioncount"
@@ -53844,7 +53803,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrack/selected",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetrack-selected"
@@ -53858,7 +53818,8 @@
    "secure": true,
    "support": {
     "chrome": "94",
-    "firefox": "133"
+    "firefox": "133",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrackList",
    "spec": "https://w3c.github.io/webcodecs/#imagetracklist-interface",
@@ -53871,7 +53832,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrackList/ready",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetracklist-ready"
@@ -53884,7 +53846,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrackList/length",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetracklist-length"
@@ -53897,7 +53860,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedIndex",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetracklist-selectedindex"
@@ -53910,7 +53874,8 @@
      "secure": true,
      "support": {
       "chrome": "94",
-      "firefox": "133"
+      "firefox": "133",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/ImageTrackList/selectedTrack",
      "spec": "https://w3c.github.io/webcodecs/#dom-imagetracklist-selectedtrack"
@@ -60605,7 +60570,8 @@
    "exposed": true,
    "support": {
     "chrome": "141",
-    "firefox": "147"
+    "firefox": "147",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/NavigationPrecommitController",
    "spec": "https://html.spec.whatwg.org/multipage/nav-history-apis.html#the-navigationprecommitcontroller-interface",
@@ -60627,7 +60593,8 @@
      ],
      "support": {
       "chrome": "141",
-      "firefox": "147"
+      "firefox": "147",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/NavigationPrecommitController/redirect",
      "spec": "https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigationprecommitcontroller-redirect"
@@ -60644,7 +60611,8 @@
      ],
      "support": {
       "chrome": "146",
-      "firefox": "148"
+      "firefox": "148",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/NavigationPrecommitController/addHandler",
      "spec": "https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigationprecommitcontroller-addhandler"
@@ -60770,9 +60738,10 @@
      "name": "to",
      "type": "NavigationDestination",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "145"
+      "chrome": "145",
+      "firefox": "161",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/NavigationTransition/to",
      "spec": "https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigationtransition-to"
@@ -60784,7 +60753,8 @@
      "readonly": true,
      "support": {
       "chrome": "141",
-      "firefox": "147"
+      "firefox": "147",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/NavigationTransition/committed",
      "spec": "https://html.spec.whatwg.org/multipage/nav-history-apis.html#dom-navigationtransition-committed"
@@ -61445,9 +61415,9 @@
      "type": "boolean",
      "readonly": true,
      "mixin": "GlobalPrivacyControl",
-     "experimental": true,
      "support": {
-      "firefox": "120"
+      "firefox": "120",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/Navigator/globalPrivacyControl",
      "spec": "https://w3c.github.io/gpc/#dom-globalprivacycontrol-globalprivacycontrol"
@@ -63042,6 +63012,13 @@
      "spec": "https://dom.spec.whatwg.org/#ref-for-dom-nodelist-length①"
     }
    ]
+  },
+  "NodeRange": {
+   "parent": "AbstractRange",
+   "abstract": true,
+   "exposed": true,
+   "support": {},
+   "members": []
   },
   "Notification": {
    "parent": "EventTarget",
@@ -71973,9 +71950,9 @@
    "parent": "DOMException",
    "abstract": true,
    "exposed": true,
-   "experimental": true,
    "support": {
-    "chrome": "138"
+    "chrome": "138",
+    "safari": "27.3"
    },
    "mdn": "https://developer.mozilla.org/docs/Web/API/QuotaExceededError",
    "spec": "https://webidl.spec.whatwg.org/#quotaexceedederror",
@@ -71985,9 +71962,9 @@
      "name": "quota",
      "type": "double?",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "138"
+      "chrome": "138",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/QuotaExceededError/quota",
      "spec": "https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quota"
@@ -71997,9 +71974,9 @@
      "name": "requested",
      "type": "double?",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "138"
+      "chrome": "138",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/QuotaExceededError/requested",
      "spec": "https://webidl.spec.whatwg.org/#dom-quotaexceedederror-requested"
@@ -72019,9 +71996,9 @@
        "optional": true
       }
      ],
-     "experimental": true,
      "support": {
-      "chrome": "138"
+      "chrome": "138",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/QuotaExceededError/QuotaExceededError",
      "spec": "https://webidl.spec.whatwg.org/#dom-quotaexceedederror-quotaexceedederror"
@@ -72055,7 +72032,7 @@
    ]
   },
   "Range": {
-   "parent": "AbstractRange",
+   "parent": "NodeRange",
    "abstract": true,
    "exposed": true,
    "support": {
@@ -73468,9 +73445,9 @@
      "name": "duplex",
      "type": "RequestDuplex",
      "readonly": true,
-     "experimental": true,
      "support": {
-      "chrome": "131"
+      "chrome": "131",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/Request/duplex",
      "spec": "https://fetch.spec.whatwg.org/#dom-request-duplex"
@@ -76652,6 +76629,44 @@
    "mdn": "https://developer.mozilla.org/docs/Web/API/RTCRtpTransceiver",
    "spec": "https://w3c.github.io/webrtc-pc/#rtcrtptransceiver-interface",
    "members": [
+    {
+     "kind": "operation",
+     "name": "getHeaderExtensionsToNegotiate",
+     "returns": "sequence<RTCRtpHeaderExtensionCapability>",
+     "args": [],
+     "experimental": true,
+     "support": {
+      "chrome": "117"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcrtptransceiver-getheaderextensionstonegotiate"
+    },
+    {
+     "kind": "operation",
+     "name": "setHeaderExtensionsToNegotiate",
+     "returns": "undefined",
+     "args": [
+      {
+       "name": "extensions",
+       "type": "sequence<RTCRtpHeaderExtensionCapability>"
+      }
+     ],
+     "experimental": true,
+     "support": {
+      "chrome": "117"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcrtptransceiver-setheaderextensionstonegotiate"
+    },
+    {
+     "kind": "operation",
+     "name": "getNegotiatedHeaderExtensions",
+     "returns": "sequence<RTCRtpHeaderExtensionCapability>",
+     "args": [],
+     "experimental": true,
+     "support": {
+      "chrome": "117"
+     },
+     "spec": "https://w3c.github.io/webrtc-extensions/#dom-rtcrtptransceiver-getnegotiatedheaderextensions"
+    },
     {
      "kind": "attribute",
      "name": "mid",
@@ -80220,6 +80235,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionEvent/resultIndex",
@@ -80233,6 +80249,7 @@
      "secure": true,
      "support": {
       "chrome": "33",
+      "firefox": "160",
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionEvent/results",
@@ -80258,7 +80275,7 @@
       "safari": "14.1"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SpeechRecognitionEvent/SpeechRecognitionEvent",
-     "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognition-speechrecognition"
+     "spec": "https://webaudio.github.io/web-speech-api/#dom-speechrecognitionevent-speechrecognitionevent"
     }
    ]
   },
@@ -80925,7 +80942,7 @@
    ]
   },
   "StaticRange": {
-   "parent": "AbstractRange",
+   "parent": "NodeRange",
    "abstract": true,
    "exposed": true,
    "support": {
@@ -92658,6 +92675,11 @@
      "type": "DOMString?"
     },
     {
+     "attr": "referrerpolicy",
+     "property": "referrerPolicy",
+     "type": "DOMString"
+    },
+    {
      "attr": "href",
      "property": "href",
      "type": "SVGAnimatedString",
@@ -92669,11 +92691,6 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/href",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/interact.html#ScriptElementHrefAttribute"
-    },
-    {
-     "attr": "referrerpolicy",
-     "property": "referrerPolicy",
-     "type": "DOMString"
     }
    ],
    "members": [
@@ -92699,6 +92716,16 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/SVGScriptElement/crossOrigin",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/interact.html#__svg__SVGScriptElement__crossOrigin"
+    },
+    {
+     "kind": "attribute",
+     "name": "referrerPolicy",
+     "type": "DOMString",
+     "experimental": true,
+     "support": {
+      "firefox": "161"
+     },
+     "spec": "https://w3c.github.io/svgwg/svg2-draft/interact.html#__svg__SVGScriptElement__referrerPolicy"
     },
     {
      "kind": "attribute",
@@ -94144,6 +94171,14 @@
      },
      "mdn": "https://developer.mozilla.org/docs/Web/SVG/Reference/Attribute/fill",
      "spec": "https://w3c.github.io/svgwg/svg2-draft/painting.html#SpecifyingFillPaint"
+    },
+    {
+     "attr": "path",
+     "support": {
+      "firefox": "61",
+      "safari": "27.3"
+     },
+     "spec": "https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"
     }
    ],
    "members": [
@@ -113415,9 +113450,9 @@
       }
      ],
      "secure": true,
-     "experimental": true,
      "support": {
-      "firefox": "155"
+      "firefox": "155",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/WebTransport/exportKeyingMaterial",
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-exportkeyingmaterial"
@@ -113470,6 +113505,7 @@
      "secure": true,
      "support": {
       "chrome": "158",
+      "firefox": "161",
       "safari": "26.4"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingunidirectionalstreams"
@@ -113481,6 +113517,7 @@
      "secure": true,
      "support": {
       "chrome": "158",
+      "firefox": "161",
       "safari": "26.4"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-anticipatedconcurrentincomingbidirectionalstreams"
@@ -113493,7 +113530,8 @@
      "secure": true,
      "support": {
       "chrome": "157",
-      "firefox": "160"
+      "firefox": "160",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransport-responseheaders"
     },
@@ -113814,7 +113852,7 @@
     {
      "kind": "attribute",
      "name": "outgoingMaxAge",
-     "type": "unrestricted double?",
+     "type": "unrestricted double",
      "secure": true,
      "support": {
       "chrome": "97",
@@ -113831,7 +113869,8 @@
      "secure": true,
      "support": {
       "chrome": "151",
-      "firefox": "160"
+      "firefox": "160",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-incomingmaxbuffereddatagrams"
     },
@@ -113842,7 +113881,8 @@
      "secure": true,
      "support": {
       "chrome": "151",
-      "firefox": "160"
+      "firefox": "160",
+      "safari": "27.3"
      },
      "spec": "https://w3c.github.io/webtransport/#dom-webtransportdatagramduplexstream-outgoingmaxbuffereddatagrams"
     }
@@ -115118,7 +115158,8 @@
      "readonly": true,
      "support": {
       "chrome": "90",
-      "firefox": "138"
+      "firefox": "138",
+      "safari": "27.3"
      },
      "mdn": "https://developer.mozilla.org/docs/Web/API/Window/originAgentCluster",
      "spec": "https://html.spec.whatwg.org/multipage/browsers.html#origin-keyed-agent-clusters"
@@ -120752,6 +120793,10 @@
    "optimizeLegibility",
    "geometricPrecision"
   ],
+  "CanvasToneMappingMode": [
+   "standard",
+   "extended"
+  ],
   "CaptureStartFocusBehavior": [
    "focus-capturing-application",
    "focus-captured-surface",
@@ -120948,11 +120993,6 @@
    "auto",
    "show",
    "hide"
-  ],
-  "GamepadHand": [
-   "",
-   "left",
-   "right"
   ],
   "GamepadHapticEffectType": [
    "dual-rumble",
@@ -121469,6 +121509,9 @@
    "logged-in",
    "logged-out"
   ],
+  "MakeupGainOptions": [
+   "automatic"
+  ],
   "MediaDecodingType": [
    "file",
    "media-source",
@@ -121747,6 +121790,14 @@
    "serious",
    "critical"
   ],
+  "ProfilerMarker": [
+   "script",
+   "gc",
+   "style",
+   "layout",
+   "paint",
+   "other"
+  ],
   "PushEncryptionKeyName": [
    "p256dh",
    "auth"
@@ -121876,6 +121927,10 @@
    "max-compat",
    "max-bundle"
   ],
+  "RTCConfigurationTargetLatency": [
+   "lowest",
+   "none"
+  ],
   "RTCDataChannelState": [
    "connecting",
    "open",
@@ -121980,6 +122035,11 @@
    "high"
   ],
   "RTCRtcpMuxPolicy": [
+   "require"
+  ],
+  "RTCRtpHeaderEncryptionPolicy": [
+   "disable",
+   "negotiate",
    "require"
   ],
   "RTCRtpScriptTransformType": [
@@ -122406,6 +122466,10 @@
    "pinky-finger-phalanx-intermediate",
    "pinky-finger-phalanx-distal",
    "pinky-finger-tip"
+  ],
+  "XRHandTrackingFrequencyHint": [
+   "default",
+   "high"
   ],
   "XRHitTestTrackableType": [
    "point",
@@ -123489,12 +123553,24 @@
      "type": "PredefinedColorSpace"
     },
     {
+     "name": "toneMapping",
+     "type": "CanvasToneMapping"
+    },
+    {
      "name": "colorType",
      "type": "CanvasColorType"
     },
     {
      "name": "willReadFrequently",
      "type": "boolean"
+    }
+   ]
+  },
+  "CanvasToneMapping": {
+   "members": [
+    {
+     "name": "mode",
+     "type": "CanvasToneMappingMode"
     }
    ]
   },
@@ -124657,6 +124733,10 @@
      "type": "float"
     },
     {
+     "name": "makeupGain",
+     "type": "(float or MakeupGainOptions)"
+    },
+    {
      "name": "ratio",
      "type": "float"
     },
@@ -125139,6 +125219,10 @@
     },
     {
      "name": "weight",
+     "type": "CSSOMString"
+    },
+    {
+     "name": "width",
      "type": "CSSOMString"
     },
     {
@@ -126474,7 +126558,7 @@
    "members": [
     {
      "name": "vendorId",
-     "type": "unsigned long"
+     "type": "unsigned short"
     },
     {
      "name": "productId",
@@ -130207,6 +130291,10 @@
     {
      "name": "stackId",
      "type": "unsigned long long"
+    },
+    {
+     "name": "marker",
+     "type": "ProfilerMarker?"
     }
    ]
   },
@@ -130892,6 +130980,18 @@
   "RTCConfiguration": {
    "members": [
     {
+     "name": "rtpHeaderEncryptionPolicy",
+     "type": "RTCRtpHeaderEncryptionPolicy"
+    },
+    {
+     "name": "alwaysNegotiateDataChannels",
+     "type": "boolean"
+    },
+    {
+     "name": "targetLatency",
+     "type": "RTCConfigurationTargetLatency"
+    },
+    {
      "name": "peerIdentity",
      "type": "DOMString"
     },
@@ -131090,6 +131190,14 @@
     }
    ]
   },
+  "RTCEncodingOptions": {
+   "members": [
+    {
+     "name": "keyFrame",
+     "type": "boolean"
+    }
+   ]
+  },
   "RTCErrorEventInit": {
    "parent": "EventInit",
    "members": [
@@ -131282,6 +131390,18 @@
     }
    ]
   },
+  "RTCResolutionRestriction": {
+   "members": [
+    {
+     "name": "maxWidth",
+     "type": "unsigned long"
+    },
+    {
+     "name": "maxHeight",
+     "type": "unsigned long"
+    }
+   ]
+  },
   "RTCRtcpParameters": {
    "members": [
     {
@@ -131351,6 +131471,14 @@
   "RTCRtpContributingSource": {
    "members": [
     {
+     "name": "captureTimestamp",
+     "type": "double"
+    },
+    {
+     "name": "senderCaptureTimeOffset",
+     "type": "double"
+    },
+    {
      "name": "timestamp",
      "type": "double",
      "required": true
@@ -131374,6 +131502,18 @@
   "RTCRtpEncodingParameters": {
    "parent": "RTCRtpCodingParameters",
    "members": [
+    {
+     "name": "scaleResolutionDownTo",
+     "type": "RTCResolutionRestriction"
+    },
+    {
+     "name": "ptime",
+     "type": "unsigned long"
+    },
+    {
+     "name": "adaptivePtime",
+     "type": "boolean"
+    },
     {
      "name": "priority",
      "type": "RTCPriorityType"
@@ -131410,6 +131550,11 @@
   },
   "RTCRtpHeaderExtensionCapability": {
    "members": [
+    {
+     "name": "direction",
+     "type": "RTCRtpTransceiverDirection",
+     "required": true
+    },
     {
      "name": "uri",
      "type": "DOMString",
@@ -131511,7 +131656,12 @@
    ]
   },
   "RTCSetParameterOptions": {
-   "members": []
+   "members": [
+    {
+     "name": "encodingOptions",
+     "type": "sequence<RTCEncodingOptions>"
+    }
+   ]
   },
   "RTCTrackEventInit": {
    "parent": "EventInit",
@@ -133986,6 +134136,14 @@
     }
    ]
   },
+  "XRHandTrackingStateInit": {
+   "members": [
+    {
+     "name": "frequencyHint",
+     "type": "XRHandTrackingFrequencyHint"
+    }
+   ]
+  },
   "XRHitTestOptionsInit": {
    "members": [
     {
@@ -134225,6 +134383,10 @@
     {
      "name": "domOverlay",
      "type": "XRDOMOverlayInit?"
+    },
+    {
+     "name": "handTracking",
+     "type": "XRHandTrackingStateInit"
     },
     {
      "name": "requiredFeatures",
@@ -142030,6 +142192,350 @@
     "spec": "https://drafts.csswg.org/css-contain-2/#propdef-content-visibility"
    },
    {
+    "name": "corner-block-end-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-end-start-shape",
+     "corner-end-end-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-block-end-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-block-end-shape"
+   },
+   {
+    "name": "corner-block-start-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-start-start-shape",
+     "corner-start-end-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-block-start-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-block-start-shape"
+   },
+   {
+    "name": "corner-bottom-left-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-bottom-left-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-bottom-left-shape"
+   },
+   {
+    "name": "corner-bottom-right-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-bottom-right-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-bottom-right-shape"
+   },
+   {
+    "name": "corner-bottom-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-bottom-left-shape",
+     "corner-bottom-right-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-bottom-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-bottom-shape"
+   },
+   {
+    "name": "corner-end-end-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-end-end-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-end-end-shape"
+   },
+   {
+    "name": "corner-end-start-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-end-start-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-end-start-shape"
+   },
+   {
+    "name": "corner-inline-end-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-start-end-shape",
+     "corner-end-end-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-inline-end-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-inline-end-shape"
+   },
+   {
+    "name": "corner-inline-start-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-start-start-shape",
+     "corner-end-start-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-inline-start-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-inline-start-shape"
+   },
+   {
+    "name": "corner-left-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-top-left-shape",
+     "corner-bottom-left-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-left-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-left-shape"
+   },
+   {
+    "name": "corner-right-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-top-right-shape",
+     "corner-bottom-right-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-right-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-right-shape"
+   },
+   {
+    "name": "corner-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-top-left-shape",
+     "corner-top-right-shape",
+     "corner-bottom-right-shape",
+     "corner-bottom-left-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-shape"
+   },
+   {
+    "name": "corner-start-end-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-start-end-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-start-end-shape"
+   },
+   {
+    "name": "corner-start-start-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-start-start-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-start-start-shape"
+   },
+   {
+    "name": "corner-top-left-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-top-left-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-top-left-shape"
+   },
+   {
+    "name": "corner-top-right-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-top-right-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-top-right-shape"
+   },
+   {
+    "name": "corner-top-shape",
+    "keywords": [
+     "round",
+     "scoop",
+     "bevel",
+     "notch",
+     "square",
+     "squircle"
+    ],
+    "accepts": [],
+    "longhands": [
+     "corner-top-left-shape",
+     "corner-top-right-shape"
+    ],
+    "support": {
+     "chrome": "139",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/corner-top-shape",
+    "spec": "https://drafts.csswg.org/css-borders-4/#propdef-corner-top-shape"
+   },
+   {
     "name": "counter-increment",
     "keywords": [
      "none"
@@ -143430,7 +143936,8 @@
     ],
     "support": {
      "chrome": "109",
-     "firefox": "137"
+     "firefox": "137",
+     "safari": "27.3"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/hyphenate-limit-chars",
     "spec": "https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-chars"
@@ -144112,7 +144619,9 @@
     "keywords": [
      "none"
     ],
-    "accepts": [],
+    "accepts": [
+     "marker-ref"
+    ],
     "longhands": [
      "marker-start",
      "marker-mid",
@@ -144131,7 +144640,9 @@
     "keywords": [
      "none"
     ],
-    "accepts": [],
+    "accepts": [
+     "marker-ref"
+    ],
     "support": {
      "chrome": "1",
      "firefox": "3",
@@ -144145,7 +144656,9 @@
     "keywords": [
      "none"
     ],
-    "accepts": [],
+    "accepts": [
+     "marker-ref"
+    ],
     "support": {
      "chrome": "1",
      "firefox": "3",
@@ -144159,7 +144672,9 @@
     "keywords": [
      "none"
     ],
-    "accepts": [],
+    "accepts": [
+     "marker-ref"
+    ],
     "support": {
      "chrome": "1",
      "firefox": "3",
@@ -144694,6 +145209,19 @@
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/object-position",
     "spec": "https://drafts.csswg.org/css-images-3/#propdef-object-position"
+   },
+   {
+    "name": "object-view-box",
+    "keywords": [
+     "none"
+    ],
+    "accepts": [],
+    "support": {
+     "chrome": "104",
+     "safari": "27.3"
+    },
+    "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/object-view-box",
+    "spec": "https://drafts.csswg.org/css-images-5/#propdef-object-view-box"
    },
    {
     "name": "offset",
@@ -145996,7 +146524,8 @@
    {
     "name": "ruby-overhang",
     "keywords": [
-     "auto"
+     "auto",
+     "spaces"
     ],
     "accepts": [],
     "support": {
@@ -147083,7 +147612,8 @@
     ],
     "support": {
      "chrome": "157",
-     "firefox": "146"
+     "firefox": "146",
+     "safari": "27.3"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/text-decoration-inset",
     "spec": "https://drafts.csswg.org/css-text-decor-4/#propdef-text-decoration-inset"
@@ -147738,7 +148268,8 @@
     "accepts": [],
     "support": {
      "chrome": "54",
-     "firefox": "69"
+     "firefox": "69",
+     "safari": "27.3"
     },
     "mdn": "https://developer.mozilla.org/docs/Web/CSS/Reference/Properties/user-select",
     "spec": "https://drafts.csswg.org/css-ui-4/#propdef-user-select"
