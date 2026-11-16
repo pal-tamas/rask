@@ -15,7 +15,8 @@ internal static class UiPillboxRow
             ? [Tick(), Span.Class(UiListboxLook.OneLineItem)[Words(option)]]
             : [Tick(), .. Words(option)];
 
-    private static Component Tick() => Div.Class(UiPillboxLook.CheckSlot)[Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiPillboxLook.Check)];
+    // The tick's place and the tick are drawn by the kit sheet from their place, the row's first child (ui.css, #1316).
+    private static Component Tick() => Div[UiIcon.Unclassed(Ui.IconName.Check, Ui.IconVariant.Mini)];
 
     private static IEnumerable<Component?> Words(UiSelectOption option) => option.HasCustomContent ? option.Children! : [option.Text];
 }

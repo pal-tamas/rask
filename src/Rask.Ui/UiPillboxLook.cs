@@ -69,12 +69,6 @@ internal static class UiPillboxLook
     /// </summary>
     internal const string Option = UiListboxLook.Option;
 
-    /// <summary>The tick's place at the end of a row.</summary>
-    internal const string CheckSlot = "w-6 shrink-0";
-
-    /// <summary>The tick, drawn in the picked rows only.</summary>
-    internal const string Check = "hidden group-data-selected/option:block";
-
     private static readonly Dictionary<string, string?> SearchInput = new(StringComparer.Ordinal)
     {
         ["data-ui-pillbox-input"] = null,

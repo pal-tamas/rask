@@ -59,6 +59,12 @@ public sealed partial class UiIcon : Component
         Draw(name, variant, Svg.Class(Classes(variant, name == Ui.IconName.Loading), classes).Attributes(marks));
 
     /// <summary>
+    ///     The icon under its own marks with no class at all, for a part whose kit-sheet rule sizes and shows it: a
+    ///     select's or a pillbox's tick, drawn in every row of a list that may hold a thousand (#1316).
+    /// </summary>
+    internal static Component Unclassed(Ui.IconName name, Ui.IconVariant variant) => Draw(name, variant, Svg.Attributes(Marks));
+
+    /// <summary>
     ///     The drawing alone, classed by the part that places it: where Flux writes a Heroicon straight into a
     ///     part (a toast's variant glyph) rather than through <c>flux:icon</c>, it carries no size, no
     ///     <c>shrink-0</c> and no attribute of its own.

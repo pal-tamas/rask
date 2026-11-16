@@ -88,9 +88,10 @@ them until tagged releases begin.
   Before: every row wrote Flux's whole option look as classes (~400 bytes) plus ~190 bytes on the boxes inside it — 1,326
   bytes a windowed select row, 1.23 MB for a list of 1,000 drawn whole, and 13.4 KB on the wire for one screen of scroll.
   After: the shared look is one set of zero-weight rules in the kit sheet, keyed on the row's marker
-  (`data-ui-option`, `data-ui-listbox-option`) and the place of each box in it; a row writes only
-  `group/option outline-hidden data-hidden:hidden` and what differs — 720 bytes a select row (-46%), ~345 fewer a
-  pillbox row, 641 KB for the 1,000 drawn whole, 7.3 KB a screen of scroll and 22 KB a jump to the middle (was 40.2 KB).
+  (`data-ui-option`, `data-ui-listbox-option`) and the place of each box in it, the tick included (drawn with no
+  class); a row writes only `group/option` and what differs — 612 bytes a select row (-54%), 527 KB for the 1,000
+  drawn whole, 6.2 KB a screen of scroll and 18.6 KB a jump to the middle (was 40.2 KB). Its `outline-hidden` sits
+  after the kit's keyboard ring, and a row a search hides stays hidden whatever class an app writes on it.
   An app's class on an option now wins as it is, as on a table cell. Also fixed: the phone field's chosen-country row
   lost its `data-ui-option` marker. `flux parity` select / pillbox / phone and the open-list checks match Flux.
 - **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
