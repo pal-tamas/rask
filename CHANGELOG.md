@@ -7,26 +7,6 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
-## [0.24.0] - 2026-11-16
-
-**.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
-references these packages itself, pin them beside the Rask packages:
-
-| Package | Version |
-|---|---|
-| `Microsoft.EntityFrameworkCore*` (SqlServer, Sqlite, Design, Tools, Relational) | `11.0.0` |
-| `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` (most abstractions need no reference on .NET 11) |
-| PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
-
-### Security
-- **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
-  release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
-  starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
-  `11.0.100` with `rollForward: latestFeature`; `rask doctor` tells a machine on an RC to install the release, and
-  `rask.sh`/`rask.ps1` install the released SDK beside an RC instead of counting it. Rask's own build resolves the
-  patched proxy (`Microsoft.NET.Sdk.WebAssembly.Pack` 11.0.0), and a test now fails if a Release publish of a
-  scaffolded or the site's WebAssembly app ever carries the debugger.
-
 ### Added
 - **.NET 11's async DataAnnotations work in a form, with nothing declared (#1324).** Before: a uniqueness check on a
   model was an `IAsyncFieldValidator` added to an `EditContext` you built yourself, and an `AsyncValidationAttribute`
@@ -48,6 +28,28 @@ references these packages itself, pin them beside the Rask packages:
   switches on .NET's own minimal-API filter for endpoints Rask validates (`RequireRaskValidation` disables it), so
   they keep the one rejection shape. No new public API; the `Rask` package now depends on `Microsoft.Extensions.Validation`
   (11.0.0, its options type). Guide: rask.sh/docs/forms-validation#messages-from-your-own-resources.
+
+## [0.24.0] - 2026-11-16
+
+**.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
+references these packages itself, pin them beside the Rask packages:
+
+| Package | Version |
+|---|---|
+| `Microsoft.EntityFrameworkCore*` (SqlServer, Sqlite, Design, Tools, Relational) | `11.0.0` |
+| `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` (most abstractions need no reference on .NET 11) |
+| PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
+
+### Security
+- **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
+  release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
+  starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
+  `11.0.100` with `rollForward: latestFeature`; `rask doctor` tells a machine on an RC to install the release, and
+  `rask.sh`/`rask.ps1` install the released SDK beside an RC instead of counting it. Rask's own build resolves the
+  patched proxy (`Microsoft.NET.Sdk.WebAssembly.Pack` 11.0.0), and a test now fails if a Release publish of a
+  scaffolded or the site's WebAssembly app ever carries the debugger.
+
+### Added
 - **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
   (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
   built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
