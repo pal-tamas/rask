@@ -28,7 +28,12 @@ public sealed class ReleasePublishE2ETests
         {
             TemplateBuildE2ETests.Write(
                 TemplateBuildE2ETests.Scaffold("server", project, name, version), project, feed);
-            var (exit, output) = await CliBuildE2E.RunDotnet(
+            // The first migration `rask new` makes, in its order: restored and built first (the migration needs the
+            // assets file), then migrated. Without it the published app starts over an empty database.
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(project, name + ".csproj")}\" -m:1");
+            Assert.True(exit == 0, $"the server template does not build:\n{CliBuildE2E.Diagnostics(output)}");
+            await FirstMigration.CreateAsync(Path.Combine(project, name + ".csproj"));
+            (exit, output) = await CliBuildE2E.RunDotnet(
                 $"publish \"{Path.Combine(project, name + ".csproj")}\" -c Release -warnaserror -m:1 "
                 + $"-p:RaskSpaBuild=false -o \"{published}\"");
 
@@ -37,6 +42,7 @@ public sealed class ReleasePublishE2ETests
             await using var app = await ScaffoldedHost.StartPublishedAsync(published, name, TimeSpan.FromMinutes(2));
             Assert.False(File.Exists(Path.Combine(published, "Rask.DevTools.dll")), "the Release publish carries Rask.DevTools.dll");
             Assert.DoesNotContain("Rask.DevTools", app.Log, StringComparison.Ordinal);
+            Assert.DoesNotContain("no such table", app.Log, StringComparison.OrdinalIgnoreCase);
         }
         finally
         {

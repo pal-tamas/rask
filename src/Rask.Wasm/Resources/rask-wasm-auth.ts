@@ -11,7 +11,8 @@
 // What the reader does while an answer is owed waits for it, as a Server tab's frames do, and then goes to .NET in
 // order. When the answer is that the browser carries somebody else now, or nobody, it is dropped instead, as a Server
 // tab's is with the page it reloads: it was done on a page drawn for a user who has gone, and nothing runs for them.
-// A slow answer holds it HOLD_MS and no longer, and no answer at all is no change.
+// A slow answer holds it HOLD_MS and no longer, and no answer at all is no change: every request this tab makes
+// carries the cookie as it is now, so nothing waited for a user who has gone reaches the server as theirs.
 
 import { ASK_TIMEOUT_MS, createAuthWatch, type WhoAnswer } from "../../Rask.Core/Resources/rask-auth-watch.js";
 
@@ -83,6 +84,7 @@ export function watchUser(asker: () => (() => Promise<string>) | undefined): Use
         // can be asked, nor in an app with no user.
         cookieOnEveryFrame: () => off || !asker(),
         bootedWithUser: false,
+        socket: false,
     });
 
     if (channel) channel.onmessage = () => watch.noticed(true);

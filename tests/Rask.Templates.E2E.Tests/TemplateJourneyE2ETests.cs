@@ -1,6 +1,5 @@
 using Microsoft.Playwright;
 using Rask.Cli.Commands;
-using Rask.Cli.Scaffolding;
 using Rask.Testing;
 
 namespace Rask.Templates.E2E.Tests;
@@ -58,6 +57,8 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
 
         await page.GotoAsync(app.BaseUrl, new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
+        Assert.DoesNotContain("no such table", app.Log, StringComparison.OrdinalIgnoreCase);
+
         // The starter's own heading, written by a Rask component the HOST rendered.
         await Assertions.Expect(page.GetByText("Hello, Rask!")).ToBeVisibleAsync(
             new LocatorAssertionsToBeVisibleOptions { Timeout = 30_000 });
@@ -86,19 +87,10 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     {
         Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
 
+        // With its first migration, as `rask new` makes it: the accounts live in tables only a migration creates.
         var (projectDirectory, name) = await ScaffoldAndBuildAsync("server", "Walk");
         try
         {
-            // The first migration, as `rask new` makes it: the accounts live in tables only a migration creates.
-            var console = new StringConsole();
-            var db = new DbCommand(console, new SystemFileSystem(), new ProcessRunner(), projectDirectory,
-                new Dictionary<string, string>(StringComparer.Ordinal) { ["RaskSpaBuild"] = "false" });
-            var migrated = await db.ExecuteAsync(["add", "Init", "--project", Path.Combine(projectDirectory, name + ".csproj")],
-                TestContext.Current.CancellationToken);
-            Assert.True(migrated == 0, $"the first migration failed.\n{console.OutText}\n{console.ErrorText}");
-            var (rebuilt, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(projectDirectory, name + ".csproj")}\" -m:1");
-            Assert.True(rebuilt == 0, $"the app does not build with its migration:\n{CliBuildE2E.Diagnostics(output)}");
-
             await using var site = new RaskSite(Path.Combine(projectDirectory, "bin", "Debug", "net11.0", name + ".dll"))
             {
                 ContentRoot = projectDirectory,
@@ -119,6 +111,43 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     }
 
     /// <summary>
+    ///     A scaffolded app with a database applies the first migration <c>rask new</c> made for it when it first starts.
+    /// </summary>
+    /// <remarks>
+    ///     What <c>rask new</c> followed by <c>rask dev</c> promises (docs/cli.md, "It runs before you touch it"): no
+    ///     <c>rask db update</c> step. Asked of the database itself, because a host over an empty one still answers — its
+    ///     batteries only log "no such table" — and the gate's journeys ran against exactly that for as long as it
+    ///     skipped the migration (#1334).
+    /// </remarks>
+    [Theory]
+    [InlineData("server")]
+    [InlineData(NewCommand.WasmHostedKey)]
+    public async Task A_scaffolded_app_applies_its_first_migration_when_it_first_starts(string key)
+    {
+        Assert.SkipUnless(TemplateBuildE2ETests.Enabled, TemplateBuildE2ETests.SkipReason);
+        var (projectDirectory, name) = await ScaffoldAndBuildAsync(key, "Mig");
+
+        try
+        {
+            string log;
+            await using (var app = await ScaffoldedHost.StartAsync(
+                             projectDirectory, Path.Combine(projectDirectory, name + ".csproj"), TimeSpan.FromMinutes(2), "/health"))
+            {
+                log = app.Log;
+            }
+
+            Assert.DoesNotContain("no such table", log, StringComparison.OrdinalIgnoreCase);
+            Assert.Single(
+                FirstMigration.Applied(Path.Combine(projectDirectory, "app.db")),
+                migration => migration.EndsWith("_" + FirstMigration.Name, StringComparison.Ordinal));
+        }
+        finally
+        {
+            CliBuildE2E.TryDeleteDirectory(Path.GetDirectoryName(projectDirectory)!);
+        }
+    }
+
+    /// <summary>
     ///     Scaffolds the template, builds it, and starts the host.
     /// </summary>
     private static async Task<ScaffoldedHost> BuildAndRunAsync(string key, TimeSpan readyTimeout)
@@ -128,7 +157,8 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
     }
 
     /// <summary>
-    ///     Scaffolds the template under a name starting <paramref name="prefix" /> and builds it.
+    ///     Scaffolds the template under a name starting <paramref name="prefix" /> and builds it, with the first migration
+    ///     <c>rask new</c> makes when the template has a database.
     /// </summary>
     private static async Task<(string ProjectDirectory, string Name)> ScaffoldAndBuildAsync(string key, string prefix)
     {
@@ -149,6 +179,15 @@ public sealed class TemplateJourneyE2ETests(PlaywrightFixture browser) : IClassF
         Assert.True(
             exit == 0,
             $"--template {key} does not build:\n{CliBuildE2E.Diagnostics(output)}");
+
+        // In `rask new`'s order: built first, so a scaffold that does not compile says so plainly, then migrated, then
+        // built again so the migration is in the assembly the host runs.
+        if (TemplateBuildE2ETests.HasDatabase(key))
+        {
+            await FirstMigration.CreateAsync(projectFile);
+            (exit, output) = await CliBuildE2E.RunDotnet($"build \"{projectFile}\" -m:1");
+            Assert.True(exit == 0, $"--template {key} does not build with its first migration:\n{CliBuildE2E.Diagnostics(output)}");
+        }
 
         return (projectDirectory, name);
     }

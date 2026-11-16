@@ -53,13 +53,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Daily, every follower. After main's ci passes on a push, only those waiting for main — usually none,
-  # and the run ends here. A pull request or manual ci run says nothing about main.
+  # Daily, every follower. After main's ci passes a verdict run (a push, or a `main verdict` dispatch:
+  # scripts/lib/ci_runs.sh), only those waiting for main — usually none, and the run ends here. A pull
+  # request or a narrowed manual ci run says nothing about main.
   followers:
     if: >-
       (github.event_name != 'workflow_run' && github.event.schedule != '41 4 * * 1')
-      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
-          && github.event.workflow_run.head_branch == 'main')
+      || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+          && (github.event.workflow_run.event == 'push'
+              || (github.event.workflow_run.event == 'workflow_dispatch'
+                  && startsWith(github.event.workflow_run.display_title, 'main verdict '))))
     runs-on: ubuntu-26.04
     outputs:
       names: ${{ steps.list.outputs.names }}
@@ -103,6 +106,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, for the lock a baseline measured
+      actions: write    # the ci run a push from here cannot start
       issues: write
     env:
       LOCK: tests/Rask.Ui.Tests/Flux/flux.lock.json
@@ -159,8 +163,11 @@ jobs:
           git commit -q -m "chore(ui): baseline the Flux lock on linux" -- "$LOCK"
           git reset -q --hard
           git fetch -q origin main
+          before="$(git rev-parse origin/main)"
           git rebase -q origin/main
           git push -q origin HEAD:main
+          # The workflow's own token starts no push run of ci: ask for main's verdict (ci.yml, #1341).
+          gh workflow run ci.yml --ref main -f base="$before"
 
       - name: Flux UI moved
         if: steps.sync.outputs.moved == 'true' && github.ref == 'refs/heads/main'

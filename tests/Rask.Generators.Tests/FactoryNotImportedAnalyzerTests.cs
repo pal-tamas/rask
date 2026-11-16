@@ -161,6 +161,130 @@ public class FactoryNotImportedAnalyzerTests
             + body.Replace("internal static class Parts", "[Rask.Core.RaskMarkup] internal static partial class Parts")));
     }
 
+    // #1306: a mail body built in a job. The receipt is a real component with a step, and the builder
+    // surface is generated, so the compiler's own CS0120 is the one the developer would have seen alone.
+    private const string Receipt = """
+        using Rask.Core;
+
+        namespace Shop
+        {
+            public sealed class OrderReceipt : Component
+            {
+                public int? OrderId { get; set; }
+
+                public static string Subject => "Your order";
+
+                protected override Component? Render() => null;
+            }
+        }
+        """;
+
+    [Fact]
+    public async Task A_chain_step_on_a_component_type_in_a_plain_class_reports_RASK118()
+    {
+        const string mailer = """
+            namespace Shop
+            {
+                public sealed class ReceiptMailer
+                {
+                    public object Body() => OrderReceipt.OrderId(42);
+                }
+            }
+            """;
+
+        var (analyzer, compiler) = await SurfaceDiagnostics(mailer);
+
+        var d = Assert.Single(analyzer);
+        Assert.Equal("RASK118", d.Id);
+        Assert.Contains("'OrderReceipt.OrderId'", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'Shop.ReceiptMailer'", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'[Rask.Core.RaskMarkup]'", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains(compiler, c => c.Id == "CS0120");
+    }
+
+    [Fact]
+    public async Task The_markup_attribute_silences_RASK118_and_the_chain_compiles()
+    {
+        const string mailer = """
+            namespace Shop
+            {
+                [Rask.Core.RaskMarkup]
+                public sealed partial class ReceiptMailer
+                {
+                    public object Body() => OrderReceipt.OrderId(42);
+                }
+            }
+            """;
+
+        var (analyzer, compiler) = await SurfaceDiagnostics(mailer);
+
+        Assert.Empty(analyzer);
+        Assert.Empty(compiler);
+    }
+
+    [Fact]
+    public async Task A_static_member_or_a_nameof_through_the_component_type_is_not_reported()
+    {
+        const string mailer = """
+            namespace Shop
+            {
+                public sealed class ReceiptMailer
+                {
+                    public string Subject() => OrderReceipt.Subject + nameof(OrderReceipt.OrderId);
+                }
+            }
+            """;
+
+        var (analyzer, compiler) = await SurfaceDiagnostics(mailer);
+
+        Assert.Empty(analyzer);
+        Assert.Empty(compiler);
+    }
+
+    [Fact]
+    public async Task An_element_chain_in_a_plain_class_reports_RASK043_on_the_element()
+    {
+        const string parts = """
+            namespace Shop
+            {
+                public static class Parts
+                {
+                    public static object Loading() => Div.Class("spinner");
+                }
+            }
+            """;
+
+        var (analyzer, _) = await SurfaceDiagnostics(parts);
+
+        var d = Assert.Single(analyzer);
+        Assert.Equal("RASK043", d.Id);
+        Assert.Contains("'Div'", d.GetMessage(), StringComparison.Ordinal);
+    }
+
+    private static async Task<(ImmutableArray<Diagnostic> Analyzer, ImmutableArray<Diagnostic> Compiler)>
+        SurfaceDiagnostics(string source)
+    {
+        var compilation = GeneratorDriverFixture.WithBuilderSurface(CSharpCompilation.Create(
+            "TestAssembly",
+            new[]
+            {
+                CSharpSyntaxTree.ParseText(Receipt, new CSharpParseOptions(LanguageVersion.Latest)),
+                CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest)),
+            },
+            GeneratorDriverFixture.BuildReferences(),
+            new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary,
+                nullableContextOptions: NullableContextOptions.Enable)));
+
+        var analyzer = await compilation
+            .WithAnalyzers(ImmutableArray.Create<DiagnosticAnalyzer>(new FactoryNotImportedAnalyzer()))
+            .GetAnalyzerDiagnosticsAsync();
+        var compiler = compilation.GetDiagnostics()
+            .Where(static d => d.Severity == DiagnosticSeverity.Error)
+            .ToImmutableArray();
+
+        return (analyzer, compiler);
+    }
+
     private static async Task<ImmutableArray<Diagnostic>> Diagnostics(string source)
     {
         var compilation = CSharpCompilation.Create(

@@ -7,14 +7,17 @@
 # build may still be going; a red one there is fixed forward by the next push. Restore at 1.0: publish only
 # from a ci run that passed whole (docs/development-workflow.md, "Loosened until 1.0").
 #
-#   workflow_run requested    EARLY: main's push run of ci for <head> has started. Publish <head>, after its
-#                             build (`wait=true`), unless the last nightly already holds it.
+#   workflow_run requested    EARLY: main's verdict run of ci for <head> has started — a push, or the run a
+#                             workflow that landed <head> with its own token dispatched (ci_runs.sh, MAIN_VERDICT).
+#                             Publish <head>, after its build (`wait=true`), unless the last nightly already holds it.
 #   workflow_run completed,   the BACKSTOP, for an early nightly that never came or did not finish: the newest
-#   schedule                  commit of main whose push run has a green build — or passed whole, which a scoped
+#   schedule                  commit of main whose verdict run has a green build — or passed whole, which a scoped
 #                             run that reached no code does with no build job — unless the last nightly holds it.
 #                             Nothing while another nightly run is going: it publishes something at least as new,
 #                             and a backstop for an older commit would cancel its pack (nightly.yml, concurrency).
 #   workflow_dispatch         by hand: main's head, verdict or not (main only).
+#   workflow_dispatch ci_run  as `workflow_run requested` of that run: what ci.yml's `publish` job asks for a run
+#                             the workflow token dispatched, of which GitHub sends no workflow_run (#1341).
 #
 # "The last nightly" is the rolling `nightly` release, titled "Nightly <version> (<sha>)": the tag cannot always
 # point at the commit (scripts/lib/nightly_anchor.sh), so the title is what is read.
@@ -22,9 +25,12 @@
 # Writes sha= (empty: publish nothing), run= (the ci run to wait for) and wait= to $GITHUB_OUTPUT, and why to
 # stdout and the run page.
 #
-# Usage:  EVENT=… ACTION=… HEAD_SHA=… CI_RUN=… CI_EVENT=… scripts/lib/nightly_pick.sh
-#         (the workflow_run fields from the event; needs gh, GITHUB_REPOSITORY, GITHUB_REF, GITHUB_SHA, GITHUB_RUN_ID)
+# Usage:  EVENT=… ACTION=… HEAD_SHA=… CI_RUN=… CI_EVENT=… CI_TITLE=… [ASKED_RUN=…] scripts/lib/nightly_pick.sh
+#         (the workflow_run fields from the event, the ci_run input; needs gh, GITHUB_REPOSITORY, GITHUB_REF, GITHUB_SHA, GITHUB_RUN_ID)
 set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=SCRIPTDIR/ci_runs.sh
+. "$here/ci_runs.sh"
 
 repo="$GITHUB_REPOSITORY"
 api() { gh api "$@" 2>/dev/null || true; }
@@ -59,6 +65,17 @@ another_in_flight() {
   return 1
 }
 
+# A dispatch that names a ci run (ASKED_RUN) is that run's workflow_run, as GitHub would have sent it had the
+# workflow token not dispatched the run (ci.yml's `publish` job, #1341). One of another branch is no verdict.
+if [ "$EVENT" = "workflow_dispatch" ] && [ -n "${ASKED_RUN:-}" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+  IFS=$'\t' read -r HEAD_SHA CI_EVENT CI_BRANCH CI_TITLE <<<"$(api "repos/$repo/actions/runs/$ASKED_RUN" \
+    --jq '[.head_sha, .event, .head_branch, .display_title] | @tsv')" || true
+  CI_RUN="$ASKED_RUN"
+  EVENT=workflow_run
+  ACTION=requested
+  [ "${CI_BRANCH:-}" = main ] || CI_EVENT="${CI_EVENT:-unknown} (on ${CI_BRANCH:-no branch})"
+fi
+
 sha=""
 run=""
 wait=false
@@ -71,8 +88,8 @@ if [ "$EVENT" = "workflow_dispatch" ]; then
     say="Publishing \`$sha\` by hand: no ci run was asked about it."
   fi
 elif [ "$EVENT" = "workflow_run" ] && [ "${ACTION:-}" = "requested" ]; then
-  if [ "${CI_EVENT:-}" != "push" ]; then
-    say="Nothing published: ci run ${CI_RUN:-?} is a ${CI_EVENT:-?} run, not a push to main."
+  if ! main_verdict "${CI_EVENT:-}" "${CI_TITLE:-}"; then
+    say="Nothing published: ci run ${CI_RUN:-?} is a ${CI_EVENT:-?} run, not main's verdict (a push, or \`main verdict\` dispatch)."
   elif holds "$HEAD_SHA"; then
     say="Nothing published: the last nightly (\`$published\`) already holds \`$HEAD_SHA\`."
   else
@@ -92,12 +109,12 @@ else
       run="$id"
       break
     fi
-  done <<<"$(api "repos/$repo/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=20" \
-    --jq '.workflow_runs[] | "\(.id) \(.head_sha) \(.conclusion // "")"')"
+  done <<<"$(api "repos/$repo/actions/workflows/ci.yml/runs?branch=main&per_page=30" \
+    --jq ".workflow_runs[] | select($MAIN_VERDICT)"' | "\(.id) \(.head_sha) \(.conclusion // "")"')"
 
   if [ -z "$candidate" ]; then
     run=""
-    say="Nothing published: no recent push run of ci on main has a green build."
+    say="Nothing published: no recent verdict run of ci on main has a green build."
   elif holds "$candidate"; then
     run=""
     say="Nothing published: \`$candidate\` is the newest commit of main with a green build, and the last nightly (\`$published\`) holds it."

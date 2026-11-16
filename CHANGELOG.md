@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
+  sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
+  and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
+  be a markup host. After: RASK118 (and RASK043 for the element chain) says to mark the class `[RaskMarkup]` and
+  `partial`, and the IDE quick-fix does exactly that, enclosing types included.
 - **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
   dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
   round it was `Cache.Remember` on the data, which still paid the render. After:
@@ -64,6 +69,10 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A dropped subscription reopens on the session's clock.** Before: the reconnect backoff after a dropped stream
+  waited on the wall clock even when the app registered a `TimeProvider`, which the rest of the query cache (staleness)
+  already follows. After: the backoff waits on that `TimeProvider`, so a test holding a fake clock sees `IsReconnecting`
+  and its `Error` stay put until it moves the clock.
 - **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
   the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
@@ -108,6 +117,15 @@ references these packages itself, pin them beside the Rask packages:
 | PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
 
 ### Security
+- **A press made while a tab is in doubt who its browser carries never runs for the user before (#1343).** Before: a
+  Server tab come back to asked `/_rask/auth/who` and held the next press; when the answer took longer than one
+  second of page time — or failed, or the page was offline — the press left on the socket opened for the previous
+  user and ran for them, even when the browser had since signed out or into another account. After: the tab fails
+  closed. A late or failed question opens the connection again, as an answer naming another principal does, and the
+  press leaves only on the new connection, whose upgrade carries the cookie as it is now: it runs for the same user,
+  and with another user or nobody it is dropped with the page, which loads again as them or goes to the sign-in
+  page; the reader presses again. A signed-in tab on a loaded host reconnects once instead; a tab that had nobody's
+  page, and a WASM tab (every request carries the cookie), keep today's behaviour.
 - **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
   release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
   starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
