@@ -70,7 +70,9 @@ protected override void OnModelCreating(ModelBuilder modelBuilder)
 > lines above, then leaves you with the SMTP config and the migration.
 
 Add a migration for the new table before running — `rask db add AddMail && rask db update`
-(or `dotnet ef migrations add AddMail` directly). Then send from a handler, a render, a request or a job — nothing injected:
+(or `dotnet ef migrations add AddMail` directly). Then send from a handler, a render, a request or a job — nothing injected.
+The body is a component built through its chain, so the sending class must be a component or a markup host: outside
+one, mark it `[RaskMarkup]` and `partial` (RASK118 says so, and its quick-fix does it):
 
 ```csharp
 await Mail.Send(Email

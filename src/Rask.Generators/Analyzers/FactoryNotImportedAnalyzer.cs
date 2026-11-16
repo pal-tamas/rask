@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -25,6 +26,13 @@ namespace Rask.Generators.Analyzers;
 ///         carried the children. Nothing in that names Rask, the factory, or the one line that fixes it.
 ///         This does.
 ///     </para>
+///     <para>
+///         RASK118 is the same mistake one dot later: <c>OrderReceipt.OrderId(…)</c>, written in a job or a
+///         mail sender. The head binds to the component <b>type</b>, so the chain step reads as an instance
+///         member asked of a type and the compiler says <b>CS0120</b> ("an object reference is required"),
+///         which reads like a <c>static</c> problem and names neither Rask nor the attribute that fixes it.
+///         An element head (<c>Div.Class(…)</c>) binds to nothing at all there, which is RASK043's CS0103.
+///     </para>
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
@@ -49,8 +57,22 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
                      + "compiler reports CS0119, CS0120 or CS0021 — none of which says what is missing.",
         helpLinkUri: DiagnosticHelp.Link("RASK043"));
 
+    private static readonly DiagnosticDescriptor Rask118 = new(
+        "RASK118",
+        "A chain step is called on a component type outside a markup host",
+        "'{0}.{1}' asks the component type '{0}' for its step '{1}', so this does not compile (CS0120): '{0}' is a chain entry only inside a component or a markup host, and '{2}' is neither — mark '{2}' '[Rask.Core.RaskMarkup]' and make it 'partial', or derive it from 'Rask.Core.RaskMarkup' when its base is free",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Warning,
+        true,
+        description: "A component is built from its chain entry — the member named after it — and entries are "
+                     + "members of a component or a markup host only. In any other type (a job, a mail sender, a "
+                     + "domain-event handler) the name binds to the component TYPE, so its first step reads as an "
+                     + "instance member asked of a type and the compiler reports CS0120. '[RaskMarkup]' on the "
+                     + "enclosing 'partial' class makes it a host and puts the entries in scope.",
+        helpLinkUri: DiagnosticHelp.Link("RASK118"));
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
-        ImmutableArray.Create(Rask043);
+        ImmutableArray.Create(Rask043, Rask118);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -73,8 +95,63 @@ public sealed class FactoryNotImportedAnalyzer : DiagnosticAnalyzer
             start.RegisterSyntaxNodeAction(
                 ctx => Analyze(ctx, component, ((ElementAccessExpressionSyntax)ctx.Node).Expression),
                 SyntaxKind.ElementAccessExpression);
+
+            // The chain's own shape, `OrderReceipt.OrderId(…)` / `Div.Class(…)`: the head is the entry, and
+            // the step after the dot is what the compiler trips on.
+            start.RegisterSyntaxNodeAction(ctx => AnalyzeStep(ctx, component), SyntaxKind.SimpleMemberAccessExpression);
         });
     }
+
+    private static void AnalyzeStep(SyntaxNodeAnalysisContext context, INamedTypeSymbol component)
+    {
+        var access = (MemberAccessExpressionSyntax)context.Node;
+        if (access.Expression is not SimpleNameSyntax head || IsInNameof(access))
+        {
+            return;
+        }
+
+        var enclosing = context.ContainingSymbol?.ContainingType;
+        if (enclosing is null || BuilderEntry.IsEntryHost(enclosing, component))
+        {
+            return;
+        }
+
+        if (Bound(context, head) is { } type)
+        {
+            // A static member of a component (`Card.Url()`, a constant) is reached through its type on
+            // purpose; only an instance member — a step — is the one asked of the wrong thing.
+            if (BuilderEntry.DerivesFromComponent(type, component) && NamesInstanceMember(context, access))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Rask118, access.GetLocation(), type.Name, access.Name.Identifier.ValueText,
+                    enclosing.ToDisplayString()));
+            }
+
+            return;
+        }
+
+        if (FrameworkEntry(context, head) is not null)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Rask043, head.GetLocation(), head.Identifier.ValueText, enclosing.ToDisplayString()));
+        }
+    }
+
+    // `nameof(OrderReceipt.OrderId)` names an instance member through its type, and that is legal C#.
+    private static bool IsInNameof(SyntaxNode node) =>
+        node.Ancestors().OfType<InvocationExpressionSyntax>().Any(static call =>
+            call.Expression is IdentifierNameSyntax { Identifier.ValueText: "nameof" });
+
+    private static bool NamesInstanceMember(SyntaxNodeAnalysisContext context, MemberAccessExpressionSyntax access)
+    {
+        var info = context.SemanticModel.GetSymbolInfo(access, context.CancellationToken);
+        return info.Symbol is { } symbol
+            ? IsInstanceMember(symbol)
+            : info.CandidateSymbols.Any(IsInstanceMember);
+    }
+
+    private static bool IsInstanceMember(ISymbol symbol) =>
+        symbol is { IsStatic: false, Kind: SymbolKind.Property or SymbolKind.Method or SymbolKind.Field or SymbolKind.Event };
 
     private static void Analyze(
         SyntaxNodeAnalysisContext context, INamedTypeSymbol component, ExpressionSyntax target)
