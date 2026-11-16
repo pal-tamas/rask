@@ -233,6 +233,18 @@ departure in behaviour carries none.
   `ApprovedMembers` rows `flux:select/Choices` and `flux:pillbox/Choices`; the markup is the select's own, unchanged.
   `UiChoicesTests`, the site's `ui-select-choices` / `ui-pillbox-choices` E2E.
 
+- **2026-11-16 — a WINDOWED list's rows are one fixed height and one line (`Ui.Select` listbox/combobox, `Ui.Pillbox`,
+  past `UiListWindow.Above` = 100 options).** Flux draws every option and lets a long one wrap (measured on
+  `/components/select`: `ui-option` is `white-space: normal`, 32px, 60px with a description, no ellipsis anywhere).
+  A windowed list counts its spacers by one row height, so a row that grew (a wrapped name at 390, or padding added to
+  the inline height on a page with no preflight) left blank room at the bottom and the last options out of the
+  scroll's reach (TA, Eszaf). Owner: "I like the flux way" — one height per list: 32px, or 60px for EVERY row once any
+  option has a description; `box-border *:self-center` on the row (`UiListboxLook.OptionFixed`), its words and its
+  description each `truncate` (a pillbox's words `truncate min-w-0`), and the whole text in the row's `title` (name,
+  then the description on a line of its own). A list of up to 100 options is untouched, so every Flux example keeps
+  parity. `UiSelectWindowTests`, `LongSelectScrollTests` (Server E2E), the site's `UiKitSelectWindowTests`
+  (`ui-select-long-names`), each at 1280 and 390. A measured row height (a general virtual list's) stays #1326's.
+
 - **File and type:** `src/Rask.Ui/Ui<Name>.cs`, `public sealed partial class Ui<Name>`; a part is
   `Ui<Parent><Part>` (`flux:button.group` → `UiButtonGroup`, reached as `Ui.ButtonGroup`).
 - **A part no Reference heads** (`flux:spacer`, `flux:navmenu`, `flux:chart.bar`, the editor's toolbar items) is in the

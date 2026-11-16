@@ -7,6 +7,16 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **Scrolling alone reaches the last option of a long `Ui.Select` or `Ui.Pillbox` (more than 100 options).** Before: a
+  windowed list counted every row at one height (32 px, or 60 px once any option had a description), but a row could
+  grow past it — its padding added to that height on a page without Tailwind's preflight (the precompiled kit sheet),
+  and a long name wrapped to two lines at a phone's width — so the scroll box and the rows drawn drifted apart: blank
+  room at the bottom and the last options out of reach of the wheel, the scrollbar and End. After: each row of a
+  windowed list is exactly the height the window counts (`box-sizing: border-box`, its content centred), its name and
+  its description each cut to one line with an ellipsis, and the whole text in the row's `title`. A list of up to 100
+  options is drawn as before, wrapping as Flux's does.
+
 ## [0.24.0] - 2026-11-16
 
 **.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app

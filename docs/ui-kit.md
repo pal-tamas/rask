@@ -1433,7 +1433,10 @@ otherwise, `.AfterBind(…)` runs after a pick, and options written as children 
 list — listbox, combobox, pillbox, `.Choices(…)`, the rows a `Search` answers — is drawn whole, as Flux draws it; past
 a hundred it is windowed on [Core's virtualization](composition-lists.md#virtualize--windowed-lists): the rows its
 scroll shows and ten either side, between two spacers that keep the box as tall as the whole list, so the reader
-scrolls through all 1098 vehicles without typing. There is nothing to write — the same options, the same steps:
+scrolls through all 1098 vehicles without typing. Every row of a windowed list is one height (the taller one for all
+of them once any option has a description) and one line: a name or a description too long for it is cut short with an
+ellipsis and said whole in the row's `title`, so no row grows past what the spacers count. There is nothing to write —
+the same options, the same steps:
 
 ```csharp
 Ui.Select.Bind(() => model.VehicleId).Listbox.Searchable()[

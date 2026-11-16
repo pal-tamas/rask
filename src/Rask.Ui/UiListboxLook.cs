@@ -61,6 +61,19 @@ internal static class UiListboxLook
         + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 "
         + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
 
+    /// <summary>
+    ///     A row of a WINDOWED list (<see cref="UiListWindow" />), on top of its own look: as tall as its inline height
+    ///     says and no taller — the padding inside that height, whatever the page's own reset — with what it holds
+    ///     centred in it, so a one-line row in a list of two-line ones sits in the middle of its height.
+    /// </summary>
+    internal const string OptionFixed = "box-border *:self-center";
+
+    /// <summary>A line of a windowed list's row: one line, cut short with an ellipsis (the row's <c>title</c> says it whole).</summary>
+    internal const string OneLine = "truncate";
+
+    /// <summary>The words of a pillbox's windowed row, a flex item beside the tick: one line, and free to shrink to it.</summary>
+    internal const string OneLineItem = "truncate min-w-0";
+
     /// <summary>The row's content beside its indicator.</summary>
     internal const string OptionBody = "flex items-center min-w-0";
 

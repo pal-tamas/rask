@@ -17,7 +17,8 @@ internal static class UiListboxRow
     /// <param name="words">Words in place of the option's own: its <c>SelectedLabel</c>, in the button.</param>
     /// <param name="inList">False for the copy in the select's button.</param>
     /// <param name="checkbox">A checkbox in the tick's place: Flux's <c>indicator="checkbox"</c>.</param>
-    internal static Component Content(UiSelectOption option, string? words = null, bool inList = true, bool checkbox = false) =>
+    /// <param name="oneLine">A row of a windowed list: its words and the line under them each kept to one line.</param>
+    internal static Component Content(UiSelectOption option, string? words = null, bool inList = true, bool checkbox = false, bool oneLine = false) =>
         Content(
             option.Avatar,
             option.Icon,
@@ -27,26 +28,30 @@ internal static class UiListboxRow
             option.Text,
             words is null && option.HasCustomContent ? option.Children! : [words ?? option.Text],
             inList,
-            checkbox);
+            checkbox,
+            oneLine);
 
     /// <summary>The button's copy of an option that is no longer among the rows, from the face the select kept.</summary>
     /// <param name="face">What the option showed when it was last drawn.</param>
     internal static Component Content(UiOptionFace face) =>
-        Content(face.Avatar, face.Icon, face.IconVariant, face.IconClass, face.Description, face.Text, [face.SelectedText], inList: false, checkbox: false);
+        Content(face.Avatar, face.Icon, face.IconVariant, face.IconClass, face.Description, face.Text, [face.SelectedText], inList: false, checkbox: false, oneLine: false);
 
     private static Component Content(
         Component? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string? description, string name,
-        IEnumerable<Component?> words, bool inList, bool checkbox) =>
+        IEnumerable<Component?> words, bool inList, bool checkbox, bool oneLine) =>
         Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : UiListboxLook.OptionBody)[
             Div.Class(UiListboxLook.OptionLead)[
                 Div.Class(UiListboxLook.Indicator)[checkbox ? Checkbox() : Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)],
                 Lead(avatar, icon, iconVariant, iconClass, name)
             ],
             Div.Class(UiListboxLook.OptionText)[
-                Div.Class(avatar is null ? UiListboxLook.Words : UiListboxLook.WordsBesideAvatar)[words],
-                description is null ? null : P.Class(UiListboxLook.Description).Data("ui-text", "")[description]
+                Div.Class(avatar is null ? UiListboxLook.Words : UiListboxLook.WordsBesideAvatar, Cut(oneLine))[words],
+                description is null ? null : P.Class(UiListboxLook.Description, Cut(oneLine)).Data("ui-text", "")[description]
             ]
         ];
+
+    // A line of a windowed row is kept to one.
+    private static string? Cut(bool oneLine) => oneLine ? UiListboxLook.OneLine : null;
 
     // Flux's checkbox, ticked while the row is picked.
     private static Component Checkbox() =>

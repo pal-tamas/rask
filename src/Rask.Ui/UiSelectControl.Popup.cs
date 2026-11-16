@@ -119,23 +119,26 @@ public abstract partial class UiSelectControl<T>
             .Data("rask-list-group", block.Rows.Count.ToString(CultureInfo.InvariantCulture))[group.Label];
 
     // `at` is the row's place among the rows on offer, in a windowed list: it says how many there are and which it is, and
-    // is as tall as every other.
+    // is as tall as every other — exactly, as the spacers count it: its height is fixed, its padding inside it, and every
+    // line it draws kept to one (UiListWindow), the whole of it in its title.
     private Component OptionRow(View view, Row row, int at = -1)
     {
         var off = row.Option.Disabled == true;
         var picked = view.IsPicked(row);
+        var windowed = at >= 0;
         var item = Div
             .Key(row.Option.Key ?? "ui:option:" + row.Index.ToString(CultureInfo.InvariantCulture))
             .Id(UiSelectNav.OptId(Prefixed, row.Index))
-            .Style(at < 0 ? null : "height:" + view.RowHeight.ToString(CultureInfo.InvariantCulture) + "px")
+            .Style(windowed ? "height:" + view.RowHeight.ToString(CultureInfo.InvariantCulture) + "px" : null)
+            .Title(windowed ? UiListWindow.TitleOf(row.Option) : null)
             .Role("option")
-            .Class(RowLook(row.Option), row.Option.Class)
+            .Class(RowLook(row.Option, windowed), row.Option.Class)
             .Aria(at < 0 ? UiOptionAria.For(off, picked) : UiOptionAria.For(off, picked, at + 1, view.Shown.Count))
             .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
         // Held, the browser picks it (rask-list-held.ts): the page hears the answer with the next action.
         return (off || Held ? item : Wired(item, row.Value))[
-            RowContent(row.Option)
+            RowContent(row.Option, windowed)
         ];
     }
 
@@ -145,14 +148,15 @@ public abstract partial class UiSelectControl<T>
     // holds that value now (Component.StaleEvents), wherever it is.
     private HTMLDivElement Wired(HTMLDivElement item, T value) => item.OnClick(() => PickedAsync(value));
 
-    private string RowLook(UiSelectOption option)
+    private string RowLook(UiSelectOption option, bool windowed)
     {
+        var fixedHeight = windowed ? UiListboxLook.OptionFixed : null;
         if (Pills is not null)
         {
-            return UiPillboxLook.Option;
+            return UiClass.Compose(UiPillboxLook.Option, fixedHeight);
         }
 
-        return UiClass.Compose(UiListboxLook.Option, option.Description is null ? null : UiListboxLook.OptionTall);
+        return UiClass.Compose(UiListboxLook.Option, option.Description is null ? null : UiListboxLook.OptionTall, fixedHeight);
     }
 
     // What the browser reads a row by (rask-list.ts). Its words are its text unless the row draws more than
