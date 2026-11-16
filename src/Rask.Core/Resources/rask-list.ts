@@ -48,7 +48,7 @@
 //     jump to the next row that starts with them, and on a CLOSED one pick it;
 //   * with focus on the list itself (a row was pressed and the list stayed open) the keys do nothing.
 
-import {reveal} from "./rask-focus.js";
+import {reveal, scrollBy} from "./rask-focus.js";
 import {stepFrom, typeAhead} from "./rask-menu-keys.js";
 import {CLEAR, clearHeld, markHeld, pickHeld, removeHeld} from "./rask-list-held.js";
 import {disown, isShown, listen, near, own, page, seam, setShown} from "./rask-owned.js";
@@ -388,9 +388,21 @@ function goTo(root: Element, box: HTMLElement, at: number, dir: 1 | -1): void {
     }
 }
 
+/** Whether `row` is wholly inside what the box shows: naming it would scroll nothing. */
+function inSight(box: HTMLElement, row: Element): boolean {
+    const at = row.getBoundingClientRect();
+    const top = box.getBoundingClientRect().top + box.clientTop;
+    return scrollBy(at.top, at.bottom, top, top + box.clientHeight) === 0;
+}
+
 // The rows of a windowed list changed — the page drew those of a scroll, a search, a found row: the cursor lands where a
 // key or type-ahead sent it, stays on its row while it is drawn, goes dark while its row is scrolled away, and starts
 // on the first picked row, or the first, in a new set of rows.
+//
+// A row gone dark is lit again once it is back IN SIGHT, not merely drawn. The rows drawn are those of the scroll the
+// page last heard, a few past either edge as well, and on a slow link that scroll is one the reader has long left: an
+// answer for the top arrives while the box is at the end (#1344). Lit, the row is named, and a named row is brought
+// into view (rask-focus.ts), which took the box back to the stale scroll for good — the reader's own was never drawn.
 function placeWindowed(root: Element, box: HTMLElement): void {
     const state = stateOf(root);
     const says = windowSays(box);
@@ -416,8 +428,9 @@ function placeWindowed(root: Element, box: HTMLElement): void {
         return;
     }
     const rows = rowsOf(root);
-    const lit = current(state, rows) || (state.at >= 0 ? rowAt(root, state.at) : null);
-    if (lit && rows.indexOf(lit) >= 0 && !skips(lit)) {
+    const kept = current(state, rows);
+    const lit = kept || (state.at >= 0 ? rowAt(root, state.at) : null);
+    if (lit && rows.indexOf(lit) >= 0 && !skips(lit) && (lit === kept || inSight(box, lit))) {
         const auto = state.auto;
         light(root, lit, state.pointed);
         state.auto = auto;

@@ -74,6 +74,115 @@ public sealed class LongSelectScrollTests(PlaywrightFixture playwright) : IClass
         Assert.Equal("32 true ellipsis", shape);
         Assert.Equal(LongSelectScrollPage.Code(1), await row.GetAttributeAsync("title"));
     }
+
+    // A slow link (#1344): the box is scrolled back to the top and on to the end before the page answers either. The answer
+    // for the top comes first and draws the row the cursor was on, far from where the box is now; lit again, that row was
+    // named and scrolled to, and the box went back to the top for good.
+    [Fact]
+    public async Task An_answer_for_where_the_box_was_scrolled_before_leaves_it_where_the_reader_scrolled_it_last()
+    {
+        var replies = new HeldReplies();
+        await using var session = await HookSession.OpenAsync<LongSelectScrollPage>(
+            playwright, new BrowserNewContextOptions { ViewportSize = new() { Width = 1280, Height = 844 } }, beforeLoad: replies.RouteAsync);
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await page.Locator(LongSelectScroll.Opener("codes")).ClickAsync();
+        var box = page.Locator(LongSelectScroll.Box("codes"));
+        var first = box.Locator("[aria-posinset='1']");
+        await Expect(first).ToHaveAttributeAsync("data-active", string.Empty);
+        await box.EvaluateAsync("box => box.scrollTop = box.scrollHeight / 2");
+        await Expect(first).ToHaveCountAsync(0);
+
+        replies.Hold();
+        var asked = replies.Scrolls;
+        await box.EvaluateAsync("box => box.scrollTop = 0");
+        await replies.ScrolledAsync(asked + 1);
+        await box.EvaluateAsync("box => box.scrollTop = box.scrollHeight");
+        await replies.ScrolledAsync(asked + 2);
+        replies.Release();
+        var settled = await LongSelectScroll.SettledAsync(box, LongSelectScrollPage.LastOf("codes"));
+
+        Assert.InRange(settled.Gap, 0, LongSelectScroll.Padding);
+        Assert.True(await LongSelectScroll.AtTheEndAsync(box), "the box left the end it was scrolled to");
+        await Expect(first).ToHaveCountAsync(0);
+    }
+
+    /// <summary>The page's socket, with what the server sends held back while asked and then let through in order.</summary>
+    private sealed class HeldReplies
+    {
+        private readonly Lock _gate = new();
+
+        private readonly Queue<string> _held = new();
+
+        private IWebSocketRoute? _page;
+
+        private bool _holding;
+
+        private int _scrolls;
+
+        /// <summary>How many scroll frames the page has sent.</summary>
+        internal int Scrolls => Volatile.Read(ref _scrolls);
+
+        internal Task RouteAsync(IPage page) =>
+            page.RouteWebSocketAsync(new System.Text.RegularExpressions.Regex("/rask/ws"), socket =>
+            {
+                _page = socket;
+                var server = socket.ConnectToServer();
+                socket.OnMessage(frame =>
+                {
+                    if (frame.Text is { } text && text.Contains("\"type\":\"scroll\"", StringComparison.Ordinal))
+                    {
+                        Interlocked.Increment(ref _scrolls);
+                    }
+
+                    server.Send(frame.Text!);
+                });
+                server.OnMessage(frame =>
+                {
+                    lock (_gate)
+                    {
+                        if (_holding)
+                        {
+                            _held.Enqueue(frame.Text!);
+                            return;
+                        }
+
+                        socket.Send(frame.Text!);
+                    }
+                });
+            });
+
+        internal void Hold()
+        {
+            lock (_gate)
+            {
+                _holding = true;
+            }
+        }
+
+        internal void Release()
+        {
+            lock (_gate)
+            {
+                _holding = false;
+                while (_held.TryDequeue(out var text))
+                {
+                    _page!.Send(text);
+                }
+            }
+        }
+
+        /// <summary>Waits until the page has sent <paramref name="count" /> scroll frames in all.</summary>
+        internal async Task ScrolledAsync(int count)
+        {
+            for (var i = 0; i < 200 && Scrolls < count; i++)
+            {
+                await Task.Delay(25);
+            }
+
+            Assert.True(Scrolls >= count, "the page sent no scroll frame");
+        }
+    }
 }
 
 /// <summary>Scrolls a windowed list to its end the ways a reader does, and measures what is under its last row.</summary>
@@ -182,7 +291,7 @@ internal static class LongSelectScroll
         }
     }
 
-    private static Task<bool> AtTheEndAsync(ILocator box) =>
+    internal static Task<bool> AtTheEndAsync(ILocator box) =>
         box.EvaluateAsync<bool>("box => box.scrollTop + box.clientHeight >= box.scrollHeight - 1");
 
     /// <summary>
@@ -191,7 +300,7 @@ internal static class LongSelectScroll
     ///     it is not drawn at all), how far under the box's top that row starts, every height the rows drawn have, and the
     ///     height the window counts each row at.
     /// </summary>
-    private static async Task<Settled> SettledAsync(ILocator box, string last)
+    internal static async Task<Settled> SettledAsync(ILocator box, string last)
     {
         var said = string.Empty;
         var same = 0;
@@ -223,7 +332,7 @@ internal static class LongSelectScroll
             int.Parse(parts[3], CultureInfo.InvariantCulture));
     }
 
-    private readonly record struct Settled(int Gap, int Under, string Heights, int Counted);
+    internal readonly record struct Settled(int Gap, int Under, string Heights, int Counted);
 }
 
 /// <summary>

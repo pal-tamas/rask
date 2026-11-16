@@ -77,6 +77,10 @@ them until tagged releases begin.
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
   the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
   collection sets no attributes at all.
+- **A long `Ui.Select`/`Ui.Pillbox` stays where it is scrolled on a slow link (#1344).** Before: a list scrolled
+  back past its lit row and on before the page answered drew that row again from the late answer, named it, and
+  scrolled the box back to it, so the reader's own scroll was never drawn and the list sat at the top or kept moving.
+  After: a row gone dark is lit again only once it is back in sight, and the box stays where the reader left it.
 - **A WebRTC peer that drops off without closing is announced to its room, and leaves it.** Before: a closed tab or a
   lost network ended the signaling socket with an exception, the relay lost track of which peer it was, and the peer
   stayed in its room — counted against `MaxPeersPerRoom` and never announced as `peer-left`, so the others went on
