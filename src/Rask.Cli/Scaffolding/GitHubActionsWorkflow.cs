@@ -24,7 +24,8 @@ internal static class GitHubActionsWorkflow
 
     /// <summary>
     /// The workflow. Built off the box: GitHub's runners ship Docker with buildx, so <c>rask deploy</c> builds the image
-    /// on the runner for the host's platform and streams it to the host — the host only loads and runs it.
+    /// on the runner for the host's platform and streams it to the host — the host only loads and runs it. Its build
+    /// cache is kept between runs by an <c>actions/cache</c> step over <see cref="Commands.RunnerBuildCache.Root"/>.
     /// </summary>
     /// <param name="ciWorkflow">
     /// The name of the repository's CI workflow (<see cref="CiWorkflow.Find"/>): the deploy then runs once that has
@@ -112,6 +113,19 @@ internal static class GitHubActionsWorkflow
                   chmod 600 ~/.ssh/id_ed25519
                   printf '%s\n' "$RASK_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
                   chmod 600 ~/.ssh/known_hosts
+
+              # The image build's cache, kept between runs: the downloads its Dockerfile keeps in cache mounts (NuGet
+              # packages, the Tailwind CLI, tsgo, Rask.Pdf's browser) and the layers it built (an apt-get, a workload
+              # install). `rask deploy` reads and writes it under the runner's temp folder; this step restores it
+              # first and saves it once the job is done, so a deploy downloads only what changed. It is saved again
+              # only when a file it is keyed by changes; GitHub drops an entry no run has used for a week.
+              - name: Keep the build cache
+                uses: actions/cache@v6
+                with:
+                  path: ${{ runner.temp }}/rask-build-cache
+                  key: rask-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', '**/global.json', '**/[Nn]u[Gg]et.[Cc]onfig', '**/Dockerfile') }}
+                  restore-keys: |
+                    rask-build-${{ runner.os }}-${{ runner.arch }}-
 
               - name: Install the Rask CLI
                 run: dotnet tool install --global Rask.Cli

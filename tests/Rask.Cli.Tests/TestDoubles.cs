@@ -375,6 +375,23 @@ internal sealed class FakeFileSystem : IFileSystem
 
     public void TryDelete(string path) => _files.Remove(Normalize(path));
 
+    public void ReplaceDirectory(string source, string destination)
+    {
+        TryDeleteDirectory(destination);
+        var (from, to) = (Normalize(source), Normalize(destination));
+        foreach (var key in _files.Keys.Where(f => f.StartsWith(from + Path.DirectorySeparatorChar, StringComparison.Ordinal)).ToList())
+        {
+            _files[to + key[from.Length..]] = _files[key];
+            _files.Remove(key);
+        }
+
+        foreach (var dir in _directories.Where(d => d == from || d.StartsWith(from + Path.DirectorySeparatorChar, StringComparison.Ordinal)).ToList())
+        {
+            _directories.Remove(dir);
+            _directories.Add(to + dir[from.Length..]);
+        }
+    }
+
     private static string Normalize(string path) => Path.GetFullPath(path);
 }
 

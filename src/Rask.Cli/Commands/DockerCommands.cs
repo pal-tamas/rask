@@ -23,6 +23,39 @@ internal static class DockerCommands
     internal static IReadOnlyList<string> BuildLocalBuildArguments(string slug, string platform, string dockerfile, string contextDir, string? release = null) =>
         ["build", "--platform", platform, "-t", $"{slug}:{CurrentTag}", .. ReleaseLabel(release), "-f", dockerfile, contextDir];
 
+    /// <summary>Is the runner's BuildKit builder (<see cref="RunnerBuildCache.Builder"/>) already there? It is once per job.</summary>
+    internal static IReadOnlyList<string> BuildRunnerBuilderInspectArguments() =>
+        ["buildx", "inspect", RunnerBuildCache.Builder];
+
+    /// <summary>
+    /// Start the runner's BuildKit in a container of its own: the engine's built-in builder can export no cache.
+    /// <c>--bootstrap</c> starts it now, so a runner that cannot run it is found before the build, not in it.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildRunnerBuilderCreateArguments() =>
+        ["buildx", "create", "--name", RunnerBuildCache.Builder, "--driver", "docker-container", "--bootstrap"];
+
+    /// <summary>
+    /// The runner's build: <see cref="BuildLocalBuildArguments"/> on the runner's own BuildKit, reading the layer cache
+    /// the last deploy left (when there is one) and writing this build's beside it, then loaded into the engine so the
+    /// image is sent to the box as any other. A cache that cannot be written never fails the build; one restored for these
+    /// same inputs (<see cref="RunnerBuildCache.Unchanged"/>) is not written at all.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildRunnerBuildArguments(RunnerBuildCache cache, bool cached, string slug, string platform, string dockerfile, string contextDir, string? release = null) =>
+    [
+        "buildx", "build", "--builder", RunnerBuildCache.Builder, "--platform", platform, "-t", $"{slug}:{CurrentTag}", .. ReleaseLabel(release), "--load",
+        .. cached ? ["--cache-from", $"type=local,src={cache.Layers}"] : Array.Empty<string>(),
+        .. cache.Unchanged ? Array.Empty<string>() : ["--cache-to", $"type=local,dest={cache.NextLayers},mode=max,ignore-error=true"],
+        "-f", dockerfile, contextDir,
+    ];
+
+    /// <summary>Fill the runner builder's cache mounts from the folders the last deploy saved (<see cref="CacheMountTransfer.Inbound"/>).</summary>
+    internal static IReadOnlyList<string> BuildMountsInArguments(RunnerBuildCache cache, string nonce) =>
+        ["buildx", "build", "--builder", RunnerBuildCache.Builder, "--build-arg", $"{CacheMountTransfer.Nonce}={nonce}", "--output", "type=cacheonly", "-f", Path.Combine(cache.Transfer, "inbound.Dockerfile"), cache.Mounts];
+
+    /// <summary>Copy the runner builder's cache mounts out as folders for the next deploy (<see cref="CacheMountTransfer.Outbound"/>).</summary>
+    internal static IReadOnlyList<string> BuildMountsOutArguments(RunnerBuildCache cache, string nonce) =>
+        ["buildx", "build", "--builder", RunnerBuildCache.Builder, "--build-arg", $"{CacheMountTransfer.Nonce}={nonce}", "--output", $"type=local,dest={cache.NextMounts}", "-f", Path.Combine(cache.Transfer, "outbound.Dockerfile"), cache.Transfer];
+
     /// <summary>The Docker engine's platform, <c>linux/amd64</c> — this machine's with no host, else the box's.</summary>
     internal static IReadOnlyList<string> BuildPlatformArguments(string? host) =>
         [.. host is null ? [] : Prefix(host), "version", "--format", "{{.Server.Os}}/{{.Server.Arch}}"];
