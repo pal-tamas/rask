@@ -9,7 +9,7 @@
 // TypeScript picks a `.d.ts` up automatically for the `.js` of the same name beside it, which is why
 // this is a module rather than a `declare module` block — an ambient one cannot name a relative path.
 //
-// Only `setExports` is called from main.ts; everything else the module does, it does through
+// Only `setExports` and `setSatelliteLoader` are called from main.ts; everything else the module does, it does through
 // [JSImport] declarations on the managed side.
 
 /**
@@ -17,3 +17,9 @@
  * `[JSExport] Dispatch` in Rask.Wasm.dll.
  */
 export declare function setExports(exports: Record<string, never>): void;
+
+/**
+ * Hands the module the runtime's satellite loader (`INTERNAL.loadSatelliteAssemblies`), so .NET can fetch the
+ * resource assemblies of the culture it renders in before the first resource lookup.
+ */
+export declare function setSatelliteLoader(load: (cultures: string[]) => Promise<void>): void;

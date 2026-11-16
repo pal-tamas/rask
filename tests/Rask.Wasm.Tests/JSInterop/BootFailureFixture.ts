@@ -141,8 +141,8 @@ export const dotnet = chain;
 `);
 
 // main.js also imports ./rask.wasm.js once the runtime is up. The real one is a 4000-line bundle
-// that wants a full DOM; only setExports is reached here, so stub that much.
-addModule(dir + "/rask.wasm.js", "export function setExports() {}\n");
+// that wants a full DOM; only setExports and setSatelliteLoader are reached here, so stub that much.
+addModule(dir + "/rask.wasm.js", "export function setExports() {}\nexport function setSatelliteLoader() {}\n");
 
 let threw = false;
 try {

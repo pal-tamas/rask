@@ -351,6 +351,9 @@ public sealed class WasmHostBuilder
 
         var arrival = SettleCulture(provider, routeState);
 
+        // The app's own resources in the reader's language, before anything looks one up (WasmSatellites).
+        await WasmSatellites.LoadReaders(provider).ConfigureAwait(false);
+
         await LoadUserAsync(provider).ConfigureAwait(false);
 
         var session = new WasmLiveSession(
@@ -372,6 +375,9 @@ public sealed class WasmHostBuilder
         Console.WriteLine("[Rask.Wasm] first render applied");
 
         await ApplyManifestAsync(provider).ConfigureAwait(false);
+
+        // The app's other languages, after the first paint: in place before the reader can switch to one.
+        await WasmSatellites.LoadOthers(provider).ConfigureAwait(false);
 
         await StartHostedServicesAsync(provider).ConfigureAwait(false);
     }

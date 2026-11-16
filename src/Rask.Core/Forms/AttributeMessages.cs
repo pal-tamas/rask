@@ -12,7 +12,9 @@ namespace Rask.Core.Forms;
 // RaskStrings catalog instead (the app's, then a library's: the kit's Hungarian), and keeps .NET's own text where
 // neither has one, which is every English reader: an English page reads exactly what it read before.
 //
-// An attribute's own ErrorMessage, or its ErrorMessageResourceType, is the app's word, and always wins.
+// An attribute's own ErrorMessage, or its ErrorMessageResourceType, is the app's word, and always wins over the
+// catalog. Ahead of both stand the app's own resources, when it has any (AppValidationMessages): .NET 11's keys,
+// {Type}_{Member}_{Attribute}_Error and the rest, are the app speaking for itself, so they win over Rask's catalog.
 internal static class AttributeMessages
 {
     // What .NET puts in ErrorMessage itself, for the attributes that expose their default there rather than keep it
@@ -29,8 +31,8 @@ internal static class AttributeMessages
         [typeof(Base64StringAttribute)] = new Base64StringAttribute().ErrorMessage,
     };
 
-    // A member's built-in attributes that carry no words of their own — the ones whose failure this may reword — or
-    // null for a member with none. Bounded by the properties of the models an app validates.
+    // A member's synchronous attributes — the ones whose failure this may reword — or null for a member with none.
+    // Bounded by the properties of the models an app validates.
     private static readonly ConcurrentDictionary<(Type Owner, string Member), Rewordable?> _rewordable = new();
 
     /// <summary>
@@ -78,13 +80,25 @@ internal static class AttributeMessages
     }
 
     /// <summary>
+    ///     What <paramref name="check" />, known to have failed on <paramref name="member" /> of
+    ///     <paramref name="owner" />, says: the app's resources, else the catalog, else the attribute's own text.
+    /// </summary>
+    internal static string Worded(
+        ValidationAttribute check, ValidationResult result, object owner, string member, object? value, IServiceProvider? services) =>
+        AppValidationMessages.For(check, owner.GetType(), member, services)
+        ?? For(check, value)
+        ?? result.ErrorMessage
+        ?? DataAnnotationsFieldValidator.Invalid;
+
+    /// <summary>
     ///     <paramref name="said" />, a failure <see cref="Validator" /> reported for <paramref name="member" /> of
     ///     <paramref name="owner" />, in the reader's language where it is a built-in attribute's own text.
     /// </summary>
     /// <remarks>
     ///     A <see cref="ValidationResult" /> does not say which attribute wrote it, so each of the member's built-in
     ///     attributes is asked again, and the one that writes the same words is the one that failed. Only where the
-    ///     catalog has a sentence for it: an English reader costs one lookup per attribute and nothing else.
+    ///     app's resources or the catalog have a sentence for it: an English reader of an app with no resources costs
+    ///     a lookup or two per attribute and nothing else.
     /// </remarks>
     internal static string Reworded(string said, object owner, string member, IServiceProvider? services)
     {
@@ -97,17 +111,20 @@ internal static class AttributeMessages
         foreach (var check in found.Checks)
         {
             // Asked first, so a language with no translation never runs a rule twice.
-            if (For(check, value) is null || !Wrote(check, said, value, owner, member, services))
+            if (Better(check, value, owner, member, services) is null || !Wrote(check, said, value, owner, member, services))
             {
                 continue;
             }
 
             // Asked again: a [Compare] learns the other field's display name while it runs.
-            return For(check, value) ?? said;
+            return Better(check, value, owner, member, services) ?? said;
         }
 
         return said;
     }
+
+    private static string? Better(ValidationAttribute check, object? value, object owner, string member, IServiceProvider? services) =>
+        AppValidationMessages.For(check, owner.GetType(), member, services) ?? For(check, value);
 
     // An ErrorMessage the app wrote, or a resource it named. Not the default .NET exposes as ErrorMessage itself.
     private static bool HasOwnWords(ValidationAttribute check) =>
@@ -136,8 +153,10 @@ internal static class AttributeMessages
             return null;
         }
 
+        // Every synchronous one: the app's resources may word any attribute, its own included. Never an asynchronous
+        // one — finding the writer runs each rule again, and an async rule's answer is worded where it is awaited.
         ValidationAttribute[] checks =
-            [.. property.GetCustomAttributes<ValidationAttribute>(inherit: true).Where(static check => IsBuiltIn(check) && !HasOwnWords(check))];
+            [.. property.GetCustomAttributes<ValidationAttribute>(inherit: true).Where(static check => check is not AsyncValidationAttribute)];
         return checks.Length == 0 ? null : new Rewordable(property, checks);
     }
 

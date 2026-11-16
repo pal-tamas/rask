@@ -46,7 +46,8 @@ internal sealed class RaskRemoteRequestValidator : IRemoteRequestValidator
         using var scope = _scopes.CreateScope();
         var services = scope.ServiceProvider;
 
-        foreach (var entry in DataAnnotationsFieldValidator.Validate(request, services))
+        foreach (var entry in await DataAnnotationsFieldValidator.ValidateAwaited(request, services, Ambient.CancellationToken)
+                     .ConfigureAwait(false))
         {
             errors.Add(new RequestValidationError(entry.Field, entry.Message));
         }

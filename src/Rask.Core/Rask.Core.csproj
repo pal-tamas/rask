@@ -33,6 +33,13 @@
       InvokeScopedAsync extensions. Does NOT drag in the Blazor renderer/circuit.
     -->
     <PackageReference Include="Microsoft.JSInterop"/>
+    <!--
+      .NET 11's validation options: a form's DataAnnotations messages are looked up through the app's
+      ValidationOptions.LocalizerProvider and IStringLocalizerFactory, the keys .NET's own pipeline uses. The
+      package carries .NET's validation source generator too; Core has no AddValidation call for it to
+      intercept, so it stays out of this compilation (and, as an analyzer, never flows to an app anyway).
+    -->
+    <PackageReference Include="Microsoft.Extensions.Validation" ExcludeAssets="analyzers"/>
   </ItemGroup>
 
   <ItemGroup>

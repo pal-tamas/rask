@@ -22,6 +22,31 @@ them until tagged releases begin.
   1015 KB → 74 KB allocated per request on a hit (120 KB → 13 KB at 50 orders), the render ~40× shorter
   (`CachedFragmentBenchmarks`).
   Guide: docs/cached-fragments.md.
+- **.NET 11's async DataAnnotations work in a form, with nothing declared (#1324).** Before: a uniqueness check on a
+  model was an `IAsyncFieldValidator` added to an `EditContext` you built yourself, and an `AsyncValidationAttribute`
+  was asked synchronously (its `IsValid`). After: `[Required, EmailAddress, UniqueEmail] public string Email` — the
+  attribute's `IsValidAsync` is awaited once the synchronous rules pass, an `IAsyncValidatableObject`'s
+  `ValidateAsync` runs in place of its `Validate`, the field reads `IsValidating` while the lookup is out (a field
+  with no async rule stays synchronous), a value changed again cancels the lookup in flight and drops a late answer,
+  and a lookup that throws says "Validation could not be completed." on its field — the form never submits past it,
+  and the exception is logged. A dispatched request and a minimal API body await the same attributes. Server and
+  WASM. No new public API. Guide: rask.sh/docs/forms-validation#an-async-attribute.
+- **A form's validation messages come from the app's own resources, the .NET 11 way (#1325).** Before: Hungarian
+  came only from Rask's `RaskStrings` catalog, one sentence per attribute, and an app's resources were not asked.
+  After: `AddLocalization()` + `AddValidation(o => o.LocalizerProvider = (_, f) => f.Create(typeof(ValidationMessages)))`
+  and a failed attribute is looked up with .NET's keys — its `ErrorMessage`, `{Type}_{Member}_{Attribute}_Error`,
+  `{Type}_{Attribute}_Error`, `{Attribute}_Error` — and written by the attribute's own `FormatMessage`, `{0}` the
+  `[Display]`/`[DisplayName]` name (looked up too). In the reader's language, in forms, dispatched requests and
+  minimal APIs, both hosts; the app's resources first, then the catalog, then .NET's English. An
+  `ErrorMessageResourceType` keeps its own resource; with no localizer nothing changes. `AddValidation()` no longer
+  switches on .NET's own minimal-API filter for endpoints Rask validates (`RequireRaskValidation` disables it), so
+  they keep the one rejection shape. No new public API; the `Rask` package now depends on `Microsoft.Extensions.Validation`
+  (11.0.0, its options type). Guide: rask.sh/docs/forms-validation#messages-from-your-own-resources.
+- **A WebAssembly app's own resources are found.** Before: dotnet.js downloads a satellite assembly
+  (`hu/App.resources.wasm`) only when asked for its culture, and nothing asked, so every `.hu.resx` of a WASM app was
+  silently ignored and its readers read the neutral resources. After: the reader's language (and the one it falls
+  back to) is fetched before the first render, the app's other `SupportedCultures` right after it, each once; a
+  language with no resources costs no request.
 - **A tab hidden for five minutes hibernates: the server frees its session, and the page comes back when the tab
   is shown (#1322).** Rask's answer to Blazor's circuit pause, with nothing to turn on and nothing stored on the
   server. Before: a background tab held its component tree, DI scope and buffers for as long as its socket stayed

@@ -38,11 +38,13 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Localization" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.ObjectPool" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Options" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="11.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Validation" Version="11.0.0" />
     <PackageVersion Include="Microsoft.JSInterop" Version="11.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />

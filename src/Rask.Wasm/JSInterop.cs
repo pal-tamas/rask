@@ -209,6 +209,13 @@ internal static partial class JSInterop
     public static partial string GetCultureSignals(string cookieName, string queryKey);
 
     /// <summary>
+    ///     Fetches and loads the app's resource assemblies of <paramref name="cultures" /> (<c>hu/App.resources.wasm</c>),
+    ///     which the runtime otherwise never downloads: before it, an app's own resources were never found.
+    /// </summary>
+    [JSImport("loadSatellites", ModuleName)]
+    public static partial Task LoadSatellites(string[] cultures);
+
+    /// <summary>
     ///     Browser sub-path prefix derived from <c>&lt;base href&gt;</c>. Returns the
     ///     directory portion (e.g. <c>"/Rask/"</c> when hosted at <c>/Rask/index.html</c>
     ///     or <c>"/"</c> at the origin root). <see cref="WasmHostBuilder.CreateDefault()" />
@@ -318,6 +325,20 @@ internal static partial class JSInterop
 
     public static string GetBasePath() => "/";
 #pragma warning restore S3400
+
+    /// <summary>Every culture list asked for, in order, so the non-browser tests can assert it.</summary>
+    internal static List<string[]> LoadedSatellites { get; } = [];
+
+    // No runtime to fetch from.
+    public static Task LoadSatellites(string[] cultures)
+    {
+        lock (LoadedSatellites)
+        {
+            LoadedSatellites.Add(cultures);
+        }
+
+        return Task.CompletedTask;
+    }
 
     public static void PushHistory(string url, bool replace)
     {

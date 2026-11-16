@@ -145,6 +145,21 @@ function prependBase(url: string): string {
     return b + url.slice(1);
 }
 
+// The runtime's own satellite loader, handed over by main.js beside the exports. dotnet.js fetches an app's
+// resource assemblies (Messages/X.hu.resx -> hu/App.resources.wasm) only when asked for a culture: without this a
+// WASM app's own resources were never found, and every reader read the neutral ones.
+let satelliteLoader: ((cultures: string[]) => Promise<void>) | null = null;
+
+export function setSatelliteLoader(load: (cultures: string[]) => Promise<void>): void {
+    satelliteLoader = load;
+}
+
+// Asked by .NET (JSInterop.LoadSatellites) for the cultures it is about to read in. A culture the app ships no
+// resources for is skipped by the runtime itself.
+export function loadSatellites(cultures: string[]): Promise<void> {
+    return satelliteLoader ? satelliteLoader(cultures) : Promise.resolve();
+}
+
 // Called from main.js once `getAssemblyExports` is available so the JS event
 // handlers below can dispatch into .NET via the JSExport surface.
 export function setExports(exports: RaskWasmExports): void {
