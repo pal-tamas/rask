@@ -69,6 +69,10 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A strict app builds with aggregates that take no form.** Before: every aggregate's generated `<X>ModelExtensions`
+  doc comment named `<X>Model`, which is written only when the base names `Model`/`CreateModel`/`UpdateModel`, so an
+  app building its documentation (every `<RaskStrict>` app) failed on CS1574 for each aggregate without a form. After:
+  the comment names the model only when there is one; drop any `NoWarn` for CS1574 you added for it.
 - **A dropped subscription reopens on the session's clock.** Before: the reconnect backoff after a dropped stream
   waited on the wall clock even when the app registered a `TimeProvider`, which the rest of the query cache (staleness)
   already follows. After: the backoff waits on that `TimeProvider`, so a test holding a fake clock sees `IsReconnecting`

@@ -37,8 +37,15 @@ public sealed partial class ModelInputGenerator
         var entityType = entity.FullyQualifiedName;
         var modelType = FormModelType(entity);
         var modelName = entity.Name + ModelSuffix;
-        s.Append("/// <summary>The writes Rask generates for <see cref=\"").Append(entityType)
-            .Append("\" />, taking its <see cref=\"").Append(modelType).AppendLine("\" />.</summary>");
+        // The model is named only when it is written: an entity with no form writes gets no model, and a cref to one
+        // is CS1574 in an app that builds its documentation (a strict app does).
+        s.Append("/// <summary>The writes Rask generates for <see cref=\"").Append(entityType).Append("\" />");
+        if (formModel)
+        {
+            s.Append(", taking its <see cref=\"").Append(modelType).Append("\" />");
+        }
+
+        s.AppendLine(".</summary>");
         s.Append(entity.Accessibility).Append(" static class ").Append(modelName).AppendLine("Extensions");
         s.AppendLine("{");
 
