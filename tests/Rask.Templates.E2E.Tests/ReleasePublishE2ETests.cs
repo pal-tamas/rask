@@ -28,9 +28,12 @@ public sealed class ReleasePublishE2ETests
         {
             TemplateBuildE2ETests.Write(
                 TemplateBuildE2ETests.Scaffold("server", project, name, version), project, feed);
-            // The first migration `rask new` makes: without it the published app starts over an empty database.
+            // The first migration `rask new` makes, in its order: restored and built first (the migration needs the
+            // assets file), then migrated. Without it the published app starts over an empty database.
+            var (exit, output) = await CliBuildE2E.RunDotnet($"build \"{Path.Combine(project, name + ".csproj")}\" -m:1");
+            Assert.True(exit == 0, $"the server template does not build:\n{CliBuildE2E.Diagnostics(output)}");
             await FirstMigration.CreateAsync(Path.Combine(project, name + ".csproj"));
-            var (exit, output) = await CliBuildE2E.RunDotnet(
+            (exit, output) = await CliBuildE2E.RunDotnet(
                 $"publish \"{Path.Combine(project, name + ".csproj")}\" -c Release -warnaserror -m:1 "
                 + $"-p:RaskSpaBuild=false -o \"{published}\"");
 
