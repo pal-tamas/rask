@@ -33,6 +33,24 @@ them until tagged releases begin.
   silently ignored and its readers read the neutral resources. After: the reader's language (and the one it falls
   back to) is fetched before the first render, the app's other `SupportedCultures` right after it, each once; a
   language with no resources costs no request.
+### Fixed
+- **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
+  `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
+  the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
+  collection sets no attributes at all.
+
+### Changed
+- **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
+  changed.** Before: every runner started with an empty Docker, so every Eszaf/TA-style deploy downloaded the NuGet
+  packages, the Tailwind CLI, tsgo and Rask.Pdf's Chrome shell again, and reinstalled the PDF browser's libraries.
+  After: under `GITHUB_ACTIONS`, `rask deploy` builds on a BuildKit container of its own (`rask-deploy`, `--load`),
+  with its layer cache and the contents of every `RUN --mount=type=cache` in the Dockerfile (which no layer cache
+  carries) kept in `$RUNNER_TEMP/rask-build-cache/<app>`; the workflow `rask deploy --github-actions` writes saves
+  that folder with an `actions/cache` step keyed by the project files; a deploy whose cache was saved for the same
+  project files reads it and writes nothing back. Measured on GitHub's runners for a scaffolded server app with
+  Rask.Pdf: 124–136 s for the first deploy, 74 s for the next. No new flag, no token handed to the build, the
+  Dockerfiles unchanged; anything missing falls back to the plain build in one line. Run
+  `rask deploy --github-actions` again to add the step to an existing `deploy.yml`.
 
 ## [0.24.0] - 2026-11-16
 

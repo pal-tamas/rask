@@ -113,4 +113,38 @@ public partial class BuilderAttrBagTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(first, second);
     }
+
+    // #1342: `cond ? [(name, "")] : []` binds the params-span step, and the empty branch threw in the
+    // middle of the render — the page never finished loading. An empty collection is no attributes at all.
+    [Fact]
+    public void An_empty_collection_renders_no_attributes()
+    {
+        var bare = Div.Id("x").ToHtml();
+
+        var empty = Div.Id("x").Attributes([]).ToHtml();
+
+        Assert.Equal(bare, empty);
+    }
+
+    [Theory]
+    [InlineData(true, "<main id=\"m\" data-flag=\"\"></main>")]
+    [InlineData(false, "<main id=\"m\"></main>")]
+    public void A_conditional_collection_renders_its_pair_or_nothing(bool on, string expected)
+    {
+        var name = "data-flag";
+
+        var html = Main.Id("m").Attributes(on ? [(name, "")] : []).ToHtml();
+
+        Assert.Equal(expected, html);
+    }
+
+    [Fact]
+    public void An_empty_collection_on_data_and_aria_renders_no_attributes()
+    {
+        var bare = Span.Id("s").ToHtml();
+
+        var empty = Span.Id("s").Data([]).Aria([]).ToHtml();
+
+        Assert.Equal(bare, empty);
+    }
 }

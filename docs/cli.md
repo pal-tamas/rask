@@ -980,7 +980,8 @@ each time.
 
 **Deploying from CI.** `rask deploy --github-actions` writes a workflow that runs this same command on
 `main` once the repository's CI workflow has passed on it (`workflow_run`; every push to `main` when there is no
-CI workflow yet), building on the runner, and prints how to make a **deploy-only key** for the repository
+CI workflow yet), building on the runner — with the build cache the workflow keeps between runs, so a deploy
+downloads only what changed ([The deploy's build cache](deployment.md#the-deploys-build-cache)) — and prints how to make a **deploy-only key** for the repository
 (`restrict,port-forwarding` in the box's `authorized_keys`) and the two `gh secret set` lines it needs (that key
 and the host's fingerprint) — see [Deploying from GitHub Actions](deployment.md#deploying-from-github-actions).
 Everything else comes from the committed `.rask/deploy.json`. It deploys with

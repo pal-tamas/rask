@@ -481,6 +481,60 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
         Assert.Equal("hunter2", still.Trim());
     }
 
+    /// <summary>
+    /// A deploy from GitHub Actions keeps its build cache in the runner's temp folder, and the next deploy, on a fresh
+    /// runner, builds with it. The fresh runner is a fresh builder: removed between the two deploys, so what it finds
+    /// came through the folder — a layer the first build made (the layer cache), and the file a <c>RUN --mount=type=cache</c>
+    /// step wrote into its mount (carried out and back in), which no layer cache can carry. Only a real BuildKit proves both.
+    /// </summary>
+    [Fact]
+    public async Task A_runner_deploy_builds_with_the_cache_the_previous_runner_kept()
+    {
+        var project = Start(out var console, out var command);
+        var (buildx, _) = await DeployE2E.RunAsync("docker", ["buildx", "version"], cancellationToken: TestContext.Current.CancellationToken);
+        Assert.SkipWhen(buildx != 0, "this docker CLI has no buildx, which a runner's build cache needs");
+        var temp = Path.Combine(project, "runner-temp");
+        command.ReadEnvironment = name => name switch { "GITHUB_ACTIONS" => "true", "RUNNER_TEMP" => temp, _ => null };
+        var mount = "rask-e2e-" + Guid.NewGuid().ToString("N")[..8];
+        File.WriteAllText(Path.Combine(project, "Dockerfile"), $$"""
+            FROM docker.io/library/nginx:alpine
+            RUN cat /proc/sys/kernel/random/uuid > /layer.txt
+            COPY version.txt /version.txt
+            RUN --mount=type=cache,id={{mount}},target=/cache \
+                if [ ! -f /cache/seed.txt ]; then cat /proc/sys/kernel/random/uuid > /cache/seed.txt; fi; cp /cache/seed.txt /seed.txt
+            RUN mkdir -p /data \
+             && printf 'server { listen 8080; location /health { return 200 "ok"; } }\n' > /etc/nginx/conf.d/default.conf
+            EXPOSE 8080
+            CMD ["/bin/sh","-c","exec nginx -g 'daemon off;'"]
+            """.ReplaceLineEndings("\n"));
+        string[] args = ["--host", host.Host, "--port", "8099", "--app", "cacheapp"];
+
+        var first = await DeployOnAFreshRunnerAsync(project, "one", command, console, args);
+        var second = await DeployOnAFreshRunnerAsync(project, "two", Command(project, console, temp), console, args);
+
+        Assert.Contains("Kept the build cache for the next deploy", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("Build cache: the last deploy's", console.OutText, StringComparison.Ordinal);
+        Assert.True(Directory.Exists(Path.Combine(temp, RunnerBuildCache.Root, "cacheapp", "mounts", mount)), console.OutText);
+        Assert.True(first.Layer == second.Layer, $"the layer cache did not reach the fresh builder.\n{console.OutText}");
+        Assert.True(first.Seed == second.Seed, $"the cache mount did not reach the fresh builder.\n{console.OutText}");
+        Assert.Equal("two", second.Version);
+    }
+
+    /// <summary>One deploy from a runner with no builder yet, and what the image it put on the box was built with.</summary>
+    private async Task<(string Layer, string Seed, string Version)> DeployOnAFreshRunnerAsync(string project, string version, DeployCommand command, StringConsole console, string[] args)
+    {
+        File.WriteAllText(Path.Combine(project, "version.txt"), version);
+        await DeployE2E.RunAsync("docker", ["buildx", "rm", RunnerBuildCache.Builder], cancellationToken: TestContext.Current.CancellationToken);
+
+        var exit = await command.ExecuteAsync(args, CancellationToken.None);
+
+        Assert.True(exit == 0, $"deploy {version} failed.\n{console.OutText}\n{console.ErrorText}");
+        var (_, built) = await host.DockerAsync("run", "--rm", "--entrypoint", "cat", "cacheapp:current", "/layer.txt", "/seed.txt", "/version.txt");
+        var lines = built.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        Assert.True(lines.Length == 3, built);
+        return (lines[0], lines[1], lines[2]);
+    }
+
     /// <summary>An app whose body identifies which build is serving.</summary>
     private static string AppWithMarker(string marker) =>
         $$"""
@@ -500,12 +554,13 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
     }
 
     /// <summary>A second command against the same project directory (each verb gets a fresh console).</summary>
-    private DeployCommand Command(string project, StringConsole console) =>
+    private DeployCommand Command(string project, StringConsole console, string? runnerTemp = null) =>
         new(console, new SystemFileSystem(), new EnvScopedProcessRunner(host.Environment, host.Executables), project)
         {
             ReadinessDelay = TimeSpan.FromMilliseconds(500),
             ReadinessAttempts = 30,
             ShareSshConnection = true,
+            ReadEnvironment = name => runnerTemp is null ? null : name switch { "GITHUB_ACTIONS" => "true", "RUNNER_TEMP" => runnerTemp, _ => null },
         };
 
     /// <summary>
