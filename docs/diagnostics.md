@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK117, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK118, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -15,6 +15,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK014** | rewrites `new Widget()` into the bare entry `Widget` |
 | **RASK023** | appends `.Alt("")` to the chain |
 | **RASK026** | deletes the redundant `StateHasChanged()` statement |
+| **RASK043** | marks the enclosing class `[RaskMarkup]` and makes it (and every type it is nested in) `partial` |
 | **RASK071** | swaps ASP.NET's `[Route]` for Rask's own |
 | **RASK084** | makes the accessor `private set` / `private init`, or the field `private` |
 | **RASK085** | moves the collection into a `private readonly` field and exposes `IReadOnlyCollection<T>` |
@@ -23,6 +24,7 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK095** | adds the missing required steps right after the chain so far (or moves one taken too late) |
 | **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
 | **RASK104** | turns the static field or get-only auto-property into an expression-bodied property (`static Component Empty => Div;`) |
+| **RASK118** | marks the enclosing class `[RaskMarkup]` and makes it (and every type it is nested in) `partial` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -129,6 +131,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK115](#rask115) | Warning | Tenant-scoped tables and no tenant aggregate |
 | [RASK116](#rask116) | Warning (off unless `<RaskStrict>`) | Test is not named as a sentence |
 | [RASK117](#rask117) | Error | A cached fragment holds something interactive |
+| [RASK118](#rask118) | Warning | A chain step is called on a component type outside a markup host |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -859,7 +862,9 @@ context — none of which mentions Rask or the one line that fixes it.
 **Fix:** derive the enclosing type from `Rask.Core.RaskMarkup`, or mark it `[RaskMarkup]` when its base
 slot is taken or it is a `static class` — or, if it was really a component all along, make it one. A
 `static class` cannot derive from anything, so the attribute is the way in there; nesting it inside a
-host works too, since simple-name lookup walks out through enclosing types. Suppress with
+host works too, since simple-name lookup walks out through enclosing types (**quick-fix available** — the
+IDE lightbulb adds `[Rask.Core.RaskMarkup]` and `partial`). A component's own chain written there —
+`OrderReceipt.OrderId(…)` — is [RASK118](#rask118). Suppress with
 `#pragma warning disable RASK043` / `.editorconfig`
 (`dotnet_diagnostic.RASK043.severity = none`).
 
@@ -2806,3 +2811,48 @@ Div[
 
 The analyzer sees what is written in the fragment's own children. A handler inside a component the fragment wraps is
 refused at run time instead, by the first render that would store it, with the same advice.
+
+## RASK118
+
+**A chain step is called on a component type outside a markup host** · Warning
+
+A component is built from its **chain entry** — the member named after it — and entries are members of a component
+or a [markup host](#rask043) only. In any other class (a job, a mail sender, a domain-event handler) the name binds
+to the component **type**, so the first step reads as an instance member asked of a type and the compiler says
+**CS0120** ("An object reference is required for the non-static field, method, or property"), which reads like a
+`static` problem and names neither Rask nor the fix:
+
+```csharp
+public sealed class SendReceipt(Order order) : IJob
+{
+    public Task Run() => Mail.Send(Email
+        .To(order.Email)
+        .Subject("Your receipt")
+        .Body(OrderReceipt.OrderId(order.Id)));   // ✗ RASK118 — CS0120
+}
+```
+
+```text
+'OrderReceipt.OrderId' asks the component type 'OrderReceipt' for its step 'OrderId', so this does not compile (CS0120): 'OrderReceipt' is a chain entry only inside a component or a markup host, and 'Shop.SendReceipt' is neither — mark 'Shop.SendReceipt' '[Rask.Core.RaskMarkup]' and make it 'partial', or derive it from 'Rask.Core.RaskMarkup' when its base is free
+```
+
+**Fix:** make the class a markup host — `[RaskMarkup]` on a `partial` class puts every entry in scope (when its base
+slot is free the generator gives it `: RaskMarkup`, so this costs nothing extra):
+
+```csharp
+using Rask.Core;
+
+[RaskMarkup]
+public sealed partial class SendReceipt(Order order) : IJob
+{
+    public Task Run() => Mail.Send(Email
+        .To(order.Email)
+        .Subject("Your receipt")
+        .Body(OrderReceipt.OrderId(order.Id)));   // ✓
+}
+```
+
+**Quick-fix available** — the IDE lightbulb adds `[Rask.Core.RaskMarkup]` and `partial` (to every enclosing type
+too, which a nested host needs). A static member reached through the type (`OrderReceipt.Url()`, a constant) and
+`nameof(OrderReceipt.OrderId)` are legal and never reported. Suppress with `#pragma warning disable RASK118` /
+`.editorconfig` (`dotnet_diagnostic.RASK118.severity = none`).

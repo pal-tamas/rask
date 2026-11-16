@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
+  sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
+  and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
+  be a markup host. After: RASK118 (and RASK043 for the element chain) says to mark the class `[RaskMarkup]` and
+  `partial`, and the IDE quick-fix does exactly that, enclosing types included.
 - **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
   dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
   round it was `Cache.Remember` on the data, which still paid the render. After:
