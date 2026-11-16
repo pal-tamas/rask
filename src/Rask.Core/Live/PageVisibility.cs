@@ -37,6 +37,18 @@ internal sealed class PageVisibility
         back?.TrySetResult();
     }
 
+    /// <summary>Whether the browser last said the tab is out of sight.</summary>
+    public bool Hidden
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _shown is not null;
+            }
+        }
+    }
+
     /// <summary>Completes at once while the tab is in sight, and otherwise when it comes back.</summary>
     public Task Shown(CancellationToken cancellationToken)
     {

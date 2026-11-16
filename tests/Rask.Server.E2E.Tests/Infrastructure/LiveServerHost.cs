@@ -40,6 +40,9 @@ internal sealed class LiveServerHost : IAsyncDisposable
 
     public string BaseUrl { get; private set; } = string.Empty;
 
+    /// <summary>The app's services, for a journey that checks what the server holds.</summary>
+    public IServiceProvider Services => _app.Services;
+
     /// <summary>How many WebSocket upgrades a browser has asked for.</summary>
     public int WebSocketAttempts => Volatile.Read(ref _webSocketAttempts);
 
