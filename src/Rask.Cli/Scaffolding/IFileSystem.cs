@@ -50,4 +50,10 @@ internal interface IFileSystem
     /// not fail an operation that already succeeded.
     /// </summary>
     void TryDeleteDirectory(string path);
+
+    /// <summary>
+    /// Put the directory <paramref name="source"/> where <paramref name="destination"/> is, replacing it and everything
+    /// under it. Both on one volume, so the move is a rename.
+    /// </summary>
+    void ReplaceDirectory(string source, string destination);
 }

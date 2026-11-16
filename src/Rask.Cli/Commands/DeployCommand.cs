@@ -414,6 +414,7 @@ internal sealed partial class DeployCommand : CliCommand
         Line(BuildPlatformArguments(host: null));
         Line(BuildPlatformArguments(host));
         Line(BuildLocalBuildArguments(slug, "linux/<box arch>", dockerfile, contextDir, label));
+        writer.WriteLine($"  # (on GitHub Actions: on the runner's own BuildKit, `{RunnerBuildCache.Builder}`, with the build cache the workflow keeps in $RUNNER_TEMP/{RunnerBuildCache.Root})");
         Line(BuildRetagArguments(host, slug, CurrentTag, PreviousTag));
         writer.WriteLine($"  docker {string.Join(' ', BuildSaveArguments(slug))} | gzip | docker {string.Join(' ', BuildLoadArguments(host))}");
         Line(BuildRetagArguments(host, slug, CurrentTag, "latest"));

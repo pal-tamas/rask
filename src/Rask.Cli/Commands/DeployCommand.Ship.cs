@@ -34,9 +34,18 @@ internal sealed partial class DeployCommand
 
         WriteHeading($"Building {slug}:{CurrentTag} here for {platform}…");
         WriteRelease();
-        if (!await BuildImageAsync(plan, BuildLocalBuildArguments(slug, platform, plan.Dockerfile, plan.ContextDir, _release), cancellationToken).ConfigureAwait(false))
+        var cache = await RunnerBuildCacheAsync(plan, cancellationToken).ConfigureAwait(false);
+        var build = cache is null
+            ? BuildLocalBuildArguments(slug, platform, plan.Dockerfile, plan.ContextDir, _release)
+            : BuildRunnerBuildArguments(cache, _fileSystem.DirectoryExists(cache.Layers), slug, platform, plan.Dockerfile, plan.ContextDir, _release);
+        if (!await BuildImageAsync(plan, build, cancellationToken).ConfigureAwait(false))
         {
             return false;
+        }
+
+        if (cache is not null)
+        {
+            await KeepRunnerBuildCacheAsync(cache, cancellationToken).ConfigureAwait(false);
         }
 
         // Only now, with an image to send, does anything on the box move.

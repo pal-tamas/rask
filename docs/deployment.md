@@ -398,10 +398,56 @@ a red build. Keep the caches between runs; with GitHub Actions that is one step 
 Every cache is keyed by version inside (`<root>/<version>/…`), so restoring an older one is safe: a new pin
 is simply one more folder.
 
-The workflow `rask deploy --github-actions` writes builds the image with the template Dockerfile, which keeps
-these in BuildKit cache mounts (`rask-tailwind`, `rask-typescript`, `rask-chrome`). On a GitHub-hosted runner
-each run starts with an empty build cache, so those tools (and the NuGet restore) are fetched once per deploy —
-on the runner, not the box.
+The deploy workflow needs none of this: its image build keeps these tools (and the NuGet packages) in the
+template Dockerfile's BuildKit cache mounts, and `rask deploy` carries those between runs itself — see
+[The deploy's build cache](#the-deploys-build-cache).
+
+### The deploy's build cache
+
+A GitHub-hosted runner starts every job with an empty Docker. Without help, every deploy would download the NuGet
+packages, the Tailwind CLI, tsgo and Rask.Pdf's Chrome shell again, pull and install the PDF browser's system
+libraries again, and (for a WebAssembly app) install the `wasm-tools` workload again. So when `rask deploy` runs in
+GitHub Actions (`GITHUB_ACTIONS=true`), it builds on a BuildKit of its own on the runner and keeps that build's cache
+in `$RUNNER_TEMP/rask-build-cache/<app>`, which the generated workflow restores before the deploy and saves after it:
+
+```yaml
+      - name: Keep the build cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/rask-build-cache
+          key: rask-build-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.csproj', '**/Directory.*.props', '**/global.json', '**/[Nn]u[Gg]et.[Cc]onfig', '**/Dockerfile') }}
+          restore-keys: |
+            rask-build-${{ runner.os }}-${{ runner.arch }}-
+```
+
+The cache has two halves, because BuildKit exports only one of them:
+
+- **Layers** — `--cache-to type=local,mode=max`, every stage's layers (the `apt-get`, the workload install, the
+  restore). A build reads the last one (`--cache-from`) and writes a fresh one, so it never grows past one build.
+- **Cache mounts** — what a `RUN --mount=type=cache` holds is in no layer, and that is exactly where the
+  Dockerfile keeps its downloads. `rask deploy` reads every cache mount id from your Dockerfile, copies the
+  mounts out after the build (one folder per id) and back into the next runner's builder before its build.
+
+So the Dockerfile stays as it is — a build on your machine still reuses its mounts across csproj edits — and a
+second deploy downloads only what changed. The image is loaded into the runner's Docker (`--load`) and sent to the
+box exactly as before.
+
+The key is everything that decides what the build downloads, so an entry is saved once and reused until a project
+file, a package version or the Dockerfile changes; a new key starts from the newest older entry (`restore-keys`),
+so even then only the change is downloaded. `rask deploy` fingerprints the same files (the Dockerfile and the
+restore inputs in the build context) and keeps the fingerprint in the cache: a deploy whose cache was saved for
+these same files reads it and writes nothing back — the workflow would not save it again anyway — which spares it
+the half minute exporting the layers and copying the mounts out would take. Each repository has 10 GB of Actions
+cache, and GitHub evicts an entry no run has used for 7 days (and the least recently used ones beyond the limit):
+one app's entry is one build's cache — about 1.2 GB compressed for a scaffolded server app with Rask.Pdf (0.9 GB of
+layers, 0.75 GB of NuGet packages, Tailwind and the Chrome shell). Each app keeps its own folder, so two apps
+deployed from one repository never overwrite each other's. No token is handed to the build: the cache moves as
+files through `actions/cache`, as any cache step does.
+
+Nothing here can fail a deploy. A runner that cannot start a BuildKit container, a mount that cannot be copied in
+or out, a cache that cannot be written — each is one line saying so, and the build is the plain one. An older
+`deploy.yml` without the cache step still deploys; its runner just starts every time with nothing to reuse, so
+run `rask deploy --github-actions` again to rewrite it.
 
 ## Release names and `/version`
 

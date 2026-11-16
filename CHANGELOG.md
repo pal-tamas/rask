@@ -7,6 +7,19 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Changed
+- **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
+  changed.** Before: every runner started with an empty Docker, so every Eszaf/TA-style deploy downloaded the NuGet
+  packages, the Tailwind CLI, tsgo and Rask.Pdf's Chrome shell again, and reinstalled the PDF browser's libraries.
+  After: under `GITHUB_ACTIONS`, `rask deploy` builds on a BuildKit container of its own (`rask-deploy`, `--load`),
+  with its layer cache and the contents of every `RUN --mount=type=cache` in the Dockerfile (which no layer cache
+  carries) kept in `$RUNNER_TEMP/rask-build-cache/<app>`; the workflow `rask deploy --github-actions` writes saves
+  that folder with an `actions/cache` step keyed by the project files; a deploy whose cache was saved for the same
+  project files reads it and writes nothing back. Measured on GitHub's runners for a scaffolded server app with
+  Rask.Pdf: 124–136 s for the first deploy, 74 s for the next. No new flag, no token handed to the build, the
+  Dockerfiles unchanged; anything missing falls back to the plain build in one line. Run
+  `rask deploy --github-actions` again to add the step to an existing `deploy.yml`.
+
 ## [0.24.0] - 2026-11-16
 
 **.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
