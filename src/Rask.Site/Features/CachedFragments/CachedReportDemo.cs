@@ -29,12 +29,5 @@ public sealed partial class CachedReportDemo : Component
         _shows++;
     }
 
-    private async Task Forget() => await CachedFragments.Forget("demo-report");
-}
-
-/// <summary>How many times the report has actually been drawn.</summary>
-public sealed class ReportDraws
-{
-    /// <summary>The draws so far.</summary>
-    public int Count { get; set; }
+    private static async Task Forget() => await CachedFragments.Forget("demo-report");
 }

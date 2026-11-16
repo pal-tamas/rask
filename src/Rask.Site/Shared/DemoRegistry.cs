@@ -270,7 +270,7 @@ public static partial class DemoRegistry
                 .Files(["TwinA.cs", "TwinA.css"])
                 .Result(Div.Class("flex gap-2 flex-wrap items-center")[TwinA, TwinB]),
             ["cached-report"] = () => CodeSample
-                .Files(["CachedReportDemo.cs", "CachedReport.cs"])
+                .Files(["CachedReportDemo.cs", "CachedReport.cs", "ReportDraws.cs"])
                 .Notes("Hide and show the report: it is handed the kept markup, never mounted, so its caption still "
                 + "says draw #1. Forget it, then hide and show: it is drawn afresh. In the browser the copy lives in "
                 + "the tab; on a server, in the app's HybridCache or an in-process store, for every later request.")
