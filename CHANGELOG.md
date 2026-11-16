@@ -104,6 +104,15 @@ references these packages itself, pin them beside the Rask packages:
 | PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
 
 ### Security
+- **A press made while a tab is in doubt who its browser carries never runs for the user before (#1343).** Before: a
+  Server tab come back to asked `/_rask/auth/who` and held the next press; when the answer took longer than one
+  second of page time — or failed, or the page was offline — the press left on the socket opened for the previous
+  user and ran for them, even when the browser had since signed out or into another account. After: the tab fails
+  closed. A late or failed question opens the connection again, as an answer naming another principal does, and the
+  press leaves only on the new connection, whose upgrade carries the cookie as it is now: it runs for the same user,
+  and with another user or nobody it is dropped with the page, which loads again as them or goes to the sign-in
+  page; the reader presses again. A signed-in tab on a loaded host reconnects once instead; a tab that had nobody's
+  page, and a WASM tab (every request carries the cookie), keep today's behaviour.
 - **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
   release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
   starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
