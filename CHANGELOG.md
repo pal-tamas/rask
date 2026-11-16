@@ -7,6 +7,17 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-16
+
+**.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
+references these packages itself, pin them beside the Rask packages:
+
+| Package | Version |
+|---|---|
+| `Microsoft.EntityFrameworkCore*` (SqlServer, Sqlite, Design, Tools, Relational) | `11.0.0` |
+| `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` (most abstractions need no reference on .NET 11) |
+| PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
+
 ### Security
 - **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
   release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
@@ -178,7 +189,7 @@ them until tagged releases begin.
 ### Changed
 - **Rask moves to .NET 11: every package ships `net11.0` (and `net11.0-browser` for WASM) ONLY, and `rask new`
   scaffolds .NET 11.** Before: `net10.0`, a `global.json` on the 10.0 band, the `aspnet:10.0`/`sdk:10.0` images.
-  After: the repo's and every scaffold's `global.json` pin the 11.0 band (`11.0.100` / `11.0.0`, `latestFeature`), the
+  After: the repo's and every scaffold's `global.json` pin the released 11.0 SDK (`11.0.100`, `latestFeature`), the
   template Dockerfiles build on `sdk:11.0` and run on `aspnet:11.0`, the scaffolded deploy workflow sets up `11.0.x`,
   `rask.sh`/`rask.ps1` install the 11.0 channel, and `rask doctor` reports an SDK below 11 (and on a newer SDK asks for
   `wasm-tools-net11`). An app on Rask now needs the .NET 11 SDK. The platform packages move to 11.0.0 (ASP.NET Core,
@@ -190,7 +201,9 @@ them until tagged releases begin.
   query filter, so the tenant filter's "every tenant" arm is now a NULL test of a parameter that EF Core folds away
   per value: `Tenant.Across` still drops the filter and a tenant in flight is still a plain equality, with no
   catch-all OR. What it cannot keep: SQL Server folding the TENANT itself into the SQL against plan sniffing — the
-  tenant is a parameter on every provider now. .NET 11 converts a `double` to `decimal` exactly
+  tenant is a parameter on every provider now (#1321): run SQL Server at compatibility level 160 or later, whose
+  Parameter Sensitive Plan optimization keeps a plan per tenant shape, or add `OPTION(RECOMPILE)` to a query over a
+  heavily skewed tenant on an older level. .NET 11 converts a `double` to `decimal` exactly
   (`(decimal)0.3` is `0.29999999999999998889…`), so `Format.Number(double, atMost)` and `Ui.Slider`/`Ui.ColorPicker`
   take the shortest decimal that reads back as the double, as .NET 10's 15-digit rounding did; EF Core 11 writes
   `COLLATE "EF_DECIMAL"` quoted.
