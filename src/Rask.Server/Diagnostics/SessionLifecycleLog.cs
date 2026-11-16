@@ -134,6 +134,7 @@ internal sealed partial class SessionLifecycleLog(ILogger logger, Func<TimeProvi
         SessionRemoval.Detached =>
             "its connection did not come back within the reconnect grace period (Rask:Server:SessionGracePeriod)",
         SessionRemoval.Left => "its tab left",
+        SessionRemoval.Hibernated => "its tab was out of sight, so it hibernated into the tab's resume record",
         SessionRemoval.Redirected => "its page redirected before anything connected",
         SessionRemoval.Shutdown => "the host is shutting down",
         _ => "the host ended it",

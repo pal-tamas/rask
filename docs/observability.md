@@ -123,6 +123,8 @@ All metrics publish on the meter named **`Rask.Server`** (`RaskTelemetry.MeterNa
 | `rask.handler.duration` | Histogram (ms) | | Wall-clock duration of an event-handler dispatch. |
 | `rask.ws.frames.rejected` | Counter | `reason` = `size` \| `rate` \| `backlog` \| `idle` \| `hello` | Inbound frames refused by a safety limit. |
 | `rask.sessions.resumed` | Counter | | Pages rebuilt on a host that had never heard of the session, from the client's [resume record](configuration.md#surviving-a-restart-or-a-redeploy). |
+| `rask.sessions.hibernated` | Counter | `trigger` = `hidden` \| `pressure` | Sessions of a hidden tab let go into the tab's resume record ([hibernation](configuration.md#hibernating-hidden-tabs)): hidden five minutes, or sooner because the host was short of memory or `MaxSessions` slots. |
+| `rask.sessions.hibernation_deferred` | Counter | `reason` = `shown` \| `input` \| `media` \| `interop` \| `busy` \| `server` | Offers to hibernate put off: by the tab (what it held), or by the server (`server`: a handler or a call under way). Asked again a minute later. |
 | `rask.sessions.resume_rejected` | Counter | `reason` = `malformed` \| `unprotect` \| `principal` \| `toolarge` \| `atcapacity` | Resume records refused. |
 | `rask.shutdown.sessions.abandoned` | Counter | | Sessions still connected when the shutdown drain budget ran out; their sockets were aborted. |
 | `rask.sessions.connected` | Gauge | | Sessions with a socket attached — people actually looking at the app, as opposed to `active`, which also counts GET-minted sessions whose socket never arrived and sessions riding out their reconnect grace. |

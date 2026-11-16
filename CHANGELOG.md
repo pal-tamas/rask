@@ -33,6 +33,18 @@ them until tagged releases begin.
   silently ignored and its readers read the neutral resources. After: the reader's language (and the one it falls
   back to) is fetched before the first render, the app's other `SupportedCultures` right after it, each once; a
   language with no resources costs no request.
+- **A tab hidden for five minutes hibernates: the server frees its session, and the page comes back when the tab
+  is shown (#1322).** Rask's answer to Blazor's circuit pause, with nothing to turn on and nothing stored on the
+  server. Before: a background tab held its component tree, DI scope and buffers for as long as its socket stayed
+  open — hours, on a memory-tight box. After: the server offers (`hibernate`, carrying a record sealed that moment),
+  the tab agrees only while it holds nothing the record cannot carry (unsent or unsaved input, playing media, an
+  interop call, an unanswered event), the session is disposed, and on `visibilitychange` the tab reconnects and the
+  page is rebuilt from its [resume record](docs/configuration.md#hibernating-hidden-tabs) — address and declared
+  `IPersistentState`, as after a restart; subscriptions and timers start again with the remount. Short of memory
+  (85 % of what the process may use) or of `MaxSessions` slots (90 %), the host asks tabs hidden 30 s, longest-hidden
+  first. On wherever `SessionResume` is; new metrics `rask.sessions.hibernated{trigger}` and
+  `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
+
 ### Fixed
 - **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
