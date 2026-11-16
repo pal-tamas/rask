@@ -553,7 +553,9 @@ A failed attribute is then looked up with .NET's own keys, in this order — the
 filled in by the attribute (`ValidationAttribute.FormatMessage`): `{0}` is the field's display name (`[Display]` or
 `[DisplayName]`, itself looked up in the same resources), and a `[Range]`'s `{1}` and `{2}` are its bounds. The
 same resources word a form, a dispatched request and a minimal API, on the Server and in the browser, in the
-reader's language. Without a `LocalizerProvider`, .NET's default applies: resources named after each model.
+reader's language. Without a `LocalizerProvider`, .NET's default applies: resources named after each model. In
+the browser a WASM app adds the `Microsoft.Extensions.Localization` package for `AddLocalization()`; Rask fetches
+the reader's language's resources before the first render, and the app's other languages right after it.
 
 Your resources are the app speaking, so they come first; the [strings catalog](localization.md#a-models-validation-attributes)
 words whatever they have no key for, and .NET's English the rest. An `ErrorMessageResourceType` keeps its own

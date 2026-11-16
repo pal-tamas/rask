@@ -246,6 +246,10 @@ declare module "*/dotnet.js" {
         create(): Promise<{
             getAssemblyExports(name: string): Promise<Record<string, never>>;
             runMain(): Promise<number>;
+            INTERNAL: {
+                /** Fetches and loads the app's resource assemblies of these cultures (a no-op for one it has none of). */
+                loadSatelliteAssemblies(cultures: string[]): Promise<void>;
+            };
         }>;
     }
 

@@ -248,7 +248,7 @@ function whenPainted(): Promise<void> {
 
 if (PRERENDERED) await whenPainted();
 
-const {getAssemblyExports, runMain} = await step(
+const runtime = await step(
     "The .NET runtime could not be loaded. Check that the _framework assets are being served, "
     + "with the correct application/wasm content type.",
     () => dotnet
@@ -264,6 +264,7 @@ const {getAssemblyExports, runMain} = await step(
             }
         })
         .create());
+const {getAssemblyExports, runMain} = runtime;
 
 // JSExport Dispatch lives in Rask.Wasm.dll, not the main assembly.
 const raskWasmExports = await step(
@@ -274,6 +275,8 @@ const rask = await step(
     "The Rask browser module (rask.wasm.js) could not be loaded.",
     () => import('./rask.wasm.js'));
 rask.setExports(raskWasmExports);
+// The runtime loads an app's resource assemblies only for the cultures it is asked for (#1325).
+rask.setSatelliteLoader((cultures: string[]) => runtime.INTERNAL.loadSatelliteAssemblies(cultures));
 
 await step("The app threw while starting.", () => runMain());
 

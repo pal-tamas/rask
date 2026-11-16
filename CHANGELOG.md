@@ -28,6 +28,11 @@ them until tagged releases begin.
   switches on .NET's own minimal-API filter for endpoints Rask validates (`RequireRaskValidation` disables it), so
   they keep the one rejection shape. No new public API; the `Rask` package now depends on `Microsoft.Extensions.Validation`
   (11.0.0, its options type). Guide: rask.sh/docs/forms-validation#messages-from-your-own-resources.
+- **A WebAssembly app's own resources are found.** Before: dotnet.js downloads a satellite assembly
+  (`hu/App.resources.wasm`) only when asked for its culture, and nothing asked, so every `.hu.resx` of a WASM app was
+  silently ignored and its readers read the neutral resources. After: the reader's language (and the one it falls
+  back to) is fetched before the first render, the app's other `SupportedCultures` right after it, each once; a
+  language with no resources costs no request.
 
 ## [0.24.0] - 2026-11-16
 
