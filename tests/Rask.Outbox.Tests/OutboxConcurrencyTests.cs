@@ -47,24 +47,13 @@ public sealed class OutboxConcurrencyTests : IDisposable
         await SaveAsync(Order.Place("c"));
 
         var processor = _provider.GetServices<IHostedService>().OfType<OutboxProcessor<OutboxDbContext>>().Single();
-        await processor.StartAsync(CancellationToken.None);
-        try
-        {
-            // The doomed row is gone and the two survivors are marked published. Under the old batch-wide save
-            // this never settles: the survivors keep losing ProcessedAt and re-publishing on every poll.
-            await WaitUntilAsync(async () =>
-            {
-                await using var poll = NewContext();
-                return await poll.Set<OutboxMessage>().CountAsync() == 2
-                       && await poll.Set<OutboxMessage>().AllAsync(m => m.ProcessedAt != null);
-            });
 
-            // A few more poll cycles, to prove the state is stable rather than momentary.
-            await Task.Delay(300, TestContext.Current.CancellationToken);
-        }
-        finally
+        // Cycles driven one at a time rather than the hosted loop raced against a deadline: the first drains the
+        // whole batch, and the ones after it are the polls that, under the old batch-wide save, re-published the
+        // survivors for ever. Exactly as many as are asked for run, however slow the machine.
+        for (var cycle = 0; cycle < 4; cycle++)
         {
-            await processor.StopAsync(CancellationToken.None);
+            await processor.RunCycleAsync(TestContext.Current.CancellationToken);
         }
 
         await using var read = NewContext();

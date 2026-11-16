@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Rask.Core;
 using Rask.Cqrs;
 using Rask.Querying;
@@ -36,14 +37,26 @@ public class QueryQuiescenceTests
         // half — data present while a stale entry revalidates — cannot be exercised on an initial GET
         // at all: IQueryClient is scoped per session, so every first paint starts with a cold cache
         // and that case only arises after a navigation within a live session.
-        using var host = Host<DisabledQueryApp>();
+        //
+        // Proven by order, not by a clock: the budget is set far beyond the test, so a response that arrives at
+        // all was not held for anything, and the fetch is gated, so that a server which started it to wait for
+        // it is caught at the start and fails the test at once.
+        var heldBack = new HeldBackFetch();
+        using var host = RaskTestHost.Create<DisabledQueryApp>(
+            configureServices: s =>
+            {
+                s.AddRaskCqrs();
+                s.AddRaskQuery();
+                s.AddSingleton(heldBack);
+            },
+            configureServer: o => o.QuiescenceTimeout = TimeSpan.FromHours(1));
 
-        var started = DateTime.UtcNow;
-        var body = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
-        var elapsed = DateTime.UtcNow - started;
+        var response = host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
+        var first = await Task.WhenAny(response, heldBack.Started.Task);
 
-        Assert.Contains("not-enabled", body);
-        Assert.True(elapsed < TimeSpan.FromSeconds(2), $"took {elapsed}; it waited for a query held back");
+        Assert.Same(response, first);
+        Assert.Contains("not-enabled", await response);
+        Assert.False(heldBack.Started.Task.IsCompleted, "the held-back query was fetched");
     }
 
     // QueryClient takes an IDispatcher even for the raw-fetch overloads these tests use, so CQRS is
@@ -73,17 +86,25 @@ public sealed partial class QueryPageApp : Component
         Div[_orders.IsLoading ? "orders-loading" : _orders.Data ?? "no-data"];
 }
 
+/// <summary>The held-back query's fetch: it says when it starts, and never finishes on its own.</summary>
+public sealed class HeldBackFetch
+{
+    public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource<string> Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+}
+
 public sealed partial class DisabledQueryApp : Component
 {
     private readonly Query<string> _value;
 
-    public DisabledQueryApp(IQueryClient client) =>
+    public DisabledQueryApp(IQueryClient client, HeldBackFetch fetch) =>
         _value = client.Query<string>(
             "held-back",
             async ct =>
             {
-                await Task.Delay(30, ct);
-                return "should-never-run";
+                fetch.Started.TrySetResult();
+                return await fetch.Gate.Task.WaitAsync(ct);
             },
             new QueryOptions { Enabled = false });
 

@@ -60,8 +60,7 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
 
         var elsewhere = await context.NewPageAsync();
         await elsewhere.GotoAsync(host.BaseUrl + "/token?user=bob&tenant=7");
-        await ComeBackToAsync(desk);
-        await PressIfStillThereAsync(desk);
+        await ComeBackAndPressAsync(desk);
 
         // The press is held while the tab asks and is dropped with alice's page: nothing ran for her, and what
         // the tab shows is bob's.
@@ -78,8 +77,7 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
 
         var elsewhere = await context.NewPageAsync();
         await elsewhere.GotoAsync(host.BaseUrl + "/gone");
-        await ComeBackToAsync(desk);
-        await PressIfStillThereAsync(desk);
+        await ComeBackAndPressAsync(desk);
 
         await Expect(desk.Locator("#sign-in-page")).ToHaveTextAsync("sign in here", Settled);
         await Expect(desk).ToHaveURLAsync(host.BaseUrl + "/login?returnUrl=%2Fwhose");
@@ -180,10 +178,14 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
         return page;
     }
 
-    // The reader presses the button at once, as a hand already on the mouse does. The page it is on is about to be
-    // replaced, and a press that waits for the button to settle would wait for one that has gone.
-    private static Task PressIfStillThereAsync(IPage page) =>
-        page.EvaluateAsync("() => document.getElementById('act')?.click()");
+    // The reader comes back and presses at once, as a hand already on the mouse does. Both in ONE script: the focus
+    // asks the server before the script ends, so the press always lands while the question is out — and the page,
+    // which the answer replaces, cannot be replaced under a second evaluation that would race its reload.
+    private static async Task ComeBackAndPressAsync(IPage page)
+    {
+        await page.BringToFrontAsync();
+        await page.EvaluateAsync("() => { window.dispatchEvent(new Event('focus')); document.getElementById('act').click(); }");
+    }
 
     // The reader comes back to the tab. A headless page never loses the focus it never had to take, so the event a
     // real window raises is raised here.

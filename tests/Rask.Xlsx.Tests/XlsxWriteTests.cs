@@ -229,17 +229,17 @@ public sealed class XlsxWriteTests
     {
         var rows = Enumerable.Range(0, 100_000).Select(i => Row($"Invoice {i}", new DateTime(2026, 1, 1).AddMinutes(i), i * 1.25m));
         var before = GC.GetAllocatedBytesForCurrentThread();
-        var clock = System.Diagnostics.Stopwatch.StartNew();
 
         var file = Xlsx.Write("Big", ["Number", "At", "Amount"], rows, [new Xlsx.Strong("Total"), null, new Xlsx.Sum()]);
 
-        clock.Stop();
+        // What the write costs is counted in bytes, never in seconds: the same input allocates the same on any
+        // machine, while a stopwatch measures how busy the runner was. A write that went quadratic, or held every
+        // row's text at once, crosses this budget long before it would cross any clock.
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         var book = new OpenedWorkbook(file);
         Assert.Equal(100_002, book.Rows(1).Count());
         Assert.Equal("SUBTOTAL(9,C2:C100001)", book.Cell(1, "C100002").Element(M + "f")!.Value);
-        TestContext.Current.SendDiagnosticMessage($"100000 rows: {clock.ElapsedMilliseconds} ms, {allocated:N0} bytes allocated, {file.Length:N0} bytes file");
-        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(30), $"took {clock.Elapsed}");
+        TestContext.Current.SendDiagnosticMessage($"100000 rows: {allocated:N0} bytes allocated, {file.Length:N0} bytes file");
         Assert.True(allocated < 1_500_000_000, $"allocated {allocated:N0} bytes");
     }
 }
