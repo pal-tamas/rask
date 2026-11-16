@@ -12,6 +12,7 @@ them until tagged releases begin.
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
   the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
   collection sets no attributes at all.
+
 ### Changed
 - **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
   changed.** Before: every runner started with an empty Docker, so every Eszaf/TA-style deploy downloaded the NuGet
