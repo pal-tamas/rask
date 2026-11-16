@@ -278,7 +278,8 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("60 1 1000", page.Find(Box).Attribute(UiWindowMarks.Window));
         Assert.All(rows, row => Assert.Equal("height:60px", row.Attribute("style")));
-        Assert.All(rows, row => Assert.True(row.HasClass("box-border")));
+        // The kit sheet keeps such a row border-box, keyed on the place it says (ui.css, #1316).
+        Assert.All(rows, row => Assert.NotNull(row.Attribute("aria-posinset")));
         Assert.Equal("height:" + ((1000 - rows.Count) * 60).ToString(CultureInfo.InvariantCulture) + "px", page.FindAll("[data-rask-list-window] > [aria-hidden]")[1].Attribute("style"));
     }
 

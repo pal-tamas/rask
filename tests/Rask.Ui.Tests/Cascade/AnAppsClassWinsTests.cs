@@ -201,6 +201,21 @@ public sealed class AnAppsClassWinsTests
         Assert.Empty(lost);
     }
 
+    // A row of a list of options is drawn by the kit sheet on its marker too (#1316): ~400 bytes of classes a row, once.
+    [Theory]
+    [InlineData("data-ui-option")]
+    [InlineData("data-ui-listbox-option")]
+    public void A_row_of_options_takes_its_look_from_the_sheet_and_yields_it_to_an_apps_class(string marker)
+    {
+        var element = new StyledElement("div", new HashSet<string>(UiListboxLook.Option.Split(' '), StringComparer.Ordinal), new Dictionary<string, string>(StringComparer.Ordinal) { [marker] = "", ["role"] = "option" });
+
+        var drawn = new[] { "padding-top", "padding-left", "font-size", "color", "display", "width" }.Select(property => Sheet.Value.Winner(element, property)).ToList();
+        var lost = Lost(element, Guarded).ToList();
+
+        Assert.All(drawn, Assert.NotNull);
+        Assert.Empty(lost);
+    }
+
     [Fact]
     public void The_resolver_tells_a_default_that_weighs_nothing_from_one_that_outweighs_the_app()
     {

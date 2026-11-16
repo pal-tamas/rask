@@ -69,12 +69,12 @@ public abstract partial class UiSelectControl<T>
 
     // A button's: the placeholder, the answer the page holds now — an answer whose row a render took away is still
     // drawn from it — the box a picked row's content is copied into (`data-rask-list-face`, the class its body
-    // takes there) and, for several, the count with the words after it.
+    // takes there: none, the kit sheet draws it) and, for several, the count with the words after it.
     private Component?[] ButtonFaces(View view, string? placeholder) =>
     [
         placeholder is null ? null : Span.Class(UiSelectLook.Placeholder).Data("ui-select-placeholder", "")[placeholder],
         view.Answer is null ? null : PickedContent(view, placeholder),
-        Div.Class(UiSelectLook.Picked).Data("rask-list-face", UiListboxLook.OptionBody),
+        Div.Class(UiSelectLook.Picked).Data("rask-list-face", ""),
         IsMultiple ? Div.Class(UiSelectLook.Picked).Data("rask-list-count", SelectedSuffix ?? RaskStrings.Get(RaskString.SelectSelectedSuffix, "selected")) : null,
     ];
 

@@ -132,7 +132,7 @@ public abstract partial class UiSelectControl<T>
             .Style(windowed ? "height:" + view.RowHeight.ToString(CultureInfo.InvariantCulture) + "px" : null)
             .Title(windowed ? UiListWindow.TitleOf(row.Option) : null)
             .Role("option")
-            .Class(RowLook(row.Option, windowed), row.Option.Class)
+            .Class(RowLook(row.Option), row.Option.Class)
             .Aria(at < 0 ? UiOptionAria.For(off, picked) : UiOptionAria.For(off, picked, at + 1, view.Shown.Count))
             .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
@@ -148,15 +148,15 @@ public abstract partial class UiSelectControl<T>
     // holds that value now (Component.StaleEvents), wherever it is.
     private HTMLDivElement Wired(HTMLDivElement item, T value) => item.OnClick(() => PickedAsync(value));
 
-    private string RowLook(UiSelectOption option, bool windowed)
+    // The rest of a row's look, and a windowed row's fixed height, are the kit sheet's (ui.css, #1316).
+    private string RowLook(UiSelectOption option)
     {
-        var fixedHeight = windowed ? UiListboxLook.OptionFixed : null;
         if (Pills is not null)
         {
-            return UiClass.Compose(UiPillboxLook.Option, fixedHeight);
+            return UiPillboxLook.Option;
         }
 
-        return UiClass.Compose(UiListboxLook.Option, option.Description is null ? null : UiListboxLook.OptionTall, fixedHeight);
+        return option.Description is null ? UiListboxLook.Option : UiListboxLook.OptionTallRow;
     }
 
     // What the browser reads a row by (rask-list.ts). Its words are its text unless the row draws more than

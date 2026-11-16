@@ -50,23 +50,16 @@ internal static class UiListboxLook
     internal const string Column = "overflow-auto [&:popover-open]:flex [&:popover-open]:flex-col [&:popover-open]:overflow-y-hidden";
 
     /// <summary>
-    ///     A row. Its fill is the cursor (<c>data-active</c>), which the runtime writes for the pointer and the
-    ///     keys alike (<c>data-rask-list</c>) — as on Flux, whose script moves the cursor under the pointer. One
-    ///     row at a time is lit, and none by <c>:hover</c>.
+    ///     A row. Its look is the kit sheet's, keyed on its marker (<c>data-ui-option</c>, <c>ui.css</c>, #1316) and
+    ///     computed as Flux's classes do: <c>overflow-hidden flex items-start px-2 py-1.5 w-full rounded-md text-start
+    ///     text-sm font-medium select-none scroll-my-[.3125rem] text-zinc-800 dark:text-white</c>, the cursor's fill
+    ///     <c>bg-zinc-100 dark:bg-zinc-600</c> on <c>data-active</c> in an open list, <c>text-zinc-400</c> when
+    ///     <c>aria-disabled</c>. The fill is the cursor, which the runtime writes for the pointer and the keys alike
+    ///     (<c>data-rask-list</c>) — as on Flux, whose script moves the cursor under the pointer. One row at a time is
+    ///     lit, and none by <c>:hover</c>. What the row still writes: the group its tick reads, no outline, and hidden
+    ///     while a search leaves it out, whatever an app writes on it.
     /// </summary>
-    internal const string Option =
-        "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-start px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] "
-        + "text-zinc-800 dark:text-white "
-        + "[[data-ui-options]:popover-open_&]:data-active:bg-zinc-100 dark:[[data-ui-options]:popover-open_&]:data-active:bg-zinc-600 "
-        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
-
-    /// <summary>
-    ///     A row of a WINDOWED list (<see cref="UiListWindow" />), on top of its own look: as tall as its inline height
-    ///     says and no taller — the padding inside that height, whatever the page's own reset — with what it holds
-    ///     centred in it, so a one-line row in a list of two-line ones sits in the middle of its height.
-    /// </summary>
-    internal const string OptionFixed = "box-border *:self-center";
+    internal const string Option = "group/option outline-hidden data-hidden:hidden";
 
     /// <summary>A line of a windowed list's row: one line, cut short with an ellipsis (the row's <c>title</c> says it whole).</summary>
     internal const string OneLine = "truncate";
@@ -74,23 +67,30 @@ internal static class UiListboxLook
     /// <summary>The words of a pillbox's windowed row, a flex item beside the tick: one line, and free to shrink to it.</summary>
     internal const string OneLineItem = "truncate min-w-0";
 
-    /// <summary>The row's content beside its indicator.</summary>
-    internal const string OptionBody = "flex items-center min-w-0";
-
-    /// <summary>The same in a row with a line under its words: the tick and the icon stay on the first line.</summary>
-    internal const string OptionBodyTall = "flex items-start min-w-0";
+    /// <summary>
+    ///     What a row holds. Its parts carry no class: the kit sheet draws them by their place under the row or the
+    ///     button's copy of it (<c>ui.css</c>, #1316), as measured on Flux — the body <c>flex items-center min-w-0</c>;
+    ///     in it the lead (<c>flex items-center</c>: the tick's place <c>w-6 shrink-0 flex items-center min-h-5</c>, then
+    ///     the icon or the avatar) and the text (<c>flex flex-col gap-1 min-w-0</c>: the words, then the description
+    ///     <c>text-xs font-normal text-zinc-500 dark:text-white/70</c>). In the button the tick's place and the
+    ///     description are hidden and the words cut short (<c>truncate</c>).
+    /// </summary>
+    /// <remarks>A row with a line under its words keeps the tick and the icon on the first line: this.</remarks>
+    internal const string OptionBodyTall = "items-start";
 
     /// <summary>A row with a line under its words is taller.</summary>
     internal const string OptionTall = "py-2.5";
 
-    /// <summary>Indicator and icon, before the words.</summary>
-    internal const string OptionLead = "flex items-center";
-
-    /// <summary>The tick's place: as wide in a row that is not picked, so the words line up.</summary>
-    internal const string Indicator = "w-6 shrink-0 flex items-center min-h-5 [[data-ui-select-button]_&]:hidden";
+    /// <summary>
+    ///     <see cref="Option" /> with <see cref="OptionTall" />. A row of a WINDOWED list (<see cref="UiListWindow" />)
+    ///     takes, from the kit sheet on the place it says (<c>aria-posinset</c>), <c>box-border *:self-center</c>: as tall
+    ///     as its inline height says and no taller — the padding inside that height, whatever the page's own reset — with
+    ///     what it holds centred, so a one-line row in a list of two-line ones sits in the middle of its height.
+    /// </summary>
+    internal const string OptionTallRow = Option + " " + OptionTall;
 
     /// <summary>The tick, drawn in the picked row only.</summary>
-    internal const string Check = "shrink-0 hidden group-data-selected/option:block";
+    internal const string Check = "hidden group-data-selected/option:block";
 
     /// <summary>
     ///     The box of <c>indicator="checkbox"</c>: Flux's checkbox (<see cref="UiOptionLook" />), filled with the accent
@@ -108,17 +108,8 @@ internal static class UiListboxLook
     /// <summary>The option's icon.</summary>
     internal const string Icon = "shrink-0 me-2 text-zinc-400 dark:text-white/60";
 
-    /// <summary>Words over description.</summary>
-    internal const string OptionText = "flex flex-col gap-1 min-w-0";
-
-    /// <summary>The words, where the button repeats the picked option: one line, cut short.</summary>
-    internal const string Words = "[[data-ui-select-button]_&]:truncate";
-
     /// <summary>The words beside an avatar: a name, kept on one line.</summary>
-    internal const string WordsBesideAvatar = "whitespace-nowrap [[data-ui-select-button]_&]:truncate";
-
-    /// <summary>The line under the words. The button does not repeat it.</summary>
-    internal const string Description = "[[data-ui-select-button]_&]:hidden text-xs font-normal text-zinc-500 dark:text-white/70";
+    internal const string WordsBesideAvatar = "whitespace-nowrap";
 
     /// <summary>The heading over a group of rows.</summary>
     internal const string GroupHeading = "data-hidden:hidden px-2 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-300 select-none";

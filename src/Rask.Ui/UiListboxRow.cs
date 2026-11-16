@@ -39,14 +39,15 @@ internal static class UiListboxRow
     private static Component Content(
         Component? avatar, Ui.IconName? icon, Ui.IconVariant? iconVariant, string? iconClass, string? description, string name,
         IEnumerable<Component?> words, bool inList, bool checkbox, bool oneLine) =>
-        Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : UiListboxLook.OptionBody)[
-            Div.Class(UiListboxLook.OptionLead)[
-                Div.Class(UiListboxLook.Indicator)[checkbox ? Checkbox() : Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)],
+        // Each part's look is the kit sheet's, by its place (UiListboxLook.OptionBodyTall says what it is).
+        Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : null)[
+            Div[
+                Div[checkbox ? Checkbox() : Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)],
                 Lead(avatar, icon, iconVariant, iconClass, name)
             ],
-            Div.Class(UiListboxLook.OptionText)[
-                Div.Class(avatar is null ? UiListboxLook.Words : UiListboxLook.WordsBesideAvatar, Cut(oneLine))[words],
-                description is null ? null : P.Class(UiListboxLook.Description, Cut(oneLine)).Data("ui-text", "")[description]
+            Div[
+                Div.Class(avatar is null ? null : UiListboxLook.WordsBesideAvatar, Cut(oneLine))[words],
+                description is null ? null : P.Class(Cut(oneLine)).Data("ui-text", "")[description]
             ]
         ];
 

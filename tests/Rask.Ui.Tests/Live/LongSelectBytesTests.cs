@@ -51,6 +51,8 @@ public partial class LongSelectBytesTests(ITestOutputHelper output) : global::Ra
         Assert.Equal(Count, Rows(whole));
         Assert.Equal(20, Rows(windowed));
         Assert.True(windowedBytes * 20 < wholeBytes, $"{windowedBytes} bytes windowed against {wholeBytes} whole.");
+        // A row's look is the kit sheet's, by its marker and its place (#1316): 1,229,821 bytes whole before, 640,821 after.
+        Assert.InRange(wholeBytes, 1, 700_000);
     }
 
     [Fact]
@@ -65,8 +67,9 @@ public partial class LongSelectBytesTests(ITestOutputHelper output) : global::Ra
         Say("scroll by one box (10 rows) bytes", Bytes(frames[0]));
         Say("scroll to the middle (30 new rows) bytes", Bytes(frames[1]));
         Assert.Equal(2, frames.Count);
-        Assert.InRange(Bytes(frames[0]), 1, 16_000);
-        Assert.InRange(Bytes(frames[1]), 1, 45_000);
+        // 13,374 and 40,192 bytes before a row's look moved into the kit sheet (#1316); 7,314 and 22,012 after.
+        Assert.InRange(Bytes(frames[0]), 1, 8_500);
+        Assert.InRange(Bytes(frames[1]), 1, 25_000);
     }
 
     [Fact]
@@ -78,7 +81,8 @@ public partial class LongSelectBytesTests(ITestOutputHelper output) : global::Ra
 
         var frame = Assert.Single(DiffGuardAttribute.Frames());
         Say("search narrowing to one row bytes", Bytes(frame));
-        Assert.InRange(Bytes(frame), 1, 25_000);
+        // 1,349 bytes before #1316, 743 after.
+        Assert.InRange(Bytes(frame), 1, 1_000);
     }
 
     [Fact]

@@ -75,6 +75,15 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A `Ui.Select` / `Ui.Pillbox` option row is about half the markup, and looks and behaves exactly as before (#1316).**
+  Before: every row wrote Flux's whole option look as classes (~400 bytes) plus ~190 bytes on the boxes inside it — 1,326
+  bytes a windowed select row, 1.23 MB for a list of 1,000 drawn whole, and 13.4 KB on the wire for one screen of scroll.
+  After: the shared look is one set of zero-weight rules in the kit sheet, keyed on the row's marker
+  (`data-ui-option`, `data-ui-listbox-option`) and the place of each box in it; a row writes only
+  `group/option outline-hidden data-hidden:hidden` and what differs — 720 bytes a select row (-46%), ~345 fewer a
+  pillbox row, 641 KB for the 1,000 drawn whole, 7.3 KB a screen of scroll and 22 KB a jump to the middle (was 40.2 KB).
+  An app's class on an option now wins as it is, as on a table cell. Also fixed: the phone field's chosen-country row
+  lost its `data-ui-option` marker. `flux parity` select / pillbox / phone and the open-list checks match Flux.
 - **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
   changed.** Before: every runner started with an empty Docker, so every Eszaf/TA-style deploy downloaded the NuGet
   packages, the Tailwind CLI, tsgo and Rask.Pdf's Chrome shell again, and reinstalled the PDF browser's libraries.

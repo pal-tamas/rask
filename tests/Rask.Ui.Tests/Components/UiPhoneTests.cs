@@ -74,6 +74,19 @@ public partial class UiPhoneTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("data-rask-phone-country=", html, StringComparison.Ordinal);
     }
 
+    // A row's look is the kit sheet's, keyed on its marker (#1316): the chosen country's row, drawn by the render, carries it too.
+    [Fact]
+    public void The_chosen_countrys_row_is_marked_as_an_option_and_as_picked()
+    {
+        var html = Ui.Phone.Value("").Country("US").ToHtml().Decoded();
+
+        var row = Regex.Match(html, "<div(?=[^>]*value=\"us\")[^>]*role=\"option\"[^>]*>").Value;
+
+        Assert.Contains("data-ui-option", row, StringComparison.Ordinal);
+        Assert.Contains("data-selected", row, StringComparison.Ordinal);
+        Assert.Contains("aria-selected=\"true\"", row, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_list_under_the_search_field_holds_its_scroll_and_the_popup_round_it_does_not()
     {

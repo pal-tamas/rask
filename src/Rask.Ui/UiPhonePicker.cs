@@ -151,22 +151,23 @@ internal static class UiPhonePicker
         var row = Div.Role("option").Class(UiListboxLook.Option).Data("ui-option", "");
         row = country is null
             ? row.Aria("selected", "false")
+            // `data-selected` beside the value: a second `.Data(…)` would replace the row's marker, which its look is keyed on.
             : row.Id(list + "-" + country.Code.ToLowerInvariant())
-                .Attributes(("value", country.Code.ToLowerInvariant()))
-                .Aria("selected", "true")
-                .Data("selected", "");
+                .Attributes(("value", country.Code.ToLowerInvariant()), ("data-selected", ""))
+                .Aria("selected", "true");
 
         return row[Content(country ?? UiPhoneCountries.All[0], Ui.PhoneSize.Base)];
     }
 
     // What a row holds, and the button's copy of it: the tick's place, then the flag, the name and the code.
     private static Component Content(UiPhoneCountry country, Ui.PhoneSize size) =>
-        Div.Class(UiListboxLook.OptionBody)[
-            Div.Class(UiListboxLook.OptionLead)[
-                Div.Class(UiListboxLook.Indicator)[Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)]
+        // Each part's look is the kit sheet's, by its place, as a select's (UiListboxLook.OptionBodyTall).
+        Div[
+            Div[
+                Div[Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)]
             ],
-            Div.Class(UiListboxLook.OptionText)[
-                Div.Class(UiListboxLook.Words)[
+            Div[
+                Div[
                     Div.Class(UiPhoneLook.CountryRow(size))[
                         Ui.Flag.Xs.Country(country.Code).Class(UiPhoneLook.Flag(size)).AlsoMarked("ui-phone-country-flag"),
                         Span.Class(UiPhoneLook.Name).Data("country-name", "")[country.Name],

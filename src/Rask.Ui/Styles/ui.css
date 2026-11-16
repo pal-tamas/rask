@@ -461,6 +461,104 @@
 }
 
 /*
+  EVERY ROW OF A LIST OF OPTIONS LOOKS THE SAME, SO THE LOOK IS WRITTEN ONCE, HERE (#1316).
+
+  Flux's `ui-option` as measured on fluxui.dev/components/select and /pillbox (UiListboxLook.Option and
+  UiPillboxLook.Option name what each part is): written on every row it came to some 400 bytes of classes a row,
+  sent again with every row a scroll of a windowed list brings. Keyed on the rows' markers, computed exactly as
+  those classes compute (the same utilities, applied): `data-ui-option` is a select's row (and the phone picker's),
+  `data-ui-listbox-option` a pillbox's. A row still writes `group/option` (what its tick reads), `outline-hidden`
+  and `data-hidden:hidden` (a search hides a row whatever an app writes on it), and what differs: a taller row's
+  padding, the call site's classes.
+
+  At no weight in `rask`, below `utilities`: a class an app writes on an option wins as it is, as on a table's
+  cells. The kit's own order holds within: the rest, the dark ink, the cursor's fill, the disabled ink.
+  A row of a WINDOWED list says its place (`aria-posinset`): one fixed height, its padding inside it, what it holds
+  centred (UiListboxLook.OptionFixed, 2026-11-16).
+*/
+@layer rask {
+  :where([data-ui-option], [data-ui-listbox-option]) {
+    @apply overflow-hidden flex px-2 py-1.5 w-full rounded-md text-start text-sm font-medium select-none scroll-my-[.3125rem] text-zinc-800;
+
+    @variant dark {
+      @apply text-white;
+    }
+  }
+
+  :where([data-ui-option]) {
+    @apply items-start;
+  }
+
+  :where([data-ui-listbox-option]) {
+    @apply items-center;
+  }
+
+  :where([data-ui-options]:popover-open [data-ui-option][data-active], [popover]:popover-open [data-ui-listbox-option][data-active]) {
+    @apply bg-zinc-100;
+
+    @variant dark {
+      @apply bg-zinc-600;
+    }
+  }
+
+  :where([data-ui-option], [data-ui-listbox-option]):where([aria-disabled="true"]) {
+    @apply text-zinc-400;
+  }
+
+  :where([data-ui-option], [data-ui-listbox-option]):where([aria-posinset]) {
+    @apply box-border;
+  }
+
+  :where([data-ui-option], [data-ui-listbox-option]):where([aria-posinset]) > :where(*) {
+    @apply self-center;
+  }
+}
+
+/*
+  WHAT A SELECT'S ROW HOLDS, BY ITS PLACE (#1316) — in the row, and in the button's copy of the picked one (drawn by
+  the page, or copied there by rask-list-held.ts). UiListboxRow writes the same five boxes every time, none marked
+  (Flux marks none): the body; in it the lead (the tick's place, then an icon or an avatar) and the text (the words,
+  then the description). Their look is Flux's, measured (UiListboxLook.OptionBodyTall names each); a row with a
+  description writes `items-start` on its body, and a windowed row `truncate` on its lines, as utilities that win.
+  Only the row's own boxes are reached (`>` all the way): content a page puts in the words is its own.
+*/
+@layer rask {
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) {
+    @apply flex items-center min-w-0;
+  }
+
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:first-child) {
+    @apply flex items-center;
+  }
+
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:first-child) > :where(div:first-child) {
+    @apply w-6 shrink-0 flex items-center min-h-5;
+  }
+
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:last-child) {
+    @apply flex flex-col gap-1 min-w-0;
+  }
+
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:last-child) > :where(p) {
+    @apply text-xs font-normal text-zinc-500;
+
+    @variant dark {
+      @apply text-white/70;
+    }
+  }
+
+  /* The button repeats the picked option's words, cut short, and neither its tick's place nor its description. */
+  :where([data-ui-select-button] [data-value]) > :where(div) > :where(div:last-child) > :where(:first-child) {
+    @apply truncate;
+  }
+
+  :where([data-ui-select-button] [data-value]) > :where(div) > :where(div:first-child) > :where(div:first-child),
+  :where([data-ui-select-button] [data-value]) > :where(div) > :where(div:last-child) > :where(p) {
+    @apply hidden;
+  }
+}
+
+/*
   A TABLE DIMS ITS ROWS WHILE THE PAGE THEY ARE GIVING WAY TO IS STILL BEING READ.
 
   Flux documents no loading treatment for a table. This is Livewire's: `data-loading` on what was pressed,

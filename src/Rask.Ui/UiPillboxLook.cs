@@ -63,21 +63,17 @@ internal static class UiPillboxLook
     internal const string InputChevronIcon = "text-zinc-400/75 dark:text-white/60";
 
     /// <summary>
-    ///     A row of the list. Its fill is the cursor (<c>data-active</c>), which the runtime writes for the
-    ///     pointer and the keys alike: one row at a time is lit, and none by <c>:hover</c>.
+    ///     A row of the list. Its look is the kit sheet's, keyed on its marker (<c>data-ui-listbox-option</c>,
+    ///     <c>ui.css</c>, #1316): <see cref="UiListboxLook.Option" />'s, its content centred (<c>items-center</c>), the
+    ///     cursor's fill <c>data-active</c> in any open popover. One row at a time is lit, and none by <c>:hover</c>.
     /// </summary>
-    internal const string Option =
-        "group/option overflow-hidden outline-hidden data-hidden:hidden flex items-center px-2 py-1.5 w-full rounded-md "
-        + "text-start text-sm font-medium select-none scroll-my-[.3125rem] "
-        + "text-zinc-800 dark:text-white "
-        + "[[popover]:popover-open_&]:data-active:bg-zinc-100 dark:[[popover]:popover-open_&]:data-active:bg-zinc-600 "
-        + "aria-disabled:text-zinc-400 dark:aria-disabled:text-zinc-400";
+    internal const string Option = UiListboxLook.Option;
 
     /// <summary>The tick's place at the end of a row.</summary>
     internal const string CheckSlot = "w-6 shrink-0";
 
     /// <summary>The tick, drawn in the picked rows only.</summary>
-    internal const string Check = "shrink-0 hidden group-data-selected/option:block";
+    internal const string Check = "hidden group-data-selected/option:block";
 
     private static readonly Dictionary<string, string?> SearchInput = new(StringComparer.Ordinal)
     {

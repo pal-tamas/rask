@@ -17,7 +17,10 @@ its live rendered examples, which `flux measure` measures (`flux <command>` is `
 the measurements, never transcribed from a page's `class` attributes — except the TABLE element, which writes
 Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`). Its headings and cells do NOT
 (owner, 2026-11-02, a 9,730-row list was 31.6 MB): their shared look is ONE set of zero-weight rules on
-`[data-ui-column]` / `[data-ui-cell]` in `ui.css`, and a cell writes only what differs.
+`[data-ui-column]` / `[data-ui-cell]` in `ui.css`, and a cell writes only what differs. A list's OPTION rows the same
+(#1316, ~1.3 KB a row was ~0.7 KB after): `[data-ui-option]` / `[data-ui-listbox-option]` and the boxes a select's
+row holds, by their place (also in the button's copy, `[data-ui-select-button] [data-value]`); a row writes only
+`group/option outline-hidden data-hidden:hidden` and what differs.
 
 ## 1. Read and measure
 ```bash
@@ -239,7 +242,7 @@ departure in behaviour carries none.
   A windowed list counts its spacers by one row height, so a row that grew (a wrapped name at 390, or padding added to
   the inline height on a page with no preflight) left blank room at the bottom and the last options out of the
   scroll's reach (TA, Eszaf). Owner: "I like the flux way" — one height per list: 32px, or 60px for EVERY row once any
-  option has a description; `box-border *:self-center` on the row (`UiListboxLook.OptionFixed`), its words and its
+  option has a description; `box-border *:self-center` on the row (the kit sheet, keyed on its `aria-posinset`), its words and its
   description each `truncate` (a pillbox's words `truncate min-w-0`), and the whole text in the row's `title` (name,
   then the description on a line of its own). A list of up to 100 options is untouched, so every Flux example keeps
   parity. `UiSelectWindowTests`, `LongSelectScrollTests` (Server E2E), the site's `UiKitSelectWindowTests`
