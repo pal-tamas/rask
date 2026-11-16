@@ -51,15 +51,15 @@ A=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 B=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 published() { reply "repos/o/r/releases/tags/nightly" "{\"name\":\"Nightly 0.1.1-alpha.0.7 ($1)\"}"; }
 compared() { reply "repos/o/r/compare/$1...$2" "{\"status\":\"$3\"}"; }
-# runs <id:sha:conclusion>... -> main's push runs of ci, newest first
+# runs <id:sha:conclusion[:event[:title]]>... -> main's runs of ci, newest first (a push, unless said)
 runs() {
-  local out='{"workflow_runs":[' sep='' r id sha conclusion
+  local out='{"workflow_runs":[' sep='' r id sha conclusion event title
   for r in "$@"; do
-    IFS=: read -r id sha conclusion <<<"$r"
+    IFS=: read -r id sha conclusion event title <<<"$r"
     if [ -n "$conclusion" ]; then conclusion="\"$conclusion\""; else conclusion=null; fi
-    out+="$sep{\"id\":$id,\"head_sha\":\"$sha\",\"conclusion\":$conclusion}"; sep=','
+    out+="$sep{\"id\":$id,\"head_sha\":\"$sha\",\"conclusion\":$conclusion,\"event\":\"${event:-push}\",\"display_title\":\"${title:-a commit}\"}"; sep=','
   done
-  reply "repos/o/r/actions/workflows/ci.yml/runs?branch=main&event=push" "$out]}"
+  reply "repos/o/r/actions/workflows/ci.yml/runs?branch=main" "$out]}"
 }
 # build <run id> <status> [conclusion] -> that run's jobs, with its build gate
 build() {
@@ -69,10 +69,10 @@ build() {
 }
 others() { reply "repos/o/r/actions/workflows/nightly.yml/runs?status=$1" "{\"workflow_runs\":[{\"id\":$2}]}"; }
 
-# pick <EVENT> [ACTION HEAD_SHA CI_RUN CI_EVENT] -> "sha|run|wait"
+# pick <EVENT> [ACTION HEAD_SHA CI_RUN CI_EVENT CI_TITLE] -> "sha|run|wait"
 pick() {
   : > "$tmp/out"
-  EVENT="$1" ACTION="${2:-}" HEAD_SHA="${3:-}" CI_RUN="${4:-}" CI_EVENT="${5:-}" GITHUB_OUTPUT="$tmp/out" \
+  EVENT="$1" ACTION="${2:-}" HEAD_SHA="${3:-}" CI_RUN="${4:-}" CI_EVENT="${5:-}" CI_TITLE="${6:-}" GITHUB_OUTPUT="$tmp/out" \
     "$root/scripts/lib/nightly_pick.sh" >/dev/null
   printf '%s|%s|%s' "$(sed -n 's/^sha=//p' "$tmp/out")" "$(sed -n 's/^run=//p' "$tmp/out")" "$(sed -n 's/^wait=//p' "$tmp/out")"
 }
@@ -87,7 +87,10 @@ check "...but not when the last nightly is that commit" "||false" "$(pick workfl
 published "$B"; compared "$B" "$A" behind
 check "...or already holds it" "||false" "$(pick workflow_run requested "$A" 10 push)"
 forget
-check "a manual ci run is no push to main" "||false" "$(pick workflow_run requested "$B" 11 workflow_dispatch)"
+check "a manual ci run is no push to main" "||false" "$(pick workflow_run requested "$B" 11 workflow_dispatch ci)"
+check "...but a dispatched verdict on main is, as a Dependabot merge starts one (#1341)" "$B|11|true" \
+  "$(pick workflow_run requested "$B" 11 workflow_dispatch "main verdict $B")"
+check "...while a pull request titled so is not" "||false" "$(pick workflow_run requested "$B" 11 pull_request "main verdict $B")"
 
 echo "==> nightly_pick: the backstop, after a run or on the hour"
 forget
@@ -110,11 +113,27 @@ others in_progress 901
 check "nothing while another nightly run is going" "||false" "$(pick schedule)"
 others in_progress 900
 check "...which is not this run itself" "$B|14|false" "$(pick schedule)"
+forget
+runs "16:$B:success:workflow_dispatch:ci" "15:$A:success:workflow_dispatch:main verdict $A" "14:$A:success"
+check "a dispatched verdict counts in the backstop, a narrowed manual run does not" "$A|15|false" "$(pick schedule)"
 
 echo "==> nightly_pick: by hand"
 forget
 check "main's head, by hand" "mainhead||false" "$(pick workflow_dispatch)"
 check "never another branch" "||false" "$(GITHUB_REF=refs/heads/ci/x pick workflow_dispatch)"
+
+echo "==> nightly_pick: asked by ci for a run the workflow token dispatched (#1341)"
+forget
+reply "repos/o/r/actions/runs/31" "{\"head_sha\":\"$B\",\"event\":\"workflow_dispatch\",\"head_branch\":\"main\",\"display_title\":\"main verdict $B\"}"
+check "a verdict run named by ci is packed, and waited for" "$B|31|true" "$(ASKED_RUN=31 pick workflow_dispatch)"
+published "$B"; compared "$B" "$B" identical
+check "...unless the last nightly holds it" "||false" "$(ASKED_RUN=31 pick workflow_dispatch)"
+forget
+reply "repos/o/r/actions/runs/32" "{\"head_sha\":\"$B\",\"event\":\"workflow_dispatch\",\"head_branch\":\"main\",\"display_title\":\"ci\"}"
+check "a narrowed manual run named is none" "||false" "$(ASKED_RUN=32 pick workflow_dispatch)"
+reply "repos/o/r/actions/runs/33" "{\"head_sha\":\"$B\",\"event\":\"push\",\"head_branch\":\"ci/x\",\"display_title\":\"a commit\"}"
+check "nor a run of another branch" "||false" "$(ASKED_RUN=33 pick workflow_dispatch)"
+check "nor one asked from another branch" "||false" "$(ASKED_RUN=31 GITHUB_REF=refs/heads/ci/x pick workflow_dispatch)"
 
 echo "==> nightly_wait: the build job decides"
 # wait <run id> -> the go= it writes

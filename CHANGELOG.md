@@ -69,6 +69,10 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A dropped subscription reopens on the session's clock.** Before: the reconnect backoff after a dropped stream
+  waited on the wall clock even when the app registered a `TimeProvider`, which the rest of the query cache (staleness)
+  already follows. After: the backoff waits on that `TimeProvider`, so a test holding a fake clock sees `IsReconnecting`
+  and its `Error` stay put until it moves the clock.
 - **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
   the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty

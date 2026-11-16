@@ -13,7 +13,9 @@ name: nightly
 # 2026-11-03 it waited for the whole run, and before that for full.yml. Restore at 1.0: follow the whole run
 # of full.yml again (docs/development-workflow.md, "Loosened until 1.0"). scripts/lib/nightly_pick.sh says
 # which commit, and why; the completed run and the hourly schedule are the backstop for an early nightly
-# that never came or did not finish. workflow_dispatch publishes whatever main holds, verdict or not.
+# that never came or did not finish. workflow_dispatch publishes whatever main holds, verdict or not --
+# unless it names a ci run (ci_run), which it then follows as it would that run's workflow_run: ci's `publish`
+# job asks that for a run the workflow token dispatched, of which GitHub tells no workflow_run (#1341).
 on:
   workflow_run:
     workflows: [ci]
@@ -22,11 +24,17 @@ on:
   schedule:
     - cron: '17 * * * *'   # hourly, off the hour
   workflow_dispatch:
+    inputs:
+      ci_run:
+        description: a ci run of main to publish from, as when it started (empty publishes main's head)
+        type: string
+        default: ''
 
 # The run list shows main's head otherwise -- not the commit a nightly packs.
 run-name: >-
   ${{ github.event_name == 'workflow_run'
       && format('nightly {0} ({1} {2})', github.event.workflow_run.head_sha, github.event.workflow_run.event, github.event.action)
+      || inputs.ci_run != '' && format('nightly (ci run {0})', inputs.ci_run)
       || format('nightly ({0})', github.event_name) }}
 
 permissions:
@@ -66,6 +74,8 @@ jobs:
           HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           CI_RUN: ${{ github.event.workflow_run.id }}
           CI_EVENT: ${{ github.event.workflow_run.event }}
+          CI_TITLE: ${{ github.event.workflow_run.display_title }}
+          ASKED_RUN: ${{ inputs.ci_run }}
         run: scripts/lib/nightly_pick.sh
 
   # Pack, then wait for the build: the pack takes about five minutes, the build longer, so the two overlap.
