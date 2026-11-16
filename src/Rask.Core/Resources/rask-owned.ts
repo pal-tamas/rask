@@ -24,6 +24,8 @@ interface Seam {
     missed: Event[] | null;
     /** Asks the reader about a guarded form's unsaved edits; false when they stay. Set by rask-leave.ts. */
     leave?: (again: () => void) => boolean;
+    /** Whether a guarded form on the page holds edits no accepted submit carried. Set by rask-leave.ts. */
+    unsaved?: () => boolean;
     /**
      * Asks `.Confirm`'s question in the kit's dialog (Ui.Confirm): true when `el` was already said yes to and is
      * being made again, false once the dialog is asking, null when the layout placed none. Set by
@@ -144,6 +146,11 @@ export function ownsChecked(el: Element): boolean {
  */
 export function mayLeave(again: () => void): boolean {
     return !seam.leave || seam.leave(again);
+}
+
+/** Whether a guarded form on the page holds edits no accepted submit carried; false on a page that has none. */
+export function holdsUnsaved(): boolean {
+    return !!seam.unsaved && seam.unsaved();
 }
 
 // ----- Whose doing an event is ------------------------------------------------------------------------

@@ -50,6 +50,12 @@ if (args.Length >= 1 && args[0] == "allocation-profile")
     return AllocationProfileReport.Run(args);
 }
 
+// `session-hibernation` is what letting a hidden tab's session go frees, and what rebuilding it from the record costs.
+if (args.Length >= 1 && args[0] == "session-hibernation")
+{
+    return SessionHibernationReport.Run(args);
+}
+
 if (args.Length >= 1 && args[0] == "big-table")
 {
     return BigTableReport.Run(args);
