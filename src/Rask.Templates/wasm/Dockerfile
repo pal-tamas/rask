@@ -2,7 +2,7 @@
 # Multi-stage build: publish the standalone WASM bundle on the .NET SDK image, then serve
 # the static output from a tiny nginx image. A standalone Rask SPA has no ASP.NET host of
 # its own — it's plain static files, so any static-file server works.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 # The browser-wasm target needs the wasm-tools workload to publish.
 RUN dotnet workload install wasm-tools
 WORKDIR /src

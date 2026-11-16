@@ -22,6 +22,16 @@ internal sealed class SystemFileSystem : IFileSystem
         }
     }
 
+    public void ReplaceDirectory(string source, string destination)
+    {
+        if (Directory.Exists(destination))
+        {
+            Directory.Delete(destination, recursive: true);
+        }
+
+        Directory.Move(source, destination);
+    }
+
     public IReadOnlyList<string> ListFiles(string directory, string searchPattern) =>
         Directory.Exists(directory)
             ? Directory.GetFiles(directory, searchPattern, SearchOption.TopDirectoryOnly)

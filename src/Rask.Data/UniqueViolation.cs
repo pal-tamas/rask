@@ -112,7 +112,7 @@ internal static class UniqueViolation
 
         return string.Join(
             ", ",
-            index.Properties
+            index.Properties.OfType<IProperty>()
                 .Where(p => tenant || !string.Equals(p.Name, Columns.TenantId, StringComparison.Ordinal))
                 .Select(p => $"{table}.{(store is { } at ? p.GetColumnName(at) : p.GetColumnName())}"));
     }

@@ -28,7 +28,7 @@ internal static class CliBuildE2E
     internal static readonly string[] FeedPackages =
     [
         "Rask",                             // the shared core every host depends on — the chain, routing, forms, the generators
-        "Rask.Postgres",                    // Rask.Server depends on it — the provider Rask:Database:Provider=postgres picks
+        "Rask.Postgres",                    // a Postgres app adds it — the provider Rask:Database:Provider=postgres picks
         "Rask.SqlServer",                   // and sqlserver
         "Rask.Server",                      // server template: the host and every battery, RaskApp included
         "Rask.Wasm",                        // the wasm template, and wasm-hosted's browser half
@@ -195,7 +195,7 @@ internal static class CliBuildE2E
         var core = Directory.GetFiles(feed, "Rask.*.nupkg")
             .Single(path => char.IsDigit(Path.GetFileName(path)["Rask.".Length]));
         using var coreZip = System.IO.Compression.ZipFile.OpenRead(core);
-        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net10.0/Rask.Core.dll");
+        Assert.Contains(coreZip.Entries, e => e.FullName == "lib/net11.0/Rask.Core.dll");
 
         // And the hosts no longer bundle it: one copy per process, from one package.
         using var server = System.IO.Compression.ZipFile.OpenRead(serverPackage);

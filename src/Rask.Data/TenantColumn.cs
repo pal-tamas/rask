@@ -35,20 +35,14 @@ internal static class TenantColumn
     private static readonly MethodInfo StoredInt64 =
         Call((Expression<Func<object, long?>>)(e => EF.Property<long?>(e, Columns.TenantId)));
 
-    private static readonly MethodInfo InlinedBool =
-        Call((Expression<Func<bool, bool>>)(flag => EF.Constant(flag)));
-
-    private static readonly MethodInfo InlinedGuid =
-        Call((Expression<Func<Guid?, Guid?>>)(tenant => EF.Constant(tenant)));
-
-    private static readonly MethodInfo InlinedInt32 =
-        Call((Expression<Func<int?, int?>>)(tenant => EF.Constant(tenant)));
-
-    private static readonly MethodInfo InlinedInt64 =
-        Call((Expression<Func<long?, long?>>)(tenant => EF.Constant(tenant)));
-
     private static readonly MethodInfo UnrestrictedReader =
-        Call((Expression<Func<ITenantScoped, bool>>)(scope => Unrestricted(scope)));
+        Call((Expression<Func<ITenantScoped, int?>>)(scope => AcrossMarker(scope)));
+
+    // EF.Parameter around the marker: without it EF Core evaluates the whole `marker == null` up front and binds the
+    // answer as ONE bool parameter, which stays in the SQL as `@p OR …`. As a parameter of its own, the NULL test is
+    // left to EF Core's SQL processor, which folds it from the value.
+    private static readonly MethodInfo AsParameter =
+        Call((Expression<Func<int?, int?>>)(marker => EF.Parameter(marker)));
 
     private static readonly MethodInfo GuidReader =
         Call((Expression<Func<ITenantScoped, string, Guid?>>)((scope, table) => CurrentGuid(scope, table)));
@@ -83,18 +77,12 @@ internal static class TenantColumn
     ///         belong to none — and a table that already existed may well hold some.
     ///     </para>
     ///     <para>
-    ///         The <c>unrestricted</c> arm is read through <see cref="EF.Constant{T}" />, so EF Core folds it into
-    ///         the query when it is built (and caches one plan for <c>Across</c>, one without) instead of binding
-    ///         a parameter: <c>@flag = 1 OR TenantId = @t</c> is a catch-all SQL Server cannot seek an index with.
-    ///     </para>
-    ///     <para>
-    ///         On SQL Server the tenant is folded in the same way (<see cref="InlinesTenant" />), so each tenant
-    ///         compiles a plan of its own: one plan bound to <c>@t</c> is sniffed for the first tenant that ran it,
-    ///         and a nested loop sized for 734 rows then reads another tenant's 87 000 (measured: 1.45 s against
-    ///         0.41 s). The value is the tenant in flight, rendered by EF Core as a typed literal each time the
-    ///         command is built — one compiled query for every tenant, its SQL never cached — so no tenant's SQL
-    ///         is ever reused for another. Other providers keep the parameter: PostgreSQL plans an unprepared
-    ///         statement with the value it is given, and SQLite has no plan cache shared across connections.
+    ///         The <c>unrestricted</c> arm is a NULL test of a parameter (<see cref="AcrossMarker" />), which EF Core
+    ///         folds to TRUE or FALSE from the parameter's value before the SQL is written, and caches one SQL text for
+    ///         each: under <see cref="Tenant.Across" /> the filter is gone, in a tenant it is the plain equality, and
+    ///         neither carries <c>@flag = 1 OR TenantId = @t</c>, a catch-all SQL Server cannot seek an index with. It was
+    ///         <c>EF.Constant</c> until EF Core 11, which refuses that in a query filter; the tenant itself, which SQL
+    ///         Server also had inlined per tenant against plan sniffing, is a parameter now.
     ///     </para>
     /// </remarks>
     internal static LambdaExpression BuildFilter(Type clrType, Type column, DbContext context)
@@ -104,12 +92,7 @@ internal static class TenantColumn
         var (storedReader, currentReader) = ReadersFor(column);
 
         var stored = Expression.Call(storedReader, entity, Expression.Constant(Columns.TenantId));
-        Expression current = Expression.Call(currentReader, scope, Expression.Constant(clrType.Name));
-
-        if (InlinesTenant(context))
-        {
-            current = Expression.Call(InlinedReaderFor(column), current);
-        }
+        var current = Expression.Call(currentReader, scope, Expression.Constant(clrType.Name));
 
         var owned = Expression.AndAlso(
             Expression.NotEqual(stored, Expression.Constant(null, column)),
@@ -119,20 +102,15 @@ internal static class TenantColumn
     }
 
     /// <summary>
-    ///     The <c>unrestricted</c> arm every tenant filter opens with, folded into the query when it is built so
-    ///     <see cref="Tenant.Across" /> and a tenant in flight each get a plan of their own.
+    ///     The <c>unrestricted</c> arm every tenant filter opens with: true under <see cref="Tenant.Across" />, and
+    ///     folded away by EF Core either way (<see cref="AcrossMarker" />).
     /// </summary>
     internal static Expression UnrestrictedArm(DbContext context) =>
-        Expression.Call(
-            InlinedBool,
-            Expression.Call(UnrestrictedReader, Expression.Convert(Expression.Constant(context), typeof(ITenantScoped))));
-
-    /// <summary>
-    ///     Whether the tenant in flight is folded into the SQL of <paramref name="context" />'s reads: on SQL Server
-    ///     only, whose cached plans are otherwise shared by every tenant.
-    /// </summary>
-    internal static bool InlinesTenant(DbContext context) =>
-        string.Equals(context.Database.ProviderName, ProviderNames.SqlServer, StringComparison.Ordinal);
+        Expression.Equal(
+            Expression.Call(
+                AsParameter,
+                Expression.Call(UnrestrictedReader, Expression.Convert(Expression.Constant(context), typeof(ITenantScoped)))),
+            Expression.Constant(null, typeof(int?)));
 
     /// <summary>What an insert into <paramref name="table" /> is stamped with for <paramref name="tenant" />.</summary>
     /// <exception cref="InvalidOperationException">The column keeps a number and the tenant is not one.</exception>
@@ -155,6 +133,12 @@ internal static class TenantColumn
 
     internal static bool Unrestricted(ITenantScoped scope) => scope.CurrentTenant is null;
 
+    /// <summary>
+    ///     NULL under <see cref="Tenant.Across" />, 1 otherwise: the filter asks <c>@marker IS NULL</c>, which EF Core
+    ///     answers from the parameter's value and folds away, where a bool parameter would stay in the SQL as an OR.
+    /// </summary>
+    internal static int? AcrossMarker(ITenantScoped scope) => Unrestricted(scope) ? null : 1;
+
     // The table is unused here and taken all the same: three readers of one shape are one call in the filter.
     internal static Guid? CurrentGuid(ITenantScoped scope, string table)
     {
@@ -172,16 +156,6 @@ internal static class TenantColumn
     // empty: the filter then asks for `TenantId IS NOT NULL AND TenantId IS NULL`, which no row satisfies.
     private static Guid? Named(ITenantScoped scope) =>
         scope.CurrentTenant is { } tenant && tenant != Tenant.Nobody ? tenant : null;
-
-    private static MethodInfo InlinedReaderFor(Type column)
-    {
-        if (column == typeof(int?))
-        {
-            return InlinedInt32;
-        }
-
-        return column == typeof(long?) ? InlinedInt64 : InlinedGuid;
-    }
 
     private static (MethodInfo Stored, MethodInfo Current) ReadersFor(Type column)
     {

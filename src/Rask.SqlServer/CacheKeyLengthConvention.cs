@@ -43,7 +43,7 @@ internal sealed class CacheKeyLengthConvention : IModelFinalizingConvention
             // 900-byte limit applies to an index key whether or not it is the primary one. Looking only at the
             // primary key would have left an nvarchar(512) unique index that SQL Server creates with a warning
             // and then refuses to insert into.
-            var indexed = entityType.GetIndexes().SelectMany(static i => i.Properties)
+            var indexed = entityType.GetIndexes().SelectMany(static i => i.Properties.OfType<IConventionProperty>())
                 .Concat(entityType.FindPrimaryKey()?.Properties ?? []);
 
             foreach (var property in indexed)

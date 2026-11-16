@@ -10,7 +10,7 @@
 // boots it, which is the whole reason this file exists.
 //
 // It reuses the repo's existing Microsoft.Playwright dependency + already-installed browsers, and is
-// a .NET 10 file-based app — no Node, no csproj. Run with `dotnet run driver.cs`.
+// a .NET 11 file-based app — no Node, no csproj. Run with `dotnet run driver.cs`.
 //
 // The readiness signal is a mounted first render, not a network event: `WaitUntilState.NetworkIdle`
 // resolves while the page is still the boot shell. We wait for the sidebar nav — the same signal the

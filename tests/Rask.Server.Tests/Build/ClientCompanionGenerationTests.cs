@@ -127,7 +127,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         await Generate();
 
         var companionDir = CompanionDir();
-        var outputDir = Path.Combine(_dir, "obj", "rask-client-out", "net10.0-browser");
+        var outputDir = Path.Combine(_dir, "obj", "rask-client-out", "net11.0-browser");
 
         Assert.True(Directory.Exists(companionDir));
         Assert.False(
@@ -169,17 +169,17 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     }
 
     [Theory]
-    [InlineData("net10.0", "net10.0-browser")]
     [InlineData("net11.0", "net11.0-browser")]
+    [InlineData("net12.0", "net12.0-browser")]
     public async Task The_browser_app_targets_the_server_halfs_dotnet_version(string server, string bundle)
     {
         // The companion compiles the app's Client/ sources, so it builds them for the .NET version the app
         // targets — and the development manifest MapRaskSpa serves is looked for under that framework's bin
-        // folder. A literal net10.0-browser compiled a net11.0 app for an older framework than its server.
+        // folder. A literal browser framework compiled a newer app for an older framework than its server.
         // Each framework's project is generated into a folder of its own, which is where Generate looks.
         var csproj = Path.Combine(_dir, "App.csproj");
         File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
-            "<TargetFramework>net10.0</TargetFramework>",
+            "<TargetFramework>net11.0</TargetFramework>",
             $"<TargetFramework>{server}</TargetFramework>",
             StringComparison.Ordinal));
 
@@ -478,7 +478,7 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
         Write("App.csproj", $"""
             <Project Sdk="{sdk}">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
                 <RootNamespace>Fixture</RootNamespace>
                 <RaskClientCompanionSrc>{SrcDir}</RaskClientCompanionSrc>
                 {(clientSwitch is { } on ? $"<RaskClient>{on.ToString().ToLowerInvariant()}</RaskClient>" : "")}
@@ -508,10 +508,10 @@ public sealed partial class ClientCompanionGenerationTests : IDisposable
     private static string Slashes(string s) => s.Replace('\\', '/');
 
     // One folder per browser framework, so the per-framework builds of a multi-targeted server never share one.
-    private string CompanionDir(string framework = "net10.0-browser") =>
+    private string CompanionDir(string framework = "net11.0-browser") =>
         Path.Combine(_dir, "obj", "rask-client", framework);
 
-    private async Task<string> Generate(string framework = "net10.0-browser")
+    private async Task<string> Generate(string framework = "net11.0-browser")
     {
         var result = await Run("-t:RaskGenerateClientCompanion", "-v:quiet");
         Assert.True(result.ExitCode == 0, $"generation failed:\n{result.Output}");

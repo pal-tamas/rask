@@ -25,7 +25,7 @@ rm -f "$pinned"
 # The harness is built ONCE and every check runs the built app: a `dotnet run` per check would race on one obj/.
 dotnet build scripts/flux/Flux -c Release -m:2 -nodeReuse:false > "$out/flux-build.log" 2>&1 \
   || { echo "parity-all: could not build the harness"; tail -20 "$out/flux-build.log"; exit 1; }
-export FLUX="$PWD/scripts/flux/Flux/bin/Release/net10.0/flux.dll"
+export FLUX="$PWD/scripts/flux/Flux/bin/Release/net11.0/flux.dll"
 dotnet "$FLUX" parity-chart --measure > "$out/chart-measure.log" 2>&1
 [ -s "$pinned" ] || { echo "parity-all: could not pin the chart's load"; tail -20 "$out/chart-measure.log"; exit 1; }
 dotnet test tests/Rask.Ui.Tests -m:2 -nodeReuse:false -p:RaskMdnRefresh=false --filter FluxParityPages > "$out/pages.log" 2>&1 \

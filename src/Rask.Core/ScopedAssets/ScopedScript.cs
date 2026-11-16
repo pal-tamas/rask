@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using Rask.Core.Live;
@@ -185,7 +184,7 @@ public static class ScopedScript
             return default!;
         }
 
-        var info = (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
+        var info = options.GetTypeInfo<T>();
         return args[index].Deserialize(info)!;
     }
 

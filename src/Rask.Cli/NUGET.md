@@ -13,7 +13,7 @@ curl -sSL https://rask.sh/rask.sh | sh
 
 That adds the .NET SDK, this tool, and the dependencies it shells out to (`dotnet-ef` and the
 `wasm-tools` workload) — all under `$HOME`, no `sudo`. Already have the
-.NET 10 SDK and want only the tool:
+.NET 11 SDK and want only the tool:
 
 ```bash
 dotnet tool install -g Rask.Cli

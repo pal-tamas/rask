@@ -56,6 +56,10 @@ public sealed partial class UiSelectPage : Component
         UiDocsExample.Key("ui-select-long").Heading("A long list").File("SelectLongListExample.cs").Demo(SelectLongListExample).Testid("ui-select-long")
             .Blurb("1200 options, scrolled through without typing. Past a hundred the list draws only the rows in view, "
                    + "and a few either side; the search, the arrow keys, Home and End and type-ahead still reach every one."),
+        UiDocsExample.Key("ui-select-long-names").Heading("Long names in a long list").File("SelectLongNamesExample.cs").Demo(SelectLongNamesExample).Testid("ui-select-long-names")
+            .Blurb("Past a hundred options every row is one height, so the scroll reaches the last: a name too long for its row "
+                   + "is cut short on one line and shown whole when you point at it, and once any option has a description, "
+                   + "every row is as tall as the rows that do."),
         UiDocsExample.Key("ui-select-search-slot").Heading("The search slot").File("SelectSearchSlotExample.cs").Demo(SelectSearchSlotExample).Testid("ui-select-search-slot")
             .Blurb("Ui.SelectSearch as a child sets the search field's own steps."),
         UiDocsExample.Key("ui-select-keywords").Heading("Search keywords").File("SelectKeywordsExample.cs").Demo(SelectKeywordsExample).Testid("ui-select-keywords")

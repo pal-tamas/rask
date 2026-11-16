@@ -236,6 +236,22 @@ internal sealed class FakeProcessRunner : IProcessRunner
         return RunHandler?.Invoke(args) ?? RunExitCode;
     }
 
+    /// <summary>Records the pipeline as its two runs, source then sink; the first that fails is its exit code.</summary>
+    public Task<int> PipeAsync(
+        string fileName,
+        IReadOnlyList<string> source,
+        IReadOnlyList<string> sink,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        string[] from = [.. source];
+        string[] to = [.. sink];
+        _invocations.Enqueue(new ProcessInvocation(fileName, from, Captured: false, null, workingDirectory));
+        _invocations.Enqueue(new ProcessInvocation(fileName, to, Captured: false, null, workingDirectory));
+        var sent = RunHandler?.Invoke(from) ?? RunExitCode;
+        return Task.FromResult(sent != 0 ? sent : RunHandler?.Invoke(to) ?? RunExitCode);
+    }
+
     public Task<ProcessResult> CaptureAsync(
         string fileName,
         IReadOnlyList<string> arguments,
@@ -358,6 +374,23 @@ internal sealed class FakeFileSystem : IFileSystem
     }
 
     public void TryDelete(string path) => _files.Remove(Normalize(path));
+
+    public void ReplaceDirectory(string source, string destination)
+    {
+        TryDeleteDirectory(destination);
+        var (from, to) = (Normalize(source), Normalize(destination));
+        foreach (var key in _files.Keys.Where(f => f.StartsWith(from + Path.DirectorySeparatorChar, StringComparison.Ordinal)).ToList())
+        {
+            _files[to + key[from.Length..]] = _files[key];
+            _files.Remove(key);
+        }
+
+        foreach (var dir in _directories.Where(d => d == from || d.StartsWith(from + Path.DirectorySeparatorChar, StringComparison.Ordinal)).ToList())
+        {
+            _directories.Remove(dir);
+            _directories.Add(to + dir[from.Length..]);
+        }
+    }
 
     private static string Normalize(string path) => Path.GetFullPath(path);
 }

@@ -82,7 +82,7 @@ fi
 rask_e2e_await_slots
 
 echo "==> Data demo journeys (Rask.Site.DataDemo.E2E.Tests)"
-dotnet test "$project/bin/Release/net10.0/Rask.Site.DataDemo.E2E.Tests.dll" --logger "console;verbosity=normal"
+dotnet test "$project/bin/Release/net11.0/Rask.Site.DataDemo.E2E.Tests.dll" --logger "console;verbosity=normal"
 
 echo
 echo "==> Data demo E2E passed."

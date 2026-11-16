@@ -4,7 +4,7 @@
 # passwordless sudo, so every `sudo -n` in LinuxDevHostPlatform is exercised for real rather than being
 # skipped because the test happened to run as root. Running as root would also hide the one assertion
 # that matters most about the sysctl — root can bind 443 whether or not it was ever set.
-ARG SDK=mcr.microsoft.com/dotnet/sdk:10.0
+ARG SDK=mcr.microsoft.com/dotnet/sdk:11.0
 FROM ${SDK}
 
 # ca-certificates  — the anchor directory and update-ca-certificates

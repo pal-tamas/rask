@@ -97,7 +97,7 @@ public sealed class SqliteLimitationsTests : IDisposable
         // Sorting TEXT numerically needs a collation, so EF Core emits one rather than a bare ORDER BY.
         var sql = ctx.Prices.OrderBy(p => p.Amount).ToQueryString();
 
-        Assert.Contains("COLLATE EF_DECIMAL", sql, StringComparison.Ordinal);
+        Assert.Contains("COLLATE \"EF_DECIMAL\"", sql, StringComparison.Ordinal);  // quoted since EF Core 11
 
         // EF registers EF_DECIMAL as decimal.Compare(decimal.Parse(x), decimal.Parse(y)) — with no
         // IFormatProvider. The stored text is invariant, so on a locale where '.' is the GROUP separator

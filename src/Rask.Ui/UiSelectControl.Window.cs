@@ -9,7 +9,10 @@ namespace Rask;
 // Not Flux's: Flux draws every option, and so does a list here of up to UiListWindow.Above of them — what every example
 // on Flux's pages is, so parity holds. Past that the page draws a window: the rows the scroll box shows, a few more on
 // either side, and two spacers that keep the box as tall as the whole list, so the reader scrolls through all of it
-// without typing. Every row is as tall as the next, so where a row is follows from its place alone.
+// without typing. Every row is as tall as the next, so where a row is follows from its place alone — and so a row may not
+// grow: its height is fixed (box-border, whatever the page's reset), and its words and the line under them are each one
+// line, cut short with an ellipsis and said whole in its title, where Flux wraps them (owner, 2026-11-16: a long name that
+// wrapped made each row taller than the spacers count, and a scroll no longer reached the last rows).
 //
 // What the browser cannot do with rows it does not have is done here: the search narrows the rows (UiListSearch, the
 // rules rask-list.ts keeps for a list it holds whole), type-ahead finds a row past the window and moves the window to

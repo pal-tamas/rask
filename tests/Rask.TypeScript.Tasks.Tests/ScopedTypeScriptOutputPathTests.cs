@@ -52,11 +52,11 @@ public sealed class ScopedTypeScriptOutputPathTests
         {
             var probe = WriteProbe(project.FullName);
 
-            var json = await Evaluate(probe, "-p:IntermediateOutputPath=obj/Debug/net10.0/",
+            var json = await Evaluate(probe, "-p:IntermediateOutputPath=obj/Debug/net11.0/",
                 "-getProperty:_RaskScopedTsOutDir -getProperty:_RaskScopedTsTypesDir");
 
             var properties = json.RootElement.GetProperty("Properties");
-            var obj = Path.Combine(project.FullName, "obj", "Debug", "net10.0", "rask");
+            var obj = Path.Combine(project.FullName, "obj", "Debug", "net11.0", "rask");
             Assert.Equal(Path.Combine(obj, "ts") + Path.DirectorySeparatorChar, properties.GetProperty("_RaskScopedTsOutDir").GetString());
             Assert.Equal(Path.Combine(obj, "types") + Path.DirectorySeparatorChar, properties.GetProperty("_RaskScopedTsTypesDir").GetString());
         }

@@ -123,13 +123,16 @@ def load_set(directory: Path) -> list[Package]:
         packages[pid.lower()] = Package(pid, version, path, commit)
         declared[pid.lower()] = dependencies
 
-    # One pack is one version from one commit. Two means the directory holds a leftover.
-    for what, values in (("version", {p.version for p in packages.values()}),
+    # One pack is one version from one commit. Two means the directory holds a leftover -- with one exception: a
+    # stable release may carry a package held as a prerelease OF THAT VERSION (Rask.Postgres as 0.24.0-rc.1 beside
+    # 0.24.0, while the Npgsql provider it rides on is a release candidate; see its csproj).
+    versions = {p.version for p in packages.values()}
+    version = min(versions, key=len)
+    held = {v for v in versions if "-" not in version and v.startswith(version + "-")}
+    for what, values in (("version", versions - held),
                          ("commit", {p.commit for p in packages.values() if p.commit})):
         if len(values) > 1:
             raise SetError(f"the set carries more than one {what}: {', '.join(sorted(values))}")
-
-    version = next(iter(packages.values())).version
     for key, dependencies in declared.items():
         for dep_id, dep_range in dependencies:
             if dep_id.lower() in packages:

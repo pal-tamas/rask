@@ -125,7 +125,7 @@ cat > "$WORK/harness/harness.csproj" <<XML
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
@@ -134,9 +134,9 @@ cat > "$WORK/harness/harness.csproj" <<XML
 
   <ItemGroup>
     <ProjectReference Include="$REPO_ROOT/src/Rask.SQLite.Litestream/Rask.SQLite.Litestream.csproj"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11"/>
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.11"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="11.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="11.0.0"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="11.0.0"/>
   </ItemGroup>
 
 </Project>

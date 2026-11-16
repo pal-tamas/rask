@@ -54,7 +54,7 @@ internal sealed class SignInHost : IAsyncDisposable
     public static async Task<SignInHost> StartAsync(string mountPath = "")
     {
         var wwwroot = Path.Combine(Repository.Root, "tests", "Rask.Wasm.Fixture.Wasm", "bin", Configuration,
-            "net10.0-browser", "publish", "wwwroot");
+            "net11.0-browser", "publish", "wwwroot");
         if (!File.Exists(Path.Combine(wwwroot, "index.html")))
         {
             throw new InvalidOperationException(

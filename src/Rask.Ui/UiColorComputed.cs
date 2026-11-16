@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core.Globalization;
 
 namespace Rask;
 
@@ -122,7 +123,7 @@ internal static partial class UiColorComputed
             return kept.ToString("0.#######e-0", CultureInfo.InvariantCulture);
         }
 
-        return size < 1e15f ? ((decimal)kept).ToString(CultureInfo.InvariantCulture) : kept.ToString("0", CultureInfo.InvariantCulture);
+        return size < 1e15f ? ShortestDecimal.Of(kept).ToString(CultureInfo.InvariantCulture) : kept.ToString("0", CultureInfo.InvariantCulture);
     }
 
     private static bool TryNumber(string part, out double number) =>

@@ -44,7 +44,7 @@ public sealed class StylesheetMetadataTests : IDisposable
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
               </PropertyGroup>
               <Import Project="{Path.Combine(build, "Rask.Tailwind.props")}"/>
               <Import Project="{Path.Combine(build, "Rask.Tailwind.targets")}"/>

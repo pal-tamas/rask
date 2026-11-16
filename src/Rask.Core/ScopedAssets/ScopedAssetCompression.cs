@@ -66,7 +66,7 @@ public static class ScopedAssetCompression
     // Server-side only: BrotliStream is unsupported in the browser runtime, and this compression path
     // is reached only from the ASP.NET hosts (RaskEndpointExtensions, RaskAssetEndpoint) — never from
     // the in-browser WASM client, which serves baked assets. The annotation lets Core compile clean
-    // for net10.0-browser (so the AOT analyser can run) without a CA1416 platform warning.
+    // for net11.0-browser (so the AOT analyser can run) without a CA1416 platform warning.
     [UnsupportedOSPlatform("browser")]
     public static (byte[] Bytes, string Etag)? GetEncoded(string hash, AssetKind kind, string encoding)
     {

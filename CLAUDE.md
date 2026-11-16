@@ -1,7 +1,7 @@
 # CLAUDE.md
 
-Every package targets `net10.0` (plus `net10.0-browser` for WASM), from `RaskNetTargets` in
-`Directory.Build.props`; **`global.json` pins the SDK to 10.0.x** — .NET 11 support was removed 2026-10-01.
+Every package targets `net11.0` (plus `net11.0-browser` for WASM), from `RaskNetTargets` in
+`Directory.Build.props`; **`global.json` pins the SDK to 11.0.x** (moved from .NET 10 on 2026-11-11).
 Test projects build for `$(RaskTestTarget)`. Nullable + implicit usings on. **Rask** is a C#
 component framework (Blazor-like): Roslyn chain generator, scoped CSS/TypeScript, routing, live diff
 runtime over WS (Server) or JSImport/JSExport (WASM). This file is the **map** — read the code,
@@ -76,7 +76,7 @@ no `AGENTS.md`; `ProjectGeneratorTests` keeps it that way). Full detail: `docs/d
 - `src/Rask.Validation.FluentValidation` — opt-in validator (DataAnnotations is in Core). `src/Rask.Cli` — the `rask` CLI (owns all scaffolding via `rask new`).
 - `src/Rask.Web` — every web API from MDN (generated at build from the Core snapshot by `src/Rask.Dom.Tasks`'s WebEmitter): globals in `Rask.Web`, MDN interfaces in `Rask.Web.Types`, each chain one `__raskWeb.run` round trip, kept objects as `IJSObjectReference` handles. Imported for every Server/WASM app by its own `build/Rask.Web.props` (buildTransitive): `global using Rask.Web;` + `global using Types = Rask.Web.Types;` — never the `Types` namespace itself (CS0104 with the globals); Rask's `EditContext`/`FormData`/`DataTransfer`/`EventTarget`/`Touch` keep the bare name by global alias there; a library on `Rask` alone gets none of it.
 - `src/Rask.WebPush` — opt-in server-side Web Push sender (VAPID + RFC 8291; browsers subscribe via MDN's `PushManager`). Zero external deps.
-- `src/Rask.Xlsx` — an Excel workbook from headings and rows (`Xlsx.Write(...)`, namespace `Rask.Workbooks`): zero deps, `net10.0` + `net10.0-browser`.
+- `src/Rask.Xlsx` — an Excel workbook from headings and rows (`Xlsx.Write(...)`, namespace `Rask.Workbooks`): zero deps, `net11.0` + `net11.0-browser`.
 - `src/Rask.Pdf` — `await Pdf.From(route | component)` (namespace `Rask.Printing`): the page rendered as a first GET for the CALLER, printed by a
   pinned Chrome for Testing shell over our own DevTools pipe (zero deps). The BUILD fetches the shell (`build/Rask.Pdf.targets`, SHA-256
   checked) and the template Dockerfiles copy it; never a download at run time. Reaches the server render through Core's internal

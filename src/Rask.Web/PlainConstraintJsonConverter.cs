@@ -39,5 +39,5 @@ internal sealed class PlainConstraintJsonConverter<T> : JsonConverter<T>
         }
     }
 
-    private static JsonTypeInfo<T> TypeInfo(JsonSerializerOptions options) => (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
+    private static JsonTypeInfo<T> TypeInfo(JsonSerializerOptions options) => options.GetTypeInfo<T>();
 }

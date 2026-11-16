@@ -74,7 +74,7 @@
       artifact (gitignored, not committed), so this reference guarantees it exists before
       Rask.Wasm builds or packs. ReferenceOutputAssembly="false" + SkipGetTargetFrameworkProperties
       keep it purely an ordering edge: no compile reference, no nupkg dependency, no cross-TFM
-      (net10.0-browser vs netstandard2.0) compatibility check.
+      (net11.0-browser vs netstandard2.0) compatibility check.
     -->
     <ProjectReference Include="..\Rask.Wasm.Tasks\Rask.Wasm.Tasks.csproj"
                       ReferenceOutputAssembly="false"
@@ -86,7 +86,6 @@
       WasmHostedServices). Abstractions only — no generic host, no reflection, nothing that would
       trouble the browser trimmer.
     -->
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <!--
       Rask.Core uses Microsoft.AspNetCore.Authorization (in RouteAuthorizationGuard).
       On the WASM track there's no Microsoft.AspNetCore.App framework reference, so we

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rask.Core.Globalization;
 
 namespace Rask;
 
@@ -15,11 +16,11 @@ internal sealed record UiSliderScale(decimal Min, decimal Max, decimal Step, dec
 
     internal static UiSliderScale Of(double? min, double? max, double? step, int? minStepsBetween)
     {
-        var low = (decimal)(min ?? 0);
-        var size = (decimal)(step ?? 1);
+        var low = ShortestDecimal.Of(min ?? 0);
+        var size = ShortestDecimal.Of(step ?? 1);
         size = size > 0 ? size : 1;
 
-        return new UiSliderScale(low, Math.Max((decimal)(max ?? 100), low), size, Math.Max(minStepsBetween ?? 0, 0) * size);
+        return new UiSliderScale(low, Math.Max(ShortestDecimal.Of(max ?? 100), low), size, Math.Max(minStepsBetween ?? 0, 0) * size);
     }
 
     /// <summary>How far along the track a value sits, 0 to 1.</summary>

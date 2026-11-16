@@ -78,7 +78,7 @@ public sealed class TemplateImageRestoreE2ETests
         WritePackage(Path.Combine(directory, "feed", $"{package}.1.0.0.nupkg"), package);
         File.WriteAllText(Path.Combine(directory, "Company.RaskServer.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
               <ItemGroup><PackageReference Include="{package}"{(central ? "" : " Version=\"1.0.0\"")} /></ItemGroup>
             </Project>
             """);
@@ -95,7 +95,7 @@ public sealed class TemplateImageRestoreE2ETests
             </Project>
             """);
         WriteNuGetConfig(directory);
-        File.WriteAllText(Path.Combine(directory, "global.json"), """{ "sdk": { "version": "10.0.100", "rollForward": "latestMajor" } }""");
+        File.WriteAllText(Path.Combine(directory, "global.json"), """{ "sdk": { "version": "11.0.100", "rollForward": "latestMajor" } }""");
         return directory;
     }
 
@@ -117,7 +117,7 @@ public sealed class TemplateImageRestoreE2ETests
         File.WriteAllText(Path.Combine(directory, "feed", ".keep"), "");
         File.WriteAllText(Path.Combine(directory, "Company.RaskServer.csproj"), """
             <Project Sdk="Microsoft.NET.Sdk">
-              <PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup>
+              <PropertyGroup><TargetFramework>net11.0</TargetFramework></PropertyGroup>
             </Project>
             """);
         return directory;

@@ -69,11 +69,17 @@ internal sealed class UniqueStoreRules<[DynamicallyAccessedMembers(DataTrimming.
         bool fresh,
         CancellationToken cancellationToken)
     {
-        var values = new object?[rule.Properties.Count + 1];
-        for (var i = 0; i < rule.Properties.Count; i++)
+        // DeclaredUniqueRules.Rules only hands over indexes of scalar properties; anything else is the database's.
+        if (IndexProperties.Scalars<IProperty>(rule.Properties) is not { } properties)
+        {
+            return false;
+        }
+
+        var values = new object?[properties.Length + 1];
+        for (var i = 0; i < properties.Length; i++)
         {
             // A NULL does not collide, and a field not filled in yet is one: nothing to ask.
-            if ((values[i] = ValueOf(rule.Properties[i], model)) is null)
+            if ((values[i] = ValueOf(properties[i], model)) is null)
             {
                 return false;
             }

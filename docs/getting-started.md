@@ -19,13 +19,13 @@ Rask-specific ideas, not the language.
 
 ## Before you start
 
-Rask requires the **.NET 10 SDK** — every package ships for .NET 10, the LTS release. Confirm you have it:
+Rask requires the **.NET 11 SDK** — every package ships for .NET 11. Confirm you have it:
 
 ```bash
-dotnet --version      # must be ≥ 10.0
+dotnet --version      # must be ≥ 11.0
 ```
 
-If that prints an older version (or errors), install the .NET 10 SDK from
+If that prints an older version (or errors), install the .NET 11 SDK from
 [dotnet.microsoft.com](https://dotnet.microsoft.com/download) first.
 
 > **WASM only:** the `wasm` and `wasm-hosted` templates also need the browser
@@ -413,7 +413,7 @@ The snags you're most likely to hit on a fresh project:
   exist until the generator runs, which happens on build. Run `dotnet build` once, then reload the
   solution / restart the language server.
 
-- **`net10.0` / `net10.0-browser` won't restore, or a WASM publish fails.** You're missing the .NET
+- **`net11.0` / `net11.0-browser` won't restore, or a WASM publish fails.** You're missing the .NET
   SDK (`dotnet --version` must be ≥ `10.0`) or, for WASM, the workload — install it with
   `dotnet workload install wasm-tools`.
 

@@ -215,7 +215,7 @@ public sealed class ProjectGeneratorBuildE2ETests
     /// <remarks>
     /// The part no unit test can reach. Emitting the catalogs is only half of it: the typed <c>Strings</c>
     /// members come from a source generator fed by an <c>&lt;AdditionalFiles&gt;</c> glob that
-    /// <c>Rask.Core.targets</c> owns, and nothing had ever run that path on a <c>net10.0-browser</c> TFM
+    /// <c>Rask.Core.targets</c> owns, and nothing had ever run that path on a <c>net11.0-browser</c> TFM
     /// where the compilation is trimmed, invariant-globalization-adjacent and built by the WebAssembly SDK
     /// rather than the web one. A compile is the only thing that proves the catalog reached the generator
     /// and that <c>&lt;RaskGlobalization&gt;</c> did not upset the rest of the build (#846).

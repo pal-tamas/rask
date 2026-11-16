@@ -41,7 +41,7 @@ public sealed class ScopedAssetWatchTests : IDisposable
         Write("probe.csproj", $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
                 <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
               </PropertyGroup>
               <Import Project="{TargetsPath().Replace("\\", "/")}"/>

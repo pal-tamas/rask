@@ -106,7 +106,7 @@ reset is Tailwind's own, which the import brings.
 | Layout (Flux's) | `Ui.Header` `Ui.Main` `Ui.Sidebar` `Ui.SidebarHeader` `Ui.SidebarBrand` `Ui.SidebarCollapse` `Ui.SidebarSearch` `Ui.SidebarNav` `Ui.SidebarItem` `Ui.SidebarGroup` `Ui.SidebarSpacer` `Ui.SidebarProfile` `Ui.SidebarToggle` |
 | Support | `Ui.Icon` / `Ui.IconName` / `Ui.IconVariant` (all of Heroicons: outline, solid, mini, micro), `Ui.AppearanceScript` (dark mode), `UiPaginator`, `Ui.Breakpoint`, `UiStylesheet` |
 
-Requires .NET 10. Runs on both the ASP.NET host and browser-WebAssembly.
+Requires .NET 11. Runs on both the ASP.NET host and browser-WebAssembly.
 
 ## Links
 

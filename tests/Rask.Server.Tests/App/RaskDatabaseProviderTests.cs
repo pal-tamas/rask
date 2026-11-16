@@ -26,6 +26,27 @@ public sealed class RaskDatabaseProviderTests
         protected override void OnModelCreating(ModelBuilder modelBuilder) => modelBuilder.AddRaskLogging();
     }
 
+    [Fact]
+    public void The_postgres_provider_is_found_by_the_name_Rask_Server_asks_for()
+    {
+        // Rask.Server no longer references Rask.Postgres (a release candidate), so it asks for the provider by name. A
+        // rename on either side would compile, and leave every Postgres app with "add the Rask.Postgres package".
+        var type = Type.GetType(PostgresLoader.ProviderTypeName, throwOnError: false);
+
+        var provider = type is null ? null : Activator.CreateInstance(type);
+
+        Assert.IsAssignableFrom<Rask.Data.IRaskDatabaseProvider>(provider);
+    }
+
+    [Fact]
+    public void A_postgres_app_without_the_package_is_told_to_add_it()
+    {
+        var message = PostgresLoader.MissingPackage;
+
+        Assert.Contains("add the Rask.Postgres package", message, StringComparison.Ordinal);
+        Assert.Contains("Rask:Database:Provider is postgres", message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(null, "Microsoft.EntityFrameworkCore.Sqlite", "Data Source=:memory:")]
     [InlineData("sqlite", "Microsoft.EntityFrameworkCore.Sqlite", "Data Source=:memory:")]
@@ -281,13 +302,14 @@ public sealed class RaskDatabaseProviderTests
     ///     reporting that first would hide the real mistake.
     /// </summary>
     [Fact]
-    public void The_provider_mismatch_is_the_first_thing_start_up_reports()
+    public async Task The_provider_mismatch_is_the_first_thing_start_up_reports()
     {
         var app = CreateApp(settings: null);
         app.Services.AddDbContextFactory<PlainContext>(o => o.UseNpgsql(PostgresApp));
         var built = app.Build<MinimalApp>();
 
-        var error = Assert.ThrowsAny<Exception>(() => built.Services.GetRequiredService<IStartupValidator>().Validate());
+        var error = await Assert.ThrowsAnyAsync<Exception>(async () =>
+            await built.Services.GetRequiredService<IAsyncStartupValidator>().ValidateAsync(TestContext.Current.CancellationToken));
 
         Assert.IsType<InvalidOperationException>(error);
         Assert.Contains("Rask:Database:Provider is sqlite", error.Message, StringComparison.Ordinal);

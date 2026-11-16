@@ -47,8 +47,8 @@ public sealed class SpaDebugProxyTests
     [Fact]
     public void The_proxy_path_file_sits_beside_the_build_manifest()
     {
-        Assert.Equal("/c/bin/Debug/net10.0/Client.rask-debugproxy",
-            SpaDebugProxy.PathFileFor("/c/bin/Debug/net10.0/Client.staticwebassets.runtime.json"));
+        Assert.Equal("/c/bin/Debug/net11.0/Client.rask-debugproxy",
+            SpaDebugProxy.PathFileFor("/c/bin/Debug/net11.0/Client.staticwebassets.runtime.json"));
         Assert.Null(SpaDebugProxy.PathFileFor("/c/something-else.json"));
     }
 

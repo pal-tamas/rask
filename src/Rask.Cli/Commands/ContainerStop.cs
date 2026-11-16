@@ -85,7 +85,7 @@ internal sealed class ContainerStop(IConsole console, IProcessRunner process, st
             var jobs = StopProgress.RunningJobs(logs.StandardOutput + "\n" + logs.StandardError);
             wait.LastSeen = jobs ?? wait.LastSeen;
             var waited = $"waited {StopTimeout.Format(TimeSpan.FromSeconds((int)Clock.GetElapsedTime(started).TotalSeconds))} of {BudgetText}";
-            await console.Out.WriteLineAsync(jobs is null ? $"  {wait.Container} is still stopping — {waited}" : $"  {wait.Container} is finishing {jobs} — {waited}").ConfigureAwait(false);
+            await console.Out.WriteLineAsync(jobs is null ? $"  {wait.Container} is still stopping — {waited}" : $"  {wait.Container} is finishing {jobs} — {waited}", cancellationToken).ConfigureAwait(false);
         }
 
         return await stopping.ConfigureAwait(false);

@@ -33,7 +33,7 @@ public static class WasmPrerender
     /// </summary>
     /// <remarks>
     ///     An environment variable rather than a non-browser compile check: <c>Rask.Wasm</c> also
-    ///     targets <c>net10.0</c> for its own tests, and those call <c>RunAsync</c> expecting a boot.
+    ///     targets <c>net11.0</c> for its own tests, and those call <c>RunAsync</c> expecting a boot.
     ///     Prerendering has to be asked for, not inferred from the target framework.
     /// </remarks>
     public const string OutputVariable = "RASK_PRERENDER_OUT";

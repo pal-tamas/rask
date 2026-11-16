@@ -25,7 +25,7 @@ internal sealed partial class DeployCommand
         if (disk.IsTooLow)
         {
             Console.WriteErrorLine($"{HostName(host)} is nearly out of disk: {disk.Describe()}. Nothing was changed.", ConsoleStyle.Error);
-            await Console.Error.WriteLineAsync($"A build needs room for its layers and the image, and a full disk stops every app on the box from writing its database. Free space, then deploy again:").ConfigureAwait(false);
+            await Console.Error.WriteLineAsync($"A build needs room for its layers and the image, and a full disk stops every app on the box from writing its database. Free space, then deploy again:", cancellationToken).ConfigureAwait(false);
             await WriteFreeSpaceCommandsAsync(host).ConfigureAwait(false);
             return false;
         }
@@ -52,7 +52,7 @@ internal sealed partial class DeployCommand
     /// </summary>
     private async Task CleanUpHostAsync(string host, string slug, CancellationToken cancellationToken)
     {
-        await Console.Out.WriteLineAsync($"Cleaning up old images and build cache on {HostName(host)}…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Cleaning up old images and build cache on {HostName(host)}…", cancellationToken).ConfigureAwait(false);
         var boxLock = DeployLock.ForBox(Console, _process, _workingDirectory, new LockTiming(LockPollDelay, Math.Min(LockAttempts, CleanUpLockAttempts), TimeSpan.Zero), ConsoleStyle.Warning);
         string? failed;
         try

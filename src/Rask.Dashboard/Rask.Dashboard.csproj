@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Server-only: every panel reads the application's DbContext, and a WASM app has no database.
-         Single-targeted (no net10.0-browser) so that constraint is enforced by the compiler. -->
+         Single-targeted (no net11.0-browser) so that constraint is enforced by the compiler. -->
     <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -11,7 +11,7 @@
     <PackageId>Rask.Dashboard</PackageId>
     <Title>Rask — Batteries Dashboard</Title>
     <Description>A built-in operator dashboard for the Rask One Person Framework batteries. Mounts at /_rask and shows the outbox, background jobs, queued mail, cache and stored files from the application's own database — queue depth, dead letters, the errors behind them, stored email previews, the recurring-job schedule, SQLite pragmas and backup status. A live log tail is built in, and becomes a searchable history when Rask.Logging is installed. Panels appear only for the batteries the app actually registered. Protected by an authorization policy that fails closed outside Development.</Description>
-    <PackageTags>dotnet csharp aspnetcore net10 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
+    <PackageTags>dotnet csharp aspnetcore net11 dashboard ops admin observability jobs outbox mail cache sqlite</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -106,11 +106,7 @@
          directly rather than relying on Rask.Core's (PrivateAssets) transitive reference. -->
     <PackageReference Include="Microsoft.AspNetCore.Authorization"/>
     <!-- OpsOptions binds Rask:Ops. Named here because this package takes no FrameworkReference. -->
-    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Options"/>
   </ItemGroup>
 
   <ItemGroup>

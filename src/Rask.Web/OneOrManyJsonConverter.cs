@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Rask.Web;
 
@@ -10,9 +9,9 @@ internal sealed class OneOrManyJsonConverter<T> : JsonConverter<T[]>
 {
     public override T[]? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) =>
         reader.TokenType == JsonTokenType.StartArray
-            ? JsonSerializer.Deserialize(ref reader, (JsonTypeInfo<T[]>)options.GetTypeInfo(typeof(T[])))
-            : [JsonSerializer.Deserialize(ref reader, (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T)))!];
+            ? JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<T[]>())
+            : [JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<T>())!];
 
     public override void Write(Utf8JsonWriter writer, T[] value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(writer, value, (JsonTypeInfo<T[]>)options.GetTypeInfo(typeof(T[])));
+        JsonSerializer.Serialize(writer, value, options.GetTypeInfo<T[]>());
 }

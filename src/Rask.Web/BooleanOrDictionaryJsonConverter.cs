@@ -1,6 +1,5 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Rask.Web;
 
@@ -15,9 +14,9 @@ internal sealed class BooleanOrDictionaryJsonConverter<T> : JsonConverter<T>
         {
             JsonTokenType.True => new T(),
             JsonTokenType.False => null,
-            _ => JsonSerializer.Deserialize(ref reader, (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T))),
+            _ => JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<T>()),
         };
 
     public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options) =>
-        JsonSerializer.Serialize(writer, value, (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T)));
+        JsonSerializer.Serialize(writer, value, options.GetTypeInfo<T>());
 }

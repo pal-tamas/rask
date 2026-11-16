@@ -29,7 +29,7 @@ internal sealed class DoctorCommand(
     ///     The major .NET the framework targets. Compared rather than merely reported, because a .NET 9
     ///     box showed a green SDK row and then failed at the first build.
     /// </summary>
-    private const int DotnetFloor = 10;
+    private const int DotnetFloor = 11;
 
     private readonly IFileSystem _fileSystem = fileSystem;
     private readonly IProcessRunner _process = process;
@@ -79,7 +79,7 @@ internal sealed class DoctorCommand(
 
         Console.Ansi.Write(new RaggedRight(new Padder(ReportGrid(checks), new Padding(2, 0, 0, 0))));
 
-        await Console.Out.WriteLineAsync().ConfigureAwait(false);
+        await Console.Out.WriteLineAsync(cancellationToken).ConfigureAwait(false);
         Console.WriteLine(
             failed == 0
                 ? "  Nothing here will stop a command from starting."
@@ -218,6 +218,15 @@ internal sealed class DoctorCommand(
                 + $"{DotnetFloor} from https://dot.net — a global.json here can also be pinning an older one.");
         }
 
+        if (version is not null && version.Major == DotnetFloor && IsReleaseCandidate(sdk, version))
+        {
+            return new DoctorCheck(
+                "dotnet sdk", DoctorStatus.Warn, $"{sdk} (a pre-release of {DotnetTarget.SdkPin})",
+                $"A new app's global.json asks for {DotnetTarget.SdkPin} or later, which no pre-release satisfies, and "
+                + $"the .NET {DotnetFloor} pre-releases carry the WebAssembly debugger fixed for CVE-2026-102870. "
+                + $"Install the released .NET {DotnetFloor} SDK from https://dot.net.");
+        }
+
         return new DoctorCheck("dotnet sdk", DoctorStatus.Ok, sdk, null);
     }
 
@@ -230,6 +239,13 @@ internal sealed class DoctorCommand(
     ///     A hand-edited or half-written file simply drops the version from the advice, which still
     ///     names the file.
     /// </remarks>
+    // A pre-release that sorts below the scaffold pin: a .NET 11 RC (11.0.100-rc.2…), never a preview of a later
+    // feature band (11.0.300-preview…), which sorts above it and already carries every fix the release had.
+    private static bool IsReleaseCandidate(string reported, Version version) =>
+        reported.Contains('-', StringComparison.Ordinal)
+        && ToolVersion.Parse(DotnetTarget.SdkPin) is { } pin
+        && version <= pin;
+
     private string? PinnedSdkVersion(string path)
     {
         try
@@ -259,15 +275,15 @@ internal sealed class DoctorCommand(
     ///         as installed on a machine that has none.
     ///     </para>
     ///     <para>
-    ///         The id has to match EXACTLY, not by prefix: `wasm-tools-net10` starts with `wasm-tools` and is a
-    ///         different workload. A machine carrying only the net10 toolchain would otherwise be told it has
+    ///         The id has to match EXACTLY, not by prefix: `wasm-tools-net11` starts with `wasm-tools` and is a
+    ///         different workload. A machine carrying only the net11 toolchain would otherwise be told it has
     ///         what it needs and then fail the build with NETSDK1147 — the very report this check exists to
     ///         replace.
     ///     </para>
     ///     <para>
-    ///         On the .NET 11 SDK a `net10.0-browser` app also needs `wasm-tools-net10`: the newer SDK relinks an
-    ///         older runtime only with that version's toolchain. Reported separately so the fix names the
-    ///         workload that is actually missing.
+    ///         On an SDK newer than the one Rask targets (a .NET 12 SDK, say) a <c>net11.0-browser</c> app also
+    ///         needs <c>wasm-tools-net11</c>: a newer SDK relinks an older runtime only with that version's
+    ///         toolchain. Reported separately so the fix names the workload that is actually missing.
     ///     </para>
     /// </remarks>
     private async Task<DoctorCheck> WorkloadCheckAsync(string? sdk, CancellationToken cancellationToken)
@@ -289,16 +305,18 @@ internal sealed class DoctorCommand(
                 + "like a broken machine rather than a missing install. Fix: dotnet workload install wasm-tools");
         }
 
-        // Only on an 11-or-later SDK, and only as a warning: a server app never relinks anything. The
-        // version is the one the caller already captured and SdkCheck already parsed — asking
+        // Only on an SDK newer than the target, and only as a warning: a server app never relinks anything.
+        // The version is the one the caller already captured and SdkCheck already parsed — asking
         // `dotnet --version` again here spent a second process to learn what was in hand.
-        if (ToolVersion.Parse(sdk)?.Major is >= 11 && !ids.Contains("wasm-tools-net10"))
+        var toolchain = $"wasm-tools-net{DotnetFloor}";
+        var sdkMajor = ToolVersion.Parse(sdk)?.Major;
+        if (sdkMajor > DotnetFloor && !ids.Contains(toolchain))
         {
             return new DoctorCheck(
-                "wasm-tools", DoctorStatus.Warn, "wasm-tools-net10 missing",
-                "The .NET 11 SDK relinks a net10.0-browser app only with the net10 toolchain, so a browser "
-                + "build of an app still on .NET 10 fails with NETSDK1147 even though wasm-tools is installed. "
-                + "Fix: dotnet workload install wasm-tools-net10");
+                "wasm-tools", DoctorStatus.Warn, $"{toolchain} missing",
+                $"The .NET {sdkMajor} SDK relinks a net{DotnetFloor}.0-browser app only with the net{DotnetFloor} "
+                + $"toolchain, so a browser build fails with NETSDK1147 even though wasm-tools is installed. "
+                + $"Fix: dotnet workload install {toolchain}");
         }
 
         return new DoctorCheck("wasm-tools", DoctorStatus.Ok, "installed", null);

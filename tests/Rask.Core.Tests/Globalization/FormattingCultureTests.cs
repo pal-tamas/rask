@@ -73,10 +73,16 @@ public partial class FormattingCultureTests : global::Rask.Core.RaskMarkup, IDis
         Assert.Same(german, CultureInfo.CurrentCulture);
     }
 
+    // The thread's culture is a language alone, the one case a mapping to its country would change: untouched, it
+    // writes the generic currency sign. Set here rather than read from the machine, whose culture is en-US on a Mac
+    // and the invariant culture on a Linux runner. The sign is not ASCII, so the page carries it HTML-encoded.
     [Fact]
+    [RestoreCulture]
     public void An_app_that_names_no_language_renders_in_the_threads_culture_untouched()
     {
         RaskCulture.ResetForTests();
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en");
+        CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en");
         var page = new PriceTag();
 
         string html;
@@ -85,7 +91,7 @@ public partial class FormattingCultureTests : global::Rask.Core.RaskMarkup, IDis
             html = page.ToHtml();
         }
 
-        Assert.Equal($"<p>{19.99m.ToString("C", CultureInfo.CurrentCulture)} {CultureInfo.CurrentUICulture.Name}</p>", html);
+        Assert.Equal("<p>&#xA4;19.99 en</p>", html);
     }
 
     private sealed class PriceTag : Component

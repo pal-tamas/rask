@@ -1300,6 +1300,73 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
+    public async Task Github_actions_deploys_once_the_ci_workflow_has_passed_on_main()
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed("/proj/.github/workflows/ci.yml", "name: CI\non:\n  push:\n    branches: [main]\n  pull_request:\n");
+        fs.Seed("/proj/.github/workflows/docs.yml", "name: Docs\non:\n  push:\n");
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        var workflow = fs.ReadAllText("/proj/.github/workflows/deploy.yml");
+        Assert.Contains("  workflow_run:\n    workflows: ['CI']\n    types: [completed]\n    branches: [main]\n  workflow_dispatch:\n", workflow, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n  push:", workflow, StringComparison.Ordinal);
+        Assert.Contains("github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'", workflow, StringComparison.Ordinal);
+        Assert.Contains("ref: ${{ github.event.workflow_run.head_sha || github.sha }}", workflow, StringComparison.Ordinal);
+        Assert.Contains("group: rask-deploy-${{ github.ref }}", workflow, StringComparison.Ordinal);
+        Assert.Contains("'CI' workflow has passed", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("build.yml", "name: \"Build & test\"\non: [push, pull_request]\n", "Build & test")]
+    [InlineData("checks.yaml", "on:\n  push:\n", ".github/workflows/checks.yaml")]
+    [InlineData("it's.yml", "name: It's CI\non: push\n", "It''s CI")]
+    public async Task Github_actions_waits_on_the_only_workflow_that_runs_on_push(string file, string content, string named)
+    {
+        var fs = new FakeFileSystem();
+        fs.Seed($"/proj/.github/workflows/{file}", content);
+        fs.Seed("/proj/.github/workflows/release.yml", "name: Release\non:\n  workflow_dispatch:\n");
+        var command = Create(fs, new FakeProcessRunner(), new StringConsole());
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Contains($"workflows: ['{named}']", fs.ReadAllText("/proj/.github/workflows/deploy.yml"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_without_a_ci_workflow_deploys_every_push_and_says_how_to_wait_for_ci()
+    {
+        var fs = new FakeFileSystem();
+        var console = new StringConsole();
+        var command = Create(fs, new FakeProcessRunner(), console);
+
+        await command.ExecuteAsync(["--host", "deploy@box", "--app", "shop", "--github-actions"], CancellationToken.None);
+
+        var workflow = fs.ReadAllText("/proj/.github/workflows/deploy.yml");
+        Assert.Contains("  push:\n    branches: [main]\n  workflow_dispatch:\n", workflow, StringComparison.Ordinal);
+        Assert.Contains("# No CI workflow was found", workflow, StringComparison.Ordinal);
+        Assert.Contains("#   workflow_run:", workflow, StringComparison.Ordinal);
+        Assert.Contains("It deploys every push to main", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Github_actions_prints_a_deploy_only_key_for_the_repository()
+    {
+        var console = new StringConsole();
+        var command = Create(new FakeFileSystem(), new FakeProcessRunner(), console);
+
+        await command.ExecuteAsync(["--host", "deploy@box.example.com:2222", "--app", "shop", "--github-actions"], CancellationToken.None);
+
+        Assert.Contains("ssh-keygen -t ed25519 -N '' -C rask-deploy-shop -f ~/.ssh/rask-deploy-shop", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("ssh -p 2222 deploy@box.example.com \"echo 'restrict,port-forwarding $(cat ~/.ssh/rask-deploy-shop.pub)' >> ~/.ssh/authorized_keys\"", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("gh secret set RASK_SSH_PRIVATE_KEY < ~/.ssh/rask-deploy-shop", console.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("id_ed25519", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Github_actions_wont_overwrite_a_workflow_youve_edited()
     {
         var fs = new FakeFileSystem();

@@ -23,6 +23,9 @@ internal sealed class SlowStopRunner(FakeProcessRunner inner, string container, 
     public Task<int> RunTeeAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, Action<string> onLine, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
         inner.RunTeeAsync(fileName, arguments, workingDirectory, onLine, cancellationToken, environment);
 
+    public Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken) =>
+        inner.PipeAsync(fileName, source, sink, workingDirectory, cancellationToken);
+
     public async Task<ProcessResult> CaptureAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null)
     {
         var result = await inner.CaptureAsync(fileName, arguments, workingDirectory, cancellationToken, environment).ConfigureAwait(false);

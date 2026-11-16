@@ -173,9 +173,10 @@ internal static class AdoptedSchemaScenario
                 using var context = app.GetRequiredService<IDbContextFactory<AdoptedDomainContext>>().CreateDbContext();
                 return Task.FromResult(context.Set<Destination>().ToQueryString());
             });
-            // SQL Server names the tenant as a literal, so each tenant gets a plan of its own.
-            Assert.Contains($"[d].[TenantId] = {first}", sql, StringComparison.Ordinal);
-            Assert.DoesNotContain("@", sql, StringComparison.Ordinal);
+            // The tenant is a parameter since EF Core 11 refused EF.Constant in a query filter (#1321): one plan for
+            // every tenant, with the value bound.
+            Assert.Contains("[d].[TenantId] = @", sql, StringComparison.Ordinal);
+            Assert.Contains($"= {first};", sql, StringComparison.Ordinal);
             log("filter sql: " + sql.ReplaceLineEndings(" "));
 
             await As(app, tenant, first, () => Destination.Delete(saved.Id));

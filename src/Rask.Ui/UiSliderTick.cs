@@ -1,3 +1,5 @@
+using Rask.Core.Globalization;
+
 namespace Rask;
 
 /// <summary>
@@ -23,7 +25,7 @@ public sealed partial class UiSliderTick : Component
     protected override Component? Render()
     {
         var scope = Context.Get<UiSliderScope>();
-        var value = (decimal)Value;
+        var value = ShortestDecimal.Of(Value);
         var tick = Div
             .Class(UiSliderLook.Tick, scope?.Inside == true ? UiSliderLook.TickInside : UiSliderLook.TickBelow, Class)
             .Data(Marks(scope, value))

@@ -42,7 +42,7 @@ nuspec = f'''<?xml version="1.0" encoding="utf-8"?>
 <package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd"><metadata>
 <id>{pid}</id><version>{version}</version>
 <repository type="git" url="https://example.invalid/rask.git" commit="{commit}" />
-<dependencies><group targetFramework="net10.0">{rows}</group></dependencies>
+<dependencies><group targetFramework="net11.0">{rows}</group></dependencies>
 </metadata></package>'''
 with zipfile.ZipFile(f"{directory}/{pid}.{version}.nupkg", "w") as z:
     z.writestr(f"{pid}.nuspec", nuspec)
@@ -148,6 +148,16 @@ fresh leftover
 ( version="0.23.1-alpha.0.1"; package "$dir" Rask.Old )
 python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
 same "a leftover of another version is refused" "$?" "2"
+
+fresh held
+rm "$dir"/*.nupkg
+( version="0.24.0"; the_set "$dir"; rm "$dir/Rask.Postgres.0.24.0.nupkg"
+  version="0.24.0-rc.1"; package "$dir" Rask.Postgres Rask.Server=0.24.0 )
+python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
+same "a stable set may hold one package as a prerelease of its version" "$?" "0"
+( version="0.25.0-rc.1"; package "$dir" Rask.Other )
+python3 "$publish" plan "$dir" > "$work/plan.out" 2>&1
+same "...but not a prerelease of another version" "$?" "2"
 
 echo "==> publish_packages: the push"
 

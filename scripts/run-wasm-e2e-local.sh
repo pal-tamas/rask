@@ -88,7 +88,7 @@ if [ -n "${RASK_E2E_FILTER:-}" ]; then
 else
   echo "==> WASM browser journeys (Rask.Wasm.E2E.Tests)"
 fi
-dotnet test "$project/bin/Release/net10.0/Rask.Wasm.E2E.Tests.dll" --filter "$filter" --logger "console;verbosity=normal"
+dotnet test "$project/bin/Release/net11.0/Rask.Wasm.E2E.Tests.dll" --filter "$filter" --logger "console;verbosity=normal"
 
 echo
 if [ -n "${RASK_E2E_FILTER:-}" ]; then

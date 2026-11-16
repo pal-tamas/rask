@@ -154,13 +154,14 @@ public sealed class TransportAttachTests
         var store = NewStore();
         var session = store.Create(_ => new Shell());
 
-        store.ScheduleRemoval(session.Id, TimeSpan.FromMilliseconds(20));
+        // A second of grace: with 20 ms a loaded runner reached the first peek after the removal had already run.
+        store.ScheduleRemoval(session.Id, TimeSpan.FromSeconds(1));
 
         Assert.Same(session, store.Peek(session.Id));
 
-        for (var i = 0; i < 50 && store.Peek(session.Id) is not null; i++)
+        for (var i = 0; i < 100 && store.Peek(session.Id) is not null; i++)
         {
-            await Task.Delay(20, TestContext.Current.CancellationToken);
+            await Task.Delay(100, TestContext.Current.CancellationToken);
         }
 
         Assert.Null(store.Peek(session.Id));

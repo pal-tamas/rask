@@ -94,7 +94,7 @@ fi
 # own dev-error overlay, which the Errors journey opens the panel from. It has to be in the test process's
 # environment when that process starts; the journey checks and names this script if it is not.
 set +e
-DOTNET_MODIFIABLE_ASSEMBLIES=debug dotnet test "$project/bin/Debug/net10.0/Rask.DevTools.E2E.Tests.dll" \
+DOTNET_MODIFIABLE_ASSEMBLIES=debug dotnet test "$project/bin/Debug/net11.0/Rask.DevTools.E2E.Tests.dll" \
   --filter "$filter" \
   --logger "console;verbosity=normal"
 status=$?

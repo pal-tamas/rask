@@ -231,7 +231,7 @@ public abstract class ExampleAppFixture : IAsyncLifetime
         // it in the shared build artifact, and every shard boots that prebuilt DLL — so the shards don't
         // each repeat a from-scratch restore+compile+publish. Prefer it when present; multiple fixtures
         // can share the one folder and just launch it on their own ports.
-        var prebuiltDir = Path.Combine(projectPath, "bin", Configuration, "net10.0", "publish");
+        var prebuiltDir = Path.Combine(projectPath, "bin", Configuration, "net11.0", "publish");
         if (File.Exists(Path.Combine(prebuiltDir, $"{appName}.dll")))
         {
             return RunPublishedDllStartInfo(prebuiltDir, appName);

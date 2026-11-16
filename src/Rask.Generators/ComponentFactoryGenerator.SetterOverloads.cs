@@ -777,7 +777,7 @@ public sealed partial class ComponentFactoryGenerator
 
     // The three bag overloads' parameter lists, the AttrBag each builds, and its doc.
     private static (string Parameters, string Expression, string Doc)[] BagOverloads(
-        string propertyName, string setterName)
+        string propertyName, string setterName, bool nullable)
     {
         // The prefix these entries render under, which is the whole point of the overload: `.Aria("label",
         // "Close")` is aria-label, not an attribute called "label". Naming it in the doc is what tells a
@@ -816,11 +816,15 @@ public sealed partial class ComponentFactoryGenerator
                 + "renders the attribute bare.</summary>"
                 + "\n    /// <param name=\"name\">" + without + "</param>"
                 + "\n    /// <param name=\"value\">The attribute value, or <see langword=\"null\"/> for a bare attribute.</param>"),
+            // An EMPTY span is no attributes at all (#1342): `cond ? [(name, "")] : []` binds this overload,
+            // and the empty branch used to reach AttrBag's constructor, which refuses it — the throw came in
+            // the middle of a render and the page never finished loading. A non-nullable bag has no "none".
             ("params global::System.ReadOnlySpan<(string Name, string? Value)> pairs",
-                "new global::Rask.Core.AttrBag(pairs)",
+                nullable ? "pairs.IsEmpty ? null : new global::Rask.Core.AttrBag(pairs)" : "new global::Rask.Core.AttrBag(pairs)",
                 "<summary>Sets several " + attr + "s at once. Cheaper than passing a dictionary — the "
                 + "argument list stays on the stack and nothing is allocated per render.</summary>"
-                + "\n    /// <param name=\"pairs\">Name/value pairs. " + without + "</param>"),
+                + "\n    /// <param name=\"pairs\">Name/value pairs. " + without
+                + (nullable ? " An empty list sets none." : string.Empty) + "</param>"),
         ];
     }
 
@@ -873,7 +877,7 @@ public sealed partial class ComponentFactoryGenerator
         // is resolved against ALL of them and binds to whichever component's overload wins — it picked
         // FullscreenTrigger's for a Trigger.EyeDropper. Assigning the property directly has no name
         // to resolve.
-        foreach (var (parameters, expression, doc) in BagOverloads(propertyName, setterName))
+        foreach (var (parameters, expression, doc) in BagOverloads(propertyName, setterName, typeFqn.EndsWith("?", StringComparison.Ordinal)))
         {
             sb.Append("    /// ").AppendLine(doc);
             sb.Append("    ").Append(visibility).Append(" static ").Append(self).Append(' ').Append(escaped)

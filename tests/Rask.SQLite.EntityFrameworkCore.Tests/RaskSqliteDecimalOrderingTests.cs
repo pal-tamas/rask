@@ -162,7 +162,8 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
         await using var context = NewContext();
         var sql = context.Rows.OrderBy(r => r.Amount).Select(r => r.Amount).ToQueryString();
 
-        Assert.Contains($"COLLATE {SqliteCollations.DecimalOrder}", sql, StringComparison.Ordinal);
+        // EF Core 11 quotes the name (COLLATE "EF_DECIMAL"); SQLite reads it the same as the bare name.
+        Assert.Contains($"COLLATE \"{SqliteCollations.DecimalOrder}\"", sql, StringComparison.Ordinal);
         Assert.Equal("EF_DECIMAL", SqliteCollations.DecimalOrder);
     }
 
@@ -213,7 +214,7 @@ public sealed class RaskSqliteDecimalOrderingTests : IDisposable
             // index over a bare column inherits that column's collating sequence.
             ddl.CommandText = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'Rows'";
             var tableSql = (string?)await ddl.ExecuteScalarAsync(TestContext.Current.CancellationToken);
-            Assert.Contains($"COLLATE {SqliteCollations.DecimalOrder}", tableSql ?? "", StringComparison.Ordinal);
+            Assert.Contains($"COLLATE \"{SqliteCollations.DecimalOrder}\"", tableSql ?? "", StringComparison.Ordinal);
         }
 
         await using var plan = connection.CreateCommand();

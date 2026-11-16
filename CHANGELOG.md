@@ -7,6 +7,45 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
+  `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
+  the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
+  collection sets no attributes at all.
+
+### Changed
+- **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what
+  changed.** Before: every runner started with an empty Docker, so every Eszaf/TA-style deploy downloaded the NuGet
+  packages, the Tailwind CLI, tsgo and Rask.Pdf's Chrome shell again, and reinstalled the PDF browser's libraries.
+  After: under `GITHUB_ACTIONS`, `rask deploy` builds on a BuildKit container of its own (`rask-deploy`, `--load`),
+  with its layer cache and the contents of every `RUN --mount=type=cache` in the Dockerfile (which no layer cache
+  carries) kept in `$RUNNER_TEMP/rask-build-cache/<app>`; the workflow `rask deploy --github-actions` writes saves
+  that folder with an `actions/cache` step keyed by the project files; a deploy whose cache was saved for the same
+  project files reads it and writes nothing back. Measured on GitHub's runners for a scaffolded server app with
+  Rask.Pdf: 124–136 s for the first deploy, 74 s for the next. No new flag, no token handed to the build, the
+  Dockerfiles unchanged; anything missing falls back to the plain build in one line. Run
+  `rask deploy --github-actions` again to add the step to an existing `deploy.yml`.
+
+## [0.24.0] - 2026-11-16
+
+**.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
+references these packages itself, pin them beside the Rask packages:
+
+| Package | Version |
+|---|---|
+| `Microsoft.EntityFrameworkCore*` (SqlServer, Sqlite, Design, Tools, Relational) | `11.0.0` |
+| `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` (most abstractions need no reference on .NET 11) |
+| PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
+
+### Security
+- **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
+  release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
+  starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
+  `11.0.100` with `rollForward: latestFeature`; `rask doctor` tells a machine on an RC to install the release, and
+  `rask.sh`/`rask.ps1` install the released SDK beside an RC instead of counting it. Rask's own build resolves the
+  patched proxy (`Microsoft.NET.Sdk.WebAssembly.Pack` 11.0.0), and a test now fails if a Release publish of a
+  scaffolded or the site's WebAssembly app ever carries the debugger.
+
 ### Added
 - **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
   dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
@@ -21,6 +60,26 @@ them until tagged releases begin.
   (RASK117) when written in the fragment, at run time when inside a component it wraps. A 500-order dashboard page:
   1015 KB → 74 KB allocated and ~1.15 ms → ~10 µs per request on a hit (`CachedFragmentBenchmarks`).
   Guide: docs/cached-fragments.md.
+- **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
+  (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
+  built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
+  engine), streamed as `docker save | gzip | docker -H ssh://host load`, tagged `:current`/`:latest` there, and the
+  local copy removed; the health gate, blue-green swap, `:previous` rollback tag and post-deploy prune are unchanged.
+  No registry, no new flag. A machine with no Linux Docker engine builds on the host as before, said in one line.
+  Two different apps deploy to one box in parallel: each holds only its own app lock for the whole deploy, and the
+  box lock just for the seconds of the proxy switch and prune.
+- **Every deploy is a named release, and `/version` answers it.** `rask deploy` names the release by the UTC moment it
+  starts (`v26.11.11.13.12.02`), sets `Rask__Version` on the container and labels the image `rask.release`, so a
+  rollback restores the old name with the old build; `--env Rask:Version=<name>` names it yourself (never recorded as
+  a required variable). `MapRaskVersion()` answers the configured `Rask:Version` first, then a `version.json`
+  (`{"version":"…"}`) beside the app, then the assembly's informational version. Map it outside any `/api` group;
+  it makes a good `--health-path /version`.
+- **`rask deploy --github-actions` deploys what CI passed, with a deploy-only key.** Before: the workflow deployed every
+  push to `main`, CI green or not, and told you to reuse your own SSH key. After: it triggers on `workflow_run` of the
+  repository's CI workflow (`ci.yml`, or its only push workflow) for `main`, runs only for a successful run of a push,
+  and checks out the commit CI passed; with no CI workflow it falls back to push, with a comment saying how to
+  switch. The command prints a per-repository key recipe (`restrict,port-forwarding` in the box's
+  `authorized_keys`) next to the two `gh secret set` lines.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
@@ -39,6 +98,22 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **Scrolling alone reaches the last option of a long `Ui.Select` or `Ui.Pillbox` (more than 100 options).** Before: a
+  windowed list counted every row at one height (32 px, or 60 px once any option had a description), but a row could
+  grow past it — its padding added to that height on a page without Tailwind's preflight (the precompiled kit sheet),
+  and a long name wrapped to two lines at a phone's width — so the scroll box and the rows drawn drifted apart: blank
+  room at the bottom and the last options out of reach of the wheel, the scrollbar and End. After: each row of a
+  windowed list is exactly the height the window counts (`box-sizing: border-box`, its content centred), its name and
+  its description each cut to one line with an ellipsis, and the whole text in the row's `title`. A list of up to 100
+  options is drawn as before, wrapping as Flux's does.
+- **An app with the UI kit and no Tailwind build no longer links a `/css/rask-ui.css` nothing serves (#1315).**
+  Before: `RaskApp` and the WASM host linked the kit's precompiled sheet whenever the kit was on and the app's sheet
+  did not import it, but only `RaskUiWriteStylesheet` put a file there — every page answered its stylesheet with a 404
+  and the kit drew unstyled. After: a Rask.Server host (RaskApp or hand-wired) answers `/css/rask-ui.css` from the
+  kit's own assembly, compressed and kept for a year under its `?v=`; a browser app's build adds the sheet to its static
+  web assets from the package (or, in-repo, the kit's build output), so it is served in development and published.
+  `RaskUiWriteStylesheet` in a project that references the kit by `ProjectReference` now also builds from a clean
+  checkout: the sheet is looked for after the project references are built, not before.
 - **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
   Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
   `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,
@@ -152,6 +227,39 @@ them until tagged releases begin.
   Every kit tooltip, both hosts.
 
 ### Changed
+- **Rask moves to .NET 11: every package ships `net11.0` (and `net11.0-browser` for WASM) ONLY, and `rask new`
+  scaffolds .NET 11.** Before: `net10.0`, a `global.json` on the 10.0 band, the `aspnet:10.0`/`sdk:10.0` images.
+  After: the repo's and every scaffold's `global.json` pin the released 11.0 SDK (`11.0.100`, `latestFeature`), the
+  template Dockerfiles build on `sdk:11.0` and run on `aspnet:11.0`, the scaffolded deploy workflow sets up `11.0.x`,
+  `rask.sh`/`rask.ps1` install the 11.0 channel, and `rask doctor` reports an SDK below 11 (and on a newer SDK asks for
+  `wasm-tools-net11`). An app on Rask now needs the .NET 11 SDK. The platform packages move to 11.0.0 (ASP.NET Core,
+  EF Core, Microsoft.Extensions.*, Microsoft.Data.Sqlite, System.*), MSBuild's task API to 18.11 (Dependabot's
+  18.10 hold is lifted). The `Microsoft.Extensions.*` abstractions .NET 11 now ships in the shared framework are no
+  longer referenced as packages (NU1510). EF Core 11 lets an index name a complex property, so Rask.Data's unique rules
+  and constraint names read an index's scalar columns and leave any other index to the database.
+  `rask db`'s dotnet-ef floor reads a prerelease EF Core pin by its release part. EF Core 11 refuses `EF.Constant` in a
+  query filter, so the tenant filter's "every tenant" arm is now a NULL test of a parameter that EF Core folds away
+  per value: `Tenant.Across` still drops the filter and a tenant in flight is still a plain equality, with no
+  catch-all OR. What it cannot keep: SQL Server folding the TENANT itself into the SQL against plan sniffing — the
+  tenant is a parameter on every provider now (#1321): run SQL Server at compatibility level 160 or later, whose
+  Parameter Sensitive Plan optimization keeps a plan per tenant shape, or add `OPTION(RECOMPILE)` to a query over a
+  heavily skewed tenant on an older level. .NET 11 converts a `double` to `decimal` exactly
+  (`(decimal)0.3` is `0.29999999999999998889…`), so `Format.Number(double, atMost)` and `Ui.Slider`/`Ui.ColorPicker`
+  take the shortest decimal that reads back as the double, as .NET 10's 15-digit rounding did; EF Core 11 writes
+  `COLLATE "EF_DECIMAL"` quoted.
+- **BREAKING: `Rask.Server` no longer carries `Rask.Postgres`; a PostgreSQL app adds it** (`dotnet add package
+  Rask.Postgres`). Npgsql's only EF Core 11 provider is `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3, so
+  `Rask.Postgres` ships as a release candidate (`0.24.0-rc.1` beside a stable `0.24.0`, from `RaskPostgresPreRelease`
+  in its csproj) and a stable package cannot depend on it (NU5104). Before: every server app got Npgsql through
+  `Rask.Server`. After: `Rask:Database:Provider=postgres` still needs no code — `UseRaskDatabase(sp)` and `RaskApp`
+  find the package by name (`PostgresLoader`, trimming-safe) — and without the package the app fails at start with
+  "Rask:Database:Provider is postgres, but this app does not reference Rask.Postgres: add the Rask.Postgres package."
+  That provider pins EF Core to exactly 11.0.0-rc.3.26522.148 while Rask is on 11.0.0, so a Postgres app restores
+  with NU1608; add `<NoWarn>$(NoWarn);NU1608</NoWarn>` under warnings-as-errors. An app referencing EF Core itself
+  pins `11.0.0` for every `Microsoft.EntityFrameworkCore*` and `Microsoft.Extensions.*` package (the table is in
+  docs/data.md#postgresql). The hold ends with Npgsql's stable provider: Dependabot raises it (the pin is in
+  Directory.Packages.props, not ignored), and `PostgresHoldTests` fails that pull request until the suffix, the
+  NoWarns and `PostgresLoader` go and `Rask.Server` references `Rask.Postgres` again.
 - **A refused submit takes the reader to the first mistake, on both hosts.** Before: the rules failing, or a save
   throwing field failures, drew the messages and left focus on the Save button — a keyboard or screen-reader user had
   to hunt for what was wrong, on a tab `Ui.FormTabs` had just switched to. After: focus moves to the first field marked

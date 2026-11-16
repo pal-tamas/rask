@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
+using Microsoft.EntityFrameworkCore.Query;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Infrastructure.Internal;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Migrations;
 using Rask.Data;
@@ -23,8 +24,9 @@ namespace Rask.Postgres;
 /// </remarks>
 internal sealed class RaskPostgresMigrationsSqlGenerator(
     MigrationsSqlGeneratorDependencies dependencies,
-    INpgsqlSingletonOptions npgsqlOptions)
-    : NpgsqlMigrationsSqlGenerator(dependencies, npgsqlOptions), IFullTextSearchEnforcer
+    INpgsqlSingletonOptions npgsqlOptions,
+    IQuerySqlGeneratorFactory querySqlGeneratorFactory)
+    : NpgsqlMigrationsSqlGenerator(dependencies, npgsqlOptions, querySqlGeneratorFactory), IFullTextSearchEnforcer
 {
     public override IReadOnlyList<MigrationCommand> Generate(
         IReadOnlyList<MigrationOperation> operations,

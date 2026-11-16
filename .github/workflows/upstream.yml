@@ -121,8 +121,8 @@ jobs:
         run: |
           set -eu
           dotnet build scripts/flux/Flux -c Release -m:2 -nodeReuse:false
-          echo "FLUX=$PWD/scripts/flux/Flux/bin/Release/net10.0/flux.dll" >> "$GITHUB_ENV"
-          dotnet scripts/flux/Flux/bin/Release/net10.0/flux.dll install --with-deps chromium
+          echo "FLUX=$PWD/scripts/flux/Flux/bin/Release/net11.0/flux.dll" >> "$GITHUB_ENV"
+          dotnet scripts/flux/Flux/bin/Release/net11.0/flux.dll install --with-deps chromium
 
       - name: Has Flux UI moved?
         id: sync

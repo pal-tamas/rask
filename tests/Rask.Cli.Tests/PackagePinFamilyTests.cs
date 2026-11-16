@@ -127,7 +127,7 @@ public sealed class PackagePinFamilyTests
             + string.Join(
                 "\n  ",
                 family.OrderBy(p => p.Value, StringComparer.Ordinal).Select(p => $"{p.Value}  {p.Key}"))
-            + "\nThese ship as one 10.0.x family and dependabot.yml groups them; bring them back to one "
+            + "\nThese ship as one 11.0.x family and dependabot.yml groups them; bring them back to one "
             + "version in Directory.Packages.props.");
     }
 

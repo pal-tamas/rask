@@ -78,10 +78,10 @@ assert_ok "darwin-arm64 (an Apple laptop)"     mac-laptop    "/node/darwin-arm64
 fixture ci-box        linux-x64
 assert_ok "linux-x64 (a CI box)"               ci-box        "/node/linux-x64/node"    "/package/cli.js"
 
-# Nested under a TFM directory, which is where it really lives: bin/Release/net10.0/.playwright/...
-mkdir -p "$tmp/nested/bin/Release/net10.0"
-fixture "nested/bin/Release/net10.0" linux-arm64
-assert_ok "nested under bin/Release/net10.0"   nested        "/node/linux-arm64/node"  "/package/cli.js"
+# Nested under a TFM directory, which is where it really lives: bin/Release/net11.0/.playwright/...
+mkdir -p "$tmp/nested/bin/Release/net11.0"
+fixture "nested/bin/Release/net11.0" linux-arm64
+assert_ok "nested under bin/Release/net11.0"   nested        "/node/linux-arm64/node"  "/package/cli.js"
 
 # Negative cases. Each one used to be a silent skip.
 assert_absent "search root does not exist"     no-such-dir

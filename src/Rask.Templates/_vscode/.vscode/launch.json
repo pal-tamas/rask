@@ -10,7 +10,7 @@
       "type": "coreclr",
       "request": "launch",
       "preLaunchTask": "rask: build",
-      "program": "${workspaceFolder}/bin/Debug/net10.0/Company.RaskServer.dll",
+      "program": "${workspaceFolder}/bin/Debug/net11.0/Company.RaskServer.dll",
       "cwd": "${workspaceFolder}",
       // Just My Code is what makes a handler's exception stop on its throw line: it leaves your code for
       // Rask's, which the debugger reports as user-unhandled.

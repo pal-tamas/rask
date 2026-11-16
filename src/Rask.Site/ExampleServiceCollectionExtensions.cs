@@ -50,7 +50,7 @@ public static class ExampleServiceCollectionExtensions
 
         // The query cache the Rask.Query and subscriptions demos read through QueryClient. In the browser the Rask
         // package's WASM wiring registers it too (a second call is a no-op); the publish's prerender pass renders this
-        // app as a plain net10.0 process, which gets the package's SERVER build and so none of that wiring — without
+        // app as a plain net11.0 process, which gets the package's SERVER build and so none of that wiring — without
         // this line both guides threw there and shipped to crawlers as the boot shell.
         services.AddRaskQuery();
 

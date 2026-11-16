@@ -16,7 +16,7 @@ curl -sSL https://rask.sh/rask.sh | sh
 ```
 
 That puts a `rask` command on your `PATH`, along with the .NET SDK and the dependencies the CLI
-shells out to. Re-run it to upgrade. On a machine that already has the .NET 10 SDK,
+shells out to. Re-run it to upgrade. On a machine that already has the .NET 11 SDK,
 `dotnet tool install -g Rask.Cli` installs just the tool, and `dotnet tool update -g Rask.Cli`
 upgrades it. Options, install locations and uninstall: [Installing Rask](installation.md).
 
@@ -168,27 +168,30 @@ A `server` or `wasm` app also gets a test project, `<Name>.Tests/`, listed in th
 with one passing test — so `dotnet test` is green before you have written anything. `--no-tests` leaves
 it out.
 
-**`global.json` decides which SDK compiles the app**, and it names the .NET 10 band:
+**`global.json` decides which SDK compiles the app**, and it names the .NET 11 band:
 
 ```json
 {
   "sdk": {
-    "version": "10.0.0",
+    "version": "11.0.100",
     "rollForward": "latestFeature"
   }
 }
 ```
 
 Without it the SDK picks the newest one installed. On a machine that also carries the next major in
-preview, that means a `net10.0` app is compiled by an `11.0.x` release candidate — it builds, tells you
+preview, that means a `net11.0` app is compiled by a `12.0.x` release candidate — it builds, tells you
 so once per build (`NETSDK1057`), and quietly hands two people on the same repository different
 compilers. `latestFeature` takes the newest SDK **within** the band and never crosses a major, so you
-get `10.0.400` if you have it and the next patch when you install one.
+get `11.0.200` if you have it and the next patch when you install one.
 
-The version is the band floor, `10.0.0`, rather than a real SDK release, and that matters while a band
-is still in preview: a release candidate sorts *below* the release it is a candidate for, and
-roll-forward only ever goes up — so pinning the release would resolve nothing at all on a machine
-holding the candidate, and `allowPrerelease` does not rescue it. The floor is satisfied by every SDK in the band.
+The version is the band's first **released** SDK, `11.0.100`, so every later feature band and patch
+satisfies it and no release candidate does: a candidate sorts *below* the release it is a candidate for,
+and roll-forward only ever goes up. That is deliberate. The .NET 11 release candidates carry the
+WebAssembly debug proxy that [CVE-2026-102870](https://www.cve.org/CVERecord?id=CVE-2026-102870) was fixed
+in, and a Debug build of a browser app starts that proxy. On a machine with only a candidate, install the
+released SDK; [`rask doctor`](#rask-doctor--check-before-you-hit-it) says so, and the
+[installer](installation.md) installs it beside the candidate.
 
 The trade is that a machine with **only** a newer major fails outright instead of building on it. Run
 [`rask doctor`](#rask-doctor--check-before-you-hit-it) if a scaffold will not restore: it reads this
@@ -680,7 +683,7 @@ What F5 does:
 | Step | What happens |
 | --- | --- |
 | Build | `dotnet build --property:RaskDevSession=true` — the same dev-session switch `rask dev` passes. |
-| Launch | The C# debugger runs `bin/Debug/net10.0/<App>.dll` with the launch profile's settings and Just My Code on. |
+| Launch | The C# debugger runs `bin/Debug/net11.0/<App>.dll` with the launch profile's settings and Just My Code on. |
 | Address | `https://<name>.test` when an earlier `rask dev` already set that name up on this machine (with `:5001` on macOS, where the pf redirect cannot be checked without root); the launch profile's localhost otherwise. F5 never prompts and never changes the machine. |
 | Browser | The app prints `Rask dev: open <url>` once it is listening, and VS Code opens it. |
 
@@ -840,14 +843,18 @@ go with the old file for the same reason: left behind, SQLite replays them over 
 rask deploy --host root@box --domain app.example.com      # bare VPS → live HTTPS site (sets the box up first)
 rask deploy --host deploy@box --port 8080                 # no domain: publish a port, bring your own TLS
 rask deploy                                               # redeploy: host/domain remembered
-rask deploy --github-actions                              # write a workflow that deploys on push to main
+rask deploy --github-actions                              # write a workflow that deploys main once CI passes
 rask deploy --dry-run --host deploy@box --domain app.example.com   # print the docker commands, run nothing
 ```
 
-One command builds your app's Docker image **on the box** and runs it. Every deploy step is
-`docker -H ssh://<host> …`, so there's no registry, no local Docker daemon, and no image tarball to
-copy — the build context ships to the host's daemon over SSH and builds there. It deploys the
-`Dockerfile` that `rask new` scaffolds (point at another with `--dockerfile`).
+One command builds your app's Docker image **here** — for the box's platform (`--platform linux/<its arch>`) —
+sends it to the box (`docker save | gzip | docker -H ssh://<host> load`, compressed, no registry) and runs it
+there. Every step on the box is `docker -H ssh://<host> …`, and the box never builds, so several apps on one
+small VPS can deploy at once without running it out of memory. With no Linux Docker engine on this machine the
+image is built on the box instead, said in one line. Each deploy is a named release, the UTC moment it starts
+(`v26.11.11.13.12.02`), set on the container as `Rask__Version` — what `MapRaskVersion()` answers on `/version`
+([release names](deployment.md#release-names-and-version)). It deploys the `Dockerfile` that `rask new`
+scaffolds (point at another with `--dockerfile`).
 
 **Handed a box that isn't ready, it sets it up** — installs Docker, creates a non-root `deploy` login
 with your keys, configures a firewall (one that covers Docker's published ports, which ufw does not
@@ -913,7 +920,7 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
 | `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |
 | `--no-health-check` | Gate only on the container running (skip the HTTP probe) — for apps without a health endpoint. Remembered. |
-| `--github-actions` | Write `.github/workflows/deploy.yml` (deploy on push to main) and print the secrets to add. Touches no host. |
+| `--github-actions` | Write `.github/workflows/deploy.yml` (deploy main once CI passes) and print how to make its deploy-only key and set the secrets. Touches no host. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
 ### After it's live — `status`, `logs`, `rollback`
@@ -972,8 +979,12 @@ host/domain/port for repeat deploys but **never stores secrets** — pass those 
 each time.
 
 **Deploying from CI.** `rask deploy --github-actions` writes a workflow that runs this same command on
-every push to `main`, and prints the two `gh secret set` lines it needs (an SSH key and the host's
-fingerprint). Everything else comes from the committed `.rask/deploy.json`. It deploys with
+`main` once the repository's CI workflow has passed on it (`workflow_run`; every push to `main` when there is no
+CI workflow yet), building on the runner — with the build cache the workflow keeps between runs, so a deploy
+downloads only what changed ([The deploy's build cache](deployment.md#the-deploys-build-cache)) — and prints how to make a **deploy-only key** for the repository
+(`restrict,port-forwarding` in the box's `authorized_keys`) and the two `gh secret set` lines it needs (that key
+and the host's fingerprint) — see [Deploying from GitHub Actions](deployment.md#deploying-from-github-actions).
+Everything else comes from the committed `.rask/deploy.json`. It deploys with
 `--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
 
 ## `rask doctor` — check before you hit it

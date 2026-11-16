@@ -129,7 +129,7 @@ public abstract class StaticWwwrootHostFixture : IAsyncLifetime
     private Hosted Start()
     {
         var wwwroot = Path.Combine(Repository.Root, ProjectRelativePath, "bin", Configuration,
-            "net10.0-browser", "publish", "wwwroot");
+            "net11.0-browser", "publish", "wwwroot");
         if (!File.Exists(Path.Combine(wwwroot, "index.html")))
         {
             throw new InvalidOperationException(MissingBundleMessage(wwwroot));

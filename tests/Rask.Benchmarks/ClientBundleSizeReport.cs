@@ -49,7 +49,7 @@ internal static partial class ClientBundleSizeReport
 
     private static readonly Bundle[] _bundles =
     [
-        new("rask.js", Path.Combine("src", "Rask.Server", "obj", "Release", "net10.0", "rask.js")),
+        new("rask.js", Path.Combine("src", "Rask.Server", "obj", "Release", "net11.0", "rask.js")),
         new("rask.wasm.js", Path.Combine("src", "Rask.Wasm", "Browser", "rask.wasm.js")),
 
         // The behaviour hooks, which only a page that asks for one downloads (rask-hook-loader.ts). Tracked so

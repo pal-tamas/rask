@@ -15,7 +15,7 @@ dotnet run --project scripts/flux/Flux --                           # every comm
 Each command is named after the script it was (`parity.mjs` is `parity`) and takes the same arguments, prints
 the same report and writes the same files (`artifacts/flux-parity/…`, `flux.snapshot.json`, `flux.lock.json`). A
 check run many times in a row (`scripts/flux/parity-all.sh`) builds once and runs
-`dotnet scripts/flux/Flux/bin/Release/net10.0/flux.dll <command>`: concurrent `dotnet run`s would race on one `obj/`.
+`dotnet scripts/flux/Flux/bin/Release/net11.0/flux.dll <command>`: concurrent `dotnet run`s would race on one `obj/`.
 
 ## Layout
 

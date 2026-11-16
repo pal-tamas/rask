@@ -15,7 +15,7 @@ public class DoctorCommandTests
     ///     every command shells out to the SDK — so the default here is a realistic version rather than
     ///     the fake's empty one, or every test would be asserting against a broken machine.
     /// </param>
-    private static (StringConsole Console, FakeFileSystem Fs, DoctorCommand Command) Build(string sdk = "10.0.302")
+    private static (StringConsole Console, FakeFileSystem Fs, DoctorCommand Command) Build(string sdk = "11.0.100")
     {
         var console = new StringConsole();
         var fs = new FakeFileSystem();
@@ -111,6 +111,25 @@ public class DoctorCommandTests
 
         Assert.Equal(0, exit);
         Assert.Contains("Nothing here will stop a command", console.OutText, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    ///     A .NET 11 release candidate is told to update: a new app's global.json asks for the release, and the
+    ///     candidates carry the WebAssembly debugger fixed for CVE-2026-102870.
+    /// </summary>
+    [Theory]
+    [InlineData("11.0.100-rc.2.26475.104", true)]
+    [InlineData("11.0.100-preview.5.26277.114", true)]
+    [InlineData("11.0.300-preview.1.27012.3", false)]
+    [InlineData("11.0.100", false)]
+    public async Task A_release_candidate_sdk_is_told_to_install_the_release(string sdk, bool told)
+    {
+        var (console, _, command) = Build(sdk);
+
+        var exit = await command.ExecuteAsync([], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Equal(told, console.OutText.Contains("CVE-2026-102870", StringComparison.Ordinal));
     }
 
     [Fact]

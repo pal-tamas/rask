@@ -3,7 +3,7 @@ using Rask.TestFiles;
 namespace Rask.Wasm.Tests.Build;
 
 /// <summary>
-///     Prerendering compiles the app's own sources a second time, for <c>net10.0</c>, out of a companion
+///     Prerendering compiles the app's own sources a second time, for <c>net11.0</c>, out of a companion
 ///     project generated into <c>obj/</c>. These assert what it wrote.
 /// </summary>
 /// <remarks>
@@ -42,7 +42,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
         File.WriteAllText(Path.Combine(_dir, "App.csproj"), $"""
             <Project Sdk="Microsoft.NET.Sdk">
               <PropertyGroup>
-                <TargetFramework>net10.0</TargetFramework>
+                <TargetFramework>net11.0</TargetFramework>
                 <RootNamespace>Fixture</RootNamespace>
                 <RaskPrerender>true</RaskPrerender>
               </PropertyGroup>
@@ -148,7 +148,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
         // The gate in Directory.Build.targets covers every project under src/, and the companion is
         // GENERATED into the app's obj/ — which is under src/. It can never carry a baseline, because
         // nothing tracks a file the build rewrites, and the app's own opt-out does not reach a project
-        // generated from it. Missing, the gate failed the publish with "no baseline for net10.0" and
+        // generated from it. Missing, the gate failed the publish with "no baseline for net11.0" and
         // took the entire browser E2E gate down before one test ran. It only shows on a clean obj/,
         // so a warm one hides it — which is exactly why it is pinned here and not left to the gate.
         Assert.Contains(
@@ -169,8 +169,8 @@ public class PrerenderCompanionGenerationTests : IDisposable
     }
 
     [Theory]
-    [InlineData("net10.0-browser", "net10.0")]
     [InlineData("net11.0-browser", "net11.0")]
+    [InlineData("net12.0-browser", "net12.0")]
     public async Task The_companion_is_the_apps_desktop_twin(string app, string companion)
     {
         // The companion carries the app's own package references, so it must restore the same .NET
@@ -178,7 +178,7 @@ public class PrerenderCompanionGenerationTests : IDisposable
         // rendered a net11.0-browser app with a different build of each dependency than it ships.
         var csproj = Path.Combine(_dir, "App.csproj");
         File.WriteAllText(csproj, File.ReadAllText(csproj).Replace(
-            "<TargetFramework>net10.0</TargetFramework>",
+            "<TargetFramework>net11.0</TargetFramework>",
             $"<TargetFramework>{app}</TargetFramework>",
             StringComparison.Ordinal));
 

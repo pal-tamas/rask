@@ -152,7 +152,7 @@ internal sealed partial class DeployCommand
             return SwitchOutcome.NotRouted;
         }
 
-        await Console.Out.WriteLineAsync($"Routing {SiteDomains.CaddyAddress(change.Domain)} → {change.Target.Container} (auto-HTTPS via Caddy)…").ConfigureAwait(false);
+        await Console.Out.WriteLineAsync($"Routing {SiteDomains.CaddyAddress(change.Domain)} → {change.Target.Container} (auto-HTTPS via Caddy)…", cancellationToken).ConfigureAwait(false);
         if (!await WriteProxyFileAsync(host, slug, CaddySites.FragmentPath(slug), BuildFragment(change.Domain, change.Target, change.Proxy.Provider), cancellationToken).ConfigureAwait(false))
         {
             return SwitchOutcome.NotRouted;

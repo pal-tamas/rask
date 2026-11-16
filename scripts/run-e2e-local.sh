@@ -152,14 +152,14 @@ esac
 # eight minutes, five times over, for the same bytes.
 #
 #   publish    publish the site and stop: no test project, no browser, no journey
-#   prebuilt   skip the publish and drive the bundle already at src/Rask.Site/bin/Release/net10.0-browser/publish
+#   prebuilt   skip the publish and drive the bundle already at src/Rask.Site/bin/Release/net11.0-browser/publish
 #   (unset)    both, which is what a hand run wants
 site_step="${RASK_E2E_SITE:-}"
 case "$site_step" in
   ""|publish|prebuilt) ;;
   *) echo "run-e2e-local: RASK_E2E_SITE must be publish or prebuilt, not '$site_step'." >&2; exit 1 ;;
 esac
-site_wwwroot="src/Rask.Site/bin/Release/net10.0-browser/publish/wwwroot"
+site_wwwroot="src/Rask.Site/bin/Release/net11.0-browser/publish/wwwroot"
 
 # RunAnalyzers=false on all three: the unit gate's `build` part is the one job that pays for the
 # analyzers, warnings-as-errors, over this same source. Here they bought a second verdict for about a
@@ -275,7 +275,7 @@ rask_e2e_note_matches() {
   fi
 }
 if [ "$suite" != "server" ]; then
-  dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net10.0/Rask.Site.E2E.Tests.dll \
+  dotnet test tests/Rask.Site.E2E.Tests/bin/Release/net11.0/Rask.Site.E2E.Tests.dll \
     --filter "$e2e_filter" \
     --logger "console;verbosity=normal" | tee "$test_log"
   e2e_status=${PIPESTATUS[0]}
@@ -289,7 +289,7 @@ server_filter="${RASK_E2E_FILTER:-FullyQualifiedName~Rask.Server.E2E.Tests}"
 server_status=0
 if [ "$suite" != "site" ]; then
   echo "==> Browser journey E2E (Rask.Server.E2E.Tests)"
-  dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net10.0/Rask.Server.E2E.Tests.dll \
+  dotnet test tests/Rask.Server.E2E.Tests/bin/Release/net11.0/Rask.Server.E2E.Tests.dll \
     --filter "$server_filter" \
     --logger "console;verbosity=normal" | tee "$test_log"
   server_status=${PIPESTATUS[0]}

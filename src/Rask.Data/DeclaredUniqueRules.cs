@@ -97,6 +97,7 @@ internal static class DeclaredUniqueRules
         entityType.GetIndexes().Where(static index =>
             index.IsUnique &&
             index.FindAnnotation(UniqueViolation.Annotation)?.Value is string &&
+            IndexProperties.Scalars<IProperty>(index.Properties) is not null &&
             OnlyRulesOutItsOwnNulls(index));
 
     // "[TenantId] IS NOT NULL", "(\"Name\" IS NOT NULL AND \"TenantId\" IS NOT NULL)" — and nothing else.
@@ -108,7 +109,7 @@ internal static class DeclaredUniqueRules
         }
 
         var store = StoreObjectIdentifier.Create(index.DeclaringEntityType, StoreObjectType.Table);
-        var columns = index.Properties
+        var columns = index.Properties.OfType<IProperty>()
             .Select(p => store is { } table ? p.GetColumnName(table) : p.GetColumnName())
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -123,10 +124,15 @@ internal static class DeclaredUniqueRules
     private static LambdaExpression? Predicate(
         IEntityType entityType, IIndex index, Func<string, object?> valueOf, IReadOnlyList<object?>? selfKey)
     {
+        if (IndexProperties.Scalars<IProperty>(index.Properties) is not { } properties)
+        {
+            return null;
+        }
+
         var row = Expression.Parameter(entityType.ClrType, "row");
         Expression? same = null;
 
-        foreach (var property in index.Properties)
+        foreach (var property in properties)
         {
             if (valueOf(property.Name) is not { } value)
             {

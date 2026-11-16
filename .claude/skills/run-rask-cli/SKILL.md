@@ -20,7 +20,7 @@ All paths below are relative to the repo root (the unit).
 
 ## Prerequisites
 
-- **.NET 10 SDK** — `dotnet --version` → `10.0.302` here. Nothing else for the smoke (it uses
+- **.NET 11 SDK** — `dotnet --version` → `11.0.100` here. Nothing else for the smoke (it uses
   `--dry-run` for the package-adding step, so it needs no network).
 - **Network** is required only for `rask new`'s restore — it hits nuget.org. See Gotchas.
 

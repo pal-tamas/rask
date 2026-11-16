@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Linq.Expressions;
 using Rask.Core.Forms;
+using Rask.Core.Globalization;
 
 namespace Rask;
 
@@ -212,7 +213,7 @@ public sealed partial class UiSlider<T> : Component, IFormControl<T>, IUiFormCon
             .Attributes(UiDraws.Marks(("input", UiDraws.Waits(this, Bind is not null))))
             .Style(reach);
 
-        return BigStep is { } big and > 0 ? control.Data("rask-big-step", UiSliderScale.Text((decimal)big)) : control;
+        return BigStep is { } big and > 0 ? control.Data("rask-big-step", UiSliderScale.Text(ShortestDecimal.Of(big))) : control;
     }
 
     // As Flux writes them: every thumb is named by the field's label, and a range's two say which end they are.

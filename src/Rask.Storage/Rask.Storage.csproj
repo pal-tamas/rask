@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Server-only: the files are kept by the server and their rows live in the application's database.
-         Single-targeted (no net10.0-browser), so that constraint is enforced by the compiler. -->
+         Single-targeted (no net11.0-browser), so that constraint is enforced by the compiler. -->
     <TargetFrameworks>$(RaskNetTargets)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -12,7 +12,7 @@
     <Title>Rask.Storage — keep uploaded files, on disk, in a bucket or in the database</Title>
     <Description>File upload storage for ASP.NET Core and .NET: keep user uploads on disk, in S3-compatible storage, in Azure Blob Storage or in your own SQL Server, PostgreSQL or SQLite database, with a row per file in your database. Save an upload in one call and get back a StoredFile row on the application's own database; hand out a public URL, a temporary URL that expires, or a download behind your own authorization check. Files go to a directory on the deploy volume by default, or to S3-compatible storage (AWS, Cloudflare R2, Backblaze B2, MinIO), Azure Blob Storage or a table in the application database by configuration — with no cloud SDK behind it. Content types are sniffed from the bytes rather than trusted from the browser, and only images, audio and video are ever served inline. Server-side; pairs with EF Core and SQLite.</Description>
     <!-- Override the framework default tags (web/component/wasm) — a server-side storage battery. -->
-    <PackageTags>file-storage object-storage blob-storage file-upload s3 azure-blob r2 minio presigned-url database-blob varbinary entity-framework-core sqlite sql-server postgresql dotnet net10</PackageTags>
+    <PackageTags>file-storage object-storage blob-storage file-upload s3 azure-blob r2 minio presigned-url database-blob varbinary entity-framework-core sqlite sql-server postgresql dotnet net11</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework

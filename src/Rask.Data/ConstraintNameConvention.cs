@@ -35,8 +35,12 @@ internal sealed class ConstraintNameConvention(Func<Constraint, string?> name, b
 
             foreach (var index in entityType.GetDeclaredIndexes())
             {
-                var kind = index.IsUnique ? ConstraintKind.Unique : ConstraintKind.Index;
-                Name(kind, table, store, index.Properties, limit, index.Builder.HasDatabaseName);
+                // An index naming a complex property (EF Core 11) keeps the name EF gives it: it has no columns to name it by.
+                if (IndexProperties.Scalars<IConventionProperty>(index.Properties) is { } columns)
+                {
+                    var kind = index.IsUnique ? ConstraintKind.Unique : ConstraintKind.Index;
+                    Name(kind, table, store, columns, limit, index.Builder.HasDatabaseName);
+                }
             }
 
             foreach (var foreignKey in entityType.GetDeclaredForeignKeys().Where(k => IsConstraint(k, table)))

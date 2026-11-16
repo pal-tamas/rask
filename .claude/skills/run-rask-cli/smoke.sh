@@ -93,11 +93,11 @@ have "$WORK/Shop/global.json"
 # two ways to get it wrong are both silent: latestMajor still selects a preview SDK of the NEXT major
 # (which is the behaviour the file exists to stop), and a version naming a real SDK release resolves
 # nothing at all while that band is still a release candidate.
-if grep -q '"version": "10.0.0"' "$WORK/Shop/global.json" \
+if grep -q '"version": "11.0.0"' "$WORK/Shop/global.json" \
    && grep -q '"rollForward": "latestFeature"' "$WORK/Shop/global.json"; then
-  echo "  PASS  global.json pins the 10.0 band"; PASS=$((PASS+1))
+  echo "  PASS  global.json pins the 11.0 band"; PASS=$((PASS+1))
 else
-  echo "  FAIL  global.json does not pin the 10.0 band"; sed 's/^/        | /' "$WORK/Shop/global.json"; FAIL=$((FAIL+1))
+  echo "  FAIL  global.json does not pin the 11.0 band"; sed 's/^/        | /' "$WORK/Shop/global.json"; FAIL=$((FAIL+1))
 fi
 
 echo "==> Deploy scaffolding + preview (hermetic: no host, no docker, no network)"

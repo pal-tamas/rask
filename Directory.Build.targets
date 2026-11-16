@@ -173,8 +173,8 @@
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive"/>
     <!--
       Per target framework, uniformly — including the projects that have only one today.
-      Rask.Core, Rask.Wasm and Rask.SQLite.Browser build for net10.0 and
-      net10.0-browser, and their surfaces genuinely differ, so one flat file per project would
+      Rask.Core, Rask.Wasm and Rask.SQLite.Browser build for net11.0 and
+      net11.0-browser, and their surfaces genuinely differ, so one flat file per project would
       report every browser-only member as missing on the desktop build and vice versa. Keeping the
       layout the same everywhere means a project that gains a second framework later gets a new
       empty baseline to fill in, rather than a gate that quietly starts contradicting itself.
@@ -230,7 +230,7 @@
   </Target>
 
   <!--
-    Which baseline folder a build reads: its own framework's, PublicAPI\net10.0 or PublicAPI\net10.0-browser.
+    Which baseline folder a build reads: its own framework's, PublicAPI\net11.0 or PublicAPI\net11.0-browser.
 
     A project that builds a second .NET version from the same source points that build at the existing
     folder by setting this in its own body, conditioned on $(TargetFramework), rather than keeping a second

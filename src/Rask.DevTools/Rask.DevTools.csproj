@@ -20,7 +20,7 @@
     <PackageId>Rask.DevTools</PackageId>
     <Title>Rask — DevTools</Title>
     <Description>Debug-only developer tools for Rask apps on ASP.NET Core and .NET WebAssembly. Referencing it attaches the tools to both hosts in a Debug build with no code in the app, and a Release publish carries none of it: the build strips the assembly and its deps.json entry, then fails if either remains. The in-page panel shows every frame the page and the app exchange, and the component tree with each component's props.</Description>
-    <PackageTags>dotnet csharp aspnetcore webassembly wasm net10 devtools debugging developer-tools</PackageTags>
+    <PackageTags>dotnet csharp aspnetcore webassembly wasm net11 devtools debugging developer-tools</PackageTags>
   </PropertyGroup>
 
   <!-- Ship a package-specific README (this project's NUGET.md) instead of the shared framework
@@ -58,7 +58,7 @@
   <!--
     The Server face. Rask.Server is PrivateAssets="all" too: only its AddRask runs the Server half of the
     bootstrap, so any app in which that code runs already references the host. Declaring it would pull the
-    Server host into a net10.0 app that referenced the devtools without one.
+    Server host into a net11.0 app that referenced the devtools without one.
 
     It also carries the editor-launched dev session (Server/): an app VS Code's F5 started under its debugger is
     served on https://<name>.test when `rask dev` has already set that name up, and says where the browser should

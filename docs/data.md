@@ -2864,8 +2864,11 @@ default), `postgres` or `sqlserver` — and `Rask:ConnectionStrings:App` says wh
 }
 ```
 
-`RaskApp` reads it for you. An app with a context of its own registers it with `UseRaskDatabase(sp)`, which opens
-whichever provider the setting names:
+`RaskApp` reads it for you. SQLite and SQL Server come with `Rask.Server`; **PostgreSQL is a package you add**,
+`dotnet add package Rask.Postgres` — it ships as a release candidate while Npgsql's EF Core 11 provider is one
+([below](#postgresql)), and a stable `Rask.Server` cannot depend on it. With the setting on `postgres` and the package
+missing, the app fails at start with one sentence: add the Rask.Postgres package. An app with a context of its own
+registers it with `UseRaskDatabase(sp)`, which opens whichever provider the setting names:
 
 ```csharp
 builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
@@ -2899,7 +2902,7 @@ Moving an existing app is more than the setting:
   the log table — `modelBuilder.AddRaskLogging()` — because that is where `RaskApp` keeps the log. A context that
   does not is told the line at start.
 - **An app scaffolded by `rask new`** is a `RaskApp` on `RaskAppDbContext`, so the setting and a connection string
-  are the whole switch — `Rask.Server` already carries both server providers. Its `appsettings.json` has a
+  are the whole switch — plus `dotnet add package Rask.Postgres` for PostgreSQL (`Rask.Server` carries SQL Server). Its `appsettings.json` has a
   `Rask:Snapshots` section, so delete that, as above, and regenerate the migrations against the new provider.
 - **`rask deploy` does not know about providers yet.** It points `Rask:ConnectionStrings:App` at a SQLite file on its
   volume, so deploy a server-database app another way for now.
@@ -2917,6 +2920,19 @@ builder.Services.AddDbContextFactory<AppDbContext>((sp, o) => o
 
 The connection string is `Rask:ConnectionStrings:App` — in production usually the whole string, password
 included, as `Rask__ConnectionStrings__App` in the environment — and a missing one is an error naming that key.
+
+> **A release candidate, for now.** Npgsql's only EF Core 11 provider is `Npgsql.EntityFrameworkCore.PostgreSQL`
+> `11.0.0-rc.3`, so `Rask.Postgres` ships as `x.y.z-rc.1` beside the stable rest of Rask, and `Rask.Server` finds it
+> by name instead of depending on it. That provider pins EF Core to exactly `11.0.0-rc.3.26522.148`; Rask is on EF
+> Core `11.0.0`, so a Postgres app restores with **NU1608** ("Detected package version outside of dependency
+> constraint") — an error under `-warnaserror` or `TreatWarningsAsErrors`. Add `<NoWarn>$(NoWarn);NU1608</NoWarn>` to
+> the app's project until Npgsql's stable provider ships; then `Rask.Postgres` is stable and back inside `Rask.Server`.
+>
+> | Package an app references itself | Pin | Forced by Rask's dependency ranges? |
+> | --- | --- | --- |
+> | `Microsoft.EntityFrameworkCore`, `.Relational`, `.Sqlite`, `.SqlServer`, `.Design`, `.Tools` | `11.0.0` | Yes, as a floor: Rask asks for at least `11.0.0`. Lower fails with NU1605. |
+> | `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` | A floor too; most `Microsoft.Extensions.*` abstractions now ship in .NET 11 itself and need no reference. |
+> | `Npgsql.EntityFrameworkCore.PostgreSQL` (Postgres apps, through `Rask.Postgres`) | `11.0.0-rc.3` | Yes. It is what asks for EF Core `11.0.0-rc.3.26522.148` exactly: the NU1608 above. |
 
 `UseRaskPostgres` is a drop-in for `UseNpgsql` that gives every session production timeouts —
 `StatementTimeout` (30s), `LockTimeout` (10s, and it must stay below the statement timeout so lock contention

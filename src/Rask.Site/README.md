@@ -24,7 +24,7 @@ boots the runtime. To drive it headlessly and take screenshots, use the `run-ras
 dotnet publish src/Rask.Site -c Release
 ```
 
-The output is static files under `bin/Release/net10.0-browser/publish/wwwroot`, prerendered
+The output is static files under `bin/Release/net11.0-browser/publish/wwwroot`, prerendered
 (`<RaskPrerender>true</RaskPrerender>`) and served from the site root. `.github/workflows/pages.yml`
 publishes exactly this to rask.sh. The publish must stay free of IL trim warnings — new reflection
 needs a `[DynamicallyAccessedMembers]` annotation or a justified suppression.
