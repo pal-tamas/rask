@@ -2,7 +2,8 @@ namespace Rask;
 
 /// <summary>
 ///     Bounds on what <c>Cached</c> keeps in memory when the app has no <c>HybridCache</c> of its own:
-///     <c>services.Configure&lt;CachedOptions&gt;(o =&gt; o.SizeLimit = 128.Megabytes);</c>
+///     <c>services.Configure&lt;CachedOptions&gt;(o =&gt; o.SizeLimit = 128.Megabytes);</c>, or on a server the
+///     <c>Rask:Cached</c> configuration section, which code configured after <c>AddRask()</c> wins over.
 /// </summary>
 /// <remarks>
 ///     With a <c>HybridCache</c> registered the app's own cache decides what it holds, and only

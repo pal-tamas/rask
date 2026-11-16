@@ -130,6 +130,7 @@ A few things to know:
 | `Rask:Server` | `RaskServerOptions` | `Rask.Server` | WebSocket caps, grace periods, resume, shutdown drain, and the initial render's `QuiescenceTimeout`. [Details](#server-host--raskserver). |
 | `Rask:Cultures` | `RaskCultureOptions` | `Rask.Server`; `Rask.Wasm` reads the list at BUILD time (`wwwroot/appsettings.json`, or the host's file for a hosted client) | `SupportedCultures` (the first is the default; appended to), negotiation switches. See [localization](localization.md#webassembly-apps). |
 | `Rask:Uploads` | `RaskUploadOptions` | `Rask.Server` | [File uploads](#file-uploads--raskuploads). |
+| `Rask:Cached` | `CachedOptions` | `Rask.Server` | `SizeLimit`, `MaxEntrySize`, `DefaultLifetime` for `Cached[…]` fragments. See [cached fragments](cached-fragments.md#where-it-is-kept). |
 | `Rask:DataProtection:KeyPath` | — | `Rask.Server` | Where the key ring persists. See [deployment](deployment.md#your-users-stay-signed-in-across-a-deploy). |
 | `Rask:Auth` | `AuthOptions` | `Rask.Auth` | `Bearer`, `BearerSigningKey`, `BearerLifetime`, `FirstRunToken`, `CookieName`, the page paths, password and lockout rules. Keep `BearerSigningKey` in user secrets or the environment. See [authentication](authentication.md). |
 | `Rask:Api` | `ApiOptions` | `Rask.Api` | `NotFound`, `Controllers`. |

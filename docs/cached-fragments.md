@@ -79,6 +79,19 @@ builder.Services.Configure<CachedOptions>(o =>
 });
 ```
 
+On a server the same three settings come from the `Rask:Cached` section of `appsettings.json` (or the environment,
+`Rask__Cached__SizeLimit`), and a `Configure<CachedOptions>` in code wins over it:
+
+```json
+{
+  "Rask": {
+    "Cached": { "SizeLimit": 134217728, "MaxEntrySize": 2097152, "DefaultLifetime": "00:10:00" }
+  }
+}
+```
+
+Each must be positive; a zero or negative value stops the host at start, naming `Rask:Cached`.
+
 A cache that cannot be read or written never takes the page down: the fragment is drawn live.
 
 ## What it may hold

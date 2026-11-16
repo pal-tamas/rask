@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Rask.Core.Caching;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Server.Files;
@@ -255,6 +256,37 @@ public class ConfigurableLimitsTests
         using var provider = Provider(new() { ["Rask:Uploads:MaxFileSize"] = "1024" });
 
         Assert.Equal(1024, provider.GetRequiredService<RaskUploadOptions>().MaxFileSize);
+    }
+
+    [Fact]
+    public void The_Rask_Cached_section_reaches_the_fragment_store_and_code_configured_values_win()
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton<IConfiguration>(Configuration(new()
+        {
+            ["Rask:Cached:SizeLimit"] = "1048576",
+            ["Rask:Cached:MaxEntrySize"] = "4096",
+            ["Rask:Cached:DefaultLifetime"] = "00:10:00",
+        }));
+        services.AddRask();
+        services.Configure<CachedOptions>(static o => o.MaxEntrySize = 8192);
+
+        using var provider = services.BuildServiceProvider();
+        var options = provider.GetRequiredService<IFragmentStore>().Options;
+
+        Assert.Equal(1_048_576, options.SizeLimit);
+        Assert.Equal(8192, options.MaxEntrySize);
+        Assert.Equal(TimeSpan.FromMinutes(10), options.DefaultLifetime);
+    }
+
+    [Fact]
+    public void A_non_positive_Rask_Cached_size_limit_is_rejected_naming_the_section()
+    {
+        using var provider = Provider(new() { ["Rask:Cached:SizeLimit"] = "0" });
+
+        var ex = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<CachedOptions>>().Value);
+
+        Assert.Contains("Rask:Cached", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]

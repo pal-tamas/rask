@@ -22,6 +22,10 @@ them until tagged releases begin.
   1015 KB → 74 KB allocated per request on a hit (120 KB → 13 KB at 50 orders), the render ~40× shorter
   (`CachedFragmentBenchmarks`).
   Guide: docs/cached-fragments.md.
+- **`CachedOptions` reads the `Rask:Cached` configuration section (#1323).** Before: the fragment store's bounds were
+  code-only. After: `"Rask": { "Cached": { "SizeLimit": 134217728, "DefaultLifetime": "00:10:00" } }` in
+  appsettings.json (or `Rask__Cached__SizeLimit` in the environment) sets `SizeLimit`, `MaxEntrySize` and
+  `DefaultLifetime`; a `Configure<CachedOptions>` in code still wins, and a non-positive value stops the host at start.
 - **.NET 11's async DataAnnotations work in a form, with nothing declared (#1324).** Before: a uniqueness check on a
   model was an `IAsyncFieldValidator` added to an `EditContext` you built yourself, and an `AsyncValidationAttribute`
   was asked synchronously (its `IsValid`). After: `[Required, EmailAddress, UniqueEmail] public string Email` — the
