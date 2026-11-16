@@ -19,6 +19,9 @@ internal sealed class TunnelRunner(IProcessRunner inner) : IProcessRunner
     public Task<int> RunTeeAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, Action<string> onLine, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
         inner.RunTeeAsync(fileName, Route(fileName, arguments), workingDirectory, onLine, cancellationToken, environment);
 
+    public Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken) =>
+        inner.PipeAsync(fileName, Route(fileName, source), Route(fileName, sink), workingDirectory, cancellationToken);
+
     private IReadOnlyList<string> Route(string fileName, IReadOnlyList<string> arguments) =>
         Tunnel is { IsOpen: true } tunnel
             && string.Equals(fileName, "docker", StringComparison.Ordinal)

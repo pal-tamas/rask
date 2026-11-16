@@ -47,7 +47,9 @@ internal static class RaskCultureScope
             return NullScope.Instance;
         }
 
-        return new PinnedScope(Push(culture.Culture, culture.UICulture), culture.Culture, culture.UICulture);
+        // Values are written in the language's country's culture, as the render walk writes them (#1305).
+        var formatting = FormattingCulture.Of(culture.Culture);
+        return new PinnedScope(Push(formatting, culture.UICulture), formatting, culture.UICulture);
     }
 
     private sealed class NullScope : IDisposable

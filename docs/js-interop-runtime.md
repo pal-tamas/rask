@@ -448,7 +448,15 @@ into view, the runtime sweeps every popover and dialog carrying `data-rask-popov
 back to what its attribute says. Two things a sweep leaves alone: one the reader's word still holds, and one the
 reader opened or shut where nothing told the page (no handler hears its `toggle` or `close`) — no render has
 spoken since, so it stays as the reader left it, and a purely local gesture still sends nothing. A reader's close
-the page DID hear and answered with "still open" is opened again: set the field in `OnClose` / `OnToggle`.
+the page DID hear and answered with "still open" is opened again: set the field in `OnClose` / `OnToggle`. One
+exception to the second: a dialog OPEN while its `data-rask-modal-open` says closed is closed at the next sweep,
+heard or not. Nothing in the page opens a dialog the page opens itself, so such an open is a script's `showModal()`
+or a lost close, and a modal left open makes the rest of the page inert while its buttons act on state the server
+has let go of.
+
+Escape on a modal that says it does not close on it (`data-rask-modal="press | none"`, `Escapable(false)`) is refused
+for the modal the key goes to, the topmost one, wherever focus rests: a `Ui.Modal`'s focus placeholder is gone 150 ms
+after it opens, and focus then rests on the page.
 
 | Attribute | On | What the runtime does |
 | --- | --- | --- |

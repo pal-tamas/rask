@@ -16,14 +16,14 @@ public static partial class Format
     /// <remarks>
     ///     The currency is the culture's country's: a language alone (<c>"hu"</c>, <c>"en"</c>) is read as its main
     ///     country's (Hungary, the United States), as a neutral culture names no currency. A runtime with no culture data
-    ///     — a browser app that ships no ICU — knows no currency to write and writes <c>¤</c>; name it with
-    ///     <see cref="Money(decimal, string)" /> there.
+    ///     — a browser app that ships no ICU — writes English as US English (<c>$</c>), and any other language's
+    ///     currency as <c>¤</c>; name it with <see cref="Money(decimal, string)" /> there.
     /// </remarks>
     /// <param name="amount">The amount, rounded half away from zero to two places.</param>
     /// <returns>The amount as the visitor writes one.</returns>
     public static string Money(decimal amount)
     {
-        var culture = CurrencyMarks.Of(Culture);
+        var culture = FormattingCulture.Of(Culture);
         return Money(amount, culture.NumberFormat, culture.NumberFormat.CurrencySymbol);
     }
 
@@ -41,7 +41,7 @@ public static partial class Format
     public static string Money(decimal amount, string currency)
     {
         var code = CurrencyMarks.Code(currency);
-        var culture = CurrencyMarks.Of(Culture);
+        var culture = FormattingCulture.Of(Culture);
         return Money(amount, culture.NumberFormat, CurrencyMarks.Sign(culture, code));
     }
 

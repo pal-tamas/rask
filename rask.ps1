@@ -110,13 +110,16 @@ function Get-DotnetPath {
 }
 
 # Rask.Cli sets RollForward=Major, so any newer major runs the tool. Demanding exactly 11 would
-# reinstall an SDK on every .NET 12 box.
+# reinstall an SDK on every .NET 12 box. A prerelease SDK (-rc.N/-preview.N) counts only when
+# RASK_INSTALL_DOTNET_QUALITY asks for one: a scaffold's global.json floors at the GA release (11.0.100),
+# which no release candidate satisfies, and the candidates carry the debug proxy CVE-2026-102870 fixed.
 function Test-DotnetSdk {
     $dotnet = Get-DotnetPath
     if (-not $dotnet) { return $false }
     try { $sdks = & $dotnet --list-sdks 2>$null } catch { return $false }
     foreach ($line in $sdks) {
         $version = ($line -split ' ')[0]
+        if ($version.Contains('-') -and -not $DotnetQuality) { continue }
         $major = 0
         if ([int]::TryParse((($version -split '\.')[0]), [ref] $major) -and $major -ge $DotnetMajor) { return $true }
     }

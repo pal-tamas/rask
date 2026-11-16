@@ -15,7 +15,7 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 {
     /// <summary>
     /// The app under deployment. Deliberately tiny (busybox httpd, no .NET) so the gate measures the deploy
-    /// path rather than a SDK image pull: the mechanics being tested — build on the box, health-gate, swap,
+    /// path rather than a SDK image pull: the mechanics being tested — build here and ship to the box, health-gate, swap,
     /// mount the volume — are identical whatever the image contains. Each boot appends to a file under
     /// <c>/data</c>, which is how volume persistence is observed across container replacement.
     /// </summary>
@@ -48,6 +48,29 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         // The host is the source of truth for the next deploy, so the config it remembers must be real.
         Assert.True(File.Exists(Path.Combine(project, ".rask", "deploy.json")), "deploy.json wasn't persisted.");
+    }
+
+    /// <summary>
+    /// The image is built here and streamed to the box (<c>docker save | gzip | docker load</c>): the box ends up with
+    /// <c>:current</c> and <c>:latest</c> naming the loaded image, labelled with the release the container is told, and
+    /// this machine keeps no copy. Only a real pair of daemons can prove the stream loads.
+    /// </summary>
+    [Fact]
+    public async Task The_image_is_built_here_shipped_to_the_box_and_named_as_a_release()
+    {
+        Start(out var console, out var command);
+
+        var exit = await command.ExecuteAsync(["--host", host.Host, "--port", "8097", "--app", "shipapp"], CancellationToken.None);
+
+        Assert.True(exit == 0, $"deploy failed.\n{console.OutText}\n{console.ErrorText}");
+        Assert.Contains("Building shipapp:current here for linux/", console.OutText, StringComparison.Ordinal);
+        Assert.Contains("Sending shipapp:current to", console.OutText, StringComparison.Ordinal);
+        var (_, label) = await host.DockerAsync("image", "inspect", "--format", "{{index .Config.Labels \"rask.release\"}}", "shipapp:latest");
+        Assert.Matches(@"^v\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}\.\d{2}$", label.Trim());
+        var (_, version) = await host.DockerAsync("exec", "shipapp", "printenv", "Rask__Version");
+        Assert.Equal(label.Trim(), version.Trim());
+        var (here, _) = await DeployE2E.RunAsync("docker", ["image", "inspect", "shipapp:current"], cancellationToken: TestContext.Current.CancellationToken);
+        Assert.NotEqual(0, here); // the copy built here was removed once the box had it
     }
 
     /// <summary>
@@ -187,6 +210,11 @@ public sealed class DeployHostE2ETests(DeployHostFixture host) : IClassFixture<D
 
         var log = $"\n--- one ---\n{oneConsole.OutText}\n{oneConsole.ErrorText}\n--- two ---\n{twoConsole.OutText}\n{twoConsole.ErrorText}";
         Assert.True(first.All(exit => exit == 0) && second.All(exit => exit == 0), $"a concurrent deploy failed.{log}");
+        // Both images were built here and shipped, not built on the box — the box only loaded them.
+        Assert.Contains("Sending concurrent-one:current to", oneConsole.OutText, StringComparison.Ordinal);
+        Assert.Contains("Sending concurrent-two:current to", twoConsole.OutText, StringComparison.Ordinal);
+        Assert.DoesNotContain("on the box instead", log, StringComparison.Ordinal);
+        Assert.DoesNotContain("building on", log, StringComparison.Ordinal);
         var (_, containers) = await host.DockerAsync("ps", "--format", "{{.Names}}");
         Assert.DoesNotContain("concurrent-one-blue", containers, StringComparison.Ordinal);
         Assert.DoesNotContain("concurrent-two-blue", containers, StringComparison.Ordinal);

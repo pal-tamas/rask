@@ -7,6 +7,26 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+## [0.24.0] - 2026-11-16
+
+**.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app
+references these packages itself, pin them beside the Rask packages:
+
+| Package | Version |
+|---|---|
+| `Microsoft.EntityFrameworkCore*` (SqlServer, Sqlite, Design, Tools, Relational) | `11.0.0` |
+| `Microsoft.Extensions.*`, `Microsoft.AspNetCore.*`, `Microsoft.Data.Sqlite` | `11.0.0` (most abstractions need no reference on .NET 11) |
+| PostgreSQL apps: `Rask.Postgres` (brings `Npgsql.EntityFrameworkCore.PostgreSQL` 11.0.0-rc.3) | `0.24.0-rc.1`, plus `<NoWarn>$(NoWarn);NU1608</NoWarn>` |
+
+### Security
+- **A new app builds only on a released .NET 11 SDK, never on a release candidate (CVE-2026-102870).** The .NET 11
+  release candidates carry the WebAssembly debug proxy CVE-2026-102870 was fixed in, and a Debug build of a browser app
+  starts it. Before: the `global.json` `rask new` writes asked for `11.0.0`, which an RC satisfies. After: it asks for
+  `11.0.100` with `rollForward: latestFeature`; `rask doctor` tells a machine on an RC to install the release, and
+  `rask.sh`/`rask.ps1` install the released SDK beside an RC instead of counting it. Rask's own build resolves the
+  patched proxy (`Microsoft.NET.Sdk.WebAssembly.Pack` 11.0.0), and a test now fails if a Release publish of a
+  scaffolded or the site's WebAssembly app ever carries the debugger.
+
 ### Added
 - **.NET 11's async DataAnnotations work in a form, with nothing declared (#1324).** Before: a uniqueness check on a
   model was an `IAsyncFieldValidator` added to an `EditContext` you built yourself, and an `AsyncValidationAttribute`
@@ -28,6 +48,26 @@ them until tagged releases begin.
   switches on .NET's own minimal-API filter for endpoints Rask validates (`RequireRaskValidation` disables it), so
   they keep the one rejection shape. No new public API; the `Rask` package now depends on `Microsoft.Extensions.Validation`
   (11.0.0, its options type). Guide: rask.sh/docs/forms-validation#messages-from-your-own-resources.
+- **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
+  (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
+  built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
+  engine), streamed as `docker save | gzip | docker -H ssh://host load`, tagged `:current`/`:latest` there, and the
+  local copy removed; the health gate, blue-green swap, `:previous` rollback tag and post-deploy prune are unchanged.
+  No registry, no new flag. A machine with no Linux Docker engine builds on the host as before, said in one line.
+  Two different apps deploy to one box in parallel: each holds only its own app lock for the whole deploy, and the
+  box lock just for the seconds of the proxy switch and prune.
+- **Every deploy is a named release, and `/version` answers it.** `rask deploy` names the release by the UTC moment it
+  starts (`v26.11.11.13.12.02`), sets `Rask__Version` on the container and labels the image `rask.release`, so a
+  rollback restores the old name with the old build; `--env Rask:Version=<name>` names it yourself (never recorded as
+  a required variable). `MapRaskVersion()` answers the configured `Rask:Version` first, then a `version.json`
+  (`{"version":"…"}`) beside the app, then the assembly's informational version. Map it outside any `/api` group;
+  it makes a good `--health-path /version`.
+- **`rask deploy --github-actions` deploys what CI passed, with a deploy-only key.** Before: the workflow deployed every
+  push to `main`, CI green or not, and told you to reuse your own SSH key. After: it triggers on `workflow_run` of the
+  repository's CI workflow (`ci.yml`, or its only push workflow) for `main`, runs only for a successful run of a push,
+  and checks out the commit CI passed; with no CI workflow it falls back to push, with a comment saying how to
+  switch. The command prints a per-repository key recipe (`restrict,port-forwarding` in the box's
+  `authorized_keys`) next to the two `gh secret set` lines.
 - **`Xlsx.Read(file)` reads a workbook back, a cell by its heading (#1317).** Before: an app that took Excel files in
   (Eszaf's ELEKÁFA SZ workbook) needed ClosedXML. After: `foreach (var row in Xlsx.Read(file, "Tankolás").HeadingsOn(3, 4).Rows)
   { var litres = (decimal?)row["Tankolás Liter"]; }` — the same `Xlsx.Sheet` the writer takes, zero dependencies, server
@@ -46,6 +86,61 @@ them until tagged releases begin.
   `Shown((string?)null)`. Live on rask.sh/ui/filters ("Many names, long words").
 
 ### Fixed
+- **Scrolling alone reaches the last option of a long `Ui.Select` or `Ui.Pillbox` (more than 100 options).** Before: a
+  windowed list counted every row at one height (32 px, or 60 px once any option had a description), but a row could
+  grow past it — its padding added to that height on a page without Tailwind's preflight (the precompiled kit sheet),
+  and a long name wrapped to two lines at a phone's width — so the scroll box and the rows drawn drifted apart: blank
+  room at the bottom and the last options out of reach of the wheel, the scrollbar and End. After: each row of a
+  windowed list is exactly the height the window counts (`box-sizing: border-box`, its content centred), its name and
+  its description each cut to one line with an ellipsis, and the whole text in the row's `title`. A list of up to 100
+  options is drawn as before, wrapping as Flux's does.
+- **An app with the UI kit and no Tailwind build no longer links a `/css/rask-ui.css` nothing serves (#1315).**
+  Before: `RaskApp` and the WASM host linked the kit's precompiled sheet whenever the kit was on and the app's sheet
+  did not import it, but only `RaskUiWriteStylesheet` put a file there — every page answered its stylesheet with a 404
+  and the kit drew unstyled. After: a Rask.Server host (RaskApp or hand-wired) answers `/css/rask-ui.css` from the
+  kit's own assembly, compressed and kept for a year under its `?v=`; a browser app's build adds the sheet to its static
+  web assets from the package (or, in-repo, the kit's build output), so it is served in development and published.
+  `RaskUiWriteStylesheet` in a project that references the kit by `ProjectReference` now also builds from a clean
+  checkout: the sheet is looked for after the project references are built, not before.
+- **`Rask:Cultures: ["en"]` writes `{price:C}` as `$19.99`, on the server and in a browser app with no ICU (#1305).**
+  Before: a language alone is a .NET neutral culture, which names no currency, so the scaffold's own page wrote
+  `¤19.99` while a job of the same app wrote `$42.00`; an English-only WASM app (no ICU) also wrote `03/14/2026`,
+  `2026 March` and `15:04`. After: while a page renders and a handler runs, `Culture` and `CultureInfo.CurrentCulture`
+  are the language's main country's culture (`en` → `en-US`, `hu` → `hu-HU`, as `CultureInfo.CreateSpecificCulture`
+  names it); `UICulture`, `<html lang>`, the URL's language and the culture cookie stay the language configured. A
+  browser app still ships no ICU for English (the smallest bundle): Rask carries US English's currency, number,
+  percent and date/time patterns built in (`InvariantEnglish`, a handful of values: +2,048 bytes of `Rask.Core.dll`, no ICU), held to
+  the runtime's own en-US by a test, and a test assembly that runs without culture data proves the page, a handler
+  and the process all write `$19.99`, `3/14/2026` and `3:04 PM`. Another language without ICU still formats as the
+  invariant culture.
+- **A page's title settling no longer turns the next press into a whole page in Rask's diff harness (#1303).** A
+  layout that shows `RouteState.Title` over a page with a `PageTitle` is walked twice when the title changes, and the
+  second walk threw away every frame of the writer, including the ones its host had opened around the walk — the
+  `<body>` frame `Rask.Testing`'s render watch puts the page in, so the first press after it read as
+  `RemoveSubtree`/`InsertSubtree` of the root. The second walk now drops only what the first pass wrote. A live
+  Server session was never affected (its writer is empty when the walk starts): its first press after a title
+  is a diff of a few dozen bytes, now held by a socket test and a browser journey at 1280 and 390 px.
+- **A link to a `#fragment` keeps it, on both hosts (#1310).** Before: a plain `<a href="#section">` moved the page
+  and then lost the hash — the browser's `popstate` was answered with a replace navigation that wrote back the
+  address .NET knows, which has no fragment — so the address bar, Back to it, and a shared link all dropped the
+  section. After: a move between fragments of the page on show is left to the browser (it scrolls, and Back/Forward
+  walk between sections) and nothing is sent; Back from another page to `/page#section` keeps its hash. One module
+  both runtimes share (`rask-fragment.ts`) writes every navigation's history entry. The site's sign-out example
+  points at `#signed-out` again.
+- **A scaffolded app's Docker image restores from the project's own `nuget.config` (#1307).** Before: the server,
+  wasm-hosted and wasm Dockerfiles copied only the csproj before `dotnet restore`, so a private feed or package
+  source mapping was not in the image yet and the restore failed or silently went to nuget.org. After: the restore
+  layer also copies `nuget.config`, `Directory.*` (Directory.Packages.props, Directory.Build.props) and
+  `global.json` — as patterns, so a project without one of them still builds.
+- **Escape no longer closes a modal set `.Escapable(false)` once it has been open a moment.**
+  Before: the runtime refused the key only when focus was inside the dialog, and a `Ui.Modal` hands focus to a
+  placeholder that is gone 150 ms after it opens, so from then on focus rested on the page and Escape closed the
+  dialog. Now the key is refused for the modal it goes to, the topmost one, wherever focus rests.
+- **A state-driven modal (`Ui.Modal.Open(bool)`) that something opened against the page's word closes again.**
+  Before: a modal the server had closed and a script then opened with `showModal()` stayed open through presses and
+  the renders that answered them, because the runtime held an open nobody told the page about as the reader's own.
+  Now an open dialog whose `data-rask-modal-open` says it is closed is closed at the next sweep, a frame later and
+  again after any answer; a reader's untold close of a modal the page keeps open is still left alone.
 - **A modal, a controlled dropdown or a toast the server opened or closed ends up that way in the browser, however
   slow the line.** Before: the runtime acted on a `data-rask-modal-open` / `data-rask-popover-open` CHANGE only, so
   one change the browser did not carry out (a close mid-transition, a busy processor, a tab out of view) was lost
@@ -122,7 +217,7 @@ them until tagged releases begin.
 ### Changed
 - **Rask moves to .NET 11: every package ships `net11.0` (and `net11.0-browser` for WASM) ONLY, and `rask new`
   scaffolds .NET 11.** Before: `net10.0`, a `global.json` on the 10.0 band, the `aspnet:10.0`/`sdk:10.0` images.
-  After: the repo's and every scaffold's `global.json` pin the 11.0 band (`11.0.100` / `11.0.0`, `latestFeature`), the
+  After: the repo's and every scaffold's `global.json` pin the released 11.0 SDK (`11.0.100`, `latestFeature`), the
   template Dockerfiles build on `sdk:11.0` and run on `aspnet:11.0`, the scaffolded deploy workflow sets up `11.0.x`,
   `rask.sh`/`rask.ps1` install the 11.0 channel, and `rask doctor` reports an SDK below 11 (and on a newer SDK asks for
   `wasm-tools-net11`). An app on Rask now needs the .NET 11 SDK. The platform packages move to 11.0.0 (ASP.NET Core,
@@ -134,7 +229,9 @@ them until tagged releases begin.
   query filter, so the tenant filter's "every tenant" arm is now a NULL test of a parameter that EF Core folds away
   per value: `Tenant.Across` still drops the filter and a tenant in flight is still a plain equality, with no
   catch-all OR. What it cannot keep: SQL Server folding the TENANT itself into the SQL against plan sniffing — the
-  tenant is a parameter on every provider now. .NET 11 converts a `double` to `decimal` exactly
+  tenant is a parameter on every provider now (#1321): run SQL Server at compatibility level 160 or later, whose
+  Parameter Sensitive Plan optimization keeps a plan per tenant shape, or add `OPTION(RECOMPILE)` to a query over a
+  heavily skewed tenant on an older level. .NET 11 converts a `double` to `decimal` exactly
   (`(decimal)0.3` is `0.29999999999999998889…`), so `Format.Number(double, atMost)` and `Ui.Slider`/`Ui.ColorPicker`
   take the shortest decimal that reads back as the double, as .NET 10's 15-digit rounding did; EF Core 11 writes
   `COLLATE "EF_DECIMAL"` quoted.
@@ -186,6 +283,9 @@ them until tagged releases begin.
 - **`Ui.Editor`'s engine is on Tiptap 3.33.0** (was 3.32.2, a minor release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 2,130 bytes (449,684 -> 451,814), which the
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
+- **`Ui.Editor`'s engine is on Tiptap 3.33.1** (was 3.33.0, a patch release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 54 bytes (451,814 -> 451,868), which the
+  tiptap follower leaves to the owner; approved, landed by hand (#1263).
 - **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
   issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push
   run alone, which runs only the gates a push can reach — so on 2026-11-09, with `main`'s `full` run red on the CLI

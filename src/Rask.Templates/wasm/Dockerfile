@@ -10,7 +10,9 @@ WORKDIR /src
 # Restore first (cached layer): only the csproj invalidates it, so code edits reuse the cache.
 # NuGet's packages live in a BuildKit cache mount (Docker 23+, Podman 4+), which outlives the layers: the
 # publish below finds them there, and a changed manifest downloads only what changed.
-COPY ["Company.RaskServer.csproj", "./"]
+# With what restore reads beside it: nuget.config (a private feed, source mapping), Directory.*.props, global.json.
+# Each is a pattern, so one the project does not have copies nothing instead of failing the build.
+COPY ["Company.RaskServer.csproj", "[Nn]u[Gg]et.[Cc]onfig", "Directory.*", "global.json*", "./"]
 RUN --mount=type=cache,id=rask-nuget,target=/root/.nuget/packages \
     dotnet restore
 COPY . .

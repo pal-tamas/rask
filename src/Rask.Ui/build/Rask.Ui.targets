@@ -101,7 +101,7 @@
     <Content Remove="$(RaskUiStylesheetOutput)"/>
   </ItemGroup>
 
-  <Target Name="_RaskUiResolveStylesheet">
+  <Target Name="_RaskUiResolveReference">
 
     <!--
       Only for a project that actually draws with the kit, and decided HERE rather than in a property
@@ -116,6 +116,10 @@
     <ItemGroup>
       <_RaskUiKitReference Include="@(ProjectReference)"
                            Condition="$([System.String]::Copy('%(Identity)').Contains('Rask.Ui.csproj'))"/>
+      <!-- In-repo, the hosts by project as well as by package: an app that names only Rask.Server.csproj or
+           Rask.Wasm.csproj draws with the kit just the same, and links its sheet (#1315). -->
+      <_RaskUiKitReference Include="@(ProjectReference)"
+                           Condition="'%(Filename)%(Extension)' == 'Rask.Server.csproj' OR '%(Filename)%(Extension)' == 'Rask.Wasm.csproj'"/>
       <!-- Or a host, which brings the kit: an app that names only Rask.Server or Rask.Wasm still draws with it.
            NOT `Rask`, the shared core — a component library that references it alone has no kit. -->
       <_RaskUiKitReference Include="@(PackageReference)"
@@ -128,6 +132,15 @@
       <!-- The kit itself compiles the sheet; it does not consume it. -->
       <_RaskUiReferenced Condition="'$(MSBuildProjectName)' == 'Rask.Ui'">false</_RaskUiReferenced>
     </PropertyGroup>
+  </Target>
+
+  <!--
+    Where the kit's compiled sheet is, for a project that draws with it — looked up AFTER ResolveProjectReferences,
+    because in this repository the sheet is the kit's own build output: a lookup that ran first, on a clean checkout,
+    found nothing and stayed that way for the rest of the build (a target runs once), so RaskUiWriteStylesheet
+    failed in an in-repo app (#1315, full.yml run 42608057980). A package consumer's references resolve just the same.
+  -->
+  <Target Name="_RaskUiResolveStylesheet" DependsOnTargets="ResolveProjectReferences;_RaskUiResolveReference">
 
     <ItemGroup Condition="'$(_RaskUiReferenced)' == 'true'">
       <!-- From the package: the compiled sheet packed beside these targets. -->
@@ -205,10 +218,73 @@
   </Target>
 
   <!--
+    THE KIT'S SHEET FOR A BROWSER APP THAT LINKS IT, as a static web asset at css/rask-ui.css (UiStylesheet.Path).
+
+    The WASM host links UiStylesheet.Href() whenever the kit is on and the app's own sheet does not compile it in
+    (no Rask.Ui.Stylesheet metadata, _RaskUiStylesheetMetadata below). A browser app has no server of its own to
+    answer that address the way Rask.Server does (KitStylesheet, from the kit's embedded bytes), so the file has to
+    be in its static web assets — and before this, only RaskUiWriteStylesheet put it there: a WASM app with neither
+    linked a sheet nothing served (#1315).
+
+    Contributed from WHERE THE KIT KEEPS IT — build/ui.css in the package, Rask.Ui's obj/ in this repository —
+    as a computed asset, the way Rask.Wasm contributes its boot scripts: nothing is written into the app's tree, a
+    package upgrade moves the bytes, and `dotnet publish` copies it like any asset. Not under _content/Rask.Ui/,
+    because the address is the one every host links. _RaskUiResolveStylesheet resolves the project references
+    first, so a clean in-repo build has built the kit before its sheet is looked for.
+
+    Skipped where the address is already somebody's: RaskUiWriteStylesheet's copy, or a file the app keeps at that
+    path itself (a second asset at one path fails the build). Only for an APP — a library that renders the kit into
+    somebody else's host contributes nothing, and the host serves the sheet.
+  -->
+  <Target Name="_RaskUiAddStylesheetAsset"
+          BeforeTargets="GenerateComputedBuildStaticWebAssets"
+          DependsOnTargets="_RaskUiResolveStylesheet;_RaskUiResolveTailwind"
+          Condition=" '$(UsingMicrosoftNETSdkWebAssembly)' == 'true' AND '$(RaskUiWriteStylesheet)' != 'true'
+                      AND '$(RaskUiStylesheetOutput)' != ''
+                      AND !Exists('$([MSBuild]::NormalizePath(`$(MSBuildProjectDirectory)`, `$(RaskUiStylesheetOutput)`))') ">
+
+    <!-- The host's own test, read the same way: the app's assembly says the kit is compiled in — written below for an
+         app whose sheet imports it, or carried into a generated browser companion (Rask.Server.Client.targets,
+         Rask.Wasm.Prerender.targets), which has no sheet of its own to look at. -->
+    <ItemGroup>
+      <_RaskUiKitCompiledIn Include="@(AssemblyMetadata)" Condition="'%(Identity)' == 'Rask.Ui.Stylesheet'"/>
+    </ItemGroup>
+
+    <PropertyGroup>
+      <_RaskUiServesStylesheet>false</_RaskUiServesStylesheet>
+      <_RaskUiServesStylesheet Condition="'$(_RaskUiReferenced)' == 'true' AND '$(_RaskUiTailwind)' != 'true' AND '@(_RaskUiKitCompiledIn)' == ''">true</_RaskUiServesStylesheet>
+    </PropertyGroup>
+
+    <Error Condition="'$(_RaskUiServesStylesheet)' == 'true' AND '@(_RaskUiStylesheetSource)' == ''"
+           Text="Rask.Ui: this browser app draws with the kit and its pages link $(RaskUiStylesheetOutput), but the kit's stylesheet could not be found to serve there, so every kit colour would resolve to nothing. In this repository, build src/Rask.Ui first (it writes obj/&lt;tfm&gt;/ui.generated.css); from the package, the sheet ships beside these targets as build/ui.css."/>
+
+    <ItemGroup Condition="'$(_RaskUiServesStylesheet)' == 'true'">
+      <_RaskUiStylesheetAssetCandidate Include="@(_RaskUiStylesheetSource->'%(FullPath)')" RelativePath="css/rask-ui.css"/>
+    </ItemGroup>
+
+    <DefineStaticWebAssets Condition="'@(_RaskUiStylesheetAssetCandidate)' != ''"
+                           CandidateAssets="@(_RaskUiStylesheetAssetCandidate)"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="%(_RaskUiStylesheetAssetCandidate.RootDir)%(_RaskUiStylesheetAssetCandidate.Directory)"
+                           BasePath="$(StaticWebAssetBasePath)"
+                           FingerprintCandidates="false">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset"/>
+      <Output TaskParameter="Assets" ItemName="_RaskUiStylesheetStaticWebAsset"/>
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints Condition="'@(_RaskUiStylesheetStaticWebAsset)' != ''"
+                                   CandidateAssets="@(_RaskUiStylesheetStaticWebAsset)"
+                                   ExistingEndpoints="@(StaticWebAssetEndpoint)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint"/>
+    </DefineStaticWebAssetEndpoints>
+  </Target>
+
+  <!--
     Does this project compile the kit into its own stylesheet? It has to draw with the kit, have a
     stylesheet for Tailwind to compile, and — unless RaskUiTailwind says otherwise — import the kit there.
   -->
-  <Target Name="_RaskUiResolveTailwind" DependsOnTargets="_RaskUiResolveStylesheet">
+  <Target Name="_RaskUiResolveTailwind" DependsOnTargets="_RaskUiResolveReference">
     <PropertyGroup>
       <_RaskUiTailwindSheet Condition="'$(RaskTailwindInput)' != ''">$([MSBuild]::NormalizePath('$(MSBuildProjectDirectory)', '$(RaskTailwindInput)'))</_RaskUiTailwindSheet>
 

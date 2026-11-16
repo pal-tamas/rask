@@ -1,4 +1,3 @@
-using System.Globalization;
 using Rask.Cli.Scaffolding;
 using static Rask.Cli.Commands.DeployEnvironment;
 using static Rask.Cli.Commands.DockerCommands;
@@ -7,11 +6,11 @@ using static Rask.Cli.Commands.ProxyCommands;
 namespace Rask.Cli.Commands;
 
 /// <summary>
-/// <c>rask deploy</c> — build the app's Docker image on a single host over SSH and run it, and (when a
-/// <c>--domain</c> is given) front it with a shared Caddy reverse proxy that fetches an automatic
-/// Let's Encrypt certificate. Every <em>deploy</em> operation is <c>docker -H ssh://user@host …</c>, so
-/// there's no registry, no local daemon, and no image tarball — the build context ships to the box's
-/// daemon and builds there.
+/// <c>rask deploy</c> — build the app's Docker image here (for the host's platform), stream it to a single host
+/// over SSH and run it there, and (when a <c>--domain</c> is given) front it with a shared Caddy reverse proxy that
+/// fetches an automatic Let's Encrypt certificate. Every operation on the box is <c>docker -H ssh://user@host …</c>,
+/// so there's no registry: the image goes over as <c>docker save | gzip | docker -H ssh://host load</c>
+/// (see <c>DeployCommand.Ship.cs</c>). A machine with no Linux Docker engine builds on the box instead.
 ///
 /// <para>Host setup is the one exception, and it has to be: installing Docker over
 /// <c>docker -H ssh://</c> is chicken-and-egg, so <see cref="HostSetup"/> shells out to plain
@@ -139,7 +138,7 @@ internal sealed partial class DeployCommand : CliCommand
 
     public override string Name => "deploy";
 
-    public override string Summary => "Build and deploy the app to a single host over SSH (auto-HTTPS with --domain).";
+    public override string Summary => "Build the app here and deploy it to a single host over SSH (auto-HTTPS with --domain).";
 
     public override IReadOnlyList<(string Name, string Description)> Arguments =>
     [
@@ -188,7 +187,7 @@ internal sealed partial class DeployCommand : CliCommand
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
             .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before traffic moves to the new version (default: /health).")
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
-            .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy on push, and print the secrets to add.")
+            .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy once CI passes on main, and print how to set its deploy-only key.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
             .WithJson()
             .Option("tail", valueHint: "n", description: "Log lines to show (logs only; default: 100, 'all' for everything).")
@@ -320,53 +319,6 @@ internal sealed partial class DeployCommand : CliCommand
         public int? PublishedPort => Domain is null ? Port : null;
     }
 
-    /// <summary>
-    /// Write <c>.github/workflows/deploy.yml</c> and print the two secrets it needs. Everything the
-    /// workflow varies on already lives in <c>.rask/deploy.json</c>, so the file itself is fixed and
-    /// this needs no network — it works before the host exists.
-    /// </summary>
-    private int WriteGitHubActionsWorkflow(SshTarget target, string host, bool dryRun)
-    {
-        var path = Path.Combine(_workingDirectory, GitHubActionsWorkflow.RelativePath);
-
-        // The parsed host: no user@, no :port. ssh-keyscan takes the port as -p, so leaving it on the
-        // name would scan nothing and hand CI an empty known_hosts secret.
-        var hostName = target.Host;
-        var keyscan = target.Port is { } p
-            ? $"ssh-keyscan -p {p.ToString(CultureInfo.InvariantCulture)} {hostName}"
-            : $"ssh-keyscan {hostName}";
-
-        if (dryRun)
-        {
-            Console.Out.WriteLine($"Dry run — would write {GitHubActionsWorkflow.RelativePath}:");
-            Console.Out.WriteLine();
-            Console.Out.WriteLine(GitHubActionsWorkflow.Content);
-            return 0;
-        }
-
-        // A workflow is a thing people edit. Overwriting one silently would throw away their changes.
-        if (_fileSystem.FileExists(path))
-        {
-            Console.WriteErrorLine($"{GitHubActionsWorkflow.RelativePath} already exists — leaving it alone.", ConsoleStyle.Error);
-            Console.Error.WriteLine("Delete it first if you want a fresh one, or edit it in place.");
-            return 1;
-        }
-
-        _fileSystem.CreateDirectory(Path.GetDirectoryName(path)!);
-        _fileSystem.WriteAllText(path, GitHubActionsWorkflow.Content);
-        WriteCreated(GitHubActionsWorkflow.RelativePath);
-
-        Console.Out.WriteLine();
-        WriteHeading("Add these two repository secrets, then push to main:");
-        Console.Out.WriteLine();
-        Console.WriteLine($"  gh secret set {GitHubActionsWorkflow.KeySecret} < ~/.ssh/id_ed25519", ConsoleStyle.Code);
-        Console.WriteLine($"  gh secret set {GitHubActionsWorkflow.KnownHostsSecret} --body \"$({keyscan} 2>/dev/null)\"", ConsoleStyle.Code);
-        Console.Out.WriteLine();
-        Console.WriteLine($"  (use the private key that already logs in to {host} — the deploy runs as that user)", ConsoleStyle.Dim);
-        Console.WriteLine($"  (the workflow deploys with --no-setup-host: prepare the box once with `rask deploy --setup-host`)", ConsoleStyle.Dim);
-        return 0;
-    }
-
     private void PersistConfig(string host, string? domain, int? port, string slug, string? project, string? envFile, bool healthEnabled, string healthPath, int containerPort, IReadOnlyList<string>? env = null, string? redirects = null)
     {
         var config = new DeployConfig
@@ -381,7 +333,8 @@ internal sealed partial class DeployCommand : CliCommand
             HealthCheckDisabled = healthEnabled ? null : true,
             ContainerPort = containerPort == DefaultContainerPort ? null : containerPort,
             // Keys only — this file is committed. See DeployConfig.EnvKeys.
-            EnvKeys = env is { Count: > 0 } ? EnvKeysOf(env) : null,
+            // The release name is not one of them: each deploy names its own, so none needs to repeat it.
+            EnvKeys = EnvKeysOf(env ?? []).Where(k => !string.Equals(k, ReleaseName.Key, StringComparison.Ordinal)).ToArray() is { Length: > 0 } keys ? keys : null,
             // Always written, default included: this is the knob an app with long jobs turns, so it is in plain sight.
             StopTimeout = Cli.StopTimeout.Format(StopBudget),
             // Written only when turned: the defaults suit a build that prints as it goes.
@@ -410,12 +363,12 @@ internal sealed partial class DeployCommand : CliCommand
         writer.WriteLine($"  # take {slug}'s own deploy lock for the whole deploy (renewed while held, so another deploy of {slug} waits):");
         Line(BuildAppLockArguments(host, slug, slug));
         writer.WriteLine($"  # check over ssh that the box has room to build (stops below {DiskSpace.Format(DiskSpace.Minimum)} free, warns below {DiskSpace.Format(DiskSpace.Comfortable)})");
-        Line(BuildBuildArguments(host, slug, dockerfile, contextDir));
+        var release = PrintBuildPlan(writer, host, slug, dockerfile, contextDir, env);
         if (domain is null)
         {
             Line(BuildStopArguments(host, slug, ShutdownBudget.PortModeStopTimeout));
             Line(BuildRemoveArguments(host, slug));
-            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, stopTimeout: ShutdownBudget.PortModeStopTimeout));
+            Line(BuildRunArguments(host, slug, domain: null, color: null, port, redacted, containerPort, stopTimeout: ShutdownBudget.PortModeStopTimeout, release: release));
             Line(BuildInspectRunningArguments(host, slug));
             if (healthEnabled)
             {
@@ -429,7 +382,7 @@ internal sealed partial class DeployCommand : CliCommand
             Line(BuildListArguments(host));
             writer.WriteLine("  # when the box has no network yet, under the deploy lock:");
             Line(BuildNetworkCreateArguments(host, Network));
-            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects, stopTimeout: StopBudget));
+            Line(BuildRunArguments(host, slug, domain, color, containerPort, redacted, containerPort, redirects: redirects, stopTimeout: StopBudget, release: release));
             Line(BuildInspectRunningArguments(host, container));
             if (healthEnabled)
             {
@@ -444,6 +397,30 @@ internal sealed partial class DeployCommand : CliCommand
         Line(PruneCommands.BuildImagePruneArguments(host));
         Line(PruneCommands.BuildBuilderPruneArguments(host));
         writer.WriteLine($"  # release the box's lock, then {slug}'s own");
+    }
+
+    /// <summary>
+    /// The dry run's build: here, for the box's platform, then sent over — or on the box without a Linux engine here.
+    /// Returns the release the container is told, representative (the real one is the UTC moment the deploy starts),
+    /// or <c>null</c> when <c>--env</c> names it.
+    /// </summary>
+    private static string? PrintBuildPlan(TextWriter writer, string host, string slug, string dockerfile, string contextDir, IReadOnlyList<string> env)
+    {
+        void Line(IReadOnlyList<string> args) => writer.WriteLine($"  docker {string.Join(' ', args)}");
+
+        var given = ReleaseName.Given(env);
+        var label = given ?? "v<yy.MM.dd.HH.mm.ss>";
+        writer.WriteLine("  # build here, for the box's platform (asked of both engines), then send the image over, compressed:");
+        Line(BuildPlatformArguments(host: null));
+        Line(BuildPlatformArguments(host));
+        Line(BuildLocalBuildArguments(slug, "linux/<box arch>", dockerfile, contextDir, label));
+        Line(BuildRetagArguments(host, slug, CurrentTag, PreviousTag));
+        writer.WriteLine($"  docker {string.Join(' ', BuildSaveArguments(slug))} | gzip | docker {string.Join(' ', BuildLoadArguments(host))}");
+        Line(BuildRetagArguments(host, slug, CurrentTag, "latest"));
+        Line(BuildLocalImageRemoveArguments(slug));
+        writer.WriteLine("  # (with no Linux Docker engine here, the image is built on the box instead:)");
+        Line(BuildBuildArguments(host, slug, dockerfile, contextDir, label));
+        return given is null ? label : null;
     }
 
     /// <summary>The dry run's part under the box's deploy lock: the proxy, this app's file, the reload and the check.</summary>

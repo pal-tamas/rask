@@ -94,6 +94,45 @@ public sealed class KitStylesheetResolutionTests
         Assert.Contains("PackagePath=\"build/ui.css\"", csproj, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_sheet_is_looked_for_only_after_the_project_references_are_built()
+    {
+        // #1315: RaskUiWriteStylesheet hooks BeforeBuild, which runs ahead of the build's own reference resolution.
+        // On a clean checkout an in-repo ProjectReference to the kit had not been built when the sheet was looked
+        // for, so its obj/<tfm>/ui.generated.css was missing and the build failed (full.yml run 42608057980). A
+        // lookup that runs early stays empty for the rest of the build — a target runs once — so the ordering is
+        // on the lookup itself, not on any one target that uses it.
+        var lookup = Regex.Match(_targets, "<Target Name=\"_RaskUiResolveStylesheet\"[^>]*>");
+
+        Assert.True(lookup.Success, "the sheet's lookup target moved.");
+        Assert.Matches("DependsOnTargets=\"ResolveProjectReferences;", lookup.Value);
+        Assert.Matches("DependsOnTargets=\"[^\"]*_RaskUiResolveStylesheet", TargetTag("RaskUiWriteStylesheet"));
+        Assert.Matches("DependsOnTargets=\"[^\"]*_RaskUiResolveStylesheet", TargetTag("_RaskUiAddStylesheetAsset"));
+    }
+
+    [Fact]
+    public void A_browser_app_serves_the_sheet_its_pages_link_from_where_the_kit_keeps_it()
+    {
+        // #1315: the WASM host links UiStylesheet.Href() whenever the kit is on and not compiled into the app's own
+        // sheet, and a browser app has no server to answer it — so the kit's sheet is one of its static web assets,
+        // at exactly the address the host links.
+        var target = _targets[_targets.IndexOf("<Target Name=\"_RaskUiAddStylesheetAsset\"", StringComparison.Ordinal)..];
+        target = target[..(target.IndexOf("</Target>", StringComparison.Ordinal) + "</Target>".Length)];
+
+        Assert.Contains("'$(UsingMicrosoftNETSdkWebAssembly)' == 'true'", target, StringComparison.Ordinal);
+        Assert.Contains("'$(_RaskUiTailwind)' != 'true'", target, StringComparison.Ordinal);
+        Assert.Contains($"RelativePath=\"{UiStylesheet.Path.TrimStart('/')}\"", target, StringComparison.Ordinal);
+        Assert.Contains("<DefineStaticWebAssets", target, StringComparison.Ordinal);
+        Assert.Contains("<Error Condition=", target, StringComparison.Ordinal);
+    }
+
+    private static string TargetTag(string name)
+    {
+        var tag = Regex.Match(_targets, $"<Target Name=\"{name}\"[^>]*>");
+        Assert.True(tag.Success, $"the {name} target moved.");
+        return tag.Value;
+    }
+
     private static string ReadTargets()
     {
         var path = Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "build", "Rask.Ui.targets");

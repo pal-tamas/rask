@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Playwright;
 using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
@@ -67,6 +68,100 @@ public sealed class UiKitSelectWindowTests(WasmExampleAppFixture app, Playwright
         await Expect(State).ToContainTextAsync("Vehicle: 1200.");
         await Expect(Page.Locator("#ui-select-long-list")).ToContainTextAsync("Volvo 1200");
     });
+
+    public static TheoryData<string, string, int> LongNames()
+    {
+        var data = new TheoryData<string, string, int>();
+        foreach (var list in new[] { "ui-select-long-details", "ui-select-long-codes" })
+        {
+            foreach (var how in new[] { "wheel", "scrollbar", "end" })
+            {
+                data.Add(list, how, 1280);
+                data.Add(list, how, 390);
+            }
+        }
+
+        return data;
+    }
+
+    // The two pickers TA and Eszaf draw: 1100 vehicles of which a few say a detail and some names are far too long for a
+    // row, and 480 activity codes of long names and no detail. Scrolled and nothing else, the last option is reached, in
+    // view with no blank room under it, every row exactly as tall as the window counts it, and it is the one picked.
+    [Theory]
+    [MemberData(nameof(LongNames))]
+    public Task Scrolling_alone_reaches_the_last_of_a_long_list_of_long_names_and_picks_it(string id, string how, int width) => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(width, 844);
+        await OpenUiPageAsync("select", "Select");
+        var list = Select(id);
+        await Page.Locator("#" + id).ClickAsync();
+        var box = list.Locator("[data-rask-list-window]");
+        await Expect(box).ToBeVisibleAsync();
+        var (count, field) = id == "ui-select-long-details" ? (1100, "Vehicle") : (480, "Activity");
+
+        await ScrollToTheEndAsync(box, how);
+        var settled = await SettledAsync(box, count);
+        await box.Locator("[aria-posinset='" + count.ToString(CultureInfo.InvariantCulture) + "']").ClickAsync();
+
+        Assert.InRange(settled.Gap, 0, 6);
+        Assert.True(settled.Under >= 0, "the last option is cut off at the top of the list");
+        Assert.Equal(settled.Counted, settled.Heights);
+        await Expect(Page.Locator("[data-testid='ui-select-long-names-state']")).ToContainTextAsync(field + ": " + count.ToString(CultureInfo.InvariantCulture) + ".");
+    });
+
+    private async Task ScrollToTheEndAsync(ILocator box, string how)
+    {
+        if (how == "end")
+        {
+            await Page.Keyboard.PressAsync("End");
+            return;
+        }
+
+        if (how == "scrollbar")
+        {
+            // Where the scrollbar is drawn over the content (headless, macOS) there is no thumb to drag: the box is put
+            // where a drag to the very bottom leaves it.
+            await box.EvaluateAsync("box => box.scrollTop = box.scrollHeight");
+            return;
+        }
+
+        await box.HoverAsync();
+        for (var i = 0; i < 400 && !await box.EvaluateAsync<bool>("box => box.scrollTop + box.clientHeight >= box.scrollHeight - 1"); i++)
+        {
+            await Page.Mouse.WheelAsync(0, 1500);
+            await Page.WaitForTimeoutAsync(30);
+        }
+    }
+
+    // Once the page has drawn the rows the box is scrolled to: the room under the row at place `count`, how far under the
+    // box's top it starts, the heights of every row drawn, and the height the window counts a row at.
+    private static async Task<(int Gap, int Under, string Heights, string Counted)> SettledAsync(ILocator box, int count)
+    {
+        var said = string.Empty;
+        var same = 0;
+        for (var i = 0; i < 100 && same < 5; i++)
+        {
+            var now = await box.EvaluateAsync<string>(
+                """
+                (box, count) => {
+                    const rows = [...box.querySelectorAll('[role=option]')];
+                    const heights = [...new Set(rows.map(r => Math.round(r.getBoundingClientRect().height)))].join(',');
+                    const counted = box.getAttribute('data-rask-list-window').split(' ')[0];
+                    const row = rows.find(r => r.getAttribute('aria-posinset') === String(count));
+                    if (!row) return ['999999', '0', heights, counted].join('|');
+                    const top = box.getBoundingClientRect().top + box.clientTop, at = row.getBoundingClientRect();
+                    return [Math.round(top + box.clientHeight - at.bottom), Math.round(at.top - top), heights, counted].join('|');
+                }
+                """,
+                count);
+            same = string.Equals(now, said, StringComparison.Ordinal) ? same + 1 : 0;
+            said = now;
+            await box.Page.WaitForTimeoutAsync(60);
+        }
+
+        var parts = said.Split('|');
+        return (int.Parse(parts[0], CultureInfo.InvariantCulture), int.Parse(parts[1], CultureInfo.InvariantCulture), parts[2], parts[3]);
+    }
 
     [Fact]
     public Task The_search_narrows_all_1200_rows_not_the_rows_drawn() => RunAsync(async () =>

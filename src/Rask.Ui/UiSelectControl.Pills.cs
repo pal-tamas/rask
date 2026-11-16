@@ -169,6 +169,9 @@ public abstract partial class UiSelectControl<T>
 
     private string? PillListLook() => Pills is null ? null : UiPillboxLook.SearchedList;
 
-    private Component?[] RowContent(UiSelectOption option) =>
-        Pills is null ? [UiListboxRow.Content(option, checkbox: Indicator == Ui.SelectIndicator.Checkbox)] : UiPillboxRow.Content(option);
+    // A row of a windowed list keeps every line it draws to one: nothing in it can make it taller than the window counts.
+    private Component?[] RowContent(UiSelectOption option, bool oneLine) =>
+        Pills is null
+            ? [UiListboxRow.Content(option, checkbox: Indicator == Ui.SelectIndicator.Checkbox, oneLine: oneLine)]
+            : UiPillboxRow.Content(option, oneLine);
 }

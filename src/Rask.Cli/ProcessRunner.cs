@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.IO.Compression;
 
 namespace Rask.Cli;
 
@@ -97,6 +98,61 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         return process.ExitCode;
     }
 
+    public async Task<int> PipeAsync(
+        string fileName,
+        IReadOnlyList<string> source,
+        IReadOnlyList<string> sink,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        using var reader = Start(fileName, source, workingDirectory, redirect: false, redirectOutput: true);
+        using var writer = StartSink(reader, fileName, sink, workingDirectory);
+        try
+        {
+            await CompressAsync(reader.StandardOutput.BaseStream, writer.StandardInput.BaseStream, cancellationToken).ConfigureAwait(false);
+        }
+        catch (IOException)
+        {
+            // The sink stopped reading: it failed, and says why on its own standard error. The source has nobody to
+            // write to any more, so it goes too; the exit codes below say which side it was.
+            TryKillTree(reader);
+        }
+        catch (OperationCanceledException)
+        {
+            TryKillTree(reader);
+            TryKillTree(writer);
+            throw;
+        }
+
+        await WaitOrKillAsync(reader, cancellationToken).ConfigureAwait(false);
+        await WaitOrKillAsync(writer, cancellationToken).ConfigureAwait(false);
+        return reader.ExitCode != 0 ? reader.ExitCode : writer.ExitCode;
+    }
+
+    // A sink that cannot start leaves the source writing into a pipe nobody reads: it is ended before the failure goes up.
+    private static Process StartSink(Process source, string fileName, IReadOnlyList<string> arguments, string? workingDirectory)
+    {
+        try
+        {
+            return Start(fileName, arguments, workingDirectory, redirect: false, redirectInput: true);
+        }
+        catch
+        {
+            TryKillTree(source);
+            throw;
+        }
+    }
+
+    // Closing the compressor closes the sink's standard input, which is how it learns the stream has ended.
+    private static async Task CompressAsync(Stream from, Stream to, CancellationToken cancellationToken)
+    {
+        var gzip = new GZipStream(to, CompressionLevel.Fastest);
+        await using (gzip.ConfigureAwait(false))
+        {
+            await from.CopyToAsync(gzip, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private static async Task PumpAsync(
         StreamReader source,
         TextWriter sink,
@@ -126,13 +182,16 @@ internal sealed class ProcessRunner(TextWriter? output = null, TextWriter? error
         IReadOnlyList<string> arguments,
         string? workingDirectory,
         bool redirect,
-        IReadOnlyDictionary<string, string>? environment = null)
+        IReadOnlyDictionary<string, string>? environment = null,
+        bool redirectOutput = false,
+        bool redirectInput = false)
     {
         var info = new ProcessStartInfo(fileName)
         {
             UseShellExecute = false,
-            RedirectStandardOutput = redirect,
+            RedirectStandardOutput = redirect || redirectOutput,
             RedirectStandardError = redirect,
+            RedirectStandardInput = redirectInput,
             WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
         };
 

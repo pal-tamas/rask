@@ -244,6 +244,13 @@ public sealed partial class Receipt : Component
 `Culture` is the visitor's, for formatting. `UICulture` is the language their text is in. `IsRightToLeft`
 answers the layout question.
 
+**A language alone formats as its main country.** `Rask:Cultures: ["en", "hu"]` names languages, and a language alone
+(a .NET *neutral* culture) names no country and so no currency — `{price:C}` would write `¤19.99`. So while a page
+renders, and while a handler runs, `Culture` and `CultureInfo.CurrentCulture` are the language's main country's culture,
+the one `CultureInfo.CreateSpecificCulture` names: `en` formats as `en-US` (`$19.99`, `11/11/2026`), `hu` as `hu-HU`
+(`19,99 Ft`). `UICulture`, `<html lang>`, the URL's language and the remembered cookie stay the language you
+configured. Name a country yourself (`"en-GB"`) and it is used as it is.
+
 Reading any of them tells the render cache this component depends on the culture, so a language switch
 repaints it. **That is why you should read `Culture` rather than `CultureInfo.CurrentCulture`** — the
 ambient value is pinned to the same culture during a render, so it formats correctly, but the cache
@@ -288,11 +295,10 @@ Td[Format.Money(total, "EUR")]      // 1 764,6 EUR          EUR 1,764.6
 `Format.Money` writes at most two places, rounded half away from zero, with no padding zeros — `1 200 Ft`, not
 `1 200,00 Ft` — where and how the culture writes an amount. Without a currency it is the culture's country's: a
 language alone is read as its main country's (`hu` as Hungary, `en` as the United States), so a culture configured
-as `"hu"` writes `Ft` and `"en"` writes `$` (a neutral culture alone would write `¤`, which is #1305 for `{x:C}`).
-With an ISO 4217 code, the culture's own currency is written in its sign (`"HUF"` is `Ft` in Hungarian) and any other
-in its code (`EUR`), as .NET knows no other currency's sign in a culture. A browser app that ships no culture data —
-one whose `Rask:Cultures` is English alone — knows no currency to write and writes `¤`: name the currency there, or
-set `<RaskGlobalization>true</RaskGlobalization>`.
+as `"hu"` writes `Ft` and `"en"` writes `$`, as `{x:C}` does. With an ISO 4217 code, the culture's own currency is
+written in its sign (`"HUF"` is `Ft` in Hungarian) and any other in its code (`EUR`), as .NET knows no other currency's
+sign in a culture. A browser app that ships no culture data — one whose `Rask:Cultures` is English alone — writes US
+English's (`$1,764.6`), which Rask carries built in.
 
 A UTC moment — a `DateTimeOffset`, or a `DateTime` of kind `Utc` — is written as the wall clock showed it; an
 unspecified `DateTime` is a wall-clock time already and is written as it is.
@@ -451,15 +457,18 @@ rather than once per render.
 so an app can ship three languages with no ICU at all. A runtime without culture data can still *name*
 a culture (the build turns `PredefinedCulturesOnly` off for that), and negotiation matches tags as
 strings, so `hu-HU` still finds your `hu`. Only date/number *formatting* falls back to the invariant
-culture's.
+culture's — except English's.
 
-**The prerender bakes with the culture data the bundle ships.** An English-only app has no ICU, so in the
-browser `"en"` formats with the invariant culture's data — `03/14/2026`, `2026 March`, `¤1,234.50` — while the
-publishing machine has real English (`3/14/2026`, `March 2026`, `$1,234.50`). So the prerender of an app
-built with `InvariantGlobalization` runs without culture data too, and the baked page is the one the browser
-then renders: `<html lang="en">` and the English strings stay; only the formatting is the invariant
-culture's. Turn ICU on (`Rask:Cultures` with another language, or `RaskGlobalization`) and both bake and
-browser format with real culture data.
+**English needs no ICU (#1305).** An English-only app (no `Rask:Cultures`, or English alone) ships no ICU, the
+smallest bundle there is, and still formats as US English: `en` and `en-US` are written with US English's currency
+sign, number, percent and date/time patterns, which Rask carries built in — a handful of values, where ICU is a
+megabyte. `{price:C}` is `$1,234.50`, a date `3/14/2026`, a month `March 2026`, exactly as on the server. Any other
+English (`en-GB`) or language without ICU formats as the invariant culture; list it in `Rask:Cultures` and ICU ships.
+
+**The prerender bakes with the culture data the bundle ships.** An app built with `InvariantGlobalization` is
+prerendered without culture data too, so the baked page is the one the browser then renders — US English for
+English, the invariant culture's formatting for anything else. Turn ICU on (`Rask:Cultures` with another language,
+or `RaskGlobalization`) and both bake and browser format with real culture data.
 
 One property covers all three halves of this, because each default is a trap on its own:
 

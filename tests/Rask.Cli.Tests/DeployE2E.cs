@@ -110,6 +110,59 @@ internal sealed class EnvScopedProcessRunner(
         return new ProcessResult(exit, output.StandardOutput, output.StandardError);
     }
 
+    /// <summary>The real pipeline (<c>source | gzip | sink</c>), each end started in this shim's environment.</summary>
+    public async Task<int> PipeAsync(
+        string fileName,
+        IReadOnlyList<string> source,
+        IReadOnlyList<string> sink,
+        string? workingDirectory,
+        CancellationToken cancellationToken)
+    {
+        using var reader = System.Diagnostics.Process.Start(StartInfo(fileName, source, workingDirectory, output: true))!;
+        using var writer = System.Diagnostics.Process.Start(StartInfo(fileName, sink, workingDirectory, output: false))!;
+        try
+        {
+            var gzip = new System.IO.Compression.GZipStream(writer.StandardInput.BaseStream, System.IO.Compression.CompressionLevel.Fastest);
+            await using (gzip.ConfigureAwait(false))
+            {
+                await reader.StandardOutput.BaseStream.CopyToAsync(gzip, cancellationToken).ConfigureAwait(false);
+            }
+
+            await reader.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            await writer.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            reader.Kill(entireProcessTree: true);
+            writer.Kill(entireProcessTree: true);
+            throw;
+        }
+
+        return reader.ExitCode != 0 ? reader.ExitCode : writer.ExitCode;
+    }
+
+    private System.Diagnostics.ProcessStartInfo StartInfo(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, bool output)
+    {
+        var info = new System.Diagnostics.ProcessStartInfo(executables.TryGetValue(fileName, out var resolved) ? resolved : fileName)
+        {
+            UseShellExecute = false,
+            RedirectStandardOutput = output,
+            RedirectStandardInput = !output,
+            WorkingDirectory = workingDirectory ?? Environment.CurrentDirectory,
+        };
+        foreach (var argument in arguments)
+        {
+            info.ArgumentList.Add(argument);
+        }
+
+        foreach (var (key, value) in environment)
+        {
+            info.Environment[key] = value;
+        }
+
+        return info;
+    }
+
     private async Task<(int Exit, (string StandardOutput, string StandardError) Streams)> CaptureCoreAsync(
         string fileName, IReadOnlyList<string> arguments, string? workingDirectory, CancellationToken cancellationToken)
     {

@@ -41,6 +41,9 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
     private static int[] Places(Page page) =>
         [.. page.FindAll("[role=\"option\"]").Select(row => int.Parse(row.Attribute("aria-posinset")!, CultureInfo.InvariantCulture))];
 
+    // How many lines of a row are cut short to one.
+    private static int Cut(Rask.Testing.HtmlNode row) => row.DescendantsAndSelf().Count(node => node.HasClass("truncate"));
+
     // What a search field sends once typing has paused (rask-input.ts counts the pause in the browser).
     private static Task Pause(Page page, string field, string text) =>
         page.On(field).Raise("pause", "{\"value\":" + System.Text.Json.JsonSerializer.Serialize(text) + "}");
@@ -261,6 +264,66 @@ public partial class UiSelectWindowTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal("1000", said!.Split(' ')[2]);
         Assert.Equal(["Zeppelin"], Rows(page));
+    }
+
+    [Fact]
+    public void A_list_where_a_few_rows_have_a_description_draws_every_row_at_the_tall_height_and_counts_the_spacers_by_it()
+    {
+        var page = Acting.Render(() =>
+            Ui.Select.Value(_picked).OnChange(value => _picked = value).Listbox[
+                Enumerable.Range(0, 1000).Select(id => Ui.SelectOption.Key(id).Value(id).Description(id % 7 == 0 ? "Trailer" : null)[NameOf(id)])
+            ]);
+
+        var rows = page.FindAll("[role=\"option\"]");
+
+        Assert.Equal("60 1 1000", page.Find(Box).Attribute(UiWindowMarks.Window));
+        Assert.All(rows, row => Assert.Equal("height:60px", row.Attribute("style")));
+        Assert.All(rows, row => Assert.True(row.HasClass("box-border")));
+        Assert.Equal("height:" + ((1000 - rows.Count) * 60).ToString(CultureInfo.InvariantCulture) + "px", page.FindAll("[data-rask-list-window] > [aria-hidden]")[1].Attribute("style"));
+    }
+
+    [Fact]
+    public void A_windowed_row_keeps_its_words_and_its_description_to_one_line_and_says_them_whole_in_its_title()
+    {
+        var page = Acting.Render(() =>
+            Ui.Select.Value(_picked).OnChange(value => _picked = value).Listbox[
+                Enumerable.Range(0, 1000).Select(id => Ui.SelectOption.Key(id).Value(id).Description(id == 0 ? "A detail" : null)[NameOf(id)])
+            ]);
+
+        var first = page.Find("[aria-posinset=\"1\"]");
+        var second = page.Find("[aria-posinset=\"2\"]");
+
+        Assert.Equal("Vehicle 0000\nA detail", first.Attribute("title"));
+        Assert.Equal("Vehicle 0001", second.Attribute("title"));
+        Assert.Equal(2, Cut(first));
+        Assert.Equal(1, Cut(second));
+    }
+
+    [Fact]
+    public void A_list_of_a_hundred_options_wraps_its_words_and_carries_no_title_as_Flux_draws_it()
+    {
+        var page = Acting.Render(() => Listbox(100));
+
+        var row = page.FindAll("[role=\"option\"]")[0];
+
+        Assert.Null(row.Attribute("title"));
+        Assert.Null(row.Attribute("style"));
+        Assert.Equal(0, Cut(row));
+    }
+
+    [Fact]
+    public void A_windowed_pillbox_row_is_one_line_tall_and_cuts_its_words_short()
+    {
+        var page = Acting.Render(() =>
+            Ui.Pillbox.Values(_several).OnChange(values => _several = [.. values])[
+                Enumerable.Range(0, 1000).Select(id => Ui.PillboxOption.Key(id).Value(id)[NameOf(id)])
+            ]);
+
+        var rows = page.FindAll("[data-ui-listbox-option]");
+
+        Assert.All(rows, row => Assert.Equal("height:32px", row.Attribute("style")));
+        Assert.All(rows, row => Assert.Equal(1, Cut(row)));
+        Assert.Equal("Vehicle 0000", rows[0].Attribute("title"));
     }
 
     [Fact]

@@ -58,6 +58,36 @@ public sealed class PageTitleTests(PlaywrightFixture playwright) : IClassFixture
         Assert.Empty(session.PageErrors);
     }
 
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public async Task Every_press_after_the_title_settled_is_answered_with_a_small_diff_the_first_one_too(int width, int height)
+    {
+        SocketFrames? frames = null;
+        await using var session = await HookSession.OpenAsync<CrumbApp>(
+            playwright, new() { ViewportSize = new() { Width = width, Height = height } },
+            beforeLoad: page =>
+            {
+                frames = SocketFrames.Of(page);
+                return Task.CompletedTask;
+            },
+            path: "/crumbs/3");
+        var page = session.Page;
+        await Expect(page.Locator("#heading")).ToHaveTextAsync("Third módosítása");
+        await frames!.OpenedAsync();
+        frames.Clear();
+
+        for (var press = 1; press <= 3; press++)
+        {
+            await page.ClickAsync("#count");
+            await Expect(page.Locator("#count")).ToHaveTextAsync($"pressed {press}");
+        }
+
+        Assert.Empty(frames.FullPages);
+        Assert.True(frames.LargestReply < 600, $"a press sent {frames.LargestReply} bytes:\n{frames.Trace()}");
+        Assert.Empty(session.PageErrors);
+    }
+
     // The crumb and the tab title, noted after every mutation once the served document has been parsed —
     // while it is still arriving the layout is there before its crumb, which is the parser and no frame.
     private static Task WatchCrumbsAsync(IPage page) =>
@@ -81,6 +111,9 @@ public sealed partial class CrumbApp : Component
 [Route("/crumbs")]
 public sealed partial class CrumbLayout(RouteState route) : Component
 {
+    // The layout's own state, as a menu's or a modal's is: what the first press after the title settles changes (#1303).
+    private int _presses;
+
     protected override Component? HeadAssets => Title[route.Title is { } t ? $"{t} | ESZAF" : "ESZAF"];
 
     protected override Component? Render() =>
@@ -89,6 +122,7 @@ public sealed partial class CrumbLayout(RouteState route) : Component
             NavLink.Href(Routes.CrumbListPage()).Id("home")["Home"],
             route.Title is { } t ? Span.Id("crumb")[t] : null
         ],
+        Button.Id("count").OnClick(() => _presses++)["pressed " + _presses],
         Main[Outlet],
     ];
 }

@@ -106,7 +106,7 @@ public static class GuideCatalog
         new("11-deploy", "Ch 11 · Deploy", "Ship to one box with rask deploy.", "Tutorial", "tutorial/11-deploy.md")
         {
             SearchTitle = "Tutorial 11: deploy a .NET app to a VPS with HTTPS",
-            Description = "Ship the app to one Linux server with rask deploy: a Docker image built over SSH, automatic Let's Encrypt HTTPS via Caddy, health-checked swaps, CI deploys.",
+            Description = "Ship the app to one Linux server with rask deploy: an image built off the box, automatic Let's Encrypt HTTPS via Caddy, health-checked swaps, CI deploys.",
         },
 
         // ---- Data ----
@@ -348,7 +348,7 @@ public static class GuideCatalog
         new("deployment", "Deployment", "rask deploy: a bare VPS to a live HTTPS site, zero downtime.", "Deploy & operate")
         {
             SearchTitle = "Deploy an ASP.NET Core app with Docker and HTTPS",
-            Description = "Ship a .NET app to a single VPS with rask deploy: host setup, Docker builds over SSH, automatic HTTPS, GitHub Actions and backups, plus Dockerfiles.",
+            Description = "Ship a .NET app to a single VPS with rask deploy: host setup, images built off the box, automatic HTTPS, CI-gated GitHub Actions and backups.",
         },
         new("scaling", "Scaling", "How far one box goes, measured — and where the wall actually is.", "Deploy & operate")
         {

@@ -76,6 +76,7 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
             LiveRenderContext.NotifyParameters(resolved, true);
         }
 
+        c.Gate.SetResult();
         await c.Done.Task;
         await WaitUntilAsync(() => handle.RequestRenderCount >= 1);
         // Settle: the claim is exactly one, and only elapsed time evidences the absence of a second.
@@ -289,11 +290,17 @@ public partial class AsyncLifecycleRenderingTests : global::Rask.Core.RaskMarkup
 
     private sealed class ConfigureAwaitFalseComponent : Component
     {
+        // Released by the test once the mount has returned, so the await is still pending when the hook reaches it.
+        // It used to be Task.Delay(1), which a loaded machine could finish before the hook got to its await: the hook
+        // then completed synchronously, and a hook that completes synchronously is painted by the walk that ran it,
+        // not by a render of its own — so the render this test waits for never came, and it timed out at 30 s.
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public TaskCompletionSource Done { get; } = new();
 
         protected override async Task OnMount()
         {
-            await Task.Delay(1).ConfigureAwait(false);
+            await Gate.Task.ConfigureAwait(false);
             Done.TrySetResult();
         }
 

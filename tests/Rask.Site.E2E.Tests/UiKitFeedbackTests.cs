@@ -348,14 +348,17 @@ public sealed class UiKitFeedbackTests(WasmExampleAppFixture app, PlaywrightFixt
     {
         await OpenToastsAsync();
         var toast = Page.Locator("[data-ui-toast] > [data-ui-toast-dialog]");
-        await Page.Locator("#toast-brief").ClickAsync();
+        // The five-second toast, not the one-second one: on a busy runner the one-second toast had gone before the
+        // focus reached it, and the focus then waited 30 s for a button that was no longer there.
+        await Page.Locator("#toast-plain").ClickAsync();
         await Expect(toast).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
 
         // Measured on Flux: focus holds nothing. The pointer is parked where it is over no toast.
         await Page.Mouse.MoveAsync(2, 2);
         await toast.Locator("[data-rask-dismiss]").FocusAsync();
 
-        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 5_000 });
+        // Held, it would stay for good; on time, it is gone once its five seconds and its fade have run.
+        await Expect(toast).ToHaveCountAsync(0, new LocatorAssertionsToHaveCountOptions { Timeout = 10_000 });
     });
 
     [Fact]

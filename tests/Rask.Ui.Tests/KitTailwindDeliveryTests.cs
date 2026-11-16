@@ -291,6 +291,7 @@ public sealed class KitTailwindDeliveryTests
                     <PackageReference Include="Rask.Ui"/>
                   </ItemGroup>
                   <Import Project="{Path.Combine(RepoRoot.FullPath, "src", "Rask.Ui", "build", "Rask.Ui.targets")}"/>
+                  <Target Name="ResolveProjectReferences"/>
                   <Target Name="BeforeBuild"/>
                   <Target Name="GetAssemblyAttributes"/>
                   <Target Name="Build" DependsOnTargets="BeforeBuild;GetAssemblyAttributes"/>

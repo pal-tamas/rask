@@ -60,6 +60,8 @@
     <Compile Include="..\Rask.Cli.Tests\DeployHostFixture.cs" Link="DeployHostFixture.cs"/>
     <Compile Include="..\Rask.Cli.Tests\TestDoubles.cs" Link="TestDoubles.cs"/>
     <Compile Include="..\Shared.TestFiles\RepoFiles.cs" Link="RepoFiles.cs"/>
+    <!-- The debugger files no Release publish may carry; the site E2E asks the same of rask.sh's publish. -->
+    <Compile Include="..\Shared.TestFiles\DebuggerFreePublish.cs" Link="DebuggerFreePublish.cs"/>
     <!-- The cause Rask.Pdf names for a browser that will not start, read off the template image's real output. -->
     <Compile Include="..\..\src\Rask.Pdf\ChromiumStartFailure.cs" Link="ChromiumStartFailure.cs"/>
     <Using Include="Rask.Printing"/>

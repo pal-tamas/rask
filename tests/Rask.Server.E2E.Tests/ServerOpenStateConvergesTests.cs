@@ -54,6 +54,51 @@ public sealed class ServerOpenStateConvergesTests(PlaywrightFixture playwright) 
         Assert.Empty(session.PageErrors);
     }
 
+    // eszaf, 2026-11-11, on nightly .3126: the server closed its modal, a script opened it again with showModal(), and
+    // it stayed open through a press on its submit and the render that answered it. The runtime held the open as the
+    // reader's own, since nothing told the page of it. An open against the server's word is nobody's to keep.
+    [Theory]
+    [InlineData("left alone", 1280)]
+    [InlineData("left alone", 390)]
+    [InlineData("then pressed", 1280)]
+    [InlineData("then pressed", 390)]
+    public async Task A_modal_the_server_closed_and_a_script_opened_again_closes_again(string after, int width)
+    {
+        await using var session = await HookSession.OpenAsync<ServerOpenStatePage>(
+            playwright, new() { ViewportSize = new() { Width = width, Height = 800 } });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        await SlowAsync(page);
+        var modal = page.Locator(Modal);
+        var closes = 0;
+
+        for (var run = 0; run < 5; run++)
+        {
+            await page.ClickAsync("#open-modal");
+            await Expect(modal).ToBeVisibleAsync();
+            await page.ClickAsync("#close-modal");
+            await Expect(modal).ToBeHiddenAsync();
+            await Expect(page.Locator("#modal-closes")).ToHaveTextAsync($"{++closes}");
+
+            // Forced open; "then pressed" also presses its button in the same task, before any frame could close it,
+            // so the handler runs and the page answers with the modal still closed.
+            await modal.EvaluateAsync(after == "then pressed"
+                ? "d => { d.showModal(); d.querySelector('#close-modal').click(); }"
+                : "d => d.showModal()");
+            if (after == "then pressed")
+            {
+                await Expect(page.Locator("#modal-closes")).ToHaveTextAsync($"{++closes}");
+            }
+
+            await Expect(modal).ToBeHiddenAsync();
+            await Expect(modal).ToHaveAttributeAsync("data-rask-modal-open", "false");
+            await page.WaitForTimeoutAsync(500);
+            await Expect(modal).ToBeHiddenAsync();
+        }
+
+        Assert.Empty(session.PageErrors);
+    }
+
     private static async Task ChangeAsync(IPage page, string change)
     {
         switch (change)

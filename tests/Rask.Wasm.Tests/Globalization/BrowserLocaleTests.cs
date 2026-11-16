@@ -25,7 +25,7 @@ public class BrowserLocaleTests
 
         Assert.Contains("<html lang=\"en\"", html, StringComparison.Ordinal);
         Assert.Equal("October 2026", MonthTitle.In(html));
-        Assert.Equal("en", CultureInfo.DefaultThreadCurrentCulture?.Name);
+        Assert.Equal("en-US", CultureInfo.DefaultThreadCurrentCulture?.Name);
         Assert.Equal("en", CultureInfo.DefaultThreadCurrentUICulture?.Name);
     }
 

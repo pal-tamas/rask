@@ -12,8 +12,39 @@ internal static class DockerCommands
     /// will move aside to <c>:previous</c>) and <c>:latest</c>, which is kept purely so the box still reads
     /// the way a person expects when they run <c>docker images</c> themselves.
     /// </summary>
-    internal static IReadOnlyList<string> BuildBuildArguments(string host, string slug, string dockerfile, string contextDir) =>
-        [.. Prefix(host), "build", "-t", $"{slug}:{CurrentTag}", "-t", $"{slug}:latest", "-f", dockerfile, contextDir];
+    internal static IReadOnlyList<string> BuildBuildArguments(string host, string slug, string dockerfile, string contextDir, string? release = null) =>
+        [.. Prefix(host), "build", "-t", $"{slug}:{CurrentTag}", "-t", $"{slug}:latest", .. ReleaseLabel(release), "-f", dockerfile, contextDir];
+
+    /// <summary>
+    /// Build the image <em>here</em>, for the box's <paramref name="platform"/> (<c>linux/amd64</c>), so the box spends
+    /// no memory or CPU on it. Tagged <c>:current</c> only: it is sent to the box under that tag, and the box adds
+    /// <c>:latest</c> itself, so no tag of the developer's own (<c>docker build -t app .</c>) is touched here.
+    /// </summary>
+    internal static IReadOnlyList<string> BuildLocalBuildArguments(string slug, string platform, string dockerfile, string contextDir, string? release = null) =>
+        ["build", "--platform", platform, "-t", $"{slug}:{CurrentTag}", .. ReleaseLabel(release), "-f", dockerfile, contextDir];
+
+    /// <summary>The Docker engine's platform, <c>linux/amd64</c> — this machine's with no host, else the box's.</summary>
+    internal static IReadOnlyList<string> BuildPlatformArguments(string? host) =>
+        [.. host is null ? [] : Prefix(host), "version", "--format", "{{.Server.Os}}/{{.Server.Arch}}"];
+
+    /// <summary>The image built here, written out as a tar stream — the sending end of the shipment.</summary>
+    internal static IReadOnlyList<string> BuildSaveArguments(string slug) =>
+        ["save", $"{slug}:{CurrentTag}"];
+
+    /// <summary>The box reading that stream (gzip-compressed on the way) into its own image store, tags and all.</summary>
+    internal static IReadOnlyList<string> BuildLoadArguments(string host) =>
+        [.. Prefix(host), "load"];
+
+    /// <summary>The copy built here, removed once it is on the box: the build cache keeps what the next build reuses.</summary>
+    internal static IReadOnlyList<string> BuildLocalImageRemoveArguments(string slug) =>
+        ["image", "rm", $"{slug}:{CurrentTag}"];
+
+    /// <summary>The release a run's image was built as (<see cref="ReleaseName.Label"/>); empty for an image built without one.</summary>
+    internal static IReadOnlyList<string> BuildReleaseLabelArguments(string host, string slug, string tag) =>
+        [.. Prefix(host), "image", "inspect", "--format", $"{{{{index .Config.Labels \"{ReleaseName.Label}\"}}}}", $"{slug}:{tag}"];
+
+    private static string[] ReleaseLabel(string? release) =>
+        release is null ? [] : ["--label", $"{ReleaseName.Label}={release}"];
 
     /// <summary>Move the live image aside before a build overwrites its tag, so it can be rolled back to.</summary>
     internal static IReadOnlyList<string> BuildRetagArguments(string host, string slug, string from, string to) =>
@@ -32,7 +63,7 @@ internal static class DockerCommands
     /// so the values never appear in this machine's process table the way <c>-e KEY=VALUE</c> does. Entries
     /// whose value spans lines can't be expressed in that format and stay inline.
     /// </summary>
-    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, string redirects = "", TimeSpan? stopTimeout = null)
+    internal static IReadOnlyList<string> BuildRunArguments(string host, string slug, string? domain, string? color, int port, IReadOnlyList<string> env, int containerPort = DefaultContainerPort, string tag = CurrentTag, string? envFilePath = null, string redirects = "", TimeSpan? stopTimeout = null, string? release = null)
     {
         var args = new List<string>(Prefix(host)) { "run", "-d" };
 
@@ -72,6 +103,12 @@ internal static class DockerCommands
         // this it would land in the container's writable layer and be destroyed by the very restart it
         // exists to survive. Harmless on an app that doesn't use Rask.Logging: nothing reads the value.
         args.AddRange(["-e", "Rask__ConnectionStrings__Logs=Data Source=/data/logs.db"]);
+
+        // The release /version answers. An -e beats the env file, so a release the user named comes as null, not overridden.
+        if (release is not null)
+        {
+            args.AddRange(["-e", $"{ReleaseName.Key}={release}"]);
+        }
 
         if (envFilePath is not null)
         {

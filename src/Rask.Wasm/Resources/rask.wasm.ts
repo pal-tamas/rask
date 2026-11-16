@@ -47,6 +47,7 @@ import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { awaiting, tell } from "../../Rask.Core/Resources/rask-owned.js";
 import { raskDomPayload } from "../../Rask.Core/Resources/rask-dom-payload.js";
 import { handlerClick, inAppUrl, navLinkClick } from "../../Rask.Core/Resources/rask-clicks.js";
+import { addressShown, onlyFragmentMoved, writeEntry } from "../../Rask.Core/Resources/rask-fragment.js";
 import { submitConfirmed } from "../../Rask.Core/Resources/rask-confirm.js";
 import {
     createJSObjectReference,
@@ -373,13 +374,7 @@ function inRoot(el: Node | null): boolean {
 
 function applyHistory(history: RaskFrameReply["history"]): void {
     if (!history || typeof history.url !== "string") return;
-    let target = prependBase(history.url);
-    if (history.action === "replace") {
-        window.history.replaceState({rask: true}, "", target);
-    } else {
-        if (_pendingScrollHash) target += _pendingScrollHash;
-        window.history.pushState({rask: true}, "", target);
-    }
+    writeEntry(prependBase(history.url), history.action === "replace", _pendingScrollHash);
 }
 
 // Reset scroll on forward navigation only (history.action "push" — a nav-link click
@@ -702,7 +697,10 @@ function navigate(url: URL, replace: boolean): void {
         : {type: "navigate", path: stripBase(url.pathname), query: url.search});
 }
 
+addressShown();
 window.addEventListener("popstate", () => {
+    // A move between #fragments of this page is the browser's alone (rask-fragment.ts).
+    if (onlyFragmentMoved()) return;
     // Its page is announced when it arrives, though Back and Forward leave focus and scroll where they are.
     backOrForward();
     send({type: "navigate", path: stripBase(location.pathname), query: location.search, replace: true});

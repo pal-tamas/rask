@@ -19,6 +19,10 @@ internal sealed class DeadlineRunner(IProcessRunner inner) : IProcessRunner
     public Task<int> RunTeeAsync(string fileName, IReadOnlyList<string> arguments, string? workingDirectory, Action<string> onLine, CancellationToken cancellationToken, IReadOnlyDictionary<string, string>? environment = null) =>
         inner.RunTeeAsync(fileName, arguments, workingDirectory, onLine, cancellationToken, environment);
 
+    // The image shipment: held to the deadline of its receiving end (a `load`, as long as a build may take).
+    public Task<int> PipeAsync(string fileName, IReadOnlyList<string> source, IReadOnlyList<string> sink, string? workingDirectory, CancellationToken cancellationToken) =>
+        WithDeadline(fileName, sink, token => inner.PipeAsync(fileName, source, sink, workingDirectory, token), cancellationToken);
+
     private async Task<T> WithDeadline<T>(string fileName, IReadOnlyList<string> arguments, Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
     {
         if (!string.Equals(fileName, "docker", StringComparison.Ordinal) || Deadlines.For(arguments) is not { } deadline)

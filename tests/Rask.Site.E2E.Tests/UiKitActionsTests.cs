@@ -740,6 +740,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
             .GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Session" }).ClickAsync();
         var dialog = Page.Locator("#demo-session");
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // Where a reader's Escape lands: the placeholder that took focus as the dialog opened is gone, and focus rests
+        // on nothing. Pressed before that, Escape found the dialog from the focus and passed; after it, on a slow
+        // machine and for every reader, it closed the dialog.
+        await Expect(dialog.Locator("[data-ui-focus-placeholder]")).ToBeHiddenAsync();
+        await Page.WaitForFunctionAsync("() => document.activeElement === document.body", null,
+            new PageWaitForFunctionOptions { Timeout = 5_000 });
 
         // Twice: an engine honours a refused cancel only once in a row, and the second Escape used to close it.
         await Page.Keyboard.PressAsync("Escape");
@@ -843,6 +849,42 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
             await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete", Exact = true }).ClickAsync();
             await Expect(dialog).ToHaveAttributeAsync("data-rask-modal-open", "false");
             await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        }
+    });
+
+    // A script opened the modal again after the page had closed it (eszaf, 2026-11-11): nothing told the page, and the
+    // runtime kept the open as the reader's through a press and the render that answered it. Left alone or pressed,
+    // an open against the page's word closes again.
+    [Theory]
+    [InlineData("left alone", 1280)]
+    [InlineData("left alone", 390)]
+    [InlineData("then pressed", 1280)]
+    [InlineData("then pressed", 390)]
+    public Task The_state_driven_modal_a_script_opened_after_the_page_closed_it_closes_again(string after, int width) => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(width, 800);
+        await OpenUiPageAsync("modal", "Modal");
+
+        var scope = Page.Locator("[data-testid='ui-modal-state']");
+        var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete order" }).First;
+        var dialog = scope.Locator("dialog");
+
+        for (var run = 0; run < 5; run++)
+        {
+            await opener.ClickAsync();
+            await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+            await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Delete", Exact = true }).ClickAsync();
+            await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+
+            // "then pressed" presses its Delete in the same task, before any frame could close it.
+            await dialog.EvaluateAsync(after == "then pressed"
+                ? "d => { d.showModal(); [...d.querySelectorAll('button')].find(b => b.textContent.trim() === 'Delete').click(); }"
+                : "d => d.showModal()");
+
+            await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+            await Expect(dialog).ToHaveAttributeAsync("data-rask-modal-open", "false");
+            await Page.WaitForTimeoutAsync(500);
+            await Expect(dialog).ToBeHiddenAsync();
         }
     });
 
@@ -1011,20 +1053,45 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
 
         var before = await save.BoundingBoxAsync();
 
+        // The WASM host ends the mark when the dispatch promise resolves, so it is up for the 1.5 s the handler
+        // takes — and the button draws it as Flux does: the label fades out where it stands, so the width
+        // holds, and the spinner fades in over it. What is drawn is read IN the page, from the moment the mark
+        // goes on, and the second press goes in as soon as it is seen: a round trip per check took longer than
+        // the 1.5 s on a slow runner, the handler was done by the second press, and that press was rightly a
+        // second save.
+        await save.EvaluateAsync("""
+            el => {
+                const label = el.querySelector('span'), spinner = el.querySelector('[data-ui-loading-indicator]');
+                const read = () => ({
+                    busy: el.getAttribute('aria-busy') === 'true',
+                    label: getComputedStyle(label).opacity,
+                    spinner: getComputedStyle(spinner).opacity,
+                    pointerEvents: getComputedStyle(el).pointerEvents,
+                    width: el.getBoundingClientRect().width,
+                });
+                let seen = false;
+                window.__raskDrawnWaiting = new Promise(done => {
+                    const look = () => {
+                        const now = read();
+                        seen ||= now.busy;
+                        if (seen && (!now.busy || (now.label === '0' && now.spinner === '1'))) done(now); else requestAnimationFrame(look);
+                    };
+                    look();
+                });
+            }
+            """);
         await save.FocusAsync();
         await Page.Keyboard.PressAsync("Enter");
 
-        // The WASM host ends the mark when the dispatch promise resolves, so it is up for the 1.5 s the handler
-        // takes — and the button draws it as Flux does: the label fades out where it stands, so the width
-        // holds, and the spinner fades in over it.
         await Expect(save).ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
-        await Expect(save.Locator("span").First).ToHaveCSSAsync("opacity", "0");
-        await Expect(save.Locator("[data-ui-loading-indicator]")).ToHaveCSSAsync("opacity", "1");
-        Assert.Equal("none", await save.EvaluateAsync<string>("el => getComputedStyle(el).pointerEvents"));
-        var during = await save.BoundingBoxAsync();
-        Assert.Equal(before!.Width, during!.Width, 0.5);
-
         await Page.Keyboard.PressAsync("Enter");
+
+        var drawn = await Page.EvaluateAsync<System.Text.Json.JsonElement>("() => window.__raskDrawnWaiting");
+        Assert.True(drawn.GetProperty("busy").GetBoolean(), "the handler was done before the button was drawn as waiting.");
+        Assert.Equal("0", drawn.GetProperty("label").GetString());
+        Assert.Equal("1", drawn.GetProperty("spinner").GetString());
+        Assert.Equal("none", drawn.GetProperty("pointerEvents").GetString());
+        Assert.Equal(before!.Width, drawn.GetProperty("width").GetDouble(), 0.5);
 
         await Expect(count).ToContainTextAsync("Saved 1 time", new LocatorAssertionsToContainTextOptions { Timeout = 15_000 });
         await Expect(save).Not.ToHaveAttributeAsync("aria-busy", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });

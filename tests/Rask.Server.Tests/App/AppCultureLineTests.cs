@@ -33,7 +33,8 @@ public sealed class AppCultureLineTests
         var html = await host.Http.GetStringAsync("/", TestContext.Current.CancellationToken);
 
         Assert.Contains("lang=\"hu\"", html, StringComparison.Ordinal);
-        Assert.Contains("<p>hu|hu</p>", html, StringComparison.Ordinal);
+        // Values are written as the language's country writes them, the text in the language itself (#1305).
+        Assert.Contains("<p>hu-HU|hu</p>", html, StringComparison.Ordinal);
     }
 
     [Fact]

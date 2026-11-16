@@ -26,4 +26,13 @@ internal static class UiListWindow
 
     /// <summary>The most letters type-ahead looks for: more is no reader typing.</summary>
     internal const int MaxTyped = 64;
+
+    /// <summary>
+    ///     What a windowed row says whole, on hover, of the lines it cuts short: its words, and the line under them on a
+    ///     line of its own.
+    /// </summary>
+    /// <param name="option">The row's option.</param>
+    /// <returns>The row's <c>title</c>.</returns>
+    internal static string TitleOf(UiSelectOption option) =>
+        option.Description is { } description ? option.Text + "\n" + description : option.Text;
 }

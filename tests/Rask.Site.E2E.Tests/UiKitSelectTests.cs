@@ -71,7 +71,9 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(button).ToContainTextAsync("Bergmann Logistik");
         await button.ClickAsync();
         await field.FillAsync("berl");
-        await Expect(list.Locator("[data-ui-option]:visible")).ToContainTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
+        // The whole answer, not rows within it: the first twenty drawn on opening hold both names already, and a press
+        // aimed while the answer shrinks the list to two lands outside it, on the locked page, and closes it.
+        await Expect(list.Locator("[data-ui-option]:visible")).ToHaveTextAsync(["Bergmann Logistik", "Berlin Cargo"]);
         await list.Locator("[data-ui-option]:visible", new LocatorLocatorOptions { HasTextString = "Berlin Cargo" }).ClickAsync();
 
         await Expect(Page.Locator("[data-testid='ui-select-choices-state']")).ToContainTextAsync("Driver: 5.");

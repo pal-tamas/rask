@@ -39,14 +39,15 @@ switches traffic over — so there's no downtime, and a broken build never repla
 
 ## 3. Deploy from CI (optional)
 
-To ship on every push instead of from your laptop:
+To ship every change CI passes instead of from your laptop:
 
 ```bash
 rask deploy --github-actions
 ```
 
-That writes `.github/workflows/deploy.yml` and prints the repository secrets to add. Push to your default
-branch and the workflow runs the same deploy.
+That writes `.github/workflows/deploy.yml` and prints how to make a deploy-only key and set the two repository
+secrets. Push to `main`: once your CI workflow passes, the workflow runs the same deploy — building the image on
+the runner, not your server (with no CI workflow yet, it deploys every push to `main`).
 
 ## 4. Where your data lives
 
