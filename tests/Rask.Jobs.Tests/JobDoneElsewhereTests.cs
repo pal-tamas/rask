@@ -9,6 +9,8 @@ namespace Rask.Background.Tests;
 [Collection(JobsDbCollection.Name)]
 public sealed class JobDoneElsewhereTests
 {
+    private const string AwayWords = "Could not check the running jobs; they run on unwatched until the next tick.";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -150,14 +152,20 @@ public sealed class JobDoneElsewhereTests
             await h.Entered("a");
             var id = await h.IdOf("a");
 
+            // The database goes away first, and a whole look passes, so no look that read its rows before then is still
+            // running when the clock moves: one that did would see the limit passed and stop the job it never should.
             h.Commands.Fail = _ => true;
-            h.Clock.Advance(TimeSpan.FromMinutes(1));
-            await h.Logged("Could not check the running jobs; they run on unwatched until the next tick.");
             await h.WatchedAsync();
+            var failedBefore = h.LogCount(AwayWords);
+
+            h.Clock.Advance(TimeSpan.FromMinutes(1));
+            await h.WatchedAsync();
+            var failedAfter = h.LogCount(AwayWords);
             var whileAway = h.Recorder.Values.ToList();
             h.Commands.Fail = null;
             var row = await h.Processed(id);
 
+            Assert.True(failedAfter > failedBefore, "a look after the clock moved could not reach the database and said so");
             Assert.Empty(whileAway);
             Assert.Equal(JobStop.TimeLimit, row.Stopped);
         }
