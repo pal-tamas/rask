@@ -186,6 +186,23 @@ public class SignalingRelayTests : IDisposable
     }
 
     [Fact]
+    public async Task A_peer_that_goes_away_without_closing_is_announced_to_the_rest()
+    {
+        // A closed tab or a dropped network sends no close frame. Going away like that cancels the leaving peer's
+        // own request, so an announcement sent on its token never reached anyone.
+        using var host = Host();
+        var (first, _, _) = await Join(host, "room");
+        var (second, secondId, _) = await Join(host, "room");
+        await ReadAsync(first); // peer-joined
+
+        second.Abort();
+
+        var announced = await ReadAsync(first);
+        Assert.Equal("peer-left", announced.GetProperty("type").GetString());
+        Assert.Equal(secondId, announced.GetProperty("peerId").GetString());
+    }
+
+    [Fact]
     public async Task A_page_on_another_origin_cannot_open_the_socket()
     {
         // #1175, Cross-Site WebSocket Hijacking: the browser sends the visitor's cookie with an upgrade

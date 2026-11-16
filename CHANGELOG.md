@@ -68,6 +68,11 @@ them until tagged releases begin.
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
   the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
   collection sets no attributes at all.
+- **A WebRTC peer that drops off without closing is announced to its room, and leaves it.** Before: a closed tab or a
+  lost network ended the signaling socket with an exception, the relay lost track of which peer it was, and the peer
+  stayed in its room — counted against `MaxPeersPerRoom` and never announced as `peer-left`, so the others went on
+  offering to it. Even a clean leave was announced on the leaving peer's own request token, which going away cancels.
+  After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
 - **A deploy from GitHub Actions keeps its build cache between runs, so the second deploy downloads only what

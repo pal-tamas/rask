@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Net.WebSockets;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Rask.Hosting.Shared;
 
 namespace Rask.Signaling;
@@ -165,10 +167,10 @@ public static class RaskSignalingExtensions
         var hub = ctx.RequestServices.GetRequiredService<SignalingHub>();
 
         using var socket = await ctx.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
-        Peer? peer = null;
+        var joined = new StrongBox<Peer?>();
         try
         {
-            peer = await PumpAsync(ctx, socket, hub, options).ConfigureAwait(false);
+            await PumpAsync(ctx, socket, hub, options, joined).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -180,21 +182,26 @@ public static class RaskSignalingExtensions
         }
         finally
         {
-            if (peer is not null)
+            if (joined.Value is { } peer)
             {
                 hub.Leave(peer);
-                await AnnounceAsync(hub, peer, "peer-left", ctx.RequestAborted).ConfigureAwait(false);
+
+                // Told to the others on the HOST's token, never the leaving peer's: a peer leaves most often by
+                // going away, and going away is exactly what cancels its RequestAborted — announcing on that
+                // token sent nothing, so the rest of the room went on offering to a peer that was gone.
+                var stopping = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+                await AnnounceAsync(hub, peer, "peer-left", stopping).ConfigureAwait(false);
             }
         }
     }
 
-    // Returns the joined peer (or null if the socket closed before joining) so the caller can clean up
-    // exactly once, whichever way the loop ended.
-    private static async Task<Peer?> PumpAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options)
+    // Records the joined peer in <paramref name="joined" /> the moment it joins, not on return: a peer that goes
+    // away abruptly ends the loop with an exception, and a peer known only from a return value would then never
+    // leave its room — still counted against its caps, and never announced to the peers it left behind.
+    private static async Task PumpAsync(
+        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options, StrongBox<Peer?> joined)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(options.MaxMessageBytes);
-        Peer? peer = null;
         var windowStart = Environment.TickCount64;
         var inWindow = 0;
 
@@ -205,14 +212,14 @@ public static class RaskSignalingExtensions
                 var (bytes, closed) = await ReceiveAsync(socket, buffer, ctx.RequestAborted).ConfigureAwait(false);
                 if (closed)
                 {
-                    return peer;
+                    return;
                 }
 
                 if (bytes < 0)
                 {
                     // Oversized: the message never fits, so there is nothing to resynchronise to.
                     await CloseAsync(socket, "message too large", ctx.RequestAborted).ConfigureAwait(false);
-                    return peer;
+                    return;
                 }
 
                 if (options.MaxMessagesPerSecond > 0)
@@ -227,14 +234,13 @@ public static class RaskSignalingExtensions
                     if (++inWindow > options.MaxMessagesPerSecond)
                     {
                         await CloseAsync(socket, "rate limit", ctx.RequestAborted).ConfigureAwait(false);
-                        return peer;
+                        return;
                     }
                 }
 
-                peer = await HandleAsync(ctx, socket, hub, options, buffer.AsMemory(0, bytes), peer).ConfigureAwait(false);
+                joined.Value = await HandleAsync(ctx, socket, hub, options, buffer.AsMemory(0, bytes), joined.Value)
+                    .ConfigureAwait(false);
             }
-
-            return peer;
         }
         finally
         {
