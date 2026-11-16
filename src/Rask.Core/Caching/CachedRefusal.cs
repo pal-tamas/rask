@@ -23,7 +23,7 @@ internal static class CachedRefusal
     {
         foreach (var (marker, what) in _live)
         {
-            var at = html.IndexOf(marker, StringComparison.Ordinal);
+            var at = AttributeNamed(html, marker);
             if (at >= 0)
             {
                 throw new InvalidOperationException(
@@ -40,6 +40,35 @@ internal static class CachedRefusal
                 + "handed the stored markup with that component never mounted, so the head would lose it. Contribute "
                 + "the head from a component outside the fragment.");
         }
+    }
+
+    // Where an attribute whose name starts with marker sits, or -1. Only an attribute counts: the same words in the
+    // fragment's text or in an attribute's value (a product description quoting them) are something a visitor wrote,
+    // and refusing on them would let any visitor's text take the page down. The serializer encodes '<' in text and '"'
+    // in a value, so the last unescaped '<' and the quotes after it say where the marker is.
+    private static int AttributeNamed(string html, string marker)
+    {
+        for (var at = html.IndexOf(marker, StringComparison.Ordinal); at >= 0; at = html.IndexOf(marker, at + 1, StringComparison.Ordinal))
+        {
+            if (at > 0 && char.IsWhiteSpace(html[at - 1]) && InsideTagOutsideValue(html, at))
+            {
+                return at;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool InsideTagOutsideValue(string html, int at)
+    {
+        var open = html.LastIndexOf('<', at);
+        if (open < 0 || html.IndexOf('>', open, at - open) >= 0)
+        {
+            return false;
+        }
+
+        var quotes = html.AsSpan(open, at - open).Count('"');
+        return quotes % 2 == 0;
     }
 
     // The attribute's name, as the developer would search their markup for it.

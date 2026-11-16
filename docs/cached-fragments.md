@@ -91,6 +91,9 @@ naming the fragment and the attribute it found:
 - an element reference — `.Ref(…)`;
 - a component that contributes to the page's head.
 
+Only the attribute itself counts: a visitor's text or an attribute value that happens to quote `data-rask-on-click` is
+stored like any other markup, so nothing a visitor types can stop a fragment from being kept.
+
 Written straight into the fragment, [RASK117](diagnostics.md#rask117) stops the build; inside a component it wraps, the
 first render that would store it throws:
 

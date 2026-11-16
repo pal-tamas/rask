@@ -31,6 +31,8 @@ public sealed class CachedFragmentsGuideTests(WasmExampleAppFixture app, Playwri
         var toggle = Page.Locator("#cached-toggle");
         await Expect(toggle).ToHaveTextAsync("Hide the report", new LocatorAssertionsToHaveTextOptions { Timeout = 45_000 });
         await Expect(caption).ToHaveTextAsync("Report, draw #1");
+        // The prerendered button is on screen before anything listens to it: a click then goes nowhere.
+        await WaitForInteractiveAsync(45_000);
 
         await toggle.ClickAsync();
         await Expect(toggle).ToHaveTextAsync("Show the report");

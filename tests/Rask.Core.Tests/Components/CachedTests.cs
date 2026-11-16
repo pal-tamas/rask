@@ -276,6 +276,19 @@ public sealed partial class CachedTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Text_or_a_value_that_quotes_a_handler_marker_is_stored_rather_than_refused()
+    {
+        var visit = Visitor();
+
+        var first = Render(() => Cached.Name("notes")[CachedQuotesMarkers], visit);
+        var second = Render(() => Cached.Name("notes")[CachedQuotesMarkers], visit);
+
+        Assert.Contains("data-rask-on-click", first, StringComparison.Ordinal);
+        Assert.Equal(first, second);
+        Assert.Equal(1, _store.Count);
+    }
+
+    [Fact]
     public async Task A_component_still_loading_is_not_stored_until_its_data_has_painted()
     {
         var gate = new TaskCompletionSource();
@@ -461,6 +474,13 @@ public sealed partial class CachedBoundInput : Component
     {
         public string Name { get; set; } = string.Empty;
     }
+}
+
+/// <summary>A visitor's text and a title that quote the handler markers: static markup all the same.</summary>
+public sealed partial class CachedQuotesMarkers : Component
+{
+    protected override Component? Render() =>
+        P.Title(" data-rask-on-click=\"x\"")["say data-rask-on-click or data-rask-ref, it is only text"];
 }
 
 /// <summary>Draws "loading" until its gate opens, as a component reading its data in OnMount does.</summary>
