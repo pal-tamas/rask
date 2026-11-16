@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Where a scoped ci run measures its change from. Prints a commit, or nothing — the caller then runs the whole set.
 #
-#   main <this run id>   the head of main's newest EARLIER push run that started its gates, green or red,
-#                        that HEAD descends from. Every push's run checks its own change, and only it: a red
+#   main <this run id>   the head of main's newest EARLIER verdict run — a push, or a dispatched `main verdict`
+#                        (scripts/lib/ci_runs.sh) — that started its gates, green or red, that HEAD descends from. Every push's run checks its own change, and only it: a red
 #                        run named its push and is fixed forward, so the next one does not run that red set
 #                        again on top of its own. A run still waiting for its first gate is no base: it is
 #                        cancelled by this one (scripts/lib/cancel_superseded.sh), and this one's scope holds
@@ -28,8 +28,8 @@ case "${1:-}" in
     ;;
   main)
     self="$2"
-    runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&event=push&per_page=30" \
-      --jq ".workflow_runs[] | select(.id < $self) | \"\(.id) \(.head_sha) \(.conclusion // \"\")\"" 2>/dev/null || true)"
+    runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&per_page=30" \
+      --jq ".workflow_runs[] | select(.id < $self and $MAIN_VERDICT) | \"\(.id) \(.head_sha) \(.conclusion // \"\")\"" 2>/dev/null || true)"
     while read -r id sha conclusion; do
       [ -n "$id" ] || continue
       git merge-base --is-ancestor "$sha" HEAD 2>/dev/null || continue

@@ -102,7 +102,7 @@ jobs:
     runs-on: ubuntu-26.04
     permissions:
       contents: write   # main, and removing the branch
-      actions: write    # start the workflows a push from here cannot start
+      actions: write    # start the ci run a push from here cannot start
     env:
       GH_TOKEN: ${{ github.token }}
       BRANCH: ${{ needs.follow.outputs.branch }}
@@ -115,7 +115,7 @@ jobs:
       - name: Land on main
         run: |
           set -eu
-          gated="$(git rev-parse HEAD)"
+          before=""
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -123,21 +123,18 @@ jobs:
           # commit over it. A conflict stops here and tomorrow's run starts from the new main.
           for attempt in 1 2 3; do
             git fetch -q origin main
+            before="$(git rev-parse origin/main)"
             git rebase -q origin/main
             git push -q origin HEAD:main && break
             [ "$attempt" -lt 3 ] || exit 1
           done
           git push -q origin --delete "$BRANCH"
 
-          # A push made with the workflow's own token starts no workflow. The commit the gates passed
-          # goes straight to publishing; a rebased one is a commit nothing has gated, so ci goes first
-          # and publishing follows it as usual.
-          if [ "$(git rev-parse HEAD)" = "$gated" ]; then
-            gh workflow run nightly.yml --ref main
-            gh workflow run pages.yml --ref main
-          else
-            gh workflow run ci.yml --ref main
-          fi
+          # A push made with the workflow's own token starts no workflow — not the push run of ci main is
+          # owed (#1341). Ask ci for it, measured from the main this commit landed on, so it runs only what
+          # the follower's change reaches: titled `main verdict` (ci.yml), it counts as main's push run, and
+          # nightly, pages and the next push's scope follow it as usual.
+          gh workflow run ci.yml --ref main -f base="$before"
 
   report:
     needs: [follow, gates, land]

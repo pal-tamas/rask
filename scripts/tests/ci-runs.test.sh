@@ -45,15 +45,16 @@ chmod +x "$tmp/bin/gh"
 export PATH="$tmp/bin:$PATH" FAKE="$tmp/fake" GITHUB_REPOSITORY=o/r
 reply() { mkdir -p "$FAKE"; printf '%s' "$2" > "$FAKE/$(printf '%s' "$1" | tr -c 'A-Za-z0-9\n' '_').json"; }
 MAIN='ci.yml/runs?branch=main&event=push'
+VERDICTS='ci.yml/runs?branch=main'   # every run on main: green_base keeps the verdicts (ci_runs.sh, MAIN_VERDICT)
 FULL='full.yml/runs?branch=main'
 
-# runs <id:status:event[:conclusion[:sha]]>...  -> a run listing, newest first as the API gives it
+# runs <id:status:event[:conclusion[:sha[:title]]]>...  -> a run listing, newest first as the API gives it
 runs() {
-  local out='{"workflow_runs":[' sep='' r id status event conclusion sha
+  local out='{"workflow_runs":[' sep='' r id status event conclusion sha title
   for r in "$@"; do
-    IFS=: read -r id status event conclusion sha <<<"$r"
+    IFS=: read -r id status event conclusion sha title <<<"$r"
     if [ -n "$conclusion" ]; then conclusion="\"$conclusion\""; else conclusion=null; fi
-    out+="$sep{\"id\":$id,\"status\":\"$status\",\"event\":\"$event\",\"conclusion\":$conclusion,\"head_sha\":\"$sha\"}"
+    out+="$sep{\"id\":$id,\"status\":\"$status\",\"event\":\"$event\",\"conclusion\":$conclusion,\"head_sha\":\"$sha\",\"display_title\":\"${title:-a commit}\"}"
     sep=','
   done
   printf '%s]}' "$out"
@@ -82,36 +83,42 @@ base() { ( cd "$repo" && g checkout -q "$1" && "$root/scripts/lib/green_base.sh"
 echo "==> green_base main: each run checks its own push"
 
 rm -rf "$FAKE"
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:in_progress:push::"$m3" 12:completed:push:success:"$m2")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:in_progress:push::"$m3" 12:completed:push:success:"$m2")"
 jobs 13 "${STARTED[@]}"
 check "an earlier run that started its gates is the base, done or not"  "$m3" "$(base main main 14)"
 
 jobs 13 "${WAITING[@]}"
 check "one still waiting is skipped: this run holds its change"          "$m2" "$(base main main 14)"
 
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:in_progress:push::"$m3" 12:completed:push:failure:"$m2" 11:completed:push:success:"$m1")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:in_progress:push::"$m3" 12:completed:push:failure:"$m2" 11:completed:push:success:"$m1")"
 jobs 12 "${RED[@]}"
 check "a red one is a base: its push was named, not run again"           "$m2" "$(base main main 14)"
 
 jobs 12 'base=completed/failure' 'gates / plan=completed/skipped' 'gates / build=completed/skipped'
 check "a run that failed before any gate is no base"                     "$m1" "$(base main main 14)"
 
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:completed:push:cancelled:"$m3" 12:completed:push:success:"$m2")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:completed:push:cancelled:"$m3" 12:completed:push:success:"$m2")"
 jobs 13 "${STARTED[@]}"
 check "a cancelled run is no base, whatever it started"                  "$m2" "$(base main main 14)"
 
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 15:completed:push:success:"$m4" 13:completed:push:success:"$m2")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 15:completed:push:success:"$m4" 13:completed:push:success:"$m2")"
 check "a later run is never this one's base"                             "$m2" "$(base main main 14)"
 
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:completed:push:success:"$x" 12:completed:push:success:"$m1")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:completed:push:success:"$x" 12:completed:push:success:"$m1")"
 check "a commit off HEAD's history is never a base"                      "$m1" "$(base main main 14)"
 
-reply "repos/o/r/actions/workflows/$MAIN" "$(runs 13:completed:push:success:"$m3")"
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:completed:push:success:"$m3")"
 jobs 13
 check "a green run with no gate to run counts"                           "$m3" "$(base main main 14)"
 
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:completed:workflow_dispatch:success:"$m3":"main verdict $m3" 12:completed:push:success:"$m2")"
+check "a dispatched verdict is a base, as a push is (#1341)"            "$m3" "$(base main main 14)"
+
+reply "repos/o/r/actions/workflows/$VERDICTS" "$(runs 13:completed:workflow_dispatch:success:"$m3":ci 12:completed:pull_request:success:"$m3" 11:completed:push:success:"$m2")"
+check "a narrowed manual run or a pull request is none"                 "$m2" "$(base main main 14)"
+
 rm -rf "$FAKE"
-check "no earlier run at all is no base"                                 ""    "$(base main main 14)"
+check "no earlier run at all is no base"                                ""    "$(base main main 14)"
 
 echo "==> green_base branch: a ci/** branch is measured by its own commits"
 

@@ -131,9 +131,23 @@ wired "...dealt by the shared deal"                  scripts/run-unit-local.sh '
 wired "...whitespace over the whole share"           scripts/run-unit-local.sh 'dotnet format whitespace Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \$format_files'
 wired "...style over its projects' directories only" scripts/run-unit-local.sh 'dotnet format style Rask\.slnx --verify-no-changes -v diag --include \$format_dirs \\$'
 wired "a shard skips a scope without its projects"   scripts/run-unit-local.sh 'nothing to analyse\."$'
-wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&event=push&status=success'
+wired "pages publishes what main's ci passed"        pages.yml   'workflows/ci\.yml/runs\?branch=main&status=success'
+wired "...from a verdict run"                        pages.yml   'select\(\$MAIN_VERDICT\)\]\[0\]\.head_sha'
 wired "pages follows main's ci"                      pages.yml   '^    workflows: \[ci\]$'
 wired "pages follows a push run, not a manual one"   pages.yml   "github\.event\.workflow_run\.event == 'push'"
+wired "...or a dispatched verdict on main"           pages.yml   "startsWith\(github\.event\.workflow_run\.display_title, 'main verdict '\)"
+wired "ci titles a dispatch of the push set on main" ci.yml      "format\('main verdict \{0\}', github\.sha\)"
+wired "...the title ci_runs.sh reads"                scripts/lib/ci_runs.sh 'startswith\("main verdict "\)'
+wired "...and upstream.yml follows"                  upstream.yml "startsWith\(github\.event\.workflow_run\.display_title, 'main verdict '\)"
+wired "a run the workflow token dispatched tells nightly itself" ci.yml '^          gh workflow run nightly\.yml --ref main -f ci_run="\$GITHUB_RUN_ID"$'
+wired "...and pages"                                 ci.yml      '^          gh workflow run pages\.yml --ref main -f verdict=true$'
+wired "...only for that run"                         ci.yml      "github\.triggering_actor == 'github-actions\[bot\]'"
+wired "nightly hands pick the run ci named"          nightly.yml '^          ASKED_RUN: \$\{\{ inputs\.ci_run \}\}$'
+wired "pages deploys the verdict when asked"         pages.yml   '\[ "\$VERDICT" = "true" \]'
+wired "nightly hands pick the run's title"          nightly.yml '^          CI_TITLE: \$\{\{ github\.event\.workflow_run\.display_title \}\}$'
+wired "a Dependabot merge asks ci for main's verdict" dependabot-merge.yml '^          gh workflow run ci\.yml --ref main$'
+wired "a follower's landing asks ci for main's verdict" upstream-follow.yml '^          gh workflow run ci\.yml --ref main -f base="\$before"$'
+wired "a Flux relock's landing asks ci for main's verdict" upstream.yml '^          gh workflow run ci\.yml --ref main -f base="\$before"$'
 wired "a push hands its base to the gates"           ci.yml      '^      base: \$\{\{ needs\.base\.outputs\.sha \}\}$'
 wired "main is measured from its last started run"   ci.yml      'scripts/lib/green_base\.sh main "\$GITHUB_RUN_ID"'
 wired "a ci/** branch is measured by its own commits" ci.yml     'scripts/lib/green_base\.sh branch\)'

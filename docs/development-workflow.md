@@ -229,7 +229,22 @@ long: it starts with the run, packs while it builds, and publishes once the run'
 (`scripts/lib/nightly_wait.sh`) — a later red gate is fixed forward by the next push. A newer push's
 nightly cancels an older one that has not started pushing. The completed run and an hourly schedule are
 its backstop. A pull request or a manual
-`ci` run says nothing about `main` and publishes nothing. Main runs ONCE: until 2026-11-03 publishing
+`ci` run narrowed by `only` (or to another set) says nothing about `main` and publishes nothing.
+
+**A commit a workflow lands is owed a verdict run too** (#1341). GitHub starts no workflow for what a
+workflow's own `GITHUB_TOKEN` does, save a dispatch, so a Dependabot merge (`dependabot-merge.yml`), a
+follower's landing (`upstream-follow.yml`) or a Flux relock (`upstream.yml`) starts no push run of `ci`
+— and before the fix `nightly`, `pages` and the next push's scope never saw that commit. Each of them
+now ends with `gh workflow run ci.yml --ref main` (a follower adds `-f base=<the main it landed on>`, so
+only its change is gated). A dispatch of the push set on `main`, `only` empty, is titled
+`main verdict <sha>` (`ci.yml`'s `run-name`), and that title makes it main's verdict exactly as a push
+run is: `nightly`, `pages`, `upstream`'s waiting followers and `scripts/lib/green_base.sh` publish from or
+measure against either (`MAIN_VERDICT` in `scripts/lib/ci_runs.sh`). Running
+`gh workflow run ci.yml --ref main` by hand gives one too. GitHub sends no `workflow_run` for a run the
+workflow token dispatched, either, so such a run's `publish` job, once it passed, dispatches
+`nightly.yml -f ci_run=<its id>` (picked as that run's `requested` would be) and `pages.yml -f verdict=true`
+(the newest commit a verdict run passed). A person's dispatch has the `workflow_run`, and no `publish`.
+No App token or PAT is needed. Main runs ONCE: until 2026-11-03 publishing
 followed `full`, the whole set, which ran a second time behind every push — see
 [Loosened until 1.0](#loosened-until-10).
 
@@ -603,7 +618,9 @@ They need no network and run in the ordinary unit gate — CI's `build` job, on 
 every pull request — so the gate that runs for a version bump is the one that checks it was complete.
 
 **Landing a Dependabot PR.** `ci.yml` runs the short `deps` set on the pull request (`build`, the `analyzers K/N` shards with the formatter, CLI build, templates — the browser suites run on `main` after the merge),
-and `dependabot-merge.yml` squash-merges the pull request once that run has passed. A red one waits for a
+and `dependabot-merge.yml` squash-merges the pull request once that run has passed, then dispatches
+`ci` on `main` — the push set's `main verdict` run, which nightly and Pages publish from (a merge made
+with the workflow's token starts no push run; see *Publishing*). A red one waits for a
 person: `main` has no required checks, so a red run does not disable the merge button — read the run first.
 Then land it locally, not from the web UI — check the branch out and push it.
 

@@ -20,6 +20,17 @@ name: ci
 # touched since sent it to the whole set anyway — 60% of the runner minutes, 2026-11-03.) A ci/release/** branch runs the whole set and the release-only
 # gates (see gates.yml), which have no key to be scoped by — how to find out before tagging rather than
 # from a failed release.
+#
+# A dispatch of the push set on main is main's VERDICT on its head, as a push run is: the title below says so
+# to nightly.yml, pages.yml, upstream.yml and scripts/lib/ci_runs.sh (MAIN_VERDICT), which publish from
+# either. A commit a workflow lands on main with its own token starts no push run — GitHub starts no workflow
+# for what that token does, save a dispatch — so the workflow that landed it dispatches this (#1341), and the
+# `publish` job below stands in for the workflow_run GitHub fires for no such run. Every other run keeps
+# GitHub's own title (an empty run-name is GitHub's default).
+run-name: >-
+  ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.set == 'push'
+      && inputs.only == '' && format('main verdict {0}', github.sha) || '' }}
+
 on:
   push:
     branches: [main, 'ci/**']
@@ -130,3 +141,24 @@ jobs:
       only: ${{ inputs.only }}
       scope: ${{ needs.base.outputs.scope }}
       base: ${{ needs.base.outputs.sha }}
+
+  # nightly.yml and pages.yml follow main's verdict runs by workflow_run, and GitHub fires none for a run the
+  # workflow token dispatched (ci 42813033870, 2026-11-10: no nightly, no pages): the run a Dependabot merge or
+  # a follower's landing asks for (#1341) tells them itself, once it passed. A person's dispatch needs none.
+  publish:
+    needs: gates
+    if: >-
+      success() && github.event_name == 'workflow_dispatch' && github.triggering_actor == 'github-actions[bot]'
+      && github.ref == 'refs/heads/main' && inputs.set == 'push' && inputs.only == ''
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10   # two dispatches
+    permissions:
+      actions: write   # start nightly and pages
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          set -eu
+          gh workflow run nightly.yml --ref main -f ci_run="$GITHUB_RUN_ID"
+          gh workflow run pages.yml --ref main -f verdict=true

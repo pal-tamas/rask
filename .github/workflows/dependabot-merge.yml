@@ -29,7 +29,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-      actions: write   # start the workflows a merge from here cannot start
+      actions: write   # start the ci run a merge from here cannot start
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -52,7 +52,8 @@ jobs:
             exit 0
           fi
 
-          # A merge made with the workflow's own token starts no workflow, and ci has just passed
-          # this change: publish what main now holds.
-          gh workflow run nightly.yml --ref main
-          gh workflow run pages.yml --ref main
+          # A merge made with the workflow's own token starts no workflow — not the push run of ci main
+          # is owed, so nightly, pages and the next push's scope would never see this commit (#1341). The
+          # pull request ran the short deps set; main's verdict is the push set, so ask ci for it, on main:
+          # titled `main verdict` (ci.yml), it counts as main's push run, and publishing follows it as usual.
+          gh workflow run ci.yml --ref main
