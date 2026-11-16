@@ -7,6 +7,12 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Fixed
+- **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
+  `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
+  the middle of the render, so the page never finished loading and its hooks never ran, on both hosts. After: an empty
+  collection sets no attributes at all.
+
 ## [0.24.0] - 2026-11-16
 
 **.NET 11 only.** Upgrading an app: move it to `net11.0` (and `net11.0-browser`) with the .NET 11.0.100 SDK. If the app

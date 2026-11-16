@@ -284,7 +284,7 @@ public partial class LongSelectScrollPage : Component
 
     protected virtual bool Reset => true;
 
-    protected override Component? Render() => Main.Class("p-4 space-y-4").Attributes((Reset ? UiStylesheet.DocumentAttribute : "data-no-reset", ""))[
+    protected override Component? Render() => Main.Class("p-4 space-y-4").Attributes(Reset ? [(UiStylesheet.DocumentAttribute, "")] : [])[
         Div.Id("fleet-at")[
             Ui.Select.Value(Picked("fleet")).OnChange(value => _picked = "fleet:" + value?.ToString(CultureInfo.InvariantCulture)).Listbox.Searchable()
                 .Placeholder("Choose a vehicle...").Id("fleet")[
