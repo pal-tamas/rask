@@ -130,7 +130,7 @@ internal static class CliBuildE2E
         AssertTheCoreShipsFromItsOwnPackageOnly(feed, nupkg);
         AssertNoPackageShipsBuildIntermediates(feed);
 
-        EvictFromGlobalCache(version);
+        EvictFromGlobalCache(feed, version);
         return (feed, version);
     }
 
@@ -144,8 +144,8 @@ internal static class CliBuildE2E
         var strays = new List<string>();
         foreach (var package in FeedPackages)
         {
-            var path = Path.Combine(feed, $"{package}.{version}.nupkg");
-            Assert.True(File.Exists(path), $"the pack wrote no {Path.GetFileName(path)}.");
+            var path = PackedFile(feed, package, version);
+            Assert.True(path is not null, $"the pack wrote no {package}.{version}.nupkg.");
 
             using var zip = System.IO.Compression.ZipFile.OpenRead(path);
             using var nuspec = zip.Entries.Single(e => e.FullName.EndsWith(".nuspec", StringComparison.Ordinal)).Open();
@@ -160,6 +160,30 @@ internal static class CliBuildE2E
             strays.Count == 0,
             $"These packages name a Rask dependency at a version other than {version}:\n  " + string.Join("\n  ", strays));
     }
+
+    /// <summary>The nupkg <paramref name="package" /> was packed to, or <see langword="null" /> when the pack wrote none.</summary>
+    /// <remarks>
+    ///     A stable pack may hold one package as a prerelease OF THAT VERSION — Rask.Postgres packs as
+    ///     <c>0.24.0-rc.1</c> beside <c>0.24.0</c> while its Npgsql provider is a release candidate (see its
+    ///     csproj). The same exception <c>scripts/lib/publish_packages.py</c> allows, so a tag's gates read the
+    ///     set the way its publish does.
+    /// </remarks>
+    internal static string? PackedFile(string feed, string package, string version)
+    {
+        var exact = Path.Combine(feed, $"{package}.{version}.nupkg");
+        if (File.Exists(exact) || version.Contains('-', StringComparison.Ordinal))
+        {
+            return File.Exists(exact) ? exact : null;
+        }
+
+        return Directory.GetFiles(feed, $"{package}.{version}-*.nupkg").SingleOrDefault();
+    }
+
+    /// <summary>The version a package was packed at: <paramref name="version" />, or the prerelease it is held as.</summary>
+    private static string PackedVersion(string feed, string package, string version) =>
+        PackedFile(feed, package, version) is { } path
+            ? Path.GetFileNameWithoutExtension(path)[(package.Length + 1)..]
+            : version;
 
     /// <summary>No package carries a file out of a project's <c>obj/</c> as content.</summary>
     /// <remarks>
@@ -216,7 +240,7 @@ internal static class CliBuildE2E
     ///     gate. Evicting is safe: these are prerelease packages this repo just built, and they are always
     ///     re-restorable from the feed.
     /// </remarks>
-    private static void EvictFromGlobalCache(string version)
+    private static void EvictFromGlobalCache(string feed, string version)
     {
         var root = Environment.GetEnvironmentVariable("NUGET_PACKAGES")
                    ?? Path.Combine(
@@ -225,7 +249,7 @@ internal static class CliBuildE2E
         foreach (var package in FeedPackages)
         {
             // The cache lowercases both segments.
-            var dir = Path.Combine(root, package.ToLowerInvariant(), version.ToLowerInvariant());
+            var dir = Path.Combine(root, package.ToLowerInvariant(), PackedVersion(feed, package, version).ToLowerInvariant());
             TryDeleteDirectory(dir);
         }
     }
