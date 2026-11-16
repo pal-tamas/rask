@@ -7,6 +7,21 @@ them until tagged releases begin.
 
 ## [Unreleased]
 
+### Added
+- **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
+  dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
+  round it was `Cache.Remember` on the data, which still paid the render. After:
+  `Cached.Name("sales-summary").For(10.Minutes)[SalesSummary]` — the first request draws it and stores the markup once
+  its data has landed; every later one is handed the markup and `SalesSummary` is never mounted. Keyed by name plus,
+  always, the tenant, the signed-in user and the culture; `.VaryByQuery("status")`, `.VaryByRoute()`,
+  `.VaryByHeader("User-Agent")`, `.VaryBy(id)` add to it and `.AcrossUsers()` shares one copy per tenant. Absolute
+  (`.For`) and sliding (`.Sliding`) expiry; `.Tags("catalog")` + `await CachedFragments.Forget("catalog")`. Kept in the
+  app's `HybridCache` when it registered one, else in process bounded by `CachedOptions.SizeLimit`; in WebAssembly in
+  the tab. Refuses to store a handler, a binding, an element reference or a head contribution — at compile time
+  (RASK117) when written in the fragment, at run time when inside a component it wraps. A 500-order dashboard page:
+  1015 KB → 74 KB allocated and ~1.15 ms → ~10 µs per request on a hit (`CachedFragmentBenchmarks`).
+  Guide: docs/cached-fragments.md.
+
 ### Fixed
 - **An empty attribute collection renders nothing instead of breaking the page (#1342).** Before:
   `.Attributes(on ? [(name, "")] : [])` with the empty branch taken (and the same on `.Data([])`/`.Aria([])`) threw in
@@ -47,19 +62,6 @@ references these packages itself, pin them beside the Rask packages:
   scaffolded or the site's WebAssembly app ever carries the debugger.
 
 ### Added
-- **`Cached[…]` keeps a region's markup across requests — Blazor's `CacheView`, for a Rask page (#1323).** Before: a
-  dashboard's aggregates or a filter's long option list were queried and drawn on every request, and the only way
-  round it was `Cache.Remember` on the data, which still paid the render. After:
-  `Cached.Name("sales-summary").For(10.Minutes)[SalesSummary]` — the first request draws it and stores the markup once
-  its data has landed; every later one is handed the markup and `SalesSummary` is never mounted. Keyed by name plus,
-  always, the tenant, the signed-in user and the culture; `.VaryByQuery("status")`, `.VaryByRoute()`,
-  `.VaryByHeader("User-Agent")`, `.VaryBy(id)` add to it and `.AcrossUsers()` shares one copy per tenant. Absolute
-  (`.For`) and sliding (`.Sliding`) expiry; `.Tags("catalog")` + `await CachedFragments.Forget("catalog")`. Kept in the
-  app's `HybridCache` when it registered one, else in process bounded by `CachedOptions.SizeLimit`; in WebAssembly in
-  the tab. Refuses to store a handler, a binding, an element reference or a head contribution — at compile time
-  (RASK117) when written in the fragment, at run time when inside a component it wraps. A 500-order dashboard page:
-  1015 KB → 74 KB allocated and ~1.15 ms → ~10 µs per request on a hit (`CachedFragmentBenchmarks`).
-  Guide: docs/cached-fragments.md.
 - **`rask deploy` builds the image off the box and ships it there.** Before: every deploy built on the host
   (`docker -H ssh://host build`), so two apps deploying at once fought over a small VPS's memory. After: the image is
   built here — the laptop or the CI runner — for the host's platform (`--platform linux/<arch>`, asked of the host's
