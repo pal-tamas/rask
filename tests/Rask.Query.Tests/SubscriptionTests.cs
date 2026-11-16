@@ -116,16 +116,20 @@ public sealed class SubscriptionTests
     [Fact]
     public async Task A_dropped_stream_reconnects_and_refetches_what_it_patches()
     {
-        var (services, dispatcher) = Session();
+        var clock = new ManualClock();
+        var (services, dispatcher) = Session(clock);
         var drops = new Flaky();
         var page = new StreamPage(drops.OpenAsync) { Patch = true };
         Page.Render(page, services);
         await Eventually(() => drops.Opened == 1 && page.Orders!.Data == "first");
 
+        // The reopen waits on the backoff, and the backoff on this clock: the drop holds still while it is read.
         drops.Drop();
+        await Eventually(() => clock.PendingTimers == 1);
 
-        await Eventually(() => page.Prices!.IsReconnecting);
-        Assert.IsType<IOException>(page.Prices!.Error);
+        Assert.True(page.Prices!.IsReconnecting);
+        Assert.IsType<IOException>(page.Prices.Error);
+        clock.Advance(Cqrs.CqrsExecutionOptions.Default.SubscriptionReconnectDelay);
         await Eventually(() => drops.Opened == 2 && page.Prices.IsLive);
         await Eventually(() => dispatcher.QueryCount == 2);
     }
@@ -154,16 +158,20 @@ public sealed class SubscriptionTests
     [Fact]
     public async Task A_disposed_transport_is_a_dropped_connection_not_a_refusal()
     {
-        var (services, _) = Session();
+        var clock = new ManualClock();
+        var (services, _) = Session(clock);
         var attempts = new Attempts();
         var page = new StreamPage((_, ct) => Throwing(new ObjectDisposedException("HttpClient"), attempts, ct));
         Page.Render(page, services);
 
-        // Opened, dropped by the disposal, and opened again — rather than parked on Error, which is what a refusal gets.
-        await Eventually(() => page.Prices!.IsReconnecting && page.Prices.Error is ObjectDisposedException);
-        await Eventually(() => attempts.Count >= 2 && page.Prices!.IsLive);
+        // Opened, dropped by the disposal, and waiting to reopen — rather than parked on Error, which is what a refusal gets.
+        await Eventually(() => clock.PendingTimers == 1);
+        Assert.True(page.Prices!.IsReconnecting);
+        Assert.IsType<ObjectDisposedException>(page.Prices.Error);
+        clock.Advance(Cqrs.CqrsExecutionOptions.Default.SubscriptionReconnectDelay);
 
-        Assert.Null(page.Prices!.Error);
+        await Eventually(() => attempts.Count == 2 && page.Prices.IsLive);
+        Assert.Null(page.Prices.Error);
     }
 
     [Fact]
@@ -215,14 +223,16 @@ public sealed class SubscriptionTests
         Assert.True(late.Orders.IsLive);
     }
 
-    private static (ServiceProvider Services, CountingDispatcher Dispatcher) Session()
+    private static (ServiceProvider Services, CountingDispatcher Dispatcher) Session(TimeProvider? clock = null)
     {
         var dispatcher = new CountingDispatcher();
-        var services = new ServiceCollection()
-            .AddSingleton<IDispatcher>(dispatcher)
-            .AddRaskQuery()
-            .BuildServiceProvider();
-        return (services, dispatcher);
+        var services = new ServiceCollection().AddSingleton<IDispatcher>(dispatcher);
+        if (clock is not null)
+        {
+            services.AddSingleton(clock);
+        }
+
+        return (services.AddRaskQuery().BuildServiceProvider(), dispatcher);
     }
 
     private static async Task Eventually(Func<bool> condition)

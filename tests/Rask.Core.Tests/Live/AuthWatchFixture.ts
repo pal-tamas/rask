@@ -36,7 +36,7 @@ interface Tab {
     waiting: Array<{ again: () => void; ms: number }>;
 }
 
-function tab(bootedWithUser = true): Tab {
+function tab(bootedWithUser = true, socket = true): Tab {
     const state = {now: 1_000_000, focused: true, visible: true, http: false, dropFails: false};
     const wire: string[] = [];
     const queue: string[] = [];
@@ -77,6 +77,7 @@ function tab(bootedWithUser = true): Tab {
             visible: () => state.visible,
             cookieOnEveryFrame: () => state.http,
             bootedWithUser,
+            socket,
         }),
         send(frame: string) {
             if (open && !me.watch.holds()) wire.push(connection + ":" + frame);
@@ -185,8 +186,9 @@ const results: Record<string, unknown> = {};
     results.agedUnfocused = {asksWithin, asksBeyond: t.asks, wire: t.wire};
 }
 
-// No answer is not "changed": a question that fails, times out or is answered with nothing keeps the connection,
-// lets what waited go on it, and the next trigger asks again.
+// No answer is not "changed", and it is not "the same" either: a question that fails, times out or is answered
+// with nothing tells no other tab, but what waited never leaves on the connection opened for the user before. The
+// connection is opened again, and it leaves on the new one, whose upgrade carried the cookie as it is now.
 {
     const failed = tab();
     failed.watch.left();
@@ -194,20 +196,24 @@ const results: Record<string, unknown> = {};
     failed.send("click");
     await failed.answer("fails");
     failed.send("after");
+    const failedBeforeReconnect = failed.wire.slice();
+    failed.reconnected();
     const empty = tab();
     empty.watch.left();
     empty.watch.noticed();
     empty.send("click");
     await empty.answer(null);
+    empty.reconnected();
     empty.watch.noticed();
     results.unanswered = {
-        reopens: failed.reopens + empty.reopens, told: failed.told + empty.told,
+        reopens: failed.reopens + empty.reopens, told: failed.told + empty.told, failedBeforeReconnect,
         wire: failed.wire, emptyWire: empty.wire, asksAfterNextTrigger: empty.asks,
     };
 }
 
-// An answer slow to come holds what the page sends for a moment of the page's time and no longer: it leaves on the
-// connection that is open, and so does what is sent while the answer is still out. The answer is still acted on.
+// An answer slow to come holds what the page sends for a moment of the page's time, and then the connection is
+// opened again for it: it leaves on the new one, and so does what is sent meanwhile. The browser may carry another
+// user by now, and the old connection acts for the one before. The answer, when it comes, opens nothing more.
 {
     const t = tab();
     t.watch.left();
@@ -218,7 +224,8 @@ const results: Record<string, unknown> = {};
     t.send("after");
     const wireLate = t.wire.slice();
     await t.answer({same: true, user: true});
-    const slowSame = {wireWithin, wireLate, reopens: t.reopens};
+    t.reconnected();
+    const slowSame = {wireWithin, wireLate, wire: t.wire, reopens: t.reopens};
     const changed = tab();
     changed.watch.left();
     changed.watch.noticed();
@@ -228,6 +235,32 @@ const results: Record<string, unknown> = {};
     changed.send("held");
     changed.reconnected();
     results.slow = {...slowSame, changedWire: changed.wire, changedReopens: changed.reopens};
+}
+
+// A tab that had nobody's page has nobody to act for by mistake: a slow answer lets what waited go on the connection
+// it has, and the answer is still acted on when it comes.
+{
+    const t = tab(false);
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    t.elapse(HOLD_MS);
+    const wireLate = t.wire.slice();
+    await t.answer({same: false});
+    t.send("held");
+    t.reconnected();
+    results.slowAnonymous = {wireLate, wire: t.wire, reopens: t.reopens, told: t.told};
+}
+
+// Where every request carries the cookie (a WASM tab's), a slow answer lets what waited go: nothing reaches the
+// server under a cookie the browser has replaced.
+{
+    const t = tab(true, false);
+    t.watch.left();
+    t.watch.noticed();
+    t.send("click");
+    t.elapse(HOLD_MS);
+    results.slowWithoutSocket = {wire: t.wire, reopens: t.reopens};
 }
 
 // A hold that lapses after its answer came lets nothing go twice and asks nothing.
@@ -241,7 +274,8 @@ const results: Record<string, unknown> = {};
     results.lapsedAfterAnswer = {wire: t.wire, asks: t.asks};
 }
 
-// "Later" every time is no answer either: the connection stays.
+// "Later" every time is no answer either: once it was put off as often as that is taken, the connection is opened
+// again, once, as for any question in doubt, and no other tab is told.
 {
     const t = tab();
     t.watch.left();
@@ -250,7 +284,7 @@ const results: Record<string, unknown> = {};
         await t.answer({later: true});
         t.elapse(RETRY_MS);
     }
-    results.laterForEver = {reopens: t.reopens, asks: t.asks};
+    results.laterForEver = {reopens: t.reopens, asks: t.asks, told: t.told};
 }
 
 // Told three times while one question is out: one question.

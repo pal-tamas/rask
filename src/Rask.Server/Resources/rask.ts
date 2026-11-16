@@ -281,7 +281,8 @@ import {
     // Other tabs of this browser, for the one thing they tell each other: the credential changed, ask again.
     const authChannel = typeof BroadcastChannel === "function" ? new BroadcastChannel("rask-auth") : null;
     // Bounded by the page's own time, as the stream's open is: a page starved of CPU is not given up on for being
-    // slow to read the answer. A late, failed or refused question is no answer (rask-auth-watch.ts), never a change.
+    // slow to read the answer. A late, failed or refused question is no answer (rask-auth-watch.ts): not a change,
+    // but what waited for it never leaves on this connection.
     function askWho(): Promise<WhoAnswer | null> {
         const asking = new AbortController();
         const stop = pageTimeout(() => asking.abort(), ASK_TIMEOUT_MS);
@@ -304,6 +305,7 @@ import {
         visible: () => document.visibilityState === "visible",
         cookieOnEveryFrame: () => httpConn !== null,
         bootedWithUser: root.hasAttribute("data-rask-user"),
+        socket: true,
     });
     if (authChannel) authChannel.onmessage = () => authWatch.noticed(true);
     // A tab waking from hibernation asks nobody who it is: the connection it opens carries the cookie as it is now,

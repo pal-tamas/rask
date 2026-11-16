@@ -62,10 +62,48 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
         await elsewhere.GotoAsync(host.BaseUrl + "/token?user=bob&tenant=7");
         await ComeBackAndPressAsync(desk);
 
-        // The press is held while the tab asks and is dropped with alice's page: nothing ran for her, and what
-        // the tab shows is bob's.
+        // The press is held while the tab asks and leaves only on a connection opened again — at the answer, or after
+        // HOLD_MS without one, whichever comes first — which bob's cookie opens: it is dropped with alice's page,
+        // nothing ran for anybody, and what the tab shows is bob's.
         await Expect(desk.Locator("#who")).ToHaveTextAsync("who=bob:7", Settled);
-        Assert.DoesNotContain("alice:7", WhoDeskPage.Acted);
+        Assert.Empty(WhoDeskPage.Acted);
+    }
+
+    // The question never comes back in time. The press is not sent on alice's socket after a moment, as it once was:
+    // the tab opens its connection again with the cookie as it is now, and loads again as bob.
+    [Fact]
+    public async Task A_tab_whose_question_is_held_past_the_moment_loads_again_as_the_user_its_browser_now_carries_and_runs_nothing()
+    {
+        await using var host = await StartAsync();
+        await using var context = await playwright.Browser.NewContextAsync();
+        var desk = await OpenDeskAsync(context, host, "/token?user=alice&tenant=7");
+        // Held, never answered: only the page's own give-up ends it, long after the moment a press waits.
+        await desk.RouteAsync("**/_rask/auth/who**", static _ => Task.CompletedTask);
+
+        var elsewhere = await context.NewPageAsync();
+        await elsewhere.GotoAsync(host.BaseUrl + "/token?user=bob&tenant=7");
+        await ComeBackAndPressAsync(desk);
+
+        await Expect(desk.Locator("#who")).ToHaveTextAsync("who=bob:7", Settled);
+        Assert.Empty(WhoDeskPage.Acted);
+    }
+
+    // Fail closed: a question that fails outright — offline, refused, cut off — is no "the same" either.
+    [Fact]
+    public async Task A_tab_whose_question_fails_and_whose_browser_carries_nobody_goes_to_the_sign_in_page_and_runs_nothing()
+    {
+        await using var host = await StartAsync();
+        await using var context = await playwright.Browser.NewContextAsync();
+        var desk = await OpenDeskAsync(context, host, "/token?user=alice&tenant=7");
+        await desk.RouteAsync("**/_rask/auth/who**", static route => route.AbortAsync("internetdisconnected"));
+
+        var elsewhere = await context.NewPageAsync();
+        await elsewhere.GotoAsync(host.BaseUrl + "/gone");
+        await ComeBackAndPressAsync(desk);
+
+        await Expect(desk.Locator("#sign-in-page")).ToHaveTextAsync("sign in here", Settled);
+        await Expect(desk).ToHaveURLAsync(host.BaseUrl + "/login?returnUrl=%2Fwhose");
+        Assert.Empty(WhoDeskPage.Acted);
     }
 
     [Fact]
@@ -105,10 +143,11 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
         await Expect(desk.Locator("#note")).ToHaveValueAsync("half a thought");
     }
 
-    // A loaded host can be slow to answer the question. Late or never is no answer, and never "changed": the tab keeps
-    // its socket, what the reader pressed leaves after a moment, and the question gives up without a reconnect.
+    // A loaded host can be slow to answer the question. Late or never is no answer, and not "the same" either: after a
+    // moment the tab opens its socket again, once, and what the reader pressed leaves on the new one — whose upgrade
+    // carried alice's cookie, so it runs for her, on the page she had. The late give-up opens nothing more.
     [Fact]
-    public async Task A_tab_whose_question_is_never_answered_keeps_its_socket_and_acts_after_a_moment()
+    public async Task A_tab_whose_question_is_never_answered_opens_its_socket_again_once_and_acts_for_the_same_user()
     {
         await using var host = await StartAsync();
         await using var context = await playwright.Browser.NewContextAsync();
@@ -139,7 +178,7 @@ public sealed class CredentialChangedElsewhereTests(PlaywrightFixture playwright
         }
 
         Assert.Equal(["alice:7", "alice:7"], WhoDeskPage.Acted);
-        Assert.Equal(0, Volatile.Read(ref sockets));
+        Assert.Equal(1, Volatile.Read(ref sockets));
         await Expect(desk.Locator("#mounts")).ToHaveTextAsync("mounts=1");
     }
 

@@ -178,10 +178,13 @@ echo "==> upstream actions"
 fresh
 release actions/checkout v99.1.0
 release actions/setup-dotnet v1.0.0
+# Every action the workflow uses needs an answer: one the fake registry does not know moves nothing at all.
+release actions/cache v1.0.0
 run actions.py
 check "a newer major moves the scaffolded workflow"    1 "$(count 'actions/checkout@v99')"
 workflow=src/Rask.Cli/Scaffolding/GitHubActionsWorkflow.cs
 check "an older one leaves it" "$(grep -o 'setup-dotnet@v[0-9]*' "$root/$workflow")" "$(grep -o 'setup-dotnet@v[0-9]*' "$tmp/tree/$workflow")"
+check "...the cache too" "$(grep -o 'cache@v[0-9]*' "$root/$workflow")" "$(grep -o 'cache@v[0-9]*' "$tmp/tree/$workflow")"
 
 echo "==> upstream cldr"
 # `cldr_release VERSION [INTEGRITY]` packs a cldr-core holding 152 languages' plurals as npm's latest, naming

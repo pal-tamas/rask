@@ -83,32 +83,60 @@ public sealed class AuthWatchFixtureTests
         Assert.Equal(["1:within"], Strings(unfocused.GetProperty("wire")));
     }
 
+    // Fail closed: a question that failed, timed out or got nothing back may hide another user, so what waited never
+    // leaves on the connection opened for the one before.
     [Fact]
-    public void A_question_that_gets_no_answer_keeps_the_connection_and_sends_what_waited_on_it()
+    public void A_question_that_gets_no_answer_opens_the_connection_again_and_sends_what_waited_only_on_the_new_one()
     {
         var result = Run();
 
         var unanswered = result.GetProperty("unanswered");
 
-        Assert.Equal(0, unanswered.GetProperty("reopens").GetInt32());
+        Assert.Equal(2, unanswered.GetProperty("reopens").GetInt32());
         Assert.Equal(0, unanswered.GetProperty("told").GetInt32());
-        Assert.Equal(["1:click", "1:after"], Strings(unanswered.GetProperty("wire")));
-        Assert.Equal(["1:click"], Strings(unanswered.GetProperty("emptyWire")));
+        Assert.Empty(Strings(unanswered.GetProperty("failedBeforeReconnect")));
+        Assert.Equal(["2:click", "2:after"], Strings(unanswered.GetProperty("wire")));
+        Assert.Equal(["2:click"], Strings(unanswered.GetProperty("emptyWire")));
         Assert.Equal(2, unanswered.GetProperty("asksAfterNextTrigger").GetInt32());
     }
 
     [Fact]
-    public void A_slow_answer_holds_a_frame_for_a_moment_of_the_page_time_and_is_still_acted_on_when_it_comes()
+    public void A_slow_answer_holds_a_frame_for_a_moment_and_then_sends_it_only_on_a_connection_opened_again()
     {
         var result = Run();
 
         var slow = result.GetProperty("slow");
 
         Assert.Empty(Strings(slow.GetProperty("wireWithin")));
-        Assert.Equal(["1:click", "1:after"], Strings(slow.GetProperty("wireLate")));
-        Assert.Equal(0, slow.GetProperty("reopens").GetInt32());
-        Assert.Equal(["1:click", "2:held"], Strings(slow.GetProperty("changedWire")));
+        Assert.Empty(Strings(slow.GetProperty("wireLate")));
+        Assert.Equal(["2:click", "2:after"], Strings(slow.GetProperty("wire")));
+        Assert.Equal(1, slow.GetProperty("reopens").GetInt32());
+        Assert.Equal(["2:click", "2:held"], Strings(slow.GetProperty("changedWire")));
         Assert.Equal(1, slow.GetProperty("changedReopens").GetInt32());
+    }
+
+    [Fact]
+    public void A_tab_that_had_nobody_lets_a_slowly_answered_frame_go_and_still_acts_on_the_answer_when_it_comes()
+    {
+        var result = Run();
+
+        var anonymous = result.GetProperty("slowAnonymous");
+
+        Assert.Equal(["1:click"], Strings(anonymous.GetProperty("wireLate")));
+        Assert.Equal(["1:click", "2:held"], Strings(anonymous.GetProperty("wire")));
+        Assert.Equal(1, anonymous.GetProperty("reopens").GetInt32());
+        Assert.Equal(1, anonymous.GetProperty("told").GetInt32());
+    }
+
+    [Fact]
+    public void A_tab_whose_every_request_carries_the_cookie_lets_a_slowly_answered_frame_go()
+    {
+        var result = Run();
+
+        var wasm = result.GetProperty("slowWithoutSocket");
+
+        Assert.Equal(["1:click"], Strings(wasm.GetProperty("wire")));
+        Assert.Equal(0, wasm.GetProperty("reopens").GetInt32());
     }
 
     [Fact]
@@ -123,14 +151,15 @@ public sealed class AuthWatchFixtureTests
     }
 
     [Fact]
-    public void A_tab_told_to_ask_later_every_time_keeps_its_connection()
+    public void A_tab_told_to_ask_later_every_time_opens_its_connection_again_once_and_tells_nobody()
     {
         var result = Run();
 
         var later = result.GetProperty("laterForEver");
 
-        Assert.Equal(0, later.GetProperty("reopens").GetInt32());
+        Assert.Equal(1, later.GetProperty("reopens").GetInt32());
         Assert.Equal(6, later.GetProperty("asks").GetInt32());
+        Assert.Equal(0, later.GetProperty("told").GetInt32());
     }
 
     [Fact]

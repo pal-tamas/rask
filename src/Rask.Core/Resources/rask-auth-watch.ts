@@ -15,21 +15,27 @@
 // moving over a window that never took it — is bounded instead: an answer is trusted for FRESH_FOCUSED_MS in
 // the focused window and FRESH_UNFOCUSED_MS in any other, and the first frame after that waits for a new one.
 //
-// A FRAME WAITS A MOMENT, NOT FOR EVER. While an answer is owed, and while the connection is being opened again,
-// the host keeps what the page sends and lets it go afterwards: on the connection that was there when the answer
-// is "the same", on the new one otherwise. An answer that is slow to come — a loaded host, a busy page — holds
-// it for HOLD_MS of the page's own time and no longer: then it leaves on the connection that is open, where the
-// server checks every event against the session's user as it always does, and the answer, when it comes, is
-// still acted on. No answer at all — a timeout, a network error, a server that could not say — is not "changed":
-// the connection stays, and the next trigger asks again. Only an answer that names another principal opens it
-// again; a tab that dropped its connection whenever the server was slow would drop it exactly when it is loaded.
+// A FRAME NEVER LEAVES IN DOUBT ON A SOCKET. While an answer is owed, and while the connection is being opened
+// again, the host keeps what the page sends and lets it go afterwards: on the connection that was there when the
+// answer is "the same", on the new one otherwise. An answer that names another principal opens it again. So does a
+// question that has not been answered within HOLD_MS of the page's own time — a loaded host, a slow network — and one
+// that will not be answered at all: a timeout, a network error, an offline page, a server that could not say, "later"
+// for as long as it is put. What waited then leaves on a connection whose upgrade carried the cookie as it is NOW,
+// never on the one opened for the user before: the server runs it for that user when the browser still carries them,
+// under their new rights when those changed, and drops it with the page when it carries another user or nobody —
+// the tab loads again as them, or goes to the sign-in page, exactly as when the answer is in time, and the reader
+// presses again. An answer that comes after that is not acted on: the connection it would have opened is open. A
+// loaded host makes its signed-in tabs reconnect; that is the price of never acting for a user who has gone. A tab
+// that had nobody's page has no user to act for by mistake: it lets what waited go on the connection it has, and
+// still acts on the answer when it comes.
 //
 // The HTTP transport needs none of it: every post carries the cookie, and the server adopts what it brings.
 //
 // BOTH HOSTS. The Server runtime (rask.ts) asks /_rask/auth/who and opens its connection again. The WASM runtime
 // (rask-wasm-auth.ts) has no connection whose cookie can be stale — every request carries the one there is now — but
 // it has a page drawn for the user it booted with: it asks .NET, which asks its user provider again, and "not the
-// same" drops what the page held and draws it for whoever the browser carries now.
+// same" drops what the page held and draws it for whoever the browser carries now. Its requests carry the cookie, so
+// a question in doubt lets what waited go to .NET (`socket` is false there): the server is never fooled by it.
 
 /** How long an answer is trusted in the window that has the focus. */
 export const FRESH_FOCUSED_MS = 30_000;
@@ -43,7 +49,10 @@ export const RETRY_MS = 500;
 /** How many times "later" is taken before the question is let go, as one that got no answer. */
 export const RETRIES = 5;
 
-/** How long, in the page's own time, what the page sends waits for an answer before it leaves anyway. */
+/**
+ * How long, in the page's own time, what the page sends waits for an answer before the connection is opened again
+ * for it (or, where frames carry the cookie themselves, before it leaves anyway).
+ */
 export const HOLD_MS = 1_000;
 
 /** How long, in the page's own time, a question is given before it counts as unanswered. */
@@ -80,6 +89,11 @@ export interface AuthWatchHost {
     cookieOnEveryFrame(): boolean;
     /** Whether the page this tab booted from was rendered for somebody. */
     bootedWithUser: boolean;
+    /**
+     * Whether what the page sends rides a connection that saw the cookie only as it opened: then nothing leaves on it
+     * while it is in doubt who the browser carries, and doubt opens it again.
+     */
+    socket: boolean;
 }
 
 export interface AuthWatch {
@@ -102,11 +116,9 @@ export function createAuthWatch(host: AuthWatchHost): AuthWatch {
     let answeredAt = host.now();
     let owed = false;
     let asking = false;
-    // Set when a question has been out for HOLD_MS: what the page sends meanwhile is no longer held.
-    let late = false;
     let reopening = false;
     let hadUser = host.bootedWithUser;
-    // Which question is out, so a hold that lapses after its answer came lets nothing go twice.
+    // Which question is out, so an answer, a "later" or a lapsed hold of one given up on acts on nothing.
     let question = 0;
 
     function stale(): boolean {
@@ -117,51 +129,86 @@ export function createAuthWatch(host: AuthWatchHost): AuthWatch {
     let told = false;
     let putOff = 0;
 
-    function answered(answer: WhoAnswer | null): void {
+    // The connection is dropped so the next upgrade carries the cookie as it is now, and what waited leaves on it.
+    function openAgain(): void {
+        reopening = true;
+        if (host.reopen()) return;
+        // Nothing was dropped, so nothing will open to end the hold: let it go now, or what the page sends waits
+        // for ever. With no connection open it waits for the next, whose upgrade carries the cookie as it is then.
+        reopening = false;
+        host.release();
+    }
+
+    // Unanswered — in time or at all. Not "changed", so the other tabs are not told; but on a socket, and for a tab
+    // that had somebody's page, nothing waited leaves on the connection opened for them. An answer that comes after
+    // the connection was opened again is not acted on; one that comes after what waited was let go still is.
+    function doubted(): void {
+        asking = false;
+        putOff = 0;
+        answeredAt = host.now();
+        if (host.socket && hadUser) {
+            question++;
+            openAgain();
+        } else {
+            host.release();
+        }
+    }
+
+    function answered(asked: number, answer: WhoAnswer | null): void {
+        if (asked !== question) return;
+        if (!asking) {
+            if (answer?.same === false && !reopening) {
+                if (!told) host.tellOthers();
+                openAgain();
+            } else if (answer?.same === true && typeof answer.user === "boolean") {
+                hadUser = answer.user;
+            }
+            return;
+        }
         // Asked too often: not an answer. What waits goes on waiting, and the question is put again — a few times,
         // and then it is let go as one that got none.
         if (answer?.later === true && putOff < RETRIES) {
             putOff++;
-            host.wait(put, RETRY_MS);
+            host.wait(() => put(asked), RETRY_MS);
             return;
         }
-        // `owed` is left as it is: the tab may have been left while the answer travelled, and that doubt is a
-        // new one.
+        if (answer?.same === false) {
+            // `owed` is left as it is: the tab may have been left while the answer travelled, and that doubt is a
+            // new one.
+            asking = false;
+            putOff = 0;
+            answeredAt = host.now();
+            if (!told) host.tellOthers();
+            openAgain();
+            return;
+        }
+        if (answer?.same !== true) {
+            doubted();
+            return;
+        }
         asking = false;
-        late = false;
         putOff = 0;
         answeredAt = host.now();
-        if (answer?.same === false) {
-            reopening = true;
-            if (!told) host.tellOthers();
-            if (host.reopen()) return;
-            // Nothing was dropped, so nothing will open to end the hold: let it go now, or what the page sends waits
-            // for ever. The next connection's upgrade carries the cookie as it is then, as any connection's does.
-            reopening = false;
-            host.release();
-            return;
-        }
-        if (answer?.same === true && typeof answer.user === "boolean") hadUser = answer.user;
+        if (typeof answer.user === "boolean") hadUser = answer.user;
         host.release();
     }
 
-    function put(): void {
-        host.ask().then(answered, () => answered(null));
+    function put(asked: number): void {
+        if (!asking || asked !== question) return;
+        host.ask().then((answer) => answered(asked, answer), () => answered(asked, null));
     }
 
     function ask(byWord: boolean): void {
         if (asking || reopening || host.cookieOnEveryFrame()) return;
         asking = true;
-        late = false;
         owed = false;
         told = byWord;
+        putOff = 0;
         const asked = ++question;
         host.wait(() => {
-            if (!asking || asked !== question) return;
-            late = true;
-            host.release();
+            if (asking && asked === question) doubted();
         }, HOLD_MS);
-        put();
+        put(asked);
     }
 
     return {
@@ -174,8 +221,7 @@ export function createAuthWatch(host: AuthWatchHost): AuthWatch {
         },
         holds() {
             if (host.cookieOnEveryFrame()) return false;
-            if (reopening) return true;
-            if (asking) return !late;
+            if (reopening || asking) return true;
             if (!stale()) return false;
             ask(false);
             return true;

@@ -473,12 +473,17 @@ What they cannot see is bounded: an answer is trusted for **30 seconds** in the 
 a reader's action can run under a cookie the browser has since replaced, and only when it was replaced without
 the window ever losing the focus — a script in another frame, say.
 
-**A slow answer is no answer, never a change.** What the page sends waits for the answer for one second of the
-page's own time — time a tab starved of CPU could not run is not counted — and then leaves on the connection it
-has, where the server checks every event against the session's user as it always does; the answer is still acted
-on when it comes. A question that gets no answer within five seconds of the page's time, fails on the network or
-is answered with an error keeps the connection, and the tab asks again at the next trigger. Only an answer that
-names another principal opens the connection again, so a loaded host never makes its tabs reconnect.
+**A slow answer is no answer — and nothing waits it out on the old connection.** What the page sends waits for the
+answer for one second of the page's own time — time a tab starved of CPU could not run is not counted. When the
+answer has not come by then, or the question fails outright — the page is offline, the request is refused or cut
+off, the server answers with an error or keeps saying "later" — the tab opens its connection again, exactly as for
+an answer that names another principal, but without telling the other tabs. What the reader pressed meanwhile
+leaves only on the new connection, whose upgrade carries the cookie as it is **now**, never on the one opened for
+the user before: it runs for that user when the browser still carries them, and when it carries another user or
+nobody it is dropped with the page, which loads again as them or goes to the sign-in page, just as when the answer
+is in time. The reader presses again. An answer that arrives after that is not acted on. The cost is that a loaded
+host makes its signed-in tabs reconnect once as they are come back to; a tab that had nobody's page has no one to
+act for by mistake, so it lets what waited go on the connection it has, and still acts on the answer when it comes.
 
 Nothing in your app takes part in this. A cookie set by a plain endpoint of your own is found the same way as
 one set by `auth.SignIn(…)`; going through Rask's sign-in only makes the other tabs ask a moment sooner. The

@@ -327,7 +327,8 @@ public sealed class Subscription<T> : IDisposable, IRenderSlotHandle
 
             try
             {
-                await Task.Delay(Backoff(attempt++, _client.Subscriptions), token).ConfigureAwait(false);
+                // On the session's clock, like staleness: a TimeProvider the app registers governs when a drop reopens.
+                await Task.Delay(Backoff(attempt++, _client.Subscriptions), _client.Time, token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
