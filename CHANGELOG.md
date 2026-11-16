@@ -19,7 +19,7 @@ them until tagged releases begin.
   app's `HybridCache` when it registered one, else in process bounded by `CachedOptions.SizeLimit`; in WebAssembly in
   the tab. Refuses to store a handler, a binding, an element reference or a head contribution — at compile time
   (RASK117) when written in the fragment, at run time when inside a component it wraps. A 500-order dashboard page:
-  1015 KB → 74 KB allocated and ~1.15 ms → ~10 µs per request on a hit (`CachedFragmentBenchmarks`).
+  1015 KB → 74 KB allocated per request on a hit (120 KB → 13 KB at 50 orders), the render ~40× shorter (`CachedFragmentBenchmarks`).
   Guide: docs/cached-fragments.md.
 - **A tab hidden for five minutes hibernates: the server frees its session, and the page comes back when the tab
   is shown (#1322).** Rask's answer to Blazor's circuit pause, with nothing to turn on and nothing stored on the
