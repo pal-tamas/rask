@@ -26,7 +26,7 @@ public partial class UiSelectIndicatorTests : global::Rask.Core.RaskMarkup
 
         Assert.Equal(3, rows.Count);
         Assert.All(rows, row => Assert.Contains(row.DescendantsAndSelf(), node => node.HasClass("rounded-[.3rem]") && node.HasClass("size-[1.125rem]")));
-        Assert.All(rows, row => Assert.DoesNotContain(row.DescendantsAndSelf(), node => node.HasClass("group-data-selected/option:block") && node.HasClass("size-5")));
+        Assert.All(rows, row => Assert.DoesNotContain(row.DescendantsAndSelf(), Checkmark));
     }
 
     [Fact]
@@ -61,5 +61,9 @@ public partial class UiSelectIndicatorTests : global::Rask.Core.RaskMarkup
         var rows = page.FindAll("[data-ui-option]");
 
         Assert.All(rows, row => Assert.DoesNotContain(row.DescendantsAndSelf(), node => node.HasClass("rounded-[.3rem]")));
+        Assert.All(rows, row => Assert.Contains(row.DescendantsAndSelf(), Checkmark));
     }
+
+    // The checkmark is the mini check (20 by 20), sized and shown by the kit sheet; the box's tick is the micro one.
+    private static bool Checkmark(Rask.Testing.HtmlNode node) => node.Attribute("viewBox") == "0 0 20 20";
 }

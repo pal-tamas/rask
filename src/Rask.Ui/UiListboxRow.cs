@@ -42,7 +42,7 @@ internal static class UiListboxRow
         // Each part's look is the kit sheet's, by its place (UiListboxLook.OptionBodyTall says what it is).
         Div.Class(inList && description is not null ? UiListboxLook.OptionBodyTall : null)[
             Div[
-                Div[checkbox ? Checkbox() : Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)],
+                Div[checkbox ? Checkbox() : UiIcon.Unclassed(Ui.IconName.Check, Ui.IconVariant.Mini)],
                 Lead(avatar, icon, iconVariant, iconClass, name)
             ],
             Div[

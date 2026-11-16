@@ -56,10 +56,11 @@ internal static class UiListboxLook
     ///     <c>bg-zinc-100 dark:bg-zinc-600</c> on <c>data-active</c> in an open list, <c>text-zinc-400</c> when
     ///     <c>aria-disabled</c>. The fill is the cursor, which the runtime writes for the pointer and the keys alike
     ///     (<c>data-rask-list</c>) — as on Flux, whose script moves the cursor under the pointer. One row at a time is
-    ///     lit, and none by <c>:hover</c>. What the row still writes: the group its tick reads, no outline, and hidden
-    ///     while a search leaves it out, whatever an app writes on it.
+    ///     lit, and none by <c>:hover</c>. The row's <c>outline-hidden</c> is the sheet's too, after THE KEYBOARD RING, and
+    ///     hidden while a search leaves it out (<c>data-hidden</c>) in <c>rask-ui-corrections</c>, whatever an app writes
+    ///     on it. What the row still writes: the group a checkbox indicator reads its row's state by.
     /// </summary>
-    internal const string Option = "group/option outline-hidden data-hidden:hidden";
+    internal const string Option = "group/option";
 
     /// <summary>A line of a windowed list's row: one line, cut short with an ellipsis (the row's <c>title</c> says it whole).</summary>
     internal const string OneLine = "truncate";
@@ -88,9 +89,6 @@ internal static class UiListboxLook
     ///     what it holds centred, so a one-line row in a list of two-line ones sits in the middle of its height.
     /// </summary>
     internal const string OptionTallRow = Option + " " + OptionTall;
-
-    /// <summary>The tick, drawn in the picked row only.</summary>
-    internal const string Check = "hidden group-data-selected/option:block";
 
     /// <summary>
     ///     The box of <c>indicator="checkbox"</c>: Flux's checkbox (<see cref="UiOptionLook" />), filled with the accent

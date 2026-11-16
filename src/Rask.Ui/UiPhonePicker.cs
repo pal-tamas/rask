@@ -164,7 +164,7 @@ internal static class UiPhonePicker
         // Each part's look is the kit sheet's, by its place, as a select's (UiListboxLook.OptionBodyTall).
         Div[
             Div[
-                Div[Ui.Icon.Name(Ui.IconName.Check).Mini.Class(UiListboxLook.Check)]
+                Div[UiIcon.Unclassed(Ui.IconName.Check, Ui.IconVariant.Mini)]
             ],
             Div[
                 Div[

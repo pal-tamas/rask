@@ -467,9 +467,9 @@
   UiPillboxLook.Option name what each part is): written on every row it came to some 400 bytes of classes a row,
   sent again with every row a scroll of a windowed list brings. Keyed on the rows' markers, computed exactly as
   those classes compute (the same utilities, applied): `data-ui-option` is a select's row (and the phone picker's),
-  `data-ui-listbox-option` a pillbox's. A row still writes `group/option` (what its tick reads), `outline-hidden`
-  and `data-hidden:hidden` (a search hides a row whatever an app writes on it), and what differs: a taller row's
-  padding, the call site's classes.
+  `data-ui-listbox-option` a pillbox's. A row still writes `group/option` (what a checkbox indicator reads) and what
+  differs: a taller row's padding, the call site's classes. Its `outline-hidden` is below, after THE KEYBOARD RING,
+  and its `data-hidden` in `rask-ui-corrections`: a search hides a row whatever an app writes on it.
 
   At no weight in `rask`, below `utilities`: a class an app writes on an option wins as it is, as on a table's
   cells. The kit's own order holds within: the rest, the dark ink, the cursor's fill, the disabled ink.
@@ -533,6 +533,22 @@
 
   :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:first-child) > :where(div:first-child) {
     @apply w-6 shrink-0 flex items-center min-h-5;
+  }
+
+  /* The tick: Ui.Icon's mini check with no class (UiIcon.Unclassed), sized here and shown in the picked row only. */
+  :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:first-child) > :where(div:first-child) > :where(svg),
+  :where([data-ui-listbox-option]) > :where(div:first-child) > :where(svg) {
+    @apply hidden size-5 shrink-0;
+  }
+
+  :where([data-ui-option][data-selected]) > :where(div) > :where(div:first-child) > :where(div:first-child) > :where(svg),
+  :where([data-ui-listbox-option][data-selected]) > :where(div:first-child) > :where(svg) {
+    @apply block;
+  }
+
+  /* A pillbox's tick's place: the row's first child. */
+  :where([data-ui-listbox-option]) > :where(div:first-child) {
+    @apply w-6 shrink-0;
   }
 
   :where([data-ui-option], [data-ui-select-button] [data-value]) > :where(div) > :where(div:last-child) {
@@ -1219,6 +1235,26 @@
   :where(:focus-visible) {
     outline: 2px solid var(--color-accent);
     outline-offset: -2px;
+  }
+}
+
+/*
+  …and a row of a list of options is highlighted, never ringed, as Flux's (#1316: its look is the kit sheet's, above).
+  At the ring's own weight, so AFTER it: the later rule wins, as Flux's `outline-hidden` utility did by being one.
+*/
+@layer rask {
+  :where([data-ui-option], [data-ui-listbox-option]) {
+    @apply outline-hidden;
+  }
+}
+
+/*
+  …and a row a search leaves out is hidden whatever an app writes on it (`flex`, `block`): in `rask-ui-corrections`,
+  the one layer above `utilities`, as the `data-hidden:hidden` the row wrote was above every class beside it (#1316).
+*/
+@layer rask-ui-corrections {
+  :where([data-ui-option], [data-ui-listbox-option])[data-hidden] {
+    display: none;
   }
 }
 

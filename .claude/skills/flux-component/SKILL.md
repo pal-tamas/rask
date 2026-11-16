@@ -18,9 +18,10 @@ the measurements, never transcribed from a page's `class` attributes — except 
 Flux's literal list read off the live DOM (2026-10-28; an app beats it with `!`). Its headings and cells do NOT
 (owner, 2026-11-02, a 9,730-row list was 31.6 MB): their shared look is ONE set of zero-weight rules on
 `[data-ui-column]` / `[data-ui-cell]` in `ui.css`, and a cell writes only what differs. A list's OPTION rows the same
-(#1316, ~1.3 KB a row was ~0.7 KB after): `[data-ui-option]` / `[data-ui-listbox-option]` and the boxes a select's
-row holds, by their place (also in the button's copy, `[data-ui-select-button] [data-value]`); a row writes only
-`group/option outline-hidden data-hidden:hidden` and what differs.
+(#1316, ~1.3 KB a row was ~0.6 KB after): `[data-ui-option]` / `[data-ui-listbox-option]` and the boxes a select's
+row holds, by their place (also in the button's copy, `[data-ui-select-button] [data-value]`), the tick an unclassed
+`UiIcon.Unclassed` check; `outline-hidden` after THE KEYBOARD RING, `[data-hidden]` in `rask-ui-corrections`. A row
+writes only `group/option` and what differs; `LongSelectBytesTests` holds the exact byte budgets.
 
 ## 1. Read and measure
 ```bash

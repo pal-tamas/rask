@@ -66,6 +66,34 @@ public class ModelInputGeneratorTests
     }
 
     [Fact]
+    public void An_aggregate_with_no_form_names_no_form_model_in_its_writes_doc_comment()
+    {
+        var run = Run("""
+            using System;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Chip : Aggregate<Guid, Timestamps, Versioned, Deletable>
+            {
+                private Chip() { }
+                public string Name { get; private set; } = "";
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ChipModel");
+        var documented = CSharpSyntaxTree.ParseText(
+            source,
+            new CSharpParseOptions(LanguageVersion.Latest, DocumentationMode.Diagnose),
+            path: "ChipModel.g.cs",
+            cancellationToken: TestContext.Current.CancellationToken);
+        var unresolved = run.Compilation.AddSyntaxTrees(documented).GetDiagnostics(TestContext.Current.CancellationToken)
+            .Where(d => d.Id == "CS1574" && d.Location.SourceTree == documented);
+
+        Assert.Contains("public static class ChipModelExtensions", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("<see cref=\"global::Shop.ChipModel\" />", source, StringComparison.Ordinal);
+        Assert.Empty(unresolved);
+    }
+
+    [Fact]
     public void A_column_that_cannot_be_null_is_required_on_the_form_and_checked_before_a_write()
     {
         var run = Run("""
