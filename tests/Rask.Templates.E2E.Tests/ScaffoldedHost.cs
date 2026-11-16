@@ -51,11 +51,16 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
     /// <param name="projectDirectory">The scaffolded project's directory.</param>
     /// <param name="projectFile">The .csproj to run.</param>
     /// <param name="readyTimeout">How long to wait for the first answer.</param>
+    /// <param name="readyPath">
+    ///     The path asked until it answers. <c>/health</c> for a host whose page is a WebAssembly client this run never
+    ///     publishes, which answers every page 503; the migrations are applied before the host listens at all.
+    /// </param>
     public static Task<ScaffoldedHost> StartAsync(
-        string projectDirectory, string projectFile, TimeSpan readyTimeout) =>
+        string projectDirectory, string projectFile, TimeSpan readyTimeout, string readyPath = "/") =>
         StartAsync(
             projectDirectory,
             readyTimeout,
+            readyPath,
             "run", "--no-build", "--project", projectFile,
 
             // WITHOUT this the scaffolded Properties/launchSettings.json wins and ASPNETCORE_URLS
@@ -78,10 +83,10 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
     /// </remarks>
     public static Task<ScaffoldedHost> StartPublishedAsync(
         string publishDirectory, string assemblyName, TimeSpan readyTimeout) =>
-        StartAsync(publishDirectory, readyTimeout, Path.Combine(publishDirectory, assemblyName + ".dll"));
+        StartAsync(publishDirectory, readyTimeout, "/", Path.Combine(publishDirectory, assemblyName + ".dll"));
 
     private static async Task<ScaffoldedHost> StartAsync(
-        string projectDirectory, TimeSpan readyTimeout, params string[] arguments)
+        string projectDirectory, TimeSpan readyTimeout, string readyPath, params string[] arguments)
     {
         var port = LoopbackPort.Reserve();
         var startInfo = new ProcessStartInfo("dotnet")
@@ -114,7 +119,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
 
         try
         {
-            await host.WaitUntilAnsweringAsync(readyTimeout);
+            await host.WaitUntilAnsweringAsync(readyPath, readyTimeout);
         }
         catch
         {
@@ -142,7 +147,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
         }
     }
 
-    private async Task WaitUntilAnsweringAsync(TimeSpan timeout)
+    private async Task WaitUntilAnsweringAsync(string path, TimeSpan timeout)
     {
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         var deadline = DateTime.UtcNow + timeout;
@@ -157,7 +162,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
 
             try
             {
-                using var response = await http.GetAsync(BaseUrl);
+                using var response = await http.GetAsync(BaseUrl + path);
 
                 // 503 is MapRaskSpa's "nothing built yet" page: waited out rather than accepted, so a
                 // host with no bundle to serve times out here and shows its log.
@@ -178,7 +183,7 @@ internal sealed class ScaffoldedHost : IAsyncDisposable
             await Task.Delay(250);
         }
 
-        throw new InvalidOperationException($"the host did not answer {BaseUrl} within {timeout}.\n{Log}");
+        throw new InvalidOperationException($"the host did not answer {BaseUrl}{path} within {timeout}.\n{Log}");
     }
 
     public async ValueTask DisposeAsync()

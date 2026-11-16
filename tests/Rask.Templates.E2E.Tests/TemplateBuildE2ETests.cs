@@ -60,6 +60,16 @@ public sealed class TemplateBuildE2ETests
     }
 
     /// <summary>
+    ///     Whether the template scaffolds a database, so <c>rask new</c> makes its first migration.
+    /// </summary>
+    internal static bool HasDatabase(string key)
+    {
+        Assert.True(TemplateCatalog.TryGet(key, out var template));
+
+        return BatterySelection.ToBatteries(template, []).Data;
+    }
+
+    /// <summary>
     ///     The same dispatch <see cref="NewCommand"/> performs, so a key wired to the wrong generator
     ///     fails here rather than producing a different template's project.
     /// </summary>
