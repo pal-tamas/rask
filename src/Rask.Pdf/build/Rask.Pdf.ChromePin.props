@@ -10,12 +10,12 @@
     which looks for this version in the user's Rask cache (the assembly carries it as metadata).
   -->
   <PropertyGroup>
-    <RaskPdfChromeVersion>157.0.8103.38</RaskPdfChromeVersion>
-    <RaskPdfChromeSha256_linux64>deafffa74660b34853a4119c361fd427ac8c9fcb62db51ddb8a797cd83a4ba2d</RaskPdfChromeSha256_linux64>
-    <RaskPdfChromeSha256_linux_arm64>b9b910a57b2a15eb3e55000a2339f93a973934a413ebfc6e585a50ec6c42fd6c</RaskPdfChromeSha256_linux_arm64>
-    <RaskPdfChromeSha256_mac_arm64>e6a6b13551aa12f951d0891d79282606b13742837c8fa0505e1272bae116ce82</RaskPdfChromeSha256_mac_arm64>
-    <RaskPdfChromeSha256_mac_x64>79821745d0a72d2ba752d981284ed0a9e6fa320dad133596941a17dba6186de3</RaskPdfChromeSha256_mac_x64>
-    <RaskPdfChromeSha256_win64>1ff4540855478ba0848e03f1ef8d455f77d058b38285df91bc34273788a73446</RaskPdfChromeSha256_win64>
+    <RaskPdfChromeVersion>157.0.8103.50</RaskPdfChromeVersion>
+    <RaskPdfChromeSha256_linux64>7bf0d41e424efd1d6281c4162993ab9dc5de92fac213c211614905a71c057d0f</RaskPdfChromeSha256_linux64>
+    <RaskPdfChromeSha256_linux_arm64>55add1fa634756811fd644094ec226fc7e405be698fb07dbf0634bca689e293a</RaskPdfChromeSha256_linux_arm64>
+    <RaskPdfChromeSha256_mac_arm64>082e3fe8fcfac75aec2ef0949d70e8d2254a99ea465450e287e6c06a3f1863ed</RaskPdfChromeSha256_mac_arm64>
+    <RaskPdfChromeSha256_mac_x64>886beb07d8237b8acc2b879843a3506b3a56284264b82c806c7d80546e24e0ad</RaskPdfChromeSha256_mac_x64>
+    <RaskPdfChromeSha256_win64>9e59432baf484387bdc9cc4a8efca499fb558aeda93e536eb8b859a065ddb884</RaskPdfChromeSha256_win64>
   </PropertyGroup>
 
 </Project>
