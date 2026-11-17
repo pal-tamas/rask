@@ -37,10 +37,12 @@ public sealed partial class UiAppFramePage : Component
                     + "stylesheet) and the logo is `Logo(url)`.",
                     "Lit and opened by the frame: the row of the page shown, or of the list it is beneath (`/drivers/7` "
                     + "lights Drivers), and the group holding it. A row's own `.Current(…)` wins; a string link — an old "
-                    + "front end — is never lit. Home is the row every other row is beneath.",
+                    + "front end — is never lit. Home is `.Home(Routes.HomePage())` where the app names one, else the row "
+                    + "every other row is beneath.",
                     "The way back to a list keeps its filters, sort and page as the reader left them, and leaves out a "
                     + "`Ui.EditorDialog`'s key, so it never reopens a form.",
-                    "It mounts `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm` in the catalog's words, and the built-in "
+                    "It mounts `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm` in the catalog's words — the unsaved-changes "
+                    + "dialog titled \"Unsaved changes\" unless `.LeaveHeading(…)` says otherwise — and the built-in "
                     + "404 and 403 stand in its main.",
                 ])
         ];
