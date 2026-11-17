@@ -69,6 +69,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`Ui.Chart` keeps a crowded date axis's plot edges where Flux keeps them (#1301).** Before: with the dates crowded
+  down to their first and last, the plot always ran to the gutter, where Flux sometimes held it half the first (or
+  last) date in, depending on the data, so a narrow chart was now and then a few pixels wider than Flux's. After: the
+  dates that hold the edges in are the ones still shown when the box is tried whole, as Flux decides them (measured
+  over 3,700 datasets handed to Flux's live chart, three examples, 200–606px wide).
 - **A strict app builds with aggregates that take no form.** Before: every aggregate's generated `<X>ModelExtensions`
   doc comment named `<X>Model`, which is written only when the base names `Model`/`CreateModel`/`UpdateModel`, so an
   app building its documentation (every `<RaskStrict>` app) failed on CS1574 for each aggregate without a form. After:

@@ -15,7 +15,8 @@ namespace Rask;
 /// </para>
 /// <para>
 /// Labels along the index axis that would come within 20px of each other give way: dates drop every other
-/// one, and then all but the first and last; names turn 45°.
+/// one, and then all but the first and last; names turn 45°. Which dates hold the edges in is decided on the whole
+/// box, before the plot is pulled in (<see cref="SettleDates" />).
 /// </para>
 /// </remarks>
 internal sealed class UiChartPlot
@@ -184,30 +185,58 @@ internal sealed class UiChartPlot
 
     private static string Decorate(UiChartAxis axis, string text) => axis.TickPrefix + text + axis.TickSuffix;
 
-    // All labels shown; if they crowd, the lighter remedy, then the heavier. Each is a full layout of its own,
-    // because a hidden last label no longer holds the plot's edge in.
+    // Names: all shown; if they crowd, turned, each remedy a full layout of its own. Dates: which of them hold the
+    // plot's edges in is decided on the whole box (Flux's first pass), and only then is the plot laid out (#1301).
     private void Settle()
     {
-        Inset(UiChartCrowding.None);
-        if (Horizontal || !Crowded())
+        if (Horizontal)
         {
+            Inset(UiChartCrowding.None);
             return;
         }
 
-        if (!Dated)
+        if (Dated)
+        {
+            SettleDates();
+            return;
+        }
+
+        Inset(UiChartCrowding.None);
+        if (Crowded(Left, Right))
         {
             Inset(UiChartCrowding.Turned);
-            return;
-        }
-
-        Inset(UiChartCrowding.EveryOther);
-        if (Crowded())
-        {
-            Inset(UiChartCrowding.Ends);
         }
     }
 
-    private bool Crowded()
+    // Measured on Flux's live chart, 3,700 datasets over three examples and widths from 200 to 606px: the labels that
+    // hold the edges in are the ones left showing when the remedies are tried with the plot as wide as the box — all,
+    // every other, or the two ends (which hang inside their own end and hold nothing). The plot is laid out once,
+    // from those; and if the labels then crowd it, the next remedy hides more of them with the edges left where they
+    // are. So a first date the whole box crowds against the third sits on the gutter, and one it does not keeps the
+    // plot half its width in, even shown alone with the last; the same for the last date and the right edge.
+    private void SettleDates()
+    {
+        var holding = UiChartCrowding.None;
+        while (holding != UiChartCrowding.Ends && CrowdedAs(holding, 0, Width))
+        {
+            holding++;
+        }
+
+        Inset(holding);
+        while (Crowding != UiChartCrowding.Ends && Crowded(Left, Right))
+        {
+            Crowding++;
+        }
+    }
+
+    private bool CrowdedAs(UiChartCrowding crowding, double left, double right)
+    {
+        Crowding = crowding;
+        return Crowded(left, right);
+    }
+
+    // Whether two shown labels come within 20px of each other with the plot from `left` to `right`.
+    private bool Crowded(double left, double right)
     {
         var previous = double.NegativeInfinity;
         var span = CollectionsMarshal.AsSpan(IndexLabels);
@@ -218,7 +247,7 @@ internal sealed class UiChartPlot
                 continue;
             }
 
-            var centre = Index(span[i].Unit);
+            var centre = left + (span[i].Unit * (right - left));
             if (centre - (span[i].Width / 2) - previous < LabelGap)
             {
                 return true;
