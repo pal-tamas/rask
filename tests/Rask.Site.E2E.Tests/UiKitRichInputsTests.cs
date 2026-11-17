@@ -18,7 +18,7 @@ public sealed class UiKitRichInputsTests(WasmExampleAppFixture app, PlaywrightFi
     [Theory]
     [InlineData("composer", "Composer", "ui-composer|ui-composer-header|ui-composer-inline|ui-composer-input|ui-composer-height|ui-composer-enter|ui-composer-rich|ui-composer-disabled|ui-composer-invalid")]
     [InlineData("autocomplete", "Autocomplete", "ui-autocomplete|ui-autocomplete-search")]
-    [InlineData("pillbox", "Pillbox", "ui-pillbox|ui-pillbox-sm|ui-pillbox-searchable|ui-pillbox-icons|ui-pillbox-combobox|ui-pillbox-create|ui-pillbox-backend|ui-pillbox-store|ui-pillbox-choices|ui-pillbox-loading|ui-pillbox-validation|ui-pillbox-modal")]
+    [InlineData("pillbox", "Pillbox", "ui-pillbox|ui-pillbox-sm|ui-pillbox-searchable|ui-pillbox-icons|ui-pillbox-combobox|ui-pillbox-create|ui-pillbox-backend|ui-pillbox-store|ui-pillbox-choices|ui-pillbox-paged|ui-pillbox-loading|ui-pillbox-validation|ui-pillbox-modal")]
     [InlineData("file-upload", "File upload", "ui-upload|ui-upload-inline|ui-upload-progress|ui-upload-disabled|ui-upload-custom|ui-upload-single|ui-upload-multiple")]
     public Task Every_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {

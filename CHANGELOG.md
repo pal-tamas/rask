@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
+  `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
+  for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
+  page and appends it in the same windowed list; an answer shorter than `Take` is the end. Typing starts again from the
+  first page and a page asked for older words is dropped; picked rows stay in the list. Pages are fifty rows (five boxes
+  of the ten a box shows). Server and WASM. Before → after:
+  `.Choices(typed => Find(typed))` over `query.Take(20)` → `.Choices((typed, page) => Find(typed, page))` over
+  `query.Skip(page.Skip).Take(page.Take)`.
 - **`Ui.DialogButtons` — a dialog's footer: Cancel closes the modal, the action is a click handler (#1352).**
   Before: `Ui.FormButtons` could not stand in a dialog — its Cancel is a link that needs a route and its Save is
   always a submit — so a dialog wrote `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]],
@@ -209,6 +217,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A searched `Ui.Select` / `Ui.Pillbox` can be scrolled past its first page (#1354).** Before: a database-searched
+  picker (`.Choices(typed => Find(typed), held: …)`) had no paging, so every app capped its answer (`.Take(20)`) and the
+  open list showed those twenty with no way to scroll to the rest — Eszaf's product, vehicle, invoice, card and station
+  pickers, and TA's. After: `.Choices((typed, page) => Find(typed, page), held: …)` loads the next page as the list
+  scrolls (see Added); the one-list overload is unchanged.
 - **`Ui.WorkNotices` and `Ui.WorkList` show the user's work in the browser half of a `wasm-hosted` app (#1348).**
   Before: the bell and the list read the job rows through a board only a server has, so in the browser they stood empty,
   and their live watch was refused there for want of a policy. After: an app that is a client of its server

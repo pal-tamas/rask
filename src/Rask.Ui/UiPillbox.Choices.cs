@@ -56,6 +56,31 @@ public sealed partial class UiPillbox<T>
         return this;
     }
 
+    /// <summary>
+    ///     Offers the rows <paramref name="find" /> answers for what is typed a page at a time: the first page as the list
+    ///     opens and once typing pauses, and the next one as the reader scrolls near the end of the rows already here — for
+    ///     a list too long to send whole that is still scrolled through to its last row.
+    /// </summary>
+    /// <remarks>
+    ///     As <see cref="Choices(Func{string, Task{IReadOnlyList{Ui.Choice{T}}}}, IEnumerable{Ui.Choice{T}}?)" />, but
+    ///     asked for <see cref="Ui.ChoicePage" />s: an answer of fewer rows than <see cref="Ui.ChoicePage.Take" /> is the
+    ///     end of the list. The rows are drawn in the order <paramref name="find" /> gives them, page after page — order
+    ///     the query (<c>OrderBy</c>) so the pages follow on. Typing starts again from the first page, a page asked for
+    ///     older words is dropped, and every picked row stays in the list.
+    ///     <code>
+    ///     Ui.Pillbox.Bind(() =&gt; model.ProductIds).Choices((typed, page) =&gt; Product.Named(typed, page), held: products)
+    ///     </code>
+    /// </remarks>
+    /// <param name="find">The page of rows for what was typed, trimmed: <c>query.Skip(page.Skip).Take(page.Take)</c>.</param>
+    /// <param name="held">The rows picked when the page was drawn, so their pills say their words before anything is found.</param>
+    /// <returns>This pillbox.</returns>
+    public UiPillbox<T> Choices(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>>? held = null)
+    {
+        Ui.Choice<T>[] shown = [.. held ?? []];
+        Choose(before => (UiChoices.Paged(find, shown, mayBeEmpty: false, before, out var changed, pills: true), changed));
+        return this;
+    }
+
     private void Choose(Func<UiChosen?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
 
     /// <inheritdoc />

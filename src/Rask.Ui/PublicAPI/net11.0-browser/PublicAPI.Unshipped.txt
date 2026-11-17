@@ -9257,6 +9257,23 @@ Rask.UiPillbox<T>.Choices(System.Collections.Generic.IEnumerable<Rask.Ui.Choice<
 Rask.UiPillbox<T>.Choices(System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, System.Collections.Generic.IEnumerable<Rask.Ui.Choice<T>>? held = null) -> Rask.UiPillbox<T>!
 Rask.UiSelect<T>.Choices<TValue>(System.Collections.Generic.IEnumerable<Rask.Ui.Choice<TValue>>! choices) -> Rask.UiSelect<T>!
 Rask.UiSelect<T>.Choices<TValue>(System.Func<string!, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiSelect<T>!
+~override Rask.Ui.ChoicePage.Equals(object obj) -> bool
+~override Rask.Ui.ChoicePage.ToString() -> string
+override Rask.Ui.ChoicePage.GetHashCode() -> int
+Rask.Ui.ChoicePage
+Rask.Ui.ChoicePage.ChoicePage() -> void
+Rask.Ui.ChoicePage.ChoicePage(int Skip, int Take) -> void
+Rask.Ui.ChoicePage.Deconstruct(out int Skip, out int Take) -> void
+Rask.Ui.ChoicePage.Equals(Rask.Ui.ChoicePage other) -> bool
+Rask.Ui.ChoicePage.Skip.get -> int
+Rask.Ui.ChoicePage.Skip.init -> void
+Rask.Ui.ChoicePage.Take.get -> int
+Rask.Ui.ChoicePage.Take.init -> void
+static Rask.Ui.ChoicePage.operator !=(Rask.Ui.ChoicePage left, Rask.Ui.ChoicePage right) -> bool
+static Rask.Ui.ChoicePage.operator ==(Rask.Ui.ChoicePage left, Rask.Ui.ChoicePage right) -> bool
+Rask.UiPillbox<T>.Choices(System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, System.Collections.Generic.IEnumerable<Rask.Ui.Choice<T>>? held = null) -> Rask.UiPillbox<T>!
+Rask.UiSelect<T>.Choices<TValue>(System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<TValue>>!>!>! find, Rask.Ui.Choice<TValue>? held = null) -> Rask.UiSelect<T>!
+static Rask.UiSelectChoices.Choices<T>(this Rask.UiSelect<T?>! select, System.Func<string!, Rask.Ui.ChoicePage, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Rask.Ui.Choice<T>>!>!>! find, Rask.Ui.Choice<T>? held = null) -> Rask.UiSelect<T?>!
 Rask.UiSelectChoices
 static Rask.Ui.Choice<T>.operator !=(Rask.Ui.Choice<T> left, Rask.Ui.Choice<T> right) -> bool
 static Rask.Ui.Choice<T>.operator ==(Rask.Ui.Choice<T> left, Rask.Ui.Choice<T> right) -> bool

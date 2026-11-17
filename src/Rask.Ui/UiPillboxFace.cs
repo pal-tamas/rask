@@ -15,4 +15,10 @@ internal sealed class UiPillboxFace
 
     /// <summary>Flux's <c>trigger</c> slot, when it was written out.</summary>
     internal UiPillboxTrigger? Trigger { get; init; }
+
+    /// <summary>
+    ///     The next page of the search the pillbox hands the list, when its <c>.Choices((typed, page) =&gt; …)</c> pages;
+    ///     null for any other search.
+    /// </summary>
+    internal Func<string, int, Task<IEnumerable<Component?>>>? Next { get; init; }
 }

@@ -133,7 +133,7 @@ public abstract partial class UiSelectControl<T>
             .Title(windowed ? UiListWindow.TitleOf(row.Option) : null)
             .Role("option")
             .Class(RowLook(row.Option), row.Option.Class)
-            .Aria(at < 0 ? UiOptionAria.For(off, picked) : UiOptionAria.For(off, picked, at + 1, view.Shown.Count))
+            .Aria(at < 0 ? UiOptionAria.For(off, picked) : UiOptionAria.For(off, picked, at + 1, SetSize(view)))
             .Attributes(Held ? OptionMarks(row.Option, picked) : UiDraws.With(OptionMarks(row.Option, picked), ("click", !off && CommitDraws)));
 
         // Held, the browser picks it (rask-list-held.ts): the page hears the answer with the next action.

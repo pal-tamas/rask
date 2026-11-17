@@ -24,6 +24,14 @@ internal static class UiListWindow
     /// <summary>How many rows past either edge of the box are drawn as well, so a scroll or a key finds them there.</summary>
     internal const int Overscan = 10;
 
+    /// <summary>
+    ///     How many rows a paging <c>.Choices(find, held:)</c> asks for at a time. The box shows ten rows (twenty rem of
+    ///     <see cref="Row" />) and draws <see cref="Overscan" /> more past either edge, so the window is thirty rows; a page
+    ///     is five boxes of rows, and the next one is asked for once the window reaches the last row already here — ten rows
+    ///     before the reader does, a box's worth of scrolling for the answer to arrive in.
+    /// </summary>
+    internal const int Page = 50;
+
     /// <summary>The most letters type-ahead looks for: more is no reader typing.</summary>
     internal const int MaxTyped = 64;
 

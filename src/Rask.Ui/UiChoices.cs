@@ -71,6 +71,38 @@ internal static class UiChoices
         return new UiChosen(new Search<T>(find, shown), Options(shown, pills), asking, mayBeEmpty);
     }
 
+    /// <summary>
+    ///     A search that pages: what is typed goes to <paramref name="find" /> with the first page, and the next page is
+    ///     asked for as the reader scrolls near the end of the rows found so far. Each page is in the order
+    ///     <paramref name="find" /> answers it — a page after the last continues its order, so no page is sorted on its own —
+    ///     and the rows the value holds are drawn before the first answer, in the reader's alphabet.
+    /// </summary>
+    /// <param name="find">The page of rows for what was typed.</param>
+    /// <param name="held">The rows the value holds when the page is drawn.</param>
+    /// <param name="mayBeEmpty">Whether choosing nothing is an answer.</param>
+    /// <param name="before">What the last render's <c>.Choices(…)</c> made, to compare with.</param>
+    /// <param name="changed">Whether the search or the held rows are not the ones <paramref name="before" /> had.</param>
+    /// <param name="pills">True for a pillbox's rows, whose detail follows the words.</param>
+    internal static UiChosen Paged<T>(
+        Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>> held, bool mayBeEmpty, UiChosen? before,
+        out bool changed, bool pills = false)
+    {
+        ArgumentNullException.ThrowIfNull(find);
+
+        var shown = Sorted(held, TextOrder.Current);
+        changed = before is null || before.MayBeEmpty != mayBeEmpty
+            || before.Said is not Pages<T> last || !last.Find.Equals(find) || !Same(last.Held, shown);
+        if (!changed && before!.Find is { } same && before.Next is { } next)
+        {
+            return new UiChosen(new Pages<T>(find, shown), Options(shown, pills), same, mayBeEmpty, next);
+        }
+
+        Func<string, int, Task<IEnumerable<Component?>>> page = async (typed, skip) =>
+            Options([.. await find(typed, new Ui.ChoicePage(skip, UiListWindow.Page)).ConfigureAwait(false) ?? []], pills);
+
+        return new UiChosen(new Pages<T>(find, shown), Options(shown, pills), new(typed => page(typed, 0)), mayBeEmpty, page);
+    }
+
     // A stable sort: rows of the same words stay in the order they came in.
     private static Ui.Choice<T>[] Sorted<T>(IEnumerable<Ui.Choice<T>> choices, StringComparer order)
     {
@@ -152,3 +184,6 @@ internal static class UiChoices
 
 // What a searching `.Choices(…)` was handed, for the next render to compare with.
 file sealed record Search<T>(Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held);
+
+// What a paging `.Choices(…)` was handed, for the next render to compare with.
+file sealed record Pages<T>(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held);

@@ -148,6 +148,11 @@ public sealed partial class UiPillbox<T> : Component, IFormControl<ICollection<T
             .Id(Id)
             .ShowValidation(ShowValidation)
             .Class(Class)
-            .AsPillbox(new UiPillboxFace { Combobox = Variant == Ui.PillboxVariant.Combobox, Trigger = trigger })[parts];
+            .AsPillbox(new UiPillboxFace
+            {
+                Combobox = Variant == Ui.PillboxVariant.Combobox,
+                Trigger = trigger,
+                Next = Search is null ? Choosing?.Next : null,
+            })[parts];
     }
 }

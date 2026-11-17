@@ -33,4 +33,17 @@ public static class UiSelectChoices
         ArgumentNullException.ThrowIfNull(select);
         return select.Offer(find, held);
     }
+
+    /// <inheritdoc cref="UiSelect{T}.Choices{TValue}(Func{string, Ui.ChoicePage, Task{IReadOnlyList{Ui.Choice{TValue}}}}, Ui.Choice{TValue}?)" />
+    /// <param name="select">The select, opened on a member of <c>T?</c>.</param>
+    /// <param name="find">The page of rows for what was typed, trimmed: <c>query.Skip(page.Skip).Take(page.Take)</c>.</param>
+    /// <param name="held">The row the value holds, so the select names it before anything is found.</param>
+    /// <typeparam name="T">The type of a row's value.</typeparam>
+    public static UiSelect<T?> Choices<T>(
+        this UiSelect<T?> select, Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, Ui.Choice<T>? held = null)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(select);
+        return select.Offer(find, held);
+    }
 }

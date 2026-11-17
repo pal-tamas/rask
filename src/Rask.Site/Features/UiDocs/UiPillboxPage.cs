@@ -37,6 +37,9 @@ public sealed partial class UiPillboxPage : Component
             UiDocsExample.Key("ui-pillbox-choices").Heading("Rows of another table").File("PillboxChoicesExample.cs").Demo(PillboxChoicesExample).Testid("ui-pillbox-choices")
                 .Blurb("Choices hands the pillbox rows rather than options: searched, in the reader's alphabet, each row's "
                        + "detail muted after its name in the list and the name alone on the pill."),
+            UiDocsExample.Key("ui-pillbox-paged").Heading("Rows that page as the list scrolls").File("PillboxPagedChoicesExample.cs").Demo(PillboxPagedChoicesExample).Testid("ui-pillbox-paged")
+                .Blurb("Choices((typed, page) => …) asks the store a page at a time: scrolled near the end of the rows here, the "
+                       + "list asks for the next page, so every one of the 500 products is reached; the search starts again from the first page."),
             UiDocsExample.Key("ui-pillbox-loading").Heading("Loading message").File("PillboxLoadingExample.cs").Demo(PillboxLoadingExample).Testid("ui-pillbox-loading")
                 .Blurb("What the list says while a slow search is on its way, and when it finds nothing."),
             UiDocsExample.Key("ui-pillbox-validation").Heading("With validation").File("PillboxValidationExample.cs").Demo(PillboxValidationExample).Testid("ui-pillbox-validation")

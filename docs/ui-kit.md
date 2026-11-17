@@ -1467,6 +1467,32 @@ static async Task<IReadOnlyList<Ui.Choice<int>>> Drivers(string typed) =>
     [.. (await Driver.Where(d => d.Name.Contains(typed)).Take(20).ToList()).Select(d => new Ui.Choice<int>(d.Id, d.Name))];
 ```
 
+**A searched list the reader still scrolls to its end** — every product, not the first twenty — takes the search with
+a `Ui.ChoicePage` as well (`.Choices((typed, page) => …)`, on `Ui.Select` and `Ui.Pillbox`, Server and WASM). The list
+opens on the first page for what is typed; as the reader scrolls — the wheel, the scrollbar, End — to within ten rows of
+the last one here, it asks for the next page and puts it after them, so the box stays where it is and grows as pages
+arrive. An answer of fewer rows than `page.Take` is the end. Typing starts again from the first page, and a page asked
+for older words is dropped when it lands. The rows are drawn in the order the store gives them, page after page, so
+order the query; the picked rows stay in the list as they do above. A page is fifty rows: five boxes of the ten a box
+shows, asked for a box's worth of scrolling before the reader gets there. Flux draws no "loading more" row, and nor does
+this. The one-list `.Choices(find, held:)` above is unchanged.
+
+```csharp
+// Before: the first twenty, and the list cannot be scrolled past them.
+Ui.Pillbox.Bind(() => draft.ProductIds).Choices(typed => Products(typed), held: heldProducts)
+
+static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed) =>
+    [.. (await Product.Where(p => p.Name.Contains(typed)).OrderBy(p => p.Name).Take(20).ToList())
+        .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
+
+// After: a page at a time, as the list scrolls.
+Ui.Pillbox.Bind(() => draft.ProductIds).Choices((typed, page) => Products(typed, page), held: heldProducts)
+
+static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.ChoicePage page) =>
+    [.. (await Product.Where(p => p.Name.Contains(typed)).OrderBy(p => p.Name).Skip(page.Skip).Take(page.Take).ToList())
+        .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
+```
+
 **A create row waits for the search, as Flux's does.** While a search's question is out, `Ui.SelectOptionCreate`
 greys, says `aria-disabled`, is stepped over by the arrows and Enter and refuses a click that reaches it anyway, so
 nothing is made of text the answer is about to change; pressed, it spins at once, refuses a second press and holds the list open until its handler is done.
@@ -1520,7 +1546,8 @@ page what was typed once typing has paused, for suggestions from a database; `Mo
 pill that can be taken off again, bound to a collection. `Searchable()`, `.Combobox`, `Ui.PillboxOptionCreate` and
 `Filter(false)` with `Debounce` for options found on the server — or `Search(async typed => …)`, as on the select, which
 asks the page itself; the pills stay when a search's rows no longer hold them, and so do their rows. Rows of another
-table are `.Choices(vehicles)` (or `.Choices(find, held: picked)`), as on the select: searched, in the reader's
+table are `.Choices(vehicles)` (or `.Choices(find, held: picked)`, or `.Choices((typed, page) => …, held: picked)` for
+a searched list that [pages as it scrolls](#select)), as on the select: searched, in the reader's
 alphabet, the detail as muted words after the name in the list and the name alone on the pill. It is the select's list under another trigger, so its keys are the runtime's, and past a hundred options it draws only the rows in view, as the select does ([a long list](#select)). Bound, a pick, a pill's cross and
 Backspace in the empty input send nothing: the browser draws the pills and the answers travel with the next action,
 as Flux's `wire:model` (`.Live()` sends each at once). Every example, the keyboard and the reference: **[rask.sh/ui/pillbox](https://rask.sh/ui/pillbox/)**.

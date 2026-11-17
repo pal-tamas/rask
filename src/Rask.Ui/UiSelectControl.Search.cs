@@ -65,11 +65,13 @@ public abstract partial class UiSelectControl<T>
             return;
         }
 
-        // A pillbox's options are its own parts: the select reads them as its options.
-        Func<Component?, Component?> read = Pills is null ? static row => row : UiPillboxParts.Translate;
-        _found = [.. (answer ?? []).Select(read)];
+        _found = [.. (answer ?? []).Select(AsRow)];
         _answers++;
+        FirstPage(asked, typed, _found.Length);
     }
+
+    // A pillbox's options are its own parts: the select reads them as its options.
+    private Component? AsRow(Component? row) => Pills is null ? row : UiPillboxParts.Translate(row);
 
     // The children the select draws: what the page wrote, with its options and groups replaced by the answer — the
     // picked options it left out first — where the first of them was written, or before a create row that came first.

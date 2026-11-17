@@ -48,7 +48,7 @@ public abstract partial class UiSelectControl<T>
     private void DecideWindow(Parts parts)
     {
         _windowed = _windowed
-                    || (parts.Rows.Count > UiListWindow.Above
+                    || ((parts.Rows.Count > UiListWindow.Above || Pages)
                         && parts.Blocks.TrueForAll(block => block.Group is null && block.Other is null));
     }
 
@@ -88,8 +88,13 @@ public abstract partial class UiSelectControl<T>
     private static int RowHeightOf(Parts parts) =>
         parts.Rows.Exists(row => row.Option.Description is not null) ? UiListWindow.TallRow : UiListWindow.Row;
 
-    // The scroll box said where it is: the next render draws the rows there.
-    private void Scrolled(Event e) => _scroll.Read(e);
+    // The scroll box said where it is: the next render draws the rows there, and a search that pages the next page when the
+    // rows there are the last found so far.
+    private Task Scrolled(Event e)
+    {
+        _scroll.Read(e);
+        return NextPageAsync();
+    }
 
     // What the browser reads a windowed list by (rask-list.ts): how tall a row is and which set of rows these are, where the
     // first picked row is among them, and the row type-ahead found.
