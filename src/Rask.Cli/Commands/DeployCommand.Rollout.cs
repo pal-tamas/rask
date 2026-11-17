@@ -25,7 +25,7 @@ internal sealed partial class DeployCommand
 
         if (plan.DryRun)
         {
-            PrintPlan(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Dockerfile, plan.ContextDir, plan.Env, plan.HealthEnabled, plan.HealthPath, plan.Redirects, plan.Dns);
+            PrintPlan(plan.Host, plan.Slug, plan.Domain, plan.Port, plan.ContainerPort, plan.Dockerfile, plan.ContextDir, plan.Env, plan.HealthEnabled, plan.HealthPath, plan.Redirects, plan.Dns, plan.Prunes);
             return 0;
         }
 
@@ -198,7 +198,7 @@ internal sealed partial class DeployCommand
         var (host, slug, env) = (plan.Host, plan.Slug, plan.Env);
 
         // Before anything moves — even the tags below — so a box too full to build on is left exactly as it was.
-        if (!await HasRoomToBuildAsync(host, cancellationToken).ConfigureAwait(false))
+        if (!await HasRoomToBuildAsync(host, plan.Prunes, cancellationToken).ConfigureAwait(false))
         {
             return 1;
         }
@@ -239,9 +239,13 @@ internal sealed partial class DeployCommand
 
         // Only once the new version serves (its health gate, and in domain mode the check through the proxy, passed),
         // still under this app's lock: what earlier deploys left behind goes. A failed deploy keeps everything.
-        if (deployed == 0)
+        if (deployed == 0 && plan.Prunes)
         {
             await CleanUpHostAsync(host, slug, cancellationToken).ConfigureAwait(false);
+        }
+        else if (deployed == 0)
+        {
+            Console.WriteLine($"  Skipped the clean-up (--no-prune). `rask host clean --host {host}` runs it when you choose.", ConsoleStyle.Dim);
         }
 
         return deployed;

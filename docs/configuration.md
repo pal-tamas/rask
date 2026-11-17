@@ -529,6 +529,25 @@ dropping whatever the reader clicked meanwhile — the tab's late connection reb
 That record is bound to the session the page was served with as well as to its reader: it opens only for a
 connection naming that session, never for another user, and expires with `ResumeTokenLifetime`.
 
+**A C# union persists as the case it holds.** `union Selection(Search, Pick)` is stored the way System.Text.Json
+writes a union — the case value, bare: `{"term":"boots"}` — and the rebuilt page reads it back as a `Search`,
+told apart from a `Pick` by which properties are there. Nothing goes on the union:
+
+```csharp
+public sealed record Search(string Term);
+public sealed record Pick(int Id);
+public union Selection(Search, Pick);
+
+state.Persist<Selection>("selection", new Pick(7));
+if (state.TryGet<Selection>("selection", out var selection) && selection.Value is Pick pick) { … }
+```
+
+A union of a number and a string (`union IdOrSlug(int, string)`) reads back either case too. A union whose cases
+no set of properties tells apart — every property of one is also the other's — still writes, and reads back as a
+miss; give it a classifier of its own with `[JsonUnion(TypeClassifier = …)]`. On the trim-safe `JsonTypeInfo<T>`
+overloads the union reads with your context's options, so name .NET's classifier there:
+`[JsonSourceGenerationOptions(TypeClassifiers = [typeof(JsonUnionTypeStructuralClassifier)])]`.
+
 **What does not come back:** anything you didn't name. In-flight async work, undeclared fields, open
 interop handles. And note that a value only *reads* back if the JSON still fits the type — if you change
 the shape of a persisted type, change its key too, or a renamed property will read back as a default

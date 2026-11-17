@@ -14,7 +14,7 @@ namespace Rask.Cli.Commands;
 /// and any image a container uses, are never dangling, so every app's <c>:current</c>, <c>:latest</c> and
 /// <c>:previous</c> survive, and so do the proxy's and the probe's.</item>
 /// <item><c>docker builder prune -af --reserved-space 20GB</c> trims the build cache, least recently used first, down to
-/// <see cref="BuildCacheKept"/>: what the next builds reuse stays, and the cache stays bounded however often a box
+/// the app's <see cref="DiskPolicy.BuildCacheKeep"/> (20 GB unless <c>"buildCacheKeep"</c> says otherwise): what the next builds reuse stays, and the cache stays bounded however often a box
 /// deploys. <b>Here <c>-a</c> is required, and safe</b>: <c>builder prune</c> acts on the build cache only and never
 /// removes an image, tagged or not; without <c>-a</c> it skips every record an image shares, which is nearly all of
 /// it — measured on a real box (BuildKit v0.34, containerd image store), <c>--keep-storage 20GB</c> alone left 221 GB
@@ -28,9 +28,6 @@ namespace Rask.Cli.Commands;
 /// </summary>
 internal static class PruneCommands
 {
-    /// <summary>The build cache a deploy leaves on the box: room for a few apps' SDK, restore and publish layers.</summary>
-    internal const string BuildCacheKept = "20GB";
-
     internal const string BuildCacheFlag = "--reserved-space";
 
     internal const string LegacyBuildCacheFlag = "--keep-storage";
@@ -39,9 +36,9 @@ internal static class PruneCommands
     internal static IReadOnlyList<string> BuildImagePruneArguments(string host) =>
         [.. Prefix(host), "image", "prune", "-f"];
 
-    /// <summary>The build cache, shared records included (<c>-a</c>), down to <see cref="BuildCacheKept"/>. Removes no image.</summary>
-    internal static IReadOnlyList<string> BuildBuilderPruneArguments(string host, string flag = BuildCacheFlag) =>
-        [.. Prefix(host), "builder", "prune", "-af", flag, BuildCacheKept];
+    /// <summary>The build cache, shared records included (<c>-a</c>), down to <paramref name="keep"/> (<c>20GB</c>). Removes no image.</summary>
+    internal static IReadOnlyList<string> BuildBuilderPruneArguments(string host, string keep, string flag = BuildCacheFlag) =>
+        [.. Prefix(host), "builder", "prune", "-af", flag, keep];
 
     /// <summary>Whether a docker client refused a flag it does not know — an older one, asked with a newer flag's name.</summary>
     internal static bool IsUnknownFlag(string error) => error.Contains("unknown flag", StringComparison.Ordinal);

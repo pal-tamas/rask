@@ -231,6 +231,10 @@ internal sealed partial class DeployCommand
         return null;
     }
 
+    /// <summary>The knobs <c>.rask/deploy.json</c> alone sets — the stop budget, the build's deadlines, the disk settings.</summary>
+    private int? ResolveAppSettings(DeployPlan plan) =>
+        ResolveStopBudget(plan) ?? ResolveBuildDeadlines(plan) ?? ResolveDiskPolicy(plan);
+
     /// <summary>The app's stop budget from <c>.rask/deploy.json</c>, or the default when it names none.</summary>
     private int? ResolveStopBudget(DeployPlan plan)
     {
@@ -262,6 +266,18 @@ internal sealed partial class DeployCommand
         }
 
         Deadlines = Deadlines with { Build = build, BuildIdle = idle };
+        return null;
+    }
+
+    /// <summary>The disk settings, from <c>"buildCacheKeep"</c>, <c>"minFreeDisk"</c> and <c>"warnFreeDisk"</c> when the app sets them.</summary>
+    private int? ResolveDiskPolicy(DeployPlan plan)
+    {
+        if (!DiskPolicy.TryFrom(plan.Config, out var policy, out var error))
+        {
+            return Fail($"{Path.Combine(".rask", "deploy.json")}: {error}");
+        }
+
+        DiskPolicy = policy;
         return null;
     }
 
