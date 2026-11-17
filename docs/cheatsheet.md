@@ -28,6 +28,7 @@ rask deploy --github-actions          # write .github/workflows/deploy.yml
 rask deploy status                    # what's running, and what a rollback restores
 rask deploy logs -f                  # tail the deployed app (--follow)
 rask deploy rollback                  # put the previous image back
+rask host clean                       # free the box's disk now (old images, build cache), under its lock
 
 # tab completion
 rask completion zsh > "${fpath[1]}/_rask"   # also: bash, fish

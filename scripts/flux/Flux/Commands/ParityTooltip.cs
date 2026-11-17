@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
@@ -104,6 +105,11 @@ public sealed partial class ParityTooltip : IFluxCommand
     // Longer than the 100 ms in which Flux looks at one pointer move: a pointer still this long has come to rest.
     private const int Look = 150;
 
+    // How long a RESTING finger is down before it lifts: longer than the 300 ms within which rask-hover.ts (TAP_MS)
+    // counts a lifted finger as a tap, which leaves the tooltip shown (owner, 2026-11-11). Flux hides a tooltip a
+    // finger showed when it lifts a frame or more later, so a finger that rested is one held past both.
+    private const int Rest = 450;
+
     // Runs in the page. Resolves once nothing about the tooltip has changed for three frames running: whether it shows,
     // its box, its trigger's box and the page's scroll (Flux's docs scroll smoothly, so a trigger asked into view is
     // still travelling when the call returns). Three seconds at most; a case that never rests is measured as it is.
@@ -179,6 +185,7 @@ public sealed partial class ParityTooltip : IFluxCommand
     private IBrowser browser = null!;
     private View view = null!;
     private readonly Dictionary<IPage, ICDPSession> fingers = [];
+    private readonly Dictionary<IPage, long> landed = [];
 
     /// <inheritdoc />
     public async Task<int> Run(string[] args)
@@ -870,6 +877,12 @@ public sealed partial class ParityTooltip : IFluxCommand
 
         if (!down)
         {
+            var held = landed.TryGetValue(page, out var at) ? Stopwatch.GetElapsedTime(at).TotalMilliseconds : Rest;
+            if (held < Rest)
+            {
+                await page.WaitForTimeoutAsync((float)(Rest - held));
+            }
+
             await cdp.SendAsync("Input.dispatchTouchEvent", new Dictionary<string, object> { ["type"] = "touchEnd", ["touchPoints"] = Array.Empty<object>() });
             await page.WaitForTimeoutAsync(300);
             return;
@@ -883,6 +896,7 @@ public sealed partial class ParityTooltip : IFluxCommand
             ["type"] = "touchStart",
             ["touchPoints"] = new[] { new Dictionary<string, object> { ["x"] = box.X + (box.Width / 2), ["y"] = box.Y + (box.Height / 2) } },
         });
+        landed[page] = Stopwatch.GetTimestamp();
         await page.WaitForTimeoutAsync(100);
     }
 

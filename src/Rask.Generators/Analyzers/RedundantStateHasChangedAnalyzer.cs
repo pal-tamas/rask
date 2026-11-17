@@ -89,7 +89,7 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            if (CallbackNameOf(op) is { } callback)
+            if (CallbackStep.NameOf(op) is { } callback)
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(Rask026, invocation.Syntax.GetLocation(), callback));
@@ -97,88 +97,5 @@ public sealed class RedundantStateHasChangedAnalyzer : DiagnosticAnalyzer
 
             return;
         }
-    }
-
-    // The Rask callback a lambda is bound to (by name), or null. The lambda's parent is its delegate
-    // creation; that delegate's parent is the IArgumentOperation, whose parent is the invocation. We
-    // require BOTH that the invocation targets a generated factory (static Generated.X(...)) or a
-    // builder setter (`.AfterBind(…)`) — so a user helper that merely takes a Action parameter is left
-    // alone — AND that it is an event/binding callback (a Rask Action/Func<Task> delegate, or an
-    // AfterBind* hook by name).
-    private static string? CallbackNameOf(IOperation lambda)
-    {
-        IArgumentOperation? argument = null;
-        for (IOperation? op = lambda.Parent; op is not null; op = op.Parent)
-        {
-            switch (op)
-            {
-                case IArgumentOperation arg:
-                    argument = arg;
-                    break;
-                case IConversionOperation or IDelegateCreationOperation or IParenthesizedOperation:
-                    continue; // transparent wrappers between the lambda and its argument
-                default:
-                    return null;
-            }
-
-            if (argument is not null)
-            {
-                break;
-            }
-        }
-
-        if (argument?.Parameter is not { } parameter
-            || argument.Parent is not IInvocationOperation call)
-        {
-            return null;
-        }
-
-        // On the builder surface the callback's NAME is the setter's, not the parameter's (every setter
-        // takes a parameter called `value`) — `.AfterBind(_ => StateHasChanged())`.
-        if (IsBuilderSetter(call.TargetMethod))
-        {
-            return IsRaskCallbackName(call.TargetMethod.Name) ? call.TargetMethod.Name : null;
-        }
-
-        return IsGeneratedFactory(call.TargetMethod) && IsRaskCallbackParameter(parameter)
-            ? parameter.Name
-            : null;
-    }
-
-    private static bool IsGeneratedFactory(IMethodSymbol method) =>
-        method.IsStatic && string.Equals(method.ContainingType?.Name, "Generated", StringComparison.Ordinal);
-
-    // IOperation reports an extension invocation in its UNreduced form (the receiver is Arguments[0]),
-    // so match on the containing class rather than on MethodKind.ReducedExtension.
-    private static bool IsBuilderSetter(IMethodSymbol method) =>
-        method.IsExtensionMethod
-        && method.ContainingType?.Name.StartsWith("RaskBuilderSetters", StringComparison.Ordinal) == true;
-
-    private static bool IsRaskCallbackParameter(IParameterSymbol parameter) =>
-        IsRaskCallbackName(parameter.Name);
-
-    // By NAME, because the type no longer carries the signal. Rask's callbacks used to be named delegate
-    // types in Rask.Core (`Callback`, `CallbackAsync`), which said "framework event callback" on sight,
-    // but they are plain `Action`/`Func<…>` now, and a BCL delegate says nothing about who re-renders after
-    // it. What still says it is the property: `On…` is Rask's event-callback convention across the whole
-    // surface, and `AfterBind`/`AfterBindAsync` are the two binding hooks that do not use the prefix.
-    //
-    // A name test is narrower than the type test it replaces, not wider: a `Func<T, Component>` template
-    // or a `Func<T, string?>` selector is not an event and never was reported.
-    private static bool IsRaskCallbackName(string name) =>
-        name is "AfterBind" or "AfterBindAsync"
-        || (name.StartsWith("On", StringComparison.Ordinal) && name.Length > 2);
-
-    private static bool InheritsFromOrIs(INamedTypeSymbol? type, INamedTypeSymbol target)
-    {
-        for (var t = type; t is not null; t = t.BaseType)
-        {
-            if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, target))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

@@ -49,7 +49,7 @@ public sealed class DataBuilder<TContext>
         var ownership = new SchemaOwnership();
         configure?.Invoke(ownership);
 
-        Services.AddSingleton(new OwnedSchema<TContext>(ownership));
+        Services.AddSingleton(new OwnedSchema<TContext>(ownership, $"by dropping OwnsSchema(…) from AddRaskData<{typeof(TContext).Name}>(…)."));
         Services.AddHostedService<MigrateOnStart<TContext>>();
         return this;
     }

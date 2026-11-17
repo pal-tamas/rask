@@ -23,6 +23,20 @@ internal static class ComponentSymbols
         return false;
     }
 
+    /// <summary>Whether <paramref name="type" /> is <paramref name="target" /> or derives from it, at any depth.</summary>
+    public static bool InheritsFromOrIs(INamedTypeSymbol? type, INamedTypeSymbol target)
+    {
+        for (var t = type; t is not null; t = t.BaseType)
+        {
+            if (SymbolEqualityComparer.Default.Equals(t.OriginalDefinition, target))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /// <summary>
     ///     Whether the type is visible outside its assembly, walking containing types so a public nested type
     ///     inside an internal one reads as internal. Generated code that names the type in a signature has to

@@ -6,7 +6,7 @@ both transports — Server (WebSocket) and WASM (`JSImport`/`JSExport`).
 
 ## On this page
 
-- [IJSRuntime, typed APIs & refs](js-interop-runtime.md) — calling JS, the typed browser-API layer, element refs, wrapping a third-party lib.
+- [IJSRuntime, typed APIs & refs](js-interop-runtime.md) — calling JS, the typed browser-API layer, element refs, wrapping a third-party lib, and how a [C# union crosses](js-interop-runtime.md#calling-js-from-c-ijsruntime) (as the case it holds).
 
 - [Scoped CSS](#scoped-css)
 - [Scoped TypeScript](#scoped-typescript)

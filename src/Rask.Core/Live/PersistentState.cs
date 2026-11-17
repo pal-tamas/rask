@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Rask.Core.Diagnostics;
 
@@ -28,8 +29,15 @@ internal sealed class PersistentState : IPersistentState
     /// </summary>
     internal const int DefaultMaxBytes = 16 * 1024;
 
-    // Web defaults (camelCase) to match every other JSON surface the framework writes.
-    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web);
+    // Web defaults (camelCase) to match every other JSON surface the framework writes. The bag reads only what it
+    // wrote, and it writes a number as a number, so reading one from a string is a leniency it never uses — and the
+    // one that would make a union of a number and a string ambiguous. A union of records reads back as the case its
+    // properties name.
+    private static readonly JsonSerializerOptions SerializerOptions = new(JsonSerializerDefaults.Web)
+    {
+        NumberHandling = JsonNumberHandling.Strict,
+        TypeClassifiers = { UnionCaseClassifier.Instance },
+    };
 
     private readonly Dictionary<string, byte[]> _entries = new(StringComparer.Ordinal);
 
