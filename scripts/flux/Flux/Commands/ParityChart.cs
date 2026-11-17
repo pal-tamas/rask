@@ -91,8 +91,11 @@ public sealed partial class ParityChart : IFluxCommand
           const frame = chart.getBoundingClientRect();
           const svg = [...chart.querySelectorAll('svg')].find(s => !s.closest('template'));
           const origin = svg.getBoundingClientRect();
-          const tooltip = chart.querySelector(':scope > [data-rask-plot-tooltip]')
-            ?? [...chart.children].find(e => e.tagName === 'DIV' && getComputedStyle(e).position === 'absolute' && !e.hasAttribute('data-ui-chart-hover') && !e.querySelector('svg'));
+          // The kit marks its tooltip; Flux's is the one unmarked absolute box. Looked for that way on Flux's side
+          // only: on the kit's it found the sr-only rows table (absolute, opaque) of a chart with no tooltip.
+          const tooltip = chart.hasAttribute('data-ui-chart')
+            ? chart.querySelector(':scope > [data-rask-plot-tooltip]')
+            : [...chart.children].find(e => e.tagName === 'DIV' && getComputedStyle(e).position === 'absolute' && !e.hasAttribute('data-ui-chart-hover') && !e.querySelector('svg'));
           const tip = tooltip?.getBoundingClientRect();
           const shown = tooltip ? getComputedStyle(tooltip).opacity === '1' : false;
           // Flux's cursor is a path in the drawing; the kit's a box over it.
