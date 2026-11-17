@@ -87,6 +87,45 @@ public sealed partial class AppFrameSettingsPage : Component
     protected override Component? Render() => P.Id("page")["Settings"];
 }
 
+/// <summary>
+///     A layout that names its home, as TA's does: <c>/</c> is a list (an administrator's tenants), and home is a page of
+///     its own.
+/// </summary>
+[Route("/ui-app-frame-named")]
+public sealed partial class AppFrameNamedLayout : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Ui.AppFrame.Brand("PPTA").Home(Routes.AppFrameNamedHomePage()).LeaveHeading("Unsaved driver")[
+            Ui.SidebarNav[
+                Ui.SidebarItem.Key("tenants").Href(Routes.AppFrameTenantsPage())["Tenants"],
+                Ui.SidebarItem.Key("home").Href(Routes.AppFrameNamedHomePage())["Home"]
+            ],
+            Outlet
+        ];
+}
+
+/// <summary>The root of the named layout: a list, beneath which every other row sits.</summary>
+[Route("")]
+[ParentRoute(typeof(AppFrameNamedLayout))]
+public sealed partial class AppFrameTenantsPage : Component
+{
+    /// <inheritdoc />
+    protected override string? PageTitle => "Tenants";
+
+    /// <inheritdoc />
+    protected override Component? Render() => P.Id("page")["Tenants list"];
+}
+
+/// <summary>The home the named layout names.</summary>
+[Route("home")]
+[ParentRoute(typeof(AppFrameNamedLayout))]
+public sealed partial class AppFrameNamedHomePage : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() => P.Id("page")["Home page"];
+}
+
 /// <summary><c>Ui.AppFrame</c>: the menu in Flux's sidebar, breadcrumbs from the menu, the user and sign-out, the page in the main.</summary>
 public sealed partial class UiAppFrameTests
 {
@@ -233,5 +272,76 @@ public sealed partial class UiAppFrameTests
         Assert.Contains("rask-confirm-dialog", html, StringComparison.Ordinal);
         Assert.Contains("rask-leave", html, StringComparison.Ordinal);
         Assert.True(page.Exists("[data-ui-header] [data-ui-sidebar-toggle]"));
+    }
+
+    [Fact]
+    public void A_named_home_wins_over_the_row_every_other_row_is_beneath()
+    {
+        var page = Page.Visit("/ui-app-frame-named");
+
+        var steps = page.FindAll("[data-ui-header] [data-ui-breadcrumbs-item]");
+        var lit = page.FindAll("[data-ui-sidebar-nav] [aria-current=\"page\"]");
+
+        Assert.Equal("/ui-app-frame-named/home", page.Find("[data-ui-sidebar-brand]").Attribute("href"));
+        Assert.Equal("/ui-app-frame-named/home", steps[0].DescendantsAndSelf().FirstOrDefault(node => node.Tag == "a")?.Attribute("href"));
+        Assert.Equal(["", "Tenants"], steps.Select(step => step.TextContent.Trim()));
+        Assert.Equal("Tenants", Assert.Single(lit).TextContent.Trim());
+    }
+
+    [Fact]
+    public void The_named_home_lights_its_own_row_and_its_trail_is_home()
+    {
+        var page = Page.Visit("/ui-app-frame-named/home");
+
+        var steps = page.FindAll("[data-ui-header] [data-ui-breadcrumbs-item]");
+        var lit = page.FindAll("[data-ui-sidebar-nav] [aria-current=\"page\"]");
+
+        Assert.Single(steps);
+        Assert.Equal("Home", Assert.Single(lit).TextContent.Trim());
+    }
+
+    [Fact]
+    public void Without_a_named_home_the_brand_leads_to_the_row_every_other_row_is_beneath()
+    {
+        var page = Page.Visit("/ui-app-frame/drivers");
+
+        var brand = page.Find("[data-ui-sidebar-brand]");
+        var home = page.FindAll("[data-ui-header] [data-ui-breadcrumbs-item]")[0].DescendantsAndSelf().FirstOrDefault(node => node.Tag == "a");
+
+        Assert.Equal("/ui-app-frame", brand.Attribute("href"));
+        Assert.Equal("/ui-app-frame", home?.Attribute("href"));
+    }
+
+    [Fact]
+    public void The_leave_heading_titles_the_unsaved_changes_dialog()
+    {
+        var page = Page.Visit("/ui-app-frame-named");
+
+        var dialog = page.Find("#ui-confirm-leave");
+
+        Assert.Contains("Unsaved driver", dialog.TextContent, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unsaved changes", dialog.TextContent, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("en-US", "Unsaved changes")]
+    [InlineData("hu-HU", "Mentetlen változások")]
+    public void Without_a_leave_heading_the_dialog_is_titled_in_the_catalogs_words(string culture, string heading)
+    {
+        var frame = Ui.AppFrame.Brand("PPTA");
+
+        var html = KitCulture.In(culture, frame.ToHtml).AsText();
+
+        Assert.Contains(">" + heading + "<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_tenant_line_has_a_stable_id()
+    {
+        var page = Page.Visit("/ui-app-frame/drivers");
+
+        var tenant = page.Find("#ui-app-frame-tenant");
+
+        Assert.Equal("Acme Fuels", tenant.TextContent.Trim());
     }
 }

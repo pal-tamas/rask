@@ -756,15 +756,20 @@ public sealed class EveryPageTests(RaskSite<Program> site)
   answers. Nothing runs in the test process, so what a test sees is what a deployment serves.
 - **A database of its own.** The app runs with `ASPNETCORE_ENVIRONMENT=Testing` and its database and log store as
   SQLite files in the run's own folder (`site.Folder`), deleted when the site is disposed. Pending migrations are
-  applied as the app starts.
+  applied as the app starts. An app given a database of its own keeps it: a `Rask__ConnectionStrings__App` (or
+  `…__Logs`) set in `site.Environment`, or already in the test process's environment (a CI runner's), is used as it
+  is, and only a store named nowhere gets the SQLite file.
 - **One browser.** Chromium is installed on first use and launched once; every page is a context of its own, so no
-  cookie or storage reaches the next test. Every page resolves a relative URL against the app:
-  `await page.GotoAsync("/orders")`.
+  cookie or storage reaches the next test, and the contexts a test opened are closed once it is over (before the next
+  test of its collection opens one; the rest close with the browser) — no `CloseAsync` to remember. Every page
+  resolves a relative URL against the app: `await page.GotoAsync("/orders")`. `await site.Context(state)` is a context
+  of your own on the same terms — `site.Contexts`'s viewport and locale, started from a storage state Playwright wrote.
 - **Signed in once.** `await site.SignedIn(site.Admin)` hands back a page signed in as the app's administrator — the
   first account, registered with the app's one-time token, through Rask.Auth's API where the app maps it (a
   WebAssembly app's host) and through the `/login` and `/register` pages `rask new` writes otherwise. Any other name
   is registered as an ordinary account. The first page for a name signs in; every later one starts from its cookies.
-  `await site.SignedOut()` is a visitor's page.
+  `await site.SignedIn(name, fresh: true)` signs in anew — after a test signed them out — and the pages after it
+  start from that sign-in. `await site.SignedOut()` is a visitor's page.
 - **`site.Walk(path)`** opens the page and fails — with every problem it found, and the last lines the app wrote — on
   an answer that is not a success (the not-found page, the forbidden one), a console or page error, a request to the
   app that failed or answered 400 or worse, a live connection opened twice or closed, the error overlay, and a page
@@ -776,17 +781,23 @@ public sealed class EveryPageTests(RaskSite<Program> site)
   with `.Without("/logout")`.
 - **`site.Watch(page)`** collects the same problems on a page a test drives itself: `var problems = site.Watch(page);`
   … `Assert.Empty(problems);`. `site.Log` is everything the app wrote; `site.Said("…")` asks whether it wrote a line.
+  `site.HostLog = "artifacts/host.log"` also appends each line to that file as the app writes it, so a run cut short
+  still leaves what the app said.
 
-An app sets its site up in a class of its own:
+An app sets its site up in a class of its own — and, keeping stand-ins of its own (a mail catcher, a fake payment
+provider), disposes them with the site by overriding `DisposeAsync`:
 
 ```csharp
 [assembly: AssemblyFixture(typeof(Site))]
 
 public sealed class Site : RaskSite<Program>
 {
+    private readonly FakeMailServer _mail = new();
+
     public Site()
     {
-        Environment["TA_DATABASE_URL"] = System.Environment.GetEnvironmentVariable("TA_TEST_DATABASE_URL");
+        Environment["Rask__ConnectionStrings__App"] = System.Environment.GetEnvironmentVariable("TA_TEST_DATABASE_URL");
+        HostLog = Path.Combine("artifacts", "host.log");     // survives a run that is cut short
         Health = "/version";                                  // an app that maps its own health check
         Password = System.Environment.GetEnvironmentVariable("TA_SMOKE_PASSWORD") ?? "";  // its test accounts' password
         Contexts.ViewportSize = new() { Width = 1600, Height = 1000 };
@@ -800,11 +811,18 @@ public sealed class Site : RaskSite<Program>
             await page.WaitForURLAsync(url => !new Uri(url).AbsolutePath.StartsWith("/login", StringComparison.Ordinal));
         };
     }
+
+    public override async ValueTask DisposeAsync()
+    {
+        await _mail.DisposeAsync();
+        await base.DisposeAsync();
+    }
 }
 ```
 
 `Environment` is the app's environment over the test process's own; a `null` value removes a variable, and
-`Rask__Section__Key` is the setting `Rask:Section:Key` — an app on SQL Server names its test database there. A test
+`Rask__Section__Key` is the setting `Rask:Section:Key` — an app on SQL Server names its test database there (and
+`Environment["ASPNETCORE_ENVIRONMENT"]` its hosting environment, `Testing` unless set). A test
 that only reads the site runs side by side with others; xUnit's collections decide the rest, as before.
 
 **Before** — every app wrote its own host fixture (one app's was 280 lines) and a hand-kept list of its pages:

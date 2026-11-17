@@ -8,6 +8,36 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.DialogButtons` — a dialog's footer: Cancel closes the modal, the action is a click handler (#1352).**
+  Before: `Ui.FormButtons` could not stand in a dialog — its Cancel is a link that needs a route and its Save is
+  always a submit — so a dialog wrote `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]],
+  Ui.Button.Primary.OnClick(Book)["Foglalás"]]` by hand. After: `Ui.DialogButtons.OnSave(Book).Save("Foglalás")`.
+  Drawn as Flux's modal footer (spacer, ghost Cancel inside `Ui.ModalClose`, primary action); Cancel closes the
+  enclosing `Ui.Modal` by the browser's `command="close"`, the action sends no form and is busy while `OnSave` runs;
+  the words default to the catalog's `FormButtonsCancel` / `FormButtonsSave`. `Ui.FormButtons` is unchanged.
+- **`Ui.AppFrame.Home(url)` names the app's home, `.LeaveHeading("…")` titles its unsaved-changes dialog, and the
+  tenant line has an id (#1353).** Before: home was always the menu row every other row sits beneath (or `/`), so an
+  app whose `/` is not home — TA's sends an administrator to the tenant list — had its brand and its home breadcrumb
+  lead to the wrong page; the mounted `Ui.ConfirmLeave` had no title and no way to give it one; and the tenant line was
+  found only by `[data-ui-app-frame-tenant]`. After: `Ui.AppFrame.Brand("PPTA").Home(Routes.HomePage())` sends the
+  brand and the trail's first step there, and the row leading there is home's row (unset, exactly as before);
+  `.LeaveHeading("Mentetlen változások")` titles the dialog over the form's question, which otherwise reads the new
+  catalog key `ConfirmLeaveHeading` ("Unsaved changes"; "Mentetlen változások" in the kit's Hungarian); the tenant line
+  is `#ui-app-frame-tenant`.
+- **`RaskSite` does what an app's own E2E harness needs: `HostLog`, `Context(…)`, `SignedIn(name, fresh: true)`, an
+  overridable `DisposeAsync`, the app's own database, and a test's browser contexts closed after it (#1351).** Before:
+  TA could not adopt `RaskSite` — the host's output lived only in memory and died with a run cut short, a context with a
+  storage state of its own could not be had (`NewContext` was private), a subclass could not dispose its stand-ins with
+  the site, `SignedIn` always reused the first sign-in (a test that signed out had no way back), the SQLite connection
+  strings overrode the SQL Server database TA names in its environment, and every page a test did not close stayed
+  open until the assembly ended. After: `site.HostLog = "artifacts/host.log"` appends each line the app writes as it
+  comes (`Log`/`Said` unchanged); `await site.Context(storageState)` is a context on `site.Contexts`'s options against
+  the app; `public override async ValueTask DisposeAsync() { …; await base.DisposeAsync(); }`;
+  `await site.SignedIn("ann", fresh: true)` signs in anew and the pages after it start from that sign-in;
+  `Rask__ConnectionStrings__App`/`__Logs` set in `site.Environment` or the test process's environment is the app's, and
+  only a store named nowhere gets the run's SQLite file (an untouched site runs exactly as before); and the contexts a
+  test opened are closed once it is over — before the next test of its xUnit collection opens one — so no test has to
+  remember `page.Context.CloseAsync()`.
 - **`Virtualize.Items` measures its rows, as .NET 11's `Virtualize` does, and opens at a row, follows its tail and
   scrolls to a row from code (#1326).** Before: every row had to be exactly `ItemSize` tall — a row that wrapped to a
   second line made the spacers wrong, and the list drifted and left blank room as it scrolled. After: draw the rows

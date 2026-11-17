@@ -851,4 +851,10 @@ public enum RaskString
 
     /// <summary>What a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> announces when a job is stopped: <c>{0}</c> is its title.</summary>
     WorkEndedStopped,
+
+    /// <summary>
+    ///     The title a <c>Ui.AppFrame</c>'s unsaved-changes dialog stands above the form's question when the frame is given
+    ///     no <c>LeaveHeading</c> of its own.
+    /// </summary>
+    ConfirmLeaveHeading,
 }

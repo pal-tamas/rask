@@ -312,6 +312,7 @@ public sealed class TranslationCatalogGenerator : IIncrementalGenerator
         ("WorkEndedDone", 1),
         ("WorkEndedFailed", 1),
         ("WorkEndedStopped", 1),
+        ("ConfirmLeaveHeading", 0),
     ];
 
     /// <summary>Test seam: the key list this generator accepts, mirrored from <c>RaskString</c>.</summary>

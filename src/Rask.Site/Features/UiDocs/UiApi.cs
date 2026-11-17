@@ -300,6 +300,12 @@ internal static partial class UiApi
             new("Shortcut", typeof(string), "Keys that open it from anywhere on the page: \"mod+k\" is ⌘K on a Mac and Ctrl K elsewhere."),
         ]),
         new("Ui.ModalClose", typeof(UiModalClose), "flux:modal.close", "Makes the button inside it close the modal it is in: a close, not a dismissal.", []),
+        new("Ui.DialogButtons", typeof(UiDialogButtons), NotFlux, "A dialog's footer as Flux draws one: Cancel, which closes the modal, then the primary action.",
+        [
+            new("OnSave", typeof(Callback), "Runs when the action is pressed: a click, not a submit. The button is busy while it runs.", Handler),
+            new("Save", typeof(string), "The label of the action. The catalog's \"Save\" when unset."),
+            new("Cancel", typeof(string), "The label of the button that closes the modal. The catalog's \"Cancel\" when unset."),
+        ]),
     ];
 
     public static IReadOnlyList<UiApiPart> Confirm { get; } =
@@ -347,6 +353,8 @@ internal static partial class UiApi
             new("User", typeof(string), "Who is signed in, at the sidebar's foot."),
             new("SignOut", typeof(Rask.Core.Routing.RouteUrl?), "Where signing out goes, an endpoint that answers a GET: the profile's menu holds the sign-out row, which asks first in the catalog's words.", "a URL: \"/logout\""),
             new("Notices", typeof(Component), "What stands at the header's end: how background work is getting on."),
+            new("Home", typeof(Rask.Core.Routing.RouteUrl?), "The app's home, where the brand and the trail's first step lead. Unset, the row every other row is beneath, or /.", "a route: Routes.HomePage()"),
+            new("LeaveHeading", typeof(string), "The title of the unsaved-changes dialog, over the form's question. The catalog's \"Unsaved changes\" when unset."),
         ]),
     ];
 

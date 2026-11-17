@@ -133,6 +133,7 @@
   "ConfirmLeaveStay": "Maradok",
   "ConfirmLeaveLeave": "Elhagyom",
   "ConfirmLeaveQuestion": "Biztos elhagyja mentés nélkül az oldalt?",
+  "ConfirmLeaveHeading": "Mentetlen változások",
 
   "OtpCharacter": "{0}. karakter, összesen {1}",
 

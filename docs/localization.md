@@ -745,6 +745,7 @@ they say when you set nothing.
 | `ConfirmLeaveStay` | Confirm leave | `Stay` |
 | `ConfirmLeaveLeave` | Confirm leave | `Leave` |
 | `ConfirmLeaveQuestion` | A form's `.ConfirmLeave()` with no question of its own | `Leave without saving?` |
+| `ConfirmLeaveHeading` | `Ui.AppFrame`'s unsaved-changes dialog with no `LeaveHeading` of its own | `Unsaved changes` |
 | `FormButtonsCancel` | Form buttons | `Cancel` |
 | `FormButtonsSave` | Form buttons | `Save` |
 | `FormButtonsRemove` | Form buttons (the button, and the title of its question) | `Delete` |

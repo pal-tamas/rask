@@ -36,7 +36,7 @@ namespace Rask;
 ///     Its children are the menu — each <see cref="UiSidebarNav" /> goes to the sidebar, pinned between the brand and the
 ///     profile while it scrolls — and the page: everything else, the <c>Outlet</c> as a rule, goes to the main, and with it the
 ///     built-in not-found and forbidden pages. A row is lit while its page is shown or a page beneath it (its form), and
-///     the group holding it is opened. A row's own <c>.Current(…)</c> wins. Home is the row for <c>/</c>.
+///     the group holding it is opened. A row's own <c>.Current(…)</c> wins. Home is <see cref="Home" />, or the row for <c>/</c>.
 ///     </para>
 ///     <para>
 ///     The look is the kit's: the accent colour is the app's theme (<c>--color-accent</c> in its stylesheet), and the logo
@@ -48,6 +48,9 @@ public sealed partial class UiAppFrame : Component
     private const string Ground = "border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900";
 
     private const string Pinned = "min-h-0 flex-1 overflow-y-auto";
+
+    // The tenant line's id, one per page as the frame is: what a test or an app's stylesheet finds it by.
+    private const string TenantId = "ui-app-frame-tenant";
 
     // What the call site said of each row's current and each group's fold, before the frame lit or opened them.
     private readonly Dictionary<Component, bool?> _said = new(ReferenceEqualityComparer.Instance);
@@ -76,6 +79,18 @@ public sealed partial class UiAppFrame : Component
     /// <summary>What stands at the header's end: how the app's background work is getting on, a count.</summary>
     public Component? Notices { get; set; }
 
+    /// <summary>
+    ///     The app's home, where the brand and the trail's first step lead: <c>.Home(Routes.HomePage())</c>. Unset, home is
+    ///     the menu's row every other row is beneath, or <c>/</c> without one. The row leading here is home's row.
+    /// </summary>
+    public RouteUrl? Home { get; set; }
+
+    /// <summary>
+    ///     The title of the dialog that asks before unsaved changes are left (<see cref="UiConfirmLeave.Heading" />), above the
+    ///     form's question. Unset, the catalog's <c>ConfirmLeaveHeading</c>: "Unsaved changes".
+    /// </summary>
+    public string? LeaveHeading { get; set; }
+
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -87,7 +102,7 @@ public sealed partial class UiAppFrame : Component
         var route = UiTableAddress.Route();
         var parts = Flatten(Children).ToList();
         var navs = parts.OfType<UiSidebarNav>().ToList();
-        var menu = UiAppFrameMenu.Read(navs, route?.Path ?? "/");
+        var menu = UiAppFrameMenu.Read(navs, route?.Path ?? "/", Home);
         menu.Light(_said);
         // Pinned between the brand and the profile: the menu scrolls, they stay. Once, though a nav is drawn again.
         foreach (var nav in navs.Where(nav => nav.Class?.Contains(Pinned, StringComparison.Ordinal) != true))
@@ -103,7 +118,7 @@ public sealed partial class UiAppFrame : Component
                     Ui.SidebarBrand.Name(Brand).Logo(Logo).LogoDark(LogoDark).Href(menu.Home),
                     Ui.SidebarCollapse
                 ],
-                Tenant is { Length: > 0 } tenant ? Ui.Text.Class("px-2 sidebar-rail:hidden").Attributes(("data-ui-app-frame-tenant", ""))[tenant] : null,
+                Tenant is { Length: > 0 } tenant ? Ui.Text.Id(TenantId).Class("px-2 sidebar-rail:hidden").Attributes(("data-ui-app-frame-tenant", ""))[tenant] : null,
                 navs,
                 Profile()
             ],
@@ -115,7 +130,7 @@ public sealed partial class UiAppFrame : Component
             ],
             Ui.Main[parts.Where(part => part is not UiSidebarNav)],
             Ui.Toast,
-            Ui.ConfirmLeave,
+            Ui.ConfirmLeave.Heading(LeaveHeading ?? RaskStrings.Get(RaskString.ConfirmLeaveHeading, "Unsaved changes")),
             Ui.Confirm
         ];
     }
