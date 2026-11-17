@@ -104,10 +104,15 @@ checks | xargs -P "$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)" -L1 bash 
 total=$(wc -l < "$out/summary.txt" | tr -d ' ')
 failed=$(grep -cv '^0 ' "$out/summary.txt")
 
+# A difference is a line that STARTS with FAIL (or MISSING: an example of Flux's the Rask page lacks), after any
+# indent: a page prints its examples flush left, a walk its steps under a heading (`  FAIL  step …` in
+# parity-tooltip's behaviour table, ClearPlacement's landings) — run 43872465208 read five such steps as no news.
+fail='^[[:space:]]*(FAIL|MISSING)'
+
 # A check that ended badly WITHOUT naming one difference did not run — fluxui.dev down, a page that never went
 # idle, a crash. That is no news about Flux, so the run says it could not tell (exit 1), never that Flux moved.
 broken=$(grep -v '^0 ' "$out/summary.txt" | while read -r _ check; do
-  grep -q '^FAIL' "$out/$(echo "$check" | tr ' /' '__').log" || echo "$check"
+  grep -Eq "$fail" "$out/$(echo "$check" | tr ' /' '__').log" || echo "$check"
 done)
 if [ -n "$broken" ]; then
   echo "parity-all: could not run every check, so nothing is said about Flux. These ended without a difference:"
@@ -127,6 +132,6 @@ echo "parity-all: $failed of $total checks differ from Flux:"
 grep -v '^0 ' "$out/summary.txt" | while read -r _ check; do
   echo
   echo "== $check"
-  grep -E '^(FAIL|       )' "$out/$(echo "$check" | tr ' /' '__').log" | head -12
+  grep -E "$fail|^       " "$out/$(echo "$check" | tr ' /' '__').log" | head -12
 done
 exit 2
