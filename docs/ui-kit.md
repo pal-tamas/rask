@@ -674,6 +674,25 @@ Ui.FormButtons.Back(Routes.SuppliersPage()).Remove(Remove, "Szállító törlés
 Ui.FormButtons.Back(Routes.SuppliersPage()).Save("Létrehozás")            // a new record
 ```
 
+`Ui.DialogButtons.OnSave(Book)` is a dialog's footer as Flux draws a modal's: Cancel, a ghost button inside
+`Ui.ModalClose`, so it closes the `Ui.Modal` it stands in (by the browser's own `command="close"`, `OnClose` runs, no
+round trip) — then the primary action, a click handler, not a submit, so a form around the dialog is not sent. The
+action is busy (`data-loading` and its spinner) while `OnSave` runs, as a form's Save is while it is sent; what you put
+inside it stands before Cancel. `.Save("Book")` and `.Cancel("Back")` name them, and unnamed they read the catalog's
+`FormButtonsSave` / `FormButtonsCancel` (Mentés, Mégse). `Ui.FormButtons` stays the form's footer.
+
+```csharp
+// Before: Ui.FormButtons' Cancel needs a route and its Save is a submit, so a dialog wrote its own row.
+Div.Class("flex gap-2")[
+    Ui.Spacer,
+    Ui.ModalClose[Ui.Button.Ghost["Mégse"]],
+    Ui.Button.Primary.OnClick(Book)["Foglalás"]
+]
+
+// After: the kit's.
+Ui.DialogButtons.OnSave(Book).Save("Foglalás")
+```
+
 `Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
 tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
 edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in

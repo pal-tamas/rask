@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.DialogButtons` — a dialog's footer: Cancel closes the modal, the action is a click handler (#1352).**
+  Before: `Ui.FormButtons` could not stand in a dialog — its Cancel is a link that needs a route and its Save is
+  always a submit — so a dialog wrote `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]],
+  Ui.Button.Primary.OnClick(Book)["Foglalás"]]` by hand. After: `Ui.DialogButtons.OnSave(Book).Save("Foglalás")`.
+  Drawn as Flux's modal footer (spacer, ghost Cancel inside `Ui.ModalClose`, primary action); Cancel closes the
+  enclosing `Ui.Modal` by the browser's `command="close"`, the action sends no form and is busy while `OnSave` runs;
+  the words default to the catalog's `FormButtonsCancel` / `FormButtonsSave`. `Ui.FormButtons` is unchanged.
 - **`Virtualize.Items` measures its rows, as .NET 11's `Virtualize` does, and opens at a row, follows its tail and
   scrolls to a row from code (#1326).** Before: every row had to be exactly `ItemSize` tall — a row that wrapped to a
   second line made the spacers wrong, and the list drifted and left blank room as it scrolled. After: draw the rows

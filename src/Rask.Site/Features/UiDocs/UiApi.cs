@@ -300,6 +300,12 @@ internal static partial class UiApi
             new("Shortcut", typeof(string), "Keys that open it from anywhere on the page: \"mod+k\" is ⌘K on a Mac and Ctrl K elsewhere."),
         ]),
         new("Ui.ModalClose", typeof(UiModalClose), "flux:modal.close", "Makes the button inside it close the modal it is in: a close, not a dismissal.", []),
+        new("Ui.DialogButtons", typeof(UiDialogButtons), NotFlux, "A dialog's footer as Flux draws one: Cancel, which closes the modal, then the primary action.",
+        [
+            new("OnSave", typeof(Callback), "Runs when the action is pressed: a click, not a submit. The button is busy while it runs.", Handler),
+            new("Save", typeof(string), "The label of the action. The catalog's \"Save\" when unset."),
+            new("Cancel", typeof(string), "The label of the button that closes the modal. The catalog's \"Cancel\" when unset."),
+        ]),
     ];
 
     public static IReadOnlyList<UiApiPart> Confirm { get; } =

@@ -33,7 +33,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
     [InlineData("context", "Context menu", "ui-context-menu")]
     [InlineData("command", "Command palette", "ui-command|ui-command-modal")]
     [InlineData("popover", "Popover", "ui-popover-intro|ui-popover-hover|ui-popover-position|ui-popover-gap|ui-popover-categories|ui-popover-feedback|ui-popover-event")]
-    [InlineData("modal", "Modal", "ui-modal|ui-modal-state|ui-modal-dismissible|ui-modal-escapable|ui-modal-scroll|ui-modal-confirm|ui-modal-flyout|ui-modal-flyout-position|ui-modal-floating|ui-modal-lazy")]
+    [InlineData("modal", "Modal", "ui-modal|ui-modal-state|ui-modal-dismissible|ui-modal-escapable|ui-modal-scroll|ui-modal-confirm|ui-modal-dialog-buttons|ui-modal-flyout|ui-modal-flyout-position|ui-modal-floating|ui-modal-lazy")]
     public Task Every_action_example_renders_with_a_real_size(string slug, string heading, string testids) => RunAsync(async () =>
     {
         await OpenUiPageAsync(slug, heading);
@@ -631,6 +631,38 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeHiddenAsync();
         await Expect(scope)
             .ToContainTextAsync("You deleted the project", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+    });
+
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public Task Dialog_buttons_cancel_closes_the_modal_and_the_action_runs_its_handler_busy(int width, int height) => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(width, height);
+        await OpenUiPageAsync("modal", "Modal");
+        var scope = Page.Locator("[data-testid='ui-modal-dialog-buttons']");
+        var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Book stock" });
+        var dialog = scope.Locator("dialog");
+
+        await opener.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+        await opener.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        var book = dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Book", Exact = true });
+        var cancel = (await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).BoundingBoxAsync())!;
+        var action = (await book.BoundingBoxAsync())!;
+        var panel = (await dialog.BoundingBoxAsync())!;
+        await book.ClickAsync();
+
+        // Flux's footer: Cancel, then the action against the panel's end, both inside the panel at either width.
+        Assert.True(cancel.X + cancel.Width <= action.X, "Cancel does not stand before the action");
+        Assert.True(action.X + action.Width <= panel.X + panel.Width, "the action runs past the panel's edge");
+        await Expect(book).ToHaveAttributeAsync("data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
+        await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await Expect(scope).ToContainTextAsync("Last action: booked 12 pallets.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await AssertNoGlobalCrashAsync();
     });
 
     [Theory]
