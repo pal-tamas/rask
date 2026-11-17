@@ -494,6 +494,7 @@ public sealed class SignUp
     [Required, Display(Name = "Work email")] public string? Email { get; set; }   // "The Work email field is required."
     [Required, DisplayName("Given name")]   public string? First { get; set; }   // "The Given name field is required."
 }
+```
 
 ### An async attribute
 
