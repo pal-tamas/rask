@@ -1,0 +1,35 @@
+name: Cache, saved on main only
+description: >-
+  actions/cache for main, actions/cache/restore everywhere else. Every ref reads main's copy (a branch may
+  read its default branch's caches); only main writes one. Each ci/** branch used to save a copy of its own,
+  five of them filled the repository's 10 GB, and GitHub then evicted the caches every job reads. It also
+  keeps what a job restores to what main's own build put there.
+
+inputs:
+  path:
+    description: The paths to cache, one per line.
+    required: true
+  key:
+    description: The exact key.
+    required: true
+  restore-keys:
+    description: Prefixes to fall back to when the key misses, one per line. Empty falls back to nothing.
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - if: github.ref == 'refs/heads/main'
+      uses: actions/cache@v6
+      with:
+        path: ${{ inputs.path }}
+        key: ${{ inputs.key }}
+        restore-keys: ${{ inputs.restore-keys }}
+
+    - if: github.ref != 'refs/heads/main'
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ inputs.path }}
+        key: ${{ inputs.key }}
+        restore-keys: ${{ inputs.restore-keys }}
