@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rask.Background;
 using Rask.Cqrs;
 using Rask.Querying;
 using Rask.Wasm;
@@ -87,5 +89,25 @@ public static class WasmHostBuilderExtensions
         {
             services.AddRaskQuery();
         }
+
+        if (options.Ui.Enabled)
+        {
+            WireOwnWork(services);
+        }
+    }
+
+    // Ui.WorkNotices and Ui.WorkList in the browser half of an app with a server (AddRaskCqrsClient): their rows are the
+    // server's, read for whoever is signed in there, and the live reports open there too. Without a server or a query
+    // cache there is nothing to show, and nothing is wired.
+    private static void WireOwnWork(IServiceCollection services)
+    {
+        if (!services.Any(static d => d.ServiceType == typeof(IRemoteDispatch))
+            || !services.Any(static d => d.ServiceType == typeof(IQueryClient)))
+        {
+            return;
+        }
+
+        OwnWorkWire.Install();
+        services.TryAddScoped<IWorkBoard, RemoteWorkBoard>();
     }
 }

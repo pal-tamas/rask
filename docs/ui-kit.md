@@ -1139,6 +1139,8 @@ Jobs.Report(kept, total);                                                       
 
 - **Only the user's own work, in their tenant**, read from the job rows every poll and moved live in between by
   `WorkReported` — see [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **On either host.** On a Server page the rows are read in-process; in the browser half of a `wasm-hosted` app they are
+  asked of the server, and the live watch opens there — the same rows, the same rules, nothing to wire.
 - **The count** is what runs, and what ended since the flyout was last opened; the badge is hidden from a screen reader,
   which hears it in the bell's name (*Background work, 2 new*).
 - **A job seen running that ends is announced** in a polite live region: *Import of prices.csv is done.* A failure says

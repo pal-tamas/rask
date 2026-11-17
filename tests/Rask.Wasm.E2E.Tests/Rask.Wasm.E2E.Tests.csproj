@@ -31,6 +31,9 @@
   <ItemGroup>
     <!-- The workbook the [OffThread] journey reads, written by the host. -->
     <ProjectReference Include="..\..\src\Rask.Xlsx\Rask.Xlsx.csproj"/>
+    <!-- The server half of the bell's journey (#1348): the CQRS endpoints, and the watch policy AddRaskJobs registers. -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Server\Rask.Cqrs.Server.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Jobs\Rask.Jobs.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

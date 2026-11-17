@@ -168,6 +168,20 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`Ui.WorkNotices` and `Ui.WorkList` show the user's work in the browser half of a `wasm-hosted` app (#1348).**
+  Before: the bell and the list read the job rows through a board only a server has, so in the browser they stood empty,
+  and their live watch was refused there for want of a policy. After: an app that is a client of its server
+  (`AddRaskCqrsClient()`, as the `wasm-hosted` template is) with the kit and the query cache on — the defaults — asks the
+  server for the rows, which answers from its jobs board for whoever is signed in on the request, and opens the watch on
+  the server's event stream, admitted by the same policy a server page's is: only the signed-in enqueuer's work, in
+  their tenant, *Failed* without why, and nothing for nobody. The rows are read again every five seconds (the processor's default poll),
+  and the bars move live in between. Nothing to write; no new public names.
+- **A frame that arrives while the one before waits for its stylesheet is no longer lost (#1348).** Before: both
+  runtimes' render queues claimed to hold the next frame until a body held for a new stylesheet had been drawn, but
+  never waited for it — so a re-render right after the first paint (a query's answer landing as the kit's stylesheet
+  loaded) was applied to the page before it, then drawn over by the first, and the page kept its first paint until
+  something else changed. After: the queue waits for each frame's own commit (bounded by the stylesheet guard's
+  timeout), on the browser host and the server's.
 - **`Ui.Chart` keeps a crowded date axis's plot edges where Flux keeps them (#1301).** Before: with the dates crowded
   down to their first and last, the plot always ran to the gutter, where Flux sometimes held it half the first (or
   last) date in, depending on the data, so a narrow chart was now and then a few pixels wider than Flux's. After: the

@@ -296,6 +296,10 @@ could only say words nobody else saw. Now the job's row carries its title and it
   that runs on another host, or ended while nobody looked, is on the screen within one poll. Between reads, the
   `WorkReported` events a job publishes move its bar on the page at once — in this process; events reach
   [one process](subscriptions.md#one-process-for-now).
+- **In the browser too.** The browser half of a `wasm-hosted` app (a client of its server, `AddRaskCqrsClient()`) shows
+  the same bell: its rows are asked of the server, which reads them for whoever is signed in on the request, and its
+  live watch opens on the server, under the same rules. Nothing to wire — Rask.Wasm's batteries do it with the kit and
+  the query cache on.
 - **A report flood costs nothing.** Only the latest report is kept; it is published at once unless the last one was
   under a quarter second ago, and then on the next poll; the row is written at most once a poll, and only when the job
   reported since. A job looping a million rows may call `Jobs.Report` on every one.

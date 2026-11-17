@@ -115,13 +115,15 @@ import {
     // the diff and full-HTML paths chain through this tail promise so a deferred body
     // always commits before the following message's ops — paths in a later diff are
     // computed against the render this one produces, so they must not be applied first.
-    let _renderQueue = Promise.resolve();
+    let _renderQueue: Promise<unknown> = Promise.resolve();
 
     // Puts a frame's render in line. The page is busy from the moment the frame arrives until its render is on the
     // page, a body held for its stylesheet included (rask-busy.ts).
+    // The render's own promise (a body held for its stylesheet) is handed back to the queue, which waits for it: a
+    // frame that arrived while the one before still waited used to run at once, ahead of it (#1348).
     function enqueueRender(apply: () => unknown): void {
         const release = busy();
-        const run = function (): void {
+        const run = function (): unknown {
             let applied: unknown;
             try {
                 applied = apply();
@@ -130,6 +132,7 @@ import {
                 throw e;
             }
             busyUntil(applied, release);
+            return applied;
         };
         _renderQueue = _renderQueue.then(run, run);
     }

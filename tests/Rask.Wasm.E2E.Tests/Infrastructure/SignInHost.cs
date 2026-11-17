@@ -44,6 +44,9 @@ internal sealed class SignInHost : IAsyncDisposable
 
     public string BaseUrl { get; }
 
+    /// <summary>The host's own services: what a test publishes through, as the server's jobs do.</summary>
+    public IServiceProvider Services => _app.Services;
+
     /// <summary>Every API request the host answered, as <c>path:status</c>, in order.</summary>
     public ConcurrentQueue<string> Calls { get; } = new();
 
@@ -51,7 +54,8 @@ internal sealed class SignInHost : IAsyncDisposable
     public ConcurrentQueue<string> Requests { get; } = new();
 
     /// <param name="mountPath">The sub-path the app is served under, such as <c>/app</c>; empty serves it at the root.</param>
-    public static async Task<SignInHost> StartAsync(string mountPath = "")
+    /// <param name="work">The background work the host answers the app's bell with, as a Rask server does; none, no bell.</param>
+    public static async Task<SignInHost> StartAsync(string mountPath = "", WorkServer? work = null)
     {
         var wwwroot = Path.Combine(Repository.Root, "tests", "Rask.Wasm.Fixture.Wasm", "bin", Configuration,
             "net11.0-browser", "publish", "wwwroot");
@@ -66,6 +70,7 @@ internal sealed class SignInHost : IAsyncDisposable
         builder.Services
             .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(options => options.Cookie.Name = "fixture-auth");
+        work?.AddTo(builder.Services);
         var app = builder.Build();
         var files = new PhysicalFileProvider(wwwroot);
         SignInHost? host = null;
@@ -98,13 +103,19 @@ internal sealed class SignInHost : IAsyncDisposable
         app.Use(async (context, next) =>
         {
             await next(context);
-            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/auth"))
+            if (context.Request.Path.StartsWithSegments("/api") || context.Request.Path.StartsWithSegments("/auth")
+                || context.Request.Path.StartsWithSegments("/_rask/cqrs"))
             {
                 host?.Calls.Enqueue($"{context.Request.Path}:{context.Response.StatusCode}");
             }
         });
         app.UseAuthentication();
         MapAccount(app);
+        if (work is not null)
+        {
+            WorkServer.MapOn(app);
+        }
+
         app.UseStaticFiles(Files(files));
         app.MapFallback(context => Shell(context, shell));
 

@@ -230,6 +230,27 @@ public sealed class JobWorkNoticeTests
         Assert.Empty(await Board(h, user: null));
     }
 
+    [Fact]
+    public async Task A_browser_s_read_is_answered_with_the_signed_in_users_rows_and_the_processor_s_poll()
+    {
+        await using var h = new JobsHarness(o => o.PollInterval = TimeSpan.FromSeconds(3));
+        await Enqueue(h, Alice, new RecordJob("alice"), "Alice's import", lane: "imports");
+        await Enqueue(h, Bob, new RecordJob("bob"), "Bob's import", lane: "imports");
+        Assert.True(RemoteContractRegistry.TryGet(typeof(ReadOwnWork), out var rows));
+        using var scope = h.Get<IServiceScopeFactory>().CreateScope();
+
+        OwnWorkRead read;
+        using (Current.UseUser(Alice))
+        {
+            read = (OwnWorkRead)(await rows!.LocalInvoker!(scope.ServiceProvider, new ReadOwnWork("imports"), Ct))!;
+        }
+
+        Assert.Equal(TimeSpan.FromSeconds(3), read.Every);
+        var row = Assert.Single(read.Work);
+        Assert.Equal("Alice's import", row.Title);
+        Assert.Equal(WorkState.Running, row.State);
+    }
+
     [Theory]
     [InlineData("Notice")]
     [InlineData("Progress")]

@@ -34,6 +34,9 @@
     <!-- PrivateAssets="all" from the above, so an in-repo app names them itself. -->
     <ProjectReference Include="..\..\src\Rask.Core\Rask.Core.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Auth.Client\Rask.Auth.Client.csproj"/>
+    <!-- A client of its server (Program.cs), and the kit's bell drawn from the server's work (WorkPage.cs). -->
+    <ProjectReference Include="..\..\src\Rask.Cqrs.Client\Rask.Cqrs.Client.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Ui\Rask.Ui.csproj"/>
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>

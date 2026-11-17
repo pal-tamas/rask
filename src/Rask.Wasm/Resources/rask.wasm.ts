@@ -69,7 +69,7 @@ let basePath: string | null = null;
 // the diff and full-HTML paths chain through this tail promise so a deferred body
 // always commits before the following payload's ops — paths in a later diff are
 // computed against the render this one produces, so they must not be applied first.
-let _renderQueue = Promise.resolve();
+let _renderQueue: Promise<unknown> = Promise.resolve();
 
 // The page is busy until the app has put its first frame on it (rask-busy.ts): a prerendered page looks ready long
 // before .NET has taken it over. main.js marks it before this module loads; this hold takes the mark over.
@@ -77,9 +77,13 @@ let booting: (() => void) | null = busy();
 
 // Puts a frame's render in line. The page is busy from the moment .NET hands the frame over until its render is on
 // the page, a body held for its stylesheet included.
+//
+// The render's own promise (a body held for its stylesheet) is handed back to the queue, which waits for it: a frame
+// handed over while the one before still waited used to run at once, against the page before it — and the frame
+// before then morphed over it, so what the later one drew never reached the page (#1348).
 function enqueueRender(apply: () => unknown): void {
     const release = busy();
-    const run = function (): void {
+    const run = function (): unknown {
         let applied: unknown;
         try {
             applied = apply();
@@ -88,10 +92,11 @@ function enqueueRender(apply: () => unknown): void {
             throw e;
         }
         busyUntil(applied, release);
+        return applied;
     };
     _renderQueue = _renderQueue.then(run, function (e) {
         reportQueuedRenderFailure(e);
-        run();
+        return run();
     });
 }
 

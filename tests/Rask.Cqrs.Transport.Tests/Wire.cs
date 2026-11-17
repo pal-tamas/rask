@@ -85,12 +85,14 @@ internal sealed class Wire : IAsyncDisposable
     /// <param name="configureServer">Endpoint options.</param>
     /// <param name="configureClient">Transport options.</param>
     /// <param name="environment">The server's environment; a host that names none is Production.</param>
+    /// <param name="serverServices">More of the server's services: a board, a watch policy.</param>
     public static Wire Connect(
         string? user = "tester",
         string? roles = null,
         Action<CqrsServerOptions>? configureServer = null,
         Action<CqrsClientOptions>? configureClient = null,
-        string? environment = null)
+        string? environment = null,
+        Action<IServiceCollection>? serverServices = null)
     {
         var builder = new HostBuilder().ConfigureWebHost(web =>
         {
@@ -109,6 +111,7 @@ internal sealed class Wire : IAsyncDisposable
                 services.AddAuthorization();
                 services.AddSingleton<Ledger>();
                 services.AddRaskCqrsServer(configureServer);
+                serverServices?.Invoke(services);
             });
             web.Configure(app =>
             {
@@ -268,7 +271,7 @@ internal sealed class Wire : IAsyncDisposable
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
-            var claims = new List<Claim> { new(ClaimTypes.Name, user.ToString()) };
+            var claims = new List<Claim> { new(ClaimTypes.Name, user.ToString()), new(ClaimTypes.NameIdentifier, user.ToString()) };
             if (Request.Headers.TryGetValue("X-Test-Role", out var role))
             {
                 claims.Add(new Claim(ClaimTypes.Role, role.ToString()));

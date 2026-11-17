@@ -51,6 +51,10 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <!-- OwnWorkPolicy over real HTTP, as a browser's bell opens it (#1348). -->
+    <InternalsVisibleTo Include="Rask.Cqrs.Transport.Tests"/>
+    <!-- The browser half's bell, served by a host in the WASM journeys (#1348). -->
+    <InternalsVisibleTo Include="Rask.Wasm.E2E.Tests"/>
     <!-- Reads which limits a battery's c.Jobs.Limit<T>() left on the options, beside configuration's. -->
     <InternalsVisibleTo Include="Rask.Server.Tests"/>
     <!-- The real-server suite races ClaimAsync from many "instances" against one database. -->
