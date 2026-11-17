@@ -2,6 +2,13 @@
 override Rask.Core.SetHTMLUnsafeOptions.Equals(object? obj) -> bool
 override Rask.Core.SetHTMLUnsafeOptions.GetHashCode() -> int
 override Rask.Core.SetHTMLUnsafeOptions.ToString() -> string!
+Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.Close = 667630371 -> Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.HidePopover = 1115129597 -> Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.RequestClose = -1044210789 -> Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.ShowModal = -1927309692 -> Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.ShowPopover = 1367688284 -> Rask.Core.ButtonCommand
+Rask.Core.ButtonCommand.TogglePopover = -1348211131 -> Rask.Core.ButtonCommand
 Rask.Core.Components.AppStylesheet
 Rask.Core.Components.AppStylesheet.AppStylesheet() -> void
 const Rask.Core.BuilderRuntime.SharedElementPending = 1048575 -> ulong
@@ -1718,6 +1725,142 @@ Rask.Core.Css.ContentVisibilityKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords.ContentVisibilityKeywords() -> void
 Rask.Core.Css.ContentVisibilityKeywords.Hidden.get -> Rask.Core.Css
 Rask.Core.Css.ContentVisibilityKeywords.Visible.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords
+Rask.Core.Css.CornerBlockEndShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords.CornerBlockEndShapeKeywords() -> void
+Rask.Core.Css.CornerBlockEndShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockEndShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords
+Rask.Core.Css.CornerBlockStartShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords.CornerBlockStartShapeKeywords() -> void
+Rask.Core.Css.CornerBlockStartShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerBlockStartShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords.CornerBottomLeftShapeKeywords() -> void
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomLeftShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords
+Rask.Core.Css.CornerBottomRightShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords.CornerBottomRightShapeKeywords() -> void
+Rask.Core.Css.CornerBottomRightShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomRightShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords
+Rask.Core.Css.CornerBottomShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords.CornerBottomShapeKeywords() -> void
+Rask.Core.Css.CornerBottomShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerBottomShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords
+Rask.Core.Css.CornerEndEndShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords.CornerEndEndShapeKeywords() -> void
+Rask.Core.Css.CornerEndEndShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndEndShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords
+Rask.Core.Css.CornerEndStartShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords.CornerEndStartShapeKeywords() -> void
+Rask.Core.Css.CornerEndStartShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerEndStartShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords
+Rask.Core.Css.CornerInlineEndShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords.CornerInlineEndShapeKeywords() -> void
+Rask.Core.Css.CornerInlineEndShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineEndShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords
+Rask.Core.Css.CornerInlineStartShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords.CornerInlineStartShapeKeywords() -> void
+Rask.Core.Css.CornerInlineStartShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerInlineStartShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords
+Rask.Core.Css.CornerLeftShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords.CornerLeftShapeKeywords() -> void
+Rask.Core.Css.CornerLeftShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerLeftShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords
+Rask.Core.Css.CornerRightShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords.CornerRightShapeKeywords() -> void
+Rask.Core.Css.CornerRightShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerRightShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords
+Rask.Core.Css.CornerShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords.CornerShapeKeywords() -> void
+Rask.Core.Css.CornerShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords
+Rask.Core.Css.CornerStartEndShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords.CornerStartEndShapeKeywords() -> void
+Rask.Core.Css.CornerStartEndShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartEndShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords
+Rask.Core.Css.CornerStartStartShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords.CornerStartStartShapeKeywords() -> void
+Rask.Core.Css.CornerStartStartShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerStartStartShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords
+Rask.Core.Css.CornerTopLeftShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords.CornerTopLeftShapeKeywords() -> void
+Rask.Core.Css.CornerTopLeftShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopLeftShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords
+Rask.Core.Css.CornerTopRightShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords.CornerTopRightShapeKeywords() -> void
+Rask.Core.Css.CornerTopRightShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopRightShapeKeywords.Squircle.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords
+Rask.Core.Css.CornerTopShapeKeywords.Bevel.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords.CornerTopShapeKeywords() -> void
+Rask.Core.Css.CornerTopShapeKeywords.Notch.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords.Round.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords.Scoop.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords.Square.get -> Rask.Core.Css
+Rask.Core.Css.CornerTopShapeKeywords.Squircle.get -> Rask.Core.Css
 Rask.Core.Css.CounterIncrementKeywords
 Rask.Core.Css.CounterIncrementKeywords.CounterIncrementKeywords() -> void
 Rask.Core.Css.CounterIncrementKeywords.None.get -> Rask.Core.Css
@@ -2560,6 +2703,9 @@ Rask.Core.Css.ObjectPositionKeywords.ObjectPositionKeywords() -> void
 Rask.Core.Css.ObjectPositionKeywords.Right.get -> Rask.Core.Css
 Rask.Core.Css.ObjectPositionKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.ObjectPositionKeywords.Top.get -> Rask.Core.Css
+Rask.Core.Css.ObjectViewBoxKeywords
+Rask.Core.Css.ObjectViewBoxKeywords.None.get -> Rask.Core.Css
+Rask.Core.Css.ObjectViewBoxKeywords.ObjectViewBoxKeywords() -> void
 Rask.Core.Css.OffsetAnchorKeywords
 Rask.Core.Css.OffsetAnchorKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.OffsetAnchorKeywords.BlockEnd.get -> Rask.Core.Css
@@ -3048,6 +3194,7 @@ Rask.Core.Css.RubyAlignKeywords.Start.get -> Rask.Core.Css
 Rask.Core.Css.RubyOverhangKeywords
 Rask.Core.Css.RubyOverhangKeywords.Auto.get -> Rask.Core.Css
 Rask.Core.Css.RubyOverhangKeywords.RubyOverhangKeywords() -> void
+Rask.Core.Css.RubyOverhangKeywords.Spaces.get -> Rask.Core.Css
 Rask.Core.Css.RubyPositionKeywords
 Rask.Core.Css.RubyPositionKeywords.Over.get -> Rask.Core.Css
 Rask.Core.Css.RubyPositionKeywords.RubyPositionKeywords() -> void
@@ -3720,6 +3867,9 @@ Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo() -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(double x, double y) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
 Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).ScrollTo(Rask.Core.ScrollToOptions! options) -> System.Threading.Tasks.ValueTask<Rask.Core.ScrollResult!>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLElement!>!).HeadingOffset.get -> System.Threading.Tasks.ValueTask<int>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.HTMLElement!>!).HeadingReset.get -> System.Threading.Tasks.ValueTask<bool>
+Rask.Core.ElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.SVGScriptElement!>!).ReferrerPolicy.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Core.FactoryGenericAttribute
 Rask.Core.FactoryGenericAttribute.Constraint.get -> string!
 Rask.Core.FactoryGenericAttribute.Constraint.init -> void
@@ -4112,6 +4262,9 @@ Rask.Core.Globalization.SessionCulture.Set(string! name) -> System.Threading.Tas
 Rask.Core.Globalization.SessionCulture.Supported.get -> System.Collections.Generic.IReadOnlyList<System.Globalization.CultureInfo!>!
 Rask.Core.Globalization.SessionCulture.UICulture.get -> System.Globalization.CultureInfo!
 Rask.Core.GoTo.Pushing() -> void
+Rask.Core.HTMLButtonElement.Command.get -> Rask.Core.ButtonCommand?
+Rask.Core.HTMLButtonElement.PopoverTargetAction.get -> Rask.Core.PopoverTargetAction?
+Rask.Core.HTMLInputElement.PopoverTargetAction.get -> Rask.Core.PopoverTargetAction?
 Rask.Core.HTMLInputElement<T>.Blur.get -> bool?
 Rask.Core.HTMLInputElement<T>.Blur.set -> void
 Rask.Core.HTMLInputElement<T>.Debounce.get -> System.TimeSpan?
@@ -4378,6 +4531,10 @@ Rask.Core.Messaging.Toaster
 Rask.Core.Messaging.Toaster.Add(Rask.Core.Messaging.ToastLevel level, string! message, string? title = null) -> void
 Rask.Core.Messaging.Toaster.Consume() -> System.Collections.Generic.IReadOnlyList<Rask.Core.Messaging.ToastMessage!>!
 Rask.Core.Messaging.Toaster.Toaster() -> void
+Rask.Core.PopoverTargetAction
+Rask.Core.PopoverTargetAction.Hide = 1625305005 -> Rask.Core.PopoverTargetAction
+Rask.Core.PopoverTargetAction.Show = -1454906820 -> Rask.Core.PopoverTargetAction
+Rask.Core.PopoverTargetAction.Toggle = 1076453893 -> Rask.Core.PopoverTargetAction
 Rask.Core.RaskChainEntryAttribute
 Rask.Core.RaskChainEntryAttribute.Entry.get -> string!
 Rask.Core.RaskChainEntryAttribute.RaskChainEntryAttribute(string! entry) -> void
@@ -4556,6 +4713,8 @@ Rask.Core.SVGImageElement.ReferrerPolicy.get -> string?
 Rask.Core.SVGImageElement.ReferrerPolicy.set -> void
 Rask.Core.SVGScriptElement.ReferrerPolicy.get -> string?
 Rask.Core.SVGScriptElement.ReferrerPolicy.set -> void
+Rask.Core.SVGTextPathElement.Path.get -> string?
+Rask.Core.SVGTextPathElement.Path.set -> void
 Rask.Core.SVGViewElement.SvgView.get -> string?
 Rask.Core.SVGViewElement.SvgView.set -> void
 Rask.Core.Validator<T>
@@ -5251,6 +5410,40 @@ static Rask.Core.Css.Content() -> Rask.Core.Css.ContentKeywords
 static Rask.Core.Css.Content(string? value) -> Rask.Core.Css
 static Rask.Core.Css.ContentVisibility() -> Rask.Core.Css.ContentVisibilityKeywords
 static Rask.Core.Css.ContentVisibility(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerBlockEndShape() -> Rask.Core.Css.CornerBlockEndShapeKeywords
+static Rask.Core.Css.CornerBlockEndShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerBlockStartShape() -> Rask.Core.Css.CornerBlockStartShapeKeywords
+static Rask.Core.Css.CornerBlockStartShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerBottomLeftShape() -> Rask.Core.Css.CornerBottomLeftShapeKeywords
+static Rask.Core.Css.CornerBottomLeftShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerBottomRightShape() -> Rask.Core.Css.CornerBottomRightShapeKeywords
+static Rask.Core.Css.CornerBottomRightShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerBottomShape() -> Rask.Core.Css.CornerBottomShapeKeywords
+static Rask.Core.Css.CornerBottomShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerEndEndShape() -> Rask.Core.Css.CornerEndEndShapeKeywords
+static Rask.Core.Css.CornerEndEndShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerEndStartShape() -> Rask.Core.Css.CornerEndStartShapeKeywords
+static Rask.Core.Css.CornerEndStartShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerInlineEndShape() -> Rask.Core.Css.CornerInlineEndShapeKeywords
+static Rask.Core.Css.CornerInlineEndShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerInlineStartShape() -> Rask.Core.Css.CornerInlineStartShapeKeywords
+static Rask.Core.Css.CornerInlineStartShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerLeftShape() -> Rask.Core.Css.CornerLeftShapeKeywords
+static Rask.Core.Css.CornerLeftShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerRightShape() -> Rask.Core.Css.CornerRightShapeKeywords
+static Rask.Core.Css.CornerRightShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerShape() -> Rask.Core.Css.CornerShapeKeywords
+static Rask.Core.Css.CornerShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerStartEndShape() -> Rask.Core.Css.CornerStartEndShapeKeywords
+static Rask.Core.Css.CornerStartEndShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerStartStartShape() -> Rask.Core.Css.CornerStartStartShapeKeywords
+static Rask.Core.Css.CornerStartStartShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerTopLeftShape() -> Rask.Core.Css.CornerTopLeftShapeKeywords
+static Rask.Core.Css.CornerTopLeftShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerTopRightShape() -> Rask.Core.Css.CornerTopRightShapeKeywords
+static Rask.Core.Css.CornerTopRightShape(string? value) -> Rask.Core.Css
+static Rask.Core.Css.CornerTopShape() -> Rask.Core.Css.CornerTopShapeKeywords
+static Rask.Core.Css.CornerTopShape(string? value) -> Rask.Core.Css
 static Rask.Core.Css.CounterIncrement() -> Rask.Core.Css.CounterIncrementKeywords
 static Rask.Core.Css.CounterIncrement(string? value) -> Rask.Core.Css
 static Rask.Core.Css.CounterReset() -> Rask.Core.Css.CounterResetKeywords
@@ -5626,6 +5819,8 @@ static Rask.Core.Css.ObjectPosition() -> Rask.Core.Css.ObjectPositionKeywords
 static Rask.Core.Css.ObjectPosition(Rask.Length value) -> Rask.Core.Css
 static Rask.Core.Css.ObjectPosition(Rask.Percentage value) -> Rask.Core.Css
 static Rask.Core.Css.ObjectPosition(string? value) -> Rask.Core.Css
+static Rask.Core.Css.ObjectViewBox() -> Rask.Core.Css.ObjectViewBoxKeywords
+static Rask.Core.Css.ObjectViewBox(string? value) -> Rask.Core.Css
 static Rask.Core.Css.Offset() -> Rask.Core.Css.OffsetKeywords
 static Rask.Core.Css.Offset(Rask.Length value) -> Rask.Core.Css
 static Rask.Core.Css.Offset(Rask.Percentage value) -> Rask.Core.Css
@@ -6429,6 +6624,40 @@ static Rask.Core.CssSteps.Content(this Rask.Core.Css css) -> Rask.Core.Css.Conte
 static Rask.Core.CssSteps.Content(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.ContentVisibility(this Rask.Core.Css css) -> Rask.Core.Css.ContentVisibilityKeywords
 static Rask.Core.CssSteps.ContentVisibility(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerBlockEndShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerBlockEndShapeKeywords
+static Rask.Core.CssSteps.CornerBlockEndShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerBlockStartShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerBlockStartShapeKeywords
+static Rask.Core.CssSteps.CornerBlockStartShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerBottomLeftShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerBottomLeftShapeKeywords
+static Rask.Core.CssSteps.CornerBottomLeftShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerBottomRightShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerBottomRightShapeKeywords
+static Rask.Core.CssSteps.CornerBottomRightShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerBottomShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerBottomShapeKeywords
+static Rask.Core.CssSteps.CornerBottomShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerEndEndShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerEndEndShapeKeywords
+static Rask.Core.CssSteps.CornerEndEndShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerEndStartShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerEndStartShapeKeywords
+static Rask.Core.CssSteps.CornerEndStartShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerInlineEndShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerInlineEndShapeKeywords
+static Rask.Core.CssSteps.CornerInlineEndShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerInlineStartShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerInlineStartShapeKeywords
+static Rask.Core.CssSteps.CornerInlineStartShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerLeftShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerLeftShapeKeywords
+static Rask.Core.CssSteps.CornerLeftShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerRightShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerRightShapeKeywords
+static Rask.Core.CssSteps.CornerRightShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerShapeKeywords
+static Rask.Core.CssSteps.CornerShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerStartEndShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerStartEndShapeKeywords
+static Rask.Core.CssSteps.CornerStartEndShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerStartStartShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerStartStartShapeKeywords
+static Rask.Core.CssSteps.CornerStartStartShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerTopLeftShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerTopLeftShapeKeywords
+static Rask.Core.CssSteps.CornerTopLeftShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerTopRightShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerTopRightShapeKeywords
+static Rask.Core.CssSteps.CornerTopRightShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.CornerTopShape(this Rask.Core.Css css) -> Rask.Core.Css.CornerTopShapeKeywords
+static Rask.Core.CssSteps.CornerTopShape(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.CounterIncrement(this Rask.Core.Css css) -> Rask.Core.Css.CounterIncrementKeywords
 static Rask.Core.CssSteps.CounterIncrement(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.CounterReset(this Rask.Core.Css css) -> Rask.Core.Css.CounterResetKeywords
@@ -6803,6 +7032,8 @@ static Rask.Core.CssSteps.ObjectPosition(this Rask.Core.Css css) -> Rask.Core.Cs
 static Rask.Core.CssSteps.ObjectPosition(this Rask.Core.Css css, Rask.Length value) -> Rask.Core.Css
 static Rask.Core.CssSteps.ObjectPosition(this Rask.Core.Css css, Rask.Percentage value) -> Rask.Core.Css
 static Rask.Core.CssSteps.ObjectPosition(this Rask.Core.Css css, string? value) -> Rask.Core.Css
+static Rask.Core.CssSteps.ObjectViewBox(this Rask.Core.Css css) -> Rask.Core.Css.ObjectViewBoxKeywords
+static Rask.Core.CssSteps.ObjectViewBox(this Rask.Core.Css css, string? value) -> Rask.Core.Css
 static Rask.Core.CssSteps.Offset(this Rask.Core.Css css) -> Rask.Core.Css.OffsetKeywords
 static Rask.Core.CssSteps.Offset(this Rask.Core.Css css, Rask.Length value) -> Rask.Core.Css
 static Rask.Core.CssSteps.Offset(this Rask.Core.Css css, Rask.Percentage value) -> Rask.Core.Css
@@ -7276,6 +7507,9 @@ static Rask.Core.ElementRefMembers.AppendHTMLUnsafe(this Rask.Core.IElementRef<R
 static Rask.Core.ElementRefMembers.BeforeHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.BeforeHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
+static Rask.Core.ElementRefMembers.get_HeadingOffset(Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask<int>
+static Rask.Core.ElementRefMembers.get_HeadingReset(Rask.Core.IElementRef<Rask.Core.HTMLElement!>! element) -> System.Threading.Tasks.ValueTask<bool>
+static Rask.Core.ElementRefMembers.get_ReferrerPolicy(Rask.Core.IElementRef<Rask.Core.SVGScriptElement!>! element) -> System.Threading.Tasks.ValueTask<string!>
 static Rask.Core.ElementRefMembers.PrependHTML(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html) -> System.Threading.Tasks.ValueTask
 static Rask.Core.ElementRefMembers.PrependHTMLUnsafe(this Rask.Core.IElementRef<Rask.Core.Element!>! element, string! html, Rask.Core.SetHTMLUnsafeOptions! options) -> System.Threading.Tasks.ValueTask
@@ -7517,6 +7751,7 @@ static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeMode
 static RaskBuilderSettersRask_Core.Body(this Rask.Core.Components.VirtualizeModel! __b, System.Func<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Capability(this Rask.Core.Components.GestureTrigger! __b, string! value) -> Rask.Core.Components.GestureTrigger!
 static RaskBuilderSettersRask_Core.Class<T>(this T! __b, string? value) -> T!
+static RaskBuilderSettersRask_Core.Command(this Rask.Core.HTMLButtonElement! __b, Rask.Core.ButtonCommand? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.Data(this Rask.Core.Components.Shareable! __b, Rask.Core.Browser.ShareData! value) -> Rask.Core.Components.Shareable!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
 static RaskBuilderSettersRask_Core.Data<T>(this T! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> T!
@@ -7615,8 +7850,11 @@ static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Action? value
 static RaskBuilderSettersRask_Core.OnSelect<T>(this T! __b, System.Func<System.Threading.Tasks.Task!>? value) -> T!
 static RaskBuilderSettersRask_Core.Orientation(this Rask.Core.Components.ScreenOrientationTrigger! __b, string! value) -> Rask.Core.Components.ScreenOrientationTrigger!
 static RaskBuilderSettersRask_Core.OverscanCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
+static RaskBuilderSettersRask_Core.Path(this Rask.Core.SVGTextPathElement! __b, string? value) -> Rask.Core.SVGTextPathElement!
 static RaskBuilderSettersRask_Core.Placeholder(this Rask.Core.Components.Lazy! __b, Rask.Core.Component? value) -> Rask.Core.Components.Lazy!
 static RaskBuilderSettersRask_Core.Policy(this Rask.Core.Components.Authorize! __b, string? value) -> Rask.Core.Components.Authorize!
+static RaskBuilderSettersRask_Core.PopoverTargetAction(this Rask.Core.HTMLButtonElement! __b, Rask.Core.PopoverTargetAction? value) -> Rask.Core.HTMLButtonElement!
+static RaskBuilderSettersRask_Core.PopoverTargetAction<T>(this Rask.Core.HTMLInputElement<T>! __b, Rask.Core.PopoverTargetAction? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Ref<T>(this T! __b, Rask.Core.ElementRef? value) -> T!
 static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGImageElement! __b, string? value) -> Rask.Core.SVGImageElement!
 static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGScriptElement! __b, string? value) -> Rask.Core.SVGScriptElement!
@@ -9790,7 +10028,6 @@ Rask.Core.HTMLBaseElement.Target.set -> void
 Rask.Core.HTMLBodyElement
 Rask.Core.HTMLBodyElement.HTMLBodyElement() -> void
 Rask.Core.HTMLButtonElement
-Rask.Core.HTMLButtonElement.Command.get -> string?
 Rask.Core.HTMLButtonElement.Command.set -> void
 Rask.Core.HTMLButtonElement.CommandFor.get -> string?
 Rask.Core.HTMLButtonElement.CommandFor.set -> void
@@ -9812,7 +10049,6 @@ Rask.Core.HTMLButtonElement.Name.get -> string?
 Rask.Core.HTMLButtonElement.Name.set -> void
 Rask.Core.HTMLButtonElement.PopoverTarget.get -> string?
 Rask.Core.HTMLButtonElement.PopoverTarget.set -> void
-Rask.Core.HTMLButtonElement.PopoverTargetAction.get -> string?
 Rask.Core.HTMLButtonElement.PopoverTargetAction.set -> void
 Rask.Core.HTMLButtonElement.Type.set -> void
 Rask.Core.HTMLButtonElement.Value.get -> string?
@@ -10011,7 +10247,6 @@ Rask.Core.HTMLInputElement.Placeholder.get -> string?
 Rask.Core.HTMLInputElement.Placeholder.set -> void
 Rask.Core.HTMLInputElement.PopoverTarget.get -> string?
 Rask.Core.HTMLInputElement.PopoverTarget.set -> void
-Rask.Core.HTMLInputElement.PopoverTargetAction.get -> string?
 Rask.Core.HTMLInputElement.PopoverTargetAction.set -> void
 Rask.Core.HTMLInputElement.ReadOnly.get -> bool?
 Rask.Core.HTMLInputElement.ReadOnly.set -> void
@@ -12936,7 +13171,6 @@ static RaskBuilderSettersRask_Core.ColorInterpolationFilters(this Rask.Core.SVGT
 static RaskBuilderSettersRask_Core.ColorInterpolationFilters(this Rask.Core.SVGUseElement! __b, string? value) -> Rask.Core.SVGUseElement!
 static RaskBuilderSettersRask_Core.ColorInterpolationFilters(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
 static RaskBuilderSettersRask_Core.Cols<T>(this Rask.Core.HTMLTextAreaElement<T>! __b, int? value) -> Rask.Core.HTMLTextAreaElement<T>!
-static RaskBuilderSettersRask_Core.Command(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.CommandFor(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.ConfirmLeave<TModel>(this Rask.Core.HTMLFormElement<TModel>! __b, string? value) -> Rask.Core.HTMLFormElement<TModel>!
 static RaskBuilderSettersRask_Core.Content(this Rask.Core.HTMLMetaElement! __b, string? value) -> Rask.Core.HTMLMetaElement!
@@ -15166,8 +15400,6 @@ static RaskBuilderSettersRask_Core.PointsAtY(this Rask.Core.SVGFESpotLightElemen
 static RaskBuilderSettersRask_Core.PointsAtZ(this Rask.Core.SVGFESpotLightElement! __b, string? value) -> Rask.Core.SVGFESpotLightElement!
 static RaskBuilderSettersRask_Core.PopoverTarget(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
 static RaskBuilderSettersRask_Core.PopoverTarget<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
-static RaskBuilderSettersRask_Core.PopoverTargetAction(this Rask.Core.HTMLButtonElement! __b, string? value) -> Rask.Core.HTMLButtonElement!
-static RaskBuilderSettersRask_Core.PopoverTargetAction<T>(this Rask.Core.HTMLInputElement<T>! __b, string? value) -> Rask.Core.HTMLInputElement<T>!
 static RaskBuilderSettersRask_Core.Poster(this Rask.Core.HTMLVideoElement! __b, string? value) -> Rask.Core.HTMLVideoElement!
 static RaskBuilderSettersRask_Core.PreserveAlpha(this Rask.Core.SVGFEConvolveMatrixElement! __b, string? value) -> Rask.Core.SVGFEConvolveMatrixElement!
 static RaskBuilderSettersRask_Core.PreserveAspectRatio(this Rask.Core.SVGFEImageElement! __b, string? value) -> Rask.Core.SVGFEImageElement!
