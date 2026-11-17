@@ -17,6 +17,23 @@ them until tagged releases begin.
   `rask host clean` runs both prunes under the same box lock — waiting while a deploy holds it — and says what it
   freed; and `rask deploy status --json` carries a `disk` object (`freeBytes`, `sizeBytes`, `isLow`, `isTooLow`,
   `reclaimableImages`, `reclaimableBuildCache`). Docs: docs/deployment.md#the-boxs-disk, docs/cli.md.
+- **A C# union crosses interop and the resume record as the case it holds (#1330).** Before: `union Selection(Search,
+  Pick)` went out of `IJSRuntime` and `IPersistentState` as its case value, but never came back — System.Text.Json
+  calls two object cases ambiguous, so an interop result threw and a persisted union silently read as a miss after
+  every restart, deploy or hibernation; `union IdOrSlug(int, string)` missed too, the bag reading numbers from strings.
+  After: both hosts' interop (results, `[JSInvokable]` arguments, scoped-script callbacks, Rask.Web's any-valued
+  calls) and the persisted-state bag read a union of records back as the case its properties name, with .NET's own
+  structural classifier and nothing on the union; the bag reads numbers strictly, so a number-or-string union reads
+  either case. The JSON is System.Text.Json's (the bare case value); a union no set of properties tells apart behaves
+  exactly as before. Guides: docs/js-interop-runtime.md, docs/configuration.md#surviving-a-restart-or-a-redeploy.
+- **A `RaskApp` takes over an existing schema with `c.Data.OwnsSchema(s => …)` (#1333).** Before: only a host wired
+  by hand could adopt a database its migrations did not make or give a slow migration more than thirty seconds —
+  `builder.Services.AddRaskData<T>(…).OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users"))` — so a
+  `RaskApp.Create(args)` app moving onto Rask had to give up `RaskApp`. After:
+  `app.Configure(c => c.Data.OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users").Patience(10.Minutes)))`, the
+  same `SchemaOwnership` steps on the Data battery (now a `DataBattery`, `Off()`/`On()` unchanged).
+  `MigrateOnStart = false` (or `Rask:Database:MigrateOnStart=false`) still means nothing applies at start, so nothing
+  is taken over; beside `c.Data.Off()` or `c.Cqrs.Off()` it refuses the start, naming both.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
@@ -395,6 +412,9 @@ references these packages itself, pin them beside the Rask packages:
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
 - **`Ui.Editor`'s engine is on Tiptap 3.33.1** (was 3.33.0, a patch release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 54 bytes (451,814 -> 451,868), which the
+  tiptap follower leaves to the owner; approved, landed by hand (#1263).
+- **`Ui.Editor`'s engine is on Tiptap 3.34.0** (was 3.33.1, a minor release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 244 bytes (451,868 -> 452,112), which the
   tiptap follower leaves to the owner; approved, landed by hand (#1263).
 - **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
   issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push

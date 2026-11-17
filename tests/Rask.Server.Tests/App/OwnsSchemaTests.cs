@@ -1,7 +1,4 @@
-using System.Data.Common;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,9 +16,7 @@ namespace Rask.Server.Tests.App;
 /// </remarks>
 public sealed class OwnsSchemaTests : IDisposable
 {
-    private readonly string _path = Path.Combine(Path.GetTempPath(), $"rask-owns-schema-{Guid.NewGuid():N}.db");
-
-    private string Connection => $"Data Source={_path};Pooling=False";
+    private readonly LedgerDatabase _db = new();
 
     [Fact]
     public async Task A_fresh_database_is_made_by_the_migrations_from_the_first()
@@ -31,27 +26,27 @@ public sealed class OwnsSchemaTests : IDisposable
         await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await History());
+        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await _db.History());
     }
 
     [Fact]
     public async Task An_existing_schema_without_history_is_taken_over_and_the_later_migrations_apply()
     {
-        await Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL); "
+        await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL); "
                   + "INSERT INTO \"Ledgers\" (\"Title\") VALUES ('kept');");
         using var host = Host(s => s.WhenTable("Ledgers"));
 
         await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await History());
-        Assert.Equal("kept|", await Scalar("SELECT \"Title\" || '|' || COALESCE(\"Memo\", '') FROM \"Ledgers\""));
+        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await _db.History());
+        Assert.Equal("kept|", await _db.Scalar("SELECT \"Title\" || '|' || COALESCE(\"Memo\", '') FROM \"Ledgers\""));
     }
 
     [Fact]
     public async Task Two_hosts_starting_together_take_the_schema_over_once()
     {
-        await Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL);");
+        await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL);");
         using var blue = Host(s => s.WhenTable("Ledgers"));
         using var green = Host(s => s.WhenTable("Ledgers"));
 
@@ -62,13 +57,13 @@ public sealed class OwnsSchemaTests : IDisposable
             blue.StopAsync(TestContext.Current.CancellationToken),
             green.StopAsync(TestContext.Current.CancellationToken));
 
-        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await History());
+        Assert.Equal([LedgerBaseline.Id, LedgerMemo.Id], await _db.History());
     }
 
     [Fact]
     public async Task A_database_the_old_migrations_made_is_taken_over_by_the_name_of_their_last()
     {
-        await Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL); "
+        await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL); "
                   + "CREATE TABLE \"__EFMigrationsHistory\" (\"MigrationId\" TEXT NOT NULL CONSTRAINT \"PK___EFMigrationsHistory\" PRIMARY KEY, \"ProductVersion\" TEXT NOT NULL); "
                   + "INSERT INTO \"__EFMigrationsHistory\" VALUES ('20250101000000_OldLedgers', '9.0.0');");
         using var host = Host(s => s.TakesOverFrom("OldLedgers"));
@@ -76,25 +71,25 @@ public sealed class OwnsSchemaTests : IDisposable
         await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TestContext.Current.CancellationToken);
 
-        Assert.Equal(["20250101000000_OldLedgers", LedgerBaseline.Id, LedgerMemo.Id], await History());
+        Assert.Equal(["20250101000000_OldLedgers", LedgerBaseline.Id, LedgerMemo.Id], await _db.History());
     }
 
     [Fact]
     public async Task A_table_without_the_old_migration_in_its_history_stops_the_start()
     {
-        await Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL);");
+        await _db.Run("CREATE TABLE \"Ledgers\" (\"Id\" INTEGER NOT NULL CONSTRAINT \"PK_Ledgers\" PRIMARY KEY AUTOINCREMENT, \"Title\" TEXT NOT NULL);");
         using var host = Host(s => s.TakesOverFrom("OldLedgers").WhenTable("Ledgers"));
 
         var refused = await Assert.ThrowsAsync<InvalidOperationException>(() => host.StartAsync(TestContext.Current.CancellationToken));
 
         Assert.Contains("does not show OldLedgers applied", refused.Message, StringComparison.Ordinal);
-        Assert.Empty(await History());
+        Assert.Empty(await _db.History());
     }
 
     [Fact]
     public async Task Patience_is_the_command_timeout_each_migration_runs_with()
     {
-        var witness = new TimeoutWitness();
+        var witness = new MemoTimeoutWitness();
         using var host = Host(s => s.Patience(20.Minutes), witness);
 
         await host.StartAsync(TestContext.Current.CancellationToken);
@@ -107,31 +102,24 @@ public sealed class OwnsSchemaTests : IDisposable
     public async Task Without_OwnsSchema_a_hand_wired_host_leaves_the_database_alone()
     {
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
-        builder.Services.AddRaskData<LedgerContext>(o => o.UseSqlite(Connection));
+        builder.Services.AddRaskData<LedgerContext>(o => o.UseSqlite(_db.Connection));
         using var host = builder.Build();
 
         await host.StartAsync(TestContext.Current.CancellationToken);
         await host.StopAsync(TestContext.Current.CancellationToken);
 
-        Assert.False(File.Exists(_path), "nothing should have opened the database");
+        Assert.False(_db.Exists, "nothing should have opened the database");
     }
 
-    public void Dispose()
-    {
-        SqliteConnection.ClearAllPools();
-        foreach (var file in new[] { _path, _path + "-wal", _path + "-shm" })
-        {
-            File.Delete(file);
-        }
-    }
+    public void Dispose() => _db.Dispose();
 
-    private IHost Host(Action<SchemaOwnership> ownership, IInterceptor? witness = null)
+    private IHost Host(Action<SchemaOwnership> ownership, MemoTimeoutWitness? witness = null)
     {
         var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
         builder.Services
             .AddRaskData<LedgerContext>(o =>
             {
-                o.UseSqlite(Connection);
+                o.UseSqlite(_db.Connection);
                 if (witness is not null)
                 {
                     o.AddInterceptors(witness);
@@ -139,49 +127,6 @@ public sealed class OwnsSchemaTests : IDisposable
             })
             .OwnsSchema(ownership);
         return builder.Build();
-    }
-
-    private async Task Run(string sql)
-    {
-        await using var connection = new SqliteConnection(Connection);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        await command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken);
-    }
-
-    private async Task<object?> Scalar(string sql)
-    {
-        await using var connection = new SqliteConnection(Connection);
-        await connection.OpenAsync(TestContext.Current.CancellationToken);
-        await using var command = connection.CreateCommand();
-        command.CommandText = sql;
-        return await command.ExecuteScalarAsync(TestContext.Current.CancellationToken);
-    }
-
-    private async Task<List<string>> History()
-    {
-        var options = new DbContextOptionsBuilder<LedgerContext>().UseSqlite(Connection).Options;
-        await using var db = new LedgerContext(options);
-        return [.. await db.Database.GetAppliedMigrationsAsync(TestContext.Current.CancellationToken)];
-    }
-
-    /// <summary>The command timeout the statement adding the memo column ran with.</summary>
-    private sealed class TimeoutWitness : DbCommandInterceptor
-    {
-        public int? AddingTheMemo { get; private set; }
-
-        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
-            DbCommand command, CommandEventData eventData, InterceptionResult<int> result,
-            CancellationToken cancellationToken = default)
-        {
-            if (command.CommandText.Contains("\"Memo\"", StringComparison.Ordinal))
-            {
-                AddingTheMemo = command.CommandTimeout;
-            }
-
-            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
-        }
     }
 }
 

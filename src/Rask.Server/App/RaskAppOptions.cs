@@ -38,9 +38,10 @@ public sealed class RaskAppOptions
     /// <remarks>
     /// <c>Rask:Database:Provider</c> picks the database — <c>sqlite</c> (the default), <c>postgres</c> or
     /// <c>sqlserver</c> — at <c>Rask:ConnectionStrings:App</c>. An app with its own context registers it with
-    /// <c>UseRaskDatabase(sp)</c> so the same setting picks its provider.
+    /// <c>UseRaskDatabase(sp)</c> so the same setting picks its provider. A database whose schema predates the app's
+    /// migrations is taken over with <c>c.Data.OwnsSchema(s =&gt; s.TakesOverFrom("Init").WhenTable("Users"))</c>.
     /// </remarks>
-    public Battery Data { get; } = new();
+    public DataBattery Data { get; } = new();
 
     /// <summary>The source-generated CQRS mediator, and the query cache that rides with it.</summary>
     public Battery Cqrs { get; } = new();
@@ -250,6 +251,10 @@ public sealed class RaskAppOptions
     /// So a new clone or a fresh deploy works with <c>dotnet run</c> alone. Turn it off when something else applies
     /// migrations — a release pipeline running <c>rask db update</c>. Also read from <c>Rask:Database:MigrateOnStart</c>
     /// (<c>Rask__Database__MigrateOnStart</c> in the environment); a value set here wins over the setting.
+    /// <para>
+    /// <c>c.Data.OwnsSchema(…)</c> says how the migrations apply — taking over an existing schema, a longer timeout — and
+    /// this says whether they apply at all: off, nothing applies at start and nothing is taken over.
+    /// </para>
     /// </remarks>
     public bool MigrateOnStart
     {
