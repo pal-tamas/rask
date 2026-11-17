@@ -331,6 +331,12 @@ which is what it is here to look at and does not move when the scaffold's home p
   driver therefore loads `/docs` and navigates through the sidebar, and so must you. The *published*
   bundle behaves differently: GitHub Pages answers an unknown path with `404.html`, which is the boot
   shell, and the app then routes on its own.
+- **Every page under `dotnet run` logs one "Failed to load resource: 404"** for
+  `/_framework/dotnet-browser-tools/hot-reload-settings.json`. That is the .NET 11 SDK's Debug hot-reload
+  initializer asking whether `dotnet watch` is serving it (only watch answers that route; `rask dev` runs watch),
+  not a page bug — the published bundle has no such module (#1349). A 404 is a site bug only when it
+  reproduces on the published bundle, which `PageResourcesTests` checks. Under .NET 11 `WasmAppHost` also
+  ignores `--urls` and picks its own port: read the `App url:` line in `/tmp/rask-site.log`.
 - **First load is slow.** A cold boot downloads the whole runtime; the driver's timeouts are 60s for
   that reason. A "timed out waiting for the sidebar" almost always means the boot failed, not that it
   was slow — check `/tmp/rask-site.log` and the browser console.
