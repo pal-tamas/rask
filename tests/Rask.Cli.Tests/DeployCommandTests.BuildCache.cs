@@ -266,6 +266,47 @@ public sealed partial class DeployCommandTests
     }
 
     [Fact]
+    public void A_publish_whose_dockerfile_mounts_no_cache_for_tsgo_downloads_it_on_every_deploy()
+    {
+        const string dockerfile = """
+            FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
+            RUN --mount=type=cache,id=ta-nuget,target=/root/.nuget/packages dotnet restore Ta/Ta.csproj
+            COPY Ta/ Ta/
+            RUN --mount=type=cache,id=ta-nuget,target=/root/.nuget/packages \
+                --mount=type=cache,id=ta-tailwind,target=/root/.rask/tailwind \
+                dotnet publish Ta/Ta.csproj --configuration Release --output /app
+            """;
+
+        var unkept = UnkeptDownloads.In(dockerfile);
+
+        Assert.Equal(["tsgo (/root/.rask/typescript)"], unkept);
+    }
+
+    [Theory]
+    [InlineData("FROM nginx:alpine\nCOPY site /usr/share/nginx/html\n")]
+    [InlineData("RUN --mount=type=cache,target=/root/.nuget/packages --mount=type=cache,target=/root/.rask/tailwind dotnet publish -p:RaskTypeScriptCacheRoot=/tools/tsgo\n")]
+    public void A_dockerfile_that_publishes_no_dotnet_app_or_moves_the_folder_is_told_nothing(string dockerfile)
+    {
+        var unkept = UnkeptDownloads.In(dockerfile);
+
+        Assert.Empty(unkept);
+    }
+
+    [Fact]
+    public async Task A_runner_deploy_says_which_downloads_its_dockerfile_leaves_out_of_the_cache()
+    {
+        var fs = new FakeFileSystem();
+        var runner = new FakeProcessRunner { CaptureHandler = WithEngines("linux/amd64", "linux/amd64") };
+        var console = new StringConsole();
+        var command = CreateOnRunner(fs, runner, console);
+
+        var exit = await command.ExecuteAsync(["--host", "deploy@box", "--port", "9000", "--app", "shop"], CancellationToken.None);
+
+        Assert.Equal(0, exit);
+        Assert.Contains("Not kept between deploys: the Tailwind CLI (/root/.rask/tailwind), tsgo (/root/.rask/typescript)", console.OutText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_transfer_dockerfiles_copy_each_mount_through_a_folder_of_its_id()
     {
         string[] ids = ["rask-nuget", "rask-chrome"];

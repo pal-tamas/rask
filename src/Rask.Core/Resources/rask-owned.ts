@@ -60,6 +60,8 @@ interface Seam {
     sweeping?: boolean;
     /** What the reader opened or shut without the page being told: theirs until a render changes its mind. */
     untold?: WeakSet<Element>;
+    /** The last scroll to a row each virtual list's box carried out (`data-rask-virtual-to`). Set by rask-virtual.ts. */
+    virtualDone?: WeakMap<Element, number>;
 }
 
 /**
@@ -96,6 +98,7 @@ seam.told ||= new WeakMap<Element, string>();
 seam.quiet ||= [];
 seam.sweeps ||= [];
 seam.untold ||= new WeakSet<Element>();
+seam.virtualDone ||= new WeakMap<Element, number>();
 
 const owned = seam.owned;
 
@@ -622,4 +625,62 @@ export function converges(sweep: () => void): void {
             if (page!.visibilityState === "visible") sweepSoon();
         });
     }
+}
+
+// A MEASURED VIRTUAL LIST (VirtualSpacers.cs), as the runtime that reports its rows (rask-virtual-report.ts) and the
+// hook that holds its box (rask-virtual.ts) both find it: the spacer above says `data-rask-virtual="<first row>
+// <rows drawn>"`, the one below `data-rask-virtual-below`, and the rows are the elements between them.
+
+/** The spacer above a measured list's rows. */
+export const VIRTUAL = "data-rask-virtual";
+
+/** The spacer below them. */
+export const VIRTUAL_BELOW = "data-rask-virtual-below";
+
+/** The scroll to a row the spacer above names (`data-rask-virtual-to="<seq> <row>"`). */
+export const VIRTUAL_TO = "data-rask-virtual-to";
+
+/** The box that scrolls the measured list `above` heads: the nearest that hears its scroll. */
+export function virtualBox(above: Element): HTMLElement | null {
+    return above.parentElement ? above.parentElement.closest<HTMLElement>("[data-rask-on-scroll]") : null;
+}
+
+/** The spacer above the measured list `box` scrolls itself — not one of a list nested in a row — or null. */
+export function aboveIn(box: Element): HTMLElement | null {
+    const all = box.querySelectorAll<HTMLElement>("[" + VIRTUAL + "]");
+    for (let i = 0; i < all.length; i++) {
+        if (virtualBox(all[i]) === box) return all[i];
+    }
+    return null;
+}
+
+/**
+ * Carries out the scroll to a row `above` names, once: that row to the top of `box`, the scroll said done in
+ * `seam.virtualDone` and told with a scroll of the box, which rask-input.ts sends with the report. False when there
+ * is none still to carry out. The hook (rask-virtual.ts) calls it as a render arrives, the runtime as ScrollTo asks.
+ */
+export function virtualAim(box: HTMLElement, above: Element): boolean {
+    const [seq, row] = (above.getAttribute(VIRTUAL_TO) || "").split(" ").map(Number);
+    if (!(seq > (seam.virtualDone!.get(box) ?? 0))) return false;
+    let el = above.nextElementSibling;
+    for (let at = startOf(above); el && at < row && !el.hasAttribute(VIRTUAL_BELOW); at++) el = el.nextElementSibling;
+    if (el && !el.hasAttribute(VIRTUAL_BELOW)) {
+        box.scrollTop += el.getBoundingClientRect().top - (box.getBoundingClientRect().top + box.clientTop);
+    }
+    seam.virtualDone!.set(box, seq);
+    // Told even where the box did not move, which raises no scroll of its own.
+    box.dispatchEvent(new Event("scroll"));
+    return true;
+}
+
+/** The spacer below the rows that follow `above`, or null when no spacer follows them. */
+export function belowOf(above: Element): Element | null {
+    let el = above.nextElementSibling;
+    while (el && !el.hasAttribute(VIRTUAL_BELOW)) el = el.nextElementSibling;
+    return el;
+}
+
+/** The first row the window `above` heads starts at. */
+export function startOf(above: Element): number {
+    return Number((above.getAttribute(VIRTUAL) || "").split(" ")[0]) || 0;
 }

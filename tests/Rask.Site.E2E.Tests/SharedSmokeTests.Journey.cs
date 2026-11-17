@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Microsoft.Playwright;
+using Rask.Site.E2E.Tests.Infrastructure;
 using static Microsoft.Playwright.Assertions;
 
 namespace Rask.Site.E2E.Tests;
@@ -562,7 +563,7 @@ public abstract partial class SharedSmokeTests
 
         // ---- lists, toasts, drag & error boundaries (docs/composition-lists.md) ----
         await SideAsync("Composition — lists & more", "lists, toasts, drag", "main .markdown-body h1");
-        await AssertGuideDemosAsync(11, "composition-lists");
+        await AssertGuideDemosAsync(12, "composition-lists");
         // Wait for a LATE demo's control (the error-boundary trigger, near the end) before driving any
         // interaction, so a fill/click never races the page still hydrating on the slower transports.
         await Expect(Page.Locator("#boom-throw")).ToBeVisibleAsync(
@@ -593,6 +594,19 @@ public abstract partial class SharedSmokeTests
         var thPosition = await Page.Locator("[data-testid=virtualize-scroller] thead th").First
             .EvaluateAsync<string>("el => getComputedStyle(el).position");
         Assert.Equal("sticky", thPosition);
+
+        // Virtualize, the log: lines of any height, measured between ctx.Above and ctx.Below. Anchored to its end it
+        // opens at its last line and follows the lines added while it is there; "First line" lands line 1 at the top.
+        const string log = "[data-testid=virtualize-log]";
+        await Page.Locator(log).ScrollIntoViewIfNeededAsync();
+        var openedAtTail = await VirtualListJourneys.SettlesAtTheEndAsync(Page, log);
+        await Page.Locator("#virtualize-log-add").ClickAsync();
+        await Expect(Page.Locator("[data-testid=virtualize-log-count]")).ToHaveTextAsync("503 lines");
+        var followed = await VirtualListJourneys.SettlesAtTheEndAsync(Page, log);
+        await Page.Locator("#virtualize-log-top").ClickAsync();
+        await VirtualListJourneys.OpensAtAsync(Page, log, 0);
+        Assert.True(openedAtTail, "the log did not open at its last line");
+        Assert.True(followed, "the log did not follow the lines added at its end");
 
         // Keyed lists: reversing the list re-orders the live rows through keyed structural moves — the
         // first row flips from Apple to Elderberry. (The finer contract — an uncommitted input value and

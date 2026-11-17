@@ -41,4 +41,23 @@ public sealed class VirtualizationState
     public int OffsetBefore { get; }
     public int OffsetAfter { get; }
     public Action<Event> OnScroll { get; }
+
+    /// <summary>What the spacer above says to the runtime beside the window.</summary>
+    internal VirtualMarks Marks { get; init; } = VirtualMarks.Default;
+
+    /// <summary>The ref the spacer above carries: the browser finds the box by it, to scroll it to a row.</summary>
+    internal ElementRef? AboveRef { get; init; }
+
+    /// <summary>Whether the render drew the context's spacers: the list is measured from then on.</summary>
+    internal bool SpacersDrawn { get; private set; }
+
+    /// <summary>Draws one of the two spacers, and notes that the list is measured.</summary>
+    /// <param name="above">The spacer above the window, else the one below.</param>
+    /// <param name="row">A <c>&lt;tr&gt;</c>, else a <c>&lt;div&gt;</c>.</param>
+    /// <returns>The spacer.</returns>
+    internal Component Spacer(bool above, bool row)
+    {
+        SpacersDrawn = true;
+        return above ? VirtualSpacers.Above(this, row) : VirtualSpacers.Below(this, row);
+    }
 }

@@ -765,3 +765,12 @@ bundle,bytes
 rask.js,116801
 rask.wasm.js,104265
 rask-hooks.js,134805
+# 2026-11-17, a measured virtual list (#1326): rask.js and rask.wasm.js carry the report a measured list's scroll
+# sends beside MDN's state (rask-virtual-report.ts: where its rows stand, which rows the box's edges cut) and the
+# wait ScrollTo answers by (`__raskVirtual.to`), rask-owned.ts the spacers' shared helpers; rask-hooks.js the hook
+# that holds the box steady, follows the tail and scrolls to a row (rask-virtual.ts). This change's own delta,
+# measured on main at 118,567 / 104,632 / 135,011: rask.js +1,737, rask.wasm.js +1,703, rask-hooks.js +4,739.
+bundle,bytes
+rask.js,120304
+rask.wasm.js,106335
+rask-hooks.js,139750

@@ -58,6 +58,9 @@ interface Window {
     __raskFocusTrap?: boolean;
     __raskPopover?: boolean;
     __raskReload?: boolean;
+
+    /** A measured virtual list's scroll to a row, awaited by VirtualScroller.ScrollTo (rask-virtual-report.ts). */
+    __raskVirtual?: { to(above: Element | null, seq: number): Promise<void> };
     __raskToastDismiss?: boolean;
     __raskDropzone?: boolean;
     __raskContextMenu?: boolean;
