@@ -38,7 +38,7 @@ public sealed partial class DeployCommandTests
         int Retire = IndexOf(all, DockerCommands.BuildStopArguments("deploy@box", "demo-blue", ShutdownBudget.DefaultStopTimeout));
         int Lock = all.FindLastIndex(i => i.Arguments.Contains(ProxyCommands.LockContainer) && i.Arguments.Contains("run"));
         int Images = IndexOf(all, PruneCommands.BuildImagePruneArguments("deploy@box"));
-        int Cache = IndexOf(all, PruneCommands.BuildBuilderPruneArguments("deploy@box"));
+        int Cache = IndexOf(all, PruneCommands.BuildBuilderPruneArguments("deploy@box", "20GB"));
         int Unlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", ProxyCommands.LockContainer]);
         int AppUnlock = all.FindLastIndex(i => i.Arguments is [.., "rm", "-f", "rask-deploy-lock-demo"]);
         Assert.True(Check < Retire && Retire < Lock, "only once the route is checked and the old colour is gone");
@@ -52,8 +52,8 @@ public sealed partial class DeployCommandTests
         var host = "deploy@box";
 
         var images = PruneCommands.BuildImagePruneArguments(host);
-        var cache = PruneCommands.BuildBuilderPruneArguments(host);
-        var legacy = PruneCommands.BuildBuilderPruneArguments(host, PruneCommands.LegacyBuildCacheFlag);
+        var cache = PruneCommands.BuildBuilderPruneArguments(host, "20GB");
+        var legacy = PruneCommands.BuildBuilderPruneArguments(host, "20GB", PruneCommands.LegacyBuildCacheFlag);
 
         // image prune -a would delete every :previous (the rollback image); dangling only.
         Assert.Equal(["-H", "ssh://deploy@box", "image", "prune", "-f"], images);
@@ -154,7 +154,7 @@ public sealed partial class DeployCommandTests
         var exit = await command.ExecuteAsync(DomainDeploy, CancellationToken.None);
 
         Assert.Equal(0, exit);
-        Assert.Contains(runner.Invocations, i => i.Arguments.SequenceEqual(PruneCommands.BuildBuilderPruneArguments("deploy@box", "--keep-storage")));
+        Assert.Contains(runner.Invocations, i => i.Arguments.SequenceEqual(PruneCommands.BuildBuilderPruneArguments("deploy@box", "20GB", "--keep-storage")));
         Assert.DoesNotContain("Cleaning up failed", console.ErrorText, StringComparison.Ordinal);
     }
 
@@ -279,7 +279,7 @@ public sealed partial class DeployCommandTests
     {
         var disk = new DiskSpace(freeGib * Gigabyte, sizeGib * Gigabyte, "/");
 
-        var (refused, warned) = (disk.IsTooLow, disk.IsLow);
+        var (refused, warned) = (DiskPolicy.Default.IsTooLow(disk), DiskPolicy.Default.IsLow(disk));
 
         Assert.Equal(tooLow, refused);
         Assert.Equal(low, warned);
@@ -318,7 +318,7 @@ public sealed partial class DeployCommandTests
         var deadlines = DeployDeadlines.Default;
 
         var images = deadlines.For(PruneCommands.BuildImagePruneArguments("deploy@box"));
-        var cache = deadlines.For(PruneCommands.BuildBuilderPruneArguments("deploy@box"));
+        var cache = deadlines.For(PruneCommands.BuildBuilderPruneArguments("deploy@box", "20GB"));
 
         Assert.Equal(DeployDeadlines.Prune, images);
         Assert.Equal(DeployDeadlines.Prune, cache);

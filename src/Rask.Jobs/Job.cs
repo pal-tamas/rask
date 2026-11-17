@@ -121,6 +121,21 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// <summary>When the job was last claimed to run (UTC), or null while it has never been: what "started 12 minutes ago" reads.</summary>
     public DateTime? StartedAt { get; private set; }
 
+    /// <summary>
+    ///     What the job is, in words for the person who enqueued it — the title of <c>.Noticed("Import of prices.csv")</c> — or
+    ///     null for a job its enqueuer does not watch. Set, its enqueuer sees it in <c>Ui.WorkNotices</c> and <c>Ui.WorkList</c>.
+    /// </summary>
+    public string? Notice { get; private set; }
+
+    /// <summary>What the job last said of itself (<c>Jobs.Report(…)</c>), written at most once a poll; null until it says anything.</summary>
+    public string? Progress { get; private set; }
+
+    /// <summary>How much of <see cref="Of" /> the job has done, as it last reported (<c>Jobs.Report(done, of)</c>).</summary>
+    public int? Done { get; private set; }
+
+    /// <summary>How much the job has to do, as it last reported; null when it reported no count.</summary>
+    public int? Of { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -146,6 +161,7 @@ public sealed class Job : Aggregate<long, Timestamps>
             UserId = userId,
             TenantId = Tenant.Key,
             UserClaims = userId is { } user ? JobPrincipal.Record(Current.Principal, user) : null,
+            Notice = JobNotice.Pending,
         };
     }
 
@@ -189,7 +205,22 @@ public sealed class Job : Aggregate<long, Timestamps>
 
     /// <summary>Records when its handler started (UTC) — later than the claim for a job that waited behind others of its batch.</summary>
     /// <param name="at">When it started.</param>
-    internal void Began(DateTime at) => StartedAt = at;
+    internal void Began(DateTime at)
+    {
+        StartedAt = at;
+        Reported(null, null, null); // a new attempt starts with nothing said of it
+    }
+
+    /// <summary>Keeps what the job last reported: what it says of itself, and how far along it is.</summary>
+    /// <param name="progress">What it said, if anything.</param>
+    /// <param name="done">How much it has done, if it counted.</param>
+    /// <param name="of">How much there is to do, if it counted.</param>
+    internal void Reported(string? progress, int? done, int? of)
+    {
+        Progress = progress;
+        Done = done;
+        Of = of;
+    }
 
     /// <summary>Records a job that was stopped before it finished: processed, with why, and neither done nor failed.</summary>
     /// <param name="why">Why it was stopped.</param>

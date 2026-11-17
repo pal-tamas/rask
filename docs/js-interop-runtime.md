@@ -30,6 +30,25 @@ Nothing (no `el`) is passed automatically — pass what the function needs. For 
 value use `InvokeAsync<T>`. On WASM a non-primitive `T` must be rooted for the trimmer
 (DAM annotation or a `JsonSerializerContext`).
 
+**A C# union crosses as the case it holds**, on both transports, in an argument, a result, a `[JSInvokable]`
+argument and a [`Rask.Web`](web-apis.md) call that takes any value (`Window.StructuredClone`, `History.State<T>()`).
+It goes out the way System.Text.Json writes a union — the case value, bare — and a union of records comes back as
+the case its properties name, with nothing on the union:
+
+```csharp
+public sealed record Search(string Term);
+public sealed record Pick(int Id);
+public union Selection(Search, Pick);
+
+// the script receives {"term":"boots"}; answering {"id":7} reads back as a Pick
+Selection next = await _js.InvokeAsync<Selection>("selection.swap", (Selection)new Search("boots"));
+```
+
+A union whose cases no set of properties tells apart still goes out, and an answer to it fails to read as
+System.Text.Json's own "ambiguous" error; give it a classifier with `[JsonUnion(TypeClassifier = …)]`. In a trimmed
+or AOT app whose `JsonSerializerContext` reads the union, name .NET's classifier in that context:
+`[JsonSourceGenerationOptions(TypeClassifiers = [typeof(JsonUnionTypeStructuralClassifier)])]`.
+
 A `sessionStorage` round-trip through the unified `IJSRuntime` — set, read, and remove, each a plain
 `InvokeVoidAsync` / `InvokeAsync<string?>` against a built-in browser API, identical on both transports:
 

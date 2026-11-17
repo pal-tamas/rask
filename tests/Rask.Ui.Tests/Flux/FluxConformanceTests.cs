@@ -281,6 +281,8 @@ public sealed class FluxConformanceTests
         [typeof(UiForbidden)] = "the owner, 2026-11-06: the built-in 403 inside the app's frame, as Flux's danger callout (TA+Eszaf survey, step 10)",
         [typeof(UiFormTabs)] = "the owner, 2026-11-06: a long form's flux:tabs, a red flux:badge counting each tab's invalid fields, the first opened on a refused save (TA+Eszaf survey, step 8)",
         [typeof(UiFormTab)] = "the owner, 2026-11-06: one tab of a UiFormTabs — its words, the fields it holds, its flux:tab.panel",
+        [typeof(UiWorkNotices)] = "the owner, 2026-11-17: the user's background work as a bell — flux:dropdown opening flux:popover, a ghost flux:button with the bell icon, flux:badge for the count, flux:progress for each bar; Flux has no notifications (#1293)",
+        [typeof(UiWorkList)] = "the owner, 2026-11-17: the bell's list of background work drawn in the page — flux:progress and flux:badge in rows (#1293)",
         [typeof(UiAppFrame)] = "the owner, 2026-11-04: an app's frame of Flux's sidebar layout — flux:sidebar, flux:header with flux:breadcrumbs written from the menu, flux:main — and the profile's sign-out (#1296, TA+Eszaf survey)",
     };
 

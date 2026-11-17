@@ -201,6 +201,60 @@ watch the pipeline log build up.
 
 <!-- demo:cqrs-counter -->
 
+## Off the page's thread — `[OffThread]`
+
+A handler that works for a while without yielding — `Xlsx.Read` of a large workbook, a big XML parse — holds whatever
+thread runs it. In a browser that is the page's one thread: nothing paints and nothing answers a click until it
+returns. Mark the message `[OffThread]`; the call site does not change:
+
+```csharp
+[OffThread]
+public sealed record ReadFuelings(byte[] File) : IQuery<IReadOnlyList<Fueling>>;
+
+public sealed class ReadFuelingsHandler : IQueryHandler<ReadFuelings, IReadOnlyList<Fueling>>
+{
+    public Task<IReadOnlyList<Fueling>> Handle(ReadFuelings query) =>
+        Task.FromResult<IReadOnlyList<Fueling>>([.. Xlsx.Read(query.File).Rows.Select(Fueling.From)]);
+}
+
+var fuelings = await Dispatcher.Query(new ReadFuelings(bytes), cancel.Token);
+```
+
+**In a browser app** the message goes to one **Web Worker** that runs a second .NET runtime beside the page, made from
+the app's own `_framework` files, so there is nothing more to download. The worker starts the first time an
+`[OffThread]` message is sent — or once the first page is on screen, with `host.Configure(c => c.OffThread.Warm = true)`
+— and stays for the next one. The message and its answer cross in the generated [wire encoding](#wire-codecs-and-rask053),
+with a `byte[]` moved beside the JSON as binary rather than turned into base64 (a `byte[]` result too), and an
+`IRaskFile` property read into the request. Authorization and validation run on the page before it leaves, as they
+would have in-process; the handler sees the page's culture.
+
+**Cancelling** — the token you pass, or the ambient one — answers the caller at once and cancels `Current.Cancellation`
+inside the handler. A handler that never looks at it (a synchronous `Xlsx.Read`) cannot hear that, so if the worker has
+not answered a second later it is **restarted**: stopped, and started again by the next `[OffThread]` message. Anything
+else that was waiting on it fails with a `RemoteDispatchException`. A page's handlers take their turns, so a **Cancel
+button** reaches a read that the button before it *started* rather than awaited — `_ = ReadAsync(cancel.Token)`, whose
+continuation sets the outcome and calls `StateHasChanged()`; leaving the page cancels the component's own
+`CancellationToken` either way.
+
+**Exceptions** come back as the page would have seen them: a `RaskValidationException` with its failures, a
+`ForbiddenException`, an `OperationCanceledException`, and anything else as a `RemoteDispatchException` whose
+`ProblemType` is the exception's type and whose `Detail` is its text and stack.
+
+**The worker has only what a handler can carry across**: the app's Rask.Cqrs handlers, console logging, and an
+`HttpClient` on the page's origin. Program.cs never runs there, so nothing it registers is there either — no DOM, no
+`IJSRuntime`, no `ElementRef`, no `Rask.Ui` service, no signed-in user. Pass the handler what it needs in the message,
+and do the page's part with its result. A handler that asks for a page service, or a message or result with no wire
+encoding, is **RASK123** at build time. `[OffThread]` on an event means nothing — an event is published where it
+happened.
+
+**On the server** an `[OffThread]` handler runs on the thread pool, so the page's live session keeps answering while it
+works. In an app that also talks to a server (`Rask.Cqrs.Client`), an `[OffThread]` message handled in the browser goes
+to the worker, and the rest still go to the server.
+
+What it costs, measured on a Release publish in Chromium: the two scripts are 1.3 KB and 0.7 KB minified, fetched only
+when the first `[OffThread]` message is sent; the worker answers its first message about 229 ms later and holds
+about 38 MB of WebAssembly memory beside the page's 46 MB — [`docs/spa.md`](spa.md#work-off-the-pages-thread).
+
 ## Remote dispatch — a client and a server (`Rask.Cqrs.Client` / `Rask.Cqrs.Server`)
 
 A page running in the browser reaches its server through the **same `IDispatcher` call** it already
@@ -440,6 +494,8 @@ The generator validates your handlers at compile time:
 - **RASK028** (error) — a query or command has more than one handler; dispatch would be ambiguous.
 - **RASK029** (warning) — a handler is an open generic or has no public constructor, so it can't be
   registered and is skipped.
+- **RASK123** (error) — an `[OffThread]` message cannot run in a Web Worker: its handler asks for a page service
+  (`IJSRuntime`, `ElementRef`, a `Rask.Ui` service), or the message or its result has no wire encoding.
 
 A request with **no** handler is not a compile error (the handler may live in another assembly) — it
 throws a clear `InvalidOperationException` at dispatch time.

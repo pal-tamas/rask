@@ -320,7 +320,36 @@ a failed deploy.
 `/var/lib/containerd`, the tighter of the two) over SSH. Below 3 GiB it stops before anything moves — a full
 disk also stops every app on the box from writing its database — and prints the two commands above; below
 10 GiB (or a fifth of a smaller disk) it warns and goes on. `rask deploy status` shows the free space and what
-`docker system df` says could be reclaimed.
+`docker system df` says could be reclaimed (`--json`: a `disk` object with `mount`, `freeBytes`, `sizeBytes`,
+`isLow`, `isTooLow`, `reclaimableImages` and `reclaimableBuildCache`).
+
+**On demand**, `rask host clean` runs the same two prunes under the same lock — waiting while a deploy holds it,
+and giving up after one lease — and says what it freed ([`rask host clean`](cli.md#rask-host-clean--give-the-box-its-disk-back)).
+`rask deploy --no-prune` skips the clean-up for one deploy, say to keep a cache warm for the next few builds.
+
+**The defaults are the app's to move**, in `.rask/deploy.json` (each absent until you write it; a deploy keeps
+what you wrote):
+
+```json
+{
+  "buildCacheKeep": "40GB",
+  "minFreeDisk": "5GB",
+  "warnFreeDisk": "20GB"
+}
+```
+
+| Key | Default | What it does |
+| --- | --- | --- |
+| `buildCacheKeep` | `20GB` | The build cache the clean-up leaves — the `--reserved-space` it passes `docker builder prune`. |
+| `minFreeDisk` | `3GiB` | Below this free, a deploy is refused before it builds. `0` turns the refusal off. |
+| `warnFreeDisk` | 10 GiB, or a fifth of a smaller disk | Below this free, a deploy warns and goes on. Set, it replaces the fifth-of-the-disk rule; it must be at least `minFreeDisk`. |
+
+Sizes are written the way docker reads `--reserved-space`: a number (decimals allowed) and an optional unit —
+`B`, `KB`, `MB`, `GB`, `TB`, `PB` — where every unit is a power of 1024, with or without the `i` (`20GB` and
+`20GiB` are the same 21,474,836,480 bytes), case and one space ignored. (The free-space lines the CLI prints
+use docker's decimal display units, so `3GiB` reads there as `3.2 GB`.) A value that isn't a size — `"lots"`,
+`"-3GB"` — or a `warnFreeDisk` below `minFreeDisk` stops `rask deploy` and `rask host clean` before they connect,
+with a usage error (exit `2`) naming the key.
 
 ### Deploying from GitHub Actions
 
@@ -396,7 +425,10 @@ a red build. Keep the caches between runs; with GitHub Actions that is one step 
 ```
 
 Every cache is keyed by version inside (`<root>/<version>/…`), so restoring an older one is safe: a new pin
-is simply one more folder.
+is simply one more folder. A hit is trusted on the file being there (it was checked when it was fetched), so
+save the cache only from your own builds — Actions already keeps a pull request from a fork out of it. Rask's
+own CI does the same with one cache per tool, keyed on the files that pin it and saved from `main` only
+(`.github/actions/setup` in the Rask repository).
 
 The deploy workflow needs none of this: its image build keeps these tools (and the NuGet packages) in the
 template Dockerfile's BuildKit cache mounts, and `rask deploy` carries those between runs itself — see

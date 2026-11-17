@@ -29,6 +29,10 @@ public static class ExampleServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IBannedWordService, BannedWordService>();
 
+        // The app frame demo's bell and list (Ui.WorkNotices, Ui.WorkList): a browser has no jobs, so a board plays an
+        // import that moves on and finishes, beside an export that failed and a report that is done.
+        services.TryAddScoped<Rask.Background.IWorkBoard, Rask.Site.Features.UiDocs.Demos.DemoWorkBoard>();
+
         // Toggleable demo auth for the User-gating showcase (/user). Registered as the concrete
         // type (so the demo can sign in/out) and as IUserProvider (so injected consumers resolve it).
         // Defaults to anonymous, so other pages are unaffected. Scoped — NOT singleton — so each

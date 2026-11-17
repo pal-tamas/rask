@@ -64,7 +64,32 @@ public static class Jobs
     ///     Outside a job it does nothing.
     /// </summary>
     /// <param name="progress">What the job has done so far, in words for a person.</param>
-    public static void Report(string progress) => JobInFlight.Run?.Report(progress);
+    /// <remarks>
+    ///     Its row keeps the latest, written at most once a poll — what <see cref="LaneJob.Progress" /> reads. A job enqueued
+    ///     <c>.Noticed(…)</c> shows it to its enqueuer under a bar that moves without an end; <see cref="Report(int, int, string?)" />
+    ///     gives the bar one.
+    /// </remarks>
+    public static void Report(string progress) => JobInFlight.Run?.Report(JobNotice.Cut(progress), done: null, of: null);
+
+    /// <summary>
+    ///     Inside a job's handler: says how far along it is — <c>Jobs.Report(kept, total)</c>, or with words beside the count,
+    ///     <c>Jobs.Report(kept, total, $"{kept:N0} of {total:N0} rows")</c>. A job enqueued <c>.Noticed(…)</c> fills its
+    ///     enqueuer's bar to <paramref name="done" /> of <paramref name="of" />.
+    /// </summary>
+    /// <remarks>
+    ///     Call it as often as the work moves: only the latest is kept, it reaches the screen at most about four times a second,
+    ///     and the row is written at most once a poll. Every report is progress, as <see cref="Report(string)" /> is. Outside a
+    ///     job it does nothing.
+    /// </remarks>
+    /// <param name="done">How much is done: from 0 to <paramref name="of" />.</param>
+    /// <param name="of">How much there is to do.</param>
+    /// <param name="progress">What the job has done so far, in words for a person, if a count is not enough.</param>
+    public static void Report(int done, int of, string? progress = null)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(done);
+        ArgumentOutOfRangeException.ThrowIfNegative(of);
+        JobInFlight.Run?.Report(JobNotice.Cut(progress), done, of);
+    }
 
     /// <summary>
     ///     The state of these lanes in one read: <c>var lanes = await Jobs.Lanes(pumpIds);</c>. Every lane asked for is in the

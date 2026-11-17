@@ -30,6 +30,9 @@ internal sealed class UiFilterCell<T>
     /// <summary>The address key: the member's <c>[QueryParam]</c> name, or its own.</summary>
     internal string Key { get; }
 
+    /// <summary>What the filter's chip calls it with no label: the member's <c>[Display]</c> or <c>[DisplayName]</c>, else <see cref="Key" />.</summary>
+    internal string Name => DisplayNames.Of(_member.Property) ?? Key;
+
     /// <summary>The bind the control is given instead of the page's.</summary>
     internal Expression<Func<T>> Bind { get; }
 

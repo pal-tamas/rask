@@ -68,7 +68,9 @@ public sealed partial class E2EVaultPage : Component
 
     protected override Task OnMount()
     {
+#pragma warning disable RASK122 // The title names who the guard let in at mount; the test reads that snapshot.
         _owner = _users.Current.Identity?.Name;
+#pragma warning restore RASK122
         return Task.CompletedTask;
     }
 

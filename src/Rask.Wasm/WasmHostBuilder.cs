@@ -306,9 +306,8 @@ public sealed class WasmHostBuilder
 
             // The languages the app writes into its URLs, on the one route the whole app shares — so the router,
             // every generated link and the prerender pass read the same list.
-            if (UrlLanguages.From(cultures) is { } languages)
+            if (UrlLanguages.Enable(cultures) is { } languages)
             {
-                UrlLanguages.IsEnabled = true;
                 provider.GetRequiredService<RouteState>().Languages = languages;
             }
         }

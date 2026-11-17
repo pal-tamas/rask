@@ -66,6 +66,9 @@ public static class WasmHostBuilderExtensions
 
         services.AddRaskCqrs();
 
+        // [OffThread] messages go to a worker of their own; an app with none never starts it.
+        OffThreadWiring.Add(services, options.OffThread);
+
         // Validation runs in the BROWSER too, and the server still runs it again.
         //
         // Two reasons it belongs here rather than only on the server. An invalid command should not cost

@@ -219,6 +219,14 @@ stylesheet linked from your root's `HeadAssets` override.
   (and listed in the DevTools Errors tab) and the component does not re-render (a
   placeholder that never resolves usually means an async hook threw).
 
+- **Blazor's analyzers have Rask twins.** BL0012 is [RASK119](diagnostics.md#rask119) (a
+  `StateHasChanged()` in `OnMount`/`OnUpdated` that no `await` follows) and RASK026 (one in an
+  event callback); BL0013 is [RASK122](diagnostics.md#rask122) (`IUserProvider.Current` kept
+  without following `Changed`); BL0014 is [RASK120](diagnostics.md#rask120) (a `for` loop's
+  variable read by an event callback); BL0015 is [RASK121](diagnostics.md#rask121) (a
+  non-public `[JSInvokable]`). BL0016 has none: a handler that throws is isolated and the
+  session goes on, so a JS call needs a `try`/`catch` only where you handle the failure.
+
 ## What stays the same
 
 - **DI through the constructor** — exactly like the rest of .NET. Framework services

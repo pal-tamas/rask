@@ -84,11 +84,7 @@ internal sealed class WireCodecEmitter
                 break;
 
             case WireKind.Bytes:
-                // WriteBase64StringValue takes a span, and a null array widens to an empty one — which would
-                // turn "absent" into "zero bytes" silently. The explicit branch keeps null meaning null.
-                write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
-                write.AppendLine("        writer.WriteBase64StringValue(value);");
-                read.AppendLine("        return global::Rask.Wire.WireJson.ReadBytes(ref reader, property);");
+                EmitBytes(write, read);
                 break;
 
             case WireKind.File:
@@ -117,6 +113,49 @@ internal sealed class WireCodecEmitter
                 EmitObject(type, write, read);
                 break;
         }
+    }
+
+    // Base64 in the JSON, unless the sender asked for binary: a transport that can carry the bytes beside the
+    // JSON hands the codec its file list as a Collection<RemoteFile> rather than a List — the off-thread transport
+    // (Rask.Cqrs, [OffThread]) does, so a workbook reaches a Web Worker as an ArrayBuffer instead of a string a
+    // third larger that the page had to build. What stays in the JSON is the index, as for a file, and the reader
+    // takes either form, so a sender that never asks keeps the wire it always had.
+    //
+    // WriteBase64StringValue takes a span, and a null array widens to an empty one — which would turn "absent"
+    // into "zero bytes" silently. The explicit branch keeps null meaning null.
+    private static void EmitBytes(StringBuilder write, StringBuilder read)
+    {
+        write.AppendLine("        if (value is null) { writer.WriteNullValue(); return; }");
+        write.AppendLine(
+            "        if (files is global::System.Collections.ObjectModel.Collection<global::Rask.Wire.RemoteFile>)");
+        write.AppendLine("        {");
+        write.AppendLine("            files.Add(global::Rask.Wire.RemoteFile.FromBytes(\"bytes\", null, value));");
+        write.AppendLine("            writer.WriteNumberValue(files.Count - 1);");
+        write.AppendLine("            return;");
+        write.AppendLine("        }");
+        write.AppendLine();
+        write.AppendLine("        writer.WriteBase64StringValue(value);");
+
+        read.AppendLine($"        if (reader.TokenType == {TokenType}.Number)");
+        read.AppendLine("        {");
+        read.AppendLine(
+            "            var __carried = global::Rask.Wire.WireJson.ResolveFile("
+            + "files, global::Rask.Wire.WireJson.ReadInt32(ref reader, property), property);");
+        read.AppendLine("            if (__carried is null) return null;");
+        read.AppendLine("            using var __stream = __carried.OpenReadStream();");
+        read.AppendLine("            if (__carried.Size >= 0 && __carried.Size <= global::System.Array.MaxLength)");
+        read.AppendLine("            {");
+        read.AppendLine("                var __bytes = new byte[__carried.Size];");
+        read.AppendLine("                __stream.ReadExactly(__bytes);");
+        read.AppendLine("                return __bytes;");
+        read.AppendLine("            }");
+        read.AppendLine();
+        read.AppendLine("            using var __copy = new global::System.IO.MemoryStream();");
+        read.AppendLine("            __stream.CopyTo(__copy);");
+        read.AppendLine("            return __copy.ToArray();");
+        read.AppendLine("        }");
+        read.AppendLine();
+        read.AppendLine("        return global::Rask.Wire.WireJson.ReadBytes(ref reader, property);");
     }
 
     // The file itself leaves the JSON entirely; what stays behind is its index in the multipart

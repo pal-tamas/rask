@@ -23,6 +23,11 @@ namespace Rask;
 ///     <see cref="UiError" />: a rule that fails has to say so somewhere, and a control inside a
 ///     <c>Ui.Field</c> of the call site's own leaves that to the field.
 ///     </para>
+///     <para>
+///     A bound control given no label is labelled by the member it is bound to, where that member's
+///     <c>[Display(Name = …)]</c> or <c>[DisplayName]</c> names it — as Blazor's <c>Label</c> reads them — unless
+///     the call site composed a <c>Ui.Field</c> around it, which carries a label of its own.
+///     </para>
 /// </remarks>
 internal sealed class UiWithField
 {
@@ -40,7 +45,8 @@ internal sealed class UiWithField
     private UiWithField(IUiFieldControl control, Shorthand props)
     {
         (ControlId, _bound) = (control.ControlId, control.Bound);
-        (_label, _description, _descriptionTrailing, _badge) = (props.Label, props.Description, props.DescriptionTrailing, props.Badge);
+        _label = props.Label ?? (props.NamesBound && ComposedAround() is null ? DisplayNames.Of(_bound) : null);
+        (_description, _descriptionTrailing, _badge) = (props.Description, props.DescriptionTrailing, props.Badge);
         (_error, _showValidation) = (props.Error, props.ShowValidation);
         Invalid = props.Invalid || _error is not null || FormCallsInvalid(_bound);
         Required = control.TakesAriaRequired && UiRequired.Is(_bound);
@@ -82,7 +88,8 @@ internal sealed class UiWithField
             control.Badge,
             null,
             control.Invalid == true,
-            control.ShowValidation != false));
+            control.ShowValidation != false,
+            NamesBound: true));
 
     /// <summary>The field for one control, from the shorthand props it was given.</summary>
     /// <param name="control">The control: its id and what it is bound to.</param>
@@ -92,6 +99,10 @@ internal sealed class UiWithField
     /// <param name="badge">Flux's <c>badge</c>, beside the label.</param>
     /// <param name="invalid">Flux's <c>invalid</c>, for a control with no binding to ask.</param>
     /// <param name="error">Flux's <c>error</c>: a message the call site states, for a control bound to nothing.</param>
+    /// <param name="namesBound">
+    ///     With no <paramref name="label" />, the bound member's <c>[Display]</c> or <c>[DisplayName]</c> is the label:
+    ///     false for a part another control draws the field of.
+    /// </param>
     internal static UiWithField For(
         IUiFieldControl control,
         string? label = null,
@@ -99,8 +110,9 @@ internal sealed class UiWithField
         string? descriptionTrailing = null,
         string? badge = null,
         bool invalid = false,
-        string? error = null) =>
-        new(control, new Shorthand(label, description, descriptionTrailing, badge, error, invalid, true));
+        string? error = null,
+        bool namesBound = false) =>
+        new(control, new Shorthand(label, description, descriptionTrailing, badge, error, invalid, true, namesBound));
 
     /// <summary>The control inside its field, or alone when it was given nothing to draw one with.</summary>
     /// <param name="control">The control's own markup, carrying <see cref="ControlId" />.</param>
@@ -196,5 +208,6 @@ internal sealed class UiWithField
         string? Badge,
         string? Error,
         bool Invalid,
-        bool ShowValidation);
+        bool ShowValidation,
+        bool NamesBound = false);
 }

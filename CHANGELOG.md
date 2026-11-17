@@ -19,6 +19,97 @@ them until tagged releases begin.
   the reader scrolls up), and `Scroller: _scroller` with `VirtualScroller.New()` +
   `await _scroller.ScrollTo(i)` (the row lands at the top; the latest call wins). A list with spacers of its own keeps
   the fixed-height maths, and so do the kit's long `Ui.Select` / `Ui.Pillbox` lists.
+- **A job shows its progress to the person who started it: `.Noticed(title)`, `Jobs.Report(done, of)`,
+  `Ui.WorkNotices` and `Ui.WorkList` (#1293).** Before: a job could only say words (`Jobs.Report("…")`) that stayed in
+  the memory of the host running it, so Eszaf and TA each built a progress table, a board and a bell of their own. After:
+  `await Jobs.Enqueue(job).Noticed($"Import of {file.Name}")` (also on `Jobs.Run`) puts the title on the row,
+  `Jobs.Report(kept, total)` / `Jobs.Report(kept, total, words)` fills its bar, and `.Notices(Ui.WorkNotices)` in a
+  `Ui.AppFrame` draws a bell (Flux's dropdown, badge and progress parts — Flux has no notifications) whose count is what
+  runs plus what ended since it was last opened, opening a flyout of running, done, failed and stopped jobs;
+  `Ui.WorkList` draws the same list in a page; both take `.Lane(id)`. Only the enqueuer sees a job, in the tenant it was
+  enqueued in, and a failure says *Failed*, never why. The row is the truth (re-read every `PollInterval`, so other hosts'
+  work shows), and the new `WorkReported` event (`WorkState` `Running`/`Done`/`Failed`/`Stopped`) moves the bars live in
+  between: only the latest report is kept, published at most about four times a second, and written to the row at most
+  once a poll. A screen reader hears *Import of prices.csv is done.* in a polite live region. `LaneJob.Progress`,
+  `.Done` and `.Of` serve a board of your own; `Jobs.Fake()` publishes a noticed job's work too. Catalog words in English
+  and Hungarian (`WorkNotices`, `WorkNoticesUnread`, `WorkNone`, `WorkRunning`, `WorkProgress`, `WorkDone`, `WorkFailed`,
+  `WorkStopped`, `WorkEndedDone`, `WorkEndedFailed`, `WorkEndedStopped`). **Upgrade:** four new columns (`Notice`,
+  `Progress`, `Done`, `Of`) and an index on `(UserId, ProcessedAt)`: `rask db add AddJobProgress && rask db update`
+  (until then the processor logs exactly that). See [docs/jobs.md](docs/jobs.md#show-a-job-to-the-person-who-started-it)
+  and the app frame demo at [rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/).
+- **`[OffThread]` runs a query's or a command's handler off the page's thread (#1329).** Before: a handler that works
+  without yielding — `Xlsx.Read` of a large workbook, a big XML parse — froze a WebAssembly page until it returned,
+  and held a Server session's handler for as long. After: mark the message `[OffThread]` and keep the call site
+  (`await Dispatcher.Query(new ReadFuelings(bytes), token)`). In a browser app it runs in one Web Worker with a second
+  .NET runtime made from the app's own `_framework`, started at the first such message (or after the first paint
+  with `host.Configure(c => c.OffThread.Warm = true)`); the message and its answer cross in the generated wire codec,
+  now emitted for `[OffThread]` messages without a remote transport, with `byte[]` moved as an `ArrayBuffer` rather
+  than base64. Authorization and validation run on the page first, the handler reads in the page's culture, and its
+  exceptions come back as the page would have seen them. Cancelling cancels `Current.Cancellation` in the worker; a
+  handler that does not stop within a second has its worker restarted, and the next message starts a new one. On
+  the server the handler runs on the thread pool. New: `OffThreadAttribute`, `RaskWasmOptions.OffThread`,
+  `OffThreadOptions.Warm`, and RASK123 for a handler that asks for a page service (`IJSRuntime`, `ElementRef`, a
+  `Rask.Ui` service) or a message or result with no wire encoding. The page's script (`rask-offthread.js`) and the
+  worker's (`rask-worker.js`) are fetched only when the first `[OffThread]` message is sent. Guide:
+  docs/cqrs.md#off-the-pages-thread--offthread.
+- **A URL per language works on the Server host (#1278).** Before: `UrlPrefix = true` was WebAssembly only, and on
+  a Server app it changed nothing — `/de/about` was a 404. After: `"Rask:Cultures": { "SupportedCultures": ["en",
+  "de"], "UrlPrefix": true }` serves `/about` in English and `/de/about` in German from the same `[Route("/about")]`;
+  the address decides the session's language over the cookie and `Accept-Language`, a first visit to the bare `/`
+  is sent on (302) to its language's root, links and `Routes.X().Go()` keep the page's prefix over the live socket,
+  `route.In("de")` switches language in place, a resumed session and a `Pdf.From` print are in their address's
+  language, guards send to `/de/login`, and every served page carries a `canonical` and `hreflang` alternates.
+- **`dotnet ef` builds an app's own context from configuration, without running Program.cs (#1332).** Before: a host
+  whose Program.cs could not start on a developer's machine — a vault it reads, a schema it takes over — needed a
+  hand-written `IDesignTimeDbContextFactory<T>` (`TaDomainAtDesignTime`) before `dotnet ef migrations add` worked.
+  After: Rask generates an internal one beside every `DbContext` a server app declares. It reads the configuration
+  the app starts with (appsettings.json, appsettings.{Environment}.json, user secrets, `Rask__Database__Provider`,
+  `-- --environment X`) and opens the database through `UseRaskDatabase`, so the provider, its tuning and Rask's
+  migration conventions are the app's; an unknown provider or a missing connection string stops it with the sentence
+  the app would start with. A context wired with `AddRaskData<T>(o => o.UseSqlServer(…))` needs
+  `Rask:Database:Provider` set, and is told so. A factory of the app's own still wins, and `RaskAppDbContext` keeps
+  being built from the host, since its tables follow the batteries Program.cs switches off. No new public names.
+  Guide: docs/data.md#migrations-with-plain-dotnet-ef.
+- **A field's `[Display]` / `[DisplayName]` names it everywhere a reader sees it — `[Display]` first, as .NET 11's
+  Blazor reads them (#1328).** Before: `Ui.Input.Bind(() => m.Email)` drew no label until `.Label("Work email")`
+  repeated the attribute's words; a `[DisplayName("Given name")]` field said "The Given name field…" only to an app
+  with its own localized resources, and "The First field is required." otherwise (.NET's `Validator` reads `[Display]`
+  alone); a FluentValidation message said "'First' must not be empty." whatever the attributes; a Rask.Data model's
+  generated server check said the member's name even under `[Display(Name = …)]`, and `[DisplayName]` was not copied
+  onto `<Entity>Model`; a `Ui.Filters` badge said the address key. After: a bound kit control given no `Label` is
+  labelled by the member's display name (a `Label` you give, or a `Ui.Field` you compose, wins); DataAnnotations
+  messages — form, dispatched request, async pass, generated server checks — name the field by `[Display]`, then
+  `[DisplayName]` (`[Display(ResourceType = …)]` read from its resources); FluentValidation messages read the same
+  names through its `DisplayNameResolver` (a rule's `.WithName` still wins); a filter badge says it too. No new API.
+  Guide: docs/forms-validation.md#the-name-a-message-gives-the-field.
+- **Four analyzers modelled on Blazor's BL0012–BL0015 (#1327).** Before: a Rask app could write each of these and
+  nothing objected until it misbehaved at run time. After, each is a warning: **RASK119** a `StateHasChanged()` in
+  `OnMount`/`OnUpdated` that no `await` follows (the hook is rendered anyway; quick-fix deletes it); **RASK120** an
+  event callback built in a `for` loop that reads the loop's variable (`for (var i…) Button.OnClick(() =>
+  Remove(i))` — every row would remove the last); **RASK121** a `[JSInvokable]` method that is not public, which the
+  browser's call never finds (quick-fix makes it public; quiet where BL0015 already runs, so a Server app is not told
+  twice); **RASK122** `IUserProvider.Current` kept in a field or property by a type that never subscribes to
+  `IUserProvider.Changed`, so it shows the old user after a sign-in or sign-out. BL0016 (wrap every JS interop call
+  in `try`/`catch`) has no Rask counterpart: a handler or hook that throws is isolated, logged and shown, and the
+  session goes on.
+- **`rask deploy`'s disk clean-up and guard are the app's to tune, and runnable on demand (#1319).** Before: the
+  post-deploy prune kept 20 GB of build cache and the guard refused under 3 GiB and warned under 10 GiB, all
+  fixed; freeing a full box meant typing the `docker -H ssh://… prune` lines by hand, outside the box lock; and only
+  the text `rask deploy status` had the disk line. After: `.rask/deploy.json` takes `"buildCacheKeep": "40GB"`,
+  `"minFreeDisk": "5GB"` and `"warnFreeDisk": "20GB"` (sizes as docker reads them; a value that isn't one is exit 2
+  naming the key, and a deploy keeps them as written); `rask deploy --no-prune` skips one deploy's clean-up;
+  `rask host clean` runs both prunes under the same box lock — waiting while a deploy holds it — and says what it
+  freed; and `rask deploy status --json` carries a `disk` object (`freeBytes`, `sizeBytes`, `isLow`, `isTooLow`,
+  `reclaimableImages`, `reclaimableBuildCache`). Docs: docs/deployment.md#the-boxs-disk, docs/cli.md.
+- **A C# union crosses interop and the resume record as the case it holds (#1330).** Before: `union Selection(Search,
+  Pick)` went out of `IJSRuntime` and `IPersistentState` as its case value, but never came back — System.Text.Json
+  calls two object cases ambiguous, so an interop result threw and a persisted union silently read as a miss after
+  every restart, deploy or hibernation; `union IdOrSlug(int, string)` missed too, the bag reading numbers from strings.
+  After: both hosts' interop (results, `[JSInvokable]` arguments, scoped-script callbacks, Rask.Web's any-valued
+  calls) and the persisted-state bag read a union of records back as the case its properties name, with .NET's own
+  structural classifier and nothing on the union; the bag reads numbers strictly, so a number-or-string union reads
+  either case. The JSON is System.Text.Json's (the bare case value); a union no set of properties tells apart behaves
+  exactly as before. Guides: docs/js-interop-runtime.md, docs/configuration.md#surviving-a-restart-or-a-redeploy.
 - **A `RaskApp` takes over an existing schema with `c.Data.OwnsSchema(s => …)` (#1333).** Before: only a host wired
   by hand could adopt a database its migrations did not make or give a slow migration more than thirty seconds —
   `builder.Services.AddRaskData<T>(…).OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users"))` — so a
@@ -409,6 +500,9 @@ references these packages itself, pin them beside the Rask packages:
   tiptap follower leaves to a person; landed by hand to clear its issue (#1263).
 - **`Ui.Editor`'s engine is on Tiptap 3.33.1** (was 3.33.0, a patch release of the whole `@tiptap/*` family;
   `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 54 bytes (451,814 -> 451,868), which the
+  tiptap follower leaves to the owner; approved, landed by hand (#1263).
+- **`Ui.Editor`'s engine is on Tiptap 3.34.0** (was 3.33.1, a minor release of the whole `@tiptap/*` family;
+  `prosemirror-model` still held at 1.25.1). `ui-editor.js` grows by 244 bytes (451,868 -> 452,112), which the
   tiptap follower leaves to the owner; approved, landed by hand (#1263).
 - **An upstream follower refused for a gate `main`'s scoped `ci` skipped waits for `main` instead of opening an
   issue.** Before: `scripts/upstream/main-already-red.sh` compared a follower's red gates with `main`'s last `ci` push

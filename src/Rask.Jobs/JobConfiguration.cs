@@ -58,5 +58,13 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         // Why a job was stopped, as its number: nullable, so a host from before Jobs.Stop inserts rows that were never asked to.
         builder.Property(x => x.Stopped);
         builder.Property(x => x.StartedAt);
+
+        // What its enqueuer watches (.Noticed) and how far along it is (Jobs.Report): nullable, so a host from before them
+        // inserts rows nobody watches. The bell reads one user's rows, running or lately ended, on the index beside them.
+        builder.Property(x => x.Notice).HasMaxLength(JobNotice.MaxTitle);
+        builder.Property(x => x.Progress).HasMaxLength(JobNotice.MaxProgress);
+        builder.Property(x => x.Done);
+        builder.Property(x => x.Of);
+        builder.HasIndex(x => new { x.UserId, x.ProcessedAt });
     }
 }

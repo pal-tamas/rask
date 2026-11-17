@@ -29,6 +29,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The workbook the [OffThread] journey reads, written by the host. -->
+    <ProjectReference Include="..\..\src\Rask.Xlsx\Rask.Xlsx.csproj"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit"/>
   </ItemGroup>
 

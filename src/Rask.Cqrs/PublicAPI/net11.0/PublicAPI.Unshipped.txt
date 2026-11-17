@@ -1,4 +1,31 @@
 #nullable enable
+override Rask.Background.WorkReported.Equals(object? obj) -> bool
+override Rask.Background.WorkReported.GetHashCode() -> int
+override Rask.Background.WorkReported.ToString() -> string!
+Rask.Background.WorkReported
+Rask.Background.WorkReported.<Clone>$() -> Rask.Background.WorkReported!
+Rask.Background.WorkReported.At.get -> System.DateTime
+Rask.Background.WorkReported.At.init -> void
+Rask.Background.WorkReported.Deconstruct(out long Id, out string! Title, out string? Progress, out int? Done, out int? Of, out Rask.Background.WorkState State, out System.DateTime At) -> void
+Rask.Background.WorkReported.Done.get -> int?
+Rask.Background.WorkReported.Done.init -> void
+Rask.Background.WorkReported.Equals(Rask.Background.WorkReported? other) -> bool
+Rask.Background.WorkReported.Id.get -> long
+Rask.Background.WorkReported.Id.init -> void
+Rask.Background.WorkReported.Of.get -> int?
+Rask.Background.WorkReported.Of.init -> void
+Rask.Background.WorkReported.Progress.get -> string?
+Rask.Background.WorkReported.Progress.init -> void
+Rask.Background.WorkReported.State.get -> Rask.Background.WorkState
+Rask.Background.WorkReported.State.init -> void
+Rask.Background.WorkReported.Title.get -> string!
+Rask.Background.WorkReported.Title.init -> void
+Rask.Background.WorkReported.WorkReported(long Id, string! Title, string? Progress, int? Done, int? Of, Rask.Background.WorkState State, System.DateTime At) -> void
+Rask.Background.WorkState
+Rask.Background.WorkState.Done = 1 -> Rask.Background.WorkState
+Rask.Background.WorkState.Failed = 2 -> Rask.Background.WorkState
+Rask.Background.WorkState.Running = 0 -> Rask.Background.WorkState
+Rask.Background.WorkState.Stopped = 3 -> Rask.Background.WorkState
 Rask.Cqrs.CqrsOptions
 Rask.Cqrs.CqrsOptions.AddBehavior<TRequest, TResult, TImplementation>() -> Rask.Cqrs.CqrsOptions!
 Rask.Cqrs.CqrsOptions.AddOpenBehavior(System.Type! openBehaviorType) -> Rask.Cqrs.CqrsOptions!
@@ -53,6 +80,8 @@ Rask.Cqrs.IWatchPolicy<TSubscription>
 Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatch(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
+Rask.Cqrs.OffThreadAttribute
+Rask.Cqrs.OffThreadAttribute.OffThreadAttribute() -> void
 Rask.Cqrs.EventDispatch
 Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.Sequential = 0 -> Rask.Cqrs.EventPublishStrategy
@@ -173,6 +202,8 @@ override Rask.Cqrs.RequestValidationError.GetHashCode() -> int
 override Rask.Cqrs.Unit.Equals(object? obj) -> bool
 override Rask.Cqrs.Unit.GetHashCode() -> int
 override Rask.Cqrs.Unit.ToString() -> string!
+static Rask.Background.WorkReported.operator !=(Rask.Background.WorkReported? left, Rask.Background.WorkReported? right) -> bool
+static Rask.Background.WorkReported.operator ==(Rask.Background.WorkReported? left, Rask.Background.WorkReported? right) -> bool
 static Rask.Cqrs.CqrsRegistry.CanWatch<TSubscription>(System.IServiceProvider! provider, TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 static Rask.Cqrs.CqrsRegistry.FindEventInvoker(System.Type! eventType) -> Rask.Cqrs.CqrsRegistry.EventInvoker?
 static Rask.Cqrs.CqrsRegistry.RegisterEvent(System.Type! eventType, Rask.Cqrs.CqrsRegistry.EventInvoker! invoker) -> void

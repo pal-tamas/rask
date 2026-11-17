@@ -104,6 +104,12 @@ public static class RaskCqrsClientServiceCollectionExtensions
                     continue;
                 }
 
+                // An [OffThread] message handled here runs in this app's own worker (Rask.Wasm), not on a server.
+                if (OffThreadInvokers.Handled(contract) is not null)
+                {
+                    continue;
+                }
+
                 if (contract.Invoker is { } invoker)
                 {
                     CqrsRegistry.RegisterRequest(contract.MessageType, invoker);

@@ -187,6 +187,7 @@ internal sealed partial class DeployCommand : CliCommand
             .MultiOption("env", 'e', "KEY=VALUE", "Environment variable to pass (repeatable).")
             .Option("health-path", valueHint: "path", description: "HTTP path probed for readiness before traffic moves to the new version (default: /health).")
             .Flag("no-health-check", description: "Skip the post-deploy HTTP health check.")
+            .Flag("no-prune", description: "Skip this deploy's clean-up of old images and build cache (`rask host clean` runs it on demand).")
             .Flag("github-actions", description: "Write a .github/workflows/deploy.yml that runs this deploy once CI passes on main, and print how to set its deploy-only key.")
             .Flag("dry-run", description: "Print the docker commands that would run without changing anything.")
             .WithJson()
@@ -239,6 +240,7 @@ internal sealed partial class DeployCommand : CliCommand
             Action = action,
             EnvFile = parsed.Option("env-file") ?? config.EnvFile,
             DryRun = parsed.HasFlag("dry-run"),
+            Prunes = !parsed.HasFlag("no-prune"),
         };
 
         var failure = ResolvePorts(plan)
@@ -246,8 +248,7 @@ internal sealed partial class DeployCommand : CliCommand
             ?? await ResolveProjectAsync(plan).ConfigureAwait(false)
             ?? await ResolveEnvAsync(plan).ConfigureAwait(false)
             ?? ResolveHealthAndSetup(plan)
-            ?? ResolveStopBudget(plan)
-            ?? ResolveBuildDeadlines(plan);
+            ?? ResolveAppSettings(plan);
         if (failure is not null)
         {
             return failure.Value;
@@ -277,6 +278,9 @@ internal sealed partial class DeployCommand : CliCommand
         public string? EnvFile { get; init; }
 
         public bool DryRun { get; init; }
+
+        /// <summary>Whether a deploy that serves cleans up after itself — <c>false</c> under <c>--no-prune</c>.</summary>
+        public bool Prunes { get; init; } = true;
 
         public string Host { get; set; } = string.Empty;
 
@@ -342,6 +346,9 @@ internal sealed partial class DeployCommand : CliCommand
             BuildIdleTimeout = Deadlines.BuildIdle == DeployDeadlines.DefaultBuildIdle ? null : Cli.StopTimeout.Format(Deadlines.BuildIdle),
         };
 
+        // The disk settings are the app's own words, kept as written: a deploy never adds them.
+        DiskPolicy.Remember(config);
+
         // One domain stays "domain", as an older Rask wrote it; several become "domains".
         config.SetSite(domain);
         // The DNS provider is NOT remembered: the running proxy carries it (its rask.dns label), and its credentials
@@ -350,7 +357,7 @@ internal sealed partial class DeployCommand : CliCommand
         config.Save(_fileSystem, _workingDirectory);
     }
 
-    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath, string redirects = "", DnsProvider? dns = null)
+    private void PrintPlan(string host, string slug, string? domain, int port, int containerPort, string dockerfile, string contextDir, IReadOnlyList<string> env, bool healthEnabled, string healthPath, string redirects = "", DnsProvider? dns = null, bool prunes = true)
     {
         var writer = Console.Out;
         writer.WriteLine("Dry run — the following docker commands would run (no changes made):");
@@ -362,7 +369,7 @@ internal sealed partial class DeployCommand : CliCommand
 
         writer.WriteLine($"  # take {slug}'s own deploy lock for the whole deploy (renewed while held, so another deploy of {slug} waits):");
         Line(BuildAppLockArguments(host, slug, slug));
-        writer.WriteLine($"  # check over ssh that the box has room to build (stops below {DiskSpace.Format(DiskSpace.Minimum)} free, warns below {DiskSpace.Format(DiskSpace.Comfortable)})");
+        writer.WriteLine($"  # check over ssh that the box has room to build (stops below {DiskSpace.Format(DiskPolicy.MinFree)} free, warns below {DiskPolicy.DescribeWarn()})");
         var release = PrintBuildPlan(writer, host, slug, dockerfile, contextDir, env);
         if (domain is null)
         {
@@ -392,10 +399,16 @@ internal sealed partial class DeployCommand : CliCommand
             PrintSwitchPlan(writer, host, slug, domain, container, healthEnabled ? healthPath : "/", dns);
         }
 
+        if (!prunes)
+        {
+            writer.WriteLine($"  # --no-prune: no clean-up after this deploy (`rask host clean --host {host}` runs it when you choose); release {slug}'s own lock");
+            return;
+        }
+
         writer.WriteLine("  # once it serves, under the box's lock: remove untagged images (image prune, never -a: :previous is the rollback), then trim the build cache (builder prune -a: shared records too, and it removes no image)");
         Line(BuildLockArguments(host, slug));
         Line(PruneCommands.BuildImagePruneArguments(host));
-        Line(PruneCommands.BuildBuilderPruneArguments(host));
+        Line(PruneCommands.BuildBuilderPruneArguments(host, DiskPolicy.BuildCacheKeepArgument));
         writer.WriteLine($"  # release the box's lock, then {slug}'s own");
     }
 

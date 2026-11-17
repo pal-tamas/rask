@@ -6,7 +6,9 @@ namespace Rask.Background;
 /// <summary>
 ///     Looks at the jobs this host runs, once a poll, and stops the ones that must stop: asked to from any host (their row says
 ///     <see cref="Job.Stopped" />), past their time limit, idle too long, or whose row was marked done or deleted from outside.
-///     One read of the rows in flight, by id — so a job enqueued again just like one that ran is never taken for it.
+///     One read of the rows in flight, by id — so a job enqueued again just like one that ran is never taken for it. It also
+///     writes what each job last reported to its row, when it reported since the last look, and says on screen what a watched
+///     job reported too soon after its last report to be said then: the row is written at most once a poll.
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext" /> that owns the jobs table.</typeparam>
 internal sealed partial class JobWatch<TContext>(
@@ -34,6 +36,8 @@ internal sealed partial class JobWatch<TContext>(
             {
                 await Look(run, rows.GetValueOrDefault(run.Id), now, cancellationToken).ConfigureAwait(false);
                 WarnIfIgnored(run, now);
+                run.SayUnsaid();
+                await Write(run, cancellationToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -98,6 +102,27 @@ internal sealed partial class JobWatch<TContext>(
             .Where(j => j.Id == id && j.ProcessedAt == null && j.Stopped == null)
             .ExecuteUpdateAsync(s => s.SetProperty(j => j.Stopped, why), cancellationToken)
             .ConfigureAwait(false) > 0;
+    }
+
+    // What the job last reported, on its row while it still runs — once per report, so a quiet job costs no write.
+    private async Task Write(JobRun run, CancellationToken cancellationToken)
+    {
+        if (run.HasEnded || run.Unwritten() is not { } report)
+        {
+            return;
+        }
+
+        var db = await contextFactory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
+        await db.Set<Job>()
+            .Where(j => j.Id == run.Id && j.ProcessedAt == null)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(j => j.Progress, report.Progress)
+                    .SetProperty(j => j.Done, report.Done)
+                    .SetProperty(j => j.Of, report.Of),
+                cancellationToken)
+            .ConfigureAwait(false);
     }
 
     // A handler that does not pass Current.Cancellation on keeps running after its stop, and keeps its lane: that is said

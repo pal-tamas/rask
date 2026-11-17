@@ -18,7 +18,9 @@ namespace Rask.Batteries.Generators;
 ///         <c>[RaskCqrsTransport]</c>, which today means <c>Rask.Cqrs.Client</c> or
 ///         <c>Rask.Cqrs.Server</c>. That gate is the whole reason existing code is unaffected: an app
 ///         using Rask.Cqrs purely in-process generates nothing, so the shape rules this generator
-///         enforces (RASK053) never apply to its messages.
+///         enforces (RASK053) never apply to its messages. The one exception is an <c>[OffThread]</c> query or
+///         command, which crosses to the app's own Web Worker: it gets a codec either way, and what would keep it
+///         from running there is RASK123.
 ///     </para>
 ///     <para>
 ///         Contracts are collected from the compilation itself and from any referenced assembly that
@@ -65,6 +67,20 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
                      + "either would leave the handler open while reading as protected.",
         helpLinkUri: DiagnosticHelp.Link("RASK101"));
 
+    internal static readonly DiagnosticDescriptor Rask123 = new(
+        "RASK123",
+        "[OffThread] message cannot run in a Web Worker",
+        "'{0}' is [OffThread], so its handler runs in a Web Worker beside the page, but {1}",
+        DiagnosticHelp.Category,
+        DiagnosticSeverity.Error,
+        true,
+        description: "In a browser app an [OffThread] query or command crosses to a Web Worker that runs a second .NET "
+                     + "runtime with the app's handlers and nothing of the page: no DOM, no IJSRuntime, no ElementRef, no "
+                     + "Rask.Ui service. The message and its result cross as the generated wire encoding, so both need one, "
+                     + "and the handler may ask only for what the worker has. Pass the handler what it needs in the message, "
+                     + "and do the page's part with the result.",
+        helpLinkUri: DiagnosticHelp.Link("RASK123"));
+
     internal const string NotReadable =
         "authorization is read at compile time, and only [Authorize] and [AllowAnonymous] themselves can be seen — "
         + "write [Authorize(...)] directly";
@@ -97,11 +113,9 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
 
     private static void Execute(SourceProductionContext spc, Compilation compilation)
     {
-        if (!ReferencesTransport(compilation))
-        {
-            return;
-        }
-
+        // An [OffThread] message crosses to the app's own Web Worker, which needs its codec whether or not the app
+        // talks to a server. Without a transport, it is the only kind of message that gets one.
+        var transport = ReferencesTransport(compilation);
         var handlers = DiscoverHandlers(compilation);
 
         var contracts = new List<ContractModel>();
@@ -110,6 +124,12 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             if (spc.CancellationToken.IsCancellationRequested)
             {
                 return;
+            }
+
+            var offThread = IsOffThread(message.Type, message.Kind);
+            if (!transport && !offThread)
+            {
+                continue;
             }
 
             if (message.Kind is RemoteKind.Event or RemoteKind.Subscription)
@@ -126,11 +146,16 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
             if (model.Problem is { } problem)
             {
                 spc.ReportDiagnostic(Diagnostic.Create(
-                    Rask053,
+                    offThread ? Rask123 : Rask053,
                     message.Type.Locations.FirstOrDefault(l => l.IsInSource),
                     message.Type.ToDisplayString(),
-                    problem));
+                    offThread ? "it has no wire encoding: " + problem : problem));
                 continue;
+            }
+
+            if (offThread)
+            {
+                ReportPageServices(spc, message.Type, handlers, compilation);
             }
 
             contracts.Add(model);
@@ -189,6 +214,57 @@ public sealed class CqrsCodecGenerator : IIncrementalGenerator
     // may not point into one.
     private static Location? InCompilation(Location? location, Compilation compilation) =>
         location?.SourceTree is { } tree && compilation.ContainsSyntaxTree(tree) ? location : null;
+
+    // [OffThread] on a query or a command. On an event it means nothing — an event is published where it happened —
+    // and so earns it no codec of its own.
+    private static bool IsOffThread(INamedTypeSymbol type, RemoteKind kind) =>
+        kind is RemoteKind.Query or RemoteKind.VoidCommand or RemoteKind.ResultCommand
+        && type.GetAttributes().Any(static a =>
+            a.AttributeClass?.Name is "OffThreadAttribute" &&
+            a.AttributeClass.ContainingNamespace?.ToDisplayString() is CqrsNamespace);
+
+    // The worker builds the handler from a container with nothing of the page in it, so a constructor that asks for a
+    // page service would fail there at the first message — reported here instead, where the handler is written.
+    private static void ReportPageServices(
+        SourceProductionContext spc,
+        INamedTypeSymbol message,
+        Dictionary<string, INamedTypeSymbol> handlers,
+        Compilation compilation)
+    {
+        if (!handlers.TryGetValue(message.ToDisplayString(), out var handler))
+        {
+            return;
+        }
+
+        foreach (var parameter in handler.InstanceConstructors.SelectMany(static c => c.Parameters))
+        {
+            if (PageOnly(parameter.Type) is not { } service)
+            {
+                continue;
+            }
+
+            spc.ReportDiagnostic(Diagnostic.Create(
+                Rask123,
+                InCompilation(parameter.Locations.FirstOrDefault(), compilation)
+                ?? InCompilation(handler.Locations.FirstOrDefault(), compilation)
+                ?? InCompilation(message.Locations.FirstOrDefault(), compilation),
+                message.ToDisplayString(),
+                $"its handler '{handler.Name}' asks for '{service}', which exists only on the page — pass what the "
+                + "handler needs in the message, and do the page's part with its result"));
+        }
+    }
+
+    // What only the page has: the JavaScript bridge, a rendered element, and the UI kit's services.
+    private static string? PageOnly(ITypeSymbol type)
+    {
+        var named = type as INamedTypeSymbol;
+        var ns = type.ContainingNamespace?.ToDisplayString();
+        var assembly = type.ContainingAssembly?.Name;
+        var pageOnly = ns is "Microsoft.JSInterop"
+                       || (named?.OriginalDefinition.Name is "ElementRef" && ns is "Rask.Core" or "Rask")
+                       || assembly is "Rask.Ui";
+        return pageOnly ? type.ToDisplayString() : null;
+    }
 
     // A transport is what makes wire encoding meaningful. Without one, generating codecs would impose
     // the contract shape rules on an app that never sends anything anywhere.

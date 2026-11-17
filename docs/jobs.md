@@ -227,8 +227,9 @@ Jobs.Report($"{kept} of {total} fuelings");
   carries `.Stop`, never a `JobFailedException`.
 - **The limits are measured from when the handler starts**, so time waiting in the lane never counts. `.After(…)`
   holds however much the job reports; `.IdleFor(…)` cuts a job at exactly that long without a `Jobs.Report` (not a
-  second before). A type with no `IdleFor` is never cut for being quiet. `Jobs.Report` keeps its words in memory on
-  the host running the job, and does nothing outside a job.
+  second before). A type with no `IdleFor` is never cut for being quiet. `Jobs.Report` keeps only its latest words,
+  writes them to the job's row at most once a poll ([below](#show-a-job-to-the-person-who-started-it)), and does
+  nothing outside a job.
 - **No job has a time limit unless you give it one.** `JobsOptions.StopAfter` (`Rask:Jobs:StopAfter`, default
   infinite) is the limit of every job whose type names none — opt in; a backup that runs all night is not cut off by a
   default nobody chose. Per type, configuration says the same as code — `Rask:Jobs:Limit:AtPump:After` and
@@ -264,6 +265,52 @@ it stops nothing then, and looks again on the next poll. The metric `rask.jobs.s
 
 Upgrading adds the `Stopped` and `StartedAt` columns: `rask db add AddJobStop && rask db update`. Until the migration
 runs, the processor logs exactly that command.
+
+### Show a job to the person who started it
+
+An import, an export, a report — work a person started and waits for — is shown to them with one step, and moved
+with one line from its handler:
+
+```csharp
+// Where it starts: the person who enqueues it sees it, under this title.
+await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");
+
+// In the handler: how far along it is. Call it as often as the work moves.
+Jobs.Report(kept, total);                                     // a bar, filled to kept of total
+Jobs.Report(kept, total, $"{kept:N0} of {total:N0} rows");    // with words under it
+Jobs.Report("Reading the file");                              // words alone: a bar without an end
+
+// In the layout: the bell at the header's end, and a list where the page wants one.
+Ui.AppFrame.Brand("Shop").Notices(Ui.WorkNotices)[ … ]
+Ui.WorkList.Lane("imports")
+```
+
+Before, both apps that needed this wrote it three times over — a progress table, a board, a bell — around a job that
+could only say words nobody else saw. Now the job's row carries its title and its latest count, and the kit draws it.
+
+- **Only its enqueuer sees it, in the tenant they enqueued it in.** `.Noticed(…)` (on `Enqueue` and on `Run`) stores the
+  title on the row beside the user and tenant every job records. The bell lists that user's rows alone; a job enqueued
+  by nobody signed in is shown to nobody. Why a job failed is never shown — it says *Failed*, and the reason stays on
+  the [dashboard](dashboard.md).
+- **The row is the truth.** `Ui.WorkNotices` and `Ui.WorkList` read the user's rows again every `PollInterval`, so work
+  that runs on another host, or ended while nobody looked, is on the screen within one poll. Between reads, the
+  `WorkReported` events a job publishes move its bar on the page at once — in this process; events reach
+  [one process](subscriptions.md#one-process-for-now).
+- **A report flood costs nothing.** Only the latest report is kept; it is published at once unless the last one was
+  under a quarter second ago, and then on the next poll; the row is written at most once a poll, and only when the job
+  reported since. A job looping a million rows may call `Jobs.Report` on every one.
+- **What the bell counts** is what runs, and what ended since the person last opened it (in this page's session — no
+  storage). Lately ended means the last day, the newest ten. A job they saw running that ends is announced politely to
+  a screen reader: *Import of prices.csv is done.*
+- **`WorkReported` is an ordinary event** — `(Id, Title, Progress, Done, Of, State, At)` with `WorkState` `Running`,
+  `Done`, `Failed` or `Stopped` — so an `IEventHandler<WorkReported>` can mail "your import is done". Who it is for
+  travels with it and never across the wire. A board of your own reads the count from a lane: `LaneJob.Progress`,
+  `.Done` and `.Of`.
+- **In a test**, `Jobs.Fake()` runs a noticed job as the processor would: it publishes running, its latest report and
+  how it ended, for the user who enqueued it.
+
+Upgrading adds the `Notice`, `Progress`, `Done` and `Of` columns and an index on `(UserId, ProcessedAt)`:
+`rask db add AddJobProgress && rask db update`. Until the migration runs, the processor logs exactly that command.
 
 ## Inside `Db.Transaction`
 

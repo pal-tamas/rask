@@ -10,7 +10,7 @@ public sealed partial class UiSelect<T> : IUiFilterField
         var value = cell.Value;
         var active = UiFilterAddress.Holds(value);
 
-        return new UiFilterEntry(Label ?? cell.Key, active ? Picked(value!) : null, active, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, active ? Picked(value!) : null, active, cell.Key);
     }
 
     /// <inheritdoc />

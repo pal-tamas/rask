@@ -95,6 +95,9 @@
          cannot be referenced by a package it may one day wire, so they meet in Core: IPrintablePages is declared
          here, internal, and Rask.Server implements it. -->
     <InternalsVisibleTo Include="Rask.Pdf"/>
+    <!-- DisplayNames: a FluentValidation message names a field by its [Display] or [DisplayName] as every other
+         surface of a form does, read the one way. -->
+    <InternalsVisibleTo Include="Rask.Validation.FluentValidation"/>
     <!-- RaskSite.Pages<Program>() lists an app's pages from its route table the way the router flattens it
          (RouteFlattener), rather than re-deriving how a [ParentRoute] chain joins its templates. -->
     <InternalsVisibleTo Include="Rask.Testing.Playwright"/>

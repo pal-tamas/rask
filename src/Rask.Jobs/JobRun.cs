@@ -14,11 +14,28 @@ internal sealed class JobRun
     private JobStop? _stopped;
     private bool _ended;
 
+    // What it last reported, numbered: the watch writes the row when the written number is behind, and says it on screen
+    // when the said one is.
+    private WorkReport _latest;
+    private long _reports;
+    private long _written;
+    private long _said;
+    private long _saidAt = long.MinValue;
+
     public JobRun(Job job, TimeProvider clock, CancellationToken host)
+        : this(job.Id, job.Type, job.Lane, job.Notice, job.UserId, job.TenantId, clock, host)
     {
-        Id = job.Id;
-        Type = job.Type;
-        Lane = job.Lane;
+    }
+
+    /// <summary>A run of a job that has no row of its own — what the test fake runs.</summary>
+    public JobRun(long id, string type, string? lane, string? notice, Guid? owner, Guid? tenant, TimeProvider clock, CancellationToken host)
+    {
+        Id = id;
+        Type = type;
+        Lane = lane;
+        Notice = notice;
+        Owner = owner;
+        Tenant = tenant;
         _clock = clock;
         _source = CancellationTokenSource.CreateLinkedTokenSource(host);
         Started = clock.GetUtcNow().UtcDateTime;
@@ -31,6 +48,27 @@ internal sealed class JobRun
     public string Type { get; }
 
     public string? Lane { get; }
+
+    /// <summary>The title its enqueuer watches it under (<c>.Noticed(…)</c>), or null.</summary>
+    public string? Notice { get; }
+
+    /// <summary>The user it was enqueued for: the one who watches it.</summary>
+    public Guid? Owner { get; }
+
+    /// <summary>The tenant it was enqueued in.</summary>
+    public Guid? Tenant { get; }
+
+    /// <summary>Whether its enqueuer watches it: it has a title, and somebody to show it to.</summary>
+    public bool IsNoticed => Notice is not null && Owner is not null;
+
+    /// <summary>
+    ///     Where a report its enqueuer should see goes — at most once every <see cref="SayEvery" />; the watch says the latest
+    ///     once a poll if a report came between. Null for a run nobody watches.
+    /// </summary>
+    public Action<WorkReported>? Say { get; set; }
+
+    /// <summary>How often a report reaches the screen at most: about four times a second, whatever the job reports.</summary>
+    public static TimeSpan SayEvery => TimeSpan.FromMilliseconds(250);
 
     /// <summary>When the handler started (UTC), on the processor's clock: the time limit and the idle watch count from here.</summary>
     public DateTime Started { get; }
@@ -50,8 +88,17 @@ internal sealed class JobRun
     /// <summary>When it last reported progress (UTC) — <see cref="Started" /> until it reports any.</summary>
     public DateTime LastProgress => new(Interlocked.Read(ref _lastProgress), DateTimeKind.Utc);
 
-    /// <summary>What it last reported, if anything.</summary>
-    public string? LastReport { get; private set; }
+    /// <summary>What it last reported: its words and its count, each null when it said none.</summary>
+    public WorkReport Latest
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _latest;
+            }
+        }
+    }
 
     /// <summary>Why it was stopped, or null while it runs on.</summary>
     public JobStop? Stopped
@@ -90,12 +137,76 @@ internal sealed class JobRun
         IdleFor = idleFor;
     }
 
-    /// <summary>It got on: what <c>Jobs.Report(…)</c> tells the job of the flow it runs on.</summary>
-    public void Report(string? progress)
+    /// <summary>
+    ///     It got on: what <c>Jobs.Report(…)</c> tells the job of the flow it runs on. Only the latest is kept; it is said on
+    ///     screen at once unless it was said less than <see cref="SayEvery" /> ago, and then by the watch (<see cref="SayUnsaid" />).
+    /// </summary>
+    /// <remarks>
+    ///     Said under the gate that <see cref="End" /> takes, and never once it has ended: so nothing this run says can land
+    ///     after the end its processor says once it has saved the outcome.
+    /// </remarks>
+    public void Report(string? progress, int? done, int? of)
     {
-        LastReport = progress;
+        var now = _clock.GetTimestamp();
+        lock (_gate)
+        {
+            _latest = new WorkReport(progress, done, of);
+            _reports++;
+            if (CanSay && (_saidAt == long.MinValue || _clock.GetElapsedTime(_saidAt, now) >= SayEvery))
+            {
+                SayLatest(now);
+            }
+        }
+
         Interlocked.Exchange(ref _lastProgress, _clock.GetUtcNow().UtcDateTime.Ticks);
     }
+
+    /// <summary>The latest report when the row has not been written with it yet — and marks it written. Null when it has.</summary>
+    public WorkReport? Unwritten()
+    {
+        lock (_gate)
+        {
+            if (_written == _reports)
+            {
+                return null;
+            }
+
+            _written = _reports;
+            return _latest;
+        }
+    }
+
+    /// <summary>Says the latest report on screen when it has not been said yet: what the watch does once a poll.</summary>
+    public void SayUnsaid()
+    {
+        lock (_gate)
+        {
+            if (CanSay && _said != _reports)
+            {
+                SayLatest(_clock.GetTimestamp());
+            }
+        }
+    }
+
+    // Caller holds _gate.
+    private bool CanSay => Say is not null && !_ended;
+
+    // Caller holds _gate.
+    private void SayLatest(long now)
+    {
+        _said = _reports;
+        _saidAt = now;
+        Say!(ToWork(WorkState.Running, _latest));
+    }
+
+    /// <summary>The run as its enqueuer sees it, <paramref name="state" /> now, with <paramref name="report" />.</summary>
+    public WorkReported ToWork(WorkState state, WorkReport report) =>
+        new(Id, Notice ?? "", report.Progress, report.Done, report.Of, state, _clock.GetUtcNow().UtcDateTime)
+        {
+            Owner = Owner,
+            Tenant = Tenant,
+            Lane = Lane,
+        };
 
     /// <summary>The limit it is past at <paramref name="now" />, if any: its time limit first, then the idle watch.</summary>
     public JobStop? LimitPassed(DateTime now)

@@ -42,6 +42,12 @@
     <ProjectReference Include="..\..\src\Rask.Generators\Rask.Generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
+    <!-- The [OffThread] page (OffThreadPage.cs): a workbook read in the worker, and the Cqrs generator that registers
+         its handler and emits its codec. -->
+    <ProjectReference Include="..\..\src\Rask.Xlsx\Rask.Xlsx.csproj"/>
+    <ProjectReference Include="..\..\src\Rask.Batteries.Generators\Rask.Batteries.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

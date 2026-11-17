@@ -41,6 +41,7 @@ public sealed class JobUserTests
         // The table as it looked before this change: everything but UserId.
         await using (var db = h.NewContext())
         {
+            await db.Database.ExecuteSqlRawAsync("DROP INDEX IF EXISTS IX_Job_UserId_ProcessedAt;", cancellationToken: TestContext.Current.CancellationToken);
             await db.Database.ExecuteSqlRawAsync("ALTER TABLE Job DROP COLUMN UserId;", cancellationToken: TestContext.Current.CancellationToken);
 
             // A pending row, written the way the old package wrote it. An empty queue never loads a row — the

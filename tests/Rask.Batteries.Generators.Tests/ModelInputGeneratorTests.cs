@@ -130,10 +130,66 @@ public class ModelInputGeneratorTests
             StringComparison.Ordinal);
         Assert.DoesNotContain("__Rule_Root_Notes", source, StringComparison.Ordinal);
         Assert.Contains(
-            "failures = __Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", model, path, failures);",
+            "failures = __Check(new global::System.ComponentModel.DataAnnotations.RangeAttribute(0, 1000), model.Price, \"Price\", \"Price\", model, path, failures);",
             source,
             StringComparison.Ordinal);
         Assert.Equal(3, source.Split("__Validate(model);").Length - 1);
+    }
+
+    [Fact]
+    public void A_display_name_attribute_is_copied_onto_the_form_beside_display()
+    {
+        var run = Run("""
+            using System;
+            using System.ComponentModel;
+            using System.ComponentModel.DataAnnotations;
+            using Rask.Data;
+            namespace Shop;
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            {
+                private Product() { }
+                [DisplayName("Remarks")] public string? Notes { get; private set; }
+                [Display(Name = "Label")] public string? Tag { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel").ReplaceLineEndings("\n");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("    [global::System.ComponentModel.DisplayNameAttribute(\"Remarks\")]\n    public string? Notes", source, StringComparison.Ordinal);
+        Assert.Contains("    [global::System.ComponentModel.DataAnnotations.DisplayAttribute(Name = \"Label\")]\n    public string? Tag", source, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[Display(Name = \"Remarks\"), DisplayName(\"Comment\")]", "\"Remarks\"")]
+    [InlineData("[DisplayName(\"Comment\")]", "\"Comment\"")]
+    [InlineData("", "\"Notes\"")]
+    [InlineData(
+        "[Display(Name = nameof(Names.Notes), ResourceType = typeof(Names)), DisplayName(\"Comment\")]",
+        "(new global::System.ComponentModel.DataAnnotations.DisplayAttribute() { Name = \"Notes\", ResourceType = typeof(Shop.Names) }).GetName() ?? \"Comment\"")]
+    public void A_check_the_server_runs_names_the_field_as_display_and_display_name_do(string attributes, string named)
+    {
+        var run = Run($$"""
+            using System;
+            using System.ComponentModel;
+            using System.ComponentModel.DataAnnotations;
+            using Rask.Data;
+            namespace Shop;
+            public static class Names { public static string Notes => "Megjegyzés"; }
+            public sealed class Product : Aggregate<Guid, Timestamps, Versioned, Model, Deletable>
+            {
+                private Product() { }
+                [StringLength(5)] {{attributes}} public string? Notes { get; private set; }
+            }
+            """);
+
+        var source = run.GeneratedSource("Shop.ProductModel");
+
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains(
+            "failures = __Check(new global::System.ComponentModel.DataAnnotations.StringLengthAttribute(5), model.Notes, \"Notes\", " + named + ", model, path, failures);",
+            source,
+            StringComparison.Ordinal);
     }
 
     [Fact]

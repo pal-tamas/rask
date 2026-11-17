@@ -120,9 +120,6 @@ internal static class PageRender
         routeState.Path = input.Path;
         routeState.Query = input.Query;
         routeState.Forbidden = input.Forbidden;
-        if (input.Culture is { } culture)
-        {
-            ServerCultureNegotiation.Apply(services, culture);
-        }
+        ServerCultureNegotiation.Apply(services, input.Culture);
     }
 }

@@ -60,6 +60,21 @@ internal sealed class UrlLanguages
     }
 
     /// <summary>
+    ///     The URL languages <paramref name="options" /> describe, with <see cref="IsEnabled" /> switched on when
+    ///     there are any — what a host calls once its options are built, before its first render.
+    /// </summary>
+    public static UrlLanguages? Enable(RaskCultureOptions? options)
+    {
+        var languages = From(options);
+        if (languages is not null)
+        {
+            IsEnabled = true;
+        }
+
+        return languages;
+    }
+
+    /// <summary>
     ///     The language <paramref name="path" /> is in, and the path the routes know it by: <c>/en/about</c> is
     ///     <c>("en", "/about")</c>, <c>/about</c> is the default language's.
     /// </summary>
@@ -103,6 +118,12 @@ internal sealed class UrlLanguages
 
         return routePath.Length == 1 ? "/" + name : "/" + name + routePath;
     }
+
+    /// <summary>
+    ///     <paramref name="url" />, a page of this app, in the language of the page at <paramref name="address" />:
+    ///     where a guard sends a reader on <c>/en/orders</c> is <c>/en/login</c>, not the default language's.
+    /// </summary>
+    public string Keep(string address, string url) => Join(Split(address).Language, url);
 
     /// <summary>The app's spelling of <paramref name="language" />, or <c>null</c> when it does not ship it.</summary>
     public string? Resolve(string? language) => LanguageTag.Match(language, All);

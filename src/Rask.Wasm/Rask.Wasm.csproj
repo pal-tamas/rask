@@ -137,6 +137,8 @@
     <None Include="Browser\rask.wasm.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask-hooks.js" Pack="true" PackagePath="Browser\"/>
     <None Include="Browser\rask-sw.js" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\rask-offthread.js" Pack="true" PackagePath="Browser\"/>
+    <None Include="Browser\rask-worker.js" Pack="true" PackagePath="Browser\"/>
     <!--
       Rask.Wasm.Tasks.dll is named explicitly and excluded from the glob: a glob is expanded at
       project EVALUATION, before the ProjectReference that produces this DLL has built, so on a tree
@@ -164,6 +166,7 @@
                        Exclude="..\Rask.Core\Resources\rask-sw-shared.ts;..\Rask.Core\Resources\**\*.d.ts"/>
     <_RaskWasmClientTs Include="Resources\rask.wasm.ts;Resources\rask-wasm-api.ts;Resources\rask-wasm-auth.ts;Resources\rask-offline-cache.ts;@(_RaskWasmSharedTs)"/>
     <_RaskWasmMainTs Include="Browser\main.ts"/>
+    <_RaskWasmOffThreadTs Include="Resources\rask-offthread.ts;Resources\rask-worker.ts"/>
     <_RaskWasmSwTs Include="Resources\rask-sw.ts;Resources\rask-offline-cache.ts;..\Rask.Core\Resources\rask-sw-shared.ts"/>
   </ItemGroup>
 
@@ -263,6 +266,31 @@
           WorkingDirectory="$(MSBuildProjectDirectory)"/>
     <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
     <Touch Files="$(IntermediateOutputPath)rask-bundles\rask-sw.stamp" AlwaysCreate="true"/>
+  </Target>
+
+  <!--
+    [OffThread] (Rask.Cqrs): Resources/rask-offthread.ts is the page's end, which .NET imports the first time it sends
+    one; Resources/rask-worker.ts is the Web Worker that runs a second .NET runtime from the app's own _framework. Two
+    module bundles beside the others, so a page that never sends an [OffThread] message downloads neither.
+  -->
+  <Target Name="_RaskBundleOffThread" BeforeTargets="PrepareForBuild;AssignTargetPaths" DependsOnTargets="ResolveProjectReferences"
+          Condition=" '$(_RaskBundleBrowserAssets)' == 'true' "
+          Inputs="@(_RaskWasmOffThreadTs)"
+          Outputs="$(IntermediateOutputPath)rask-bundles\rask-offthread.stamp">
+    <ResolveTypeScriptToolTask Tool="esbuild"
+                               Version="$(RaskEsbuildVersion)"
+                               CacheRoot="$(RaskTypeScriptCacheRoot)"
+                               Registry="$(RaskTypeScriptRegistry)"
+                               Offline="$(RaskTypeScriptOffline)">
+      <Output TaskParameter="ToolPath" PropertyName="_RaskEsbuildPath"/>
+    </ResolveTypeScriptToolTask>
+
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-offthread.ts&quot; --bundle --format=esm --target=es2022 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask-offthread.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <Exec Command="&quot;$(_RaskEsbuildPath)&quot; &quot;$(MSBuildProjectDirectory)/Resources/rask-worker.ts&quot; --bundle --format=esm --target=es2022 --log-level=warning --outfile=&quot;$(MSBuildProjectDirectory)/Browser/rask-worker.js&quot; $(_RaskEsbuildMinify)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"/>
+    <MakeDir Directories="$(IntermediateOutputPath)rask-bundles\"/>
+    <Touch Files="$(IntermediateOutputPath)rask-bundles\rask-offthread.stamp" AlwaysCreate="true"/>
   </Target>
 
   <!-- Tailwind's build integration, packed beside this package's own targets and imported from them. The core's

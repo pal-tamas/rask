@@ -1152,3 +1152,8 @@ Rask.Web.Types.GPUDevice.OnUncapturedError(System.Action<Rask.Web.Types.GPUUncap
 Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<Rask.Web.Types.GPUUncapturedErrorEvent!, System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Web.Types.GPUDevice.OnUncapturedError(System.Func<System.Threading.Tasks.Task!>! handler, System.TimeSpan? every = null) -> System.Threading.Tasks.ValueTask<System.IAsyncDisposable!>
 Rask.Wasm.Authentication.WasmAuthSignIn.SignInWithToken(string! token, string? returnUrl = null) -> System.Threading.Tasks.Task!
+Rask.OffThreadOptions
+Rask.OffThreadOptions.OffThreadOptions() -> void
+Rask.OffThreadOptions.Warm.get -> bool
+Rask.OffThreadOptions.Warm.set -> void
+Rask.RaskWasmOptions.OffThread.get -> Rask.OffThreadOptions!

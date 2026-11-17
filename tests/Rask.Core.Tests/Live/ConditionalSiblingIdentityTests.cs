@@ -505,7 +505,9 @@ public sealed partial class LoadingPanel : Component
 
         // Said before the test is let go: its next render must find this panel waiting to be drawn, and the
         // mark the framework makes when this hook returns comes after the line below has woken the test.
+#pragma warning disable RASK119 // Deliberate: the mark must exist BEFORE Tally.Loaded wakes the test, not after the hook returns.
         StateHasChanged();
+#pragma warning restore RASK119
         Tally.Loaded.SetResult();
     }
 

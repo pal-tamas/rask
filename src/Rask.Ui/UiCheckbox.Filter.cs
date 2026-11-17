@@ -7,7 +7,7 @@ public sealed partial class UiCheckbox : IUiFilterField
     UiFilterEntry IUiFilterField.Filter()
     {
         var cell = UiFilterCell<bool?>.Over(Bind, "Ui.Checkbox");
-        return new UiFilterEntry(Label ?? cell.Key, null, cell.Value == true, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, null, cell.Value == true, cell.Key);
     }
 
     /// <inheritdoc />

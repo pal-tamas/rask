@@ -44,9 +44,10 @@ public sealed class RaskCultureOptions
     ///     <para>
     ///         Generated links keep the language of the page they are on — <c>Routes.About()</c> on
     ///         <c>/en/contact</c> is <c>/en/about</c> — and a language switcher asks for another with
-    ///         <c>.In("de")</c>, or for the page being shown in it with <c>route.In("de")</c>. A prerendered
-    ///         WebAssembly app writes every page once per language, with <c>hreflang</c> alternates in each
-    ///         page and in the sitemap. The slug is the same in every language. WebAssembly only, for now.
+    ///         <c>.In("de")</c>, or for the page being shown in it with <c>route.In("de")</c>. Both hosts:
+    ///         a Server app serves each page with a <c>canonical</c> and <c>hreflang</c> alternates in its head,
+    ///         and a prerendered WebAssembly app writes every page once per language, with them in each page and
+    ///         in the sitemap. The slug is the same in every language.
     ///     </para>
     /// </remarks>
     public bool UrlPrefix { get; set; }

@@ -391,7 +391,10 @@ public static partial class RaskEndpointExtensions
         // Whether THIS host runs in Development, asked by its renders, handlers and sessions — never a process-wide
         // flag, which the first host to start used to set for every host after it (#605's resolver, per host).
         services.TryAddSingleton(static sp => HostMode.For(sp.GetService<IHostEnvironment>()?.IsDevelopment()));
-        services.AddScoped<RouteState>();
+        // A route per session, carrying the host's URL languages from the start: the router, every generated link
+        // and the guards then all read the address the same way (RaskCultureOptions.UrlPrefix).
+        services.TryAddSingleton(static sp => new ServerUrlLanguages(sp.GetService<RaskCultureOptions>()));
+        services.AddScoped(static sp => new RouteState { Languages = sp.GetRequiredService<ServerUrlLanguages>().Languages });
         services.AddScoped<Navigator>();
         services.AddScoped<PageVisibility>();
         services.AddScoped<ServerPageResponse>();
@@ -681,6 +684,9 @@ public static partial class RaskEndpointExtensions
         if (endpoints.ServiceProvider.GetService<RaskCultureOptions>() is { SupportedCultures.Count: > 0 })
         {
             RaskCulture.IsEnabled = true;
+
+            // Worked out now, so a route URL knows to look for a session's languages before the first request.
+            _ = endpoints.ServiceProvider.GetService<ServerUrlLanguages>();
         }
 
         var pathBaseNormalized = RaskPath.Normalize(pathBase.Length > 0 ? pathBase : liveOptions?.PathBase ?? "");
@@ -701,6 +707,8 @@ public static partial class RaskEndpointExtensions
         var limits = httpContext.RequestServices.GetRequiredService<RaskServerLimits>();
         var path = StripPathBase(httpContext.Request.Path.Value ?? "/", pathBaseNormalized);
         var user = httpContext.User ?? new ClaimsPrincipal(new ClaimsIdentity());
+        // The address keeps its language prefix; the routes are matched without it (RaskCultureOptions.UrlPrefix).
+        var languages = httpContext.RequestServices.GetRequiredService<ServerUrlLanguages>();
 
         if (await SentToSignInAsync(httpContext, path, user, pathBaseNormalized, selector).ConfigureAwait(false))
         {
@@ -708,27 +716,26 @@ public static partial class RaskEndpointExtensions
         }
 
         var appFactoryForPath = selector.FactoryFor(path);
-        var matched = RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound);
+        var matched = RouteResolver.TryResolve(selector.RoutesFor(path), languages.RoutePathOf(path), out var chain, out var isNotFound);
         var notFoundPage = isNotFound && matched && chain.Count > 0 ? chain[^1] : null;
 
         var (proceeds, forbidden) = matched
-            ? await AuthorizeRouteAsync(httpContext, chain, user, pathBaseNormalized).ConfigureAwait(false)
+            ? await AuthorizeRouteAsync(httpContext, chain, user, pathBaseNormalized, languages, path).ConfigureAwait(false)
             : (true, null);
         if (!proceeds)
         {
             return;
         }
 
-        if (RefusedPanel(httpContext, path))
+        if (RefusedPanel(httpContext, path)
+            || SentToLanguageRoot(httpContext, path, languages.Languages, pathBaseNormalized, out var culture))
         {
             return;
         }
 
-        // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot
-        // atomically and returns null when over cap, rejecting BEFORE the component tree is
-        // built so untrusted GET traffic can't exhaust memory (and a concurrent burst can't
-        // race past the cap). Checked after the auth guard above so challenge/forbid
-        // redirects (which create no session) still work.
+        // Session-cap backstop (RaskLiveOptions.MaxSessions). TryCreate reserves a slot atomically and returns null when
+        // over cap, rejecting BEFORE the component tree is built so untrusted GET traffic can't exhaust memory (and a
+        // concurrent burst can't race past the cap). After the guards, so their redirects (no session) still work.
         var session = store.TryCreate(appFactoryForPath);
         if (session is null)
         {
@@ -737,7 +744,6 @@ public static partial class RaskEndpointExtensions
         }
 
         BindToApplication(session, selector, path);
-        var culture = NegotiateCulture(httpContext);
 
         // Render the GET shell and seed both baselines: the dedup baseline so a no-op click after
         // hello dedups against the HTML the browser already has (mirroring WASM's InitialRenderAsync /
@@ -801,8 +807,10 @@ public static partial class RaskEndpointExtensions
     // Asks the route's authorization; Proceeds is false when the request was answered with a challenge, or with the
     // 302 a [Guest] page answers a signed-in reader. A signed-in person the route forbids is still answered with the
     // app: its layouts, and the forbidden sentence in place of the page they may not open (Forbidden), as a 403.
+    // The 302 keeps the language of the address asked for: a [Guest] page on /de/... sends on to its Then in German.
     private static async Task<(bool Proceeds, Type? Forbidden)> AuthorizeRouteAsync(
-        HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user, string pathBase)
+        HttpContext httpContext, IReadOnlyList<Type> chain, ClaimsPrincipal user, string pathBase,
+        ServerUrlLanguages languages, string path)
     {
         var authResult = await RouteAuthorizationGuard
             .Evaluate(httpContext.RequestServices, chain, user)
@@ -817,7 +825,7 @@ public static partial class RaskEndpointExtensions
                 return (true, authResult.FailedOnPage);
             case RouteAuthorizationOutcome.Redirect:
                 httpContext.Response.StatusCode = StatusCodes.Status302Found;
-                httpContext.Response.Headers.Location = pathBase + LocalUrl.Sanitize(authResult.RedirectTo);
+                httpContext.Response.Headers.Location = pathBase + languages.Keep(path, LocalUrl.Sanitize(authResult.RedirectTo));
                 httpContext.Response.Headers.CacheControl = "no-store";
                 return (false, null);
             default:
@@ -850,18 +858,46 @@ public static partial class RaskEndpointExtensions
     // because this handler is what holds a response. It reaches the session inside the render
     // below, alongside the identity and the route and BEFORE the first wave — so the page is built
     // in their language rather than rendered in the default and corrected in a frame they would see.
-    private static CultureNegotiation? NegotiateCulture(HttpContext httpContext)
+    //
+    // Under URL languages the address decides instead (UrlCulture.Arrive): the signals are asked only at the bare
+    // root, and a visitor they place in another language is sent on to its root (sendTo) rather than served there.
+    private static CultureNegotiation? NegotiateCulture(
+        HttpContext httpContext, string path, UrlLanguages? languages, out string? sendTo)
     {
+        sendTo = null;
         if (!ServerCultureNegotiation.TryNegotiate(httpContext.Request, httpContext.RequestServices, out var negotiated))
         {
             return null;
         }
 
-        ServerCultureNegotiation.Persist(
-            httpContext.Response,
-            negotiated,
-            httpContext.RequestServices.GetRequiredService<RaskCultureOptions>());
+        var options = httpContext.RequestServices.GetRequiredService<RaskCultureOptions>();
+        ServerCultureNegotiation.Persist(httpContext.Response, negotiated, options);
+        if (languages is null)
+        {
+            return negotiated;
+        }
+
+        var signals = negotiated;
+        (negotiated, sendTo) = UrlCulture.Arrive(path, languages, options, () => signals);
         return negotiated;
+    }
+
+    // Negotiates the visitor's language, and answers whether the request was sent on instead: a first visit to the
+    // bare root whose signals place it in another language goes to that language's root, the query kept. Never
+    // cacheable — where it leads depends on the visitor's cookie and browser.
+    private static bool SentToLanguageRoot(
+        HttpContext httpContext, string path, UrlLanguages? languages, string pathBase, out CultureNegotiation? culture)
+    {
+        culture = NegotiateCulture(httpContext, path, languages, out var sendTo);
+        if (sendTo is null)
+        {
+            return false;
+        }
+
+        httpContext.Response.StatusCode = StatusCodes.Status302Found;
+        httpContext.Response.Headers.Location = pathBase + sendTo + httpContext.Request.QueryString.Value;
+        httpContext.Response.Headers.CacheControl = "no-store";
+        return true;
     }
 
     // A page that navigated during its own render is telling us the user belongs somewhere
@@ -877,6 +913,40 @@ public static partial class RaskEndpointExtensions
         // Never cacheable. A redirect computed from runtime state — a flag, a tenant, an
         // experiment — that a browser pinned would be unrecoverable without changing the URL.
         httpContext.Response.Headers.CacheControl = "no-store";
+    }
+
+    // What the first response adds to the rendered page before it leaves: the scripts and words it needs at once, its
+    // other languages, and what the tab remembers about it.
+    private static string StampPage(HttpContext httpContext, LiveSession session, Prerender.PageRenderResult render)
+    {
+        // A page that arrives asking for a behaviour hook gets the hooks' script in the same response, so they
+        // run straight after the runtime rather than a round trip later (HookBundleTag).
+        var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
+
+        // The reconnect overlay's words in the page's language, once, with the first response (ConnectionTexts).
+        html = ConnectionTexts.AddTo(html, httpContext.RequestServices);
+
+        // A page with a URL per language names its others in its head, for a crawler (RaskCultureOptions.UrlPrefix).
+        if (render.StatusCode == StatusCodes.Status200OK)
+        {
+            html = httpContext.RequestServices.GetRequiredService<ServerUrlLanguages>()
+                .AddAlternates(html, session.Services, httpContext.Request);
+        }
+
+        // Rendered for somebody: the tab remembers, so that losing them later sends it to the sign-in page.
+        if (session.Users.IsSignedIn)
+        {
+            html = LivePayload.InjectSignedInAttr(html);
+        }
+
+        // What rebuilds this page if its session is gone before the browser connects (a starved tab past the
+        // unconnected grace): sealed, bound to this session and its reader, and only where resume is on.
+        if (session.FirstPageResumeToken() is { } resumeToken)
+        {
+            html = LivePayload.InjectResumeAttr(html, resumeToken);
+        }
+
+        return html;
     }
 
     private static async Task WritePageAsync(
@@ -907,25 +977,7 @@ public static partial class RaskEndpointExtensions
         httpContext.Response.Headers.CacheControl = ShellCachePolicy.CacheControl;
         httpContext.Response.Headers.Pragma = ShellCachePolicy.Pragma;
 
-        // A page that arrives asking for a behaviour hook gets the hooks' script in the same response, so they
-        // run straight after the runtime rather than a round trip later (HookBundleTag).
-        var html = HookBundleTag.AddTo(render.Html, LiveOptions.PathBase, HooksUrl.Value);
-
-        // The reconnect overlay's words in the page's language, once, with the first response (ConnectionTexts).
-        html = ConnectionTexts.AddTo(html, httpContext.RequestServices);
-
-        // Rendered for somebody: the tab remembers, so that losing them later sends it to the sign-in page.
-        if (session.Users.IsSignedIn)
-        {
-            html = LivePayload.InjectSignedInAttr(html);
-        }
-
-        // What rebuilds this page if its session is gone before the browser connects (a starved tab past the
-        // unconnected grace): sealed, bound to this session and its reader, and only where resume is on.
-        if (session.FirstPageResumeToken() is { } resumeToken)
-        {
-            html = LivePayload.InjectResumeAttr(html, resumeToken);
-        }
+        var html = StampPage(httpContext, session, render);
 
         // Outside development the session id is the only thing stamped onto the render, and that goes
         // straight to UTF-8; the development attributes are composed as a string first.
@@ -2874,11 +2926,8 @@ public static partial class RaskEndpointExtensions
 
         // A resumed session is a NEW DI scope, so its culture starts at the app default. Without this the
         // visitor's language would silently reset the first time the host restarted under them — the one
-        // moment resume exists to hide.
-        if (resumeCulture.Culture is not null)
-        {
-            ServerCultureNegotiation.Apply(session.Services, resumeCulture);
-        }
+        // moment resume exists to hide. Under URL languages the record's address names it instead.
+        ServerCultureNegotiation.Apply(session.Services, resumeCulture.Culture is null ? null : resumeCulture);
 
         try
         {
@@ -3974,7 +4023,7 @@ public static partial class RaskEndpointExtensions
     private static async Task<bool> IsCurrentRouteAuthorizedAsync(LiveSession session)
     {
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!session.Routes.TryResolve(routeState.CurrentTable, routeState.Path, out var chain))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, routeState.RoutePath, out var chain))
         {
             return true;
         }
@@ -4114,23 +4163,29 @@ public static partial class RaskEndpointExtensions
         }
 
         var routeState = session.Services.GetRequiredService<RouteState>();
-        if (!session.Routes.TryResolve(routeState.CurrentTable, path, out var chain))
+        if (!session.Routes.TryResolve(routeState.CurrentTable, routeState.RoutePathOf(path), out var chain))
         {
             return (null, null);
         }
 
+        // Wherever the guard sends the reader keeps the language of the page they asked for (UrlLanguages.Keep).
         var user = session.Services.GetRequiredService<SessionUserProvider>().Current;
         var result = await RouteAuthorizationGuard.Evaluate(session.Services, chain, user).ConfigureAwait(false);
         return result.Outcome switch
         {
             RouteAuthorizationOutcome.Allow => (null, null),
             RouteAuthorizationOutcome.Forbid => (null, result.FailedOnPage),
-            RouteAuthorizationOutcome.Redirect => (GuardRedirect.To(LocalUrl.Sanitize(result.RedirectTo)), null),
+            RouteAuthorizationOutcome.Redirect => (GuardRedirect.To(InLanguageOf(routeState, path, LocalUrl.Sanitize(result.RedirectTo))), null),
             _ => (new GuardRedirect(
-                RouteAuthorizationGuard.ChallengePath,
+                InLanguageOf(routeState, path, RouteAuthorizationGuard.ChallengePath),
                 "?returnUrl=" + Uri.EscapeDataString(QueryString.Build(path, query))), null),
         };
     }
+
+    // url, a page of this app, in the language of the page at address — unchanged when the session keeps languages
+    // out of its URLs.
+    private static string InLanguageOf(RouteState route, string address, string url) =>
+        route.Languages?.Keep(address, url) ?? url;
 
     // AsPage: an address this application does not render, loaded as a page rather than routed — another
     // application's on this mapping, or (Outside) the host site's beside it, its address used as written.

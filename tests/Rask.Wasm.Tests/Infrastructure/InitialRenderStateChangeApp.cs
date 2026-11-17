@@ -41,7 +41,9 @@ internal sealed partial class InitialRenderStateChangeApp : Component, IDisposab
         _painted.Wait(TimeSpan.FromSeconds(10));
 
         _value = "loaded";
+#pragma warning disable RASK119 // The repaint request IS the subject: it must arrive while the initial build is in scope.
         StateHasChanged();
+#pragma warning restore RASK119
         _requested.Set();
     }
 
