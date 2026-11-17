@@ -9271,6 +9271,10 @@ Rask.UiAppFrame.Brand.get -> string!
 Rask.UiAppFrame.Brand.set -> void
 Rask.UiAppFrame.Logo.get -> string?
 Rask.UiAppFrame.Logo.set -> void
+Rask.UiAppFrame.Home.get -> Rask.Core.Routing.RouteUrl?
+Rask.UiAppFrame.Home.set -> void
+Rask.UiAppFrame.LeaveHeading.get -> string?
+Rask.UiAppFrame.LeaveHeading.set -> void
 Rask.UiAppFrame.LogoDark.get -> string?
 Rask.UiAppFrame.LogoDark.set -> void
 Rask.UiAppFrame.Notices.get -> Rask.Core.Component?
@@ -9287,6 +9291,8 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiAppFrame(Rask.Core.Com
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAppFrame(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAppFrame(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Brand(this Rask.UiAppFrame! __b, string! value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.Home(this Rask.UiAppFrame! __b, Rask.Core.Routing.RouteUrl? value) -> Rask.UiAppFrame!
+static RaskBuilderSettersRask_Ui.LeaveHeading(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.Logo(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.LogoDark(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 static RaskBuilderSettersRask_Ui.Notices(this Rask.UiAppFrame! __b, Rask.Core.Component? value) -> Rask.UiAppFrame!

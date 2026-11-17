@@ -353,6 +353,8 @@ internal static partial class UiApi
             new("User", typeof(string), "Who is signed in, at the sidebar's foot."),
             new("SignOut", typeof(Rask.Core.Routing.RouteUrl?), "Where signing out goes, an endpoint that answers a GET: the profile's menu holds the sign-out row, which asks first in the catalog's words.", "a URL: \"/logout\""),
             new("Notices", typeof(Component), "What stands at the header's end: how background work is getting on."),
+            new("Home", typeof(Rask.Core.Routing.RouteUrl?), "The app's home, where the brand and the trail's first step lead. Unset, the row every other row is beneath, or /.", "a route: Routes.HomePage()"),
+            new("LeaveHeading", typeof(string), "The title of the unsaved-changes dialog, over the form's question. The catalog's \"Unsaved changes\" when unset."),
         ]),
     ];
 

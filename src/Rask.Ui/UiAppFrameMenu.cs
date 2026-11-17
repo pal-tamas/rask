@@ -9,38 +9,45 @@ namespace Rask;
 /// <remarks>
 ///     Only a generated route is the app's page: a string is a link out (an old front end, another site) and is never lit.
 ///     The row lit is the one whose page the address is, or is beneath — the longest that holds it, so <c>/drivers/12</c>
-///     lights Drivers. Home is the row every other row is beneath (<c>/</c> in an app at the root); it holds its own page
-///     alone, or it would hold them all.
+///     lights Drivers. Home is the row leading to the frame's <c>Home</c> when it names one, else the row every other row
+///     is beneath (<c>/</c> in an app at the root); it holds its own page alone, or it would hold them all.
 /// </remarks>
 internal sealed class UiAppFrameMenu
 {
     private readonly List<UiAppFrameLink> _links;
 
-    private UiAppFrameMenu(List<UiAppFrameLink> links, string path)
+    private readonly RouteUrl? _home;
+
+    private UiAppFrameMenu(List<UiAppFrameLink> links, string path, RouteUrl? home)
     {
         _links = links;
-        HomeRow = links.MinBy(link => link.Path.Length) is { } shortest && links.TrueForAll(link => shortest.Holds(link.Path))
-            ? shortest
-            : null;
+        _home = home;
+        HomeRow = home is { } named ? links.Find(link => link.Is(named.Path)) : Beneath(links);
         Current = links
             .Where(link => ReferenceEquals(link, HomeRow) ? link.Is(path) : link.Holds(path))
             .MaxBy(link => link.Path.Length);
     }
 
-    /// <summary>The row every other row is beneath: home.</summary>
+    /// <summary>Home's row: the one leading to the home the frame was given, or else the one every other row is beneath.</summary>
     internal UiAppFrameLink? HomeRow { get; }
 
     /// <summary>The row of the page being shown, or of the list it is beneath; none on a page no row leads to.</summary>
     internal UiAppFrameLink? Current { get; }
 
-    /// <summary>Where home is: the menu's home row, so going there stays in the app; the root itself without one.</summary>
-    internal RouteUrl Home => HomeRow?.Url ?? "/";
+    /// <summary>
+    ///     Where home is: the home the frame was given; else the menu's home row, so going there stays in the app; the root
+    ///     itself without one.
+    /// </summary>
+    internal RouteUrl Home => _home ?? HomeRow?.Url ?? "/";
 
     /// <summary>Whether the page being shown is home, or no row's: its trail is home alone.</summary>
     internal bool AtHome => Current is null || ReferenceEquals(Current, HomeRow);
 
-    /// <summary>Reads the rows of <paramref name="navs" /> against the address <paramref name="path" />.</summary>
-    internal static UiAppFrameMenu Read(IEnumerable<UiSidebarNav> navs, string path)
+    /// <summary>
+    ///     Reads the rows of <paramref name="navs" /> against the address <paramref name="path" />, home being
+    ///     <paramref name="home" /> when the frame names one.
+    /// </summary>
+    internal static UiAppFrameMenu Read(IEnumerable<UiSidebarNav> navs, string path, RouteUrl? home)
     {
         var links = new List<UiAppFrameLink>();
         foreach (var nav in navs)
@@ -48,8 +55,12 @@ internal sealed class UiAppFrameMenu
             Collect(nav.Children, group: null, links);
         }
 
-        return new UiAppFrameMenu(links, path);
+        return new UiAppFrameMenu(links, path, home);
     }
+
+    // The row every other row is beneath (`/` in an app at the root); none when no row holds them all.
+    private static UiAppFrameLink? Beneath(List<UiAppFrameLink> links) =>
+        links.MinBy(link => link.Path.Length) is { } shortest && links.TrueForAll(link => shortest.Holds(link.Path)) ? shortest : null;
 
     /// <summary>
     ///     Lights the current row where the call site did not say whether it is current, and opens the group that holds it

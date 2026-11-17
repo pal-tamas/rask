@@ -19813,6 +19813,7 @@ Rask.Core.Globalization.RaskString.WorkStopped = 264 -> Rask.Core.Globalization.
 Rask.Core.Globalization.RaskString.WorkEndedDone = 265 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkEndedFailed = 266 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkEndedStopped = 267 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.ConfirmLeaveHeading = 268 -> Rask.Core.Globalization.RaskString
 Rask.CachedFragments
 Rask.CachedOptions
 Rask.CachedOptions.CachedOptions() -> void

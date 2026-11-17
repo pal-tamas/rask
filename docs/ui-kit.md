@@ -1133,11 +1133,14 @@ public sealed partial class Layout : Component
   everything else — the `Outlet`, and with it the built-in 404 and 403 — is the main.
 - **Lit by the address:** the row of the page shown, or of the list it is beneath (`/drivers/7` lights Drivers), and
   the group holding it is opened. A row's own `.Current(…)` wins; a string link (an old front end) is never lit.
-  Home is the row every other row is beneath (`/`).
+  Home is the row every other row is beneath (`/`) — or, where `/` is not home (an administrator's tenant list),
+  the page the frame names: `.Home(Routes.HomePage())`, where the brand and the trail's first step then lead.
 - **The trail:** home › group › list › the page's `PageTitle`. The list's step leads back to it **as it was left** —
   its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps.
 - **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
-  `Ui.MenuItem.Href(url).SignOut()`.
+  `Ui.MenuItem.Href(url).SignOut()`. The unsaved-changes dialog is titled "Unsaved changes" (the catalog's
+  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it.
+- **The tenant line** has the id `ui-app-frame-tenant`, for a test or the app's stylesheet.
 - **The look is shared:** the zinc ground and edges are the kit's; an app's own is its accent (`--color-accent` in its
   stylesheet, [Re-skinning](#re-skinning)) and its `Logo(url)`. It works the same on Server and WebAssembly; a
   WebAssembly app needs no `Ui.SidebarScript` for it, as its sidebar has no rail.
