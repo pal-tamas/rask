@@ -1,5 +1,6 @@
 using System.Globalization;
 using Rask.Core.Live;
+using Rask.Core.Routing;
 
 namespace Rask.Wasm;
 
@@ -106,36 +107,7 @@ internal static class PrerenderedPageMetadata
         !IsNoIndex(html) && (CanonicalTarget(html) is not { } canonical || SamePage(canonical, routePath));
 
     /// <summary>The <c>href</c> of the document's canonical link, or <c>null</c> when it declares none.</summary>
-    internal static string? CanonicalTarget(string html)
-    {
-        var rel = html.IndexOf("rel=\"canonical\"", StringComparison.OrdinalIgnoreCase);
-        if (rel < 0)
-        {
-            return null;
-        }
-
-        // The tag's bounds, so an href from a NEIGHBOURING link cannot be read as this one's. `rel` may
-        // come before or after `href` — Link writes href first today, and that is the serializer's
-        // business, not this reader's.
-        var open = html.LastIndexOf('<', rel);
-        var close = html.IndexOf('>', rel);
-        if (open < 0 || close < 0)
-        {
-            return null;
-        }
-
-        var tag = html[open..close];
-        const string Needle = "href=\"";
-        var href = tag.IndexOf(Needle, StringComparison.OrdinalIgnoreCase);
-        if (href < 0)
-        {
-            return null;
-        }
-
-        href += Needle.Length;
-        var end = tag.IndexOf('"', href);
-        return end < 0 ? null : tag[href..end];
-    }
+    internal static string? CanonicalTarget(string html) => LanguageAlternates.CanonicalTarget(html);
 
     /// <summary>Whether a canonical URL names the route it was rendered for.</summary>
     /// <remarks>

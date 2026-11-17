@@ -479,6 +479,23 @@ exist — so attribute and object-level errors surface together (ASP.NET Core MV
 A `ValidationResult` with empty `MemberNames` lands on the form-level slot (`Validation.Summary`); a
 populated one tags the named field.
 
+### The name a message gives the field
+
+A message's `{0}` — "The **Work email** field is required." — is the field's display name, read as .NET 11's
+Blazor reads it: `[Display(Name = …)]` first (through its `ResourceType` when it names one), then
+`[DisplayName]`, then the member's own name. .NET's `Validator` reads `[Display]` alone; Rask honours
+`[DisplayName]` as well, on the form, on a dispatched request, in an async pass and in a Rask.Data model's
+generated server checks (the generator copies `[DisplayName]` onto `<Entity>Model` beside `[Display]`). A bound
+kit control given no `.Label(…)` is labelled by the same name — see [Labels](forms.md#controls-at-a-glance).
+
+```csharp
+public sealed class SignUp
+{
+    [Required, Display(Name = "Work email")] public string? Email { get; set; }   // "The Work email field is required."
+    [Required, DisplayName("Given name")]   public string? First { get; set; }   // "The Given name field is required."
+}
+```
+
 ### An async attribute
 
 .NET 11's asynchronous rules work in a form with nothing declared: an `AsyncValidationAttribute` is awaited
@@ -608,6 +625,11 @@ Form.Model(_model).OnSubmit(m => _submission = "Ordered")[
 Validating one root-model field — when its value arrives — scopes FluentValidation to that single property
 (`MemberNameValidatorSelector`, fast path); submit runs every rule. FluentValidation's own
 `Cascade(CascadeMode.Stop)` mirrors Rask's first-error-wins gating.
+
+A FluentValidation message names the field by the same `[Display]` / `[DisplayName]` its label and its
+DataAnnotations messages read ("'Given name' must not be empty."): Rask puts them behind FluentValidation's
+`ValidatorOptions.Global.DisplayNameResolver`. A rule's `.WithName(…)` still wins, and a resolver the app sets
+itself replaces Rask's.
 
 An async `MustAsync` rule rides the same wrapper:
 

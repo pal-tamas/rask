@@ -54,6 +54,11 @@ Publishing from a singleton — a `BackgroundService`, a timer — takes no disp
 await Dispatcher.Publish(new ReportReady(reportId), stoppingToken);
 ```
 
+## Off the page's thread
+
+`[OffThread]` on a query or command runs its handler off the thread that draws the page — in a Rask WebAssembly app,
+in a Web Worker with a second .NET runtime; on a server, on the thread pool. The call site does not change.
+
 ## Pipeline behaviors
 
 Cross-cutting concerns (logging, validation, transactions, caching) are decorators — implement

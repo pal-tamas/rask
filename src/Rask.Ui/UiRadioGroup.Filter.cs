@@ -12,7 +12,7 @@ public sealed partial class UiRadioGroup<T> : IUiFilterField
         var value = cell.Value;
         var active = UiFilterAddress.Holds(value);
 
-        return new UiFilterEntry(Label ?? cell.Key, active ? Chosen(value!) : null, active, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, active ? Chosen(value!) : null, active, cell.Key);
     }
 
     /// <inheritdoc />

@@ -484,7 +484,8 @@ public static partial class RaskEndpointExtensions
         LiveSession session, string path, Rask.Core.Routing.IQueryCollection query)
     {
         var pageUrl = Rask.Core.Routing.QueryString.Build(path, query);
-        var signInRoutes = session.SignInRoutes?.Invoke() ?? session.Services.GetRequiredService<RouteState>().CurrentTable;
+        var route = session.Services.GetRequiredService<RouteState>();
+        var signInRoutes = session.SignInRoutes?.Invoke() ?? route.CurrentTable;
         if (!HasSignInPage(signInRoutes))
         {
             if (await HostSignInPage.FindAsync(session.Services).ConfigureAwait(false) is { } host)
@@ -497,14 +498,15 @@ public static partial class RaskEndpointExtensions
         }
 
         session.SignInEnded = false;
-        if (string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(route.RoutePathOf(path), RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
         {
             return null;
         }
 
-        var anotherApplications = session.OwnsPath is { } owns && !owns(RouteAuthorizationGuard.ChallengePath);
-        return new GuardRedirect(
-            RouteAuthorizationGuard.ChallengePath, "?returnUrl=" + Uri.EscapeDataString(pageUrl), AsPage: anotherApplications);
+        // The sign-in page in the language of the page the reader was on.
+        var signIn = InLanguageOf(route, path, RouteAuthorizationGuard.ChallengePath);
+        var anotherApplications = session.OwnsPath is { } owns && !owns(signIn);
+        return new GuardRedirect(signIn, "?returnUrl=" + Uri.EscapeDataString(pageUrl), AsPage: anotherApplications);
     }
 
     // Said once, as the app's live endpoints are mapped: with sign-in and nothing to ask, an open page keeps whatever its connection
@@ -643,19 +645,22 @@ public static partial class RaskEndpointExtensions
 
         ForgetEnded(ctx, name);
 
+        var languages = ctx.RequestServices.GetRequiredService<ServerUrlLanguages>();
         if (PrincipalRights.IsSignedIn(user)
-            || string.Equals(path, RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
+            || string.Equals(languages.RoutePathOf(path), RouteAuthorizationGuard.ChallengePath, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
 
         // The app's own sign-in page, or else the one the host's authentication names, as an open page goes to them
         // (SignInAgainAsync). With neither there is nowhere to send them: the page is served, as to any anonymous visitor.
+        // The app's own is in the language of the page asked for.
         var pageUrl = path + ctx.Request.QueryString.Value;
         string location;
         if (HasSignInPage(selector))
         {
-            location = pathBase + RouteAuthorizationGuard.ChallengePath + "?returnUrl=" + Uri.EscapeDataString(pageUrl);
+            location = pathBase + languages.Keep(path, RouteAuthorizationGuard.ChallengePath)
+                       + "?returnUrl=" + Uri.EscapeDataString(pageUrl);
         }
         else if (await HostSignInPage.FindAsync(ctx.RequestServices).ConfigureAwait(false) is { } host)
         {

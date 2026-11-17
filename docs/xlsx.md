@@ -109,6 +109,10 @@ foreach (var row in sheet.Rows)
 matched **without regard to case and with the whitespace around it trimmed**; one the sheet does not have throws a
 `KeyNotFoundException` that lists the headings it does, and one two columns share throws rather than guessing.
 
+Reading a large workbook takes a while, and `Xlsx.Read` does not yield while it works. In a browser app, read it in a
+query marked [`[OffThread]`](cqrs.md#off-the-pages-thread--offthread) and the page keeps painting while a Web Worker
+reads it; the bytes reach the worker as binary, and cancelling the query stops the read.
+
 ### Headings lower on the sheet
 
 A workbook made for people often has a title above its table and headings over two rows, a group heading merged

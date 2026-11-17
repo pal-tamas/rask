@@ -89,6 +89,23 @@ call with HTML:
                   SkipGetTargetFrameworkProperties="true"/>
 ```
 
+## Work off the page's thread
+
+A WebAssembly app has one thread, and a handler that works without yielding holds it. Mark the query or command
+`[OffThread]` and it runs in a Web Worker beside the page, with a second .NET runtime made from the same `_framework`
+files — see [CQRS](cqrs.md#off-the-pages-thread--offthread). Nothing to serve: `rask-offthread.js` and `rask-worker.js`
+are framework files beside `rask.wasm.js`, fetched only when the first `[OffThread]` message is sent.
+
+```csharp
+var host = WasmHostBuilder.CreateDefault();
+host.Configure(c => c.OffThread.Warm = true);   // start the worker after the first paint, not at the first message
+await host.Run<App>();
+```
+
+The worker is a second runtime, so it costs a second runtime's memory and start time. Measured in Chromium on a Release
+publish of the test fixture: the first answer arrives about a quarter of a second (229 ms) after the first `[OffThread]` message (the
+runtime's start, from the browser's cache), and the worker's WebAssembly memory is about 38 MB, beside the page's 46 MB. The two scripts are 1.3 KB and 0.7 KB minified.
+
 ## See also
 
 - [Deployment](deployment.md#serving-a-webassembly-app) — the published layout, cache table and Dockerfile.

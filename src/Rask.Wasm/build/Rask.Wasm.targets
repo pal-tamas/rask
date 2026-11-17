@@ -48,6 +48,9 @@
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-hooks.js"/>
       <!-- Default PWA service worker (offline app-shell cache + Web Push), served at {root}/rask-sw.js. -->
       <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-sw.js"/>
+      <!-- [OffThread]: the page's end, imported on first use, and the Web Worker it starts. -->
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-offthread.js"/>
+      <_RaskBootAsset Include="$(MSBuildThisFileDirectory)..\Browser\rask-worker.js"/>
     </ItemGroup>
     <DefineStaticWebAssets CandidateAssets="@(_RaskBootAsset)"
                            SourceType="Computed"

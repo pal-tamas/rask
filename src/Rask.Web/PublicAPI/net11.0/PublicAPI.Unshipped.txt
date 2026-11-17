@@ -1,4 +1,7 @@
 #nullable enable
+override Rask.Web.Types.CanvasToneMapping.Equals(object? obj) -> bool
+override Rask.Web.Types.CanvasToneMapping.GetHashCode() -> int
+override Rask.Web.Types.CanvasToneMapping.ToString() -> string!
 override Rask.Web.Types.LanguageModelToolDeclaration.Equals(object? obj) -> bool
 override Rask.Web.Types.LanguageModelToolDeclaration.GetHashCode() -> int
 override Rask.Web.Types.LanguageModelToolDeclaration.ToString() -> string!
@@ -8,6 +11,18 @@ override Rask.Web.Types.PushSubscriptionKeys.ToString() -> string!
 override Rask.Web.Types.RTCDiagnosticLoggingOptions.Equals(object? obj) -> bool
 override Rask.Web.Types.RTCDiagnosticLoggingOptions.GetHashCode() -> int
 override Rask.Web.Types.RTCDiagnosticLoggingOptions.ToString() -> string!
+override Rask.Web.Types.RTCEncodingOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCEncodingOptions.GetHashCode() -> int
+override Rask.Web.Types.RTCEncodingOptions.ToString() -> string!
+override Rask.Web.Types.RTCResolutionRestriction.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCResolutionRestriction.GetHashCode() -> int
+override Rask.Web.Types.RTCResolutionRestriction.ToString() -> string!
+override Rask.Web.Types.RTCSetParameterOptions.Equals(object? obj) -> bool
+override Rask.Web.Types.RTCSetParameterOptions.GetHashCode() -> int
+override Rask.Web.Types.RTCSetParameterOptions.ToString() -> string!
+override Rask.Web.Types.XRHandTrackingStateInit.Equals(object? obj) -> bool
+override Rask.Web.Types.XRHandTrackingStateInit.GetHashCode() -> int
+override Rask.Web.Types.XRHandTrackingStateInit.ToString() -> string!
 Rask.Web.CookieStore
 Rask.Web.CustomElements
 Rask.Web.Document
@@ -428,6 +443,17 @@ Rask.Web.Types.Blob.Type.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.BroadcastChannel
 Rask.Web.Types.BroadcastChannel.Close() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.BroadcastChannel.Name.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.CanvasRenderingContext2DSettings.ToneMapping.get -> Rask.Web.Types.CanvasToneMapping?
+Rask.Web.Types.CanvasRenderingContext2DSettings.ToneMapping.init -> void
+Rask.Web.Types.CanvasToneMapping
+Rask.Web.Types.CanvasToneMapping.<Clone>$() -> Rask.Web.Types.CanvasToneMapping!
+Rask.Web.Types.CanvasToneMapping.CanvasToneMapping() -> void
+Rask.Web.Types.CanvasToneMapping.Equals(Rask.Web.Types.CanvasToneMapping? other) -> bool
+Rask.Web.Types.CanvasToneMapping.Mode.get -> Rask.Web.Types.CanvasToneMappingMode?
+Rask.Web.Types.CanvasToneMapping.Mode.init -> void
+Rask.Web.Types.CanvasToneMappingMode
+Rask.Web.Types.CanvasToneMappingMode.Extended = 260928096 -> Rask.Web.Types.CanvasToneMappingMode
+Rask.Web.Types.CanvasToneMappingMode.Standard = 63526728 -> Rask.Web.Types.CanvasToneMappingMode
 Rask.Web.Types.CSSAnimation
 Rask.Web.Types.CSSAnimation.AnimationName.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.CSSConditionRule
@@ -551,6 +577,7 @@ Rask.Web.Types.CSSMathValue.Operator.get -> System.Threading.Tasks.ValueTask<Ras
 Rask.Web.Types.CSSMatrixComponent
 Rask.Web.Types.CSSMatrixComponent.Matrix.get -> Rask.Web.Types.DOMMatrix!
 Rask.Web.Types.CSSMediaRule
+Rask.Web.Types.CSSMediaRule.Matches.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.CSSMediaRule.Media.get -> Rask.Web.Types.MediaList!
 Rask.Web.Types.CSSNamespaceRule
 Rask.Web.Types.CSSNamespaceRule.NamespaceURI.get -> System.Threading.Tasks.ValueTask<string!>
@@ -739,6 +766,7 @@ Rask.Web.Types.CSSStyleSheet.Replace(string! text) -> System.Threading.Tasks.Val
 Rask.Web.Types.CSSStyleSheet.ReplaceSync(string! text) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.CSSStyleValue
 Rask.Web.Types.CSSSupportsRule
+Rask.Web.Types.CSSSupportsRule.Matches.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.CSSTransformComponent
 Rask.Web.Types.CSSTransformComponent.Is2D.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.CSSTransformComponent.SetIs2D(bool value) -> System.Threading.Tasks.ValueTask
@@ -1690,17 +1718,19 @@ Rask.Web.Types.FontFace.SetDisplay(string! value) -> System.Threading.Tasks.Valu
 Rask.Web.Types.FontFace.SetFamily(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetFeatureSettings(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetLineGapOverride(string! value) -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.FontFace.SetStretch(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FontFace.SetSizeAdjust(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetStyle(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetUnicodeRange(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetVariationSettings(string! value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.FontFace.SetWeight(string! value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.FontFace.SizeAdjust.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.Status.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.FontFaceLoadStatus>
-Rask.Web.Types.FontFace.Stretch.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.Style.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.UnicodeRange.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.VariationSettings.get -> System.Threading.Tasks.ValueTask<string!>
 Rask.Web.Types.FontFace.Weight.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.FontFaceDescriptors.Width.get -> string?
+Rask.Web.Types.FontFaceDescriptors.Width.init -> void
 Rask.Web.Types.FontFaceLoadStatus
 Rask.Web.Types.FontFaceSet
 Rask.Web.Types.FontFaceSet.Check(string! font) -> System.Threading.Tasks.ValueTask<bool>
@@ -3682,6 +3712,15 @@ Rask.Web.Types.PositionOptions.Timeout.get -> int?
 Rask.Web.Types.PositionOptions.Timeout.init -> void
 Rask.Web.Types.PredefinedColorSpace
 Rask.Web.Types.PresentationStyle
+Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Gc = 1042313471 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Layout = -893289217 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Other = -931295755 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Paint = 1689844019 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Script = 540962730 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerMarker.Style = -1406107946 -> Rask.Web.Types.ProfilerMarker
+Rask.Web.Types.ProfilerSample.Marker.get -> Rask.Web.Types.ProfilerMarker?
+Rask.Web.Types.ProfilerSample.Marker.init -> void
 Rask.Web.Types.PublicKeyCredential
 Rask.Web.Types.PublicKeyCredential.AuthenticatorAttachment.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Web.Types.PublicKeyCredential.GetClientExtensionResults() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.AuthenticationExtensionsClientOutputs!>
@@ -3795,6 +3834,8 @@ Rask.Web.Types.RTCCertificate
 Rask.Web.Types.RTCCertificate.GetFingerprints() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCDtlsFingerprint![]!>
 Rask.Web.Types.RTCConfiguration
 Rask.Web.Types.RTCConfiguration.<Clone>$() -> Rask.Web.Types.RTCConfiguration!
+Rask.Web.Types.RTCConfiguration.AlwaysNegotiateDataChannels.get -> bool?
+Rask.Web.Types.RTCConfiguration.AlwaysNegotiateDataChannels.init -> void
 Rask.Web.Types.RTCConfiguration.BundlePolicy.get -> Rask.Web.Types.RTCBundlePolicy?
 Rask.Web.Types.RTCConfiguration.BundlePolicy.init -> void
 Rask.Web.Types.RTCConfiguration.Equals(Rask.Web.Types.RTCConfiguration? other) -> bool
@@ -3809,6 +3850,13 @@ Rask.Web.Types.RTCConfiguration.PeerIdentity.init -> void
 Rask.Web.Types.RTCConfiguration.RTCConfiguration() -> void
 Rask.Web.Types.RTCConfiguration.RtcpMuxPolicy.get -> Rask.Web.Types.RTCRtcpMuxPolicy?
 Rask.Web.Types.RTCConfiguration.RtcpMuxPolicy.init -> void
+Rask.Web.Types.RTCConfiguration.RtpHeaderEncryptionPolicy.get -> Rask.Web.Types.RTCRtpHeaderEncryptionPolicy?
+Rask.Web.Types.RTCConfiguration.RtpHeaderEncryptionPolicy.init -> void
+Rask.Web.Types.RTCConfiguration.TargetLatency.get -> Rask.Web.Types.RTCConfigurationTargetLatency?
+Rask.Web.Types.RTCConfiguration.TargetLatency.init -> void
+Rask.Web.Types.RTCConfigurationTargetLatency
+Rask.Web.Types.RTCConfigurationTargetLatency.Lowest = -391066693 -> Rask.Web.Types.RTCConfigurationTargetLatency
+Rask.Web.Types.RTCConfigurationTargetLatency.None = -1381519397 -> Rask.Web.Types.RTCConfigurationTargetLatency
 Rask.Web.Types.RTCDiagnosticLoggingOptions
 Rask.Web.Types.RTCDiagnosticLoggingOptions.<Clone>$() -> Rask.Web.Types.RTCDiagnosticLoggingOptions!
 Rask.Web.Types.RTCDiagnosticLoggingOptions.Equals(Rask.Web.Types.RTCDiagnosticLoggingOptions? other) -> bool
@@ -3911,6 +3959,12 @@ Rask.Web.Types.RTCEncodedVideoFrameMetadata.Timestamp.get -> long?
 Rask.Web.Types.RTCEncodedVideoFrameMetadata.Timestamp.init -> void
 Rask.Web.Types.RTCEncodedVideoFrameMetadata.Width.get -> int?
 Rask.Web.Types.RTCEncodedVideoFrameMetadata.Width.init -> void
+Rask.Web.Types.RTCEncodingOptions
+Rask.Web.Types.RTCEncodingOptions.<Clone>$() -> Rask.Web.Types.RTCEncodingOptions!
+Rask.Web.Types.RTCEncodingOptions.Equals(Rask.Web.Types.RTCEncodingOptions? other) -> bool
+Rask.Web.Types.RTCEncodingOptions.KeyFrame.get -> bool?
+Rask.Web.Types.RTCEncodingOptions.KeyFrame.init -> void
+Rask.Web.Types.RTCEncodingOptions.RTCEncodingOptions() -> void
 Rask.Web.Types.RTCError
 Rask.Web.Types.RTCErrorDetailType
 Rask.Web.Types.RTCIceCandidateInit
@@ -3993,6 +4047,14 @@ Rask.Web.Types.RTCPeerConnection.SetRemoteDescription(Rask.Web.Types.RTCSessionD
 Rask.Web.Types.RTCPeerConnection.SignalingState.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCSignalingState>
 Rask.Web.Types.RTCPeerConnectionState
 Rask.Web.Types.RTCPriorityType
+Rask.Web.Types.RTCResolutionRestriction
+Rask.Web.Types.RTCResolutionRestriction.<Clone>$() -> Rask.Web.Types.RTCResolutionRestriction!
+Rask.Web.Types.RTCResolutionRestriction.Equals(Rask.Web.Types.RTCResolutionRestriction? other) -> bool
+Rask.Web.Types.RTCResolutionRestriction.MaxHeight.get -> int?
+Rask.Web.Types.RTCResolutionRestriction.MaxHeight.init -> void
+Rask.Web.Types.RTCResolutionRestriction.MaxWidth.get -> int?
+Rask.Web.Types.RTCResolutionRestriction.MaxWidth.init -> void
+Rask.Web.Types.RTCResolutionRestriction.RTCResolutionRestriction() -> void
 Rask.Web.Types.RTCRtcpMuxPolicy
 Rask.Web.Types.RTCRtcpParameters
 Rask.Web.Types.RTCRtcpParameters.<Clone>$() -> Rask.Web.Types.RTCRtcpParameters!
@@ -4026,15 +4088,21 @@ Rask.Web.Types.RTCRtpCodingParameters.Rid.init -> void
 Rask.Web.Types.RTCRtpContributingSource
 Rask.Web.Types.RTCRtpContributingSource.AudioLevel.get -> double?
 Rask.Web.Types.RTCRtpContributingSource.AudioLevel.init -> void
+Rask.Web.Types.RTCRtpContributingSource.CaptureTimestamp.get -> double?
+Rask.Web.Types.RTCRtpContributingSource.CaptureTimestamp.init -> void
 Rask.Web.Types.RTCRtpContributingSource.RTCRtpContributingSource() -> void
 Rask.Web.Types.RTCRtpContributingSource.RTCRtpContributingSource(Rask.Web.Types.RTCRtpContributingSource! original) -> void
 Rask.Web.Types.RTCRtpContributingSource.RtpTimestamp.get -> int
 Rask.Web.Types.RTCRtpContributingSource.RtpTimestamp.init -> void
+Rask.Web.Types.RTCRtpContributingSource.SenderCaptureTimeOffset.get -> double?
+Rask.Web.Types.RTCRtpContributingSource.SenderCaptureTimeOffset.init -> void
 Rask.Web.Types.RTCRtpContributingSource.Source.get -> int
 Rask.Web.Types.RTCRtpContributingSource.Source.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters
 Rask.Web.Types.RTCRtpEncodingParameters.Active.get -> bool?
 Rask.Web.Types.RTCRtpEncodingParameters.Active.init -> void
+Rask.Web.Types.RTCRtpEncodingParameters.AdaptivePtime.get -> bool?
+Rask.Web.Types.RTCRtpEncodingParameters.AdaptivePtime.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters.Codec.get -> Rask.Web.Types.RTCRtpCodec?
 Rask.Web.Types.RTCRtpEncodingParameters.Codec.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters.Equals(Rask.Web.Types.RTCRtpEncodingParameters? other) -> bool
@@ -4046,11 +4114,21 @@ Rask.Web.Types.RTCRtpEncodingParameters.NetworkPriority.get -> Rask.Web.Types.RT
 Rask.Web.Types.RTCRtpEncodingParameters.NetworkPriority.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters.Priority.get -> Rask.Web.Types.RTCPriorityType?
 Rask.Web.Types.RTCRtpEncodingParameters.Priority.init -> void
+Rask.Web.Types.RTCRtpEncodingParameters.Ptime.get -> int?
+Rask.Web.Types.RTCRtpEncodingParameters.Ptime.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters.RTCRtpEncodingParameters() -> void
 Rask.Web.Types.RTCRtpEncodingParameters.ScalabilityMode.get -> string?
 Rask.Web.Types.RTCRtpEncodingParameters.ScalabilityMode.init -> void
 Rask.Web.Types.RTCRtpEncodingParameters.ScaleResolutionDownBy.get -> double?
 Rask.Web.Types.RTCRtpEncodingParameters.ScaleResolutionDownBy.init -> void
+Rask.Web.Types.RTCRtpEncodingParameters.ScaleResolutionDownTo.get -> Rask.Web.Types.RTCResolutionRestriction?
+Rask.Web.Types.RTCRtpEncodingParameters.ScaleResolutionDownTo.init -> void
+Rask.Web.Types.RTCRtpHeaderEncryptionPolicy
+Rask.Web.Types.RTCRtpHeaderEncryptionPolicy.Disable = -840070045 -> Rask.Web.Types.RTCRtpHeaderEncryptionPolicy
+Rask.Web.Types.RTCRtpHeaderEncryptionPolicy.Negotiate = -1796074125 -> Rask.Web.Types.RTCRtpHeaderEncryptionPolicy
+Rask.Web.Types.RTCRtpHeaderEncryptionPolicy.Require = -264915708 -> Rask.Web.Types.RTCRtpHeaderEncryptionPolicy
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.Direction.get -> Rask.Web.Types.RTCRtpTransceiverDirection
+Rask.Web.Types.RTCRtpHeaderExtensionCapability.Direction.init -> void
 Rask.Web.Types.RTCRtpHeaderExtensionParameters
 Rask.Web.Types.RTCRtpHeaderExtensionParameters.<Clone>$() -> Rask.Web.Types.RTCRtpHeaderExtensionParameters!
 Rask.Web.Types.RTCRtpHeaderExtensionParameters.Encrypted.get -> bool?
@@ -4081,6 +4159,7 @@ Rask.Web.Types.RTCRtpReceiver.GetSynchronizationSources() -> System.Threading.Ta
 Rask.Web.Types.RTCRtpReceiver.Track.get -> Rask.Web.Types.MediaStreamTrack!
 Rask.Web.Types.RTCRtpReceiver.Transport.get -> Rask.Web.Types.RTCDtlsTransport!
 Rask.Web.Types.RTCRtpScriptTransform
+Rask.Web.Types.RTCRtpSender.SetParameters(Rask.Web.Types.RTCRtpSendParameters! parameters, Rask.Web.Types.RTCSetParameterOptions! setParameterOptions) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.RTCRtpSendParameters
 Rask.Web.Types.RTCRtpSendParameters.DegradationPreference.get -> Rask.Web.Types.RTCDegradationPreference?
 Rask.Web.Types.RTCRtpSendParameters.DegradationPreference.init -> void
@@ -4103,11 +4182,14 @@ Rask.Web.Types.RTCRtpSynchronizationSource.RTCRtpSynchronizationSource() -> void
 Rask.Web.Types.RTCRtpTransceiver
 Rask.Web.Types.RTCRtpTransceiver.CurrentDirection.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpTransceiverDirection?>
 Rask.Web.Types.RTCRtpTransceiver.Direction.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpTransceiverDirection>
+Rask.Web.Types.RTCRtpTransceiver.GetHeaderExtensionsToNegotiate() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpHeaderExtensionCapability![]!>
+Rask.Web.Types.RTCRtpTransceiver.GetNegotiatedHeaderExtensions() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.RTCRtpHeaderExtensionCapability![]!>
 Rask.Web.Types.RTCRtpTransceiver.Mid.get -> System.Threading.Tasks.ValueTask<string?>
 Rask.Web.Types.RTCRtpTransceiver.Receiver.get -> Rask.Web.Types.RTCRtpReceiver!
 Rask.Web.Types.RTCRtpTransceiver.Sender.get -> Rask.Web.Types.RTCRtpSender!
 Rask.Web.Types.RTCRtpTransceiver.SetCodecPreferences(Rask.Web.Types.RTCRtpCodec![]! codecs) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.RTCRtpTransceiver.SetDirection(Rask.Web.Types.RTCRtpTransceiverDirection value) -> System.Threading.Tasks.ValueTask
+Rask.Web.Types.RTCRtpTransceiver.SetHeaderExtensionsToNegotiate(Rask.Web.Types.RTCRtpHeaderExtensionCapability![]! extensions) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.RTCRtpTransceiver.Stop() -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.RTCRtpTransceiverDirection
 Rask.Web.Types.RTCRtpTransceiverInit
@@ -4139,6 +4221,12 @@ Rask.Web.Types.RTCSessionDescriptionInit.Sdp.get -> string?
 Rask.Web.Types.RTCSessionDescriptionInit.Sdp.init -> void
 Rask.Web.Types.RTCSessionDescriptionInit.Type.get -> Rask.Web.Types.RTCSdpType
 Rask.Web.Types.RTCSessionDescriptionInit.Type.init -> void
+Rask.Web.Types.RTCSetParameterOptions
+Rask.Web.Types.RTCSetParameterOptions.<Clone>$() -> Rask.Web.Types.RTCSetParameterOptions!
+Rask.Web.Types.RTCSetParameterOptions.EncodingOptions.get -> Rask.Web.Types.RTCEncodingOptions![]?
+Rask.Web.Types.RTCSetParameterOptions.EncodingOptions.init -> void
+Rask.Web.Types.RTCSetParameterOptions.Equals(Rask.Web.Types.RTCSetParameterOptions? other) -> bool
+Rask.Web.Types.RTCSetParameterOptions.RTCSetParameterOptions() -> void
 Rask.Web.Types.RTCSignalingState
 Rask.Web.Types.RTCStatsReport
 Rask.Web.Types.RadioNodeList
@@ -5000,6 +5088,8 @@ Rask.Web.Types.VisualViewport.PageTop.get -> System.Threading.Tasks.ValueTask<do
 Rask.Web.Types.VisualViewport.Scale.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.VisualViewport.Width.get -> System.Threading.Tasks.ValueTask<double>
 Rask.Web.Types.WebTransport.ResponseHeaders.get -> Rask.Web.Types.Headers!
+Rask.Web.Types.WebTransportDatagramDuplexStream.OutgoingMaxAge.get -> System.Threading.Tasks.ValueTask<double>
+Rask.Web.Types.WebTransportDatagramDuplexStream.SetOutgoingMaxAge(double value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WGSLLanguageFeatures
 Rask.Web.Types.WakeLock
 Rask.Web.Types.WakeLock.Request() -> System.Threading.Tasks.ValueTask<Rask.Web.Types.WakeLockSentinel!>
@@ -5081,9 +5171,7 @@ Rask.Web.Types.WebTransportDatagramDuplexStream.CreateWritable() -> Rask.Web.Typ
 Rask.Web.Types.WebTransportDatagramDuplexStream.CreateWritable(Rask.Web.Types.WebTransportSendOptions! options) -> Rask.Web.Types.WebTransportDatagramsWritable!
 Rask.Web.Types.WebTransportDatagramDuplexStream.IncomingMaxAge.get -> System.Threading.Tasks.ValueTask<double?>
 Rask.Web.Types.WebTransportDatagramDuplexStream.MaxDatagramSize.get -> System.Threading.Tasks.ValueTask<int>
-Rask.Web.Types.WebTransportDatagramDuplexStream.OutgoingMaxAge.get -> System.Threading.Tasks.ValueTask<double?>
 Rask.Web.Types.WebTransportDatagramDuplexStream.SetIncomingMaxAge(double? value) -> System.Threading.Tasks.ValueTask
-Rask.Web.Types.WebTransportDatagramDuplexStream.SetOutgoingMaxAge(double? value) -> System.Threading.Tasks.ValueTask
 Rask.Web.Types.WebTransportDatagramsWritable
 Rask.Web.Types.WebTransportDatagramsWritable.SendGroup.get -> Rask.Web.Types.WebTransportSendGroup!
 Rask.Web.Types.WebTransportDatagramsWritable.SendOrder.get -> System.Threading.Tasks.ValueTask<long>
@@ -5237,6 +5325,17 @@ Rask.Web.Types.XPathResult.NumberValue.get -> System.Threading.Tasks.ValueTask<d
 Rask.Web.Types.XPathResult.ResultType.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.XPathResult.SnapshotLength.get -> System.Threading.Tasks.ValueTask<int>
 Rask.Web.Types.XPathResult.StringValue.get -> System.Threading.Tasks.ValueTask<string!>
+Rask.Web.Types.XRHandTrackingFrequencyHint
+Rask.Web.Types.XRHandTrackingFrequencyHint.Default = -1824826402 -> Rask.Web.Types.XRHandTrackingFrequencyHint
+Rask.Web.Types.XRHandTrackingFrequencyHint.High = 1037941245 -> Rask.Web.Types.XRHandTrackingFrequencyHint
+Rask.Web.Types.XRHandTrackingStateInit
+Rask.Web.Types.XRHandTrackingStateInit.<Clone>$() -> Rask.Web.Types.XRHandTrackingStateInit!
+Rask.Web.Types.XRHandTrackingStateInit.Equals(Rask.Web.Types.XRHandTrackingStateInit? other) -> bool
+Rask.Web.Types.XRHandTrackingStateInit.FrequencyHint.get -> Rask.Web.Types.XRHandTrackingFrequencyHint?
+Rask.Web.Types.XRHandTrackingStateInit.FrequencyHint.init -> void
+Rask.Web.Types.XRHandTrackingStateInit.XRHandTrackingStateInit() -> void
+Rask.Web.Types.XRSessionInit.HandTracking.get -> Rask.Web.Types.XRHandTrackingStateInit?
+Rask.Web.Types.XRSessionInit.HandTracking.init -> void
 Rask.Web.VisualViewport
 Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AfterHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
 Rask.Web.WebElementRefMembers.extension(Rask.Core.IElementRef<Rask.Core.Element!>!).AppendHTMLUnsafe(string! html, Rask.Web.Types.TrustedHTMLParserOptions! options) -> System.Threading.Tasks.ValueTask
@@ -6239,6 +6338,8 @@ static Rask.Web.Types.AuthenticatorSelectionCriteria.operator !=(Rask.Web.Types.
 static Rask.Web.Types.AuthenticatorSelectionCriteria.operator ==(Rask.Web.Types.AuthenticatorSelectionCriteria? left, Rask.Web.Types.AuthenticatorSelectionCriteria? right) -> bool
 static Rask.Web.Types.AvcEncoderConfig.operator !=(Rask.Web.Types.AvcEncoderConfig? left, Rask.Web.Types.AvcEncoderConfig? right) -> bool
 static Rask.Web.Types.AvcEncoderConfig.operator ==(Rask.Web.Types.AvcEncoderConfig? left, Rask.Web.Types.AvcEncoderConfig? right) -> bool
+static Rask.Web.Types.CanvasToneMapping.operator !=(Rask.Web.Types.CanvasToneMapping? left, Rask.Web.Types.CanvasToneMapping? right) -> bool
+static Rask.Web.Types.CanvasToneMapping.operator ==(Rask.Web.Types.CanvasToneMapping? left, Rask.Web.Types.CanvasToneMapping? right) -> bool
 static Rask.Web.Types.CSSContainerCondition.operator !=(Rask.Web.Types.CSSContainerCondition? left, Rask.Web.Types.CSSContainerCondition? right) -> bool
 static Rask.Web.Types.CSSContainerCondition.operator ==(Rask.Web.Types.CSSContainerCondition? left, Rask.Web.Types.CSSContainerCondition? right) -> bool
 static Rask.Web.Types.CSSNumericType.operator !=(Rask.Web.Types.CSSNumericType? left, Rask.Web.Types.CSSNumericType? right) -> bool
@@ -6563,6 +6664,8 @@ static Rask.Web.Types.RTCEncodedFrameMetadata.operator !=(Rask.Web.Types.RTCEnco
 static Rask.Web.Types.RTCEncodedFrameMetadata.operator ==(Rask.Web.Types.RTCEncodedFrameMetadata? left, Rask.Web.Types.RTCEncodedFrameMetadata? right) -> bool
 static Rask.Web.Types.RTCEncodedVideoFrameMetadata.operator !=(Rask.Web.Types.RTCEncodedVideoFrameMetadata? left, Rask.Web.Types.RTCEncodedVideoFrameMetadata? right) -> bool
 static Rask.Web.Types.RTCEncodedVideoFrameMetadata.operator ==(Rask.Web.Types.RTCEncodedVideoFrameMetadata? left, Rask.Web.Types.RTCEncodedVideoFrameMetadata? right) -> bool
+static Rask.Web.Types.RTCEncodingOptions.operator !=(Rask.Web.Types.RTCEncodingOptions? left, Rask.Web.Types.RTCEncodingOptions? right) -> bool
+static Rask.Web.Types.RTCEncodingOptions.operator ==(Rask.Web.Types.RTCEncodingOptions? left, Rask.Web.Types.RTCEncodingOptions? right) -> bool
 static Rask.Web.Types.RTCIceCandidateInit.operator !=(Rask.Web.Types.RTCIceCandidateInit? left, Rask.Web.Types.RTCIceCandidateInit? right) -> bool
 static Rask.Web.Types.RTCIceCandidateInit.operator ==(Rask.Web.Types.RTCIceCandidateInit? left, Rask.Web.Types.RTCIceCandidateInit? right) -> bool
 static Rask.Web.Types.RTCIceServer.operator !=(Rask.Web.Types.RTCIceServer? left, Rask.Web.Types.RTCIceServer? right) -> bool
@@ -6571,6 +6674,8 @@ static Rask.Web.Types.RTCLocalSessionDescriptionInit.operator !=(Rask.Web.Types.
 static Rask.Web.Types.RTCLocalSessionDescriptionInit.operator ==(Rask.Web.Types.RTCLocalSessionDescriptionInit? left, Rask.Web.Types.RTCLocalSessionDescriptionInit? right) -> bool
 static Rask.Web.Types.RTCOfferOptions.operator !=(Rask.Web.Types.RTCOfferOptions? left, Rask.Web.Types.RTCOfferOptions? right) -> bool
 static Rask.Web.Types.RTCOfferOptions.operator ==(Rask.Web.Types.RTCOfferOptions? left, Rask.Web.Types.RTCOfferOptions? right) -> bool
+static Rask.Web.Types.RTCResolutionRestriction.operator !=(Rask.Web.Types.RTCResolutionRestriction? left, Rask.Web.Types.RTCResolutionRestriction? right) -> bool
+static Rask.Web.Types.RTCResolutionRestriction.operator ==(Rask.Web.Types.RTCResolutionRestriction? left, Rask.Web.Types.RTCResolutionRestriction? right) -> bool
 static Rask.Web.Types.RTCRtcpParameters.operator !=(Rask.Web.Types.RTCRtcpParameters? left, Rask.Web.Types.RTCRtcpParameters? right) -> bool
 static Rask.Web.Types.RTCRtcpParameters.operator ==(Rask.Web.Types.RTCRtcpParameters? left, Rask.Web.Types.RTCRtcpParameters? right) -> bool
 static Rask.Web.Types.RTCRtpCodec.operator !=(Rask.Web.Types.RTCRtpCodec? left, Rask.Web.Types.RTCRtpCodec? right) -> bool
@@ -6605,6 +6710,8 @@ static Rask.Web.Types.ResizeObserverOptions.operator !=(Rask.Web.Types.ResizeObs
 static Rask.Web.Types.ResizeObserverOptions.operator ==(Rask.Web.Types.ResizeObserverOptions? left, Rask.Web.Types.ResizeObserverOptions? right) -> bool
 static Rask.Web.Types.RsaOtherPrimesInfo.operator !=(Rask.Web.Types.RsaOtherPrimesInfo? left, Rask.Web.Types.RsaOtherPrimesInfo? right) -> bool
 static Rask.Web.Types.RsaOtherPrimesInfo.operator ==(Rask.Web.Types.RsaOtherPrimesInfo? left, Rask.Web.Types.RsaOtherPrimesInfo? right) -> bool
+static Rask.Web.Types.RTCSetParameterOptions.operator !=(Rask.Web.Types.RTCSetParameterOptions? left, Rask.Web.Types.RTCSetParameterOptions? right) -> bool
+static Rask.Web.Types.RTCSetParameterOptions.operator ==(Rask.Web.Types.RTCSetParameterOptions? left, Rask.Web.Types.RTCSetParameterOptions? right) -> bool
 static Rask.Web.Types.SanitizerConfig.operator !=(Rask.Web.Types.SanitizerConfig? left, Rask.Web.Types.SanitizerConfig? right) -> bool
 static Rask.Web.Types.SanitizerConfig.operator ==(Rask.Web.Types.SanitizerConfig? left, Rask.Web.Types.SanitizerConfig? right) -> bool
 static Rask.Web.Types.SchedulerPostTaskOptions.operator !=(Rask.Web.Types.SchedulerPostTaskOptions? left, Rask.Web.Types.SchedulerPostTaskOptions? right) -> bool
@@ -6669,6 +6776,8 @@ static Rask.Web.Types.WebTransportSendStreamStats.operator !=(Rask.Web.Types.Web
 static Rask.Web.Types.WebTransportSendStreamStats.operator ==(Rask.Web.Types.WebTransportSendStreamStats? left, Rask.Web.Types.WebTransportSendStreamStats? right) -> bool
 static Rask.Web.Types.WorkletOptions.operator !=(Rask.Web.Types.WorkletOptions? left, Rask.Web.Types.WorkletOptions? right) -> bool
 static Rask.Web.Types.WorkletOptions.operator ==(Rask.Web.Types.WorkletOptions? left, Rask.Web.Types.WorkletOptions? right) -> bool
+static Rask.Web.Types.XRHandTrackingStateInit.operator !=(Rask.Web.Types.XRHandTrackingStateInit? left, Rask.Web.Types.XRHandTrackingStateInit? right) -> bool
+static Rask.Web.Types.XRHandTrackingStateInit.operator ==(Rask.Web.Types.XRHandTrackingStateInit? left, Rask.Web.Types.XRHandTrackingStateInit? right) -> bool
 static Rask.Web.VisualViewport.Height.get -> System.Threading.Tasks.ValueTask<double>
 static Rask.Web.VisualViewport.IsSupported.get -> System.Threading.Tasks.ValueTask<bool>
 static Rask.Web.VisualViewport.OffsetLeft.get -> System.Threading.Tasks.ValueTask<double>
@@ -9667,14 +9776,7 @@ Rask.Web.Types.FunctionParameter.Name.get -> string!
 Rask.Web.Types.FunctionParameter.Name.init -> void
 Rask.Web.Types.FunctionParameter.Type.get -> string!
 Rask.Web.Types.FunctionParameter.Type.init -> void
-Rask.Web.Types.Gamepad.Hand.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GamepadHand>
-Rask.Web.Types.Gamepad.Pose.get -> Rask.Web.Types.GamepadPose!
-Rask.Web.Types.GamepadHand
 Rask.Web.Types.GamepadHapticActuator.Effects.get -> System.Threading.Tasks.ValueTask<Rask.Web.Types.GamepadHapticEffectType[]!>
-Rask.Web.Types.GamepadHapticActuator.Pulse(double value, double duration) -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.GamepadPose
-Rask.Web.Types.GamepadPose.HasOrientation.get -> System.Threading.Tasks.ValueTask<bool>
-Rask.Web.Types.GamepadPose.HasPosition.get -> System.Threading.Tasks.ValueTask<bool>
 Rask.Web.Types.GravitySensor
 Rask.Web.Types.Gyroscope
 Rask.Web.Types.Gyroscope.X.get -> System.Threading.Tasks.ValueTask<double?>
@@ -16330,9 +16432,6 @@ Rask.Web.Types.GPUVertexFormat.Unorm8x4 = -446606594 -> Rask.Web.Types.GPUVertex
 Rask.Web.Types.GPUVertexFormat.Unorm8x4Bgra = -1669810717 -> Rask.Web.Types.GPUVertexFormat
 Rask.Web.Types.GPUVertexStepMode.Instance = 193386898 -> Rask.Web.Types.GPUVertexStepMode
 Rask.Web.Types.GPUVertexStepMode.Vertex = -1806473305 -> Rask.Web.Types.GPUVertexStepMode
-Rask.Web.Types.GamepadHand.Empty = -2128831035 -> Rask.Web.Types.GamepadHand
-Rask.Web.Types.GamepadHand.Left = 306900080 -> Rask.Web.Types.GamepadHand
-Rask.Web.Types.GamepadHand.Right = 2028154341 -> Rask.Web.Types.GamepadHand
 Rask.Web.Types.GamepadHapticEffectType.DualRumble = -1184474829 -> Rask.Web.Types.GamepadHapticEffectType
 Rask.Web.Types.GamepadHapticEffectType.TriggerRumble = 1813357399 -> Rask.Web.Types.GamepadHapticEffectType
 Rask.Web.Types.GamepadHapticsResult.Complete = 1439362434 -> Rask.Web.Types.GamepadHapticsResult

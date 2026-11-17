@@ -50,6 +50,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
     internal const int AllWrites = CreateWrite | UpdateWrite;
 
     private const string DataAnnotationsNamespace = "System.ComponentModel.DataAnnotations";
+    private const string DisplayAttribute = "System.ComponentModel.DataAnnotations.DisplayAttribute";
+    private const string DisplayNameAttribute = "System.ComponentModel.DisplayNameAttribute";
     private const string ValidationAttribute = "System.ComponentModel.DataAnnotations.ValidationAttribute";
     private const string UnsafeAccessor = "global::System.Runtime.CompilerServices.UnsafeAccessor";
     private const string UnsafeAccessorKind = "global::System.Runtime.CompilerServices.UnsafeAccessorKind";
@@ -317,7 +319,8 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         EquatableArray<string> Checks,
         bool RequiredByType = false,
         bool KeyPart = false,
-        string? DeclaredOn = null);
+        string? DeclaredOn = null,
+        string? Named = null);
 
     private sealed record Write(
         ModelWriteKind Kind,
@@ -351,5 +354,6 @@ public sealed partial class ModelInputGenerator : IIncrementalGenerator
         string ValueTypeName,
         Write? Write,
         EquatableArray<string> Checks,
-        bool RequiredByType);
+        bool RequiredByType,
+        string? Named = null);
 }

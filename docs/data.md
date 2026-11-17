@@ -2863,6 +2863,61 @@ On a `RaskApp`, `c.Data.OwnsSchema(…)` says *how* the migrations apply and `Mi
 release step running `rask db update` owns the schema then. Beside `c.Data.Off()` (or `c.Cqrs.Off()`, which leaves the
 app without a database too) it refuses the start, naming both: there is no schema to own.
 
+### Migrations with plain `dotnet ef`
+
+`rask db add Name` is `dotnet ef migrations add Name` with the project filled in, and nothing else: it hands EF no
+provider and no connection string. So the EF Core tools work on their own too:
+
+```bash
+dotnet ef migrations add AddProducts
+dotnet ef database update
+```
+
+How EF gets the context depends on whose it is:
+
+- **`RaskAppDbContext`** — an app with no context of its own. EF runs Program.cs up to `Build()` and takes the
+  context from the container. That is on purpose: its tables follow the batteries Program.cs switches on and off
+  (`c.Jobs.Off()`), which only Program.cs can say. Nothing in it connects before `Run`, so this works on any machine.
+- **A context of your own** — Rask generates an internal `IDesignTimeDbContextFactory<YourContext>` beside it, and EF
+  uses that **without running Program.cs**. A host that cannot start on a developer's machine — a vault it reads, a
+  database it migrates as it starts — still gets migrations.
+
+The generated factory reads the configuration the app starts with, in the same order: appsettings.json,
+appsettings.{Environment}.json, user secrets in Development, environment variables, and arguments after `--`.
+`dotnet ef` runs as Development; `dotnet ef migrations add X -- --environment Production` reads Production's
+settings instead. It opens the database through `UseRaskDatabase`, as the app's own registration does: the provider
+`Rask:Database:Provider` names (SQLite when it names none), at `Rask:ConnectionStrings:App`, tuned by `Rask:Sqlite`,
+`Rask:Postgres` or `Rask:SqlServer`. What goes wrong says what to set: an unknown provider, a missing connection
+string, or `postgres` without the Rask.Postgres package each stop the command with the same sentence the app would
+start with.
+
+A host wired by hand chooses its provider in code — `AddRaskData<TaDomain>(o => o.UseSqlServer(connection))` — and
+`dotnet ef` does not run that code. So there the factory requires the setting, and stops naming it rather than
+writing SQLite migrations for a SQL Server database:
+
+```csharp
+// Before: a factory of the app's own, beside the context
+public sealed class TaDomainAtDesignTime : IDesignTimeDbContextFactory<TaDomain>
+{
+    public TaDomain CreateDbContext(string[] args) =>
+        new(new DbContextOptionsBuilder<TaDomain>().UseSqlServer("Server=nobody;Database=nothing").Options);
+}
+```
+
+```jsonc
+// After: the class is deleted, and appsettings.json says what it said
+{
+  "Rask": {
+    "Database": { "Provider": "sqlserver" },
+    "ConnectionStrings": { "App": "Server=nobody;Database=nothing;Encrypt=false" }  // never opened by migrations add
+  }
+}
+```
+
+A factory you write yourself still wins: when the project declares an `IDesignTimeDbContextFactory<T>`, none is
+generated for `T`. Keep one when design time needs more than configuration says — a SQL Server compatibility level,
+an extension like NetTopologySuite, a `MigrationsAssembly` the callback sets.
+
 ## Choosing the database
 
 An app picks its database in configuration, not in code. `Rask:Database:Provider` names it — `sqlite` (the

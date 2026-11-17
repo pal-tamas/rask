@@ -397,7 +397,8 @@ public sealed partial class ModelInputGenerator
             new EquatableArray<string>(property.GetAttributes().Where(IsCopiedAttribute).Select(RenderAttribute)),
             new EquatableArray<string>(property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
             IsRequiredByType(member, valueObject, property),
-            DeclaredOn: CrefTypeOf(property.ContainingType));
+            DeclaredOn: CrefTypeOf(property.ContainingType),
+            Named: NamedOf(property));
     }
 
     // The type a doc comment's cref names the member on. A cref through a derived type does not reach an inherited
@@ -522,7 +523,8 @@ public sealed partial class ModelInputGenerator
                     ? WriteOf(m.Property, kind, "__" + kind + valueObject.ModelName + "_" + m.Property.Name, byRef: valueObject.Type.IsValueType)
                     : null,
                 new EquatableArray<string>(m.Property.GetAttributes().Where(IsValidation).Select(RenderConstruction)),
-                IsRequiredByType(m.Nullable, nested, m.Property));
+                IsRequiredByType(m.Nullable, nested, m.Property),
+                NamedOf(m.Property));
         }).ToList();
 
         var shape = new ValueObjectShape(
@@ -581,6 +583,12 @@ public sealed partial class ModelInputGenerator
             return type.Name is not ("KeyAttribute" or "ConcurrencyCheckAttribute" or "TimestampAttribute");
         }
 
+        // The field's name where [Display] gives none: the form's label and its messages read it as they read [Display].
+        if (type.ToDisplayString() is DisplayNameAttribute)
+        {
+            return true;
+        }
+
         for (var current = type.BaseType; current is not null; current = current.BaseType)
         {
             if (current.ToDisplayString() is ValidationAttribute)
@@ -614,6 +622,30 @@ public sealed partial class ModelInputGenerator
 
         return "[" + attribute.AttributeClass!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) +
                "(" + string.Join(", ", arguments) + ")]";
+    }
+
+    // What a failed check calls the field, as C# the server runs: [Display]'s name — through its resources, at run time,
+    // where it names a ResourceType — else [DisplayName]'s, else the member's own.
+    private static string NamedOf(IPropertySymbol property)
+    {
+        var attributes = property.GetAttributes();
+        var named = attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayNameAttribute)?
+            .ConstructorArguments.FirstOrDefault();
+        var fallback = named is { Value: string { Length: > 0 } } given ? given.ToCSharpString() : Quoted(property.Name);
+
+        if (attributes.FirstOrDefault(static a => a.AttributeClass?.ToDisplayString() is DisplayAttribute) is not { } display)
+        {
+            return fallback;
+        }
+
+        if (display.NamedArguments.Any(static n => n.Key is "ResourceType" && !n.Value.IsNull))
+        {
+            return "(" + RenderConstruction(display) + ").GetName() ?? " + fallback;
+        }
+
+        return display.NamedArguments.FirstOrDefault(static n => n.Key is "Name").Value is { Value: string { Length: > 0 } } name
+            ? name.ToCSharpString()
+            : fallback;
     }
 
     // The same attribute as an object the server validates with — named arguments become an initializer.

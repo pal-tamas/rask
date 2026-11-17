@@ -9,7 +9,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Rask.Generators.CodeFixes;
 
 // Quick-fix for RASK026 (a StateHasChanged() the framework already does for you inside a callback the
-// factory wraps): delete the statement. The message ends "remove the call", so this is that, mechanically.
+// factory wraps) and RASK119 (one in OnMount/OnUpdated that no await follows): delete the statement.
+// Both messages end by asking for the call's removal, so this is that, mechanically.
 //
 // Only offered when the call IS the whole statement. `var x = StateHasChanged()` doesn't compile and
 // can't occur, but a call used as an expression — the body of an expression-bodied lambda, say — has a
@@ -19,11 +20,11 @@ namespace Rask.Generators.CodeFixes;
 [Shared]
 public sealed class RedundantStateHasChangedCodeFixProvider : RaskCodeFixProvider<InvocationExpressionSyntax>
 {
-    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK026"];
+    public override ImmutableArray<string> FixableDiagnosticIds { get; } = ["RASK026", "RASK119"];
 
     protected override string Title => "Remove the redundant StateHasChanged() call";
 
-    protected override string EquivalenceKey => "RASK026_RemoveCall";
+    protected override string EquivalenceKey => "RemoveRedundantStateHasChanged";
 
     protected override Task<bool> CanFixAsync(CodeFixContext context, InvocationExpressionSyntax node) =>
         Task.FromResult(node.Parent is ExpressionStatementSyntax { Parent: BlockSyntax });

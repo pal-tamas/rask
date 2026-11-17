@@ -121,8 +121,16 @@ internal sealed class SignInHost : IAsyncDisposable
         await _app.DisposeAsync();
     }
 
+    // A workbook big enough that reading it takes the worker a while: written once, served to every journey.
+    private static readonly Lazy<byte[]> BigWorkbook = new(static () => Rask.Workbooks.Xlsx.Write(
+        "Fuel",
+        ["Plate", "Litres", "Price", "Station"],
+        Enumerable.Range(0, 20_000).Select(static i => (IReadOnlyList<object?>)[$"ABC-{i % 997:000}", i % 60 + 0.5m, 612.9m, $"Station {i % 41}"])));
+
     private static void MapAccount(WebApplication app)
     {
+        app.MapGet("/api/big.xlsx", static context => context.Response.Body.WriteAsync(BigWorkbook.Value).AsTask());
+
         app.MapGet("/token", async context =>
         {
             var user = context.Request.Query["user"].ToString();

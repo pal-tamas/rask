@@ -188,6 +188,20 @@ public sealed class RouteState
     /// </summary>
     internal string RoutePath => Split()?.RoutePath ?? _path;
 
+    /// <summary>
+    ///     <paramref name="path" />, an address of this session's, without its language prefix — what the routes are
+    ///     matched against: a destination the route has not moved to yet.
+    /// </summary>
+    internal string RoutePathOf(string path)
+    {
+        if (Languages is not { } languages)
+        {
+            return path;
+        }
+
+        return ReferenceEquals(path, _path) ? RoutePath : languages.Split(path).RoutePath;
+    }
+
     // The path's language and route, worked out once per path: the router asks every frame and every link on the
     // page asks again. One reference, so a reader on another thread sees a whole answer or the previous one.
     private PathSplit? _split;

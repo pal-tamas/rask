@@ -80,6 +80,8 @@ Rask.Cqrs.IWatchPolicy<TSubscription>
 Rask.Cqrs.IWatchPolicy<TSubscription>.CanWatch(TSubscription subscription, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<bool>!
 Rask.Cqrs.LocalOnlyAttribute
 Rask.Cqrs.LocalOnlyAttribute.LocalOnlyAttribute() -> void
+Rask.Cqrs.OffThreadAttribute
+Rask.Cqrs.OffThreadAttribute.OffThreadAttribute() -> void
 Rask.Cqrs.EventDispatch
 Rask.Cqrs.EventPublishStrategy
 Rask.Cqrs.EventPublishStrategy.Sequential = 0 -> Rask.Cqrs.EventPublishStrategy

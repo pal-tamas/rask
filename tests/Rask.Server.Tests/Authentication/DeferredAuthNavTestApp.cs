@@ -52,9 +52,11 @@ public sealed partial class DeferredNavDashboardPage(IUserProvider userProvider)
 
     protected override Task OnMount()
     {
+#pragma warning disable RASK122 // The snapshot IS the test: it records which principal the page mounted under.
         _mountUser = userProvider.Current.Identity?.IsAuthenticated == true
             ? userProvider.Current.Identity.Name ?? "?"
             : "anon";
+#pragma warning restore RASK122
         return Task.CompletedTask;
     }
 
