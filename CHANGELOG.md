@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`dotnet ef` builds an app's own context from configuration, without running Program.cs (#1332).** Before: a host
+  whose Program.cs could not start on a developer's machine — a vault it reads, a schema it takes over — needed a
+  hand-written `IDesignTimeDbContextFactory<T>` (`TaDomainAtDesignTime`) before `dotnet ef migrations add` worked.
+  After: Rask generates an internal one beside every `DbContext` a server app declares. It reads the configuration
+  the app starts with (appsettings.json, appsettings.{Environment}.json, user secrets, `Rask__Database__Provider`,
+  `-- --environment X`) and opens the database through `UseRaskDatabase`, so the provider, its tuning and Rask's
+  migration conventions are the app's; an unknown provider or a missing connection string stops it with the sentence
+  the app would start with. A context wired with `AddRaskData<T>(o => o.UseSqlServer(…))` needs
+  `Rask:Database:Provider` set, and is told so. A factory of the app's own still wins, and `RaskAppDbContext` keeps
+  being built from the host, since its tables follow the batteries Program.cs switches off. No new public names.
+  Guide: docs/data.md#migrations-with-plain-dotnet-ef.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to

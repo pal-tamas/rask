@@ -785,6 +785,10 @@ Shared options: `--project/-p` (the project owning the `DbContext`), `--startup-
 that configures it; defaults to `--project`), and `--context/-c` (when the app has more than one
 `DbContext`). Anything after `--` is forwarded to `dotnet ef` verbatim (e.g. `rask db update -- --verbose`).
 
+It hands EF no provider and no connection string of its own — the app's configuration says both — so plain
+`dotnet ef migrations add Name` does exactly what `rask db add Name` does. See
+[Migrations with plain `dotnet ef`](data.md#migrations-with-plain-dotnet-ef).
+
 The EF Core tools need the startup project to reference `Microsoft.EntityFrameworkCore.Design`, and
 `rask db` adds it for you (via `dotnet add package`) if it's missing, at the EF Core version Rask itself is
 built against, so the app never restores two EFs. A project from `rask new` with the database already
