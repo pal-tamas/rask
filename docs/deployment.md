@@ -464,6 +464,23 @@ So the Dockerfile stays as it is — a build on your machine still reuses its mo
 second deploy downloads only what changed. The image is loaded into the runner's Docker (`--load`) and sent to the
 box exactly as before.
 
+What it saves is downloads and the layers before your sources, never the compile: `COPY . .` changes with every
+commit, so `dotnet publish` runs in full on every deploy. And reading the cache back has a cost of its own — the
+`actions/cache` restore, copying the mounts into the fresh builder, and importing the SDK image's layers under a
+cached restore step (BuildKit keeps them in the layer cache, and reads them back no faster than a runner pulls
+them from MCR). So the gain is what the build downloads or installs, not what it compiles. Measured on GitHub's
+runners:
+
+| App | First deploy's image build | The next one's |
+| --- | --- | --- |
+| Scaffolded server app with Rask.Pdf (Chrome shell, its `apt-get` layer) | 124–136 s | 74 s |
+| A larger app without Rask.Pdf, a 64 s `dotnet publish` | 147 s | 129 s |
+
+A hand-written Dockerfile keeps only what it mounts: a download outside a `RUN --mount=type=cache` lives in a layer
+after your sources, so every deploy fetches it again. `rask deploy` says so in one line — `Not kept between deploys:
+tsgo (/root/.rask/typescript)` — for NuGet's packages, the Tailwind CLI and tsgo; mount each on the publish step as
+the template Dockerfile does (`--mount=type=cache,id=rask-typescript,target=/root/.rask/typescript`).
+
 The key is everything that decides what the build downloads, so an entry is saved once and reused until a project
 file, a package version or the Dockerfile changes; a new key starts from the newest older entry (`restore-keys`),
 so even then only the change is downloaded. `rask deploy` fingerprints the same files (the Dockerfile and the

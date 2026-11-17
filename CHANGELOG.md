@@ -150,6 +150,12 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A runner deploy says which download its Dockerfile leaves out of the build cache.** Before: a hand-written
+  Dockerfile that mounted NuGet's packages and the Tailwind CLI but not tsgo fetched tsgo on every GitHub Actions
+  deploy, and nothing said so — the build cache looked kept, the deploy no faster. After: `rask deploy` prints
+  `Not kept between deploys: tsgo (/root/.rask/typescript) — no RUN --mount=type=cache in the Dockerfile holds it…`
+  for NuGet's packages, the Tailwind CLI and tsgo, and docs/deployment.md says what the cache saves (downloads, the
+  layers before the sources) and what it cannot (the compile), with both measurements.
 - **`Ui.Chart` keeps a crowded date axis's plot edges where Flux keeps them (#1301).** Before: with the dates crowded
   down to their first and last, the plot always ran to the gutter, where Flux sometimes held it half the first (or
   last) date in, depending on the data, so a narrow chart was now and then a few pixels wider than Flux's. After: the
@@ -196,7 +202,9 @@ them until tagged releases begin.
   carries) kept in `$RUNNER_TEMP/rask-build-cache/<app>`; the workflow `rask deploy --github-actions` writes saves
   that folder with an `actions/cache` step keyed by the project files; a deploy whose cache was saved for the same
   project files reads it and writes nothing back. Measured on GitHub's runners for a scaffolded server app with
-  Rask.Pdf: 124–136 s for the first deploy, 74 s for the next. No new flag, no token handed to the build, the
+  Rask.Pdf: 124–136 s for the first deploy, 74 s for the next (an app without Rask.Pdf whose time is its
+  compile gains far less: 147 s → 129 s for a larger app's image build — the cache skips downloads, never `dotnet publish`;
+  see docs/deployment.md). No new flag, no token handed to the build, the
   Dockerfiles unchanged; anything missing falls back to the plain build in one line. Run
   `rask deploy --github-actions` again to add the step to an existing `deploy.yml`.
 

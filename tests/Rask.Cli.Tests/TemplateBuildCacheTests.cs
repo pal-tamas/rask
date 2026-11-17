@@ -61,6 +61,19 @@ public sealed class TemplateBuildCacheTests
     }
 
     [Fact]
+    public void No_template_image_draws_the_deploys_not_kept_line()
+    {
+        var images = Dockerfiles();
+
+        var unkept = images
+            .SelectMany(file => Rask.Cli.Commands.UnkeptDownloads.In(File.ReadAllText(file)).Select(what => $"{Path.GetRelativePath(Root, file)}: {what}"))
+            .ToList();
+
+        Assert.NotEmpty(images);
+        Assert.True(unkept.Count == 0, "rask deploy would tell these templates their downloads are not kept:\n  " + string.Join("\n  ", unkept));
+    }
+
+    [Fact]
     public void Every_aspnet_template_image_copies_the_app_after_the_layers_a_code_edit_cannot_change()
     {
         var images = Dockerfiles().Where(file => File.ReadAllText(file).Contains("mcr.microsoft.com/dotnet/aspnet", StringComparison.Ordinal)).ToList();
