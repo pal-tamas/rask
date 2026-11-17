@@ -190,3 +190,7 @@ src/Rask.Core/Resources/generated/
 
 # Python byte code, from the scripts that import a sibling module (scripts/upstream/upstream.py).
 __pycache__/
+
+# A deploy target belongs to the app it deploys, never to the framework repo: a committed one made every
+# `rask deploy` / `rask host` run from a Rask checkout reach that app's real box.
+/.rask/

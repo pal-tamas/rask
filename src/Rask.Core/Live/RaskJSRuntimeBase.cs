@@ -17,6 +17,10 @@ internal abstract class RaskJSRuntimeBase : JSRuntime
     /// </summary>
     protected abstract ILiveJsHost CurrentHost { get; }
 
+    // A C# union crosses as its case value, the shape System.Text.Json writes; a union of records reads back as the case
+    // its properties name, in an interop result, a [JSInvokable] argument and a scoped-script callback's alike.
+    protected RaskJSRuntimeBase() => JsonSerializerOptions.TypeClassifiers.Add(UnionCaseClassifier.Instance);
+
     /// <summary>The options this runtime reads results with — what a scoped-script callback reads its arguments with.</summary>
     internal JsonSerializerOptions SerializerOptions => JsonSerializerOptions;
 

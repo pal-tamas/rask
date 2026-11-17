@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK118, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK122, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -25,6 +25,8 @@ Some diagnostics ship an **IDE quick-fix** (the lightbulb / `Ctrl`+`.`):
 | **RASK096** | declares the event as a non-nullable `Callback` and fires it with `.Invoke(…)` |
 | **RASK104** | turns the static field or get-only auto-property into an expression-bodied property (`static Component Empty => Div;`) |
 | **RASK118** | marks the enclosing class `[RaskMarkup]` and makes it (and every type it is nested in) `partial` |
+| **RASK119** | deletes the redundant `StateHasChanged()` statement |
+| **RASK121** | makes the `[JSInvokable]` method `public` |
 
 These are delivered by `Rask.Generators.CodeFixes`, packed alongside the analyzers in the
 `Rask.Server` / `Rask.Wasm` packages — no extra reference needed.
@@ -132,6 +134,10 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK116](#rask116) | Warning (off unless `<RaskStrict>`) | Test is not named as a sentence |
 | [RASK117](#rask117) | Error | A cached fragment holds something interactive |
 | [RASK118](#rask118) | Warning | A chain step is called on a component type outside a markup host |
+| [RASK119](#rask119) | Warning | Redundant `StateHasChanged` in `OnMount`/`OnUpdated` |
+| [RASK120](#rask120) | Warning | An event callback captures a `for` loop's variable |
+| [RASK121](#rask121) | Warning | A `[JSInvokable]` method is not `public` |
+| [RASK122](#rask122) | Warning | The signed-in user is kept without following `IUserProvider.Changed` |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -487,8 +493,9 @@ RadioGroup(() => model.Plan, options)
 *owner* of the callback or binding (write the lambda where it captures the right `this`, or bind the
 model the consumer reads), not the render count. The warning fires only for a self-call
 (`StateHasChanged()` / `this.StateHasChanged()`) lexically inside a Rask callback; a `StateHasChanged` in
-a lifecycle hook, async loop, or event subscription (`feed.Updated += StateHasChanged`), or a call on a
-*different* component, is left alone. Suppressible like any analyzer.
+a lifecycle hook (that is [RASK119](#rask119)'s), async loop, or event subscription
+(`feed.Updated += StateHasChanged`), or a call on a *different* component, is left alone. Suppressible like any
+analyzer.
 
 ## RASK028
 **Ambiguous request handler** · Error
@@ -2856,3 +2863,145 @@ public sealed partial class SendReceipt(Order order) : IJob
 too, which a nested host needs). A static member reached through the type (`OrderReceipt.Url()`, a constant) and
 `nameof(OrderReceipt.OrderId)` are legal and never reported. Suppress with `#pragma warning disable RASK118` /
 `.editorconfig` (`dotnet_diagnostic.RASK118.severity = none`).
+
+## RASK119
+
+**Redundant `StateHasChanged` in `OnMount`/`OnUpdated`** · Warning
+
+`OnMount` and `OnUpdated` run in the render walk, *before* the component renders: what a hook with no `await` sets
+is drawn by that render. A hook that awaits is rendered again after each `await` and once more when it completes.
+So a `StateHasChanged()` that no `await` follows asks for a render that is already coming. Rask's counterpart of
+Blazor's BL0012 ([RASK026](#rask026) is the same mistake inside an event callback).
+
+```csharp
+protected override async Task OnMount()
+{
+    _orders = await Order.Where(o => o.Open).ToList();
+    StateHasChanged();                    // ⚠ RASK119
+}
+```
+
+```text
+StateHasChanged is redundant here — Rask renders this component after 'OnMount' returns, and no await follows the call; remove it
+```
+
+**Not reported:** a call with an `await` still to come — before one, or inside a loop that awaits — which can paint
+an intermediate state; a call inside a lambda or a local function (a timer, an event subscription), which runs on its
+own schedule; a call on another component; and `OnFirstRender`/`OnRendered`, which are not rendered again when they
+finish without yielding, so a call there can be needed.
+
+**Fix:** delete the call (**quick-fix available**).
+
+## RASK120
+
+**An event callback captures a `for` loop's variable** · Warning
+
+A `for` loop has **one** variable for all its passes — unlike `foreach`, whose variable is fresh per pass — and a
+lambda captures the variable, not its value. An event callback runs when the event fires, long after the loop has
+finished, so every row's handler sees the value the loop ended on: here every button removes the item at
+`_items.Count`, which throws. Rask's counterpart of Blazor's BL0014.
+
+```csharp
+for (var i = 0; i < _items.Count; i++)
+{
+    rows.Add(Button.OnClick(() => _items.RemoveAt(i))["Remove"]);   // ⚠ RASK120
+}
+```
+
+```text
+The 'OnClick' callback reads 'i', the for loop's variable: it runs after the loop has moved on, so it sees the last value, not this pass's; copy it into a local inside the loop ('var item = i;') or loop with foreach
+```
+
+**Not reported:** a lambda that is not handed to a callback step (`On…`, `AfterBind`) — a LINQ `Where` runs on the
+spot and reads the right value; a variable the loop's increment does not write; and a `foreach` variable.
+
+**Fix:** copy the value into a local declared inside the loop, or build the rows from the items themselves:
+
+```csharp
+for (var i = 0; i < _items.Count; i++)
+{
+    var row = i;
+    rows.Add(Button.OnClick(() => _items.RemoveAt(row))["Remove"]);
+}
+
+// or, with nothing to copy:
+Ul[_items.Select(item => Li.Key(item.Id)[Button.OnClick(() => _items.Remove(item))["Remove"]])]
+```
+
+## RASK121
+
+**A `[JSInvokable]` method is not `public`** · Warning
+
+Both hosts answer the browser's `DotNet.invokeMethodAsync` through `Microsoft.JSInterop`'s dispatcher, which looks
+only at **public** methods. A private, protected or internal `[JSInvokable]` compiles, and the browser's call to it
+then fails as "not found". Rask's counterpart of Blazor's BL0015, for the projects that one does not reach — a
+WebAssembly app and a library on `Rask` alone. A project that sees the ASP.NET components (a Server app) already has
+BL0015 from the framework, so RASK121 stays quiet there and a method is never reported twice.
+
+```csharp
+internal static class ScannerInterop
+{
+    [JSInvokable("RaskScanned")]
+    private static Task Scanned(int id, string code) => …;   // ⚠ RASK121
+}
+```
+
+```text
+'Scanned' is [JSInvokable] but not public: the browser's call reaches only public methods, so it fails at run time; make it public
+```
+
+**Fix:** make the method `public` (**quick-fix available**). The class around it can stay `internal`: the dispatcher
+looks at every type of the assembly, and only the method has to be public.
+
+## RASK122
+
+**The signed-in user is kept without following `IUserProvider.Changed`** · Warning
+
+`IUserProvider.Current` is who is signed in **now**. A copy of it in a field or property — or of something read from
+it, a name, a role check — is who was signed in when the copy was taken. Signing in, out or as someone else changes
+the provider and raises `Changed`; a type that keeps the copy without listening goes on showing the old user. Rask's
+counterpart of Blazor's BL0013.
+
+```csharp
+public sealed partial class Greeting(IUserProvider users) : Component
+{
+    private string? _name;
+
+    protected override async Task OnMount() => _name = users.Current.Identity?.Name;   // ⚠ RASK122
+
+    protected override Component? Render() => P["Hello, ", _name];
+}
+```
+
+```text
+'_name' keeps IUserProvider.Current, but 'Greeting' never subscribes to IUserProvider.Changed, so it goes on showing whoever was signed in when it was read; read 'Current' where it is used, or subscribe to 'Changed' and read it again
+```
+
+**Not reported:** reading `users.Current` where it is used (`Render`, a handler) and a copy in a local; a lambda kept
+in a field, which reads it again each time it runs; a type that subscribes to `IUserProvider.Changed` anywhere; and a
+type that is an `IUserProvider` itself.
+
+**Fix:** read it where it is shown — or, for a gate, use [`Authorize`](authentication.md), which follows `Changed`
+for you:
+
+```csharp
+protected override Component? Render() => P["Hello, ", users.Current.Identity?.Name];
+```
+
+A copy that has to be kept is refreshed from `Changed` (subscribe in `OnMount`, unsubscribe in `OnUnmount`):
+
+```csharp
+protected override async Task OnMount()
+{
+    _name = users.Current.Identity?.Name;
+    users.Changed += OnUserChanged;
+}
+
+protected override async Task OnUnmount() => users.Changed -= OnUserChanged;
+
+private void OnUserChanged(object? sender, EventArgs e)
+{
+    _name = users.Current.Identity?.Name;
+    StateHasChanged();
+}
+```
