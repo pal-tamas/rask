@@ -187,7 +187,7 @@ workloads, Playwright's browsers and the native tools the build fetches itself (
 and Rask.Pdf's Chrome in `~/.cache/rask` — the caching [deployment.md](deployment.md#caching-the-builds-tools-in-ci)
 tells apps to do). Each tool is its own cache, keyed on the files that pin its version and digests, so a follower's
 bump is a new key and one fresh, SHA-256-checked fetch; a warm runner never asks a release host, so its outage
-cannot red `main` (#1314). They are saved on `main` only (`.github/actions/cache-on-main`); every other ref reads
+cannot red `main` (#1314). They are saved on `main` only; every other ref reads
 `main`'s copy.
 
 Enable the hooks with `git config core.hooksPath .githooks` (the first `dotnet build` does it for
