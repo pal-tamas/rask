@@ -44,6 +44,9 @@ public sealed partial class JobProcessor<TContext>(
 
     private readonly JobWatch<TContext> _watch = new(contextFactory, timeProvider, logger);
 
+    // What watched jobs say (.Noticed): published in order, off the jobs' own flows.
+    private readonly JobWorkFeed _feed = new(scopeFactory, logger);
+
     private int _looks;
 
     /// <summary>How many times the watch has looked at the running jobs: what a test waits on after it moves the clock.</summary>
@@ -210,6 +213,7 @@ public sealed partial class JobProcessor<TContext>(
         using var renewing = new CancellationTokenSource();
         var renewals = RenewLeasesAsync(renewing.Token);
         var watching = WatchAsync(renewing.Token);
+        var feeding = _feed.Run(renewing.Token);
         using var timer = new PeriodicTimer(options.PollInterval);
         try
         {
@@ -247,6 +251,7 @@ public sealed partial class JobProcessor<TContext>(
             await renewing.CancelAsync().ConfigureAwait(false);
             await renewals.ConfigureAwait(false);
             await watching.ConfigureAwait(false);
+            await feeding.ConfigureAwait(false);
         }
     }
 
@@ -432,6 +437,12 @@ public sealed partial class JobProcessor<TContext>(
             return true;
         }
 
+        if (IsMissingWorkColumn(ex))
+        {
+            WorkColumnsMissing(logger, ex);
+            return true;
+        }
+
         return false;
     }
 
@@ -519,6 +530,7 @@ public sealed partial class JobProcessor<TContext>(
                             break;
                         default:
                             await SaveOutcomeAsync(db, job).ConfigureAwait(false);
+                            SayEnd(db, job);
                             break;
                     }
                 }
@@ -566,6 +578,7 @@ public sealed partial class JobProcessor<TContext>(
         _inFlight[job.Id] = run;
         options.Signals.Began(run);
         job.Began(run.Started);
+        SayStart(run);
         try
         {
             // Asked to stop before it started — on a host that has since gone, or between its claim and now: it never runs.
@@ -604,10 +617,43 @@ public sealed partial class JobProcessor<TContext>(
         }
         finally
         {
-            run.End();
-            _inFlight.TryRemove(job.Id, out _);
-            run.Release();
+            Finish(job, run);
         }
+    }
+
+    // Its handler is over: nothing stops it any more, and what it last said goes on its row with its outcome — the watch
+    // writes it at most once a poll, and this is the last.
+    private void Finish(Job job, JobRun run)
+    {
+        run.End();
+        _inFlight.TryRemove(job.Id, out _);
+        job.Reported(run.Latest.Progress, run.Latest.Done, run.Latest.Of);
+        run.Release();
+    }
+
+    // A watched job: its enqueuer sees it start, then each report at most four times a second, then its end once that is saved.
+    private void SayStart(JobRun run)
+    {
+        if (!run.IsNoticed)
+        {
+            return;
+        }
+
+        run.Say = _feed.Say;
+        _feed.Say(run.ToWork(WorkState.Running, default));
+    }
+
+    // A watched job's end, once its row says it: done, stopped, failed for good — or, a failed attempt with more to come, still
+    // to run. Not when the row was lost to another instance (detached): its outcome is that one's to say.
+    private void SayEnd(TContext db, Job job)
+    {
+        if (!JobWork.IsNoticed(job) || db.Entry(job).State == EntityState.Detached)
+        {
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow().UtcDateTime;
+        _feed.Say(JobWork.Of(job, JobWork.StateOf(job, options.MaxAttempts, now), now));
     }
 
     private Outcome Done(Job job, JobRun run, string? answer)
@@ -930,6 +976,18 @@ public sealed partial class JobProcessor<TContext>(
         return false;
     }
 
+    // The columns of .Noticed and Jobs.Report. Two of them are short words a message may hold for other reasons, so they match
+    // only as a provider quotes a column: j.Done, 'Done', "Done".
+    private static bool IsMissingWorkColumn(Exception exception) =>
+        IsMissingColumn(exception, nameof(Job.Notice))
+        || IsMissingColumn(exception, nameof(Job.Progress))
+        || IsMissingColumn(exception, "." + nameof(Job.Done))
+        || IsMissingColumn(exception, $"'{nameof(Job.Done)}'")
+        || IsMissingColumn(exception, $"\"{nameof(Job.Done)}\"")
+        || IsMissingColumn(exception, "." + nameof(Job.Of))
+        || IsMissingColumn(exception, $"'{nameof(Job.Of)}'")
+        || IsMissingColumn(exception, $"\"{nameof(Job.Of)}\"");
+
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
         if (options.Retention <= TimeSpan.Zero)
@@ -1046,6 +1104,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added Stopped and StartedAt columns (what lets a running job be stopped, by hand or at a limit) that this database does not have. "
             + "Run: rask db add AddJobStop && rask db update.")]
     private static partial void StopColumnsMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added Notice, Progress, Done and Of columns (what shows a job its enqueuer watches, and how far along it is) that this database does not have. "
+            + "Run: rask db add AddJobProgress && rask db update.")]
+    private static partial void WorkColumnsMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventName = "JobStopped",

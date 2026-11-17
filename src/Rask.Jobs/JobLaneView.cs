@@ -35,7 +35,9 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
                 && (j.Attempts < max || j.ClaimedUntil > now))
             .OrderBy(j => j.RunAt)
             .ThenBy(j => j.Id)
-            .Select(j => new Row(j.Id, j.Lane!, j.Type, j.Payload, j.RunAt, j.StartedAt, j.Attempts, j.ClaimedUntil, j.Stopped))
+            .Select(j => new Row(
+                j.Id, j.Lane!, j.Type, j.Payload, j.RunAt, j.StartedAt, j.Attempts, j.ClaimedUntil, j.Stopped,
+                new WorkReport(j.Progress, j.Done, j.Of)))
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -54,9 +56,12 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
                 continue; // its work is over here; only its outcome is still on the way to the row
             }
 
+            // The host running it knows its latest report; the row has it as of the last poll.
+            var report = here?.Latest is { } latest && latest != default ? latest : row.Report;
             var job = new LaneJob(
                 row.Id, Read(row.Type, row.Payload), row.Type, row.RunAt, row.StartedAt, row.Attempts,
-                Stopping: row.Stopped is not null || here?.Stopped is not null);
+                Stopping: row.Stopped is not null || here?.Stopped is not null,
+                report.Progress, report.Done, report.Of);
             if (row.ClaimedUntil > now && !running.ContainsKey(row.Lane))
             {
                 running[row.Lane] = job;
@@ -88,5 +93,5 @@ internal sealed class JobLaneView<TContext>(IDbContextFactory<TContext> contextF
 
     private sealed record Row(
         long Id, string Lane, string Type, string Payload, DateTime RunAt, DateTime? StartedAt, int Attempts, DateTime? ClaimedUntil,
-        JobStop? Stopped);
+        JobStop? Stopped, WorkReport Report);
 }

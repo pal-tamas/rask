@@ -1095,7 +1095,7 @@ public sealed partial class Layout : Component
 {
     protected override Component? Render() =>
         Ui.AppFrame.Brand("PPTA").Tenant(Current.PartnerName).User(Current.Name).SignOut(SignOut.Path)
-            .Notices(PumpNotices.Key("notices"))[
+            .Notices(Ui.WorkNotices)[
             Ui.SidebarNav[
                 Ui.SidebarItem.Icon(Ui.IconName.Home).Href(Routes.HomePage())["Home"],
                 Ui.SidebarItem.Icon(Ui.IconName.Fire).Href(Routes.PumpsPage())["Pumps"],
@@ -1124,6 +1124,29 @@ public sealed partial class Layout : Component
   WebAssembly app needs no `Ui.SidebarScript` for it, as its sidebar has no rail.
 
 The live demo and its reference: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)**.
+
+### Background work: the bell and the list
+
+**`Ui.WorkNotices`** (not Flux's — Flux has no notifications; the owner approved it, #1293) is the bell at the header's
+end, `.Notices(Ui.WorkNotices)`: Flux's `bell` on a ghost button with a red count, opening a flyout of the signed-in
+user's background work — each running job with Flux's progress bar and what it last said, each one lately done, failed
+or stopped with a badge. **`Ui.WorkList`** is the same list in the page. Both take `.Lane(id)` for one lane's work.
+
+```csharp
+await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");   // what it shows
+Jobs.Report(kept, total);                                                           // its bar, from the handler
+```
+
+- **Only the user's own work, in their tenant**, read from the job rows every poll and moved live in between by
+  `WorkReported` — see [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **The count** is what runs, and what ended since the flyout was last opened; the badge is hidden from a screen reader,
+  which hears it in the bell's name (*Background work, 2 new*).
+- **A job seen running that ends is announced** in a polite live region: *Import of prices.csv is done.* A failure says
+  *Failed*, never why.
+- **A job with no count** draws a bar without an end, and *Running…* until it says something.
+- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, … in [localization](localization.md)).
+
+The live demo is in the app frame's: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)** — the bell in its header, the list on its home page.
 
 ### Card
 

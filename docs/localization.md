@@ -839,6 +839,17 @@ they say when you set nothing.
 | `FiltersClose` | Filters | `Close` |
 | `FilterRemove` | Filters | `Remove filter {0}` |
 | `FiltersSelectedCount` | Filters: a badge of two or more names, `Ui.Filter.Shown(names)` | `{0} selected` |
+| `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
+| `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
+| `WorkNone` | Work notices: nothing to show | `No background work.` |
+| `WorkRunning` | Work notices: a job that runs and said nothing | `Running…` |
+| `WorkProgress` | Work notices: a count | `{0} of {1}` |
+| `WorkDone` | Work notices: done | `Done` |
+| `WorkFailed` | Work notices: failed | `Failed` |
+| `WorkStopped` | Work notices: stopped | `Stopped` |
+| `WorkEndedDone` | Work notices: announced when one is done | `{0} is done.` |
+| `WorkEndedFailed` | Work notices: announced when one fails | `{0} failed.` |
+| `WorkEndedStopped` | Work notices: announced when one is stopped | `{0} was stopped.` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

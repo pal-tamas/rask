@@ -96,6 +96,30 @@ public sealed partial class UiKitAppFrameTests(WasmExampleAppFixture app, Playwr
         await Expect(Page).ToHaveURLAsync(new Regex("/demo/app-frame/$"));
     });
 
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public Task The_bell_counts_the_running_import_and_opens_on_its_bar_beside_a_failed_and_a_done_job(int width, int height) =>
+        RunAsync(async () =>
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            await Page.GotoAsync($"{BaseUrl}/demo/app-frame/");
+            await WaitForInteractiveAsync();
+            var bell = Page.Locator("[data-ui-work-bell]");
+            await Expect(Page.Locator("[data-ui-work-count]")).ToHaveTextAsync("1", new() { Timeout = 15_000 });
+            var listed = Page.Locator("[data-testid='af-work'] [role=progressbar]");
+            var first = int.Parse(await listed.GetAttributeAsync("aria-valuenow") ?? "0", System.Globalization.CultureInfo.InvariantCulture);
+
+            await bell.ClickAsync();
+
+            var flyout = Page.Locator("[data-ui-work-flyout]");
+            await Expect(flyout.Locator("[data-ui-work]")).ToHaveCountAsync(3);
+            await Expect(flyout.Locator("[data-ui-work=failed]")).ToContainTextAsync("Failed");
+            await Expect(flyout.Locator("[data-ui-work=done]")).ToContainTextAsync("Done");
+            await Expect(listed).Not.ToHaveAttributeAsync("aria-valuenow", first.ToString(System.Globalization.CultureInfo.InvariantCulture), new() { Timeout = 15_000 });
+            Assert.False(await Page.EvaluateAsync<bool>("() => document.documentElement.scrollWidth > innerWidth"));
+        });
+
     [GeneratedRegex("/demo/app-frame/drivers/?\\?status=active$")]
     private static partial Regex ActiveDrivers();
 }

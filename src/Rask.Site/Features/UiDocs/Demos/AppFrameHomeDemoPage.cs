@@ -15,6 +15,13 @@ public sealed partial class AppFrameHomeDemoPage : Component
         Div.Key("home").Class("space-y-4")[
             Ui.Heading.Level(1).Xl["Good afternoon, Mara"],
             Ui.Text["Open a list from the menu, then a record in it: the trail above leads back to the list as you left it."],
-            Ui.Link.Href(Routes.AppFrameMissingDemoPage()).Attributes(("data-testid", "af-gone"))["A page that is gone"]
+            Ui.Link.Href(Routes.AppFrameMissingDemoPage()).Attributes(("data-testid", "af-gone"))["A page that is gone"],
+            Div.Attributes(("data-testid", "af-work"))[
+                Ui.Card[
+                    Ui.Heading["Your background work"],
+                    Ui.Text["The bell in the header holds the same: the import moves on, and says so when it is done."],
+                    Ui.WorkList
+                ]
+            ]
         ];
 }

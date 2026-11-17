@@ -19550,6 +19550,17 @@ Rask.Core.Globalization.RaskString.ChartColumnRow = 253 -> Rask.Core.Globalizati
 Rask.Core.Globalization.RaskString.ChartColumnDate = 254 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ChartColumnLabel = 255 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.FiltersSelectedCount = 256 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkNotices = 257 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkNoticesUnread = 258 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkNone = 259 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkRunning = 260 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkProgress = 261 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkDone = 262 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkFailed = 263 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkStopped = 264 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkEndedDone = 265 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkEndedFailed = 266 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkEndedStopped = 267 -> Rask.Core.Globalization.RaskString
 Rask.CachedFragments
 Rask.CachedOptions
 Rask.CachedOptions.CachedOptions() -> void

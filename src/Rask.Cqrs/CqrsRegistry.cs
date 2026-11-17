@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
+using Rask.Background;
 
 namespace Rask.Cqrs;
 
@@ -36,10 +37,12 @@ public static class CqrsRegistry
     private static volatile Dictionary<Type, EventInvoker> _events =
         new Dictionary<Type, EventInvoker>();
 
-    private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups = new();
+    // Seeded with this assembly's own subscription, WatchOwnWork (#1293): no generated registry of an app names it.
+    private static readonly List<(object Key, (Type Type, SubscriptionRegistration Registration)[] Items)> _subscriptionGroups =
+        [(typeof(WatchOwnWork), [(typeof(WatchOwnWork), WatchOwnWork.Registration)])];
 
     private static volatile Dictionary<Type, SubscriptionRegistration> _subscriptions =
-        new Dictionary<Type, SubscriptionRegistration>();
+        new Dictionary<Type, SubscriptionRegistration> { [typeof(WatchOwnWork)] = WatchOwnWork.Registration };
 
     // Durable handlers, per contributing assembly: (event type, (handler type, invoker)).
     private static readonly List<(object Key, (Type Type, (Type Handler, EventInvoker Invoker) Invoker)[] Items)> _durableGroups = new();

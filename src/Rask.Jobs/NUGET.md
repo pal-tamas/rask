@@ -64,6 +64,12 @@ time limit, or when no `Jobs.Report(…)` came for that long. A stopped job is n
 moves on at once. `await Jobs.Lanes(pumpIds)` reads what runs and what waits in many lanes in one query. Adds two
 columns: `rask db add AddJobStop && rask db update`.
 
+**Show a job to the person who started it.** `await Jobs.Enqueue(job).Noticed($"Import of {file.Name}")` titles the
+row, `Jobs.Report(kept, total)` in the handler fills its bar, and `Ui.WorkNotices` (a bell in `Ui.AppFrame`'s
+`.Notices(…)`) or `Ui.WorkList` shows it to its enqueuer alone, in their tenant, live: running, done, failed or stopped.
+The `WorkReported` event carries it (latest only, at most about four a second); the row keeps the latest, written at most
+once a poll, and `LaneJob.Progress`/`.Done`/`.Of` read it. Adds four columns: `rask db add AddJobProgress && rask db update`.
+
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the

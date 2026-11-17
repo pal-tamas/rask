@@ -8,6 +8,24 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A job shows its progress to the person who started it: `.Noticed(title)`, `Jobs.Report(done, of)`,
+  `Ui.WorkNotices` and `Ui.WorkList` (#1293).** Before: a job could only say words (`Jobs.Report("…")`) that stayed in
+  the memory of the host running it, so Eszaf and TA each built a progress table, a board and a bell of their own. After:
+  `await Jobs.Enqueue(job).Noticed($"Import of {file.Name}")` (also on `Jobs.Run`) puts the title on the row,
+  `Jobs.Report(kept, total)` / `Jobs.Report(kept, total, words)` fills its bar, and `.Notices(Ui.WorkNotices)` in a
+  `Ui.AppFrame` draws a bell (Flux's dropdown, badge and progress parts — Flux has no notifications) whose count is what
+  runs plus what ended since it was last opened, opening a flyout of running, done, failed and stopped jobs;
+  `Ui.WorkList` draws the same list in a page; both take `.Lane(id)`. Only the enqueuer sees a job, in the tenant it was
+  enqueued in, and a failure says *Failed*, never why. The row is the truth (re-read every `PollInterval`, so other hosts'
+  work shows), and the new `WorkReported` event (`WorkState` `Running`/`Done`/`Failed`/`Stopped`) moves the bars live in
+  between: only the latest report is kept, published at most about four times a second, and written to the row at most
+  once a poll. A screen reader hears *Import of prices.csv is done.* in a polite live region. `LaneJob.Progress`,
+  `.Done` and `.Of` serve a board of your own; `Jobs.Fake()` publishes a noticed job's work too. Catalog words in English
+  and Hungarian (`WorkNotices`, `WorkNoticesUnread`, `WorkNone`, `WorkRunning`, `WorkProgress`, `WorkDone`, `WorkFailed`,
+  `WorkStopped`, `WorkEndedDone`, `WorkEndedFailed`, `WorkEndedStopped`). **Upgrade:** four new columns (`Notice`,
+  `Progress`, `Done`, `Of`) and an index on `(UserId, ProcessedAt)`: `rask db add AddJobProgress && rask db update`
+  (until then the processor logs exactly that). See [docs/jobs.md](docs/jobs.md#show-a-job-to-the-person-who-started-it)
+  and the app frame demo at [rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/).
 - **A `RaskApp` takes over an existing schema with `c.Data.OwnsSchema(s => …)` (#1333).** Before: only a host wired
   by hand could adopt a database its migrations did not make or give a slow migration more than thirty seconds —
   `builder.Services.AddRaskData<T>(…).OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users"))` — so a

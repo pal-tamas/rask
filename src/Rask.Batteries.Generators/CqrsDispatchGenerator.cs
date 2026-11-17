@@ -269,6 +269,13 @@ public sealed class CqrsDispatchGenerator : IIncrementalGenerator
             return null;
         }
 
+        // Rask.Cqrs registers its own subscriptions (CqrsRegistry seeds them, #1293): a registry generated into it would
+        // collide, through InternalsVisibleTo, with the registry each of its friends generates (CS0436).
+        if (compilation.AssemblyName is Namespace)
+        {
+            return null;
+        }
+
         var subscription = symbol.AllInterfaces.FirstOrDefault(static iface =>
             iface.MetadataName is "ISubscription`1" && iface.ContainingNamespace?.ToDisplayString() is Namespace);
         return subscription is null
