@@ -48,7 +48,7 @@ internal sealed partial class DeployCommand
             return false;
         }
 
-        if (Array.Find(["github-actions", "dry-run", "setup-host"], parsed.HasFlag) is { } flag)
+        if (Array.Find(["github-actions", "dry-run", "setup-host", "no-prune"], parsed.HasFlag) is { } flag)
         {
             error = $"--{flag} doesn't apply to `rask deploy {action}`.";
             return false;
@@ -73,9 +73,10 @@ internal sealed partial class DeployCommand
         // array, not as prose on stdout that it then has to recognise.
         if (asJson)
         {
+            var disk = await ReadDiskStatusAsync(host, cancellationToken).ConfigureAwait(false);
             JsonOutput.Write(
                 Console,
-                new DeployStatusReport(HostName(host), [.. apps.Select(a => ToJson(a, slug))]),
+                new DeployStatusReport(HostName(host), [.. apps.Select(a => ToJson(a, slug))], disk),
                 CliJsonContext.Default.DeployStatusReport);
             return 0;
         }
@@ -98,7 +99,7 @@ internal sealed partial class DeployCommand
                 ? $"  No previous image for '{slug}' — `rask deploy rollback` has nothing to go back to yet."
                 : $"  `rask deploy rollback` would restore {slug}:{PreviousTag} ({rollbackTo}).",
             ConsoleStyle.Dim);
-        await WriteDiskStatusAsync(host, cancellationToken).ConfigureAwait(false);
+        WriteDiskStatus(host, await ReadDiskStatusAsync(host, cancellationToken).ConfigureAwait(false));
 
         return 0;
     }

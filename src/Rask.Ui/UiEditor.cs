@@ -136,7 +136,7 @@ public sealed partial class UiEditor : Component, IUiFieldControl, IUiLockable, 
     /// <inheritdoc />
     protected override Component? Render()
     {
-        var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge, Invalid == true);
+        var field = UiWithField.For(this, Label, Description, DescriptionTrailing, Badge, Invalid == true, namesBound: Host is null);
         var composed = (Children ?? []).Where(child => child is not null).ToList();
         var scope = new UiEditorScope(Locked, Current, Placeholder ?? Host?.Placeholder, field.ControlId + "-input", Host);
         var box = Div.Id(field.ControlId)

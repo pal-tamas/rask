@@ -209,7 +209,8 @@ public class BrowserTargetsAnalyzerTests
     [Fact]
     public async Task An_attribute_keyword_a_target_lacks_is_reported_where_it_is_named()
     {
-        // popover="hint" is Chromium's and Firefox's: the emitter writes its support on the enum member itself.
+        // popover="hint" came to Safari long after 17: the emitter writes its support on the enum member itself.
+        // The release it came in is MDN's to move (never shipped, then 27.3), so the check stops at the target.
         var source = """
             using Rask.Core;
 
@@ -221,7 +222,7 @@ public class BrowserTargetsAnalyzerTests
 
         var d = Assert.Single(await Diagnostics(source, "safari >= 17", withLibrary: false));
 
-        Assert.Contains("'Hint' is not in Safari >= 17 (never shipped)", d.GetMessage(), StringComparison.Ordinal);
+        Assert.Contains("'Hint' is not in Safari >= 17 (", d.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]

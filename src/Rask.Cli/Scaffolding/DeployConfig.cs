@@ -99,6 +99,21 @@ internal sealed class DeployConfig
     /// </summary>
     public string? BuildIdleTimeout { get; set; }
 
+    /// <summary>
+    /// The build cache the clean-up after a deploy (and <c>rask host clean</c>) leaves on the box — <c>"20GB"</c> by
+    /// default, written like <c>"40GB"</c> or <c>"512MB"</c>. Absent unless an app needs more or less.
+    /// </summary>
+    public string? BuildCacheKeep { get; set; }
+
+    /// <summary>The free space below which a deploy is refused before it builds — <c>"3GiB"</c> by default.</summary>
+    public string? MinFreeDisk { get; set; }
+
+    /// <summary>
+    /// The free space below which a deploy warns and goes on — by default 10 GiB, or a fifth of a smaller disk.
+    /// At least <see cref="MinFreeDisk"/>.
+    /// </summary>
+    public string? WarnFreeDisk { get; set; }
+
     /// <summary>The <c>.rask/deploy.json</c> path under <paramref name="workingDirectory"/>.</summary>
     public static string PathFor(string workingDirectory) =>
         Path.Combine(workingDirectory, ".rask", "deploy.json");

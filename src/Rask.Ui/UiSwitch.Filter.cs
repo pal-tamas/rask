@@ -7,7 +7,7 @@ public sealed partial class UiSwitch : IUiFilterField
     UiFilterEntry IUiFilterField.Filter()
     {
         var cell = UiFilterCell<bool>.Over(Bind, "Ui.Switch");
-        return new UiFilterEntry(Label ?? cell.Key, null, cell.Value, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, null, cell.Value, cell.Key);
     }
 
     /// <inheritdoc />

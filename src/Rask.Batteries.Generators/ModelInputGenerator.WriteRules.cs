@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
 using Rask.Generators.Shared;
 
 namespace Rask.Batteries.Generators;
@@ -194,7 +195,7 @@ public sealed partial class ModelInputGenerator
                 foreach (var check in member.Checks)
                 {
                     s.Append("        failures = __Check(").Append(check).Append(", model.").Append(member.Name).Append(", \"")
-                        .Append(member.Name).AppendLine("\", model, path, failures);");
+                        .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).AppendLine(", model, path, failures);");
                 }
             }
         }
@@ -285,7 +286,7 @@ public sealed partial class ModelInputGenerator
             foreach (var check in member.Checks)
             {
                 s.Append(indent).Append("failures = __Check(").Append(check).Append(", ").Append(access).Append(", \"")
-                    .Append(member.Name).Append("\", ").Append(held).Append(", path + \"").Append(field).AppendLine(".\", failures);");
+                    .Append(member.Name).Append("\", ").Append(member.Named ?? Quoted(member.Name)).Append(", ").Append(held).Append(", path + \"").Append(field).AppendLine(".\", failures);");
             }
         }
     }
@@ -417,6 +418,8 @@ public sealed partial class ModelInputGenerator
         return "value is { } held ? " + Ask("held") + " : " + empty;
     }
 
+    private static string Quoted(string name) => SymbolDisplay.FormatLiteral(name, quote: true);
+
     private static bool IsText(FieldRule rule) => string.Equals(rule.ModelType, "string?", StringComparison.Ordinal);
 
     // The framework's one sentence for a field that must be filled: from the strings catalog, in the reader's
@@ -437,11 +440,11 @@ public sealed partial class ModelInputGenerator
     {
         s.Append("    private static ").Append(FailureList)
             .Append(" __Check(global::System.ComponentModel.DataAnnotations.ValidationAttribute check, ")
-            .Append("object? value, string name, object model, string path, ").Append(FailureList)
+            .Append("object? value, string name, string displayName, object model, string path, ").Append(FailureList)
             .AppendLine(" failures)");
         s.AppendLine("    {");
-        s.AppendLine("        // The trim-safe context: it names the model without reflecting over it.");
-        s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, name, null, null) { MemberName = name };");
+        s.AppendLine("        // The trim-safe context: it names the field by its [Display] or [DisplayName] without reflecting over the model.");
+        s.AppendLine("        var context = new global::System.ComponentModel.DataAnnotations.ValidationContext(model, displayName, null, null) { MemberName = name };");
         s.AppendLine("        return check.GetValidationResult(value, context) is { ErrorMessage: { } error }");
         s.Append("            ? ").Append(ModelRules).Append(".Told(failures, path, name, ")
             .Append(fromCatalog ? "global::Rask.Core.Forms.DataAnnotationsFieldValidator.Message(check, value, error)" : "error").AppendLine(")");
