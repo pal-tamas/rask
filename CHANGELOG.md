@@ -8,6 +8,21 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`[OffThread]` runs a query's or a command's handler off the page's thread (#1329).** Before: a handler that works
+  without yielding — `Xlsx.Read` of a large workbook, a big XML parse — froze a WebAssembly page until it returned,
+  and held a Server session's handler for as long. After: mark the message `[OffThread]` and keep the call site
+  (`await Dispatcher.Query(new ReadFuelings(bytes), token)`). In a browser app it runs in one Web Worker with a second
+  .NET runtime made from the app's own `_framework`, started at the first such message (or after the first paint
+  with `host.Configure(c => c.OffThread.Warm = true)`); the message and its answer cross in the generated wire codec,
+  now emitted for `[OffThread]` messages without a remote transport, with `byte[]` moved as an `ArrayBuffer` rather
+  than base64. Authorization and validation run on the page first, the handler reads in the page's culture, and its
+  exceptions come back as the page would have seen them. Cancelling cancels `Current.Cancellation` in the worker; a
+  handler that does not stop within a second has its worker restarted, and the next message starts a new one. On
+  the server the handler runs on the thread pool. New: `OffThreadAttribute`, `RaskWasmOptions.OffThread`,
+  `OffThreadOptions.Warm`, and RASK123 for a handler that asks for a page service (`IJSRuntime`, `ElementRef`, a
+  `Rask.Ui` service) or a message or result with no wire encoding. The page's script (`rask-offthread.js`) and the
+  worker's (`rask-worker.js`) are fetched only when the first `[OffThread]` message is sent. Guide:
+  docs/cqrs.md#off-the-pages-thread--offthread.
 - **A URL per language works on the Server host (#1278).** Before: `UrlPrefix = true` was WebAssembly only, and on
   a Server app it changed nothing — `/de/about` was a 404. After: `"Rask:Cultures": { "SupportedCultures": ["en",
   "de"], "UrlPrefix": true }` serves `/about` in English and `/de/about` in German from the same `[Route("/about")]`;

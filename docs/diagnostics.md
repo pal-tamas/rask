@@ -1,4 +1,4 @@
-# Rask diagnostics (RASK001–RASK122, RASKVAL001–RASKVAL002)
+# Rask diagnostics (RASK001–RASK123, RASKVAL001–RASKVAL002)
 
 Every Rask diagnostic, what triggers it, and how to fix it. Errors block the build; warnings don't
 but flag a real problem; the hidden ones are informational, surfaced only as an IDE suggestion.
@@ -138,6 +138,7 @@ dotnet_analyzer_diagnostic.category-Rask.severity = warning
 | [RASK120](#rask120) | Warning | An event callback captures a `for` loop's variable |
 | [RASK121](#rask121) | Warning | A `[JSInvokable]` method is not `public` |
 | [RASK122](#rask122) | Warning | The signed-in user is kept without following `IUserProvider.Changed` |
+| [RASK123](#rask123) | Error | An `[OffThread]` message cannot run in a Web Worker |
 | [RASKVAL001](#raskval001) | Error | Two validators for the same model |
 | [RASKVAL002](#raskval002) | Warning | Validator cannot be constructed automatically |
 
@@ -3005,3 +3006,28 @@ private void OnUserChanged(object? sender, EventArgs e)
     StateHasChanged();
 }
 ```
+
+## RASK123
+
+**An `[OffThread]` message cannot run in a Web Worker** · Error
+
+In a browser app an [`[OffThread]`](cqrs.md#off-the-pages-thread--offthread) query or command runs in a Web Worker
+beside the page: a second .NET runtime with the app's Rask.Cqrs handlers and nothing of the page — no DOM, no
+`IJSRuntime`, no `ElementRef`, no `Rask.Ui` service, nothing Program.cs registered. The message and its result cross in
+the generated wire encoding. So two things that would only fail once the worker ran the handler are reported here:
+
+```csharp
+[OffThread]
+public sealed record ReadSheet(byte[] File) : IQuery<ISheet>;          // ✗ RASK123 — an interface has no wire encoding
+
+public sealed class ReadSheetHandler(IJSRuntime js)                     // ✗ RASK123 — IJSRuntime exists only on the page
+    : IQueryHandler<ReadSheet, ISheet> { … }
+```
+
+```text
+'Demo.ReadSheet' is [OffThread], so its handler runs in a Web Worker beside the page, but its handler 'ReadSheetHandler' asks for 'Microsoft.JSInterop.IJSRuntime', which exists only on the page — pass what the handler needs in the message, and do the page's part with its result
+```
+
+**Fix:** answer with a record the codec can encode (the shapes [RASK053](#rask053) lists), and give the handler what it
+needs in the message instead of a page service — do the page's part (a toast, a focus, a download) with the result,
+after the `await`. A handler that does not need to leave the page's thread does not need `[OffThread]`.

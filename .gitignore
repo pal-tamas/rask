@@ -158,6 +158,8 @@ src/Rask.Wasm/Browser/main.js
 src/Rask.Wasm/Browser/rask.wasm.js
 src/Rask.Wasm/Browser/rask-hooks.js
 src/Rask.Wasm/Browser/rask-sw.js
+src/Rask.Wasm/Browser/rask-offthread.js
+src/Rask.Wasm/Browser/rask-worker.js
 
 # Tailwind output. Rask.Tailwind compiles Styles/app.css into wwwroot/css/ at build, so the file in the
 # tree is a build artifact: committing it means a stale stylesheet can be served by a checkout that never

@@ -37,6 +37,9 @@
     <InternalsVisibleTo Include="Rask.Query"/>
     <InternalsVisibleTo Include="Rask.Cqrs.Server"/>
     <InternalsVisibleTo Include="Rask.Cqrs.Client"/>
+    <!-- [OffThread]'s browser half: the page's dispatch and the worker's executor live here, the postMessage there. -->
+    <InternalsVisibleTo Include="Rask.Wasm"/>
+    <InternalsVisibleTo Include="Rask.Wasm.Tests"/>
     <InternalsVisibleTo Include="Rask.Cqrs.Tests"/>
     <InternalsVisibleTo Include="Rask.Query.Tests"/>
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>

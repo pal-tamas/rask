@@ -43,6 +43,12 @@ public sealed class RaskWasmOptions
     public ToastOptions Toasts { get; } = new();
 
     /// <summary>
+    /// The Web Worker that runs <c>[OffThread]</c> queries and commands beside the page:
+    /// <c>c.OffThread.Warm = true</c> starts it at boot rather than at the first one.
+    /// </summary>
+    public OffThreadOptions OffThread { get; } = new();
+
+    /// <summary>
     /// How long a handler's work is waited for before the page is shown. <see cref="TimeSpan.Zero"/> disables the
     /// wait. Default 150&#160;milliseconds.
     /// </summary>

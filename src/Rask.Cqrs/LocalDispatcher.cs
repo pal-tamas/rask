@@ -42,7 +42,7 @@ internal sealed class LocalDispatcher : IDispatcher
 
         var token = Ambient.Or(cancellationToken);
         using var cancellation = Ambient.Enter(token);
-        return await ((Task<TResult>)invoker(provider, query, token)).ConfigureAwait(false);
+        return await OffThread.Invoke<TResult>(invoker, provider, query, token).ConfigureAwait(false);
     }
 
     public async Task Send(ICommand command, CancellationToken cancellationToken = default)
@@ -52,7 +52,7 @@ internal sealed class LocalDispatcher : IDispatcher
 
         var token = Ambient.Or(cancellationToken);
         using var cancellation = Ambient.Enter(token);
-        await invoker(provider, command, token).ConfigureAwait(false); // Task<Unit> is a Task
+        await OffThread.Invoke(invoker, provider, command, token).ConfigureAwait(false); // Task<Unit> is a Task
     }
 
     public async Task<TResult> Send<TResult>(ICommand<TResult> command, CancellationToken cancellationToken = default)
@@ -62,7 +62,7 @@ internal sealed class LocalDispatcher : IDispatcher
 
         var token = Ambient.Or(cancellationToken);
         using var cancellation = Ambient.Enter(token);
-        return await ((Task<TResult>)invoker(provider, command, token)).ConfigureAwait(false);
+        return await OffThread.Invoke<TResult>(invoker, provider, command, token).ConfigureAwait(false);
     }
 
     public async Task Publish<TEvent>(TEvent e, CancellationToken cancellationToken = default)
