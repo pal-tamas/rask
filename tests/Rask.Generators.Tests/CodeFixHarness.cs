@@ -133,10 +133,32 @@ internal static class CodeFixHarness
         return text.ToString();
     }
 
-    private static Document CreateDocument(string source, params string[] extraAssemblies)
+    // Applies the fix for an analyzer diagnostic in a project that does NOT reference the assemblies whose file
+    // name starts with `droppedAssemblyPrefix` — for a rule that stands down where they are (RASK121 where the
+    // ASP.NET components analyzers already say the same thing).
+    public static async Task<string> ApplyAnalyzerFixWithoutAsync(
+        DiagnosticAnalyzer analyzer, CodeFixProvider provider, string diagnosticId, string source,
+        string droppedAssemblyPrefix)
     {
         var references = GeneratorDriverFixture.BuildReferences()
-            .AddRange(extraAssemblies.Select(GeneratorDriverFixture.AssemblyReference));
+            .Where(r => !Path.GetFileName(r.Display ?? string.Empty)
+                .StartsWith(droppedAssemblyPrefix, StringComparison.Ordinal));
+        var document = CreateDocument(source, references);
+        var compilation = (await document.Project.GetCompilationAsync())!;
+        var diagnostics = await compilation
+            .WithAnalyzers(ImmutableArray.Create(analyzer))
+            .GetAnalyzerDiagnosticsAsync();
+        return await ApplyAsync(provider, document, FirstOf(diagnostics, diagnosticId));
+    }
+
+    private static Document CreateDocument(string source, params string[] extraAssemblies) =>
+        CreateDocument(
+            source,
+            GeneratorDriverFixture.BuildReferences()
+                .AddRange(extraAssemblies.Select(GeneratorDriverFixture.AssemblyReference)));
+
+    private static Document CreateDocument(string source, IEnumerable<MetadataReference> references)
+    {
         var workspace = new AdhocWorkspace();
         var project = workspace.AddProject(ProjectInfo.Create(
             ProjectId.CreateNewId(),

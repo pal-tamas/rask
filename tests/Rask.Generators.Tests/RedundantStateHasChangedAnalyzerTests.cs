@@ -88,7 +88,7 @@ public class RedundantStateHasChangedAnalyzerTests
 
     [Fact]
     public async Task StateHasChanged_in_a_lifecycle_method_raises_no_diagnostic() =>
-        // Not inside a callback lambda — a background/lifecycle StateHasChanged is legitimate.
+        // Not inside a callback lambda, so not RASK026's — a lifecycle hook's redundant call is RASK119.
         Assert.Empty(await Diagnostics(App(
             "protected override async Task OnMount() => StateHasChanged();"
             + "protected override Component? Render() => Div()[\"x\"];")));

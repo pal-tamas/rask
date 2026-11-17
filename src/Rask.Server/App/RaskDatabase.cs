@@ -14,6 +14,10 @@ internal static class RaskDatabase
     /// <summary>Whether the app applies its pending migrations when it starts — see <c>RaskAppOptions.MigrateOnStart</c>.</summary>
     internal const string MigrateOnStartKey = "Rask:Database:MigrateOnStart";
 
+    /// <summary>How a <c>RaskApp</c> stops applying migrations at start, ending "… turn this off {it}".</summary>
+    internal const string MigrateOnStartOff =
+        "with app.Configure(c => c.MigrateOnStart = false) or Rask__Database__MigrateOnStart=false.";
+
     /// <summary>
     /// The provider <paramref name="configuration"/> names — SQLite when it names none, so an app that never set the
     /// key keeps the database it always had.

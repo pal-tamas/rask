@@ -13,7 +13,7 @@ public sealed partial class UiInput<T> : IUiFilterField
         var value = cell.Value;
         var active = UiFilterAddress.Holds(value);
 
-        return new UiFilterEntry(Label ?? cell.Key, active ? Convert.ToString(value, CultureInfo.CurrentCulture)?.Trim() : null, active, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, active ? Convert.ToString(value, CultureInfo.CurrentCulture)?.Trim() : null, active, cell.Key);
     }
 
     /// <inheritdoc />

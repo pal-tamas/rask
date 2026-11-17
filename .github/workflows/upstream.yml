@@ -241,8 +241,9 @@ jobs:
             *) exit 1 ;;
           esac
 
+      # A run that could not tell keeps its logs too: they are the only way to read why (#1345).
       - uses: actions/upload-artifact@v7
-        if: steps.parity.outputs.drifted == 'true'
+        if: steps.parity.outputs.drifted == 'true' || (failure() && steps.parity.conclusion == 'failure')
         with:
           name: flux-parity
           path: |

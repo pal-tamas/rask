@@ -100,6 +100,7 @@ internal static class RaskBatteryWiring
         // Every scaffolded feature handler dispatches through the mediator, so a database without one has
         // nothing driving it.
         var data = options.Data.Enabled && options.Cqrs.Enabled;
+        RefuseOwnershipWithoutData(options, data);
         if (data)
         {
             WireData(services);
@@ -132,6 +133,25 @@ internal static class RaskBatteryWiring
                       ?? builder.Configuration.GetValue<bool?>(RaskDatabase.MigrateOnStartKey)
                       ?? true;
         WireDatabase(services, options, appContext, provider, migrate);
+    }
+
+    /// <summary>
+    /// Refuses <c>c.Data.OwnsSchema(…)</c> on an app that wires no database: a takeover the app believes it has, quietly
+    /// never happening, would surface only as tables made twice the day the battery comes back on.
+    /// </summary>
+    private static void RefuseOwnershipWithoutData(RaskAppOptions options, bool data)
+    {
+        if (data || options.Data.Ownership is null)
+        {
+            return;
+        }
+
+        var cause = options.Data.Enabled
+            ? "c.Cqrs.Off() leaves the app without a database (every handler that writes to one dispatches through it)"
+            : "c.Data.Off() leaves the database out of the app";
+        throw new InvalidOperationException(
+            $"c.Data.OwnsSchema(…) says how this app's migrations take over its database, but {cause}, so there is "
+            + "no schema to own. Drop the OwnsSchema call, or turn the battery back on.");
     }
 
     private static RaskDatabaseProvider ApplyConfiguration(WebApplicationBuilder builder, RaskAppOptions options)
@@ -514,9 +534,16 @@ internal static class RaskBatteryWiring
         // so this only adds the binding.
         services.AddRaskData<TContext>();
 
-        // The app's pending migrations, applied before any worker below starts — see MigrateOnStart.
+        // The app's pending migrations, applied before any worker below starts — see MigrateOnStart. c.Data.OwnsSchema
+        // says how they apply, the same OwnedSchema a hand-wired host's AddRaskData(…).OwnsSchema(…) registers; with
+        // MigrateOnStart off nothing applies at start, so there is nothing for it to take over either.
         if (migrate)
         {
+            if (options.Data.Ownership is { } ownership)
+            {
+                services.AddSingleton(new OwnedSchema<TContext>(ownership, RaskDatabase.MigrateOnStartOff));
+            }
+
             services.AddHostedService<MigrateOnStart<TContext>>();
         }
 
