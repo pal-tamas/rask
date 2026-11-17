@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`rask deploy`'s disk clean-up and guard are the app's to tune, and runnable on demand (#1319).** Before: the
+  post-deploy prune kept 20 GB of build cache and the guard refused under 3 GiB and warned under 10 GiB, all
+  fixed; freeing a full box meant typing the `docker -H ssh://… prune` lines by hand, outside the box lock; and only
+  the text `rask deploy status` had the disk line. After: `.rask/deploy.json` takes `"buildCacheKeep": "40GB"`,
+  `"minFreeDisk": "5GB"` and `"warnFreeDisk": "20GB"` (sizes as docker reads them; a value that isn't one is exit 2
+  naming the key, and a deploy keeps them as written); `rask deploy --no-prune` skips one deploy's clean-up;
+  `rask host clean` runs both prunes under the same box lock — waiting while a deploy holds it — and says what it
+  freed; and `rask deploy status --json` carries a `disk` object (`freeBytes`, `sizeBytes`, `isLow`, `isTooLow`,
+  `reclaimableImages`, `reclaimableBuildCache`). Docs: docs/deployment.md#the-boxs-disk, docs/cli.md.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
