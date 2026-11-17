@@ -19,6 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup
+        with:
+          native-tools: 'false'   # never builds
       - name: Unlist
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

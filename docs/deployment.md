@@ -396,7 +396,10 @@ a red build. Keep the caches between runs; with GitHub Actions that is one step 
 ```
 
 Every cache is keyed by version inside (`<root>/<version>/…`), so restoring an older one is safe: a new pin
-is simply one more folder.
+is simply one more folder. A hit is trusted on the file being there (it was checked when it was fetched), so
+save the cache only from your own builds — Actions already keeps a pull request from a fork out of it. Rask's
+own CI does the same with one cache per tool, keyed on the files that pin it and saved from `main` only
+(`.github/actions/setup` in the Rask repository).
 
 The deploy workflow needs none of this: its image build keeps these tools (and the NuGet packages) in the
 template Dockerfile's BuildKit cache mounts, and `rask deploy` carries those between runs itself — see

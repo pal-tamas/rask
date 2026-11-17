@@ -1,7 +1,7 @@
 name: Setup .NET for Rask
 description: >-
-  Installs the .NET SDK and (optionally) the requested workloads with caching, plus the NuGet and
-  Playwright caches. One place for every workflow's setup so the three CI workflows can't drift.
+  Installs the .NET SDK and (optionally) the requested workloads with caching, plus the NuGet,
+  native-tool and Playwright caches. One place for every workflow's setup so the three CI workflows can't drift.
   Run it AFTER actions/checkout (this action's file has to be on disk first).
 
 inputs:
@@ -15,6 +15,12 @@ inputs:
     description: >-
       Cache ~/.nuget/packages (saved by main's runs, restored everywhere). Turn off for jobs that never
       restore (e.g. VSTest-direct shards).
+    required: false
+    default: 'true'
+  native-tools:
+    description: >-
+      Cache the native tools the build fetches (~/.rask: Tailwind, tsgo/esbuild, litestream; ~/.cache/rask:
+      Rask.Pdf's Chrome shell), each keyed on its pins. Turn off only for a job that never builds.
     required: false
     default: 'true'
   playwright:
@@ -38,24 +44,56 @@ runs:
 
     # Keyed on the versions, not the project files: with central package management every version is in
     # Directory.Packages.props, and a key over **/*.csproj saved a new 1.8 GB copy for every project edit.
-    # SAVED ON MAIN ONLY. Every other ref reads main's copy (a branch may read its default branch's caches)
-    # and keeps its own restore to itself: each ci/** branch used to save a copy of its own, five of them
-    # filled the repository's 10 GB, and GitHub then evicted the workload and Playwright caches every job reads.
     - name: Cache NuGet packages
-      if: inputs.nuget-cache == 'true' && github.ref == 'refs/heads/main'
-      uses: actions/cache@v6
+      if: inputs.nuget-cache == 'true'
+      uses: ./.github/actions/cache-on-main
       with:
         path: ~/.nuget/packages
         key: nuget-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
         restore-keys: nuget-v2-${{ runner.os }}-${{ runner.arch }}-
 
-    - name: Restore NuGet packages from main
-      if: inputs.nuget-cache == 'true' && github.ref != 'refs/heads/main'
-      uses: actions/cache/restore@v6
+    # The native tools the build fetches itself (docs/deployment.md, "Caching the build's tools in CI"), so a
+    # warm runner never asks github.com, npm or Chrome for Testing for one: a release host's outage (504s for
+    # longer than the fetch's 90 s of retries, 2026-11-09) went red on every job that built Tailwind (#1314).
+    #
+    # ONE CACHE PER TOOL, each keyed on the files that pin it — its version AND its digests, as the followers
+    # in scripts/upstream/ write them — so a bump is a new key and the build fetches (and checks) the new pin.
+    # Not one cache for all four: the first job to save would decide what the cache holds, and most jobs
+    # fetch only some of them (Chrome only where a Rask.Pdf app builds). A job that never fetched a tool
+    # just finds nothing to save for it. No fallback to an older key either: every root keeps one folder per
+    # version, so a restored older copy would carry each superseded pin forever.
+    #
+    # Saved on main only, after main's build fetched the file and checked its pinned SHA-256: a hit is then
+    # trusted on the cache's own "already here" check (a Tailwind size receipt, Pdf's .verified marker, an
+    # unpacked tsgo/esbuild/litestream), so nothing but main's own verified fetch may write one.
+    - name: Cache the Tailwind CLI
+      if: inputs.native-tools == 'true'
+      uses: ./.github/actions/cache-on-main
       with:
-        path: ~/.nuget/packages
-        key: nuget-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Directory.Packages.props', 'global.json') }}
-        restore-keys: nuget-v2-${{ runner.os }}-${{ runner.arch }}-
+        path: ~/.rask/tailwind
+        key: rask-tailwind-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/Rask.Tailwind/build/Rask.Tailwind.props', 'src/Rask.Tailwind.Tasks/TailwindPins.cs') }}
+
+    - name: Cache tsgo and esbuild
+      if: inputs.native-tools == 'true'
+      uses: ./.github/actions/cache-on-main
+      with:
+        path: ~/.rask/typescript
+        # The versions are in Rask.Core.targets, every digest (keyed "<package>@<version>") in the pin table.
+        key: rask-typescript-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/Rask.TypeScript.Tasks/TypeScriptToolPins.cs') }}
+
+    - name: Cache litestream
+      if: inputs.native-tools == 'true'
+      uses: ./.github/actions/cache-on-main
+      with:
+        path: ~/.rask/litestream
+        key: rask-litestream-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.props', 'src/Rask.SQLite.Litestream/build/Rask.SQLite.Litestream.targets') }}
+
+    - name: Cache Rask.Pdf's Chrome shell
+      if: inputs.native-tools == 'true'
+      uses: ./.github/actions/cache-on-main
+      with:
+        path: ~/.cache/rask
+        key: rask-chrome-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/Rask.Pdf/build/Rask.Pdf.ChromePin.props') }}
 
     # Resolve the SDK version so the workload cache invalidates when the SDK moves (workload packs are
     # SDK-band-specific). Only needed when we install workloads.
