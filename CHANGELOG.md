@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A C# union crosses interop and the resume record as the case it holds (#1330).** Before: `union Selection(Search,
+  Pick)` went out of `IJSRuntime` and `IPersistentState` as its case value, but never came back — System.Text.Json
+  calls two object cases ambiguous, so an interop result threw and a persisted union silently read as a miss after
+  every restart, deploy or hibernation; `union IdOrSlug(int, string)` missed too, the bag reading numbers from strings.
+  After: both hosts' interop (results, `[JSInvokable]` arguments, scoped-script callbacks, Rask.Web's any-valued
+  calls) and the persisted-state bag read a union of records back as the case its properties name, with .NET's own
+  structural classifier and nothing on the union; the bag reads numbers strictly, so a number-or-string union reads
+  either case. The JSON is System.Text.Json's (the bare case value); a union no set of properties tells apart behaves
+  exactly as before. Guides: docs/js-interop-runtime.md, docs/configuration.md#surviving-a-restart-or-a-redeploy.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
