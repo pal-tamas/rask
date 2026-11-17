@@ -67,6 +67,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   a model changed since the last migration → the start FAILS naming `rask db add <Name>`;
   concurrent instances rely on EF Core's migration lock.
   Opt out with `app.Configure(c => c.MigrateOnStart = false)` or `Rask:Database:MigrateOnStart=false` (code wins);
+  a database whose schema predates the migrations is taken over with `app.Configure(c => c.Data.OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users").Patience(10.Minutes)))` (MigrateOnStart off → nothing taken over; with `c.Data.Off()` → the start refuses);
   a hand-wired host migrates only with `AddRaskData<T>(o => …).OwnsSchema(s => s.TakesOverFrom("OldLast").WhenTable("Tenant").Patience(20.Minutes))`
   — under EF's migration lock, writing the first migration down as applied on a database that already has its schema ([taking over an existing schema](docs/data.md#taking-over-an-existing-schema)).
   An app that outgrows it registers `IDbContextFactory<TheirContext>` and the type is read off that registration rather than discovered or declared (this deleted an earlier source generator and its `[ModuleInitializer]` bridge entirely).

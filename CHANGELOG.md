@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A `RaskApp` takes over an existing schema with `c.Data.OwnsSchema(s => …)` (#1333).** Before: only a host wired
+  by hand could adopt a database its migrations did not make or give a slow migration more than thirty seconds —
+  `builder.Services.AddRaskData<T>(…).OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users"))` — so a
+  `RaskApp.Create(args)` app moving onto Rask had to give up `RaskApp`. After:
+  `app.Configure(c => c.Data.OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users").Patience(10.Minutes)))`, the
+  same `SchemaOwnership` steps on the Data battery (now a `DataBattery`, `Off()`/`On()` unchanged).
+  `MigrateOnStart = false` (or `Rask:Database:MigrateOnStart=false`) still means nothing applies at start, so nothing
+  is taken over; beside `c.Data.Off()` or `c.Cqrs.Off()` it refuses the start, naming both.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
