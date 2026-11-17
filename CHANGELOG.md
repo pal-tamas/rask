@@ -8,6 +8,16 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Four analyzers modelled on Blazor's BL0012–BL0015 (#1327).** Before: a Rask app could write each of these and
+  nothing objected until it misbehaved at run time. After, each is a warning: **RASK119** a `StateHasChanged()` in
+  `OnMount`/`OnUpdated` that no `await` follows (the hook is rendered anyway; quick-fix deletes it); **RASK120** an
+  event callback built in a `for` loop that reads the loop's variable (`for (var i…) Button.OnClick(() =>
+  Remove(i))` — every row would remove the last); **RASK121** a `[JSInvokable]` method that is not public, which the
+  browser's call never finds (quick-fix makes it public; quiet where BL0015 already runs, so a Server app is not told
+  twice); **RASK122** `IUserProvider.Current` kept in a field or property by a type that never subscribes to
+  `IUserProvider.Changed`, so it shows the old user after a sign-in or sign-out. BL0016 (wrap every JS interop call
+  in `try`/`catch`) has no Rask counterpart: a handler or hook that throws is isolated, logged and shown, and the
+  session goes on.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
