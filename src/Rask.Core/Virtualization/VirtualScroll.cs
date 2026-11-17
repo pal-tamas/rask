@@ -1,13 +1,21 @@
 namespace Rask.Core.Virtualization;
 
 /// <summary>
-///     Where a scroll box of fixed-height rows is, as the browser last said, and the rows it shows from there: the
-///     arithmetic under <see cref="Components.VirtualizeModel" /> and under every kit list that windows its rows
-///     (<c>Ui.Select</c>, <c>Ui.Pillbox</c>).
+///     Where a scroll box of rows is, as the browser last said, and the rows it shows from there: the arithmetic under
+///     <see cref="Components.VirtualizeModel" /> and under every kit list that windows its rows (<c>Ui.Select</c>,
+///     <c>Ui.Pillbox</c>).
 /// </summary>
 /// <remarks>
-///     Held by the component whose render draws the rows, so the scroll is heard by that component's own handler and
-///     every row it draws keeps that component as its owner.
+///     <para>
+///         Two ways to count. The kit's rows are all one height, so <see cref="Window" /> finds a row from its place
+///         alone. A <see cref="Components.VirtualizeModel" /> that draws the context's spacers is MEASURED: the browser
+///         says where its rows stand (<see cref="VirtualReport" />), and <see cref="Shown" /> reads the rows in view off
+///         that, with <see cref="RowHeights" />' running average for the rows no render has drawn.
+///     </para>
+///     <para>
+///         Held by the component whose render draws the rows, so the scroll is heard by that component's own handler
+///         and every row it draws keeps that component as its owner.
+///     </para>
 /// </remarks>
 internal sealed class VirtualScroll
 {
@@ -20,8 +28,17 @@ internal sealed class VirtualScroll
 
     private int _clientHeight;
 
+    // How near the end of its content the box may be and still be at it: a zoomed page's scrollTop is fractional.
+    private const double EndSlack = 2;
+
     /// <summary>How far the box is scrolled, in pixels.</summary>
     internal int ScrollTop => _scrollTop;
+
+    /// <summary>What the browser last measured of a measured list's rows; null for a box that holds none.</summary>
+    internal VirtualReport? Report { get; private set; }
+
+    /// <summary>Whether the box was scrolled to the end of its content when it last said where it is.</summary>
+    internal bool AtEnd { get; private set; } = true;
 
     /// <summary>
     ///     Reads where the box is from a scroll it raised: the box travels with it as <c>e.Target</c>, as MDN's
@@ -42,6 +59,9 @@ internal sealed class VirtualScroll
         {
             _clientHeight = Math.Min(box.ClientHeight, MaxClientHeight);
         }
+
+        Report = box.Virtual;
+        AtEnd = box.ScrollHeight - box.ClientHeight - box.ScrollTop < EndSlack;
     }
 
     /// <summary>Back to the top: the rows are new, and the box the browser scrolls goes there too.</summary>
@@ -83,4 +103,86 @@ internal sealed class VirtualScroll
     /// <returns>The height in pixels.</returns>
     internal int Height(int itemSize, int initialClientHeight) =>
         _clientHeight > 0 ? _clientHeight : Math.Max(initialClientHeight, itemSize);
+
+    /// <summary>
+    ///     The rows a measured list shows in the box now: the first one the box's top cuts and one past the last its
+    ///     bottom cuts. Inside the drawn window a row is found where the browser measured the rows to stand; above and
+    ///     below it, where the spacers were drawn to put it.
+    /// </summary>
+    /// <param name="total">How many rows there are.</param>
+    /// <param name="average">The height a row is taken to be now.</param>
+    /// <param name="initialClientHeight">The box's height to assume before the browser has said it.</param>
+    /// <param name="drawn">The window the last render drew.</param>
+    /// <param name="drawnAverage">The row height that render drew its spacers at.</param>
+    /// <returns>The first row in view and one past the last.</returns>
+    internal (int First, int Last) Shown(int total, double average, int initialClientHeight, VirtualWindow drawn, double drawnAverage)
+    {
+        var height = Height((int)Math.Ceiling(average), initialClientHeight);
+        var top = Math.Max(0, _scrollTop - (Report?.ListTop ?? 0));
+        var of = Report is { } report && report.Of(drawn) && drawn.Count > 0 && report.Separation > 0 ? Report : null;
+        var separation = of?.Separation;
+
+        // A row the browser says an edge cuts is that row; past the drawn rows, a row is where the spacers put it.
+        var first = Drawn(of?.TopRow, drawn) is { } cut
+            ? cut
+            : Row(Math.Floor(IndexAt(top, average, drawn, drawnAverage, separation)), total);
+        var last = Drawn(of?.BottomRow, drawn) is { } cutBelow
+            ? cutBelow + 1
+            : Row(Math.Ceiling(IndexAt(top + height, average, drawn, drawnAverage, separation)), total);
+        return (Math.Min(first, total), Math.Clamp(last, Math.Min(first, total), total));
+    }
+
+    /// <summary>How many rows of <paramref name="average" /> height the box holds, rounded up.</summary>
+    /// <param name="average">The height a row is taken to be.</param>
+    /// <param name="initialClientHeight">The box's height to assume before the browser has said it.</param>
+    /// <returns>The rows in a box's height.</returns>
+    internal int RowsTall(double average, int initialClientHeight) =>
+        (int)Math.Ceiling(Height((int)Math.Ceiling(average), initialClientHeight) / average);
+
+    /// <summary>The window around the rows <paramref name="first" /> to <paramref name="last" />: those, and <paramref name="overscan" /> more either side.</summary>
+    /// <param name="first">The first row in view.</param>
+    /// <param name="last">One past the last row in view.</param>
+    /// <param name="overscan">How many rows past either edge are drawn as well.</param>
+    /// <param name="total">How many rows there are.</param>
+    /// <param name="average">The height a row not drawn is taken to be: the spacers are that many of them tall.</param>
+    /// <returns>The window, with the room the rows outside it take.</returns>
+    internal static VirtualWindow Around(int first, int last, int overscan, int total, double average)
+    {
+        total = Math.Max(0, total);
+        first = Math.Clamp(first, 0, total);
+        last = Math.Clamp(last, first, total);
+        var start = (int)Math.Max(0, (long)first - Math.Max(0, overscan));
+        var end = (int)Math.Min(total, (long)last + Math.Max(0, overscan));
+        return new VirtualWindow(start, end - start, Pixels(start * average), Pixels((total - end) * average));
+    }
+
+    // Where the row at `y` pixels down the list is, counted in rows (a fraction: how far into it).
+    private static double IndexAt(double y, double average, VirtualWindow drawn, double drawnAverage, double? separation)
+    {
+        if (separation is not { } rows)
+        {
+            return y / average;
+        }
+
+        var above = drawn.OffsetBefore;
+        if (y < above)
+        {
+            return Math.Min(drawn.Start, y / drawnAverage);
+        }
+
+        if (y < above + rows)
+        {
+            return drawn.Start + ((y - above) / rows * drawn.Count);
+        }
+
+        return drawn.End + ((y - above - rows) / drawnAverage);
+    }
+
+    private static int Row(double index, int total) => (int)Math.Clamp(index, 0, Math.Max(0, total));
+
+    // A row the browser named, when it is one of the drawn ones.
+    private static int? Drawn(int? row, VirtualWindow drawn) =>
+        row is { } at && at >= drawn.Start && at < drawn.End ? at : null;
+
+    private static int Pixels(double px) => (int)Math.Clamp(Math.Round(px), 0, MaxScrollTop);
 }

@@ -99,11 +99,15 @@ public class ElementRef : IElementRef<Element>
 
     // The browser this ref's element lives in: its session's, else the one handling the current event.
     internal IJSRuntime Runtime =>
-        (((_renderedIn ?? Element?.RenderHandle) as LiveSessionBase)?.Services ?? AmbientServices.Current)
-        ?.GetService<IJSRuntime>()
+        TryRuntime
         ?? throw new InvalidOperationException(
             "An element ref reached for its element before the element was on a page. Call it from an event handler or "
             + "from OnRendered, once the element is live.");
+
+    // The same browser, or null while the element is on no page: for a caller that has another way to finish.
+    internal IJSRuntime? TryRuntime =>
+        (((_renderedIn ?? Element?.RenderHandle) as LiveSessionBase)?.Services ?? AmbientServices.Current)
+        ?.GetService<IJSRuntime>();
 }
 
 /// <summary>

@@ -57,6 +57,11 @@ export class StubField {
         return name in this.attributes;
     }
 
+    // A field holds no elements: a box it stands for scrolls no virtual list (rask-virtual-report.ts).
+    querySelectorAll(): StubField[] {
+        return [];
+    }
+
     getAttribute(name: string): string | null {
         return name in this.attributes ? this.attributes[name] : null;
     }

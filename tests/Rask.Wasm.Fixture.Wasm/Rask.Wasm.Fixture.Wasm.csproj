@@ -28,6 +28,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The measured virtual lists the Server host's journeys draw too (VirtualListTests in both suites). -->
+    <Compile Include="..\Rask.Server.E2E.Tests\VirtualListPage.cs" Link="VirtualListPage.cs"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Rask.Wasm\Rask.Wasm.csproj"/>
     <!-- AddLocalization(): what a WASM app adds for resources of its own (the server has it in its framework). -->
     <PackageReference Include="Microsoft.Extensions.Localization"/>

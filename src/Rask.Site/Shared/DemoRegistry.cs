@@ -194,6 +194,7 @@ public static partial class DemoRegistry
             ["callback-rating"] = () => CodeSample.Files(["RatingStars.cs", "CallbackRatingDemo.cs"]).Result(CallbackRatingDemo),
             ["virtualize-items"] = () => CodeSample.Files(["VirtualizeItemsDemo.cs"]).Result(VirtualizeItemsDemo),
             ["virtualize-provider"] = () => CodeSample.Files(["VirtualizeProviderDemo.cs"]).Result(VirtualizeProviderDemo),
+            ["virtualize-log"] = () => CodeSample.Files(["VirtualizeLogDemo.cs"]).Result(VirtualizeLogDemo),
             ["keyed-lists-reorder"] = () => CodeSample.Files(["KeyedListsReorderDemo.cs"]).Result(KeyedListsReorderDemo),
             ["master-detail"] = () => CodeSample.Files(["MasterDetailDemo.cs"]).Result(MasterDetailDemo),
             ["toast-built-in"] = () => CodeSample.Files(["BuiltInToastDemo.cs"]).Result(BuiltInToastDemo),

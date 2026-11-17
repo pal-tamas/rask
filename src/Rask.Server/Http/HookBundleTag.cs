@@ -39,7 +39,7 @@ internal static class HookBundleTag
         "data-rask-big-step", "role",
         "data-rask-contain-keys", "data-rask-listbox-button", "data-rask-roving",
         "data-rask-focus-follows", "data-rask-press-keeps-focus", "data-rask-reveal-focus", "aria-activedescendant",
-        "data-rask-toggle", "data-rask-command",
+        "data-rask-toggle", "data-rask-command", "data-rask-virtual",
         "data-rask-drag",
         "data-rask-requires",
         "data-rask-plot", "data-rask-measure",

@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Virtualize.Items` measures its rows, as .NET 11's `Virtualize` does, and opens at a row, follows its tail and
+  scrolls to a row from code (#1326).** Before: every row had to be exactly `ItemSize` tall — a row that wrapped to a
+  second line made the spacers wrong, and the list drifted and left blank room as it scrolled. After: draw the rows
+  between `ctx.Above` and `ctx.Below` (`ctx.AboveRow` / `ctx.BelowRow` inside a `Tbody`) and rows of any height scroll
+  true: the browser measures the rows between the spacers, one running average keeps the rest, and `ItemSize` is only
+  the starting estimate. The rows in view stay put as the window moves — the browser's own scroll anchoring holds them
+  where it can, the runtime in a table and where it cannot. Three new parameters: `InitialItemIndex: 1234` (that row at
+  the top on the first render, prerendered pages too), `Anchor: VirtualAnchor.End` (a log that follows its tail until
+  the reader scrolls up), and `Scroller: _scroller` with `VirtualScroller.New()` +
+  `await _scroller.ScrollTo(i)` (the row lands at the top; the latest call wins). A list with spacers of its own keeps
+  the fixed-height maths, and so do the kit's long `Ui.Select` / `Ui.Pillbox` lists.
 - **A `RaskApp` takes over an existing schema with `c.Data.OwnsSchema(s => …)` (#1333).** Before: only a host wired
   by hand could adopt a database its migrations did not make or give a slow migration more than thirty seconds —
   `builder.Services.AddRaskData<T>(…).OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users"))` — so a
@@ -105,6 +116,10 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **`Virtualize.Items` draws 10 rows past either edge of its box, where it drew 3 (#1326).** A fast scroll or a fling
+  on a phone shows rows rather than blank spacer; .NET 11's `Virtualize` draws 15. `OverscanCount:` still sets it.
+  Measured on the wire-bytes scenario (1,000 rows, 10 in view): a scroll's diff stays 117 bytes; the first render of
+  the window grows from 1,140 to 1,686 bytes.
 - **A `Ui.Select` / `Ui.Pillbox` option row is about half the markup, and looks and behaves exactly as before (#1316).**
   Before: every row wrote Flux's whole option look as classes (~400 bytes) plus ~190 bytes on the boxes inside it — 1,326
   bytes a windowed select row, 1.23 MB for a list of 1,000 drawn whole, and 13.4 KB on the wire for one screen of scroll.

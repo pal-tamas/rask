@@ -9,7 +9,8 @@ Windowed and reorderable lists, transient toast messages, drag-and-drop, and err
 `Virtualize.Items<T>` is **headless**: *you* render the scroll container and rows from a
 `VirtualizationContext<T> ctx`, and it tells you which slice is visible. The first argument is
 the body builder; pass **exactly one** of `Items` (positional or named) or `ItemsProvider`,
-plus `ItemSize` (row height in px, 32 unless you say) and optional `OverscanCount`.
+plus `ItemSize` (a row's height in px, 32 unless you say) and optional `OverscanCount` (how many
+rows past either edge of the box are drawn too, 10 unless you say).
 
 It is the one place on the surface that is a **method call rather than a chain**, and for a reason a
 chain cannot work around: a chain infers its type argument from the step that opens it, and `T` here
@@ -18,17 +19,50 @@ that holds it, so no `using` is needed.
 
 ```csharp
 Virtualize.Items<Row>(
-    ctx => Div.Style("height:400px; overflow:auto;").OnScroll(ctx.OnScroll)[
-        Div.Style($"height:{ctx.OffsetBefore}px"),          // top spacer
-        Table[Tbody[
-            ctx.VisibleItems.Select(item => Tr.Style($"height:{ctx.ItemSize}px;").Data("rask-key", item.Index.ToString())[  // key → reuse <tr> on scroll
-                Td[item.IsPlaceholder ? "—" : item.Value!.Name]])
-        ]],
-        Div.Style($"height:{ctx.OffsetAfter}px")             // bottom spacer
-    ],
+    ctx => Div.Style("height:400px; overflow:auto;").OnScroll(ctx.OnScroll)[Rows(ctx)],
     _rows,                 // Items (in memory)
-    ItemSize: 32,
-    OverscanCount: 4)
+    ItemSize: 32)          // the starting estimate: the rows are measured from here on
+
+IEnumerable<Component> Rows(VirtualizationContext<Row> ctx)
+{
+    yield return ctx.Above;                                          // the spacer above
+    foreach (var item in ctx.VisibleItems)
+        yield return Div.Key(item.Index)[item.IsPlaceholder ? "—" : item.Value!.Name];   // key → reuse the row on scroll
+    yield return ctx.Below;                                          // the spacer below
+}
+```
+
+**Draw the rows between `ctx.Above` and `ctx.Below`, and rows of any height scroll true.** The two spacers are
+as tall as the rows not drawn, and the browser measures the rows between them as the box scrolls: one running
+average of every window it has seen, exactly as .NET 11's `Virtualize` keeps it, so `ItemSize` is only where the
+estimate starts. The rows the reader is looking at stay where they are as the window moves and the average
+settles. Rows inside a table take `ctx.AboveRow` / `ctx.BelowRow` — `<tr>` spacers inside the `Tbody`; there the
+runtime holds the rows in view itself, as it does in a browser without CSS scroll anchoring. The rows must sit
+directly between the two spacers, siblings of them both.
+
+A list with spacers of its own (`Div.Style($"height:{ctx.OffsetBefore}px")`, `ctx.OffsetAfter`) keeps the
+fixed-height maths: every row exactly `ItemSize` tall, a wrong value showing up as drift.
+
+The measured list does three more things, each a parameter:
+
+| Parameter | What it does |
+|---|---|
+| `InitialItemIndex: 1234` | Opens the list with that row at the top of its box — drawn there on the first render, prerendered pages too. Applied once, clamped to the rows there are. |
+| `Anchor: VirtualAnchor.End` | Follows the tail, as a log or a chat does: the list opens at its last row, and rows added at the end scroll into view while the reader is at the bottom; scrolled up, it stays put; back at the bottom, it follows again. `VirtualAnchor.Start` (the default) keeps a box at the top at the top; `None` holds neither edge; the flags combine. |
+| `Scroller: _scroller` | Scrolls to a row from code: `await _scroller.ScrollTo(500)` brings row 500 to the top of the box and finishes once it is in view. The latest call wins. |
+
+```csharp
+private readonly VirtualScroller _scroller = VirtualScroller.New();   // in a field, like ElementRef.New()
+private readonly List<LogLine> _log = [];
+
+Virtualize.Items(
+    ctx => Div.Style("height:320px; overflow:auto;").OnScroll(ctx.OnScroll)[Lines(ctx)],
+    _log,
+    ItemSize: 24,
+    Anchor: VirtualAnchor.End,
+    Scroller: _scroller)
+
+Button.OnClick(() => _scroller.ScrollTo(0))["Back to the first line"]
 ```
 
 For lazy / server-paged data pass `ItemsProvider:` instead of the items list. **The
@@ -66,8 +100,8 @@ reason: the first render happens before the thing that knows the answer has answ
 items mode, where the count is never in doubt.
 
 **The kit's long lists sit on the same window.** `Ui.Select` (listbox and combobox) and `Ui.Pillbox` draw every option
-up to a hundred, as Flux does, and past that only the rows in view — on the arithmetic `Virtualize` uses, held by the
-select itself so its rows stay its own. Nothing to write: a select of 1098 vehicles puts about thirty rows on the page,
+up to a hundred, as Flux does, and past that only the rows in view — on `Virtualize`'s fixed-height arithmetic (every
+option one line, cut short), held by the select itself so its rows stay its own. Nothing to write: a select of 1098 vehicles puts about thirty rows on the page,
 searches all of them, and its keys, type-ahead and ARIA reach every one ([UI kit](ui-kit.md#select)).
 
 **Items mode** — a fixed in-memory list, windowed:
@@ -77,6 +111,10 @@ searches all of them, and its keys, type-ahead and ARIA reach every one ([UI kit
 **Provider mode** — rows fetched on demand as they scroll into view:
 
 <!-- demo:virtualize-provider -->
+
+**A log** — lines of any length between `ctx.Above` and `ctx.Below`, following the tail with `Anchor: VirtualAnchor.End`, and back to the first line with `ScrollTo`:
+
+<!-- demo:virtualize-log -->
 
 ---
 

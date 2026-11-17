@@ -824,10 +824,14 @@ Rask.Core.Components.ValidationSummary.Template.set -> void
 Rask.Core.Components.ValidationSummary.ValidationSummary() -> void
 Rask.Core.Components.Virtualize
 Rask.Core.Components.VirtualizeModel
+Rask.Core.Components.VirtualizeModel.Anchor.get -> Rask.Core.Virtualization.VirtualAnchor?
+Rask.Core.Components.VirtualizeModel.Anchor.set -> void
 Rask.Core.Components.VirtualizeModel.Body.get -> Rask.Core.Fn<Rask.Core.Virtualization.VirtualizationState!, Rask.Core.Component!>?
 Rask.Core.Components.VirtualizeModel.Body.set -> void
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.get -> int?
 Rask.Core.Components.VirtualizeModel.InitialClientHeight.set -> void
+Rask.Core.Components.VirtualizeModel.InitialItemIndex.get -> int?
+Rask.Core.Components.VirtualizeModel.InitialItemIndex.set -> void
 Rask.Core.Components.VirtualizeModel.InitialTotalCount.get -> int?
 Rask.Core.Components.VirtualizeModel.InitialTotalCount.set -> void
 Rask.Core.Components.VirtualizeModel.ItemSize.get -> int
@@ -838,6 +842,8 @@ Rask.Core.Components.VirtualizeModel.ItemsProvider.get -> System.Delegate?
 Rask.Core.Components.VirtualizeModel.ItemsProvider.set -> void
 Rask.Core.Components.VirtualizeModel.OverscanCount.get -> int?
 Rask.Core.Components.VirtualizeModel.OverscanCount.set -> void
+Rask.Core.Components.VirtualizeModel.Scroller.get -> Rask.Core.Virtualization.VirtualScroller?
+Rask.Core.Components.VirtualizeModel.Scroller.set -> void
 Rask.Core.Components.VirtualizeModel.VirtualizeModel() -> void
 Rask.Core.Css
 Rask.Core.Css.AccentColorKeywords
@@ -4584,6 +4590,10 @@ Rask.Core.Virtualization.ItemsProviderResult<T>.Items.init -> void
 Rask.Core.Virtualization.ItemsProviderResult<T>.ItemsProviderResult(System.Collections.Generic.IReadOnlyList<T>! Items, int TotalItemCount) -> void
 Rask.Core.Virtualization.ItemsProviderResult<T>.TotalItemCount.get -> int
 Rask.Core.Virtualization.ItemsProviderResult<T>.TotalItemCount.init -> void
+Rask.Core.Virtualization.VirtualAnchor
+Rask.Core.Virtualization.VirtualAnchor.End = 2 -> Rask.Core.Virtualization.VirtualAnchor
+Rask.Core.Virtualization.VirtualAnchor.None = 0 -> Rask.Core.Virtualization.VirtualAnchor
+Rask.Core.Virtualization.VirtualAnchor.Start = 1 -> Rask.Core.Virtualization.VirtualAnchor
 Rask.Core.Virtualization.VirtualItem<T>
 Rask.Core.Virtualization.VirtualItem<T>.<Clone>$() -> Rask.Core.Virtualization.VirtualItem<T>!
 Rask.Core.Virtualization.VirtualItem<T>.Deconstruct(out int Index, out T? Value, out bool IsPlaceholder) -> void
@@ -4596,6 +4606,10 @@ Rask.Core.Virtualization.VirtualItem<T>.Value.get -> T?
 Rask.Core.Virtualization.VirtualItem<T>.Value.init -> void
 Rask.Core.Virtualization.VirtualItem<T>.VirtualItem(int Index, T? Value, bool IsPlaceholder) -> void
 Rask.Core.Virtualization.VirtualizationContext<T>
+Rask.Core.Virtualization.VirtualizationContext<T>.Above.get -> Rask.Core.Component!
+Rask.Core.Virtualization.VirtualizationContext<T>.AboveRow.get -> Rask.Core.Component!
+Rask.Core.Virtualization.VirtualizationContext<T>.Below.get -> Rask.Core.Component!
+Rask.Core.Virtualization.VirtualizationContext<T>.BelowRow.get -> Rask.Core.Component!
 Rask.Core.Virtualization.VirtualizationContext<T>.ItemSize.get -> int
 Rask.Core.Virtualization.VirtualizationContext<T>.OffsetAfter.get -> int
 Rask.Core.Virtualization.VirtualizationContext<T>.OffsetBefore.get -> int
@@ -4613,6 +4627,8 @@ Rask.Core.Virtualization.VirtualizationState.TotalCount.get -> int
 Rask.Core.Virtualization.VirtualizationState.VisibleIndices.get -> System.Collections.Generic.IReadOnlyList<int>!
 Rask.Core.Virtualization.VirtualizationState.VisiblePlaceholders.get -> System.Collections.Generic.IReadOnlyList<bool>!
 Rask.Core.Virtualization.VirtualizationState.VisibleValues.get -> System.Collections.Generic.IReadOnlyList<object?>!
+Rask.Core.Virtualization.VirtualScroller
+Rask.Core.Virtualization.VirtualScroller.ScrollTo(int index) -> System.Threading.Tasks.Task!
 Rask.RefusedException
 Rask.RefusedException.Failures.get -> System.Collections.Generic.IReadOnlyList<Rask.Wire.FieldFailure!>!
 Rask.RefusedException.RefusedException() -> void
@@ -4907,7 +4923,7 @@ static Rask.Core.Components.Context.Has<T>(string? name = null) -> bool
 static Rask.Core.Components.Context.Provide<TValue>(TValue Value, string? Name = null, object? Key = null) -> Rask.Core.Components.Context!
 static Rask.Core.Components.Context.Required<T>(string? name = null) -> T
 static Rask.Core.Components.GestureResultInterop.Result(int id, string? value) -> System.Threading.Tasks.Task!
-static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 3, int InitialClientHeight = 400, int InitialTotalCount = 0) -> Rask.Core.Components.VirtualizeModel!
+static Rask.Core.Components.Virtualize.Items<T>(System.Func<Rask.Core.Virtualization.VirtualizationContext<T>!, Rask.Core.Component!>! Render, System.Collections.Generic.IEnumerable<T>? Items = null, System.Func<Rask.Core.Virtualization.ItemsProviderRequest!, System.Threading.Tasks.ValueTask<Rask.Core.Virtualization.ItemsProviderResult<T>!>>? ItemsProvider = null, int ItemSize = 32, int OverscanCount = 10, int InitialClientHeight = 400, int InitialTotalCount = 0, int InitialItemIndex = 0, Rask.Core.Virtualization.VirtualAnchor Anchor = Rask.Core.Virtualization.VirtualAnchor.Start, Rask.Core.Virtualization.VirtualScroller? Scroller = null) -> Rask.Core.Components.VirtualizeModel!
 static Rask.Core.Css.AccentColor() -> Rask.Core.Css.AccentColorKeywords
 static Rask.Core.Css.AccentColor(string? value) -> Rask.Core.Css
 static Rask.Core.Css.AlignContent() -> Rask.Core.Css.AlignContentKeywords
@@ -7487,6 +7503,7 @@ static Rask.Core.Virtualization.ItemsProviderResult<T>.operator !=(Rask.Core.Vir
 static Rask.Core.Virtualization.ItemsProviderResult<T>.operator ==(Rask.Core.Virtualization.ItemsProviderResult<T>? left, Rask.Core.Virtualization.ItemsProviderResult<T>? right) -> bool
 static Rask.Core.Virtualization.VirtualItem<T>.operator !=(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
 static Rask.Core.Virtualization.VirtualItem<T>.operator ==(Rask.Core.Virtualization.VirtualItem<T>? left, Rask.Core.Virtualization.VirtualItem<T>? right) -> bool
+static Rask.Core.Virtualization.VirtualScroller.New() -> Rask.Core.Virtualization.VirtualScroller!
 static Rask.Markup.AppStylesheet.get -> Rask.Core.Components.AppStylesheet!
 static Rask.Markup.Lazy.get -> Rask.Core.Components.Lazy!
 static RaskBuilderSettersRask_Core.__RaskCopyWritten_Rask_Core_Components_Lazy(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
@@ -7494,6 +7511,7 @@ static RaskBuilderSettersRask_Core.__RaskResetEager_Rask_Core_Components_Lazy(Ra
 static RaskBuilderSettersRask_Core.__RaskResetPending_Rask_Core_Components_Lazy(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Core.ActiveClass(this Rask.Core.Components.NavLink! __b, string? value) -> Rask.Core.Components.NavLink!
 static RaskBuilderSettersRask_Core.ActiveMatch(this Rask.Core.Components.NavLink! __b, Rask.Core.Components.NavLinkMatch? value) -> Rask.Core.Components.NavLink!
+static RaskBuilderSettersRask_Core.Anchor(this Rask.Core.Components.VirtualizeModel! __b, Rask.Core.Virtualization.VirtualAnchor? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Aria<T>(this T! __b, System.Collections.Generic.IReadOnlyDictionary<string!, string?>? value) -> T!
 static RaskBuilderSettersRask_Core.Aria<T>(this T! __b, params System.ReadOnlySpan<(string! Name, string? Value)> pairs) -> T!
 static RaskBuilderSettersRask_Core.Aria<T>(this T! __b, string! name) -> T!
@@ -7560,6 +7578,7 @@ static RaskBuilderSettersRask_Core.Href(this Rask.Core.Components.NavLink! __b, 
 static RaskBuilderSettersRask_Core.Id<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Inert<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.InitialClientHeight(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
+static RaskBuilderSettersRask_Core.InitialItemIndex(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.InitialTotalCount(this Rask.Core.Components.VirtualizeModel! __b, int? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.ItemSize(this Rask.Core.Components.VirtualizeModel! __b, int value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Items(this Rask.Core.Components.VirtualizeModel! __b, System.Collections.IEnumerable? value) -> Rask.Core.Components.VirtualizeModel!
@@ -7623,6 +7642,7 @@ static RaskBuilderSettersRask_Core.ReferrerPolicy(this Rask.Core.SVGScriptElemen
 static RaskBuilderSettersRask_Core.Role<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.Roles(this Rask.Core.Components.Authorize! __b, string![]? value) -> Rask.Core.Components.Authorize!
 static RaskBuilderSettersRask_Core.Routes(this Rask.Core.Routing.Router! __b, System.Collections.Generic.IReadOnlyList<Rask.Core.Routing.Route!>? value) -> Rask.Core.Routing.Router!
+static RaskBuilderSettersRask_Core.Scroller(this Rask.Core.Components.VirtualizeModel! __b, Rask.Core.Virtualization.VirtualScroller? value) -> Rask.Core.Components.VirtualizeModel!
 static RaskBuilderSettersRask_Core.Spellcheck<T>(this T! __b, bool? value) -> T!
 static RaskBuilderSettersRask_Core.Style<T>(this T! __b, string? value) -> T!
 static RaskBuilderSettersRask_Core.SvgView(this Rask.Core.SVGViewElement! __b, string? value) -> Rask.Core.SVGViewElement!
