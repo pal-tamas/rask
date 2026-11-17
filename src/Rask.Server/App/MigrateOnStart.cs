@@ -86,10 +86,8 @@ internal sealed class MigrateOnStart<TContext>(
             {
                 throw new InvalidOperationException(
                     $"Applying {names} to the database failed, so the app did not start: {e.Message} Fix the cause "
-                    + "and start again. If a release step applies migrations instead, turn this off with "
-                    + (owned is null
-                        ? "app.Configure(c => c.MigrateOnStart = false) or Rask__Database__MigrateOnStart=false."
-                        : "by dropping OwnsSchema(…) from AddRaskData<" + context + ">(…)."),
+                    + "and start again. If a release step applies migrations instead, turn this off "
+                    + (owned?.TurnOff ?? RaskDatabase.MigrateOnStartOff),
                     e);
             }
         }
