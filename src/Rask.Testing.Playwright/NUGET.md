@@ -20,18 +20,21 @@ public sealed class EveryPageTests(RaskSite<Program> site)
 ```
 
 - `RaskSite<Program>` starts the app's own build (the test project references the app) as a process of its own, on a
-  free port, with `ASPNETCORE_ENVIRONMENT=Testing` and a SQLite database in a folder of its own; it waits for the
-  health check (`/health`), shares one Chromium, and ends the app — and every process it started — when disposed.
+  free port, with `ASPNETCORE_ENVIRONMENT=Testing` and a SQLite database in a folder of its own (unless it is given a
+  connection string of its own); it waits for the health check (`/health`), shares one Chromium, closes the browser
+  contexts a test opened once it is over, and ends the app — and every process it started — when disposed.
 - `await site.Walk("/orders")` fails on an answer that is not a success (not found, forbidden), a console or page
   error, a request to the app that failed or answered 400+, a live connection opened twice or closed, the error
   overlay, and a page wider than a phone — naming the widest element. `.As(name)` walks it signed in.
 - `await site.SignedIn(site.Admin)` — signed in once through Rask.Auth (its API, or the `/login` and `/register` pages
   `rask new` writes; the first account, with the app's one-time token), every later page from its cookies;
-  `site.SignIn = async (page, name) => …` for an app's own form. `await site.SignedOut()` is a visitor's page.
+  `site.SignIn = async (page, name) => …` for an app's own form; `SignedIn(name, fresh: true)` signs in anew.
+  `await site.SignedOut()` is a visitor's page; `await site.Context(storageState)` a browser context of your own.
 - `RaskSite.Pages<Program>()` lists every page the app's route table opens without a value; `.And("/orders/1")`,
   `.Without("/logout")`.
 - `site.Watch(page)` collects the same problems on a page a test drives; `site.Log` and `site.Said("…")` read what the
-  app wrote. `site.Environment`, `site.Health`, `site.Contexts` (viewport, locale) set the site up.
+  app wrote, and `site.HostLog = "host.log"` appends it to a file as it comes. `site.Environment`, `site.Health`,
+  `site.Contexts` (viewport, locale) set the site up; override `DisposeAsync` to dispose stand-ins of your own with it.
 
 ## Wait for a page to settle
 

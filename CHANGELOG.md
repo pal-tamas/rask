@@ -17,6 +17,20 @@ them until tagged releases begin.
   `.LeaveHeading("Mentetlen változások")` titles the dialog over the form's question, which otherwise reads the new
   catalog key `ConfirmLeaveHeading` ("Unsaved changes"; "Mentetlen változások" in the kit's Hungarian); the tenant line
   is `#ui-app-frame-tenant`.
+- **`RaskSite` does what an app's own E2E harness needs: `HostLog`, `Context(…)`, `SignedIn(name, fresh: true)`, an
+  overridable `DisposeAsync`, the app's own database, and a test's browser contexts closed after it (#1351).** Before:
+  TA could not adopt `RaskSite` — the host's output lived only in memory and died with a run cut short, a context with a
+  storage state of its own could not be had (`NewContext` was private), a subclass could not dispose its stand-ins with
+  the site, `SignedIn` always reused the first sign-in (a test that signed out had no way back), the SQLite connection
+  strings overrode the SQL Server database TA names in its environment, and every page a test did not close stayed
+  open until the assembly ended. After: `site.HostLog = "artifacts/host.log"` appends each line the app writes as it
+  comes (`Log`/`Said` unchanged); `await site.Context(storageState)` is a context on `site.Contexts`'s options against
+  the app; `public override async ValueTask DisposeAsync() { …; await base.DisposeAsync(); }`;
+  `await site.SignedIn("ann", fresh: true)` signs in anew and the pages after it start from that sign-in;
+  `Rask__ConnectionStrings__App`/`__Logs` set in `site.Environment` or the test process's environment is the app's, and
+  only a store named nowhere gets the run's SQLite file (an untouched site runs exactly as before); and the contexts a
+  test opened are closed once it is over — before the next test of its xUnit collection opens one — so no test has to
+  remember `page.Context.CloseAsync()`.
 - **`Virtualize.Items` measures its rows, as .NET 11's `Virtualize` does, and opens at a row, follows its tail and
   scrolls to a row from code (#1326).** Before: every row had to be exactly `ItemSize` tall — a row that wrapped to a
   second line made the spacers wrong, and the list drifted and left blank room as it scrolled. After: draw the rows

@@ -70,6 +70,42 @@ public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : ICla
     }
 
     [Fact]
+    public async Task A_fresh_sign_in_signs_in_anew_and_the_pages_after_it_start_from_it()
+    {
+        await site.SignedIn("dave");
+
+        await site.SignedIn("dave", fresh: true);
+        var later = await site.SignedIn("dave");
+
+        Assert.Equal(2, site.SignInsOf("dave"));
+        Assert.Contains(await later.Context.CookiesAsync(), cookie => cookie is { Name: "who", Value: "dave" });
+    }
+
+    [Fact]
+    public async Task A_context_opened_from_a_sign_in_s_storage_starts_signed_in_as_them()
+    {
+        var signedIn = await site.SignedIn("erin");
+        var state = await signedIn.Context.StorageStateAsync();
+
+        var context = await site.Context(state);
+
+        Assert.Contains(await context.CookiesAsync(), cookie => cookie is { Name: "who", Value: "erin" });
+        Assert.Equal(1, site.SignInsOf("erin"));
+    }
+
+    [Fact]
+    public async Task A_context_resolves_every_relative_address_against_the_app()
+    {
+        var context = await site.Context();
+        var page = await context.NewPageAsync();
+
+        var answer = await page.GotoAsync("/");
+
+        Assert.True(answer is { Ok: true }, answer?.Status.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        Assert.StartsWith(site.Address.ToString(), page.Url, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task A_walk_as_a_person_opens_the_page_signed_in_as_them()
     {
         await site.Walk("/save").As("bob");

@@ -5,8 +5,8 @@ using System.Net;
 namespace Rask.Testing;
 
 /// <summary>
-///     The app, running as a process of its own: what it writes is kept, and disposing it ends it — and every process
-///     it started.
+///     The app, running as a process of its own: what it writes is kept — and appended to a log file as it comes, when
+///     given one — and disposing it ends it, and every process it started.
 /// </summary>
 internal sealed class HostProcess : IAsyncDisposable
 {
@@ -19,6 +19,8 @@ internal sealed class HostProcess : IAsyncDisposable
 
     private readonly Process _process;
     private readonly ConcurrentQueue<string> _said = new();
+    private readonly Lock _logging = new();
+    private StreamWriter? _log;
 
     static HostProcess() => AppDomain.CurrentDomain.ProcessExit += (_, _) =>
     {
@@ -28,7 +30,11 @@ internal sealed class HostProcess : IAsyncDisposable
         }
     };
 
-    private HostProcess(Process process) => _process = process;
+    private HostProcess(Process process, StreamWriter? log)
+    {
+        _process = process;
+        _log = log;
+    }
 
     /// <summary>Everything the app has written so far, standard output and error together, line by line.</summary>
     public string Output => string.Join(Environment.NewLine, _said);
@@ -37,8 +43,10 @@ internal sealed class HostProcess : IAsyncDisposable
     public bool HasExited => _process.HasExited;
 
     /// <summary>Starts <paramref name="start" />, keeping what it writes.</summary>
+    /// <param name="start">The process.</param>
+    /// <param name="log">A file to append each line it writes to as it comes, flushed line by line; <c>null</c> for none.</param>
     /// <exception cref="InvalidOperationException">The process could not be started.</exception>
-    public static HostProcess Start(ProcessStartInfo start)
+    public static HostProcess Start(ProcessStartInfo start, string? log = null)
     {
         ArgumentNullException.ThrowIfNull(start);
         start.RedirectStandardOutput = true;
@@ -46,11 +54,12 @@ internal sealed class HostProcess : IAsyncDisposable
         start.UseShellExecute = false;
 
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
-        var host = new HostProcess(process);
+        var host = new HostProcess(process, log is null ? null : Appending(log));
         process.OutputDataReceived += (_, line) => host.Heard(line.Data);
         process.ErrorDataReceived += (_, line) => host.Heard(line.Data);
         if (!process.Start())
         {
+            host.CloseLog();
             process.Dispose();
             throw new InvalidOperationException($"{start.FileName} {string.Join(' ', start.ArgumentList)} did not start.");
         }
@@ -135,14 +144,39 @@ internal sealed class HostProcess : IAsyncDisposable
             // it would not go: the OS takes it with this process
         }
 
+        CloseLog();
         _process.Dispose();
+    }
+
+    // Shared for reading, so a test (or a person tailing it) reads the log while the app still writes it.
+    private static StreamWriter Appending(string path)
+    {
+        var full = Path.GetFullPath(path);
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        var file = new FileStream(full, FileMode.Append, FileAccess.Write, FileShare.ReadWrite | FileShare.Delete);
+        return new StreamWriter(file) { AutoFlush = true };
     }
 
     private void Heard(string? line)
     {
-        if (line is not null)
+        if (line is null)
         {
-            _said.Enqueue(line);
+            return;
+        }
+
+        _said.Enqueue(line);
+        lock (_logging)
+        {
+            _log?.WriteLine(line);
+        }
+    }
+
+    private void CloseLog()
+    {
+        lock (_logging)
+        {
+            _log?.Dispose();
+            _log = null;
         }
     }
 

@@ -14,12 +14,14 @@ namespace Rask.Testing;
 ///         Nothing starts until a test needs it: the first <see cref="Walk" />, <see cref="SignedIn" />,
 ///         <see cref="SignedOut" /> or <see cref="Start" /> starts the app and waits for its health check; the first page
 ///         launches Chromium (installing it once). Disposing the site ends the app and every process it started, closes the
-///         browser and deletes the run's <see cref="Folder" />.
+///         browser and deletes the run's <see cref="Folder" />. The browser contexts a test opened are closed once it is
+///         over — before the next test of its collection opens one — and the rest close with the browser.
 ///     </para>
 ///     <para>
 ///         The app runs with <c>ASPNETCORE_ENVIRONMENT=Testing</c>, and its database and log store as SQLite files in
-///         <see cref="Folder" /> (<c>Rask__ConnectionStrings__App</c>, <c>Rask__ConnectionStrings__Logs</c>). Change or
-///         remove any of it in <see cref="Environment" /> — an app on SQL Server names its test database there.
+///         <see cref="Folder" /> unless it is given its own: <c>Rask__ConnectionStrings__App</c> and
+///         <c>Rask__ConnectionStrings__Logs</c>, each set in <see cref="Environment" /> or in the test process's own
+///         environment, are left as they are — an app on SQL Server names its test database there.
 ///     </para>
 ///     <para>
 ///         Set up before it starts — <see cref="Environment" />, <see cref="SignIn" />, <see cref="Health" /> — in a derived
@@ -58,6 +60,7 @@ public class RaskSite : IAsyncDisposable
     private readonly Lazy<Task<(IPlaywright Playwright, IBrowser Browser)>> _browser;
     private readonly Dictionary<string, string> _signedIn = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _signingIn = new(1, 1);
+    private readonly TestContexts _perTest = new(TestScope.Current);
     private HostProcess? _host;
     private Uri? _address;
 
@@ -79,8 +82,6 @@ public class RaskSite : IAsyncDisposable
         Environment = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
             ["ASPNETCORE_ENVIRONMENT"] = "Testing",
-            ["Rask__ConnectionStrings__App"] = $"Data Source={Path.Combine(Folder, "app.db")}",
-            ["Rask__ConnectionStrings__Logs"] = $"Data Source={Path.Combine(Folder, "logs.db")}",
             ["Rask__Mail__PickupDirectory"] = Path.Combine(Folder, "mail"),
             ["Rask__Auth__FirstRunToken"] = _firstRunToken,
         };
@@ -96,9 +97,16 @@ public class RaskSite : IAsyncDisposable
 
     /// <summary>
     ///     The app's environment variables, over this process's own. A <c>null</c> value removes one. ASP.NET reads
-    ///     <c>Rask__Section__Key</c> as the setting <c>Rask:Section:Key</c>.
+    ///     <c>Rask__Section__Key</c> as the setting <c>Rask:Section:Key</c>. A connection string named here, or in this
+    ///     process's own environment, is the app's: the SQLite file in <see cref="Folder" /> is only for one named nowhere.
     /// </summary>
     public IDictionary<string, string?> Environment { get; }
+
+    /// <summary>
+    ///     A file the app's output is appended to as it writes it, line by line, so what it said survives a run cut
+    ///     short; <c>null</c>, the default, for none. <see cref="Log" /> and <see cref="Said" /> answer either way.
+    /// </summary>
+    public string? HostLog { get; set; }
 
     /// <summary>The path the site waits on until it answers with a success status. A <c>RaskApp</c> answers at <c>/health</c>.</summary>
     public string Health { get; set; } = "/health";
@@ -165,11 +173,11 @@ public class RaskSite : IAsyncDisposable
     public Task Start() => _started.Value;
 
     /// <summary>A new page, signed out, in a browser context of its own.</summary>
-    /// <remarks>A test that opens many closes each when done — <c>await page.Context.CloseAsync()</c>; the rest close with the browser.</remarks>
+    /// <remarks>Its context is closed once the test is over.</remarks>
     /// <returns>The page, still blank: <c>await page.GotoAsync("/orders")</c>.</returns>
     public async Task<IPage> SignedOut()
     {
-        var context = await NewContext(null).ConfigureAwait(false);
+        var context = await Context().ConfigureAwait(false);
         return await context.NewPageAsync().ConfigureAwait(false);
     }
 
@@ -177,15 +185,44 @@ public class RaskSite : IAsyncDisposable
     ///     A new page signed in as <paramref name="name" />, in a browser context of its own. The first one signs in; every
     ///     later one starts from that sign-in's cookies.
     /// </summary>
-    /// <remarks>A test that opens many closes each when done — <c>await page.Context.CloseAsync()</c>; the rest close with the browser.</remarks>
+    /// <remarks>Its context is closed once the test is over.</remarks>
     /// <param name="name">Who: an account's name, or <see cref="Admin" />.</param>
+    /// <param name="fresh">
+    ///     <c>true</c> signs in anew rather than starting from the last sign-in — after a test signed them out — and the
+    ///     pages asked for later start from this one.
+    /// </param>
     /// <returns>The page, still blank: <c>await page.GotoAsync("/orders")</c>.</returns>
-    public async Task<IPage> SignedIn(string name)
+    public async Task<IPage> SignedIn(string name, bool fresh = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        var state = await StateOf(name).ConfigureAwait(false);
-        var context = await NewContext(state).ConfigureAwait(false);
+        var state = await StateOf(name, fresh).ConfigureAwait(false);
+        var context = await Context(state).ConfigureAwait(false);
         return await context.NewPageAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     A new browser context on the app, started from <see cref="Contexts" />, every relative URL resolved against
+    ///     <see cref="Address" /> — for a test that opens its pages itself. Starts the app first.
+    /// </summary>
+    /// <remarks>Closed once the test is over.</remarks>
+    /// <param name="storageState">
+    ///     The cookies and storage it starts from, as Playwright's <c>StorageStateAsync()</c> writes them; <c>null</c> for
+    ///     none, signed out.
+    /// </param>
+    /// <returns>The context, with no page yet: <c>await context.NewPageAsync()</c>.</returns>
+    public async Task<IBrowserContext> Context(string? storageState = null)
+    {
+        await Start().ConfigureAwait(false);
+        var (_, browser) = await _browser.Value.ConfigureAwait(false);
+        await _perTest.CloseFinished().ConfigureAwait(false);
+        var context = await browser.NewContextAsync(new BrowserNewContextOptions(Contexts)
+        {
+            BaseURL = Address.ToString(),
+            StorageState = storageState,
+        }).ConfigureAwait(false);
+        context.Close += (_, _) => _perTest.Closed(context);
+        _perTest.Opened(context, () => Closing(context));
+        return context;
     }
 
     /// <summary>
@@ -239,8 +276,12 @@ public class RaskSite : IAsyncDisposable
     }
 
     /// <summary>Ends the app and every process it started, closes the browser, and deletes <see cref="Folder" />.</summary>
+    /// <remarks>
+    ///     A site that keeps stand-ins of its own disposes them with it:
+    ///     <c>public override async ValueTask DisposeAsync() { await _mail.DisposeAsync(); await base.DisposeAsync(); }</c>
+    /// </remarks>
     /// <returns>A task that completes once all of it is gone.</returns>
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         await Closing().ConfigureAwait(false);
         GC.SuppressFinalize(this);
@@ -284,7 +325,7 @@ public class RaskSite : IAsyncDisposable
         for (var attempt = 1; attempt <= attempts; attempt++)
         {
             var address = new Uri($"http://localhost:{LoopbackPort.Reserve()}/");
-            var host = HostProcess.Start(StartInfo(address));
+            var host = HostProcess.Start(StartInfo(address), HostLog);
             if (await host.Answering(new Uri(address, Health), StartWithin).ConfigureAwait(false))
             {
                 _host = host;
@@ -300,7 +341,7 @@ public class RaskSite : IAsyncDisposable
             + "Something on this machine takes ports as fast as they are handed out.");
     }
 
-    private ProcessStartInfo StartInfo(Uri address)
+    internal ProcessStartInfo StartInfo(Uri address)
     {
         // The dotnet the test run is on, when the SDK says which; the one on the PATH otherwise.
         var dotnet = System.Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") is { Length: > 0 } path && File.Exists(path)
@@ -308,6 +349,17 @@ public class RaskSite : IAsyncDisposable
             : "dotnet";
         var start = new ProcessStartInfo(dotnet) { WorkingDirectory = ContentRoot };
         start.ArgumentList.Add(Host);
+
+        // The run's own SQLite files, for a store the app is given no database for: named in Environment (null too,
+        // which removes it) or in the environment it inherits from this process.
+        foreach (var (key, file) in (ReadOnlySpan<(string, string)>)[("Rask__ConnectionStrings__App", "app.db"), ("Rask__ConnectionStrings__Logs", "logs.db")])
+        {
+            if (!Environment.ContainsKey(key) && !start.Environment.ContainsKey(key))
+            {
+                start.Environment[key] = $"Data Source={Path.Combine(Folder, file)}";
+            }
+        }
+
         foreach (var (key, value) in Environment)
         {
             if (value is null)
@@ -338,24 +390,25 @@ public class RaskSite : IAsyncDisposable
         return (playwright, browser);
     }
 
-    private async Task<IBrowserContext> NewContext(string? state)
+    // A context the test closed itself, or the browser with it, is gone already: nothing is left to close.
+    private static async Task Closing(IBrowserContext context)
     {
-        await Start().ConfigureAwait(false);
-        var (_, browser) = await _browser.Value.ConfigureAwait(false);
-        var context = await browser.NewContextAsync(new BrowserNewContextOptions(Contexts)
+        try
         {
-            BaseURL = Address.ToString(),
-            StorageState = state,
-        }).ConfigureAwait(false);
-        return context;
+            await context.CloseAsync().ConfigureAwait(false);
+        }
+        catch (PlaywrightException)
+        {
+            // closed already, with its browser
+        }
     }
 
-    private async Task<string> StateOf(string name)
+    private async Task<string> StateOf(string name, bool fresh)
     {
         await _signingIn.WaitAsync().ConfigureAwait(false);
         try
         {
-            return await SignedInState(name).ConfigureAwait(false);
+            return await SignedInState(name, fresh).ConfigureAwait(false);
         }
         finally
         {
@@ -364,19 +417,19 @@ public class RaskSite : IAsyncDisposable
     }
 
     // Under _signingIn. The administrator claims the app before anyone else registers through Rask.Auth.
-    private async Task<string> SignedInState(string name)
+    private async Task<string> SignedInState(string name, bool fresh)
     {
-        if (_signedIn.TryGetValue(name, out var known))
+        if (!fresh && _signedIn.TryGetValue(name, out var known))
         {
             return known;
         }
 
         if (SignIn is null && !string.Equals(name, Admin, StringComparison.Ordinal))
         {
-            await SignedInState(Admin).ConfigureAwait(false);
+            await SignedInState(Admin, fresh: false).ConfigureAwait(false);
         }
 
-        var context = await NewContext(null).ConfigureAwait(false);
+        var context = await Context().ConfigureAwait(false);
         try
         {
             var page = await context.NewPageAsync().ConfigureAwait(false);

@@ -14,12 +14,14 @@ Rask.Testing.RaskSite.Admin.set -> void
 Rask.Testing.RaskSite.ContentRoot.get -> string!
 Rask.Testing.RaskSite.ContentRoot.set -> void
 Rask.Testing.RaskSite.Contexts.get -> Microsoft.Playwright.BrowserNewContextOptions!
-Rask.Testing.RaskSite.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Rask.Testing.RaskSite.Context(string? storageState = null) -> System.Threading.Tasks.Task<Microsoft.Playwright.IBrowserContext!>!
 Rask.Testing.RaskSite.Environment.get -> System.Collections.Generic.IDictionary<string!, string?>!
 Rask.Testing.RaskSite.Folder.get -> string!
 Rask.Testing.RaskSite.Health.get -> string!
 Rask.Testing.RaskSite.Health.set -> void
 Rask.Testing.RaskSite.Host.get -> string!
+Rask.Testing.RaskSite.HostLog.get -> string?
+Rask.Testing.RaskSite.HostLog.set -> void
 Rask.Testing.RaskSite.Log.get -> string!
 Rask.Testing.RaskSite.Password.get -> string!
 Rask.Testing.RaskSite.Password.set -> void
@@ -31,7 +33,7 @@ Rask.Testing.RaskSite.SignIn.get -> System.Func<Microsoft.Playwright.IPage!, str
 Rask.Testing.RaskSite.SignIn.set -> void
 Rask.Testing.RaskSite.SignInPage.get -> string!
 Rask.Testing.RaskSite.SignInPage.set -> void
-Rask.Testing.RaskSite.SignedIn(string! name) -> System.Threading.Tasks.Task<Microsoft.Playwright.IPage!>!
+Rask.Testing.RaskSite.SignedIn(string! name, bool fresh = false) -> System.Threading.Tasks.Task<Microsoft.Playwright.IPage!>!
 Rask.Testing.RaskSite.SignedOut() -> System.Threading.Tasks.Task<Microsoft.Playwright.IPage!>!
 Rask.Testing.RaskSite.Start() -> System.Threading.Tasks.Task!
 Rask.Testing.RaskSite.StartWithin.get -> System.TimeSpan
@@ -55,3 +57,4 @@ static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IFrame! f
 static Rask.Testing.PageSettling.WaitForRask(this Microsoft.Playwright.IPage! page, System.TimeSpan? timeout = null) -> System.Threading.Tasks.Task!
 static Rask.Testing.PageWalk.implicit operator System.Threading.Tasks.Task!(Rask.Testing.PageWalk! walk) -> System.Threading.Tasks.Task!
 static Rask.Testing.RaskSite.Pages<TProgram>() -> Rask.Testing.SitePages!
+virtual Rask.Testing.RaskSite.DisposeAsync() -> System.Threading.Tasks.ValueTask
