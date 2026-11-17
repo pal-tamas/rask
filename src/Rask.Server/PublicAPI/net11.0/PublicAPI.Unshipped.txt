@@ -126,7 +126,7 @@ Rask.RaskAppOptions.Cqrs.get -> Rask.Battery!
 Rask.RaskAppOptions.Cultures.get -> System.Collections.Generic.IList<string!>!
 Rask.RaskAppOptions.TimeZone.get -> string?
 Rask.RaskAppOptions.TimeZone.set -> void
-Rask.RaskAppOptions.Data.get -> Rask.Battery!
+Rask.RaskAppOptions.Data.get -> Rask.DataBattery!
 Rask.RaskAppOptions.ErrorPath.get -> string!
 Rask.RaskAppOptions.ErrorPath.set -> void
 Rask.RaskAppOptions.HealthPath.get -> string!
@@ -226,3 +226,5 @@ Rask.Server.TenantChoiceOptions.Role.set -> void
 Rask.Server.TenantChoiceOptions.TenantChoiceOptions() -> void
 static Rask.Server.TenantChoiceExtensions.MapRaskTenantChoice<TTenant>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, System.Func<long, Microsoft.AspNetCore.Http.HttpContext!, System.Threading.Tasks.Task<TTenant?>!>! find, System.Func<Microsoft.AspNetCore.Http.HttpContext!, TTenant?, System.Threading.Tasks.Task!>! onChosen, System.Action<Rask.Server.TenantChoiceOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
 static Rask.Server.TenantChoiceExtensions.MapRaskTenantChoice<TTenant>(this Microsoft.AspNetCore.Routing.IEndpointRouteBuilder! endpoints, System.Func<System.Guid, Microsoft.AspNetCore.Http.HttpContext!, System.Threading.Tasks.Task<TTenant?>!>! find, System.Func<Microsoft.AspNetCore.Http.HttpContext!, TTenant?, System.Threading.Tasks.Task!>! onChosen, System.Action<Rask.Server.TenantChoiceOptions!>? configure = null) -> Microsoft.AspNetCore.Builder.IEndpointConventionBuilder!
+Rask.DataBattery
+Rask.DataBattery.OwnsSchema(System.Action<Rask.Server.SchemaOwnership!>! configure) -> Rask.DataBattery!

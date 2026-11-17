@@ -920,6 +920,7 @@ writable `/data`; a custom Dockerfile needs `RUN mkdir -p /data && chown $APP_UI
 | `--env KEY=VALUE` · `--env-file <path>` | Runtime environment for the app container (repeat `--env`). |
 | `--health-path <path>` | The path the readiness probe hits before switching traffic (default `/health`). Remembered in `.rask/deploy.json`. |
 | `--no-health-check` | Gate only on the container running (skip the HTTP probe) — for apps without a health endpoint. Remembered. |
+| `--no-prune` | Skip this deploy's clean-up of old images and build cache (not remembered). `rask host clean` runs it when you choose. |
 | `--github-actions` | Write `.github/workflows/deploy.yml` (deploy main once CI passes) and print how to make its deploy-only key and set the secrets. Touches no host. |
 | `--dry-run` | Print the exact docker commands without running them. |
 
@@ -942,7 +943,11 @@ disk the box has free, and what `docker system df` says could be reclaimed.
 
 Every deploy that serves then removes the images earlier deploys left untagged (`docker image prune -f`,
 never `-a`, so `:previous` stays) and trims the build cache to 20 GB (`docker builder prune -af`, where `-a` removes no image), under the box's deploy lock; a box with
-under 3 GiB free is refused before the build. See [The box's disk](deployment.md#the-boxs-disk).
+under 3 GiB free is refused before the build. `--no-prune` skips the clean-up for one deploy, and
+`"buildCacheKeep"`, `"minFreeDisk"` and `"warnFreeDisk"` in `.rask/deploy.json` move the defaults. See
+[The box's disk](deployment.md#the-boxs-disk). `rask deploy status --json` carries the same disk line as a
+`disk` object (`mount`, `freeBytes`, `sizeBytes`, `isLow`, `isTooLow`, `reclaimableImages`,
+`reclaimableBuildCache`; absent when the box would not say).
 
 `rollback` exists for the failure the blue-green swap can't catch. That swap protects you from a release
 that *fails* — one that won't start, or won't answer its health check. It can do nothing about a release
@@ -956,7 +961,7 @@ two tags, so running it again undoes the rollback rather than repeating it.
 | `--tail <n\|all>` | `logs` | Lines to show (default `100`). |
 | `--follow` | `logs` | Stream new lines until interrupted. |
 
-Options that describe *what to deploy* (`--domain`, `--container-port`, `--dockerfile`, `--dry-run`, …)
+Options that describe *what to deploy* (`--domain`, `--container-port`, `--dockerfile`, `--dry-run`, `--no-prune`, …)
 are rejected on these verbs rather than silently ignored — they operate on what is already deployed.
 
 Host setup options — these only matter the first time you deploy to a box:
@@ -986,6 +991,35 @@ downloads only what changed ([The deploy's build cache](deployment.md#the-deploy
 and the host's fingerprint) — see [Deploying from GitHub Actions](deployment.md#deploying-from-github-actions).
 Everything else comes from the committed `.rask/deploy.json`. It deploys with
 `--no-setup-host`: prepare the box once from your own machine, so CI never reconfigures a host.
+
+## `rask host clean` — give the box its disk back
+
+```bash
+rask host clean                          # the box in .rask/deploy.json
+rask host clean --host deploy@box        # any box
+rask host clean --dry-run                # print the docker commands, run nothing
+```
+
+Runs, on demand, the clean-up every deploy that serves runs after itself — `docker image prune -f` (dangling
+images only; never `-a`, which would delete every `:previous` rollback image) and
+`docker builder prune -af --reserved-space <buildCacheKeep>` (20 GB unless `.rask/deploy.json` says otherwise) —
+and says what it freed:
+
+```
+Cleaning up old images and build cache on box…
+  Reclaimed 1.2GB of old images and 14.6GB of build cache. Now 84.3 GB free of 395 GB on / (61.8 GB freed).
+```
+
+It takes the **same box lock as a deploy**, so it never prunes while a deploy is switching the shared proxy:
+when a deploy holds it, it says who and waits (`Another deploy is using this box's shared proxy or disk (…) —
+waiting for it…`), and gives up after one lease (ten minutes), naming the holder, with exit code `1` and
+nothing pruned. A prune that fails is exit `1` with the commands to run by hand. A missing host, a host that
+isn't `user@host`, or an unreadable size in `.rask/deploy.json` is a usage error (exit `2`) before it connects.
+
+| Option | Purpose |
+| --- | --- |
+| `--host <user@host>` | The box to clean (default: the one `.rask/deploy.json` remembers). |
+| `--dry-run` | Print the docker commands without running them. |
 
 ## `rask doctor` — check before you hit it
 

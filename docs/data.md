@@ -2807,14 +2807,22 @@ app.Configure(c => c.MigrateOnStart = false);
 ```
 
 or set `Rask:Database:MigrateOnStart` to `false` (`Rask__Database__MigrateOnStart=false` in the environment). The code
-line wins over the setting. A host wired by hand (`AddRask()` + `MapRask<TApp>()`) migrates on start only when its
-`AddRaskData<TContext>(…)` says `.OwnsSchema()`.
+line wins over the setting — and it decides whether anything applies at start, so with it off a
+`c.Data.OwnsSchema(…)` beside it takes nothing over either. A host wired by hand (`AddRask()` + `MapRask<TApp>()`)
+migrates on start only when its `AddRaskData<TContext>(…)` says `.OwnsSchema()`.
 
 ### Taking over an existing schema
 
 An app moving onto Rask has a live database its new migrations did not make. Their first migration — the baseline —
 makes the schema that database already has, so there it must only be *written down* as applied; running it would fail
-on tables that exist. `OwnsSchema` says so, on the context the hand-wired host registered:
+on tables that exist. `OwnsSchema` says so — on the Data battery of a `RaskApp`, which applies its migrations as it
+starts anyway:
+
+```csharp
+app.Configure(c => c.Data.OwnsSchema(s => s.TakesOverFrom("Init").WhenTable("Users").Patience(10.Minutes)));
+```
+
+or on the context a hand-wired host registered — the same word and the same `s => …` steps:
 
 ```csharp
 // Before: a SchemaOwner class of the app's own — sp_getapplock, a raw OBJECT_ID check, a hand-built history row,
@@ -2847,8 +2855,13 @@ Each step is optional:
 - **`Patience(20.Minutes)`** — the command timeout each migration runs with, instead of the provider's thirty seconds:
   a migration that moves the data takes minutes.
 
-`.OwnsSchema()` with nothing in it just applies the pending migrations on start. The checks a `RaskApp` makes hold
-here too: no migrations is a warning, a model changed since its last migration stops the start.
+On a hand-wired host, `.OwnsSchema()` with nothing in it just applies the pending migrations on start. The checks a
+`RaskApp` makes hold here too: no migrations is a warning, a model changed since its last migration stops the start.
+
+On a `RaskApp`, `c.Data.OwnsSchema(…)` says *how* the migrations apply and `MigrateOnStart` says *whether*: with
+`c.MigrateOnStart = false` or `Rask:Database:MigrateOnStart=false`, nothing is applied or taken over at start — the
+release step running `rask db update` owns the schema then. Beside `c.Data.Off()` (or `c.Cqrs.Off()`, which leaves the
+app without a database too) it refuses the start, naming both: there is no schema to own.
 
 ## Choosing the database
 
