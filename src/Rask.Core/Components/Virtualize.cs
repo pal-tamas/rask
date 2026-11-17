@@ -47,8 +47,9 @@ public static partial class Virtualize
     ///     Fetches one window of rows on demand. Pass this <b>or</b> <paramref name="Items" />.
     /// </param>
     /// <param name="ItemSize">
-    ///     Each row's height in pixels. The scroll maths assumes every row is exactly this tall, so a
-    ///     wrong value shows up as drift while scrolling.
+    ///     A row's height in pixels. A list drawn between <c>ctx.Above</c> and <c>ctx.Below</c> takes it as the
+    ///     starting estimate and measures its rows from then on, so rows of any height scroll true; a list with
+    ///     spacers of its own takes every row to be exactly this tall, and a wrong value shows up as drift.
     /// </param>
     /// <param name="OverscanCount">
     ///     How many extra rows to render beyond the viewport, trading a little work for fewer blank
@@ -65,6 +66,17 @@ public static partial class Virtualize
     ///     real count replaces the estimate as soon as the provider answers. Ignored when
     ///     <paramref name="Items" /> is used.
     /// </param>
+    /// <param name="InitialItemIndex">
+    ///     The row the list opens at, at the top of its box — drawn there on the first render, prerendered pages
+    ///     included. Applied once, clamped to the rows there are.
+    /// </param>
+    /// <param name="Anchor">
+    ///     The edge the box holds on to as rows come and go: <see cref="VirtualAnchor.End" /> follows the tail while the
+    ///     reader is at the bottom, as a log does.
+    /// </param>
+    /// <param name="Scroller">
+    ///     Scrolls the list to a row from code: <c>await _scroller.ScrollTo(index)</c>.
+    /// </param>
     [UnconditionalSuppressMessage("Trimming", "IL2091",
         Justification = "T flows through here only via closures over user-supplied delegates. " +
                         "No reflection, no DynamicInvoke; the typed → erased projections are static casts.")]
@@ -73,9 +85,12 @@ public static partial class Virtualize
         IEnumerable<T>? Items = null,
         Func<ItemsProviderRequest, ValueTask<ItemsProviderResult<T>>>? ItemsProvider = null,
         int ItemSize = 32,
-        int OverscanCount = 3,
+        int OverscanCount = 10,
         int InitialClientHeight = 400,
-        int InitialTotalCount = 0)
+        int InitialTotalCount = 0,
+        int InitialItemIndex = 0,
+        VirtualAnchor Anchor = VirtualAnchor.Start,
+        VirtualScroller? Scroller = null)
     {
         ArgumentNullException.ThrowIfNull(Render);
 
@@ -106,7 +121,10 @@ public static partial class Virtualize
             .ItemsProvider(erasedProvider)
             .OverscanCount(OverscanCount)
             .InitialClientHeight(InitialClientHeight)
-            .InitialTotalCount(InitialTotalCount);
+            .InitialTotalCount(InitialTotalCount)
+            .InitialItemIndex(InitialItemIndex)
+            .Anchor(Anchor)
+            .Scroller(Scroller);
     }
 
     private static Func<ItemsProviderRequest, ValueTask<ItemsProviderResultErased>> WrapTypedProvider<T>(

@@ -818,4 +818,37 @@ public enum RaskString
     ///     (<c>Ui.Filter.Shown(names)</c>). <c>{0}</c> is how many.
     /// </summary>
     FiltersSelectedCount,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> bell is called, to a screen reader, and the heading of its flyout.</summary>
+    WorkNotices,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> bell is called while it has news: <c>{0}</c> is how much.</summary>
+    WorkNoticesUnread,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> flyout or a <c>Ui.WorkList</c> says when no work is running or has lately ended.</summary>
+    WorkNone,
+
+    /// <summary>What a running job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> says when it reported no words of its own.</summary>
+    WorkRunning,
+
+    /// <summary>How far along a job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> is: <c>{0}</c> of <c>{1}</c>.</summary>
+    WorkProgress,
+
+    /// <summary>What a job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> that ran to the end says.</summary>
+    WorkDone,
+
+    /// <summary>What a job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> that failed for good says — never why.</summary>
+    WorkFailed,
+
+    /// <summary>What a job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> that was stopped says.</summary>
+    WorkStopped,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> announces when a job ends done: <c>{0}</c> is its title.</summary>
+    WorkEndedDone,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> announces when a job fails for good: <c>{0}</c> is its title.</summary>
+    WorkEndedFailed,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> announces when a job is stopped: <c>{0}</c> is its title.</summary>
+    WorkEndedStopped,
 }

@@ -8,4 +8,17 @@ namespace Rask.Background;
 /// <param name="Started">When it was claimed to run (UTC), or null when it never has been.</param>
 /// <param name="Attempts">How many times it has been tried, the running attempt included.</param>
 /// <param name="Stopping">It was asked to stop and has not ended yet.</param>
-public sealed record LaneJob(long Id, IJob? Job, string Type, DateTime Due, DateTime? Started, int Attempts, bool Stopping);
+/// <param name="Progress">What it last said of itself (<c>Jobs.Report(…)</c>), or null — the host running it says its latest.</param>
+/// <param name="Done">How much of <paramref name="Of" /> it has done, when it reported a count (<c>Jobs.Report(done, of)</c>).</param>
+/// <param name="Of">How much it has to do, when it reported a count.</param>
+public sealed record LaneJob(
+    long Id,
+    IJob? Job,
+    string Type,
+    DateTime Due,
+    DateTime? Started,
+    int Attempts,
+    bool Stopping,
+    string? Progress = null,
+    int? Done = null,
+    int? Of = null);

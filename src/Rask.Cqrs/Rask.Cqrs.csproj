@@ -45,6 +45,18 @@
     <InternalsVisibleTo Include="Rask.Cqrs.Client.Tests"/>
     <InternalsVisibleTo Include="Rask.Cqrs.Transport.Tests"/>
     <InternalsVisibleTo Include="Rask.Providers.E2E.Tests"/>
+    <!-- Background work its enqueuer watches (#1293): Rask.Jobs publishes WorkReported with who it is for, stamps who opened
+         WatchOwnWork and serves the rows behind IWorkBoard; the kit's bell and list read both. The site's demo feeds a board
+         of its own, having no jobs in a browser. -->
+    <InternalsVisibleTo Include="Rask.Jobs"/>
+    <InternalsVisibleTo Include="Rask.Jobs.Tests"/>
+    <InternalsVisibleTo Include="Rask.Ui"/>
+    <InternalsVisibleTo Include="Rask.Ui.Tests"/>
+    <InternalsVisibleTo Include="Rask.Site"/>
+    <!-- The site's publish compiles it again as its prerender twin. -->
+    <InternalsVisibleTo Include="Rask.Site.Prerender"/>
+    <InternalsVisibleTo Include="Rask.Site.Tests"/>
+    <InternalsVisibleTo Include="Rask.Server.E2E.Tests"/>
   </ItemGroup>
 
   <!--

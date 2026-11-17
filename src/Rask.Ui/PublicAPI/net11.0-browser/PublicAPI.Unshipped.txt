@@ -3323,6 +3323,14 @@ Rask.UiTooltipContent.Class.set -> void
 Rask.UiTooltipContent.Kbd.get -> string?
 Rask.UiTooltipContent.Kbd.set -> void
 Rask.UiTooltipContent.UiTooltipContent() -> void
+Rask.UiWorkList
+Rask.UiWorkList.Lane.get -> string?
+Rask.UiWorkList.Lane.set -> void
+Rask.UiWorkList.UiWorkList() -> void
+Rask.UiWorkNotices
+Rask.UiWorkNotices.Lane.get -> string?
+Rask.UiWorkNotices.Lane.set -> void
+Rask.UiWorkNotices.UiWorkNotices() -> void
 RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!)
 RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Base.get -> Rask.UiAutocomplete!
 RaskBuilderSettersRask_Ui.extension(Rask.UiAutocomplete!).Button.get -> Rask.UiAutocomplete!
@@ -4126,6 +4134,8 @@ static Rask.Ui.ToastGroup.get -> Rask.UiToastGroup!
 static Rask.Ui.Toggle.get -> Rask.UiToggle!
 static Rask.Ui.Tooltip.get -> Rask.UiTooltip!
 static Rask.Ui.TooltipContent.get -> Rask.UiTooltipContent!
+static Rask.Ui.WorkList.get -> Rask.UiWorkList!
+static Rask.Ui.WorkNotices.get -> Rask.UiWorkNotices!
 static Rask.UiCalendarModes.get_Multiple(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarMultiple
 static Rask.UiCalendarModes.get_Range(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendarRange
 static Rask.UiCalendarModes.get_Single(Rask.RaskSeed_UiCalendar calendar) -> Rask.RaskSeed_UiCalendar
@@ -4264,6 +4274,8 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTimePicker_1<T>(Rask.C
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToastGroup(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiToggle(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiTooltipContent(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiWorkList(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
+static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiWorkNotices(Rask.Core.Component! __f0, Rask.Core.Component! __t0, ulong __w) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiAvatarGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiBreadcrumbsItem(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiCarouselControls(Rask.Core.Component! __c0) -> void
@@ -4418,6 +4430,8 @@ static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTimePicker_1<T>(Rask.Co
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToastGroup(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiToggle(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiTooltipContent(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiWorkList(Rask.Core.Component! __c0) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiWorkNotices(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiAvatarGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiBreadcrumbsItem(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiCarouselControls(Rask.Core.Component! __c0, ulong __p) -> void
@@ -4555,6 +4569,8 @@ static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTimePicker_1<T>(Rask.
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToastGroup(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiToggle(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiTooltipContent(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiWorkList(Rask.Core.Component! __c0, ulong __p) -> void
+static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiWorkNotices(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiLink! __b, bool? value) -> Rask.UiLink!
 static RaskBuilderSettersRask_Ui.Accent(this Rask.UiNavbarItem! __b) -> Rask.UiNavbarItem!
@@ -5813,6 +5829,8 @@ static RaskBuilderSettersRask_Ui.Label(this Rask.UiNavbarItem! __b, string? valu
 static RaskBuilderSettersRask_Ui.Label<T>(this Rask.UiDayAndTime<T>! __b, string? value) -> Rask.UiDayAndTime<T>!
 static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b) -> Rask.UiOtp!
 static RaskBuilderSettersRask_Ui.LabelSrOnly(this Rask.UiOtp! __b, bool? value) -> Rask.UiOtp!
+static RaskBuilderSettersRask_Ui.Lane(this Rask.UiWorkList! __b, string? value) -> Rask.UiWorkList!
+static RaskBuilderSettersRask_Ui.Lane(this Rask.UiWorkNotices! __b, string? value) -> Rask.UiWorkNotices!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePicker! __b) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePicker! __b, bool? value) -> Rask.UiDatetimePicker!
 static RaskBuilderSettersRask_Ui.Live(this Rask.UiDatetimePickerRange! __b) -> Rask.UiDatetimePickerRange!

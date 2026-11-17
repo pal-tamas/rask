@@ -83,6 +83,7 @@
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\TallMenus.cs" Link="Infrastructure\TallMenus.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\KeyboardRing.cs" Link="Infrastructure\KeyboardRing.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\TooltipWalk.cs" Link="Infrastructure\TooltipWalk.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\VirtualListJourneys.cs" Link="Infrastructure\VirtualListJourneys.cs"/>
     <Compile Include="..\Rask.Ui.Tests\Live\ReportColumnsDraft.cs" Link="ReportColumnsDraft.cs"/>
   </ItemGroup>
 

@@ -14,7 +14,7 @@ public sealed partial class AppFrameExample : Component
     protected override Component? Render() =>
         Div.Class("min-h-screen bg-white antialiased dark:bg-zinc-800")[
             Ui.AppFrame.Brand("Acme Fuels").Logo("/img/rask-mark.svg").Tenant("Northern depot").User("Mara Lind")
-                .SignOut(Routes.UiAppFramePage())[
+                .SignOut(Routes.UiAppFramePage()).Notices(Ui.WorkNotices)[
                 Ui.SidebarNav[
                     Ui.SidebarItem.Key("home").Icon(Ui.IconName.Home).Href(Routes.AppFrameHomeDemoPage())["Home"],
                     Ui.SidebarItem.Key("drivers").Icon(Ui.IconName.Identification).Href(Routes.AppFrameDriversDemoPage())["Drivers"],

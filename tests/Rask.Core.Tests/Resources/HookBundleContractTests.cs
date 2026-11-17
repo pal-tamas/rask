@@ -97,6 +97,9 @@ public partial class HookBundleContractTests
         ["data-rask-loading"] = "the runtime's own loading mark (rask-loading.ts); the skeleton hook reads it on a control by a data-rask-skeleton",
         ["data-rask-on-load"] = "the runtime's own handler mark (rask-events.ts); on a data-rask-lazy here",
         ["data-rask-otp-submit"] = "on a data-rask-otp group, which is what loads the hooks",
+        ["data-rask-virtual-to"] = "on a data-rask-virtual spacer, which is what loads the hooks",
+        ["data-rask-virtual-anchor"] = "on a data-rask-virtual spacer, which is what loads the hooks",
+        ["data-rask-on-scroll"] = "the runtime's own scroll mark (rask-input.ts); the box around a data-rask-virtual spacer",
     };
 
     [Fact]

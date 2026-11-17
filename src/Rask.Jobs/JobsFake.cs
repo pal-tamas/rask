@@ -10,6 +10,7 @@ public sealed class JobsFake : IJobs, IDisposable
     private readonly List<EnqueuedJob> _enqueued = [];
     private readonly IJobs? _previous;
     private readonly Lock _gate = new();
+    private long _ids;
 
     internal JobsFake()
     {
@@ -59,13 +60,18 @@ public sealed class JobsFake : IJobs, IDisposable
     ///     runs in the same call, and a job held back with <c>.In(…)</c> or <c>.At(…)</c> runs too — the
     ///     fake has no clock to wait on. A handler that throws lets its exception out.
     /// </summary>
+    /// <remarks>
+    ///     A job enqueued <c>.Noticed(…)</c> by a signed-in user publishes its <see cref="WorkReported" />s as the processor
+    ///     would — running, its reports (<c>Jobs.Report(…)</c>, the latest of each quarter second), then done or failed — so a
+    ///     test can subscribe to its own work and see it move.
+    /// </remarks>
     public async Task Run(CancellationToken cancellationToken = default)
     {
         while (Next() is { } next)
         {
             using var tenant = next.Tenant is { } owner ? Tenant.Use(owner) : null;
             using var user = Current.UseUser(next.User);
-            await Dispatcher.Send(next.Job, cancellationToken).ConfigureAwait(false);
+            await Noticed(next, () => Dispatcher.Send(next.Job, cancellationToken), cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -98,7 +104,7 @@ public sealed class JobsFake : IJobs, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, Current.UserId, lane));
+            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, Current.UserId, lane, JobNotice.Pending));
         }
 
         return Task.CompletedTask;
@@ -119,7 +125,7 @@ public sealed class JobsFake : IJobs, IDisposable
                 }
             }
 
-            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, Current.UserId, lane));
+            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, Current.UserId, lane, JobNotice.Pending));
         }
 
         return Task.FromResult(true);
@@ -127,17 +133,17 @@ public sealed class JobsFake : IJobs, IDisposable
 
     // An awaited job cannot wait for the test to say Run(): it is recorded, already run, and runs here through its real
     // handler - so the caller gets the handler's own answer, or its exception, as it would from the processor.
-    Task<TResult> IJobs.Run<TResult>(IJob<TResult> job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
+    async Task<TResult> IJobs.Run<TResult>(IJob<TResult> job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
     {
-        RecordRun(job, lane);
-        return Dispatcher.Send<TResult>(job, cancellationToken);
+        var run = RecordRun(job, lane);
+        TResult answer = default!;
+        await Noticed(run, async () => answer = await Dispatcher.Send<TResult>(job, cancellationToken).ConfigureAwait(false), cancellationToken)
+            .ConfigureAwait(false);
+        return answer;
     }
 
-    Task IJobs.Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
-    {
-        RecordRun(job, lane);
-        return Dispatcher.Send(job, cancellationToken);
-    }
+    Task IJobs.Run(IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken) =>
+        Noticed(RecordRun(job, lane), () => Dispatcher.Send(job, cancellationToken), cancellationToken);
 
     // Nothing runs on its own here, so nothing can be stopped.
     Task<bool> IJobs.Stop(long id, CancellationToken cancellationToken) => Task.FromResult(false);
@@ -152,12 +158,55 @@ public sealed class JobsFake : IJobs, IDisposable
         return Task.FromResult(idle);
     }
 
-    private void RecordRun(IJob job, string? lane)
+    private EnqueuedJob RecordRun(IJob job, string? lane)
     {
         ArgumentNullException.ThrowIfNull(job);
+        var run = new EnqueuedJob(job, null, null, Tenant.Key, Current.UserId, lane, JobNotice.Pending) { Ran = true };
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, null, null, Tenant.Key, Current.UserId, lane) { Ran = true });
+            _enqueued.Add(run);
+        }
+
+        return run;
+    }
+
+    // A job its enqueuer watches runs as a run of its own, so Jobs.Report reaches it; what it says is published in order once
+    // its handler returns — running first, its reports, then how it ended. A job nobody watches just runs.
+    private async Task Noticed(EnqueuedJob job, Func<Task> handle, CancellationToken cancellationToken)
+    {
+        if (job.Notice is null || job.User is null)
+        {
+            await handle().ConfigureAwait(false);
+            return;
+        }
+
+        var said = new List<WorkReported>();
+        var run = new JobRun(
+            Interlocked.Increment(ref _ids), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
+            TimeProvider.System, cancellationToken);
+        run.Say = said.Add;
+        said.Add(run.ToWork(WorkState.Running, default));
+        var ended = WorkState.Done;
+        try
+        {
+            using var inFlight = JobInFlight.Enter(run);
+            await handle().ConfigureAwait(false);
+        }
+        catch
+        {
+            ended = WorkState.Failed;
+            throw;
+        }
+        finally
+        {
+            run.SayUnsaid();
+            run.End();
+            said.Add(run.ToWork(ended, run.Latest));
+            run.Release();
+            foreach (var work in said)
+            {
+                await Dispatcher.Publish(work, CancellationToken.None).ConfigureAwait(false);
+            }
         }
     }
 
@@ -171,7 +220,7 @@ public sealed class JobsFake : IJobs, IDisposable
         }
     }
 
-    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane)
+    private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane, string? Notice)
     {
         public bool Ran { get; set; }
     }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Rask.Batteries;
+using Rask.Cqrs;
 using Rask.Hosting.Shared;
 
 namespace Rask.Background;
@@ -36,6 +37,10 @@ public static class RaskJobsServiceCollectionExtensions
         services.TryAddSingleton(Clock.TimeProvider); // Rask's clock, so Clock.Fake moves this battery's time too
         services.TryAddSingleton<JobMetrics>();
         services.TryAddSingleton<IJobs, JobBacklog<TContext>>();
+
+        // What a user's bell reads (Ui.WorkNotices): their watched rows, per session, and who may hear their work live.
+        services.TryAddScoped<IWorkBoard, JobWorkBoard<TContext>>();
+        services.TryAddScoped<IWatchPolicy<WatchOwnWork>>(static scope => new OwnWorkPolicy(scope));
 
         // Before the processor, so an app whose model never mapped Job fails the boot with the line to
         // type rather than on the first enqueue. The processor itself tolerates a missing table — it has

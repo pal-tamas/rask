@@ -41,11 +41,14 @@
     <!-- One browser install and launch story for every browser suite. -->
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\PlaywrightFixture.cs" Link="Infrastructure\PlaywrightFixture.cs"/>
     <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\Repository.cs" Link="Infrastructure\Repository.cs"/>
+    <Compile Include="..\Rask.Site.E2E.Tests\Infrastructure\VirtualListJourneys.cs" Link="Infrastructure\VirtualListJourneys.cs"/>
   </ItemGroup>
 
   <!-- The fixture's publish, which the host serves. -->
   <ItemGroup Condition="false">
     <RaskTestReads Include="..\Rask.Wasm.Fixture.Wasm\**\*"/>
+    <!-- Compiled into the fixture: its measured virtual lists. -->
+    <RaskTestReads Include="..\Rask.Server.E2E.Tests\VirtualListPage.cs"/>
   </ItemGroup>
 
 </Project>
