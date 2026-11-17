@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A field's `[Display]` / `[DisplayName]` names it everywhere a reader sees it — `[Display]` first, as .NET 11's
+  Blazor reads them (#1328).** Before: `Ui.Input.Bind(() => m.Email)` drew no label until `.Label("Work email")`
+  repeated the attribute's words; a `[DisplayName("Given name")]` field said "The Given name field…" only to an app
+  with its own localized resources, and "The First field is required." otherwise (.NET's `Validator` reads `[Display]`
+  alone); a FluentValidation message said "'First' must not be empty." whatever the attributes; a Rask.Data model's
+  generated server check said the member's name even under `[Display(Name = …)]`, and `[DisplayName]` was not copied
+  onto `<Entity>Model`; a `Ui.Filters` badge said the address key. After: a bound kit control given no `Label` is
+  labelled by the member's display name (a `Label` you give, or a `Ui.Field` you compose, wins); DataAnnotations
+  messages — form, dispatched request, async pass, generated server checks — name the field by `[Display]`, then
+  `[DisplayName]` (`[Display(ResourceType = …)]` read from its resources); FluentValidation messages read the same
+  names through its `DisplayNameResolver` (a rule's `.WithName` still wins); a filter badge says it too. No new API.
+  Guide: docs/forms-validation.md#the-name-a-message-gives-the-field.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to

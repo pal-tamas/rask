@@ -175,6 +175,21 @@ public sealed partial class UnkeptFilterPage : Component
     protected override Component? Render() => Ui.Filters[Ui.Select.Bind(() => Plain).Label("Plain")[Ui.SelectOption.Value("a")["A"]]];
 }
 
+/// <summary>A filter given no label: its badge says the member's [Display] name.</summary>
+[Route("/ui-filters-tests/display-named")]
+public sealed partial class DisplayNamedFilterPage : Component
+{
+    [QueryParam("who"), System.ComponentModel.DataAnnotations.Display(Name = "Customer")] public string? Who { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render()
+    {
+        var filters = Ui.Filters[Ui.Input.Bind(() => Who)];
+
+        return Main[filters, filters.Badges];
+    }
+}
+
 /// <summary>
 ///     <c>Ui.Filters</c>: each control bound to the address, a badge for each filter in force, and a count of them.
 /// </summary>
@@ -204,6 +219,16 @@ public partial class UiFiltersTests : global::Rask.Core.RaskMarkup
             badges);
         Assert.Equal("7", page.TextOf("#active"));
         FilteredOrders.Tag = null;
+    }
+
+    [Fact]
+    public void A_filter_given_no_label_is_said_by_its_members_display_name()
+    {
+        var page = Page.Visit("/ui-filters-tests/display-named?who=ada");
+
+        var badges = Badges(page);
+
+        Assert.Equal(["Customer: ada"], badges);
     }
 
     [Fact]

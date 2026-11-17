@@ -140,15 +140,20 @@ public static class RaskValidators
     //
     // CA2255 warns off module initializers in libraries because a surprise on load is hard to trace.
     // This is the case the rule names as the exception: it hands a delegate to a host that cannot
-    // reference back, touches nothing else, and the alternative is asking every app to write a line of
-    // startup whose only purpose is to say "yes, really".
+    // reference back, and the alternative is asking every app to write a line of startup whose only
+    // purpose is to say "yes, really". The one other thing it touches is FluentValidation's display-name
+    // resolver, the hook FluentValidation documents for exactly this, and only behind the app's own.
 #pragma warning disable CA2255
     [ModuleInitializer]
 #pragma warning restore CA2255
-    internal static void Install() => RaskValidation.RegisterSource(
-        static modelType => Find(modelType) is not null,
-        static (modelType, services) =>
-            Find(modelType) is { } factory && factory(services) is IValidator validator
-                ? new FluentValidationFieldValidator(validator)
-                : null);
+    internal static void Install()
+    {
+        FluentDisplayNames.Install();
+        RaskValidation.RegisterSource(
+            static modelType => Find(modelType) is not null,
+            static (modelType, services) =>
+                Find(modelType) is { } factory && factory(services) is IValidator validator
+                    ? new FluentValidationFieldValidator(validator)
+                    : null);
+    }
 }

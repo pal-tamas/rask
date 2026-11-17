@@ -10,7 +10,7 @@ public abstract partial class UiDatePickerControl<T> : IUiFilterField
         var value = cell.Value;
         var active = UiFilterAddress.Holds(value);
 
-        return new UiFilterEntry(Label ?? cell.Key, active ? Text(value, Options()) : null, active, cell.Key);
+        return new UiFilterEntry(Label ?? cell.Name, active ? Text(value, Options()) : null, active, cell.Key);
     }
 
     /// <inheritdoc />

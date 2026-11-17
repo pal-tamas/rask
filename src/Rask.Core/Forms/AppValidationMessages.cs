@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -107,20 +106,13 @@ internal static class AppValidationMessages
             return owner.Name;
         }
 
-        var property = owner.GetProperty(member, BindingFlags.Public | BindingFlags.Instance);
-        if (property?.GetCustomAttribute<DisplayAttribute>(inherit: true) is { } display)
+        if (owner.GetProperty(member, BindingFlags.Public | BindingFlags.Instance) is not { } property
+            || DisplayNames.Of(property) is not { } named)
         {
-            return display.ResourceType is null && display.Name is { Length: > 0 } literal
-                ? Found(localizer[literal]) ?? literal
-                : display.GetName() ?? member;
+            return member;
         }
 
-        if (property?.GetCustomAttribute<DisplayNameAttribute>(inherit: true)?.DisplayName is { Length: > 0 } named)
-        {
-            return Found(localizer[named]) ?? named;
-        }
-
-        return member;
+        return DisplayNames.FromResources(property) ? named : Found(localizer[named]) ?? named;
     }
 
     // Pins the thread to the reader's culture for one synchronous lookup, and puts back what was there.

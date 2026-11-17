@@ -75,7 +75,9 @@ internal static class AsyncAnnotationPass
         CancellationToken cancellationToken)
     {
         var value = member.Property.GetValue(owner);
-        var context = Context(owner, member.Name, services);
+        var context = DisplayNames.Of(member.Property) is { } named
+            ? new ValidationContext(owner, named, services, null) { MemberName = member.Name }
+            : Context(owner, member.Name, services);
         var messages = new List<string>();
         if (includeSync)
         {
