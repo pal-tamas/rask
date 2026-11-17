@@ -92,12 +92,20 @@ write; register your own `IRaskCulturePersistence` first to store the choice els
 ## A URL per language
 
 A site that ships its pages in several languages and wants each indexed in each — a brochure site, a docs
-site, anything [prerendered](prerendering.md) for a static host — puts the language in the URL:
+site, a Server app, anything [prerendered](prerendering.md) for a static host — puts the language in the URL.
+It works the same on both hosts:
 
-```csharp
-// Program.cs — the languages themselves still come from Rask:Cultures: [ "hu", "en", "de" ]
-host.UseCulture(c => c.UrlPrefix = true);
+```jsonc
+// appsettings.json — a Server app (RaskApp or AddRask) and a WebAssembly app alike
+{
+  "Rask": {
+    "Cultures": { "SupportedCultures": [ "hu", "en", "de" ], "UrlPrefix": true }
+  }
+}
 ```
+
+or in code — `builder.Services.AddRask(configureCulture: c => c.UrlPrefix = true)` on a Server host wired by hand,
+`host.UseCulture(c => c.UrlPrefix = true)` in a WebAssembly app's `Program.cs`.
 
 | Page | `hu` (the default) | `en` | `de` |
 | --- | --- | --- | --- |
@@ -110,8 +118,9 @@ language — a page still declares its route once, `[Route("/rolunk")]`, and ans
 **The URL decides the language, and nothing renegotiates it.** A deep link opens in the language it names,
 whatever the visitor's cookie or browser says, so a German browser on `/rolunk` reads Hungarian rather than
 watching the page change language under an address that did not. Negotiation (`?culture=`, the cookie,
-`navigator.languages`) is asked only when a visitor arrives at the bare root `/`, and its answer is a redirect
-to that language's root (`/en`) — never a deep link.
+`Accept-Language` / `navigator.languages`) is asked only when a visitor arrives at the bare root `/`, and its
+answer is a redirect to that language's root (`/en` — a `302` from a Server app) — never a deep link. A Server
+session rebuilt after a restart, and a page printed with `Pdf.From`, are in the language of their address too.
 
 **Links keep the language of the page they are on.** `Routes.About()` on `/en/contact` is `/en/rolunk`, with
 nothing threaded through. A language switcher asks for another one:
@@ -130,13 +139,15 @@ public sealed partial class LanguageMenu(RouteState route) : Component
 
 `route.In("de")` is the page being shown, with its query, in German; another page in German is
 `Routes.Contact().In("de")`. Following either switches the session's language and remembers it in the cookie,
-so the visitor's next visit to `/` lands in German too. A language the app does not ship is the root's.
+so the visitor's next visit to `/` lands in German too. A language the app does not ship is the root's. On a
+Server app the switch is a live navigation like any other: the page repaints in German over the socket, and a
+navigation the page makes itself (`Routes.Contact().Go()`) keeps the prefix it is on.
 
-A [prerendered](prerendering.md#one-page-per-language) app writes every page once per language, each in its own,
-with its `<html lang>`, a `canonical` to itself, `hreflang` alternates for every language plus `x-default` (the
-root's), and the same alternates in `sitemap.xml`.
-
-> **WebAssembly only, for now.** On a Server app the option changes nothing yet.
+Each page names its other languages for a crawler: its `<html lang>`, a `canonical` to itself, and `hreflang`
+alternates for every language plus `x-default` (the root's) — unless the page declares its own. A Server app
+writes them into every page it serves, against the origin the request arrived at (what `AllowedHosts` and the
+forwarded headers made of it). A [prerendered](prerendering.md#one-page-per-language) WebAssembly app writes every
+page once per language, each in its own, with the same links and the same alternates in `sitemap.xml`.
 
 ## Translating your text
 

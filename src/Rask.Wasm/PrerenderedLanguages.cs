@@ -1,5 +1,3 @@
-using System.Net;
-using System.Text;
 using Rask.Core.Globalization;
 using Rask.Core.Live;
 using Rask.Core.Routing;
@@ -64,13 +62,7 @@ internal sealed class PrerenderedLanguages
     public static PrerenderedLanguages For(IServiceProvider services)
     {
         var options = services.GetService(typeof(RaskCultureOptions)) as RaskCultureOptions;
-        var languages = UrlLanguages.From(options);
-        if (languages is not null)
-        {
-            UrlLanguages.IsEnabled = true;
-        }
-
-        return new PrerenderedLanguages(services, options, languages);
+        return new PrerenderedLanguages(services, options, UrlLanguages.Enable(options));
     }
 
     /// <summary>Where <paramref name="routePath" /> is written in <paramref name="language" />: <c>/en/about</c>.</summary>
@@ -119,48 +111,15 @@ internal sealed class PrerenderedLanguages
             return html;
         }
 
-        var head = html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase);
-        if (head < 0)
-        {
-            return html;
-        }
-
-        var links = new StringBuilder();
-        if (PrerenderedPageMetadata.CanonicalTarget(html) is null)
-        {
-            AppendLink(links, "canonical", null, Url(origin, language, routePath, trailingSlash));
-        }
-
-        if (html.IndexOf("hreflang=", StringComparison.OrdinalIgnoreCase) < 0)
-        {
-            foreach (var each in Languages.All)
-            {
-                AppendLink(links, "alternate", each, Url(origin, each, routePath, trailingSlash));
-            }
-
-            AppendLink(links, "alternate", XDefault, Url(origin, Languages.Default, routePath, trailingSlash));
-        }
-
-        return links.Length == 0 ? html : html.Insert(head, links.ToString());
+        return LanguageAlternates.AddTo(html, Languages, language, each => Url(origin, each, routePath, trailingSlash));
     }
 
     /// <summary>The <c>hreflang</c> a crawler sends a visitor no listed language fits to: the root's.</summary>
-    internal const string XDefault = "x-default";
+    internal const string XDefault = LanguageAlternates.XDefault;
 
     /// <summary>The absolute URL of <paramref name="routePath" /> in <paramref name="language" />.</summary>
     internal string Url(string origin, string language, string routePath, bool trailingSlash) =>
         origin + LiveOptions.PathBase + SitemapWriter.SiteUrlPath(Address(language, routePath), trailingSlash);
-
-    private static void AppendLink(StringBuilder links, string rel, string? hreflang, string href)
-    {
-        links.Append("<link rel=\"").Append(rel).Append('"');
-        if (hreflang is not null)
-        {
-            links.Append(" hreflang=\"").Append(WebUtility.HtmlEncode(hreflang)).Append('"');
-        }
-
-        links.Append(" href=\"").Append(WebUtility.HtmlEncode(href)).Append("\">");
-    }
 
     // Said once, as the sitemap's absence is: a page with no alternates looks finished in a browser.
     private void TellNoOrigin()

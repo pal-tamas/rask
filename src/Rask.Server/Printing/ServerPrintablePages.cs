@@ -39,13 +39,14 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
         ArgumentNullException.ThrowIfNull(user);
         var selector = _selector ?? throw new InvalidOperationException(
             "Pdf.From(route) prints a page of this app, and the app has mapped none: call app.MapRask<App>() first.");
-        var path = route.Path;
-        if (!path.StartsWith('/') || path.StartsWith("//", StringComparison.Ordinal))
+        if (!route.Path.StartsWith('/') || route.Path.StartsWith("//", StringComparison.Ordinal))
         {
             throw new ArgumentException($"Pdf.From prints a page of this app, by its route; '{route}' is not one.", nameof(route));
         }
 
-        if (!RouteResolver.TryResolve(selector.RoutesFor(path), path, out var chain, out var isNotFound) || isNotFound)
+        var languages = services.GetRequiredService<ServerUrlLanguages>();
+        var path = AddressOf(route, culture, languages.Languages);
+        if (!RouteResolver.TryResolve(selector.RoutesFor(path), languages.RoutePathOf(path), out var chain, out var isNotFound) || isNotFound)
         {
             throw new InvalidOperationException($"No page of this app answers {path}, so there is nothing to print.");
         }
@@ -172,6 +173,26 @@ internal sealed class ServerPrintablePages(IServiceProvider services) : IPrintab
         && RaskCultureNegotiator.TrySelect(culture.Name, options, out var selected)
             ? selected
             : null;
+
+    // Where the page is printed from: under URL languages, the address of the language the route asks for, or the one
+    // a path written as a string already names, or else the caller's — the session then renders in it, as a visitor's
+    // at that address would.
+    private static string AddressOf(RouteUrl route, CultureInfo? culture, UrlLanguages? languages)
+    {
+        if (languages is null)
+        {
+            return route.Path;
+        }
+
+        if (route.Language is { } asked)
+        {
+            return languages.Join(asked, route.Path);
+        }
+
+        return LanguageTag.Same(languages.Split(route.Path).Language, languages.Default)
+            ? languages.Join(culture?.Name, route.Path)
+            : route.Path;
+    }
 
     private static void Bind(LiveSession session, RaskRootSelector selector, string path) =>
         RaskEndpointExtensions.BindToApplication(session, selector, path);

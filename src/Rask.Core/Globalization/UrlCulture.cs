@@ -43,10 +43,22 @@ internal static class UrlCulture
             }
         }
 
-        var language = languages.Split(path).Language;
-        return RaskCultureNegotiator.TrySelect(language, options, out var selection)
-            ? (selection, null)
-            : (RaskCultureNegotiator.Negotiate(null, null, null, options), null);
+        return (Of(path, languages, options), null);
+    }
+
+    /// <summary>
+    ///     The culture of the address <paramref name="path" />, whatever the visitor's signals say: what a session
+    ///     rebuilt at that address — or rendered there for a printer — is in.
+    /// </summary>
+    public static CultureNegotiation Of(string path, UrlLanguages languages, RaskCultureOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        ArgumentNullException.ThrowIfNull(languages);
+        ArgumentNullException.ThrowIfNull(options);
+
+        return RaskCultureNegotiator.TrySelect(languages.Split(path).Language, options, out var selection)
+            ? selection
+            : RaskCultureNegotiator.Negotiate(null, null, null, options);
     }
 
     /// <summary>

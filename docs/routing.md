@@ -670,7 +670,7 @@ Mutate `RouteState` through `Go`, not by setting `Path`/`Query` directly, so bro
 
 ### A URL per language
 
-With `UseCulture(c => c.UrlPrefix = true)` ([Localization](localization.md#a-url-per-language)) the language is the
+With `UrlPrefix = true` in `Rask:Cultures` ([Localization](localization.md#a-url-per-language), on both hosts) the language is the
 path's first segment — none for the default, `/en/…` for the others — and the prefix is to a route what the
 deploy's `PathBase` is: part of the address, never part of the route. A page declares `[Route("/rolunk")]` once and
 answers `/rolunk`, `/en/rolunk` and `/de/rolunk`; `route.Path` is the address, `/en/rolunk`.

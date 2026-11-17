@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Rask.Core.Globalization;
+using Rask.Core.Routing;
 
 namespace Rask.Server;
 
@@ -56,9 +57,36 @@ internal static class ServerCultureNegotiation
         return true;
     }
 
-    /// <summary>Seeds a session's culture, before its first render.</summary>
-    public static void Apply(IServiceProvider sessionServices, CultureNegotiation negotiation) =>
-        sessionServices.GetRequiredService<SessionCulture>().Seed(negotiation);
+    /// <summary>Seeds a session's culture, before its first render, once its route is at the address it opens at.</summary>
+    /// <remarks>
+    ///     Under URL languages (<see cref="RaskCultureOptions.UrlPrefix" />) the address decides, whatever
+    ///     <paramref name="negotiation" /> says — a page rebuilt from a resume record, or printed, is in the language its
+    ///     address names — and the session follows its address from then on (<see cref="UrlCulture.Follow" />).
+    /// </remarks>
+    /// <param name="sessionServices">The session's scope.</param>
+    /// <param name="negotiation">The request's negotiation, or <c>null</c> for none: the app's default then stays.</param>
+    public static void Apply(IServiceProvider sessionServices, CultureNegotiation? negotiation)
+    {
+        // An app with no languages resolves no culture service at all.
+        if (negotiation is null && !UrlLanguages.IsEnabled)
+        {
+            return;
+        }
+
+        var culture = sessionServices.GetRequiredService<SessionCulture>();
+        var route = sessionServices.GetRequiredService<RouteState>();
+        if (route.Languages is { } languages && sessionServices.GetService<RaskCultureOptions>() is { } options)
+        {
+            culture.Seed(UrlCulture.Of(route.Path, languages, options));
+            UrlCulture.Follow(route, culture);
+            return;
+        }
+
+        if (negotiation is { } negotiated)
+        {
+            culture.Seed(negotiated);
+        }
+    }
 
     /// <summary>
     ///     Remembers a culture that arrived in the URL, and declares what the response varied on.

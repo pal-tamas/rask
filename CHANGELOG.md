@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **A URL per language works on the Server host (#1278).** Before: `UrlPrefix = true` was WebAssembly only, and on
+  a Server app it changed nothing — `/de/about` was a 404. After: `"Rask:Cultures": { "SupportedCultures": ["en",
+  "de"], "UrlPrefix": true }` serves `/about` in English and `/de/about` in German from the same `[Route("/about")]`;
+  the address decides the session's language over the cookie and `Accept-Language`, a first visit to the bare `/`
+  is sent on (302) to its language's root, links and `Routes.X().Go()` keep the page's prefix over the live socket,
+  `route.In("de")` switches language in place, a resumed session and a `Pdf.From` print are in their address's
+  language, guards send to `/de/login`, and every served page carries a `canonical` and `hreflang` alternates.
 - **RASK118 names the fix when a component chain is built outside a markup host (#1306).** Before: a job or mail
   sender writing `.Body(OrderReceipt.OrderId(order.Id))` got a bare CS0120 ("an object reference is required"),
   and an element chain like `Div.Class("spinner")` in a static helper a bare CS0103 — neither said the class has to
