@@ -34,15 +34,29 @@ public sealed class RaskSiteStartTests
     }
 
     [Fact]
-    public async Task The_app_runs_as_a_test_over_a_database_in_the_runs_own_folder()
+    public async Task A_site_writes_what_the_app_says_to_its_host_log_while_the_app_still_runs()
     {
-        await using var site = new RaskSite<Program>();
+        var log = Path.Combine(Path.GetTempPath(), $"rask-host-log-{Guid.NewGuid():N}", "host.log");
+        await using var site = new RaskSite<Program> { HostLog = log };
 
-        var environment = site.Environment;
+        await site.Start();
+        var written = await File.ReadAllTextAsync(log, TestContext.Current.CancellationToken);
+        var said = site.Log;
 
-        Assert.Equal("Testing", environment["ASPNETCORE_ENVIRONMENT"]);
-        Assert.Equal($"Data Source={Path.Combine(site.Folder, "app.db")}", environment["Rask__ConnectionStrings__App"]);
-        Assert.Equal($"Data Source={Path.Combine(site.Folder, "logs.db")}", environment["Rask__ConnectionStrings__Logs"]);
+        Assert.NotEqual("", said);
+        Assert.All(said.ReplaceLineEndings("\n").Split('\n'), line => Assert.Contains(line, written, StringComparison.Ordinal));
+        Directory.Delete(Path.GetDirectoryName(log)!, recursive: true);
+    }
+
+    [Fact]
+    public async Task A_site_that_keeps_stand_ins_of_its_own_disposes_them_with_it()
+    {
+        var site = new SiteWithAStandIn();
+
+        await site.DisposeAsync();
+
+        Assert.True(site.StandInDisposed);
+        Assert.False(Directory.Exists(site.Folder));
     }
 
     [Fact]
@@ -99,5 +113,16 @@ public sealed class RaskSiteStartTests
 
         Assert.True(taken);
         Assert.False(broken);
+    }
+
+    private sealed class SiteWithAStandIn : RaskSite<Program>
+    {
+        public bool StandInDisposed { get; private set; }
+
+        public override async ValueTask DisposeAsync()
+        {
+            StandInDisposed = true;
+            await base.DisposeAsync();
+        }
     }
 }
