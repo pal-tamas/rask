@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Rask.Core;
 using Rask.Core.Authentication;
 using Rask.Core.Routing;
+using Rask.Server.E2E.Tests;
 
 namespace Rask.Wasm.Fixture.Wasm;
 
@@ -76,4 +77,11 @@ public sealed class ValidationMessages;
 public sealed partial class SignInPage : Component
 {
     protected override Component? Render() => P.Id("sign-in-page")["sign in here"];
+}
+
+/// <summary>The measured virtual lists the Server host draws too (<c>VirtualListPage</c>), drawn by the browser host.</summary>
+[Route("/virtual")]
+public sealed partial class VirtualPage : Component
+{
+    protected override Component? Render() => VirtualListPage;
 }

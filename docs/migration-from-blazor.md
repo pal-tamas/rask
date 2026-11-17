@@ -32,6 +32,11 @@ New to Rask entirely? Start with [getting started](getting-started.md).
 | `<AuthorizeView>` (+ `Context="user"` / `@context.User`) | headless `Authorize` — its `.Authorized(user => …)` slot receives the `ClaimsPrincipal`, like `@context.User` |
 | `AuthenticationStateProvider` | inject `IUserProvider` and read `.Current` |
 | `[Inject] T Svc { get; set; }` | constructor injection — `partial class Page(T svc) : Component` |
+| `<Virtualize Items="…" ItemSize="…">` | `Virtualize.Items(ctx => …, items, ItemSize: …)` — headless: you draw the box and the rows between `ctx.Above` and `ctx.Below`, and the rows are measured as Blazor's are ([lists](composition-lists.md#virtualize--windowed-lists)) |
+| `Virtualize`'s `ItemsProvider` / `Placeholder` | `ItemsProvider:` — a row still on its way is `item.IsPlaceholder` |
+| `InitialItemIndex` / `AnchorMode="VirtualizeAnchorMode.End"` | `InitialItemIndex:` / `Anchor: VirtualAnchor.End` |
+| `@ref` + `ScrollToItemAsync(i)` | `Scroller: _scroller` (`VirtualScroller.New()` in a field) + `await _scroller.ScrollTo(i)` |
+| `SpacerElement="tr"` | `ctx.AboveRow` / `ctx.BelowRow` inside the `Tbody` |
 | `Component.razor.css` | sibling `{Component}.css` next to `{Component}.cs` |
 | `IJSRuntime` | `IJSRuntime` (injected via the constructor) |
 

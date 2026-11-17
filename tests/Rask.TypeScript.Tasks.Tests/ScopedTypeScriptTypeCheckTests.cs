@@ -87,6 +87,8 @@ public class ScopedTypeScriptTypeCheckTests
             Path.Combine(root, "src", "Rask.Core", "Resources", "rask-sw-shared.ts"),
             Path.Combine(root, "src", "Rask.Server", "Resources", "rask-sw.ts"),
             Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-sw.ts"),
+            // Not a service worker but a dedicated one ([OffThread]'s .NET runtime), on the same lib.
+            Path.Combine(root, "src", "Rask.Wasm", "Resources", "rask-worker.ts"),
         ];
 
         foreach (var worker in workers)
@@ -226,9 +228,9 @@ public class ScopedTypeScriptTypeCheckTests
             }
             .SelectMany(d => Directory.EnumerateFiles(d, "*.ts", SearchOption.AllDirectories))
             .Where(f => !f.EndsWith(".d.ts", StringComparison.Ordinal))
-            // The service workers are checked by The_framework_service_workers_type_check, against the
-            // webworker lib rather than dom.
-            .Where(f => !Path.GetFileName(f).StartsWith("rask-sw", StringComparison.Ordinal))
+            // The workers are checked by The_framework_service_workers_type_check, against the webworker lib
+            // rather than dom: a file that asks for webworker here declares every DOM global a second time.
+            .Where(f => !RunsInAWorker(f))
             .Select(Path.GetFullPath)
             .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();
@@ -247,6 +249,10 @@ public class ScopedTypeScriptTypeCheckTests
             exitCode == 0,
             "The framework's client runtimes did not type-check:" + Environment.NewLine + output);
     }
+
+    private static bool RunsInAWorker(string file) =>
+        Path.GetFileName(file).StartsWith("rask-sw", StringComparison.Ordinal)
+        || File.ReadAllText(file).Contains("/// <reference lib=\"webworker\" />", StringComparison.Ordinal);
 
     /// <summary>
     ///     No compiled <c>.js</c> sits beside a framework <c>.ts</c>.

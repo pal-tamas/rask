@@ -91,6 +91,24 @@ internal sealed partial record RunnerBuildCache(string Directory, IReadOnlyList<
     internal static IReadOnlyList<string> CacheMountIds(string dockerfile)
     {
         var ids = new List<string>();
+        foreach (var (id, _) in CacheMounts(dockerfile))
+        {
+            if (id is not null && SafeId().IsMatch(id) && !ids.Contains(id, StringComparer.Ordinal))
+            {
+                ids.Add(id);
+            }
+        }
+
+        return ids;
+    }
+
+    /// <summary>The folder every <c>RUN --mount=type=cache</c> in <paramref name="dockerfile"/> is mounted at, in order.</summary>
+    internal static IReadOnlyList<string> CacheMountTargets(string dockerfile) =>
+        [.. CacheMounts(dockerfile).Select(mount => mount.Target).OfType<string>()];
+
+    /// <summary>Each <c>--mount=type=cache</c>: its id (its target when it names none) and its target.</summary>
+    private static IEnumerable<(string? Id, string? Target)> CacheMounts(string dockerfile)
+    {
         foreach (Match mount in MountOption().Matches(dockerfile))
         {
             var options = mount.Groups["options"].Value.Split(',')
@@ -99,19 +117,12 @@ internal sealed partial record RunnerBuildCache(string Directory, IReadOnlyList<
                 .GroupBy(pair => pair[0], StringComparer.Ordinal)
                 .ToDictionary(group => group.Key, group => group.Last()[1], StringComparer.Ordinal);
 
-            if (!options.TryGetValue("type", out var type) || !string.Equals(type, "cache", StringComparison.Ordinal))
+            if (options.TryGetValue("type", out var type) && string.Equals(type, "cache", StringComparison.Ordinal))
             {
-                continue;
-            }
-
-            var id = options.GetValueOrDefault("id") ?? options.GetValueOrDefault("target");
-            if (id is not null && SafeId().IsMatch(id) && !ids.Contains(id, StringComparer.Ordinal))
-            {
-                ids.Add(id);
+                var target = options.GetValueOrDefault("target") ?? options.GetValueOrDefault("dst") ?? options.GetValueOrDefault("destination");
+                yield return (options.GetValueOrDefault("id") ?? target, target);
             }
         }
-
-        return ids;
     }
 
     [GeneratedRegex(@"--mount=(?<options>\S+)", RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]

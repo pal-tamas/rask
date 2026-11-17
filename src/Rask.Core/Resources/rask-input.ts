@@ -17,6 +17,7 @@ import {
     raskNotePendingFormState,
 } from "./rask-morph.js";
 import { raskTargetState } from "./rask-dom-payload.js";
+import { virtualReport } from "./rask-virtual-report.js";
 import { isHandlerEvent } from "./rask-batch.js";
 import { busyWhile } from "./rask-busy.js";
 import { draws, isUnasked, seam, unasked } from "./rask-owned.js";
@@ -479,7 +480,11 @@ function flushScroll(): void {
         // The scroll box travels as e.Target, the way MDN's JavaScript reads it (e.target.scrollTop). A box
         // scrolls under the reader's wheel and under the runtime's own hand alike — a carousel playing, a
         // pager's scroll-to, a tree following its cursor — and the event does not say which: nobody's action.
-        unasked(function () { send({ id, type: "scroll", target: raskTargetState(el, 1) }); });
+        // A box that scrolls a measured virtual list says, beside, where its rows stand (rask-virtual-report.ts).
+        const target = raskTargetState(el, 1);
+        const virtual = target && virtualReport(el);
+        if (target && virtual) target.raskVirtual = virtual;
+        unasked(function () { send({ id, type: "scroll", target }); });
     });
     scrollPending.clear();
 }

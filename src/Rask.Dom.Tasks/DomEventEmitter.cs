@@ -386,7 +386,8 @@ namespace Rask.Core.Dom.Build
             cs.AppendLine("///     scroll, the playback state of a media event. Each value is MDN's property of that element; one the event");
             cs.AppendLine("///     does not carry reads as its default.");
             cs.AppendLine("/// </summary>");
-            cs.AppendLine("public sealed class EventTarget");
+            // Partial: Core reads the runtime's own state of a virtual list's box beside MDN's (EventTarget.Virtual.cs).
+            cs.AppendLine("public sealed partial class EventTarget");
             cs.AppendLine("{");
             cs.AppendLine("    /// <summary>An empty target, for a test to fill.</summary>");
             cs.AppendLine("    public EventTarget()");
@@ -400,7 +401,10 @@ namespace Rask.Core.Dom.Build
                 cs.Append("        ").Append(Pascal(idl)).Append(" = EventPayload.").Append(Reader(type)).Append("(p, \"").Append(idl).AppendLine("\");");
             }
 
+            cs.AppendLine("        ReadRuntimeState(p);");
             cs.AppendLine("    }");
+            cs.AppendLine();
+            cs.AppendLine("    partial void ReadRuntimeState(JsonElement p);");
             foreach (var (idl, type, data) in props)
             {
                 cs.AppendLine();

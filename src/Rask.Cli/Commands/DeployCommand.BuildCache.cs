@@ -44,6 +44,11 @@ internal sealed partial class DeployCommand
                 && string.Equals(_fileSystem.ReadAllText(cache.FingerprintFile).Trim(), fingerprint, StringComparison.Ordinal),
         };
         Console.WriteLine(CacheState(restored, cache.Unchanged), ConsoleStyle.Dim);
+        if (UnkeptDownloads.In(dockerfile) is { Count: > 0 } unkept)
+        {
+            Console.WriteLine($"  Not kept between deploys: {string.Join(", ", unkept)} — no RUN --mount=type=cache in the Dockerfile holds it, so every deploy downloads it again. Mount it on the publish step, as the template Dockerfile does.", ConsoleStyle.Dim);
+        }
+
         await FillCacheMountsAsync(cache, cancellationToken).ConfigureAwait(false);
         return cache;
     }
