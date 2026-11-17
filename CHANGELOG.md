@@ -220,6 +220,16 @@ them until tagged releases begin.
   back past its lit row and on before the page answered drew that row again from the late answer, named it, and
   scrolled the box back to it, so the reader's own scroll was never drawn and the list sat at the top or kept moving.
   After: a row gone dark is lit again only once it is back in sight, and the box stays where the reader left it.
+- **A long `Ui.Select`/`Ui.Pillbox` scrolled the moment it opens stays where it was scrolled (#1350).** Before: the
+  list brought its lit row into view when the browser said it showed, a task after it opened, so a wheel that quick —
+  or a page busy enough to make the wait long — had the box taken back to the top under the reader. After: a list the
+  reader has already scrolled by then is left where they took it.
+- **A field left while the check before it is still out is taken, however often that check's answer redraws the
+  page (#1350).** Before: on Rask.Server, an event waits its turn behind the handler running, and the answer of an
+  async rule (`[UniqueEmail]` looking a user up) could draw the page three times before the field's own change was
+  taken — past the two pages an event outlives its render by, with its handler a new closure in every one — so the
+  change ran nothing, the model kept the old value and its stale message stayed. After: while events wait their turn
+  the walks tell a handler that is the same one from a moved one, and the change reaches its field.
 - **A WebRTC peer that drops off without closing is announced to its room, and leaves it.** Before: a closed tab or a
   lost network ended the signaling socket with an exception, the relay lost track of which peer it was, and the peer
   stayed in its room — counted against `MaxPeersPerRoom` and never announced as `peer-left`, so the others went on

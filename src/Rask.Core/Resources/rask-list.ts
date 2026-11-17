@@ -106,6 +106,10 @@ interface State {
     seeking: number;
     /** The create row pressed, whose handler the list stays open for: shut once it has its answer. */
     creating: HTMLElement | null;
+    /** The reader scrolled the list after it opened: where it is now is theirs, not the lit row's to change. */
+    scrolled: boolean;
+    /** In a windowed list: how far its box was scrolled when it last shut. */
+    shutTop: number;
 }
 
 const states = new WeakMap<Element, State>();
@@ -131,7 +135,7 @@ function stateOf(root: Element): State {
         states.set(root, state = {
             cursor: null, id: "", pointed: false, auto: false, none: false, top: false, typing: false, acts: false,
             said: null, over: null, shown: false, pressed: false, resumes: false, heard: "", searched: false, anew: false,
-            at: -1, wanted: -1, toward: 1, set: "", seeking: 0, creating: null,
+            at: -1, wanted: -1, toward: 1, set: "", seeking: 0, creating: null, scrolled: false, shutTop: 0,
         });
     }
     return state;
@@ -709,6 +713,7 @@ function opened(root: Element, popup: Element): void {
     }
     state.resumes = false;
     state.creating = null;
+    state.scrolled = false;
     expand(root, popup, true);
     refilter(root);
     waits(root);
@@ -746,6 +751,8 @@ function closed(root: Element, popup: Element): void {
     open.delete(root);
     unwatch();
     state.creating = null;
+    const box = windowOf(root);
+    state.shutTop = box ? box.scrollTop : 0;
     expand(root, popup, false);
     const keeps = state.pressed && state.shown;
     state.pressed = false;
@@ -943,15 +950,30 @@ if (page) {
         if (input && !(popup as Element).contains(input) && active !== input && (!active || active === doc.body || root.contains(active))) {
             input.focus();
         }
+        // This event comes a task after the list opened, and a reader quick on the wheel — or a busy page — has the
+        // list scrolled by then: where they took it stands, and the lit row is not brought back into view (#1350).
+        const box = windowOf(root);
+        if (state.scrolled || (box && box.scrollTop !== 0 && box.scrollTop !== state.shutTop)) {
+            return;
+        }
         if (state.cursor) {
             reveal(state.cursor);
         }
-        const box = windowOf(root);
         if (box) {
             // Shut, the box may have gone back to its top, and the rows drawn are where it was: the page hears where it is.
             bring(root, box, state.wanted >= 0 ? state.wanted : Math.max(state.at, 0));
         }
     }, true);
+
+    // A scroll inside an open list, before it has said it shows (the `toggle` above).
+    listen("scroll", function (e) {
+        const at = e.target;
+        const root = at instanceof Element ? at.closest(ROOT) : null;
+        const popup = root && open.has(root) ? popupOf(root) : null;
+        if (root && popup && popup.contains(at as Element)) {
+            stateOf(root).scrolled = true;
+        }
+    }, {capture: true, passive: true});
 
     // The mouse's events, not the pointer's: a row that slides under a pointer at rest is told to the page as a
     // mouseover (the browser catching up after a layout), and as no pointer event at all.

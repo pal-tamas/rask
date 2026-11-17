@@ -36,6 +36,8 @@ public sealed class LongSelectScrollTests(PlaywrightFixture playwright) : IClass
         return data;
     }
 
+    public static TheoryData<int> ScreenWidths => new() { 1280, 390 };
+
     public static TheoryData<string, int> Widths()
     {
         var data = new TheoryData<string, int>();
@@ -105,6 +107,28 @@ public sealed class LongSelectScrollTests(PlaywrightFixture playwright) : IClass
         Assert.InRange(settled.Gap, 0, LongSelectScroll.Padding);
         Assert.True(await LongSelectScroll.AtTheEndAsync(box), "the box left the end it was scrolled to");
         await Expect(first).ToHaveCountAsync(0);
+    }
+
+    // A quick wheel, or a busy page (#1350): the box is scrolled before the list has said it shows (its `toggle` event,
+    // a task after it opened), and showing the lit row then took the box back to the top under the reader.
+    [Theory]
+    [MemberData(nameof(ScreenWidths))]
+    public async Task A_list_scrolled_the_moment_it_opens_stays_where_the_reader_scrolled_it(int width)
+    {
+        await using var session = await HookSession.OpenAsync<LongSelectScrollPage>(
+            playwright, new BrowserNewContextOptions { ViewportSize = new() { Width = width, Height = 844 } });
+        var page = session.Page;
+        await session.HooksLoadedAsync();
+        var box = page.Locator(LongSelectScroll.Box("codes"));
+
+        var top = await page.EvaluateAsync<double>(
+            "([opener, box]) => new Promise(done => { document.querySelector(opener).click(); queueMicrotask(() => { const b = document.querySelector(box); b.scrollTop = b.scrollHeight / 2; done(b.scrollTop); }); })",
+            new[] { LongSelectScroll.Opener("codes"), LongSelectScroll.Box("codes") });
+
+        Assert.True(top > 0, "the box did not scroll as it opened");
+        await Expect(box.Locator("[aria-posinset='240']")).ToHaveCountAsync(1);
+        Assert.InRange(await box.EvaluateAsync<double>("box => box.scrollTop"), top - 1, top + 1);
+        await Expect(box.Locator("[aria-posinset='1']")).ToHaveCountAsync(0);
     }
 
     /// <summary>The page's socket, with what the server sends held back while asked and then let through in order.</summary>

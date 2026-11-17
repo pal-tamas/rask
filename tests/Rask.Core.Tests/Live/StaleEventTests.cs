@@ -610,6 +610,42 @@ public partial class StaleEventTests : global::Rask.Core.RaskMarkup
         Assert.Equal("Ada", draft.Name);
     }
 
+    // A field left while the handler before it was still out (#1350): that handler's answer rendered the page three
+    // times over before the field's change was taken, and the field's handler — a new closure over the same field
+    // at every walk — was the one the reader left all along. Waiting its turn, the event keeps it findable; one that
+    // was not waiting has no claim past the two pages an event outlives.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task What_a_field_was_left_with_reaches_it_after_three_pages_only_when_it_waited_its_turn(bool waited)
+    {
+        var draft = new Draft();
+        var label = 0;
+        var view = new StubComponent(() => Div[P[$"renders {label}"], Input.Bind(() => draft.Name).Blur().Class("name")]);
+        var id = IdOn(Ship(view), "name", "change");
+        view.RenderHandle = new LineHandle { Waiting = waited };
+        for (var page = 0; page < 3; page++)
+        {
+            label++;
+            Ship(view);
+        }
+
+        var ran = await Send(view, id, version: 0, "change", "Ada");
+
+        Assert.Equal(waited, ran);
+        Assert.Equal(waited ? "Ada" : "", draft.Name);
+    }
+
+    // A host whose events wait their turn in a line, as the Server session's do.
+    private sealed class LineHandle : global::Rask.Core.Live.IRenderHandle
+    {
+        public bool Waiting { get; init; }
+
+        bool global::Rask.Core.Live.IRenderHandle.EventsWaiting => Waiting;
+
+        public Task RequestRender() => Task.CompletedTask;
+    }
+
     // PINNED, NOT WANTED. Child components without a key are the same instances by position, so the second
     // row's component is the second row's component whatever record it is handed: its handler is the same method
     // of the same instance, and nothing about the handler moved. The event reaches the row that now sits second.

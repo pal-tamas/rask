@@ -46,6 +46,13 @@ public interface IRenderHandle
     /// </summary>
     internal TimeSpan HandlerRepaintBudget => TimeSpan.Zero;
 
+    /// <summary>
+    ///     Whether events the browser sent are waiting their turn behind the work running now: read from pages this
+    ///     render is about to leave behind, so it keeps their handlers findable (Component.StaleEvents.cs). A handle
+    ///     that runs each event as it comes has none waiting.
+    /// </summary>
+    internal bool EventsWaiting => false;
+
     /// <summary>Whether this session's host runs in Development; a handle with no host of its own asks the work in progress.</summary>
     internal bool IsDevelopment => HostMode.IsDevelopmentInScope;
 

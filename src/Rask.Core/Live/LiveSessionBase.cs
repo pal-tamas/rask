@@ -97,6 +97,11 @@ internal abstract class LiveSessionBase : IRenderHandle, ILiveJsHost, IDisposabl
 
     bool IRenderHandle.IsDevelopment => IsDevelopment;
 
+    bool IRenderHandle.EventsWaiting => EventsWaitingCore;
+
+    // A single-threaded host (WASM) runs each event as it comes; the Server session has a handler line to wait in.
+    protected virtual bool EventsWaitingCore => false;
+
     void IRenderHandle.RunInOrder(Func<Task> work) => RunInOrderCore(work);
 
     // A single-threaded host (WASM) has nothing to order against; the Server session queues on its handler chain.

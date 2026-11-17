@@ -774,3 +774,10 @@ bundle,bytes
 rask.js,120304
 rask.wasm.js,106335
 rask-hooks.js,139750
+# 2026-11-17, a list scrolled the moment it opens stays where it was scrolled (#1350: rask-list.ts leaves a box the
+# reader moved before its `toggle` to the reader): measured with the Release bundles — rask.js and rask.wasm.js
+# unchanged, rask-hooks.js 139,750 -> 140,054 (+304).
+bundle,bytes
+rask.js,120304
+rask.wasm.js,106335
+rask-hooks.js,140054

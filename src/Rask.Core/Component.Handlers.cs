@@ -117,9 +117,12 @@ public abstract partial class Component
     ///     its own slot numbering the next time it registers. Called once per live render pass, from
     ///     <see cref="LiveRenderContext" />'s constructor.
     /// </summary>
-    internal void BeginHandlerGeneration() =>
-        (Live.HandlerState ??= new HandlerState()).Generation =
-            Interlocked.Increment(ref _renderGenerationSource);
+    internal void BeginHandlerGeneration()
+    {
+        var state = Live.HandlerState ??= new HandlerState();
+        state.Generation = Interlocked.Increment(ref _renderGenerationSource);
+        state.EagerWhileWaiting = RenderHandle?.EventsWaiting == true;
+    }
 
     // The id for one of a component's slots: minted the first time a render reaches that slot, then
     // held for the component's lifetime. Existing slots never renumber, which is the invariant the
@@ -828,6 +831,12 @@ public abstract partial class Component
         ///     arrived from an older page, so more are likely on their way.
         /// </summary>
         public int EagerThrough;
+
+        /// <summary>
+        ///     This walk compares closures as it registers them too: events read from the page it leaves behind are
+        ///     waiting their turn behind the work that asked for it (<see cref="Live.IRenderHandle.EventsWaiting" />).
+        /// </summary>
+        public bool EagerWhileWaiting;
 
         /// <summary>Every id this root has minted, and the component and slot it belongs to.</summary>
         public Dictionary<string, (Component Component, int Slot)>? Slots;

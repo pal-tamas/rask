@@ -373,7 +373,10 @@ Three cases are worth knowing:
   are the same handler in every render and are never dropped for this. A `.Confirm` yes is not dropped either:
   the server keeps the whole page the browser was told it holds as the press is made again from it, so the delete
   the reader said yes to runs however many pages a board redrawn every few dozen ms has drawn since — still only
-  when the page now has that same handler.
+  when the page now has that same handler. Nor is an event that waits its turn on Rask.Server behind the
+  handler running — a field left while an async rule's lookup is out: while events wait, the renders tell the
+  same handler from a moved one as they go, so however often that handler's answer redraws the page, the field's
+  change still reaches it (#1350).
 - **A list longer than 4,096 handlers in one component** is not searched for a handler that moved.
 
 A dropped event is counted in the `rask.handlers.stale` metric ([observability](observability.md)), and in

@@ -45,10 +45,12 @@ public abstract partial class Component
         }
 
         // Comparing two closures reads their method and their captured values, which a walk cannot afford for
-        // every handler. It is done here only while events from an older page are arriving; otherwise the slot is
-        // marked as moved and the comparison waits for an event that needs it.
+        // every handler. It is done here only while events from an older page are arriving, or are waiting their
+        // turn behind the work this walk draws (#1350: a field left while a lookup was out, whose answer drew the
+        // page three times over before the field's change was taken); otherwise the slot is marked as moved and
+        // the comparison waits for an event that needs it.
         var next = root.Version + 1;
-        if (next <= root.EagerThrough && HandlerSameness.Same(held, handler))
+        if ((root.EagerWhileWaiting || next <= root.EagerThrough) && HandlerSameness.Same(held, handler))
         {
             return;
         }

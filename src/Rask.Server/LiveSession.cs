@@ -352,6 +352,9 @@ internal sealed partial class LiveSession : LiveSessionBase, IAsyncDisposable
 
     internal void DecrementPendingHandlers() => Interlocked.Decrement(ref _pendingHandlers);
 
+    // Queued behind the handler running now, which counts itself while its scope is open.
+    protected override bool EventsWaitingCore => PendingHandlers > (InHandlerScope ? 1 : 0);
+
     // The newest event seq this session has run. The browser numbers its events in the order it sends them and
     // sends again, on its next connection, every one no ack answered — some of which arrived before the old one died.
     private long _eventsSeen;
