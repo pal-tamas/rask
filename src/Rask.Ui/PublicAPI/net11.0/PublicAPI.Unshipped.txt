@@ -9207,6 +9207,8 @@ Rask.UiEmpty.UiEmpty() -> void
 Rask.UiPageHeader
 Rask.UiPageHeader.Breadcrumbs.get -> Rask.Core.Component?
 Rask.UiPageHeader.Breadcrumbs.set -> void
+Rask.UiPageHeader.Beside.get -> Rask.Core.Component?
+Rask.UiPageHeader.Beside.set -> void
 Rask.UiPageHeader.Class.get -> string?
 Rask.UiPageHeader.Class.set -> void
 Rask.UiPageHeader.Heading.get -> string!
@@ -9222,6 +9224,7 @@ static RaskBuilderSettersRask_Ui.__RaskCopyWritten_Rask_UiPageHeader(Rask.Core.C
 static RaskBuilderSettersRask_Ui.__RaskResetEager_Rask_UiPageHeader(Rask.Core.Component! __c0) -> void
 static RaskBuilderSettersRask_Ui.__RaskResetPending_Rask_UiPageHeader(Rask.Core.Component! __c0, ulong __p) -> void
 static RaskBuilderSettersRask_Ui.Breadcrumbs(this Rask.UiPageHeader! __b, Rask.Core.Component? value) -> Rask.UiPageHeader!
+static RaskBuilderSettersRask_Ui.Beside(this Rask.UiPageHeader! __b, Rask.Core.Component? value) -> Rask.UiPageHeader!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiPageHeader! __b, params System.ReadOnlySpan<string?> parts) -> Rask.UiPageHeader!
 static RaskBuilderSettersRask_Ui.Class(this Rask.UiPageHeader! __b, string? value) -> Rask.UiPageHeader!
 static RaskBuilderSettersRask_Ui.ColSpan(this Rask.UiTableCell! __b, int? value) -> Rask.UiTableCell!

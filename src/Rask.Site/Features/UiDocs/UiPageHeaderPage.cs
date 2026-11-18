@@ -33,6 +33,11 @@ public sealed partial class UiPageHeaderPage : Component
                        + "Class(\"mb-6\") on it. A page of its own, framed, because the header is its page's one h1."),
             UiDocsExample.Key("ui-page-header-title").Heading("A title alone").File("PageHeaderTitleExample.cs")
                 .Demo(UiLayoutPreview.Demo(Routes.PageHeaderTitleDemoPage()).Title("A form page opened by Ui.PageHeader")).Testid("ui-page-header-title")
-                .Blurb("A form's page needs only its title, and the room under it is the page's: mb-8 here.")
+                .Blurb("A form's page needs only its title, and the room under it is the page's: mb-8 here."),
+            UiDocsExample.Key("ui-page-header-beside").Heading("Beside the title").File("PageHeaderBesideExample.cs")
+                .Demo(UiLayoutPreview.Demo(Routes.PageHeaderBesideDemoPage()).Title("A page whose title carries its status in a badge")).Testid("ui-page-header-beside")
+                .Blurb("Beside(Ui.Badge.Green[\"Submitted\"]) stands on the title's line, after the h1, centred with it and 8px "
+                       + "on, as Flux's account overview sets a badge beside a name. When the title fills the line, on a phone, "
+                       + "the badge goes under it, never past the edge.")
         ];
 }

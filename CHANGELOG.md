@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
+  status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
+  Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the
+  component stands after the `<h1>`, centred with it, 8px on (Flux's account overview's name-and-badge row), and the
+  line wraps, so on a phone it goes under a long title instead of running past the edge. Unset, the header is unchanged.
 - **`Current.UserId` is your user's own number, and `Current.TenantId` your tenant's key (#1369).** An app whose
   user aggregate is keyed by an `int` or a `long` (`User : Aggregate<int>, IUser`) has the build generate
   `Current.UserId` (`int?`), `Current.RequiredUserId` (`int`) and `Current.UseUser(12)`; the aggregate's key is the

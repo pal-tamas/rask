@@ -444,6 +444,7 @@ internal static partial class UiApi
         [
             new("Heading", typeof(string), "The page's title, its h1 in the extra large size. Required, and taken first.", "text: Ui.PageHeader.Heading(\"Suppliers\")"),
             new("Subheading", typeof(string), "A line under the title, in the muted ink."),
+            new("Beside", typeof(Component), "What stands on the title's line, after it and centred with it; it goes under the title when the line is full.", "a Ui.Badge"),
             new("Breadcrumbs", typeof(Component), "The trail to this page, above the title.", "a Ui.Breadcrumbs"),
         ]),
     ];

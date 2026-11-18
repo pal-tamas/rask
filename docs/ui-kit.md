@@ -783,7 +783,11 @@ another, or the empty row.
 2026-10-20): the page's `<h1>` in the extra large size, `Subheading` 8px under it, `Breadcrumbs` above, and its children
 — the actions — at the end of the row, 8px apart. The row wraps; on a phone the title takes the whole line and the actions
 go 16px under it. It is always the page's one `<h1>`, and keeps no room around itself: `.Class("mb-6")` is the page's. Each value is measured on
-Flux's demos (the settings demo's title, the account overview's heading row).
+Flux's demos (the settings demo's title, the account overview's heading row). `.Beside(component)` puts something on
+the title's line, after the `<h1>` and centred with it, 8px on — a status badge, as Flux's account overview sets
+"Pending" beside a name — and the line wraps, so on a phone the badge goes 2px under a title that fills it:
+`Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` (before: a hand-built
+`Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl[…], Ui.Badge…]` in place of the header).
 
 ```csharp
 // Before: an EmptyList, a RowFold's colspan and a PageHeadline of each app's own.

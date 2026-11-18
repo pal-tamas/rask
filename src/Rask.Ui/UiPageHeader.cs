@@ -20,6 +20,11 @@ namespace Rask;
 ///         under it, 16px down. The trail stands 8px above the title.
 ///     </para>
 ///     <para>
+///         <see cref="Beside" /> sits on the title's line, after it and centred with it, 8px on: the row Flux's account
+///         overview writes for a transaction's name and its "Pending" badge, which wraps, the badge going under the title
+///         2px down once the line is full.
+///     </para>
+///     <para>
 ///         The children are the actions. The header keeps no room around itself: what comes under it, and how far, is the
 ///         page's (<c>.Class("mb-6")</c>, Flux's table demo's).
 ///     </para>
@@ -37,11 +42,20 @@ public sealed partial class UiPageHeader : Component
     // The overview's actions: what is left of the row, at its end, 8px apart; and Flux's row of buttons, which wraps.
     private const string Actions = "flex flex-1 flex-wrap items-center justify-end gap-2";
 
+    // The account overview's name and its badge: on one line, centred, 8px apart; wrapped, 2px under it.
+    private const string Titled = "flex flex-wrap items-center gap-x-2 gap-y-0.5";
+
     /// <summary>The page's title, its <c>&lt;h1&gt;</c>. Required, and taken first: <c>Ui.PageHeader.Heading("Suppliers")</c>.</summary>
     public required string Heading { get; set; }
 
     /// <summary>A line under the title, in the muted ink.</summary>
     public string? Subheading { get; set; }
+
+    /// <summary>
+    ///     What stands on the title's line, after it and centred with it — a status:
+    ///     <c>.Beside(Ui.Badge.Green["Submitted"])</c>.
+    /// </summary>
+    public Component? Beside { get; set; }
 
     /// <summary>The trail to this page, above the title: a <see cref="UiBreadcrumbs" />.</summary>
     public Component? Breadcrumbs { get; set; }
@@ -58,11 +72,18 @@ public sealed partial class UiPageHeader : Component
             Breadcrumbs is null ? null : Div.Class("mb-2")[Breadcrumbs],
             Div.Class(Row)[
                 Div.Class(actions is null ? Named : NamedOverActions)[
-                    Ui.Heading.Level(1).Xl[Heading],
+                    Title(),
                     Subheading is null ? null : Ui.Subheading[Subheading]
                 ],
                 actions is null ? null : Div.Class(Actions)[actions]
             ]
         ];
+    }
+
+    private Component Title()
+    {
+        var heading = Ui.Heading.Level(1).Xl[Heading];
+
+        return Beside is null ? heading : Div.Class(Titled)[heading, Beside];
     }
 }

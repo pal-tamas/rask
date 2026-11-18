@@ -44,6 +44,28 @@ public partial class UiPageHeaderTests : RaskMarkup
     }
 
     [Fact]
+    public void What_stands_beside_the_title_follows_the_h1_on_its_line_centred_and_wraps_under_it()
+    {
+        var header = Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"]);
+
+        var html = header.ToHtml().AsText();
+
+        Assert.Contains("<div class=\"min-w-0 max-sm:w-full\"><div class=\"flex flex-wrap items-center gap-x-2 gap-y-0.5\"><h1 ", html, StringComparison.Ordinal);
+        Assert.Matches("Gázolaj visszaigénylés</h1><div [^>]*data-ui-badge[^>]*>Beadva</div></div></div>", html);
+    }
+
+    [Fact]
+    public void A_title_with_nothing_beside_it_is_the_h1_alone()
+    {
+        var header = Ui.PageHeader.Heading("Suppliers").Beside(null);
+
+        var html = header.ToHtml().AsText();
+
+        Assert.DoesNotContain("gap-x-2", html, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"min-w-0 max-sm:w-full\"><h1 ", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_trail_stands_above_the_title()
     {
         var header = Ui.PageHeader.Heading("Aminoff Freight")

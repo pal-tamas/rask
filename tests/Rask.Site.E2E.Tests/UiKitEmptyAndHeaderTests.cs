@@ -94,6 +94,42 @@ public sealed class UiKitEmptyAndHeaderTests(WasmExampleAppFixture app, Playwrig
         Assert.Equal(phone.Header.X + phone.Header.Width, phone.Add.X + phone.Add.Width, 1);
     });
 
+    [Fact]
+    public Task A_badge_beside_the_title_is_centred_on_its_line_and_never_runs_past_the_edge_on_a_phone() => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("page-header", "Page header");
+        await Page.Locator("[data-testid='ui-page-header-beside'] iframe").ScrollIntoViewIfNeededAsync();
+        var frame = Page.FrameLocator("[data-testid='ui-page-header-beside'] iframe");
+        var header = frame.Locator("[data-ui-page-header]");
+        await Expect(frame.Locator("h1")).ToHaveCountAsync(1, new() { Timeout = 30_000 });
+        var badge = header.Locator("[data-ui-badge]");
+        await header.ScrollIntoViewIfNeededAsync();
+
+        await Expect(header.GetByRole(AriaRole.Heading, new() { Name = "Diesel refund claim" })).ToBeVisibleAsync();
+        await Expect(badge).ToHaveTextAsync("Submitted");
+        var wide = await InFrame(header);
+        await Page.SetViewportSizeAsync(390, 844);
+        await Expect(badge).ToBeVisibleAsync();
+        var phone = await InFrame(header);
+
+        // [title left, top, right, bottom, badge left, top, right, bottom, header right, page overflows] in the frame's own pixels:
+        // the docs page draws the frame scaled down on a desktop.
+        Assert.Equal((wide[1] + wide[3]) / 2, (wide[5] + wide[7]) / 2, 0.5);
+        Assert.Equal(wide[2] + 8, wide[4], 0.5);
+        Assert.True(phone[6] <= phone[8] + 0.5, "the badge runs past the header on a phone");
+        Assert.True(phone[4] >= phone[2] + 8 - 0.5 || phone[5] >= phone[3] + 2 - 0.5, "the badge overlaps the title on a phone");
+        Assert.Equal(0d, phone[9]);
+    });
+
+    private static Task<double[]> InFrame(ILocator header) => header.EvaluateAsync<double[]>(
+        """
+        el => {
+          const t = el.querySelector('h1').getBoundingClientRect(), b = el.querySelector('[data-ui-badge]').getBoundingClientRect();
+          const d = el.ownerDocument.documentElement;
+          return [t.left, t.top, t.right, t.bottom, b.left, b.top, b.right, b.bottom, el.getBoundingClientRect().right, d.scrollWidth > d.clientWidth ? 1 : 0];
+        }
+        """);
+
     private static async Task<(LocatorBoundingBoxResult Title, LocatorBoundingBoxResult Add, LocatorBoundingBoxResult Header)> Boxes(
         ILocator title, ILocator add, ILocator header) =>
         ((await title.BoundingBoxAsync())!, (await add.BoundingBoxAsync())!, (await header.BoundingBoxAsync())!);
