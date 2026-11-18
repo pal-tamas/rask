@@ -83,7 +83,7 @@ public sealed partial class UiTable : UiElement, IUiHost
         new Dictionary<string, string?>(StringComparer.Ordinal) { ["rask-reveal-focus"] = "", ["rask-scroll-edges"] = "" };
 
     // The least width in rem of this render's columns, or null when no heading names a width.
-    private int? _least;
+    private decimal? _least;
 
     private IQueryState? _query;
 
@@ -263,7 +263,7 @@ public sealed partial class UiTable : UiElement, IUiHost
 
         // The least width rides in the style for the length of the walk, after the call site's own.
         var style = Style;
-        Style = string.Concat(style is null ? "" : style.TrimEnd().TrimEnd(';') + "; ", "--ui-table-least: ", least.ToString(CultureInfo.InvariantCulture), "rem");
+        Style = string.Concat(style is null ? "" : style.TrimEnd().TrimEnd(';') + "; ", "--ui-table-least: ", least.ToString("0.##", CultureInfo.InvariantCulture), "rem");
         try
         {
             WriteAttributes(sb);

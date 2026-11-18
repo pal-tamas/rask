@@ -100,8 +100,12 @@ public sealed class IncompleteChainAnalyzer : DiagnosticAnalyzer
             var step = operation.Parent is IInvocationOperation invocation && invocation.Instance == operation
                 ? invocation.TargetMethod
                 : operation.SemanticModel?.GetSymbolInfo(access, context.CancellationToken).Symbol as IMethodSymbol;
+            // So is an opening a library wrote by hand onto the state's own type — `Ui.Filter.Range(…)`, an
+            // extension of the seed — which takes the owed steps itself.
             if (step is not null
-                && SymbolEqualityComparer.Default.Equals(step.ContainingType?.OriginalDefinition, state.OriginalDefinition))
+                && (SymbolEqualityComparer.Default.Equals(step.ContainingType?.OriginalDefinition, state.OriginalDefinition)
+                    || (step.ReducedFrom is not null
+                        && SymbolEqualityComparer.Default.Equals(step.ReceiverType?.OriginalDefinition, state.OriginalDefinition))))
             {
                 return;
             }

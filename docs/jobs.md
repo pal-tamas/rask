@@ -288,9 +288,10 @@ Ui.WorkList.Lane("imports")
 Before, both apps that needed this wrote it three times over — a progress table, a board, a bell — around a job that
 could only say words nobody else saw. Now the job's row carries its title and its latest count, and the kit draws it.
 
-- **Only its enqueuer sees it, in the tenant they enqueued it in.** `.Noticed(…)` (on `Enqueue` and on `Run`) stores the
-  title on the row beside the user and tenant every job records. The bell lists that user's rows alone; a job enqueued
-  by nobody signed in is shown to nobody. Why a job failed is never shown — it says *Failed*, and the reason stays on
+- **Only its enqueuer sees it, in the tenant they enqueued it in** — unless it is
+  [shared](#share-it-with-the-tenant-say-how-it-ended-start-several-at-once). `.Noticed(…)` (on `Enqueue` and on `Run`)
+  stores the title on the row beside the user and tenant every job records. The bell lists that user's rows; a job
+  enqueued by nobody signed in is shown to nobody. Why a job failed is never shown — it says *Failed*, and the reason stays on
   the [dashboard](dashboard.md).
 - **The row is the truth.** `Ui.WorkNotices` and `Ui.WorkList` read the user's rows again every `PollInterval`, so work
   that runs on another host, or ended while nobody looked, is on the screen within one poll. Between reads, the
@@ -315,6 +316,59 @@ could only say words nobody else saw. Now the job's row carries its title and it
 
 Upgrading adds the `Notice`, `Progress`, `Done` and `Of` columns and an index on `(UserId, ProcessedAt)`:
 `rask db add AddJobProgress && rask db update`. Until the migration runs, the processor logs exactly that command.
+
+### Share it with the tenant, say how it ended, start several at once
+
+A partner-wide load is one press that starts several files, which the whole office watches, and which can end with
+something to look at rather than plainly done. Before, an app wrote its own queue for that — a table of files, its own
+events, its own bell, green/amber/red computed by hand:
+
+```csharp
+// Before: the app's own queue, events and bell, beside Rask.Jobs.
+foreach (var file in files) db.QueuedFiles.Add(new QueuedFile(partner.Id, file.Name, pressId));
+await db.SaveChangesAsync();
+await dispatcher.Publish(new LoadMoved(partner.Id, pressId));          // and LoadNotices/LoadProgress to draw it
+```
+
+Now it is three steps on the enqueue and one line in the handler:
+
+```csharp
+// One press: every file in one save (all or none), shown as one group with one bar, to the tenant.
+var queued = await Jobs.Enqueue(files.Select(f => new ImportFile(f.Id)))
+    .Noticed(job => $"Import of {job.Name}")
+    .ByTenant();
+
+// In the handler: how it ended, in words for the person who started it.
+Jobs.Warn("No new rows in prices.csv");          // done, amber: something to look at
+Jobs.Refuse("prices.csv has no header row");      // failed for good, never retried
+Jobs.Note($"{kept:N0} rows kept");                 // a line under a job that is done
+
+// In the layout: a footer under the bell's list.
+Ui.WorkNotices.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"])
+```
+
+- **`.ByTenant()`** (on `Enqueue`, `Run` and a batch, after `.Noticed(…)`) shows the job to its tenant's other users —
+  those who may run it themselves: who passes its handler's `[Authorize(Roles = …)]` / `[Authorize(Policy = …)]`, the
+  same check a dispatch of it makes. Never to another tenant (the reader's tenant is always the one their session is
+  in, never `Tenant.Across()`), never to nobody signed in. Unmarked, a job stays its enqueuer's alone. With no tenant in
+  flight `.ByTenant()` throws at the enqueue, naming the call — there would be nobody to share it with.
+- **`Jobs.Warn(detail)`** ends the job *warned*: done, with an amber badge and the words under its title.
+  **`Jobs.Refuse(detail)`** ends it *failed* for good: it is processed, so it is never tried again and is no dead
+  letter; an awaited `Jobs.Run` throws `JobFailedException` with the words. **`Jobs.Note(detail)`** adds words to a job
+  that is done. The worst said stands — after a refusal a warning changes nothing — and, like `Jobs.Report`, each does
+  nothing outside a job. The words are the handler's to choose; the error a failure threw is still never shown.
+- **`Jobs.Enqueue(jobs)`** writes every row in one `SaveChanges` — all of them or, when the write fails, none; inside
+  `Db.Transaction` it commits with the work — stamps them with one `Job.Batch`, and answers how many it wrote. It takes
+  `.Noticed(job => …)`, `.ByTenant()`, `.InLane(…)`, `.In(…)` and `.At(…)`. The bell draws a batch as one group — when
+  it was started and how many it holds, the worst way one ended, one bar for all of it — counts it once among the ten
+  lately ended, and raises **one toast** for the person who started it when its last job ends, in the tone of its worst
+  end. A colleague's shared batch is shown, never toasted.
+- **`WorkReported`** carries `Batch` and `Detail`, and `WorkState` gains `Warned`. A browser tab opened before the deploy
+  that added it reads a warned job as done, so nothing breaks across the upgrade.
+
+Upgrading adds the `Shared`, `Batch`, `Outcome` and `Detail` columns and an index on `(TenantId, ProcessedAt)`:
+`rask db add AddJobOutcomes && rask db update` (SQLite, SQL Server and PostgreSQL alike). Until the migration runs, the
+processor logs exactly that command.
 
 ## Inside `Db.Transaction`
 

@@ -59,6 +59,12 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(x => x.Stopped);
         builder.Property(x => x.StartedAt);
 
+        ConfigureWork(builder);
+    }
+
+    // What its enqueuer watches and who else does, how far along it is and how it ended — every column added since #1293.
+    private static void ConfigureWork(EntityTypeBuilder<Job> builder)
+    {
         // What its enqueuer watches (.Noticed) and how far along it is (Jobs.Report): nullable, so a host from before them
         // inserts rows nobody watches. The bell reads one user's rows, running or lately ended, on the index beside them.
         builder.Property(x => x.Notice).HasMaxLength(JobNotice.MaxTitle);
@@ -66,5 +72,14 @@ public sealed class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(x => x.Done);
         builder.Property(x => x.Of);
         builder.HasIndex(x => new { x.UserId, x.ProcessedAt });
+
+        // Who else sees it (.ByTenant()), the batch it came in (Jobs.Enqueue(jobs)) and how its handler said it ended
+        // (Jobs.Warn/Refuse/Note): defaulted or nullable, so a host from before them inserts rows its enqueuer alone watches,
+        // on their own, ended as they always did. A colleague's bell reads the tenant's shared rows on the index beside them.
+        builder.Property(x => x.Shared).HasDefaultValue(false);
+        builder.Property(x => x.Batch);
+        builder.Property(x => x.Outcome);
+        builder.Property(x => x.Detail).HasMaxLength(JobNotice.MaxDetail);
+        builder.HasIndex(x => new { x.TenantId, x.ProcessedAt });
     }
 }

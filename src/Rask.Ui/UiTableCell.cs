@@ -18,15 +18,23 @@ public sealed partial class UiTableCell : UiElement
 
     private static readonly UiPartMarker Marker = new("ui-cell");
 
+    // A whole cell is marked for paper too, where the kit sheet keeps it on its line (ui.css, `[data-ui-whole]`).
+    private static readonly UiPartMarker Kept = Marker.And("ui-whole");
+
     // A value too long for its column ends in an ellipsis on one line; the cell's title says the whole of it.
     private const string Cuts = "truncate";
 
-    // Every list a cell can write, built once: by variant, alignment, stickiness and whether it cuts its value short.
-    // Null where there is nothing to write.
+    // A whole value keeps to one line on screen, whatever the page around it says of wrapping.
+    private const string Keeps = "whitespace-nowrap";
+
+    private static readonly bool[] Either = [false, true];
+
+    // Every list a cell can write, built once: by variant, alignment, stickiness, whether it cuts its value short and
+    // whether it keeps it whole. Null where there is nothing to write.
     private static readonly string?[] Lists = [.. Enum.GetValues<Ui.TableCellVariant>().SelectMany(variant =>
         Enum.GetValues<Ui.Align>().SelectMany(align =>
-            new[] { false, true }.SelectMany(sticky => new[] { false, true }.Select(cut =>
-                UiTableBox.Join(Alignment(align), Tone(variant), sticky ? UiTableBox.Stuck : "", cut ? Cuts : "")))))];
+            Either.SelectMany(sticky => Either.SelectMany(cut => Either.Select(whole =>
+                UiTableBox.Join(Alignment(align), Tone(variant), sticky ? UiTableBox.Stuck : "", cut ? Cuts : "", whole ? Keeps : ""))))))];
 
     /// <summary>Where the value sits in its column. Start unless this says otherwise.</summary>
     public Ui.Align? Align { get; set; }
@@ -45,9 +53,20 @@ public sealed partial class UiTableCell : UiElement
     /// <remarks>
     ///     Not Flux's: an addition the owner approved (2026-11-04), for the columns a <see cref="UiTableColumn.Width" />
     ///     holds still. A cell given children as well shows them, and the text is its tooltip. A <c>Title</c> of the call
-    ///     site's wins. On paper the whole value is printed, wrapped.
+    ///     site's wins. On paper the whole value is printed, wrapped — on one line where the cell is <see cref="Whole" />.
     /// </remarks>
     public string? Cut { get; set; }
+
+    /// <summary>
+    ///     Keeps the cell's value on one line, on screen and on paper: <c>Ui.TableCell.Cut(day).Whole()</c>, a day a wrap
+    ///     would split in two and so double its row.
+    /// </summary>
+    /// <remarks>
+    ///     Not Flux's: an addition the owner approved (2026-11-18, #1359). A printed table wraps every other cell, a
+    ///     <see cref="Cut" /> one too; a whole one keeps its line, and its column, whose width gives way on paper, grows
+    ///     to hold it.
+    /// </remarks>
+    public bool? Whole { get; set; }
 
     /// <summary>
     ///     How many columns the cell spans: <c>Ui.TableCell.ColSpan(4)</c> for a row folded out beneath another, or a
@@ -60,7 +79,7 @@ public sealed partial class UiTableCell : UiElement
 
     /// <inheritdoc />
     /// <remarks>What this cell writes beyond the shared look, then the call site's class, which wins over that look.</remarks>
-    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true, Cut is not null), Class);
+    protected override string? ResolveClass() => UiTableBox.WithClass(List(Variant, Align, Sticky is true, Cut is not null, Whole is true), Class);
 
     /// <inheritdoc />
     /// <remarks>
@@ -100,10 +119,10 @@ public sealed partial class UiTableCell : UiElement
     protected override IEnumerable<Component?> RenderChildren() =>
         Children is null && Cut is { } text ? [(Component)text] : base.RenderChildren();
 
-    private protected override IReadOnlyDictionary<string, string?> ResolveData() => Marker.With(Data);
+    private protected override IReadOnlyDictionary<string, string?> ResolveData() => (Whole is true ? Kept : Marker).With(Data);
 
-    private static string? List(Ui.TableCellVariant? variant, Ui.Align? align, bool sticky, bool cut) =>
-        Lists[((((((int)(variant ?? default) * Aligns) + (int)(align ?? default)) * 2) + (sticky ? 1 : 0)) * 2) + (cut ? 1 : 0)];
+    private static string? List(Ui.TableCellVariant? variant, Ui.Align? align, bool sticky, bool cut, bool whole) =>
+        Lists[((((((((int)(variant ?? default) * Aligns) + (int)(align ?? default)) * 2) + (sticky ? 1 : 0)) * 2) + (cut ? 1 : 0)) * 2) + (whole ? 1 : 0)];
 
     private static string Tone(Ui.TableCellVariant variant) => variant switch
     {

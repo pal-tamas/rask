@@ -17,10 +17,11 @@ public readonly struct Enqueuing
     private readonly string? _lane;
     private readonly bool _unlessWaiting;
     private readonly string? _notice;
+    private readonly bool _shared;
     private readonly CancellationToken _cancellationToken;
 
     internal Enqueuing(IJobs? jobs, IJob job, DateTimeOffset? runAt, TimeSpan? delay, string? lane, CancellationToken cancellationToken)
-        : this(jobs, job, runAt, delay, lane, unlessWaiting: false, notice: null, cancellationToken)
+        : this(jobs, job, runAt, delay, lane, unlessWaiting: false, notice: null, shared: false, cancellationToken)
     {
     }
 
@@ -32,6 +33,7 @@ public readonly struct Enqueuing
         string? lane,
         bool unlessWaiting,
         string? notice,
+        bool shared,
         CancellationToken cancellationToken)
     {
         _jobs = jobs;
@@ -41,6 +43,7 @@ public readonly struct Enqueuing
         _lane = lane;
         _unlessWaiting = unlessWaiting;
         _notice = notice;
+        _shared = shared;
         _cancellationToken = cancellationToken;
     }
 
@@ -52,11 +55,11 @@ public readonly struct Enqueuing
             throw new ArgumentOutOfRangeException(nameof(delay), delay, "In cannot be negative — a job cannot run in the past.");
         }
 
-        return new Enqueuing(_jobs, _job, null, delay, _lane, _unlessWaiting, _notice, _cancellationToken);
+        return new Enqueuing(_jobs, _job, null, delay, _lane, _unlessWaiting, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>Runs it no earlier than <paramref name="moment"/>: <c>.At(midnight)</c>.</summary>
-    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _lane, _unlessWaiting, _notice, _cancellationToken);
+    public Enqueuing At(DateTimeOffset moment) => new(_jobs, _job, moment, null, _lane, _unlessWaiting, _notice, _shared, _cancellationToken);
 
     /// <summary>
     ///     Runs the job in a lane: jobs of one lane run one at a time, in the order they are due,
@@ -65,7 +68,7 @@ public readonly struct Enqueuing
     public Enqueuing InLane(string lane)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(lane);
-        return new Enqueuing(_jobs, _job, _runAt, _delay, lane, _unlessWaiting, _notice, _cancellationToken);
+        return new Enqueuing(_jobs, _job, _runAt, _delay, lane, _unlessWaiting, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>
@@ -78,18 +81,29 @@ public readonly struct Enqueuing
     ///     running, or waiting for a retry — does not count, so a new round can wait behind a running one. The job
     ///     table decides, through a unique index, so two hosts enqueueing at once still leave one waiting row.
     /// </remarks>
-    public Enqueuing UnlessWaiting() => new(_jobs, _job, _runAt, _delay, _lane, unlessWaiting: true, _notice, _cancellationToken);
+    public Enqueuing UnlessWaiting() => new(_jobs, _job, _runAt, _delay, _lane, unlessWaiting: true, _notice, _shared, _cancellationToken);
 
     /// <summary>
     ///     Shows the job to whoever enqueues it, under <paramref name="title" />:
     ///     <c>await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");</c>. Their <c>Ui.WorkNotices</c>
     ///     bell and <c>Ui.WorkList</c> show it while it waits and runs — with the bar its <c>Jobs.Report(done, of)</c> moves —
-    ///     and say when it is done, failed or stopped. Nobody else sees it, in no other tenant; a job enqueued by nobody
-    ///     signed in is shown to nobody.
+    ///     and say when it is done, warned, failed or stopped. Nobody else sees it — unless <see cref="ByTenant" /> shares it
+    ///     — in no other tenant; a job enqueued by nobody signed in is shown to nobody.
     /// </summary>
     /// <param name="title">What the work is, in words for the person who started it — at most 256 characters.</param>
     public Enqueuing Noticed(string title) =>
-        new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, JobNotice.Checked(title), _cancellationToken);
+        new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, JobNotice.Checked(title), _shared, _cancellationToken);
+
+    /// <summary>
+    ///     Shows the noticed job to its tenant's other users too — <c>.Noticed($"Import of {file.Name}").ByTenant()</c> — those who
+    ///     may run it themselves: who passes its handler's <c>[Authorize]</c>. Never to another tenant, nor to nobody signed in.
+    ///     Unmarked, a job is its enqueuer's alone.
+    /// </summary>
+    /// <remarks>
+    ///     Awaiting it throws when there is nothing to share or nobody to share it with: no <c>.Noticed(…)</c>, or no tenant in
+    ///     flight where it is enqueued.
+    /// </remarks>
+    public Enqueuing ByTenant() => new(_jobs, _job, _runAt, _delay, _lane, _unlessWaiting, _notice, shared: true, _cancellationToken);
 
     /// <summary>Runs it: <see langword="true" /> when a row was written, <see langword="false" /> when <c>UnlessWaiting</c> skipped it.</summary>
     public TaskAwaiter<bool> GetAwaiter() => AsTask().GetAwaiter();
@@ -101,11 +115,16 @@ public readonly struct Enqueuing
     /// <summary>Runs it, as a <see cref="Task{TResult}"/> of whether a row was written.</summary>
     public Task<bool> AsTask()
     {
+        if (_shared)
+        {
+            JobNotice.RefuseUnshareable("Jobs.Enqueue(job)", noticed: _notice is not null);
+        }
+
         var jobs = _jobs ?? Jobs.Resolve();
         var cancellationToken = Ambient.Or(_cancellationToken);
 
         // Ambient while the write starts: the write's own awaits carry it on to where the row is built, and it ends here.
-        var notice = JobNotice.Use(_notice);
+        var notice = JobNotice.Use(_notice, _shared);
         try
         {
             return _unlessWaiting

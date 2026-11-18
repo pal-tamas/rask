@@ -20,7 +20,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-list")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-actions|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
@@ -242,6 +242,42 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(profile.Locator("> [data-ui-card-header] [data-ui-card-heading]")).ToHaveTextAsync("Profile");
     });
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task A_card_s_facts_lie_side_by_side_on_a_wide_screen_and_one_under_another_on_a_phone(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("card", "Card");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var facts = Page.Locator("#ui-driver-facts");
+            await facts.ScrollIntoViewIfNeededAsync();
+            await Expect(facts.Locator("> div > dt")).ToHaveCountAsync(4);
+            var tops = await facts.EvaluateAsync<double[]>("dl => [...dl.children].map(d => Math.round(d.getBoundingClientRect().top))");
+            var drawn = await facts.Locator("> div").First.EvaluateAsync<string[]>(
+                "d => { const [t, v] = d.children; return [t.tagName, getComputedStyle(t).fontSize, v.tagName, getComputedStyle(v).fontSize, getComputedStyle(v).marginLeft]; }");
+
+            // A term of Flux's small text over a value of its body text, the value not indented as a bare <dd> is.
+            Assert.Equal(["DT", "12px", "DD", "14px", "0px"], drawn);
+            await Expect(facts.Locator("> div").Last.Locator("dd")).ToHaveTextAsync("–");
+            if (width < 640)
+            {
+                Assert.Equal(tops.Order(), tops);
+                Assert.Equal(4, tops.Distinct().Count());
+            }
+            else
+            {
+                Assert.Equal(tops[0], tops[1]);
+            }
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
     [Fact]
     public Task A_chart_draws_its_line_and_shows_a_rows_values_on_hover() => RunAsync(async () =>
     {
@@ -423,6 +459,97 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
                 "el => [el.parentElement.scrollWidth - el.parentElement.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth]");
             Assert.Equal(width < 640, scroll[0] > 0);
             Assert.Equal(0, scroll[1]);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task Two_icon_buttons_fit_side_by_side_inside_the_six_rem_actions_column(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var table = Page.Locator("#ui-towns");
+            var cell = table.Locator("tbody tr").First.Locator("td").Last;
+            await table.ScrollIntoViewIfNeededAsync();
+            await Expect(cell.Locator("[data-ui-button]")).ToHaveCountAsync(2);
+            var fit = await cell.EvaluateAsync<double[]>(
+                "td => { const c = td.getBoundingClientRect(), s = getComputedStyle(td);"
+                + " const [a, b] = [...td.querySelectorAll('[data-ui-button]')].map(x => x.getBoundingClientRect());"
+                + " const th = td.closest('table').querySelector('thead th:last-child').getBoundingClientRect();"
+                + " return [th.width, a.left - (c.left + parseFloat(s.paddingLeft)), c.right - parseFloat(s.paddingRight) - b.right, b.top - a.top]; }");
+
+            // 6rem, and both buttons inside the cell's padding, on one line.
+            Assert.Equal(96d, fit[0]);
+            Assert.True(fit[1] >= -0.5, $"the pencil starts {-fit[1]}px before the cell's padding.");
+            Assert.True(fit[2] >= -0.5, $"the bin ends {-fit[2]}px past the cell's padding.");
+            Assert.Equal(0d, fit[3]);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task A_whole_cell_keeps_its_day_on_one_line_on_paper_where_a_cut_one_wraps(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var row = Page.Locator("#ui-deliveries tbody tr").First;
+            await row.ScrollIntoViewIfNeededAsync();
+            await Expect(row.Locator("td[data-ui-whole]")).ToHaveCountAsync(1);
+            const string read = "td => getComputedStyle(td).whiteSpace";
+            var screen = await row.Locator("td[data-ui-whole]").EvaluateAsync<string>(read);
+
+            await Page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Print });
+            var day = await row.Locator("td[data-ui-whole]").EvaluateAsync<string>(read);
+            var supplier = await row.Locator("td").First.EvaluateAsync<string>(read);
+
+            // On screen as on paper the day keeps its line; the long supplier's name, cut on screen, wraps on paper.
+            Assert.Equal("nowrap", screen);
+            Assert.Equal("nowrap", day);
+            Assert.Equal("normal", supplier);
+        }
+        finally
+        {
+            await Page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Screen });
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task An_invoice_number_fits_its_eight_rem_code_column_whole(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var table = Page.Locator("#ui-deliveries");
+            var invoice = table.Locator("tbody tr").First.Locator("td").Nth(2);
+            await table.ScrollIntoViewIfNeededAsync();
+            await Expect(invoice).ToHaveTextAsync("INV-26-0042");
+            var fit = await invoice.EvaluateAsync<double[]>(
+                "td => [td.closest('table').querySelectorAll('thead th')[2].getBoundingClientRect().width, td.scrollWidth - td.clientWidth]");
+
+            // 8rem, and the code shown whole: nothing cut off by its ellipsis.
+            Assert.Equal(128d, fit[0]);
+            Assert.Equal(0d, fit[1]);
         }
         finally
         {

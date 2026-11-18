@@ -7,8 +7,18 @@ namespace Rask.Background;
 ///     hand, because the generator that writes every other codec leaves Rask.Cqrs's own messages alone.
 /// </summary>
 /// <remarks>
-///     A <see cref="WorkReported" /> crosses as the seven things its enqueuer sees and nothing else: who it is for, the tenant
-///     and the lane stay on the server, and a failure is <see cref="WorkState.Failed" /> without a word of why.
+///     <para>
+///         A <see cref="WorkReported" /> crosses as what its reader sees and nothing else: the seven positional fields, its
+///         <see cref="WorkReported.Batch" /> and <see cref="WorkReported.Detail" />, whether it is shared and — when the board
+///         read it for this reader — whether they started it. Who it is for, the tenant, the lane and the job's kind stay on
+///         the server, and a failure is <see cref="WorkState.Failed" /> without a word of the error it threw.
+///     </para>
+///     <para>
+///         Both ends are tolerant across a deploy. <see cref="WorkState.Warned" /> crosses as <c>"state": "Done"</c> with
+///         <c>"outcome": "Warned"</c> beside it, so a browser tab opened before it existed reads an end it knows; and this reader
+///         skips a field it does not know and reads a state it does not know as <see cref="WorkState.Done" />, so the next
+///         state added breaks no tab either.
+///     </para>
 /// </remarks>
 internal static class OwnWorkJson
 {
@@ -71,7 +81,34 @@ internal static class OwnWorkJson
         writer.WriteString("progress", work.Progress);
         WriteCount(writer, "done", work.Done);
         WriteCount(writer, "of", work.Of);
-        writer.WriteString("state", work.State.ToString());
+        // A state a reader from before it knows nothing of crosses as the one it can read — Warned as Done — and itself
+        // beside it, so a tab opened before the deploy that added it shows the work ended rather than failing to read it.
+        var legacy = work.State is WorkState.Warned ? WorkState.Done : work.State;
+        writer.WriteString("state", legacy.ToString());
+        if (legacy != work.State)
+        {
+            writer.WriteString("outcome", work.State.ToString());
+        }
+
+        if (work.Batch is { } batch)
+        {
+            writer.WriteString("batch", batch);
+        }
+
+        if (work.Detail is { } detail)
+        {
+            writer.WriteString("detail", detail);
+        }
+
+        if (work.Shared)
+        {
+            writer.WriteBoolean("shared", value: true);
+        }
+
+        if (work.Mine is { } mine)
+        {
+            writer.WriteBoolean("mine", mine);
+        }
 
         // The server's clocks are UTC; a row read back from a store that keeps no kind says so here, once.
         writer.WriteString("at", work.At.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(work.At, DateTimeKind.Utc) : work.At);
@@ -89,21 +126,31 @@ internal static class OwnWorkJson
     private static WorkReported Work(JsonElement element)
     {
         var work = Object(element);
-        var state = Text(Required(work, "state"));
-        if (!Enum.TryParse<WorkState>(state, ignoreCase: false, out var where) || !Enum.IsDefined(where))
-        {
-            throw new JsonException($"'{state}' is not where work can stand.");
-        }
-
         return new WorkReported(
             Required(work, "id").GetInt64(),
             Text(Required(work, "title")) ?? "",
             work.TryGetProperty("progress", out var progress) ? Text(progress) : null,
             Count(work, "done"),
             Count(work, "of"),
-            where,
-            Required(work, "at").GetDateTime().ToUniversalTime());
+            State(work.TryGetProperty("outcome", out var outcome) ? Text(outcome) : Text(Required(work, "state"))),
+            Required(work, "at").GetDateTime().ToUniversalTime())
+        {
+            Batch = work.TryGetProperty("batch", out var batch) && batch.ValueKind == JsonValueKind.String ? batch.GetGuid() : null,
+            Detail = work.TryGetProperty("detail", out var detail) ? Text(detail) : null,
+            Shared = work.TryGetProperty("shared", out var shared) && shared.ValueKind == JsonValueKind.True,
+            Mine = work.TryGetProperty("mine", out var mine) && mine.ValueKind is JsonValueKind.True or JsonValueKind.False
+                ? mine.GetBoolean()
+                : null,
+        };
     }
+
+    // A state a newer server knows and this reader does not is an end it cannot name: shown as done, never a broken bell.
+    // Only a name is a state — Enum.TryParse would take "7" too.
+    private static WorkState State(string? state) =>
+        state is { Length: > 0 } && char.IsAsciiLetter(state[0])
+        && Enum.TryParse<WorkState>(state, ignoreCase: false, out var where) && Enum.IsDefined(where)
+            ? where
+            : WorkState.Done;
 
     private static void WriteCount(Utf8JsonWriter writer, string name, int? count)
     {

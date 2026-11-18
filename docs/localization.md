@@ -851,6 +851,11 @@ they say when you set nothing.
 | `FiltersClose` | Filters | `Close` |
 | `FilterRemove` | Filters | `Remove filter {0}` |
 | `FiltersSelectedCount` | Filters: a badge of two or more names, `Ui.Filter.Shown(names)` | `{0} selected` |
+| `FilterRangeFrom` | Filters: a range's first field, `Ui.Filter.Range` | `From` |
+| `FilterRangeTo` | Filters: a range's second field | `To` |
+| `FilterRangeAtLeast` | Filters: a range's badge, its least alone | `at least {0}` |
+| `FilterRangeAtMost` | Filters: a range's badge, its most alone | `at most {0}` |
+| `FilterRangeBetween` | Filters: a range's badge, both ends | `{0} – {1}` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |
@@ -862,6 +867,13 @@ they say when you set nothing.
 | `WorkEndedDone` | Work notices: announced when one is done | `{0} is done.` |
 | `WorkEndedFailed` | Work notices: announced when one fails | `{0} failed.` |
 | `WorkEndedStopped` | Work notices: announced when one is stopped | `{0} was stopped.` |
+| `WorkWarned` | Work notices: a job done with a warning | `Warning` |
+| `WorkEndedWarned` | Work notices: announced when one ends with a warning | `{0} is done, with a warning.` |
+| `WorkBatch` | Work notices: the heading of a batch | `{0} · {1} items` |
+| `WorkBatchDone` | Work notices: toast when a batch is done | `All {0} items are done.` |
+| `WorkBatchWarned` | Work notices: toast when a batch ends with a warning | `{0} items are done, some with a warning.` |
+| `WorkBatchFailed` | Work notices: toast when a batch ends with a failure | `{0} items ended, some failed.` |
+| `WorkBatchStopped` | Work notices: toast when a batch ends with a stop | `{0} items ended, some were stopped.` |
 | `ColorPickerOpen` | Color picker | `Open color picker` |
 | `ColorPickerOpenWith` | Color picker | `Open color picker, {0}` |
 | `ColorPickerInput` | Color picker | `Color` |

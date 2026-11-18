@@ -342,14 +342,16 @@ Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Button = 1 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Input = 0 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Buttons = 8 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Actions = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Buttons = 10 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Code = 5 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Day = 1 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Flag = 5 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.RowMenu = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Flag = 6 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.RowMenu = 11 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Moment = 2 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Name = 7 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Name = 8 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Number = 3 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Reference = 6 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Reference = 7 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Rest = 0 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Short = 4 -> Rask.Ui.ColumnWidth
 Rask.Ui.ComposerSubmit
@@ -3789,7 +3791,9 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Mini.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Outline.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Sm.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Solid.get -> Rask.UiTab!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Actions.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Buttons.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Code.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Day.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Flag.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).RowMenu.get -> Rask.UiTableColumn!
@@ -5324,7 +5328,9 @@ static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePicker! __b) -> Rask.UiDa
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Button<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.get_Actions(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Buttons(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Code(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.get_Center<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!
@@ -9323,6 +9329,14 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiWorkNotices.Actions.get -> Rask.Core.Component?
+Rask.UiWorkNotices.Actions.set -> void
+static RaskBuilderSettersRask_Ui.Actions(this Rask.UiWorkNotices! __b, Rask.Core.Component? value) -> Rask.UiWorkNotices!
+Rask.UiConfirm.Ask(string! question) -> System.Threading.Tasks.Task<bool>!
+Rask.UiConfirm.Primary.get -> bool?
+Rask.UiConfirm.Primary.set -> void
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b, bool? value) -> Rask.UiConfirm!
 Rask.UiAppFrame.LeaveWords(string! stay, string! leave) -> Rask.UiAppFrame!
 Rask.UiModal.Heading.get -> string?
 Rask.UiModal.Heading.set -> void
@@ -9334,3 +9348,16 @@ Rask.UiDayAndTimeSteps
 Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime)
 Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime).Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
 static Rask.UiDayAndTimeSteps.Bind(this Rask.RaskSeed_UiDayAndTime entry, System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
+Rask.UiFilterRange
+static Rask.UiFilterRange.Range<T>(this Rask.RaskSeed_UiFilter filter, System.Linq.Expressions.Expression<System.Func<T?>!>! from, System.Linq.Expressions.Expression<System.Func<T?>!>! to) -> Rask.UiFilter!
+Rask.UiPillbox<T>.Leading(params Rask.Ui.Choice<T>[]! rows) -> Rask.UiPillbox<T>!
+Rask.UiSelect<T>.Leading<TValue>(params Rask.Ui.Choice<TValue>[]! rows) -> Rask.UiSelect<T>!
+static Rask.UiSelectChoices.Leading<T>(this Rask.UiSelect<T?>! select, params Rask.Ui.Choice<T>[]! rows) -> Rask.UiSelect<T?>!
+Rask.UiTableCell.Whole.get -> bool?
+Rask.UiTableCell.Whole.set -> void
+static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b, bool? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b) -> Rask.UiTableCell!
+Rask.UiFacts
+Rask.UiFacts.UiFacts() -> void
+static Rask.Ui.Fact(string! label, Rask.Core.Component? value) -> Rask.Core.HTMLDivElement!
+static Rask.Ui.Facts.get -> Rask.UiFacts!

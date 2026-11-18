@@ -18,8 +18,10 @@ internal static class UiColumnWidths
     {
         Ui.ColumnWidth.Day or Ui.ColumnWidth.Number => "[:where(&)]:w-28" + Wraps,
         Ui.ColumnWidth.Moment or Ui.ColumnWidth.Short or Ui.ColumnWidth.Reference => "[:where(&)]:w-40" + Wraps,
+        Ui.ColumnWidth.Code => "[:where(&)]:w-32" + Wraps,
         Ui.ColumnWidth.Name => "[:where(&)]:w-72" + Wraps,
         Ui.ColumnWidth.Flag => "[:where(&)]:w-20" + Wraps,
+        Ui.ColumnWidth.Actions => "[:where(&)]:w-24" + Wraps,
         Ui.ColumnWidth.Buttons => "[:where(&)]:w-48" + Wraps,
         // Held at the edge (UiTableColumn makes it sticky), on the page's surface so the columns beneath do not show through.
         Ui.ColumnWidth.RowMenu => "[:where(&)]:w-16 " + UiTableBox.Surface + Wraps,
@@ -32,8 +34,10 @@ internal static class UiColumnWidths
     {
         Ui.ColumnWidth.Day or Ui.ColumnWidth.Number => 7,
         Ui.ColumnWidth.Moment or Ui.ColumnWidth.Short or Ui.ColumnWidth.Reference => 10,
+        Ui.ColumnWidth.Code => 8,
         Ui.ColumnWidth.Name => 18,
         Ui.ColumnWidth.Flag => 5,
+        Ui.ColumnWidth.Actions => 6,
         Ui.ColumnWidth.Buttons => 12,
         Ui.ColumnWidth.RowMenu => 4,
         _ => 12,
@@ -41,27 +45,29 @@ internal static class UiColumnWidths
 
     /// <summary>Numbers and the row's actions keep to the column's end; everything else to its start.</summary>
     internal static Ui.Align Align(Ui.ColumnWidth width) =>
-        width is Ui.ColumnWidth.Number or Ui.ColumnWidth.Buttons or Ui.ColumnWidth.RowMenu ? Ui.Align.End : Ui.Align.Start;
+        width is Ui.ColumnWidth.Number or Ui.ColumnWidth.Actions or Ui.ColumnWidth.Buttons or Ui.ColumnWidth.RowMenu ? Ui.Align.End : Ui.Align.Start;
 
     /// <summary>Whether a heading of <paramref name="width" /> heads the row actions, and says so to a screen reader when it has no words.</summary>
-    internal static bool HeadsActions(Ui.ColumnWidth width) => width is Ui.ColumnWidth.Buttons or Ui.ColumnWidth.RowMenu;
+    internal static bool HeadsActions(Ui.ColumnWidth width) =>
+        width is Ui.ColumnWidth.Actions or Ui.ColumnWidth.Buttons or Ui.ColumnWidth.RowMenu;
 
     /// <summary>Whether a heading of <paramref name="width" /> keeps to the table's edge whether or not it says <c>Sticky</c>: the row's ⋯.</summary>
     internal static bool Sticks(Ui.ColumnWidth? width) => width is Ui.ColumnWidth.RowMenu;
 
     /// <summary>
-    ///     The least width, in rem, of a table headed by <paramref name="columns" />: what they take together, a column with
-    ///     no width counted as <see cref="Ui.ColumnWidth.Rest" />, and never under <see cref="TableAtLeast" />. Null when no
-    ///     heading names a width: the table is Flux's, sized by what it holds.
+    ///     The least width, in rem, of a table headed by <paramref name="columns" />: what they take together, each as wide
+    ///     as it really is — the width its own class gives it (<c>w-32</c>, which wins over the kit's), else its
+    ///     <see cref="Ui.ColumnWidth" />, else <see cref="Ui.ColumnWidth.Rest" />'s — and never under
+    ///     <see cref="TableAtLeast" />. Null when no heading names a width: the table is Flux's, sized by what it holds.
     /// </summary>
-    internal static int? Least(IEnumerable<UiTableColumn> columns)
+    internal static decimal? Least(IEnumerable<UiTableColumn> columns)
     {
         var any = false;
-        var total = 0;
-        foreach (var width in columns.Select(column => column.Width))
+        var total = 0m;
+        foreach (var column in columns)
         {
-            any |= width.HasValue;
-            total += Rem(width ?? Ui.ColumnWidth.Rest);
+            any |= column.Width.HasValue;
+            total += UiColumnClassWidth.Rem(column.Class) ?? Rem(column.Width ?? Ui.ColumnWidth.Rest);
         }
 
         return any ? Math.Max(TableAtLeast, total) : null;

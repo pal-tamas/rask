@@ -13,6 +13,75 @@ them until tagged releases begin.
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the
   component stands after the `<h1>`, centred with it, 8px on (Flux's account overview's name-and-badge row), and the
   line wraps, so on a phone it goes under a long title instead of running past the edge. Unset, the header is unchanged.
+- **`Ui.ColumnWidth.Code` — an 8rem column for an invoice number, a plate, a product code (#1371).** Before: the
+  kit's narrowest code width was `Short` (10rem, for a spaced VAT number), so Eszaf sized its codes with a `w-32` of
+  its own. After: `Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Invoice"]` — 8rem, "INV-26-0042" shown whole in the
+  kit's 14px text (the site's E2E measures it). The `.Code` step the generator writes is hidden by the `<code>` element
+  every component inherits, so it is reached through `.Width(…)`.
+- **`Ui.Facts[Ui.Fact("Label", value), …]` — a summary card's description list (#1363).** Before: Flux has no
+  description list, so Eszaf kept a `ViewField.Of(label, value)` of its own (10 sites) — two `Ui.Text`s in a `<div>`,
+  in a grid set on the card, with nothing telling a screen reader which line names which. After:
+  `Ui.Card[Ui.Facts[Ui.Fact("Company", company), Ui.Fact("Driver card", card)]]` writes a `<dl>` whose every fact is a
+  `<div>` of `<dt>` (Flux's subtle small text) over `<dd>` (Flux's body text); a value is any markup, none (or blanks)
+  shows a dash; the facts lie in columns of 12rem at least, one on a phone, and the call site's `.Class(…)` wins on
+  either. Site example on rask.sh/ui/card.
+- **`.Whole()` on a table cell keeps its value on one line, on screen and on paper (#1359).** Before: a printed
+  `Ui.Table` wraps every cell, a `Cut` one too, so a day split over two lines and doubled its row; Eszaf kept a
+  `ListTable.Whole` with a `whole-on-paper` class of its own. After: `Ui.TableCell.Cut(day).Whole()` (or
+  `Ui.TableCell.Whole()[day]`) writes `whitespace-nowrap` and `data-ui-whole`, and the kit sheet's print rules keep
+  `[data-ui-table] td[data-ui-whole]` at `white-space: nowrap`, so its column grows on paper instead. Other cells
+  print as before.
+- **`Ui.ColumnWidth.Actions` — a column as wide as two icon buttons at the row's end (#1358).** Before: a pencil and a
+  bin had `Buttons` (12rem, made for three or four) or `RowMenu` (4rem, one ⋯), so Eszaf kept a `ListTable.Actions` of
+  its own at `w-24` (37 uses). After: `Ui.TableColumn.Actions` (or `.Width(Ui.ColumnWidth.Actions)`): 6rem, measured on
+  Flux's buttons — two small icon buttons (2rem square) `gap-1` apart need 5rem with the cell's start padding, 5.75rem
+  where the column is not the last, and two default-size ones fit as the last — at the column's end, "Actions" to a
+  screen reader when it has no words, counted towards the table's least width. `RowMenu` is unchanged.
+- **`.Leading(rows)` after `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` pins hand rows before the choices (#1361).**
+  Before: a "none" row (Eszaf's "Nincs cég") was spliced into the choices, sorted among them and hidden by a search, and
+  a searched or paged source had no way to show it. After:
+  `Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))` — the rows
+  stand first in the order given, every search keeps them (a list held whole never hides them; a searched or paged
+  source has them before every answer), and they are never asked of the source: a paged source's first page asks for
+  that many fewer rows (`Take` 49 with one row) and the pages after it skip the rows found, not counting them. Over the
+  list, the searched and the paged overloads; a select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does.
+- **`Ui.Filter.Range(() => From, () => To)` — a min–max filter in `Ui.Filters`, said on one badge (#1360).** Before:
+  a range was two `Ui.Input`s of the page's own and a badge written by hand (Eszaf's `FilterPanel.Range` +
+  `RangeWords`). After: `Ui.Filters[Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")]` over two
+  `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?`): the panel draws the two ends side
+  by side, each written to the address once typing pauses; one badge says "Weight: at least 5,000", "at most 7,000" or
+  "5,000 – 7,000" in the reader's grouping (Hungarian "legalább 5 000", "legfeljebb 7 000"), and its cross, Clear all and
+  Clear filters take both keys out. New catalog keys `FilterRangeFrom`, `FilterRangeTo`, `FilterRangeAtLeast`,
+  `FilterRangeAtMost`, `FilterRangeBetween` (en + hu). RASK095 now takes an opening a library writes onto a seed (an
+  extension of `RaskSeed_X`) as a step of it.
+- **Background work shared with the tenant, with how it ended, started several at once — the kit's bell does a partner's
+  load (#1368).** Before: an app whose office watches one press of several files wrote its own queue, events and bell
+  beside Rask.Jobs (Eszaf's `QueuedFile` + `LoadMoved` + `LoadNotices`). After:
+  `await Jobs.Enqueue(files.Select(f => new ImportFile(f.Id))).Noticed(j => $"Import of {j.Name}").ByTenant();` and, in
+  the handler, `Jobs.Warn("No new rows")` / `Jobs.Refuse("No header row")` / `Jobs.Note("1,200 rows kept")`.
+  `.ByTenant()` (on `Enqueue`, `Run` and a batch) shows the job to its tenant's users who pass its handler's
+  `[Authorize]` — never another tenant, never nobody signed in, and it throws at the enqueue with no tenant in flight;
+  unmarked jobs stay their enqueuer's. `Jobs.Warn` ends a job `WorkState.Warned` (new, amber), `Jobs.Refuse` ends it
+  failed for good — never retried, no dead letter, an awaited `Jobs.Run` throws `JobFailedException` with its words —
+  and `Jobs.Note` adds words to a done job; the worst said stands. `Jobs.Enqueue(jobs)` writes every row in one save,
+  all or none (and inside `Db.Transaction` with the work), stamps one `Job.Batch` and answers how many it wrote, with
+  `.Noticed(j => …)`, `.ByTenant()`, `.InLane`, `.In`, `.At`. `WorkReported` gains `Batch` and `Detail`. `Ui.WorkNotices`
+  and `Ui.WorkList` draw a batch as one group (*date · 3 items*, its worst end, one bar), the handler's words under a
+  job's title in its badge's colour, and the bell raises one toast for the person who started a batch when its last job
+  ends; `Ui.WorkNotices.Actions(…)` is a footer under the list. A browser tab from before the deploy reads a warned job
+  as done; the reader now skips a state it does not know. New catalog words (en + hu): `WorkWarned`, `WorkEndedWarned`,
+  `WorkBatch`, `WorkBatchDone`, `WorkBatchWarned`, `WorkBatchFailed`, `WorkBatchStopped`. Upgrading adds the `Shared`,
+  `Batch`, `Outcome` and `Detail` columns and an index on `(TenantId, ProcessedAt)`:
+  `rask db add AddJobOutcomes && rask db update`; until then the processor logs exactly that command.
+- **`Ui.Confirm.Primary()` and `await Ui.Confirm.Ask("…")` — a non-danger Yes, and asking from code (#1366).** Before:
+  Yes was always Flux's danger button, and the dialog opened only from a `.Confirm("…")` on the pressed control, so a
+  question that came out of a server-side check (Eszaf's overlapping period, the km question) kept a modal of its own.
+  After: `if (!await Ui.Confirm.Ask("The period overlaps another. Save it anyway?")) return;` from any handler, on both
+  hosts, in the layout's dialog (`Ui.AppFrame` places one) — true for Yes, false for No, Escape, the close button and a
+  press outside; `Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask(…)` words one question, and
+  `Ui.Confirm.Primary()` in the layout makes Yes primary for every question. Focus moves in and back; a second
+  question waits for the first; work cancelled while it asks (component gone, session ended) gets false; a page with
+  no `Ui.Confirm` throws, naming it.
 - **`Current.UserId` is your user's own number, and `Current.TenantId` your tenant's key (#1369).** An app whose
   user aggregate is keyed by an `int` or a `long` (`User : Aggregate<int>, IUser`) has the build generate
   `Current.UserId` (`int?`), `Current.RequiredUserId` (`int`) and `Current.UseUser(12)`; the aggregate's key is the
@@ -272,6 +341,12 @@ them until tagged releases begin.
   landmark list or a skip link unless the app put a `Main` inside it. After: `<main data-ui-main>` in every shape
   (inset, container), drawn exactly as before, and the one Rask focuses after a navigation; `Ui.AppFrame` adds no other.
   An app that wrote `Ui.Main[Main[Outlet]]` drops the inner `Main` (`Ui.Main[Outlet]`), or the page has two.
+- **A table's least width counts each column at its real width (#1371).** Before: once any heading named a
+  `Ui.ColumnWidth`, the kit set the table's least width from its headings and counted every heading without one as a
+  rest (12rem) — a `w-32` code or a `w-24` pair of buttons the page sized itself too — so the kit's least clashed with
+  an app's own and almost no Eszaf `ListTable` could take a kit width. After: a heading's own width utility (`w-32`,
+  `min-w-24`, `w-[9.5rem]`, `min-w-[200px]`; not one under a variant such as `print:` or `sm:`) is what it counts, then
+  its kit width, then the rest's 12rem; a fraction of a rem is written as one (`--ui-table-least: 44.5rem`).
 - **No test can sign the others out of `RaskSite`'s shared sign-in (#1355).** Before: `SignedIn(name, fresh: true)`
   replaced the sign-in every later `SignedIn(name)` started from, so a test that signed in fresh and signed out left
   the rest of the run on a dead session, starting signed out — TA signed in through its own `Context()` to get round

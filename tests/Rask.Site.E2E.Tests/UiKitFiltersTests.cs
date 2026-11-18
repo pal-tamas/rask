@@ -102,6 +102,50 @@ public sealed class UiKitFiltersTests(WasmExampleAppFixture app, PlaywrightFixtu
     }
 
     [Fact]
+    public Task On_a_desktop_a_range_typed_in_the_panel_is_one_badge_whose_cross_takes_both_ends_off() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(1280, 800);
+
+        await AssertRangeAsync();
+    });
+
+    [Fact]
+    public Task On_a_phone_a_range_typed_in_the_panel_is_one_badge_whose_cross_takes_both_ends_off() =>
+        RunAsync(() => OnAPhoneAsync(AssertRangeAsync));
+
+    // The "A range" example: both ends typed side by side in the panel, each moving the address under its own key, one
+    // badge saying them in the reader's grouping, the page never wider than the screen, and the cross taking both off.
+    private async Task AssertRangeAsync()
+    {
+        await OpenUiPageAsync("filters", "Filters");
+        var example = Page.Locator("[data-testid='ui-filters-range']");
+        await example.ScrollIntoViewIfNeededAsync();
+        await example.Locator("[data-ui-filters] [data-ui-modal-trigger] button").ClickAsync();
+        var panel = example.Locator("dialog[data-ui-flyout]");
+
+        await panel.Locator("input[aria-label='From']").FillAsync("5000");
+        await Expect(Page).ToHaveURLAsync(new Regex(@"weightFrom=5000"));
+        await panel.Locator("input[aria-label='To']").FillAsync("8000");
+        await Expect(Page).ToHaveURLAsync(new Regex(@"weightTo=8000"));
+        var ends = await panel.Locator("fieldset input").EvaluateAllAsync<double[]>(
+            "inputs => inputs.map(i => i.getBoundingClientRect().top)");
+        await panel.Locator("button").Filter(new() { HasTextString = "Close" }).ClickAsync();
+
+        var badge = example.Locator("[data-ui-filters-badges] [data-ui-badge]");
+        await Expect(badge).ToHaveTextAsync("Weight: 5,000 – 8,000");
+        await Expect(example).ToContainTextAsync("DEF-456, GHK-789");
+        var overflow = await Page.EvaluateAsync<double>("() => document.documentElement.scrollWidth - innerWidth");
+        Assert.Equal(ends[0], ends[1]);
+        Assert.True(overflow <= 0, $"the page scrolls {overflow}px sideways");
+
+        await example.Locator("[aria-label='Remove filter Weight']").ClickAsync();
+
+        await Expect(example.Locator("[data-ui-filters-badges]")).ToHaveCountAsync(0);
+        Assert.DoesNotContain("weightFrom=", Page.Url, StringComparison.Ordinal);
+        Assert.DoesNotContain("weightTo=", Page.Url, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public Task A_lazy_modal_holds_nothing_until_it_opens() => RunAsync(async () =>
     {
         await OpenUiPageAsync("modal", "Modal");

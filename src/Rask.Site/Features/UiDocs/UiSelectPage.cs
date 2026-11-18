@@ -97,6 +97,10 @@ public sealed partial class UiSelectPage : Component
             .Blurb("Choices hands the select rows rather than options: a search field over them, in the reader's alphabet, "
                    + "\"Choose...\" while nothing is picked, and the cross only where the member may hold nothing. Given a "
                    + "search instead, the store answers what is typed and the row the value holds stays named."),
+        UiDocsExample.Key("ui-select-leading").Heading("Rows pinned first").File("SelectLeadingExample.cs").Demo(SelectLeadingExample).Testid("ui-select-leading")
+            .Blurb("Leading pins hand rows before the choices — \"No company\" first — in the order given, never sorted "
+                   + "among them. Every search keeps them: type a name and the row stays above what it finds. A search or "
+                   + "a paged source puts them before every answer and is never asked for them."),
         UiDocsExample.Key("ui-select-create").Heading("Create option").File("SelectCreateExample.cs").Demo(SelectCreateExample).Testid("ui-select-create")
             .Blurb("Type a name no project has: the create row offers to make it, from two characters on."),
         UiDocsExample.Key("ui-select-create-search").Heading("With backend search").File("SelectCreateSearchExample.cs").Demo(SelectCreateSearchExample).Testid("ui-select-create-search")

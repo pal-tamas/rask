@@ -37,7 +37,12 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         // The title a question may bring of its own is Ui.Confirm's alone.
         var withoutItsTitle = Regex.Replace(
             withoutTheField, " data-rask-confirm-dialog=\"heading\" data-rask-confirm-default=\"[^\"]*\" data-rask-opaque", string.Empty);
-        var asLeave = withoutItsTitle
+        // So are the labels and the look a question from code words for itself.
+        var withoutItsLabels = Regex.Replace(
+            withoutItsTitle, "<span data-rask-confirm-dialog=\"(no|yes)\" data-rask-confirm-default=\"[^\"]*\" data-rask-opaque>([^<]*)</span>", "$2");
+        var withoutItsTones = Regex.Replace(
+            withoutItsLabels, " data-rask-confirm-tone=\"[^\"]*\" data-rask-confirm-other=\"[^\"]*\"", string.Empty);
+        var asLeave = withoutItsTones
             .Replace(" id=\"ui-confirm-message\"", string.Empty, StringComparison.Ordinal)
             .Replace("ui-confirm", "ui-confirm-leave", StringComparison.Ordinal)
             .Replace("data-rask-confirm-dialog", "data-rask-leave", StringComparison.Ordinal);
@@ -104,6 +109,47 @@ public partial class UiConfirmTests : global::Rask.Core.RaskMarkup
         Assert.DoesNotContain("data-rask-confirm-dialog", buttons[0].Tag, StringComparison.Ordinal);
         Assert.Contains("data-rask-confirm-dialog=\"go\"", buttons[1].Tag, StringComparison.Ordinal);
         Assert.Contains("bg-red-500", buttons[1].Tag, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Yes_drawn_in_danger_carries_the_primary_look_for_a_question_that_asks_in_it()
+    {
+        var html = Ui.Confirm.ToHtml();
+
+        var yes = Buttons(html)[1].Tag;
+
+        Assert.Contains("data-rask-confirm-tone=\"danger\"", yes, StringComparison.Ordinal);
+        Assert.Matches("data-rask-confirm-other=\"[^\"]*bg-accent[^\"]*\"", yes);
+        Assert.DoesNotMatch("data-rask-confirm-other=\"[^\"]*bg-red-500", yes);
+    }
+
+    [Fact]
+    public void Primary_draws_Yes_as_the_primary_button_carrying_the_danger_look()
+    {
+        var html = Ui.Confirm.Primary().ToHtml();
+
+        var yes = Buttons(html)[1].Tag;
+        var drawn = Regex.Match(yes, "class=\"([^\"]*)\"").Groups[1].Value;
+
+        Assert.Contains("bg-accent", drawn, StringComparison.Ordinal);
+        Assert.DoesNotContain("bg-red-500", drawn, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-dialog=\"go\"", yes, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-tone=\"primary\"", yes, StringComparison.Ordinal);
+        Assert.Matches("data-rask-confirm-other=\"[^\"]*bg-red-500[^\"]*\"", yes);
+    }
+
+    [Fact]
+    public void The_labels_are_the_runtimes_to_write_and_keep_the_layouts_words()
+    {
+        var html = Ui.Confirm.No("Nem").Yes("Igen").ToHtml().AsText();
+
+        var no = Tag(html, "<span data-rask-confirm-dialog=\"no\"");
+        var yes = Tag(html, "<span data-rask-confirm-dialog=\"yes\"");
+
+        Assert.Contains(no + "Nem</span>", html, StringComparison.Ordinal);
+        Assert.Contains(yes + "Igen</span>", html, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-default=\"Nem\" data-rask-opaque", no, StringComparison.Ordinal);
+        Assert.Contains("data-rask-confirm-default=\"Igen\" data-rask-opaque", yes, StringComparison.Ordinal);
     }
 
     [Fact]

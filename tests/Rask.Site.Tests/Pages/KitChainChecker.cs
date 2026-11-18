@@ -41,10 +41,17 @@ internal static class KitChainChecker
             return EnumProblems(entry, values);
         }
 
-        return KitComponent(name) is { } component
-            ? StepProblems(entry, component)
-            : [$"Ui.{name} is not in the kit"];
+        if (KitComponent(name) is { } component)
+        {
+            return StepProblems(entry, component);
+        }
+
+        // A method of the kit's own — `Ui.Fact("Company", company)` — hands back an element, whose steps are Core's.
+        return KitMethod(name) ? [] : [$"Ui.{name} is not in the kit"];
     }
+
+    private static bool KitMethod(string name) =>
+        typeof(Ui).GetMethods(BindingFlags.Public | BindingFlags.Static).Any(method => method.Name == name);
 
     private static IEnumerable<string> EnumProblems(MemberAccessExpressionSyntax entry, Type values)
     {

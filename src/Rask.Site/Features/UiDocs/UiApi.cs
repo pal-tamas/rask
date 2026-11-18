@@ -132,6 +132,7 @@ internal static partial class UiApi
             new("Size", typeof(Ui.CardSize?), "Outside a card, the size of the card it sits beside."),
         ]),
         new("Ui.CardBleed", typeof(UiCardBleed), "flux:card.bleed", "Content that runs to the card's edges: an image.", []),
+        new("Ui.Facts", typeof(UiFacts), NotFlux, "A summary card's description list, the <dl>: each Ui.Fact(\"Label\", value) a label over its value, in columns of 12rem at least.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Command { get; } =
@@ -319,6 +320,7 @@ internal static partial class UiApi
             new("Heading", typeof(string), "The short title above the question. \"Confirm\" when unset; a question's own heading: replaces it."),
             new("No", typeof(string), "The label of the button that calls the action off. \"No\" when unset."),
             new("Yes", typeof(string), "The label of the button that lets the action go. \"Yes\" when unset."),
+            new("Primary", typeof(bool?), "Yes as the primary button rather than the danger one, for a question that loses nothing. Danger when unset."),
         ]),
     ];
 
@@ -338,7 +340,7 @@ internal static partial class UiApi
         [
             new("OnOpen", typeof(Callback), "Runs when the reader opens the panel: where a page loads what its fields offer.", Handler),
         ]),
-        new("Ui.Filter", typeof(UiFilter), NotFlux, "A filter the set cannot read from a control: the page says what it is called, what it holds and how it is taken off.",
+        new("Ui.Filter", typeof(UiFilter), NotFlux, "A filter the set cannot read from a control: the page says what it is called, what it holds and how it is taken off. Ui.Filter.Range(() => From, () => To) is a range of numbers instead, two [QueryParam] ends said on one badge.",
         [
             new("Label", typeof(string), "What it filters by: the badge's first word. Required, and taken first."),
             new("Shown", typeof(string), "What it holds, as the badge says it. Unset, it is not in force and has no badge. Handed names, .Shown(names) says one by its name and two or more by their count (\"40 selected\"), every name in a tooltip; none is not in force."),
@@ -634,7 +636,7 @@ internal static partial class UiApi
         new("Ui.TableColumn", typeof(UiTableColumn), "flux:table.column", "One heading: the <th>. Its children are its label.",
         [
             new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset; the end for a Width of numbers or actions."),
-            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions, Buttons, RowMenu (the row's ⋯, sticky), or the Rest. "
+            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Code, Flag, Reference, Name, Actions (two icon buttons), Buttons, RowMenu (the row's ⋯, sticky), or the Rest. "
                                                   + "The table fills its box and is never narrower than its columns together (40rem at least). Not Flux's.",
                 "Ui.ColumnWidth, each a step too (.Day)"),
             new("Sortable", typeof(bool?), "Makes the heading a button with a chevron that asks for this column to be sorted."),
@@ -654,6 +656,7 @@ internal static partial class UiApi
             new("Variant", typeof(Ui.TableCellVariant?), "How much the cell stands out. Muted when unset."),
             new("Sticky", typeof(bool?), "Keeps the cell in view while the others scroll sideways. Give it a background too."),
             new("Cut", typeof(string), "The value as text on one line, cut short with an ellipsis where the column ends, the whole of it in the cell's tooltip. Not Flux's."),
+            new("Whole", typeof(bool?), "Keeps the value on one line, on screen and on paper, where every other cell wraps: a day a wrap would split. Not Flux's."),
             new("ColSpan", typeof(int?), "How many columns the cell spans: a row folded out beneath another, or the row that says the list is empty."),
         ]),
     ];

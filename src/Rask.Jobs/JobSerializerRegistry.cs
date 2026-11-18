@@ -122,6 +122,9 @@ public static class JobSerializerRegistry
     // otherwise a nested IJob would be stored under a name the registry never has and silently dead-letter.
     internal static string TypeName(Type type) => (type.FullName ?? type.Name).Replace('+', '.');
 
+    /// <summary>Every registered job: its stored type name, and the type it reads back as.</summary>
+    internal static IReadOnlyDictionary<string, Type> Registered => _types;
+
     /// <summary>A registered type name without its namespace or enclosing types: <c>AtPump</c>, as configuration names it.</summary>
     internal static string ShortName(string typeName)
     {

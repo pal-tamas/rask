@@ -12,9 +12,35 @@ namespace Rask.Background;
 /// </summary>
 /// <typeparam name="TContext">The application <see cref="DbContext"/> that owns the jobs table.</typeparam>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, JobsOptions options) : IJobs
+public sealed class JobBacklog<TContext>(IDbContextFactory<TContext> contextFactory, TimeProvider timeProvider, JobsOptions options)
+    : IJobs, IJobBatches
     where TContext : DbContext
 {
+    /// <summary>
+    ///     Writes every row of a <c>Jobs.Enqueue(jobs)</c> in one <c>SaveChanges</c> — one transaction, so all or none, enlisted
+    ///     in <c>Db.Transaction</c> when one is open — each stamped with the same new <see cref="Job.Batch" />.
+    /// </summary>
+    async Task<int> IJobBatches.AddAll(
+        IReadOnlyList<(IJob Job, string? Notice)> jobs, DateTimeOffset? at, TimeSpan? after, string? lane, bool shared,
+        CancellationToken cancellationToken)
+    {
+        var due = Due(at, after);
+        var batch = Guid.CreateVersion7(timeProvider.GetUtcNow());
+        var rows = new List<Job>(jobs.Count);
+        foreach (var (job, notice) in jobs)
+        {
+            var (type, payload) = JobSerializerRegistry.Serialize(job);
+            using var noticing = JobNotice.Use(notice, shared, batch);
+            rows.Add(Job.For(type, payload, due, lane));
+        }
+
+        var db = await Open(cancellationToken).ConfigureAwait(false);
+        await using var dbScope = db.ConfigureAwait(false);
+        db.Set<Job>().AddRange(rows);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return rows.Count;
+    }
+
     /// <inheritdoc/>
     public async Task Add(IJob job, DateTimeOffset? at, TimeSpan? after, string? lane, CancellationToken cancellationToken = default)
     {

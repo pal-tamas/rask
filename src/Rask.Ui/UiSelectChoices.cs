@@ -46,4 +46,15 @@ public static class UiSelectChoices
         ArgumentNullException.ThrowIfNull(select);
         return select.Offer(find, held);
     }
+
+    /// <inheritdoc cref="UiSelect{T}.Leading{TValue}(Ui.Choice{TValue}[])" />
+    /// <param name="select">The select, opened on a member of <c>T?</c>.</param>
+    /// <param name="rows">The rows, in the order they stand first: <c>new Ui.Choice&lt;int&gt;(0, "No company")</c>.</param>
+    /// <typeparam name="T">The type of a row's value.</typeparam>
+    public static UiSelect<T?> Leading<T>(this UiSelect<T?> select, params Ui.Choice<T>[] rows)
+        where T : struct
+    {
+        ArgumentNullException.ThrowIfNull(select);
+        return select.Lead(rows);
+    }
 }

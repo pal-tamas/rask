@@ -14,8 +14,9 @@ internal interface IWorkBoard
     TimeSpan Every { get; }
 
     /// <summary>
-    ///     The current user's watched work in their tenant — what runs or waits, and what ended lately, newest first. Empty
-    ///     for nobody signed in.
+    ///     The watched work the current user may see in their tenant — their own, and what the tenant shares with them
+    ///     (<c>.ByTenant()</c>) — what runs or waits, and what ended lately, newest first; each row says whether they started
+    ///     it (<see cref="WorkReported.Mine" />). Empty for nobody signed in.
     /// </summary>
     /// <param name="lane">One lane's work, or null for every lane.</param>
     /// <param name="cancellationToken">Cancels the read.</param>

@@ -634,13 +634,21 @@ For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](co
 **Three pieces every list app copied, now the kit's** (not Flux's: additions the owner approved, 2026-11-04, #1298).
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
-that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
-`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
+that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Code` (an invoice
+number, a plate, never spaced out) 8 — `.Width(Ui.ColumnWidth.Code)`: the `<code>` element every component inherits
+hides the `.Code` step — `Moment` and
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` (two icon buttons — a pencil and a bin) 6, `Buttons`
+(three or four, or a worded one) 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
-they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
-a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu` or
-`Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
-with an ellipsis, the whole of it in the cell's tooltip.
+they take together (40rem at least) — each counted as wide as it really is, so a heading the page sized itself
+(`.Class("w-32")`) counts its 8rem, not a rest's 12 — so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
+a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu`,
+`Actions` or `Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
+with an ellipsis, the whole of it in the cell's tooltip. `.Whole()` keeps a cell on one line on
+paper too, where every other cell wraps — a day a wrap would split: `Ui.TableCell.Cut(day).Whole()`, Eszaf's
+`ListTable.Whole(day)`. `Ui.TableColumn.Actions` heads a pencil and a bin the page
+draws itself, `Ui.Button.Ghost.Sm.Icon(…)` twice in a `Ui.TableCell.End.Class("py-0")`: 6rem is what two of Flux's
+small icon buttons and the cell's padding need, measured, not guessed.
 
 `Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its actions behind one ⋯ (below).
 The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
@@ -904,8 +912,9 @@ Ctrl+P:
 - **Left off:** every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` with its toggle and backdrop,
   `Ui.Header`, toasts, tooltips, open dropdown and popover panels, and a modal's backdrop. `Ui.Main` drops its screen
   padding, border and inner scroll.
-- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
-  run on, the heading repeats at the top of every page, and no row is split across two.
+- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line — but a `Ui.TableCell.Whole()`, which
+  keeps its line and widens its column), the scroll frame lets the table run on, the heading repeats at the top of
+  every page, and no row is split across two.
 - **`Ui.Accordion` prints open,** closed items included, with no chevron.
 
 ```csharp
@@ -1227,16 +1236,39 @@ The live demo and its reference: **[rask.sh/ui/app-frame](https://rask.sh/ui/app
 
 **`Ui.WorkNotices`** (not Flux's — Flux has no notifications; the owner approved it, #1293) is the bell at the header's
 end, `.Notices(Ui.WorkNotices)`: Flux's `bell` on a ghost button with a red count, opening a flyout of the signed-in
-user's background work — each running job with Flux's progress bar and what it last said, each one lately done, failed
-or stopped with a badge. **`Ui.WorkList`** is the same list in the page. Both take `.Lane(id)` for one lane's work.
+user's background work — each running job with Flux's progress bar and what it last said, each one lately done, warned,
+failed or stopped with a badge and the words its handler said, a batch as one group. **`Ui.WorkList`** is the same list
+in the page. Both take `.Lane(id)` for one lane's work; the bell takes `.Actions(…)`, a footer under its list.
 
 ```csharp
 await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");   // what it shows
 Jobs.Report(kept, total);                                                           // its bar, from the handler
 ```
 
-- **Only the user's own work, in their tenant**, read from the job rows every poll and moved live in between by
-  `WorkReported` — see [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **The user's own work, in their tenant** — and their tenant's work enqueued `.ByTenant()` that they may run themselves —
+  read from the job rows every poll and moved live in between by `WorkReported`; see
+  [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **How it ended, in colour.** `Jobs.Warn(…)` draws an amber *Warning* badge, `Jobs.Refuse(…)` a red *Failed* one, and
+  the words the handler said (`Detail`) stand under the title in the badge's colour — grey for `Jobs.Note(…)` on a job
+  that is done. The error a failure threw is never drawn.
+- **A batch is one group.** The jobs of one `Jobs.Enqueue(jobs)` stand under one heading — when it was started and how
+  many it holds (*18/11/2026 09:30 · 3 items*), the worst way one ended, one bar for all of them — and count once among
+  the ten lately ended. When the last job of a batch the reader started ends, the bell raises **one toast** in the tone
+  of its worst end (*3 items are done, some with a warning.*); a colleague's shared batch is never toasted, and the list
+  in the page raises none.
+- **A footer:** `.Actions(…)` stands under the list in the flyout — the link to the page of all the work.
+
+Before — a bell of the app's own beside the kit's, because the kit's could not group a press, say amber, or link out:
+
+```csharp
+Ui.AppFrame.Notices(LoadNotices.For(partner))[ … ]       // the app's own bell, its own rows, its own toasts
+```
+
+After — the kit's bell, with the app's link under it:
+
+```csharp
+Ui.AppFrame.Notices(Ui.WorkNotices.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"]))[ … ]
+```
 - **On either host.** On a Server page the rows are read in-process; in the browser half of a `wasm-hosted` app they are
   asked of the server, and the live watch opens there — the same rows, the same rules, nothing to wire.
 - **The count** is what runs, and what ended since the flyout was last opened; the badge is hidden from a screen reader,
@@ -1244,7 +1276,8 @@ Jobs.Report(kept, total);                                                       
 - **A job seen running that ends is announced** in a polite live region: *Import of prices.csv is done.* A failure says
   *Failed*, never why.
 - **A job with no count** draws a bar without an end, and *Running…* until it says something.
-- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, … in [localization](localization.md)).
+- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, `WorkWarned`, `WorkBatch`, … in
+  [localization](localization.md)).
 
 The live demo is in the app frame's: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)** — the bell in its header, the list on its home page.
 
@@ -1255,6 +1288,21 @@ The live demo is in the app frame's: **[rask.sh/ui/app-frame](https://rask.sh/ui
 dividers and corners between them. `Body`, `Variant` and `Size` set how the parts are apart, the surface and the room.
 Every example, what each step decides, headers outside a card, the bleed variables and the reference of its steps:
 **[rask.sh/ui/card](https://rask.sh/ui/card/)**.
+
+`Ui.Facts` is what a summary card says of a record: a description list (`<dl>`), each `Ui.Fact("Label", value)` a
+`<dt>` over its `<dd>`, grouped in a `<div>` as HTML allows. Flux has no description list (the kit's own, owner-approved
+2026-11-18, #1363), so it is drawn in Flux's typography: the label in its subtle small text, the value in its body
+text, as a card's own text is. A value is any markup — words, a number, a badge — and none shows a dash. The facts lie
+in as many columns of 12rem at least as the card has room for, one on a phone; `.Class("sm:grid-cols-3")` on
+`Ui.Facts` wins, and `Ui.Fact(…).Class("col-span-full")` gives a long one the row.
+
+```csharp
+// Before: each app kept a ViewField of its own, in a grid it set up on the card.
+Ui.Card.Class("grid gap-4 sm:grid-cols-3")[ViewField.Of("Company", _company), ViewField.Of("Driver card", card)]
+
+// After: the kit's.
+Ui.Card[Ui.Facts[Ui.Fact("Company", _company), Ui.Fact("Driver card", card)]]
+```
 
 ### Kanban
 
@@ -1350,7 +1398,31 @@ Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "
 Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a menu item too
 Ui.MenuItem.Href("/logout").Confirm("Sign out of Acme?")["Sign out"]   // a link: a yes follows it
 Ui.MenuItem.Href(SignOut.Path).SignOut()   // "Are you sure you want to sign out?" under "Sign out", from the catalog
+Ui.Confirm.Primary()                                      // Yes as the primary button: questions that lose nothing
 ```
+
+A handler asks from code, after a check only it can make, with `await Ui.Confirm.Ask("…")` — true for Yes, false
+for No, the close button, Escape and a press outside — in the same dialog, on both hosts:
+
+```csharp
+private async Task Save()
+{
+    if (await Periods.Overlapping(_period) && !await Ui.Confirm.Ask("The period overlaps another. Save it anyway?"))
+    {
+        return;
+    }
+
+    await Periods.Save(_period);
+}
+
+if (await Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask("Rögzíti a km-t?")) …   // this question's words
+```
+
+The words and `.Primary()` set on that chain are that question's alone; what it leaves unset is the layout's
+dialog's. Focus moves into the dialog and back to the control that was pressed. A second question asked while one
+is open waits its turn and opens once the first is answered. Work that is cancelled while it asks — its component
+left the page, the session ended, a configured handler timeout ran out — gets false, unanswered. On a page with no
+`Ui.Confirm` it throws, naming what to place (`Ui.AppFrame` places one).
 
 A menu item's link asks before it is followed, and a yes follows it — an in-app route in the app, a string as the
 browser follows any link: a GET and a page load, which is how a sign-out endpoint is reached. `.SignOut()` is that
@@ -1425,7 +1497,17 @@ with every name in a tooltip on the badge that wraps (hover, keyboard focus, a t
 never widens the page: words longer than its row end in an ellipsis, the whole of them in its `title`, and its cross
 stays in reach. A range is one
 query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
-it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
+it, and text that is no range leaves the member unset.
+
+A range of numbers is two keys, a least and a most: `Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")`
+over two `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?` — any `INumber<T>`). The
+panel draws the two ends side by side under the label, each a number field written to the address once typing pauses,
+either left empty at will (`FilterRangeFrom`/`FilterRangeTo` say which while empty: "From"/"To", "-tól"/"-ig"). ONE
+badge says what is set, its numbers in the reader's grouping: "Weight: at least 5,000", "at most 7,000" or
+"5,000 – 7,000" (`FilterRangeAtLeast`/`FilterRangeAtMost`/`FilterRangeBetween`; Hungarian "legalább 5 000",
+"legfeljebb 7 000"); a fraction keeps its digits ("20.5"). Its cross, Clear all and Clear filters take both keys out in
+one move. With no `.Label(…)` it is called by the first end's `[Display]` name. Live:
+**[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
@@ -1567,6 +1649,24 @@ Ui.Pillbox.Bind(() => draft.ProductIds).Choices((typed, page) => Products(typed,
 static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.ChoicePage page) =>
     [.. (await Product.Where(p => p.Name.Contains(typed)).OrderBy(p => p.Name).Skip(page.Skip).Take(page.Take).ToList())
         .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
+```
+
+**Rows pinned first** — "No company" above the companies — are `.Leading(…)` after `.Choices(…)`, on `Ui.Select` (a
+select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does) and `Ui.Pillbox`, over any of the three sources (the
+owner's addition, 2026-11-18). They stand in the order given, never sorted among the choices, and **every search keeps
+them**, since a "none" row is what a reader looks for while typing a name: a list held whole never hides them for what
+is typed, and a searched or paged source has them put before every answer's first rows, whatever was typed. They are
+never asked of the source: a paged source's first page is asked for that many fewer rows (`page.Take` is 49 with one
+leading row), so the list's first screen holds as many, and the pages after it skip the rows found, the leading ones not
+counted. A picked row a search left out still comes first. Give them values no choice holds.
+
+```csharp
+// Before: the "none" row sorted in among the companies, and lost to a search.
+Ui.Select.Bind(() => filter.CompanyId).Choices([new Ui.Choice<int>(0, "Nincs cég"), .. companies])
+
+// After: first, whatever is typed.
+Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))
+Ui.Select.Bind(() => filter.CompanyId).Choices((typed, page) => Company.Named(typed, page)).Leading(new Ui.Choice<int>(0, "Nincs cég"))
 ```
 
 **A create row waits for the search, as Flux's does.** While a search's question is out, `Ui.SelectOptionCreate`
