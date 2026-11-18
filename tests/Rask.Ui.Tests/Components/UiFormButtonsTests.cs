@@ -4,6 +4,32 @@ using Page = Rask.Testing.Page;
 
 namespace Rask.UiTests.Components;
 
+/// <summary>A list keeping its sort and page in the address, its editor over it, and a way to one of its records.</summary>
+[Route("/ui-form-buttons/suppliers")]
+public sealed partial class FormButtonsSuppliersPage : Component
+{
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Key("suppliers")[
+            Button.Id("open-7").OnClick(() => Go.To("/ui-form-buttons/suppliers/7"))["Aminoff"],
+            Ui.Table.SortIn("sort", "dir").PageIn("page", 9, perPage: 2)[
+                Ui.TableColumns[Ui.TableColumn.Key("name").Sortable()["Name"]],
+                Ui.TableRows[Ui.TableRow.Key("aminoff")[Ui.TableCell["Aminoff"]]]
+            ],
+            Ui.EditorDialog.In("edit")[P["Editor"]]
+        ];
+}
+
+/// <summary>One supplier's form: its buttons lead back to the list.</summary>
+[Route("/ui-form-buttons/suppliers/{Id}")]
+public sealed partial class FormButtonsSupplierPage : Component
+{
+    [RouteParam] public string? Id { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() => Div.Key("supplier")[P.Id("page")["Supplier " + Id], Ui.FormButtons.Back(Routes.FormButtonsSuppliersPage())];
+}
+
 /// <summary>
 ///     <see cref="UiFormButtons" />: a form's Delete, Cancel back to the list and Save, as Flux draws a form's footer.
 /// </summary>
@@ -85,6 +111,29 @@ public partial class UiFormButtonsTests : RaskMarkup
 
         Assert.True(html.IndexOf("Save as new", StringComparison.Ordinal) < html.IndexOf(">Cancel<", StringComparison.Ordinal));
         Assert.True(html.IndexOf("data-ui-spacer", StringComparison.Ordinal) < html.IndexOf("Save as new", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Cancel_returns_to_the_list_as_the_reader_left_it_with_its_dialog_closed()
+    {
+        var page = Page.Visit("/ui-form-buttons/suppliers?q=amin&sort=name&dir=desc&page=2&edit=new");
+
+        await page.On("#open-7").Click();
+        var cancel = page.Find("[data-ui-form-buttons] a[data-rask-key=\"cancel\"]");
+
+        Assert.Equal("Supplier 7", page.TextOf("#page"));
+        Assert.Equal("/ui-form-buttons/suppliers?q=amin&sort=name&dir=desc&page=2", cancel.Attribute("href"));
+    }
+
+    [Fact]
+    public void Cancel_on_a_form_whose_list_was_not_shown_goes_to_the_list_as_given()
+    {
+        var page = Page.Visit("/ui-form-buttons/suppliers/7");
+
+        var cancel = page.Find("[data-ui-form-buttons] a[data-rask-key=\"cancel\"]");
+
+        Assert.Equal("Supplier 7", page.TextOf("#page"));
+        Assert.Equal("/ui-form-buttons/suppliers", cancel.Attribute("href"));
     }
 
     [Fact]

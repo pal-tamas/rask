@@ -362,7 +362,7 @@ internal static partial class UiApi
     [
         new("Ui.FormButtons", typeof(UiFormButtons), NotFlux, "A form's footer as Flux draws one: Delete at the start, then Cancel back to the list and Save.",
         [
-            new("Back", typeof(Rask.Core.Routing.RouteUrl), "The list Cancel goes back to. Required, and taken first.", "a route: Routes.SuppliersPage()"),
+            new("Back", typeof(Rask.Core.Routing.RouteUrl), "The list Cancel goes back to, as the reader left it — its filters, sort and page — once the session has shown it. Required, and taken first.", "a route: Routes.SuppliersPage()"),
             new("Remove", typeof(Func<Task>), "A Delete button that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
                 "the delete, then the question's heading and the question (the catalog's when null)"),
             new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),

@@ -8,6 +8,13 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.FormButtons`' Cancel returns to the list as the reader left it (#1357).** Before: Cancel went to the bare
+  `Back(…)` route, so a reader who had filtered, sorted and paged a list landed on its first page unfiltered, and an app
+  kept a `ListAddresses` of its own for every Cancel; only `Ui.AppFrame`'s breadcrumb went back as left. After: no new
+  name — `Ui.FormButtons.Back(Routes.SuppliersPage())`'s Cancel leads to `/suppliers?q=amin&sort=name&page=2`, the
+  address the session last showed the list at, a `Ui.EditorDialog`'s key left out, exactly as the trail's list step.
+  The session starts remembering in a `Ui.AppFrame`, or on a `Ui.Table` keeping its sort or page in the address; a list
+  not shown yet is the route as given.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next

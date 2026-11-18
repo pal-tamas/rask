@@ -646,7 +646,10 @@ with an ellipsis, the whole of it in the cell's tooltip.
 The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
 none. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
-drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Cancel returns to
+the list **as the reader left it** — its filters, sort and page, never a `Ui.EditorDialog`'s key — once the session has
+shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the address), as `Ui.AppFrame`'s trail does;
+`Back(Routes.SuppliersPage())` names only the list. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp
@@ -1136,7 +1139,8 @@ public sealed partial class Layout : Component
   Home is the row every other row is beneath (`/`) — or, where `/` is not home (an administrator's tenant list),
   the page the frame names: `.Home(Routes.HomePage())`, where the brand and the trail's first step then lead.
 - **The trail:** home › group › list › the page's `PageTitle`. The list's step leads back to it **as it was left** —
-  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps.
+  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps. A form's
+  `Ui.FormButtons` Cancel goes back the same way.
 - **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
   `Ui.MenuItem.Href(url).SignOut()`. The unsaved-changes dialog is titled "Unsaved changes" (the catalog's
   `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it.
