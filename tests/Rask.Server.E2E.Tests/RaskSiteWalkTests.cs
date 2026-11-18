@@ -70,15 +70,43 @@ public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : ICla
     }
 
     [Fact]
-    public async Task A_fresh_sign_in_signs_in_anew_and_the_pages_after_it_start_from_it()
+    public async Task A_fresh_sign_in_signs_in_anew_and_leaves_the_shared_sign_in_as_it_was()
     {
-        await site.SignedIn("dave");
+        var shared = await site.SignedIn("dave");
 
-        await site.SignedIn("dave", fresh: true);
+        var fresh = await site.SignedIn("dave", fresh: true);
         var later = await site.SignedIn("dave");
 
         Assert.Equal(2, site.SignInsOf("dave"));
-        Assert.Contains(await later.Context.CookiesAsync(), cookie => cookie is { Name: "who", Value: "dave" });
+        Assert.Equal(await SessionOf(shared), await SessionOf(later));
+        Assert.NotEqual(await SessionOf(shared), await SessionOf(fresh));
+    }
+
+    [Fact]
+    public async Task A_person_signed_out_on_a_fresh_sign_in_is_still_signed_in_on_their_next_page()
+    {
+        await site.SignedIn("frank");
+        var fresh = await site.SignedIn("frank", fresh: true);
+
+        await SignOut(fresh);
+        var later = await site.SignedIn("frank");
+
+        Assert.Equal(200, await MeOf(later));
+        Assert.Equal(2, site.SignInsOf("frank"));
+    }
+
+    [Fact]
+    public async Task A_shared_sign_in_a_test_signed_out_is_signed_in_again_for_the_next_page()
+    {
+        var shared = await site.SignedIn("gina");
+
+        await SignOut(shared);
+        var later = await site.SignedIn("gina");
+        var after = await site.SignedIn("gina");
+
+        Assert.Equal(200, await MeOf(later));
+        Assert.Equal(200, await MeOf(after));
+        Assert.Equal(2, site.SignInsOf("gina"));
     }
 
     [Fact]
@@ -113,15 +141,28 @@ public sealed class RaskSiteWalkTests(RaskSiteWalkTests.FixtureSite site) : ICla
         Assert.Equal(1, site.SignInsOf("bob"));
     }
 
-    /// <summary>The fixture app, signing a person in its own way: a cookie naming them, set on the sign-in page.</summary>
+    private static async Task<string?> SessionOf(IPage page) =>
+        (await page.Context.CookiesAsync()).SingleOrDefault(cookie => cookie.Name == "session")?.Value;
+
+    private static async Task SignOut(IPage page)
+    {
+        var answer = await page.Context.APIRequest.PostAsync("/api/auth/logout");
+        Assert.Equal(204, answer.Status);
+    }
+
+    private static async Task<int> MeOf(IPage page) => (await page.Context.APIRequest.GetAsync("/api/auth/me")).Status;
+
+    /// <summary>
+    ///     The fixture app, signing a person in its own way: a session the app holds, and a cookie naming them, set by its
+    ///     sign-in endpoint (Rask.Testing.Fixture.App's <c>Sessions</c>).
+    /// </summary>
     public sealed class FixtureSite : RaskSite<global::Program>
     {
         private readonly ConcurrentDictionary<string, int> _signIns = new(StringComparer.Ordinal);
 
         public FixtureSite() => SignIn = async (page, name) =>
         {
-            await page.GotoAsync("/login");
-            await page.Context.AddCookiesAsync([new Cookie { Name = "who", Value = name, Url = Address.ToString() }]);
+            await page.GotoAsync("/fixture/sign-in/" + Uri.EscapeDataString(name));
             _signIns.AddOrUpdate(name, 1, (_, count) => count + 1);
         };
 
