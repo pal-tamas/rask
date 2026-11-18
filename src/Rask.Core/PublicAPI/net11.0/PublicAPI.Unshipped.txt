@@ -19814,6 +19814,11 @@ Rask.Core.Globalization.RaskString.WorkEndedDone = 265 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.WorkEndedFailed = 266 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkEndedStopped = 267 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveHeading = 268 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeFrom = 269 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeTo = 270 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeAtLeast = 271 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeAtMost = 272 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeBetween = 273 -> Rask.Core.Globalization.RaskString
 Rask.CachedFragments
 Rask.CachedOptions
 Rask.CachedOptions.CachedOptions() -> void

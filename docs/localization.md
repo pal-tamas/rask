@@ -851,6 +851,11 @@ they say when you set nothing.
 | `FiltersClose` | Filters | `Close` |
 | `FilterRemove` | Filters | `Remove filter {0}` |
 | `FiltersSelectedCount` | Filters: a badge of two or more names, `Ui.Filter.Shown(names)` | `{0} selected` |
+| `FilterRangeFrom` | Filters: a range's first field, `Ui.Filter.Range` | `From` |
+| `FilterRangeTo` | Filters: a range's second field | `To` |
+| `FilterRangeAtLeast` | Filters: a range's badge, its least alone | `at least {0}` |
+| `FilterRangeAtMost` | Filters: a range's badge, its most alone | `at most {0}` |
+| `FilterRangeBetween` | Filters: a range's badge, both ends | `{0} – {1}` |
 | `WorkNotices` | Work notices: the bell's name and the flyout's heading | `Background work` |
 | `WorkNoticesUnread` | Work notices: the bell's name with a count | `Background work, {0} new` |
 | `WorkNone` | Work notices: nothing to show | `No background work.` |

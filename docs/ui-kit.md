@@ -1349,7 +1349,17 @@ with every name in a tooltip on the badge that wraps (hover, keyboard focus, a t
 never widens the page: words longer than its row end in an ellipsis, the whole of them in its `title`, and its cross
 stays in reach. A range is one
 query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
-it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
+it, and text that is no range leaves the member unset.
+
+A range of numbers is two keys, a least and a most: `Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")`
+over two `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?` — any `INumber<T>`). The
+panel draws the two ends side by side under the label, each a number field written to the address once typing pauses,
+either left empty at will (`FilterRangeFrom`/`FilterRangeTo` say which while empty: "From"/"To", "-tól"/"-ig"). ONE
+badge says what is set, its numbers in the reader's grouping: "Weight: at least 5,000", "at most 7,000" or
+"5,000 – 7,000" (`FilterRangeAtLeast`/`FilterRangeAtMost`/`FilterRangeBetween`; Hungarian "legalább 5 000",
+"legfeljebb 7 000"); a fraction keeps its digits ("20.5"). Its cross, Clear all and Clear filters take both keys out in
+one move. With no `.Label(…)` it is called by the first end's `[Display]` name. Live:
+**[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 

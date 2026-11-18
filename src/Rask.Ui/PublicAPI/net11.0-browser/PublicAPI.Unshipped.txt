@@ -9318,3 +9318,5 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiFilterRange
+static Rask.UiFilterRange.Range<T>(this Rask.RaskSeed_UiFilter filter, System.Linq.Expressions.Expression<System.Func<T?>!>! from, System.Linq.Expressions.Expression<System.Func<T?>!>! to) -> Rask.UiFilter!

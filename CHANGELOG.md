@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Filter.Range(() => From, () => To)` — a min–max filter in `Ui.Filters`, said on one badge (#1360).** Before:
+  a range was two `Ui.Input`s of the page's own and a badge written by hand (Eszaf's `FilterPanel.Range` +
+  `RangeWords`). After: `Ui.Filters[Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")]` over two
+  `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?`): the panel draws the two ends side
+  by side, each written to the address once typing pauses; one badge says "Weight: at least 5,000", "at most 7,000" or
+  "5,000 – 7,000" in the reader's grouping (Hungarian "legalább 5 000", "legfeljebb 7 000"), and its cross, Clear all and
+  Clear filters take both keys out. New catalog keys `FilterRangeFrom`, `FilterRangeTo`, `FilterRangeAtLeast`,
+  `FilterRangeAtMost`, `FilterRangeBetween` (en + hu). RASK095 now takes an opening a library writes onto a seed (an
+  extension of `RaskSeed_X`) as a step of it.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next

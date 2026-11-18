@@ -16,6 +16,13 @@ internal sealed record UiFilterEntry(string Label, string? Shown, bool Active, s
     /// <summary>The names a filter of two or more holds, which its badge lists in a tooltip; none for any other.</summary>
     internal IReadOnlyList<string>? Names { get; init; }
 
+    /// <summary>Every address key it is kept under: its <see cref="Key" />, and a range's other end after it.</summary>
+    internal IReadOnlyList<string> Keys
+    {
+        get => field ?? (Key is null ? [] : [Key]);
+        init;
+    }
+
     /// <summary>The badge's words: "Driver: Ada", or the label alone.</summary>
     internal string Words => string.IsNullOrEmpty(Shown) ? Label : Label + ": " + Shown;
 }
