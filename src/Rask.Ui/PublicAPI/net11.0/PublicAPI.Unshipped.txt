@@ -342,10 +342,11 @@ Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Button = 1 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Input = 0 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Buttons = 8 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Actions = 8 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Buttons = 9 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Day = 1 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Flag = 5 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.RowMenu = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.RowMenu = 10 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Moment = 2 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Name = 7 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Number = 3 -> Rask.Ui.ColumnWidth
@@ -3787,6 +3788,7 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Mini.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Outline.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Sm.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Solid.get -> Rask.UiTab!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Actions.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Buttons.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Day.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Flag.get -> Rask.UiTableColumn!
@@ -5322,6 +5324,7 @@ static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePicker! __b) -> Rask.UiDa
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiDatePickerRange! __b) -> Rask.UiDatePickerRange!
 static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKanbanCard!
 static RaskBuilderSettersRask_Ui.get_Button<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
+static RaskBuilderSettersRask_Ui.get_Actions(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Buttons(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!

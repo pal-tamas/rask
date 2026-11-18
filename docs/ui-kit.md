@@ -635,12 +635,15 @@ For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](co
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
-`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Buttons` 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
+`Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` (two icon buttons — a pencil and a bin) 6, `Buttons`
+(three or four, or a worded one) 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
-a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu` or
-`Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
-with an ellipsis, the whole of it in the cell's tooltip.
+a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu`,
+`Actions` or `Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
+with an ellipsis, the whole of it in the cell's tooltip. `Ui.TableColumn.Actions` heads a pencil and a bin the page
+draws itself, `Ui.Button.Ghost.Sm.Icon(…)` twice in a `Ui.TableCell.End.Class("py-0")`: 6rem is what two of Flux's
+small icon buttons and the cell's padding need, measured, not guessed.
 
 `Ui.RowActions.Edit(url).Remove(delete, heading, question)` is a row's last cell: its actions behind one ⋯ (below).
 The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws

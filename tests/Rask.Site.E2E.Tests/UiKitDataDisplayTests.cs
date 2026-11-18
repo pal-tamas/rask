@@ -20,7 +20,7 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
     [Theory]
     [InlineData("accordion", "Accordion", "ui-accordion-basic|ui-accordion-shorthand|ui-accordion-transition|ui-accordion-findable|ui-accordion-disabled|ui-accordion-exclusive|ui-accordion-expanded|ui-accordion-reverse")]
     [InlineData("avatar", "Avatar", "ui-avatar|ui-avatar-tooltip|ui-avatar-initials|ui-avatar-sizes|ui-avatar-icon|ui-avatar-colors|ui-avatar-auto|ui-avatar-circle|ui-avatar-badge|ui-avatar-groups|ui-avatar-as-button")]
-    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-list")]
+    [InlineData("table", "Table", "ui-table-intro|ui-table-sortable|ui-table-bleed|ui-table-sticky|ui-table-stable|ui-table-of-query|ui-table-waits|ui-table-widths|ui-table-actions|ui-table-list")]
     [InlineData("chart", "Chart", "ui-chart-line|ui-chart-points|ui-chart-area|ui-chart-lines|ui-chart-bar|ui-chart-horizontal|ui-chart-grouped|ui-chart-stacked|ui-chart-pie|ui-chart-slices|ui-chart-summary|ui-chart-sparkline")]
     [InlineData("kanban", "Kanban", "ui-kanban|ui-kanban-actions|ui-kanban-subheading|ui-kanban-footer|ui-kanban-buttons")]
     [InlineData("timeline", "Timeline", "ui-timeline|ui-timeline-large|ui-timeline-horizontal|ui-timeline-status|ui-timeline-color|ui-timeline-bare|ui-timeline-block|ui-timeline-subgrid|ui-timeline-align|ui-timeline-baseline|ui-timeline-spacing")]
@@ -423,6 +423,38 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
                 "el => [el.parentElement.scrollWidth - el.parentElement.clientWidth, document.documentElement.scrollWidth - document.documentElement.clientWidth]");
             Assert.Equal(width < 640, scroll[0] > 0);
             Assert.Equal(0, scroll[1]);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task Two_icon_buttons_fit_side_by_side_inside_the_six_rem_actions_column(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var table = Page.Locator("#ui-towns");
+            var cell = table.Locator("tbody tr").First.Locator("td").Last;
+            await table.ScrollIntoViewIfNeededAsync();
+            await Expect(cell.Locator("[data-ui-button]")).ToHaveCountAsync(2);
+            var fit = await cell.EvaluateAsync<double[]>(
+                "td => { const c = td.getBoundingClientRect(), s = getComputedStyle(td);"
+                + " const [a, b] = [...td.querySelectorAll('[data-ui-button]')].map(x => x.getBoundingClientRect());"
+                + " const th = td.closest('table').querySelector('thead th:last-child').getBoundingClientRect();"
+                + " return [th.width, a.left - (c.left + parseFloat(s.paddingLeft)), c.right - parseFloat(s.paddingRight) - b.right, b.top - a.top]; }");
+
+            // 6rem, and both buttons inside the cell's padding, on one line.
+            Assert.Equal(96d, fit[0]);
+            Assert.True(fit[1] >= -0.5, $"the pencil starts {-fit[1]}px before the cell's padding.");
+            Assert.True(fit[2] >= -0.5, $"the bin ends {-fit[2]}px past the cell's padding.");
+            Assert.Equal(0d, fit[3]);
         }
         finally
         {

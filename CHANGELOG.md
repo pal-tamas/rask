@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.ColumnWidth.Actions` — a column as wide as two icon buttons at the row's end (#1358).** Before: a pencil and a
+  bin had `Buttons` (12rem, made for three or four) or `RowMenu` (4rem, one ⋯), so Eszaf kept a `ListTable.Actions` of
+  its own at `w-24` (37 uses). After: `Ui.TableColumn.Actions` (or `.Width(Ui.ColumnWidth.Actions)`): 6rem, measured on
+  Flux's buttons — two small icon buttons (2rem square) `gap-1` apart need 5rem with the cell's start padding, 5.75rem
+  where the column is not the last, and two default-size ones fit as the last — at the column's end, "Actions" to a
+  screen reader when it has no words, counted towards the table's least width. `RowMenu` is unchanged.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next

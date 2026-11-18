@@ -627,7 +627,7 @@ internal static partial class UiApi
         new("Ui.TableColumn", typeof(UiTableColumn), "flux:table.column", "One heading: the <th>. Its children are its label.",
         [
             new("Align", typeof(Ui.Align?), "Where the heading sits in its column. Start when unset; the end for a Width of numbers or actions."),
-            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions, Buttons, RowMenu (the row's ⋯, sticky), or the Rest. "
+            new("Width", typeof(Ui.ColumnWidth?), "How wide the column is, by what it holds: Day, Moment, Number, Short, Flag, Reference, Name, Actions (two icon buttons), Buttons, RowMenu (the row's ⋯, sticky), or the Rest. "
                                                   + "The table fills its box and is never narrower than its columns together (40rem at least). Not Flux's.",
                 "Ui.ColumnWidth, each a step too (.Day)"),
             new("Sortable", typeof(bool?), "Makes the heading a button with a chevron that asks for this column to be sorted."),

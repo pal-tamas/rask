@@ -58,14 +58,39 @@ public partial class UiTableWidthTests : RaskMarkup
         Component[] headings =
         [
             Ui.TableColumn.Rest, Ui.TableColumn.Day, Ui.TableColumn.Moment, Ui.TableColumn.Number, Ui.TableColumn.Short,
-            Ui.TableColumn.Flag, Ui.TableColumn.Reference, Ui.TableColumn.Name, Ui.TableColumn.Buttons, Ui.TableColumn.RowMenu,
+            Ui.TableColumn.Flag, Ui.TableColumn.Reference, Ui.TableColumn.Name, Ui.TableColumn.Actions, Ui.TableColumn.Buttons,
+            Ui.TableColumn.RowMenu,
         ];
 
         var html = Ui.Table[Ui.TableColumns[Ui.TableColumn.Short["VAT number"], Ui.TableColumn.Reference["City"]]].ToHtml();
 
-        Assert.Equal(10, headings.Length);
+        Assert.Equal(Enum.GetValues<Ui.ColumnWidth>().Length, headings.Length);
         Assert.Contains("style=\"--ui-table-least: 40rem\"", html, StringComparison.Ordinal);
         Assert.Equal(2, html.Split("[:where(&amp;)]:w-40").Length - 1);
+    }
+
+    [Fact]
+    public void An_actions_column_holds_two_icon_buttons_in_six_rem_at_the_end_and_is_named_to_a_screen_reader()
+    {
+        var table = Ui.Table[Ui.TableColumns[Ui.TableColumn.Rest["Town"], Ui.TableColumn.Number["Depots"], Ui.TableColumn.Actions]];
+
+        var html = table.ToHtml().AsText();
+
+        // 12 + 7 + 6 rem, under the forty a table never goes below; the heading ends its column and is not held at the edge.
+        Assert.Contains("style=\"--ui-table-least: 40rem\"", html, StringComparison.Ordinal);
+        Assert.Contains("<th class=\"group/end-align [:where(&)]:w-24 print:w-auto whitespace-normal hyphens-auto break-words\" data-ui-column>", html, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"sr-only\">Actions</span>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("sticky", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Seven_actions_columns_count_six_rem_each_towards_the_table_s_least_width()
+    {
+        var table = Ui.Table[Ui.TableColumns[Enumerable.Range(0, 7).Select(_ => Ui.TableColumn.Actions)]];
+
+        var html = table.ToHtml();
+
+        Assert.Contains("style=\"--ui-table-least: 42rem\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
