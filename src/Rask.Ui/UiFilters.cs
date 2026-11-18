@@ -296,9 +296,9 @@ public sealed partial class UiFilters : Component
 
     private async Task RemoveAsync(UiFilterEntry entry)
     {
-        if (entry.Key is { } key)
+        if (entry.Key is not null)
         {
-            await Narrow(new KeyValuePair<string, string?>(key, null)).ConfigureAwait(false);
+            await Narrow(Taken(entry)).ConfigureAwait(false);
             return;
         }
 
@@ -316,7 +316,10 @@ public sealed partial class UiFilters : Component
             await entry.OnRemove.Invoke().ConfigureAwait(false);
         }
 
-        await Narrow([.. entries.Where(entry => entry.Key is not null).Select(entry => new KeyValuePair<string, string?>(entry.Key!, null))])
-            .ConfigureAwait(false);
+        await Narrow([.. entries.Where(entry => entry.Key is not null).SelectMany(Taken)]).ConfigureAwait(false);
     }
+
+    // Every key a filter is kept under, each taken out of the address: a range's two ends in one move.
+    private static KeyValuePair<string, string?>[] Taken(UiFilterEntry entry) =>
+        [.. entry.Keys.Select(key => new KeyValuePair<string, string?>(key, null))];
 }

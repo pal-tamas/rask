@@ -17,7 +17,7 @@ namespace Rask;
 ///     set's panel, and with nothing in it the filter is a badge only. Not a Flux component: the owner's (2026-10-21).
 ///     </para>
 /// </remarks>
-public sealed partial class UiFilter : Component, IUiFilterField
+public sealed partial class UiFilter : Component, IUiFilterField, ICarriesHandSteps
 {
     private static readonly UiPartMarker Marker = new("ui-filter");
 
@@ -25,6 +25,10 @@ public sealed partial class UiFilter : Component, IUiFilterField
     // the text step, is the page's own words, and the names no longer say it.
     private IReadOnlyList<string>? _names;
     private string? _namesSaid;
+
+    // A range's two ends (Ui.Filter.Range), and the set it was last handed to, whose address its fields write.
+    private IUiFilterEnds? _ends;
+    private UiFilters? _set;
 
     /// <summary>What it filters by: the badge's first word.</summary>
     public required string Label { get; set; }
@@ -36,7 +40,7 @@ public sealed partial class UiFilter : Component, IUiFilterField
     public Callback OnRemove { get; set; }
 
     /// <inheritdoc />
-    UiFilterEntry IUiFilterField.Filter() => new(Label, Shown, Shown is not null, null)
+    UiFilterEntry IUiFilterField.Filter() => _ends?.Filter(Label) ?? new(Label, Shown, Shown is not null, null)
     {
         OnRemove = OnRemove,
         Identity = Key,
@@ -58,12 +62,36 @@ public sealed partial class UiFilter : Component, IUiFilterField
         return this;
     }
 
-    // What it holds is the page's to bind: nothing to hand over.
-    /// <inheritdoc />
-    void IUiFilterField.Take(UiFilters set)
+    /// <summary>What <see cref="UiFilterRange.Range{T}" /> sets: the two ends the filter draws and says.</summary>
+    internal UiFilter Ranging(IUiFilterEnds ends)
     {
+        _ends = ends;
+        return this;
+    }
+
+    // What it holds is the page's to bind, and a range's fields are drawn bound to the set's address.
+    /// <inheritdoc />
+    void IUiFilterField.Take(UiFilters set) => _set = set;
+
+    /// <inheritdoc />
+    void ICarriesHandSteps.CarryTo(Component kept)
+    {
+        if (kept is UiFilter other)
+        {
+            other._ends = _ends;
+            other._names = _names;
+            other._namesSaid = _namesSaid;
+        }
     }
 
     /// <inheritdoc />
-    protected override Component? Render() => Children is null ? null : Div.Data(Marker.With(null))[Children];
+    protected override Component? Render()
+    {
+        if (_ends is { } ends)
+        {
+            return Div.Data(Marker.With(null))[ends.Draw(Label, _set), Children ?? []];
+        }
+
+        return Children is null ? null : Div.Data(Marker.With(null))[Children];
+    }
 }

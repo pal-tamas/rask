@@ -26,7 +26,7 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
                      "ui-select-prefix", "ui-select-icons", "ui-select-descriptions", "ui-select-avatars", "ui-select-content",
                      "ui-select-width", "ui-select-search", "ui-select-long", "ui-select-search-slot", "ui-select-keywords", "ui-multiselect",
                      "ui-select-suffix", "ui-select-checkbox", "ui-select-clear", "ui-combobox", "ui-select-input", "ui-select-backend",
-                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-create", "ui-select-create-search", "ui-select-loading",
+                     "ui-select-store", "ui-select-server", "ui-select-server-many", "ui-select-choices", "ui-select-leading", "ui-select-create", "ui-select-create-search", "ui-select-loading",
                      "ui-select-validation", "ui-select-modal",
                  })
         {
@@ -59,6 +59,40 @@ public sealed class UiKitSelectTests(WasmExampleAppFixture app, PlaywrightFixtur
 
         await Expect(state).ToContainTextAsync("Company: none.");
     });
+
+    [Fact]
+    public Task On_a_desktop_a_leading_row_stands_first_and_stays_while_a_search_narrows_the_rest() => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(1280, 800);
+
+        await AssertLeadingRowAsync();
+    });
+
+    [Fact]
+    public Task On_a_phone_a_leading_row_stands_first_and_stays_while_a_search_narrows_the_rest() =>
+        RunAsync(() => OnAPhoneAsync(AssertLeadingRowAsync));
+
+    // The "Rows pinned first" example: "No company" above the sorted companies, kept while typing hides the others, and
+    // picked like any row.
+    private async Task AssertLeadingRowAsync()
+    {
+        await OpenUiPageAsync("select", "Select");
+        var button = Page.Locator("#ui-select-leading");
+        var list = Page.Locator("[data-ui-select]", new PageLocatorOptions { Has = button });
+        var rows = list.Locator("[data-ui-option]:visible");
+        await button.ScrollIntoViewIfNeededAsync();
+        await button.ClickAsync();
+        await Expect(rows).ToHaveTextAsync(["No company", "Ábel Transport", "Alpine Freight", "Bergmann Logistik", "Zenith Express"]);
+
+        await list.Locator("[data-ui-select-search] input").FillAsync("berg");
+
+        await Expect(rows).ToHaveTextAsync(["No company", "Bergmann Logistik"]);
+        var overflow = await Page.EvaluateAsync<double>("() => document.documentElement.scrollWidth - innerWidth");
+        Assert.True(overflow <= 0, $"the page scrolls {overflow}px sideways");
+        await rows.First.ClickAsync();
+        await Expect(Page.Locator("[data-testid='ui-select-leading-state']")).ToContainTextAsync("Company: 0.");
+        await Expect(button).ToContainTextAsync("No company");
+    }
 
     [Fact]
     public Task A_select_given_a_search_names_its_held_row_and_picks_from_the_answer() => RunAsync(async () =>

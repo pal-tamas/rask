@@ -33,6 +33,11 @@ public sealed partial class UiFiltersPage : Component
             UiDocsExample.Key("ui-filters-own").Heading("A filter of your own").File("UiFiltersPage.Filter.cs").Demo(FilterExample()).Testid("ui-filters-own")
                 .Blurb("Ui.Filter carries a filter the set cannot read from a control, such as a select of several "
                        + "answers: the page says what it is called, what it holds and how it is taken off."),
+            UiDocsExample.Key("ui-filters-range").Heading("A range").File("UiFiltersPage.Range.cs").Demo(RangeExample()).Testid("ui-filters-range")
+                .Blurb("Ui.Filter.Range takes two [QueryParam] members of a nullable number, a least and a most, and draws "
+                       + "them side by side in the panel. Either may be left empty, and one badge says what is set: \"Weight: "
+                       + "at least 5,000\", \"at most 7,000\" or \"5,000 – 7,000\", in the reader's grouping. Its cross takes "
+                       + "both ends out of the address."),
             UiDocsExample.Key("ui-filters-long").Heading("Many names, long words").File("UiFiltersPage.Long.cs").Demo(LongFilterExample()).Testid("ui-filters-long")
                 .Blurb("Handed names, .Shown(names) says one by its name and two or more by their count — \"Vehicles: 40 "
                        + "selected\" — listing every one in a tooltip that opens on hover, keyboard focus or a tap. A badge "

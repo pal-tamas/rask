@@ -32,6 +32,23 @@ them until tagged releases begin.
   Flux's buttons — two small icon buttons (2rem square) `gap-1` apart need 5rem with the cell's start padding, 5.75rem
   where the column is not the last, and two default-size ones fit as the last — at the column's end, "Actions" to a
   screen reader when it has no words, counted towards the table's least width. `RowMenu` is unchanged.
+- **`.Leading(rows)` after `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` pins hand rows before the choices (#1361).**
+  Before: a "none" row (Eszaf's "Nincs cég") was spliced into the choices, sorted among them and hidden by a search, and
+  a searched or paged source had no way to show it. After:
+  `Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))` — the rows
+  stand first in the order given, every search keeps them (a list held whole never hides them; a searched or paged
+  source has them before every answer), and they are never asked of the source: a paged source's first page asks for
+  that many fewer rows (`Take` 49 with one row) and the pages after it skip the rows found, not counting them. Over the
+  list, the searched and the paged overloads; a select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does.
+- **`Ui.Filter.Range(() => From, () => To)` — a min–max filter in `Ui.Filters`, said on one badge (#1360).** Before:
+  a range was two `Ui.Input`s of the page's own and a badge written by hand (Eszaf's `FilterPanel.Range` +
+  `RangeWords`). After: `Ui.Filters[Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")]` over two
+  `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?`): the panel draws the two ends side
+  by side, each written to the address once typing pauses; one badge says "Weight: at least 5,000", "at most 7,000" or
+  "5,000 – 7,000" in the reader's grouping (Hungarian "legalább 5 000", "legfeljebb 7 000"), and its cross, Clear all and
+  Clear filters take both keys out. New catalog keys `FilterRangeFrom`, `FilterRangeTo`, `FilterRangeAtLeast`,
+  `FilterRangeAtMost`, `FilterRangeBetween` (en + hu). RASK095 now takes an opening a library writes onto a seed (an
+  extension of `RaskSeed_X`) as a step of it.
 - **Background work shared with the tenant, with how it ended, started several at once — the kit's bell does a partner's
   load (#1368).** Before: an app whose office watches one press of several files wrote its own queue, events and bell
   beside Rask.Jobs (Eszaf's `QueuedFile` + `LoadMoved` + `LoadNotices`). After:

@@ -878,4 +878,19 @@ public enum RaskString
 
     /// <summary>The toast a <c>Ui.WorkNotices</c> raises when a job of its user's batch was stopped: <c>{0}</c> is how many it holds.</summary>
     WorkBatchStopped,
+
+    /// <summary>What a range filter's first field says while it is empty (<c>Ui.Filter.Range</c>), and is called to a screen reader.</summary>
+    FilterRangeFrom,
+
+    /// <summary>What a range filter's second field says while it is empty (<c>Ui.Filter.Range</c>), and is called to a screen reader.</summary>
+    FilterRangeTo,
+
+    /// <summary>What a range filter's badge says after its label when only its least is set: <c>{0}</c> is the least.</summary>
+    FilterRangeAtLeast,
+
+    /// <summary>What a range filter's badge says after its label when only its most is set: <c>{0}</c> is the most.</summary>
+    FilterRangeAtMost,
+
+    /// <summary>What a range filter's badge says after its label when both ends are set: <c>{0}</c> the least, <c>{1}</c> the most.</summary>
+    FilterRangeBetween,
 }

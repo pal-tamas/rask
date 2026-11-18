@@ -57,6 +57,7 @@ internal sealed partial class UiFiltersBehaviour : Component
                 ("`Ui.Input`", "What was typed, trimmed. Blank is no filter."),
                 ("`Ui.Checkbox`, `Ui.Switch`", "Its label alone, while it is on."),
                 ("`Ui.Filter`", "Its `Label` and its `Shown`, while `Shown` is set."),
+                ("`Ui.Filter.Range`", "\"at least 5,000\", \"at most 7,000\" or \"5,000 – 7,000\", in the reader's grouping, while either end is set."),
             ])
         ];
 

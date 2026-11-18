@@ -1489,7 +1489,17 @@ with every name in a tooltip on the badge that wraps (hover, keyboard focus, a t
 never widens the page: words longer than its row end in an ellipsis, the whole of them in its `title`, and its cross
 stays in reach. A range is one
 query value because `UiDateRange` is `IParsable`: `2026-10-01..2026-10-09`, `~last7Days` after it when a preset made
-it, and text that is no range leaves the member unset. Live: **[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
+it, and text that is no range leaves the member unset.
+
+A range of numbers is two keys, a least and a most: `Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")`
+over two `[QueryParam]` members of a nullable number (`int?`, `long?`, `decimal?`, `double?` — any `INumber<T>`). The
+panel draws the two ends side by side under the label, each a number field written to the address once typing pauses,
+either left empty at will (`FilterRangeFrom`/`FilterRangeTo` say which while empty: "From"/"To", "-tól"/"-ig"). ONE
+badge says what is set, its numbers in the reader's grouping: "Weight: at least 5,000", "at most 7,000" or
+"5,000 – 7,000" (`FilterRangeAtLeast`/`FilterRangeAtMost`/`FilterRangeBetween`; Hungarian "legalább 5 000",
+"legfeljebb 7 000"); a fraction keeps its digits ("20.5"). Its cross, Clear all and Clear filters take both keys out in
+one move. With no `.Label(…)` it is called by the first end's `[Display]` name. Live:
+**[rask.sh/ui/filters](https://rask.sh/ui/filters/)**.
 
 `Ui.Tooltip` is Flux's: a popover too, which the runtime shows under the pointer. See [Tooltips](#tooltips).
 
@@ -1631,6 +1641,24 @@ Ui.Pillbox.Bind(() => draft.ProductIds).Choices((typed, page) => Products(typed,
 static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.ChoicePage page) =>
     [.. (await Product.Where(p => p.Name.Contains(typed)).OrderBy(p => p.Name).Skip(page.Skip).Take(page.Take).ToList())
         .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
+```
+
+**Rows pinned first** — "No company" above the companies — are `.Leading(…)` after `.Choices(…)`, on `Ui.Select` (a
+select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does) and `Ui.Pillbox`, over any of the three sources (the
+owner's addition, 2026-11-18). They stand in the order given, never sorted among the choices, and **every search keeps
+them**, since a "none" row is what a reader looks for while typing a name: a list held whole never hides them for what
+is typed, and a searched or paged source has them put before every answer's first rows, whatever was typed. They are
+never asked of the source: a paged source's first page is asked for that many fewer rows (`page.Take` is 49 with one
+leading row), so the list's first screen holds as many, and the pages after it skip the rows found, the leading ones not
+counted. A picked row a search left out still comes first. Give them values no choice holds.
+
+```csharp
+// Before: the "none" row sorted in among the companies, and lost to a search.
+Ui.Select.Bind(() => filter.CompanyId).Choices([new Ui.Choice<int>(0, "Nincs cég"), .. companies])
+
+// After: first, whatever is typed.
+Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))
+Ui.Select.Bind(() => filter.CompanyId).Choices((typed, page) => Company.Named(typed, page)).Leading(new Ui.Choice<int>(0, "Nincs cég"))
 ```
 
 **A create row waits for the search, as Flux's does.** While a search's question is out, `Ui.SelectOptionCreate`

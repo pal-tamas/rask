@@ -25,18 +25,36 @@ internal static class UiChoices
     /// <summary>What a select or pillbox given choices shows while nothing is chosen, unless the page says.</summary>
     internal static string Placeholder => RaskStrings.Get(RaskString.SelectChoose, "Choose...");
 
-    /// <summary>The rows, held whole, as the options the select draws in the reader's alphabet.</summary>
+    /// <summary>The rows <c>.Leading(…)</c> handed over, as the choices' own type: none without one.</summary>
+    /// <param name="leading">What <see cref="UiChoosing.Leading" /> holds.</param>
+    /// <exception cref="InvalidOperationException">The leading rows hold another type of value than the choices.</exception>
+    internal static Ui.Choice<T>[] Lead<T>(object? leading) => leading switch
+    {
+        null => [],
+        Ui.Choice<T>[] rows => rows,
+        _ => throw new InvalidOperationException(
+            $"The rows .Leading(…) pins are {leading.GetType().Name}, and the choices hold a {typeof(T).Name}: hand it rows of the "
+            + $"choices' own type, new Ui.Choice<{typeof(T).Name}>(…)."),
+    };
+
+    /// <summary>
+    ///     The rows, held whole, as the options the select draws in the reader's alphabet, after the leading rows, which
+    ///     every search keeps.
+    /// </summary>
     /// <param name="choices">The rows, in any order.</param>
+    /// <param name="lead">The rows <c>.Leading(…)</c> pins before them, in their own order.</param>
     /// <param name="mayBeEmpty">Whether choosing nothing is an answer.</param>
     /// <param name="before">What the last render's <c>.Choices(…)</c> made, to compare with.</param>
     /// <param name="changed">Whether the options are not the ones <paramref name="before" /> drew.</param>
     /// <param name="pills">True for a pillbox's rows, whose detail follows the words.</param>
-    internal static UiChosen Held<T>(IEnumerable<Ui.Choice<T>> choices, bool mayBeEmpty, UiChosen? before, out bool changed, bool pills = false)
+    internal static UiChosen Held<T>(
+        IEnumerable<Ui.Choice<T>> choices, Ui.Choice<T>[] lead, bool mayBeEmpty, UiChosen? before, out bool changed, bool pills = false)
     {
         var sorted = Sorted(choices, TextOrder.Current);
-        changed = before is null || before.MayBeEmpty != mayBeEmpty || !Same(before.Said as Ui.Choice<T>[], sorted);
+        changed = before is null || before.MayBeEmpty != mayBeEmpty
+            || before.Said is not Listed<T> last || !Same(last.Lead, lead) || !Same(last.Sorted, sorted);
 
-        return new UiChosen(sorted, Options(sorted, pills), null, mayBeEmpty);
+        return new UiChosen(new Listed<T>(lead, sorted), [.. Pinned(lead, pills), .. Options(sorted, pills)], null, mayBeEmpty);
     }
 
     /// <summary>
@@ -45,13 +63,14 @@ internal static class UiChoices
     /// </summary>
     /// <param name="find">The rows for what was typed.</param>
     /// <param name="held">The rows the value holds when the page is drawn.</param>
+    /// <param name="lead">The rows <c>.Leading(…)</c> pins before every answer, whatever was typed.</param>
     /// <param name="mayBeEmpty">Whether choosing nothing is an answer.</param>
     /// <param name="before">What the last render's <c>.Choices(…)</c> made, to compare with.</param>
     /// <param name="changed">Whether the search or the held rows are not the ones <paramref name="before" /> had.</param>
     /// <param name="pills">True for a pillbox's rows, whose detail follows the words.</param>
     internal static UiChosen Asked<T>(
-        Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>> held, bool mayBeEmpty, UiChosen? before, out bool changed,
-        bool pills = false)
+        Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>> held, Ui.Choice<T>[] lead, bool mayBeEmpty,
+        UiChosen? before, out bool changed, bool pills = false)
     {
         ArgumentNullException.ThrowIfNull(find);
 
@@ -59,16 +78,16 @@ internal static class UiChoices
         var order = TextOrder.Current;
         var shown = Sorted(held, order);
         changed = before is null || before.MayBeEmpty != mayBeEmpty
-            || before.Said is not Search<T> last || !last.Find.Equals(find) || !Same(last.Held, shown);
+            || before.Said is not Search<T> last || !last.Find.Equals(find) || !Same(last.Held, shown) || !Same(last.Lead, lead);
 
         // The same search as the last render's while nothing it closes over has changed: a select asks a search it has
         // not asked yet again, and this one would be new every render.
         var asking = !changed && before!.Find is { } same
             ? same
             : new Fn<string, Task<IEnumerable<Component?>>>(async typed =>
-                Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills));
+                [.. Pinned(lead, pills), .. Options(Sorted(await find(typed).ConfigureAwait(false) ?? [], order), pills)]);
 
-        return new UiChosen(new Search<T>(find, shown), Options(shown, pills), asking, mayBeEmpty);
+        return new UiChosen(new Search<T>(find, shown, lead), [.. Pinned(lead, pills), .. Options(shown, pills)], asking, mayBeEmpty);
     }
 
     /// <summary>
@@ -77,30 +96,41 @@ internal static class UiChoices
     ///     <paramref name="find" /> answers it — a page after the last continues its order, so no page is sorted on its own —
     ///     and the rows the value holds are drawn before the first answer, in the reader's alphabet.
     /// </summary>
+    /// <remarks>
+    ///     The leading rows stand before the first page of every answer and are never asked for: the first page is asked
+    ///     for as many fewer rows, so a full one still fills the list's first <see cref="UiListWindow.Page" />, and the
+    ///     pages after it skip the rows found, the leading ones not counted.
+    /// </remarks>
     /// <param name="find">The page of rows for what was typed.</param>
     /// <param name="held">The rows the value holds when the page is drawn.</param>
+    /// <param name="lead">The rows <c>.Leading(…)</c> pins before every answer, whatever was typed.</param>
     /// <param name="mayBeEmpty">Whether choosing nothing is an answer.</param>
     /// <param name="before">What the last render's <c>.Choices(…)</c> made, to compare with.</param>
     /// <param name="changed">Whether the search or the held rows are not the ones <paramref name="before" /> had.</param>
     /// <param name="pills">True for a pillbox's rows, whose detail follows the words.</param>
     internal static UiChosen Paged<T>(
-        Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>> held, bool mayBeEmpty, UiChosen? before,
-        out bool changed, bool pills = false)
+        Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>> held, Ui.Choice<T>[] lead, bool mayBeEmpty,
+        UiChosen? before, out bool changed, bool pills = false)
     {
         ArgumentNullException.ThrowIfNull(find);
 
         var shown = Sorted(held, TextOrder.Current);
         changed = before is null || before.MayBeEmpty != mayBeEmpty
-            || before.Said is not Pages<T> last || !last.Find.Equals(find) || !Same(last.Held, shown);
+            || before.Said is not Pages<T> last || !last.Find.Equals(find) || !Same(last.Held, shown) || !Same(last.Lead, lead);
+        Component?[] rows = [.. Pinned(lead, pills), .. Options(shown, pills)];
         if (!changed && before!.Find is { } same && before.Next is { } next)
         {
-            return new UiChosen(new Pages<T>(find, shown), Options(shown, pills), same, mayBeEmpty, next);
+            return new UiChosen(new Pages<T>(find, shown, lead), rows, same, mayBeEmpty, next);
         }
 
+        var pinned = lead.Length;
         Func<string, int, Task<IEnumerable<Component?>>> page = async (typed, skip) =>
-            Options([.. await find(typed, new Ui.ChoicePage(skip, UiListWindow.Page)).ConfigureAwait(false) ?? []], pills);
+            Options([.. await find(typed, new Ui.ChoicePage(skip - pinned, UiListWindow.Page)).ConfigureAwait(false) ?? []], pills);
+        var first = new Ui.ChoicePage(0, Math.Max(1, UiListWindow.Page - pinned));
+        Fn<string, Task<IEnumerable<Component?>>> firstPage = new(async typed =>
+            [.. Pinned(lead, pills), .. Options([.. await find(typed, first).ConfigureAwait(false) ?? []], pills)]);
 
-        return new UiChosen(new Pages<T>(find, shown), Options(shown, pills), new(typed => page(typed, 0)), mayBeEmpty, page);
+        return new UiChosen(new Pages<T>(find, shown, lead), rows, firstPage, mayBeEmpty, page);
     }
 
     // A stable sort: rows of the same words stay in the order they came in.
@@ -113,9 +143,9 @@ internal static class UiChoices
     // The option a row is: keyed by its value in its own list, its detail searched too. A select draws the detail as the
     // option's line under its words; a pillbox's row has none (Flux's pillbox option takes no description), so there it
     // is a muted word after them, in the description's ink, and the pill says the words alone.
-    private static Component Option<T>(Ui.Choice<T> choice, bool pills)
+    private static Component Option<T>(Ui.Choice<T> choice, bool pills, bool pinned = false)
     {
-        var option = Ui.SelectOption.Key(choice.Value).Value(choice.Value).Keywords(choice.Detail);
+        var option = Ui.SelectOption.Key(choice.Value).Value(choice.Value).Keywords(choice.Detail).FilteredWhen(pinned ? false : null);
         if (!pills || choice.Detail is not { } detail)
         {
             return option.Description(choice.Detail)[choice.Name];
@@ -125,6 +155,10 @@ internal static class UiChoices
     }
 
     private static Component?[] Options<T>(Ui.Choice<T>[] sorted, bool pills) => [.. sorted.Select(choice => Option(choice, pills))];
+
+    // The leading rows: options like any other, in their own order, but ones a search never hides (`filterable`).
+    private static Component?[] Pinned<T>(Ui.Choice<T>[] lead, bool pills) =>
+        [.. lead.Select(choice => Option(choice, pills, pinned: true))];
 
     private static bool Same<T>(Ui.Choice<T>[]? before, Ui.Choice<T>[] now) =>
         before is not null && before.AsSpan().SequenceEqual(now);
@@ -182,8 +216,11 @@ internal static class UiChoices
         });
 }
 
+// What a `.Choices(…)` of rows held whole was handed, its rows sorted, for the next render to compare with.
+file sealed record Listed<T>(Ui.Choice<T>[] Lead, Ui.Choice<T>[] Sorted);
+
 // What a searching `.Choices(…)` was handed, for the next render to compare with.
-file sealed record Search<T>(Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held);
+file sealed record Search<T>(Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held, Ui.Choice<T>[] Lead);
 
 // What a paging `.Choices(…)` was handed, for the next render to compare with.
-file sealed record Pages<T>(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held);
+file sealed record Pages<T>(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> Find, Ui.Choice<T>[] Held, Ui.Choice<T>[] Lead);

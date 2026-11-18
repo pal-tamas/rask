@@ -340,7 +340,7 @@ internal static partial class UiApi
         [
             new("OnOpen", typeof(Callback), "Runs when the reader opens the panel: where a page loads what its fields offer.", Handler),
         ]),
-        new("Ui.Filter", typeof(UiFilter), NotFlux, "A filter the set cannot read from a control: the page says what it is called, what it holds and how it is taken off.",
+        new("Ui.Filter", typeof(UiFilter), NotFlux, "A filter the set cannot read from a control: the page says what it is called, what it holds and how it is taken off. Ui.Filter.Range(() => From, () => To) is a range of numbers instead, two [QueryParam] ends said on one badge.",
         [
             new("Label", typeof(string), "What it filters by: the badge's first word. Required, and taken first."),
             new("Shown", typeof(string), "What it holds, as the badge says it. Unset, it is not in force and has no badge. Handed names, .Shown(names) says one by its name and two or more by their count (\"40 selected\"), every name in a tooltip; none is not in force."),
