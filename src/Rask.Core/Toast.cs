@@ -53,30 +53,36 @@ public static class Toast
     ///     An error toast from the framework itself, which may run where there is no session to show one in:
     ///     says whether it was queued.
     /// </summary>
-    internal static bool TryError(string message)
+    internal static bool TryError(string message) => TryShow(ToastLevel.Error, message);
+
+    /// <summary>
+    ///     A toast from the framework at <paramref name="level" />, in the session <paramref name="services" /> belong to — or
+    ///     the ambient one — when it draws toasts: says whether it was queued.
+    /// </summary>
+    internal static bool TryShow(ToastLevel level, string message, IServiceProvider? services = null)
     {
         if (Faked.Value is { } fake)
         {
-            fake.Queue(ToastLevel.Error, message);
+            fake.Queue(level, message);
             return true;
         }
 
-        if (DrawnToaster() is not { } toaster)
+        if (DrawnToaster(services) is not { } toaster)
         {
             return false;
         }
 
-        toaster.Add(ToastLevel.Error, message);
+        toaster.Add(level, message);
         return true;
     }
 
     /// <summary>Whether <see cref="TryError" /> would be taken, for a caller whose sentence costs something to make.</summary>
-    internal static bool IsDrawn => Faked.Value is not null || DrawnToaster() is not null;
+    internal static bool IsDrawn => Faked.Value is not null || DrawnToaster(null) is not null;
 
     // A session that draws no toasts is passed over as well: one queued now would turn up, long after its
     // save, on whichever page first mounts an outlet.
-    private static IToaster? DrawnToaster() =>
-        Ambient.Services?.GetService<IToaster>() is { } toaster && toaster is not Toaster { HasOutlet: false }
+    private static IToaster? DrawnToaster(IServiceProvider? services) =>
+        (services ?? Ambient.Services)?.GetService<IToaster>() is { } toaster && toaster is not Toaster { HasOutlet: false }
             ? toaster
             : null;
 

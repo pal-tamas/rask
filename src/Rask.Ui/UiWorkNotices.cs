@@ -6,7 +6,8 @@ namespace Rask;
 
 /// <summary>
 ///     The signed-in user's background work, at the header's end: a bell whose badge counts what runs and what ended since they
-///     last looked, and a flyout of it — each running job with its bar, each one lately done, failed or stopped with a badge.
+///     last looked, and a flyout of it — each running job with its bar, each one lately done, warned, failed or stopped with a
+///     badge and what its handler said of it, a batch as one group — and, under it, the app's own <see cref="Actions" />.
 /// </summary>
 /// <remarks>
 ///     <code>
@@ -14,6 +15,8 @@ namespace Rask;
 ///
 ///     await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");   // the job it shows
 ///     Jobs.Report(kept, total);                                                           // its bar, from the handler
+///
+///     Ui.WorkNotices.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"])         // a footer under the list
 ///     </code>
 ///     <para>
 ///     Not a Flux component — Flux has no notifications — but drawn of Flux's own parts: <see cref="UiDropdown" /> opening a
@@ -21,19 +24,27 @@ namespace Rask;
 ///     count and <see cref="UiProgress" /> for each bar. An addition the owner approved (2026-11-17, #1293).
 ///     </para>
 ///     <para>
-///     It shows only the jobs this user enqueued <c>.Noticed(…)</c>, in the tenant they enqueued them in: the rows are read
+///     It shows the jobs this user enqueued <c>.Noticed(…)</c>, in the tenant they enqueued them in, and the ones a colleague
+///     enqueued <c>.ByTenant()</c> that this user may run themselves (its handler's <c>[Authorize]</c>): the rows are read
 ///     again every poll of the job processor, and what the jobs publish moves the bars in between. Opening the flyout clears
-///     the count of what ended; what runs keeps counting. When a job it saw running ends, a polite live region says so.
-///     <see cref="Lane" /> narrows it to one lane's work.
+///     the count of what ended; what runs keeps counting. When a job it saw running ends, a polite live region says so; when
+///     the last job of a batch this user started ends, one toast says how the batch went. <see cref="Lane" /> narrows it to
+///     one lane's work.
 ///     </para>
 /// </remarks>
 public sealed partial class UiWorkNotices : Component
 {
-    private readonly UiWorkAnnouncer _announcer = new();
+    private readonly UiWorkAnnouncer _announcer = new() { Toasts = true };
     private DateTime? _seen;
 
     /// <summary>Only the work of this lane — a pump's, a mailbox's. Unset, all of it.</summary>
     public string? Lane { get; set; }
+
+    /// <summary>
+    ///     What stands under the list in the flyout — a link to the page of all the work, a button that clears it:
+    ///     <c>.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"])</c>. Unset, nothing does.
+    /// </summary>
+    public Component? Actions { get; set; }
 
     // The work to show instead of the user's own: the kit's tests' seam.
     private IReadOnlyList<WorkReported>? Shown { get; set; }
@@ -64,7 +75,11 @@ public sealed partial class UiWorkNotices : Component
                 Ui.Popover.Class("w-80 max-w-[calc(100vw-2rem)]")[
                     Div.Attributes(("data-ui-work-flyout", ""))[
                         Ui.Heading.Class("px-1 pb-1")[RaskStrings.Get(RaskString.WorkNotices, "Background work")],
-                        UiWorkRow.Rows(work, "max-h-96 overflow-y-auto px-1")
+                        UiWorkRow.Rows(work, "max-h-96 overflow-y-auto px-1"),
+                        Actions is null
+                            ? null
+                            : Div.Class("flex flex-wrap items-center justify-end gap-2 border-t border-zinc-800/10 px-1 pt-2 dark:border-white/20")
+                                .Attributes(("data-ui-work-actions", ""))[Actions]
                     ]
                 ]
             ],

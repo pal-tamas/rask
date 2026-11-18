@@ -1,12 +1,12 @@
 using Rask.Cqrs;
-using Rask.Data;
 
 namespace Rask.Background;
 
 /// <summary>
 ///     Who may open <see cref="WatchOwnWork" />: anyone signed in — and what they hear is stamped on it here, in their own
-///     scope, so it is their work in their tenant and nobody else's. Nobody signed in is refused: a job enqueued by nobody is
-///     shown to nobody.
+///     scope: their work in their tenant, and the work their tenant shares (<c>.ByTenant()</c>) of the kinds whose handler's
+///     <c>[Authorize]</c> admits them, decided now (<see cref="WorkAccess" />) so each event is matched without a wait. Nobody
+///     signed in is refused: a job enqueued by nobody is shown to nobody.
 /// </summary>
 /// <remarks>
 ///     Its constructor is not public, so the CQRS generator leaves it alone: <c>AddRaskJobs</c> registers it, and a registry
@@ -20,15 +20,15 @@ internal sealed class OwnWorkPolicy : IWatchPolicy<WatchOwnWork>
     internal OwnWorkPolicy(IServiceProvider scope) => _scope = scope;
 
     /// <inheritdoc />
-    public Task<bool> CanWatch(WatchOwnWork subscription, CancellationToken cancellationToken)
+    public async Task<bool> CanWatch(WatchOwnWork subscription, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(subscription);
-        if (CurrentUser.UserIdIn(_scope) is not { } user)
+        if (await WorkAccess.Viewer(_scope, cancellationToken).ConfigureAwait(false) is not { } viewer)
         {
-            return Task.FromResult(false);
+            return false;
         }
 
-        subscription.Admit(user, Tenant.KeyIn(_scope));
-        return Task.FromResult(true);
+        subscription.Admit(viewer);
+        return true;
     }
 }

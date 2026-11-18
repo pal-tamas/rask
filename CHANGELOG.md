@@ -8,6 +8,25 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **Background work shared with the tenant, with how it ended, started several at once — the kit's bell does a partner's
+  load (#1368).** Before: an app whose office watches one press of several files wrote its own queue, events and bell
+  beside Rask.Jobs (Eszaf's `QueuedFile` + `LoadMoved` + `LoadNotices`). After:
+  `await Jobs.Enqueue(files.Select(f => new ImportFile(f.Id))).Noticed(j => $"Import of {j.Name}").ByTenant();` and, in
+  the handler, `Jobs.Warn("No new rows")` / `Jobs.Refuse("No header row")` / `Jobs.Note("1,200 rows kept")`.
+  `.ByTenant()` (on `Enqueue`, `Run` and a batch) shows the job to its tenant's users who pass its handler's
+  `[Authorize]` — never another tenant, never nobody signed in, and it throws at the enqueue with no tenant in flight;
+  unmarked jobs stay their enqueuer's. `Jobs.Warn` ends a job `WorkState.Warned` (new, amber), `Jobs.Refuse` ends it
+  failed for good — never retried, no dead letter, an awaited `Jobs.Run` throws `JobFailedException` with its words —
+  and `Jobs.Note` adds words to a done job; the worst said stands. `Jobs.Enqueue(jobs)` writes every row in one save,
+  all or none (and inside `Db.Transaction` with the work), stamps one `Job.Batch` and answers how many it wrote, with
+  `.Noticed(j => …)`, `.ByTenant()`, `.InLane`, `.In`, `.At`. `WorkReported` gains `Batch` and `Detail`. `Ui.WorkNotices`
+  and `Ui.WorkList` draw a batch as one group (*date · 3 items*, its worst end, one bar), the handler's words under a
+  job's title in its badge's colour, and the bell raises one toast for the person who started a batch when its last job
+  ends; `Ui.WorkNotices.Actions(…)` is a footer under the list. A browser tab from before the deploy reads a warned job
+  as done; the reader now skips a state it does not know. New catalog words (en + hu): `WorkWarned`, `WorkEndedWarned`,
+  `WorkBatch`, `WorkBatchDone`, `WorkBatchWarned`, `WorkBatchFailed`, `WorkBatchStopped`. Upgrading adds the `Shared`,
+  `Batch`, `Outcome` and `Detail` columns and an index on `(TenantId, ProcessedAt)`:
+  `rask db add AddJobOutcomes && rask db update`; until then the processor logs exactly that command.
 - **`Ui.Confirm.Primary()` and `await Ui.Confirm.Ask("…")` — a non-danger Yes, and asking from code (#1366).** Before:
   Yes was always Flux's danger button, and the dialog opened only from a `.Confirm("…")` on the pressed control, so a
   question that came out of a server-side check (Eszaf's overlapping period, the km question) kept a modal of its own.

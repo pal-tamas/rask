@@ -6,28 +6,21 @@ namespace Rask.Background;
 /// </summary>
 internal static class JobWork
 {
-    /// <summary>Where <paramref name="job" /> stands: ended done or stopped, failed for good, or still to run.</summary>
+    /// <summary>Where <paramref name="job" /> stands: ended done, warned, refused or stopped, failed for good, or still to run.</summary>
     /// <param name="job">The row.</param>
     /// <param name="maxAttempts">How many attempts make a failure final.</param>
     /// <param name="now">The processor's now (UTC): a claim that has not run out is a run still in a handler.</param>
     public static WorkState StateOf(Job job, int maxAttempts, DateTime now)
     {
         ArgumentNullException.ThrowIfNull(job);
-        return StateOf(job.ProcessedAt, job.Stopped, job.Attempts, job.Error, job.ClaimedUntil, maxAttempts, now);
-    }
-
-    /// <summary>The same, from the columns a read projected.</summary>
-    public static WorkState StateOf(
-        DateTime? processedAt, JobStop? stopped, int attempts, string? error, DateTime? claimedUntil, int maxAttempts, DateTime now)
-    {
-        if (processedAt is not null)
+        if (job.ProcessedAt is not null)
         {
-            return stopped is null ? WorkState.Done : WorkState.Stopped;
+            return job.Stopped is not null ? WorkState.Stopped : job.Outcome ?? WorkState.Done;
         }
 
         // A dead letter: every attempt spent, the last one failed, and no attempt in a handler now.
-        var running = claimedUntil > now;
-        return attempts >= maxAttempts && error is not null && !running ? WorkState.Failed : WorkState.Running;
+        var running = job.ClaimedUntil > now;
+        return job.Attempts >= maxAttempts && job.Error is not null && !running ? WorkState.Failed : WorkState.Running;
     }
 
     /// <summary><paramref name="job" /> as its enqueuer sees it, <paramref name="state" />, as of <paramref name="at" />.</summary>
@@ -36,9 +29,13 @@ internal static class JobWork
         ArgumentNullException.ThrowIfNull(job);
         return new WorkReported(job.Id, job.Notice ?? "", job.Progress, job.Done, job.Of, state, at)
         {
+            Batch = job.Batch,
+            Detail = state == WorkState.Running ? null : job.Detail,
             Owner = job.UserId,
             Tenant = job.TenantId,
             Lane = job.Lane,
+            Shared = job.Shared,
+            Kind = job.Type,
         };
     }
 

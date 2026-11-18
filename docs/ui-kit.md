@@ -1219,16 +1219,39 @@ The live demo and its reference: **[rask.sh/ui/app-frame](https://rask.sh/ui/app
 
 **`Ui.WorkNotices`** (not Flux's — Flux has no notifications; the owner approved it, #1293) is the bell at the header's
 end, `.Notices(Ui.WorkNotices)`: Flux's `bell` on a ghost button with a red count, opening a flyout of the signed-in
-user's background work — each running job with Flux's progress bar and what it last said, each one lately done, failed
-or stopped with a badge. **`Ui.WorkList`** is the same list in the page. Both take `.Lane(id)` for one lane's work.
+user's background work — each running job with Flux's progress bar and what it last said, each one lately done, warned,
+failed or stopped with a badge and the words its handler said, a batch as one group. **`Ui.WorkList`** is the same list
+in the page. Both take `.Lane(id)` for one lane's work; the bell takes `.Actions(…)`, a footer under its list.
 
 ```csharp
 await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");   // what it shows
 Jobs.Report(kept, total);                                                           // its bar, from the handler
 ```
 
-- **Only the user's own work, in their tenant**, read from the job rows every poll and moved live in between by
-  `WorkReported` — see [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **The user's own work, in their tenant** — and their tenant's work enqueued `.ByTenant()` that they may run themselves —
+  read from the job rows every poll and moved live in between by `WorkReported`; see
+  [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **How it ended, in colour.** `Jobs.Warn(…)` draws an amber *Warning* badge, `Jobs.Refuse(…)` a red *Failed* one, and
+  the words the handler said (`Detail`) stand under the title in the badge's colour — grey for `Jobs.Note(…)` on a job
+  that is done. The error a failure threw is never drawn.
+- **A batch is one group.** The jobs of one `Jobs.Enqueue(jobs)` stand under one heading — when it was started and how
+  many it holds (*18/11/2026 09:30 · 3 items*), the worst way one ended, one bar for all of them — and count once among
+  the ten lately ended. When the last job of a batch the reader started ends, the bell raises **one toast** in the tone
+  of its worst end (*3 items are done, some with a warning.*); a colleague's shared batch is never toasted, and the list
+  in the page raises none.
+- **A footer:** `.Actions(…)` stands under the list in the flyout — the link to the page of all the work.
+
+Before — a bell of the app's own beside the kit's, because the kit's could not group a press, say amber, or link out:
+
+```csharp
+Ui.AppFrame.Notices(LoadNotices.For(partner))[ … ]       // the app's own bell, its own rows, its own toasts
+```
+
+After — the kit's bell, with the app's link under it:
+
+```csharp
+Ui.AppFrame.Notices(Ui.WorkNotices.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"]))[ … ]
+```
 - **On either host.** On a Server page the rows are read in-process; in the browser half of a `wasm-hosted` app they are
   asked of the server, and the live watch opens there — the same rows, the same rules, nothing to wire.
 - **The count** is what runs, and what ended since the flyout was last opened; the badge is hidden from a screen reader,
@@ -1236,7 +1259,8 @@ Jobs.Report(kept, total);                                                       
 - **A job seen running that ends is announced** in a polite live region: *Import of prices.csv is done.* A failure says
   *Failed*, never why.
 - **A job with no count** draws a bar without an end, and *Running…* until it says something.
-- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, … in [localization](localization.md)).
+- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, `WorkWarned`, `WorkBatch`, … in
+  [localization](localization.md)).
 
 The live demo is in the app frame's: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)** — the bell in its header, the list on its home page.
 

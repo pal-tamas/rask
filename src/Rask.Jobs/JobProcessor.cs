@@ -437,9 +437,21 @@ public sealed partial class JobProcessor<TContext>(
             return true;
         }
 
+        return ReportMissingWorkColumn(ex);
+    }
+
+    // The columns of the work its enqueuer watches (#1293) and of who else sees it, its batch and how it ended (#1368).
+    private bool ReportMissingWorkColumn(Exception ex)
+    {
         if (IsMissingWorkColumn(ex))
         {
             WorkColumnsMissing(logger, ex);
+            return true;
+        }
+
+        if (IsMissingOutcomeColumn(ex))
+        {
+            OutcomeColumnsMissing(logger, ex);
             return true;
         }
 
@@ -562,15 +574,9 @@ public sealed partial class JobProcessor<TContext>(
 
     private async Task<Outcome> RunAsync(Job job, CancellationToken graceToken, CancellationToken cancellationToken)
     {
-        var command = JobSerializerRegistry.Deserialize(job.Type, job.Payload);
-        if (command is null)
+        if (JobSerializerRegistry.Deserialize(job.Type, job.Payload) is not { } command)
         {
-            // An unregistered type is a failure like any other, and counts toward the dead letter it
-            // will become — a renamed job that nobody re-registered is the most ordinary way a
-            // production queue starts abandoning work, so it must not be invisible to metrics.
-            Fail(job, $"No registered job type '{job.Type}'.");
-            UnregisteredType(logger, job.Id, job.Type);
-            return Outcome.Ours;
+            return Unregistered(job);
         }
 
         // Its own token, tied to the host's grace: stopping this job cancels this one and no other.
@@ -611,14 +617,23 @@ public sealed partial class JobProcessor<TContext>(
         catch (Exception ex)
 #pragma warning restore CA1031
         {
-            Fail(job, ex.Message);
+            // Refused (Jobs.Refuse), then threw: still the refusal, failed for good — a retry would meet the same reason.
+            var outcome = run.IsRefused ? Refused(job, run) : Fail(job, ex.Message);
             JobFailed(logger, ex, job.Id, job.Attempts);
-            return Outcome.Ours;
+            return outcome;
         }
         finally
         {
             Finish(job, run);
         }
+    }
+
+    // An unregistered type is a failure like any other, and counts toward the dead letter it will become — a renamed job that
+    // nobody re-registered is the most ordinary way a production queue starts abandoning work, so it must not be invisible.
+    private Outcome Unregistered(Job job)
+    {
+        UnregisteredType(logger, job.Id, job.Type);
+        return Fail(job, $"No registered job type '{job.Type}'.");
     }
 
     // Its handler is over: nothing stops it any more, and what it last said goes on its row with its outcome — the watch
@@ -658,10 +673,26 @@ public sealed partial class JobProcessor<TContext>(
 
     private Outcome Done(Job job, JobRun run, string? answer)
     {
+        if (run.IsRefused)
+        {
+            return Refused(job, run);
+        }
+
         job.Answered(answer);
         job.Completed(timeProvider.GetUtcNow().UtcDateTime);
+        job.Concluded(run.Outcome, run.Detail);
         job.Release();
         metrics.Processed(job.Type, timeProvider.GetElapsedTime(run.StartedTimestamp).TotalMilliseconds);
+        return Outcome.Ours;
+    }
+
+    // Its handler refused it (Jobs.Refuse): ended, failed for good with what it said — processed, so never tried again and no
+    // dead letter. Counted as the failure it is.
+    private Outcome Refused(Job job, JobRun run)
+    {
+        job.Refused(run.Detail, timeProvider.GetUtcNow().UtcDateTime);
+        job.Release();
+        metrics.Failed(job.Type);
         return Outcome.Ours;
     }
 
@@ -797,7 +828,7 @@ public sealed partial class JobProcessor<TContext>(
     // Record a failed attempt and push the next run out by the exponential backoff. Attempts is NOT
     // incremented here — the claim already counted this attempt, so that a job which kills the process
     // still counts toward MaxAttempts instead of being retried forever.
-    private void Fail(Job job, string error)
+    private Outcome Fail(Job job, string error)
     {
         job.Failed(error, timeProvider.GetUtcNow().UtcDateTime + options.RetryDelay(job.Attempts));
         job.Release();
@@ -812,6 +843,8 @@ public sealed partial class JobProcessor<TContext>(
         {
             metrics.DeadLettered(job.Type);
         }
+
+        return Outcome.Ours;
     }
 
     /// <inheritdoc/>
@@ -981,12 +1014,22 @@ public sealed partial class JobProcessor<TContext>(
     private static bool IsMissingWorkColumn(Exception exception) =>
         IsMissingColumn(exception, nameof(Job.Notice))
         || IsMissingColumn(exception, nameof(Job.Progress))
-        || IsMissingColumn(exception, "." + nameof(Job.Done))
-        || IsMissingColumn(exception, $"'{nameof(Job.Done)}'")
-        || IsMissingColumn(exception, $"\"{nameof(Job.Done)}\"")
-        || IsMissingColumn(exception, "." + nameof(Job.Of))
-        || IsMissingColumn(exception, $"'{nameof(Job.Of)}'")
-        || IsMissingColumn(exception, $"\"{nameof(Job.Of)}\"");
+        || IsMissingQuotedColumn(exception, nameof(Job.Done))
+        || IsMissingQuotedColumn(exception, nameof(Job.Of));
+
+    // The columns of .ByTenant(), Jobs.Enqueue(jobs) and Jobs.Warn/Refuse/Note — every one a word a message may hold, so each
+    // matches only as a provider quotes a column.
+    private static bool IsMissingOutcomeColumn(Exception exception) =>
+        IsMissingQuotedColumn(exception, nameof(Job.Shared))
+        || IsMissingQuotedColumn(exception, nameof(Job.Batch))
+        || IsMissingQuotedColumn(exception, nameof(Job.Outcome))
+        || IsMissingQuotedColumn(exception, nameof(Job.Detail));
+
+    // A column as a provider quotes it: j.Done, 'Done', "Done".
+    private static bool IsMissingQuotedColumn(Exception exception, string column) =>
+        IsMissingColumn(exception, "." + column)
+        || IsMissingColumn(exception, $"'{column}'")
+        || IsMissingColumn(exception, $"\"{column}\"");
 
     private async Task PurgeAsync(CancellationToken cancellationToken)
     {
@@ -1110,6 +1153,12 @@ public sealed partial class JobProcessor<TContext>(
         Message = "Rask.Jobs added Notice, Progress, Done and Of columns (what shows a job its enqueuer watches, and how far along it is) that this database does not have. "
             + "Run: rask db add AddJobProgress && rask db update.")]
     private static partial void WorkColumnsMissing(ILogger logger, Exception exception);
+
+    [LoggerMessage(
+        Level = LogLevel.Error,
+        Message = "Rask.Jobs added Shared, Batch, Outcome and Detail columns (who else sees a job, the batch it came in, and how its handler said it ended) that this database does not have. "
+            + "Run: rask db add AddJobOutcomes && rask db update.")]
+    private static partial void OutcomeColumnsMissing(ILogger logger, Exception exception);
 
     [LoggerMessage(
         EventName = "JobStopped",

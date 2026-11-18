@@ -22,9 +22,15 @@ internal sealed class JobRun
     private long _said;
     private long _saidAt = long.MinValue;
 
+    // How its handler said it ends (Jobs.Warn/Refuse/Note): the worst outcome said stands, with its words.
+    private WorkState? _outcome;
+    private string? _detail;
+
     public JobRun(Job job, TimeProvider clock, CancellationToken host)
         : this(job.Id, job.Type, job.Lane, job.Notice, job.UserId, job.TenantId, clock, host)
     {
+        Shared = job.Shared;
+        Batch = job.Batch;
     }
 
     /// <summary>A run of a job that has no row of its own — what the test fake runs.</summary>
@@ -57,6 +63,39 @@ internal sealed class JobRun
 
     /// <summary>The tenant it was enqueued in.</summary>
     public Guid? Tenant { get; }
+
+    /// <summary>Whether its tenant shares it (<c>.ByTenant()</c>).</summary>
+    public bool Shared { get; init; }
+
+    /// <summary>The batch it was enqueued in, or null.</summary>
+    public Guid? Batch { get; init; }
+
+    /// <summary>How its handler said it ends — Warned, or Failed for a refusal — or null when it said neither.</summary>
+    public WorkState? Outcome
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _outcome;
+            }
+        }
+    }
+
+    /// <summary>What its handler said of how it ends, or null.</summary>
+    public string? Detail
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _detail;
+            }
+        }
+    }
+
+    /// <summary>Whether its handler refused it (<c>Jobs.Refuse</c>): it ends failed for good, whatever it does next.</summary>
+    public bool IsRefused => Outcome == WorkState.Failed;
 
     /// <summary>Whether its enqueuer watches it: it has a title, and somebody to show it to.</summary>
     public bool IsNoticed => Notice is not null && Owner is not null;
@@ -161,6 +200,30 @@ internal sealed class JobRun
         Interlocked.Exchange(ref _lastProgress, _clock.GetUtcNow().UtcDateTime.Ticks);
     }
 
+    /// <summary>
+    ///     Its handler said how it ends: <paramref name="outcome" /> — Warned, Failed, or null for a note on a run that is done —
+    ///     with <paramref name="detail" />. The worst said stands: a warning never lifts a refusal, and a note never lifts
+    ///     either; at one outcome, the latest words are kept.
+    /// </summary>
+    public void Conclude(WorkState? outcome, string detail)
+    {
+        lock (_gate)
+        {
+            if (Severity(outcome) >= Severity(_outcome))
+            {
+                _outcome = outcome ?? _outcome;
+                _detail = detail;
+            }
+        }
+    }
+
+    private static int Severity(WorkState? outcome) => outcome switch
+    {
+        WorkState.Failed => 2,
+        WorkState.Warned => 1,
+        _ => 0,
+    };
+
     /// <summary>The latest report when the row has not been written with it yet — and marks it written. Null when it has.</summary>
     public WorkReport? Unwritten()
     {
@@ -203,10 +266,17 @@ internal sealed class JobRun
     public WorkReported ToWork(WorkState state, WorkReport report) =>
         new(Id, Notice ?? "", report.Progress, report.Done, report.Of, state, _clock.GetUtcNow().UtcDateTime)
         {
+            Batch = Batch,
+            Detail = state == WorkState.Running ? null : Detail,
             Owner = Owner,
             Tenant = Tenant,
             Lane = Lane,
+            Shared = Shared,
+            Kind = Type,
         };
+
+    /// <summary>How it ended, once its handler is over: what its handler said, or <paramref name="otherwise" />.</summary>
+    public WorkState Ending(WorkState otherwise) => otherwise == WorkState.Done && Outcome is { } said ? said : otherwise;
 
     /// <summary>The limit it is past at <paramref name="now" />, if any: its time limit first, then the idle watch.</summary>
     public JobStop? LimitPassed(DateTime now)
