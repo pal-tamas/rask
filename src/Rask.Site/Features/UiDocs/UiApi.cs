@@ -289,6 +289,8 @@ internal static partial class UiApi
             new("Dismissible", typeof(bool?), "Whether a click outside closes it. On unless false."),
             new("Escapable", typeof(bool?), "Whether Escape closes it. On unless false."),
             new("Closable", typeof(bool?), "Whether it shows the close button in its corner. On unless false."),
+            new("Heading", typeof(string), "The title it opens with, large, clear of the close button, as Flux's examples write it; it names the dialog. Not Flux's."),
+            new("Text", typeof(string), "The sentence under the heading, as Flux's examples write it. Not Flux's."),
             new("Open", typeof(bool?), "Hands the open state to the page, Flux's wire:model. Unset, its triggers open it."),
             new("Lazy", typeof(bool?), "Sends what it holds only while it is open: closed, it is the dialog alone. Not Flux's."),
             new("OnClose", typeof(Callback), "Runs when it closes, by any means: where a page that set Open hears it.", Handler),

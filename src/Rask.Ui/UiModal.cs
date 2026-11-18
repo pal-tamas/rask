@@ -113,6 +113,19 @@ public sealed partial class UiModal : Component
     /// <summary>Runs when it is dismissed — a click outside or Escape — before <see cref="OnClose" />.</summary>
     public Callback OnCancel { get; set; }
 
+    /// <summary>
+    ///     The title at the top of what it holds, as Flux's examples title a modal: a large <see cref="UiHeading" />, clear of
+    ///     the close button in its corner. Not Flux's: an addition the owner approved (2026-11-18, #1367) for the block every
+    ///     example writes by hand. It names the dialog for a screen reader.
+    /// </summary>
+    public string? Heading { get; set; }
+
+    /// <summary>
+    ///     The sentence under the <see cref="Heading" />, as Flux's examples write it: a <see cref="UiText" /> two steps below.
+    ///     Not Flux's: the owner's addition with <see cref="Heading" /> (2026-11-18, #1367).
+    /// </summary>
+    public string? Text { get; set; }
+
     /// <summary>Classes for the panel, added to its own: <c>md:w-96</c> sets the width.</summary>
     public string? Class { get; set; }
 
@@ -123,6 +136,12 @@ public sealed partial class UiModal : Component
         var id = Name ?? "ui-modal-" + _instance.ToString(CultureInfo.InvariantCulture);
         _opening = Lazy == true ? Context.Get<UiModalOpening>(id) : null;
         var dialog = Dialog.Id(id).Class(Motion, Shape(), ScrollsBody ? null : Class).Data(Marks(id));
+
+        // Its heading is its name, for a screen reader.
+        if (Heading is not null)
+        {
+            dialog = dialog.Aria("labelledby", HeadingId(id));
+        }
 
         if (OnClose.HasValue)
         {
@@ -212,7 +231,7 @@ public sealed partial class UiModal : Component
     // Flux's order: the focus placeholder, the content, the close button in the corner.
     private Component Body(string id)
     {
-        Component? content = Holds ? Context.Provide(new UiModalScope(id))[Children ?? []] : null;
+        Component? content = Holds ? Context.Provide(new UiModalScope(id))[Content(id)] : null;
 
         if (IsBare)
         {
@@ -247,6 +266,29 @@ public sealed partial class UiModal : Component
             ]
         ];
     }
+
+    // Flux's examples' first block: the heading, large, the text two steps under it, then six steps to what follows.
+    // The cross sits in the corner beside it, so its first line stops short of it.
+    private Component? Head(string id)
+    {
+        if (Heading is null && Text is null)
+        {
+            return null;
+        }
+
+        // The first line clears the cross; a text under a heading stands two steps below it.
+        var clear = Closable == false ? null : "pe-8";
+        var under = Heading is null ? clear : "mt-2";
+        return Div.Class(Children is null ? null : "mb-6")[
+            Heading is { } heading ? Ui.Heading.Id(HeadingId(id)).Level(2).Lg.Class(clear)[heading] : null,
+            Text is { } text ? Ui.Text.Class(under)[text] : null
+        ];
+    }
+
+    private static string HeadingId(string id) => id + "-heading";
+
+    // What it holds: its heading and text, when it has them, before the call site's children.
+    private IEnumerable<Component?> Content(string id) => Head(id) is { } head ? [head, .. Children ?? []] : Children ?? [];
 
     // Takes the focus a dialog would otherwise give its first field, then leaves: nothing is ringed when it
     // opens, and the first Tab lands on the first control (ui.css hides it once it has done that).

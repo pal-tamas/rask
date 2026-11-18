@@ -8,12 +8,9 @@ public sealed partial class ModalDialogButtonsExample : Component
     protected override Component? Render() =>
         Div.Class("flex flex-wrap items-center gap-4")[
             Ui.Button.OnClick(() => { _booking = true; })["Book stock"],
-            Ui.Modal.Open(_booking).OnClose(() => { _booking = false; }).Class("md:w-96")[
-                Div.Class("space-y-6")[
-                    Div[
-                        Ui.Heading.Level(2).Lg["Book 12 pallets?"],
-                        Ui.Text.Class("mt-2")["They move into the warehouse today."]
-                    ],
+            // Heading and Text open it as Flux's examples do, the heading clear of the close button.
+            Ui.Modal.Open(_booking).OnClose(() => { _booking = false; }).Class("md:w-96")
+                .Heading("Book 12 pallets?").Text("They move into the warehouse today.")[
                     // Cancel closes the modal; Book runs the handler, busy while it waits.
                     Ui.DialogButtons.Save("Book").OnSave(async () =>
                     {
@@ -21,8 +18,7 @@ public sealed partial class ModalDialogButtonsExample : Component
                         _last = "booked 12 pallets";
                         _booking = false;
                     })
-                ]
-            ],
+                ],
             Ui.Text[$"Last action: {_last}."]
         ];
 }

@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Modal.Heading("…")` and `.Text("…")` write the heading block every Flux modal example opens with (#1367).**
+  Before: each modal hand-built `Div[Ui.Heading.Level(2).Lg.Class("pe-8")["…"], Ui.Text.Class("mt-2")["…"]]` inside a
+  `space-y-6`. After: `Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[…]` — Flux's
+  large heading (an `h2`) and its text `mt-2` under it, `mb-6` above the content, the heading clear of the close button
+  (`pe-8`, none with `Closable(false)`) and naming the dialog (`aria-labelledby`). A modal without them is unchanged.
 - **`Ui.AppFrame.LeaveWords(stay, leave)` words the unsaved-changes dialog's two buttons (#1364).** Before: the frame
   mounted `Ui.ConfirmLeave` with the catalog's Stay / Leave (Maradok / Elhagyom), so an app whose leave dialog says
   Nem / Igen kept a layout of its own. After: `Ui.AppFrame.Brand("PPTA").LeaveWords(stay: "Nem", leave: "Igen")` —

@@ -696,6 +696,26 @@ Div.Class("flex gap-2")[
 Ui.DialogButtons.OnSave(Book).Save("Foglalás")
 ```
 
+`Ui.Modal.Heading("…").Text("…")` writes the block every Flux modal example opens with — a large heading and the
+sentence two steps under it, six steps above what follows — so a modal no longer hand-builds it. The heading is an
+`h2`, clear of the close button in the corner (`pe-8`; none with `Closable(false)`), and names the dialog
+(`aria-labelledby`). Not Flux's: an addition the owner approved (2026-11-18, #1367).
+
+```csharp
+// Before: every modal wrote its own heading block.
+Ui.Modal.Name("book")[
+    Div.Class("space-y-6")[
+        Div[Ui.Heading.Level(2).Lg.Class("pe-8")["Book 12 pallets?"], Ui.Text.Class("mt-2")["They move in today."]],
+        Ui.DialogButtons.OnSave(Book).Save("Book")
+    ]
+]
+
+// After: the modal's own steps.
+Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[
+    Ui.DialogButtons.OnSave(Book).Save("Book")
+]
+```
+
 `Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
 tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
 edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in

@@ -9319,3 +9319,9 @@ static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) 
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
 Rask.UiAppFrame.LeaveWords(string! stay, string! leave) -> Rask.UiAppFrame!
+Rask.UiModal.Heading.get -> string?
+Rask.UiModal.Heading.set -> void
+Rask.UiModal.Text.get -> string?
+Rask.UiModal.Text.set -> void
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+static RaskBuilderSettersRask_Ui.Text(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
