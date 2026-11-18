@@ -242,6 +242,42 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         await Expect(profile.Locator("> [data-ui-card-header] [data-ui-card-heading]")).ToHaveTextAsync("Profile");
     });
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task A_card_s_facts_lie_side_by_side_on_a_wide_screen_and_one_under_another_on_a_phone(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("card", "Card");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var facts = Page.Locator("#ui-driver-facts");
+            await facts.ScrollIntoViewIfNeededAsync();
+            await Expect(facts.Locator("> div > dt")).ToHaveCountAsync(4);
+            var tops = await facts.EvaluateAsync<double[]>("dl => [...dl.children].map(d => Math.round(d.getBoundingClientRect().top))");
+            var drawn = await facts.Locator("> div").First.EvaluateAsync<string[]>(
+                "d => { const [t, v] = d.children; return [t.tagName, getComputedStyle(t).fontSize, v.tagName, getComputedStyle(v).fontSize, getComputedStyle(v).marginLeft]; }");
+
+            // A term of Flux's small text over a value of its body text, the value not indented as a bare <dd> is.
+            Assert.Equal(["DT", "12px", "DD", "14px", "0px"], drawn);
+            await Expect(facts.Locator("> div").Last.Locator("dd")).ToHaveTextAsync("–");
+            if (width < 640)
+            {
+                Assert.Equal(tops.Order(), tops);
+                Assert.Equal(4, tops.Distinct().Count());
+            }
+            else
+            {
+                Assert.Equal(tops[0], tops[1]);
+            }
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
     [Fact]
     public Task A_chart_draws_its_line_and_shows_a_rows_values_on_hover() => RunAsync(async () =>
     {

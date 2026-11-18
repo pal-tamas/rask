@@ -34,6 +34,10 @@ public sealed partial class UiCardPage : Component
             UiDocsExample.Key("ui-card-outside").Heading("Header outside").File("CardOutsideHeaderExample.cs").Demo(CardOutsideHeaderExample).Testid("ui-card-outside")
                 .Blurb("A header beside the card rather than in it."),
             UiDocsExample.Key("ui-card-nested").Heading("Header inside the body").File("CardNestedHeaderExample.cs").Demo(CardNestedHeaderExample).Testid("ui-card-nested"),
+            UiDocsExample.Key("ui-card-facts").Heading("A record's facts").File("CardFactsExample.cs").Demo(CardFactsExample).Testid("ui-card-facts")
+                .Blurb("Ui.Facts is a description list for a summary card: each Ui.Fact(label, value) a label in Flux's "
+                       + "subtle small text over its value in its body text, a dash where there is none, as many to a row "
+                       + "as the card has room for and one on a phone. Not Flux's, which has no description list: the kit's own."),
             UiCardBehaviour
         ];
 }

@@ -274,6 +274,7 @@ public sealed class FluxConformanceTests
         [typeof(UiFormButtons)] = "the owner, 2026-11-04: a form's Delete, Cancel back to the list and Save, as Flux draws a form's footer (#1298)",
         [typeof(UiDialogButtons)] = "the owner, 2026-11-17: a dialog's Cancel, which closes the modal (flux:modal.close), and its primary action, as Flux draws a modal's footer (#1352)",
         [typeof(UiRowActions)] = "the owner, 2026-11-04: a list row's actions behind one ⋯, as Flux's table demo draws a row's menu (#1298; the pencil and bin went 2026-11-06)",
+        [typeof(UiFacts)] = "the owner, 2026-11-18: a summary card's description list, each Ui.Fact a label over its value in Flux's subtle small text and body text (flux:text); Flux has no description list (#1363, Eszaf ViewField)",
         [typeof(UiEmpty)] = "the owner, 2026-11-04: a list's empty state, as Flux's account overview demo draws its empty row (#1283, TA gap B3)",
         [typeof(UiEditorDialog)] = "the owner, 2026-11-04: a list's editor over it, opened and closed by a query key, made of flux:modal (#1295)",
         [typeof(UiPageHeader)] = "the owner, 2026-10-20: a page's title row, laid out as Flux's demos lay out a heading and its actions (#1283, TA gap B10)",

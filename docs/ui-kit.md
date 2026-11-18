@@ -1186,6 +1186,21 @@ dividers and corners between them. `Body`, `Variant` and `Size` set how the part
 Every example, what each step decides, headers outside a card, the bleed variables and the reference of its steps:
 **[rask.sh/ui/card](https://rask.sh/ui/card/)**.
 
+`Ui.Facts` is what a summary card says of a record: a description list (`<dl>`), each `Ui.Fact("Label", value)` a
+`<dt>` over its `<dd>`, grouped in a `<div>` as HTML allows. Flux has no description list (the kit's own, owner-approved
+2026-11-18, #1363), so it is drawn in Flux's typography: the label in its subtle small text, the value in its body
+text, as a card's own text is. A value is any markup — words, a number, a badge — and none shows a dash. The facts lie
+in as many columns of 12rem at least as the card has room for, one on a phone; `.Class("sm:grid-cols-3")` on
+`Ui.Facts` wins, and `Ui.Fact(…).Class("col-span-full")` gives a long one the row.
+
+```csharp
+// Before: each app kept a ViewField of its own, in a grid it set up on the card.
+Ui.Card.Class("grid gap-4 sm:grid-cols-3")[ViewField.Of("Company", _company), ViewField.Of("Driver card", card)]
+
+// After: the kit's.
+Ui.Card[Ui.Facts[Ui.Fact("Company", _company), Ui.Fact("Driver card", card)]]
+```
+
 ### Kanban
 
 `Ui.Kanban` is [Flux UI's kanban](https://fluxui.dev/components/kanban): `Ui.KanbanColumn`s of `Ui.KanbanCard`s, one

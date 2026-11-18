@@ -9325,3 +9325,7 @@ Rask.UiTableCell.Whole.get -> bool?
 Rask.UiTableCell.Whole.set -> void
 static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b, bool? value) -> Rask.UiTableCell!
 static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b) -> Rask.UiTableCell!
+Rask.UiFacts
+Rask.UiFacts.UiFacts() -> void
+static Rask.Ui.Fact(string! label, Rask.Core.Component? value) -> Rask.Core.HTMLDivElement!
+static Rask.Ui.Facts.get -> Rask.UiFacts!

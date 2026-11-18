@@ -132,6 +132,7 @@ internal static partial class UiApi
             new("Size", typeof(Ui.CardSize?), "Outside a card, the size of the card it sits beside."),
         ]),
         new("Ui.CardBleed", typeof(UiCardBleed), "flux:card.bleed", "Content that runs to the card's edges: an image.", []),
+        new("Ui.Facts", typeof(UiFacts), NotFlux, "A summary card's description list, the <dl>: each Ui.Fact(\"Label\", value) a label over its value, in columns of 12rem at least.", []),
     ];
 
     public static IReadOnlyList<UiApiPart> Command { get; } =
