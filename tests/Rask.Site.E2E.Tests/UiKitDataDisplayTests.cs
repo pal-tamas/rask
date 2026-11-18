@@ -462,6 +462,38 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         }
     });
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task A_whole_cell_keeps_its_day_on_one_line_on_paper_where_a_cut_one_wraps(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var row = Page.Locator("#ui-deliveries tbody tr").First;
+            await row.ScrollIntoViewIfNeededAsync();
+            await Expect(row.Locator("td[data-ui-whole]")).ToHaveCountAsync(1);
+            const string read = "td => getComputedStyle(td).whiteSpace";
+            var screen = await row.Locator("td[data-ui-whole]").EvaluateAsync<string>(read);
+
+            await Page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Print });
+            var day = await row.Locator("td[data-ui-whole]").EvaluateAsync<string>(read);
+            var supplier = await row.Locator("td").First.EvaluateAsync<string>(read);
+
+            // On screen as on paper the day keeps its line; the long supplier's name, cut on screen, wraps on paper.
+            Assert.Equal("nowrap", screen);
+            Assert.Equal("nowrap", day);
+            Assert.Equal("normal", supplier);
+        }
+        finally
+        {
+            await Page.EmulateMediaAsync(new PageEmulateMediaOptions { Media = Media.Screen });
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
     private static Task<double[]> ColumnWidths(ILocator table) =>
         table.EvaluateAsync<double[]>("el => [...el.querySelectorAll('thead th')].map(th => th.getBoundingClientRect().width)");
 

@@ -1,7 +1,8 @@
 namespace Rask.Site.Features.UiDocs.Examples;
 
 // Every heading says what its column holds, so the columns hold still and the table never shrinks below them: a phone
-// scrolls it inside its box. A long name is cut short, with the whole of it in its tooltip.
+// scrolls it inside its box. A long name is cut short, with the whole of it in its tooltip; a day is kept Whole, on one
+// line on paper too.
 public sealed partial class TableColumnWidthsExample : Component
 {
     private static readonly Delivery[] Deliveries =
@@ -27,7 +28,7 @@ public sealed partial class TableColumnWidthsExample : Component
                 _deliveries.Select(delivery => Ui.TableRow.Key(delivery.Vat)[
                     Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(delivery.Supplier),
                     Ui.TableCell.Cut(delivery.Vat),
-                    Ui.TableCell[Format.Day(delivery.Day)],
+                    Ui.TableCell.Whole()[Format.Day(delivery.Day)],
                     Ui.TableCell.End[Format.Number(delivery.Amount)],
                     Ui.TableCell[delivery.Paid ? "Yes" : "No"],
                     Ui.RowActions.Key(delivery.Vat).Edit(Routes.UiFormButtonsPage()).Remove(() => { _deliveries.Remove(delivery); }, "Delete delivery", "Delete this delivery?")

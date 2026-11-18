@@ -2173,6 +2173,11 @@
       text-overflow: clip;
     }
 
+    /* A cell said Whole keeps its line on paper too (UiTableCell.Whole): a day is not split, its column grows instead. */
+    [data-ui-table] td[data-ui-whole] {
+      white-space: nowrap;
+    }
+
     [data-ui-table] > thead {
       display: table-header-group;
     }

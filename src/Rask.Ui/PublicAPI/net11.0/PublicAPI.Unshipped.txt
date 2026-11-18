@@ -9321,3 +9321,7 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiTableCell.Whole.get -> bool?
+Rask.UiTableCell.Whole.set -> void
+static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b, bool? value) -> Rask.UiTableCell!
+static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b) -> Rask.UiTableCell!

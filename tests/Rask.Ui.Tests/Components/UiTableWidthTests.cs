@@ -148,6 +148,38 @@ public partial class UiTableWidthTests : RaskMarkup
     }
 
     [Fact]
+    public void A_whole_cell_keeps_its_value_on_one_line_and_is_marked_for_paper()
+    {
+        var cell = Ui.TableCell.Whole()["2026. 01. 15."];
+
+        var html = cell.ToHtml();
+
+        Assert.Equal("<td class=\"whitespace-nowrap\" data-ui-cell data-ui-whole>2026. 01. 15.</td>", html);
+    }
+
+    [Fact]
+    public void A_cut_cell_kept_whole_is_cut_short_on_screen_and_keeps_its_title_and_the_call_site_s_data()
+    {
+        var cell = Ui.TableCell.End.Cut("2026. 01. 15. 13:45").Whole().Data("testid", "day");
+
+        var html = cell.ToHtml();
+
+        Assert.Equal(
+            "<td class=\"text-end [&amp;&gt;*]:ms-auto truncate whitespace-nowrap\" title=\"2026. 01. 15. 13:45\" data-ui-cell data-ui-whole data-testid=\"day\">2026. 01. 15. 13:45</td>",
+            html);
+    }
+
+    [Fact]
+    public void A_cell_told_not_to_be_whole_wraps_as_any_other()
+    {
+        var cell = Ui.TableCell.Whole(false).Cut("Aminoff Freight");
+
+        var html = cell.ToHtml();
+
+        Assert.Equal("<td class=\"truncate\" title=\"Aminoff Freight\" data-ui-cell>Aminoff Freight</td>", html);
+    }
+
+    [Fact]
     public void A_plain_cell_still_writes_no_class()
     {
         var html = Ui.TableCell["Lindsey"].ToHtml();

@@ -641,7 +641,9 @@ no width) takes what the others leave. A table whose headings name widths fills 
 they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
 a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu`,
 `Actions` or `Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
-with an ellipsis, the whole of it in the cell's tooltip. `Ui.TableColumn.Actions` heads a pencil and a bin the page
+with an ellipsis, the whole of it in the cell's tooltip. `.Whole()` keeps a cell on one line on
+paper too, where every other cell wraps — a day a wrap would split: `Ui.TableCell.Cut(day).Whole()`, Eszaf's
+`ListTable.Whole(day)`. `Ui.TableColumn.Actions` heads a pencil and a bin the page
 draws itself, `Ui.Button.Ghost.Sm.Icon(…)` twice in a `Ui.TableCell.End.Class("py-0")`: 6rem is what two of Flux's
 small icon buttons and the cell's padding need, measured, not guessed.
 
@@ -838,8 +840,9 @@ Ctrl+P:
 - **Left off:** every `Ui.Button`, a badge's ×, `Ui.Pagination`, `Ui.Sidebar` with its toggle and backdrop,
   `Ui.Header`, toasts, tooltips, open dropdown and popover panels, and a modal's backdrop. `Ui.Main` drops its screen
   padding, border and inner scroll.
-- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line), the scroll frame lets the table
-  run on, the heading repeats at the top of every page, and no row is split across two.
+- **`Ui.Table` prints whole:** cells wrap (nothing truncated or held to one line — but a `Ui.TableCell.Whole()`, which
+  keeps its line and widens its column), the scroll frame lets the table run on, the heading repeats at the top of
+  every page, and no row is split across two.
 - **`Ui.Accordion` prints open,** closed items included, with no chevron.
 
 ```csharp

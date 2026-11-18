@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`.Whole()` on a table cell keeps its value on one line, on screen and on paper (#1359).** Before: a printed
+  `Ui.Table` wraps every cell, a `Cut` one too, so a day split over two lines and doubled its row; Eszaf kept a
+  `ListTable.Whole` with a `whole-on-paper` class of its own. After: `Ui.TableCell.Cut(day).Whole()` (or
+  `Ui.TableCell.Whole()[day]`) writes `whitespace-nowrap` and `data-ui-whole`, and the kit sheet's print rules keep
+  `[data-ui-table] td[data-ui-whole]` at `white-space: nowrap`, so its column grows on paper instead. Other cells
+  print as before.
 - **`Ui.ColumnWidth.Actions` — a column as wide as two icon buttons at the row's end (#1358).** Before: a pencil and a
   bin had `Buttons` (12rem, made for three or four) or `RowMenu` (4rem, one ⋯), so Eszaf kept a `ListTable.Actions` of
   its own at `w-24` (37 uses). After: `Ui.TableColumn.Actions` (or `.Width(Ui.ColumnWidth.Actions)`): 6rem, measured on

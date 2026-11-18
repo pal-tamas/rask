@@ -490,6 +490,8 @@ public sealed class FluxConformanceTests
                                       + "so a list's columns hold still while its rows change; Flux leaves a width to the column's class",
         ["flux:table.cell/Cut"] = "nothing of Flux's: an owner-approved addition (2026-11-04, #1298) — a value cut short on one line with the "
                                   + "whole of it in the cell's title; Flux leaves it to the cell's `truncate` class",
+        ["flux:table.cell/Whole"] = "nothing of Flux's: an owner-approved addition (2026-11-18, #1359) — a value kept on one line on "
+                                    + "screen and on paper, where every other cell wraps; Flux leaves it to the cell's `whitespace-nowrap` class",
         ["flux:table.cell/ColSpan"] = "the `colspan` Flux's cell forwards to its <td> (its account overview demo's empty row, `colspan=\"2\"`), "
                                       + "typed: the cell is no generated <td>, so it has no ColSpan of its own (#1283)",
         // The five form controls: `wire:model` is Bind (or Value with OnChange), and what a Livewire component

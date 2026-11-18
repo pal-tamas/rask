@@ -647,6 +647,7 @@ internal static partial class UiApi
             new("Variant", typeof(Ui.TableCellVariant?), "How much the cell stands out. Muted when unset."),
             new("Sticky", typeof(bool?), "Keeps the cell in view while the others scroll sideways. Give it a background too."),
             new("Cut", typeof(string), "The value as text on one line, cut short with an ellipsis where the column ends, the whole of it in the cell's tooltip. Not Flux's."),
+            new("Whole", typeof(bool?), "Keeps the value on one line, on screen and on paper, where every other cell wraps: a day a wrap would split. Not Flux's."),
             new("ColSpan", typeof(int?), "How many columns the cell spans: a row folded out beneath another, or the row that says the list is empty."),
         ]),
     ];

@@ -46,8 +46,8 @@ public sealed partial class UiTablePage : Component
             UiDocsExample.Key("ui-table-widths").Heading("Column widths").File("TableColumnWidthsExample.cs").Demo(TableColumnWidthsExample).Testid("ui-table-widths")
                 .Blurb("Width(Ui.ColumnWidth.Day) and the rest say what each column holds, and that alone sizes it: the table "
                        + "fills its box, never shrinks below its columns together, and a phone scrolls it. Numbers and the row "
-                       + "actions keep to the end. Cut(text) ends a long value in an ellipsis with all of it in its tooltip. "
-                       + "Not Flux's: the kit's own."),
+                       + "actions keep to the end. Cut(text) ends a long value in an ellipsis with all of it in its tooltip, "
+                       + "and Whole() keeps a day on one line when the page is printed too. Not Flux's: the kit's own."),
             UiDocsExample.Key("ui-table-actions").Heading("Two buttons at the row's end").File("TableActionsColumnExample.cs").Demo(TableActionsColumnExample).Testid("ui-table-actions")
                 .Blurb("Ui.TableColumn.Actions is as wide as two small icon buttons and the cell's padding need, 6rem, "
                        + "measured on Flux's buttons: a pencil and a bin fit, at the column's end, and the heading says "
