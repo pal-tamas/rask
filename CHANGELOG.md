@@ -287,6 +287,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **`Rask.Mail` sends over MailKit 5.0.0 (was 4.18.1) (#1337).** MailKit 5 depends on `MimeKit.Core` 5.0 instead of
+  `MimeKit`, so an app on `Rask.Mail` no longer pulls in BouncyCastle or `System.Security.Cryptography.Pkcs` through
+  it. Rask's mail API is unchanged. An app that also calls MailKit itself should read MailKit's 5.0 breaking changes:
+  `SendAsync` returns a `SendResult` instead of a `string`, the `Send(MimeMessage)` overloads are now extension methods
+  that need `using MailKit;`, and S/MIME, PGP or DKIM signing needs the `MimeKit.Cryptography` package.
 - **`Virtualize.Items` draws 10 rows past either edge of its box, where it drew 3 (#1326).** A fast scroll or a fling
   on a phone shows rows rather than blank spacer; .NET 11's `Virtualize` draws 15. `OverscanCount:` still sets it.
   Measured on the wire-bytes scenario (1,000 rows, 10 in view): a scroll's diff stays 117 bytes; the first render of
