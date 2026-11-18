@@ -22,9 +22,9 @@ them until tagged releases begin.
   description list, so Eszaf kept a `ViewField.Of(label, value)` of its own (10 sites) — two `Ui.Text`s in a `<div>`,
   in a grid set on the card, with nothing telling a screen reader which line names which. After:
   `Ui.Card[Ui.Facts[Ui.Fact("Company", company), Ui.Fact("Driver card", card)]]` writes a `<dl>` whose every fact is a
-  `<div>` of `<dt>` (Flux's subtle small text) over `<dd>` (Flux's body text); a value is any markup, none (or blanks)
-  shows a dash; the facts lie in columns of 12rem at least, one on a phone, and the call site's `.Class(…)` wins on
-  either. Site example on rask.sh/ui/card.
+  `<div>` of `<dt>` (Flux's subtle small text) over `<dd>` (Flux's strong text, as `Ui.Text.Strong` draws it); a
+  value is any markup, none (or blanks) shows a dash; the facts lie in columns of 12rem at least, one on a phone, and
+  the call site's `.Class(…)` wins on either. Site example on rask.sh/ui/card.
 - **`.Whole()` on a table cell keeps its value on one line, on screen and on paper (#1359).** Before: a printed
   `Ui.Table` wraps every cell, a `Cut` one too, so a day split over two lines and doubled its row; Eszaf kept a
   `ListTable.Whole` with a `whole-on-paper` class of its own. After: `Ui.TableCell.Cut(day).Whole()` (or
