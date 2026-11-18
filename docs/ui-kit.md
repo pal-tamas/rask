@@ -657,7 +657,8 @@ one: Delete at the start (asking first), then Cancel — a link back to the list
 drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Cancel returns to
 the list **as the reader left it** — its filters, sort and page, never a `Ui.EditorDialog`'s key — once the session has
 shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the address), as `Ui.AppFrame`'s trail does;
-`Back(Routes.SuppliersPage())` names only the list. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+`Back(Routes.SuppliersPage())` names only the list. In a dialog the app draws itself over the list, whose key the kit
+does not know, Cancel is the list as given: a way back never leads to where the reader stands. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp

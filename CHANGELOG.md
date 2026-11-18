@@ -336,6 +336,16 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A tall menu no longer scrolls the page as it opens.** Before: on current Chromium (Playwright 1.64's), a row's ⋯
+  menu taller than the room under it took the page with it — the browser focuses an `autofocus` popover as it shows
+  it and scrolls it into view where the anchor rules alone had it, so the trigger scrolled off and the menu's top
+  hung a pixel past the viewport. After: the page stays where the reader had it, and the menu is placed and held
+  inside the viewport as before.
+- **`Ui.FormButtons`' Cancel closes a list's own editor dialog again.** Before (since #1357): in a dialog the app
+  draws itself at the list's address (`/drivers?edit=r2`, not a `Ui.EditorDialog`), Cancel led to the list "as the
+  reader left it" — which was the address it stood at, dialog and all — so it closed nothing. After: a way back that
+  would be where the reader stands is the list as given; under a `Ui.EditorDialog` the filters, sort and page are
+  kept as before.
 - **A paged `Ui.Select`/`Ui.Pillbox` after a keyed field no longer asks its search over and over.** Before: in a
   form with `Ui.Field.Key("company")[Ui.Select…Choices(Company.Find)]` and, after it, an unkeyed field holding a
   second `.Choices((typed, page) => …)` select of the same type, the second picker's chain first ran on the instance
