@@ -15,7 +15,21 @@
 
 type Heard = (e: Event) => void;
 
+/** What a question asked from code (Ui.Confirm.Ask) words for itself; null leaves the layout's dialog's. */
+export interface AskWords {
+    heading: string | null;
+    no: string | null;
+    yes: string | null;
+    /** Yes's look: `primary` or `danger`. */
+    tone: string | null;
+}
+
 interface Seam {
+    /**
+     * Asks a question from code in the kit's dialog (Ui.Confirm.Ask) once it is free: true on yes, false on every
+     * other way it closes, null when the layout placed none. Set by rask-confirm-dialog.ts.
+     */
+    ask?: (question: string, words: AskWords) => Promise<boolean | null>;
     /** The attributes the hooks hold against the morph. */
     owned: WeakMap<Element, Set<string>>;
     /** Places kept in the document's listener order, by event type, for hooks that arrive later. */

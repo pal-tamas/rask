@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.Confirm.Primary()` and `await Ui.Confirm.Ask("…")` — a non-danger Yes, and asking from code (#1366).** Before:
+  Yes was always Flux's danger button, and the dialog opened only from a `.Confirm("…")` on the pressed control, so a
+  question that came out of a server-side check (Eszaf's overlapping period, the km question) kept a modal of its own.
+  After: `if (!await Ui.Confirm.Ask("The period overlaps another. Save it anyway?")) return;` from any handler, on both
+  hosts, in the layout's dialog (`Ui.AppFrame` places one) — true for Yes, false for No, Escape, the close button and a
+  press outside; `Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask(…)` words one question, and
+  `Ui.Confirm.Primary()` in the layout makes Yes primary for every question. Focus moves in and back; a second
+  question waits for the first; work cancelled while it asks (component gone, session ended) gets false; a page with
+  no `Ui.Confirm` throws, naming it.
 - **`Current.UserId` is your user's own number, and `Current.TenantId` your tenant's key (#1369).** An app whose
   user aggregate is keyed by an `int` or a `long` (`User : Aggregate<int>, IUser`) has the build generate
   `Current.UserId` (`int?`), `Current.RequiredUserId` (`int`) and `Current.UseUser(12)`; the aggregate's key is the

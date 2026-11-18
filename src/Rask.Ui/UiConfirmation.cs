@@ -15,6 +15,10 @@ internal static class UiConfirmation
 {
     /// <summary>The dialog: <paramref name="question" />, an optional <paramref name="field" />, and the two buttons.</summary>
     internal static Component Dialog(string id, string part, Component question, Component? field, string no, string yes) =>
+        Dialog(id, part, question, field, Ui.Button.Ghost[no], Go(Ui.Button.Danger, id, part)[yes]);
+
+    /// <summary>As the other, with the buttons made by the caller: <paramref name="yes" /> is a <see cref="Go" />.</summary>
+    internal static Component Dialog(string id, string part, Component question, Component? field, Component no, Component yes) =>
         // The width Flux's own confirmation writes. A modal hugs what it holds, there and here.
         Ui.Modal.Name(id).Class("min-w-[22rem]")[
             Div.Class("space-y-6")[
@@ -22,12 +26,18 @@ internal static class UiConfirmation
                 field,
                 Div.Class("flex gap-2")[
                     Ui.Spacer,
-                    Ui.ModalClose.Key("no")[Ui.Button.Ghost[no]],
-                    // Flux's own: the button that says yes stands in the row by itself, and closes the dialog.
-                    Ui.Button.Danger.Key("yes").Data(part, "go").Attributes(UiModalInvoker.Closes(id))[yes]
+                    Ui.ModalClose.Key("no")[no],
+                    yes
                 ]
             ]
         ];
+
+    /// <summary>
+    ///     <paramref name="button" /> as the button that says yes, with <paramref name="marks" /> of the caller's beside
+    ///     what the runtime looks for. Flux's own: it stands in the row by itself, and closes the dialog.
+    /// </summary>
+    internal static UiButton Go(UiButton button, string id, string part, params (string Name, string? Value)[] marks) =>
+        button.Key("yes").Data(part, "go").Attributes([.. UiModalInvoker.Closes(id), .. marks]);
 
     // The question is empty in every render and filled in the browser, so it is kept out of the morph's hands: a
     // render that lands while the dialog is open would otherwise blank it.

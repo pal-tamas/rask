@@ -133,6 +133,9 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
     /// <summary>Set by a disabled <see cref="UiComposer{T}" /> on the buttons in its slots, which it disables.</summary>
     internal bool LockedByComposer { get; set; }
 
+    /// <summary>The classes this button is drawn with: what <c>Ui.Confirm</c> carries of the tone it is not drawn in.</summary>
+    internal string? DrawnClass => ResolveClass();
+
     /// <summary>
     ///     Where it goes. Set this and it renders an <c>&lt;a&gt;</c>.
     /// </summary>

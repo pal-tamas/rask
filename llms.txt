@@ -445,6 +445,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   opening and closing it send nothing, Yes lets the same press or submit go);
   `.Confirm("Type the name", expect: name)` is the prompt form (in Ui.Confirm a field, Yes only on an exact match);
   `.Confirm("Biztosan törli a céget?", heading: "Cég törlése")` gives that question its own title in Ui.Confirm (the layout's otherwise);
+  `Ui.Confirm.Primary()` = Yes as the primary button, not danger; a question only a check in the handler can raise is asked FROM CODE in the same dialog: `if (!await Ui.Confirm.Ask("Save it anyway?")) return;` (true = Yes; No/Escape/close/outside = false; `Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask(…)` words that one question; a second Ask waits for the first; cancelled work gets false; no Ui.Confirm on the page throws — never hand-write a question Ui.Modal);
   on a `Ui.MenuItem.Href(…)` it asks before the link is followed and a yes follows it (a string href = a plain GET + page load: a sign-out endpoint);
   `Ui.MenuItem.Href(SignOut.Path).SignOut()` = the sign-out row in the catalog's words (`SignOut`/`SignOutQuestion`: "Sign out" + "Are you sure you want to sign out?", hu "Kijelentkezés" + "Biztos ki szeretne jelentkezni?", its words and arrow icon where it has none) — never hand-write a sign-out Ui.Modal;
   refused, nothing is sent.

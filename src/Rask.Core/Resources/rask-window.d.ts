@@ -61,6 +61,12 @@ interface Window {
 
     /** A measured virtual list's scroll to a row, awaited by VirtualScroller.ScrollTo (rask-virtual-report.ts). */
     __raskVirtual?: { to(above: Element | null, seq: number): Promise<void> };
+
+    /** Ui.Confirm.Ask's question, asked in the kit's dialog: null when the page has none (rask-confirm-ask.ts). */
+    __raskConfirm?: {
+        ask(question: string, heading: string | null, no: string | null, yes: string | null, tone: string | null):
+            Promise<boolean | null>;
+    };
     __raskToastDismiss?: boolean;
     __raskDropzone?: boolean;
     __raskContextMenu?: boolean;

@@ -598,7 +598,17 @@ Ui.Button.Danger.OnClick(() => Delete(row)).Confirm("Biztosan törli a céget?",
 ```
 
 Without `Ui.Confirm` the browser asks, as before, and `heading:` is not shown. The words default from the [string catalog](localization.md) (`ConfirmHeading`, `ConfirmNo`,
-`ConfirmYes`).
+`ConfirmYes`). `Ui.Confirm.Primary()` draws Yes as the primary button, for questions that lose nothing.
+
+A question that only a check in the handler can raise is asked from code, in the same dialog, with
+`await Ui.Confirm.Ask("…")` — true for Yes, false for every other way it closes ([the kit](ui-kit.md)):
+
+```csharp
+if (await Periods.Overlapping(_period) && !await Ui.Confirm.Ask("The period overlaps another. Save it anyway?"))
+{
+    return;
+}
+```
 
 ### Ask before leaving unsaved changes
 

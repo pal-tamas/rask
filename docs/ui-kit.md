@@ -1342,7 +1342,31 @@ Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "
 Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a menu item too
 Ui.MenuItem.Href("/logout").Confirm("Sign out of Acme?")["Sign out"]   // a link: a yes follows it
 Ui.MenuItem.Href(SignOut.Path).SignOut()   // "Are you sure you want to sign out?" under "Sign out", from the catalog
+Ui.Confirm.Primary()                                      // Yes as the primary button: questions that lose nothing
 ```
+
+A handler asks from code, after a check only it can make, with `await Ui.Confirm.Ask("…")` — true for Yes, false
+for No, the close button, Escape and a press outside — in the same dialog, on both hosts:
+
+```csharp
+private async Task Save()
+{
+    if (await Periods.Overlapping(_period) && !await Ui.Confirm.Ask("The period overlaps another. Save it anyway?"))
+    {
+        return;
+    }
+
+    await Periods.Save(_period);
+}
+
+if (await Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask("Rögzíti a km-t?")) …   // this question's words
+```
+
+The words and `.Primary()` set on that chain are that question's alone; what it leaves unset is the layout's
+dialog's. Focus moves into the dialog and back to the control that was pressed. A second question asked while one
+is open waits its turn and opens once the first is answered. Work that is cancelled while it asks — its component
+left the page, the session ended, a configured handler timeout ran out — gets false, unanswered. On a page with no
+`Ui.Confirm` it throws, naming what to place (`Ui.AppFrame` places one).
 
 A menu item's link asks before it is followed, and a yes follows it — an in-app route in the app, a string as the
 browser follows any link: a GET and a page load, which is how a sign-out endpoint is reached. `.SignOut()` is that

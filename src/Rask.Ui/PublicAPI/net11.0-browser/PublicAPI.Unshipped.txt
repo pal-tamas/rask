@@ -9320,6 +9320,11 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiConfirm.Ask(string! question) -> System.Threading.Tasks.Task<bool>!
+Rask.UiConfirm.Primary.get -> bool?
+Rask.UiConfirm.Primary.set -> void
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b, bool? value) -> Rask.UiConfirm!
 Rask.UiAppFrame.LeaveWords(string! stay, string! leave) -> Rask.UiAppFrame!
 Rask.UiModal.Heading.get -> string?
 Rask.UiModal.Heading.set -> void

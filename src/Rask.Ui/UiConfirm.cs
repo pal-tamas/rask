@@ -2,13 +2,17 @@ namespace Rask;
 
 /// <summary>
 ///     The dialog an action's <c>.Confirm("…")</c> asks in, in place of the browser's own <c>confirm</c> and
-///     <c>prompt</c>. Put one in the layout and every <c>.Confirm</c> on every page asks through it.
+///     <c>prompt</c>. Put one in the layout and every <c>.Confirm</c> on every page asks through it — and so does
+///     <see cref="Ask" />, from code.
 /// </summary>
 /// <remarks>
 ///     <code>
 ///     Ui.Confirm                                          // "Confirm", "No" and "Yes"
 ///     Ui.Confirm.Heading("Megerősítés").No("Nem").Yes("Igen")
+///     Ui.Confirm.Primary()                                // Yes as the primary button: no question here is a danger
 ///     Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // its own title
+///
+///     if (!await Ui.Confirm.Ask("The period overlaps another. Save it anyway?")) return;           // from code
 ///     </code>
 ///     <para>
 ///     Not a Flux component: a <see cref="UiModal" /> composed as Flux's confirmation, drawn as
@@ -32,6 +36,10 @@ public sealed partial class UiConfirm : Component
 
     private const string MessageId = DialogId + "-message";
 
+    // The two looks Yes has, as the runtime names them (data-rask-confirm-tone).
+    private const string PrimaryTone = "primary";
+    private const string DangerTone = "danger";
+
     /// <summary>The short title above the question. "Confirm" when unset; a question's own <c>heading:</c> replaces it.</summary>
     public string? Heading { get; set; }
 
@@ -41,6 +49,12 @@ public sealed partial class UiConfirm : Component
     /// <summary>The label of the button that lets the action go. "Yes" when unset.</summary>
     public string? Yes { get; set; }
 
+    /// <summary>
+    ///     Yes as Flux's primary button rather than its danger one, for a question that is not about losing something:
+    ///     <c>Ui.Confirm.Primary()</c>. Unset, Yes is the danger button.
+    /// </summary>
+    public bool? Primary { get; set; }
+
     /// <inheritdoc />
     protected override Component? Render() =>
         UiConfirmation.Dialog(
@@ -48,8 +62,27 @@ public sealed partial class UiConfirm : Component
             Part,
             UiConfirmation.Retitled(Heading ?? RaskStrings.Get(RaskString.ConfirmHeading, "Confirm"), Part, MessageId),
             Answer(),
-            no: No ?? RaskStrings.Get(RaskString.ConfirmNo, "No"),
-            yes: Yes ?? RaskStrings.Get(RaskString.ConfirmYes, "Yes"));
+            Ui.Button.Ghost[Label("no", No ?? RaskStrings.Get(RaskString.ConfirmNo, "No"))],
+            Go()[Label("yes", Yes ?? RaskStrings.Get(RaskString.ConfirmYes, "Yes"))]);
+
+    // Yes in the dialog's own tone, carrying the other tone's look for a question asked in that one: the runtime
+    // puts it on while that question is asked (rask-confirm-dialog.ts), and the dialog's own back after.
+    private UiButton Go()
+    {
+        var primary = Primary == true;
+        var other = primary ? Ui.Button.Danger : Ui.Button.Primary;
+        return UiConfirmation.Go(
+            primary ? Ui.Button.Primary : Ui.Button.Danger,
+            DialogId,
+            Part,
+            ("data-rask-confirm-tone", primary ? PrimaryTone : DangerTone),
+            ("data-rask-confirm-other", other.DrawnClass));
+    }
+
+    // A button's label, which a question asked from code may word for itself: the runtime writes it, and puts back
+    // the layout's, kept in data-rask-confirm-default — out of the morph's hands, as the heading is.
+    private static Component Label(string name, string text) =>
+        Span.Data(Part, name).Attributes(("data-rask-confirm-default", text), ("data-rask-opaque", null))[text];
 
     // Shown only for `expect:`, and holding no value of the page's: what is typed in it is never sent.
     private static Component Answer() =>

@@ -319,6 +319,7 @@ internal static partial class UiApi
             new("Heading", typeof(string), "The short title above the question. \"Confirm\" when unset; a question's own heading: replaces it."),
             new("No", typeof(string), "The label of the button that calls the action off. \"No\" when unset."),
             new("Yes", typeof(string), "The label of the button that lets the action go. \"Yes\" when unset."),
+            new("Primary", typeof(bool?), "Yes as the primary button rather than the danger one, for a question that loses nothing. Danger when unset."),
         ]),
     ];
 
