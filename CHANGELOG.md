@@ -8,6 +8,14 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`.Leading(rows)` after `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` pins hand rows before the choices (#1361).**
+  Before: a "none" row (Eszaf's "Nincs cég") was spliced into the choices, sorted among them and hidden by a search, and
+  a searched or paged source had no way to show it. After:
+  `Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))` — the rows
+  stand first in the order given, every search keeps them (a list held whole never hides them; a searched or paged
+  source has them before every answer), and they are never asked of the source: a paged source's first page asks for
+  that many fewer rows (`Take` 49 with one row) and the pages after it skip the rows found, not counting them. Over the
+  list, the searched and the paged overloads; a select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does.
 - **`Ui.Filter.Range(() => From, () => To)` — a min–max filter in `Ui.Filters`, said on one badge (#1360).** Before:
   a range was two `Ui.Input`s of the page's own and a badge written by hand (Eszaf's `FilterPanel.Range` +
   `RangeWords`). After: `Ui.Filters[Ui.Filter.Range(() => WeightFrom, () => WeightTo).Label("Weight")]` over two

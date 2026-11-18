@@ -148,6 +148,8 @@ internal static partial class UiApi
             new("Search", typeof(Fn<string, Task<IEnumerable<Component?>>>?), "The options for what is typed, answered by the page: asked on mount and once typing pauses. Picked options stay in the list."),
             new("Choices", typeof(IEnumerable<Ui.Choice<int>>), "Rows of another table instead of options: searched, in the reader's alphabet, \"Choose...\", the cross where the member may hold nothing. Not Flux's.",
                 "Ui.Choice<T> rows, or a search for them and the held row"),
+            new("Leading", typeof(Ui.Choice<int>[]), "Rows pinned before the choices, after .Choices(…): \"No company\" first, in the order given, kept by every search and never asked of the source. Not Flux's.",
+                "Ui.Choice<T> rows"),
             new("Empty", typeof(string), "What a search that matches nothing says. \"No results found\" when unset."),
             new("Clearable", typeof(bool?), "A button that clears the answer, shown while there is one."),
             new("Prefix", typeof(string), "Words that stay in the button before the chosen option: \"Compare to\"."),

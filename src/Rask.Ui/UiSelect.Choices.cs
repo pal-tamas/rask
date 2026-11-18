@@ -71,6 +71,28 @@ public sealed partial class UiSelect<T>
     public UiSelect<T> Choices<TValue>(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<TValue>>>> find, Ui.Choice<TValue>? held = null)
         where TValue : T => Offer(find, held);
 
+    /// <summary>
+    ///     Pins <paramref name="rows" /> before the rows <c>.Choices(…)</c> offers — "No company" first — in the order given,
+    ///     never sorted among them.
+    /// </summary>
+    /// <remarks>
+    ///     <para>
+    ///         Written after <c>.Choices(…)</c>, over any of its sources. Every search keeps them: a list held whole never
+    ///         hides them for what is typed, and a searched or paged one puts them before every answer's first rows,
+    ///         whatever was typed — they are never asked of the source, and a paged source's first page is asked for that
+    ///         many fewer rows, so the list's first screen holds as many. A picked row a search left out still comes first.
+    ///         Give them values no choice holds. Not Flux's: the owner's (2026-11-18).
+    ///     </para>
+    ///     <code>
+    ///     Ui.Select.Bind(() =&gt; filter.CompanyId).Choices(companies).Leading(new Ui.Choice&lt;int&gt;(0, "No company"))
+    ///     </code>
+    /// </remarks>
+    /// <param name="rows">The rows, in the order they stand first.</param>
+    /// <typeparam name="TValue">The type of a row's value: the choices' own.</typeparam>
+    /// <returns>This select.</returns>
+    public UiSelect<T> Leading<TValue>(params Ui.Choice<TValue>[] rows)
+        where TValue : T => Lead(rows);
+
     // Unconstrained, for UiSelectChoices too: a select of `int?` takes rows of `int`, which C# cannot say as a constraint.
     // The rows are read once, here: a Key written after this step replays it onto the instance the key keeps.
     internal UiSelect<T> Offer<TValue>(IEnumerable<Ui.Choice<TValue>> choices)
@@ -78,7 +100,7 @@ public sealed partial class UiSelect<T>
         ArgumentNullException.ThrowIfNull(choices);
         Ui.Choice<TValue>[] rows = [.. choices];
         var mayBeEmpty = MayBeEmpty;
-        Choose(before => (UiChoices.Held(rows, mayBeEmpty, before, out var changed), changed));
+        Choose((before, leading) => (UiChoices.Held(rows, UiChoices.Lead<TValue>(leading), mayBeEmpty, before, out var changed), changed));
         return this;
     }
 
@@ -86,7 +108,7 @@ public sealed partial class UiSelect<T>
     {
         Ui.Choice<TValue>[] shown = held is { } row ? [row] : [];
         var mayBeEmpty = MayBeEmpty;
-        Choose(before => (UiChoices.Asked(find, shown, mayBeEmpty, before, out var changed), changed));
+        Choose((before, leading) => (UiChoices.Asked(find, shown, UiChoices.Lead<TValue>(leading), mayBeEmpty, before, out var changed), changed));
         return this;
     }
 
@@ -94,7 +116,15 @@ public sealed partial class UiSelect<T>
     {
         Ui.Choice<TValue>[] shown = held is { } row ? [row] : [];
         var mayBeEmpty = MayBeEmpty;
-        Choose(before => (UiChoices.Paged(find, shown, mayBeEmpty, before, out var changed), changed));
+        Choose((before, leading) => (UiChoices.Paged(find, shown, UiChoices.Lead<TValue>(leading), mayBeEmpty, before, out var changed), changed));
+        return this;
+    }
+
+    // Unconstrained, as Offer is. Copied, so a page that fills the array it handed over later changes nothing here.
+    internal UiSelect<T> Lead<TValue>(Ui.Choice<TValue>[] rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        Pin(rows.ToArray(), "Ui.Select");
         return this;
     }
 

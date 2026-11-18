@@ -1503,6 +1503,24 @@ static async Task<IReadOnlyList<Ui.Choice<int>>> Products(string typed, Ui.Choic
         .Select(p => new Ui.Choice<int>(p.Id, p.Name))];
 ```
 
+**Rows pinned first** — "No company" above the companies — are `.Leading(…)` after `.Choices(…)`, on `Ui.Select` (a
+select of `int?` takes `Ui.Choice<int>` rows, as `.Choices` does) and `Ui.Pillbox`, over any of the three sources (the
+owner's addition, 2026-11-18). They stand in the order given, never sorted among the choices, and **every search keeps
+them**, since a "none" row is what a reader looks for while typing a name: a list held whole never hides them for what
+is typed, and a searched or paged source has them put before every answer's first rows, whatever was typed. They are
+never asked of the source: a paged source's first page is asked for that many fewer rows (`page.Take` is 49 with one
+leading row), so the list's first screen holds as many, and the pages after it skip the rows found, the leading ones not
+counted. A picked row a search left out still comes first. Give them values no choice holds.
+
+```csharp
+// Before: the "none" row sorted in among the companies, and lost to a search.
+Ui.Select.Bind(() => filter.CompanyId).Choices([new Ui.Choice<int>(0, "Nincs cég"), .. companies])
+
+// After: first, whatever is typed.
+Ui.Select.Bind(() => filter.CompanyId).Choices(companies).Leading(new Ui.Choice<int>(0, "Nincs cég"))
+Ui.Select.Bind(() => filter.CompanyId).Choices((typed, page) => Company.Named(typed, page)).Leading(new Ui.Choice<int>(0, "Nincs cég"))
+```
+
 **A create row waits for the search, as Flux's does.** While a search's question is out, `Ui.SelectOptionCreate`
 greys, says `aria-disabled`, is stepped over by the arrows and Enter and refuses a click that reaches it anyway, so
 nothing is made of text the answer is about to change; pressed, it spins at once, refuses a second press and holds the list open until its handler is done.

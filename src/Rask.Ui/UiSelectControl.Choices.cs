@@ -32,7 +32,12 @@ public abstract partial class UiSelectControl<T>
     ///     Takes what <c>.Choices(…)</c> makes of the rows over what the last render made, and tells the render cache when
     ///     it is not that.
     /// </summary>
-    private protected void Choose(Func<UiChosen?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
+    private protected void Choose(Func<UiChosen?, object?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
+
+    /// <summary>Pins rows before what <c>.Choices(…)</c> offers, and makes the rows again with them first.</summary>
+    /// <param name="rows">The rows, a <c>Ui.Choice&lt;TValue&gt;[]</c> of the choices' own type.</param>
+    /// <param name="control">The control, as a call site names it, for the message when no <c>.Choices(…)</c> came first.</param>
+    private protected void Pin(object rows, string control) => (_choices ??= new UiChoosing()).Lead(this, rows, control);
 
     /// <inheritdoc />
     void ICarriesHandSteps.CarryTo(Component kept)

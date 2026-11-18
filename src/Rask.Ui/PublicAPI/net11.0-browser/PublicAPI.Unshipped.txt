@@ -9320,3 +9320,6 @@ Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
 Rask.UiFilterRange
 static Rask.UiFilterRange.Range<T>(this Rask.RaskSeed_UiFilter filter, System.Linq.Expressions.Expression<System.Func<T?>!>! from, System.Linq.Expressions.Expression<System.Func<T?>!>! to) -> Rask.UiFilter!
+Rask.UiPillbox<T>.Leading(params Rask.Ui.Choice<T>[]! rows) -> Rask.UiPillbox<T>!
+Rask.UiSelect<T>.Leading<TValue>(params Rask.Ui.Choice<TValue>[]! rows) -> Rask.UiSelect<T>!
+static Rask.UiSelectChoices.Leading<T>(this Rask.UiSelect<T?>! select, params Rask.Ui.Choice<T>[]! rows) -> Rask.UiSelect<T?>!

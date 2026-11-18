@@ -31,7 +31,7 @@ public sealed partial class UiPillbox<T>
         // The rows are read once, here: a Key written after this step replays it onto the instance the key keeps.
         ArgumentNullException.ThrowIfNull(choices);
         Ui.Choice<T>[] rows = [.. choices];
-        Choose(before => (UiChoices.Held(rows, mayBeEmpty: false, before, out var changed, pills: true), changed));
+        Choose((before, leading) => (UiChoices.Held(rows, UiChoices.Lead<T>(leading), mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
 
@@ -52,7 +52,7 @@ public sealed partial class UiPillbox<T>
     public UiPillbox<T> Choices(Func<string, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>>? held = null)
     {
         Ui.Choice<T>[] shown = [.. held ?? []];
-        Choose(before => (UiChoices.Asked(find, shown, mayBeEmpty: false, before, out var changed, pills: true), changed));
+        Choose((before, leading) => (UiChoices.Asked(find, shown, UiChoices.Lead<T>(leading), mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
 
@@ -77,11 +77,31 @@ public sealed partial class UiPillbox<T>
     public UiPillbox<T> Choices(Func<string, Ui.ChoicePage, Task<IReadOnlyList<Ui.Choice<T>>>> find, IEnumerable<Ui.Choice<T>>? held = null)
     {
         Ui.Choice<T>[] shown = [.. held ?? []];
-        Choose(before => (UiChoices.Paged(find, shown, mayBeEmpty: false, before, out var changed, pills: true), changed));
+        Choose((before, leading) => (UiChoices.Paged(find, shown, UiChoices.Lead<T>(leading), mayBeEmpty: false, before, out var changed, pills: true), changed));
         return this;
     }
 
-    private void Choose(Func<UiChosen?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
+    /// <summary>
+    ///     Pins <paramref name="rows" /> before the rows <c>.Choices(…)</c> offers, in the order given, never sorted among
+    ///     them.
+    /// </summary>
+    /// <remarks>
+    ///     As on <c>Ui.Select</c>: written after <c>.Choices(…)</c>, kept by every search — never hidden for what is
+    ///     typed, put before every answer's first rows and never asked of the source — and given values no choice holds.
+    ///     <code>
+    ///     Ui.Pillbox.Bind(() =&gt; filter.CompanyIds).Choices(companies).Leading(new Ui.Choice&lt;int&gt;(0, "No company"))
+    ///     </code>
+    /// </remarks>
+    /// <param name="rows">The rows, in the order they stand first.</param>
+    /// <returns>This pillbox.</returns>
+    public UiPillbox<T> Leading(params Ui.Choice<T>[] rows)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        (_choices ??= new UiChoosing()).Lead(this, rows.ToArray(), "Ui.Pillbox");
+        return this;
+    }
+
+    private void Choose(Func<UiChosen?, object?, (UiChosen Chosen, bool Changed)> step) => (_choices ??= new UiChoosing()).Take(this, step);
 
     /// <inheritdoc />
     void ICarriesHandSteps.CarryTo(Component kept)
