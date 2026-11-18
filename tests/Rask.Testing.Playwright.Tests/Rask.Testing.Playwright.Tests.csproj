@@ -4,7 +4,8 @@
     RaskSite without a browser: the pages it lists, where it finds the app's build, and the app's process — started on
     a port of its own, waited for, ended. It runs Rask.Testing.Fixture.App the way an app's own E2E project runs its app:
     referenced, and started by RaskSite<Program>. The walks themselves, which need Chromium, are in
-    Rask.Server.E2E.Tests (RaskSiteWalkTests).
+    Rask.Server.E2E.Tests (RaskSiteWalkTests). SignInProbeTests use Playwright's request API, which runs on its driver
+    alone — no Chromium — hence the package reference of its own (the driver is copied by its build targets).
   -->
   <PropertyGroup>
     <TargetFramework>$(RaskTestTarget)</TargetFramework>
@@ -14,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Playwright"/>
     <PackageReference Include="Microsoft.NET.Test.Sdk"/>
     <PackageReference Include="xunit.v3"/>
     <PackageReference Include="xunit.runner.visualstudio">

@@ -13,7 +13,7 @@
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="Jint" Version="4.17.0" />
-    <PackageVersion Include="MailKit" Version="4.18.1" />
+    <PackageVersion Include="MailKit" Version="5.0.0" />
     <PackageVersion Include="Markdig" Version="1.6.0" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.339" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="11.0.0" />
@@ -46,8 +46,8 @@
     <PackageVersion Include="Microsoft.Extensions.Primitives" Version="11.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Validation" Version="11.0.0" />
     <PackageVersion Include="Microsoft.JSInterop" Version="11.0.0" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.63.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.64.1" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
     <!-- Rask.Postgres. Npgsql versions on its own line (11.0.x tracks EF Core 11 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
@@ -91,14 +91,14 @@
     <PackageVersion Include="SQLitePCLRaw.core" Version="3.0.5" />
     <PackageVersion Include="System.Reflection.Metadata" Version="11.0.0" />
     <!--
-      Pinned above what MimeKit (through MailKit) and Microsoft.Data.SqlClient (through EF Core SqlServer) ask for:
+      Pinned above what Microsoft.Data.SqlClient (through EF Core SqlServer) asks for:
       10.0.0 and 9.0.11 carry CVE-2026-84008 and CVE-2026-70162 (GHSA-846f-f764-76mx, GHSA-2fmv-rv2c-59x7),
-      fixed in 10.0.13 and in every 11.0 release this pin now follows. Rask.Mail and Rask.SqlServer reference it directly — the only lever that lifts a
-      transitive package (see SQLitePCLRaw above). Drop both references once those packages ask for a fixed version.
+      fixed in 10.0.13 and in every 11.0 release this pin now follows. Rask.SqlServer references it directly — the only lever that lifts a
+      transitive package (see SQLitePCLRaw above). Drop the reference once SqlClient asks for a fixed version (MailKit 5 / MimeKit.Core 5 no longer depend on it).
     -->
     <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="11.0.0" />
-    <PackageVersion Include="xunit.v3" Version="4.0.2" />
-    <PackageVersion Include="xunit.v3.assert" Version="4.0.2" />
+    <PackageVersion Include="xunit.v3" Version="4.0.3" />
+    <PackageVersion Include="xunit.v3.assert" Version="4.0.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
   </ItemGroup>
 
