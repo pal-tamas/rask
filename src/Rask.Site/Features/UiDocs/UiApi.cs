@@ -355,6 +355,8 @@ internal static partial class UiApi
             new("Notices", typeof(Component), "What stands at the header's end: how background work is getting on."),
             new("Home", typeof(Rask.Core.Routing.RouteUrl?), "The app's home, where the brand and the trail's first step lead. Unset, the row every other row is beneath, or /.", "a route: Routes.HomePage()"),
             new("LeaveHeading", typeof(string), "The title of the unsaved-changes dialog, over the form's question. The catalog's \"Unsaved changes\" when unset."),
+            new("LeaveWords", typeof(string), "The unsaved-changes dialog's two buttons: the one that stays, the one that leaves. The catalog's \"Stay\" and \"Leave\" when unset.",
+                "the stay and leave words: \"Nem\", \"Igen\""),
         ]),
     ];
 

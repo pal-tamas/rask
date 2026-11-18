@@ -42,7 +42,8 @@ public sealed partial class UiAppFramePage : Component
                     "The way back to a list keeps its filters, sort and page as the reader left them, and leaves out a "
                     + "`Ui.EditorDialog`'s key, so it never reopens a form; a form's `Ui.FormButtons` Cancel goes back the same way.",
                     "It mounts `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm` in the catalog's words — the unsaved-changes "
-                    + "dialog titled \"Unsaved changes\" unless `.LeaveHeading(…)` says otherwise — and the built-in "
+                    + "dialog titled \"Unsaved changes\" unless `.LeaveHeading(…)` says otherwise, its buttons Stay and "
+                    + "Leave unless `.LeaveWords(stay, leave)` does — and the built-in "
                     + "404 and 403 stand in its main.",
                 ])
         ];

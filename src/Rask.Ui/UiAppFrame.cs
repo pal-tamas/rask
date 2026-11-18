@@ -91,6 +91,28 @@ public sealed partial class UiAppFrame : Component
     /// </summary>
     public string? LeaveHeading { get; set; }
 
+    // The leave dialog's two buttons, as LeaveWords said them; the catalog's when unset.
+    internal string? LeaveStay { get; set; }
+
+    internal string? LeaveLeave { get; set; }
+
+    /// <summary>
+    ///     The words of the buttons of the dialog that asks before unsaved changes are left
+    ///     (<see cref="UiConfirmLeave.Stay" /> and <see cref="UiConfirmLeave.Leave" />): <c>.LeaveWords(stay: "Nem", leave: "Igen")</c>.
+    ///     Unset, the catalog's <c>ConfirmLeaveStay</c> and <c>ConfirmLeaveLeave</c>: "Stay" and "Leave".
+    /// </summary>
+    /// <param name="stay">The button that keeps the reader on the page.</param>
+    /// <param name="leave">The button that leaves, dropping what was typed.</param>
+    /// <returns>This frame.</returns>
+    public UiAppFrame LeaveWords(string stay, string leave)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stay);
+        ArgumentException.ThrowIfNullOrWhiteSpace(leave);
+        LeaveStay = stay;
+        LeaveLeave = leave;
+        return this;
+    }
+
     /// <inheritdoc />
     protected override bool BypassRenderCache => true;
 
@@ -130,7 +152,7 @@ public sealed partial class UiAppFrame : Component
             ],
             Ui.Main[parts.Where(part => part is not UiSidebarNav)],
             Ui.Toast,
-            Ui.ConfirmLeave.Heading(LeaveHeading ?? RaskStrings.Get(RaskString.ConfirmLeaveHeading, "Unsaved changes")),
+            Ui.ConfirmLeave.Heading(LeaveHeading ?? RaskStrings.Get(RaskString.ConfirmLeaveHeading, "Unsaved changes")).Stay(LeaveStay).Leave(LeaveLeave),
             Ui.Confirm
         ];
     }

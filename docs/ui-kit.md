@@ -1143,7 +1143,9 @@ public sealed partial class Layout : Component
   `Ui.FormButtons` Cancel goes back the same way.
 - **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
   `Ui.MenuItem.Href(url).SignOut()`. The unsaved-changes dialog is titled "Unsaved changes" (the catalog's
-  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it.
+  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it,
+  and `.LeaveWords(stay: "Nem", leave: "Igen")` its two buttons (the catalog's `ConfirmLeaveStay` / `ConfirmLeaveLeave`
+  otherwise: Stay and Leave, Maradok and Elhagyom).
 - **The tenant line** has the id `ui-app-frame-tenant`, for a test or the app's stylesheet.
 - **The look is shared:** the zinc ground and edges are the kit's; an app's own is its accent (`--color-accent` in its
   stylesheet, [Re-skinning](#re-skinning)) and its `Logo(url)`. It works the same on Server and WebAssembly; a

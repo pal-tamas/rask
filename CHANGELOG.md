@@ -8,6 +8,10 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.AppFrame.LeaveWords(stay, leave)` words the unsaved-changes dialog's two buttons (#1364).** Before: the frame
+  mounted `Ui.ConfirmLeave` with the catalog's Stay / Leave (Maradok / Elhagyom), so an app whose leave dialog says
+  Nem / Igen kept a layout of its own. After: `Ui.AppFrame.Brand("PPTA").LeaveWords(stay: "Nem", leave: "Igen")` —
+  the mounted dialog's existing `Stay` / `Leave`; unset, the catalog's words as before.
 - **`Ui.FormButtons`' Cancel returns to the list as the reader left it (#1357).** Before: Cancel went to the bare
   `Back(…)` route, so a reader who had filtered, sorted and paged a list landed on its first page unfiltered, and an app
   kept a `ListAddresses` of its own for every Cancel; only `Ui.AppFrame`'s breadcrumb went back as left. After: no new
