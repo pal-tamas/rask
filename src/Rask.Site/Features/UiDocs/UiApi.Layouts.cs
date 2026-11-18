@@ -16,7 +16,7 @@ internal static partial class UiApi
         ]);
 
     private static readonly UiApiPart MainPart =
-        new("Ui.Main", typeof(UiMain), "flux:main", "The page's content, beside the sidebar and under the header. A <div>: put a <main> inside it.",
+        new("Ui.Main", typeof(UiMain), "flux:main", "The page's content, beside the sidebar and under the header, and its <main> landmark (Flux writes a <div>).",
         [
             new("Inset", typeof(bool?), "A bordered, rounded panel with a gutter round it; from lg up the layout fills the viewport and the panel scrolls."),
             new("Container", typeof(bool?), "Holds the content to the container width, centred: inside the panel, when inset."),

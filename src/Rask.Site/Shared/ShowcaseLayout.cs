@@ -93,9 +93,9 @@ public sealed partial class ShowcaseLayout(RouteState route, IEnumerable<Showcas
                     BuildSections()
                 ]
             ],
+            // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
             Ui.Main.Class("min-w-0 px-3! py-4! pb-[calc(2rem_+_env(safe-area-inset-bottom))]! md:px-5!")[
-                // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
-                Main.Class("page-main mx-auto max-w-[1280px] page-main-inner")[Outlet]
+                Div.Class("page-main mx-auto max-w-[1280px] page-main-inner")[Outlet]
             ]
         ],
         // Once, for every page under this layout: where a form's ConfirmLeave and an action's .Confirm("…") ask, in

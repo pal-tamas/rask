@@ -103,12 +103,10 @@ public sealed partial class DashboardLayout(
             Ui.Spacer,
             Ui.Navbar[Ui.NavbarItem.Href("https://rask.sh/docs/")["Docs"]]
         ],
+        // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
         Ui.Main[
-            // The landmark: where a screen reader jumps to, and where focus goes after a navigation.
-            Main[
-                UnsecuredWarning(),
-                Outlet
-            ]
+            UnsecuredWarning(),
+            Outlet
         ],
         // Where a page's Toast.Success("Evicted …") shows: the console is a mounted app with its own
         // document, so the host places none for it.

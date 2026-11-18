@@ -267,6 +267,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **`Ui.Main` is the page's `<main>` landmark (#1373).** Before: it rendered `<div data-ui-main>`, as Flux's
+  `flux:main` does, so a page on the kit — `Ui.AppFrame` included — had no main landmark for a screen reader's
+  landmark list or a skip link unless the app put a `Main` inside it. After: `<main data-ui-main>` in every shape
+  (inset, container), drawn exactly as before, and the one Rask focuses after a navigation; `Ui.AppFrame` adds no other.
+  An app that wrote `Ui.Main[Main[Outlet]]` drops the inner `Main` (`Ui.Main[Outlet]`), or the page has two.
 - **No test can sign the others out of `RaskSite`'s shared sign-in (#1355).** Before: `SignedIn(name, fresh: true)`
   replaced the sign-in every later `SignedIn(name)` started from, so a test that signed in fresh and signed out left
   the rest of the run on a dead session, starting signed out — TA signed in through its own `Context()` to get round

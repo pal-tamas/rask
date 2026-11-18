@@ -140,7 +140,9 @@ public sealed partial class ParityComparer(string slug, bool layout, IReadOnlySe
     // …and a Flux part, by its marker, that needs script to do what a native element does alone: a <label>
     // opens the file input inside it when clicked, where Flux's <div> calls input.click().
     // A toggle is a <ui-switch> too, by another marker: a real <button role="switch">, which Space and Enter press.
-    private static readonly Dictionary<string, string> NativePart = new(StringComparer.Ordinal) { ["input-file"] = "label", ["toggle"] = "button" };
+    // `main`: Flux's flux:main is a <div> and the page has no landmark; the kit's is the <main> (owner-approved
+    // departure, #1373), which the browser draws exactly as a <div>.
+    private static readonly Dictionary<string, string> NativePart = new(StringComparer.Ordinal) { ["input-file"] = "label", ["toggle"] = "button", ["main"] = "main" };
 
     // …and a part whose native control IS the component on the Rask side: Flux hides an <input type="range"> in
     // each slider thumb for the keyboard and moves the thumb by script; Rask.Ui lays that input, invisible,

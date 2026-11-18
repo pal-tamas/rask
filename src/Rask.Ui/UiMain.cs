@@ -7,7 +7,9 @@ namespace Rask;
 /// top, <see cref="UiSidebar" /> down the side, this in what is left. Keep the three direct siblings.
 /// </para>
 /// <para>
-/// A <c>&lt;div&gt;</c>, as Flux writes it. Put a <c>&lt;main&gt;</c> inside for the landmark Rask focuses after a navigation.
+/// The page's <c>&lt;main&gt;</c> landmark, where a screen reader jumps to and where Rask puts focus after a navigation.
+/// Flux writes a <c>&lt;div&gt;</c> and leaves its pages with no landmark; the kit departs there (#1373), and the browser
+/// draws the two alike. It is the one <c>&lt;main&gt;</c> of the page: put none inside it.
 /// </para>
 /// </remarks>
 public sealed partial class UiMain : Component
@@ -31,14 +33,14 @@ public sealed partial class UiMain : Component
     /// <inheritdoc />
     protected override Component? Render() => (Inset == true, Container == true) switch
     {
-        (true, true) => Div.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
+        (true, true) => Main.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
             Div.Class("mx-auto [:where(&)]:max-w-7xl")[Children ?? []]
         ],
-        (true, false) => Div.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
+        (true, false) => Main.Class(Panel, Class).Attributes(("data-ui-main", ""), ("data-inset", ""))[
             Children ?? []
         ],
-        (false, true) => Div.Class("[:where(&)]:mx-auto [:where(&)]:w-full [:where(&)]:p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class)
+        (false, true) => Main.Class("[:where(&)]:mx-auto [:where(&)]:w-full [:where(&)]:p-6 lg:p-8 [grid-area:main] [:where(&)]:max-w-7xl", Class)
             .Attributes(("data-ui-main", ""))[Children ?? []],
-        _ => Div.Class("[:where(&)]:p-6 lg:p-8 [grid-area:main]", Class).Attributes(("data-ui-main", ""))[Children ?? []],
+        _ => Main.Class("[:where(&)]:p-6 lg:p-8 [grid-area:main]", Class).Attributes(("data-ui-main", ""))[Children ?? []],
     };
 }

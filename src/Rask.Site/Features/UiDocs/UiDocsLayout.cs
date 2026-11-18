@@ -33,7 +33,7 @@ public sealed partial class UiDocsLayout : Component
                 Ui.Navlist.Class("min-h-0 flex-1 gap-6 overflow-y-auto overscroll-contain pb-8")[Groups()]
             ],
             Ui.Main.Class("min-w-0 px-4! py-6! pb-[calc(3rem_+_env(safe-area-inset-bottom))]! md:px-10!")[
-                Main.Class("page-main mx-auto max-w-[920px]")[Outlet]
+                Div.Class("page-main mx-auto max-w-[920px]")[Outlet]
             ]
         ],
         // Once, for every page of the tab: where an action's .Confirm("…") asks, and where a form's

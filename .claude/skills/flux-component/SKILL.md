@@ -237,6 +237,11 @@ departure in behaviour carries none.
   takes `aria-labelledby` the heading. A modal without them renders as before, so `flux parity-modal`'s Flux-shaped
   examples are untouched. `Translations` rows `flux:modal/Heading` and `flux:modal/Text`; `UiModalTests`, the site's
   dialog-buttons E2E.
+- **2026-11-18 — `Ui.Main` is the `<main>` landmark (#1373).** Flux's `flux:main` is a `<div data-flux-main>` (measured
+  on fluxui.dev's account-overview and settings demos), and no Flux demo has a `<main>` or `role="main"` anywhere, so a
+  page built on it has no landmark for a screen reader or a skip link. The kit's is `<main data-ui-main>` in every shape
+  (inset, container); a `<main>` draws as a `<div>`, so nothing visible changes. Never put another `Main` inside it.
+  `ParityComparer.NativePart` pairs the marker `main` with the tag; `UiHeaderTests`, `UiAppFrameTests` (one landmark).
 
 - **2026-11-06 — `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` (TA + Eszaf `Picker`/`PickerMany`/`MultiPicker`).** Flux's
   select is handed options the page writes. The kit also takes `Ui.Choice<T>(Value, Name, Detail)` rows: options in the

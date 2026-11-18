@@ -19,8 +19,8 @@ internal sealed partial class UiHeaderBehaviour : Component
             UiDocsTopic.Key("inset").Heading("The inset main").Paragraphs([
                 "`Ui.Main.Inset(true)` draws the content on a bordered, rounded panel with a gutter round it. From "
                 + "`lg` up the grid fills the viewport (`100dvh`) and the panel scrolls inside itself; below it the "
-                + "panel is the full width and the page scrolls. `Ui.Main` is a `<div>`, as Flux writes it: put a "
-                + "`<main>` inside it (`Ui.Main[Main[Outlet]]`) for the landmark Rask focuses after a navigation.",
+                + "panel is the full width and the page scrolls. `Ui.Main` is the page's `<main>` landmark (Flux "
+                + "writes a `<div>`), where focus goes after a navigation: write `Ui.Main[Outlet]`, with no `<main>` inside.",
             ]),
             UiDocsTopic.Key("phone").Heading("On a phone").Paragraphs([
                 "Below `lg` the header's navbar is hidden (`max-lg:hidden`, your class) and its links are a "

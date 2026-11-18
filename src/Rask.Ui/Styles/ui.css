@@ -1381,7 +1381,7 @@
     border-bottom-width: 1px;
   }
 
-  :where([data-rask-ui-document]) [data-ui-main] > main > * + * {
+  :where([data-rask-ui-document]) [data-ui-main] > * + * {
     margin-top: calc(var(--spacing) * 6);
   }
 

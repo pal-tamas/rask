@@ -1414,8 +1414,8 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   ALL THREE TEMPLATES (`server`, `wasm`, `wasm-hosted`) DRAW THE SAME STARTER with the kit's Flux components.
   The sign-in pages (`/login`, `/register`, recovery) are SCAFFOLDED by `rask new` into `Features/Auth/` as ordinary app components, drawn with the kit's Flux components;
   `Rask.Auth` ships no pages and no stylesheet.
-  APPLICATION LAYOUT (Flux UI's two layouts, fluxui.dev/layouts/header and /layouts/sidebar, part for part): `Ui.Header`, `Ui.Sidebar` and `Ui.Main` are SIBLINGS — `[Ui.Sidebar.Sticky().Collapsible(Ui.SidebarCollapsible.Always)[Ui.SidebarHeader[Ui.SidebarBrand.Name("Acme").Href(url), Ui.SidebarCollapse], Ui.SidebarSearch.Placeholder("Search..."), Ui.SidebarNav[Ui.SidebarItem.Icon(Ui.IconName.Home).Href(url)["Home"], Ui.SidebarGroup.Expandable().Heading("Favorites")[...]], Ui.SidebarSpacer, Ui.SidebarProfile.Name("Olivia")], Ui.Header[Ui.SidebarToggle, Ui.Spacer], Ui.Main[Main[Outlet]]]` (`Ui.Main` is Flux's `<div>`;
-  the `<main>` landmark goes inside;
+  APPLICATION LAYOUT (Flux UI's two layouts, fluxui.dev/layouts/header and /layouts/sidebar, part for part): `Ui.Header`, `Ui.Sidebar` and `Ui.Main` are SIBLINGS — `[Ui.Sidebar.Sticky().Collapsible(Ui.SidebarCollapsible.Always)[Ui.SidebarHeader[Ui.SidebarBrand.Name("Acme").Href(url), Ui.SidebarCollapse], Ui.SidebarSearch.Placeholder("Search..."), Ui.SidebarNav[Ui.SidebarItem.Icon(Ui.IconName.Home).Href(url)["Home"], Ui.SidebarGroup.Expandable().Heading("Favorites")[...]], Ui.SidebarSpacer, Ui.SidebarProfile.Name("Olivia")], Ui.Header[Ui.SidebarToggle, Ui.Spacer], Ui.Main[Outlet]]` (`Ui.Main` IS the page's `<main>` landmark, #1373 — Flux writes a `<div>`;
+  never put a `Main` inside it;
   one sidebar a page) — and whatever holds the `Ui.Main` (the body, or a wrapper) is the layout grid;
   a header written before the sidebar runs above it, after it sits beside it.
   `Collapsible`: `Never` (default) · `Mobile` (slides over the page below `Breakpoint`, default `Lg`) · `Always` (also narrows to a 56px rail of icons).

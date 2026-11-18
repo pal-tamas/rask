@@ -37,13 +37,29 @@ public partial class UiHeaderTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
-    public void Main_is_the_element_Flux_writes_and_takes_the_main_area()
+    public void Main_is_the_pages_main_landmark_and_takes_the_main_area()
     {
         var html = Ui.Main[Span["x"]].ToHtml();
 
-        Assert.StartsWith("<div", html, StringComparison.Ordinal);
+        Assert.StartsWith("<main ", html, StringComparison.Ordinal);
+        Assert.EndsWith("</main>", html, StringComparison.Ordinal);
         Assert.Contains("[grid-area:main]", html, StringComparison.Ordinal);
         Assert.Contains("data-ui-main", html, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Every_shape_of_main_is_one_main_element(bool inset, bool container)
+    {
+        var main = Ui.Main.Inset(inset).Container(container)[Span["x"]];
+
+        var html = main.ToHtml();
+
+        Assert.StartsWith("<main ", html, StringComparison.Ordinal);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "<main[\\s>]"));
     }
 
     [Fact]

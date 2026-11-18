@@ -1158,9 +1158,13 @@ protected override Component? Render() =>
         Ui.SidebarProfile.Avatar("/me.png").Name("Mara Lind")
     ],
     Ui.Header.Class("lg:hidden")[Ui.SidebarToggle.Inset(Ui.Position.Left), Ui.Spacer],
-    Ui.Main[Main[Outlet]]
+    Ui.Main[Outlet]
 ];
 ```
+
+`Ui.Main` is the page's `<main>` landmark (`<main data-ui-main>`), where a screen reader's "skip to main" lands and
+where Rask puts focus after a navigation. Flux writes a `<div>` there; the kit departs (#1373), and the two draw alike.
+It is the page's one `<main>`: put the outlet straight in it, never a `Main` of your own inside.
 
 A WebAssembly app adds `Ui.SidebarScript` to its `HeadAssets` beside `Ui.AppearanceScript`, so a remembered rail is
 drawn narrow from the first paint. One sidebar a page: its controls find it by fixed ids. Inside a sidebar the list

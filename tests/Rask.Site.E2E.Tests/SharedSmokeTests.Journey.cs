@@ -375,7 +375,7 @@ public abstract partial class SharedSmokeTests
         // Forward navigation moves focus into the new page's <main> and announces the route via the
         // aria-live region, so keyboard/screen-reader users continue from the new page (not the stale
         // nav link) and hear the change — on both hosts (rask-route-focus.ts).
-        await Expect(Page.Locator("main.page-main")).ToBeFocusedAsync(
+        await Expect(Page.Locator("main[data-ui-main]")).ToBeFocusedAsync(
             new LocatorAssertionsToBeFocusedOptions { Timeout = 5_000 });
         await Expect(Page.Locator(".rask-route-announcer")).Not.ToBeEmptyAsync(
             new LocatorAssertionsToBeEmptyOptions { Timeout = 3_000 });

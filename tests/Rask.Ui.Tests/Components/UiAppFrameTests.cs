@@ -148,6 +148,20 @@ public sealed partial class UiAppFrameTests
     }
 
     [Fact]
+    public void The_frames_page_has_one_main_landmark_and_it_is_the_main_that_holds_the_page()
+    {
+        var page = Page.Visit("/ui-app-frame/drivers");
+
+        var mains = page.FindAll("main");
+        var roles = page.FindAll("[role=\"main\"]");
+
+        var main = Assert.Single(mains);
+        Assert.Empty(roles);
+        Assert.True(main.Attributes.ContainsKey("data-ui-main"));
+        Assert.Equal("Drivers list", page.TextOf("main #page"));
+    }
+
+    [Fact]
     public void A_list_page_lights_its_row_and_ends_the_trail_in_its_title()
     {
         var page = Page.Visit("/ui-app-frame/drivers");
