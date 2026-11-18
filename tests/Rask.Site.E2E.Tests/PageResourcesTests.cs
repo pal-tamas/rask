@@ -32,6 +32,20 @@ public sealed class PageResourcesTests(WasmExampleAppFixture app, PlaywrightFixt
     public Task A_page_loads_every_resource_it_asks_for(string path, int width, int height) => RunAsync(async () =>
     {
         var misses = new List<string>();
+        var open = new HashSet<IRequest>();
+        Page.Request += (_, req) =>
+        {
+            // A stream stays open by design; it is never "loaded", so it is not waited for.
+            if (req.ResourceType is not ("eventsource" or "websocket"))
+            {
+                lock (open)
+                {
+                    open.Add(req);
+                }
+            }
+        };
+        Page.RequestFinished += (_, req) => { lock (open) { open.Remove(req); } };
+        Page.RequestFailed += (_, req) => { lock (open) { open.Remove(req); } };
         Page.Response += (_, res) =>
         {
             if (res.Status >= 400)
@@ -57,7 +71,26 @@ public sealed class PageResourcesTests(WasmExampleAppFixture app, PlaywrightFixt
 
         await Page.GotoAsync(BaseUrl + path);
         await WaitForInteractiveAsync();
-        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForLoadStateAsync(LoadState.Load);
+        // Every request the page started has answered — not "the network fell silent", which a page that polls or keeps a
+        // live connection (the app frame's work board) never does.
+        var until = DateTime.UtcNow.AddSeconds(20);
+        while (true)
+        {
+            string[] waiting;
+            lock (open)
+            {
+                waiting = [.. open.Select(r => r.Url)];
+            }
+
+            if (waiting.Length == 0)
+            {
+                break;
+            }
+
+            Assert.True(DateTime.UtcNow < until, $"{path} still waits on: " + string.Join(", ", waiting));
+            await Task.Delay(100, TestContext.Current.CancellationToken);
+        }
 
         lock (misses)
         {
