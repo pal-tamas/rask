@@ -163,7 +163,11 @@ Div.Class("panel")[                          // an element: bare
   element: `Ui.` (the [kit](ui-kit.md)), `Trigger.` (the browser-capability wrappers), and `Validation.` (a
   form's feedback).
 - **When a member of your own takes an element's name** — a `Footer` property, a `Label` — the member wins
-  inside that component, and `Markup.Footer` still reaches the element.
+  inside that component, and `Markup.Footer` still reaches the element. The same holds for a step the
+  generator writes for a small enum's value: `Ui.TableColumn.Code` (the `Code` column width) and `Ui.Button.Div`
+  work from any component and are members of their sealed component, which reaches the element itself as
+  `Markup.Code`/`Markup.Div`. A component that writes the element bare, or one that isn't sealed, keeps the step
+  as an extension. Inside a component that one is hidden, so you write the setter instead: `.Width(ColumnWidth.Code)`.
 - **Element types are MDN's, in `Rask.Core`** — `HTMLParagraphElement`, `SVGCircleElement` — so a signature names
   one with no import, and no type is named like an entry. Don't import `Rask.Core.Components` beside
   `using static Rask.Markup`, though: it holds the primitives' types (`Text`, `Raw`, `NavLink`), and a bare `Text(…)`

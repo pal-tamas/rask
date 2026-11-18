@@ -309,7 +309,9 @@ public sealed partial class ComponentFactoryGenerator
     private static void EmitEnumSteps(
         StringBuilder sb, Candidate c, string self, string visibility, string typeParameters, string constraints)
     {
-        var steps = EnumSteps(OwnSetterProps(c));
+        // A step an inherited element entry would hide is a member of the component instead (EmitEntryShadowedSteps).
+        var shadowed = new HashSet<string>(c.EntryShadowedSteps, StringComparer.Ordinal);
+        var steps = EnumSteps(OwnSetterProps(c)).Where(s => !shadowed.Contains(s.Member)).ToList();
         if (steps.Count == 0)
         {
             return;

@@ -16,8 +16,7 @@ them until tagged releases begin.
 - **`Ui.ColumnWidth.Code` — an 8rem column for an invoice number, a plate, a product code (#1371).** Before: the
   kit's narrowest code width was `Short` (10rem, for a spaced VAT number), so Eszaf sized its codes with a `w-32` of
   its own. After: `Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Invoice"]` — 8rem, "INV-26-0042" shown whole in the
-  kit's 14px text (the site's E2E measures it). The `.Code` step the generator writes is hidden by the `<code>` element
-  every component inherits, so it is reached through `.Width(…)`.
+  kit's 14px text (the site's E2E measures it), or the step itself, `Ui.TableColumn.Code["Invoice"]` (#1377).
 - **`Ui.Facts[Ui.Fact("Label", value), …]` — a summary card's description list (#1363).** Before: Flux has no
   description list, so Eszaf kept a `ViewField.Of(label, value)` of its own (10 sites) — two `Ui.Text`s in a `<div>`,
   in a grid set on the card, with nothing telling a screen reader which line names which. After:
@@ -336,6 +335,15 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **An enum step named like an element is reachable in a component (#1377).** Before: `Ui.TableColumn.Code`,
+  `Ui.Button.Div`, `Ui.TableCell.Strong`, `Ui.Autocomplete.Input` and 61 more steps the chain generator writes for an
+  enum value were CS0176 inside every component and markup host. The `Code`, `Div`, `Strong` or `Input` element entry
+  each one inherits from `RaskMarkup` hid the step, so the call site had to spell out
+  `.Width(Ui.ColumnWidth.Code)`. After: a sealed component writes such a step as a member of its own, which hides the
+  element on that component only. `Ui.TableColumn.Code["Invoice"]` sets the Code width, and `Code["INV-1"]` is still
+  the `<code>` element everywhere else. A component whose own code writes the element bare (or one that isn't sealed)
+  keeps the extension step, so `Div[…]` there can't quietly turn into a step. Inside the component, `Markup.Div`
+  reaches the element.
 - **A paged `Ui.Select`/`Ui.Pillbox` after a keyed field no longer asks its search over and over.** Before: in a
   form with `Ui.Field.Key("company")[Ui.Select…Choices(Company.Find)]` and, after it, an unkeyed field holding a
   second `.Choices((typed, page) => …)` select of the same type, the second picker's chain first ran on the instance

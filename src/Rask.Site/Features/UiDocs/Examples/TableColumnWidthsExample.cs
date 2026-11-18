@@ -19,7 +19,7 @@ public sealed partial class TableColumnWidthsExample : Component
             Ui.TableColumns[
                 Ui.TableColumn.Width(Ui.ColumnWidth.Rest)["Supplier"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Short)["VAT number"],
-                Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Invoice"],
+                Ui.TableColumn.Code["Invoice"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Day)["Delivered"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Number)["Amount"],
                 Ui.TableColumn.Width(Ui.ColumnWidth.Flag)["Paid"],
@@ -27,7 +27,7 @@ public sealed partial class TableColumnWidthsExample : Component
             ],
             Ui.TableRows[
                 _deliveries.Select(delivery => Ui.TableRow.Key(delivery.Vat)[
-                    Ui.TableCell.Variant(Ui.TableCellVariant.Strong).Cut(delivery.Supplier),
+                    Ui.TableCell.Strong.Cut(delivery.Supplier),
                     Ui.TableCell.Cut(delivery.Vat),
                     Ui.TableCell.Cut(delivery.Invoice),
                     Ui.TableCell.Whole()[Format.Day(delivery.Day)],

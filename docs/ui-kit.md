@@ -635,8 +635,7 @@ For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](co
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Code` (an invoice
-number, a plate, never spaced out) 8 — `.Width(Ui.ColumnWidth.Code)`: the `<code>` element every component inherits
-hides the `.Code` step — `Moment` and
+number, a plate, never spaced out) 8, `Moment` and
 `Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` (two icon buttons — a pencil and a bin) 6, `Buttons`
 (three or four, or a worded one) 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than

@@ -110,7 +110,8 @@ public sealed partial class ComponentFactoryGenerator
             EnclosingTypeHeaders(symbol),
             AllEnclosingPartial(symbol),
             ChainGroupOf(symbol, chainEntry ?? symbol.Name),
-            new EquatableArray<TagInfo>(tags));
+            new EquatableArray<TagInfo>(tags),
+            StepsAnEntryShadows(symbol, classDecl, properties, ctx.SemanticModel.Compilation));
     }
 
     /// <summary>

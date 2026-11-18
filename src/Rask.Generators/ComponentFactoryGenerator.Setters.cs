@@ -111,6 +111,8 @@ public sealed partial class ComponentFactoryGenerator
         sb.AppendLine("}");
         spc.AddSource("RaskBuilderSetters.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
 
+        EmitEntryShadowedSteps(spc, candidates, "RaskBuilderSetters" + host.AssemblyName);
+
         if (host.Shared.Count != 0)
         {
             EmitSharedResets(spc, host, sharedBits);
