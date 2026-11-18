@@ -151,7 +151,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </remarks>
     public static Job For(string type, string payload, DateTime runAt, string? lane = null)
     {
-        var userId = Current.UserId;
+        var userId = CurrentUser.Id;
         return new Job
         {
             Type = type,

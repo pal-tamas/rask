@@ -104,7 +104,7 @@ public sealed class JobsFake : IJobs, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, Current.UserId, lane, JobNotice.Pending));
+            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, CurrentUser.Id, lane, JobNotice.Pending));
         }
 
         return Task.CompletedTask;
@@ -125,7 +125,7 @@ public sealed class JobsFake : IJobs, IDisposable
                 }
             }
 
-            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, Current.UserId, lane, JobNotice.Pending));
+            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, CurrentUser.Id, lane, JobNotice.Pending));
         }
 
         return Task.FromResult(true);
@@ -161,7 +161,7 @@ public sealed class JobsFake : IJobs, IDisposable
     private EnqueuedJob RecordRun(IJob job, string? lane)
     {
         ArgumentNullException.ThrowIfNull(job);
-        var run = new EnqueuedJob(job, null, null, Tenant.Key, Current.UserId, lane, JobNotice.Pending) { Ran = true };
+        var run = new EnqueuedJob(job, null, null, Tenant.Key, CurrentUser.Id, lane, JobNotice.Pending) { Ran = true };
         lock (_gate)
         {
             _enqueued.Add(run);

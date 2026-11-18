@@ -1654,7 +1654,7 @@ public sealed class Product : Aggregate<Guid>
 
 | Member | What it answers |
 |---|---|
-| `Current.UserId` | the signed-in user's id (`Guid?`), or `null` when the work is for nobody |
+| `Current.UserId` | the signed-in user's id, or `null` when the work is for nobody — a `Guid?`, or your user's own number ([`int?` / `long?`](#an-app-whose-users-are-numbered)) |
 | `Current.RequiredUserId` | the same, or an `InvalidOperationException` when there is none |
 | `Current.Principal` | the session's or request's `ClaimsPrincipal` — roles, email, any claim |
 | `Current.Claim(type)` | the value of the principal's first `type` claim (`string?`), or `null` when it has none or nobody is signed in |
@@ -1687,6 +1687,46 @@ where a missing row is an answer you handle. It is read-only — to change the u
 
 Inside a component, inject `IUserProvider` as before — it also raises `Changed` so the UI re-renders on sign-in.
 `Current` is for the code that has no constructor to inject into.
+
+### An app whose users are numbered
+
+Users keyed by an `int` or a `long` — an app that kept its own users table long before Rask — need no new line:
+the key on the aggregate that says `IUser` is the declaration, and the build generates `Current.UserId` as that
+number.
+
+```csharp
+public sealed class User : Aggregate<int, PerTenant<int>>, IUser { … }
+```
+
+| Member | With `User : Aggregate<int>, IUser` |
+|---|---|
+| `Current.UserId` | `int?` — the signed-in user's number, or `null` for nobody |
+| `Current.RequiredUserId` | `int`, or an `InvalidOperationException` when nobody is signed in |
+| `Current.UseUser(12)` | a scope that runs the work for user 12 |
+
+Before, the number was read off the principal by hand; now it is the same `Current` every other app reads:
+
+```csharp
+// before
+var me = int.Parse(Current.Principal!.FindFirst("id")!.Value);
+
+// after
+var me = Current.RequiredUserId;
+```
+
+**Set `ClaimTypes.NameIdentifier` to the user's number on every request** — `"12"`, written out — which is where
+`Current.UserId` reads it from, in a live session, an HTTP request and a background job alike. The framework's own
+rows (a job's, a queued mail's, an outbox message's, a push subscription's) keep recording a `Guid`: the number
+travels inside it by the same fixed rule as a [numbered tenant](multi-tenancy.md) — user 12 is
+`00000000-0000-0000-0000-00000000000c` — so a job enqueued by user 12 runs as user 12 and no battery table changes.
+An app whose users are `Guid`s keeps its `Guid?` `Current.UserId`, and reads a numeric claim as nobody.
+
+`Current.User` reads the user's row across tenants: it is found by the user's own key, so an administrator working
+in another tenant (`Tenant.Use(other)`) is still themselves, even when the users table is `PerTenant`.
+
+The generated members live in the global namespace, which C# searches before the namespaces a file imports — so
+they win over Rask.Data's `Guid?` one wherever `using Rask.Data;` sits at the top of the file, the placement every
+Rask template enforces. A `using` written *inside* a namespace is searched first, and binds the `Guid?` one.
 
 ## Multi-tenancy
 

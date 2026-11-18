@@ -196,7 +196,7 @@ internal sealed class AccountAdministration<TUser, TKey>(
     // The signed-in user, read from their row, holds the administrator role — or nothing here runs.
     private static async Task RequireAdministratorAsync(DbContext db, CancellationToken cancellationToken)
     {
-        if (Current.UserId is not { } acting)
+        if (Rask.Data.CurrentUser.Id is not { } acting)
         {
             throw new ForbiddenException(
                 "Managing accounts takes a signed-in administrator, and nobody is signed in.", isAuthenticated: false);

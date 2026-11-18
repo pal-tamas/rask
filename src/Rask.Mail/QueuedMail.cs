@@ -32,7 +32,7 @@ public sealed class QueuedMail : Aggregate<long, Timestamps>
         TextBody = email.TextBody,
         Attachments = MailSerializer.ToJsonOrNull(email.Attachments),
         RunAt = runAt,
-        UserId = Current.UserId,
+        UserId = CurrentUser.Id,
 
         // The tenant this mail was queued for, so the sender re-enters it — a template that reads a
         // tenant-scoped table would otherwise throw, since background work carries no principal.

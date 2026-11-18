@@ -8,6 +8,18 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Current.UserId` is your user's own number, and `Current.TenantId` your tenant's key (#1369).** An app whose
+  user aggregate is keyed by an `int` or a `long` (`User : Aggregate<int>, IUser`) has the build generate
+  `Current.UserId` (`int?`), `Current.RequiredUserId` (`int`) and `Current.UseUser(12)`; the aggregate's key is the
+  declaration, nothing new to write. Before: `int.Parse(Current.Principal!.FindFirst("id")!.Value)`. After:
+  `Current.RequiredUserId`. Set `ClaimTypes.NameIdentifier` to the number (`"12"`) on every request. The aggregate
+  that says `ITenant` gets `Current.TenantId` / `Current.RequiredTenantId` typed by its key (`int`, `long`, `Guid`,
+  `string`) — null, or a throw, with no tenant or inside `Tenant.Across()`; a numbered tenant's claim may hold the
+  number written out. Framework rows (jobs, mail, outbox, push subscriptions) keep a `Guid` that carries the number
+  (user 12 is `…00000000000c`, the numbered-tenant rule), so no migration, and a job enqueued by user 12 runs as user
+  12. `Current.User` now reads the user's row across tenants, so an administrator working in another tenant is still
+  themselves when the users table is `PerTenant`. A `Guid`-keyed app sees no change; the generated members live in the
+  global namespace and win over Rask.Data's `Guid?` one wherever `using Rask.Data;` sits at the top of the file.
 - **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
   always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
   row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.

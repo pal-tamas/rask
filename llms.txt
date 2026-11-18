@@ -1046,6 +1046,7 @@ guide in one file is https://rask.sh/llms-full.txt, and each guide's Markdown is
   read-only and NOT a query (held per tenant, read ahead as each request/live event/job/mail/outbox message starts, dropped on a save of the tenant, 60 s for other servers);
   a deleted tenant throws `MissingTenantException`;
   change it with `var t = await Tenant.Find(Current.RequiredTenant.Id); …; await t.Save();`.
+  `Current.TenantId` / `Current.RequiredTenantId` are the key alone, typed as the tenant aggregate's key (`int?` for `Aggregate<int>`), null / a throw inside `Tenant.Across()`; an `IUser` aggregate keyed by `int` or `long` makes `Current.UserId` / `Current.RequiredUserId` / `Current.UseUser(12)` that number (NameIdentifier claim = `"12"`; battery rows keep the Guid carrying it, no migration);
   Key: Guid, int, long or a string holding a Guid, agreeing with the PerTenant tables' `TenantId` (RASK114);
   two ITenant = RASK113;
   PerTenant tables with no ITenant warn RASK115.

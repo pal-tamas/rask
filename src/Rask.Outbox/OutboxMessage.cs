@@ -106,7 +106,7 @@ public sealed class OutboxMessage : Aggregate<long, Updated>
             Payload = payload,
             Handler = handler,
             OccurredAt = occurredAt,
-            UserId = Current.UserId,
+            UserId = CurrentUser.Id,
             TenantId = Tenant.Key,
         };
     }

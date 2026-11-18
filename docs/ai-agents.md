@@ -36,7 +36,9 @@ the user aggregate says `IUser` (`Authenticatable` already does), are typed as t
 (`TenantRead`, `UserRead`), are read-only, and cost no query — the framework reads them ahead of each request, live
 event and job. `Current.Tenant` is no longer a `Guid`: compare `Current.Tenant?.Id`, and to change the tenant load
 the aggregate (`await Tenant.Find(Current.RequiredTenant.Id)`) and save it. See
-[your tenant row](multi-tenancy.md#your-tenant-row-currenttenant).
+[your tenant row](multi-tenancy.md#your-tenant-row-currenttenant). For the ids alone, read `Current.UserId` and
+`Current.TenantId` — typed as the aggregate's key, so an app whose users are `int`s gets an `int?` — never
+`int.Parse` a claim by hand ([numbered users](data.md#an-app-whose-users-are-numbered)).
 
 An administrator (a user of no tenant) who switches partner calls `await auth.ActInTenant(id, returnUrl)` —
 never a hand-written "chosen partner" cookie or `GET /partner/{id}` endpoint. The choice lives on the sign-in's

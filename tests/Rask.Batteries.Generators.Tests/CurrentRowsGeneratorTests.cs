@@ -101,6 +101,121 @@ public class CurrentRowsGeneratorTests
             run.GeneratedSource("__RaskCurrentUser"), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("int")]
+    [InlineData("long")]
+    public void A_user_keyed_by_a_number_reads_Current_UserId_as_that_number(string key)
+    {
+        var source = $$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public sealed class User : Aggregate<{{key}}>, IUser
+                {
+                    public string Email { get; private set; } = "";
+                }
+
+                public static class Reads
+                {
+                    public static {{key}}? Id() => Rask.Current.UserId;
+                    public static {{key}} Required() => Rask.Current.RequiredUserId;
+                    public static System.IDisposable AsUser() => Rask.Current.UseUser(12);
+                    public static System.IDisposable AsNobody() => Rask.Current.UseUser(null);
+                }
+            }
+            """;
+
+        var run = Run(source);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        var generated = run.GeneratedSource("__RaskCurrentUserId");
+        Assert.Contains($"public static {key}? UserId => global::Rask.Data.CurrentRows.UserId<{key}>();", generated, StringComparison.Ordinal);
+        Assert.Contains($"UseUser({key}? userId) => global::Rask.Data.CurrentRows.WorkFor<{key}>(userId);", generated, StringComparison.Ordinal);
+        Assert.Contains("public static class RaskCurrentUserId", generated, StringComparison.Ordinal);
+    }
+
+    // The binding the generated Current.UserId stands on: emitted into the global namespace, it is found before the
+    // Guid? one Rask.Data's import brings, wherever that import sits outside the namespace — and a Guid still finds
+    // Rask.Data's UseUser.
+    [Theory]
+    [InlineData("using Rask.Data;\nnamespace Shop;\n")]
+    [InlineData("global using Rask.Data;\nnamespace Shop.Features.Orders;\n")]
+    [InlineData("using Rask.Data;\n")]
+    public void The_generated_number_beats_the_Guid_Current_UserId_a_using_imports(string head)
+    {
+        var source = head + """
+            public sealed class User : Aggregate<int>, IUser { }
+
+            public static class Reads
+            {
+                public static int? Id() => Rask.Current.UserId;
+                public static int Required() => Rask.Current.RequiredUserId;
+                public static System.IDisposable AsGuid() => Rask.Current.UseUser(System.Guid.NewGuid());
+            }
+            """;
+
+        var run = Run(source);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+    }
+
+    [Theory]
+    [InlineData("System.Guid")]
+    [InlineData("string")]
+    public void A_user_keyed_by_a_Guid_keeps_the_Guid_Current_UserId_and_gets_nothing_new(string key)
+    {
+        var run = Run($$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public sealed class User : Aggregate<{{key}}>, IUser { }
+
+                public static class Reads
+                {
+                    public static System.Guid? Id() => Rask.Current.UserId;
+                }
+            }
+            """);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.True(run.HasGeneratedSource("__RaskCurrentUser"));
+        Assert.False(run.HasGeneratedSource("__RaskCurrentUserId"));
+    }
+
+    [Theory]
+    [InlineData("int")]
+    [InlineData("long")]
+    [InlineData("System.Guid")]
+    [InlineData("string")]
+    public void A_tenant_of_each_key_type_reads_Current_TenantId_as_its_key(string key)
+    {
+        var source = $$"""
+            using Rask.Data;
+
+            namespace Shop
+            {
+                public sealed class Tenant : Aggregate<{{key}}>, ITenant { }
+
+                public static class Reads
+                {
+                    public static {{key}}? Id() => Rask.Current.TenantId;
+                    public static {{key}} Required() => Rask.Current.RequiredTenantId;
+                }
+            }
+            """;
+
+        var run = Run(source);
+
+        Assert.Empty(run.Diagnostics);
+        Assert.Empty(run.GeneratedCompileErrors());
+        Assert.Contains("public static class RaskCurrentTenantId", run.GeneratedSource("__RaskCurrentTenantId"), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Two_users_are_RASK113_and_generate_nothing()
     {

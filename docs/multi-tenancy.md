@@ -328,6 +328,21 @@ if (Current.Tenant is { } tenant) title = tenant.Name;   // null when the work b
 | `Current.Tenant` | the tenant's read face (`TenantRead?`), or `null` with no tenant, inside `Tenant.Across()` or `Tenant.None()` |
 | `Current.RequiredTenant` | the same row, or an `InvalidOperationException` when there is no tenant |
 | `Current.Tenant.Id` | your key, in its own type — `int` here; a `Guid`, a `long` or a `string` elsewhere |
+| `Current.TenantId` | the same key without reading the row (`int?` here), or `null` with no tenant, inside `Tenant.Across()` or `Tenant.None()` |
+| `Current.RequiredTenantId` | the same key, or an `InvalidOperationException` with no tenant or inside `Tenant.Across()` |
+
+`Current.TenantId` is what to read instead of the tenant claim by hand:
+
+```csharp
+// before
+var tenant = int.Parse(Current.Claim(Tenant.ClaimType)!);
+
+// after
+var tenant = Current.RequiredTenantId;
+```
+
+A numbered tenant's claim may hold the number written out (`"12"`) or the `Guid` that carries it; both name
+tenant 12.
 
 The build generates both from the `ITenant` declaration. Its key is a `Guid`, an `int`, a `long`, or a `string`
 holding a `Guid` ([kept as text](#tenants-kept-as-text)), and it must be the key your `PerTenant` tables keep in

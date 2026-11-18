@@ -24,8 +24,8 @@ internal sealed class PrincipalClaims
 
     private PrincipalClaims(ClaimsPrincipal principal)
     {
-        UserId = Parsed(principal, ClaimTypes.NameIdentifier);
-        Tenant = Parsed(principal, Data.Tenant.ClaimType);
+        UserId = CurrentUser.FromClaim(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        Tenant = CurrentUser.FromClaim(principal.FindFirst(Data.Tenant.ClaimType)?.Value, CurrentRows.NumberedTenant);
     }
 
     /// <summary>The user the principal names.</summary>
@@ -37,7 +37,4 @@ internal sealed class PrincipalClaims
     /// <summary>The claims of the principal <paramref name="scope" /> holds, or null when it holds none.</summary>
     internal static PrincipalClaims? In(IServiceProvider? scope) =>
         Db.PrincipalIn(scope) is { } principal ? Read.GetValue(principal, static p => new PrincipalClaims(p)) : null;
-
-    private static Guid? Parsed(ClaimsPrincipal principal, string claimType) =>
-        Guid.TryParse(principal.FindFirst(claimType)?.Value, out var id) ? id : null;
 }
