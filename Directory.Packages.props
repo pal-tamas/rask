@@ -10,7 +10,7 @@
     <PackageVersion Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageVersion Include="CliWrap" Version="3.10.5" />
     <PackageVersion Include="ColorCode.HTML" Version="2.0.15" />
-    <PackageVersion Include="coverlet.collector" Version="10.1.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.1.1" />
     <PackageVersion Include="FluentValidation" Version="12.2.0" />
     <PackageVersion Include="Jint" Version="4.17.0" />
     <PackageVersion Include="MailKit" Version="5.0.0" />
@@ -47,7 +47,7 @@
     <PackageVersion Include="Microsoft.Extensions.Validation" Version="11.0.0" />
     <PackageVersion Include="Microsoft.JSInterop" Version="11.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
-    <PackageVersion Include="Microsoft.Playwright" Version="1.64.1" />
+    <PackageVersion Include="Microsoft.Playwright" Version="1.65.0" />
     <PackageVersion Include="MinVer" Version="8.0.0" />
     <!-- Rask.Postgres. Npgsql versions on its own line (11.0.x tracks EF Core 11 but not its patch numbers), so it
          is deliberately outside the Microsoft platform-stack family the pin tests hold to one version.
