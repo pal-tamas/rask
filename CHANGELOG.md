@@ -336,6 +336,18 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A paged `Ui.Select`/`Ui.Pillbox` after a keyed field no longer asks its search over and over.** Before: in a
+  form with `Ui.Field.Key("company")[Ui.Select…Choices(Company.Find)]` and, after it, an unkeyed field holding a
+  second `.Choices((typed, page) => …)` select of the same type, the second picker's chain first ran on the instance
+  the keyed field's picker then claimed back, and kept that picker's search as its own last one — so it took its
+  own for a new search, asked it again, and every answer asked again: the socket never fell quiet, and the form was
+  too busy to show why a save was refused (Eszaf's vehicle and company forms). After: an instance a key hands the
+  step on from goes back to what it held, and each picker asks once.
+- **A dialog that opens in the frame that brings its form focuses the form's `autofocus` field.** Before: an editor
+  dialog the address opens (`Ui.EditorDialog`, `?edit=new`) whose form was drawn in that same frame opened on
+  `Ui.Modal`'s focus placeholder, so its first field was not focused — while the same form arriving a moment after
+  its dialog opened was. After: a field that arrived in a closed dialog takes focus when that frame opens it; a
+  field that was there before still leaves focus on the placeholder.
 - **`Ui.Main` is the page's `<main>` landmark (#1373).** Before: it rendered `<div data-ui-main>`, as Flux's
   `flux:main` does, so a page on the kit — `Ui.AppFrame` included — had no main landmark for a screen reader's
   landmark list or a skip link unless the app put a `Main` inside it. After: `<main data-ui-main>` in every shape

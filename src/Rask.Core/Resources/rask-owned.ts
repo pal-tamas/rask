@@ -76,6 +76,11 @@ interface Seam {
     untold?: WeakSet<Element>;
     /** The last scroll to a row each virtual list's box carried out (`data-rask-virtual-to`). Set by rask-virtual.ts. */
     virtualDone?: WeakMap<Element, number>;
+    /**
+     * Focuses the `[autofocus]` field the last frame brought into `dialog` while it was closed, now that it opened.
+     * Set by the runtime (rask-autofocus.ts `focusOpened`), asked by the hooks bundle's open (rask-overlay.ts).
+     */
+    focusOpened?: (dialog: Element) => void;
 }
 
 /**

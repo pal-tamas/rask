@@ -243,6 +243,18 @@ public sealed class AutofocusJourneyTests(PlaywrightFixture playwright) : IClass
         Assert.Equal("placeholder", opened);
         await Expect(page.Locator("#modal-extra")).ToBeFocusedAsync();
     }
+
+    [Fact]
+    public async Task A_modal_that_opens_in_the_frame_that_brings_its_form_focuses_the_forms_autofocus_field()
+    {
+        var (session, _) = await OpenAsync("/desk/list", "Entries");
+        await using var disposal = session;
+        var page = session.Page;
+
+        await page.ClickAsync("#open-fresh-modal");
+
+        await Expect(page.Locator("#fresh-field")).ToBeFocusedAsync();
+    }
 }
 
 /// <summary>A desk: a layout with a field of its own, and pages with and without an <c>autofocus</c> field.</summary>
@@ -276,6 +288,7 @@ public sealed partial class DeskListPage : Component
     private bool _section;
     private bool _modal;
     private bool _more;
+    private bool _fresh;
 
     protected override string? PageTitle => "Entries";
 
@@ -294,6 +307,7 @@ public sealed partial class DeskListPage : Component
         Span.Id("bumped")[$"bumped={_bumped}"],
         Button.Id("show-section").OnClick(() => _section = true)["show"],
         Button.Id("open-modal").OnClick(() => _modal = true)["open"],
+        Button.Id("open-fresh-modal").OnClick(() => _fresh = true)["open fresh"],
         Table[
             Tbody[
                 Enumerable.Range(1, _rows).Select(n => (Component)Tr.Key(n)[Td[Input.Value(string.Empty).Id($"row-{n}").Autofocus(true)]]).ToArray()
@@ -304,6 +318,10 @@ public sealed partial class DeskListPage : Component
             Input.Value(string.Empty).Id("modal-first").Autofocus(true),
             Button.Id("modal-more").OnClick(() => _more = true)["more"],
             Div.Id("modal-slot")[_more ? Input.Value(string.Empty).Id("modal-extra").Autofocus(true) : null]
+        ],
+        // An editor dialog the address opens: its form is drawn in the frame that opens it, never before.
+        Ui.Modal.Open(_fresh).OnClose(() => _fresh = false)[
+            _fresh ? Input.Value(string.Empty).Id("fresh-field").Autofocus(true) : null
         ],
     ];
 

@@ -27,7 +27,7 @@
 //
 // All of it is delegated to the document; the two observers are filtered to the two attributes.
 
-import {converges, disown, drive, isShown, listen, near, own, page, setShown, stands, sweepSoon, untold} from "./rask-owned.js";
+import {converges, disown, drive, isShown, listen, near, own, page, seam, setShown, stands, sweepSoon, untold} from "./rask-owned.js";
 
 type Dialog = HTMLDialogElement & { requestClose?: (value?: string) => void; closedBy?: string };
 
@@ -211,6 +211,9 @@ function showModal(dialog: Dialog): void {
         }
         if (!dialog.open) {
             dialog.showModal();
+            if (dialog.open) {
+                seam.focusOpened?.(dialog); // a field the same frame brought into it (rask-autofocus.ts)
+            }
         }
         mark(dialog, dialog.open);
     } catch (e) {

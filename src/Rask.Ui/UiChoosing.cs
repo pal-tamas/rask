@@ -20,6 +20,9 @@ internal sealed class UiChoosing
     private Func<UiChosen?, object?, (UiChosen Chosen, bool Changed)>? _made;
     private UiChosen? _before;
 
+    // What this instance held before this render's chain took `.Choices(…)`: put back when a key hands the step on.
+    private (Func<UiChosen?, object?, (UiChosen Chosen, bool Changed)>? Made, UiChosen? Chosen, object? Leading) _lent;
+
     // Whether this render's chain took `.Choices(…)`, and `.Leading(…)` after it.
     private bool _chained;
     private bool _led;
@@ -38,6 +41,7 @@ internal sealed class UiChoosing
     internal void Take(Component owner, Func<UiChosen?, object?, (UiChosen Chosen, bool Changed)> step)
     {
         _step = step;
+        _lent = (_made, Chosen, Leading);
         _made = step;
         _before = Chosen;
         _chained = true;
@@ -69,6 +73,14 @@ internal sealed class UiChoosing
             other.Leading = Leading;
             other.Take(kept, step);
             other._led = _led;
+
+            // This instance only lent itself to the chain: position hands it to the next chain of its type — another
+            // select's, after a keyed field — which has to find it as its own last render left it, not with this
+            // chain's search as its last, or it takes its own search for a new one and asks again on every render.
+            (_made, Chosen, Leading) = _lent;
+            _before = null;
+            _chained = false;
+            _led = false;
         }
     }
 

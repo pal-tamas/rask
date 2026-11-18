@@ -14,14 +14,23 @@
 // What is not on screen is not focused and is not owed focus later: a closed <dialog> or popover hands focus to
 // its own `autofocus` element when the browser opens it. Nor is a page reached at a `#fragment`, which a browser
 // loading it would have focused at the fragment instead.
+//
+// One exception: a field that arrived in a closed <dialog> the SAME frame then opens (rask-overlay.ts: an editor
+// dialog the address opens, its form in that frame) arrived with it, and takes focus as it opens — a modal's focus
+// placeholder (Ui.Modal) would otherwise take it, and a form opened that way started unfocused, where the same form
+// arriving a moment after its dialog opened was focused (Eszaf, 2026-11-18). A field that was in the dialog before
+// the frame is still the placeholder's.
 
-import {unasked} from "./rask-owned.js";
+import {seam, unasked} from "./rask-owned.js";
 
 const doc = typeof document === "undefined" ? null : document;
 
 // Every `[autofocus]` element a frame has already been asked about. What the document was served with was the
 // browser's to focus, so it starts here.
 const seen = new WeakSet<Element>();
+
+// The `[autofocus]` elements the last frame brought into a closed <dialog>.
+let closedArrivals: HTMLElement[] = [];
 
 function marked(visit: (el: HTMLElement) => void): void {
     doc!.querySelectorAll<HTMLElement>("[autofocus]").forEach(visit);
@@ -55,11 +64,16 @@ export function focusArrived(history?: {action?: string} | null, elsewhere?: boo
     }
     const navigated = !!history && history.action !== "replace";
     let target: HTMLElement | null = null;
+    // What this frame brings into a closed <dialog>: the first of a dialog's takes focus when the frame opens it
+    // (`focusOpened`). The next frame forgets them.
+    closedArrivals = [];
     marked(function (el) {
         const arrived = !seen.has(el);
         seen.add(el);
         if (!target && (navigated || arrived) && takesFocus(el)) {
             target = el;
+        } else if (arrived && el.closest("dialog:not([open])")) {
+            closedArrivals.push(el);
         }
     });
     const found = target as HTMLElement | null;
@@ -71,4 +85,20 @@ export function focusArrived(history?: {action?: string} | null, elsewhere?: boo
     // scroll to the browser's own restoration.
     unasked(function () { found.focus({preventScroll: !!history && !navigated}); });
     return doc.activeElement === found;
+}
+
+// The frame just opened `dialog`: the first `autofocus` field that frame brought into it while it was closed takes
+// focus now, unless the reader is typing elsewhere. The hooks bundle opens a dialog the page's word opens
+// (rask-overlay.ts), so it is asked through the seam: the runtime that applied the frame knows what it brought.
+function focusOpened(dialog: Element): void {
+    const found = closedArrivals.find(function (el) { return dialog.contains(el) && takesFocus(el); });
+    if (!found || (typing() && !dialog.contains(doc!.activeElement))) {
+        return;
+    }
+    closedArrivals = closedArrivals.filter(function (el) { return !dialog.contains(el); });
+    unasked(function () { found.focus(); });
+}
+
+if (doc) {
+    seam.focusOpened = focusOpened;
 }
