@@ -253,7 +253,8 @@ Textarea.Bind(() => _model.Notes).Rows(3)
 Those are the browser's own controls. An app normally writes the [UI kit](ui-kit.md)'s, which bind the same
 way: `Ui.DatePicker` for a date (`.Typed()` to type it in the reader's own order as well as pick it), `Ui.TimePicker`
 for a time, `Ui.DayAndTime.Bind(() => m.At)` for a date and a time in one row bound to ONE `DateTime?` (or
-`DateTime`), `Ui.Select.Bind(…).Listbox[…]` for a choice, `Ui.Select.Bind(() => m.CompanyId).Choices(companies)` for a row of
+`DateTime`) — or `Ui.DayAndTime.Bind(() => m.Day, () => m.Time)` over a `DateOnly?` and a `TimeOnly?` the model keeps
+apart, each part saying its own member's messages under itself —, `Ui.Select.Bind(…).Listbox[…]` for a choice, `Ui.Select.Bind(() => m.CompanyId).Choices(companies)` for a row of
 another table (`Ui.Pillbox…Choices(…)` for several — [rows of another table](ui-kit.md#select)) and `Ui.Input` for
 text and numbers.
 
@@ -333,7 +334,8 @@ date controls go one further: `Ui.Calendar` binds a `DateOnly`, and behind Flux'
 (`Ui.Calendar.Multiple.Bind(…)`) or a `UiDateRange` (`Ui.Calendar.Range.Bind(…)`); `Ui.DatePicker` a `DateOnly` or,
 as `Ui.DatePicker.Range`, a `UiDateRange`; `Ui.TimePicker` a `TimeOnly?`, a `TimeOnly` or a collection of
 times; and `Ui.DayAndTime` a `DateTime?` or a `DateTime` — whose day may be emptied only when the member is a
-`DateTime?` the model does not require ([UI kit](ui-kit.md#a-day-and-a-time)).
+`DateTime?` the model does not require — or a `DateOnly?` and a `TimeOnly?` as two members
+([UI kit](ui-kit.md#a-day-and-a-time)).
 
 Every BCL [`IParsable<T>`](https://learn.microsoft.com/dotnet/api/system.iparsable-1) type (numbers,
 `Guid`, `DateOnly`/`DateTime`/`TimeOnly`, `bool`, …) binds with no setup, and so does a **custom**

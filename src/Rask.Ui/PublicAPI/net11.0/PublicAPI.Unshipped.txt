@@ -1903,10 +1903,12 @@ Rask.UiDayAndTime<T>.Value.set -> void
 Rask.UiDialogButtons
 Rask.UiDialogButtons.Cancel.get -> string?
 Rask.UiDialogButtons.Cancel.set -> void
+Rask.UiDialogButtons.Danger() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.OnSave.get -> Rask.Core.Callback
 Rask.UiDialogButtons.OnSave.set -> void
 Rask.UiDialogButtons.Save.get -> string?
 Rask.UiDialogButtons.Save.set -> void
+Rask.UiDialogButtons.Submit() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.UiDialogButtons() -> void
 Rask.UiDropdown
 Rask.UiDropdown.Align.get -> Rask.Ui.DropdownAlign?
@@ -9325,3 +9327,7 @@ Rask.UiModal.Text.get -> string?
 Rask.UiModal.Text.set -> void
 static RaskBuilderSettersRask_Ui.Heading(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
 static RaskBuilderSettersRask_Ui.Text(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+Rask.UiDayAndTimeSteps
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime)
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime).Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
+static Rask.UiDayAndTimeSteps.Bind(this Rask.RaskSeed_UiDayAndTime entry, System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!

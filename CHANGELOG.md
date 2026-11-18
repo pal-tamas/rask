@@ -24,6 +24,23 @@ them until tagged releases begin.
   address the session last showed the list at, a `Ui.EditorDialog`'s key left out, exactly as the trail's list step.
   The session starts remembering in a `Ui.AppFrame`, or on a `Ui.Table` keeping its sort or page in the address; a list
   not shown yet is the route as given.
+- **`Ui.DayAndTime` binds a day and a time the model keeps apart (#1362): `Ui.DayAndTime.Bind(() => m.Day, () => m.Time)`,
+  a `DateOnly?` and a `TimeOnly?`.** The same typed date picker and time input in the same row, each part bound to its
+  own member and saying that member's messages under itself — its attributes, a FluentValidation rule, a rule of the
+  day, a half-typed part — so a save can be refused with two. The time is disabled until a day is given; a day taken
+  away empties the time and disables it again. The one-member `DateTime?` binding is unchanged.
+  Live: [rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/).
+- **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
+  always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
+  row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.
+  After: `Form.Model(m).OnSubmit(Merge)[…, Ui.DialogButtons.Submit().Save("Egyesítés")]`. The action is a
+  `type="submit"` exactly like `Ui.FormButtons`' Save — the form's validation runs, `OnSubmit` runs only when it
+  passes, the action is busy while it is sent, Enter in a field submits — and Cancel still closes the `Ui.Modal`.
+  `.OnSave(…)` keeps the click; `.Submit()` beside `.OnSave(…)` throws at render, naming both.
+- **`Ui.DialogButtons.Danger()` — the dialog's action as Flux's danger button (#1365).** Before: the action was always
+  primary, so a dialog that deletes (Eszaf's filing question) wrote its own row with `Ui.Button.Danger`. After:
+  `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`, drawn as the action of Flux's "Delete project?"
+  modal; it works with `.OnSave(…)` and `.Submit()` alike.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
@@ -303,6 +320,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A sortable `Ui.Table`'s columns are as wide as Flux's again (#1260).** Before: the keyboard ring's room in the
+  first and last headings made each sort button 4px wider or narrower than Flux's, and the table shared its width out
+  differently — in Flux's sortable example the columns sat up to 3px off, and on a phone the table was 4px narrower.
+  After: the first heading's button still hangs nowhere past the frame and keeps its words 4px in, and gives those 4px
+  back at its end inside its own heading; the last heading's button is Flux's (it never hung past the frame there).
 - **`Rask.Mail` sends over MailKit 5.0.0 (was 4.18.1) (#1337).** MailKit 5 depends on `MimeKit.Core` 5.0 instead of
   `MimeKit`, so an app on `Rask.Mail` no longer pulls in BouncyCastle or `System.Security.Cryptography.Pkcs` through
   it. Rask's mail API is unchanged. An app that also calls MailKit itself should read MailKit's 5.0 breaking changes:

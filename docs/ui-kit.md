@@ -696,6 +696,28 @@ Div.Class("flex gap-2")[
 Ui.DialogButtons.OnSave(Book).Save("Foglalás")
 ```
 
+A dialog that IS a form takes `.Submit()` in place of `.OnSave(…)`: the action is then the form's `type="submit"`,
+exactly as `Ui.FormButtons`' Save is — the form's validation runs, its `OnSubmit` runs only when every field passes, the
+action is busy while it is sent, and Enter in a field submits. Cancel still closes the modal without sending anything.
+The form's handler is the action, so `.Submit()` beside `.OnSave(…)` throws when the row is drawn, naming both.
+
+```csharp
+// Before: a validated form in a dialog could not use Ui.DialogButtons (its action is a click), so it kept its own row.
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]
+]
+
+// After:
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Ui.DialogButtons.Submit().Save("Egyesítés")
+]
+```
+
+`.Danger()` draws the action as Flux's danger button, as Flux's "Delete project?" modal does — with `.OnSave(…)` or
+`.Submit()`: `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`.
+
 `Ui.Modal.Heading("…").Text("…")` writes the block every Flux modal example opens with — a large heading and the
 sentence two steps under it, six steps above what follows — so a modal no longer hand-builds it. The heading is an
 `h2`, clear of the close button in the corner (`pe-8`; none with `Closable(false)`), and names the dialog
@@ -843,6 +865,26 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
 - **Messages** stand under the pair, in the member's name: a day or a time half typed ("Enter a valid date." /
   "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
   while one shows.
+
+**A day and a time the model keeps apart** bind both (#1362, owner-approved 2026-11-18) — the day a `DateOnly?`, the
+time a `TimeOnly?`, the same two pickers in the same row:
+
+```csharp
+// before: a helper drawing two pickers, the time's disabled state and both messages by hand
+Moments.Pickers(() => _note.Day, () => _note.Time, rule: DeliveryRules.Day)
+
+// after: each part bound to its own member, each saying its own member's message under itself
+Ui.DayAndTime.Bind(() => _note.Day, () => _note.Time).Label("Delivered")
+```
+
+- **Messages per part**: the day's member's under the day (`#{id}-error`), the time's under the time
+  (`#{id}-time-error`) — its attributes, a FluentValidation rule or a rule of the day on either member, a part half
+  typed — so a save can be refused with two. The label and description stay the pair's.
+- **The time waits for a day**: disabled until a day is given. **A day taken away empties the time** (both members
+  `null`, written together) and disables it again; a day alone leaves the time `null` — no first minute is invented.
+- The day's × is the day member's, as above: a `DateOnly?` the model does not require has one. `.Live()`, `.Locale`,
+  `.Disabled` and `.ShowValidation(false)` apply to both parts; `AfterBind` hears the moment the two make (the day at
+  its time, its first minute without one). `.Validate` and `.Value`/`.OnChange` are the one-member binding's.
 
 `Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
 header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named

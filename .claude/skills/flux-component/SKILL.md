@@ -164,11 +164,14 @@ departure in behaviour carries none.
   same ring on what the reader sees (`UiFocusLook.Ring`, inside: a box in a table's first column sits on the scroll
   frame's edge); the toggle loses its `outline-offset-2`. Where the fill IS the accent (a primary button, a ticked
   box, a switch that is on, a chosen pill, pill tab, day or preset) a 2px band of `--color-accent-foreground` lies
-  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST or LAST heading hangs no 8px into the
-  gutter past the scroll frame there (Flux's `-ms-2`/`-me-2`): it keeps 4px for the ring instead, so those words stand
-  4px in from the cells under them (`ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and
-  width go). A press draws nothing, as Flux's. `flux parity` lets the outline keys and `boxShadow` go on
-  a forced `:focus-visible` (`Departed.FocusFrom`); `flux parity-focus` holds its other cases to that ring
+  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST heading hangs no 8px into the
+  gutter past the scroll frame there (Flux's `-ms-2`): it keeps 4px for the ring instead, so those words stand 4px in
+  from the cells under them, and gives the 4px back at its end inside its heading (`-me-1`), so no column moves
+  (#1260; `ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and width go). The LAST
+  heading's button hangs nowhere on Flux either (`me-0`, measured) and is Flux's. A press draws nothing, as Flux's.
+  `flux parity` lets the outline keys and `boxShadow` go on a forced `:focus-visible` (`Departed.FocusFrom`), and
+  the width, colour and offset of an outline neither side draws anywhere (`Compare.Undrawn`: at rest the kit's
+  controls sit at `-2px` where Flux's are at `outline-offset-2` or 0); `flux parity-focus` holds its other cases to that ring
   (`Departed.KeyboardRing`). `UiKeyboardRingTests` (the rule), `KeyboardRingTests` (Server E2E) and the site's
   `UiKitKeyboardRingTests` (every focusable Tabbed to, at 1280 and 390, light and dark: the accent, unclipped).
 - **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the

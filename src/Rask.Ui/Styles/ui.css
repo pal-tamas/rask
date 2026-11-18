@@ -1259,15 +1259,17 @@
 }
 
 /*
-  …and a table's sort button. Flux hangs it 8px into the gutter each side of its heading, so its press area reaches
-  past the words. In the first heading (no start padding, as Flux's) and the last (none at the end) that gutter is
-  outside the scroll frame, and the ring there was cut. At that edge the button hangs nowhere and keeps 4px for the
-  ring: the words stand 4px in from the cells under them, and nothing else moves. In `rask-ui-corrections`, above the
-  button's own `-ms-2`/`-me-2`.
+  …and a table's sort button. Flux hangs it 8px into the gutter before its words (`-ms-2`), so its press area reaches
+  past them; at the end it hangs nowhere (`me-0` on the heading's last part, measured). In the first heading (no start
+  padding, as Flux's) that gutter is outside the scroll frame, and the ring there was cut. There the button hangs
+  nowhere and keeps 4px for the ring: the words stand 4px in from the cells under them. It gives those 4px back at
+  its end, inside its own heading's padding, so it takes as much room as Flux's and no column moves (#1260). In
+  `rask-ui-corrections`, above the button's own margins. A heading that is the only one keeps its end: past it is
+  the frame's edge.
 
-  Except a last heading aligned to the end: its words end where its numbers end (TA, 2026-11-10), so its button
-  keeps no end padding and ends on the frame's edge with them. The ring needs no room there either — it is drawn
-  inside the button's own box (`outline-offset: -2px`, THE KEYBOARD RING), so nothing of it is past the frame.
+  The last heading needs nothing: its button ends inside the frame, and the ring is drawn inside the button's own box
+  (`outline-offset: -2px`, THE KEYBOARD RING). Aligned to the end, its words end where its numbers end (TA,
+  2026-11-10): the button's own `pe-0` (UiTableColumn).
 */
 @layer rask-ui-corrections {
   [data-ui-column]:first-child [data-ui-table-sortable] {
@@ -1275,13 +1277,8 @@
     padding-inline-start: 0.25rem;
   }
 
-  [data-ui-column]:last-child [data-ui-table-sortable] {
-    margin-inline-end: 0;
-    padding-inline-end: 0.25rem;
-  }
-
-  [data-ui-column]:last-child.group\/end-align [data-ui-table-sortable] {
-    padding-inline-end: 0;
+  [data-ui-column]:first-child:not(:last-child) [data-ui-table-sortable] {
+    margin-inline-end: -0.25rem;
   }
 }
 
