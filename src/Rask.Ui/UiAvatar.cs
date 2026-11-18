@@ -145,10 +145,10 @@ public sealed partial class UiAvatar : Component, IUiTrigger
         {
             if (As != Ui.AvatarAs.Button)
             {
-                return Div.Class(classes).Attributes(marks)[content];
+                return Markup.Div.Class(classes).Attributes(marks)[content];
             }
 
-            var button = Button.Type(ButtonType.Button).Class(classes).Attributes(marks);
+            var button = Markup.Button.Type(ButtonType.Button).Class(classes).Attributes(marks);
             return (_invoked is { } invoked ? invoked.On(button) : button)[content];
         }
 
@@ -185,7 +185,7 @@ public sealed partial class UiAvatar : Component, IUiTrigger
         }
 
         var outline = BadgeVariant == Ui.AvatarBadgeVariant.Outline;
-        return Div.Class(
+        return Markup.Div.Class(
                 BadgeBase,
                 BadgeCircle == true ? "rounded-full" : "rounded-[3px]",
                 Corner(BadgePosition ?? Ui.AvatarBadgePosition.BottomRight),

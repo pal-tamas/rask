@@ -109,7 +109,7 @@ public sealed partial class UiBadge : UiElement
 
         if (IconTrailing is { } trailing)
         {
-            yield return Div.Class("flex items-center ps-1").Data("ui-badge-icon:trailing", null)[Ui.Icon.Name(trailing).Variant(variant)];
+            yield return Markup.Div.Class("flex items-center ps-1").Data("ui-badge-icon:trailing", null)[Ui.Icon.Name(trailing).Variant(variant)];
         }
     }
 

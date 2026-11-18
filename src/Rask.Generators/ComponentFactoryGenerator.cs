@@ -238,7 +238,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         ChainGroup? Group = null,
         // The tags a [Tag] element renders, each with its entry: one for a tag of its own, several for a type
         // the DOM shares between tags (h1–h6 are one heading element). Empty for everything else.
-        EquatableArray<TagInfo> Tags = default);
+        EquatableArray<TagInfo> Tags = default,
+        // The enum steps an inherited element entry would hide (`Ui.TableColumn.Code` under the `<code>` entry), which
+        // are therefore emitted as members of the component itself — see StepsAnEntryShadows. Empty for nearly all.
+        EquatableArray<string> EntryShadowedSteps = default);
 
     /// <summary>One <c>[Tag]</c> on an element type: the tag it renders and the entry that builds it.</summary>
     private sealed record TagInfo(string Name, string Entry);

@@ -340,7 +340,7 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
             loads ? Indicator(IsSquare && Sized != Ui.ButtonSize.Xs) : null,
             Icon is { } icon ? Glyph(icon, loads) : null,
             .. Label(loads),
-            Kbd is { } kbd ? Div.Class("text-xs text-zinc-400")[kbd] : null,
+            Kbd is { } kbd ? Markup.Div.Class("text-xs text-zinc-400")[kbd] : null,
             Trailing(loads),
         ];
     }
@@ -357,7 +357,7 @@ public sealed partial class UiButton : UiElement, IUiHost, Rask.Core.Forms.IForm
     // Over the whole button and invisible until the runtime — or Loading(true) — marks it. As large as the
     // icon it stands in for: 20px alone in a square (measured on Flux's composer page), 16px otherwise.
     private static Component Indicator(bool large) =>
-        Div.Class("absolute inset-0 flex items-center justify-center opacity-0 transition-opacity [[data-loading]>&]:opacity-100")
+        Markup.Div.Class("absolute inset-0 flex items-center justify-center opacity-0 transition-opacity [[data-loading]>&]:opacity-100")
             .Attributes(IndicatorMark)[
             Ui.Icon.Name(Ui.IconName.Loading).Variant(large ? Ui.IconVariant.Mini : Ui.IconVariant.Micro)
         ];
