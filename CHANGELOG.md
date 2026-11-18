@@ -14,6 +14,17 @@ them until tagged releases begin.
   day, a half-typed part — so a save can be refused with two. The time is disabled until a day is given; a day taken
   away empties the time and disables it again. The one-member `DateTime?` binding is unchanged.
   Live: [rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/).
+- **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
+  always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
+  row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.
+  After: `Form.Model(m).OnSubmit(Merge)[…, Ui.DialogButtons.Submit().Save("Egyesítés")]`. The action is a
+  `type="submit"` exactly like `Ui.FormButtons`' Save — the form's validation runs, `OnSubmit` runs only when it
+  passes, the action is busy while it is sent, Enter in a field submits — and Cancel still closes the `Ui.Modal`.
+  `.OnSave(…)` keeps the click; `.Submit()` beside `.OnSave(…)` throws at render, naming both.
+- **`Ui.DialogButtons.Danger()` — the dialog's action as Flux's danger button (#1365).** Before: the action was always
+  primary, so a dialog that deletes (Eszaf's filing question) wrote its own row with `Ui.Button.Danger`. After:
+  `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`, drawn as the action of Flux's "Delete project?"
+  modal; it works with `.OnSave(…)` and `.Submit()` alike.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
@@ -47,7 +58,7 @@ them until tagged releases begin.
   open until the assembly ended. After: `site.HostLog = "artifacts/host.log"` appends each line the app writes as it
   comes (`Log`/`Said` unchanged); `await site.Context(storageState)` is a context on `site.Contexts`'s options against
   the app; `public override async ValueTask DisposeAsync() { …; await base.DisposeAsync(); }`;
-  `await site.SignedIn("ann", fresh: true)` signs in anew and the pages after it start from that sign-in;
+  `await site.SignedIn("ann", fresh: true)` signs in anew, a sign-in of that page's own (#1355, below);
   `Rask__ConnectionStrings__App`/`__Logs` set in `site.Environment` or the test process's environment is the app's, and
   only a store named nowhere gets the run's SQLite file (an untouched site runs exactly as before); and the contexts a
   test opened are closed once it is over — before the next test of its xUnit collection opens one — so no test has to
@@ -223,6 +234,13 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **No test can sign the others out of `RaskSite`'s shared sign-in (#1355).** Before: `SignedIn(name, fresh: true)`
+  replaced the sign-in every later `SignedIn(name)` started from, so a test that signed in fresh and signed out left
+  the rest of the run on a dead session, starting signed out — TA signed in through its own `Context()` to get round
+  it. After: a fresh sign-in is the page's own and leaves the shared one as it was, and `SignedIn(name)` asks the app
+  whether its shared sign-in still holds before handing it out — Rask.Auth's `/api/auth/me` where the app maps it,
+  otherwise the sign-in page, unfollowed — and signs in again when a test ended it (an app that answers neither
+  differently keeps its sign-in as before). No call site changes.
 - **A searched `Ui.Select` / `Ui.Pillbox` can be scrolled past its first page (#1354).** Before: a database-searched
   picker (`.Choices(typed => Find(typed), held: …)`) had no paging, so every app capped its answer (`.Take(20)`) and the
   open list showed those twenty with no way to scroll to the rest — Eszaf's product, vehicle, invoice, card and station
@@ -286,6 +304,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A sortable `Ui.Table`'s columns are as wide as Flux's again (#1260).** Before: the keyboard ring's room in the
+  first and last headings made each sort button 4px wider or narrower than Flux's, and the table shared its width out
+  differently — in Flux's sortable example the columns sat up to 3px off, and on a phone the table was 4px narrower.
+  After: the first heading's button still hangs nowhere past the frame and keeps its words 4px in, and gives those 4px
+  back at its end inside its own heading; the last heading's button is Flux's (it never hung past the frame there).
 - **`Rask.Mail` sends over MailKit 5.0.0 (was 4.18.1) (#1337).** MailKit 5 depends on `MimeKit.Core` 5.0 instead of
   `MimeKit`, so an app on `Rask.Mail` no longer pulls in BouncyCastle or `System.Security.Cryptography.Pkcs` through
   it. Rask's mail API is unchanged. An app that also calls MailKit itself should read MailKit's 5.0 breaking changes:

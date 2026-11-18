@@ -693,6 +693,28 @@ Div.Class("flex gap-2")[
 Ui.DialogButtons.OnSave(Book).Save("Foglalás")
 ```
 
+A dialog that IS a form takes `.Submit()` in place of `.OnSave(…)`: the action is then the form's `type="submit"`,
+exactly as `Ui.FormButtons`' Save is — the form's validation runs, its `OnSubmit` runs only when every field passes, the
+action is busy while it is sent, and Enter in a field submits. Cancel still closes the modal without sending anything.
+The form's handler is the action, so `.Submit()` beside `.OnSave(…)` throws when the row is drawn, naming both.
+
+```csharp
+// Before: a validated form in a dialog could not use Ui.DialogButtons (its action is a click), so it kept its own row.
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]
+]
+
+// After:
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Ui.DialogButtons.Submit().Save("Egyesítés")
+]
+```
+
+`.Danger()` draws the action as Flux's danger button, as Flux's "Delete project?" modal does — with `.OnSave(…)` or
+`.Submit()`: `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`.
+
 `Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
 tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
 edit the row where it stands — what you put inside it, then the delete last, after a line, in red, asking first in

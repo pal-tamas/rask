@@ -55,7 +55,9 @@ public static partial class Compare
 
     /// <summary>
     ///     The colour of a border or an outline neither side draws is whatever each PAGE's reset left there — Flux's docs
-    ///     default every border to gray-200, a bare preflight to the text colour — not the component's.
+    ///     default every border to gray-200, a bare preflight to the text colour — not the component's. An outline nobody
+    ///     draws has no width or offset anyone sees either: the kit's KEYBOARD RING (an owner-approved departure, ui.css)
+    ///     lays its ring at <c>-2px</c> where Flux's control rests at Tailwind's <c>outline-offset-2</c> or the browser's 0.
     /// </summary>
     public static bool Undrawn(string key, Func<string, string?> x, Func<string, string?> y)
     {
@@ -66,8 +68,11 @@ public static partial class Compare
             return x(width) == "0px" && y(width) == "0px";
         }
 
-        return key == "outlineColor" && x("outlineStyle") == "none" && y("outlineStyle") == "none";
+        return Outline(key) && x("outlineStyle") == "none" && y("outlineStyle") == "none";
     }
+
+    /// <summary>The keys of an outline that say nothing while its <c>outline-style</c> is <c>none</c>.</summary>
+    public static bool Outline(string key) => key is "outlineColor" or "outlineWidth" or "outlineOffset";
 
     /// <summary><c>Math.round(v * 10) / 10</c>, printed.</summary>
     public static string Fix(double value) => Js.Num(Js.Round(value * 10) / 10);

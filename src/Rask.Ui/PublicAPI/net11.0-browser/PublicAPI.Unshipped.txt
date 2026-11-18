@@ -1903,10 +1903,12 @@ Rask.UiDayAndTime<T>.Value.set -> void
 Rask.UiDialogButtons
 Rask.UiDialogButtons.Cancel.get -> string?
 Rask.UiDialogButtons.Cancel.set -> void
+Rask.UiDialogButtons.Danger() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.OnSave.get -> Rask.Core.Callback
 Rask.UiDialogButtons.OnSave.set -> void
 Rask.UiDialogButtons.Save.get -> string?
 Rask.UiDialogButtons.Save.set -> void
+Rask.UiDialogButtons.Submit() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.UiDialogButtons() -> void
 Rask.UiDropdown
 Rask.UiDropdown.Align.get -> Rask.Ui.DropdownAlign?

@@ -32,8 +32,9 @@ public static class Departed
         // 2026-10-14: Ui.Table's scroll frame — the box holding the <table> itself — is `relative`, so it holds what
         // its cells place absolutely.
         new((example, node) => example.ChildrenOf(node).Any(c => c.Tag == "table"), ["position"]),
-        // 2026-11-10, THE KEYBOARD RING (ui.css): a sort button in a table's first or last heading does not hang into the
-        // gutter past the scroll frame's edge, where its ring would be cut; it stands 4px in from that edge instead.
+        // 2026-11-10, THE KEYBOARD RING (ui.css): a sort button in a table's first heading does not hang into the gutter
+        // past the scroll frame's edge, where its ring would be cut; it stands 4px in from that edge and gives the 4px back
+        // at its end, so its heading is as wide as Flux's.
         new((example, node) => Marked(node, ["data-ui-table-sortable"]), ["marginLeft", "marginRight", "paddingLeft", "paddingRight", "width"]),
         // 2026-11-02, NATIVE FEEL (ui.css): a control selects no text, waits for no second tap and opens no long-press
         // callout. `user-select` inherits in Blink, so what is inside a control computes it too.
