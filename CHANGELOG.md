@@ -280,6 +280,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A sortable `Ui.Table`'s columns are as wide as Flux's again (#1260).** Before: the keyboard ring's room in the
+  first and last headings made each sort button 4px wider or narrower than Flux's, and the table shared its width out
+  differently — in Flux's sortable example the columns sat up to 3px off, and on a phone the table was 4px narrower.
+  After: the first heading's button still hangs nowhere past the frame and keeps its words 4px in, and gives those 4px
+  back at its end inside its own heading; the last heading's button is Flux's (it never hung past the frame there).
 - **`Virtualize.Items` draws 10 rows past either edge of its box, where it drew 3 (#1326).** A fast scroll or a fling
   on a phone shows rows rather than blank spacer; .NET 11's `Virtualize` draws 15. `OverscanCount:` still sets it.
   Measured on the wire-bytes scenario (1,000 rows, 10 in view): a scroll's diff stays 117 bytes; the first render of
