@@ -305,6 +305,8 @@ internal static partial class UiApi
         new("Ui.DialogButtons", typeof(UiDialogButtons), NotFlux, "A dialog's footer as Flux draws one: Cancel, which closes the modal, then the primary action.",
         [
             new("OnSave", typeof(Callback), "Runs when the action is pressed: a click, not a submit. The button is busy while it runs.", Handler),
+            new("Submit", typeof(bool?), "Makes the action the enclosing form's submit, as FormButtons' Save is: the form validates, its OnSubmit runs, Enter submits, and it is busy meanwhile. Not with OnSave."),
+            new("Danger", typeof(bool?), "Draws the action as Flux's danger button, for a footer that deletes or cannot be undone. With OnSave or Submit."),
             new("Save", typeof(string), "The label of the action. The catalog's \"Save\" when unset."),
             new("Cancel", typeof(string), "The label of the button that closes the modal. The catalog's \"Cancel\" when unset."),
         ]),
