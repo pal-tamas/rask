@@ -767,9 +767,11 @@ public sealed class EveryPageTests(RaskSite<Program> site)
 - **Signed in once.** `await site.SignedIn(site.Admin)` hands back a page signed in as the app's administrator — the
   first account, registered with the app's one-time token, through Rask.Auth's API where the app maps it (a
   WebAssembly app's host) and through the `/login` and `/register` pages `rask new` writes otherwise. Any other name
-  is registered as an ordinary account. The first page for a name signs in; every later one starts from its cookies.
-  `await site.SignedIn(name, fresh: true)` signs in anew — after a test signed them out — and the pages after it
-  start from that sign-in. `await site.SignedOut()` is a visitor's page.
+  is registered as an ordinary account. The first page for a name signs in; every later one starts from its cookies,
+  once the app still answers them as signed in (Rask.Auth's `/api/auth/me` where it is mapped, otherwise the sign-in
+  page, which `[Guest]` sends a signed-in reader away from) — a shared sign-in a test signed out is signed in again,
+  so no test signs the others out. `await site.SignedIn(name, fresh: true)` signs in anew, a sign-in of that page's
+  own, for a test that signs them out: the shared one is left as it was. `await site.SignedOut()` is a visitor's page.
 - **`site.Walk(path)`** opens the page and fails — with every problem it found, and the last lines the app wrote — on
   an answer that is not a success (the not-found page, the forbidden one), a console or page error, a request to the
   app that failed or answered 400 or worse, a live connection opened twice or closed, the error overlay, and a page

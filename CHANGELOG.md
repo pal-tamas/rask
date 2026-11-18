@@ -52,7 +52,7 @@ them until tagged releases begin.
   open until the assembly ended. After: `site.HostLog = "artifacts/host.log"` appends each line the app writes as it
   comes (`Log`/`Said` unchanged); `await site.Context(storageState)` is a context on `site.Contexts`'s options against
   the app; `public override async ValueTask DisposeAsync() { …; await base.DisposeAsync(); }`;
-  `await site.SignedIn("ann", fresh: true)` signs in anew and the pages after it start from that sign-in;
+  `await site.SignedIn("ann", fresh: true)` signs in anew, a sign-in of that page's own (#1355, below);
   `Rask__ConnectionStrings__App`/`__Logs` set in `site.Environment` or the test process's environment is the app's, and
   only a store named nowhere gets the run's SQLite file (an untouched site runs exactly as before); and the contexts a
   test opened are closed once it is over — before the next test of its xUnit collection opens one — so no test has to
@@ -228,6 +228,13 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **No test can sign the others out of `RaskSite`'s shared sign-in (#1355).** Before: `SignedIn(name, fresh: true)`
+  replaced the sign-in every later `SignedIn(name)` started from, so a test that signed in fresh and signed out left
+  the rest of the run on a dead session, starting signed out — TA signed in through its own `Context()` to get round
+  it. After: a fresh sign-in is the page's own and leaves the shared one as it was, and `SignedIn(name)` asks the app
+  whether its shared sign-in still holds before handing it out — Rask.Auth's `/api/auth/me` where the app maps it,
+  otherwise the sign-in page, unfollowed — and signs in again when a test ended it (an app that answers neither
+  differently keeps its sign-in as before). No call site changes.
 - **A searched `Ui.Select` / `Ui.Pillbox` can be scrolled past its first page (#1354).** Before: a database-searched
   picker (`.Choices(typed => Find(typed), held: …)`) had no paging, so every app capped its answer (`.Take(20)`) and the
   open list showed those twenty with no way to scroll to the rest — Eszaf's product, vehicle, invoice, card and station
@@ -291,6 +298,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **`Rask.Mail` sends over MailKit 5.0.0 (was 4.18.1) (#1337).** MailKit 5 depends on `MimeKit.Core` 5.0 instead of
+  `MimeKit`, so an app on `Rask.Mail` no longer pulls in BouncyCastle or `System.Security.Cryptography.Pkcs` through
+  it. Rask's mail API is unchanged. An app that also calls MailKit itself should read MailKit's 5.0 breaking changes:
+  `SendAsync` returns a `SendResult` instead of a `string`, the `Send(MimeMessage)` overloads are now extension methods
+  that need `using MailKit;`, and S/MIME, PGP or DKIM signing needs the `MimeKit.Cryptography` package.
 - **`Virtualize.Items` draws 10 rows past either edge of its box, where it drew 3 (#1326).** A fast scroll or a fling
   on a phone shows rows rather than blank spacer; .NET 11's `Virtualize` draws 15. `OverscanCount:` still sets it.
   Measured on the wire-bytes scenario (1,000 rows, 10 in view): a scroll's diff stays 117 bytes; the first render of

@@ -19,4 +19,5 @@ RaskApp.Create(args, builder => builder.Services
         // /css/rask-ui.css its pages link out of the kit itself (#1315) — RaskSiteWalkTests, which walks this app, fails
         // on any stylesheet that does not answer.
     })
+    .MapEndpoints(Sessions.Map)
     .Run<App>();
