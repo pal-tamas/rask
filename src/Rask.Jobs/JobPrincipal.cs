@@ -36,7 +36,7 @@ internal static class JobPrincipal
     /// </remarks>
     public static string? Record(ClaimsPrincipal? principal, Guid userId)
     {
-        if (!Guid.TryParse(principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var whose) || whose != userId)
+        if (principal is null || CurrentUser.FromClaim(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value) != userId)
         {
             return null;
         }
@@ -76,7 +76,7 @@ internal static class JobPrincipal
         var recorded = Read(job.UserClaims);
         if (accounts is null)
         {
-            return Compose([new Claim(ClaimTypes.NameIdentifier, userId.ToString())], recorded, job.TenantId);
+            return Compose([new Claim(ClaimTypes.NameIdentifier, CurrentUser.ToClaim(userId))], recorded, job.TenantId);
         }
 
         if (await accounts.Of(userId, cancellationToken).ConfigureAwait(false) is not { } now)

@@ -642,7 +642,7 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await OpenUiPageAsync("modal", "Modal");
         var scope = Page.Locator("[data-testid='ui-modal-dialog-buttons']");
         var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Book stock" });
-        var dialog = scope.Locator("dialog");
+        var dialog = scope.Locator("dialog").Filter(new LocatorFilterOptions { HasText = "Book 12 pallets?" });
 
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
@@ -650,6 +650,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeHiddenAsync();
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The modal's own Heading names it, and its first line stops short of the close button in the corner.
+        await Expect(scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Book 12 pallets?" })).ToBeVisibleAsync();
+        var lineEnd = await dialog.GetByRole(AriaRole.Heading, new LocatorGetByRoleOptions { Name = "Book 12 pallets?" })
+            .EvaluateAsync<double>("h => h.getBoundingClientRect().right - parseFloat(getComputedStyle(h).paddingRight)");
+        var corner = (await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close modal" }).BoundingBoxAsync())!;
+        Assert.True(lineEnd <= corner.X, "the heading's line runs under the close button");
         var book = dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Book", Exact = true });
         var cancel = (await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).BoundingBoxAsync())!;
         var action = (await book.BoundingBoxAsync())!;
@@ -662,6 +668,39 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(book).ToHaveAttributeAsync("data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
         await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await Expect(scope).ToContainTextAsync("Last action: booked 12 pallets.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        await AssertNoGlobalCrashAsync();
+    });
+
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public Task Dialog_buttons_that_submit_hold_back_an_empty_form_and_send_a_filled_one_on_enter(int width, int height) => RunAsync(async () =>
+    {
+        await Page.SetViewportSizeAsync(width, height);
+        await OpenUiPageAsync("modal", "Modal");
+        var scope = Page.Locator("[data-testid='ui-modal-dialog-buttons']");
+        var opener = scope.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Merge suppliers" });
+        var dialog = scope.Locator("dialog").Filter(new LocatorFilterOptions { HasText = "Merge two suppliers" });
+        var merge = dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Merge", Exact = true });
+        var name = dialog.GetByLabel("Merged name");
+
+        await opener.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await Expect(merge).ToHaveAttributeAsync("type", "submit");
+        await merge.ClickAsync();
+        await Expect(name).ToHaveAttributeAsync("aria-invalid", "true", new LocatorAssertionsToHaveAttributeOptions { Timeout = 10_000 });
+        await Expect(dialog).ToBeVisibleAsync();
+        await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).ClickAsync();
+        await Expect(dialog).ToBeHiddenAsync();
+        await opener.ClickAsync();
+        await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        await name.FillAsync("Aminoff Freight");
+        await name.PressAsync("Enter");
+
+        // Enter sent the form by its one submit: the action is busy while OnSubmit runs, then the modal closes.
+        await Expect(merge).ToHaveAttributeAsync("data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
+        await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
+        await Expect(scope).ToContainTextAsync("Last action: merged into Aminoff Freight.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
         await AssertNoGlobalCrashAsync();
     });
 

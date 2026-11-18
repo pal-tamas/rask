@@ -9,8 +9,20 @@ internal sealed partial class UiConfirmBehaviour : Component
             Placing(),
             Answering(),
             Sending(),
+            FromCode(),
             Words()
         ];
+
+    private static UiDocsTopic FromCode() =>
+        UiDocsTopic.Key("from-code").Heading("Asked from code").Paragraphs([
+            "`bool yes = await Ui.Confirm.Ask(\"…\")` asks in the same dialog from an event handler, after a check only "
+            + "the handler can make, on both hosts. Yes is true; No, the close button, Escape and a press outside are "
+            + "false. Focus moves into the dialog and back to the control that was pressed.",
+            "`Heading`, `No`, `Yes` and `.Primary()` set on that chain word this question alone; what it leaves unset is "
+            + "the layout's dialog's. A second question asked while one is open waits its turn and opens once the first "
+            + "is answered. Work that is cancelled while it asks (its component left the page, the session ended) gets "
+            + "false. A page with no `Ui.Confirm` throws, naming it: `Ui.AppFrame` places one.",
+        ]);
 
     private static UiDocsTopic Placing() =>
         UiDocsTopic.Key("placing").Heading("Placed once").Paragraphs([
@@ -47,6 +59,7 @@ internal sealed partial class UiConfirmBehaviour : Component
             "`Heading`, `No` and `Yes` default from the string catalog (`ConfirmHeading`, `ConfirmNo`, `ConfirmYes`), so "
             + "a localized app needs no step at all. A question's `heading:` replaces the title for that question alone.",
             "Drawn as Flux's confirmation: `min-w-[22rem]`, a ghost button that says no and a danger button that says "
-            + "yes. The answer field, and a Yes that is no submit button, are its two departures.",
+            + "yes — Flux's primary button with `.Primary()`, for questions that lose nothing. The answer field, and a "
+            + "Yes that is no submit button, are its two departures.",
         ]);
 }

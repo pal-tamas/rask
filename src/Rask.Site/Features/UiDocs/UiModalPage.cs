@@ -37,7 +37,11 @@ public sealed partial class UiModalPage : Component
             UiDocsExample.Key("ui-modal-dialog-buttons").Heading("Dialog buttons").File("ModalDialogButtonsExample.cs").Demo(ModalDialogButtonsExample).Testid("ui-modal-dialog-buttons")
                 .Blurb("Not Flux's, and drawn as its footer: Ui.DialogButtons is Cancel, which closes the modal it "
                        + "stands in, and the primary action, a click handler that shows it is busy while it runs and "
-                       + "sends no form. The words are the catalog's until Save(\"…\") and Cancel(\"…\") name them."),
+                       + "sends no form. The words are the catalog's until Save(\"…\") and Cancel(\"…\") name them. "
+                       + "In a dialog that is a form, Submit() makes the action the form's submit: it is validated, "
+                       + "busy while OnSubmit runs, and Enter in a field sends it. Danger() draws the action red. "
+                       + "Heading(\"…\") and Text(\"…\"), not Flux's either, write the title and the sentence every Flux "
+                       + "example opens with, the title clear of the close button and naming the dialog."),
             UiDocsExample.Key("ui-modal-confirm-action").Heading("Confirm an action").File("ModalConfirmActionExample.cs").Demo(ModalConfirmActionExample).Testid("ui-modal-confirm-action")
                 .Blurb("Not Flux's, and drawn as the confirmation above: place Ui.Confirm in the layout once, and "
                        + ".Confirm(\"…\") on any button or form asks in it instead of the browser. With expect: Yes "

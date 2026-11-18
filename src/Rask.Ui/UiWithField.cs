@@ -80,7 +80,12 @@ internal sealed class UiWithField
 
     /// <summary>The field for a Flux form control, read from its own props.</summary>
     /// <param name="control">The control: Flux's shorthand props, its id and what it is bound to.</param>
-    internal static UiWithField For(IUiFormControl control) =>
+    internal static UiWithField For(IUiFormControl control) => For(control, saysMessages: true);
+
+    /// <summary>The field for a Flux form control whose parts each say their own messages: no message under the whole.</summary>
+    /// <param name="control">The control: Flux's shorthand props, its id and what it is bound to.</param>
+    /// <param name="saysMessages">False: the control's parts say the messages, each under itself.</param>
+    internal static UiWithField For(IUiFormControl control, bool saysMessages) =>
         new(control, new Shorthand(
             control.Label,
             control.Description,
@@ -88,7 +93,7 @@ internal sealed class UiWithField
             control.Badge,
             null,
             control.Invalid == true,
-            control.ShowValidation != false,
+            saysMessages && control.ShowValidation != false,
             NamesBound: true));
 
     /// <summary>The field for one control, from the shorthand props it was given.</summary>

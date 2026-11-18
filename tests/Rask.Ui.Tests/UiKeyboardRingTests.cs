@@ -88,30 +88,27 @@ public sealed class UiKeyboardRingTests
     }
 
     [Fact]
-    public void A_sort_button_at_the_tables_edge_hangs_nowhere_past_the_scroll_frame()
+    public void A_sort_button_in_the_first_heading_hangs_nowhere_past_the_scroll_frame_and_takes_Fluxs_room()
     {
         var rules = Rules();
 
         var first = Assert.Single(rules, r => r.Selector == "[data-ui-column]:first-child [data-ui-table-sortable]");
-        var last = Assert.Single(rules, r => r.Selector == "[data-ui-column]:last-child [data-ui-table-sortable]");
+        var end = Assert.Single(rules, r => r.Selector == "[data-ui-column]:first-child:not(:last-child) [data-ui-table-sortable]");
 
         Assert.Contains("margin-inline-start:0", first.Body, StringComparison.Ordinal);
         Assert.Matches("padding-inline-start:0?\\.25rem", first.Body);
-        Assert.Contains("margin-inline-end:0", last.Body, StringComparison.Ordinal);
-        Assert.Matches("padding-inline-end:0?\\.25rem", last.Body);
+        Assert.Matches("margin-inline-end:-0?\\.25rem", end.Body);
     }
 
     [Fact]
-    public void A_last_heading_aligned_to_the_end_keeps_its_words_over_its_numbers_and_its_ring_inside()
+    public void A_sort_button_in_the_last_heading_keeps_Fluxs_own_end_and_its_ring_inside()
     {
         var rules = Rules();
 
-        var end = Assert.Single(rules, r => r.Selector.StartsWith("[data-ui-column]:last-child.group", StringComparison.Ordinal)
-            && r.Selector.EndsWith("end-align [data-ui-table-sortable]", StringComparison.Ordinal));
         var ring = Assert.Single(rules, r => r.Selector == ":where(:focus-visible)");
 
-        Assert.Contains("padding-inline-end:0", end.Body, StringComparison.Ordinal);
-        Assert.DoesNotContain("margin", end.Body, StringComparison.Ordinal);
+        Assert.DoesNotContain(rules, r => r.Selector.StartsWith("[data-ui-column]:last-child", StringComparison.Ordinal)
+            && r.Selector.EndsWith("[data-ui-table-sortable]", StringComparison.Ordinal));
         Assert.Contains("outline-offset:-2px", ring.Body, StringComparison.Ordinal);
     }
 

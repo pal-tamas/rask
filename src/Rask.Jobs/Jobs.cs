@@ -25,6 +25,17 @@ public static class Jobs
         new(null, job, null, null, null, cancellationToken);
 
     /// <summary>
+    ///     Runs every one of <paramref name="jobs" /> in the background, written together — all of them or, when the write
+    ///     fails, none: <c>var queued = await Jobs.Enqueue(files.Select(f =&gt; new ImportFile(f.Id))).Noticed(j =&gt; $"Import of {j.Name}");</c>.
+    ///     The rows share one batch, which <c>Ui.WorkNotices</c> draws as one group with one bar, and toasts once when its
+    ///     last job ends. Awaiting it answers how many rows were written. Inside <c>Db.Transaction</c> it commits with the work.
+    /// </summary>
+    /// <typeparam name="TJob">The kind of job.</typeparam>
+    public static Enqueuing<TJob> Enqueue<TJob>(IEnumerable<TJob> jobs, CancellationToken cancellationToken = default)
+        where TJob : IJob =>
+        new(null, jobs, cancellationToken);
+
+    /// <summary>
     ///     Runs <paramref name="job" /> as a job and waits for its answer:
     ///     <c>var done = await Jobs.Run(new AtPump(pump.Id)).InLane(pump.Id);</c>. Stored and run like any job — in its
     ///     lane, one at a time with that lane's other jobs on every host — and tried once: a failure throws
@@ -89,6 +100,39 @@ public static class Jobs
         ArgumentOutOfRangeException.ThrowIfNegative(done);
         ArgumentOutOfRangeException.ThrowIfNegative(of);
         JobInFlight.Run?.Report(JobNotice.Cut(progress), done, of);
+    }
+
+    /// <summary>
+    ///     Inside a job's handler: it ends WARNED — done, with something its starter should look at —
+    ///     <c>Jobs.Warn("No new rows in prices.csv")</c>. A job enqueued <c>.Noticed(…)</c> shows an amber badge with
+    ///     <paramref name="detail" /> under its title. It still runs on to its end; it is not retried. Outside a job it does nothing.
+    /// </summary>
+    /// <remarks>The worst outcome said stands: after <see cref="Refuse" /> a warning changes nothing.</remarks>
+    /// <param name="detail">What to look at, in words for the person who started it — cut at 1,024 characters.</param>
+    public static void Warn(string detail) => Conclude(WorkState.Warned, detail);
+
+    /// <summary>
+    ///     Inside a job's handler: it ends FAILED FOR GOOD, for a reason it knows — <c>Jobs.Refuse("prices.csv has no header row");
+    ///     return;</c> — then returns. Unlike a throw it is never tried again and is no dead letter: there is nothing a retry
+    ///     would change. A job enqueued <c>.Noticed(…)</c> shows Failed with <paramref name="detail" /> under its title, and an
+    ///     awaited <c>Jobs.Run(job)</c> throws <see cref="JobFailedException" /> with it. Outside a job it does nothing.
+    /// </summary>
+    /// <remarks>Anything the handler throws after it is part of the refusal: the job is still not retried.</remarks>
+    /// <param name="detail">Why, in words for the person who started it — cut at 1,024 characters.</param>
+    public static void Refuse(string detail) => Conclude(WorkState.Failed, detail);
+
+    /// <summary>
+    ///     Inside a job's handler: says one more thing about how it ended, without changing how —
+    ///     <c>Jobs.Note($"{kept:N0} rows kept, {skipped:N0} skipped")</c> — shown under its title once it is done. A
+    ///     <see cref="Warn" /> or <see cref="Refuse" /> says its own words instead. Outside a job it does nothing.
+    /// </summary>
+    /// <param name="detail">What to say, in words for the person who started it — cut at 1,024 characters.</param>
+    public static void Note(string detail) => Conclude(outcome: null, detail);
+
+    private static void Conclude(WorkState? outcome, string detail)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(detail);
+        JobInFlight.Run?.Conclude(outcome, JobNotice.CutDetail(detail.Trim()));
     }
 
     /// <summary>

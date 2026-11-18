@@ -1179,15 +1179,9 @@ public sealed partial class ParityMenu : IFluxCommand
                 continue;
             }
 
-            var width = BorderColor().Match(key);
-            if (width.Success && Js.Str(x[$"border{width.Groups[1].Value}Width"]) == "0px" && Js.Str(y[$"border{width.Groups[1].Value}Width"]) == "0px")
-            {
-                continue;
-            }
-
-            // Nor the width and colour of an outline neither side draws: a focused element computes the browser's
-            // focus-ring values for them even with the ring turned off.
-            if (key is "outlineColor" or "outlineWidth" && Js.Str(x["outlineStyle"]) == "none" && Js.Str(y["outlineStyle"]) == "none")
+            // Nor the colour of a border neither side draws, or the width, colour and offset of such an outline: a focused
+            // element computes the browser's focus-ring values for them even with the ring turned off.
+            if (Compare.Undrawn(key, k => Js.Str(x[k]), k => Js.Str(y[k])))
             {
                 continue;
             }
@@ -1196,8 +1190,8 @@ public sealed partial class ParityMenu : IFluxCommand
         }
     }
 
-    // A state's changes, without the ones nobody can see: the box (compared as a box), and the colour and width of an
-    // outline or a border that is not drawn — both follow the text colour, and a row's ink changes.
+    // A state's changes, without the ones nobody can see: the box (compared as a box), and the colour, width and offset
+    // of an outline or a border that is not drawn — they follow the text colour, the kit's KEYBOARD RING and the browser.
     private static JsonObject Visible(JsonObject changed, JsonObject node)
     {
         var shown = new JsonObject();
@@ -1208,7 +1202,7 @@ public sealed partial class ParityMenu : IFluxCommand
                 continue;
             }
 
-            if (key is "outlineColor" or "outlineWidth" && (Js.Str(changed["outlineStyle"]) ?? Js.Str(node["outlineStyle"])) == "none")
+            if (Compare.Outline(key) && (Js.Str(changed["outlineStyle"]) ?? Js.Str(node["outlineStyle"])) == "none")
             {
                 continue;
             }

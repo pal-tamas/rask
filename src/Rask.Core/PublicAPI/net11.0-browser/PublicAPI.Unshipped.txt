@@ -19814,11 +19814,11 @@ Rask.Core.Globalization.RaskString.WorkEndedDone = 265 -> Rask.Core.Globalizatio
 Rask.Core.Globalization.RaskString.WorkEndedFailed = 266 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkEndedStopped = 267 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.ConfirmLeaveHeading = 268 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.FilterRangeFrom = 269 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.FilterRangeTo = 270 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.FilterRangeAtLeast = 271 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.FilterRangeAtMost = 272 -> Rask.Core.Globalization.RaskString
-Rask.Core.Globalization.RaskString.FilterRangeBetween = 273 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeFrom = 276 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeTo = 277 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeAtLeast = 278 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeAtMost = 279 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.FilterRangeBetween = 280 -> Rask.Core.Globalization.RaskString
 Rask.CachedFragments
 Rask.CachedOptions
 Rask.CachedOptions.CachedOptions() -> void
@@ -19879,3 +19879,10 @@ Rask.CachedSteps.extension(Rask.Core.Components.Cached!).VaryByQuery(string! nam
 static Rask.CachedSteps.Tags(this Rask.Core.Components.Cached! fragment, string! tag, params string![]! more) -> Rask.Core.Components.Cached!
 static Rask.CachedSteps.VaryByHeader(this Rask.Core.Components.Cached! fragment, string! name, params string![]! more) -> Rask.Core.Components.Cached!
 static Rask.CachedSteps.VaryByQuery(this Rask.Core.Components.Cached! fragment, string! name, params string![]! more) -> Rask.Core.Components.Cached!
+Rask.Core.Globalization.RaskString.WorkWarned = 269 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkBatchDone = 272 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkBatchWarned = 273 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkBatch = 271 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkBatchFailed = 274 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkBatchStopped = 275 -> Rask.Core.Globalization.RaskString
+Rask.Core.Globalization.RaskString.WorkEndedWarned = 270 -> Rask.Core.Globalization.RaskString

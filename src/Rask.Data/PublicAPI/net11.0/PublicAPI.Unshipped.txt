@@ -391,6 +391,11 @@ static Rask.Data.CurrentRows.Tenant<TRead>() -> TRead?
 static Rask.Data.CurrentRows.User<TRead>() -> TRead?
 static Rask.Data.CurrentRows.UseTenant<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void
 static Rask.Data.CurrentRows.UseUser<TAggregate, TRead, TKey>(System.Func<TKey, System.Linq.Expressions.Expression<System.Func<TRead!, bool>!>!>! byKey, System.Func<TRead!, TKey>! keyOf) -> void
+static Rask.Data.CurrentRows.RequiredTenantId<TKey>() -> TKey
+static Rask.Data.CurrentRows.RequiredUserId<TKey>() -> TKey
+static Rask.Data.CurrentRows.TenantId<TKey>() -> TKey?
+static Rask.Data.CurrentRows.UserId<TKey>() -> TKey?
+static Rask.Data.CurrentRows.WorkFor<TKey>(TKey? userId) -> System.IDisposable!
 Rask.Data.TestDatabase<TContext>.Factory.get -> Microsoft.EntityFrameworkCore.IDbContextFactory<TContext!>!
 Rask.Data.TestDatabaseOptions
 Rask.Data.TestDatabaseOptions.LockFile.get -> string?

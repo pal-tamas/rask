@@ -23,7 +23,7 @@ public sealed partial class UiFormButtonsPage : Component
             .Api(UiApi.FormButtons)[
             UiDocsExample.Key("ui-form-buttons").Heading("A form's footer").File("FormButtonsExample.cs").Demo(FormButtonsExample).Testid("ui-form-buttons")
                 .Blurb("Back(list) is where Cancel goes: a link, so a form's ConfirmLeave() asks first when something was "
-                       + "typed. Remove(delete, heading, question) puts Delete at the start, which asks in the layout's "
+                       + "typed, back to the list as the reader left it — its filters, sort and page. Remove(delete, heading, question) puts Delete at the start, which asks in the layout's "
                        + "Ui.Confirm and deletes only on yes. Save submits the form it stands in."),
             UiDocsExample.Key("ui-form-buttons-words").Heading("Your own words").File("FormButtonsWordsExample.cs").Demo(FormButtonsWordsExample).Testid("ui-form-buttons-words")
                 .Blurb("A new record is created, not saved: Save(\"Create\") and Cancel(\"Back\") name the two buttons. "

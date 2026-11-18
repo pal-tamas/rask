@@ -58,7 +58,8 @@ public class RaskSite : IAsyncDisposable
     private readonly string _firstRunToken = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
     private readonly Lazy<Task> _started;
     private readonly Lazy<Task<(IPlaywright Playwright, IBrowser Browser)>> _browser;
-    private readonly Dictionary<string, string> _signedIn = new(StringComparer.Ordinal);
+    // Each name's shared sign-in: its storage state, and what the app answered it when it was new (SignInProbe).
+    private readonly Dictionary<string, (string State, string Answer)> _signedIn = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim _signingIn = new(1, 1);
     private readonly TestContexts _perTest = new(TestScope.Current);
     private HostProcess? _host;
@@ -183,13 +184,14 @@ public class RaskSite : IAsyncDisposable
 
     /// <summary>
     ///     A new page signed in as <paramref name="name" />, in a browser context of its own. The first one signs in; every
-    ///     later one starts from that sign-in's cookies.
+    ///     later one starts from that sign-in's cookies — once the app still answers them as signed in: a sign-in a test
+    ///     ended (signed out, its session gone) is replaced by a new one, so no test can sign the others out.
     /// </summary>
     /// <remarks>Its context is closed once the test is over.</remarks>
     /// <param name="name">Who: an account's name, or <see cref="Admin" />.</param>
     /// <param name="fresh">
-    ///     <c>true</c> signs in anew rather than starting from the last sign-in — after a test signed them out — and the
-    ///     pages asked for later start from this one.
+    ///     <c>true</c> signs in anew, a sign-in of this page's own — for a test that signs them out, or signs them in
+    ///     somewhere else. The shared sign-in the other pages start from is left as it is.
     /// </param>
     /// <returns>The page, still blank: <c>await page.GotoAsync("/orders")</c>.</returns>
     public async Task<IPage> SignedIn(string name, bool fresh = false)
@@ -416,18 +418,39 @@ public class RaskSite : IAsyncDisposable
         }
     }
 
-    // Under _signingIn. The administrator claims the app before anyone else registers through Rask.Auth.
+    // Under _signingIn. The administrator claims the app before anyone else registers through Rask.Auth. A fresh sign-in
+    // is the page's own and never the shared one, so signing it out leaves the others signed in; the shared one is asked
+    // whether it still holds before it is handed out, and signed in again when a test ended it some other way.
     private async Task<string> SignedInState(string name, bool fresh)
     {
-        if (!fresh && _signedIn.TryGetValue(name, out var known))
+        if (!fresh && _signedIn.TryGetValue(name, out var known)
+            && string.Equals(await AnswerTo(known.State).ConfigureAwait(false), known.Answer, StringComparison.Ordinal))
         {
-            return known;
+            return known.State;
         }
 
         if (SignIn is null && !string.Equals(name, Admin, StringComparison.Ordinal))
         {
             await SignedInState(Admin, fresh: false).ConfigureAwait(false);
         }
+
+        var state = await SigningIn(name).ConfigureAwait(false);
+        if (!fresh)
+        {
+            _signedIn[name] = (state, await AnswerTo(state).ConfigureAwait(false));
+        }
+
+        return state;
+    }
+
+    private async Task<string> AnswerTo(string state)
+    {
+        var (playwright, _) = await _browser.Value.ConfigureAwait(false);
+        return await SignInProbe.Answer(playwright.APIRequest, Address, state, SignInPage).ConfigureAwait(false);
+    }
+
+    private async Task<string> SigningIn(string name)
+    {
 
         var context = await Context().ConfigureAwait(false);
         try
@@ -450,9 +473,7 @@ public class RaskSite : IAsyncDisposable
                 }
             }
 
-            var state = await context.StorageStateAsync().ConfigureAwait(false);
-            _signedIn[name] = state;
-            return state;
+            return await context.StorageStateAsync().ConfigureAwait(false);
         }
         finally
         {

@@ -27,6 +27,14 @@ namespace Rask;
 /// a time half typed says so under the pair, as each picker does, and the save is refused. Every message is the
 /// kit's catalog's or the model's own rules' (<c>Validate</c>, attributes), under the pair in the member's name.
 /// </para>
+/// <para>
+/// A model that keeps the day and the time apart binds both: <c>Ui.DayAndTime.Bind(() =&gt; m.Day, () =&gt; m.Time)</c>,
+/// a <c>DateOnly?</c> and a <c>TimeOnly?</c> (<see cref="UiDayAndTimeSteps" />). Each part then says its own member's
+/// messages under itself — the model's attributes, a FluentValidation rule or a rule of the day on either member, a
+/// half-typed part — so the pair can say two. The time is disabled until a day is given, and a day taken away
+/// empties the time and disables it again. <c>AfterBind</c> hears the moment the two make; <c>Validate</c> and
+/// <c>OnChange</c> are the one-member binding's.
+/// </para>
 /// </remarks>
 /// <typeparam name="T"><c>DateTime</c> or <c>DateTime?</c>.</typeparam>
 public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFormControl, IDeferredBind, IUiLockable
@@ -35,8 +43,8 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
     // room for AM/PM where the culture's clock has twelve hours.
     private const string Row = "[:where(&)]:flex [:where(&)]:flex-wrap [:where(&)]:gap-2";
     private const string DayWidth = "min-w-48 flex-1";
-    private const string TimeWidth = "w-36 shrink-0";
-    private const string TimeWidthTwelve = "w-44 shrink-0";
+    private const string TimeNarrow = "w-36 shrink-0";
+    private const string TimeWide = "w-44 shrink-0";
 
     private static readonly Dictionary<string, string?> Marks = new(StringComparer.Ordinal) { ["ui-day-and-time"] = "" };
 
@@ -101,9 +109,9 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
     /// </summary>
     public bool? Live { get; set; }
 
-    string IUiFieldControl.ControlId => Id is null && Bind is null && Label is null
+    string IUiFieldControl.ControlId => Id is null && Bind is null && Parts is null && Label is null
         ? _ownId ??= UiFieldId.Own(UiInstanceCounter.Next())
-        : UiFieldId.Derive(Id, Bind, Label);
+        : UiFieldId.Derive(Id, (LambdaExpression?)Bind ?? Parts?.Day, Label);
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
@@ -115,6 +123,11 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
     protected override Component? Render()
     {
         UiDayAndTimeValue.Check<T>();
+        if (Parts is { } parts)
+        {
+            return RenderParts(parts);
+        }
+
         var field = UiWithField.For(this);
         var (accessor, context, current) = UiFormCommit.Resolve(this);
         (_accessor, _context, _shown) = (accessor, context, current);
@@ -141,11 +154,15 @@ public sealed partial class UiDayAndTime<T> : Component, IFormControl<T>, IUiFor
             .Locale(Locale)
             .Disabled(locked || moment is null)
             .Invalid(field.Invalid)
-            .Class(UiTimePickerLook.TwelveHour(Ui.TimePickerTimeFormat.Auto, Culture) ? TimeWidthTwelve : TimeWidth);
+            .Class(TimeWidth(Culture));
 
         // What either cannot take is said under the pair, in the bound member's name.
         return field.Wrap(Div.Class(Row, Class).Data(Marks)[Context.Provide(new UiUnreadRelay(UnreadAsync))[day, time]]);
     }
+
+    // Room for AM/PM where the culture's clock has twelve hours.
+    private static string TimeWidth(CultureInfo culture) =>
+        UiTimePickerLook.TwelveHour(Ui.TimePickerTimeFormat.Auto, culture) ? TimeWide : TimeNarrow;
 
     private CultureInfo Culture => Locale is { } name ? CultureInfo.GetCultureInfo(name) : CultureInfo.CurrentCulture;
 

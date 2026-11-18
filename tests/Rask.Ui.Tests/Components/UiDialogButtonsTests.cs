@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 using Rask.Core;
 using Page = Rask.Testing.Page;
@@ -117,6 +118,152 @@ public partial class UiDialogButtonsTests : RaskMarkup
         Assert.True(html.IndexOf("Save as draft", StringComparison.Ordinal) < html.IndexOf(">Cancel<", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Submit_makes_the_action_the_forms_submit_and_leaves_cancel_a_plain_button()
+    {
+        var footer = Ui.DialogButtons.Submit().Save("Merge");
+
+        var html = footer.ToHtml().AsText();
+
+        Assert.Matches("<button [^>]*data-rask-key=\"save\" type=\"submit\">.*>Merge</span></button></div>$", html);
+        Assert.Matches("<button [^>]*data-rask-key=\"cancel\" type=\"button\">Cancel</button>", html);
+        Assert.DoesNotContain("data-rask-on-click", html, StringComparison.Ordinal);
+        Assert.Single(Regex.Matches(html, "type=\"submit\"", RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public async Task Submit_sends_a_valid_form_and_its_handler_runs()
+    {
+        var model = new Merger();
+        var merged = 0;
+        var page = Page.Render(() => [Merging(model, () => merged++)]);
+
+        await page.Type("Aminoff").Into("Name");
+        await page.Click("Merge");
+
+        Assert.Equal(1, merged);
+    }
+
+    [Fact]
+    public async Task Submit_holds_back_an_invalid_form_and_its_handler_does_not_run()
+    {
+        var model = new Merger();
+        var merged = 0;
+        var refused = 0;
+        var page = Page.Render(() => [Form.Model(model).OnSubmit(_ => merged++).OnInvalidSubmit(_ => refused++)[
+            Ui.Input.Bind(() => model.Name).Label("Name"),
+            Ui.DialogButtons.Submit().Save("Merge")
+        ]]);
+
+        await page.Click("Merge");
+
+        Assert.Equal(0, merged);
+        Assert.Equal(1, refused);
+    }
+
+    [Fact]
+    public async Task Submit_carries_the_spinner_the_runtime_shows_while_the_forms_handler_runs()
+    {
+        var model = new Merger { Name = "Aminoff" };
+        var merged = false;
+        var page = Page.Render(() => [Merging(model, async () => { await Task.Yield(); merged = true; })]);
+
+        var spinner = page.Exists("button[type=\"submit\"][data-rask-key=\"save\"] [data-ui-loading-indicator]");
+        await page.Click("Merge");
+
+        Assert.True(spinner);
+        Assert.True(merged);
+    }
+
+    [Fact]
+    public async Task Enter_in_a_field_submits_through_the_one_submit_button()
+    {
+        var model = new Merger { Name = "Aminoff" };
+        var merged = 0;
+        var page = Page.Render(() => [Merging(model, () => merged++)]);
+
+        // Enter in a field submits the form by its first submit button; the dialog's row has only the action.
+        var submits = page.FindAll("form button[type=\"submit\"]");
+        await page.On("form").Submit();
+
+        Assert.Single(submits);
+        Assert.Equal("save", submits[0].Attribute("data-rask-key"));
+        Assert.Equal(1, merged);
+    }
+
+    [Fact]
+    public async Task Cancel_closes_the_modal_and_sends_no_form()
+    {
+        var model = new Merger { Name = "Aminoff" };
+        var merged = 0;
+        var closed = 0;
+        var page = Page.Render(() => [Ui.Modal.Open(true).OnClose(() => closed++)[Merging(model, () => merged++)]]);
+
+        var cancel = page.Find("[data-ui-dialog-buttons] [data-ui-modal-close] button");
+        await page.On("dialog").Raise("close");
+
+        Assert.Equal("close", cancel.Attribute("command"));
+        Assert.Equal("button", cancel.Attribute("type"));
+        Assert.Equal(1, closed);
+        Assert.Equal(0, merged);
+    }
+
+    [Fact]
+    public void Submit_beside_a_save_handler_names_both_and_says_which_to_drop()
+    {
+        var footer = Ui.DialogButtons.Submit().OnSave(() => { });
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => footer.ToHtml());
+
+        Assert.Contains(".Submit()", thrown.Message, StringComparison.Ordinal);
+        Assert.Contains(".OnSave(", thrown.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Danger_draws_the_action_as_fluxs_danger_button_and_it_still_runs_its_handler()
+    {
+        var footer = Ui.DialogButtons.Danger().OnSave(() => { }).Save("Delete project");
+        var flux = Ui.Button.Key("save").Danger.OnClick(() => { })["Delete project"];
+
+        var html = footer.ToHtml().AsText();
+
+        var action = Tag(html, "<button class=", last: true);
+        Assert.Equal(Tag(flux.ToHtml().AsText(), "<button class="), action);
+        Assert.Contains("bg-red-500", action, StringComparison.Ordinal);
+        Assert.DoesNotContain(" bg-accent ", action, StringComparison.Ordinal);
+        Assert.Contains("type=\"button\"", action, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Danger_with_submit_is_a_red_submit_that_sends_the_form()
+    {
+        var model = new Merger { Name = "Aminoff" };
+        var removed = 0;
+        var page = Page.Render(() => [Form.Model(model).OnSubmit(_ => removed++)[
+            Ui.Input.Bind(() => model.Name).Label("Name"),
+            Ui.DialogButtons.Submit().Danger().Save("Delete")
+        ]]);
+
+        var action = page.Find("button[data-rask-key=\"save\"]");
+        await page.Click("Delete");
+
+        Assert.Equal("submit", action.Attribute("type"));
+        Assert.Contains("bg-red-500", action.Attribute("class"), StringComparison.Ordinal);
+        Assert.Equal(1, removed);
+    }
+
+    private static Component Merging(Merger model, Action merge) =>
+        Form.Model(model).OnSubmit(_ => merge())[
+            Ui.Input.Bind(() => model.Name).Label("Name"),
+            Ui.DialogButtons.Submit().Save("Merge")
+        ];
+
+    private static Component Merging(Merger model, Func<Task> merge) =>
+        Form.Model(model).OnSubmit(_ => merge())[
+            Ui.Input.Bind(() => model.Name).Label("Name"),
+            Ui.DialogButtons.Submit().Save("Merge")
+        ];
+
     private static string Tag(string html, string prefix, bool last = false)
     {
         var start = last ? html.LastIndexOf(prefix, StringComparison.Ordinal) : html.IndexOf(prefix, StringComparison.Ordinal);
@@ -127,5 +274,11 @@ public partial class UiDialogButtonsTests : RaskMarkup
     private sealed class Stock
     {
         public int Quantity { get; set; }
+    }
+
+    private sealed class Merger
+    {
+        [Required]
+        public string? Name { get; set; }
     }
 }

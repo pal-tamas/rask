@@ -84,6 +84,8 @@ public partial class HookBundleContractTests
         ["data-rask-confirm"] = "the runtime's own question (rask-confirm.ts); the hook only answers it in Ui.Confirm's dialog",
         ["data-rask-confirm-heading"] = "beside a data-rask-confirm: the title Ui.Confirm's dialog shows over that question",
         ["data-rask-confirm-default"] = "on the title of Ui.Confirm's dialog: the layout's, for a question with none of its own",
+        ["data-rask-confirm-tone"] = "on Ui.Confirm's yes: the look it is drawn in",
+        ["data-rask-confirm-other"] = "on Ui.Confirm's yes: the other look's classes, for a question from code that asks in it",
         ["data-rask-unread"] = "written by the segments hook on its own bound field",
         ["data-rask-on-edit"] = "the runtime's own first-key mark (rask-input.ts); on a data-rask-segments here",
         ["data-rask-time-start"] = "inside a data-rask-time-list",

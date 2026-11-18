@@ -64,7 +64,7 @@ public sealed class PushFake : IPush, IDisposable
             _subscribed.Add(subscription);
         }
 
-        return Task.FromResult(PushSubscriber.For(subscription, Current.UserId, DateTime.UtcNow));
+        return Task.FromResult(PushSubscriber.For(subscription, Rask.Data.CurrentUser.Id, DateTime.UtcNow));
     }
 
     Task<bool> IPush.Unsubscribe(string endpoint, CancellationToken cancellationToken)

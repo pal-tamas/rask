@@ -34,7 +34,7 @@ internal sealed partial class PushStore<TContext>(
         }
 
         var now = time.GetUtcNow().UtcDateTime;
-        var userId = Current.UserId;
+        var userId = Rask.Data.CurrentUser.Id;
 
         var db = await contexts.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using (db.ConfigureAwait(false))

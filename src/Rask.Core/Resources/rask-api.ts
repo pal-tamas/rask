@@ -13,6 +13,8 @@
 // which used to be defined in this file; the implementations now live in ./browser/ as ordinary
 // modules a TypeScript front end can import directly. See ./browser/globals.ts.
 import "./browser/globals.js";
+// window.__raskConfirm: Ui.Confirm.Ask's question, waiting for the hooks that ask it in the kit's dialog.
+import "./rask-confirm-ask.js";
 import { raskWebArm, raskWebCall, raskWebGlobalName, raskWebInstallPrompt, raskWebListened } from "./rask-web-patches.js";
 
 // A typed ElementRef's DOM members (generated from MDN into ElementRefMembers): one operation, read or write on the

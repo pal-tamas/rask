@@ -68,8 +68,6 @@ public sealed class OwnWorkWireTests
     }
 
     [Theory]
-    [InlineData("""{"id":1,"title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
-    [InlineData("""{"id":1,"title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
     [InlineData("""{"id":1,"title":"x","at":"2026-11-17T09:30:00Z"}""")]
     [InlineData("""["not","work"]""")]
     public void A_report_that_is_not_one_is_refused_as_malformed(string json)
@@ -77,6 +75,71 @@ public sealed class OwnWorkWireTests
         var refused = Record.Exception(() => Read(json, OwnWorkWire.Watch.ReadResult!));
 
         Assert.IsAssignableFrom<JsonException>(refused);
+    }
+
+    [Fact]
+    public void A_batch_its_detail_and_whether_it_is_shared_or_the_readers_own_cross_and_its_kind_does_not()
+    {
+        var batch = Guid.Parse("01937f2a-0000-7000-8000-000000000001");
+        var work = new WorkReported(7, "Import of b.csv", null, 3, 3, WorkState.Failed, At)
+        {
+            Batch = batch,
+            Detail = "b.csv has no header row",
+            Owner = Alice,
+            Tenant = Acme,
+            Shared = true,
+            Mine = false,
+            Kind = "Eszaf.Loads.ImportLoad",
+        };
+
+        var json = Written(writer => OwnWorkWire.Watch.WriteResult!(writer, work));
+        var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
+
+        Assert.Equal(batch, back.Batch);
+        Assert.Equal("b.csv has no header row", back.Detail);
+        Assert.True(back.Shared);
+        Assert.False(back.Mine);
+        Assert.Null(back.Kind);
+        Assert.DoesNotContain("Eszaf.Loads", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_report_from_before_batches_reads_with_none_of_them()
+    {
+        const string json = """{"id":1,"title":"x","progress":null,"done":null,"of":null,"state":"Done","at":"2026-11-17T09:30:00Z"}""";
+
+        var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
+
+        Assert.Equal(WorkState.Done, back.State);
+        Assert.Null(back.Batch);
+        Assert.Null(back.Detail);
+        Assert.False(back.Shared);
+        Assert.Null(back.Mine);
+    }
+
+    [Fact]
+    public void A_warned_job_crosses_as_done_for_a_tab_from_before_warnings_and_as_warned_for_one_after()
+    {
+        var work = new WorkReported(7, "Import", null, null, null, WorkState.Warned, At) { Detail = "No new rows" };
+
+        var json = Written(writer => OwnWorkWire.Watch.WriteResult!(writer, work));
+        var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
+
+        Assert.Contains("\"state\":\"Done\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"outcome\":\"Warned\"", json, StringComparison.Ordinal);
+        Assert.Equal(WorkState.Warned, back.State);
+    }
+
+    [Theory]
+    [InlineData("""{"id":1,"title":"x","state":"Exploded","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":1,"title":"x","state":"7","at":"2026-11-17T09:30:00Z"}""")]
+    [InlineData("""{"id":1,"title":"x","state":"Done","outcome":"Paused","at":"2026-11-17T09:30:00Z","colour":"teal"}""")]
+    public void A_state_a_newer_server_knows_and_this_reader_does_not_reads_as_an_end_rather_than_breaking_the_bell(string json)
+    {
+        var back = (WorkReported)Read(json, OwnWorkWire.Watch.ReadResult!)!;
+
+        Assert.Equal(WorkState.Done, back.State);
+        Assert.True(back.HasEnded);
     }
 
     [Fact]

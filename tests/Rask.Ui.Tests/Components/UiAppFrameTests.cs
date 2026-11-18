@@ -96,7 +96,7 @@ public sealed partial class AppFrameNamedLayout : Component
 {
     /// <inheritdoc />
     protected override Component? Render() =>
-        Ui.AppFrame.Brand("PPTA").Home(Routes.AppFrameNamedHomePage()).LeaveHeading("Unsaved driver")[
+        Ui.AppFrame.Brand("PPTA").Home(Routes.AppFrameNamedHomePage()).LeaveHeading("Unsaved driver").LeaveWords("Nem", "Igen")[
             Ui.SidebarNav[
                 Ui.SidebarItem.Key("tenants").Href(Routes.AppFrameTenantsPage())["Tenants"],
                 Ui.SidebarItem.Key("home").Href(Routes.AppFrameNamedHomePage())["Home"]
@@ -333,6 +333,32 @@ public sealed partial class UiAppFrameTests
         var html = KitCulture.In(culture, frame.ToHtml).AsText();
 
         Assert.Contains(">" + heading + "<", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_leave_words_name_the_unsaved_changes_dialogs_two_buttons()
+    {
+        var page = Page.Visit("/ui-app-frame-named");
+
+        var buttons = page.FindAll("#ui-confirm-leave button").Select(button => button.TextContent.Trim()).ToList();
+
+        Assert.Contains("Nem", buttons);
+        Assert.Contains("Igen", buttons);
+        Assert.DoesNotContain("Stay", buttons);
+        Assert.DoesNotContain("Leave", buttons);
+    }
+
+    [Theory]
+    [InlineData("en-US", "Stay", "Leave")]
+    [InlineData("hu-HU", "Maradok", "Elhagyom")]
+    public void Without_leave_words_the_dialogs_buttons_read_the_catalog(string culture, string stay, string leave)
+    {
+        var frame = Ui.AppFrame.Brand("PPTA");
+
+        var html = KitCulture.In(culture, frame.ToHtml).AsText();
+
+        Assert.Contains(">" + stay + "<", html, StringComparison.Ordinal);
+        Assert.Contains(">" + leave + "<", html, StringComparison.Ordinal);
     }
 
     [Fact]

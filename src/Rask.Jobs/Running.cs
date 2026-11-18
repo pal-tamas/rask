@@ -15,20 +15,22 @@ public readonly struct Running
     private readonly string? _lane;
     private readonly TimeSpan? _within;
     private readonly string? _notice;
+    private readonly bool _shared;
     private readonly CancellationToken _cancellationToken;
 
     internal Running(IJobs? jobs, IJob job, string? lane, TimeSpan? within, CancellationToken cancellationToken)
-        : this(jobs, job, lane, within, notice: null, cancellationToken)
+        : this(jobs, job, lane, within, notice: null, shared: false, cancellationToken)
     {
     }
 
-    private Running(IJobs? jobs, IJob job, string? lane, TimeSpan? within, string? notice, CancellationToken cancellationToken)
+    private Running(IJobs? jobs, IJob job, string? lane, TimeSpan? within, string? notice, bool shared, CancellationToken cancellationToken)
     {
         _jobs = jobs;
         _job = job ?? throw new ArgumentNullException(nameof(job));
         _lane = lane;
         _within = within;
         _notice = notice;
+        _shared = shared;
         _cancellationToken = cancellationToken;
     }
 
@@ -39,7 +41,7 @@ public readonly struct Running
     public Running InLane(string lane)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(lane);
-        return new Running(_jobs, _job, lane, _within, _notice, _cancellationToken);
+        return new Running(_jobs, _job, lane, _within, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>
@@ -49,7 +51,7 @@ public readonly struct Running
     public Running Within(TimeSpan wait)
     {
         RefuseNonPositive(wait);
-        return new Running(_jobs, _job, _lane, wait, _notice, _cancellationToken);
+        return new Running(_jobs, _job, _lane, wait, _notice, _shared, _cancellationToken);
     }
 
     /// <summary>
@@ -58,7 +60,13 @@ public readonly struct Running
     /// </summary>
     /// <param name="title">What the work is, in words for the person who started it — at most 256 characters.</param>
     public Running Noticed(string title) =>
-        new(_jobs, _job, _lane, _within, JobNotice.Checked(title), _cancellationToken);
+        new(_jobs, _job, _lane, _within, JobNotice.Checked(title), _shared, _cancellationToken);
+
+    /// <summary>
+    ///     Shows the noticed job to its tenant's other users too, those who pass its handler's <c>[Authorize]</c> — as
+    ///     <see cref="Enqueuing.ByTenant" /> does for an enqueued job. Awaiting it throws with no <c>.Noticed(…)</c> or no tenant.
+    /// </summary>
+    public Running ByTenant() => new(_jobs, _job, _lane, _within, _notice, shared: true, _cancellationToken);
 
     /// <summary>Runs it and waits until it has run.</summary>
     public TaskAwaiter GetAwaiter() => AsTask().GetAwaiter();
@@ -73,7 +81,12 @@ public readonly struct Running
         JobInFlight.RefuseAwaitingOwnLane(_lane);
 
         // Ambient while the write starts: the write's own awaits carry it on to where the row is built, and it ends here.
-        var notice = JobNotice.Use(_notice);
+        if (_shared)
+        {
+            JobNotice.RefuseUnshareable("Jobs.Run(job)", noticed: _notice is not null);
+        }
+
+        var notice = JobNotice.Use(_notice, _shared);
         try
         {
             return (_jobs ?? Jobs.Resolve()).Run(_job, _lane, _within, Ambient.Or(_cancellationToken));

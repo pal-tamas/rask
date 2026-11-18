@@ -4,7 +4,8 @@ namespace Rask;
 
 /// <summary>
 ///     The signed-in user's background work, in the page: each running job with its bar and what it last said, then each one
-///     lately done, failed or stopped — the list <see cref="UiWorkNotices" /> opens, drawn where it is written.
+///     lately done, warned, failed or stopped, a batch as one group — the list <see cref="UiWorkNotices" /> opens, drawn where it
+///     is written.
 /// </summary>
 /// <remarks>
 ///     <code>
@@ -15,8 +16,9 @@ namespace Rask;
 ///     </code>
 ///     <para>
 ///     Not a Flux component: Flux's <see cref="UiProgress" /> and <see cref="UiBadge" /> in rows, an addition the owner
-///     approved (2026-11-17, #1293). It shows what the bell shows — only this user's work in their tenant, read again every poll
-///     and moved by what the jobs publish — and says in a polite live region when a job it saw running ends.
+///     approved (2026-11-17, #1293). It shows what the bell shows — this user's work and their tenant's shared work they may run,
+///     read again every poll and moved by what the jobs publish — and says in a polite live region when a job it saw running
+///     ends. It raises no toast: that is the bell's.
 ///     </para>
 /// </remarks>
 public sealed partial class UiWorkList : Component

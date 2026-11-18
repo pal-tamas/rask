@@ -95,7 +95,7 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">The user in flight has no row.</exception>
     public static TRead? User<TRead>()
         where TRead : class =>
-        Current.UserId is { } key ? (TRead)Registered(_user, CurrentRowKind.User).Read(key) : null;
+        CurrentUser.Id is { } key ? (TRead)Registered(_user, CurrentRowKind.User).Read(key) : null;
 
     /// <summary>The user's row, or a thrown exception when the work is for nobody. <c>Current.RequiredUser</c>.</summary>
     /// <typeparam name="TRead">The user's read face.</typeparam>
@@ -103,7 +103,84 @@ public static class CurrentRows
     /// <exception cref="InvalidOperationException">Nobody is signed in, or the user in flight has no row.</exception>
     public static TRead RequiredUser<TRead>()
         where TRead : class =>
-        (TRead)Registered(_user, CurrentRowKind.User).Read(Current.RequiredUserId);
+        (TRead)Registered(_user, CurrentRowKind.User).Read(CurrentUser.RequiredId);
+
+    /// <summary>
+    ///     The id of the user the work in flight is for, as the number the app's user is keyed by, or
+    ///     <see langword="null" /> when it is for nobody. <c>Current.UserId</c>, for an app whose user is keyed by an
+    ///     <see cref="int" /> or a <see cref="long" />.
+    /// </summary>
+    /// <typeparam name="TKey">The user aggregate's key.</typeparam>
+    /// <returns>The id, or <see langword="null" />.</returns>
+    /// <exception cref="InvalidOperationException">The user in flight is an identifier that carries no such number.</exception>
+    public static TKey? UserId<TKey>()
+        where TKey : struct =>
+        CurrentUser.Id is { } id ? CurrentKey.Of<TKey>(id, CurrentRowKind.User, KeyedBy(_user, "The user")) : null;
+
+    /// <summary>
+    ///     The id of the user the work in flight is for, as the number the app's user is keyed by, or a thrown
+    ///     exception when it is for nobody. <c>Current.RequiredUserId</c>, for a numbered user.
+    /// </summary>
+    /// <typeparam name="TKey">The user aggregate's key.</typeparam>
+    /// <returns>The id.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     No user is signed in, or the user in flight is an identifier that carries no such number.
+    /// </exception>
+    public static TKey RequiredUserId<TKey>()
+        where TKey : struct =>
+        CurrentKey.Of<TKey>(CurrentUser.RequiredId, CurrentRowKind.User, KeyedBy(_user, "The user"));
+
+    /// <summary>
+    ///     Makes the user keyed <paramref name="userId" /> the current user until the returned scope is disposed.
+    ///     <c>Current.UseUser</c>, for a numbered user.
+    /// </summary>
+    /// <typeparam name="TKey">The user aggregate's key.</typeparam>
+    /// <param name="userId">The user to work for, or <see langword="null" /> to work for nobody.</param>
+    /// <returns>A scope that restores the previous user.</returns>
+    public static IDisposable WorkFor<TKey>(TKey? userId)
+        where TKey : struct =>
+        Current.UseUser(userId is { } key ? CurrentKey.ToGuid(key) : null);
+
+    /// <summary>
+    ///     The id of the tenant the work in flight belongs to, as the app's tenant is keyed, or
+    ///     <see langword="null" /> when it belongs to none — or to all, inside <c>Tenant.Across()</c>.
+    ///     <c>Current.TenantId</c>.
+    /// </summary>
+    /// <typeparam name="TKey">The tenant aggregate's key: an <see cref="int" />, a <see cref="long" /> or a <see cref="Guid" />.</typeparam>
+    /// <returns>The id, or <see langword="null" />.</returns>
+    /// <exception cref="InvalidOperationException">The tenant in flight is an identifier that carries no such number.</exception>
+    public static TKey? TenantId<TKey>()
+        where TKey : struct =>
+        Data.Tenant.Key is { } key ? CurrentKey.Of<TKey>(key, CurrentRowKind.Tenant, KeyedBy(_tenant, "The tenant")) : null;
+
+    /// <summary>
+    ///     The id of the tenant the work in flight belongs to, as the app's tenant is keyed, or a thrown exception
+    ///     when it belongs to none. <c>Current.RequiredTenantId</c>.
+    /// </summary>
+    /// <typeparam name="TKey">The tenant aggregate's key: an <see cref="int" />, a <see cref="long" /> or a <see cref="Guid" />.</typeparam>
+    /// <returns>The id.</returns>
+    /// <exception cref="InvalidOperationException">
+    ///     No tenant is set, <c>Tenant.Across()</c> is open, or the tenant in flight carries no such number.
+    /// </exception>
+    public static TKey RequiredTenantId<TKey>()
+        where TKey : struct
+    {
+        if (Data.Tenant.IsAcrossTenants)
+        {
+            throw new InvalidOperationException(
+                "Tenant.Across() is open, so the work in flight spans every tenant and belongs to none of them: there " +
+                "is no Current.RequiredTenantId. Read Current.TenantId and handle null, or open the one tenant the " +
+                "work is for inside it — Tenant.Use(id).");
+        }
+
+        return CurrentKey.Of<TKey>(Data.Tenant.RequiredKey, CurrentRowKind.Tenant, KeyedBy(_tenant, "The tenant"));
+    }
+
+    /// <summary>Whether the app's user aggregate is keyed by a number, so a numeric user claim names a user.</summary>
+    internal static bool NumberedUser => _user?.IsNumbered == true;
+
+    /// <summary>Whether the app's tenant aggregate is keyed by a number, so a numeric tenant claim names a tenant.</summary>
+    internal static bool NumberedTenant => _tenant?.IsNumbered == true;
 
     /// <summary>Whether the app named a tenant or a user aggregate, so there is anything to read ahead or drop.</summary>
     internal static bool IsOn => _tenant is not null || _user is not null;
@@ -241,6 +318,8 @@ public static class CurrentRows
             // See the justification above.
         }
     }
+
+    private static string KeyedBy(CurrentRow? row, string fallback) => row?.Aggregate.Name ?? fallback;
 
     private static CurrentRow Registered(CurrentRow? row, CurrentRowKind kind) =>
         row ?? throw new InvalidOperationException(

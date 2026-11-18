@@ -291,3 +291,8 @@ Rask.Cqrs.RequestAuthorization.RequestAuthorization(System.Collections.Generic.I
 Rask.Cqrs.RequestAuthorization.RoleSets.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static Rask.Cqrs.CqrsRegistry.ReplaceAuthorization(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Type, Rask.Cqrs.RequestAuthorization! Declared)>! registrations) -> void
 static Rask.Cqrs.CqrsRegistry.ReplaceListeners(object! groupKey, System.Collections.Generic.IEnumerable<(System.Type! Component, System.Type! Event, System.Func<object!, Rask.Cqrs.IEvent!, System.Threading.Tasks.Task!>! Handle)>! listeners) -> void
+Rask.Background.WorkState.Warned = 4 -> Rask.Background.WorkState
+Rask.Background.WorkReported.Batch.get -> System.Guid?
+Rask.Background.WorkReported.Batch.init -> void
+Rask.Background.WorkReported.Detail.get -> string?
+Rask.Background.WorkReported.Detail.init -> void

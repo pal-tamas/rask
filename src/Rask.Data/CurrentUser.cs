@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 
 namespace Rask.Data;
@@ -107,16 +108,18 @@ public static class CurrentUser
         ///     An explicit <c>Current.UseUser</c> first — a background job runs for the user its row recorded,
         ///     not for whoever happens to be ambient — then the <see cref="ClaimTypes.NameIdentifier" /> claim of
         ///     <c>Current.Principal</c>.
+        ///     <para>
+        ///         An app whose user aggregate is keyed by an <see cref="int" /> or a <see cref="long" /> — say
+        ///         <c>User : Aggregate&lt;int&gt;, IUser</c> — has the build generate <c>Current.UserId</c> as that
+        ///         number instead, which hides this one. Its <see cref="ClaimTypes.NameIdentifier" /> is
+        ///         the number written out: <c>"12"</c>.
+        ///     </para>
         /// </remarks>
-        public static Guid? UserId => UserIdIn(Db.ScopeServices);
+        public static Guid? UserId => Id;
 
         /// <summary>The id of the user the work in flight is for, or a thrown exception when there is none.</summary>
         /// <exception cref="InvalidOperationException">No user is signed in and no <c>Current.UseUser</c> scope is open.</exception>
-        public static Guid RequiredUserId =>
-            Current.UserId ?? throw new InvalidOperationException(
-                "No user is signed in, so there is no current user. Current.UserId is set for a signed-in live " +
-                "session, an HTTP request and a background job enqueued by a signed-in user; anywhere else, open " +
-                "Current.UseUser(id) around the work — or use Current.UserId and handle null when anonymous is fine.");
+        public static Guid RequiredUserId => RequiredId;
 
         /// <summary>
         ///     Makes <paramref name="userId" /> the current user until the returned scope is disposed.
@@ -130,6 +133,20 @@ public static class CurrentUser
         /// </remarks>
         public static IDisposable UseUser(Guid? userId) => new Scope(new UserScope(userId));
     }
+
+    /// <summary>
+    ///     The user the work in flight is for, as the <see cref="Guid" /> the framework carries it in — the one the
+    ///     framework's own rows record, whatever type the app's user is keyed by.
+    /// </summary>
+    internal static Guid? Id => UserIdIn(Db.ScopeServices);
+
+    /// <summary><see cref="Id" />, or a thrown exception when the work is for nobody.</summary>
+    /// <exception cref="InvalidOperationException">No user is signed in and no <c>Current.UseUser</c> scope is open.</exception>
+    internal static Guid RequiredId =>
+        Id ?? throw new InvalidOperationException(
+            "No user is signed in, so there is no current user. Current.UserId is set for a signed-in live " +
+            "session, an HTTP request and a background job enqueued by a signed-in user; anywhere else, open " +
+            "Current.UseUser(id) around the work — or use Current.UserId and handle null when anonymous is fine.");
 
     /// <summary><c>Current.UserId</c>, with <paramref name="scope" /> standing for the scope <see cref="Db.UseScope" /> opened.</summary>
     /// <param name="scope">The scope whose principal answers.</param>
@@ -145,7 +162,47 @@ public static class CurrentUser
     }
 
     internal static Guid? ClaimedGuid(IServiceProvider? scope, string claimType) =>
-        Guid.TryParse(Db.PrincipalIn(scope)?.FindFirst(claimType)?.Value, out var id) ? id : null;
+        FromClaim(Db.PrincipalIn(scope)?.FindFirst(claimType)?.Value, NumberedFor(claimType));
+
+    /// <summary>The user a <see cref="ClaimTypes.NameIdentifier" /> claim's value names, or null when it names none.</summary>
+    /// <param name="value">The claim's value.</param>
+    internal static Guid? FromClaim(string? value) => FromClaim(value, CurrentRows.NumberedUser);
+
+    /// <summary>
+    ///     The <see cref="Guid" /> a claim's value names: a <see cref="Guid" /> written out, or — only when
+    ///     <paramref name="numbered" /> — a number written out, carried as <see cref="TenantNumber" /> carries one.
+    /// </summary>
+    /// <param name="value">The claim's value.</param>
+    /// <param name="numbered">Whether the aggregate the claim names is keyed by an int or a long.</param>
+    /// <remarks>
+    ///     Gated on the key type, so an app whose users are Guids keeps reading a numeric claim as nobody rather
+    ///     than as a Guid no row of its holds.
+    /// </remarks>
+    internal static Guid? FromClaim(string? value, bool numbered)
+    {
+        if (Guid.TryParse(value, out var id))
+        {
+            return id;
+        }
+
+        return numbered && long.TryParse(value, NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out var number)
+            ? TenantNumber.ToGuid(number)
+            : null;
+    }
+
+    /// <summary>
+    ///     <paramref name="userId" /> as a <see cref="ClaimTypes.NameIdentifier" /> claim writes it: the number,
+    ///     for an app whose users are numbered, and the <see cref="Guid" /> otherwise.
+    /// </summary>
+    internal static string ToClaim(Guid userId) =>
+        CurrentRows.NumberedUser && TenantNumber.TryRead(userId, out var number)
+            ? number.ToString(CultureInfo.InvariantCulture)
+            : userId.ToString();
+
+    private static bool NumberedFor(string claimType) =>
+        string.Equals(claimType, Tenant.ClaimType, StringComparison.Ordinal)
+            ? CurrentRows.NumberedTenant
+            : string.Equals(claimType, ClaimTypes.NameIdentifier, StringComparison.Ordinal) && CurrentRows.NumberedUser;
 
     private sealed record UserScope(Guid? UserId);
 

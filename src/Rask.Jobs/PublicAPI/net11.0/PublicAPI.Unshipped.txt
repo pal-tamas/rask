@@ -492,3 +492,32 @@ static Rask.Background.Jobs.Stop(long id, System.Threading.CancellationToken can
 static Rask.Background.Jobs.Stopped.get -> Rask.Background.JobStop?
 static Rask.Background.LaneJob.operator !=(Rask.Background.LaneJob? left, Rask.Background.LaneJob? right) -> bool
 static Rask.Background.LaneJob.operator ==(Rask.Background.LaneJob? left, Rask.Background.LaneJob? right) -> bool
+Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.Enqueuing() -> void
+Rask.Background.Enqueuing.ByTenant() -> Rask.Background.Enqueuing
+Rask.Background.Job.Shared.get -> bool
+Rask.Background.Job.Batch.get -> System.Guid?
+Rask.Background.Job.Outcome.get -> Rask.Background.WorkState?
+Rask.Background.Job.Detail.get -> string?
+Rask.Background.Enqueuing<TJob>.In(System.TimeSpan delay) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.At(System.DateTimeOffset moment) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.InLane(string! lane) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.Noticed(System.Func<TJob, string!>! title) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.ByTenant() -> Rask.Background.Enqueuing<TJob>
+Rask.Background.Enqueuing<TJob>.GetAwaiter() -> System.Runtime.CompilerServices.TaskAwaiter<int>
+Rask.Background.Enqueuing<TJob>.ConfigureAwait(bool continueOnCapturedContext) -> System.Runtime.CompilerServices.ConfiguredTaskAwaitable<int>
+Rask.Background.Enqueuing<TJob>.AsTask() -> System.Threading.Tasks.Task<int>!
+static Rask.Background.Jobs.Warn(string! detail) -> void
+static Rask.Background.Jobs.Refuse(string! detail) -> void
+static Rask.Background.Jobs.Note(string! detail) -> void
+static Rask.Background.Jobs.Enqueue<TJob>(System.Collections.Generic.IEnumerable<TJob>! jobs, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> Rask.Background.Enqueuing<TJob>
+Rask.Background.JobRead.Shared.get -> bool
+Rask.Background.JobRead.Shared.init -> void
+Rask.Background.JobRead.Batch.get -> System.Guid?
+Rask.Background.JobRead.Batch.init -> void
+Rask.Background.JobRead.Outcome.get -> Rask.Background.WorkState?
+Rask.Background.JobRead.Outcome.init -> void
+Rask.Background.JobRead.Detail.get -> string?
+Rask.Background.JobRead.Detail.init -> void
+Rask.Background.Running<TResult>.ByTenant() -> Rask.Background.Running<TResult>
+Rask.Background.Running.ByTenant() -> Rask.Background.Running
