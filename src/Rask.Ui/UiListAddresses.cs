@@ -11,7 +11,8 @@ namespace Rask;
 /// <remarks>
 ///     One per session: keyed by the session's <see cref="RouteState" />, noted on every move of the address, and gone with
 ///     the session. The key of an <see cref="UiEditorDialog" /> (<c>?edit=</c>) is no part of where a list stands: a dialog
-///     names its key here as it renders, and the way back leaves it out, so going back never reopens a form.
+///     names its key here as it renders, and the way back leaves it out, so going back never reopens a form. Nor is the
+///     address the reader stands at a way back: a list's own dialog that names no key here is closed by the list as given.
 /// </remarks>
 internal sealed class UiListAddresses
 {
@@ -52,7 +53,13 @@ internal sealed class UiListAddresses
             }
 
             // Written as any address the router writes, a dialog's key left out.
-            return page with { QueryString = RouteUrl.Changed(query.Where(pair => !_dialogs.Contains(pair.Key)), []) };
+            var kept = query.Where(pair => !_dialogs.Contains(pair.Key)).ToArray();
+
+            // Where the reader stands is no way back: on the list itself, under a dialog of the app's own that named no
+            // key here, it would be a link to the open dialog, which leaves nothing. The list as given closes it.
+            return kept.Length == query.Length && string.Equals(Key(page.Path), Key(_route.Path), StringComparison.OrdinalIgnoreCase)
+                ? page
+                : page with { QueryString = RouteUrl.Changed(kept, []) };
         }
     }
 

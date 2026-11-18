@@ -635,8 +635,7 @@ For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](co
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
 that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Code` (an invoice
-number, a plate, never spaced out) 8 — `.Width(Ui.ColumnWidth.Code)`: the `<code>` element every component inherits
-hides the `.Code` step — `Moment` and
+number, a plate, never spaced out) 8, `Moment` and
 `Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` (two icon buttons — a pencil and a bin) 6, `Buttons`
 (three or four, or a worded one) 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
@@ -657,7 +656,8 @@ one: Delete at the start (asking first), then Cancel — a link back to the list
 drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Cancel returns to
 the list **as the reader left it** — its filters, sort and page, never a `Ui.EditorDialog`'s key — once the session has
 shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the address), as `Ui.AppFrame`'s trail does;
-`Back(Routes.SuppliersPage())` names only the list. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+`Back(Routes.SuppliersPage())` names only the list. In a dialog the app draws itself over the list, whose key the kit
+does not know, Cancel is the list as given: a way back never leads to where the reader stands. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp

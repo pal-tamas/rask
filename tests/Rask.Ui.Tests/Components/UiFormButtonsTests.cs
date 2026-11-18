@@ -30,6 +30,19 @@ public sealed partial class FormButtonsSupplierPage : Component
     protected override Component? Render() => Div.Key("supplier")[P.Id("page")["Supplier " + Id], Ui.FormButtons.Back(Routes.FormButtonsSuppliersPage())];
 }
 
+/// <summary>A list whose editor is the app's own modal at <c>?edit=</c>, one that names no key to the kit.</summary>
+[Route("/ui-form-buttons/drivers")]
+public sealed partial class FormButtonsDriversPage : Component
+{
+    [QueryParam("edit")] public string? Edit { get; set; }
+
+    /// <inheritdoc />
+    protected override Component? Render() =>
+        Div.Key("drivers")[
+            Ui.Modal.Key("editor").Open(Edit is not null)[Edit is null ? null : Ui.FormButtons.Back(Routes.FormButtonsDriversPage())]
+        ];
+}
+
 /// <summary>
 ///     <see cref="UiFormButtons" />: a form's Delete, Cancel back to the list and Save, as Flux draws a form's footer.
 /// </summary>
@@ -134,6 +147,16 @@ public partial class UiFormButtonsTests : RaskMarkup
 
         Assert.Equal("Supplier 7", page.TextOf("#page"));
         Assert.Equal("/ui-form-buttons/suppliers", cancel.Attribute("href"));
+    }
+
+    [Fact]
+    public void Cancel_in_a_lists_own_dialog_that_names_no_key_goes_to_the_list_as_given()
+    {
+        var page = Page.Visit("/ui-form-buttons/drivers?q=amin&edit=r2");
+
+        var cancel = page.Find("[data-ui-form-buttons] a[data-rask-key=\"cancel\"]");
+
+        Assert.Equal("/ui-form-buttons/drivers", cancel.Attribute("href"));
     }
 
     [Fact]

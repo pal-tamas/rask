@@ -285,6 +285,7 @@ if (page) {
     function forget(panel: HTMLElement): void {
         const held = open.get(panel);
         open.delete(panel);
+        opening.delete(panel);
         panel.removeAttribute(PLACED);
         disown(panel, PLACED);
         if (sizes) {
@@ -315,8 +316,27 @@ if (page) {
     /** The state the last pass left the page in. */
     let settled = "";
 
+    // Where the page stood as each panel began to open, until its first pass. A panel that says `autofocus` is focused
+    // by the browser as it shows it, and focus scrolls it into view where the anchor rules alone left it: a menu taller
+    // than the room under its trigger took the page with it, the trigger scrolled off and the menu past the top. The
+    // page stays where the reader had it, as under Flux's; the pass below then places the panel inside the viewport.
+    const opening = new Map<HTMLElement, number[]>();
+
+    function stayPut(): void {
+        opening.forEach(function (at, panel) {
+            if (!isShown(panel)) {
+                return; // not shown yet: asked again on the pass after it is
+            }
+            opening.delete(panel);
+            if (panel.contains(doc.activeElement) && (view.scrollX !== at[0] || view.scrollY !== at[1])) {
+                view.scrollTo(at[0], at[1]);
+            }
+        });
+    }
+
     function run(): void {
         queued = false;
+        stayPut();
         const panels: HTMLElement[] = [];
         open.forEach(function (_, panel) {
             if (!panel.isConnected || !isShown(panel)) {
@@ -433,6 +453,7 @@ if (page) {
     listen("beforetoggle", function (e) {
         const panel = placed(e.target);
         if (panel && (e as ToggleEvent).newState === "open") {
+            opening.set(panel, [view.scrollX, view.scrollY]);
             track(panel);
             Promise.resolve().then(function () {
                 if (isShown(panel)) {

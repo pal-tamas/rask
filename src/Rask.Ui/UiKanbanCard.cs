@@ -65,9 +65,9 @@ public sealed partial class UiKanbanCard : UiElement, IUiHost
     /// <inheritdoc />
     protected override Component? Render() =>
         HostedElement.Tag(IsButton ? "button" : "div").Owner(this)[
-            Header is null ? null : Div.Class(HeaderSlot)[Header],
+            Header is null ? null : Markup.Div.Class(HeaderSlot)[Header],
             Children?.Any() == true ? Children : Title(),
-            Footer is null ? null : Div.Class(FooterSlot)[Footer]
+            Footer is null ? null : Markup.Div.Class(FooterSlot)[Footer]
         ];
 
     /// <inheritdoc />
