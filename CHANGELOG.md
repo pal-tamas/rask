@@ -8,6 +8,11 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.ColumnWidth.Code` — an 8rem column for an invoice number, a plate, a product code (#1371).** Before: the
+  kit's narrowest code width was `Short` (10rem, for a spaced VAT number), so Eszaf sized its codes with a `w-32` of
+  its own. After: `Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Invoice"]` — 8rem, "INV-26-0042" shown whole in the
+  kit's 14px text (the site's E2E measures it). The `.Code` step the generator writes is hidden by the `<code>` element
+  every component inherits, so it is reached through `.Width(…)`.
 - **`Ui.Facts[Ui.Fact("Label", value), …]` — a summary card's description list (#1363).** Before: Flux has no
   description list, so Eszaf kept a `ViewField.Of(label, value)` of its own (10 sites) — two `Ui.Text`s in a `<div>`,
   in a grid set on the card, with nothing telling a screen reader which line names which. After:
@@ -236,6 +241,12 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A table's least width counts each column at its real width (#1371).** Before: once any heading named a
+  `Ui.ColumnWidth`, the kit set the table's least width from its headings and counted every heading without one as a
+  rest (12rem) — a `w-32` code or a `w-24` pair of buttons the page sized itself too — so the kit's least clashed with
+  an app's own and almost no Eszaf `ListTable` could take a kit width. After: a heading's own width utility (`w-32`,
+  `min-w-24`, `w-[9.5rem]`, `min-w-[200px]`; not one under a variant such as `print:` or `sm:`) is what it counts, then
+  its kit width, then the rest's 12rem; a fraction of a rem is written as one (`--ui-table-least: 44.5rem`).
 - **A searched `Ui.Select` / `Ui.Pillbox` can be scrolled past its first page (#1354).** Before: a database-searched
   picker (`.Choices(typed => Find(typed), held: …)`) had no paging, so every app capped its answer (`.Take(20)`) and the
   open list showed those twenty with no way to scroll to the rest — Eszaf's product, vehicle, invoice, card and station

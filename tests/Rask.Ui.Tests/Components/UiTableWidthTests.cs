@@ -53,8 +53,9 @@ public partial class UiTableWidthTests : RaskMarkup
     }
 
     [Fact]
-    public void Every_width_is_a_step_and_a_short_code_takes_ten_rem()
+    public void Every_width_but_code_is_a_step_and_a_short_code_takes_ten_rem()
     {
+        // `Code` is a step too, but the <code> element every component inherits hides it: `.Width(Ui.ColumnWidth.Code)`.
         Component[] headings =
         [
             Ui.TableColumn.Rest, Ui.TableColumn.Day, Ui.TableColumn.Moment, Ui.TableColumn.Number, Ui.TableColumn.Short,
@@ -64,7 +65,7 @@ public partial class UiTableWidthTests : RaskMarkup
 
         var html = Ui.Table[Ui.TableColumns[Ui.TableColumn.Short["VAT number"], Ui.TableColumn.Reference["City"]]].ToHtml();
 
-        Assert.Equal(Enum.GetValues<Ui.ColumnWidth>().Length, headings.Length);
+        Assert.Equal(Enum.GetValues<Ui.ColumnWidth>().Length - 1, headings.Length);
         Assert.Contains("style=\"--ui-table-least: 40rem\"", html, StringComparison.Ordinal);
         Assert.Equal(2, html.Split("[:where(&amp;)]:w-40").Length - 1);
     }
@@ -91,6 +92,54 @@ public partial class UiTableWidthTests : RaskMarkup
         var html = table.ToHtml();
 
         Assert.Contains("style=\"--ui-table-least: 42rem\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_code_column_is_eight_rem_wide_at_its_start()
+    {
+        var heading = Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Invoice"];
+
+        var html = heading.ToHtml().AsText();
+
+        Assert.Equal("<th class=\"[:where(&)]:w-32 print:w-auto whitespace-normal hyphens-auto break-words\" data-ui-column><div class=\"flex in-[.group\\/center-align]:justify-center in-[.group\\/end-align]:justify-end\">Invoice</div></th>", html);
+    }
+
+    [Fact]
+    public void The_least_width_counts_each_column_as_wide_as_it_really_is()
+    {
+        // Eszaf's ListTable: a code and two buttons sized by the app's own class beside the kit's widths.
+        var table = Ui.Table[Ui.TableColumns[
+            Ui.TableColumn.Day["Day"], Ui.TableColumn.Name["Partner"], Ui.TableColumn.Class("w-32")["Code"],
+            Ui.TableColumn.Class("w-24 print:w-auto"), Ui.TableColumn.Width(Ui.ColumnWidth.Code)["Plate"], Ui.TableColumn["Note"]]];
+
+        var html = table.ToHtml();
+
+        // 7 + 18 + 8 + 6 + 8 + 12 rem; the code and the buttons were counted as two rests (12 each) before.
+        Assert.Contains("style=\"--ui-table-least: 59rem\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_column_s_own_class_wins_over_its_kit_width_and_a_width_under_a_variant_is_not_counted()
+    {
+        var table = Ui.Table[Ui.TableColumns[
+            Ui.TableColumn.Name.Class("w-52")["Partner"], Ui.TableColumn.Class("w-[9.5rem]")["Since"],
+            Ui.TableColumn.Class("min-w-[200px] w-20")["Town"], Ui.TableColumn.Class("sm:w-96 print:min-w-60")["Note"]]];
+
+        var html = table.ToHtml();
+
+        // 13 + 9.5 + 12.5 (the larger of 200px and 5rem) + 12 (the rest's) rem.
+        Assert.Contains("style=\"--ui-table-least: 47rem\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_least_width_of_a_fraction_of_a_rem_is_written_as_one()
+    {
+        var table = Ui.Table[Ui.TableColumns[
+            Ui.TableColumn.Name["Partner"], Ui.TableColumn.Name["Contact"], Ui.TableColumn.Width(Ui.ColumnWidth.Code).Class("w-[8.5rem]")["Code"]]];
+
+        var html = table.ToHtml();
+
+        Assert.Contains("style=\"--ui-table-least: 44.5rem\"", html, StringComparison.Ordinal);
     }
 
     [Fact]

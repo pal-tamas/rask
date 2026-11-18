@@ -30,6 +30,13 @@ public static partial class Ui
         Short,
 #pragma warning restore CA1720
 
+        /// <summary>A code — an invoice number, a plate, a product code, "INV-26-0042": 8rem.</summary>
+        /// <remarks>
+        ///     Two rem narrower than <see cref="Short" />, for a code that is never spaced out: a plate or an invoice
+        ///     number in the kit's 14px text, cut short where it is longer. An owner-approved addition (2026-11-18, #1371).
+        /// </remarks>
+        Code,
+
         /// <summary>A yes or no, or a one-word state: 5rem.</summary>
         Flag,
 

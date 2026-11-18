@@ -342,15 +342,16 @@ Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Button = 1 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColorPickerType.Input = 0 -> Rask.Ui.ColorPickerType
 Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Actions = 8 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Buttons = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Actions = 9 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Buttons = 10 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Code = 5 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Day = 1 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Flag = 5 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.RowMenu = 10 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Flag = 6 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.RowMenu = 11 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Moment = 2 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Name = 7 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Name = 8 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Number = 3 -> Rask.Ui.ColumnWidth
-Rask.Ui.ColumnWidth.Reference = 6 -> Rask.Ui.ColumnWidth
+Rask.Ui.ColumnWidth.Reference = 7 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Rest = 0 -> Rask.Ui.ColumnWidth
 Rask.Ui.ColumnWidth.Short = 4 -> Rask.Ui.ColumnWidth
 Rask.Ui.ComposerSubmit
@@ -3790,6 +3791,7 @@ RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Sm.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTab!).Solid.get -> Rask.UiTab!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Actions.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Buttons.get -> Rask.UiTableColumn!
+RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Code.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Day.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).Flag.get -> Rask.UiTableColumn!
 RaskBuilderSettersRask_Ui.extension(Rask.UiTableColumn!).RowMenu.get -> Rask.UiTableColumn!
@@ -5326,6 +5328,7 @@ static RaskBuilderSettersRask_Ui.get_Button(Rask.UiKanbanCard! __b) -> Rask.UiKa
 static RaskBuilderSettersRask_Ui.get_Button<T>(Rask.UiTimePicker<T>! __b) -> Rask.UiTimePicker<T>!
 static RaskBuilderSettersRask_Ui.get_Actions(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Buttons(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
+static RaskBuilderSettersRask_Ui.get_Code(Rask.UiTableColumn! __b) -> Rask.UiTableColumn!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimeline! __b) -> Rask.UiTimeline!
 static RaskBuilderSettersRask_Ui.get_Center(Rask.UiTimelineItem! __b) -> Rask.UiTimelineItem!
 static RaskBuilderSettersRask_Ui.get_Center<T>(Rask.UiSelect<T>! __b) -> Rask.UiSelect<T>!

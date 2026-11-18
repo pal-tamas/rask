@@ -530,6 +530,33 @@ public sealed class UiKitDataDisplayTests(WasmExampleAppFixture app, PlaywrightF
         }
     });
 
+    [Theory]
+    [InlineData(1280, 720)]
+    [InlineData(390, 844)]
+    public Task An_invoice_number_fits_its_eight_rem_code_column_whole(int width, int height) => RunAsync(async () =>
+    {
+        await OpenUiPageAsync("table", "Table");
+
+        try
+        {
+            await Page.SetViewportSizeAsync(width, height);
+            var table = Page.Locator("#ui-deliveries");
+            var invoice = table.Locator("tbody tr").First.Locator("td").Nth(2);
+            await table.ScrollIntoViewIfNeededAsync();
+            await Expect(invoice).ToHaveTextAsync("INV-26-0042");
+            var fit = await invoice.EvaluateAsync<double[]>(
+                "td => [td.closest('table').querySelectorAll('thead th')[2].getBoundingClientRect().width, td.scrollWidth - td.clientWidth]");
+
+            // 8rem, and the code shown whole: nothing cut off by its ellipsis.
+            Assert.Equal(128d, fit[0]);
+            Assert.Equal(0d, fit[1]);
+        }
+        finally
+        {
+            await Page.SetViewportSizeAsync(1280, 720);
+        }
+    });
+
     private static Task<double[]> ColumnWidths(ILocator table) =>
         table.EvaluateAsync<double[]>("el => [...el.querySelectorAll('thead th')].map(th => th.getBoundingClientRect().width)");
 

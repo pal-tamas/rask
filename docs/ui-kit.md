@@ -634,11 +634,14 @@ For one long scroll of fixed-height rows, draw them with [`Virtualize.Items`](co
 **Three pieces every list app copied, now the kit's** (not Flux's: additions the owner approved, 2026-11-04, #1298).
 
 `Ui.TableColumn.Width(Ui.ColumnWidth.…)` — or the step itself, `Ui.TableColumn.Day` — says what a column holds, and
-that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Moment` and
+that alone sizes it: `Day` and `Number` 7rem, `Short` (a short code: a plate, a VAT number) 10, `Code` (an invoice
+number, a plate, never spaced out) 8 — `.Width(Ui.ColumnWidth.Code)`: the `<code>` element every component inherits
+hides the `.Code` step — `Moment` and
 `Reference` (a town, a supplier) 10, `Name` 18, `Flag` 5, `Actions` (two icon buttons — a pencil and a bin) 6, `Buttons`
 (three or four, or a worded one) 12, `RowMenu` (the row's ⋯) 4, and the `Rest` (or a heading with
 no width) takes what the others leave. A table whose headings name widths fills its box and is never narrower than
-they take together (40rem at least), so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
+they take together (40rem at least) — each counted as wide as it really is, so a heading the page sized itself
+(`.Class("w-32")`) counts its 8rem, not a rest's 12 — so a phone scrolls it inside its box (`min-w-0` on the box is written for you);
 a long label wraps, numbers and the row actions keep to the end, and on paper the widths give way. A `RowMenu`,
 `Actions` or `Buttons` heading with no words says "Actions" to a screen reader. `Ui.TableCell.Cut(text)` puts a value on one line, cut short
 with an ellipsis, the whole of it in the cell's tooltip. `.Whole()` keeps a cell on one line on
