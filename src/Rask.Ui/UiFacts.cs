@@ -6,7 +6,7 @@ namespace Rask;
 /// </summary>
 /// <remarks>
 ///     Not Flux's: Flux has no description list, so this is composed from its typography (the owner, 2026-11-18, #1363) —
-///     a label in Flux's subtle small text, its value in Flux's body text, as a <c>flux:card</c>'s own text is drawn. The
+///     a label in Flux's subtle small text, its value in Flux's strong text, as <c>Ui.Text.Strong</c> draws it. The
 ///     facts lie in as many columns of 12rem at least as the box has room for, and in one on a phone; a class of the call
 ///     site's (<c>.Class("sm:grid-cols-3")</c>) wins over that.
 /// </remarks>

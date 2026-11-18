@@ -2,10 +2,11 @@ namespace Rask;
 
 public static partial class Ui
 {
-    // Flux's subtle small text (flux:text variant="subtle" size="sm"), and its body text (flux:text).
+    // Flux's subtle small text (flux:text variant="subtle" size="sm"), and its strong text (flux:text variant="strong"),
+    // as Ui.Text.Strong draws it.
     private const string FactLabel = "text-xs text-zinc-400 dark:text-white/50";
 
-    private const string FactValue = "m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-500 dark:text-white/70";
+    private const string FactValue = "m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-800 dark:text-white";
 
     // What a fact with no value says: a dash, so the label never stands over nothing.
     private const string NoValue = "–";

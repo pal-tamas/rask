@@ -18,9 +18,9 @@ public partial class UiFactsTests : RaskMarkup
         Assert.Equal(
             "<dl class=\"[:where(&)]:grid [:where(&)]:gap-x-6 [:where(&)]:gap-y-4 [:where(&)]:m-0 [:where(&)]:grid-cols-[repeat(auto-fit,minmax(min(100%,12rem),1fr))]\" data-ui-facts>"
             + "<div data-ui-fact><dt class=\"text-xs text-zinc-400 dark:text-white/50\">Company</dt>"
-            + "<dd class=\"m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-500 dark:text-white/70\">Aminoff Freight</dd></div>"
+            + "<dd class=\"m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-800 dark:text-white\">Aminoff Freight</dd></div>"
             + "<div data-ui-fact><dt class=\"text-xs text-zinc-400 dark:text-white/50\">Depots</dt>"
-            + "<dd class=\"m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-500 dark:text-white/70\">4</dd></div></dl>",
+            + "<dd class=\"m-0 mt-0.5 min-w-0 break-words text-sm text-zinc-800 dark:text-white\">4</dd></div></dl>",
             html);
     }
 

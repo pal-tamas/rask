@@ -1290,8 +1290,8 @@ Every example, what each step decides, headers outside a card, the bleed variabl
 
 `Ui.Facts` is what a summary card says of a record: a description list (`<dl>`), each `Ui.Fact("Label", value)` a
 `<dt>` over its `<dd>`, grouped in a `<div>` as HTML allows. Flux has no description list (the kit's own, owner-approved
-2026-11-18, #1363), so it is drawn in Flux's typography: the label in its subtle small text, the value in its body
-text, as a card's own text is. A value is any markup — words, a number, a badge — and none shows a dash. The facts lie
+2026-11-18, #1363), so it is drawn in Flux's typography: the label in its subtle small text, the value in its strong
+text, as `Ui.Text.Strong` draws it. A value is any markup — words, a number, a badge — and none shows a dash. The facts lie
 in as many columns of 12rem at least as the card has room for, one on a phone; `.Class("sm:grid-cols-3")` on
 `Ui.Facts` wins, and `Ui.Fact(…).Class("col-span-full")` gives a long one the row.
 
