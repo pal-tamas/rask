@@ -8,6 +8,17 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
+  always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
+  row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.
+  After: `Form.Model(m).OnSubmit(Merge)[…, Ui.DialogButtons.Submit().Save("Egyesítés")]`. The action is a
+  `type="submit"` exactly like `Ui.FormButtons`' Save — the form's validation runs, `OnSubmit` runs only when it
+  passes, the action is busy while it is sent, Enter in a field submits — and Cancel still closes the `Ui.Modal`.
+  `.OnSave(…)` keeps the click; `.Submit()` beside `.OnSave(…)` throws at render, naming both.
+- **`Ui.DialogButtons.Danger()` — the dialog's action as Flux's danger button (#1365).** Before: the action was always
+  primary, so a dialog that deletes (Eszaf's filing question) wrote its own row with `Ui.Button.Danger`. After:
+  `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`, drawn as the action of Flux's "Delete project?"
+  modal; it works with `.OnSave(…)` and `.Submit()` alike.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
