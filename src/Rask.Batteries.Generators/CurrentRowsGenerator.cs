@@ -12,7 +12,9 @@ namespace Rask.Batteries.Generators;
 /// <summary>
 /// Finds the aggregate that says <c>Rask.Data.ITenant</c> and the one that says <c>Rask.Data.IUser</c>, and emits
 /// <c>Current.Tenant</c> / <c>Current.RequiredTenant</c> and <c>Current.User</c> / <c>Current.RequiredUser</c>,
-/// typed as each one's read face.
+/// typed as each one's read face — and, from the same key, <c>Current.TenantId</c> / <c>Current.RequiredTenantId</c>
+/// for every tenant key and <c>Current.UserId</c> / <c>Current.RequiredUserId</c> / <c>Current.UseUser</c> for an int or
+/// long user key.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -190,11 +192,16 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         else if (Usable(context, tenant, tables))
         {
             context.AddSource("__RaskCurrentTenant.g.cs", SourceText.From(Source(tenant, "Tenant", "UseTenant"), Encoding.UTF8));
+            context.AddSource("__RaskCurrentTenantId.g.cs", SourceText.From(TenantIdSource(tenant), Encoding.UTF8));
         }
 
         if (One(context, distinct, UserMarker, "user", "User") is { } user && Usable(context, user, []))
         {
             context.AddSource("__RaskCurrentUser.g.cs", SourceText.From(Source(user, "User", "UseUser"), Encoding.UTF8));
+            if (user.Key is "int" or "long")
+            {
+                context.AddSource("__RaskCurrentUserId.g.cs", SourceText.From(UserIdSource(user), Encoding.UTF8));
+            }
         }
     }
 
@@ -279,6 +286,69 @@ public sealed class CurrentRowsGenerator : IIncrementalGenerator
         source.AppendLine("}");
 
         return source.ToString();
+    }
+
+    // Current.UserId / RequiredUserId / UseUser as the user's own number. In the GLOBAL namespace on purpose: C# looks
+    // for an extension in the closest scope first, and the global namespace's own types are searched before the
+    // namespaces a file's usings import — so this beats Rask.Data's Guid? Current.UserId wherever `using Rask.Data;`
+    // sits at the top of the file, and a Guid passed to UseUser still finds Rask.Data's overload.
+    private static string UserIdSource(Found user)
+    {
+        var key = user.Key!;
+        var source = Header(user, "RaskCurrentUserId", "Current.UserId");
+        source.AppendLine("    extension(global::Rask.Current)");
+        source.AppendLine("    {");
+        source.AppendLine("        /// <summary>The id of the user the work in flight is for, or <see langword=\"null\" /> when it is for nobody.</summary>");
+        source.AppendLine("        /// <remarks>An explicit <c>Current.UseUser</c> first — a background job runs for the user its row recorded — then the signed-in principal's <c>NameIdentifier</c> claim, which holds the number written out.</remarks>");
+        source.Append("        public static ").Append(key).Append("? UserId => global::Rask.Data.CurrentRows.UserId<").Append(key).AppendLine(">();");
+        source.AppendLine();
+        source.AppendLine("        /// <summary>The id of the user the work in flight is for, or a thrown exception when there is none.</summary>");
+        source.Append("        public static ").Append(key).Append(" RequiredUserId => global::Rask.Data.CurrentRows.RequiredUserId<").Append(key).AppendLine(">();");
+        source.AppendLine();
+        source.AppendLine("        /// <summary>Makes <paramref name=\"userId\" /> the current user until the returned scope is disposed.</summary>");
+        source.AppendLine("        /// <param name=\"userId\">The user to work for, or <see langword=\"null\" /> to work for nobody.</param>");
+        source.AppendLine("        /// <returns>A scope that restores the previous user.</returns>");
+        source.Append("        public static global::System.IDisposable UseUser(").Append(key).Append("? userId) => global::Rask.Data.CurrentRows.WorkFor<")
+            .Append(key).AppendLine(">(userId);");
+        source.AppendLine("    }");
+        source.AppendLine("}");
+        return source.ToString();
+    }
+
+    // Current.TenantId / RequiredTenantId as the tenant aggregate's key — a number, a Guid, or a string holding one. In
+    // the global namespace like the user's, so it reads the same wherever Current does.
+    private static string TenantIdSource(Found tenant)
+    {
+        var key = tenant.Key!;
+        var carried = key is "string" ? GuidType : key;
+        var text = key is "string" ? "?.ToString(\"D\")" : string.Empty;
+        var requiredText = key is "string" ? ".ToString(\"D\")" : string.Empty;
+        var source = Header(tenant, "RaskCurrentTenantId", "Current.TenantId");
+        source.AppendLine("    extension(global::Rask.Current)");
+        source.AppendLine("    {");
+        source.AppendLine("        /// <summary>The id of the tenant the work in flight belongs to, or <see langword=\"null\" /> when it belongs to none — or to every one, inside <c>Tenant.Across()</c>.</summary>");
+        source.Append("        public static ").Append(key).Append("? TenantId => global::Rask.Data.CurrentRows.TenantId<").Append(carried).Append(">()").Append(text).AppendLine(";");
+        source.AppendLine();
+        source.AppendLine("        /// <summary>The id of the tenant the work in flight belongs to, or a thrown exception when it belongs to none, or <c>Tenant.Across()</c> is open.</summary>");
+        source.Append("        public static ").Append(key).Append(" RequiredTenantId => global::Rask.Data.CurrentRows.RequiredTenantId<").Append(carried).Append(">()")
+            .Append(requiredText).AppendLine(";");
+        source.AppendLine("    }");
+        source.AppendLine("}");
+        return source.ToString();
+    }
+
+    private static StringBuilder Header(Found marked, string className, string what)
+    {
+        var source = new StringBuilder();
+        source.AppendLine("// <auto-generated/>");
+        source.AppendLine("#nullable enable");
+        source.AppendLine();
+        source.Append("/// <summary><c>").Append(what).Append("</c>, as the key <see cref=\"").Append(marked.FullyQualifiedName.Replace("global::", string.Empty))
+            .AppendLine("\" /> is keyed by.</summary>");
+        source.AppendLine("[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]");
+        source.Append(marked.IsPublic ? "public" : "internal").Append(" static class ").AppendLine(className);
+        source.AppendLine("{");
+        return source;
     }
 
     private sealed record Found(

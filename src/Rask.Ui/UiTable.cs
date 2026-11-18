@@ -218,6 +218,12 @@ public sealed partial class UiTable : UiElement, IUiHost
         if (_address is { } address)
         {
             LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+            // Where it stands is remembered from here on, so a form's Cancel comes back to it as it was left.
+            if (route is not null)
+            {
+                _ = UiListAddresses.Of(route);
+            }
+
             address.Sort(Children, route);
             StepBack(route);
         }

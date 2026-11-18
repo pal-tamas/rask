@@ -70,6 +70,11 @@ row, `Jobs.Report(kept, total)` in the handler fills its bar, and `Ui.WorkNotice
 The `WorkReported` event carries it (latest only, at most about four a second); the row keeps the latest, written at most
 once a poll, and `LaneJob.Progress`/`.Done`/`.Of` read it. Adds four columns: `rask db add AddJobProgress && rask db update`.
 
+**Share it, say how it ended, start several at once.** `.Noticed(…).ByTenant()` shows a job to its tenant's users who
+pass its handler's `[Authorize]`; `Jobs.Warn(…)`, `Jobs.Refuse(…)` (failed for good, never retried) and `Jobs.Note(…)`
+say how it ended; `await Jobs.Enqueue(jobs).Noticed(j => …)` writes a batch in one save, which `Ui.WorkNotices` draws
+as one group with one toast.
+
 **A job runs as whoever enqueued it.** The row records the signed-in user (`Current.UserId`) and, in a
 multi-tenant app, the tenant; the processor re-enters both before the handler runs, so the handler reads
 `Current.UserId` and filters tenant-scoped tables as the page that enqueued it would have. Upgrading adds the

@@ -51,7 +51,7 @@ internal sealed class JobWait<TContext>(IDbContextFactory<TContext> contextFacto
         var row = await db.Set<Job>()
             .AsNoTracking()
             .Where(j => j.Id == id)
-            .Select(j => new { j.ProcessedAt, j.Result, j.Error, j.ClaimToken, j.Stopped })
+            .Select(j => new { j.ProcessedAt, j.Result, j.Error, j.ClaimToken, j.Stopped, j.Outcome, j.Detail })
             .SingleOrDefaultAsync(cancellationToken)
             .ConfigureAwait(false);
 
@@ -64,6 +64,12 @@ internal sealed class JobWait<TContext>(IDbContextFactory<TContext> contextFacto
         if (row is { ProcessedAt: not null, Stopped: { } stop })
         {
             throw new JobStoppedException(stop) { JobType = type };
+        }
+
+        // Refused by its handler (Jobs.Refuse): failed for good, with the words it chose for whoever awaits it.
+        if (row is { ProcessedAt: not null, Outcome: WorkState.Failed })
+        {
+            throw new JobFailedException(row.Detail ?? $"{type} refused to run.") { JobType = type };
         }
 
         if (row.ProcessedAt is not null)

@@ -18,7 +18,7 @@ public sealed partial class UiDayAndTimePage : Component
         UiComponentDoc
             .Entry(UiDocsCatalog.DayAndTime)
             .Lead("A moment asked as a day and a time of that day, in one row: the day typed in the reader's own order or "
-                  + "picked from the calendar, the time typed beside it. One DateTime? is bound, and the time goes beneath "
+                  + "picked from the calendar, the time typed beside it. One DateTime? is bound, or a DateOnly? and a TimeOnly?, and the time goes beneath "
                   + "the day where the row has no room, as on a phone. Not one of Flux UI's components: Flux's own date "
                   + "picker and time picker, side by side.")
             .Api(UiApi.DayAndTime)[
@@ -29,6 +29,11 @@ public sealed partial class UiDayAndTimePage : Component
             UiDocsExample.Key("ui-day-and-time-seconds").Heading("Seconds kept").File("DayAndTimeSecondsExample.cs").Demo(DayAndTimeSecondsExample).Testid("ui-day-and-time-seconds")
                 .Blurb("Typed in Hungarian, 2026. 11. 06., and required, so no clear button. The time field writes hours and "
                        + "minutes: a new day keeps the moment's time to the second, and a time left at the hour and minute "
-                       + "it shows keeps the seconds too. Any other time has none.")
+                       + "it shows keeps the seconds too. Any other time has none."),
+            UiDocsExample.Key("ui-day-and-time-parts").Heading("A day and a time apart").File("DayAndTimePartsExample.cs").Demo(DayAndTimePartsExample).Testid("ui-day-and-time-parts")
+                .Blurb("A model that keeps the day and the time apart binds both: Bind(() => m.Day, () => m.Time), a DateOnly? "
+                       + "and a TimeOnly?. Each part says its own member's message under itself, so a save can be refused "
+                       + "twice over: the day's rule (nothing on a Sunday) and the time's. The time waits for a day, and a "
+                       + "day taken away empties the time.")
         ];
 }

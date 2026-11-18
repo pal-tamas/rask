@@ -1905,10 +1905,12 @@ Rask.UiDayAndTime<T>.Value.set -> void
 Rask.UiDialogButtons
 Rask.UiDialogButtons.Cancel.get -> string?
 Rask.UiDialogButtons.Cancel.set -> void
+Rask.UiDialogButtons.Danger() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.OnSave.get -> Rask.Core.Callback
 Rask.UiDialogButtons.OnSave.set -> void
 Rask.UiDialogButtons.Save.get -> string?
 Rask.UiDialogButtons.Save.set -> void
+Rask.UiDialogButtons.Submit() -> Rask.UiDialogButtons!
 Rask.UiDialogButtons.UiDialogButtons() -> void
 Rask.UiDropdown
 Rask.UiDropdown.Align.get -> Rask.Ui.DropdownAlign?
@@ -9324,6 +9326,25 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiWorkNotices.Actions.get -> Rask.Core.Component?
+Rask.UiWorkNotices.Actions.set -> void
+static RaskBuilderSettersRask_Ui.Actions(this Rask.UiWorkNotices! __b, Rask.Core.Component? value) -> Rask.UiWorkNotices!
+Rask.UiConfirm.Ask(string! question) -> System.Threading.Tasks.Task<bool>!
+Rask.UiConfirm.Primary.get -> bool?
+Rask.UiConfirm.Primary.set -> void
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b) -> Rask.UiConfirm!
+static RaskBuilderSettersRask_Ui.Primary(this Rask.UiConfirm! __b, bool? value) -> Rask.UiConfirm!
+Rask.UiAppFrame.LeaveWords(string! stay, string! leave) -> Rask.UiAppFrame!
+Rask.UiModal.Heading.get -> string?
+Rask.UiModal.Heading.set -> void
+Rask.UiModal.Text.get -> string?
+Rask.UiModal.Text.set -> void
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+static RaskBuilderSettersRask_Ui.Text(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+Rask.UiDayAndTimeSteps
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime)
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime).Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
+static Rask.UiDayAndTimeSteps.Bind(this Rask.RaskSeed_UiDayAndTime entry, System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
 Rask.UiTableCell.Whole.get -> bool?
 Rask.UiTableCell.Whole.set -> void
 static RaskBuilderSettersRask_Ui.Whole(this Rask.UiTableCell! __b, bool? value) -> Rask.UiTableCell!

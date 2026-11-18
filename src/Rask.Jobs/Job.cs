@@ -136,6 +136,31 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// <summary>How much the job has to do, as it last reported; null when it reported no count.</summary>
     public int? Of { get; private set; }
 
+    /// <summary>
+    ///     Whether its tenant shares the job's notice (<c>.Noticed(…).ByTenant()</c>): the tenant's other users who pass its
+    ///     handler's <c>[Authorize]</c> see it in their bell too. False — its enqueuer alone — unless it says so.
+    /// </summary>
+    public bool Shared { get; private set; }
+
+    /// <summary>
+    ///     The batch it was enqueued in — every row one <c>Jobs.Enqueue(jobs)</c> wrote carries the same — or null for a job
+    ///     enqueued on its own.
+    /// </summary>
+    public Guid? Batch { get; private set; }
+
+    /// <summary>
+    ///     How its handler said it ended, when it said: <see cref="WorkState.Warned" /> (<c>Jobs.Warn</c>) or
+    ///     <see cref="WorkState.Failed" /> (<c>Jobs.Refuse</c>, a failure for good that is never retried). Null derives it as
+    ///     before — done, stopped, or failed by what it threw.
+    /// </summary>
+    public WorkState? Outcome { get; private set; }
+
+    /// <summary>
+    ///     What its handler said of how it ended, for whoever watches it — <c>Jobs.Warn</c>, <c>Jobs.Refuse</c> or
+    ///     <c>Jobs.Note</c> — at most 1,024 characters, or null. Shown to them, unlike <see cref="Error" />.
+    /// </summary>
+    public string? Detail { get; private set; }
+
     /// <summary>Enqueues a job.</summary>
     /// <param name="type">The job's registered type name.</param>
     /// <param name="payload">The serialized job.</param>
@@ -151,7 +176,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     /// </remarks>
     public static Job For(string type, string payload, DateTime runAt, string? lane = null)
     {
-        var userId = Current.UserId;
+        var userId = CurrentUser.Id;
         return new Job
         {
             Type = type,
@@ -162,6 +187,8 @@ public sealed class Job : Aggregate<long, Timestamps>
             TenantId = Tenant.Key,
             UserClaims = userId is { } user ? JobPrincipal.Record(Current.Principal, user) : null,
             Notice = JobNotice.Pending,
+            Shared = JobNotice.PendingShared,
+            Batch = JobNotice.PendingBatch,
         };
     }
 
@@ -209,6 +236,7 @@ public sealed class Job : Aggregate<long, Timestamps>
     {
         StartedAt = at;
         Reported(null, null, null); // a new attempt starts with nothing said of it
+        Concluded(null, null);
     }
 
     /// <summary>Keeps what the job last reported: what it says of itself, and how far along it is.</summary>
@@ -220,6 +248,29 @@ public sealed class Job : Aggregate<long, Timestamps>
         Progress = progress;
         Done = done;
         Of = of;
+    }
+
+    /// <summary>Keeps how its handler said it ended, and what it said of it (<c>Jobs.Warn</c>, <c>Jobs.Refuse</c>, <c>Jobs.Note</c>).</summary>
+    /// <param name="outcome">Warned or Failed, or null when it only noted something.</param>
+    /// <param name="detail">What it said, if anything.</param>
+    internal void Concluded(WorkState? outcome, string? detail)
+    {
+        Outcome = outcome;
+        Detail = detail;
+    }
+
+    /// <summary>
+    ///     Records a job its handler refused (<c>Jobs.Refuse</c>): processed — so it is never tried again and is no dead letter —
+    ///     and failed, with what it said. The operator's board reads it as the row's error too, so a refusal is not taken there
+    ///     for a job that ran to the end.
+    /// </summary>
+    /// <param name="detail">What its handler said.</param>
+    /// <param name="at">When it ended (UTC).</param>
+    internal void Refused(string? detail, DateTime at)
+    {
+        ProcessedAt = at;
+        Error = $"Refused: {detail}";
+        Concluded(WorkState.Failed, detail);
     }
 
     /// <summary>Records a job that was stopped before it finished: processed, with why, and neither done nor failed.</summary>

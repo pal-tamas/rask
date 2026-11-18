@@ -654,7 +654,10 @@ small icon buttons and the cell's padding need, measured, not guessed.
 The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
 none. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
-drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Cancel returns to
+the list **as the reader left it** — its filters, sort and page, never a `Ui.EditorDialog`'s key — once the session has
+shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the address), as `Ui.AppFrame`'s trail does;
+`Back(Routes.SuppliersPage())` names only the list. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp
@@ -699,6 +702,48 @@ Div.Class("flex gap-2")[
 
 // After: the kit's.
 Ui.DialogButtons.OnSave(Book).Save("Foglalás")
+```
+
+A dialog that IS a form takes `.Submit()` in place of `.OnSave(…)`: the action is then the form's `type="submit"`,
+exactly as `Ui.FormButtons`' Save is — the form's validation runs, its `OnSubmit` runs only when every field passes, the
+action is busy while it is sent, and Enter in a field submits. Cancel still closes the modal without sending anything.
+The form's handler is the action, so `.Submit()` beside `.OnSave(…)` throws when the row is drawn, naming both.
+
+```csharp
+// Before: a validated form in a dialog could not use Ui.DialogButtons (its action is a click), so it kept its own row.
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]
+]
+
+// After:
+Form.Model(m).OnSubmit(Merge)[
+    …fields…,
+    Ui.DialogButtons.Submit().Save("Egyesítés")
+]
+```
+
+`.Danger()` draws the action as Flux's danger button, as Flux's "Delete project?" modal does — with `.OnSave(…)` or
+`.Submit()`: `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`.
+
+`Ui.Modal.Heading("…").Text("…")` writes the block every Flux modal example opens with — a large heading and the
+sentence two steps under it, six steps above what follows — so a modal no longer hand-builds it. The heading is an
+`h2`, clear of the close button in the corner (`pe-8`; none with `Closable(false)`), and names the dialog
+(`aria-labelledby`). Not Flux's: an addition the owner approved (2026-11-18, #1367).
+
+```csharp
+// Before: every modal wrote its own heading block.
+Ui.Modal.Name("book")[
+    Div.Class("space-y-6")[
+        Div[Ui.Heading.Level(2).Lg.Class("pe-8")["Book 12 pallets?"], Ui.Text.Class("mt-2")["They move in today."]],
+        Ui.DialogButtons.OnSave(Book).Save("Book")
+    ]
+]
+
+// After: the modal's own steps.
+Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[
+    Ui.DialogButtons.OnSave(Book).Save("Book")
+]
 ```
 
 `Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
@@ -828,6 +873,26 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
 - **Messages** stand under the pair, in the member's name: a day or a time half typed ("Enter a valid date." /
   "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
   while one shows.
+
+**A day and a time the model keeps apart** bind both (#1362, owner-approved 2026-11-18) — the day a `DateOnly?`, the
+time a `TimeOnly?`, the same two pickers in the same row:
+
+```csharp
+// before: a helper drawing two pickers, the time's disabled state and both messages by hand
+Moments.Pickers(() => _note.Day, () => _note.Time, rule: DeliveryRules.Day)
+
+// after: each part bound to its own member, each saying its own member's message under itself
+Ui.DayAndTime.Bind(() => _note.Day, () => _note.Time).Label("Delivered")
+```
+
+- **Messages per part**: the day's member's under the day (`#{id}-error`), the time's under the time
+  (`#{id}-time-error`) — its attributes, a FluentValidation rule or a rule of the day on either member, a part half
+  typed — so a save can be refused with two. The label and description stay the pair's.
+- **The time waits for a day**: disabled until a day is given. **A day taken away empties the time** (both members
+  `null`, written together) and disables it again; a day alone leaves the time `null` — no first minute is invented.
+- The day's × is the day member's, as above: a `DateOnly?` the model does not require has one. `.Live()`, `.Locale`,
+  `.Disabled` and `.ShowValidation(false)` apply to both parts; `AfterBind` hears the moment the two make (the day at
+  its time, its first minute without one). `.Validate` and `.Value`/`.OnChange` are the one-member binding's.
 
 `Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
 header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named
@@ -1145,10 +1210,13 @@ public sealed partial class Layout : Component
   Home is the row every other row is beneath (`/`) — or, where `/` is not home (an administrator's tenant list),
   the page the frame names: `.Home(Routes.HomePage())`, where the brand and the trail's first step then lead.
 - **The trail:** home › group › list › the page's `PageTitle`. The list's step leads back to it **as it was left** —
-  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps.
+  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps. A form's
+  `Ui.FormButtons` Cancel goes back the same way.
 - **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
   `Ui.MenuItem.Href(url).SignOut()`. The unsaved-changes dialog is titled "Unsaved changes" (the catalog's
-  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it.
+  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it,
+  and `.LeaveWords(stay: "Nem", leave: "Igen")` its two buttons (the catalog's `ConfirmLeaveStay` / `ConfirmLeaveLeave`
+  otherwise: Stay and Leave, Maradok and Elhagyom).
 - **The tenant line** has the id `ui-app-frame-tenant`, for a test or the app's stylesheet.
 - **The look is shared:** the zinc ground and edges are the kit's; an app's own is its accent (`--color-accent` in its
   stylesheet, [Re-skinning](#re-skinning)) and its `Logo(url)`. It works the same on Server and WebAssembly; a
@@ -1160,16 +1228,39 @@ The live demo and its reference: **[rask.sh/ui/app-frame](https://rask.sh/ui/app
 
 **`Ui.WorkNotices`** (not Flux's — Flux has no notifications; the owner approved it, #1293) is the bell at the header's
 end, `.Notices(Ui.WorkNotices)`: Flux's `bell` on a ghost button with a red count, opening a flyout of the signed-in
-user's background work — each running job with Flux's progress bar and what it last said, each one lately done, failed
-or stopped with a badge. **`Ui.WorkList`** is the same list in the page. Both take `.Lane(id)` for one lane's work.
+user's background work — each running job with Flux's progress bar and what it last said, each one lately done, warned,
+failed or stopped with a badge and the words its handler said, a batch as one group. **`Ui.WorkList`** is the same list
+in the page. Both take `.Lane(id)` for one lane's work; the bell takes `.Actions(…)`, a footer under its list.
 
 ```csharp
 await Jobs.Enqueue(new ImportPrices(file.Id)).Noticed($"Import of {file.Name}");   // what it shows
 Jobs.Report(kept, total);                                                           // its bar, from the handler
 ```
 
-- **Only the user's own work, in their tenant**, read from the job rows every poll and moved live in between by
-  `WorkReported` — see [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **The user's own work, in their tenant** — and their tenant's work enqueued `.ByTenant()` that they may run themselves —
+  read from the job rows every poll and moved live in between by `WorkReported`; see
+  [Rask.Jobs](jobs.md#show-a-job-to-the-person-who-started-it).
+- **How it ended, in colour.** `Jobs.Warn(…)` draws an amber *Warning* badge, `Jobs.Refuse(…)` a red *Failed* one, and
+  the words the handler said (`Detail`) stand under the title in the badge's colour — grey for `Jobs.Note(…)` on a job
+  that is done. The error a failure threw is never drawn.
+- **A batch is one group.** The jobs of one `Jobs.Enqueue(jobs)` stand under one heading — when it was started and how
+  many it holds (*18/11/2026 09:30 · 3 items*), the worst way one ended, one bar for all of them — and count once among
+  the ten lately ended. When the last job of a batch the reader started ends, the bell raises **one toast** in the tone
+  of its worst end (*3 items are done, some with a warning.*); a colleague's shared batch is never toasted, and the list
+  in the page raises none.
+- **A footer:** `.Actions(…)` stands under the list in the flyout — the link to the page of all the work.
+
+Before — a bell of the app's own beside the kit's, because the kit's could not group a press, say amber, or link out:
+
+```csharp
+Ui.AppFrame.Notices(LoadNotices.For(partner))[ … ]       // the app's own bell, its own rows, its own toasts
+```
+
+After — the kit's bell, with the app's link under it:
+
+```csharp
+Ui.AppFrame.Notices(Ui.WorkNotices.Actions(Ui.Link.Href(Routes.LoadsPage().Url())["All loads"]))[ … ]
+```
 - **On either host.** On a Server page the rows are read in-process; in the browser half of a `wasm-hosted` app they are
   asked of the server, and the live watch opens there — the same rows, the same rules, nothing to wire.
 - **The count** is what runs, and what ended since the flyout was last opened; the badge is hidden from a screen reader,
@@ -1177,7 +1268,8 @@ Jobs.Report(kept, total);                                                       
 - **A job seen running that ends is announced** in a polite live region: *Import of prices.csv is done.* A failure says
   *Failed*, never why.
 - **A job with no count** draws a bar without an end, and *Running…* until it says something.
-- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, … in [localization](localization.md)).
+- Words from the catalog, English and Hungarian (`WorkNotices`, `WorkDone`, `WorkWarned`, `WorkBatch`, … in
+  [localization](localization.md)).
 
 The live demo is in the app frame's: **[rask.sh/ui/app-frame](https://rask.sh/ui/app-frame/)** — the bell in its header, the list on its home page.
 
@@ -1298,7 +1390,31 @@ Ui.Button.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "
 Ui.MenuItem.Danger.OnClick(Delete).Confirm("Biztosan törli a céget?", heading: "Cég törlése")   // a menu item too
 Ui.MenuItem.Href("/logout").Confirm("Sign out of Acme?")["Sign out"]   // a link: a yes follows it
 Ui.MenuItem.Href(SignOut.Path).SignOut()   // "Are you sure you want to sign out?" under "Sign out", from the catalog
+Ui.Confirm.Primary()                                      // Yes as the primary button: questions that lose nothing
 ```
+
+A handler asks from code, after a check only it can make, with `await Ui.Confirm.Ask("…")` — true for Yes, false
+for No, the close button, Escape and a press outside — in the same dialog, on both hosts:
+
+```csharp
+private async Task Save()
+{
+    if (await Periods.Overlapping(_period) && !await Ui.Confirm.Ask("The period overlaps another. Save it anyway?"))
+    {
+        return;
+    }
+
+    await Periods.Save(_period);
+}
+
+if (await Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask("Rögzíti a km-t?")) …   // this question's words
+```
+
+The words and `.Primary()` set on that chain are that question's alone; what it leaves unset is the layout's
+dialog's. Focus moves into the dialog and back to the control that was pressed. A second question asked while one
+is open waits its turn and opens once the first is answered. Work that is cancelled while it asks — its component
+left the page, the session ended, a configured handler timeout ran out — gets false, unanswered. On a page with no
+`Ui.Confirm` it throws, naming what to place (`Ui.AppFrame` places one).
 
 A menu item's link asks before it is followed, and a yes follows it — an in-app route in the app, a string as the
 browser follows any link: a GET and a page load, which is how a sign-out endpoint is reached. `.SignOut()` is that

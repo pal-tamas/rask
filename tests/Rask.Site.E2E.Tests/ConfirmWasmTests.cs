@@ -103,6 +103,46 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
         Assert.Empty(browserDialogs);
     });
 
+    [Theory]
+    [InlineData(1280, 800)]
+    [InlineData(390, 844)]
+    public Task A_handler_asks_from_code_after_its_check_and_goes_on_with_the_answer(int width, int height) => RunAsync(async () =>
+    {
+        var browserDialogs = Count();
+        await Page.SetViewportSizeAsync(width, height);
+        await OpenUiPageAsync("confirm", "Confirm");
+        var state = Page.Locator("#uc-ask-state");
+        var march = Page.Locator("#uc-ask-march");
+
+        await march.ClickAsync();
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=heading]")).ToHaveTextAsync("Overlapping period");
+        await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("March overlaps a period already saved. Save it anyway?");
+        var look = await Page.Locator(Yes).GetAttributeAsync("class");
+        var label = await Page.Locator(Dialog + " [data-rask-confirm-dialog=yes]").TextContentAsync();
+        var focusInside = await Page.Locator(Dialog).EvaluateAsync<bool>("d => d.contains(document.activeElement)");
+        await Page.Keyboard.PressAsync("Escape");
+        await Expect(state).ToHaveTextAsync("March was not saved.", new() { Timeout = 10_000 });
+        var focusBack = await march.EvaluateAsync<bool>("b => b === document.activeElement");
+        await Page.ClickAsync("#uc-ask-april");
+        await Expect(state).ToHaveTextAsync("April is saved.", new() { Timeout = 10_000 });
+        var askedForApril = await Page.Locator(Dialog).IsVisibleAsync();
+        await march.ClickAsync();
+        await Page.ClickAsync(No);
+        await Expect(state).ToHaveTextAsync("March was not saved.", new() { Timeout = 10_000 });
+        await march.ClickAsync();
+        await Page.ClickAsync(Yes);
+
+        await Expect(state).ToHaveTextAsync("March is saved.", new() { Timeout = 10_000 });
+        await Expect(Page.Locator(Dialog)).ToBeHiddenAsync();
+        Assert.Contains("bg-accent", look, StringComparison.Ordinal);
+        Assert.DoesNotContain("bg-red-500", look, StringComparison.Ordinal);
+        Assert.Equal("Save anyway", label);
+        Assert.True(focusInside);
+        Assert.True(focusBack);
+        Assert.False(askedForApril);
+        Assert.Empty(browserDialogs);
+    });
+
     [Fact]
     public Task A_sign_out_link_asks_in_the_catalogs_words_and_is_followed_only_after_a_yes() => RunAsync(async () =>
     {

@@ -38,6 +38,9 @@ internal abstract class CurrentRow(CurrentRowKind kind, Type aggregate)
     /// <summary>The aggregate whose save drops what is held.</summary>
     internal Type Aggregate => aggregate;
 
+    /// <summary>Whether the aggregate is keyed by a number, carried inside the <see cref="Guid" /> (<see cref="TenantNumber" />).</summary>
+    internal virtual bool IsNumbered => false;
+
     /// <summary>The row keyed <paramref name="key" />: held, or read by a synchronous query and kept.</summary>
     /// <exception cref="MissingTenantException">The tenant has no row: it was deleted, or never existed.</exception>
     /// <exception cref="InvalidOperationException">

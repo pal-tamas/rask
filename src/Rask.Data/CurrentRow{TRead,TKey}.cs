@@ -9,10 +9,15 @@ namespace Rask.Data;
 ///     <typeparamref name="TKey" />.
 /// </summary>
 /// <remarks>
-///     The key is the aggregate's own type, and the framework carries it as a <see cref="Guid" />: a
-///     <see cref="Guid" /> is itself, a <see cref="string" /> is that <see cref="Guid" /> written out
-///     (<c>D</c> format), and an <see cref="int" /> or a <see cref="long" /> is the number the <see cref="Guid" />
-///     carries (<see cref="TenantNumber" />). The build allows no other key, so the last arm is never reached.
+///     <para>
+///         The key is the aggregate's own type, and the framework carries it as a <see cref="Guid" />
+///         (<see cref="CurrentKey" />).
+///     </para>
+///     <para>
+///         The user's row is read across tenants: it is looked up by the signed-in user's own key, which names one
+///         row whatever tenant the work is in — an administrator working in another tenant is still themselves, and
+///         a user aggregate that is <c>PerTenant</c> would otherwise read as gone there.
+///     </para>
 /// </remarks>
 internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity)] TRead, TKey>(
     CurrentRowKind kind,
@@ -22,8 +27,12 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
     where TRead : class, IReadModel
 {
     /// <inheritdoc />
+    internal override bool IsNumbered => CurrentKey.IsNumber<TKey>();
+
+    /// <inheritdoc />
     protected override object? Load(Guid key)
     {
+        using var across = AcrossForTheUser();
         using var context = ReadDb.CreateContext();
 
         // Synchronous all the way down — EF's own sync path over the provider's sync ADO.NET — because the caller is a
@@ -35,6 +44,7 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
     /// <inheritdoc />
     protected override async Task<object?> LoadAsync(Guid key, CancellationToken cancellationToken)
     {
+        using var across = AcrossForTheUser();
         var context = ReadDb.CreateContext();
         await using (context.ConfigureAwait(false))
         {
@@ -54,41 +64,7 @@ internal sealed class CurrentRow<[DynamicallyAccessedMembers(DataTrimming.Entity
             : EqualityComparer<TKey>.Default.Equals(held, KeyOf(key));
     }
 
-    private TKey KeyOf(Guid key)
-    {
-        if (typeof(TKey) == typeof(Guid))
-        {
-            return (TKey)(object)key;
-        }
+    private IDisposable? AcrossForTheUser() => Kind is CurrentRowKind.User ? Tenant.Across() : null;
 
-        if (typeof(TKey) == typeof(string))
-        {
-            return (TKey)(object)key.ToString("D");
-        }
-
-        if (typeof(TKey) == typeof(long))
-        {
-            return (TKey)(object)Number(key);
-        }
-
-        if (typeof(TKey) == typeof(int))
-        {
-            var number = Number(key);
-            return number is >= int.MinValue and <= int.MaxValue
-                ? (TKey)(object)(int)number
-                : throw NotTheKey(key);
-        }
-
-        throw new NotSupportedException(
-            $"{Aggregate.Name} is keyed by {typeof(TKey).Name}; the current {Kind.ToString().ToLowerInvariant()} " +
-            "is a Guid, a string, an int or a long.");
-    }
-
-    private long Number(Guid key) =>
-        TenantNumber.TryRead(key, out var number) ? number : throw NotTheKey(key);
-
-    private InvalidOperationException NotTheKey(Guid key) =>
-        new($"{Aggregate.Name} is keyed by {typeof(TKey).Name}, and the current " +
-            $"{Kind.ToString().ToLowerInvariant()} {key} is not one: it is an identifier in its own right, not a " +
-            "number carried as one. Open the work with the number itself — Tenant.Use(42).");
+    private TKey KeyOf(Guid key) => CurrentKey.Of<TKey>(key, Kind, Aggregate.Name);
 }

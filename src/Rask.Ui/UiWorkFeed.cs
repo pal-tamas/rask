@@ -1,4 +1,5 @@
 using Rask.Background;
+using Rask.Core.Authentication;
 using Rask.Core.Live;
 using Rask.Cqrs;
 using Rask.Querying;
@@ -6,8 +7,9 @@ using Rask.Querying;
 namespace Rask;
 
 /// <summary>
-///     The work a <see cref="UiWorkNotices" /> and a <see cref="UiWorkList" /> show: the signed-in user's rows, read again on
-///     every poll of the job processor, with what their jobs publish (<see cref="WorkReported" />) moving them in between.
+///     The work a <see cref="UiWorkNotices" /> and a <see cref="UiWorkList" /> show: the rows the signed-in user may see — their
+///     own, and their tenant's shared work — read again on every poll of the job processor, with what their jobs publish
+///     (<see cref="WorkReported" />) moving them in between.
 /// </summary>
 /// <remarks>
 ///     A subscription is one process's, so the rows are the truth — work on another host, or that ended while nobody watched,
@@ -16,8 +18,8 @@ namespace Rask;
 /// </remarks>
 internal static class UiWorkFeed
 {
-    /// <summary>How many ended jobs are shown at most, newest first.</summary>
-    internal const int EndedShown = 10;
+    /// <summary>How many ended pieces of work are shown at most, newest first: a batch counts once.</summary>
+    internal const int EndedShown = WorkShown.EndedShown;
 
     // Enough for the latest of every job a user watches at once; older values of one job are superseded anyway.
     private const int Kept = 64;
@@ -45,11 +47,15 @@ internal static class UiWorkFeed
                 new QueryOptions { RefetchInterval = board.Every }).Data
             : null;
         var live = QueryClient.Subscribe(new WatchOwnWork(lane)).Keep(Kept).Items;
-        return Merge(rows ?? [], live);
+        var viewer = (services.GetService(typeof(IUserProvider)) as IUserProvider)?.Current.UserId();
+        return Merge(rows ?? [], live, viewer);
     }
 
-    /// <summary>The latest word on each job: an end beats a run, and a later word beats an earlier one.</summary>
-    internal static IReadOnlyList<WorkReported> Merge(IEnumerable<WorkReported> rows, IEnumerable<WorkReported> live)
+    /// <summary>
+    ///     The latest word on each job — an end beats a run, and a later word beats an earlier one — each saying whether
+    ///     <paramref name="viewer" /> started it, in the order <see cref="WorkShown" /> shows.
+    /// </summary>
+    internal static IReadOnlyList<WorkReported> Merge(IEnumerable<WorkReported> rows, IEnumerable<WorkReported> live, Guid? viewer = null)
     {
         var latest = new Dictionary<long, WorkReported>();
         foreach (var work in rows.Concat(live))
@@ -57,14 +63,18 @@ internal static class UiWorkFeed
             latest[work.Id] = latest.TryGetValue(work.Id, out var had) ? Later(had, work) : work;
         }
 
-        return
-        [
-            .. latest.Values.Where(w => !w.HasEnded).OrderByDescending(w => w.Id),
-            .. latest.Values.Where(w => w.HasEnded).OrderByDescending(w => w.At).Take(EndedShown),
-        ];
+        return WorkShown.Of(latest.Values.Select(w => w.Mine is null ? w with { Mine = w.IsMineTo(viewer) } : w));
     }
 
+    // Whose it is, once known, is kept: a shared job heard live says nothing of it, and the board's read did.
     private static WorkReported Later(WorkReported had, WorkReported heard)
+    {
+        var later = Newer(had, heard);
+        var other = ReferenceEquals(later, heard) ? had : heard;
+        return later.Mine is null && other.Mine is { } mine ? later with { Mine = mine } : later;
+    }
+
+    private static WorkReported Newer(WorkReported had, WorkReported heard)
     {
         if (had.HasEnded != heard.HasEnded)
         {

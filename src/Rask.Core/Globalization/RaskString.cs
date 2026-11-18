@@ -857,4 +857,25 @@ public enum RaskString
     ///     no <c>LeaveHeading</c> of its own.
     /// </summary>
     ConfirmLeaveHeading,
+
+    /// <summary>What a job of a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> that ran to the end with a warning (<c>Jobs.Warn</c>) says.</summary>
+    WorkWarned,
+
+    /// <summary>What a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c> announces when a job ends with a warning: <c>{0}</c> is its title.</summary>
+    WorkEndedWarned,
+
+    /// <summary>The heading of a batch in a <c>Ui.WorkNotices</c> or <c>Ui.WorkList</c>: <c>{0}</c> is when it was started, <c>{1}</c> how many jobs it holds.</summary>
+    WorkBatch,
+
+    /// <summary>The toast a <c>Ui.WorkNotices</c> raises when every job of its user's batch is done: <c>{0}</c> is how many.</summary>
+    WorkBatchDone,
+
+    /// <summary>The toast a <c>Ui.WorkNotices</c> raises when its user's batch ends with a warning at worst: <c>{0}</c> is how many.</summary>
+    WorkBatchWarned,
+
+    /// <summary>The toast a <c>Ui.WorkNotices</c> raises when a job of its user's batch failed: <c>{0}</c> is how many it holds.</summary>
+    WorkBatchFailed,
+
+    /// <summary>The toast a <c>Ui.WorkNotices</c> raises when a job of its user's batch was stopped: <c>{0}</c> is how many it holds.</summary>
+    WorkBatchStopped,
 }

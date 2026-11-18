@@ -32,6 +32,79 @@ them until tagged releases begin.
   Flux's buttons — two small icon buttons (2rem square) `gap-1` apart need 5rem with the cell's start padding, 5.75rem
   where the column is not the last, and two default-size ones fit as the last — at the column's end, "Actions" to a
   screen reader when it has no words, counted towards the table's least width. `RowMenu` is unchanged.
+- **Background work shared with the tenant, with how it ended, started several at once — the kit's bell does a partner's
+  load (#1368).** Before: an app whose office watches one press of several files wrote its own queue, events and bell
+  beside Rask.Jobs (Eszaf's `QueuedFile` + `LoadMoved` + `LoadNotices`). After:
+  `await Jobs.Enqueue(files.Select(f => new ImportFile(f.Id))).Noticed(j => $"Import of {j.Name}").ByTenant();` and, in
+  the handler, `Jobs.Warn("No new rows")` / `Jobs.Refuse("No header row")` / `Jobs.Note("1,200 rows kept")`.
+  `.ByTenant()` (on `Enqueue`, `Run` and a batch) shows the job to its tenant's users who pass its handler's
+  `[Authorize]` — never another tenant, never nobody signed in, and it throws at the enqueue with no tenant in flight;
+  unmarked jobs stay their enqueuer's. `Jobs.Warn` ends a job `WorkState.Warned` (new, amber), `Jobs.Refuse` ends it
+  failed for good — never retried, no dead letter, an awaited `Jobs.Run` throws `JobFailedException` with its words —
+  and `Jobs.Note` adds words to a done job; the worst said stands. `Jobs.Enqueue(jobs)` writes every row in one save,
+  all or none (and inside `Db.Transaction` with the work), stamps one `Job.Batch` and answers how many it wrote, with
+  `.Noticed(j => …)`, `.ByTenant()`, `.InLane`, `.In`, `.At`. `WorkReported` gains `Batch` and `Detail`. `Ui.WorkNotices`
+  and `Ui.WorkList` draw a batch as one group (*date · 3 items*, its worst end, one bar), the handler's words under a
+  job's title in its badge's colour, and the bell raises one toast for the person who started a batch when its last job
+  ends; `Ui.WorkNotices.Actions(…)` is a footer under the list. A browser tab from before the deploy reads a warned job
+  as done; the reader now skips a state it does not know. New catalog words (en + hu): `WorkWarned`, `WorkEndedWarned`,
+  `WorkBatch`, `WorkBatchDone`, `WorkBatchWarned`, `WorkBatchFailed`, `WorkBatchStopped`. Upgrading adds the `Shared`,
+  `Batch`, `Outcome` and `Detail` columns and an index on `(TenantId, ProcessedAt)`:
+  `rask db add AddJobOutcomes && rask db update`; until then the processor logs exactly that command.
+- **`Ui.Confirm.Primary()` and `await Ui.Confirm.Ask("…")` — a non-danger Yes, and asking from code (#1366).** Before:
+  Yes was always Flux's danger button, and the dialog opened only from a `.Confirm("…")` on the pressed control, so a
+  question that came out of a server-side check (Eszaf's overlapping period, the km question) kept a modal of its own.
+  After: `if (!await Ui.Confirm.Ask("The period overlaps another. Save it anyway?")) return;` from any handler, on both
+  hosts, in the layout's dialog (`Ui.AppFrame` places one) — true for Yes, false for No, Escape, the close button and a
+  press outside; `Ui.Confirm.Heading("Km").No("Nem").Yes("Igen").Primary().Ask(…)` words one question, and
+  `Ui.Confirm.Primary()` in the layout makes Yes primary for every question. Focus moves in and back; a second
+  question waits for the first; work cancelled while it asks (component gone, session ended) gets false; a page with
+  no `Ui.Confirm` throws, naming it.
+- **`Current.UserId` is your user's own number, and `Current.TenantId` your tenant's key (#1369).** An app whose
+  user aggregate is keyed by an `int` or a `long` (`User : Aggregate<int>, IUser`) has the build generate
+  `Current.UserId` (`int?`), `Current.RequiredUserId` (`int`) and `Current.UseUser(12)`; the aggregate's key is the
+  declaration, nothing new to write. Before: `int.Parse(Current.Principal!.FindFirst("id")!.Value)`. After:
+  `Current.RequiredUserId`. Set `ClaimTypes.NameIdentifier` to the number (`"12"`) on every request. The aggregate
+  that says `ITenant` gets `Current.TenantId` / `Current.RequiredTenantId` typed by its key (`int`, `long`, `Guid`,
+  `string`) — null, or a throw, with no tenant or inside `Tenant.Across()`; a numbered tenant's claim may hold the
+  number written out. Framework rows (jobs, mail, outbox, push subscriptions) keep a `Guid` that carries the number
+  (user 12 is `…00000000000c`, the numbered-tenant rule), so no migration, and a job enqueued by user 12 runs as user
+  12. `Current.User` now reads the user's row across tenants, so an administrator working in another tenant is still
+  themselves when the users table is `PerTenant`. A `Guid`-keyed app sees no change; the generated members live in the
+  global namespace and win over Rask.Data's `Guid?` one wherever `using Rask.Data;` sits at the top of the file.
+- **`Ui.Modal.Heading("…")` and `.Text("…")` write the heading block every Flux modal example opens with (#1367).**
+  Before: each modal hand-built `Div[Ui.Heading.Level(2).Lg.Class("pe-8")["…"], Ui.Text.Class("mt-2")["…"]]` inside a
+  `space-y-6`. After: `Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[…]` — Flux's
+  large heading (an `h2`) and its text `mt-2` under it, `mb-6` above the content, the heading clear of the close button
+  (`pe-8`, none with `Closable(false)`) and naming the dialog (`aria-labelledby`). A modal without them is unchanged.
+- **`Ui.AppFrame.LeaveWords(stay, leave)` words the unsaved-changes dialog's two buttons (#1364).** Before: the frame
+  mounted `Ui.ConfirmLeave` with the catalog's Stay / Leave (Maradok / Elhagyom), so an app whose leave dialog says
+  Nem / Igen kept a layout of its own. After: `Ui.AppFrame.Brand("PPTA").LeaveWords(stay: "Nem", leave: "Igen")` —
+  the mounted dialog's existing `Stay` / `Leave`; unset, the catalog's words as before.
+- **`Ui.FormButtons`' Cancel returns to the list as the reader left it (#1357).** Before: Cancel went to the bare
+  `Back(…)` route, so a reader who had filtered, sorted and paged a list landed on its first page unfiltered, and an app
+  kept a `ListAddresses` of its own for every Cancel; only `Ui.AppFrame`'s breadcrumb went back as left. After: no new
+  name — `Ui.FormButtons.Back(Routes.SuppliersPage())`'s Cancel leads to `/suppliers?q=amin&sort=name&page=2`, the
+  address the session last showed the list at, a `Ui.EditorDialog`'s key left out, exactly as the trail's list step.
+  The session starts remembering in a `Ui.AppFrame`, or on a `Ui.Table` keeping its sort or page in the address; a list
+  not shown yet is the route as given.
+- **`Ui.DayAndTime` binds a day and a time the model keeps apart (#1362): `Ui.DayAndTime.Bind(() => m.Day, () => m.Time)`,
+  a `DateOnly?` and a `TimeOnly?`.** The same typed date picker and time input in the same row, each part bound to its
+  own member and saying that member's messages under itself — its attributes, a FluentValidation rule, a rule of the
+  day, a half-typed part — so a save can be refused with two. The time is disabled until a day is given; a day taken
+  away empties the time and disables it again. The one-member `DateTime?` binding is unchanged.
+  Live: [rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/).
+- **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
+  always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
+  row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.
+  After: `Form.Model(m).OnSubmit(Merge)[…, Ui.DialogButtons.Submit().Save("Egyesítés")]`. The action is a
+  `type="submit"` exactly like `Ui.FormButtons`' Save — the form's validation runs, `OnSubmit` runs only when it
+  passes, the action is busy while it is sent, Enter in a field submits — and Cancel still closes the `Ui.Modal`.
+  `.OnSave(…)` keeps the click; `.Submit()` beside `.OnSave(…)` throws at render, naming both.
+- **`Ui.DialogButtons.Danger()` — the dialog's action as Flux's danger button (#1365).** Before: the action was always
+  primary, so a dialog that deletes (Eszaf's filing question) wrote its own row with `Ui.Button.Danger`. After:
+  `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`, drawn as the action of Flux's "Delete project?"
+  modal; it works with `.OnSave(…)` and `.Submit()` alike.
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
@@ -65,7 +138,7 @@ them until tagged releases begin.
   open until the assembly ended. After: `site.HostLog = "artifacts/host.log"` appends each line the app writes as it
   comes (`Log`/`Said` unchanged); `await site.Context(storageState)` is a context on `site.Contexts`'s options against
   the app; `public override async ValueTask DisposeAsync() { …; await base.DisposeAsync(); }`;
-  `await site.SignedIn("ann", fresh: true)` signs in anew and the pages after it start from that sign-in;
+  `await site.SignedIn("ann", fresh: true)` signs in anew, a sign-in of that page's own (#1355, below);
   `Rask__ConnectionStrings__App`/`__Logs` set in `site.Environment` or the test process's environment is the app's, and
   only a store named nowhere gets the run's SQLite file (an untouched site runs exactly as before); and the contexts a
   test opened are closed once it is over — before the next test of its xUnit collection opens one — so no test has to
@@ -247,6 +320,13 @@ them until tagged releases begin.
   an app's own and almost no Eszaf `ListTable` could take a kit width. After: a heading's own width utility (`w-32`,
   `min-w-24`, `w-[9.5rem]`, `min-w-[200px]`; not one under a variant such as `print:` or `sm:`) is what it counts, then
   its kit width, then the rest's 12rem; a fraction of a rem is written as one (`--ui-table-least: 44.5rem`).
+- **No test can sign the others out of `RaskSite`'s shared sign-in (#1355).** Before: `SignedIn(name, fresh: true)`
+  replaced the sign-in every later `SignedIn(name)` started from, so a test that signed in fresh and signed out left
+  the rest of the run on a dead session, starting signed out — TA signed in through its own `Context()` to get round
+  it. After: a fresh sign-in is the page's own and leaves the shared one as it was, and `SignedIn(name)` asks the app
+  whether its shared sign-in still holds before handing it out — Rask.Auth's `/api/auth/me` where the app maps it,
+  otherwise the sign-in page, unfollowed — and signs in again when a test ended it (an app that answers neither
+  differently keeps its sign-in as before). No call site changes.
 - **A searched `Ui.Select` / `Ui.Pillbox` can be scrolled past its first page (#1354).** Before: a database-searched
   picker (`.Choices(typed => Find(typed), held: …)`) had no paging, so every app capped its answer (`.Take(20)`) and the
   open list showed those twenty with no way to scroll to the rest — Eszaf's product, vehicle, invoice, card and station
@@ -310,6 +390,11 @@ them until tagged releases begin.
   After: every leave, clean or abrupt, removes the peer and tells the rest of the room.
 
 ### Changed
+- **A sortable `Ui.Table`'s columns are as wide as Flux's again (#1260).** Before: the keyboard ring's room in the
+  first and last headings made each sort button 4px wider or narrower than Flux's, and the table shared its width out
+  differently — in Flux's sortable example the columns sat up to 3px off, and on a phone the table was 4px narrower.
+  After: the first heading's button still hangs nowhere past the frame and keeps its words 4px in, and gives those 4px
+  back at its end inside its own heading; the last heading's button is Flux's (it never hung past the frame there).
 - **`Rask.Mail` sends over MailKit 5.0.0 (was 4.18.1) (#1337).** MailKit 5 depends on `MimeKit.Core` 5.0 instead of
   `MimeKit`, so an app on `Rask.Mail` no longer pulls in BouncyCastle or `System.Security.Cryptography.Pkcs` through
   it. Rask's mail API is unchanged. An app that also calls MailKit itself should read MailKit's 5.0 breaking changes:

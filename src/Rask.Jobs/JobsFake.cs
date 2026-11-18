@@ -5,7 +5,7 @@ using Rask.Data;
 namespace Rask.Background;
 
 /// <summary>Every job a test enqueued, and the sentences that ask about them.</summary>
-public sealed class JobsFake : IJobs, IDisposable
+public sealed class JobsFake : IJobs, IJobBatches, IDisposable
 {
     private readonly List<EnqueuedJob> _enqueued = [];
     private readonly IJobs? _previous;
@@ -62,8 +62,9 @@ public sealed class JobsFake : IJobs, IDisposable
     /// </summary>
     /// <remarks>
     ///     A job enqueued <c>.Noticed(…)</c> by a signed-in user publishes its <see cref="WorkReported" />s as the processor
-    ///     would — running, its reports (<c>Jobs.Report(…)</c>, the latest of each quarter second), then done or failed — so a
-    ///     test can subscribe to its own work and see it move.
+    ///     would — running, its reports (<c>Jobs.Report(…)</c>, the latest of each quarter second), then done, warned or failed —
+    ///     so a test can subscribe to its own work and see it move. A job its handler refuses (<c>Jobs.Refuse(…)</c>) ends failed
+    ///     without a throw, as the processor would end it: the next job runs.
     /// </remarks>
     public async Task Run(CancellationToken cancellationToken = default)
     {
@@ -104,10 +105,28 @@ public sealed class JobsFake : IJobs, IDisposable
         ArgumentNullException.ThrowIfNull(job);
         lock (_gate)
         {
-            _enqueued.Add(new EnqueuedJob(job, after, at, Tenant.Key, Current.UserId, lane, JobNotice.Pending));
+            _enqueued.Add(Recorded(job, after, at, Tenant.Key, lane));
         }
 
         return Task.CompletedTask;
+    }
+
+    // A batch is recorded at once, every job of it with the same batch, as the queue writes it in one save.
+    Task<int> IJobBatches.AddAll(
+        IReadOnlyList<(IJob Job, string? Notice)> jobs, DateTimeOffset? at, TimeSpan? after, string? lane, bool shared,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(jobs);
+        var batch = Guid.CreateVersion7();
+        var tenant = Tenant.Key;
+        var user = CurrentUser.Id;
+        lock (_gate)
+        {
+            _enqueued.AddRange(jobs.Select(j =>
+                new EnqueuedJob(j.Job, after, at, tenant, user, lane, j.Notice) { Shared = shared, Batch = batch }));
+        }
+
+        return Task.FromResult(jobs.Count);
     }
 
     // Waiting here is "recorded and not yet run": the fake has no claim, and Run() is what takes a job off the list.
@@ -125,7 +144,7 @@ public sealed class JobsFake : IJobs, IDisposable
                 }
             }
 
-            _enqueued.Add(new EnqueuedJob(job, after, at, tenant, Current.UserId, lane, JobNotice.Pending));
+            _enqueued.Add(Recorded(job, after, at, tenant, lane));
         }
 
         return Task.FromResult(true);
@@ -161,7 +180,7 @@ public sealed class JobsFake : IJobs, IDisposable
     private EnqueuedJob RecordRun(IJob job, string? lane)
     {
         ArgumentNullException.ThrowIfNull(job);
-        var run = new EnqueuedJob(job, null, null, Tenant.Key, Current.UserId, lane, JobNotice.Pending) { Ran = true };
+        var run = Recorded(job, null, null, Tenant.Key, lane) with { Awaited = true, Ran = true };
         lock (_gate)
         {
             _enqueued.Add(run);
@@ -174,41 +193,62 @@ public sealed class JobsFake : IJobs, IDisposable
     // its handler returns — running first, its reports, then how it ended. A job nobody watches just runs.
     private async Task Noticed(EnqueuedJob job, Func<Task> handle, CancellationToken cancellationToken)
     {
-        if (job.Notice is null || job.User is null)
-        {
-            await handle().ConfigureAwait(false);
-            return;
-        }
-
+        var watched = job.Notice is not null && job.User is not null;
         var said = new List<WorkReported>();
         var run = new JobRun(
             Interlocked.Increment(ref _ids), JobSerializerRegistry.TypeName(job.Job.GetType()), job.Lane, job.Notice, job.User, job.Tenant,
-            TimeProvider.System, cancellationToken);
-        run.Say = said.Add;
-        said.Add(run.ToWork(WorkState.Running, default));
-        var ended = WorkState.Done;
+            TimeProvider.System, cancellationToken)
+        {
+            Shared = job.Shared,
+            Batch = job.Batch,
+        };
+        if (watched)
+        {
+            run.Say = said.Add;
+            said.Add(run.ToWork(WorkState.Running, default));
+        }
+
+        WorkState? ended = null; // failed, unless the handler returns
         try
         {
             using var inFlight = JobInFlight.Enter(run);
             await handle().ConfigureAwait(false);
+            ended = run.Ending(WorkState.Done);
         }
-        catch
+        catch when (run.IsRefused)
         {
-            ended = WorkState.Failed;
-            throw;
+            // Refused, then threw: still the refusal, which ends it failed without a throw.
         }
         finally
         {
             run.SayUnsaid();
             run.End();
-            said.Add(run.ToWork(ended, run.Latest));
+            if (watched)
+            {
+                said.Add(run.ToWork(ended ?? WorkState.Failed, run.Latest));
+            }
+
             run.Release();
             foreach (var work in said)
             {
                 await Dispatcher.Publish(work, CancellationToken.None).ConfigureAwait(false);
             }
         }
+
+        // An awaited job its handler refused fails its caller, with what the handler said.
+        if (job.Awaited && run.IsRefused)
+        {
+            throw new JobFailedException(run.Detail ?? "Refused.") { JobType = run.Type };
+        }
     }
+
+    // A job as the queue would write its row: for the user in flight, with the notice its enqueue is worded with.
+    private static EnqueuedJob Recorded(IJob job, TimeSpan? after, DateTimeOffset? at, Guid? tenant, string? lane) =>
+        new(job, after, at, tenant, CurrentUser.Id, lane, JobNotice.Pending)
+        {
+            Shared = JobNotice.PendingShared,
+            Batch = JobNotice.PendingBatch,
+        };
 
     private EnqueuedJob? Next()
     {
@@ -223,5 +263,11 @@ public sealed class JobsFake : IJobs, IDisposable
     private sealed record EnqueuedJob(IJob Job, TimeSpan? Delay, DateTimeOffset? Moment, Guid? Tenant, Guid? User, string? Lane, string? Notice)
     {
         public bool Ran { get; set; }
+
+        public bool Shared { get; init; }
+
+        public Guid? Batch { get; init; }
+
+        public bool Awaited { get; init; }
     }
 }

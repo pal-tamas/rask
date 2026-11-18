@@ -164,11 +164,14 @@ departure in behaviour carries none.
   same ring on what the reader sees (`UiFocusLook.Ring`, inside: a box in a table's first column sits on the scroll
   frame's edge); the toggle loses its `outline-offset-2`. Where the fill IS the accent (a primary button, a ticked
   box, a switch that is on, a chosen pill, pill tab, day or preset) a 2px band of `--color-accent-foreground` lies
-  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST or LAST heading hangs no 8px into the
-  gutter past the scroll frame there (Flux's `-ms-2`/`-me-2`): it keeps 4px for the ring instead, so those words stand
-  4px in from the cells under them (`ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and
-  width go). A press draws nothing, as Flux's. `flux parity` lets the outline keys and `boxShadow` go on
-  a forced `:focus-visible` (`Departed.FocusFrom`); `flux parity-focus` holds its other cases to that ring
+  inside the ring (`UiFocusLook.OnAccent`). A table's sort button in the FIRST heading hangs no 8px into the
+  gutter past the scroll frame there (Flux's `-ms-2`): it keeps 4px for the ring instead, so those words stand 4px in
+  from the cells under them, and gives the 4px back at its end inside its heading (`-me-1`), so no column moves
+  (#1260; `ui.css`, `rask-ui-corrections`; `Departed` lets the button's margin, padding and width go). The LAST
+  heading's button hangs nowhere on Flux either (`me-0`, measured) and is Flux's. A press draws nothing, as Flux's.
+  `flux parity` lets the outline keys and `boxShadow` go on a forced `:focus-visible` (`Departed.FocusFrom`), and
+  the width, colour and offset of an outline neither side draws anywhere (`Compare.Undrawn`: at rest the kit's
+  controls sit at `-2px` where Flux's are at `outline-offset-2` or 0); `flux parity-focus` holds its other cases to that ring
   (`Departed.KeyboardRing`). `UiKeyboardRingTests` (the rule), `KeyboardRingTests` (Server E2E) and the site's
   `UiKitKeyboardRingTests` (every focusable Tabbed to, at 1280 and 390, light and dark: the accent, unclipped).
 - **2026-11-04 — `Ui.Table`'s list page (#1294): `SortIn`, `PageIn`, `Empty`.** Flux hands the page the sort and the
@@ -228,6 +231,12 @@ departure in behaviour carries none.
   md:w-[min(84rem,100vw)]`), and a heading `Ui.Heading.Level(2).Lg` with `mb-6 pe-8` to clear the cross; nothing of its
   own is drawn, so `flux parity-modal` holds the look. Approved type in `FluxConformanceTests`; `UiEditorDialogTests`,
   the site's `UiKitEditorDialogTests`.
+- **2026-11-18 — `Ui.Modal.Heading("…")` / `.Text("…")` (#1367).** Eszaf hand-built the block every Flux modal example
+  opens with. The steps write it from the kit's own parts: `Div.mb-6` (none when nothing follows) holding
+  `Ui.Heading.Level(2).Lg` with `pe-8` to clear the cross (none with `Closable(false)`) and `Ui.Text.mt-2`; the dialog
+  takes `aria-labelledby` the heading. A modal without them renders as before, so `flux parity-modal`'s Flux-shaped
+  examples are untouched. `Translations` rows `flux:modal/Heading` and `flux:modal/Text`; `UiModalTests`, the site's
+  dialog-buttons E2E.
 
 - **2026-11-06 — `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` (TA + Eszaf `Picker`/`PickerMany`/`MultiPicker`).** Flux's
   select is handed options the page writes. The kit also takes `Ui.Choice<T>(Value, Name, Detail)` rows: options in the
