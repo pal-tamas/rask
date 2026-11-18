@@ -29,11 +29,11 @@ public sealed partial class ModalDialogButtonsExample : Component
                 Form.Model(_merger).OnSubmit(async m =>
                 {
                     await Task.Delay(600);
-                    _last = $"merged into {m.Name}";
+                    _last = $"merged into {m.Supplier}";
                     _merging = false;
                 }).Class("space-y-6")[
                     Ui.Heading.Level(2).Lg["Merge two suppliers"],
-                    Ui.Input.Bind(() => _merger.Name).Label("Merged name"),
+                    Ui.Input.Bind(() => _merger.Supplier).Label("Merged name"),
                     Ui.DialogButtons.Submit().Save("Merge")
                 ]
             ],
@@ -43,6 +43,6 @@ public sealed partial class ModalDialogButtonsExample : Component
     private sealed class Merger
     {
         [Required]
-        public string? Name { get; set; }
+        public string? Supplier { get; set; }
     }
 }

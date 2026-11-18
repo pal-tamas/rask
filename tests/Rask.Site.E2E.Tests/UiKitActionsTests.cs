@@ -695,12 +695,17 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
         await name.FillAsync("Aminoff Freight");
+        // Heard as it happens, not polled for: on a slow runner the busy 600 ms can pass between two polls.
+        await merge.EvaluateAsync("""
+            b => { window.__mergeBusy = false; new MutationObserver(() => { if (b.hasAttribute('data-loading')) window.__mergeBusy = true; })
+                .observe(b, { attributes: true, attributeFilter: ['data-loading'] }); }
+            """);
         await name.PressAsync("Enter");
 
         // Enter sent the form by its one submit: the action is busy while OnSubmit runs, then the modal closes.
-        await Expect(merge).ToHaveAttributeAsync("data-loading", "", new LocatorAssertionsToHaveAttributeOptions { Timeout = 5_000 });
         await Expect(dialog).ToBeHiddenAsync(new LocatorAssertionsToBeHiddenOptions { Timeout = 10_000 });
         await Expect(scope).ToContainTextAsync("Last action: merged into Aminoff Freight.", new LocatorAssertionsToContainTextOptions { Timeout = 10_000 });
+        Assert.True(await Page.EvaluateAsync<bool>("() => window.__mergeBusy"), "Merge was not busy while the submit ran");
         await AssertNoGlobalCrashAsync();
     });
 

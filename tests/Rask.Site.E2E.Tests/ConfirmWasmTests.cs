@@ -119,7 +119,11 @@ public sealed class ConfirmWasmTests(WasmExampleAppFixture app, PlaywrightFixtur
         await Expect(Page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("March overlaps a period already saved. Save it anyway?");
         var look = await Page.Locator(Yes).GetAttributeAsync("class");
         var label = await Page.Locator(Dialog + " [data-rask-confirm-dialog=yes]").TextContentAsync();
-        var focusInside = await Page.Locator(Dialog).EvaluateAsync<bool>("d => d.contains(document.activeElement)");
+        // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
+        // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
+        await Page.Keyboard.PressAsync("Tab");
+        var focusInside = await Page.Locator(Dialog).EvaluateAsync<bool>(
+            "d => d.matches(':modal') && d.contains(document.activeElement) && document.activeElement.matches('button, input')");
         await Page.Keyboard.PressAsync("Escape");
         await Expect(state).ToHaveTextAsync("March was not saved.", new() { Timeout = 10_000 });
         var focusBack = await march.EvaluateAsync<bool>("b => b === document.activeElement");
