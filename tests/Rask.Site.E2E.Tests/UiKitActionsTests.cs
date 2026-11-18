@@ -650,6 +650,12 @@ public sealed class UiKitActionsTests(WasmExampleAppFixture app, PlaywrightFixtu
         await Expect(dialog).ToBeHiddenAsync();
         await opener.ClickAsync();
         await Expect(dialog).ToBeVisibleAsync(new LocatorAssertionsToBeVisibleOptions { Timeout = 10_000 });
+        // The modal's own Heading names it, and its first line stops short of the close button in the corner.
+        await Expect(scope.GetByRole(AriaRole.Dialog, new LocatorGetByRoleOptions { Name = "Book 12 pallets?" })).ToBeVisibleAsync();
+        var lineEnd = await dialog.GetByRole(AriaRole.Heading, new LocatorGetByRoleOptions { Name = "Book 12 pallets?" })
+            .EvaluateAsync<double>("h => h.getBoundingClientRect().right - parseFloat(getComputedStyle(h).paddingRight)");
+        var corner = (await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Close modal" }).BoundingBoxAsync())!;
+        Assert.True(lineEnd <= corner.X, "the heading's line runs under the close button");
         var book = dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Book", Exact = true });
         var cancel = (await dialog.GetByRole(AriaRole.Button, new LocatorGetByRoleOptions { Name = "Cancel", Exact = true }).BoundingBoxAsync())!;
         var action = (await book.BoundingBoxAsync())!;

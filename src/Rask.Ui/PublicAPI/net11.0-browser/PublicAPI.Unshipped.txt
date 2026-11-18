@@ -9320,3 +9320,14 @@ static RaskBuilderSettersRask_Ui.Tenant(this Rask.UiAppFrame! __b, string? value
 static RaskBuilderSettersRask_Ui.User(this Rask.UiAppFrame! __b, string? value) -> Rask.UiAppFrame!
 Rask.UiFilterShown
 static Rask.UiFilterShown.Shown(this Rask.UiFilter! filter, System.Collections.Generic.IEnumerable<string!>! names) -> Rask.UiFilter!
+Rask.UiAppFrame.LeaveWords(string! stay, string! leave) -> Rask.UiAppFrame!
+Rask.UiModal.Heading.get -> string?
+Rask.UiModal.Heading.set -> void
+Rask.UiModal.Text.get -> string?
+Rask.UiModal.Text.set -> void
+static RaskBuilderSettersRask_Ui.Heading(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+static RaskBuilderSettersRask_Ui.Text(this Rask.UiModal! __b, string? value) -> Rask.UiModal!
+Rask.UiDayAndTimeSteps
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime)
+Rask.UiDayAndTimeSteps.extension(Rask.RaskSeed_UiDayAndTime).Bind(System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!
+static Rask.UiDayAndTimeSteps.Bind(this Rask.RaskSeed_UiDayAndTime entry, System.Linq.Expressions.Expression<System.Func<System.DateOnly?>!>! day, System.Linq.Expressions.Expression<System.Func<System.TimeOnly?>!>! time) -> Rask.UiDayAndTime<System.DateTime?>!

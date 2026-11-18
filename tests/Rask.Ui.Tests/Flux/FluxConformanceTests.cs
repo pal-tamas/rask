@@ -477,6 +477,9 @@ public sealed class FluxConformanceTests
         ["flux:modal/OnCancel"] = "the `cancel` event (`@cancel`)",
         ["flux:modal/Lazy"] = "nothing of Flux's: an owner-approved departure (2026-10-21) — what it holds travels only while it is open, "
                               + "where Flux renders it always; off unless asked, and always on for Ui.Filters' flyout",
+        ["flux:modal/Heading"] = "the owner, 2026-11-18 (#1367): the `<flux:heading size=\"lg\">` every example of Flux's modal opens with, "
+                                 + "clear of the close button (`pe-8`)",
+        ["flux:modal/Text"] = "the owner, 2026-11-18 (#1367): the `<flux:text class=\"mt-2\">` under that heading in Flux's examples",
         ["flux:chart.axis.grid/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.axis.grid/StrokeDasharray"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",
         ["flux:chart.zero-line/StrokeWidth"] = "an SVG attribute Flux forwards to the element it draws; the part is a declaration, not an element, so it names the ones Flux's page shows",

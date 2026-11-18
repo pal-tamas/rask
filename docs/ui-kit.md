@@ -646,7 +646,10 @@ with an ellipsis, the whole of it in the cell's tooltip.
 The delete asks in the layout's [`Ui.Confirm`](https://rask.sh/ui/confirm/) and runs only on yes; a null delete draws
 none. `Ui.FormButtons.Back(listUrl).Remove(delete, heading, question)` is a form's footer as Flux draws
 one: Delete at the start (asking first), then Cancel — a link back to the list, so `.ConfirmLeave()` asks before it
-drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Their words come from the `RaskStrings` catalog (`FormButtons*`,
+drops what was typed — and Save, the form's submit; `.Save("Create")` and `.Cancel("Back")` name them. Cancel returns to
+the list **as the reader left it** — its filters, sort and page, never a `Ui.EditorDialog`'s key — once the session has
+shown it (in a `Ui.AppFrame`, or by a `Ui.Table` keeping its sort or page in the address), as `Ui.AppFrame`'s trail does;
+`Back(Routes.SuppliersPage())` names only the list. Their words come from the `RaskStrings` catalog (`FormButtons*`,
 `RowActions*`, `RemoveQuestion`): Hungarian reads Törlés, Mégse, Mentés, Módosítás and "Biztos törölni szeretné?".
 
 ```csharp
@@ -714,6 +717,26 @@ Form.Model(m).OnSubmit(Merge)[
 
 `.Danger()` draws the action as Flux's danger button, as Flux's "Delete project?" modal does — with `.OnSave(…)` or
 `.Submit()`: `Ui.DialogButtons.Danger().OnSave(Delete).Save("Delete project")`.
+
+`Ui.Modal.Heading("…").Text("…")` writes the block every Flux modal example opens with — a large heading and the
+sentence two steps under it, six steps above what follows — so a modal no longer hand-builds it. The heading is an
+`h2`, clear of the close button in the corner (`pe-8`; none with `Closable(false)`), and names the dialog
+(`aria-labelledby`). Not Flux's: an addition the owner approved (2026-11-18, #1367).
+
+```csharp
+// Before: every modal wrote its own heading block.
+Ui.Modal.Name("book")[
+    Div.Class("space-y-6")[
+        Div[Ui.Heading.Level(2).Lg.Class("pe-8")["Book 12 pallets?"], Ui.Text.Class("mt-2")["They move in today."]],
+        Ui.DialogButtons.OnSave(Book).Save("Book")
+    ]
+]
+
+// After: the modal's own steps.
+Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[
+    Ui.DialogButtons.OnSave(Book).Save("Book")
+]
+```
 
 `Ui.RowActions` puts all of a row's actions behind one ⋯, as Flux's table demo does: a ghost, small ⋯ (its
 tooltip "Actions") opening a dropdown at the bottom end, holding `View(url)` (an eye), `Edit(url)` — or `OnEdit(…)` to
@@ -842,6 +865,26 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
 - **Messages** stand under the pair, in the member's name: a day or a time half typed ("Enter a valid date." /
   "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
   while one shows.
+
+**A day and a time the model keeps apart** bind both (#1362, owner-approved 2026-11-18) — the day a `DateOnly?`, the
+time a `TimeOnly?`, the same two pickers in the same row:
+
+```csharp
+// before: a helper drawing two pickers, the time's disabled state and both messages by hand
+Moments.Pickers(() => _note.Day, () => _note.Time, rule: DeliveryRules.Day)
+
+// after: each part bound to its own member, each saying its own member's message under itself
+Ui.DayAndTime.Bind(() => _note.Day, () => _note.Time).Label("Delivered")
+```
+
+- **Messages per part**: the day's member's under the day (`#{id}-error`), the time's under the time
+  (`#{id}-time-error`) — its attributes, a FluentValidation rule or a rule of the day on either member, a part half
+  typed — so a save can be refused with two. The label and description stay the pair's.
+- **The time waits for a day**: disabled until a day is given. **A day taken away empties the time** (both members
+  `null`, written together) and disables it again; a day alone leaves the time `null` — no first minute is invented.
+- The day's × is the day member's, as above: a `DateOnly?` the model does not require has one. `.Live()`, `.Locale`,
+  `.Disabled` and `.ShowValidation(false)` apply to both parts; `AfterBind` hears the moment the two make (the day at
+  its time, its first minute without one). `.Validate` and `.Value`/`.OnChange` are the one-member binding's.
 
 `Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
 header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named
@@ -1158,10 +1201,13 @@ public sealed partial class Layout : Component
   Home is the row every other row is beneath (`/`) — or, where `/` is not home (an administrator's tenant list),
   the page the frame names: `.Home(Routes.HomePage())`, where the brand and the trail's first step then lead.
 - **The trail:** home › group › list › the page's `PageTitle`. The list's step leads back to it **as it was left** —
-  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps.
+  its filters, sort and page, never a `Ui.EditorDialog`'s key — and a phone keeps the last two steps. A form's
+  `Ui.FormButtons` Cancel goes back the same way.
 - **Mounted once:** `Ui.Toast`, `Ui.ConfirmLeave` and `Ui.Confirm`, in the catalog's words; the sign-out row is
   `Ui.MenuItem.Href(url).SignOut()`. The unsaved-changes dialog is titled "Unsaved changes" (the catalog's
-  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it.
+  `ConfirmLeaveHeading`; "Mentetlen változások" in Hungarian) over the form's question; `.LeaveHeading("…")` words it,
+  and `.LeaveWords(stay: "Nem", leave: "Igen")` its two buttons (the catalog's `ConfirmLeaveStay` / `ConfirmLeaveLeave`
+  otherwise: Stay and Leave, Maradok and Elhagyom).
 - **The tenant line** has the id `ui-app-frame-tenant`, for a test or the app's stylesheet.
 - **The look is shared:** the zinc ground and edges are the kit's; an app's own is its accent (`--color-accent` in its
   stylesheet, [Re-skinning](#re-skinning)) and its `Logo(url)`. It works the same on Server and WebAssembly; a

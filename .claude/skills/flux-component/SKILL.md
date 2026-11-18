@@ -231,6 +231,12 @@ departure in behaviour carries none.
   md:w-[min(84rem,100vw)]`), and a heading `Ui.Heading.Level(2).Lg` with `mb-6 pe-8` to clear the cross; nothing of its
   own is drawn, so `flux parity-modal` holds the look. Approved type in `FluxConformanceTests`; `UiEditorDialogTests`,
   the site's `UiKitEditorDialogTests`.
+- **2026-11-18 — `Ui.Modal.Heading("…")` / `.Text("…")` (#1367).** Eszaf hand-built the block every Flux modal example
+  opens with. The steps write it from the kit's own parts: `Div.mb-6` (none when nothing follows) holding
+  `Ui.Heading.Level(2).Lg` with `pe-8` to clear the cross (none with `Closable(false)`) and `Ui.Text.mt-2`; the dialog
+  takes `aria-labelledby` the heading. A modal without them renders as before, so `flux parity-modal`'s Flux-shaped
+  examples are untouched. `Translations` rows `flux:modal/Heading` and `flux:modal/Text`; `UiModalTests`, the site's
+  dialog-buttons E2E.
 
 - **2026-11-06 — `.Choices(…)` on `Ui.Select` and `Ui.Pillbox` (TA + Eszaf `Picker`/`PickerMany`/`MultiPicker`).** Flux's
   select is handed options the page writes. The kit also takes `Ui.Choice<T>(Value, Name, Detail)` rows: options in the

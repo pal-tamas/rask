@@ -207,6 +207,49 @@ public partial class UiModalTests : global::Rask.Core.RaskMarkup
     }
 
     [Fact]
+    public void Heading_and_text_open_the_modal_as_fluxs_examples_write_them_clear_of_the_close_button()
+    {
+        var modal = Ui.Modal.Name("edit-profile").Heading("Update profile").Text("Make changes to your personal details.")[Ui.Input.Of<string>().Label("Name")];
+        var heading = Ui.Heading.Lg["Update profile"].ToHtml().Split('"')[1];
+        var text = Ui.Text["Make changes to your personal details."].ToHtml().Split('"')[1];
+
+        var html = modal.ToHtml();
+
+        Assert.Contains("aria-labelledby=\"edit-profile-heading\"", Tag(html, "<dialog"));
+        Assert.Contains(
+            $"<div class=\"mb-6\"><h2 id=\"edit-profile-heading\" class=\"{heading} pe-8\" data-ui-heading>Update profile</h2>"
+            + $"<p class=\"{text} mt-2\" data-ui-text>Make changes to your personal details.</p></div>",
+            html,
+            StringComparison.Ordinal);
+        Assert.True(html.IndexOf("Update profile", StringComparison.Ordinal) < html.IndexOf("data-ui-field", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_modal_with_no_close_button_and_nothing_under_its_heading_leaves_no_room_or_gap()
+    {
+        var modal = Ui.Modal.Name("done").Closable(false).Heading("Saved");
+
+        var html = modal.ToHtml();
+
+        Assert.Contains("<div><h2 id=\"done-heading\" class=\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("pe-8", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("mb-6", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-ui-text", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Text_without_a_heading_clears_the_close_button_itself_and_names_nothing()
+    {
+        var modal = Ui.Modal.Name("note").Text("Changes are saved as you type.");
+
+        var html = modal.ToHtml();
+
+        Assert.Matches("<p class=\"[^\"]* pe-8\" data-ui-text>Changes are saved as you type.</p>", html);
+        Assert.DoesNotContain("aria-labelledby", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<h2", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_focus_placeholder_is_first_and_takes_the_focus_a_field_would_get()
     {
         var html = Ui.Modal.Name("edit")[Input.Value("Ada")].ToHtml();

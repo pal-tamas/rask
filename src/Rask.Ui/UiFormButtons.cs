@@ -1,3 +1,4 @@
+using Rask.Core.Live;
 using Rask.Core.Routing;
 
 namespace Rask;
@@ -25,7 +26,11 @@ namespace Rask;
 /// </remarks>
 public sealed partial class UiFormButtons : Component
 {
-    /// <summary>The list Cancel goes back to. Required, and taken first: <c>Ui.FormButtons.Back(Routes.SuppliersPage())</c>.</summary>
+    /// <summary>
+    ///     The list Cancel goes back to. Required, and taken first: <c>Ui.FormButtons.Back(Routes.SuppliersPage())</c>. Where
+    ///     the reader saw that list earlier in the session, Cancel returns to it as they left it — its filters, its sort, its
+    ///     page — as the <see cref="UiAppFrame" />'s breadcrumbs do; an editor dialog's key is left out.
+    /// </summary>
     public RouteUrl Back { get; set; }
 
     /// <summary>Runs when the reader says yes to deleting the record. Unset, there is no Delete button.</summary>
@@ -71,8 +76,21 @@ public sealed partial class UiFormButtons : Component
             OnRemove.HasValue ? UiRemoval.Asking(Ui.Button.Key("remove").Danger, OnRemove, RemoveHeading, RemoveQuestion, remove)[remove] : null,
             Ui.Spacer,
             Children is { } more ? Fragment[more] : null,
-            Ui.Button.Key("cancel").Ghost.Href(Back)[Cancel ?? RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
+            Ui.Button.Key("cancel").Ghost.Href(BackAsLeft())[Cancel ?? RaskStrings.Get(RaskString.FormButtonsCancel, "Cancel")],
             Ui.Button.Key("save").Primary.Submit[Save ?? RaskStrings.Get(RaskString.FormButtonsSave, "Save")]
         ];
+    }
+
+    // The list as the reader left it — its filters, sort and page — where this session has shown it; as given otherwise.
+    private RouteUrl BackAsLeft()
+    {
+        if (UiTableAddress.Route() is not { } route)
+        {
+            return Back;
+        }
+
+        // The way back moves with the address, so the row is drawn again whenever it moves.
+        LiveRenderContext.CurrentSync?.MarkCurrentReadsAmbientState();
+        return UiListAddresses.Of(route).Back(Back);
     }
 }

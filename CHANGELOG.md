@@ -20,6 +20,28 @@ them until tagged releases begin.
   12. `Current.User` now reads the user's row across tenants, so an administrator working in another tenant is still
   themselves when the users table is `PerTenant`. A `Guid`-keyed app sees no change; the generated members live in the
   global namespace and win over Rask.Data's `Guid?` one wherever `using Rask.Data;` sits at the top of the file.
+- **`Ui.Modal.Heading("…")` and `.Text("…")` write the heading block every Flux modal example opens with (#1367).**
+  Before: each modal hand-built `Div[Ui.Heading.Level(2).Lg.Class("pe-8")["…"], Ui.Text.Class("mt-2")["…"]]` inside a
+  `space-y-6`. After: `Ui.Modal.Name("book").Heading("Book 12 pallets?").Text("They move in today.")[…]` — Flux's
+  large heading (an `h2`) and its text `mt-2` under it, `mb-6` above the content, the heading clear of the close button
+  (`pe-8`, none with `Closable(false)`) and naming the dialog (`aria-labelledby`). A modal without them is unchanged.
+- **`Ui.AppFrame.LeaveWords(stay, leave)` words the unsaved-changes dialog's two buttons (#1364).** Before: the frame
+  mounted `Ui.ConfirmLeave` with the catalog's Stay / Leave (Maradok / Elhagyom), so an app whose leave dialog says
+  Nem / Igen kept a layout of its own. After: `Ui.AppFrame.Brand("PPTA").LeaveWords(stay: "Nem", leave: "Igen")` —
+  the mounted dialog's existing `Stay` / `Leave`; unset, the catalog's words as before.
+- **`Ui.FormButtons`' Cancel returns to the list as the reader left it (#1357).** Before: Cancel went to the bare
+  `Back(…)` route, so a reader who had filtered, sorted and paged a list landed on its first page unfiltered, and an app
+  kept a `ListAddresses` of its own for every Cancel; only `Ui.AppFrame`'s breadcrumb went back as left. After: no new
+  name — `Ui.FormButtons.Back(Routes.SuppliersPage())`'s Cancel leads to `/suppliers?q=amin&sort=name&page=2`, the
+  address the session last showed the list at, a `Ui.EditorDialog`'s key left out, exactly as the trail's list step.
+  The session starts remembering in a `Ui.AppFrame`, or on a `Ui.Table` keeping its sort or page in the address; a list
+  not shown yet is the route as given.
+- **`Ui.DayAndTime` binds a day and a time the model keeps apart (#1362): `Ui.DayAndTime.Bind(() => m.Day, () => m.Time)`,
+  a `DateOnly?` and a `TimeOnly?`.** The same typed date picker and time input in the same row, each part bound to its
+  own member and saying that member's messages under itself — its attributes, a FluentValidation rule, a rule of the
+  day, a half-typed part — so a save can be refused with two. The time is disabled until a day is given; a day taken
+  away empties the time and disables it again. The one-member `DateTime?` binding is unchanged.
+  Live: [rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/).
 - **`Ui.DialogButtons.Submit()` — the dialog's action is the enclosing form's submit (#1356).** Before: the action was
   always a click (`type="button"`, `.OnSave(…)`), so a dialog that is a validated form (TA's merge window) kept its own
   row: `Div.Class("flex gap-2")[Ui.Spacer, Ui.ModalClose[Ui.Button.Ghost["Mégse"]], Ui.Button.Primary.Submit["Egyesítés"]]`.

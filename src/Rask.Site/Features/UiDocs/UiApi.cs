@@ -289,6 +289,8 @@ internal static partial class UiApi
             new("Dismissible", typeof(bool?), "Whether a click outside closes it. On unless false."),
             new("Escapable", typeof(bool?), "Whether Escape closes it. On unless false."),
             new("Closable", typeof(bool?), "Whether it shows the close button in its corner. On unless false."),
+            new("Heading", typeof(string), "The title it opens with, large, clear of the close button, as Flux's examples write it; it names the dialog. Not Flux's."),
+            new("Text", typeof(string), "The sentence under the heading, as Flux's examples write it. Not Flux's."),
             new("Open", typeof(bool?), "Hands the open state to the page, Flux's wire:model. Unset, its triggers open it."),
             new("Lazy", typeof(bool?), "Sends what it holds only while it is open: closed, it is the dialog alone. Not Flux's."),
             new("OnClose", typeof(Callback), "Runs when it closes, by any means: where a page that set Open hears it.", Handler),
@@ -355,6 +357,8 @@ internal static partial class UiApi
             new("Notices", typeof(Component), "What stands at the header's end: how background work is getting on."),
             new("Home", typeof(Rask.Core.Routing.RouteUrl?), "The app's home, where the brand and the trail's first step lead. Unset, the row every other row is beneath, or /.", "a route: Routes.HomePage()"),
             new("LeaveHeading", typeof(string), "The title of the unsaved-changes dialog, over the form's question. The catalog's \"Unsaved changes\" when unset."),
+            new("LeaveWords", typeof(string), "The unsaved-changes dialog's two buttons: the one that stays, the one that leaves. The catalog's \"Stay\" and \"Leave\" when unset.",
+                "the stay and leave words: \"Nem\", \"Igen\""),
         ]),
     ];
 
@@ -362,7 +366,7 @@ internal static partial class UiApi
     [
         new("Ui.FormButtons", typeof(UiFormButtons), NotFlux, "A form's footer as Flux draws one: Delete at the start, then Cancel back to the list and Save.",
         [
-            new("Back", typeof(Rask.Core.Routing.RouteUrl), "The list Cancel goes back to. Required, and taken first.", "a route: Routes.SuppliersPage()"),
+            new("Back", typeof(Rask.Core.Routing.RouteUrl), "The list Cancel goes back to, as the reader left it — its filters, sort and page — once the session has shown it. Required, and taken first.", "a route: Routes.SuppliersPage()"),
             new("Remove", typeof(Func<Task>), "A Delete button that asks first, in the layout's Ui.Confirm, and runs the delete on yes. Null draws none.",
                 "the delete, then the question's heading and the question (the catalog's when null)"),
             new("OnRemove", typeof(Callback), "The delete alone, asking the catalog's question: \"Are you sure you want to delete it?\"", Handler),
@@ -401,13 +405,13 @@ internal static partial class UiApi
         new("Ui.DayAndTime", typeof(UiDayAndTime<DateTime?>), NotFlux,
             "A moment as Flux's typed date picker and time picker in one row. The time waits for a day, and goes beneath it where the row has no room.",
         [
-            new("Bind", typeof(Expression<Func<DateTime?>>), "The member it reads and writes: () => m.At, a DateTime? or a DateTime. Or Value with OnChange.", "() => a DateTime? or a DateTime"),
+            new("Bind", typeof(Expression<Func<DateTime?>>), "The member it reads and writes: () => m.At, a DateTime? or a DateTime. Or two, (() => m.Day, () => m.Time): a DateOnly? and a TimeOnly?, each part with its own message under it. Or Value with OnChange.", "() => a DateTime? or a DateTime"),
             new("Value", typeof(DateTime?), "What it holds, for a page that holds it itself.", "T: a DateTime? or a DateTime"),
             new("OnChange", typeof(Callback<DateTime?>), "Runs with the whole moment when the day or the time changes.", Picked),
             new("AfterBind", typeof(Callback<DateTime?>), "Runs after Bind has written the model.", Picked),
             new("Validate", typeof(Validator<DateTime?>?), "A rule the moment is checked by when it is written; it speaks under the pair.", Validates),
             new("Live", typeof(bool?), "Writes the model as soon as the day or the time is given, not with the next action."),
-            new("Label", typeof(string), "Draws a field around the pair, with this label and the error under both."),
+            new("Label", typeof(string), "Draws a field around the pair, with this label and the error under both (bound to two members, each part's under it)."),
             new("Description", typeof(string), "Help text between the label and the pair."),
             new("DescriptionTrailing", typeof(string), "Help text under the pair."),
             new("Badge", typeof(string), "A word beside the label: \"Optional\"."),
