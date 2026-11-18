@@ -40,7 +40,11 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
         await Expect(page.Locator(Dialog + " [data-ui-heading]")).ToHaveTextAsync("Megerősítés");
         await Expect(page.Locator(Dialog + " [data-rask-confirm-dialog=message]")).ToHaveTextAsync("Delete it?");
         await Expect(page.Locator(Dialog + " [data-rask-confirm-dialog=field]")).ToBeHiddenAsync();
-        Assert.True(await page.Locator(Dialog).EvaluateAsync<bool>("d => d.matches(':modal') && d.contains(document.activeElement)"));
+        // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
+        // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
+        await page.Keyboard.PressAsync("Tab");
+        Assert.True(await page.Locator(Dialog).EvaluateAsync<bool>(
+            "d => d.matches(':modal') && d.contains(document.activeElement) && document.activeElement.matches('button, input')"));
         Assert.Empty(session.Sent);
         Assert.Empty(session.BrowserDialogs);
     }
@@ -114,7 +118,11 @@ public sealed class ConfirmDialogTests(PlaywrightFixture playwright) : IClassFix
 
         await page.Keyboard.PressAsync("Enter");
         await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
-        var focusInside = await page.Locator(Dialog).EvaluateAsync<bool>("d => d.contains(document.activeElement)");
+        // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
+        // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
+        await page.Keyboard.PressAsync("Tab");
+        var focusInside = await page.Locator(Dialog).EvaluateAsync<bool>(
+            "d => d.matches(':modal') && d.contains(document.activeElement) && document.activeElement.matches('button, input')");
         await page.Keyboard.PressAsync("Escape");
         await Expect(page.Locator(Dialog)).ToBeHiddenAsync();
 

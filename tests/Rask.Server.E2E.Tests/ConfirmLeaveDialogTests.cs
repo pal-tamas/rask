@@ -34,7 +34,11 @@ public sealed class ConfirmLeaveDialogTests(PlaywrightFixture playwright) : ICla
 
         await Expect(page.Locator(Dialog)).ToBeVisibleAsync();
         await Expect(page.Locator(Dialog + " h2")).ToHaveTextAsync("Leave without saving?");
-        Assert.True(await page.Locator(Dialog).EvaluateAsync<bool>("d => d.matches(':modal') && d.contains(document.activeElement)"));
+        // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
+        // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
+        await page.Keyboard.PressAsync("Tab");
+        Assert.True(await page.Locator(Dialog).EvaluateAsync<bool>(
+            "d => d.matches(':modal') && d.contains(document.activeElement) && document.activeElement.matches('button, input')"));
         await Expect(page.Locator("#path")).ToHaveTextAsync("path=/");
         Assert.Empty(session.BrowserDialogs);
     }

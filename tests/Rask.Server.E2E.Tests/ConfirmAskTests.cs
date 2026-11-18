@@ -30,7 +30,11 @@ public sealed class ConfirmAskTests(PlaywrightFixture playwright) : IClassFixtur
 
         await page.ClickAsync("#ask");
         await Expect(page.Locator(Message)).ToHaveTextAsync("Save it anyway?");
-        var focusInside = await page.Locator(Dialog).EvaluateAsync<bool>("d => d.matches(':modal') && d.contains(document.activeElement)");
+        // The modal's focus placeholder holds focus for an instant and then leaves it on nothing (ui.css), so what
+        // stays true however slow the machine is: the dialog is modal and the first Tab lands on one of its controls.
+        await page.Keyboard.PressAsync("Tab");
+        var focusInside = await page.Locator(Dialog).EvaluateAsync<bool>(
+            "d => d.matches(':modal') && d.contains(document.activeElement) && document.activeElement.matches('button, input')");
         await page.ClickAsync(Yes);
 
         await Expect(page.Locator("#answer")).ToHaveTextAsync("yes");
