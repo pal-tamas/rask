@@ -821,6 +821,26 @@ Ui.DayAndTime.Bind(() => _form.From).Validate(ChipRules.NotBefore).Live()
   "Enter a valid time." — Hungarian from the kit's catalog), the model's attributes and `Validate`; the save is refused
   while one shows.
 
+**A day and a time the model keeps apart** bind both (#1362, owner-approved 2026-11-18) — the day a `DateOnly?`, the
+time a `TimeOnly?`, the same two pickers in the same row:
+
+```csharp
+// before: a helper drawing two pickers, the time's disabled state and both messages by hand
+Moments.Pickers(() => _note.Day, () => _note.Time, rule: DeliveryRules.Day)
+
+// after: each part bound to its own member, each saying its own member's message under itself
+Ui.DayAndTime.Bind(() => _note.Day, () => _note.Time).Label("Delivered")
+```
+
+- **Messages per part**: the day's member's under the day (`#{id}-error`), the time's under the time
+  (`#{id}-time-error`) — its attributes, a FluentValidation rule or a rule of the day on either member, a part half
+  typed — so a save can be refused with two. The label and description stay the pair's.
+- **The time waits for a day**: disabled until a day is given. **A day taken away empties the time** (both members
+  `null`, written together) and disables it again; a day alone leaves the time `null` — no first minute is invented.
+- The day's × is the day member's, as above: a `DateOnly?` the model does not require has one. `.Live()`, `.Locale`,
+  `.Disabled` and `.ShowValidation(false)` apply to both parts; `AfterBind` hears the moment the two make (the day at
+  its time, its first minute without one). `.Validate` and `.Value`/`.OnChange` are the one-member binding's.
+
 `Ui.DatePicker.Bind(() => m.Day).Typed()` is the same typed day on its own (the input trigger with the selectable
 header), and `Ui.DatePicker.Range.Bind(() => m.Days).Typed()` two fields side by side, the start and the end, named
 from the catalog ("Kezdet" / "Vége" in Hungarian). Live: **[rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/)**,

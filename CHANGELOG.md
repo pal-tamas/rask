@@ -8,6 +8,12 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Ui.DayAndTime` binds a day and a time the model keeps apart (#1362): `Ui.DayAndTime.Bind(() => m.Day, () => m.Time)`,
+  a `DateOnly?` and a `TimeOnly?`.** The same typed date picker and time input in the same row, each part bound to its
+  own member and saying that member's messages under itself — its attributes, a FluentValidation rule, a rule of the
+  day, a half-typed part — so a save can be refused with two. The time is disabled until a day is given; a day taken
+  away empties the time and disables it again. The one-member `DateTime?` binding is unchanged.
+  Live: [rask.sh/ui/day-and-time](https://rask.sh/ui/day-and-time/).
 - **`Ui.Select` and `Ui.Pillbox` take a searched source that pages as the list scrolls (#1354):
   `.Choices((typed, page) => …, held: …)` with `Ui.ChoicePage` (`Skip`, `Take`).** The list opens on the first page
   for what is typed and, scrolled (wheel, scrollbar, End) to within ten rows of the last one loaded, asks for the next
