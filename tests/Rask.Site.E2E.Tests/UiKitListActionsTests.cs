@@ -131,7 +131,7 @@ public sealed class UiKitListActionsTests(WasmExampleAppFixture app, PlaywrightF
         var cut = table.Locator("tbody tr").First.Locator("td").First;
         await table.ScrollIntoViewIfNeededAsync();
 
-        // Rest 12 + Short 10 + Day 7 + Number 7 + Flag 5 + RowMenu 4 = 45rem.
+        // Rest 12 + Short 10 + Code 8 + Day 7 + Number 7 + Flag 5 + RowMenu 4 = 53rem.
         var least = await table.EvaluateAsync<string>("el => getComputedStyle(el).minWidth");
         var widths = await table.Locator("thead th").EvaluateAllAsync<double[]>("ths => ths.map(th => th.getBoundingClientRect().width)");
         var title = await cut.GetAttributeAsync("title");
@@ -142,8 +142,8 @@ public sealed class UiKitListActionsTests(WasmExampleAppFixture app, PlaywrightF
         var page = await Page.EvaluateAsync<double[]>("() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]");
         var frame = await table.EvaluateAsync<double[]>("el => [el.parentElement.scrollWidth, el.parentElement.clientWidth]");
 
-        Assert.Equal("720px", least);
-        Assert.Equal(new double[] { 160, 112, 112, 80, 64 }, widths.Skip(1).Select(width => Math.Round(width)).ToArray());
+        Assert.Equal("848px", least);
+        Assert.Equal(new double[] { 160, 128, 112, 112, 80, 64 }, widths.Skip(1).Select(width => Math.Round(width)).ToArray());
         Assert.StartsWith("Aminoff Freight & Haulage, Nordic Fuel Division", title, StringComparison.Ordinal);
         Assert.True(truncated, "the long supplier name is not cut short");
         Assert.False(vatCut, "a short code such as GB 123 4567 89 is cut");
