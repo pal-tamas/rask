@@ -65,6 +65,37 @@ public sealed class TypedCacheTests
     }
 
     [Fact]
+    public async Task Remember_with_no_lifetime_keeps_the_value_a_day()
+    {
+        await using var harness = new CacheHarness();
+        var loads = 0;
+        Widget Load() => new(Interlocked.Increment(ref loads), "v");
+        await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+
+        harness.Clock.Advance(23.Hours);
+        var withinTheDay = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+        harness.Clock.Advance(2.Hours);
+        var nextDay = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken);
+
+        Assert.Equal(1, withinTheDay.Id);
+        Assert.Equal(2, nextDay.Id);
+    }
+
+    [Fact]
+    public async Task Remember_Forever_keeps_the_value_until_it_is_forgotten()
+    {
+        await using var harness = new CacheHarness();
+        var loads = 0;
+        Widget Load() => new(Interlocked.Increment(ref loads), "v");
+        await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken).Forever();
+
+        harness.Clock.Advance(TimeSpan.FromDays(400));
+        var later = await harness.Cache.Remember("w", Load, TestContext.Current.CancellationToken).Forever();
+
+        Assert.Equal(1, later.Id);
+    }
+
+    [Fact]
     public async Task Remember_For_loads_again_once_the_time_is_up()
     {
         await using var harness = new CacheHarness();

@@ -13,6 +13,13 @@ public sealed class CacheOptions
     public TimeSpan? DefaultSlidingExpiration { get; set; }
 
     /// <summary>
+    /// How long a <c>Cache.Remember</c> or <c>Cache.Set</c> that names no lifetime keeps its value, when
+    /// <see cref="DefaultSlidingExpiration"/> is not set. Default 24 hours; <c>.Forever()</c> keeps one until it is
+    /// forgotten.
+    /// </summary>
+    public TimeSpan DefaultLifetime { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>
     /// The <c>JsonSerializerContext</c> cached values are serialized with — set it once in a trimmed or AOT app,
     /// <c>o.Json = AppJson.Default</c>, and every <c>Remember</c>/<c>Set</c>/<c>Get</c> stays as it is. <c>null</c>
     /// (the default) serializes with reflection, which an untrimmed app can.

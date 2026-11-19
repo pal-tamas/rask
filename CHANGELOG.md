@@ -335,6 +335,11 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **BREAKING (Rask.Cache): `Remember` and `Set` with no lifetime keep the value 24 hours.** Before: an entry with no
+  `.For`/`.Sliding`/`.Until` (and no `DefaultSlidingExpiration`) lived for as long as the table did — a key built from a
+  date or an id piled up forever. After: it lives `CacheOptions.DefaultLifetime` (24 hours, `Rask:Cache:DefaultLifetime`);
+  **`.Forever()`** keeps one until `Cache.Forget`. `CacheFake` keeps the same day. Raw `IDistributedCache` writes are
+  unchanged.
 - **A download saves under its own name.** Before: `Navigator.Download` sent `filename="Jelent%C3%A9s.xlsx"`, so the
   browser saved the percent-escaped name. After: `filename=` plus RFC 6266's `filename*=UTF-8''…`, as stored files
   already did.

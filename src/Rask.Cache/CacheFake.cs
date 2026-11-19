@@ -108,11 +108,14 @@ public sealed class CacheFake : ICache, IDisposable
     {
         lock (_gate)
         {
-            _entries[key] = new Entry(value, Expiry(lifetime), lifetime.Sliding);
+            _entries[key] = new Entry(value, Expiry(lifetime.OrDefault(DefaultLifetime, storeSlides: false)), lifetime.Sliding);
         }
 
         return Task.CompletedTask;
     }
+
+    // What the real cache keeps an entry for when no step names a lifetime, so a test sees the same expiry.
+    private static TimeSpan DefaultLifetime => new CacheOptions().DefaultLifetime;
 
     private static DateTimeOffset? Expiry(CacheLifetime lifetime) => lifetime switch
     {

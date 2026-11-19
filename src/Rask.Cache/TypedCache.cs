@@ -88,13 +88,18 @@ internal sealed class TypedCache(IDistributedCache store, IOptions<CacheOptions>
         CancellationToken cancellationToken)
     {
         var loaded = await load(cancellationToken).ConfigureAwait(false);
-        await store.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(loaded, typeInfo), lifetime.ToEntryOptions(), cancellationToken)
+        await store.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(loaded, typeInfo), Entry(lifetime), cancellationToken)
             .ConfigureAwait(false);
         return loaded;
     }
 
     public Task Set<T>(string key, T value, CacheLifetime lifetime, CancellationToken cancellationToken) =>
-        store.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(value, TypeInfo<T>()), lifetime.ToEntryOptions(), cancellationToken);
+        store.SetAsync(key, JsonSerializer.SerializeToUtf8Bytes(value, TypeInfo<T>()), Entry(lifetime), cancellationToken);
+
+    // A lifetime nobody said is the app's default, never "for as long as the table exists".
+    private Microsoft.Extensions.Caching.Distributed.DistributedCacheEntryOptions Entry(CacheLifetime lifetime) =>
+        lifetime.OrDefault(options.Value.DefaultLifetime, storeSlides: options.Value.DefaultSlidingExpiration is not null)
+            .ToEntryOptions();
 
     private JsonTypeInfo<T> TypeInfo<T>()
     {

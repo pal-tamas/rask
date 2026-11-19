@@ -41,6 +41,20 @@ public sealed class CacheFakeTests
     }
 
     [Fact]
+    public async Task The_fake_keeps_a_value_with_no_lifetime_a_day_as_the_real_cache_does()
+    {
+        using var clock = Clock.Fake(at: new DateTimeOffset(2026, 6, 10, 9, 00, 0, TimeSpan.Zero));
+        using var cache = Cache.Fake();
+        var loads = 0;
+
+        await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken);
+        clock.Advance(25.Hours);
+        var nextDay = await Cache.Remember("products", () => ++loads, TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, nextDay);
+    }
+
+    [Fact]
     public async Task A_sliding_window_is_kept_alive_by_being_read()
     {
         using var clock = Clock.Fake(at: new DateTimeOffset(2026, 6, 10, 9, 00, 0, TimeSpan.Zero));
