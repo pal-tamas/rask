@@ -123,6 +123,10 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
 
     LambdaExpression? IUiFieldControl.Bound => Bind;
 
+    // Read-only, the browser lets nobody change the field, so its change and input handlers are not wired: a frame
+    // that sends one was written by hand. Core does the same for a bound field (DrawnReadOnly); this is the unbound one.
+    private Callback<TValue> Writable<TValue>(Callback<TValue> handler) => ReadOnly == true ? default : handler;
+
     /// <inheritdoc />
     protected override Component? Render()
     {
@@ -132,11 +136,11 @@ public sealed partial class UiTextarea<T> : Component, IFormControl<T>, IUiFormC
         // Bind and Value are the two openings of Core's textarea, and both hand back the same element.
         var textarea = Bind is { } bind
             ? Textarea.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Blur(Blur).Debounce(Debounce)
-            : Textarea.Value(Value).OnChange(OnChange);
+            : Textarea.Value(Value).OnChange(Writable(OnChange));
 
         return field.Wrap(textarea
             .Id(field.ControlId)
-            .OnInput(OnInput)
+            .OnInput(Writable(OnInput))
             .Placeholder(Placeholder)
             .Rows(rows.Count)
             .Disabled(Disabled == true)

@@ -193,11 +193,18 @@ public sealed partial class UiPhone : Component, IFormControl<string?>, IUiFormC
     }
 
     // The ONE bound field: what the engine reads off the number, written into it and announced (rask-phone.ts).
+    // Read-only, it carries the value and wires no write: the browser lets nobody change the number, so a frame
+    // that writes the hidden field was written by hand and finds nothing to run. Core leaves a hidden input to its
+    // control to say (DrawnReadOnly reads only fields that are typed into).
     private HTMLInputElement<string?> Bound()
     {
-        var input = Bind is { } bind
-            ? Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce)
-            : Input.Value<string?>(Value).OnChange(OnChange);
+        var input = (Bind, ReadOnly == true) switch
+        {
+            ({ } bind, false) => Input.Bind(bind).Validate(Validate).AfterBind(AfterBind).Live(Live).Debounce(Debounce),
+            ({ } bind, true) => Input.Value<string?>(ExpressionAccessor.Parse(bind).Getter() as string),
+            (null, false) => Input.Value<string?>(Value).OnChange(OnChange),
+            _ => Input.Value<string?>(Value),
+        };
 
         return input.Type(InputType.Hidden).Name(Name).Disabled(Disabled == true);
     }

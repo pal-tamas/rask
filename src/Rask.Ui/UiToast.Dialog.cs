@@ -168,7 +168,7 @@ public sealed partial class UiToast
         }
 
         return Div.Class("flex items-center")[
-            Button.Type(ButtonType.Button).Class(CloseClass).Attributes(marks).OnClick(close)[
+            Button.Type(ButtonType.Button).Class(CloseClass).Attributes(marks).AriaLabel(RaskStrings.Get(RaskString.ToastClose, "Close notification")).OnClick(close)[
                 Div[UiIcon.Slot(Ui.IconName.XMark, Ui.IconVariant.Mini, "size-5")]
             ]
         ];

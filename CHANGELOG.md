@@ -337,6 +337,12 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Rask.Ui: a read-only `Ui.Phone`, and an unbound read-only `Ui.Input`/`Ui.Textarea`, take no forged write; a toast's
+  close button has a name.** Before: a read-only phone's hidden field was bound and wired a write, so a frame written by
+  hand changed the number (Core's read-only check leaves a hidden input alone), and an unbound read-only input or
+  textarea still ran the page's `OnChange`/`OnInput` for one; the toast's cross was a button with no accessible name.
+  After: the read-only phone carries its number and wires no write, the unbound read-only fields wire no change or input
+  handler, and the close button says "Close notification" (`RaskString.ToastClose`, hu "Értesítés bezárása").
 - **A read-only bound field takes no write.** Before: only a disabled control refused its bound write, so a frame
   written by hand changed the model behind an `Input`/`Textarea` the page had drawn `readonly`. After: a typed-into
   field drawn read-only (its `ReadOnly`, or `readonly` in its attributes) wires no write; its other events still
