@@ -58,6 +58,13 @@ public sealed class SignalingOptions
     /// <summary>Most rooms held at once. A join that would exceed it is refused.</summary>
     public int MaxRooms { get; set; } = 1000;
 
+    /// <summary>
+    ///     Most peers one client holds at once, across every room: a signed-in user by their id, anyone else by
+    ///     the network they connect from (the address, or its <c>/64</c> for IPv6). What stops one caller filling
+    ///     <see cref="MaxRooms" /> for everybody. A join beyond it is refused.
+    /// </summary>
+    public int MaxPeersPerClient { get; set; } = 16;
+
     /// <summary>Longest a room id may be. Room ids are opaque to the framework but are held in memory.</summary>
     public int MaxRoomIdLength { get; set; } = 128;
 }

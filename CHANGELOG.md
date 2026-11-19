@@ -335,6 +335,14 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **Rask.Signaling: a peer that stops reading no longer holds, or drops, the peers that address it; one caller can no
+  longer take every room.** Before: a relayed signal was written to the target's socket from the sender's own loop,
+  with no timeout — a target that stopped reading blocked its senders, and a failed send threw out of the sender's
+  loop and closed the SENDER's connection; error frames bypassed the write gate. After: each connection has a bounded
+  queue and its own writer (every frame for it goes through that queue, errors included); a post never waits, a peer
+  whose queue fills or whose frame takes over ten seconds is cut off, and a signal to it answers `no such peer`. New
+  `SignalingOptions.MaxPeersPerClient` (default 16; `Rask:Signaling:MaxPeersPerClient`) caps the peers one signed-in
+  user, or one network address (an IPv6 /64), holds across every room.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

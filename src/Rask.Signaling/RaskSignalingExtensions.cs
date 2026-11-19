@@ -103,6 +103,7 @@ public static class RaskSignalingExtensions
 
         AtLeast(nameof(o.MaxPeersPerRoom), o.MaxPeersPerRoom, 2);
         AtLeast(nameof(o.MaxRooms), o.MaxRooms, 1);
+        AtLeast(nameof(o.MaxPeersPerClient), o.MaxPeersPerClient, 1);
         AtLeast(nameof(o.MaxRoomIdLength), o.MaxRoomIdLength, 1);
         AtLeast(nameof(o.MaxMessagesPerSecond), o.MaxMessagesPerSecond, 0);
 
@@ -165,12 +166,20 @@ public static class RaskSignalingExtensions
         }
 
         var hub = ctx.RequestServices.GetRequiredService<SignalingHub>();
-
         using var socket = await ctx.WebSockets.AcceptWebSocketAsync().ConfigureAwait(false);
+        await ServeAsync(ctx, socket, hub, options).ConfigureAwait(false);
+    }
+
+    // One connection: its writer runs beside its receive loop, and both end before the socket is closed.
+    private static async Task ServeAsync(HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options)
+    {
+        using var outbox = new PeerOutbox();
+        var writing = outbox.RunAsync(socket, ctx.RequestAborted);
         var joined = new StrongBox<Peer?>();
+        string? closing = null;
         try
         {
-            await PumpAsync(ctx, socket, hub, options, joined).ConfigureAwait(false);
+            closing = await PumpAsync(ctx, socket, outbox, hub, options, joined).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -186,20 +195,28 @@ public static class RaskSignalingExtensions
             {
                 hub.Leave(peer);
 
-                // Told to the others on the HOST's token, never the leaving peer's: a peer leaves most often by
-                // going away, and going away is exactly what cancels its RequestAborted — announcing on that
-                // token sent nothing, so the rest of the room went on offering to a peer that was gone.
-                var stopping = ctx.RequestServices.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
-                await AnnounceAsync(hub, peer, "peer-left", stopping).ConfigureAwait(false);
+                // Queued for the others, never sent from here: a peer leaves most often by going away, and the
+                // rest of the room must still hear it — without waiting on whichever of them reads slowest.
+                Announce(hub, peer, "peer-left");
+            }
+
+            // What was queued for this peer goes first; a close frame is a send too, and only one may run.
+            outbox.Complete();
+            await writing.ConfigureAwait(false);
+            if (closing is not null)
+            {
+                await CloseAsync(socket, closing, ctx.RequestAborted).ConfigureAwait(false);
             }
         }
     }
 
     // Records the joined peer in <paramref name="joined" /> the moment it joins, not on return: a peer that goes
     // away abruptly ends the loop with an exception, and a peer known only from a return value would then never
-    // leave its room — still counted against its caps, and never announced to the peers it left behind.
-    private static async Task PumpAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options, StrongBox<Peer?> joined)
+    // leave its room — still counted against its caps, and never announced to the peers it left behind. Returns
+    // why the socket is to be closed, or null when the client closed it.
+    private static async Task<string?> PumpAsync(
+        HttpContext ctx, WebSocket socket, PeerOutbox outbox, SignalingHub hub, SignalingOptions options,
+        StrongBox<Peer?> joined)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(options.MaxMessageBytes);
         var windowStart = Environment.TickCount64;
@@ -212,14 +229,13 @@ public static class RaskSignalingExtensions
                 var (bytes, closed) = await ReceiveAsync(socket, buffer, ctx.RequestAborted).ConfigureAwait(false);
                 if (closed)
                 {
-                    return;
+                    return null;
                 }
 
                 if (bytes < 0)
                 {
                     // Oversized: the message never fits, so there is nothing to resynchronise to.
-                    await CloseAsync(socket, "message too large", ctx.RequestAborted).ConfigureAwait(false);
-                    return;
+                    return "message too large";
                 }
 
                 if (options.MaxMessagesPerSecond > 0)
@@ -233,14 +249,15 @@ public static class RaskSignalingExtensions
 
                     if (++inWindow > options.MaxMessagesPerSecond)
                     {
-                        await CloseAsync(socket, "rate limit", ctx.RequestAborted).ConfigureAwait(false);
-                        return;
+                        return "rate limit";
                     }
                 }
 
-                joined.Value = await HandleAsync(ctx, socket, hub, options, buffer.AsMemory(0, bytes), joined.Value)
+                joined.Value = await HandleAsync(ctx, outbox, hub, options, buffer.AsMemory(0, bytes), joined.Value)
                     .ConfigureAwait(false);
             }
+
+            return null;
         }
         finally
         {
@@ -288,7 +305,7 @@ public static class RaskSignalingExtensions
     }
 
     private static async Task<Peer?> HandleAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
+        HttpContext ctx, PeerOutbox outbox, SignalingHub hub, SignalingOptions options,
         ReadOnlyMemory<byte> message, Peer? peer)
     {
         JsonDocument document;
@@ -298,7 +315,7 @@ public static class RaskSignalingExtensions
         }
         catch (JsonException)
         {
-            await SendErrorAsync(socket, "malformed message", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "malformed message");
             return peer;
         }
 
@@ -309,45 +326,43 @@ public static class RaskSignalingExtensions
                 || !root.TryGetProperty("type", out var typeEl)
                 || typeEl.ValueKind != JsonValueKind.String)
             {
-                await SendErrorAsync(socket, "malformed message", ctx.RequestAborted).ConfigureAwait(false);
+                Error(outbox, "malformed message");
                 return peer;
             }
 
-            return typeEl.GetString() switch
+            switch (typeEl.GetString())
             {
-                "join" => await Join(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
-                "signal" => await SignalAsync(ctx, socket, hub, options, root, peer).ConfigureAwait(false),
-                _ => await Unknown(socket, ctx.RequestAborted, peer).ConfigureAwait(false)
-            };
-        }
-
-        static async Task<Peer?> Unknown(WebSocket socket, CancellationToken ct, Peer? peer)
-        {
-            await SendErrorAsync(socket, "unknown message type", ct).ConfigureAwait(false);
-            return peer;
+                case "join":
+                    return await JoinAsync(ctx, outbox, hub, options, root, peer).ConfigureAwait(false);
+                case "signal":
+                    return Signal(outbox, hub, options, root, peer);
+                default:
+                    Error(outbox, "unknown message type");
+                    return peer;
+            }
         }
     }
 
-    private static async Task<Peer?> Join(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
+    private static async Task<Peer?> JoinAsync(
+        HttpContext ctx, PeerOutbox outbox, SignalingHub hub, SignalingOptions options,
         JsonElement root, Peer? peer)
     {
         if (peer is not null)
         {
-            await SendErrorAsync(socket, "already joined", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "already joined");
             return peer;
         }
 
         if (!root.TryGetProperty("room", out var roomEl) || roomEl.ValueKind != JsonValueKind.String)
         {
-            await SendErrorAsync(socket, "join needs a room", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "join needs a room");
             return null;
         }
 
         var room = roomEl.GetString()!;
         if (room.Length == 0 || room.Length > options.MaxRoomIdLength)
         {
-            await SendErrorAsync(socket, "invalid room", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "invalid room");
             return null;
         }
 
@@ -356,18 +371,18 @@ public static class RaskSignalingExtensions
         {
             // Same wording as a full room on purpose: whether a room exists, and who is in it, is not
             // something an unauthorized caller should be able to probe.
-            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "cannot join");
             return null;
         }
 
-        var joined = hub.Join(room, socket, out var existing);
+        var joined = hub.Join(room, outbox, ClientOf(ctx), out var existing);
         if (joined is null)
         {
-            await SendErrorAsync(socket, "cannot join", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "cannot join");
             return null;
         }
 
-        await SendAsync(socket, joined.SendGate, Json(w =>
+        outbox.Post(Json(w =>
         {
             w.WriteString("type", "joined");
             w.WriteString("peerId", joined.Id);
@@ -378,56 +393,62 @@ public static class RaskSignalingExtensions
             }
 
             w.WriteEndArray();
-        }), ctx.RequestAborted).ConfigureAwait(false);
+        }));
 
-        await AnnounceAsync(hub, joined, "peer-joined", ctx.RequestAborted).ConfigureAwait(false);
+        Announce(hub, joined, "peer-joined");
         return joined;
     }
 
-    private static async Task<Peer?> SignalAsync(
-        HttpContext ctx, WebSocket socket, SignalingHub hub, SignalingOptions options,
-        JsonElement root, Peer? peer)
+    // Who a peer counts against: the signed-in user, or — for anyone else — the network the socket came from.
+    private static string ClientOf(HttpContext ctx) =>
+        ctx.User.Identity?.IsAuthenticated == true
+            ? "user:" + (ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? ctx.User.Identity.Name)
+            : "net:" + ClientNetwork.Of(ctx.Connection.RemoteIpAddress);
+
+    private static Peer? Signal(
+        PeerOutbox outbox, SignalingHub hub, SignalingOptions options, JsonElement root, Peer? peer)
     {
         if (peer is null)
         {
-            await SendErrorAsync(socket, "join first", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "join first");
             return null;
         }
 
         if (!root.TryGetProperty("to", out var toEl) || toEl.ValueKind != JsonValueKind.String
             || !root.TryGetProperty("payload", out var payloadEl) || payloadEl.ValueKind != JsonValueKind.String)
         {
-            await SendErrorAsync(socket, "signal needs `to` and `payload`", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "signal needs `to` and `payload`");
             return peer;
         }
 
         var payload = payloadEl.GetString()!;
         if (Encoding.UTF8.GetByteCount(payload) > options.MaxPayloadBytes)
         {
-            await SendErrorAsync(socket, "payload too large", ctx.RequestAborted).ConfigureAwait(false);
+            Error(outbox, "payload too large");
             return peer;
         }
 
         // Membership is checked here, not trusted from the message — this is what stops a peer addressing
-        // someone in another room, or addressing itself to have the relay echo for it.
+        // someone in another room, or addressing itself to have the relay echo for it. A target that has gone,
+        // or was cut off for not reading, is no peer either: queued, never awaited, so it cannot hold the sender.
         var target = hub.Target(peer, toEl.GetString()!);
-        if (target is null)
-        {
-            await SendErrorAsync(socket, "no such peer", ctx.RequestAborted).ConfigureAwait(false);
-            return peer;
-        }
-
-        await SendAsync(target.Socket, target.SendGate, Json(w =>
+        var sent = target is not null && target.Outbox.Post(Json(w =>
         {
             w.WriteString("type", "signal");
             w.WriteString("from", peer.Id);
             w.WriteString("payload", payload);
-        }), ctx.RequestAborted).ConfigureAwait(false);
+        }));
+        if (!sent)
+        {
+            Error(outbox, "no such peer");
+        }
 
         return peer;
     }
 
-    private static async Task AnnounceAsync(SignalingHub hub, Peer peer, string type, CancellationToken ct)
+    // Queued for every other peer in the room. One that has gone, or is not keeping up, misses it — and is on its
+    // way out of the room already.
+    private static void Announce(SignalingHub hub, Peer peer, string type)
     {
         var frame = Json(w =>
         {
@@ -437,17 +458,7 @@ public static class RaskSignalingExtensions
 
         foreach (var other in hub.Others(peer))
         {
-            // One unreachable peer must not stop the others being told.
-            try
-            {
-                await SendAsync(other.Socket, other.SendGate, frame, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is WebSocketException or OperationCanceledException
-                                           or ObjectDisposedException)
-            {
-                // A peer that has gone away is the normal case here, not a fault: it is why we are
-                // announcing in the first place. Its own socket loop reports the disconnect.
-            }
+            other.Outbox.Post(frame);
         }
     }
 
@@ -464,33 +475,13 @@ public static class RaskSignalingExtensions
         return stream.ToArray();
     }
 
-    private static Task SendErrorAsync(WebSocket socket, string message, CancellationToken ct) =>
-        SendAsync(socket, null, Json(w =>
+    // Through the connection's own queue like every other frame, so it never races a relayed one onto the socket.
+    private static void Error(PeerOutbox outbox, string message) =>
+        outbox.Post(Json(w =>
         {
             w.WriteString("type", "error");
             w.WriteString("message", message);
-        }), ct);
-
-    private static async Task SendAsync(
-        WebSocket socket, SemaphoreSlim? gate, byte[] frame, CancellationToken ct)
-    {
-        if (gate is not null)
-        {
-            await gate.WaitAsync(ct).ConfigureAwait(false);
-        }
-
-        try
-        {
-            if (socket.State == WebSocketState.Open)
-            {
-                await socket.SendAsync(frame, WebSocketMessageType.Text, true, ct).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            gate?.Release();
-        }
-    }
+        }));
 
     private static async Task CloseAsync(WebSocket socket, string reason, CancellationToken ct)
     {

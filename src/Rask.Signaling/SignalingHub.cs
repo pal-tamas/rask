@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Net.WebSockets;
 
 namespace Rask.Signaling;
 
@@ -13,12 +12,36 @@ internal sealed class SignalingHub(SignalingOptions options)
 {
     private readonly ConcurrentDictionary<string, Room> _rooms = new(StringComparer.Ordinal);
 
+    // How many peers each client holds, across every room: MaxRooms bounds the hub, this bounds one caller's share.
+    private readonly Dictionary<string, int> _clients = new(StringComparer.Ordinal);
+
     /// <summary>
     ///     Adds a peer to a room, minting its id. Returns the peer and the ids already present, or null when
     ///     the room (or the hub) is full. <b>The id is minted here, never taken from the client</b> — a
     ///     client-chosen id would let a caller impersonate another peer, or overwrite it.
     /// </summary>
-    public Peer? Join(string room, WebSocket socket, out IReadOnlyList<string> existing)
+    /// <param name="room">The room asked for.</param>
+    /// <param name="outbox">Where frames for the new peer are queued.</param>
+    /// <param name="client">Who the peer counts against: the signed-in user, or the network it connects from.</param>
+    /// <param name="existing">The ids of the peers already in the room.</param>
+    public Peer? Join(string room, PeerOutbox outbox, string client, out IReadOnlyList<string> existing)
+    {
+        existing = [];
+        if (!Count(client))
+        {
+            return null;
+        }
+
+        var peer = Enter(room, outbox, client, out existing);
+        if (peer is null)
+        {
+            Uncount(client);
+        }
+
+        return peer;
+    }
+
+    private Peer? Enter(string room, PeerOutbox outbox, string client, out IReadOnlyList<string> existing)
     {
         existing = [];
 
@@ -34,7 +57,7 @@ internal sealed class SignalingHub(SignalingOptions options)
             entry = _rooms.GetOrAdd(room, _ => new Room());
         }
 
-        var peer = new Peer(Guid.NewGuid().ToString("N"), socket, room);
+        var peer = new Peer(Guid.NewGuid().ToString("N"), outbox, room, client);
 
         lock (entry.Gate)
         {
@@ -53,6 +76,7 @@ internal sealed class SignalingHub(SignalingOptions options)
     /// <summary>Removes a peer, dropping the room once it is empty.</summary>
     public void Leave(Peer peer)
     {
+        Uncount(peer.Client);
         if (!_rooms.TryGetValue(peer.Room, out var entry))
         {
             return;
@@ -101,6 +125,36 @@ internal sealed class SignalingHub(SignalingOptions options)
         lock (entry.Gate)
         {
             return entry.Peers.GetValueOrDefault(peerId);
+        }
+    }
+
+    private bool Count(string client)
+    {
+        lock (_clients)
+        {
+            var held = _clients.GetValueOrDefault(client);
+            if (held >= options.MaxPeersPerClient)
+            {
+                return false;
+            }
+
+            _clients[client] = held + 1;
+            return true;
+        }
+    }
+
+    private void Uncount(string client)
+    {
+        lock (_clients)
+        {
+            if (_clients.TryGetValue(client, out var held) && held > 1)
+            {
+                _clients[client] = held - 1;
+            }
+            else
+            {
+                _clients.Remove(client);
+            }
         }
     }
 

@@ -1,15 +1,13 @@
-using System.Net.WebSockets;
-
 namespace Rask.Signaling.Tests;
 
 // The hub is the membership authority: which peers exist, which room each is in, and who may be addressed.
 // Every security property of the relay reduces to one of these.
 public class SignalingHubTests
 {
-    private static SignalingHub Hub(int maxPeers = 8, int maxRooms = 1000) =>
-        new(new SignalingOptions { MaxPeersPerRoom = maxPeers, MaxRooms = maxRooms });
+    private static SignalingHub Hub(int maxPeers = 8, int maxRooms = 1000, int perClient = 1000) =>
+        new(new SignalingOptions { MaxPeersPerRoom = maxPeers, MaxRooms = maxRooms, MaxPeersPerClient = perClient });
 
-    private static WebSocket Socket() => new FakeSocket();
+    private static PeerOutbox Socket() => new();
 
     [Fact]
     public void Joining_mints_the_peer_id_and_never_takes_it_from_the_caller()
@@ -18,8 +16,8 @@ public class SignalingHubTests
         // deliberately no way to supply one.
         var hub = Hub();
 
-        var first = hub.Join("room", Socket(), out _)!;
-        var second = hub.Join("room", Socket(), out _)!;
+        var first = hub.Join("room", Socket(), "client", out _)!;
+        var second = hub.Join("room", Socket(), "client", out _)!;
 
         Assert.NotEqual(first.Id, second.Id);
         Assert.NotEmpty(first.Id);
@@ -29,9 +27,9 @@ public class SignalingHubTests
     public void Joining_reports_the_peers_already_present()
     {
         var hub = Hub();
-        var first = hub.Join("room", Socket(), out var noneYet)!;
+        var first = hub.Join("room", Socket(), "client", out var noneYet)!;
 
-        hub.Join("room", Socket(), out var existing);
+        hub.Join("room", Socket(), "client", out var existing);
 
         Assert.Empty(noneYet);
         Assert.Equal([first.Id], existing);
@@ -41,19 +39,19 @@ public class SignalingHubTests
     public void Joining_is_refused_once_the_room_is_full()
     {
         var hub = Hub(maxPeers: 2);
-        hub.Join("room", Socket(), out _);
-        hub.Join("room", Socket(), out _);
+        hub.Join("room", Socket(), "client", out _);
+        hub.Join("room", Socket(), "client", out _);
 
-        Assert.Null(hub.Join("room", Socket(), out _));
+        Assert.Null(hub.Join("room", Socket(), "client", out _));
     }
 
     [Fact]
     public void Joining_is_refused_once_there_are_too_many_rooms()
     {
         var hub = Hub(maxRooms: 1);
-        hub.Join("first", Socket(), out _);
+        hub.Join("first", Socket(), "client", out _);
 
-        Assert.Null(hub.Join("second", Socket(), out _));
+        Assert.Null(hub.Join("second", Socket(), "client", out _));
     }
 
     [Fact]
@@ -61,8 +59,8 @@ public class SignalingHubTests
     {
         // This is what stops the relay echoing a peer's own message back to it.
         var hub = Hub();
-        var peer = hub.Join("room", Socket(), out _)!;
-        var other = hub.Join("room", Socket(), out _)!;
+        var peer = hub.Join("room", Socket(), "client", out _)!;
+        var other = hub.Join("room", Socket(), "client", out _)!;
 
         var others = hub.Others(peer);
 
@@ -74,8 +72,8 @@ public class SignalingHubTests
     {
         // The message names a peer; without this check, naming one is enough to reach it anywhere.
         var hub = Hub();
-        var here = hub.Join("room-a", Socket(), out _)!;
-        var elsewhere = hub.Join("room-b", Socket(), out _)!;
+        var here = hub.Join("room-a", Socket(), "client", out _)!;
+        var elsewhere = hub.Join("room-b", Socket(), "client", out _)!;
 
         Assert.Null(hub.Target(here, elsewhere.Id));
     }
@@ -84,7 +82,7 @@ public class SignalingHubTests
     public void Targeting_the_caller_itself_is_refused()
     {
         var hub = Hub();
-        var peer = hub.Join("room", Socket(), out _)!;
+        var peer = hub.Join("room", Socket(), "client", out _)!;
 
         Assert.Null(hub.Target(peer, peer.Id));
     }
@@ -93,7 +91,7 @@ public class SignalingHubTests
     public void Targeting_an_unknown_peer_is_refused()
     {
         var hub = Hub();
-        var peer = hub.Join("room", Socket(), out _)!;
+        var peer = hub.Join("room", Socket(), "client", out _)!;
 
         Assert.Null(hub.Target(peer, "not-a-peer"));
     }
@@ -102,8 +100,8 @@ public class SignalingHubTests
     public void Targeting_finds_a_peer_in_the_same_room()
     {
         var hub = Hub();
-        var from = hub.Join("room", Socket(), out _)!;
-        var to = hub.Join("room", Socket(), out _)!;
+        var from = hub.Join("room", Socket(), "client", out _)!;
+        var to = hub.Join("room", Socket(), "client", out _)!;
 
         Assert.Equal(to.Id, hub.Target(from, to.Id)?.Id);
     }
@@ -112,8 +110,8 @@ public class SignalingHubTests
     public void Leaving_removes_the_peer_and_the_room_goes_with_the_last_one()
     {
         var hub = Hub(maxRooms: 1);
-        var first = hub.Join("room", Socket(), out _)!;
-        var second = hub.Join("room", Socket(), out _)!;
+        var first = hub.Join("room", Socket(), "client", out _)!;
+        var second = hub.Join("room", Socket(), "client", out _)!;
 
         hub.Leave(first);
 
@@ -123,14 +121,14 @@ public class SignalingHubTests
 
         // The room is gone, so a different one now fits under the cap of 1 — which is how we observe that
         // an emptied room doesn't leak.
-        Assert.NotNull(hub.Join("another", Socket(), out _));
+        Assert.NotNull(hub.Join("another", Socket(), "client", out _));
     }
 
     [Fact]
     public void Leaving_twice_is_safe()
     {
         var hub = Hub();
-        var peer = hub.Join("room", Socket(), out _)!;
+        var peer = hub.Join("room", Socket(), "client", out _)!;
 
         hub.Leave(peer);
         hub.Leave(peer);
@@ -140,45 +138,27 @@ public class SignalingHubTests
     public void Rooms_are_case_sensitive_and_do_not_bleed_into_each_other()
     {
         var hub = Hub();
-        var lower = hub.Join("room", Socket(), out _)!;
-        var upper = hub.Join("ROOM", Socket(), out _)!;
+        var lower = hub.Join("room", Socket(), "client", out _)!;
+        var upper = hub.Join("ROOM", Socket(), "client", out _)!;
 
         Assert.Empty(hub.Others(lower));
         Assert.Null(hub.Target(lower, upper.Id));
     }
 
-    private sealed class FakeSocket : WebSocket
+    [Fact]
+    public void One_client_holds_at_most_its_share_of_peers_across_rooms_and_gets_it_back_on_leaving()
     {
-        public override WebSocketCloseStatus? CloseStatus => null;
+        var hub = Hub(perClient: 2);
+        var first = hub.Join("a", Socket(), "net:203.0.113.7", out _)!;
+        hub.Join("b", Socket(), "net:203.0.113.7", out _);
 
-        public override string? CloseStatusDescription => null;
+        var third = hub.Join("c", Socket(), "net:203.0.113.7", out _);
+        var someoneElse = hub.Join("c", Socket(), "user:ada", out _);
+        hub.Leave(first);
+        var afterLeaving = hub.Join("c", Socket(), "net:203.0.113.7", out _);
 
-        public override WebSocketState State => WebSocketState.Open;
-
-        public override string? SubProtocol => null;
-
-        public override void Abort()
-        {
-        }
-
-        public override Task CloseAsync(
-            WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
-
-        public override Task CloseOutputAsync(
-            WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken) =>
-            Task.CompletedTask;
-
-        public override void Dispose()
-        {
-        }
-
-        public override Task<WebSocketReceiveResult> ReceiveAsync(
-            ArraySegment<byte> buffer, CancellationToken cancellationToken) =>
-            Task.FromResult(new WebSocketReceiveResult(0, WebSocketMessageType.Close, true));
-
-        public override Task SendAsync(
-            ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage,
-            CancellationToken cancellationToken) => Task.CompletedTask;
+        Assert.Null(third);
+        Assert.NotNull(someoneElse);
+        Assert.NotNull(afterLeaving);
     }
 }

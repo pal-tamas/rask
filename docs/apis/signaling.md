@@ -36,9 +36,15 @@ The host must have WebSocket support in the pipeline: `Rask.Server`'s `MapRask()
 `app.UseWebSockets()` for you, but a static-file host serving a published WASM bundle does not — call it
 yourself before mapping. The relay says so explicitly rather than refusing clients with a bare 400.
 
-The relay's plain values — `Path`, `RequireAuthorization`, `AllowedOrigins`, `MaxRooms`, `MaxPeersPerRoom` and the message
-limits — are `Rask:Signaling` in `appsettings.json`, and the callback runs after them. `AuthorizeRoom` is a
-delegate, so it can only be set in code.
+The relay's plain values — `Path`, `RequireAuthorization`, `AllowedOrigins`, `MaxRooms`, `MaxPeersPerRoom`,
+`MaxPeersPerClient` and the message limits — are `Rask:Signaling` in `appsettings.json`, and the callback runs after
+them. `AuthorizeRoom` is a delegate, so it can only be set in code.
+
+`MaxPeersPerClient` (16) is how many peers one caller holds at once across every room — a signed-in user by their id,
+anyone else by the network they connect from — so one caller cannot fill `MaxRooms` for everybody. A peer that stops
+reading never holds the others: every frame for it waits in its own bounded queue, sent by its own writer, and a peer
+whose queue fills or whose socket takes over ten seconds for one frame is cut off and leaves its room; a signal to it
+answers `no such peer`.
 
 Authentication is **required by default**. A signaling relay anyone can join is a way to reach other
 people's browsers, so a public default would make that an accident rather than a decision. `AuthorizeRoom`
