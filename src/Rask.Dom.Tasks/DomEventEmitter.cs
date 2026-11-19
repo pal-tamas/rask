@@ -695,7 +695,7 @@ namespace Rask.Core.Dom.Build
                 return chain.SelectMany(t => members[t]).ToList();
             }
 
-            string Fields(List<Member> ms) => "[" + string.Join(", ", ms.Select(m =>
+            static string Fields(List<Member> ms) => "[" + string.Join(", ", ms.Select(m =>
                 m.Kind is 0 or 3 ? $"\"{m.Idl}\"" : $"[\"{m.Idl}\", \"{m.Of}\"]")) + "]";
 
             var ts = new StringBuilder();

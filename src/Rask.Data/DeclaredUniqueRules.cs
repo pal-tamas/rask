@@ -120,7 +120,8 @@ internal static class DeclaredUniqueRules
             columns.Contains(term[..^" IS NOT NULL".Length].Trim()));
     }
 
-    // row => row.A == @a && row.B == @b && !(row.Id == @id), or null when a value is NULL and nothing collides.
+    // The lambda the duplicate check runs: every indexed column equals its value and the key is not this row's own, or
+    // null when a value is NULL and nothing can collide.
     private static LambdaExpression? Predicate(
         IEntityType entityType, IIndex index, Func<string, object?> valueOf, IReadOnlyList<object?>? selfKey)
     {

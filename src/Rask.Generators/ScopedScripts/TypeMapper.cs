@@ -553,7 +553,7 @@ internal sealed class TypeMapper
             return rest[0];
         }
 
-        string? Kind(ITsType t) => t switch
+        static string? Kind(ITsType t) => t switch
         {
             TsLiteral { Kind: TsLiteralKind.String } or TsNamed { Name: "string", Args.Count: 0 } => "string",
             TsLiteral { Kind: TsLiteralKind.Number } or TsNamed { Name: "number", Args.Count: 0 } => "number",

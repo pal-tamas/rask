@@ -356,7 +356,7 @@ internal sealed class FullTextSearchQueryInterceptor : IQueryExpressionIntercept
                     Words(Visit(node.Arguments[1])));
         }
 
-        // keys.Where(k => k.K1 == p.K1 && …).Select(k => k.rowid).FirstOrDefault()
+        // The rowid of the first key-table row whose key columns all equal the entity's, as one query expression.
         private static MethodCallExpression FirstRowId(Index index, Expression entity)
         {
             var k = Expression.Parameter(typeof(Dictionary<string, object>), "k");

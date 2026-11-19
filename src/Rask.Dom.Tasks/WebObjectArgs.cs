@@ -14,8 +14,8 @@ internal static class WebObjectArgs
     };
 
     // …and where no dictionary can say it, the C# type: keyframes are CSS property names to values, any property at
-    // all, one map per keyframe (MDN's "Keyframe formats"), each value a string or a number as in JavaScript —
-    // `_box.Animate([new() { ["opacity"] = 0 }, new() { ["opacity"] = 1 }], 300)`.
+    // all, one map per keyframe (MDN's "Keyframe formats"), each value a string or a number as in JavaScript, so an
+    // element animates from a list of such maps (opacity 0, then opacity 1) and a duration.
     public static readonly Dictionary<string, string> Shapes = new(StringComparer.Ordinal)
     {
         ["Element.animate.keyframes"] = Keyframes,
