@@ -362,7 +362,7 @@ public sealed partial class DeployCommandTests
     [Fact]
     public void The_workflow_keeps_the_folder_the_deploy_writes_its_build_cache_to()
     {
-        var workflow = GitHubActionsWorkflow.Render(ciWorkflow: null);
+        var workflow = GitHubActionsWorkflow.Render(ciWorkflow: null, "1.2.3");
 
         var cache = workflow.IndexOf("uses: actions/cache@v6", StringComparison.Ordinal);
         var deploy = workflow.IndexOf("run: rask deploy --no-setup-host", StringComparison.Ordinal);

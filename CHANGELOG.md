@@ -335,6 +335,23 @@ them until tagged releases begin.
   `rask.sessions.hibernation_deferred{reason}`; `session-hibernation` benchmark report.
 
 ### Fixed
+- **A `rask new --template wasm` image serves its JavaScript, CSS and HTML with their types again.** Before: the
+  template's `nginx.conf` had a `types { application/wasm wasm; }` block inside `server`, which REPLACES nginx's
+  whole MIME map, so everything but `.wasm` went out as `application/octet-stream` (measured on `nginx:alpine`
+  1.31.9). After: the block is gone; nginx's own `mime.types` already maps `.wasm` to `application/wasm`. An app
+  scaffolded before this deletes those four lines from its `nginx.conf`.
+- **`rask dev`'s build-status endpoint answers only the app's own origin.** Before: it sent
+  `Access-Control-Allow-Origin: *`, so any site open in the developer's browser could read the build's errors, with
+  the source paths and code they quote. After: it names back the dev host, the `--urls`/launch-profile origins and
+  any loopback origin, with `Vary: Origin`, and sends no header to anything else.
+- **The workflow `rask deploy --github-actions` writes runs on a named runner image and the CLI that wrote it.**
+  Before: `runs-on: ubuntu-latest` and an unpinned `dotnet tool install --global Rask.Cli`, so a new image or a new
+  CLI release changed the deploy with nothing reviewed. After: `runs-on: ubuntu-26.04` and `--version <the CLI's
+  version>`; bump it beside the CLI on your machine.
+- **The local CA's private key is created owner-only.** Before: `rask dev`'s dev host wrote `rask-local-ca.key` with
+  the process umask and narrowed it after; now it is created 0600, like every other secret the CLI writes.
+- **`rask db drop` asks once.** Before: confirming at rask's prompt handed over to `dotnet ef database drop`, which
+  asked again; a confirmed drop now passes EF `--force`.
 - **`Ui.Table.Empty(nothingYet, noMatch)` no longer reads an open dialog or a page's own sort as a filter (#1379).**
   Before: an empty list under an open `Ui.EditorDialog.In("new")` (`?new=new`), or on a page that keeps its order in
   the address with its own `OnSort` (`?sort=code`), said the no-match sentence with no filter set. After: the keys of

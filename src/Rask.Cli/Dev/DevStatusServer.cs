@@ -19,9 +19,10 @@ namespace Rask.Cli.Dev;
 ///     <para>
 ///         Loopback only, and dev only. It binds <c>127.0.0.1</c> on an OS-assigned port (never a fixed
 ///         one — see <c>LoopbackPort</c> in the E2E suite for what fixed ports cost) and serves one
-///         read-only document. It allows any origin because the app is on a different port and the browser
-///         treats that as cross-origin; that is safe here and only here, because nothing reachable is
-///         secret and nothing is writable.
+///         read-only document. The app is on a different port, so the browser treats every poll as
+///         cross-origin, and the answer names the app's own origin — its dev host, its URLs, or any loopback
+///         one — and no other. The document carries the build's errors, with the source paths and code they
+///         quote, so a page on any other site the developer has open must not be able to read it.
 ///     </para>
 /// </remarks>
 internal sealed class DevStatusServer : IDisposable
@@ -29,10 +30,12 @@ internal sealed class DevStatusServer : IDisposable
     private readonly HttpListener _listener = new();
     private readonly DevBuildWatcher _watcher;
     private readonly CancellationTokenSource _stopping = new();
+    private readonly HashSet<string> _appOrigins;
 
-    private DevStatusServer(DevBuildWatcher watcher, int port)
+    private DevStatusServer(DevBuildWatcher watcher, int port, HashSet<string> appOrigins)
     {
         _watcher = watcher;
+        _appOrigins = appOrigins;
         Port = port;
 
         // `localhost`, NOT `127.0.0.1`, and this is a five-second fix rather than a style choice.
@@ -73,9 +76,10 @@ internal sealed class DevStatusServer : IDisposable
     ///     loopback port should still be able to run <c>rask dev</c>. The caller carries on without it and
     ///     the browser falls back to the reconnect overlay it showed before.
     /// </remarks>
-    public static DevStatusServer? TryStart(DevBuildWatcher watcher)
+    public static DevStatusServer? TryStart(DevBuildWatcher watcher, IEnumerable<string?>? appUrls = null)
     {
         ArgumentNullException.ThrowIfNull(watcher);
+        var origins = Origins(appUrls ?? []);
 
         for (var attempt = 0; attempt < 5; attempt++)
         {
@@ -97,7 +101,7 @@ internal sealed class DevStatusServer : IDisposable
                 return null;
             }
 
-            var server = new DevStatusServer(watcher, port);
+            var server = new DevStatusServer(watcher, port, origins);
             try
             {
                 server._listener.Start();
@@ -149,9 +153,14 @@ internal sealed class DevStatusServer : IDisposable
     {
         var response = context.Response;
 
-        // The app runs on a different port, so every poll is cross-origin. Safe here and only here: this
-        // is 127.0.0.1, read-only, and carries build errors the developer is already looking at.
-        response.AddHeader("Access-Control-Allow-Origin", "*");
+        // The app runs on a different port, so every poll is cross-origin: the app's origin is named back to it,
+        // and any other page gets no header, so its browser keeps the build's errors from it.
+        if (AllowedOrigin(context.Request.Headers["Origin"]) is { } origin)
+        {
+            response.AddHeader("Access-Control-Allow-Origin", origin);
+        }
+
+        response.AddHeader("Vary", "Origin");
         response.AddHeader("Cache-Control", "no-store");
 
         if (string.Equals(context.Request.HttpMethod, "OPTIONS", StringComparison.Ordinal))
@@ -167,6 +176,32 @@ internal sealed class DevStatusServer : IDisposable
         response.ContentLength64 = body.Length;
         response.OutputStream.Write(body, 0, body.Length);
         response.Close();
+    }
+
+    /// <summary>The origin to name back, or null: one of the app's own, or a loopback one (its port can be the launch profile's or dotnet watch's).</summary>
+    internal string? AllowedOrigin(string? origin)
+    {
+        if (string.IsNullOrEmpty(origin) || !Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("http" or "https"))
+        {
+            return null;
+        }
+
+        return uri.IsLoopback || _appOrigins.Contains(uri.GetLeftPart(UriPartial.Authority)) ? origin : null;
+    }
+
+    private static HashSet<string> Origins(IEnumerable<string?> urls)
+    {
+        var origins = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var url in urls.SelectMany(static u => (u ?? string.Empty).Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)))
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                origins.Add(uri.GetLeftPart(UriPartial.Authority));
+            }
+        }
+
+        return origins;
     }
 
     public void Dispose()

@@ -15,6 +15,27 @@ internal static class OwnerOnly
     /// <summary>A directory the owner can list and enter, nobody else.</summary>
     internal const UnixFileMode Directory = File | UnixFileMode.UserExecute;
 
+    /// <summary>
+    /// Write <paramref name="content"/> to a file only its owner can read. Created 0600 rather than written and then
+    /// narrowed, so the secret is never readable by anybody else, not even for the instant in between. An EXISTING file
+    /// keeps the mode it was created with, so it is narrowed afterwards as well.
+    /// </summary>
+    internal static void WriteText(string path, string content)
+    {
+        var options = new FileStreamOptions { Mode = FileMode.Create, Access = FileAccess.Write };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = File;
+        }
+
+        using (var writer = new StreamWriter(path, options))
+        {
+            writer.Write(content);
+        }
+
+        Restrict(path, File);
+    }
+
     internal static void Restrict(string path, UnixFileMode mode)
     {
         if (OperatingSystem.IsWindows())

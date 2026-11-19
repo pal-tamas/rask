@@ -74,12 +74,11 @@ internal sealed partial class DevHostStore(string root)
         OwnerOnly.Restrict(CertificateDirectory, OwnerOnly.Directory);
 
         File.WriteAllText(certificatePath, certificate.CertificatePem);
-        File.WriteAllText(keyPath, certificate.PrivateKeyPem);
 
         // The private key is the whole security boundary of this feature: anyone who can read it can
-        // mint a certificate the developer's browser trusts. Written first, then narrowed, because
-        // File.WriteAllText creates with the process umask.
-        OwnerOnly.Restrict(keyPath, OwnerOnly.File);
+        // mint a certificate the developer's browser trusts. Created owner-only, never with the process
+        // umask and narrowed after.
+        OwnerOnly.WriteText(keyPath, certificate.PrivateKeyPem);
     }
 
     /// <summary>

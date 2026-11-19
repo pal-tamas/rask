@@ -1218,6 +1218,11 @@ public sealed partial class DeployCommandTests
         Assert.Contains("rask deploy --no-setup-host", workflow, StringComparison.Ordinal);
         Assert.Contains("cancel-in-progress: false", workflow, StringComparison.Ordinal);
         Assert.Contains("gh secret set RASK_SSH_PRIVATE_KEY", console.OutText, StringComparison.Ordinal);
+
+        // A named runner image and the CLI that wrote the file: neither moves under the job unreviewed.
+        Assert.DoesNotContain("runs-on: ubuntu-latest", workflow, StringComparison.Ordinal);
+        Assert.Contains("runs-on: ubuntu-26.04", workflow, StringComparison.Ordinal);
+        Assert.Contains($"dotnet tool install --global Rask.Cli --version {CliMetadata.Version}", workflow, StringComparison.Ordinal);
         Assert.Contains("ssh-keyscan box.example.com", console.OutText, StringComparison.Ordinal);
     }
 

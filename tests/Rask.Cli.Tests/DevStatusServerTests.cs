@@ -29,21 +29,41 @@ public sealed class DevStatusServerTests
         Assert.Contains("CS0103", failed, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task The_response_is_cross_origin_readable_and_never_cached()
+    [Theory]
+    [InlineData("http://localhost:5000")]
+    [InlineData("https://127.0.0.1:7001")]
+    [InlineData("https://shop.test")]
+    public async Task The_app_s_own_origin_may_read_it_and_it_is_never_cached(string origin)
     {
         // The app is on another port, so every poll is cross-origin; and a cached "failed" would outlive
         // the failure it describes.
-        using var server = DevStatusServer.TryStart(new DevBuildWatcher());
+        using var server = DevStatusServer.TryStart(new DevBuildWatcher(), ["https://shop.test/", null]);
         Assert.NotNull(server);
 
         using var client = new HttpClient();
-        using var response = await client.GetAsync(server.Url, TestContext.Current.CancellationToken);
+        using var response = await client.SendAsync(Request(HttpMethod.Get, server.Url, origin), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal(origin, Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Contains("Origin", string.Join(",", response.Headers.Vary), StringComparison.Ordinal);
         Assert.Contains("no-store", string.Join(",", response.Headers.GetValues("Cache-Control")), StringComparison.Ordinal);
         Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+    }
+
+    [Theory]
+    [InlineData("https://evil.example")]
+    [InlineData("https://shop.test.evil.example")]
+    [InlineData("null")]
+    public async Task Any_other_site_is_not_let_read_the_build_s_errors(string origin)
+    {
+        // The document quotes source paths and code; it was readable from every origin (`*`).
+        using var server = DevStatusServer.TryStart(new DevBuildWatcher(), ["https://shop.test"]);
+        Assert.NotNull(server);
+
+        using var client = new HttpClient();
+        using var response = await client.SendAsync(Request(HttpMethod.Get, server.Url, origin), TestContext.Current.CancellationToken);
+
+        Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
     }
 
     [Fact]
@@ -53,10 +73,17 @@ public sealed class DevStatusServerTests
         Assert.NotNull(server);
 
         using var client = new HttpClient();
-        using var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Options, server.Url), TestContext.Current.CancellationToken);
+        using var response = await client.SendAsync(Request(HttpMethod.Options, server.Url, "http://localhost:5000"), TestContext.Current.CancellationToken);
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        Assert.Equal("*", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal("http://localhost:5000", Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    private static HttpRequestMessage Request(HttpMethod method, string url, string origin)
+    {
+        var request = new HttpRequestMessage(method, url);
+        request.Headers.TryAddWithoutValidation("Origin", origin);
+        return request;
     }
 
     [Fact]

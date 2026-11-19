@@ -15,7 +15,7 @@ internal sealed partial class DeployCommand
     {
         var path = Path.Combine(_workingDirectory, GitHubActionsWorkflow.RelativePath);
         var ci = CiWorkflow.Find(_fileSystem, _workingDirectory);
-        var content = GitHubActionsWorkflow.Render(ci);
+        var content = GitHubActionsWorkflow.Render(ci, CliMetadata.Version);
 
         if (dryRun)
         {

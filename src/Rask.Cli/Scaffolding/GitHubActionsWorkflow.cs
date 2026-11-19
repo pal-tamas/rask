@@ -31,7 +31,14 @@ internal static class GitHubActionsWorkflow
     /// The name of the repository's CI workflow (<see cref="CiWorkflow.Find"/>): the deploy then runs once that has
     /// passed on main. <c>null</c> deploys on every push to main, and the file says how to switch.
     /// </param>
-    public static string Render(string? ciWorkflow) => Header + Trigger(ciWorkflow) + "\n" + Body;
+    /// <param name="cliVersion">
+    /// The Rask CLI the runner installs: the one writing the file (<see cref="CliMetadata.Version"/>), so a deploy from CI
+    /// runs the CLI the developer checked it with, never whatever was published since.
+    /// </param>
+    public static string Render(string? ciWorkflow, string cliVersion) =>
+        Header + Trigger(ciWorkflow) + "\n" + Body.Replace(VersionToken, cliVersion, StringComparison.Ordinal);
+
+    private const string VersionToken = "{rask-cli-version}";
 
     private const string Header = """
         # Written by `rask deploy --github-actions`.
@@ -89,7 +96,8 @@ internal static class GitHubActionsWorkflow
             # A CI run that passed, for a push (not a pull request from a branch someone named main); a push or a
             # manual run always.
             if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-            runs-on: ubuntu-latest
+            # A named runner image, not a moving label: a new image under this job is a change you review.
+            runs-on: ubuntu-26.04
             steps:
               - uses: actions/checkout@v7
                 with:
@@ -127,8 +135,10 @@ internal static class GitHubActionsWorkflow
                   restore-keys: |
                     rask-build-${{ runner.os }}-${{ runner.arch }}-
 
+              # Pinned to the CLI that wrote this file: when you upgrade the CLI on your machine, change the
+              # version here too, so CI deploys with the one you checked the deploy with.
               - name: Install the Rask CLI
-                run: dotnet tool install --global Rask.Cli
+                run: dotnet tool install --global Rask.Cli --version {rask-cli-version}
 
               # --no-setup-host is deliberate: a host that isn't ready should fail this job loudly rather
               # than be reconfigured from CI. Prepare the box once from your own machine, where you can

@@ -647,6 +647,10 @@ public sealed class ProjectGeneratorTests
         Assert.True(docker.ContainsKey("Dockerfile"));
         Assert.True(docker.ContainsKey("nginx.conf"));
         Assert.True(docker.ContainsKey(".dockerignore"));
+
+        // A `types` block in `server` replaces nginx's whole MIME map, so .js/.css/.html went out as
+        // application/octet-stream; mime.types already maps .wasm.
+        Assert.DoesNotMatch(@"(?m)^\s*types\s*\{", docker["nginx.conf"]);
     }
 
     [Theory]

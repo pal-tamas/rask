@@ -142,7 +142,8 @@ internal sealed partial class DevCommand(
         var open = ResolveBrowserOpen(target, parsed.HasFlag("open"), parsed.HasFlag("no-open"), parsed.Option("urls"), devHost?.Url);
         var opening = open is null ? Task.CompletedTask : OpenWhenListeningAsync(open, cancellationToken);
 
-        return await RunSessionAsync(target, dotnetArgs, environment, once, opening, cancellationToken).ConfigureAwait(false);
+        string?[] appUrls = [devHost?.Url, parsed.Option("urls"), target.LaunchUrl];
+        return await RunSessionAsync(target, dotnetArgs, environment, once, opening, appUrls, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>The project to run, or null (with the reason reported) when there is none.</summary>
@@ -192,7 +193,7 @@ internal sealed partial class DevCommand(
     /// </summary>
     private async Task<int> RunSessionAsync(
         DevTarget target, IReadOnlyList<string> dotnetArgs, IReadOnlyDictionary<string, string> environment, bool once,
-        Task opening, CancellationToken cancellationToken)
+        Task opening, IReadOnlyList<string?> appUrls, CancellationToken cancellationToken)
     {
         // The build-status channel (#603). A failed rebuild leaves the app process DOWN, so the browser
         // sees a socket close and — with nothing else to go on — reports a network problem, offering a
@@ -201,7 +202,7 @@ internal sealed partial class DevCommand(
         //
         // `once` runs a plain `dotnet run` with no watching, so there is no rebuild to report on.
         var watcher = new DevBuildWatcher();
-        using var status = once ? null : DevStatusServer.TryStart(watcher);
+        using var status = once ? null : DevStatusServer.TryStart(watcher, appUrls);
 
         // Overlaid here rather than in BuildEnvironment because the port is only known once the
         // listener is bound, and BuildEnvironment is a pure function the dry run prints.

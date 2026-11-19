@@ -285,7 +285,9 @@ internal sealed partial class DbCommand(
 
         await EnsureDesignPackageAsync(startupProject, cancellationToken).ConfigureAwait(false);
 
-        var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, parsed.HasFlag("yes"), parsed.Passthrough);
+        // A drop that got here was confirmed — by --yes, or by the question above — so EF is not asked to ask again.
+        var confirmed = parsed.HasFlag("yes") || string.Equals(subcommand, "drop", StringComparison.Ordinal);
+        var efArgs = BuildEfArguments(subcommand, name, project, startupProject, parsed.Option("context"), output, confirmed, parsed.Passthrough);
 
         if (parsed.HasFlag("json"))
         {
