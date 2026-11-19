@@ -8,6 +8,7 @@ using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -448,7 +449,7 @@ public sealed partial class ComponentFactoryGenerator
             cast = true;
             foreach (var p in plain)
             {
-                sb.Append(indent).Append("__c.").Append(EscapeIdentifier(p.Name)).Append(" = ")
+                sb.Append(indent).Append("__c.").Append(CSharpNames.Escape(p.Name)).Append(" = ")
                     .Append(p.DefaultLiteral).AppendLine(";");
             }
         }
@@ -471,7 +472,7 @@ public sealed partial class ComponentFactoryGenerator
 
         foreach (var p in callbacks)
         {
-            sb.Append(indent).Append("__c.").Append(EscapeIdentifier(p.Name)).Append(" = ")
+            sb.Append(indent).Append("__c.").Append(CSharpNames.Escape(p.Name)).Append(" = ")
                 .Append(p.DefaultLiteral).AppendLine(";");
         }
     }
@@ -499,7 +500,7 @@ public sealed partial class ComponentFactoryGenerator
         string indent,
         bool derivedSetter)
     {
-        var escaped = EscapeIdentifier(name);
+        var escaped = CSharpNames.Escape(name);
 
         // A prop whose setter DERIVES state has to be assigned even when it already reads as its default,
         // because for that prop "reads as the default" is not the same statement as "the setter has run".
@@ -687,7 +688,7 @@ public sealed partial class ComponentFactoryGenerator
             sb.Append("        var __t = ").Append(cast).AppendLine("__t0;");
             foreach (var (name, typeFqn, bit) in folding)
             {
-                var escaped = EscapeIdentifier(name);
+                var escaped = CSharpNames.Escape(name);
                 sb.Append("        if ((__w & ").Append(MaskLiteral(new[] { bit })).AppendLine(") != 0UL)");
                 sb.AppendLine("        {");
                 if (JoinsClasses(name, typeFqn))
@@ -711,7 +712,7 @@ public sealed partial class ComponentFactoryGenerator
 
             foreach (var name in others)
             {
-                var escaped = EscapeIdentifier(name);
+                var escaped = CSharpNames.Escape(name);
                 sb.Append("        __t.").Append(escaped).Append(" = __f.").Append(escaped).AppendLine(";");
             }
         }

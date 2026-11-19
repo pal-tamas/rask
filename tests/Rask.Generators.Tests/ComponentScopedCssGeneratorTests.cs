@@ -168,6 +168,33 @@ public class ComponentScopedCssGeneratorTests
         Assert.Contains(run.Diagnostics, d => d.Id == "RASK015");
     }
 
+    [Fact]
+    public void A_partial_component_declared_with_its_base_in_two_files_pairs_with_its_CSS_once()
+    {
+        // Each declaration with a base list was a candidate, so the class was "ambiguous" with itself (RASK016).
+        const string first = """
+                             namespace Foo;
+                             public sealed partial class Counter : Rask.Core.Component
+                             {
+                                 protected override Rask.Core.Component? Render() => this;
+                             }
+                             """;
+        const string second = """
+                              namespace Foo;
+                              public sealed partial class Counter : Rask.Core.Component
+                              {
+                                  public int Count { get; set; }
+                              }
+                              """;
+
+        var run = Run(
+            new[] { ("/proj/Counter.cs", first), ("/proj/Counter.State.cs", second) },
+            new[] { ("/proj/Counter.css", ".counter { color: red; }") });
+
+        Assert.DoesNotContain(run.Diagnostics, d => d.Id == "RASK016");
+        Assert.Contains("typeof(global::Foo.Counter)", run.GeneratedSource("__RaskScopedCssRegistration"));
+    }
+
     private static GeneratorRun Run(
         (string Path, string Source)[] sources,
         (string Path, string Contents)[] additionalCss) =>

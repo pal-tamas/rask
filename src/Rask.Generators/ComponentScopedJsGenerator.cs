@@ -260,24 +260,8 @@ public sealed class ComponentScopedJsGenerator : IIncrementalGenerator
         return pairs;
     }
 
-    private static Dictionary<string, List<ComponentInfo>> IndexByDirectoryAndName(ImmutableArray<ComponentInfo> components)
-    {
-        var byDirAndName = new Dictionary<string, List<ComponentInfo>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var c in components)
-        {
-            var dir = NormalizeDirectory(c.FilePath);
-            var key = MakeKey(dir, c.TypeName);
-            if (!byDirAndName.TryGetValue(key, out var list))
-            {
-                list = new List<ComponentInfo>(1);
-                byDirAndName[key] = list;
-            }
-
-            list.Add(c);
-        }
-
-        return byDirAndName;
-    }
+    private static Dictionary<string, List<ComponentInfo>> IndexByDirectoryAndName(ImmutableArray<ComponentInfo> components) =>
+        AssetPairing.Index(components, static c => c.FilePath, static c => c.TypeName, static c => c.FullyQualifiedName);
 
     private static void ReportSimpleNameCollisions(SourceProductionContext spc, List<(ComponentInfo Component, string Js, string SourcePath)> pairs)
     {

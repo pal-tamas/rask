@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -208,7 +209,7 @@ public sealed partial class RoutesGenerator
 
             first = false;
             var paramType = PathParamTypeFqn(rp.Prop, rp.Part.Constraint, rp.Part.Optional);
-            sb.Append(paramType).Append(' ').Append(rp.Prop.Name);
+            sb.Append(paramType).Append(' ').Append(CSharpNames.Escape(rp.Prop.Name));
             if (rp.Part.Optional)
             {
                 sb.Append(" = null");
@@ -224,7 +225,7 @@ public sealed partial class RoutesGenerator
 
             first = false;
             var paramType = qp.IsNullable ? qp.TypeFqn : qp.TypeFqn + "?";
-            sb.Append(paramType).Append(' ').Append(qp.Name).Append(" = null");
+            sb.Append(paramType).Append(' ').Append(CSharpNames.Escape(qp.Name)).Append(" = null");
         }
     }
 
@@ -250,7 +251,7 @@ public sealed partial class RoutesGenerator
                         pendingLiteral.Clear();
                     }
 
-                    var ident = rp.Prop.Name;
+                    var ident = CSharpNames.Escape(rp.Prop.Name);
                     sb.Append(" + (").Append(ident).Append(" is null ? \"\" : \"/\" + ").Append(FormatExpr(ident))
                         .Append(')');
                 }
@@ -263,7 +264,7 @@ public sealed partial class RoutesGenerator
                         pendingLiteral.Clear();
                     }
 
-                    var ident = rp.Prop.Name;
+                    var ident = CSharpNames.Escape(rp.Prop.Name);
                     sb.Append(" + ").Append(FormatExpr(ident));
                 }
             }
@@ -281,7 +282,7 @@ public sealed partial class RoutesGenerator
     {
         foreach (var qp in queryProps)
         {
-            var ident = qp.Name;
+            var ident = CSharpNames.Escape(qp.Name);
             var qpName = qp.QueryParamName ?? qp.Name;
             // URL-encode the query KEY at generation time (the value is encoded at runtime via
             // EncodeExpr). The key is a compile-time constant, so baking the encoded form costs
@@ -312,18 +313,20 @@ public sealed partial class RoutesGenerator
     // out, so a null or empty list writes no key, as an ungiven argument does.
     private static void AppendQueryList(StringBuilder sb, string ident, string encodedKey)
     {
+        // The locals take the bare name: `__element_@event` is no identifier.
+        var local = ident.TrimStart('@');
         sb.Append("        if (").Append(ident).AppendLine(" is not null)");
         sb.AppendLine("        {");
-        sb.Append("            foreach (var __element_").Append(ident).Append(" in ").Append(ident).AppendLine(")");
+        sb.Append("            foreach (var __element_").Append(local).Append(" in ").Append(ident).AppendLine(")");
         sb.AppendLine("            {");
-        sb.Append("                var __text_").Append(ident).Append(" = ").Append(EncodeExpr("__element_" + ident))
+        sb.Append("                var __text_").Append(local).Append(" = ").Append(EncodeExpr("__element_" + local))
             .AppendLine(";");
-        sb.Append("                if (__text_").Append(ident).AppendLine(".Length == 0)");
+        sb.Append("                if (__text_").Append(local).AppendLine(".Length == 0)");
         sb.AppendLine("                {");
         sb.AppendLine("                    continue;");
         sb.AppendLine("                }");
         sb.AppendLine();
-        AppendPair(sb, "                ", encodedKey, "__text_" + ident);
+        AppendPair(sb, "                ", encodedKey, "__text_" + local);
         sb.AppendLine("            }");
         sb.AppendLine("        }");
     }
@@ -399,7 +402,7 @@ public sealed partial class RoutesGenerator
 
             first = false;
             sb.Append(PathParamTypeFqn(rp.Prop, rp.Part.Constraint, rp.Part.Optional)).Append(' ')
-                .Append(rp.Prop.Name);
+                .Append(CSharpNames.Escape(rp.Prop.Name));
             if (rp.Part.Optional)
             {
                 sb.Append(" = null");
@@ -414,7 +417,7 @@ public sealed partial class RoutesGenerator
             }
 
             first = false;
-            sb.Append(qp.IsNullable ? qp.TypeFqn : qp.TypeFqn + "?").Append(' ').Append(qp.Name).Append(" = null");
+            sb.Append(qp.IsNullable ? qp.TypeFqn : qp.TypeFqn + "?").Append(' ').Append(CSharpNames.Escape(qp.Name)).Append(" = null");
         }
     }
 
@@ -430,7 +433,7 @@ public sealed partial class RoutesGenerator
             }
 
             first = false;
-            sb.Append(rp.Prop.Name);
+            sb.Append(CSharpNames.Escape(rp.Prop.Name));
         }
 
         foreach (var qp in queryProps)
@@ -441,7 +444,7 @@ public sealed partial class RoutesGenerator
             }
 
             first = false;
-            sb.Append(qp.Name);
+            sb.Append(CSharpNames.Escape(qp.Name));
         }
     }
 

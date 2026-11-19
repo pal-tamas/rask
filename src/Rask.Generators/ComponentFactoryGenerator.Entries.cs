@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
@@ -225,14 +226,14 @@ public sealed partial class ComponentFactoryGenerator
             EmitEntryDoc(sb, c);
             sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
                 .Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+                .Append(CSharpNames.Escape(name)).Append(" => ").Append(body).AppendLine(";");
 
             foreach (var host2 in new[] { shared, html })
             {
                 EmitEntryDoc(host2, c);
                 host2.Append(c.IsPublic ? "    public static " : "    internal static ")
                     .Append(c.FullyQualifiedName).Append(' ')
-                    .Append(EscapeIdentifier(name)).Append(" => ").Append(body).AppendLine(";");
+                    .Append(CSharpNames.Escape(name)).Append(" => ").Append(body).AppendLine(";");
             }
         }
     }
@@ -241,14 +242,14 @@ public sealed partial class ComponentFactoryGenerator
     {
         EmitEntryDoc(sb, c);
         sb.Append(c.IsPublic ? "    protected static " : "    private protected static ")
-            .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
+            .Append(SeedFqn(c)).Append(' ').Append(CSharpNames.Escape(c.EntryName))
             .AppendLine(" = default;");
 
         foreach (var host2 in new[] { shared, html })
         {
             EmitEntryDoc(host2, c);
             host2.Append(c.IsPublic ? "    public static " : "    internal static ")
-                .Append(SeedFqn(c)).Append(' ').Append(EscapeIdentifier(c.EntryName))
+                .Append(SeedFqn(c)).Append(' ').Append(CSharpNames.Escape(c.EntryName))
                 .AppendLine(" => default;");
         }
     }

@@ -6,6 +6,7 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -212,12 +213,10 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         // entry-built child that has a lifecycle claims its LiveState at build time and the deferred
         // commit can still read "no LiveState" as "not mine to notify" — see OverridesLifecycleHook.
         bool HasLifecycle,
-        // File path + span rather than a Location: Location is not value-equatable, so caching it on
+        // A SymbolLocation rather than a Location: Location is not value-equatable, so caching it on
         // the candidate would defeat the incremental generator's comparison (same reason PropInfo
-        // stores DeclaringFilePath/Span and rebuilds via MakeLocation).
-        string DeclFilePath,
-        int DeclSpanStart,
-        int DeclSpanLength,
+        // stores Declaring and rebuilds via MakeLocation).
+        SymbolLocation? Decl,
         // The component's own <summary>, carried onto every factory that builds it — see
         // EmitMethodHeader. Empty when the component has none, which keeps today's `<see cref>`
         // breadcrumb as the fallback.
@@ -288,9 +287,7 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         bool HasInitializer,
         bool UserMarkedRequired,
         int InheritanceDepth,
-        string DeclaringFilePath,
-        int DeclaringSpanStart,
-        int DeclaringSpanLength,
+        SymbolLocation? Declaring,
         bool IsAutoRerenderDelegate,
         bool IsTypeParameter,
         bool IsBoundInterfaceProp,
@@ -317,6 +314,6 @@ public sealed partial class ComponentFactoryGenerator : IIncrementalGenerator
         string EnumMembers = "")
     {
         // The factory-parameter / property identifier, '@'-escaped when Name is a reserved keyword.
-        public string Escaped => EscapeIdentifier(Name);
+        public string Escaped => CSharpNames.Escape(Name);
     }
 }

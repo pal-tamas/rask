@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -155,9 +156,9 @@ public sealed partial class ComponentFactoryGenerator
             sb.AppendLine(
                 "    [global::System.Diagnostics.DebuggerBrowsable(global::System.Diagnostics.DebuggerBrowsableState.Never)]");
             sb.Append("    ").Append(visibility).Append(" new ").Append(c.FullyQualifiedName).Append(' ')
-                .Append(EscapeIdentifier(member)).Append(" => global::").Append(setterClass).Append('.')
-                .Append(EscapeIdentifier(setter)).Append("(this, ").Append(enumType).Append('.')
-                .Append(EscapeIdentifier(member)).AppendLine(");");
+                .Append(CSharpNames.Escape(member)).Append(" => global::").Append(setterClass).Append('.')
+                .Append(CSharpNames.Escape(setter)).Append("(this, ").Append(enumType).Append('.')
+                .Append(CSharpNames.Escape(member)).AppendLine(");");
         }
 
         sb.AppendLine("}");

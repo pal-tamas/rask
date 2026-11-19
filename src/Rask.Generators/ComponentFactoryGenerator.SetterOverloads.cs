@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -331,8 +332,8 @@ public sealed partial class ComponentFactoryGenerator
             sb.Append("        /// <summary>Sets <c>").Append(setter).Append("</c> to <c>")
                 .Append(member).AppendLine("</c>.</summary>");
             sb.Append("        ").Append(visibility).Append(' ').Append(self).Append(' ')
-                .Append(EscapeIdentifier(member)).Append(" => __b.").Append(EscapeIdentifier(setter))
-                .Append('(').Append(enumType).Append('.').Append(EscapeIdentifier(member)).AppendLine(");");
+                .Append(CSharpNames.Escape(member)).Append(" => __b.").Append(CSharpNames.Escape(setter))
+                .Append('(').Append(enumType).Append('.').Append(CSharpNames.Escape(member)).AppendLine(");");
         }
 
         sb.AppendLine("    }");
@@ -384,11 +385,11 @@ public sealed partial class ComponentFactoryGenerator
         if (generic)
         {
             var self = "T";
-            sb.Append(self).Append(' ').Append(EscapeIdentifier(setterName))
+            sb.Append(self).Append(' ').Append(CSharpNames.Escape(setterName))
                 .Append("<T>").Append("(this ")
                 .Append(self).Append(" __b, ").Append(paramType)
                 .Append(" value) where T : ").Append(receiver);
-            sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+            sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(CSharpNames.Escape(name))
                 .Append(" = ").Append(AddedRule(typeFqn, name, assigned)).AppendLine("; return __b; }");
             EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
                 generic: true);
@@ -399,11 +400,11 @@ public sealed partial class ComponentFactoryGenerator
         }
 
         var target = receiver;
-        sb.Append(target).Append(' ').Append(EscapeIdentifier(setterName))
+        sb.Append(target).Append(' ').Append(CSharpNames.Escape(setterName))
             .Append(typeParameters)
             .Append("(this ").Append(target).Append(" __b, ").Append(paramType).Append(" value)")
             .Append(constraints);
-        sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(EscapeIdentifier(name))
+        sb.Append(" { var __c = __b; ").Append(track).Append("__c.").Append(CSharpNames.Escape(name))
             .Append(" = ").Append(AddedRule(typeFqn, name, assigned)).AppendLine("; return __b; }");
         EmitAttrBagOverloads(sb, setterName, name, typeFqn, receiver, fold, pendingBit, visibility,
             generic: false, typeParameters, constraints);
@@ -427,7 +428,7 @@ public sealed partial class ComponentFactoryGenerator
         StringBuilder sb, string setterName, string typeFqn, string self, string typeArgs, string where,
         string visibility)
     {
-        var escaped = EscapeIdentifier(setterName);
+        var escaped = CSharpNames.Escape(setterName);
         if (typeFqn is "bool" or "bool?")
         {
             sb.Append("    /// <summary>Sets <c>").Append(setterName).AppendLine("</c> to <c>true</c>.</summary>");
@@ -525,7 +526,7 @@ public sealed partial class ComponentFactoryGenerator
         // when its Render() returns (Component.RenderForLive). Same EqualityComparer semantics, and the
         // non-folding props (Key, delegates) emit no call at all — see FoldsIntoPropsChanged.
         var track = fold
-            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + EscapeIdentifier(name) + ", value); "
+            ? "global::Rask.Core.BuilderRuntime.Track(__c, __c." + CSharpNames.Escape(name) + ", value); "
             : string.Empty;
 
         // …and the other half: the chain NAMED this prop, so the deferred reset must leave it alone.
@@ -563,7 +564,7 @@ public sealed partial class ComponentFactoryGenerator
     {
         var mask = pendingBit >= 0 ? MaskLiteral(new[] { pendingBit }) : "0UL";
         var track = "var __v = global::Rask.Core.BuilderRuntime.JoinClass(__c, " + mask + ", __c."
-                    + EscapeIdentifier(name) + ", value); ";
+                    + CSharpNames.Escape(name) + ", value); ";
         return (track, "__v");
     }
 
@@ -573,7 +574,7 @@ public sealed partial class ComponentFactoryGenerator
     private static string AddedRule(string typeFqn, string property, string value) =>
         typeFqn.StartsWith(ValidatorFqn + "<", StringComparison.Ordinal) && typeFqn.EndsWith("?", StringComparison.Ordinal)
             ? "global::Rask.Core.BuilderRuntime.Then<" + typeFqn.Substring(ValidatorFqn.Length + 1, typeFqn.Length - ValidatorFqn.Length - 3)
-              + ">(__c." + EscapeIdentifier(property) + ", " + value + ")"
+              + ">(__c." + CSharpNames.Escape(property) + ", " + value + ")"
             : value;
 
     private const string CallbackFqn = "global::Rask.Core.Callback";
@@ -729,8 +730,8 @@ public sealed partial class ComponentFactoryGenerator
             return;
         }
 
-        var escaped = EscapeIdentifier(setterName);
-        var prop = EscapeIdentifier(propertyName);
+        var escaped = CSharpNames.Escape(setterName);
+        var prop = CSharpNames.Escape(propertyName);
         var carrier = typeFqn.EndsWith("?", StringComparison.Ordinal)
             ? typeFqn.Substring(0, typeFqn.Length - 1)
             : typeFqn;
@@ -851,8 +852,8 @@ public sealed partial class ComponentFactoryGenerator
             return;
         }
 
-        var escaped = EscapeIdentifier(setterName);
-        var prop = EscapeIdentifier(propertyName);
+        var escaped = CSharpNames.Escape(setterName);
+        var prop = CSharpNames.Escape(propertyName);
 
         // The same bookkeeping the dictionary setter does, but written against `__bag`: the caller's
         // `track` string names a local `value`, which is this overload's own parameter name.

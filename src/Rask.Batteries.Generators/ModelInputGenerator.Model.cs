@@ -440,7 +440,7 @@ public sealed partial class ModelInputGenerator
                 property.OriginalDefinition.Type.ToDisplayString(TypeFormat),
                 string.Join(", ", definition.TypeParameters.Select(static t => t.Name)),
                 string.Join(", ", declaring.TypeArguments.Select(static t => t.ToDisplayString(TypeFormat))),
-                ConstraintClauses(definition.TypeParameters),
+                TypeConstraints.Clauses(definition.TypeParameters),
                 byRef);
         }
 
@@ -453,52 +453,6 @@ public sealed partial class ModelInputGenerator
             null,
             "",
             byRef);
-    }
-
-    // Every constraint, in the order C# requires: the primary one (class, struct, unmanaged, notnull), the
-    // types — which may name other type parameters of the same declaration — then new(), then allows ref struct.
-    private static string ConstraintClauses(ImmutableArray<ITypeParameterSymbol> typeParameters)
-    {
-        var clauses = new StringBuilder();
-        foreach (var parameter in typeParameters)
-        {
-            var parts = new List<string>();
-            if (parameter.HasReferenceTypeConstraint)
-            {
-                parts.Add(parameter.ReferenceTypeConstraintNullableAnnotation == NullableAnnotation.Annotated ? "class?" : "class");
-            }
-            else if (parameter.HasUnmanagedTypeConstraint)
-            {
-                parts.Add("unmanaged");
-            }
-            else if (parameter.HasValueTypeConstraint)
-            {
-                parts.Add("struct");
-            }
-            else if (parameter.HasNotNullConstraint)
-            {
-                parts.Add("notnull");
-            }
-
-            parts.AddRange(parameter.ConstraintTypes.Select(static t => t.ToDisplayString(TypeFormat)));
-
-            if (parameter.HasConstructorConstraint)
-            {
-                parts.Add("new()");
-            }
-
-            if (parameter.AllowsRefLikeType)
-            {
-                parts.Add("allows ref struct");
-            }
-
-            if (parts.Count > 0)
-            {
-                clauses.Append(" where ").Append(parameter.Name).Append(" : ").Append(string.Join(", ", parts));
-            }
-        }
-
-        return clauses.ToString();
     }
 
     // Converted once per value object, so every use of one shares the same record.

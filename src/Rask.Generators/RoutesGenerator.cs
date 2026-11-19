@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 
 namespace Rask.Generators;
 
@@ -61,7 +62,7 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
                 pair.Left.GlobalOptions.TryGetValue("build_property.RootNamespace", out var root)
                 && !string.IsNullOrWhiteSpace(root)
                     ? root.Trim()
-                    : SanitizeNamespace(pair.Right));
+                    : CSharpNames.Namespace(pair.Right));
 
         var grouped = candidates.Collect().Combine(supportsExtensionMembers).Combine(rootNamespace);
         context.RegisterSourceOutput(grouped,
@@ -169,38 +170,14 @@ public sealed partial class RoutesGenerator : IIncrementalGenerator
         bool IsRouteParam,
         LocationInfo Location);
 
-    internal readonly record struct LocationInfo
+    // The line and column travel too: a location rebuilt from a span alone reports every diagnostic at 1,1.
+    internal readonly record struct LocationInfo(SymbolLocation? At)
     {
-        private readonly string? _filePath;
-        private readonly int _length;
-        private readonly int _start;
-
         public LocationInfo(Location? loc)
+            : this(SymbolLocation.From(loc))
         {
-            if (loc is null || loc == Location.None || loc.SourceTree is null)
-            {
-                _filePath = null;
-                _start = 0;
-                _length = 0;
-                return;
-            }
-
-            _filePath = loc.SourceTree.FilePath;
-            _start = loc.SourceSpan.Start;
-            _length = loc.SourceSpan.Length;
         }
 
-        public Location ToLocation()
-        {
-            if (string.IsNullOrEmpty(_filePath))
-            {
-                return Location.None;
-            }
-
-            return Location.Create(
-                _filePath!,
-                new TextSpan(_start, _length),
-                new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
-        }
+        public Location ToLocation() => At?.ToLocation() ?? Location.None;
     }
 }

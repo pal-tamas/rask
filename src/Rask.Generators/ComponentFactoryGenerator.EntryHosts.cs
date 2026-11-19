@@ -8,6 +8,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
+using Rask.Generators.Shared;
 using static Rask.Generators.ComponentSymbols;
 
 namespace Rask.Generators;
@@ -232,7 +233,7 @@ public sealed partial class ComponentFactoryGenerator
                 {
                     EmitEntryDoc(sb, c);
                     sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
-                        .Append(EscapeIdentifier(c.EntryName)).AppendLine(" => default;");
+                        .Append(CSharpNames.Escape(c.EntryName)).AppendLine(" => default;");
                 }
 
                 continue;
@@ -245,7 +246,7 @@ public sealed partial class ComponentFactoryGenerator
             {
                 EmitEntryDoc(sb, c);
                 sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
-                    .Append(' ').Append(EscapeIdentifier(name)).Append(" => ")
+                    .Append(' ').Append(CSharpNames.Escape(name)).Append(" => ")
                     .Append(EntryBody(c, tag, host.AssemblyName)).AppendLine(";");
             }
         }
@@ -347,12 +348,12 @@ public sealed partial class ComponentFactoryGenerator
             if (NeedsSeed(c))
             {
                 sb.Append("    ").Append(visibility).Append(" static ").Append(SeedFqn(c)).Append(' ')
-                    .Append(EscapeIdentifier(byMember.Key)).AppendLine(" => default;");
+                    .Append(CSharpNames.Escape(byMember.Key)).AppendLine(" => default;");
                 continue;
             }
 
             sb.Append("    ").Append(visibility).Append(" static ").Append(c.FullyQualifiedName)
-                .Append(' ').Append(EscapeIdentifier(byMember.Key)).Append(" => ").Append(runtime)
+                .Append(' ').Append(CSharpNames.Escape(byMember.Key)).Append(" => ").Append(runtime)
                 .Append(EntryMethod(c)).Append(c.FullyQualifiedName).Append(">(");
             EmitResetArguments(sb, c, assemblyName);
             sb.AppendLine(");");
@@ -505,9 +506,9 @@ public sealed partial class ComponentFactoryGenerator
         // without the forwarder at all the tag would quietly win instead and the markup would render the
         // wrong element with a green build.
         sb.Append("    private static ").Append(hidesInheritedEntry ? "new " : string.Empty)
-            .Append(returnType).Append(' ').Append(EscapeIdentifier(e.Name))
+            .Append(returnType).Append(' ').Append(CSharpNames.Escape(e.Name))
             .Append(typeParameters).Append(parameters).Append(constraints).Append(" => ").Append(e.HostFqn)
-            .Append('.').Append(EscapeIdentifier(e.Name)).Append(typeParameters).Append(e.Arguments)
+            .Append('.').Append(CSharpNames.Escape(e.Name)).Append(typeParameters).Append(e.Arguments)
             .AppendLine(";");
     }
 
@@ -626,8 +627,8 @@ public sealed partial class ComponentFactoryGenerator
 
             var p = m.Parameters[i];
             parameters.Append(DisplayTypeName(p.Type, FullyQualifiedNullable, compilation)).Append(' ')
-                .Append(EscapeIdentifier(p.Name));
-            arguments.Append(EscapeIdentifier(p.Name));
+                .Append(CSharpNames.Escape(p.Name));
+            arguments.Append(CSharpNames.Escape(p.Name));
         }
 
         return new EntryRef(
@@ -635,7 +636,7 @@ public sealed partial class ComponentFactoryGenerator
             m.Name,
             DisplayTypeName(m.ReturnType, FullyQualifiedNullable, compilation),
             typeParameters,
-            BuildConstraintsClause(m.TypeParameters),
+            TypeConstraints.Clauses(m.TypeParameters),
             parameters.Append(')').ToString(),
             arguments.Append(')').ToString());
     }
@@ -668,21 +669,9 @@ public sealed partial class ComponentFactoryGenerator
             _ => "Entry<",
         };
 
-    private static Location MakeDeclLocation(Candidate c) =>
-        string.IsNullOrEmpty(c.DeclFilePath)
-            ? Location.None
-            : Location.Create(
-                c.DeclFilePath,
-                new TextSpan(c.DeclSpanStart, c.DeclSpanLength),
-                new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
+    private static Location MakeDeclLocation(Candidate c) => c.Decl?.ToLocation() ?? Location.None;
 
-    private static Location MakeDeclLocation(EntryHostDecl h) =>
-        string.IsNullOrEmpty(h.DeclFilePath)
-            ? Location.None
-            : Location.Create(
-                h.DeclFilePath,
-                new TextSpan(h.DeclSpanStart, h.DeclSpanLength),
-                new LinePositionSpan(new LinePosition(0, 0), new LinePosition(0, 0)));
+    private static Location MakeDeclLocation(EntryHostDecl h) => h.Decl?.ToLocation() ?? Location.None;
 
     // Every type in this compilation that entries are injected INTO: the concrete components (which also
     // have an entry of their own) plus the abstract component bases (which never can). One per TYPE — a
@@ -700,7 +689,7 @@ public sealed partial class ComponentFactoryGenerator
         foreach (var c in candidates)
         {
             all.Add(new EntryHostDecl(c.FullyQualifiedName, c.Namespace, c.TypeName, c.TypeParameters,
-                c.IsPartial, c.IsNested, c.DeclFilePath, c.DeclSpanStart, c.DeclSpanLength,
+                c.IsPartial, c.IsNested, c.Decl,
                 MemberNames: c.MemberNames,
                 EnclosingTypes: c.EnclosingTypes,
                 EnclosingAllPartial: c.EnclosingAllPartial));
@@ -779,9 +768,7 @@ public sealed partial class ComponentFactoryGenerator
                 : string.Empty,
             classDecl.Modifiers.Any(SyntaxKind.PartialKeyword),
             symbol.ContainingType is not null,
-            classDecl.Identifier.GetLocation().SourceTree?.FilePath ?? string.Empty,
-            classDecl.Identifier.Span.Start,
-            classDecl.Identifier.Span.Length,
+            SymbolLocation.From(classDecl.Identifier.GetLocation()),
             symbol.IsStatic,
             delivery,
             ReachableMemberNames(symbol),
@@ -943,9 +930,7 @@ public sealed partial class ComponentFactoryGenerator
         string TypeParameters,
         bool IsPartial,
         bool IsNested,
-        string DeclFilePath,
-        int DeclSpanStart,
-        int DeclSpanLength,
+        SymbolLocation? Decl,
         bool IsStatic = false,
         Delivery Delivery = Delivery.Inherited,
         EquatableArray<string> MemberNames = default,
