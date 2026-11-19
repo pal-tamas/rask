@@ -61,6 +61,8 @@ import { tellIfHidden } from "../../Rask.Core/Resources/rask-visibility.js";
 
 import "../../Rask.Core/Resources/rask-api.js";
 import "../../Rask.Core/Resources/rask-events.js";
+// Before the connection opens, which is a request that carries it: the reader's time zone (Reader.TimeZone).
+import "../../Rask.Core/Resources/rask-zone.js";
 import { loadHooksOnDemand } from "../../Rask.Core/Resources/rask-hook-loader.js";
 import { mayLeave } from "../../Rask.Core/Resources/rask-owned.js";
 import { answered, awaiting, BUSY_MARK, holdsUnsaved, tell, unasked } from "../../Rask.Core/Resources/rask-owned.js";

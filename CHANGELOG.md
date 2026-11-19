@@ -8,6 +8,15 @@ them until tagged releases begin.
 ## [Unreleased]
 
 ### Added
+- **`Reader` — the reader's time zone, their today, and the address they connect from.** Before: a page knew the app's
+  zone (`Clock.Zone`) and nothing of the reader's, so "today" in a calendar was the server's, and a login throttle had
+  no supported way to read the live session's client address. After: inject `Reader` (`Current.Service<Reader>()`
+  outside a component). `TimeZone`/`Now`/`Today` are the reader's: the server runtime keeps the browser's IANA zone in a
+  `rask-tz` cookie before it connects, every live connection and request carries it, and `Clock.Zone` stands in until it
+  has (`KnowsTimeZone`). `Address` is the client's as the host sees it (after `Rask:BehindProxy`'s ForwardedHeaders),
+  per live session from its current connection; `Network` (and `Reader.NetworkOf(ip)`) is what to count it by — IPv4 as
+  it is, IPv6 by its `/64`. One per live session, one per plain request; in a browser app, the browser's zone and no
+  address.
 - **`Ui.PageHeader.Beside(component)` puts a badge on the title's line (#1372).** Before: a page whose title carries a
   status gave up the page header and hand-built `Div.Class("flex items-center gap-2")[Ui.Heading.Level(1).Xl["…"],
   Ui.Badge…]`. After: `Ui.PageHeader.Heading("Gázolaj visszaigénylés").Beside(Ui.Badge.Green["Beadva"])` — the

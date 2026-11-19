@@ -19886,3 +19886,11 @@ Rask.Core.Globalization.RaskString.WorkBatchFailed = 274 -> Rask.Core.Globalizat
 Rask.Core.Globalization.RaskString.WorkBatchDone = 272 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkBatchWarned = 273 -> Rask.Core.Globalization.RaskString
 Rask.Core.Globalization.RaskString.WorkBatchStopped = 275 -> Rask.Core.Globalization.RaskString
+Rask.Core.Reader
+Rask.Core.Reader.Address.get -> System.Net.IPAddress?
+Rask.Core.Reader.KnowsTimeZone.get -> bool
+Rask.Core.Reader.Network.get -> string!
+Rask.Core.Reader.Now.get -> System.DateTimeOffset
+Rask.Core.Reader.TimeZone.get -> System.TimeZoneInfo!
+Rask.Core.Reader.Today.get -> System.DateOnly
+static Rask.Core.Reader.NetworkOf(System.Net.IPAddress? address) -> string!
